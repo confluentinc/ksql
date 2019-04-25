@@ -55,6 +55,7 @@ import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.QueuedQueryMetadata;
@@ -75,6 +76,7 @@ import java.util.function.Consumer;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.StreamingOutput;
+import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KeyValue;
@@ -95,6 +97,9 @@ public class StreamedQueryResourceTest {
 
   private static final Duration DISCONNECT_CHECK_INTERVAL = Duration.ofMillis(1000);
   private static final Duration COMMAND_QUEUE_CATCHUP_TIMOEUT = Duration.ofMillis(1000);
+  private static final Schema SOME_SCHEMA = SchemaBuilder.struct()
+      .field("f1", SchemaBuilder.OPTIONAL_INT32_SCHEMA)
+      .build();
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -286,7 +291,9 @@ public class StreamedQueryResourceTest {
         new QueuedQueryMetadata(
             queryString,
             mockKafkaStreams,
-            mockOutputNode,
+            SOME_SCHEMA,
+            Collections.emptySet(),
+            limitHandler -> {},
             "",
             rowQueue,
             DataSource.DataSourceType.KSTREAM,
@@ -296,9 +303,7 @@ public class StreamedQueryResourceTest {
             Collections.emptyMap(),
             queryCloseCallback);
     reset(mockOutputNode);
-    expect(mockOutputNode.getSchema())
-        .andReturn(SchemaBuilder.struct().field("f1", SchemaBuilder.OPTIONAL_INT32_SCHEMA));
-    expect(mockKsqlEngine.execute(statement, ksqlConfig, requestStreamsProperties))
+    expect(mockKsqlEngine.execute(ConfiguredStatement.of(statement, requestStreamsProperties, ksqlConfig)))
         .andReturn(ExecuteResult.of(queuedQueryMetadata));
 
     expect(mockKsqlEngine.isAcceptingStatements()).andReturn(true);

@@ -16,27 +16,35 @@
 package io.confluent.ksql.util;
 
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.planner.plan.OutputNode;
+import io.confluent.ksql.physical.LimitHandler;
 import io.confluent.ksql.serde.DataSource;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
+import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.Topology;
 
+/**
+ * Metadata of a transient query, e.g. {@code SELECT * FROM FOO;}.
+ */
 public class QueuedQueryMetadata extends QueryMetadata {
 
   private final BlockingQueue<KeyValue<String, GenericRow>> rowQueue;
   private final AtomicBoolean isRunning = new AtomicBoolean(true);
+  private final Consumer<LimitHandler> limitHandlerSetter;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   public QueuedQueryMetadata(
       final String statementString,
       final KafkaStreams kafkaStreams,
-      final OutputNode outputNode,
+      final Schema resultSchema,
+      final Set<String> sourceNames,
+      final Consumer<LimitHandler> limitHandlerSetter,
       final String executionPlan,
       final BlockingQueue<KeyValue<String, GenericRow>> rowQueue,
       final DataSource.DataSourceType dataSourceType,
@@ -49,15 +57,18 @@ public class QueuedQueryMetadata extends QueryMetadata {
     super(
         statementString,
         kafkaStreams,
-        outputNode,
+        resultSchema,
+        sourceNames,
         executionPlan,
         dataSourceType,
         queryApplicationId,
         topology,
         streamsProperties,
         overriddenProperties,
-        closeCallback);
-    this.rowQueue = Objects.requireNonNull(rowQueue, "rowQueue"); 
+        closeCallback
+    );
+    this.limitHandlerSetter = Objects.requireNonNull(limitHandlerSetter, "limitHandlerSetter");
+    this.rowQueue = Objects.requireNonNull(rowQueue, "rowQueue");
   }
 
   public boolean isRunning() {
@@ -84,8 +95,8 @@ public class QueuedQueryMetadata extends QueryMetadata {
     return Objects.hash(rowQueue, super.hashCode());
   }
 
-  public void setLimitHandler(final OutputNode.LimitHandler limitHandler) {
-    getOutputNode().setLimitHandler(limitHandler);
+  public void setLimitHandler(final LimitHandler limitHandler) {
+    limitHandlerSetter.accept(limitHandler);
   }
 
   @Override
@@ -93,5 +104,4 @@ public class QueuedQueryMetadata extends QueryMetadata {
     super.close();
     isRunning.set(false);
   }
-
 }

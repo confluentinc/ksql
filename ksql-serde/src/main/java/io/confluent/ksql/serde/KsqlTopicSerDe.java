@@ -15,15 +15,17 @@
 
 package io.confluent.ksql.serde;
 
+import com.google.errorprone.annotations.Immutable;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.util.KsqlConfig;
+import java.util.Objects;
 import java.util.function.Supplier;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Schema;
 
-
+@Immutable
 public abstract class KsqlTopicSerDe {
 
   private final DataSource.DataSourceSerDe serDe;
@@ -39,8 +41,24 @@ public abstract class KsqlTopicSerDe {
   public abstract Serde<GenericRow> getGenericRowSerde(
       Schema schemaMaybeWithSource,
       KsqlConfig ksqlConfig,
-      boolean isInternal,
       Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
       String loggerNamePrefix,
       ProcessingLogContext processingLogContext);
+
+  @Override
+  public boolean equals(final Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (!(o instanceof KsqlTopicSerDe)) {
+      return false;
+    }
+    final KsqlTopicSerDe that = (KsqlTopicSerDe) o;
+    return serDe == that.serDe;
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(serDe);
+  }
 }

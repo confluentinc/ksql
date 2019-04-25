@@ -15,11 +15,14 @@
 
 package io.confluent.ksql;
 
+import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.schema.inference.DefaultSchemaInjector;
+import io.confluent.ksql.statement.InjectorChain;
+import io.confluent.ksql.topic.DefaultTopicInjector;
 import io.confluent.ksql.schema.inference.SchemaRegistryTopicSchemaSupplier;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.KafkaTopicClientImpl;
@@ -70,8 +73,12 @@ public final class KsqlContextTestUtil {
 
     final DefaultSchemaInjector schemaInjector = new DefaultSchemaInjector(
         new SchemaRegistryTopicSchemaSupplier(serviceContext.getSchemaRegistryClient()));
-
-    return new KsqlContext(serviceContext, ksqlConfig, engine, schemaInjector);
+    return new KsqlContext(
+        serviceContext,
+        ksqlConfig,
+        engine,
+        (ec, sc) -> InjectorChain.of(schemaInjector, new DefaultTopicInjector(ec))
+    );
   }
 
   public static KsqlConfig createKsqlConfig(final EmbeddedSingleNodeKafkaCluster kafkaCluster) {
@@ -82,7 +89,11 @@ public final class KsqlContextTestUtil {
       final EmbeddedSingleNodeKafkaCluster kafkaCluster,
       final Map<String, Object> additionalConfig
   ) {
-    return createKsqlConfig(kafkaCluster.bootstrapServers(), additionalConfig);
+    final ImmutableMap<String, Object> config = ImmutableMap.<String, Object>builder()
+        .putAll(kafkaCluster.getClientProperties())
+        .putAll(additionalConfig)
+        .build();
+    return createKsqlConfig(kafkaCluster.bootstrapServers(), config);
   }
 
   public static KsqlConfig createKsqlConfig(

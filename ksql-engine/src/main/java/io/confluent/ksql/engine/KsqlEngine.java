@@ -30,16 +30,16 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.ExecutableDdlStatement;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QueryContainer;
+import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.registry.SchemaRegistryUtil;
 import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryIdGenerator;
 import io.confluent.ksql.util.QueryMetadata;
 import java.io.Closeable;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -114,11 +114,6 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   }
 
   @Override
-  public int numberOfPersistentQueries() {
-    return primaryContext.numberOfPersistentQueries();
-  }
-
-  @Override
   public Optional<PersistentQueryMetadata> getPersistentQuery(final QueryId queryId) {
     return primaryContext.getPersistentQuery(queryId);
   }
@@ -134,6 +129,11 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   @Override
   public MetaStore getMetaStore() {
     return primaryContext.getMetaStore();
+  }
+
+  @Override
+  public ServiceContext getServiceContext() {
+    return serviceContext;
   }
 
   public DdlCommandExec getDdlCommandExec() {
@@ -169,12 +169,10 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
 
   @Override
   public ExecuteResult execute(
-      final PreparedStatement<?> statement,
-      final KsqlConfig ksqlConfig,
-      final Map<String, Object> overriddenProperties
+      final ConfiguredStatement<?> statement
   ) {
     final ExecuteResult result = EngineExecutor
-        .create(primaryContext, ksqlConfig, overriddenProperties)
+        .create(primaryContext, statement.getConfig(), statement.getOverrides())
         .execute(statement);
 
     result.getQuery().ifPresent(this::registerQuery);
@@ -195,10 +193,10 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
    * @param statement the statement to test.
    * @return {@code true} if the engine can execute the statement, {@code false} otherwise
    */
-  public static boolean isExecutableStatement(final PreparedStatement<?> statement) {
-    return statement.getStatement() instanceof ExecutableDdlStatement
-        || statement.getStatement() instanceof QueryContainer
-        || statement.getStatement() instanceof Query;
+  public static boolean isExecutableStatement(final Statement statement) {
+    return statement instanceof ExecutableDdlStatement
+        || statement instanceof QueryContainer
+        || statement instanceof Query;
   }
 
   private void registerQuery(final QueryMetadata query) {

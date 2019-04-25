@@ -170,7 +170,7 @@ setting in the file and verify it is set correctly.
 
 .. code:: text
 
-    listeners=http://localhost:8088
+    listeners=http://0.0.0.0:8088
 
 See :ref:`Starting KSQL Server <start_ksql-server>` for more information.
 

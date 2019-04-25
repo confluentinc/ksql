@@ -18,6 +18,8 @@ package io.confluent.ksql.ddl.commands;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.SerdeFactory;
+import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.StringLiteral;
@@ -34,8 +36,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
+import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.kstream.Windowed;
@@ -47,20 +49,20 @@ import org.apache.kafka.streams.kstream.WindowedSerdes;
  */
 abstract class AbstractCreateStreamCommand implements DdlCommand {
 
-  private static final Map<String, Serde<Windowed<String>>> WINDOW_TYPES = ImmutableMap.of(
-      "SESSION", WindowedSerdes.sessionWindowedSerdeFrom(String.class),
-      "TUMBLING", WindowedSerdes.timeWindowedSerdeFrom(String.class),
-      "HOPPING", WindowedSerdes.timeWindowedSerdeFrom(String.class)
+  private static final Map<String, SerdeFactory<Windowed<String>>> WINDOW_TYPES = ImmutableMap.of(
+      "SESSION", () -> WindowedSerdes.sessionWindowedSerdeFrom(String.class),
+      "TUMBLING", () -> WindowedSerdes.timeWindowedSerdeFrom(String.class),
+      "HOPPING", () -> WindowedSerdes.timeWindowedSerdeFrom(String.class)
   );
 
   final String sqlExpression;
   final String sourceName;
   final String topicName;
   final Schema schema;
-  final String keyColumnName;
+  final KeyField keyField;
   final RegisterTopicCommand registerTopicCommand;
   private final KafkaTopicClient kafkaTopicClient;
-  final Serde<?> keySerde;
+  final SerdeFactory<?> keySerdeFactory;
   final TimestampExtractionPolicy timestampExtractionPolicy;
 
   AbstractCreateStreamCommand(
@@ -72,7 +74,6 @@ abstract class AbstractCreateStreamCommand implements DdlCommand {
     this.sourceName = statement.getName().getSuffix();
     this.kafkaTopicClient = kafkaTopicClient;
 
-    // TODO: get rid of toUpperCase in following code
     final Map<String, Expression> properties = statement.getProperties();
     validateWithClause(properties.keySet());
 
@@ -93,16 +94,16 @@ abstract class AbstractCreateStreamCommand implements DdlCommand {
     if (properties.containsKey(DdlConfig.KEY_NAME_PROPERTY)) {
       final String name = properties.get(DdlConfig.KEY_NAME_PROPERTY).toString().toUpperCase();
 
-      this.keyColumnName = StringUtil.cleanQuotes(name);
-      if (!SchemaUtil.getFieldByName(this.schema, keyColumnName).isPresent()) {
-        throw new KsqlException(String.format(
+      final String keyFieldName = StringUtil.cleanQuotes(name);
+      final Field keyField = SchemaUtil.getFieldByName(schema, keyFieldName)
+          .orElseThrow(() -> new KsqlException(
             "No column with the provided key column name in the WITH "
-            + "clause, %s, exists in the defined schema.",
-            keyColumnName
-        ));
-      }
+                + "clause, " + keyFieldName + ", exists in the defined schema."
+          ));
+
+      this.keyField = KeyField.of(keyFieldName, keyField);
     } else {
-      this.keyColumnName = "";
+      this.keyField = KeyField.none();
     }
 
     final String timestampName = properties.containsKey(DdlConfig.TIMESTAMP_NAME_PROPERTY)
@@ -115,7 +116,7 @@ abstract class AbstractCreateStreamCommand implements DdlCommand {
         timestampName,
         timestampFormat);
 
-    this.keySerde = extractKeySerde(properties);
+    this.keySerdeFactory = extractKeySerde(properties);
   }
 
   private static void checkTopicNameNotNull(final Map<String, Expression> properties) {
@@ -125,7 +126,7 @@ abstract class AbstractCreateStreamCommand implements DdlCommand {
     }
   }
 
-  private static SchemaBuilder getStreamTableSchema(final List<TableElement> tableElements) {
+  private static Schema getStreamTableSchema(final List<TableElement> tableElements) {
     if (tableElements.isEmpty()) {
       throw new KsqlException("The statement does not define any columns.");
     }
@@ -146,7 +147,7 @@ abstract class AbstractCreateStreamCommand implements DdlCommand {
       );
     }
 
-    return tableSchema;
+    return tableSchema.build();
   }
 
   static void checkMetaData(
@@ -204,7 +205,7 @@ abstract class AbstractCreateStreamCommand implements DdlCommand {
     }
   }
 
-  private static Serde<?> extractKeySerde(
+  private static SerdeFactory<?> extractKeySerde(
       final Map<String, Expression> properties
   ) {
     final String windowType = StringUtil.cleanQuotes(properties
@@ -213,10 +214,10 @@ abstract class AbstractCreateStreamCommand implements DdlCommand {
         .toUpperCase());
 
     if (windowType.isEmpty()) {
-      return Serdes.String();
+      return (SerdeFactory) Serdes::String;
     }
 
-    final Serde<Windowed<String>> type = WINDOW_TYPES.get(windowType);
+    final SerdeFactory<Windowed<String>> type = WINDOW_TYPES.get(windowType);
     if (type != null) {
       return type;
     }

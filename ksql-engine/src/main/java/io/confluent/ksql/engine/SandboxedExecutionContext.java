@@ -21,16 +21,18 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.Sandbox;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 /**
  * An execution context that can execute statements without changing the core engine's state
  * or the state of external services.
  */
+@Sandbox
 final class SandboxedExecutionContext implements KsqlExecutionContext {
 
   private final EngineContext engineContext;
@@ -45,13 +47,13 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
   }
 
   @Override
-  public KsqlExecutionContext createSandbox() {
-    return new SandboxedExecutionContext(engineContext);
+  public ServiceContext getServiceContext() {
+    return engineContext.getServiceContext();
   }
 
   @Override
-  public int numberOfPersistentQueries() {
-    return engineContext.numberOfPersistentQueries();
+  public KsqlExecutionContext createSandbox() {
+    return new SandboxedExecutionContext(engineContext);
   }
 
   @Override
@@ -76,12 +78,10 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
 
   @Override
   public ExecuteResult execute(
-      final PreparedStatement<?> statement,
-      final KsqlConfig ksqlConfig,
-      final Map<String, Object> overriddenProperties
+      final ConfiguredStatement<?> statement
   ) {
     final EngineExecutor executor = EngineExecutor
-        .create(engineContext, ksqlConfig, overriddenProperties);
+        .create(engineContext, statement.getConfig(), statement.getOverrides());
 
     return executor.execute(statement);
   }

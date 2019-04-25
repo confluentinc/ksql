@@ -19,16 +19,18 @@ import static io.confluent.ksql.planner.plan.PlanTestUtil.verifyProcessorNode;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.physical.KsqlQueryBuilder;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.services.TestServiceContext;
+import io.confluent.ksql.structured.QueryContext;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.testutils.AnalysisTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
@@ -44,10 +46,13 @@ import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.TopologyDescription;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
+@RunWith(MockitoJUnitRunner.class)
 public class KsqlBareOutputNodeTest {
 
   private static final String SOURCE_NODE = "KSTREAM-SOURCE-0000000000";
@@ -55,23 +60,31 @@ public class KsqlBareOutputNodeTest {
   private static final String TRANSFORM_NODE = "KSTREAM-TRANSFORMVALUES-0000000002";
   private static final String FILTER_NODE = "KSTREAM-FILTER-0000000003";
   private static final String FILTER_MAPVALUES_NODE = "KSTREAM-MAPVALUES-0000000004";
-  private static final String FOREACH_NODE = "KSTREAM-FOREACH-0000000005";
+  private static final String SIMPLE_SELECT_WITH_FILTER = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
+
   private SchemaKStream stream;
   private StreamsBuilder builder;
   private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
-  private ServiceContext serviceContext;
   private final QueryId queryId = new QueryId("output-test");
+
+  @Mock
+  private KsqlQueryBuilder ksqlStreamBuilder;
 
   @Before
   public void before() {
     builder = new StreamsBuilder();
-    serviceContext = TestServiceContext.create();
-    stream = build();
-  }
 
-  @After
-  public void tearDown() {
-    serviceContext.close();
+    when(ksqlStreamBuilder.getKsqlConfig()).thenReturn(new KsqlConfig(Collections.emptyMap()));
+    when(ksqlStreamBuilder.getStreamsBuilder()).thenReturn(builder);
+    when(ksqlStreamBuilder.getProcessingLogContext()).thenReturn(ProcessingLogContext.create());
+    when(ksqlStreamBuilder.buildNodeContext(any())).thenAnswer(inv ->
+        new QueryContext.Stacker(queryId)
+            .push(inv.getArgument(0).toString()));
+
+    final KsqlBareOutputNode planNode = (KsqlBareOutputNode) AnalysisTestUtil
+        .buildLogicalPlan(SIMPLE_SELECT_WITH_FILTER, metaStore);
+
+    stream = planNode.buildStream(ksqlStreamBuilder);
   }
 
   @Test
@@ -103,18 +116,6 @@ public class KsqlBareOutputNodeTest {
   }
 
   @Test
-  public void shouldBuildMapValuesNode() {
-    final TopologyDescription.Processor node = (TopologyDescription.Processor) getNodeByName(FILTER_MAPVALUES_NODE);
-    verifyProcessorNode(node, Collections.singletonList(FILTER_NODE), Collections.singletonList(FOREACH_NODE));
-  }
-
-  @Test
-  public void shouldBuildForEachNode() {
-    final TopologyDescription.Processor node = (TopologyDescription.Processor) getNodeByName(FOREACH_NODE);
-    verifyProcessorNode(node, Collections.singletonList(FILTER_MAPVALUES_NODE), Collections.emptyList());
-  }
-
-  @Test
   public void shouldCreateCorrectSchema() {
     final Schema schema = stream.getSchema();
     assertThat(schema.fields(), equalTo(Arrays.asList(new Field("COL0", 0, Schema.OPTIONAL_INT64_SCHEMA),
@@ -133,7 +134,7 @@ public class KsqlBareOutputNodeTest {
     // When:
     final Set<QueryId> ids = IntStream.range(0, 100)
         .mapToObj(i -> node.getQueryId(queryIdGenerator))
-        .collect(Collectors.toSet());;
+        .collect(Collectors.toSet());
 
     // Then:
     assertThat(ids.size(), equalTo(100));
@@ -145,21 +146,7 @@ public class KsqlBareOutputNodeTest {
     assertThat(stream.outputNode(), instanceOf(KsqlBareOutputNode.class));
   }
 
-  private SchemaKStream build() {
-    final String simpleSelectFilter = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
-    final KsqlBareOutputNode planNode = (KsqlBareOutputNode) AnalysisTestUtil
-        .buildLogicalPlan(simpleSelectFilter, metaStore);
-    return planNode.buildStream(
-        builder,
-        new KsqlConfig(Collections.emptyMap()),
-        serviceContext,
-        ProcessingLogContext.create(),
-        new InternalFunctionRegistry(),
-        queryId);
-  }
-
   private TopologyDescription.Node getNodeByName(final String nodeName) {
     return PlanTestUtil.getNodeByName(builder.build(), nodeName);
   }
-
 }

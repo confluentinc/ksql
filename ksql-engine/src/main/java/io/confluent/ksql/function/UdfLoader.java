@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.function;
 
-import io.confluent.common.Configurable;
 import io.confluent.ksql.function.udaf.UdafAggregateFunctionFactory;
 import io.confluent.ksql.function.udaf.UdafDescription;
 import io.confluent.ksql.function.udaf.UdafFactory;
@@ -26,6 +25,8 @@ import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfMetadata;
 import io.confluent.ksql.function.udf.UdfParameter;
 import io.confluent.ksql.metrics.MetricCollectors;
+import io.confluent.ksql.schema.ksql.LogicalSchemas;
+import io.confluent.ksql.schema.ksql.TypeContextUtil;
 import io.confluent.ksql.security.ExtensionSecurityManager;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -49,6 +50,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import org.apache.kafka.common.Configurable;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.common.metrics.stats.Avg;
@@ -78,13 +80,15 @@ public class UdfLoader {
 
 
   @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-  public UdfLoader(final MutableFunctionRegistry functionRegistry,
-                   final File pluginDir,
-                   final ClassLoader parentClassLoader,
-                   final Predicate<String> blacklist,
-                   final UdfCompiler compiler,
-                   final Optional<Metrics> metrics,
-                   final boolean loadCustomerUdfs) {
+  UdfLoader(
+      final MutableFunctionRegistry functionRegistry,
+      final File pluginDir,
+      final ClassLoader parentClassLoader,
+      final Predicate<String> blacklist,
+      final UdfCompiler compiler,
+      final Optional<Metrics> metrics,
+      final boolean loadCustomerUdfs
+  ) {
     this.functionRegistry = Objects
         .requireNonNull(functionRegistry, "functionRegistry can't be null");
     this.pluginDir = Objects.requireNonNull(pluginDir, "pluginDir can't be null");
@@ -141,7 +145,6 @@ public class UdfLoader {
         .scan();
   }
 
-  @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
   private ClassAnnotationMatchProcessor handleUdafAnnotation(final ClassLoader loader,
                                                              final String path
   ) {
@@ -197,7 +200,6 @@ public class UdfLoader {
     };
   }
 
-  @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
   private MethodAnnotationMatchProcessor handleUdfAnnotation(final ClassLoader loader,
                                                              final String path) {
     return (theClass, executable) ->  {
@@ -254,7 +256,7 @@ public class UdfLoader {
     final List<Schema> parameters = IntStream.range(0, method.getParameterCount()).mapToObj(idx -> {
       final Type type = method.getGenericParameterTypes()[idx];
       final Optional<UdfParameter> annotation = Arrays.stream(method.getParameterAnnotations()[idx])
-          .filter(t -> t instanceof UdfParameter)
+          .filter(UdfParameter.class::isInstance)
           .map(UdfParameter.class::cast)
           .findAny();
 
@@ -264,11 +266,29 @@ public class UdfLoader {
           .orElse(param.isNamePresent() ? param.getName() : "");
 
       final String doc = annotation.map(UdfParameter::description).orElse("");
+      if (annotation.isPresent() && !annotation.get().schema().isEmpty()) {
+        return LogicalSchemas.fromSqlTypeConverter()
+            .fromSqlType(
+                TypeContextUtil.getType(annotation.get().schema()),
+                name,
+                doc);
+      }
+
       return SchemaUtil.getSchemaFromType(type, name, doc);
     }).collect(Collectors.toList());
 
+    final Schema returnType;
+    try {
+      returnType = udfAnnotation.schema().isEmpty()
+          ? SchemaUtil.getSchemaFromType(method.getGenericReturnType())
+          : LogicalSchemas.fromSqlTypeConverter().fromSqlType(
+              TypeContextUtil.getType(udfAnnotation.schema()));
+    } catch (final KsqlException e) {
+      throw new KsqlException("Could not load UDF method with signature: " + method, e);
+    }
+
     functionRegistry.addFunction(KsqlFunction.create(
-        SchemaUtil.getSchemaFromType(method.getGenericReturnType()),
+        returnType,
         parameters,
         functionName,
         udfClass,
@@ -278,12 +298,13 @@ public class UdfLoader {
             ((Configurable)actualUdf)
                 .configure(ksqlConfig.getKsqlFunctionsConfigProps(functionName));
           }
-          final PluggableUdf theUdf = new PluggableUdf(udf, actualUdf);
+          final PluggableUdf theUdf = new PluggableUdf(udf, actualUdf, method);
           return metrics.<Kudf>map(m -> new UdfMetricProducer(m.getSensor(sensorName),
               theUdf,
               Time.SYSTEM)).orElse(theUdf);
         }, udfAnnotation.description(),
-        path));
+        path,
+        method.isVarArgs()));
   }
 
   private static Object instantiateUdfClass(final Method method,

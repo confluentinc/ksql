@@ -24,6 +24,7 @@ import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.rest.server.TemporaryEngine;
+import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.util.Optional;
@@ -32,7 +33,6 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
-import org.mockito.stubbing.OngoingStubbing;
 
 @RunWith(MockitoJUnitRunner.class)
 public class TerminateQueryValidatorTest {
@@ -48,11 +48,13 @@ public class TerminateQueryValidatorTest {
 
     // When:
     CustomValidators.TERMINATE_QUERY.validate(
-        PreparedStatement.of("", new TerminateQuery("id")),
+        ConfiguredStatement.of(
+            PreparedStatement.of("", new TerminateQuery("id")),
+            ImmutableMap.of(),
+            engine.getKsqlConfig()
+        ),
         engine.getEngine(),
-        engine.getServiceContext(),
-        engine.getKsqlConfig(),
-        ImmutableMap.of()
+        engine.getServiceContext()
     );
   }
 
@@ -65,11 +67,13 @@ public class TerminateQueryValidatorTest {
 
     // Expect nothing when:
     CustomValidators.TERMINATE_QUERY.validate(
-        PreparedStatement.of("", new TerminateQuery("id")),
+        ConfiguredStatement.of(
+            PreparedStatement.of("", new TerminateQuery("id")),
+            ImmutableMap.of(),
+            engine.getKsqlConfig()
+        ),
         mockEngine,
-        engine.getServiceContext(),
-        engine.getKsqlConfig(),
-        ImmutableMap.of()
+        engine.getServiceContext()
     );
   }
 

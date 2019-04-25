@@ -18,8 +18,7 @@ package io.confluent.ksql.rest.server.execution;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 
-import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.metastore.KsqlTopic;
+import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.rest.entity.KsqlTopicInfo;
 import io.confluent.ksql.rest.entity.KsqlTopicsList;
 import io.confluent.ksql.rest.server.TemporaryEngine;
@@ -42,11 +41,10 @@ public class ListRegisteredTopicsExecutorTest {
     // When:
     final KsqlTopicsList topicsList =
         (KsqlTopicsList) CustomExecutors.LIST_REGISTERED_TOPICS.execute(
-            engine.prepare("LIST REGISTERED TOPICS;"),
+            engine.configure("LIST REGISTERED TOPICS;"),
             engine.getEngine(),
-            engine.getServiceContext(),
-            engine.getKsqlConfig(),
-            ImmutableMap.of()).orElseThrow(IllegalStateException::new);
+            engine.getServiceContext()
+        ).orElseThrow(IllegalStateException::new);
 
     // Then:
     assertThat(topicsList.getTopics(),

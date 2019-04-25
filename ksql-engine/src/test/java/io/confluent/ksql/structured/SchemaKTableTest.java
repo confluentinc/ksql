@@ -25,16 +25,19 @@ import static org.easymock.EasyMock.same;
 import static org.easymock.EasyMock.verify;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
-import io.confluent.ksql.metastore.KsqlTable;
-import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.model.KeyField;
+import io.confluent.ksql.metastore.model.KsqlTable;
+import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.QualifiedName;
@@ -54,11 +57,14 @@ import io.confluent.ksql.structured.SchemaKStream.Type;
 import io.confluent.ksql.testutils.AnalysisTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.MetaStoreFixture;
+import io.confluent.ksql.util.SchemaTestUtil;
 import io.confluent.ksql.util.SchemaUtil;
+import io.confluent.ksql.util.SelectExpression;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
@@ -74,12 +80,15 @@ import org.apache.kafka.streams.kstream.KeyValueMapper;
 import org.apache.kafka.streams.kstream.Predicate;
 import org.easymock.Capture;
 import org.easymock.EasyMock;
+import org.hamcrest.MatcherAssert;
+import org.hamcrest.Matchers;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
 @SuppressWarnings("unchecked")
 public class SchemaKTableTest {
+
   private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
   private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
   private final GroupedFactory groupedFactory = mock(GroupedFactory.class);
@@ -88,7 +97,7 @@ public class SchemaKTableTest {
 
   private SchemaKTable initialSchemaKTable;
   private KTable kTable;
-  private KsqlTable ksqlTable;
+  private KsqlTable<?> ksqlTable;
   private InternalFunctionRegistry functionRegistry;
   private KTable mockKTable;
   private SchemaKTable firstSchemaKTable;
@@ -99,6 +108,11 @@ public class SchemaKTableTest {
   private final QueryContext parentContext = queryContext.push("parent").getQueryContext();
   private final QueryContext.Stacker childContextStacker = queryContext.push("child");
   private final ProcessingLogContext processingLogContext = ProcessingLogContext.create();
+  private Serde<GenericRow> rowSerde;
+  private static final Expression TEST_2_COL_1 = new DereferenceExpression(
+      new QualifiedNameReference(QualifiedName.of("TEST2")), "COL1");
+  private static final Expression TEST_2_COL_2 = new DereferenceExpression(
+      new QualifiedNameReference(QualifiedName.of("TEST2")), "COL2");
 
   @Before
   public void init() {
@@ -123,16 +137,16 @@ public class SchemaKTableTest {
   }
 
   private SchemaKTable buildSchemaKTable(
-      final KsqlTable ksqlTable,
       final Schema schema,
+      final KeyField keyField,
       final KTable kTable,
       final GroupedFactory groupedFactory) {
     return new SchemaKTable(
         schema,
         kTable,
-        ksqlTable.getKeyField(),
+        keyField,
         new ArrayList<>(),
-        Serdes.String(),
+        Serdes::String,
         Type.SOURCE,
         ksqlConfig,
         functionRegistry,
@@ -146,24 +160,32 @@ public class SchemaKTableTest {
   private SchemaKTable buildSchemaKTable(
       final KsqlTable ksqlTable,
       final KTable kTable,
-      final GroupedFactory groupedFactory) {
+      final GroupedFactory groupedFactory
+  ) {
+    final Schema schema = SchemaUtil
+        .buildSchemaWithAlias(ksqlTable.getSchema(), ksqlTable.getName());
+
+    final Optional<String> newKeyName = ksqlTable.getKeyField().name()
+        .map(name -> SchemaUtil.buildAliasedFieldName(ksqlTable.getName(), name));
+
+    final KeyField keyFieldWithAlias = KeyField.of(newKeyName, ksqlTable.getKeyField().legacy());
+
     return buildSchemaKTable(
-        ksqlTable,
-        SchemaUtil.buildSchemaWithAlias(ksqlTable.getSchema(), ksqlTable.getName()),
+        schema,
+        keyFieldWithAlias,
         kTable,
         groupedFactory);
   }
 
   private SchemaKTable buildSchemaKTableForJoin(final KsqlTable ksqlTable, final KTable kTable) {
     return buildSchemaKTable(
-        ksqlTable, ksqlTable.getSchema(), kTable, GroupedFactory.create(ksqlConfig));
+        ksqlTable.getSchema(), ksqlTable.getKeyField(), kTable, GroupedFactory.create(ksqlConfig));
   }
 
   private Serde<GenericRow> getRowSerde(final KsqlTopic topic, final Schema schema) {
     return topic.getKsqlTopicSerDe().getGenericRowSerde(
         schema,
         new KsqlConfig(Collections.emptyMap()),
-        false,
         MockSchemaRegistryClient::new,
         "test",
         processingLogContext);
@@ -178,9 +200,9 @@ public class SchemaKTableTest {
     initialSchemaKTable = new SchemaKTable<>(
         logicalPlan.getTheSourceNode().getSchema(),
         kTable,
-        ksqlTable.getKeyField(),
+        logicalPlan.getTheSourceNode().getKeyField(),
         new ArrayList<>(),
-        Serdes.String(),
+        Serdes::String,
         SchemaKStream.Type.SOURCE,
         ksqlConfig,
         functionRegistry,
@@ -217,9 +239,9 @@ public class SchemaKTableTest {
     initialSchemaKTable = new SchemaKTable<>(
         logicalPlan.getTheSourceNode().getSchema(),
         kTable,
-        ksqlTable.getKeyField(),
+        logicalPlan.getTheSourceNode().getKeyField(),
         new ArrayList<>(),
-        Serdes.String(),
+        Serdes::String,
         SchemaKStream.Type.SOURCE,
         ksqlConfig,
         functionRegistry,
@@ -259,9 +281,9 @@ public class SchemaKTableTest {
     initialSchemaKTable = new SchemaKTable<>(
         logicalPlan.getTheSourceNode().getSchema(),
         kTable,
-        ksqlTable.getKeyField(),
+        logicalPlan.getTheSourceNode().getKeyField(),
         new ArrayList<>(),
-        Serdes.String(),
+        Serdes::String,
         SchemaKStream.Type.SOURCE,
         ksqlConfig,
         functionRegistry,
@@ -302,34 +324,31 @@ public class SchemaKTableTest {
     initialSchemaKTable = new SchemaKTable<>(
         logicalPlan.getTheSourceNode().getSchema(),
         kTable,
-        ksqlTable.getKeyField(),
+        logicalPlan.getTheSourceNode().getKeyField(),
         new ArrayList<>(),
-        Serdes.String(),
+        Serdes::String,
         SchemaKStream.Type.SOURCE,
         ksqlConfig,
         functionRegistry,
         parentContext);
 
-    final Expression col1Expression = new DereferenceExpression(
-        new QualifiedNameReference(QualifiedName.of("TEST2")), "COL1");
-    final Expression col2Expression = new DereferenceExpression(
-        new QualifiedNameReference(QualifiedName.of("TEST2")), "COL2");
     final KsqlTopicSerDe ksqlTopicSerDe = new KsqlJsonTopicSerDe();
     final Serde<GenericRow> rowSerde = ksqlTopicSerDe.getGenericRowSerde(
-        initialSchemaKTable.getSchema(),
+        SchemaTestUtil.getSchemaWithNoAlias(initialSchemaKTable.getSchema()),
         null,
-        false,
         () -> null,
         "test",
         processingLogContext);
-    final List<Expression> groupByExpressions = Arrays.asList(col2Expression, col1Expression);
+    final List<Expression> groupByExpressions = Arrays.asList(TEST_2_COL_2, TEST_2_COL_1);
     final SchemaKGroupedStream groupedSchemaKTable = initialSchemaKTable.groupBy(
         rowSerde,
         groupByExpressions,
         childContextStacker);
 
     assertThat(groupedSchemaKTable, instanceOf(SchemaKGroupedTable.class));
-    assertThat(groupedSchemaKTable.getKeyField().name(), equalTo("TEST2.COL2|+|TEST2.COL1"));
+    assertThat(groupedSchemaKTable.getKeyField().name(), is(Optional.empty()));
+    assertThat(groupedSchemaKTable.getKeyField().legacy().map(Field::name),
+        is(Optional.of("TEST2.COL2|+|TEST2.COL1")));
   }
 
   @Test
@@ -346,9 +365,8 @@ public class SchemaKTableTest {
     final KGroupedTable groupedTable = mock(KGroupedTable.class);
     expect(mockKTable.groupBy(anyObject(), same(grouped))).andReturn(groupedTable);
     replay(groupedFactory, mockKTable);
-    final Expression col1Expression = new DereferenceExpression(
-        new QualifiedNameReference(QualifiedName.of(ksqlTable.getName())), "COL1");
-    final List<Expression> groupByExpressions = Collections.singletonList(col1Expression);
+
+    final List<Expression> groupByExpressions = Collections.singletonList(TEST_2_COL_1);
     final SchemaKTable schemaKTable = buildSchemaKTable(ksqlTable, mockKTable, groupedFactory);
 
     // When:
@@ -377,24 +395,18 @@ public class SchemaKTableTest {
     initialSchemaKTable = new SchemaKTable<>(
         logicalPlan.getTheSourceNode().getSchema(),
         mockKTable,
-        ksqlTable.getKeyField(),
+        logicalPlan.getTheSourceNode().getKeyField(),
         new ArrayList<>(),
-        Serdes.String(),
+        Serdes::String,
         SchemaKStream.Type.SOURCE,
         ksqlConfig,
         functionRegistry,
         parentContext);
 
-    // Given a grouping expression comprising COL1 and COL2
-    final Expression col1Expression = new DereferenceExpression(
-        new QualifiedNameReference(QualifiedName.of("TEST2")), "COL1");
-    final Expression col2Expression = new DereferenceExpression(
-        new QualifiedNameReference(QualifiedName.of("TEST2")), "COL2");
-    final List<Expression> groupByExpressions = Arrays.asList(col2Expression, col1Expression);
+    final List<Expression> groupByExpressions = Arrays.asList(TEST_2_COL_2, TEST_2_COL_1);
     final Serde<GenericRow> rowSerde = new KsqlJsonTopicSerDe().getGenericRowSerde(
-        initialSchemaKTable.getSchema(),
+        SchemaTestUtil.getSchemaWithNoAlias(initialSchemaKTable.getSchema()),
         null,
-        false,
         () -> null,
         "test",
         processingLogContext);
@@ -433,7 +445,7 @@ public class SchemaKTableTest {
     assertThat(joinedKStream, instanceOf(SchemaKTable.class));
     assertEquals(SchemaKStream.Type.JOIN, joinedKStream.type);
     assertEquals(joinSchema, joinedKStream.schema);
-    assertEquals(joinSchema.fields().get(0), joinedKStream.keyField);
+    assertEquals(Optional.of(joinSchema.fields().get(0).name()), joinedKStream.keyField.name());
     assertEquals(Arrays.asList(firstSchemaKTable, secondSchemaKTable),
                  joinedKStream.sourceSchemaKStreams);
   }
@@ -455,7 +467,7 @@ public class SchemaKTableTest {
     assertThat(joinedKStream, instanceOf(SchemaKTable.class));
     assertEquals(SchemaKStream.Type.JOIN, joinedKStream.type);
     assertEquals(joinSchema, joinedKStream.schema);
-    assertEquals(joinSchema.fields().get(0), joinedKStream.keyField);
+    assertEquals(Optional.of(joinSchema.fields().get(0).name()), joinedKStream.keyField.name());
     assertEquals(Arrays.asList(firstSchemaKTable, secondSchemaKTable),
                  joinedKStream.sourceSchemaKStreams);
   }
@@ -477,10 +489,127 @@ public class SchemaKTableTest {
     assertThat(joinedKStream, instanceOf(SchemaKTable.class));
     assertEquals(SchemaKStream.Type.JOIN, joinedKStream.type);
     assertEquals(joinSchema, joinedKStream.schema);
-    assertEquals(joinSchema.fields().get(0), joinedKStream.keyField);
+    assertEquals(Optional.of(joinSchema.fields().get(0).name()), joinedKStream.keyField.name());
     assertEquals(Arrays.asList(firstSchemaKTable, secondSchemaKTable),
                  joinedKStream.sourceSchemaKStreams);
 
+  }
+
+  @Test
+  public void shouldUpdateKeyIfRenamed() {
+    // Given:
+    final List<SelectExpression> selectExpressions = givenInitialKTableOf(
+        "SELECT col0 as NEWKEY, col2, col3 FROM test1;");
+
+    // When:
+    final SchemaKStream result = initialSchemaKTable
+        .select(selectExpressions, childContextStacker, processingLogContext);
+
+    MatcherAssert.assertThat(result.getKeyField(),
+        is(KeyField.of("NEWKEY", new Field("NEWKEY", 0, Schema.OPTIONAL_INT64_SCHEMA))));
+  }
+
+  @Test
+  public void shouldUpdateKeyIfRenamedViaFullyQualifiedName() {
+    // Given:
+    final List<SelectExpression> selectExpressions = givenInitialKTableOf(
+        "SELECT test1.col0 as NEWKEY, col2, col3 FROM test1;");
+
+    // When:
+    final SchemaKStream result = initialSchemaKTable
+        .select(selectExpressions, childContextStacker, processingLogContext);
+
+    // Then:
+    MatcherAssert.assertThat(result.getKeyField(),
+        is(KeyField.of("NEWKEY", new Field("NEWKEY", 0, Schema.OPTIONAL_INT64_SCHEMA))));
+  }
+
+  @Test
+  public void shouldUpdateKeyIfRenamedAndSourceIsAliased() {
+    // Given:
+    final List<SelectExpression> selectExpressions = givenInitialKTableOf(
+        "SELECT t.col0 as NEWKEY, col2, col3 FROM test1 t;");
+
+    // When:
+    final SchemaKStream result = initialSchemaKTable
+        .select(selectExpressions, childContextStacker, processingLogContext);
+
+    // Then:
+    MatcherAssert.assertThat(result.getKeyField(),
+        is(KeyField.of("NEWKEY", new Field("NEWKEY", 0, Schema.OPTIONAL_INT64_SCHEMA))));
+  }
+
+  @Test
+  public void shouldPreserveKeyOnSelectStar() {
+    // Given:
+    final List<SelectExpression> selectExpressions = givenInitialKTableOf(
+        "SELECT * FROM test1;");
+
+    // When:
+    final SchemaKStream result = initialSchemaKTable
+        .select(selectExpressions, childContextStacker, processingLogContext);
+
+    // Then:
+    MatcherAssert.assertThat(result.getKeyField(),
+        is(KeyField.of(Optional.of("COL0"), initialSchemaKTable.keyField.legacy())));
+  }
+
+  @Test
+  public void shouldUpdateKeyIfMovedToDifferentIndex() {
+    // Given:
+    final List<SelectExpression> selectExpressions = givenInitialKTableOf(
+        "SELECT col2, col0, col3 FROM test1;");
+
+    // When:
+    final SchemaKStream result = initialSchemaKTable
+        .select(selectExpressions, childContextStacker, processingLogContext);
+
+    // Then:
+    MatcherAssert.assertThat(result.getKeyField(),
+        Matchers.equalTo(KeyField.of("COL0", new Field("COL0", 1, Schema.OPTIONAL_INT64_SCHEMA))));
+  }
+
+  @Test
+  public void shouldDropKeyIfNotSelected() {
+    // Given:
+    final List<SelectExpression> selectExpressions = givenInitialKTableOf(
+        "SELECT col2, col3 FROM test1;");
+
+    // When:
+    final SchemaKStream result = initialSchemaKTable
+        .select(selectExpressions, childContextStacker, processingLogContext);
+
+    // Then:
+    MatcherAssert.assertThat(result.getKeyField(), is(KeyField.none()));
+  }
+
+  @Test
+  public void shouldHandleSourceWithoutKey() {
+    // Given:
+    final List<SelectExpression> selectExpressions = givenInitialKTableOf(
+        "SELECT * FROM test4;");
+
+    // When:
+    final SchemaKStream result = initialSchemaKTable
+        .select(selectExpressions, childContextStacker, processingLogContext);
+
+    // Then:
+    MatcherAssert.assertThat(result.getKeyField(), is(KeyField.none()));
+  }
+
+  @Test
+  public void shouldSetKeyOnGroupBySingleExpressionThatIsInProjection() {
+    // Given:
+    givenInitialKTableOf("SELECT * FROM test2;");
+    final List<Expression> groupByExprs =  ImmutableList.of(TEST_2_COL_1);
+
+    // When:
+    final SchemaKGroupedStream result = initialSchemaKTable
+        .groupBy(rowSerde, groupByExprs, childContextStacker);
+
+    // Then:
+    MatcherAssert.assertThat(result.getKeyField(),
+        is(KeyField.of("TEST2.COL1", new Field("TEST2.COL1", -1, Schema.OPTIONAL_STRING_SCHEMA))));
   }
 
   private static Schema getJoinSchema(final Schema leftSchema, final Schema rightSchema) {
@@ -497,6 +626,31 @@ public class SchemaKTableTest {
       schemaBuilder.field(fieldName, field.schema());
     }
     return schemaBuilder.build();
+  }
+
+  private List<SelectExpression> givenInitialKTableOf(final String selectQuery) {
+    final PlanNode logicalPlan = AnalysisTestUtil.buildLogicalPlan(selectQuery, metaStore);
+
+    initialSchemaKTable = new SchemaKTable<>(
+        logicalPlan.getTheSourceNode().getSchema(),
+        kTable,
+        logicalPlan.getTheSourceNode().getKeyField(),
+        new ArrayList<>(),
+        Serdes::String,
+        SchemaKStream.Type.SOURCE,
+        ksqlConfig,
+        functionRegistry,
+        parentContext);
+
+    rowSerde = new KsqlJsonTopicSerDe().getGenericRowSerde(
+        SchemaTestUtil.getSchemaWithNoAlias(initialSchemaKTable.getSchema()),
+        null,
+        () -> null,
+        "test",
+        processingLogContext);
+
+    final ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
+    return projectNode.getProjectSelectExpressions();
   }
 
   private PlanNode buildLogicalPlan(final String query) {

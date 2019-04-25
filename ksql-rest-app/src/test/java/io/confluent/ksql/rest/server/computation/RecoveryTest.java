@@ -27,11 +27,10 @@ import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlEngineTestUtil;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.internal.KsqlEngineMetrics;
-import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
-import io.confluent.ksql.metastore.StructuredDataSource;
-import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.metastore.model.KsqlTopic;
+import io.confluent.ksql.metastore.model.StructuredDataSource;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.server.StatementParser;
@@ -40,12 +39,14 @@ import io.confluent.ksql.rest.server.computation.CommandId.Type;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.rest.util.ClusterTerminator;
 import io.confluent.ksql.schema.inference.DefaultSchemaInjector;
-import io.confluent.ksql.schema.inference.SchemaInjector;
 import io.confluent.ksql.schema.inference.SchemaRegistryTopicSchemaSupplier;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
+import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.statement.InjectorChain;
+import io.confluent.ksql.topic.DefaultTopicInjector;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
@@ -59,7 +60,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.ws.rs.core.Response;
 import org.apache.kafka.connect.data.Schema;
@@ -109,11 +109,7 @@ public class RecoveryTest {
     }
 
     @Override
-    public QueuedCommandStatus enqueueCommand(
-        final PreparedStatement<?> statement,
-        final KsqlConfig ksqlConfig,
-        final Map<String, Object> overwriteProperties
-    ) {
+    public QueuedCommandStatus enqueueCommand(final ConfiguredStatement<?> statement) {
       final CommandId commandId = commandIdAssigner.getCommandId(statement.getStatement());
       final long commandSequenceNumber = commandLog.size();
       commandLog.add(
@@ -122,7 +118,7 @@ public class RecoveryTest {
               new Command(
                   statement.getStatementText(),
                   Collections.emptyMap(),
-                  ksqlConfig.getAllConfigPropsWithSecretsObfuscated()),
+                  statement.getConfig().getAllConfigPropsWithSecretsObfuscated()),
               Optional.empty()));
       return new QueuedCommandStatus(commandSequenceNumber, new CommandStatusFuture(commandId));
     }
@@ -170,10 +166,6 @@ public class RecoveryTest {
       this.ksqlEngine = createKsqlEngine();
       this.fakeCommandQueue = new FakeCommandQueue(commandLog);
 
-      final Function<ServiceContext, SchemaInjector> schemaInjectorFactory = sc ->
-          new DefaultSchemaInjector(
-              new SchemaRegistryTopicSchemaSupplier(sc.getSchemaRegistryClient()));
-
       this.ksqlResource = new KsqlResource(
           ksqlConfig,
           ksqlEngine,
@@ -181,8 +173,11 @@ public class RecoveryTest {
           fakeCommandQueue,
           Duration.ofMillis(0),
           ()->{},
-          schemaInjectorFactory
-      );
+          (ec, sc) -> InjectorChain.of(
+              new DefaultSchemaInjector(
+                  new SchemaRegistryTopicSchemaSupplier(sc.getSchemaRegistryClient())),
+              new DefaultTopicInjector(ec)
+          ));
       this.statementExecutor = new StatementExecutor(
           ksqlConfig,
           ksqlEngine,
@@ -274,8 +269,8 @@ public class RecoveryTest {
   }
 
   private static class StructuredDataSourceMatcher
-      extends TypeSafeDiagnosingMatcher<StructuredDataSource> {
-    final StructuredDataSource source;
+      extends TypeSafeDiagnosingMatcher<StructuredDataSource<?>> {
+    final StructuredDataSource<?> source;
     final Matcher<StructuredDataSource.DataSourceType> typeMatcher;
     final Matcher<String> nameMatcher;
     final Matcher<Schema> schemaMatcher;
@@ -283,7 +278,7 @@ public class RecoveryTest {
     final Matcher<TimestampExtractionPolicy> extractionPolicyMatcher;
     final Matcher<KsqlTopic> topicMatcher;
 
-    StructuredDataSourceMatcher(final StructuredDataSource source) {
+    StructuredDataSourceMatcher(final StructuredDataSource<?> source) {
       this.source = source;
       this.typeMatcher = equalTo(source.getDataSourceType());
       this.nameMatcher = equalTo(source.getName());
@@ -309,7 +304,7 @@ public class RecoveryTest {
 
     @Override
     protected boolean matchesSafely(
-        final StructuredDataSource other,
+        final StructuredDataSource<?> other,
         final Description description) {
       if (!test(
           typeMatcher,
@@ -354,12 +349,12 @@ public class RecoveryTest {
     }
   }
 
-  private static Matcher<StructuredDataSource> sameSource(final StructuredDataSource source) {
+  private static Matcher<StructuredDataSource<?>> sameSource(final StructuredDataSource<?> source) {
     return new StructuredDataSourceMatcher(source);
   }
 
   private static class MetaStoreMatcher extends TypeSafeDiagnosingMatcher<MetaStore> {
-    final Map<String, Matcher<StructuredDataSource>> sourceMatchers;
+    final Map<String, Matcher<StructuredDataSource<?>>> sourceMatchers;
 
     MetaStoreMatcher(final MetaStore metaStore) {
       this.sourceMatchers = metaStore.getAllStructuredDataSources().entrySet().stream()
@@ -387,7 +382,7 @@ public class RecoveryTest {
         return false;
       }
 
-      for (final Entry<String, Matcher<StructuredDataSource>> e : sourceMatchers.entrySet()) {
+      for (final Entry<String, Matcher<StructuredDataSource<?>>> e : sourceMatchers.entrySet()) {
         final String name = e.getKey();
         if (!test(
             e.getValue(),

@@ -22,9 +22,9 @@ import static org.hamcrest.Matchers.equalTo;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
-import io.confluent.ksql.metastore.KsqlStream;
-import io.confluent.ksql.metastore.KsqlTable;
-import io.confluent.ksql.metastore.StructuredDataSource;
+import io.confluent.ksql.metastore.model.KsqlStream;
+import io.confluent.ksql.metastore.model.KsqlTable;
+import io.confluent.ksql.metastore.model.StructuredDataSource;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.ShowColumns;
@@ -40,6 +40,7 @@ import io.confluent.ksql.rest.entity.TopicDescription;
 import io.confluent.ksql.rest.server.TemporaryEngine;
 import io.confluent.ksql.serde.DataSource.DataSourceType;
 import io.confluent.ksql.services.KafkaTopicClient;
+import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import org.junit.Rule;
@@ -51,24 +52,24 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class ListSourceExecutorTest {
 
-  @Rule public final TemporaryEngine engine = new TemporaryEngine();
-  @Rule public final ExpectedException expectedException = ExpectedException.none();
+  @Rule
+  public final TemporaryEngine engine = new TemporaryEngine();
+  @Rule
+  public final ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void shouldShowStreams() {
     // Given:
-    final KsqlStream stream1 = engine.givenSource(DataSourceType.KSTREAM, "stream1");
-    final KsqlStream stream2 = engine.givenSource(DataSourceType.KSTREAM, "stream2");
+    final KsqlStream<?> stream1 = engine.givenSource(DataSourceType.KSTREAM, "stream1");
+    final KsqlStream<?> stream2 = engine.givenSource(DataSourceType.KSTREAM, "stream2");
     engine.givenSource(DataSourceType.KTABLE, "table");
 
     // When:
     final StreamsList descriptionList = (StreamsList)
         CustomExecutors.LIST_STREAMS.execute(
-            engine.prepare("SHOW STREAMS;"),
+            engine.configure("SHOW STREAMS;"),
             engine.getEngine(),
-            engine.getServiceContext(),
-            engine.getKsqlConfig(),
-            ImmutableMap.of()
+            engine.getServiceContext()
         ).orElseThrow(IllegalStateException::new);
 
     // Then:
@@ -81,18 +82,16 @@ public class ListSourceExecutorTest {
   @Test
   public void shouldShowStreamsExtended() {
     // Given:
-    final KsqlStream stream1 = engine.givenSource(DataSourceType.KSTREAM, "stream1");
-    final KsqlStream stream2 = engine.givenSource(DataSourceType.KSTREAM, "stream2");
+    final KsqlStream<?> stream1 = engine.givenSource(DataSourceType.KSTREAM, "stream1");
+    final KsqlStream<?> stream2 = engine.givenSource(DataSourceType.KSTREAM, "stream2");
     engine.givenSource(DataSourceType.KTABLE, "table");
 
     // When:
     final SourceDescriptionList descriptionList = (SourceDescriptionList)
         CustomExecutors.LIST_STREAMS.execute(
-            engine.prepare("SHOW STREAMS EXTENDED;"),
+            engine.configure("SHOW STREAMS EXTENDED;"),
             engine.getEngine(),
-            engine.getServiceContext(),
-            engine.getKsqlConfig(),
-            ImmutableMap.of()
+            engine.getServiceContext()
         ).orElseThrow(IllegalStateException::new);
 
     // Then:
@@ -105,18 +104,16 @@ public class ListSourceExecutorTest {
   @Test
   public void shouldShowTables() {
     // Given:
-    final KsqlTable table1 = engine.givenSource(DataSourceType.KTABLE, "table1");
-    final KsqlTable table2 = engine.givenSource(DataSourceType.KTABLE, "table2");
+    final KsqlTable<?> table1 = engine.givenSource(DataSourceType.KTABLE, "table1");
+    final KsqlTable<?> table2 = engine.givenSource(DataSourceType.KTABLE, "table2");
     engine.givenSource(DataSourceType.KSTREAM, "stream");
 
     // When:
     final TablesList descriptionList = (TablesList)
         CustomExecutors.LIST_TABLES.execute(
-            engine.prepare("LIST TABLES;"),
+            engine.configure("LIST TABLES;"),
             engine.getEngine(),
-            engine.getServiceContext(),
-            engine.getKsqlConfig(),
-            ImmutableMap.of()
+            engine.getServiceContext()
         ).orElseThrow(IllegalStateException::new);
 
     // Then:
@@ -129,18 +126,16 @@ public class ListSourceExecutorTest {
   @Test
   public void shouldShowTablesExtended() {
     // Given:
-    final KsqlTable table1 = engine.givenSource(DataSourceType.KTABLE, "table1");
-    final KsqlTable table2 = engine.givenSource(DataSourceType.KTABLE, "table2");
+    final KsqlTable<?> table1 = engine.givenSource(DataSourceType.KTABLE, "table1");
+    final KsqlTable<?> table2 = engine.givenSource(DataSourceType.KTABLE, "table2");
     engine.givenSource(DataSourceType.KSTREAM, "stream");
 
     // When:
     final SourceDescriptionList descriptionList = (SourceDescriptionList)
         CustomExecutors.LIST_TABLES.execute(
-            engine.prepare("LIST TABLES EXTENDED;"),
+            engine.configure("LIST TABLES EXTENDED;"),
             engine.getEngine(),
-            engine.getServiceContext(),
-            engine.getKsqlConfig(),
-            ImmutableMap.of()
+            engine.getServiceContext()
         ).orElseThrow(IllegalStateException::new);
 
     // Then:
@@ -156,23 +151,24 @@ public class ListSourceExecutorTest {
     // Given:
     engine.givenSource(DataSourceType.KSTREAM, "SOURCE");
     final ExecuteResult result = engine.getEngine().execute(
-        engine.prepare("CREATE STREAM SINK AS SELECT * FROM source;"),
-        engine.getKsqlConfig(),
-        ImmutableMap.of());
+        engine.configure("CREATE STREAM SINK AS SELECT * FROM source;")
+    );
     final PersistentQueryMetadata metadata = (PersistentQueryMetadata) result.getQuery()
         .orElseThrow(IllegalArgumentException::new);
-    final StructuredDataSource stream = engine.getEngine().getMetaStore().getSource("SINK");
+    final StructuredDataSource<?> stream = engine.getEngine().getMetaStore().getSource("SINK");
 
     // When:
     final SourceDescriptionEntity sourceDescription = (SourceDescriptionEntity)
         CustomExecutors.SHOW_COLUMNS.execute(
-            PreparedStatement.of(
-                "DESCRIBE SINK;",
-                new ShowColumns(QualifiedName.of("SINK"), false, false)),
+            ConfiguredStatement.of(
+              PreparedStatement.of(
+                  "DESCRIBE SINK;",
+                  new ShowColumns(QualifiedName.of("SINK"), false, false)),
+                ImmutableMap.of(),
+                engine.getKsqlConfig()
+            ),
             engine.getEngine(),
-            engine.getServiceContext(),
-            engine.getKsqlConfig(),
-            ImmutableMap.of()
+            engine.getServiceContext()
         ).orElseThrow(IllegalStateException::new);
 
     // Then:
@@ -196,11 +192,9 @@ public class ListSourceExecutorTest {
 
     // When:
     final TopicDescription description = (TopicDescription) CustomExecutors.SHOW_COLUMNS.execute(
-        engine.prepare("DESCRIBE TOPIC S;"),
+        engine.configure("DESCRIBE TOPIC S;"),
         engine.getEngine(),
-        engine.getServiceContext(),
-        engine.getKsqlConfig(),
-        ImmutableMap.of()
+        engine.getServiceContext()
     ).orElseThrow(IllegalStateException::new);
 
     // Then:
@@ -217,11 +211,9 @@ public class ListSourceExecutorTest {
 
     // When:
     CustomExecutors.SHOW_COLUMNS.execute(
-        engine.prepare("DESCRIBE TOPIC S;"),
+        engine.configure("DESCRIBE TOPIC S;"),
         engine.getEngine(),
-        engine.getServiceContext(),
-        engine.getKsqlConfig(),
-        ImmutableMap.of()
+        engine.getServiceContext()
     );
   }
 

@@ -25,13 +25,13 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.engine.KsqlEngine;
-import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.rest.entity.EntityQueryId;
 import io.confluent.ksql.rest.entity.Queries;
 import io.confluent.ksql.rest.entity.QueryDescription;
 import io.confluent.ksql.rest.entity.QueryDescriptionList;
 import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.server.TemporaryEngine;
+import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import org.junit.Rule;
 import org.junit.Test;
@@ -47,11 +47,9 @@ public class ListQueriesExecutorTest {
   public void shouldListQueriesEmpty() {
     // When
     final Queries queries = (Queries) CustomExecutors.LIST_QUERIES.execute(
-        engine.prepare("SHOW QUERIES;"),
+        engine.configure("SHOW QUERIES;"),
         engine.getEngine(),
-        engine.getServiceContext(),
-        engine.getKsqlConfig(),
-        ImmutableMap.of()
+        engine.getServiceContext()
     ).orElseThrow(IllegalStateException::new);
 
     assertThat(queries.getQueries(), is(empty()));
@@ -60,7 +58,7 @@ public class ListQueriesExecutorTest {
   @Test
   public void shouldListQueriesBasic() {
     // Given
-    final PreparedStatement showQueries = engine.prepare("SHOW QUERIES;");
+    final ConfiguredStatement<?> showQueries = engine.configure("SHOW QUERIES;");
     final PersistentQueryMetadata metadata = engine.givenPersistentQuery("id");
 
     final KsqlEngine engine = mock(KsqlEngine.class);
@@ -70,9 +68,7 @@ public class ListQueriesExecutorTest {
     final Queries queries = (Queries) CustomExecutors.LIST_QUERIES.execute(
         showQueries,
         engine,
-        this.engine.getServiceContext(),
-        this.engine.getKsqlConfig(),
-        ImmutableMap.of()
+        this.engine.getServiceContext()
     ).orElseThrow(IllegalStateException::new);
 
     assertThat(queries.getQueries(), containsInAnyOrder(
@@ -85,7 +81,7 @@ public class ListQueriesExecutorTest {
   @Test
   public void shouldListQueriesExtended() {
     // Given
-    final PreparedStatement showQueries = engine.prepare("SHOW QUERIES EXTENDED;");
+    final ConfiguredStatement<?> showQueries = engine.configure("SHOW QUERIES EXTENDED;");
     final PersistentQueryMetadata metadata = engine.givenPersistentQuery("id");
 
     final KsqlEngine engine = mock(KsqlEngine.class);
@@ -95,9 +91,7 @@ public class ListQueriesExecutorTest {
     final QueryDescriptionList queries = (QueryDescriptionList) CustomExecutors.LIST_QUERIES.execute(
         showQueries,
         engine,
-        this.engine.getServiceContext(),
-        this.engine.getKsqlConfig(),
-        ImmutableMap.of()
+        this.engine.getServiceContext()
     ).orElseThrow(IllegalStateException::new);
 
     assertThat(queries.getQueryDescriptions(), containsInAnyOrder(

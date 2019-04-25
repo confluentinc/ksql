@@ -164,8 +164,7 @@ public class SchemaUtilTest {
 
   @Test
   public void shouldCreateCorrectAvroSchemaWithNullableFields() {
-    final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
-    schemaBuilder
+    final Schema schema = SchemaBuilder.struct()
         .field("ordertime", Schema.OPTIONAL_INT64_SCHEMA)
         .field("orderid", Schema.OPTIONAL_STRING_SCHEMA)
         .field("itemid", Schema.OPTIONAL_STRING_SCHEMA)
@@ -174,7 +173,7 @@ public class SchemaUtilTest {
         .field("mapcol",
             SchemaBuilder.map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_FLOAT64_SCHEMA))
         .optional().build();
-    final String avroSchemaString = SchemaUtil.buildAvroSchema(schemaBuilder.build(), "orders")
+    final String avroSchemaString = SchemaUtil.buildAvroSchema(schema, "orders")
         .toString();
     assertThat(avroSchemaString, equalTo(
         "{\"type\":\"record\",\"name\":\"orders\",\"namespace\":\"ksql\",\"fields\":"
@@ -422,23 +421,14 @@ public class SchemaUtilTest {
   }
 
   @Test
-  public void shouldBuildTheCorrectSchemaWithAndWithoutAlias() {
+  public void shouldBuildTheCorrectSchemaWithAlias() {
     final String alias = "Hello";
     final Schema schemaWithAlias = SchemaUtil.buildSchemaWithAlias(schema, alias);
-    assertThat("Incorrect schema field count.", schemaWithAlias.fields().size() == schema.fields()
-        .size());
+    assertThat(schemaWithAlias.fields(), hasSize(schema.fields().size()));
     for (int i = 0; i < schemaWithAlias.fields().size(); i++) {
       final Field fieldWithAlias = schemaWithAlias.fields().get(i);
       final Field field = schema.fields().get(i);
       assertThat(fieldWithAlias.name(), equalTo(alias + "." + field.name()));
-    }
-    final Schema schemaWithoutAlias = SchemaUtil.getSchemaWithNoAlias(schemaWithAlias);
-    assertThat("Incorrect schema field count.",
-        schemaWithAlias.fields().size() == schema.fields().size());
-    for (int i = 0; i < schemaWithoutAlias.fields().size(); i++) {
-      final Field fieldWithAlias = schemaWithoutAlias.fields().get(i);
-      final Field field = schema.fields().get(i);
-      assertThat("Incorrect field name.", fieldWithAlias.name().equals(field.name()));
     }
   }
 
@@ -712,6 +702,48 @@ public class SchemaUtilTest {
     assertThat(SchemaUtil.isNumber(Schema.Type.STRING), is(false));
   }
 
+  @Test
+  public void shouldBuildAliasedFieldName() {
+    // When:
+    final String result = SchemaUtil.buildAliasedFieldName("SomeAlias", "SomeFieldName");
+
+    // Then:
+    assertThat(result, is("SomeAlias.SomeFieldName"));
+  }
+
+  @Test
+  public void shouldBuildAliasedFieldNameThatIsAlreadyAliased() {
+    // When:
+    final String result = SchemaUtil.buildAliasedFieldName("SomeAlias", "SomeAlias.SomeFieldName");
+
+    // Then:
+    assertThat(result, is("SomeAlias.SomeFieldName"));
+  }
+
+  @Test
+  public void shouldBuildAliasedField() {
+    // Given:
+    final Field field = new Field("col0", 1, Schema.INT64_SCHEMA);
+
+    // When:
+    final Field result = SchemaUtil
+        .buildAliasedField("TheAlias", field);
+
+    // Then:
+    assertThat(result, is(new Field("TheAlias.col0", 1, Schema.INT64_SCHEMA)));
+  }
+
+  @Test
+  public void shouldBuildAliasedFieldThatIsAlreadyAliased() {
+    // Given:
+    final Field field = new Field("TheAlias.col0", 1, Schema.INT64_SCHEMA);
+
+    // When:
+    final Field result = SchemaUtil.buildAliasedField("TheAlias", field);
+
+    // Then:
+    assertThat(result, is(field));
+  }
 
   // Following methods not invoked but used to test conversion from Type -> Schema
   @SuppressWarnings("unused")

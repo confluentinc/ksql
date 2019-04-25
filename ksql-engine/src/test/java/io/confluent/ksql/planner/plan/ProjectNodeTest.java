@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.planner.plan;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
@@ -23,134 +25,123 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import io.confluent.ksql.function.InternalFunctionRegistry;
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
+import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.parser.tree.BooleanLiteral;
-import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.physical.KsqlQueryBuilder;
 import io.confluent.ksql.serde.DataSource.DataSourceType;
-import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.services.TestServiceContext;
+import io.confluent.ksql.structured.QueryContext.Stacker;
 import io.confluent.ksql.structured.SchemaKStream;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SelectExpression;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.Optional;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
-import org.apache.kafka.streams.StreamsBuilder;
-import org.junit.After;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.MockitoJUnitRunner;
 
+@RunWith(MockitoJUnitRunner.class)
 public class ProjectNodeTest {
+
+  private static final PlanNodeId NODE_ID = new PlanNodeId("1");
+  private static final BooleanLiteral TRUE_EXPRESSION = new BooleanLiteral("true");
+  private static final BooleanLiteral FALSE_EXPRESSION = new BooleanLiteral("false");
+  private static final String KEY_FIELD_NAME = "field1";
+  private static final Schema SCHEMA = SchemaBuilder.struct()
+      .field("field1", Schema.OPTIONAL_STRING_SCHEMA)
+      .field("field2", Schema.OPTIONAL_STRING_SCHEMA)
+      .build();
+  private static final KeyField SOURCE_KEY_FIELD = KeyField
+      .of("source-key", new Field("legacy-source-key", 1, Schema.STRING_SCHEMA));
 
   @Mock
   private PlanNode source;
   @Mock
-  private SchemaKStream stream;
+  private SchemaKStream<?> stream;
+  @Mock
+  private KsqlQueryBuilder ksqlStreamBuilder;
+  @Mock
+  private Stacker stacker;
+  @Mock
+  private ProcessingLogContext processingLogContext;
 
-  private final StreamsBuilder builder = new StreamsBuilder();
-  private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
-  private final ServiceContext serviceContext = TestServiceContext.create();
-  private final ProcessingLogContext processingLogContext = ProcessingLogContext.create();
-  private final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
-  private final QueryId queryId = new QueryId("project-test");
+  private ProjectNode projectNode;
 
-  @Rule
-  public final MockitoRule mockitoRule = MockitoJUnit.rule();
-
+  @SuppressWarnings("unchecked")
   @Before
   public void init() {
-    mockSourceNode();
+    when(source.getKeyField()).thenReturn(SOURCE_KEY_FIELD);
+    when(source.buildStream(any())).thenReturn((SchemaKStream) stream);
     when(source.getNodeOutputType()).thenReturn(DataSourceType.KSTREAM);
-  }
+    when(ksqlStreamBuilder.getProcessingLogContext()).thenReturn(processingLogContext);
+    when(ksqlStreamBuilder.buildNodeContext(NODE_ID)).thenReturn(stacker);
+    when(stream.select(anyList(), any(), any())).thenReturn((SchemaKStream) stream);
 
-  @After
-  public void tearDown() {
-    serviceContext.close();
-  }
-
-  private ProjectNode buildNode(final List<Expression> expressionList) {
-    return new ProjectNode(
-        new PlanNodeId("1"),
+    projectNode = new ProjectNode(
+        NODE_ID,
         source,
-        SchemaBuilder.struct()
-            .field("field1", Schema.OPTIONAL_STRING_SCHEMA)
-            .field("field2", Schema.OPTIONAL_STRING_SCHEMA)
-            .build(),
-        expressionList);
+        SCHEMA,
+        Optional.of(KEY_FIELD_NAME),
+        ImmutableList.of(TRUE_EXPRESSION, FALSE_EXPRESSION));
   }
 
   @Test(expected = KsqlException.class)
-  public void shouldThrowKsqlExcptionIfSchemaSizeDoesntMatchProjection() {
-    final ProjectNode node = buildNode(
-        Collections.singletonList(new BooleanLiteral("true")));
-
-    node.buildStream(
-        builder,
-        ksqlConfig,
-        serviceContext,
-        processingLogContext,
-        functionRegistry,
-        queryId);
+  public void shouldThrowIfSchemaSizeDoesntMatchProjection() {
+    new ProjectNode(
+        NODE_ID,
+        source,
+        SCHEMA,
+        Optional.of("field1"),
+        ImmutableList.of(TRUE_EXPRESSION)); // <-- not enough expressions
   }
 
   @Test
-  @SuppressWarnings("unchecked")
-  public void shouldCreateProjectionWithFieldNameExpressionPairs() {
-    // Given:
-    final BooleanLiteral trueExpression = new BooleanLiteral("true");
-    final BooleanLiteral falseExpression = new BooleanLiteral("false");
-    when(stream.select(anyList(), any(), any())).thenReturn(stream);
-    final ProjectNode node = buildNode(
-        Arrays.asList(trueExpression, falseExpression));
-
+  public void shouldBuildSourceOnceWhenBeingBuilt() {
     // When:
-    node.buildStream(
-        builder,
-        ksqlConfig,
-        serviceContext,
-        processingLogContext,
-        functionRegistry,
-        queryId);
+    projectNode.buildStream(ksqlStreamBuilder);
+
+    // Then:
+    verify(source, times(1)).buildStream(ksqlStreamBuilder);
+  }
+
+  @Test
+  public void shouldCreateProjectionWithFieldNameExpressionPairs() {
+    // When:
+    projectNode.buildStream(ksqlStreamBuilder);
 
     // Then:
     verify(stream).select(
         eq(Arrays.asList(
-            SelectExpression.of("field1", trueExpression),
-            SelectExpression.of("field2", falseExpression))),
-        eq(node.buildNodeContext(queryId)),
+            SelectExpression.of("field1", TRUE_EXPRESSION),
+            SelectExpression.of("field2", FALSE_EXPRESSION))),
+        eq(stacker),
         same(processingLogContext)
-    );
-    verify(source, times(1)).buildStream(
-        same(builder),
-        same(ksqlConfig),
-        same(serviceContext),
-        same(processingLogContext),
-        same(functionRegistry),
-        same(queryId)
     );
   }
 
-  @SuppressWarnings("unchecked")
-  private void mockSourceNode() {
-    when(source.getKeyField())
-        .thenReturn(new Field("field1", 0, Schema.OPTIONAL_STRING_SCHEMA));
-    when(source.buildStream(
-        any(StreamsBuilder.class),
-        any(KsqlConfig.class),
-        any(ServiceContext.class),
-        any(ProcessingLogContext.class),
-        any(InternalFunctionRegistry.class),
-        same(queryId))
-    ).thenReturn(stream);
+  @Test(expected = IllegalArgumentException.class)
+  public void shouldThrowIfKeyFieldNameNotInSchema() {
+    new ProjectNode(
+        NODE_ID,
+        source,
+        SCHEMA,
+        Optional.of("Unknown Key Field"),
+        ImmutableList.of(TRUE_EXPRESSION, FALSE_EXPRESSION));
+  }
+
+  @Test
+  public void shouldReturnKeyField() {
+    // When:
+    final KeyField keyField = projectNode.getKeyField();
+
+    // Then:
+    assertThat(keyField.name(), is(Optional.of(KEY_FIELD_NAME)));
+    assertThat(keyField.legacy(), is(SOURCE_KEY_FIELD.legacy()));
   }
 }

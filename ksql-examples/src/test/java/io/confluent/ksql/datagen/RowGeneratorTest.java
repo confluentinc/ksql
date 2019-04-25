@@ -25,7 +25,6 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.util.Pair;
 import java.io.File;
 import java.io.IOException;
-import java.util.Properties;
 import java.util.Random;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Schema.Type;

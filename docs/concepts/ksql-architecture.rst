@@ -162,6 +162,8 @@ metadata that ensures the statements are built compatibly across KSQL restarts
 and upgrades. KSQL names the command topic ``_confluent-ksql-<service id>_command_topic``,
 where ``<service id>`` is the value in the ``ksql.service.id`` property.
 
+.. _ksql-server-headless-deployment:
+
 Headless Deployment
 ===================
 
@@ -209,7 +211,9 @@ interactive deployments.
 +----------------------------------------------------+-------------------+---------------------+
 | Explain a query, including runtime stats (EXPLAIN) | Supported         | Not Supported       |
 +----------------------------------------------------+-------------------+---------------------+
-| CREATE and DROP a stream or table                  | Supported         | Supported           |
+| CREATE a stream or table                           | Supported         | Supported           |
++----------------------------------------------------+-------------------+---------------------+
+| DROP a stream or table                             | Supported         | Not Supported       |
 +----------------------------------------------------+-------------------+---------------------+
 | List existing streams and tables (SHOW STREAMS,    | Supported         | Not Supported       |
 | SHOW TABLES)                                       |                   |                     |
@@ -228,7 +232,7 @@ interactive deployments.
 +----------------------------------------------------+-------------------+---------------------+
 | Show results of a query (SELECT)                   | Supported         | Not Supported       |
 +----------------------------------------------------+-------------------+---------------------+
-| Start and stop a query                             | Supported         | Supported           |
+| TERMINATE a query                                  | Supported         | Not Supported       |
 +----------------------------------------------------+-------------------+---------------------+
 | Start and stop a KSQL Server instance              | Not with KSQL API | Not with KSQL API   |
 +----------------------------------------------------+-------------------+---------------------+
@@ -294,8 +298,8 @@ CREATE TABLE. For example, the following KSQL statement creates a stream named
 
 .. code:: sql
 
-    CREATE STREAM authorization_attempts                        \
-      (card_number VARCHAR, attemptTime BIGINT, ...)            \
+    CREATE STREAM authorization_attempts
+      (card_number VARCHAR, attemptTime BIGINT, ...)
       WITH (kafka_topic='authorizations', value_format=‘JSON’); 
 
 KSQL writes DDL and DML statements to the *command topic*. Each KSQL
@@ -341,12 +345,12 @@ from the ``authorization_attempts`` stream:
 
 .. code:: sql
 
-    CREATE TABLE possible_fraud AS     \
-      SELECT card_number, count(*)     \
-      FROM authorization_attempts      \
-      WINDOW TUMBLING (SIZE 5 SECONDS) \
-      WHERE region = ‘west’            \
-      GROUP BY card_number             \
+    CREATE TABLE possible_fraud AS
+      SELECT card_number, count(*)
+      FROM authorization_attempts
+      WINDOW TUMBLING (SIZE 5 SECONDS)
+      WHERE region = ‘west’
+      GROUP BY card_number
       HAVING count(*) > 3; 
 
 The KSQL engine translates the DML statement into a Kafka Streams application.

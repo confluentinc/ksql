@@ -209,8 +209,8 @@ public class ConsoleTest {
                             + " really, really, really, really, really, really, really, long\n"
                             + "description\n"
                             + "\tContaining Tabs\n"
-                            + "and stuff"
-                        )
+                            + "and stuff",
+                        true)
                 ),
                 "LONG",
                 "The function description, which too can be really, really, really, "
@@ -238,7 +238,7 @@ public class ConsoleTest {
           + "Jar         : some.jar\n"
           + "Variations  : \n"
           + "\n"
-          + "\tVariation   : FOO(arg1 INT)\n"
+          + "\tVariation   : FOO(arg1 INT[])\n"
           + "\tReturns     : LONG\n"
           + "\tDescription : The function description, which too can be really, really, really, really, really, \n"
           + "                really, really, really, really, really, really, really, really, really, really, \n"

@@ -38,6 +38,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import org.apache.kafka.common.metrics.Metrics;
+import org.apache.kafka.connect.data.Struct;
 import org.codehaus.commons.compiler.CompilerFactoryFactory;
 import org.codehaus.commons.compiler.IScriptEvaluator;
 import org.codehaus.janino.JavaSourceClassLoader;
@@ -70,6 +71,7 @@ public class UdfCompiler {
       .addAll(SUPPORTED_UDAF_TYPES)
       .add(List.class)
       .add(Map.class)
+      .add(Struct.class)
       .build();
 
   private static final String UDAF_PACKAGE = "io.confluent.ksql.function.udaf.";
@@ -98,7 +100,6 @@ public class UdfCompiler {
     }
   }
 
-  @SuppressWarnings("unchecked")
   KsqlAggregateFunction<?, ?> compileAggregate(final Method method,
                                                final ClassLoader loader,
                                                final String functionName,
@@ -206,6 +207,7 @@ public class UdfCompiler {
                                    final Method method,
                                    final String functionName,
                                    final String description) {
+    validateMethodSignature(method);
     Arrays.stream(method.getParameterTypes())
         .filter(type -> !UdfCompiler.isTypeSupported(type, SUPPORTED_UDAF_TYPES))
         .findFirst()
@@ -232,6 +234,7 @@ public class UdfCompiler {
    * @return String representation of the code that should be compiled for the UDF
    */
   private static String generateCode(final Method method) {
+    validateMethodSignature(method);
     Arrays.stream(method.getParameterTypes())
         .filter(type -> !UdfCompiler.isTypeSupported(type, SUPPORTED_UDF_TYPES))
         .findFirst()
@@ -251,8 +254,21 @@ public class UdfCompiler {
     return UdfTemplate.generateCode(method, "thiz");
   }
 
+  private static void validateMethodSignature(final Method method) {
+    for (int i = 0; i < method.getParameterTypes().length; i++) {
+      if (method.getParameterTypes()[i].isArray()) {
+        if (!method.isVarArgs() || i != method.getParameterCount() - 1) {
+          throw new KsqlFunctionException(
+              "Invalid UDF method signature (contains non var-arg array): " + method);
+        }
+      }
+    }
+  }
+
+  @SuppressWarnings("BooleanMethodIsAlwaysInverted")
   private static boolean isTypeSupported(final Class<?> type, final Set<Class<?>> supportedTypes) {
     return supportedTypes.contains(type)
+        || type.isArray() && supportedTypes.contains(type.getComponentType())
         || supportedTypes.stream().anyMatch(supported -> supported.isAssignableFrom(type));
   }
 

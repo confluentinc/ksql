@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.server.validation;
 
+import static io.confluent.ksql.parser.ParserMatchers.configured;
 import static io.confluent.ksql.parser.ParserMatchers.preparedStatement;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
@@ -27,28 +28,32 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext;
-import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.function.InternalFunctionRegistry;
-import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.MutableMetaStore;
+import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.Explain;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.Statement;
-import io.confluent.ksql.schema.inference.SchemaInjector;
+import io.confluent.ksql.services.SandboxedServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
+import io.confluent.ksql.statement.Injector;
+import io.confluent.ksql.statement.InjectorChain;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
+import io.confluent.ksql.util.Sandbox;
 import java.util.List;
 import java.util.Map;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Before;
@@ -68,10 +73,16 @@ public class RequestValidatorTest {
   @Rule
   public ExpectedException expectedException = ExpectedException.none();
 
-  @Mock KsqlEngine ksqlEngine;
-  @Mock KsqlConfig ksqlConfig;
-  @Mock StatementValidator statementValidator;
-  @Mock SchemaInjector schemaInjector;
+  @Mock
+  SandboxEngine ksqlEngine;
+  @Mock
+  KsqlConfig ksqlConfig;
+  @Mock
+  StatementValidator<?> statementValidator;
+  @Mock
+  Injector schemaInjector;
+  @Mock
+  Injector topicInjector;
 
   private ServiceContext serviceContext;
   private MutableMetaStore metaStore;
@@ -87,16 +98,17 @@ public class RequestValidatorTest {
         .thenAnswer(invocation ->
             new DefaultKsqlParser().prepare(invocation.getArgument(0), metaStore));
     executionContext = ksqlEngine;
-    serviceContext = TestServiceContext.create();
+    serviceContext = SandboxedServiceContext.create(TestServiceContext.create());
     when(ksqlConfig.getInt(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG))
         .thenReturn(Integer.MAX_VALUE);
-    when(schemaInjector.forStatement(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(schemaInjector.inject(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(topicInjector.inject(any())).thenAnswer(inv -> inv.getArgument(0));
 
-    final KsqlStream source = mock(KsqlStream.class);
+    final KsqlStream<?> source = mock(KsqlStream.class);
     when(source.getName()).thenReturn("SOURCE");
     when(source.getSchema()).thenReturn(SCHEMA);
 
-    final KsqlStream sink = mock(KsqlStream.class);
+    final KsqlStream<?> sink = mock(KsqlStream.class);
     when(sink.getName()).thenReturn("SINK");
     when(sink.getSchema()).thenReturn(SCHEMA);
 
@@ -121,10 +133,8 @@ public class RequestValidatorTest {
 
     // Then:
     verify(statementValidator, times(1)).validate(
-        argThat(is(preparedStatement(instanceOf(CreateStream.class)))),
+        argThat(is(configured(preparedStatement(instanceOf(CreateStream.class))))),
         eq(executionContext),
-        any(),
-        eq(ksqlConfig),
         any()
     );
   }
@@ -139,9 +149,8 @@ public class RequestValidatorTest {
 
     // Then:
     verify(ksqlEngine, times(1)).execute(
-        argThat(is(preparedStatement(instanceOf(SetProperty.class)))),
-        eq(ksqlConfig),
-        any());
+        argThat(configured(preparedStatement(instanceOf(SetProperty.class))))
+    );
   }
 
   @Test
@@ -151,7 +160,7 @@ public class RequestValidatorTest {
         ImmutableMap.of(CreateStream.class, statementValidator)
     );
     doThrow(new KsqlException("Fail"))
-        .when(statementValidator).validate(any(), any(), any(), any(), any());
+        .when(statementValidator).validate(any(), any(), any());
 
     final List<ParsedStatement> statements =
         givenParsed("CREATE STREAM x WITH (kafka_topic='x');");
@@ -236,12 +245,84 @@ public class RequestValidatorTest {
 
     // Then:
     verify(statementValidator, times(1)).validate(
-        argThat(is(preparedStatement(instanceOf(CreateStream.class)))),
+        argThat(is(configured(preparedStatement(instanceOf(CreateStream.class))))),
         eq(executionContext),
-        any(),
-        eq(ksqlConfig),
         any()
     );
+  }
+
+
+  @Test
+  public void shouldThrowIfInvalidOverriddenProperty() {
+    // Given:
+    final Map<String, Object> props = ImmutableMap.of(
+        "invalid.property", "foo");
+    givenRequestValidator(
+        ImmutableMap.of(CreateStream.class, statementValidator)
+    );
+    final List<ParsedStatement> statements =
+        givenParsed(
+            "CREATE STREAM a WITH (kafka_topic='a', value_format='json');"
+        );
+
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Invalid config property: invalid.property");
+
+    // When:
+    validator.validate(statements, props, "sql");
+  }
+
+  @Test
+  public void shouldValidateForValidOverriddenProperty() {
+    // Given:
+    final Map<String, Object> props = ImmutableMap.of(
+        ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+    givenRequestValidator(
+        ImmutableMap.of(CreateStream.class, statementValidator)
+    );
+    final List<ParsedStatement> statements =
+        givenParsed(
+            "CREATE STREAM a WITH (kafka_topic='a', value_format='json');"
+        );
+
+    // When:
+    validator.validate(statements, props, "sql");
+
+    // Then:
+    verify(statementValidator, times(1)).validate(
+        argThat(is(configured(preparedStatement(instanceOf(CreateStream.class))))),
+        eq(executionContext),
+        any()
+    );
+
+  }
+
+  @Test
+  public void shouldThrowIfServiceContextIsNotSandbox() {
+    // Given:
+    serviceContext = mock(ServiceContext.class);
+
+    // Expect:
+    expectedException.expect(IllegalArgumentException.class);
+    expectedException.expectMessage("Expected sandbox");
+
+    // When:
+    givenRequestValidator(ImmutableMap.of());
+  }
+
+  @Test
+  public void shouldThrowIfSnapshotSupplierReturnsNonSandbox() {
+    // Given:
+    executionContext = mock(KsqlExecutionContext.class);
+    givenRequestValidator(ImmutableMap.of());
+
+    // Expect:
+    expectedException.expect(IllegalArgumentException.class);
+    expectedException.expectMessage("Expected sandbox");
+
+    // When:
+    validator.validate(ImmutableList.of(), ImmutableMap.of(), "sql");
   }
 
   private List<ParsedStatement> givenParsed(final String sql) {
@@ -249,15 +330,18 @@ public class RequestValidatorTest {
   }
 
   private void givenRequestValidator(
-      Map<Class<? extends Statement>, StatementValidator> customValidators
+      Map<Class<? extends Statement>, StatementValidator<?>> customValidators
   ) {
     validator = new RequestValidator(
         customValidators,
-        sc -> schemaInjector,
+        (ec, sc) -> InjectorChain.of(schemaInjector, topicInjector),
         () -> executionContext,
         serviceContext,
         ksqlConfig
     );
   }
+
+  @Sandbox
+  private interface SandboxEngine extends KsqlExecutionContext { }
 
 }

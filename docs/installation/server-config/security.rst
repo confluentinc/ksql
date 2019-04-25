@@ -46,7 +46,7 @@ settings:
 
 ::
 
-    ssl.client.auth=required
+    ssl.client.auth=true
     ssl.truststore.location=/var/private/ssl/ksql.server.truststore.jks
     ssl.truststore.password=zzzz
 
@@ -100,15 +100,28 @@ Use the following settings to configure the KSQL server to require authenticatio
 ::
 
     authentication.method=BASIC
-    authentication.roles=some-ksql-cluster-id
-    authentication.realm=KsqlServer-Props
-    java.security.auth.login.config=/path/to/the/jaas_config.file
+    authentication.roles=<user-role1>,<user-role2>,...
+    authentication.realm=<KsqlServer-Props-in-jaas_config.file>
 
-The ``authentication.roles`` config defines a comma separated list of user roles. To be authorized
-to use the KSQL server an authenticated user must belong to at least one of these roles.
+The ``authentication.roles`` config defines a comma-separated list of user roles. To be authorized
+to use the KSQL server, an authenticated user must belong to at least one of these roles.
+
+For example, if you define ``admin``, ``developer``, ``user``, and ``ksq-user``
+roles, the following configuration assigns them for authentication.
+
+::
+
+    authentication.roles=admin,developer,user,ksq-user
 
 The ``authentication.realm`` config must match a section within ``jaas_config.file``, which
-defines how the server authenticates users, for example:
+defines how the server authenticates users and should be passed as a JVM option during server start:
+
+.. code:: bash
+
+    $ export KSQL_OPTS=-Djava.security.auth.login.config=/path/to/the/jaas_config.file
+    $ <path-to-confluent>/bin/ksql-server-start <path-to-confluent>/etc/ksql/ksql-server.properties
+
+An example ``jaas_config.file`` is:
 
 ::
 
@@ -120,6 +133,13 @@ defines how the server authenticates users, for example:
 
 The example ``jaas_config.file`` above uses the Jetty ``PropertyFileLoginModule``, which itself
 authenticates users by checking for their credentials in a password file.
+
+Assign the ``KsqlServer-Props`` section to the ``authentication.realm`` config setting:
+
+::
+
+    authentication.realm=KsqlServer-Props
+
 
 You can also use other implementations of the standard Java ``LoginModule`` interface, such as
 ``JDBCLoginModule`` for reading credentials from a database or the ``LdapLoginModule``.
@@ -173,6 +193,12 @@ Configuring KSQL for |ccloud|
 -----------------------------
 
 You can use KSQL with a Kafka cluster in |ccloud|. For more information, see :ref:`install_ksql-ccloud`.
+
+Configuring KSQL for |c3|
+-----------------------------
+
+You can use KSQL with a Kafka cluster in |c3|. For more information, see
+:ref:`integrate-ksql-with-confluent-control-center`.
 
 .. _config-security-ksql-sr:
 
@@ -375,6 +401,13 @@ KSQL always requires the following ACLs for its internal operations and data man
 
 Where ``ksql.service.id`` can be configured in the KSQL configuration and defaults to ``default_``.
 
+If KSQL is configured to create a topic for the :ref:`record processing log <ksql_processing_log>`
+which is the default configuration since KSQL version 5.2, the following ACLs are also needed:
+
+- The ``ALL`` operation on the ``TOPIC`` with ``LITERAL`` name ``<ksql.logging.processing.topic.name>``.
+
+Where ``ksql.logging.processing.topic.name`` can be configured in the KSQL configuration and defaults to ``<ksql.service.id>ksql_processing_log``.
+
 In addition to the general permissions above, KSQL also needs permissions to perform the actual processing of your data.
 Here, KSQL needs permissions to read data from your desired input topics and/or permissions to write data to your desired output topics:
 
@@ -422,6 +455,9 @@ Then the following commands would create the necessary ACLs in the Kafka cluster
     # Allow KSQL to manage its own internal topics and consumer groups:
     bin/kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation All --resource-pattern-type prefixed --topic _confluent-ksql-production_ --group _confluent-ksql-production_
 
+    # Allow KSQL to manage its record processing log topic, if configured:
+    bin/kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation All --topic production_ksql_processing_log
+
 .. _config-security-ksql-acl-interactive_post_ak_2_0:
 
 Interactive KSQL clusters
@@ -462,6 +498,9 @@ Then the following commands would create the necessary ACLs in the Kafka cluster
 
     # Allow KSQL to manage its own internal topics and consumer groups:
     bin/kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation All --resource-pattern-type prefixed --topic _confluent-ksql-fraud_ --group _confluent-ksql-fraud_
+
+    # Allow KSQL to manage its record processing log topic, if configured:
+    bin/kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation All --topic fraud_ksql_processing_log
 
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 |cp| versions below v5.0 (Apache Kafka < v2.0)

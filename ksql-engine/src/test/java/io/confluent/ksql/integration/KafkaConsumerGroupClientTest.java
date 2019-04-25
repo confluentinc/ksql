@@ -36,6 +36,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -45,9 +47,11 @@ import org.apache.kafka.test.IntegrationTest;
 import org.apache.kafka.test.TestUtils;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.rules.RuleChain;
 
 /**
  * Unfortunately needs to be an integration test as there is no way
@@ -59,8 +63,12 @@ public class KafkaConsumerGroupClientTest {
 
   private static final int PARTITION_COUNT = 3;
 
+  private final IntegrationTestHarness testHarness = IntegrationTestHarness.build();
+
   @Rule
-  public final IntegrationTestHarness testHarness = IntegrationTestHarness.build();
+  public final RuleChain clusterWithRetry = RuleChain
+      .outerRule(Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS))
+      .around(testHarness);
 
   private AdminClient adminClient;
   private KafkaConsumerGroupClient consumerGroupClient;

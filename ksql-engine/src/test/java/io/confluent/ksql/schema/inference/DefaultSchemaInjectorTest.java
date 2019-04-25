@@ -43,6 +43,8 @@ import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.Type.SqlType;
 import io.confluent.ksql.schema.inference.TopicSchemaSupplier.SchemaResult;
+import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import java.util.HashMap;
@@ -127,8 +129,8 @@ public class DefaultSchemaInjectorTest {
   private CreateTable ct;
   @Mock
   private TopicSchemaSupplier schemaSupplier;
-  private PreparedStatement<CreateStream> csStatement;
-  private PreparedStatement<CreateTable> ctStatement;
+  private ConfiguredStatement<CreateStream> csStatement;
+  private ConfiguredStatement<CreateTable> ctStatement;
 
   private DefaultSchemaInjector injector;
 
@@ -143,8 +145,9 @@ public class DefaultSchemaInjectorTest {
     when(cs.copyWith(any(), any())).thenAnswer(inv -> setupCopy(inv, cs, mock(CreateStream.class)));
     when(ct.copyWith(any(), any())).thenAnswer(inv -> setupCopy(inv, ct, mock(CreateTable.class)));
 
-    csStatement = PreparedStatement.of(SQL_TEXT, cs);
-    ctStatement = PreparedStatement.of(SQL_TEXT, ct);
+    final KsqlConfig config = new KsqlConfig(ImmutableMap.of());
+    csStatement = ConfiguredStatement.of(PreparedStatement.of(SQL_TEXT, cs), ImmutableMap.of(), config);
+    ctStatement = ConfiguredStatement.of(PreparedStatement.of(SQL_TEXT, ct), ImmutableMap.of(), config);
 
     when(schemaSupplier.getValueSchema(eq(KAFKA_TOPIC), any()))
         .thenReturn(SchemaResult.success(schemaAndId(SUPPORTED_SCHEMA, SCHEMA_ID)));
@@ -155,10 +158,13 @@ public class DefaultSchemaInjectorTest {
   @Test
   public void shouldReturnStatementUnchangedIfNotCreateStatement() {
     // Given:
-    final PreparedStatement<?> prepared = PreparedStatement.of("sql", statement);
+    final ConfiguredStatement<?> prepared = ConfiguredStatement.of(
+        PreparedStatement.of("sql", statement),
+        ImmutableMap.of(),
+        new KsqlConfig(ImmutableMap.of()));
 
     // When:
-    final PreparedStatement<?> result = injector.forStatement(prepared);
+    final ConfiguredStatement<?> result = injector.inject(prepared);
 
     // Then:
     assertThat(result, is(sameInstance(prepared)));
@@ -170,7 +176,7 @@ public class DefaultSchemaInjectorTest {
     when(cs.getElements()).thenReturn(SOME_ELEMENTS);
 
     // When:
-    final PreparedStatement<?> result = injector.forStatement(csStatement);
+    final ConfiguredStatement<?> result = injector.inject(csStatement);
 
     // Then:
     assertThat(result, is(sameInstance(csStatement)));
@@ -182,7 +188,7 @@ public class DefaultSchemaInjectorTest {
     when(ct.getElements()).thenReturn(SOME_ELEMENTS);
 
     // When:
-    final PreparedStatement<?> result = injector.forStatement(ctStatement);
+    final ConfiguredStatement<?> result = injector.inject(ctStatement);
 
     // Then:
     assertThat(result, is(sameInstance(ctStatement)));
@@ -194,7 +200,7 @@ public class DefaultSchemaInjectorTest {
     when(cs.getProperties()).thenReturn(UNSUPPORTED_PROPS);
 
     // When:
-    final PreparedStatement<?> result = injector.forStatement(csStatement);
+    final ConfiguredStatement<?> result = injector.inject(csStatement);
 
     // Then:
     assertThat(result, is(sameInstance(csStatement)));
@@ -206,7 +212,7 @@ public class DefaultSchemaInjectorTest {
     when(ct.getProperties()).thenReturn(UNSUPPORTED_PROPS);
 
     // When:
-    final PreparedStatement<?> result = injector.forStatement(ctStatement);
+    final ConfiguredStatement<?> result = injector.inject(ctStatement);
 
     // Then:
     assertThat(result, is(sameInstance(ctStatement)));
@@ -224,7 +230,7 @@ public class DefaultSchemaInjectorTest {
     expectedException.expectMessage(SQL_TEXT);
 
     // When:
-    injector.forStatement(csStatement);
+    injector.inject(csStatement);
   }
 
   @Test
@@ -239,7 +245,7 @@ public class DefaultSchemaInjectorTest {
     expectedException.expectMessage(SQL_TEXT);
 
     // When:
-    injector.forStatement(ctStatement);
+    injector.inject(ctStatement);
   }
 
   @Test
@@ -253,7 +259,7 @@ public class DefaultSchemaInjectorTest {
     expectedException.expectMessage("schema missing or incompatible");
 
     // When:
-    injector.forStatement(ctStatement);
+    injector.inject(ctStatement);
   }
 
   @Test
@@ -263,7 +269,7 @@ public class DefaultSchemaInjectorTest {
         .thenReturn(SchemaResult.success(schemaAndId(SUPPORTED_SCHEMA, SCHEMA_ID)));
 
     // When:
-    final PreparedStatement<CreateStream> result = injector.forStatement(csStatement);
+    final ConfiguredStatement<CreateStream> result = injector.inject(csStatement);
 
     // Then:
     assertThat(result.getStatement().getElements(), is(EXPECTED_KSQL_SCHEMA));
@@ -276,7 +282,7 @@ public class DefaultSchemaInjectorTest {
         .thenReturn(SchemaResult.success(schemaAndId(SUPPORTED_SCHEMA, SCHEMA_ID)));
 
     // When:
-    final PreparedStatement<CreateTable> result = injector.forStatement(ctStatement);
+    final ConfiguredStatement<CreateTable> result = injector.inject(ctStatement);
 
     // Then:
     assertThat(result.getStatement().getElements(), is(EXPECTED_KSQL_SCHEMA));
@@ -289,7 +295,7 @@ public class DefaultSchemaInjectorTest {
         .thenReturn(SchemaResult.success(schemaAndId(SUPPORTED_SCHEMA, SCHEMA_ID)));
 
     // When:
-    final PreparedStatement<CreateStream> result = injector.forStatement(csStatement);
+    final ConfiguredStatement<CreateStream> result = injector.inject(csStatement);
 
     // Then:
     assertThat(result.getStatementText(), is(
@@ -314,7 +320,7 @@ public class DefaultSchemaInjectorTest {
         .thenReturn(SchemaResult.success(schemaAndId(SUPPORTED_SCHEMA, SCHEMA_ID)));
 
     // When:
-    final PreparedStatement<CreateTable> result = injector.forStatement(ctStatement);
+    final ConfiguredStatement<CreateTable> result = injector.inject(ctStatement);
 
     // Then:
     assertThat(result.getStatementText(), is(
@@ -341,7 +347,7 @@ public class DefaultSchemaInjectorTest {
         .thenReturn(SchemaResult.success(schemaAndId(SUPPORTED_SCHEMA, SCHEMA_ID)));
 
     // When:
-    final PreparedStatement<CreateStream> result = injector.forStatement(csStatement);
+    final ConfiguredStatement<CreateStream> result = injector.inject(csStatement);
 
     // Then:
     assertThat(result.getStatementText(), is(
@@ -368,7 +374,7 @@ public class DefaultSchemaInjectorTest {
         .thenReturn(SchemaResult.success(schemaAndId(SUPPORTED_SCHEMA, SCHEMA_ID)));
 
     // When:
-    final PreparedStatement<CreateTable> result = injector.forStatement(ctStatement);
+    final ConfiguredStatement<CreateTable> result = injector.inject(ctStatement);
 
     // Then:
     assertThat(result.getStatementText(), is(
@@ -393,7 +399,7 @@ public class DefaultSchemaInjectorTest {
         .thenReturn(SchemaResult.success(schemaAndId(SUPPORTED_SCHEMA, SCHEMA_ID)));
 
     // When:
-    final PreparedStatement<CreateStream> result = injector.forStatement(csStatement);
+    final ConfiguredStatement<CreateStream> result = injector.inject(csStatement);
 
     // Then:
     assertThat(result.getStatement().getProperties().get("AVRO_SCHEMA_ID"),
@@ -408,7 +414,7 @@ public class DefaultSchemaInjectorTest {
     when(cs.getProperties()).thenReturn(supportedPropsWith("AVRO_SCHEMA_ID", "42"));
 
     // When:
-    final PreparedStatement<CreateStream> result = injector.forStatement(csStatement);
+    final ConfiguredStatement<CreateStream> result = injector.inject(csStatement);
 
     // Then:
     assertThat(result.getStatement().getProperties().get("AVRO_SCHEMA_ID"),
@@ -426,7 +432,7 @@ public class DefaultSchemaInjectorTest {
 
       try {
         // When:
-        injector.forStatement(ctStatement);
+        injector.inject(ctStatement);
 
         // Then:
         fail("Expected KsqlStatementException. schema: " + unsupportedSchema);
@@ -451,7 +457,7 @@ public class DefaultSchemaInjectorTest {
     expectedException.expectMessage("Oh no");
 
     // When:
-    injector.forStatement(csStatement);
+    injector.inject(csStatement);
   }
 
   @SuppressWarnings("SameParameterValue")

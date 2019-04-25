@@ -35,108 +35,143 @@ import org.apache.kafka.connect.data.Struct;
 import org.junit.Before;
 import org.junit.Test;
 
-@SuppressWarnings("unchecked")
 public class KsqlJsonSerializerTest {
 
-  private Schema orderSchema;
+  private static final Schema ORDER_SCHEMA = SchemaBuilder.struct()
+      .field("ordertime".toUpperCase(), Schema.OPTIONAL_INT64_SCHEMA)
+      .field("orderid".toUpperCase(), Schema.OPTIONAL_INT64_SCHEMA)
+      .field("itemid".toUpperCase(), Schema.OPTIONAL_STRING_SCHEMA)
+      .field("orderunits".toUpperCase(), Schema.OPTIONAL_FLOAT64_SCHEMA)
+      .field("arraycol".toUpperCase(),
+          SchemaBuilder.array(Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build())
+      .field("mapcol".toUpperCase(), SchemaBuilder
+          .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build())
+      .build();
 
-  private Schema addressSchema;
+  private static final Schema ADDRESS_SCHEMA = SchemaBuilder.struct()
+      .field("NUMBER", Schema.OPTIONAL_INT64_SCHEMA)
+      .field("STREET", Schema.OPTIONAL_STRING_SCHEMA)
+      .field("CITY", Schema.OPTIONAL_STRING_SCHEMA)
+      .field("STATE", Schema.OPTIONAL_STRING_SCHEMA)
+      .field("ZIPCODE", Schema.OPTIONAL_INT64_SCHEMA)
+      .optional().build();
 
-  private Schema itemSchema;
-  private Schema categorySchema;
+  private static final Schema CATEGORY_SCHEMA = SchemaBuilder.struct()
+      .field("ID", Schema.OPTIONAL_INT64_SCHEMA)
+      .field("NAME", Schema.OPTIONAL_STRING_SCHEMA)
+      .optional().build();
 
+  private static final Schema ITEM_SCHEMA = SchemaBuilder.struct()
+      .field("ITEMID", Schema.OPTIONAL_INT64_SCHEMA)
+      .field("NAME", Schema.OPTIONAL_STRING_SCHEMA)
+      .field("CATEGORIES", SchemaBuilder.array(CATEGORY_SCHEMA).optional().build())
+      .optional().build();
+
+  private static final Schema SCHEMA_WITH_STRUCT = SchemaBuilder.struct()
+      .field("ordertime", Schema.OPTIONAL_INT64_SCHEMA)
+      .field("orderid", Schema.OPTIONAL_INT64_SCHEMA)
+      .field("itemid", ITEM_SCHEMA)
+      .field("orderunits", Schema.OPTIONAL_INT32_SCHEMA)
+      .field("arraycol", SchemaBuilder
+          .array(Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build())
+      .field("mapcol", SchemaBuilder
+          .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build())
+      .field("address", ADDRESS_SCHEMA)
+      .build();
+
+  private KsqlJsonSerializer serializer;
 
   @Before
   public void before() {
-
-    orderSchema = SchemaBuilder.struct()
-        .field("ordertime".toUpperCase(), org.apache.kafka.connect.data.Schema.OPTIONAL_INT64_SCHEMA)
-        .field("orderid".toUpperCase(), org.apache.kafka.connect.data.Schema.OPTIONAL_INT64_SCHEMA)
-        .field("itemid".toUpperCase(), org.apache.kafka.connect.data.Schema.OPTIONAL_STRING_SCHEMA)
-        .field("orderunits".toUpperCase(), org.apache.kafka.connect.data.Schema.OPTIONAL_FLOAT64_SCHEMA)
-        .field("arraycol".toUpperCase(),
-            SchemaBuilder.array(org.apache.kafka.connect.data.Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build())
-        .field("mapcol".toUpperCase(), SchemaBuilder
-            .map(org.apache.kafka.connect.data.Schema.OPTIONAL_STRING_SCHEMA,
-                org.apache.kafka.connect.data.Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build())
-        .build();
+    serializer = new KsqlJsonSerializer(ORDER_SCHEMA);
   }
 
   @Test
   public void shouldSerializeRowCorrectly() {
-    final List<Object> columns = Arrays.asList(1511897796092L, 1L, "item_1", 10.0, Arrays.asList(100.0),
-                                       Collections.singletonMap("key1", 100.0));
-    final GenericRow genericRow = new GenericRow(columns);
-    final KsqlJsonSerializer ksqlJsonDeserializer = new KsqlJsonSerializer(orderSchema);
-    final byte[] bytes = ksqlJsonDeserializer.serialize("t1", genericRow);
+    // Given:
+    final GenericRow genericRow = new GenericRow(Arrays.asList(
+        1511897796092L,
+        1L,
+        "item_1",
+        10.0,
+        Collections.singletonList(100.0),
+        Collections.singletonMap("key1", 100.0)
+    ));
 
+    // When:
+    final byte[] bytes = serializer.serialize("t1", genericRow);
+
+    // Then:
     final String jsonString = new String(bytes, StandardCharsets.UTF_8);
-    assertThat("Incorrect serialization.", jsonString, equalTo(
-        "{\"ORDERTIME\":1511897796092,\"ORDERID\":1,\"ITEMID\":\"item_1\",\"ORDERUNITS\":10.0,\"ARRAYCOL\":[100.0],\"MAPCOL\":{\"key1\":100.0}}"));
+    assertThat(jsonString, equalTo(
+        "{"
+            + "\"ORDERTIME\":1511897796092,"
+            + "\"ORDERID\":1,"
+            + "\"ITEMID\":\"item_1\","
+            + "\"ORDERUNITS\":10.0,"
+            + "\"ARRAYCOL\":[100.0],"
+            + "\"MAPCOL\":{\"key1\":100.0}"
+            + "}"));
   }
 
   @Test
   public void shouldSerializeRowWithNull() {
-    final List<Object> columns = Arrays.asList(1511897796092L, 1L, "item_1", 10.0, null,
-                                       null);
-    final GenericRow genericRow = new GenericRow(columns);
-    final KsqlJsonSerializer ksqlJsonDeserializer = new KsqlJsonSerializer(orderSchema);
-    final byte[] bytes = ksqlJsonDeserializer.serialize("t1", genericRow);
+    // Given:
+    final GenericRow genericRow = new GenericRow(Arrays.asList(
+        1511897796092L,
+        1L,
+        "item_1",
+        10.0,
+        null,
+        null
+    ));
 
+    // When:
+    final byte[] bytes = serializer.serialize("t1", genericRow);
+
+    // Then:
     final String jsonString = new String(bytes, StandardCharsets.UTF_8);
-    assertThat("Incorrect serialization.", jsonString, equalTo(
-        "{\"ORDERTIME\":1511897796092,\"ORDERID\":1,\"ITEMID\":\"item_1\",\"ORDERUNITS\":10.0,\"ARRAYCOL\":null,\"MAPCOL\":null}"));
+    assertThat(jsonString, equalTo(
+        "{"
+            + "\"ORDERTIME\":1511897796092,"
+            + "\"ORDERID\":1,"
+            + "\"ITEMID\":\"item_1\","
+            + "\"ORDERUNITS\":10.0,"
+            + "\"ARRAYCOL\":null,"
+            + "\"MAPCOL\":null"
+            + "}"));
   }
 
-  private Schema getSchemaWithStruct() {
-    addressSchema = SchemaBuilder.struct()
-        .field("NUMBER", Schema.OPTIONAL_INT64_SCHEMA)
-        .field("STREET", Schema.OPTIONAL_STRING_SCHEMA)
-        .field("CITY", Schema.OPTIONAL_STRING_SCHEMA)
-        .field("STATE", Schema.OPTIONAL_STRING_SCHEMA)
-        .field("ZIPCODE", Schema.OPTIONAL_INT64_SCHEMA)
-        .optional().build();
+  @Test
+  public void shouldHandleStruct() throws IOException {
+    // Given:
+    final GenericRow genericRow = buildStructGenericRow();
+    serializer = new KsqlJsonSerializer(SCHEMA_WITH_STRUCT);
 
-    categorySchema = SchemaBuilder.struct()
-        .field("ID", Schema.OPTIONAL_INT64_SCHEMA)
-        .field("NAME", Schema.OPTIONAL_STRING_SCHEMA)
-        .optional().build();
+    // When:
+    final byte[] bytes = serializer.serialize("", genericRow);
 
-    itemSchema = SchemaBuilder.struct()
-        .field("ITEMID", Schema.OPTIONAL_INT64_SCHEMA)
-        .field("NAME", Schema.OPTIONAL_STRING_SCHEMA)
-        .field("CATEGORIES", SchemaBuilder.array(categorySchema).optional().build())
-        .optional().build();
-
-    final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
-    final Schema schema = schemaBuilder
-        .field("ordertime", Schema.OPTIONAL_INT64_SCHEMA)
-        .field("orderid", Schema.OPTIONAL_INT64_SCHEMA)
-        .field("itemid", itemSchema)
-        .field("orderunits", Schema.OPTIONAL_INT32_SCHEMA)
-        .field("arraycol", SchemaBuilder.array(Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build())
-        .field("mapcol", SchemaBuilder.map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build())
-        .field("address", addressSchema).build();
-
-    return schema;
+    // Then:
+    final ObjectMapper objectMapper = new ObjectMapper();
+    final JsonNode jsonNode = objectMapper.readTree(bytes);
+    assertThat(jsonNode.size(), equalTo(7));
+    assertThat(jsonNode.get("ordertime").asLong(), equalTo(genericRow.getColumns().get(0)));
+    assertThat(jsonNode.get("itemid").get("NAME").asText(), equalTo("Item_10"));
   }
 
-  private GenericRow getGenericRow() {
+  private static GenericRow buildStructGenericRow() {
     final List<Object> columns = new ArrayList<>();
-    long currentTime = System.currentTimeMillis();
-    currentTime = (long) (1000 * Math.random()) + currentTime;
     // ordertime
-    columns.add(Long.valueOf(currentTime));
-
+    columns.add(1234567L);
     //orderid
     columns.add(10L);
     //itemid
-    final Struct category = new Struct(categorySchema);
+    final Struct category = new Struct(CATEGORY_SCHEMA);
     category.put("ID", Math.random() > 0.5 ? 1L : 2L);
     category.put("NAME", Math.random() > 0.5 ? "Produce" : "Food");
 
-    final Struct item = new Struct(itemSchema);
-    item.put("ITEMID", 10l);
+    final Struct item = new Struct(ITEM_SCHEMA);
+    item.put("ITEMID", 10L);
     item.put("NAME", "Item_10");
     item.put("CATEGORIES", Collections.singletonList(category));
 
@@ -145,9 +180,7 @@ public class KsqlJsonSerializerTest {
     //units
     columns.add(10);
 
-    final Double[] prices = new Double[]{10.0, 20.0, 30.0, 40.0, 50.0};
-
-    columns.add(Arrays.asList(prices));
+    columns.add(Arrays.asList(10.0, 20.0, 30.0, 40.0, 50.0));
 
     final Map<String, Double> map = new HashMap<>();
     map.put("key1", 10.0);
@@ -155,7 +188,7 @@ public class KsqlJsonSerializerTest {
     map.put("key3", 30.0);
     columns.add(map);
 
-    final Struct address = new Struct(addressSchema);
+    final Struct address = new Struct(ADDRESS_SCHEMA);
     address.put("NUMBER", 101L);
     address.put("STREET", "University Ave.");
     address.put("CITY", "Palo Alto");
@@ -164,21 +197,6 @@ public class KsqlJsonSerializerTest {
 
     columns.add(address);
 
-    final GenericRow genericRow = new GenericRow(columns);
-    return genericRow;
+    return new GenericRow(columns);
   }
-
-  @Test
-  public void shouldHandleStruct() throws IOException {
-    final KsqlJsonSerializer jsonSerializer = new KsqlJsonSerializer(getSchemaWithStruct());
-    final GenericRow genericRow = getGenericRow();
-    final byte[] bytes = jsonSerializer.serialize("", genericRow);
-    final ObjectMapper objectMapper = new ObjectMapper();
-    final JsonNode jsonNode = objectMapper.readTree(bytes);
-    assertThat(jsonNode.size(), equalTo(7));
-    assertThat(jsonNode.get("ordertime").asLong(), equalTo(genericRow.getColumns().get(0)));
-    assertThat(jsonNode.get("itemid").get("NAME").asText(), equalTo("Item_10"));
-  }
-
-
 }

@@ -72,13 +72,21 @@ public final class LogicalSchemas {
   }
 
   public interface SqlTypeToLogicalConverter {
+
+    /**
+     * @see #fromSqlType(Type, String, String)
+     */
+    Schema fromSqlType(Type sqlType);
+
     /**
      * Convert the supplied primitive {@code sqlType} to its corresponding logical KSQL schema.
      *
      * @param sqlType the sql type to convert
+     * @param name    the name for the schema
+     * @param doc     the doc for the schema
      * @return the logical schema.
      */
-    Schema fromSqlType(Type sqlType);
+    Schema fromSqlType(Type sqlType, String name, String doc);
   }
 
   public static LogicalToSqlTypeConverter toSqlTypeConverter() {
@@ -141,13 +149,13 @@ public final class LogicalSchemas {
 
   private static final class FromSqlTypeConverter implements SqlTypeToLogicalConverter {
 
-    private static final Map<Type.SqlType, Function<Type, Schema>> SQL_TO_LOGICAL = ImmutableMap
-        .<Type.SqlType, Function<Type, Schema>>builder()
-        .put(Type.SqlType.STRING, t -> STRING)
-        .put(Type.SqlType.BOOLEAN, t -> BOOLEAN)
-        .put(Type.SqlType.INTEGER, t -> INTEGER)
-        .put(Type.SqlType.BIGINT, t -> BIGINT)
-        .put(Type.SqlType.DOUBLE, t -> DOUBLE)
+    private static final Map<Type.SqlType, Function<Type, SchemaBuilder>> SQL_TO_LOGICAL =
+        ImmutableMap.<Type.SqlType, Function<Type, SchemaBuilder>>builder()
+        .put(Type.SqlType.STRING, t -> SchemaBuilder.string().optional())
+        .put(Type.SqlType.BOOLEAN, t -> SchemaBuilder.bool().optional())
+        .put(Type.SqlType.INTEGER, t -> SchemaBuilder.int32().optional())
+        .put(Type.SqlType.BIGINT, t -> SchemaBuilder.int64().optional())
+        .put(Type.SqlType.DOUBLE, t -> SchemaBuilder.float64().optional())
         .put(Type.SqlType.ARRAY, t -> FromSqlTypeConverter.fromSqlArray((Array) t))
         .put(Type.SqlType.MAP, t -> FromSqlTypeConverter
             .fromSqlMap((io.confluent.ksql.parser.tree.Map) t))
@@ -156,11 +164,16 @@ public final class LogicalSchemas {
 
     @Override
     public Schema fromSqlType(final Type sqlType) {
-      return logicalType(sqlType);
+      return logicalType(sqlType).build();
     }
 
-    private static Schema logicalType(final Type sqlType) {
-      final Function<Type, Schema> handler = SQL_TO_LOGICAL.get(sqlType.getSqlType());
+    @Override
+    public Schema fromSqlType(final Type type, final String name, final String doc) {
+      return logicalType(type).name(name).doc(doc).build();
+    }
+
+    private static SchemaBuilder logicalType(final Type sqlType) {
+      final Function<Type, SchemaBuilder> handler = SQL_TO_LOGICAL.get(sqlType.getSqlType());
       if (handler == null) {
         throw new KsqlException("Unexpected sql type: " + sqlType);
       }
@@ -168,29 +181,26 @@ public final class LogicalSchemas {
       return handler.apply(sqlType);
     }
 
-    private static Schema fromSqlArray(final Array sqlType) {
+    private static SchemaBuilder fromSqlArray(final Array sqlType) {
       return SchemaBuilder
-          .array(logicalType(sqlType.getItemType()))
-          .optional()
-          .build();
+          .array(logicalType(sqlType.getItemType()).build())
+          .optional();
     }
 
-    private static Schema fromSqlMap(final io.confluent.ksql.parser.tree.Map sqlType) {
+    private static SchemaBuilder fromSqlMap(final io.confluent.ksql.parser.tree.Map sqlType) {
       return SchemaBuilder
-          .map(Schema.OPTIONAL_STRING_SCHEMA, logicalType(sqlType.getValueType()))
-          .optional()
-          .build();
+          .map(Schema.OPTIONAL_STRING_SCHEMA, logicalType(sqlType.getValueType()).build())
+          .optional();
     }
 
-    private static Schema fromSqlStruct(final Struct struct) {
+    private static SchemaBuilder fromSqlStruct(final Struct struct) {
       final SchemaBuilder builder = SchemaBuilder.struct();
 
       struct.getFields()
-          .forEach(field -> builder.field(field.getName(), logicalType(field.getType())));
+          .forEach(field -> builder.field(field.getName(), logicalType(field.getType()).build()));
 
       return builder
-          .optional()
-          .build();
+          .optional();
     }
   }
 }

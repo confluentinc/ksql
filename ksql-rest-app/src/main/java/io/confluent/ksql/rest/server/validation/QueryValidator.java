@@ -16,23 +16,19 @@
 package io.confluent.ksql.rest.server.validation;
 
 import io.confluent.ksql.KsqlExecutionContext;
-import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.rest.server.resources.Errors;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.util.KsqlConfig;
-import java.util.Map;
+import io.confluent.ksql.statement.ConfiguredStatement;
 
 public final class QueryValidator {
 
   private QueryValidator() { }
 
   public static void validate(
-      final PreparedStatement statement,
+      final ConfiguredStatement<?> statement,
       final KsqlExecutionContext context,
-      final ServiceContext serviceContext,
-      final KsqlConfig ksqlConfig,
-      final Map<String, Object> propertyOverrides) {
+      final ServiceContext serviceContext) {
     throw new KsqlRestException(Errors.queryEndpoint(statement.getStatementText()));
   }
 

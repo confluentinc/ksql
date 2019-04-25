@@ -188,10 +188,8 @@ These examples query messages from Kafka topics called ``pageviews`` and ``users
 .. image:: ../img/ksql-quickstart-schemas.jpg
 
 
-#. Create a stream ``pageviews_original`` from the Kafka topic ``pageviews``, specifying the ``value_format`` of ``DELIMITED``.
-
-   Describe the new STREAM. Notice that KSQL created additional columns called ``ROWTIME``, which corresponds to the Kafka message timestamp,
-   and ``ROWKEY``, which corresponds to the Kafka message key.
+#. Create a stream, named ``pageviews_original``, from the ``pageviews`` Kafka
+   topic, specifying the ``value_format`` of ``DELIMITED``.
 
    .. code:: sql
 
@@ -207,9 +205,13 @@ These examples query messages from Kafka topics called ``pageviews`` and ``users
          Stream created
         ---------------
 
-   .. tip:: You can run ``DESCRIBE pageviews_original;`` to see the schema for the Stream.
+   .. tip:: You can run ``DESCRIBE pageviews_original;`` to see the schema for
+      the stream. Notice that KSQL created two additional columns, named
+      ``ROWTIME``, which corresponds with the Kafka message timestamp, and
+      ``ROWKEY``, which corresponds with the Kafka message key.
 
-#. Create a table ``users_original`` from the Kafka topic ``users``, specifying the ``value_format`` of ``JSON``.
+#. Create a table, named ``users_original``, from the ``users`` Kafka topic,
+   specifying the ``value_format`` of ``JSON``.
 
    .. code:: sql
 
@@ -269,7 +271,9 @@ the latest offset.
        LIMIT reached
        Query terminated
 
-#. Create a *persistent query* by using the ``CREATE STREAM`` keywords to precede the ``SELECT`` statement. The continual results from this query are written to the ``PAGEVIEWS_ENRICHED`` Kafka topic. The following query enriches the ``pageviews`` STREAM by doing a ``LEFT JOIN`` with the ``users_original`` TABLE on the user ID.
+#. Create a persistent query by using the ``CREATE STREAM`` keywords to precede the ``SELECT`` statement. The results from this
+   query are written to the ``PAGEVIEWS_ENRICHED`` Kafka topic. The following query enriches the ``pageviews_original`` STREAM by
+   doing a ``LEFT JOIN`` with the ``users_original`` TABLE on the user ID.
 
    .. code:: sql
 
@@ -490,8 +494,8 @@ To enable JMX metrics, set ``JMX_PORT`` before starting the KSQL server:
 
 .. code:: bash
 
-    $ export JMX_PORT=1099 && \
-      <path-to-confluent>/bin/ksql-server-start <path-to-confluent>/etc/ksql/ksql-server.properties
+    export JMX_PORT=1099 && \
+    <path-to-confluent>/bin/ksql-server-start <path-to-confluent>/etc/ksql/ksql-server.properties
 
 .. enable_JMX_metrics_end
 

@@ -22,11 +22,11 @@ is ``DELIMITED``.
 
 .. code:: sql
 
-    CREATE STREAM pageviews \
-      (viewtime BIGINT, \
-       userid VARCHAR, \
-       pageid VARCHAR) \
-      WITH (KAFKA_TOPIC='pageviews', \
+    CREATE STREAM pageviews
+      (viewtime BIGINT,
+       userid VARCHAR,
+       pageid VARCHAR)
+      WITH (KAFKA_TOPIC='pageviews',
             VALUE_FORMAT='DELIMITED');
 
 **Associating Kafka message keys:** The above statement does not make
@@ -39,12 +39,12 @@ STREAM statement as follows:
 
 .. code:: sql
 
-    CREATE STREAM pageviews \
-      (viewtime BIGINT, \
-       userid VARCHAR, \
-       pageid VARCHAR) \
-     WITH (KAFKA_TOPIC='pageviews', \
-           VALUE_FORMAT='DELIMITED', \
+    CREATE STREAM pageviews
+      (viewtime BIGINT,
+       userid VARCHAR,
+       pageid VARCHAR)
+     WITH (KAFKA_TOPIC='pageviews',
+           VALUE_FORMAT='DELIMITED',
            KEY='pageid');
 
 **Associating Kafka message timestamps:** If you want to use the value
@@ -57,13 +57,13 @@ timestamp, you can rewrite the above statement as follows:
 
 .. code:: sql
 
-    CREATE STREAM pageviews \
-      (viewtime BIGINT, \
-       userid VARCHAR, \
-       pageid VARCHAR) \
-      WITH (KAFKA_TOPIC='pageviews', \
-            VALUE_FORMAT='DELIMITED', \
-            KEY='pageid', \
+    CREATE STREAM pageviews
+      (viewtime BIGINT,
+       userid VARCHAR,
+       pageid VARCHAR)
+      WITH (KAFKA_TOPIC='pageviews',
+            VALUE_FORMAT='DELIMITED',
+            KEY='pageid',
             TIMESTAMP='viewtime');
 
 Creating tables
@@ -77,15 +77,15 @@ types, a column of ``array`` type, and a column of ``map`` type:
 
 .. code:: sql
 
-    CREATE TABLE users \
-      (registertime BIGINT, \
-       gender VARCHAR, \
-       regionid VARCHAR, \
-       userid VARCHAR, \
-       interests array<VARCHAR>, \
-       contactinfo map<VARCHAR, VARCHAR>) \
-      WITH (KAFKA_TOPIC='users', \
-            VALUE_FORMAT='JSON', \
+    CREATE TABLE users
+      (registertime BIGINT,
+       gender VARCHAR,
+       regionid VARCHAR,
+       userid VARCHAR,
+       interests array<VARCHAR>,
+       contactinfo map<VARCHAR, VARCHAR>)
+      WITH (KAFKA_TOPIC='users',
+            VALUE_FORMAT='JSON',
             KEY = 'userid');
 
 Note that specifying KEY is required in table declaration, see :ref:`ksql_key_requirements`.
@@ -118,15 +118,15 @@ The following statement will generate a new stream,
 
 .. code:: sql
 
-    CREATE STREAM pageviews_transformed \
-      WITH (TIMESTAMP='viewtime', \
-            PARTITIONS=5, \
-            VALUE_FORMAT='JSON') AS \
-      SELECT viewtime, \
-             userid, \
-             pageid, \
-             TIMESTAMPTOSTRING(viewtime, 'yyyy-MM-dd HH:mm:ss.SSS') AS timestring \
-      FROM pageviews \
+    CREATE STREAM pageviews_transformed
+      WITH (TIMESTAMP='viewtime',
+            PARTITIONS=5,
+            VALUE_FORMAT='JSON') AS
+      SELECT viewtime,
+             userid,
+             pageid,
+             TIMESTAMPTOSTRING(viewtime, 'yyyy-MM-dd HH:mm:ss.SSS') AS timestring
+      FROM pageviews
       PARTITION BY userid;
 
 Use a ``[ WHERE condition ]`` clause to select a subset of data. If you
@@ -136,30 +136,30 @@ write multiple KSQL statements as follows:
 
 .. code:: sql
 
-    CREATE STREAM pageviews_transformed_priority_1 \
-      WITH (TIMESTAMP='viewtime', \
-            PARTITIONS=5, \
-            VALUE_FORMAT='JSON') AS \
-      SELECT viewtime, \
-             userid, \
-             pageid, \
-             TIMESTAMPTOSTRING(viewtime, 'yyyy-MM-dd HH:mm:ss.SSS') AS timestring \
-      FROM pageviews \
-      WHERE userid='User_1' OR userid='User_2' \
+    CREATE STREAM pageviews_transformed_priority_1
+      WITH (TIMESTAMP='viewtime',
+            PARTITIONS=5,
+            VALUE_FORMAT='JSON') AS
+      SELECT viewtime,
+             userid,
+             pageid,
+             TIMESTAMPTOSTRING(viewtime, 'yyyy-MM-dd HH:mm:ss.SSS') AS timestring
+      FROM pageviews
+      WHERE userid='User_1' OR userid='User_2'
       PARTITION BY userid;
 
 .. code:: sql
 
-    CREATE STREAM pageviews_transformed_priority_2 \
-          WITH (TIMESTAMP='viewtime', \
-                PARTITIONS=5, \
-                VALUE_FORMAT='JSON') AS \
-      SELECT viewtime, \
-             userid, \
-             pageid, \
-             TIMESTAMPTOSTRING(viewtime, 'yyyy-MM-dd HH:mm:ss.SSS') AS timestring \
-      FROM pageviews \
-      WHERE userid<>'User_1' AND userid<>'User_2' \
+    CREATE STREAM pageviews_transformed_priority_2
+          WITH (TIMESTAMP='viewtime',
+                PARTITIONS=5,
+                VALUE_FORMAT='JSON') AS
+      SELECT viewtime,
+             userid,
+             pageid,
+             TIMESTAMPTOSTRING(viewtime, 'yyyy-MM-dd HH:mm:ss.SSS') AS timestring
+      FROM pageviews
+      WHERE userid<>'User_1' AND userid<>'User_2'
       PARTITION BY userid;
 
 Joining
@@ -169,8 +169,8 @@ When joining objects the number of partitions in each must be the same. You can 
 
 .. code:: sql
 
-    CREATE TABLE users_5part \
-        WITH (PARTITIONS=5) AS \
+    CREATE TABLE users_5part
+        WITH (PARTITIONS=5) AS
         SELECT * FROM USERS;
 
 Now you can use the following query to create a new stream by joining the
@@ -178,16 +178,16 @@ Now you can use the following query to create a new stream by joining the
 
 .. code:: sql
 
-    CREATE STREAM pageviews_enriched AS \
-      SELECT pv.viewtime, \
-             pv.userid AS userid, \
-             pv.pageid, \
-             pv.timestring, \
-             u.gender, \
-             u.regionid, \
-             u.interests, \
-             u.contactinfo \
-      FROM pageviews_transformed pv \
+    CREATE STREAM pageviews_enriched AS
+      SELECT pv.viewtime,
+             pv.userid AS userid,
+             pv.pageid,
+             pv.timestring,
+             u.gender,
+             u.regionid,
+             u.interests,
+             u.contactinfo
+      FROM pageviews_transformed pv
       LEFT JOIN users_5part u ON pv.userid = u.userid;
 
 Note that by default all the Kafka topics will be read from the current
@@ -204,10 +204,10 @@ Here is the query that would perform this count:
 
 .. code:: sql
 
-    CREATE TABLE pageviews_per_region AS \
-      SELECT regionid, \
-             count(*) \
-      FROM pageviews_enriched \
+    CREATE TABLE pageviews_per_region AS
+      SELECT regionid,
+             count(*)
+      FROM pageviews_enriched
       GROUP BY regionid;
 
 The above query counts the pageviews from the time you start the query
@@ -222,11 +222,11 @@ so that we compute the pageview count per region every 1 minute:
 
 .. code:: sql
 
-    CREATE TABLE pageviews_per_region_per_minute AS \
-      SELECT regionid, \
-             count(*) \
-      FROM pageviews_enriched \
-      WINDOW TUMBLING (SIZE 1 MINUTE) \
+    CREATE TABLE pageviews_per_region_per_minute AS
+      SELECT regionid,
+             count(*)
+      FROM pageviews_enriched
+      WINDOW TUMBLING (SIZE 1 MINUTE)
       GROUP BY regionid;
 
 If you want to count the pageviews for only “Region_6” by female users
@@ -234,12 +234,12 @@ for every 30 seconds, you can change the above query as the following:
 
 .. code:: sql
 
-    CREATE TABLE pageviews_per_region_per_30secs AS \
-      SELECT regionid, \
-             count(*) \
-      FROM pageviews_enriched \
-      WINDOW TUMBLING (SIZE 30 SECONDS) \
-      WHERE UCASE(gender)='FEMALE' AND LCASE(regionid)='region_6' \
+    CREATE TABLE pageviews_per_region_per_30secs AS
+      SELECT regionid,
+             count(*)
+      FROM pageviews_enriched
+      WINDOW TUMBLING (SIZE 30 SECONDS)
+      WHERE UCASE(gender)='FEMALE' AND LCASE(regionid)='region_6'
       GROUP BY regionid;
 
 UCASE and LCASE functions in KSQL are used to convert the values of
@@ -253,12 +253,12 @@ window of 30 seconds that advances by 10 seconds:
 
 .. code:: sql
 
-    CREATE TABLE pageviews_per_region_per_30secs10secs AS \
-      SELECT regionid, \
-             count(*) \
-      FROM pageviews_enriched \
-      WINDOW HOPPING (SIZE 30 SECONDS, ADVANCE BY 10 SECONDS) \
-      WHERE UCASE(gender)='FEMALE' AND LCASE (regionid) LIKE '%_6' \
+    CREATE TABLE pageviews_per_region_per_30secs10secs AS
+      SELECT regionid,
+             count(*)
+      FROM pageviews_enriched
+      WINDOW HOPPING (SIZE 30 SECONDS, ADVANCE BY 10 SECONDS)
+      WHERE UCASE(gender)='FEMALE' AND LCASE (regionid) LIKE '%_6'
       GROUP BY regionid;
 
 The next statement counts the number of pageviews per region for session
@@ -268,11 +268,11 @@ counting/aggregation step per region.
 
 .. code:: sql
 
-    CREATE TABLE pageviews_per_region_per_session AS \
-      SELECT regionid, \
-             count(*) \
-      FROM pageviews_enriched \
-      WINDOW SESSION (60 SECONDS) \
+    CREATE TABLE pageviews_per_region_per_session AS
+      SELECT regionid,
+             count(*)
+      FROM pageviews_enriched
+      WINDOW SESSION (60 SECONDS)
       GROUP BY regionid;
 
 Sometimes, you may want to include the bounds of the current window in the result so that it is
@@ -306,16 +306,16 @@ zipcode for each user:
 
 .. code:: sql
 
-    CREATE STREAM pageviews_interest_contact AS \
-      SELECT interests[0] AS first_interest, \
-             contactinfo['zipcode'] AS zipcode, \
-             contactinfo['city'] AS city, \
-             viewtime, \
-             userid, \
-             pageid, \
-             timestring, \
-             gender, \
-             regionid \
+    CREATE STREAM pageviews_interest_contact AS
+      SELECT interests[0] AS first_interest,
+             contactinfo['zipcode'] AS zipcode,
+             contactinfo['city'] AS city,
+             viewtime,
+             userid,
+             pageid,
+             timestring,
+             gender,
+             regionid
       FROM pageviews_enriched;
 
 .. _running-ksql-command-line:

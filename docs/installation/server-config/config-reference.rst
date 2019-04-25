@@ -237,10 +237,10 @@ listeners
 ---------
 
 The ``listeners`` setting controls the REST API endpoint for the KSQL server.
-For more info, see :ref:`ksql-rest-api`. 
+For more info, see :ref:`ksql-rest-api`.
 
-Specify hostname as ``0.0.0.0`` to bind to all interfaces or leave it empty to
-bind to the default interface. For example:
+The default hostname is ``0.0.0.0`` which binds to all interfaces. Update this
+to a specific interface to bind only to a single interface. For example:
 
 ::
 
@@ -354,18 +354,10 @@ When deploying KSQL to production, the following settings are recommended in you
 
 ::
 
-    # Set the retries to Integer.MAX_VALUE to ensure that transient failures
-    # will not result in data loss.
-    ksql.streams.producer.retries=2147483647
-
-    # Set the batch expiry to Long.MAX_VALUE to ensure that queries will not
+    # Set the batch expiry to Integer.MAX_VALUE to ensure that queries will not
     # terminate if the underlying Kafka cluster is unavailable for a period of
     # time.
-    ksql.streams.producer.confluent.batch.expiry.ms=9223372036854775807
-
-    # Allows more frequent retries of requests when there are failures,
-    # enabling quicker recovery.
-    ksql.streams.producer.request.timeout.ms=300000
+    ksql.streams.producer.delivery.timeout.ms=2147483647
 
     # Set the maximum allowable time for the producer to block to
     # Long.MAX_VALUE. This allows KSQL to pause processing if the underlying

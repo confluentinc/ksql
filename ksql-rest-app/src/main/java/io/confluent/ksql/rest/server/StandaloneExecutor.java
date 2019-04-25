@@ -33,9 +33,9 @@ import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.rest.util.ProcessingLogServerUtils;
-import io.confluent.ksql.schema.inference.SchemaInjector;
-import io.confluent.ksql.services.SandboxedServiceContext;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
@@ -58,7 +58,7 @@ import java.util.Objects;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
 import java.util.function.BiConsumer;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -77,7 +77,7 @@ public class StandaloneExecutor implements Executable {
   private final Map<String, Object> configProperties = new HashMap<>();
   private final boolean failOnNoQueries;
   private final VersionCheckerAgent versionChecker;
-  private final Function<ServiceContext, SchemaInjector> schemaInjectorFactory;
+  private final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory;
 
   StandaloneExecutor(
       final ServiceContext serviceContext,
@@ -88,7 +88,7 @@ public class StandaloneExecutor implements Executable {
       final UdfLoader udfLoader,
       final boolean failOnNoQueries,
       final VersionCheckerAgent versionChecker,
-      final Function<ServiceContext, SchemaInjector> schemaInjectorFactory
+      final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory
   ) {
     this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
     this.processingLogConfig = Objects.requireNonNull(processingLogConfig, "processingLogConfig");
@@ -98,8 +98,7 @@ public class StandaloneExecutor implements Executable {
     this.udfLoader = Objects.requireNonNull(udfLoader, "udfLoader");
     this.failOnNoQueries = failOnNoQueries;
     this.versionChecker = Objects.requireNonNull(versionChecker, "versionChecker");
-    this.schemaInjectorFactory = Objects
-        .requireNonNull(schemaInjectorFactory, "schemaInjectorFactory");
+    this.injectorFactory = Objects.requireNonNull(injectorFactory, "injectorFactory");
   }
 
   public void start() {
@@ -164,24 +163,23 @@ public class StandaloneExecutor implements Executable {
     final List<ParsedStatement> preparedStatements = ksqlEngine.parse(queries);
 
     validateStatements(preparedStatements);
-
-    final SchemaInjector schemaInjector = schemaInjectorFactory.apply(serviceContext);
-
+    final Injector injector = injectorFactory.apply(ksqlEngine, serviceContext);
     executeStatements(
         preparedStatements,
-        new StatementExecutor(ksqlEngine, schemaInjector, configProperties, ksqlConfig)
+        new StatementExecutor(ksqlEngine, injector, configProperties, ksqlConfig)
     );
 
     ksqlEngine.getPersistentQueries().forEach(QueryMetadata::start);
   }
 
   private void validateStatements(final List<ParsedStatement> statements) {
-    final SchemaInjector schemaInjector = schemaInjectorFactory
-        .apply(SandboxedServiceContext.create(serviceContext));
+    final KsqlExecutionContext sandboxEngine = ksqlEngine.createSandbox();
+    final Injector injector = injectorFactory.apply(
+        sandboxEngine, sandboxEngine.getServiceContext());
 
     final StatementExecutor sandboxExecutor = new StatementExecutor(
-        ksqlEngine.createSandbox(),
-        schemaInjector,
+        sandboxEngine,
+        injector,
         new HashMap<>(configProperties),
         ksqlConfig
     );
@@ -256,19 +254,19 @@ public class StandaloneExecutor implements Executable {
     private static final String SUPPORTED_STATEMENTS = generateSupportedMessage();
 
     private final KsqlExecutionContext executionContext;
-    private final SchemaInjector schemaInjector;
     private final Map<String, Object> configProperties;
     private final KsqlConfig ksqlConfig;
+    private final Injector injector;
 
     private StatementExecutor(
         final KsqlExecutionContext executionContext,
-        final SchemaInjector schemaInjector,
+        final Injector injector,
         final Map<String, Object> configProperties,
         final KsqlConfig ksqlConfig
     ) {
       this.executionContext = Objects.requireNonNull(executionContext, "executionContext");
-      this.schemaInjector = Objects.requireNonNull(schemaInjector, "schemaInjector");
       this.configProperties = Objects.requireNonNull(configProperties, "configProperties");
+      this.injector = Objects.requireNonNull(injector, "injector");
       this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     }
 
@@ -277,11 +275,11 @@ public class StandaloneExecutor implements Executable {
      */
     @SuppressWarnings("unchecked")
     boolean execute(final ParsedStatement statement) {
-      final PreparedStatement<?> prepared = prepare(statement);
+      final ConfiguredStatement<?> configured = prepare(statement);
 
-      throwOnMissingSchema(prepared);
+      throwOnMissingSchema(configured);
 
-      final Handler<Statement> handler = HANDLERS.get(prepared.getStatement().getClass());
+      final Handler<Statement> handler = HANDLERS.get(configured.getStatement().getClass());
       if (handler == null) {
         throw new KsqlStatementException("Unsupported statement. "
             + "Only the following statements are supporting in standalone mode:"
@@ -290,16 +288,21 @@ public class StandaloneExecutor implements Executable {
             statement.getStatementText());
       }
 
-      handler.handle(this, (PreparedStatement) prepared);
-      return prepared.getStatement() instanceof QueryContainer;
+      handler.handle(this, (ConfiguredStatement<Statement>) configured);
+      return configured.getStatement() instanceof QueryContainer;
     }
 
-    private PreparedStatement<?> prepare(final ParsedStatement statement) {
+    private ConfiguredStatement<?> prepare(
+        final ParsedStatement statement
+    ) {
       final PreparedStatement<?> prepared = executionContext.prepare(statement);
-      return schemaInjector.forStatement(prepared);
+      final ConfiguredStatement<?> configured = ConfiguredStatement.of(
+          prepared, configProperties, ksqlConfig);
+
+      return injector.inject(configured);
     }
 
-    private static void throwOnMissingSchema(final PreparedStatement<?> statement) {
+    private static void throwOnMissingSchema(final ConfiguredStatement<?> statement) {
       if (!(statement.getStatement() instanceof AbstractStreamCreateStatement)) {
         return;
       }
@@ -313,21 +316,21 @@ public class StandaloneExecutor implements Executable {
           statement.getStatementText());
     }
 
-    private void handleSetProperty(final PreparedStatement<SetProperty> statement) {
+    private void handleSetProperty(final ConfiguredStatement<SetProperty> statement) {
       final SetProperty setProperty = statement.getStatement();
       configProperties.put(setProperty.getPropertyName(), setProperty.getPropertyValue());
     }
 
-    private void handleUnsetProperty(final PreparedStatement<UnsetProperty> statement) {
+    private void handleUnsetProperty(final ConfiguredStatement<UnsetProperty> statement) {
       configProperties.remove(statement.getStatement().getPropertyName());
     }
 
-    private void handleExecutableDdl(final PreparedStatement<?> statement) {
-      executionContext.execute(statement, ksqlConfig, configProperties);
+    private void handleExecutableDdl(final ConfiguredStatement<?> statement) {
+      executionContext.execute(statement);
     }
 
-    private void handlePersistentQuery(final PreparedStatement<?> statement) {
-      executionContext.execute(statement, ksqlConfig, configProperties)
+    private void handlePersistentQuery(final ConfiguredStatement<?> statement) {
+      executionContext.execute(statement)
           .getQuery()
           .filter(q -> q instanceof PersistentQueryMetadata)
           .orElseThrow((() -> new KsqlStatementException(
@@ -344,7 +347,7 @@ public class StandaloneExecutor implements Executable {
 
     @SuppressWarnings({"unchecked", "unused"})
     private static <T extends Statement> Handler<Statement> createHandler(
-        final BiConsumer<StatementExecutor, PreparedStatement<T>> handler,
+        final BiConsumer<StatementExecutor, ConfiguredStatement<T>> handler,
         final Class<T> type,
         final String name
     ) {
@@ -353,9 +356,9 @@ public class StandaloneExecutor implements Executable {
         @Override
         public void handle(
             final StatementExecutor executor,
-            final PreparedStatement<Statement> statement
+            final ConfiguredStatement<Statement> statement
         ) {
-          handler.accept(executor, (PreparedStatement) statement);
+          handler.accept(executor, (ConfiguredStatement) statement);
         }
 
         @Override
@@ -367,7 +370,7 @@ public class StandaloneExecutor implements Executable {
 
     private interface Handler<T extends Statement> {
 
-      void handle(StatementExecutor executor, PreparedStatement<T> statement);
+      void handle(StatementExecutor executor, ConfiguredStatement<T> statement);
 
       String getName();
     }

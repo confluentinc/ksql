@@ -16,8 +16,8 @@
 package io.confluent.ksql.ddl.commands;
 
 import io.confluent.ksql.ddl.DdlConfig;
-import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.MutableMetaStore;
+import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.services.KafkaTopicClient;
@@ -58,15 +58,14 @@ public class CreateTableCommand extends AbstractCreateStreamCommand {
     final KsqlTable ksqlTable = new KsqlTable<>(
         sqlExpression,
         sourceName,
-        schema,
-        (keyColumnName.isEmpty())
-          ? null : SchemaUtil.getFieldByName(schema, keyColumnName).orElse(null),
+        SchemaUtil.addImplicitRowTimeRowKeyToSchema(schema),
+        keyField,
         timestampExtractionPolicy,
         metaStore.getTopic(topicName),
-        keySerde
+        keySerdeFactory
     );
 
-    metaStore.putSource(ksqlTable.cloneWithTimeKeyColumns());
+    metaStore.putSource(ksqlTable);
     return new DdlCommandResult(true, "Table created");
   }
 }

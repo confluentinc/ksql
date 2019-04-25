@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.server.resources;
 
+import static io.confluent.ksql.parser.ParserMatchers.configured;
 import static io.confluent.ksql.parser.ParserMatchers.preparedStatement;
 import static io.confluent.ksql.parser.ParserMatchers.preparedStatementText;
 import static io.confluent.ksql.rest.entity.KsqlErrorMessageMatchers.errorCode;
@@ -64,15 +65,17 @@ import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlEngineTestUtil;
 import io.confluent.ksql.function.InternalFunctionRegistry;
-import io.confluent.ksql.metastore.KsqlStream;
-import io.confluent.ksql.metastore.KsqlTable;
-import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStoreImpl;
+import io.confluent.ksql.metastore.model.KeyField;
+import io.confluent.ksql.metastore.model.KsqlStream;
+import io.confluent.ksql.metastore.model.KsqlTable;
+import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.QualifiedName;
+import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TerminateQuery;
@@ -110,13 +113,15 @@ import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.QueuedCommandStatus;
 import io.confluent.ksql.rest.util.EntityUtil;
 import io.confluent.ksql.rest.util.TerminateCluster;
-import io.confluent.ksql.schema.inference.SchemaInjector;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.DataSource.DataSourceType;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
+import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.statement.Injector;
+import io.confluent.ksql.statement.InjectorChain;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
@@ -124,6 +129,7 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.Sandbox;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import io.confluent.rest.RestConfig;
@@ -134,6 +140,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
@@ -168,7 +175,7 @@ public class KsqlResourceTest {
   private static final Duration DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT = Duration.ofMillis(1000);
   private static final KsqlRequest VALID_EXECUTABLE_REQUEST = new KsqlRequest(
       "CREATE STREAM S AS SELECT * FROM test_stream;",
-      ImmutableMap.of(KsqlConfig.KSQL_WINDOWED_SESSION_KEY_LEGACY_CONFIG, true),
+      ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"),
       0L);
   private static final Schema SINGLE_FIELD_SCHEMA = SchemaBuilder.struct()
       .field("val", Schema.OPTIONAL_STRING_SCHEMA);
@@ -188,6 +195,11 @@ public class KsqlResourceTest {
               "KAFKA_TOPIC", new StringLiteral("orders-topic"),
               "VALUE_FORMAT", new StringLiteral("avro")
           )));
+  private static final ConfiguredStatement<CreateStream> CFG_0_WITH_SCHEMA = ConfiguredStatement.of(
+      STMT_0_WITH_SCHEMA,
+      ImmutableMap.of(),
+      new KsqlConfig(getDefaultKsqlConfig())
+  );
 
   private static final PreparedStatement<CreateStream> STMT_1_WITH_SCHEMA = PreparedStatement.of(
       "other sql with schema",
@@ -199,6 +211,11 @@ public class KsqlResourceTest {
               "KAFKA_TOPIC", new StringLiteral("orders-topic"),
               "VALUE_FORMAT", new StringLiteral("avro")
           )));
+  private static final ConfiguredStatement<CreateStream> CFG_1_WITH_SCHEMA = ConfiguredStatement.of(
+      STMT_1_WITH_SCHEMA,
+      ImmutableMap.of(),
+      new KsqlConfig(getDefaultKsqlConfig())
+  );
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -209,17 +226,24 @@ public class KsqlResourceTest {
   private KsqlEngine realEngine;
   private KsqlEngine ksqlEngine;
   @Mock
-  private KsqlExecutionContext sandbox;
+  private SandboxEngine sandbox;
   @Mock
   private CommandStore commandStore;
   @Mock
   private ActivenessRegistrar activenessRegistrar;
   @Mock
-  private Function<ServiceContext, SchemaInjector> schemaInjectorFactory;
+  private Function<ServiceContext, Injector> schemaInjectorFactory;
   @Mock
-  private SchemaInjector schemaInjector;
+  private Injector schemaInjector;
   @Mock
-  private SchemaInjector sandboxSchemaInjector;
+  private Injector sandboxSchemaInjector;
+  @Mock
+  private Function<KsqlExecutionContext, Injector> topicInjectorFactory;
+  @Mock
+  private Injector topicInjector;
+  @Mock
+  private Injector sandboxTopicInjector;
+
   private KsqlResource ksqlResource;
   private SchemaRegistryClient schemaRegistryClient;
   private QueuedCommandStatus commandStatus;
@@ -258,7 +282,7 @@ public class KsqlResourceTest {
 
     addTestTopicAndSources();
 
-    when(commandStore.enqueueCommand(any(), any(), any()))
+    when(commandStore.enqueueCommand(any()))
         .thenReturn(commandStatus)
         .thenReturn(commandStatus1)
         .thenReturn(commandStatus2);
@@ -268,8 +292,16 @@ public class KsqlResourceTest {
     when(schemaInjectorFactory.apply(any())).thenReturn(sandboxSchemaInjector);
     when(schemaInjectorFactory.apply(serviceContext)).thenReturn(schemaInjector);
 
-    when(sandboxSchemaInjector.forStatement(any())).thenAnswer(inv -> inv.getArgument(0));
-    when(schemaInjector.forStatement(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(topicInjectorFactory.apply(any())).thenReturn(sandboxTopicInjector);
+    when(topicInjectorFactory.apply(ksqlEngine)).thenReturn(topicInjector);
+
+    when(sandboxSchemaInjector.inject(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(schemaInjector.inject(any())).thenAnswer(inv -> inv.getArgument(0));
+
+    when(sandboxTopicInjector.inject(any()))
+        .thenAnswer(inv -> inv.getArgument(0));
+    when(topicInjector.inject(any()))
+        .thenAnswer(inv -> inv.getArgument(0));
 
     setUpKsqlResource();
   }
@@ -563,10 +595,11 @@ public class KsqlResourceTest {
 
     // Then:
     verify(commandStore).enqueueCommand(
-        argThat(is(preparedStatement(
-            "CREATE STREAM S AS SELECT * FROM test_stream;",
-            CreateStreamAsSelect.class))),
-        any(), any());
+        argThat(is(
+            configured(
+              preparedStatement(
+              "CREATE STREAM S AS SELECT * FROM test_stream;",
+              CreateStreamAsSelect.class)))));
   }
 
   @Test
@@ -576,7 +609,7 @@ public class KsqlResourceTest {
 
     // Then:
     verify(commandStore).enqueueCommand(
-        any(), eq(ksqlConfig), eq(VALID_EXECUTABLE_REQUEST.getStreamsProperties()));
+        argThat(configured(VALID_EXECUTABLE_REQUEST.getStreamsProperties(), ksqlConfig)));
   }
 
   @Test
@@ -642,10 +675,100 @@ public class KsqlResourceTest {
 
     // Then:
     verify(commandStore).enqueueCommand(
-        argThat(is(preparedStatement(
+        argThat(is(configured(preparedStatement(
             "CREATE STREAM S (foo INT) WITH(VALUE_FORMAT='AVRO', KAFKA_TOPIC='orders-topic');",
             CreateStream.class)
-        )), any(), any());
+        ))));
+  }
+
+  @Test
+  public void shouldSupportTopicInferenceInVerification() {
+    // Given:
+    final Schema schema = SchemaBuilder.struct().field("f1", Schema.OPTIONAL_STRING_SCHEMA).build();
+    givenMockEngine();
+    givenSource(DataSourceType.KSTREAM, "ORDERS1", "ORDERS1", "ORDERS1", schema);
+
+    final String sql = "CREATE STREAM orders2 AS SELECT * FROM orders1;";
+    final String sqlWithTopic = "CREATE STREAM orders2 WITH(kafka_topic='orders2') AS SELECT * FROM orders1;";
+
+    final PreparedStatement<?> statementWithTopic =
+        ksqlEngine.prepare(ksqlEngine.parse(sqlWithTopic).get(0));
+    final ConfiguredStatement<?> configuredStatement =
+        ConfiguredStatement.of(statementWithTopic, ImmutableMap.of(), ksqlConfig);
+
+    when(sandboxTopicInjector.inject(argThat(is(configured(preparedStatementText(sql))))))
+        .thenReturn((ConfiguredStatement<Statement>) configuredStatement);
+
+    // When:
+    makeRequest(sql);
+
+    // Then:
+    verify(sandbox).execute(eq(configuredStatement));
+    verify(commandStore).enqueueCommand(argThat(configured(preparedStatementText(sql))));
+  }
+
+  @Test
+  public void shouldSupportTopicInferenceInExecution() {
+    // Given:
+    final Schema schema = SchemaBuilder.struct().field("f1", Schema.OPTIONAL_STRING_SCHEMA).build();
+    givenMockEngine();
+    givenSource(DataSourceType.KSTREAM, "ORDERS1", "ORDERS1", "ORDERS1", schema);
+
+    final String sql = "CREATE STREAM orders2 AS SELECT * FROM orders1;";
+    final String sqlWithTopic = "CREATE STREAM orders2 WITH(kafka_topic='orders2') AS SELECT * FROM orders1;";
+
+    final PreparedStatement<?> statementWithTopic =
+        ksqlEngine.prepare(ksqlEngine.parse(sqlWithTopic).get(0));
+    final ConfiguredStatement<?> configured =
+        ConfiguredStatement.of(statementWithTopic, ImmutableMap.of(), ksqlConfig);
+
+    when(topicInjector.inject(argThat(is(configured(preparedStatementText(sql))))))
+        .thenReturn((ConfiguredStatement<Statement>) configured);
+
+    // When:
+    makeRequest(sql);
+
+    // Then:
+    verify(commandStore).enqueueCommand(eq(configured));
+  }
+
+  @Test
+  public void shouldFailWhenTopicInferenceFailsDuringValidate() {
+    // Given:
+    final Schema schema = SchemaBuilder.struct().field("f1", Schema.OPTIONAL_STRING_SCHEMA).build();
+    givenSource(DataSourceType.KSTREAM, "ORDERS1", "ORDERS1", "ORDERS1", schema);
+    when(sandboxTopicInjector.inject(any()))
+        .thenThrow(new KsqlStatementException("boom", "sql"));
+
+    // When:
+    final KsqlErrorMessage result = makeFailingRequest(
+        "CREATE STREAM orders2 AS SELECT * FROM orders1;",
+        Code.BAD_REQUEST);
+
+    // Then:
+    assertThat(result.getErrorCode(), is(Errors.ERROR_CODE_BAD_STATEMENT));
+    assertThat(result.getMessage(), is("boom"));
+  }
+
+  @Test
+  public void shouldFailWhenTopicInferenceFailsDuringExecute() {
+    // Given:
+    final Schema schema = SchemaBuilder.struct().field("f1", Schema.OPTIONAL_STRING_SCHEMA).build();
+    givenSource(DataSourceType.KSTREAM, "ORDERS1", "ORDERS1", "ORDERS1", schema);
+
+    when(topicInjector.inject(any()))
+        .thenThrow(new KsqlStatementException("boom", "some-sql"));
+
+    // Then:
+    expectedException.expect(KsqlRestException.class);
+    expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
+    expectedException
+        .expect(exceptionErrorMessage(errorCode(is(Errors.ERROR_CODE_BAD_STATEMENT))));
+    expectedException
+        .expect(exceptionStatementErrorMessage(errorMessage(is("boom"))));
+
+    // When:
+    makeRequest("CREATE STREAM orders2 AS SELECT * FROM orders1;");
   }
 
   @Test
@@ -655,24 +778,24 @@ public class KsqlResourceTest {
 
     final String sql = "CREATE STREAM NO_SCHEMA WITH(VALUE_FORMAT='AVRO', KAFKA_TOPIC='orders-topic');";
 
-    when(sandboxSchemaInjector.forStatement(argThat(preparedStatementText(sql))))
-        .thenReturn((PreparedStatement) STMT_0_WITH_SCHEMA);
+    when(sandboxSchemaInjector.inject(argThat(configured(preparedStatementText(sql)))))
+        .thenReturn((ConfiguredStatement) CFG_0_WITH_SCHEMA);
 
-    when(schemaInjector.forStatement(argThat(preparedStatementText(sql))))
-        .thenReturn((PreparedStatement) STMT_1_WITH_SCHEMA);
+    when(schemaInjector.inject(argThat(configured(preparedStatementText(sql)))))
+        .thenReturn((ConfiguredStatement) CFG_1_WITH_SCHEMA);
 
     // When:
     makeRequest(sql);
 
     // Then:
-    verify(sandbox).execute(eq(STMT_0_WITH_SCHEMA), any(), any());
-    verify(commandStore).enqueueCommand(eq(STMT_1_WITH_SCHEMA), any(), any());
+    verify(sandbox).execute(eq(CFG_0_WITH_SCHEMA));
+    verify(commandStore).enqueueCommand(eq(CFG_1_WITH_SCHEMA));
   }
 
   @Test
   public void shouldFailWhenAvroInferenceFailsDuringValidate() {
     // Given:
-    when(sandboxSchemaInjector.forStatement(any()))
+    when(sandboxSchemaInjector.inject(any()))
         .thenThrow(new KsqlStatementException("boom", "sql"));
 
     // When:
@@ -688,10 +811,10 @@ public class KsqlResourceTest {
   @Test
   public void shouldFailWhenAvroInferenceFailsDuringExecute() {
     // Given:
-    when(sandboxSchemaInjector.forStatement(any()))
-        .thenReturn((PreparedStatement) STMT_0_WITH_SCHEMA);
+    when(sandboxSchemaInjector.inject(any()))
+        .thenReturn((ConfiguredStatement) CFG_0_WITH_SCHEMA);
 
-    when(schemaInjector.forStatement(any()))
+    when(schemaInjector.inject(any()))
         .thenThrow(new KsqlStatementException("boom", "some-sql"));
 
     // Then:
@@ -789,8 +912,8 @@ public class KsqlResourceTest {
         "LIST FUNCTIONS;",
         "DESCRIBE FUNCTION LCASE;",
         "LIST PROPERTIES;",
-        "SET '" + KsqlConfig.KSQL_SERVICE_ID_CONFIG + "'='FOO';",
-        "UNSET '" + KsqlConfig.KSQL_SERVICE_ID_CONFIG + "';"
+        "SET '" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "'='earliest';",
+        "UNSET '" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "';"
     );
 
     for (final String statement : blackListed) {
@@ -871,7 +994,7 @@ public class KsqlResourceTest {
     );
 
     // Then:
-    verify(commandStore, never()).enqueueCommand(any(), any(), any());
+    verify(commandStore, never()).enqueueCommand(any());
   }
 
   @Test
@@ -889,9 +1012,7 @@ public class KsqlResourceTest {
     // Then:
     verify(commandStore)
         .enqueueCommand(
-            argThat(is(preparedStatement(terminateSql, TerminateQuery.class))),
-            any(),
-            any());
+            argThat(is(configured(preparedStatement(terminateSql, TerminateQuery.class)))));
 
     assertThat(result.getStatementText(), is(terminateSql));
   }
@@ -1022,7 +1143,7 @@ public class KsqlResourceTest {
     final String ksqlString = "CREATE STREAM test_explain AS SELECT * FROM test_stream;";
     givenMockEngine();
 
-    when(sandbox.execute(any(), any(), any()))
+    when(sandbox.execute(any()))
         .thenThrow(new RuntimeException("internal error"));
 
     // When:
@@ -1041,15 +1162,16 @@ public class KsqlResourceTest {
 
     // When:
     final List<CommandStatusEntity> results = makeMultipleRequest(
-        "SET '" + KsqlConfig.KSQL_ENABLE_UDFS + "' = 'false';\n"
+        "SET '" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "' = 'earliest';\n"
             + csas,
         CommandStatusEntity.class);
 
     // Then:
     verify(commandStore).enqueueCommand(
-        argThat(is(preparedStatementText(csas))),
-        any(),
-        eq(ImmutableMap.of(KsqlConfig.KSQL_ENABLE_UDFS, "false")));
+        argThat(is(configured(
+            preparedStatementText(csas),
+            ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"),
+            ksqlConfig))));
 
     assertThat(results, hasSize(1));
     assertThat(results.get(0).getStatementText(), is(csas));
@@ -1072,15 +1194,15 @@ public class KsqlResourceTest {
   public void shouldFailSetPropertyOnInvalidPropertyValue() {
     // When:
     final KsqlErrorMessage response = makeFailingRequest(
-        "SET '" + KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY + "' = 'invalid value';",
+        "SET '" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "' = 'invalid value';",
         Code.BAD_REQUEST);
 
     // Then:
     assertThat(response, instanceOf(KsqlStatementErrorMessage.class));
     assertThat(response.getErrorCode(), is(Errors.ERROR_CODE_BAD_STATEMENT));
     assertThat(response.getMessage(),
-        containsString("Invalid value invalid value for configuration ksql.sink.replicas: "
-            + "Not a number of type SHORT"));
+        containsString("Invalid value invalid value for configuration auto.offset.reset: "
+            + "String must be one of: latest, earliest, none"));
   }
 
   @Test
@@ -1088,20 +1210,18 @@ public class KsqlResourceTest {
     // Given:
     final String csas = "CREATE STREAM " + streamName + " AS SELECT * FROM test_stream;";
     final Map<String, Object> localOverrides = ImmutableMap.of(
-        KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, "2"
+        ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"
     );
 
     // When:
     final CommandStatusEntity result = makeSingleRequest(
-        new KsqlRequest("UNSET '" + KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY + "';\n"
+        new KsqlRequest("UNSET '" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "';\n"
             + csas, localOverrides, null),
         CommandStatusEntity.class);
 
     // Then:
     verify(commandStore).enqueueCommand(
-        argThat(is(preparedStatementText(csas))),
-        any(),
-        eq(emptyMap()));
+        argThat(is(configured(preparedStatementText(csas), emptyMap(), ksqlConfig))));
 
     assertThat(result.getStatementText(), is(csas));
   }
@@ -1125,16 +1245,14 @@ public class KsqlResourceTest {
     final String csas = "CREATE STREAM " + streamName + " AS SELECT * FROM test_stream;";
 
     makeMultipleRequest(
-        "SET '" + KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY + "' = '2';", KsqlEntity.class);
+        "SET '" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "' = 'earliest';", KsqlEntity.class);
 
     // When:
     makeSingleRequest(csas, KsqlEntity.class);
 
     // Then:
     verify(commandStore).enqueueCommand(
-        argThat(is(preparedStatementText(csas))),
-        any(),
-        eq(emptyMap()));
+        argThat(is(configured(preparedStatementText(csas), emptyMap(), ksqlConfig))));
   }
 
   @Test
@@ -1180,7 +1298,7 @@ public class KsqlResourceTest {
         containsString("would cause the number of active, persistent queries "
             + "to exceed the configured limit"));
 
-    verify(commandStore, never()).enqueueCommand(any(), any(), any());
+    verify(commandStore, never()).enqueueCommand(any());
   }
 
   @Test
@@ -1403,16 +1521,17 @@ public class KsqlResourceTest {
     assertThat(commandStatusEntity.getCommandStatus().getStatus(),
         equalTo(CommandStatus.Status.QUEUED));
     verify(commandStore).enqueueCommand(
-        argThat(is(preparedStatementText(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT))),
-        any(),
-        eq(Collections.singletonMap(
-            ClusterTerminateRequest.DELETE_TOPIC_LIST_PROP, ImmutableList.of("Foo"))));
+        argThat(is(configured(
+            preparedStatementText(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT),
+            Collections.singletonMap(
+                ClusterTerminateRequest.DELETE_TOPIC_LIST_PROP, ImmutableList.of("Foo")),
+            ksqlConfig))));
   }
 
   @Test
   public void shouldFailIfCannotWriteTerminateCommand() {
     // Given:
-    when(commandStore.enqueueCommand(any(), any(), any())).thenThrow(new KsqlException(""));
+    when(commandStore.enqueueCommand(any())).thenThrow(new KsqlException(""));
 
     // When:
     final Response response = ksqlResource.terminateCluster(VALID_TERMINATE_REQUEST);
@@ -1452,7 +1571,7 @@ public class KsqlResourceTest {
         Code.BAD_REQUEST);
 
     // Then:
-    verify(commandStore, never()).enqueueCommand(any(), any(), any());
+    verify(commandStore, never()).enqueueCommand(any());
   }
 
   @Test
@@ -1560,8 +1679,7 @@ public class KsqlResourceTest {
 
     // Then:
     verify(commandStore).enqueueCommand(
-        argThat(is(preparedStatement(instanceOf(CreateStreamAsSelect.class)))),
-        any(), any());
+        argThat(is(configured(preparedStatement(instanceOf(CreateStreamAsSelect.class))))));
   }
 
   @Test
@@ -1579,7 +1697,7 @@ public class KsqlResourceTest {
   @Test
   public void shouldThrowServerErrorOnFailedToDistribute() {
     // Given:
-    when(commandStore.enqueueCommand(any(), any(), any())).thenThrow(new KsqlException("blah"));
+    when(commandStore.enqueueCommand(any())).thenThrow(new KsqlException("blah"));
     final String statement = "CREATE STREAM " + streamName + " AS SELECT * FROM test_stream;";
 
     // Expect:
@@ -1593,7 +1711,7 @@ public class KsqlResourceTest {
     makeRequest(statement);
   }
 
-  private Answer executeAgainstEngine(final String sql) {
+  private Answer<?> executeAgainstEngine(final String sql) {
     return invocation -> {
       KsqlEngineTestUtil.execute(ksqlEngine, sql, ksqlConfig, emptyMap());
       return null;
@@ -1622,6 +1740,7 @@ public class KsqlResourceTest {
     when(sandbox.prepare(any()))
         .thenAnswer(invocation -> realEngine.createSandbox().prepare(invocation.getArgument(0)));
     when(ksqlEngine.createSandbox()).thenReturn(sandbox);
+    when(topicInjectorFactory.apply(ksqlEngine)).thenReturn(topicInjector);
     setUpKsqlResource();
   }
 
@@ -1761,14 +1880,22 @@ public class KsqlResourceTest {
     final QueryDescriptionEntity queryDescriptionEntity = (QueryDescriptionEntity) entity;
     final QueryDescription queryDescription = queryDescriptionEntity.getQueryDescription();
     assertThat(queryDescription.getFields(), is(
-        EntityUtil.buildSourceSchemaEntity(queryMetadata.getOutputNode().getSchema())));
+        EntityUtil.buildSourceSchemaEntity(queryMetadata.getResultSchema())));
     assertThat(queryDescription.getOverriddenProperties(), is(overriddenProperties));
   }
 
   private void setUpKsqlResource() {
     ksqlResource = new KsqlResource(
-        ksqlConfig, ksqlEngine, serviceContext, commandStore, DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT,
-        activenessRegistrar, schemaInjectorFactory);
+        ksqlConfig,
+        ksqlEngine,
+        serviceContext,
+        commandStore,
+        DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT,
+        activenessRegistrar,
+        (ec, sc) -> InjectorChain.of(
+            schemaInjectorFactory.apply(sc),
+            topicInjectorFactory.apply(ec))
+    );
   }
 
   private void givenKsqlConfigWith(final Map<String, Object> additionalConfig) {
@@ -1812,14 +1939,16 @@ public class KsqlResourceTest {
     if (type == DataSource.DataSourceType.KSTREAM) {
       metaStore.putSource(
           new KsqlStream<>(
-              "statementText", sourceName, schema, schema.fields().get(0),
-              new MetadataTimestampExtractionPolicy(), ksqlTopic, Serdes.String()));
+              "statementText", sourceName, schema,
+              KeyField.of(schema.fields().get(0).name(), schema.fields().get(0)),
+              new MetadataTimestampExtractionPolicy(), ksqlTopic, Serdes::String));
     }
     if (type == DataSource.DataSourceType.KTABLE) {
       metaStore.putSource(
           new KsqlTable<>(
-              "statementText", sourceName, schema, schema.fields().get(0),
-              new MetadataTimestampExtractionPolicy(), ksqlTopic, Serdes.String()));
+              "statementText", sourceName, schema,
+              KeyField.of(schema.fields().get(0).name(), schema.fields().get(0)),
+              new MetadataTimestampExtractionPolicy(), ksqlTopic, Serdes::String));
     }
   }
 
@@ -1879,6 +2008,11 @@ public class KsqlResourceTest {
   }
 
   private void givenPersistentQueryCount(final int value) {
-    when(sandbox.numberOfPersistentQueries()).thenReturn(value);
+    final List<PersistentQueryMetadata> queries = mock(List.class);
+    when(queries.size()).thenReturn(value);
+    when(sandbox.getPersistentQueries()).thenReturn(queries);
   }
+
+  @Sandbox
+  private interface SandboxEngine extends KsqlExecutionContext { }
 }

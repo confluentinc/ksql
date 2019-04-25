@@ -81,31 +81,6 @@ CREATE TABLE error_counts AS
   GROUP BY error_code;
 ```
 
-
-# Latest News
-
-* [Noise Mapping with KSQL, a Raspberry Pi and a Software-Defined Radio](https://www.confluent.io/blog/noise-mapping-ksql-raspberry-pi-software-defined-radio), Oct 2018
-* [KSQL Recipes Available Now in the Stream Processing Cookbook](https://www.confluent.io/blog/ksql-recipes-available-now-stream-processing-cookbook), Oct 2018
-* [Troubleshooting KSQL – Part 2: What’s Happening Under the Covers?](https://www.confluent.io/blog/troubleshooting-ksql-part-2), Oct 2018
-* [Troubleshooting KSQL – Part 1: Why Isn’t My KSQL Query Returning Data?](https://www.confluent.io/blog/troubleshooting-ksql-part-1), Sep 2018
-* [The Changing Face of ETL](https://www.confluent.io/blog/changing-face-etl), Sep 2018
-* [Hands on: Building a Streaming Application with KSQL](https://www.confluent.io/blog/building-streaming-application-ksql/), Sep 2018
-* [Data Wrangling with Apache Kafka and KSQL](https://www.confluent.io/blog/data-wrangling-apache-kafka-ksql), Sep 2018
-* [How to Build a UDF and/or UDAF in KSQL 5.0](https://www.confluent.io/blog/build-udf-udaf-ksql-5-0), Aug 2018
-* [KSQL 5.0 Released](https://www.confluent.io/blog/introducing-confluent-platform-5-0/), Jul 2018
-  -- KSQL UI available in Confluent Control Center, support for nested data types (STRUCT), support for Stream-Stream,
-  Stream-Table, and Table-Table joins, support for User Defined Functions and User Defined Aggregate Functions, support
-  for INSERT INTO statement, and more
-* [Confluent Platform 4.1 with Production-Ready KSQL Now Available](https://www.confluent.io/blog/confluent-platform-4-1-with-production-ready-ksql-now-available/), Apr 2018
-* [We love syslogs: Real-time syslog Processing with Apache Kafka and KSQL—Part 2: Event-Driven Alerting with Slack](https://www.confluent.io/blog/real-time-syslog-processing-with-apache-kafka-and-ksql-part-2-event-driven-alerting-with-slack/), Apr 2018
-* [We love syslogs: Real-time syslog Processing with Apache Kafka and KSQL—Part 1: Filtering](https://www.confluent.io/blog/real-time-syslog-processing-apache-kafka-ksql-part-1-filtering), Apr 2018
-* [KSQL in Action: Enriching CSV Events with Data from RDBMS into AWS](https://www.confluent.io/blog/ksql-in-action-enriching-csv-events-with-data-from-rdbms-into-AWS/), Mar 2018
-* [Secure Stream Processing with Apache Kafka, Confluent Platform and KSQL](https://www.confluent.io/blog/secure-stream-processing-apache-kafka-ksql/), Feb 2018
-* [KSQL in Action: Real-Time Streaming ETL from Oracle Transactional Data](https://www.confluent.io/blog/ksql-in-action-real-time-streaming-etl-from-oracle-transactional-data), Feb 2018
-  -- replacing batch extracts with event streams, and batch transformation with in-flight transformation; we take a
-  stream of data from a transactional system built on Oracle, transform it, and stream the results into Elasticsearch
-
-
 <a name="community"></a>
 # Join the Community
 

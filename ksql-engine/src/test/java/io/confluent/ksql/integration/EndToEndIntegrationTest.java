@@ -15,6 +15,7 @@
 package io.confluent.ksql.integration;
 
 import static io.confluent.ksql.serde.DataSource.DataSourceSerDe.JSON;
+import static io.confluent.ksql.util.KsqlConfig.KSQL_FUNCTIONS_PROPERTY_PREFIX;
 import static java.lang.String.format;
 import static org.hamcrest.Matchers.either;
 import static org.hamcrest.Matchers.greaterThan;
@@ -25,9 +26,12 @@ import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.junit.Assert.assertThat;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.function.udf.Udf;
+import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.PageViewDataProvider;
@@ -45,6 +49,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
+import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerInterceptor;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -52,6 +57,7 @@ import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerInterceptor;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
+import org.apache.kafka.common.Configurable;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.test.IntegrationTest;
@@ -62,6 +68,7 @@ import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.rules.RuleChain;
 import org.junit.rules.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -84,8 +91,12 @@ public class EndToEndIntegrationTest {
   private static final AtomicInteger PRODUCED_COUNT = new AtomicInteger();
   private static final PageViewDataProvider PAGE_VIEW_DATA_PROVIDER = new PageViewDataProvider();
 
+  private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
+
   @ClassRule
-  public static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
+  public static final RuleChain CLUSTER_WITH_RETRY = RuleChain
+      .outerRule(Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS))
+      .around(TEST_HARNESS);
 
   @Rule
   public final TestKsqlContext ksqlContext = TEST_HARNESS.ksqlContextBuilder()
@@ -97,6 +108,14 @@ public class EndToEndIntegrationTest {
           StreamsConfig.consumerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG),
           DummyConsumerInterceptor.class.getName()
       )
+      .withAdditionalConfig(
+          KSQL_FUNCTIONS_PROPERTY_PREFIX + "e2econfigurableudf.some.setting",
+          "foo-bar"
+      )
+      .withAdditionalConfig(
+          KSQL_FUNCTIONS_PROPERTY_PREFIX + "_global_.expected-param",
+          "expected-value"
+      )
       .build();
 
   @Rule
@@ -106,6 +125,7 @@ public class EndToEndIntegrationTest {
 
   @Before
   public void before() {
+    ConfigurableUdf.PASSED_CONFIG = null;
     PRODUCED_COUNT.set(0);
     CONSUMED_COUNT.set(0);
 
@@ -324,6 +344,25 @@ public class EndToEndIntegrationTest {
     TEST_HARNESS.waitForSubjectToBeAbsent(topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
   }
 
+  @Test
+  public void shouldSupportConfigurableUdfs() throws Exception {
+    // When:
+    final QueuedQueryMetadata queryMetadata = executeQuery(
+        "SELECT E2EConfigurableUdf(registertime) AS x from %s;", USER_TABLE);
+
+    // Then:
+    final List<GenericRow> rows = verifyAvailableRows(queryMetadata, 5);
+
+    assertThat(ConfigurableUdf.PASSED_CONFIG, is(ImmutableMap.of(
+        KSQL_FUNCTIONS_PROPERTY_PREFIX + "e2econfigurableudf.some.setting",
+        "foo-bar",
+        KSQL_FUNCTIONS_PROPERTY_PREFIX + "_global_.expected-param",
+        "expected-value"
+    )));
+
+    rows.forEach(row -> assertThat(row.getColumns().get(0), is(-1L)));
+  }
+
   private QueryMetadata executeStatement(final String statement,
       final String... args) {
     final String formatted = String.format(statement, (Object[])args);
@@ -403,6 +442,25 @@ public class EndToEndIntegrationTest {
     }
 
     public void configure(final Map<String, ?> map) {
+    }
+  }
+
+  @SuppressWarnings({"unused", "MethodMayBeStatic"}) // Invoked via reflection in test.
+  @UdfDescription(
+      name = "E2EConfigurableUdf",
+      description = "A test-only UDF for testing udfs work end-to-end and configure() is called")
+  public static class ConfigurableUdf implements Configurable {
+    private static Map<String, ?> PASSED_CONFIG = null;
+
+    @SuppressFBWarnings("ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD")
+    @Override
+    public void configure(final Map<String, ?> map) {
+      PASSED_CONFIG = map;
+    }
+
+    @Udf
+    public long foo(final long bar) {
+      return -1L;
     }
   }
 }

@@ -28,10 +28,6 @@ import javax.ws.rs.core.UriInfo;
 import org.eclipse.jetty.http.HttpStatus;
 import org.junit.Test;
 
-/**
- * @author andy
- * created 17/04/2018
- */
 public class RootDocumentTest {
 
   @Test

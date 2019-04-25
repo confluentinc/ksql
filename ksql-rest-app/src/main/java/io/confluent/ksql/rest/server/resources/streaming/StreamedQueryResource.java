@@ -30,6 +30,7 @@ import io.confluent.ksql.rest.server.resources.Errors;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.rest.util.CommandStoreUtil;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.QueryMetadata;
@@ -145,12 +146,13 @@ public class StreamedQueryResource {
     }
   }
 
-  @SuppressWarnings("ConstantConditions")
   private Response handleQuery(
       final PreparedStatement<Query> statement,
       final Map<String, Object> streamsProperties
   ) throws Exception {
-    final QueryMetadata query = ksqlEngine.execute(statement, ksqlConfig, streamsProperties)
+    final ConfiguredStatement<Query> configured =
+        ConfiguredStatement.of(statement, streamsProperties, ksqlConfig);
+    final QueryMetadata query = ksqlEngine.execute(configured)
         .getQuery()
         .get();
 

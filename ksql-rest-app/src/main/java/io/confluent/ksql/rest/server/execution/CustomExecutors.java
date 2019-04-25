@@ -17,7 +17,6 @@ package io.confluent.ksql.rest.server.execution;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext;
-import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.DescribeFunction;
 import io.confluent.ksql.parser.tree.Explain;
 import io.confluent.ksql.parser.tree.ListFunctions;
@@ -33,21 +32,21 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.statement.ConfiguredStatement;
 import java.util.EnumSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
  * A suite of {@code StatementExecutor}s that do not need to be distributed.
  * Each handles a corresponding {@code Class<? extends Statement>} and is
- * assumed that the {@code PreparedStatement} that is passed in matches the
+ * assumed that the {@code ConfiguredStatement} that is passed in matches the
  * expected class.
  */
-public enum CustomExecutors implements StatementExecutor {
+@SuppressWarnings({"unchecked", "rawtypes"})
+public enum CustomExecutors {
 
   LIST_TOPICS(ListTopics.class, ListTopicsExecutor::execute),
   LIST_REGISTERED_TOPICS(ListRegisteredTopics.class, ListRegisteredTopicsExecutor::execute),
@@ -63,13 +62,13 @@ public enum CustomExecutors implements StatementExecutor {
   SET_PROPERTY(SetProperty.class, PropertyExecutor::set),
   UNSET_PROPERTY(UnsetProperty.class, PropertyExecutor::unset);
 
-  public static final Map<Class<? extends Statement>, StatementExecutor> EXECUTOR_MAP =
+  public static final Map<Class<? extends Statement>, StatementExecutor<?>> EXECUTOR_MAP =
       ImmutableMap.copyOf(
           EnumSet.allOf(CustomExecutors.class)
               .stream()
               .collect(Collectors.toMap(
                   CustomExecutors::getStatementClass,
-                  Function.identity()))
+                  CustomExecutors::getExecutor))
       );
 
   private final Class<? extends Statement> statementClass;
@@ -86,13 +85,14 @@ public enum CustomExecutors implements StatementExecutor {
     return statementClass;
   }
 
-  @Override
+  private StatementExecutor<?> getExecutor() {
+    return this::execute;
+  }
+
   public Optional<KsqlEntity> execute(
-      final PreparedStatement statement,
+      final ConfiguredStatement<?> statement,
       final KsqlExecutionContext executionCtx,
-      final ServiceContext serviceCtx,
-      final KsqlConfig ksqlConfig,
-      final Map<String, Object> propertyOverrides) {
-    return executor.execute(statement, executionCtx, serviceCtx, ksqlConfig, propertyOverrides);
+      final ServiceContext serviceCtx) {
+    return executor.execute(statement, executionCtx, serviceCtx);
   }
 }

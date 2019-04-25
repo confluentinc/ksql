@@ -17,7 +17,6 @@ package io.confluent.ksql.rest.server.validation;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext;
-import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.DescribeFunction;
 import io.confluent.ksql.parser.tree.Explain;
 import io.confluent.ksql.parser.tree.ListFunctions;
@@ -38,21 +37,21 @@ import io.confluent.ksql.rest.server.execution.DescribeFunctionExecutor;
 import io.confluent.ksql.rest.server.execution.ExplainExecutor;
 import io.confluent.ksql.rest.server.execution.ListSourceExecutor;
 import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlException;
 import java.util.EnumSet;
 import java.util.Map;
 import java.util.Objects;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
  * A set of {@code StatementValidator}s which are used to validate non-executable
  * statements. Each handles a corresponding {@code Class<? extends Statement>} and
- * is assumed that the {@code PreparedStatement} that is passed in matches the
+ * is assumed that the {@code ConfiguredStatement} that is passed in matches the
  * expected class.
  */
-public enum CustomValidators implements StatementValidator {
+@SuppressWarnings({"unchecked", "rawtypes"})
+public enum CustomValidators {
 
   QUERY_ENDPOINT(Query.class, QueryValidator::validate),
   PRINT_TOPIC(PrintTopic.class, PrintTopicValidator::validate),
@@ -73,13 +72,13 @@ public enum CustomValidators implements StatementValidator {
 
   TERMINATE_QUERY(TerminateQuery.class, TerminateQueryValidator::validate);
 
-  public static final Map<Class<? extends Statement>, StatementValidator> VALIDATOR_MAP =
+  public static final Map<Class<? extends Statement>, StatementValidator<?>> VALIDATOR_MAP =
       ImmutableMap.copyOf(
         EnumSet.allOf(CustomValidators.class)
             .stream()
             .collect(Collectors.toMap(
                 CustomValidators::getStatementClass,
-                Function.identity()))
+                CustomValidators::getValidator))
       );
 
   private final Class<? extends Statement> statementClass;
@@ -96,13 +95,14 @@ public enum CustomValidators implements StatementValidator {
     return statementClass;
   }
 
-  @Override
+  private StatementValidator<?> getValidator() {
+    return this::validate;
+  }
+
   public void validate(
-      final PreparedStatement statement,
+      final ConfiguredStatement<?> statement,
       final KsqlExecutionContext executionContext,
-      final ServiceContext serviceContext,
-      final KsqlConfig ksqlConfig,
-      final Map<String, Object> propertyOverrides) throws KsqlException {
-    validator.validate(statement, executionContext, serviceContext, ksqlConfig, propertyOverrides);
+      final ServiceContext serviceContext) throws KsqlException {
+    validator.validate(statement, executionContext, serviceContext);
   }
 }

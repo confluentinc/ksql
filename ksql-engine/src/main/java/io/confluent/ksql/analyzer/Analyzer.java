@@ -17,12 +17,11 @@ package io.confluent.ksql.analyzer;
 
 import static java.lang.String.format;
 
+import io.confluent.ksql.analyzer.Analysis.Into;
 import io.confluent.ksql.ddl.DdlConfig;
-import io.confluent.ksql.metastore.KsqlStdOut;
-import io.confluent.ksql.metastore.KsqlStream;
-import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.metastore.StructuredDataSource;
+import io.confluent.ksql.metastore.model.KsqlTopic;
+import io.confluent.ksql.metastore.model.StructuredDataSource;
 import io.confluent.ksql.parser.DefaultTraversalVisitor;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AllColumns;
@@ -58,6 +57,7 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.StringUtil;
+import io.confluent.ksql.util.WithClauseUtil;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -108,18 +108,7 @@ class Analyzer {
   }
 
   private void analyzeSink(final Optional<Sink> sink) {
-    if (sink.isPresent()) {
-      analyzeNonStdOutSink(sink.get());
-      return;
-    }
-
-    final StructuredDataSource into = new KsqlStdOut(
-        null,
-        null,
-        null,
-        StructuredDataSource.DataSourceType.KSTREAM);
-
-    analysis.setInto(into, false);
+    sink.ifPresent(this::analyzeNonStdOutSink);
   }
 
   private void setIntoProperties(final Sink sink) {
@@ -148,34 +137,22 @@ class Analyzer {
     }
 
     if (sink.getProperties().get(KsqlConstants.SINK_NUMBER_OF_PARTITIONS) != null) {
-      try {
-        final int numberOfPartitions = Integer.parseInt(
-            sink.getProperties().get(KsqlConstants.SINK_NUMBER_OF_PARTITIONS).toString()
-        );
-        analysis.getIntoProperties().put(
-            KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY,
-            numberOfPartitions
-        );
+      final int numberOfPartitions =
+          WithClauseUtil.parsePartitions(
+              sink.getProperties().get(KsqlConstants.SINK_NUMBER_OF_PARTITIONS).toString());
 
-      } catch (final NumberFormatException e) {
-        throw new KsqlException(
-            "Invalid number of partitions in WITH clause: "
-                + sink.getProperties().get(KsqlConstants.SINK_NUMBER_OF_PARTITIONS).toString());
-      }
+      analysis.getIntoProperties().put(
+          KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY,
+          numberOfPartitions
+      );
     }
 
     if (sink.getProperties().get(KsqlConstants.SINK_NUMBER_OF_REPLICAS) != null) {
-      try {
-        final short numberOfReplications =
-            Short.parseShort(
-                sink.getProperties().get(KsqlConstants.SINK_NUMBER_OF_REPLICAS).toString()
-            );
-        analysis.getIntoProperties()
-            .put(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, numberOfReplications);
-      } catch (final NumberFormatException e) {
-        throw new KsqlException("Invalid number of replications in WITH clause: " + sink
-            .getProperties().get(KsqlConstants.SINK_NUMBER_OF_REPLICAS).toString());
-      }
+      final short numberOfReplications =
+          WithClauseUtil.parseReplicas(
+              sink.getProperties().get(KsqlConstants.SINK_NUMBER_OF_REPLICAS).toString());
+      analysis.getIntoProperties()
+          .put(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, numberOfReplications);
     }
   }
 
@@ -183,8 +160,8 @@ class Analyzer {
     setIntoProperties(sink);
 
     if (!sink.shouldCreateSink()) {
-      final StructuredDataSource into = metaStore.getSource(sink.getName());
-      if (into == null) {
+      final StructuredDataSource<?> existing = metaStore.getSource(sink.getName());
+      if (existing == null) {
         throw new KsqlException("Unknown source: " + sink.getName());
       }
 
@@ -193,7 +170,13 @@ class Analyzer {
             "Sink topic " + sink.getName() + " does not exist in the metastore.");
       }
 
-      analysis.setInto(into, sink.shouldCreateSink());
+      analysis.setInto(Into.of(
+          sqlExpression,
+          sink.getName(),
+          false,
+          existing.getKsqlTopic(),
+          existing.getKeySerdeFactory()
+      ));
       return;
     }
 
@@ -208,17 +191,13 @@ class Analyzer {
         true
     );
 
-    final KsqlStream intoKsqlStream = new KsqlStream<>(
+    analysis.setInto(Into.of(
         sqlExpression,
         sink.getName(),
-        null,
-        null,
-        null,
+        true,
         intoKsqlTopic,
-        Serdes.String()
-    );
-
-    analysis.setInto(intoKsqlStream, true);
+        Serdes::String
+    ));
   }
 
   private KsqlTopicSerDe getIntoValueSerde() {
@@ -296,7 +275,8 @@ class Analyzer {
 
     if ("AVRO".equals(serde)) {
       analysis.getIntoProperties().put(
-          DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME, avroSchemaFullName != null
+          DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME,
+          avroSchemaFullName != null
               ? avroSchemaFullName : KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME);
     } else if (avroSchemaFullName != null) {
       throw new KsqlException(
@@ -445,14 +425,14 @@ class Analyzer {
           new StructuredDataSourceNode(
               new PlanNodeId("KafkaTopic_Left"),
               leftDataSource,
-              leftDataSource.getSchema()
+              leftAlias
           );
       final StructuredDataSourceNode
           rightSourceKafkaTopicNode =
           new StructuredDataSourceNode(
               new PlanNodeId("KafkaTopic_Right"),
               rightDataSource,
-              rightDataSource.getSchema()
+              rightAlias
           );
 
       final JoinNode joinNode =
@@ -564,7 +544,7 @@ class Analyzer {
 
       final Pair<StructuredDataSource, String> fromDataSource =
           new Pair<>(
-              metaStore.getSource(structuredDataSourceName).copy(),
+              metaStore.getSource(structuredDataSourceName),
               node.getAlias()
           );
       analysis.addDataSource(fromDataSource);

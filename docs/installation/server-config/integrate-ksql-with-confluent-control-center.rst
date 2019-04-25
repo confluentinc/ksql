@@ -25,13 +25,22 @@ properties in the KSQL Server and |c3-short| configuration files.
 * By default, the |c3-short| configuration file is installed at
   ``<path-to-confluent>/etc/confluent-control-center/control-center.properties``.
 
+Secure Communication with KSQL Server
+=====================================
+
+You can set up KSQL Server to communicate securely with other components in
+|cp|. For more information, see :ref:`ksql-security`.
+
+Network Configuration for KSQL and |c3-short|
+=============================================
+
 These are the configuration settings that you assign to set up network
 connectivity between KSQL and |c3-short|.
 
 * In the KSQL Server configuration file, set the :ref:`ksql-listeners` property
   to the IP address of the REST API endpoint for KSQL Server. Typical values
   are ``http://0.0.0.0:8088`` and ``http://localhost:8088``.
-* In the |c3-short| configuration file, set the ``confluent.controlcenter.<name>.ksql.url``
+* In the |c3-short| configuration file, set the ``confluent.controlcenter.ksql.<name>.url``
   property to the hostnames and listener ports for the KSQL cluster specified by ``<name>``.
   This setting specifies how |c3-short| communicates with KSQL Server for regular HTTP
   requests. For more information, see :ref:`controlcenter_ksql_settings`.
@@ -70,7 +79,6 @@ Assign the following configuration properties to integrate KSQL Server with
 |c3-short| when they run on separate hosts.
 
 KSQL Server Configuration
-=========================
 
 In the KSQL Server configuration file, set ``listeners`` to bind to all
 interfaces:
@@ -82,19 +90,42 @@ interfaces:
 |c3-short| Configuration
 ========================
 
-In the |c3-short| configuration file, set ``confluent.controlcenter.<name>.ksql.url``
+In the |c3-short| configuration file, set ``confluent.controlcenter.ksql.<ksql-cluster-name>.url``
 to a list of URLs for the KSQL Server hosts, which must be reachable from the host
-that |c3-short| is installed on. Replace ``<name>`` with the name |c3-short| uses
-to identify the KSQL cluster.
-
-Also, set ``confluent.controlcenter.ksql.<name>.advertised.url`` to the public
-IP addresses published by the KSQL Server hosts, which must be a list of URLs
-that the browser can resolve through externally available DNS.
+that |c3-short| is installed on. Replace ``<ksql-cluster-name>`` with the name
+that |c3-short| uses to identify the KSQL cluster.
 
 ::
 
-    confluent.controlcenter.<ksql-cluster-name>.ksql.url=<private-url1>, <private-url2>, ...
-    confluent.controlcenter.ksql.<ksql-cluster-name>.advertised.url=<public-url1>, <public-url2>, ...
+    confluent.controlcenter.ksql.<ksql-cluster-name>.url=<internally-resolvable-hostname1>, <internally-resolvable-hostname2>, ...
+
+Also, set ``confluent.controlcenter.ksql.<ksql-cluster-name>.advertised.url``
+to the public IP addresses published by the KSQL Server hosts, which must be a
+list of URLs that the browser can resolve through externally available DNS.
+
+::
+
+    confluent.controlcenter.ksql.<ksql-cluster-name>.advertised.url=<externally-resolvable-hostname1>, <externally-resolvable-hostname2>, ...
+
+The |c3-short| configuration must match the KSQL Server ``listeners`` values.
+
+Use the ``curl`` command to check whether these URLs are reachable. Depending
+on your deployment, you may need to check from two different hosts: 
+
+* Check from the host where |c3-short| is running, which is relevant 
+  for the ``confluent.controlcenter.ksql.<name>.url`` setting.
+* Check from the host where the browser is running, which is relevant for the
+  ``confluent.controlcenter.ksql.<name>.advertised.url`` setting.
+
+On both hosts, run the following command to confirm that the KSQL Server
+cluster is reachable. The ``hostname`` value is one of the hosts in the
+listed in the ``confluent.controlcenter.ksql.<name>.url`` and 
+``confluent.controlcenter.ksql.<name>.advertised.url`` configuration settings.
+
+.. codewithvars:: bash
+
+   curl http://<hostname>:8088/info \
+   {"KsqlServerInfo":{"version":"|release|","kafkaClusterId":"<ksql-cluster-name>","ksqlServiceId":"default_"}}%
 
 .. note::
 
@@ -138,3 +169,4 @@ Next Steps
 **********
 
 * :ref:`install_ksql-ccloud`
+* :ref:`ksql-security`

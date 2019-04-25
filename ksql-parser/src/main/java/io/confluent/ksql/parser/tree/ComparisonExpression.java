@@ -105,7 +105,7 @@ public class ComparisonExpression extends Expression {
     super(location);
     this.type = requireNonNull(type, "type");
     this.left = requireNonNull(left, "left");
-    this.right = requireNonNull(right, "right");;
+    this.right = requireNonNull(right, "right");
   }
 
   public Type getType() {

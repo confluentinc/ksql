@@ -20,30 +20,22 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.startsWith;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.integration.IntegrationTestHarness;
+import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.rest.client.KsqlRestClient;
-import io.confluent.ksql.rest.client.RestResponse;
-import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatus.Status;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.KsqlEntity;
-import io.confluent.ksql.rest.entity.KsqlEntityList;
-import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
-import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
-import javax.ws.rs.client.Client;
-import javax.ws.rs.client.Entity;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
+import kafka.zookeeper.ZooKeeperClientException;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -67,7 +59,10 @@ public class KsqlResourceFunctionalTest {
       .build();
 
   @ClassRule
-  public static final RuleChain CHAIN = RuleChain.outerRule(TEST_HARNESS).around(REST_APP);
+  public static final RuleChain CHAIN = RuleChain
+      .outerRule(Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS))
+      .around(TEST_HARNESS)
+      .around(REST_APP);
 
   private KsqlRestClient restClient;
   private String source;
@@ -76,7 +71,7 @@ public class KsqlResourceFunctionalTest {
   public static void setUpClass() {
     TEST_HARNESS.ensureTopics(PAGE_VIEW_TOPIC);
     NEXT_QUERY_ID.set(0);
-    createStreams(PAGE_VIEW_STREAM);
+    RestIntegrationTestUtil.createStreams(REST_APP, PAGE_VIEW_STREAM, PAGE_VIEW_TOPIC);
   }
 
   @Before
@@ -85,7 +80,7 @@ public class KsqlResourceFunctionalTest {
 
     source = KsqlIdentifierTestUtil.uniqueIdentifierName("source");
 
-    createStreams(source);
+    RestIntegrationTestUtil.createStreams(REST_APP, source, PAGE_VIEW_TOPIC);
   }
 
   @After
@@ -162,78 +157,7 @@ public class KsqlResourceFunctionalTest {
             is(Status.SUCCESS)));
   }
 
-  private static List<KsqlEntity> awaitResults(final List<KsqlEntity> pending) {
-    try (final KsqlRestClient ksqlRestClient = REST_APP.buildKsqlClient()) {
-      return pending.stream()
-          .map(e -> awaitResult(e, ksqlRestClient))
-          .collect(Collectors.toList());
-    }
-  }
-
-  private static KsqlEntity awaitResult(
-      final KsqlEntity e,
-      final KsqlRestClient ksqlRestClient
-  ) {
-    if (!(e instanceof CommandStatusEntity)) {
-      return e;
-    }
-
-    CommandStatusEntity cse = (CommandStatusEntity) e;
-    final String commandId = cse.getCommandId().toString();
-
-    while (cse.getCommandStatus().getStatus() != Status.ERROR
-        && cse.getCommandStatus().getStatus() != Status.SUCCESS) {
-
-      final RestResponse<CommandStatus> res = ksqlRestClient.makeStatusRequest(commandId);
-
-      throwOnError(res);
-
-      cse = new CommandStatusEntity(
-          cse.getStatementText(),
-          cse.getCommandId(),
-          res.getResponse(),
-          cse.getCommandSequenceNumber()
-      );
-    }
-
-    return cse;
-  }
-
-  @SuppressWarnings("unchecked")
   private List<KsqlEntity> makeKsqlRequest(final String sql) {
-    final RestResponse<KsqlEntityList> res = restClient.makeKsqlRequest(sql);
-
-    throwOnError(res);
-
-    return awaitResults(res.getResponse());
-  }
-
-  private static void throwOnError(final RestResponse<?> res) {
-    if (res.isErroneous()) {
-      throw new AssertionError("Failed to await result."
-          + "msg: " + res.getErrorMessage());
-    }
-  }
-
-  private static void createStreams(final String streamName) {
-    final Client client = TestKsqlRestApp.buildClient();
-
-    try (final Response response = client
-        .target(REST_APP.getHttpListener())
-        .path("ksql")
-        .request(MediaType.APPLICATION_JSON_TYPE)
-        .post(ksqlRequest(
-            "CREATE STREAM " + streamName + " "
-                + "(viewtime bigint, pageid varchar, userid varchar) "
-                + "WITH (kafka_topic='" + PAGE_VIEW_TOPIC + "', value_format='json');"))) {
-
-      assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
-    } finally {
-      client.close();
-    }
-  }
-
-  private static Entity<?> ksqlRequest(final String sql) {
-    return Entity.json(new KsqlRequest(sql, Collections.emptyMap(), null));
+    return RestIntegrationTestUtil.makeKsqlRequest(REST_APP, restClient, sql);
   }
 }

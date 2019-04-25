@@ -15,6 +15,9 @@
 
 package io.confluent.ksql.serde;
 
+import com.google.errorprone.annotations.Immutable;
+
+@Immutable
 public interface DataSource {
 
   enum DataSourceType {

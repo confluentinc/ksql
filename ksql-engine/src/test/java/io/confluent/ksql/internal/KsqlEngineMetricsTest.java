@@ -88,9 +88,7 @@ public class KsqlEngineMetricsTest {
 
     engineMetrics.close();
 
-    engineMetrics.registeredSensors().forEach(sensor -> {
-      assertThat(engineMetrics.getMetrics().getSensor(sensor.name()), is(nullValue()));
-    });
+    engineMetrics.registeredSensors().forEach(sensor -> assertThat(engineMetrics.getMetrics().getSensor(sensor.name()), is(nullValue())));
   }
 
   @Test
@@ -156,7 +154,7 @@ public class KsqlEngineMetricsTest {
 
   @Test
   public void shouldRecordNumberOfPersistentQueries() {
-    when(ksqlEngine.numberOfPersistentQueries()).thenReturn(3);
+    when(ksqlEngine.getPersistentQueries()).then(returnQueriesInState(3, State.RUNNING));
 
     final double value = getMetricValue(engineMetrics.getMetrics(), metricNamePrefix + "num-persistent-queries");
     assertEquals(3.0, value, 0.0);

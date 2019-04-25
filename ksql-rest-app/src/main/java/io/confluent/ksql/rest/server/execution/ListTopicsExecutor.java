@@ -16,15 +16,14 @@
 package io.confluent.ksql.rest.server.execution;
 
 import io.confluent.ksql.KsqlExecutionContext;
-import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.parser.tree.ListTopics;
 import io.confluent.ksql.rest.entity.KafkaTopicsList;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KafkaConsumerGroupClient;
 import io.confluent.ksql.util.KafkaConsumerGroupClientImpl;
-import io.confluent.ksql.util.KsqlConfig;
-import java.util.Map;
 import java.util.Optional;
 
 public final class ListTopicsExecutor {
@@ -32,11 +31,9 @@ public final class ListTopicsExecutor {
   private ListTopicsExecutor() { }
 
   public static Optional<KsqlEntity> execute(
-      final PreparedStatement statement,
+      final ConfiguredStatement<ListTopics> statement,
       final KsqlExecutionContext executionContext,
-      final ServiceContext serviceContext,
-      final KsqlConfig ksqlConfig,
-      final Map<String, Object> propertyOverrides
+      final ServiceContext serviceContext
   ) {
     final KafkaTopicClient client = serviceContext.getTopicClient();
     final KafkaConsumerGroupClient kafkaConsumerGroupClient
@@ -46,7 +43,7 @@ public final class ListTopicsExecutor {
         statement.getStatementText(),
         executionContext.getMetaStore().getAllKsqlTopics().values(),
         client.describeTopics(client.listNonInternalTopicNames()),
-        ksqlConfig,
+        statement.getConfig(),
         kafkaConsumerGroupClient
     ));
   }

@@ -1,0 +1,1471 @@
+{
+  "comments": [
+    "Tests covering handling of key-fields.",
+    "The 'key-field' is an optional field within the value that matches the key",
+    "",
+    "There are several main dimensions to this test suite:",
+    " - source type:",
+    "   - stream",
+    "   - table",
+    " - source key:",
+    "   - initially null",
+    "   - initially set",
+    " - explicit changing of key:",
+    "   - no key change",
+    "   - partition by (same key)",
+    "   - partition by (different key)",
+    "   - group by (same key)",
+    "   - group by (different key)",
+    " - key present in target value schema:",
+    "   - key in value",
+    "   - key not in value",
+    " - aliasing of the key field in the value schema",
+    "   - no aliasing",
+    "   - aliased key field",
+    "",
+    "Note: Not all combinations are valid, e.g. can not have an alias if there is no key.",
+    "Note: There are some tests in joins.json that also test key fields are correctly set",
+    "",
+    "issues:",
+    "",
+    " - there is currently an inconsistency between how GROUP BY's and PARTITION BY's handling of aliases:",
+    "  - PARTITION BY requires the target name, (i.e. the alias), failing if the source field name is used.",
+    "  - GROUP BY requires the source field name, failing if the target field name, (i.e. the alias), is used.",
+    "   see https://github.com/confluentinc/ksql/issues/2701",
+    "",
+    "Most test cases follows the pattern of defining:",
+    " INPUT - the initial source",
+    " OUTPUT - a source built from INPUT using the dimensions in the title of the test",
+    " DOWNSTREAM - an optional source built from OUTPUT. This is necessary as the key fields this test file covers affect downstream queries too.",
+    "",
+    "Some tests may need intermediate sources to get to the required state. (Which is generally a source table where the key field is not set)",
+    "",
+    "The main point of the tests to:",
+    "  a: test the post conditions in the metastore, i.e. that sources with the correct state are registered.",
+    "  b: test the topology of the output or downstream queries."
+  ],
+  "tests": [
+    {
+      "name": "stream | initially null | no key change | - | -",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"FOO":1, "BAR": 2}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "keyField": {"name": null, "legacyName": null}}
+        ]
+      }
+    },
+    {
+      "name": "stream | initially null | partition by (-) | key in value | no aliasing",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT PARTITION BY foo;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "1", "value": {"FOO":1, "BAR": 2}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "INPUT", "type": "stream", "keyField": {"name": null, "legacyName": null}},
+          {"name": "OUTPUT", "type": "stream", "keyField": {"name": "FOO", "legacyName": "FOO", "legacySchema": "INT"}}
+        ]
+      }
+    },
+    {
+      "name": "stream | initially null | partition by (-) | key in value | aliasing",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT foo AS ALIASED, bar FROM INPUT PARTITION BY ALIASED;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "1", "value": {"ALIASED":1, "BAR": 2}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "INPUT", "type": "stream", "keyField": {"name": null, "legacyName": null}},
+          {"name": "OUTPUT", "type": "stream", "keyField": {"name": "ALIASED", "legacyName": "ALIASED", "legacySchema": "INT"}}
+        ]
+      }
+    },
+    {
+      "name": "stream | initially null | partition by (-) | key not in value | -",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT bar FROM INPUT PARTITION BY foo;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Column FOO does not exist in the result schema. Error in Partition By clause."
+      }
+    },
+    {
+      "name": "stream | initially null | group by (-) | key in value | no aliasing",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT foo, COUNT(*) FROM INPUT GROUP BY foo;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "1", "value": {"FOO":1, "KSQL_COL_1": 1}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "INPUT", "type": "stream", "keyField": {"name": null, "legacyName": null}},
+          {
+            "name": "OUTPUT",
+            "type": "table",
+            "keyField": {"name": "FOO", "legacyName": "KSQL_INTERNAL_COL_0", "legacySchema": "STRING"},
+            "valueSchema": "STRUCT<ROWTIME BIGINT, ROWKEY STRING, FOO INT, KSQL_COL_1 BIGINT>"
+          }
+        ]
+      }
+    },
+    {
+      "name": "stream | initially null | group by (-) | key in value | no aliasing | legacy downstream query",
+      "comments": [
+        "The purpose of this test is to capture the topology of a downstream query of the above test case",
+        "and test the key fields of the entities added to the metastore, to ensure backwards compatibility is maintained",
+        "In this case, the code previously incorrectly set the keyField to 'KSQL_INTERNAL_COL_0' rather than the correct 'FOO'",
+        "This would result in an unnecessary repartition step being added to the DOWNSTREAM query.",
+        "New versions of the code must not remove this unnecessary step for existing queries, as that would break backwards compatibility"
+      ],
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT foo, COUNT(*) FROM INPUT GROUP BY foo;",
+        "CREATE TABLE DOWNSTREAM AS SELECT foo, COUNT(*) FROM OUTPUT GROUP BY foo;"
+      ],
+      "properties": {
+        "ksql.query.fields.key.legacy": "true"
+      },
+      "inputs": [
+        {"topic": "OUTPUT", "key": "1", "value": {"FOO":1, "KSQL_COL_1": 1}}
+      ],
+      "outputs": [
+        {"topic": "DOWNSTREAM", "key": "1", "value": {"FOO":1, "KSQL_COL_1": 1}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "DOWNSTREAM", "type": "table", "keyField": {"name": "FOO", "legacyName": "KSQL_INTERNAL_COL_0", "legacySchema": "STRING"}}
+        ]
+      }
+    },
+    {
+      "name": "stream | initially null | group by (-) | key in value | aliasing",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT foo AS Aliased, COUNT(*) FROM INPUT GROUP BY foo;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "1", "value": {"ALIASED":1, "KSQL_COL_1": 1}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "INPUT", "type": "stream", "keyField": {"name": null, "legacyName": null}},
+          {"name": "OUTPUT", "type": "table", "keyField": {"name": "ALIASED", "legacyName": "KSQL_INTERNAL_COL_0", "legacySchema": "STRING"}}
+        ]
+      }
+    },
+    {
+      "name": "stream | initially null | group by (-) | key in value | aliasing | legacy downstream query",
+      "comments": [
+        "The purpose of this test is to capture the topology of a downstream query of the above test case",
+        "and test the key fields of the entities added to the metastore, to ensure backwards compatibility is maintained",
+        "In this case, the code previously incorrectly set the keyField to 'KSQL_INTERNAL_COL_0' rather than the correct 'ALIASED'",
+        "This would result in an unnecessary repartition step being added to the DOWNSTREAM query.",
+        "New versions of the code must not remove this unnecessary step for existing queries, as that would break backwards compatibility"
+      ],
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT foo AS Aliased, COUNT(*) FROM INPUT GROUP BY foo;",
+        "CREATE TABLE DOWNSTREAM AS SELECT Aliased, COUNT(*) FROM OUTPUT GROUP BY Aliased;"
+      ],
+      "properties": {
+        "ksql.query.fields.key.legacy": "true"
+      },
+      "inputs": [
+        {"topic": "OUTPUT", "key": "1", "value": {"ALIASED":1, "KSQL_COL_1": 1}}
+      ],
+      "outputs": [
+        {"topic": "DOWNSTREAM", "key": "1", "value": {"ALIASED":1, "KSQL_COL_1": 1}}
+      ],
+      "post": {
+        "sources": [
+           {"name": "DOWNSTREAM", "type": "table", "keyField": {"name": "ALIASED", "legacyName": "KSQL_INTERNAL_COL_0", "legacySchema": "STRING"}}
+        ]
+      }
+    },
+    {
+      "name": "stream | initially null | group by (-) | key not in value | -",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT COUNT(*) FROM INPUT GROUP BY foo;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "1", "value": {"KSQL_COL_0": 1}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "INPUT", "type": "stream", "keyField": {"name": null, "legacyName": null}},
+          {"name": "OUTPUT", "type": "table", "keyField": {"name": null, "legacyName": "KSQL_INTERNAL_COL_1", "legacySchema": "STRING"}}
+        ]
+      }
+    },
+    {
+      "name": "stream | initially null | group by (-) | key not in value | - | legacy downstream query",
+      "comments": [
+        "The purpose of this test is to capture the topology of a downstream query of the above test case",
+        "and test the key fields of the entities added to the metastore, to ensure backwards compatibility is maintained",
+        "In this case, the code previously incorrectly set the keyField to 'KSQL_INTERNAL_COL_1' rather than the correct 'null'",
+        "This would not really create any problems, but its good to ensure things remain consistent."
+      ],
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT COUNT(*) FROM INPUT GROUP BY foo;",
+        "CREATE TABLE DOWNSTREAM AS SELECT COUNT(*) FROM OUTPUT GROUP BY ROWKEY;"
+      ],
+      "properties": {
+        "ksql.query.fields.key.legacy": "true"
+      },
+      "inputs": [
+        {"topic": "OUTPUT", "key": "1", "value": {"KSQL_COL_0": 1}}
+      ],
+      "outputs": [
+        {"topic": "DOWNSTREAM", "key": "1", "value": {"KSQL_COL_0": 1}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "DOWNSTREAM", "type": "table", "keyField": {"name": null, "legacyName": "KSQL_INTERNAL_COL_1", "legacySchema": "STRING"}}
+        ]
+      }
+    },
+    {
+      "name": "stream | initially set | no key change | key in value | no aliasing",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"FOO":1, "BAR": 2}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "INPUT", "type": "stream", "keyField": {"name": "FOO", "legacyName": "FOO", "legacySchema": "INT"}},
+          {"name": "OUTPUT", "type": "stream", "keyField": {"name": "FOO", "legacyName": "FOO", "legacySchema": "INT"}}
+        ]
+      }
+    },
+    {
+      "name": "stream | initially set | no key change | key in value | aliasing",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT foo as aliased, bar FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"ALIASED":1, "BAR": 2}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "INPUT", "type": "stream", "keyField": {"name": "FOO", "legacyName": "FOO", "legacySchema": "INT"}},
+          {"name": "OUTPUT", "type": "stream", "keyField": {"name": "ALIASED", "legacyName": "FOO", "legacySchema": "INT"}}
+        ]
+      }
+    },
+    {
+      "name": "stream | initially set | no key change | key in value | aliasing | legacy downstream query",
+      "comments": [
+        "The purpose of this test is to capture the topology of a downstream query of the above test case",
+        "and test the key fields of the entities added to the metastore, to ensure backwards compatibility is maintained",
+        "In this case, the code previously incorrectly set the keyField to 'FOO' rather than the correct 'ALIASED'",
+        "This would result in an unnecessary repartition step being added to the DOWNSTREAM query.",
+        "New versions of the code must not remove this unnecessary step for existing queries, as that would break backwards compatibility"
+      ],
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT foo as aliased, bar FROM INPUT;",
+        "CREATE STREAM DOWNSTREAM AS SELECT Aliased, bar FROM OUTPUT PARTITION BY Aliased;"
+      ],
+      "properties": {
+        "ksql.query.fields.key.legacy": "true"
+      },
+      "inputs": [
+        {"topic": "OUTPUT", "key": "1", "value": {"ALIASED":1, "BAR": 2}}
+      ],
+      "outputs": [
+        {"topic": "DOWNSTREAM", "key": "1", "value": {"ALIASED":1, "BAR": 2}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "keyField": {"name": "ALIASED", "legacyName": "FOO", "legacySchema": "INT"}},
+         {"name": "DOWNSTREAM", "type": "stream", "keyField": {"name": "ALIASED", "legacyName": "ALIASED", "legacySchema": "INT"}}
+        ]
+      }
+    },
+    {
+      "name": "stream | initially set | no key change | key in value | aliasing + duplicate",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT foo as aliased, bar as foo FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"ALIASED":1, "FOO": 2}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "INPUT", "type": "stream", "keyField": {"name": "FOO", "legacyName": "FOO", "legacySchema": "INT"}},
+          {"name": "OUTPUT", "type": "stream", "keyField": {"name": "ALIASED", "legacyName": "FOO", "legacySchema": "INT"}}
+        ]
+      }
+    },
+    {
+      "name": "stream | initially set | no key change | key in value | aliasing + duplicate | legacy downstream query | no key change",
+      "comments": [
+        "The purpose of this test is to capture the topology of a downstream query of the above test case",
+        "and test the key fields of the entities added to the metastore, to ensure backwards compatibility is maintained",
+        "In this case, the code previously incorrectly set the keyField to 'FOO' rather than the correct 'ALIASED'",
+        "This would result in an unnecessary repartition step being added to the DOWNSTREAM query.",
+        "New versions of the code must not remove this unnecessary step for existing queries, as that would break backwards compatibility"
+      ],
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT foo as aliased, bar as foo FROM INPUT;",
+        "CREATE STREAM DOWNSTREAM AS SELECT aliased, foo FROM OUTPUT PARTITION BY aliased;"
+      ],
+      "properties": {
+        "ksql.query.fields.key.legacy": "true"
+      },
+      "inputs": [
+        {"topic": "OUTPUT", "key": "1" ,"value": {"ALIASED":1, "FOO": 2}}
+      ],
+      "outputs": [
+        {"topic": "DOWNSTREAM", "key": "1", "value": {"ALIASED":1, "FOO": 2}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "keyField": {"name": "ALIASED", "legacyName": "FOO", "legacySchema": "INT"}},
+          {"name": "DOWNSTREAM", "type": "stream", "keyField": {"name": "ALIASED", "legacyName": "ALIASED", "legacySchema": "INT"}}
+        ]
+      }
+    },
+    {
+      "name": "stream | initially set | no key change | key in value | aliasing + duplicate | legacy downstream query | key change",
+      "comments": [
+        "The purpose of this test is to capture the topology of a downstream query of the above test case",
+        "and test the key fields of the entities added to the metastore, to ensure backwards compatibility is maintained",
+        "In this case, the code previously incorrectly set the keyField to 'FOO' rather than the correct 'ALIASED'",
+        "This would result in an unnecessary repartition step being added to the DOWNSTREAM query.",
+        "New versions of the code must not remove this unnecessary step for existing queries, as that would break backwards compatibility",
+        "Note: PARTITION BY takes the target name, i.e. the name of the field in the output schema.",
+        "So in the test below the 'PARTITION BY foo' in the final SELECT should be set the key to FOO."
+      ],
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT foo as aliased, bar as foo FROM INPUT;",
+        "CREATE STREAM DOWNSTREAM AS SELECT aliased, foo FROM OUTPUT PARTITION BY foo;"
+      ],
+      "properties": {
+        "ksql.query.fields.key.legacy": "true"
+      },
+      "inputs": [
+        {"topic": "OUTPUT", "key": "1" ,"value": {"ALIASED":1, "FOO": 2}}
+      ],
+      "outputs": [
+        {"topic": "DOWNSTREAM", "key": "1", "value": {"ALIASED":1, "FOO": 2}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "keyField": {"name": "ALIASED", "legacyName": "FOO", "legacySchema": "INT"}},
+          {"name": "DOWNSTREAM", "type": "stream", "keyField": {"name": "FOO", "legacyName": "FOO", "legacySchema": "INT"}}
+        ]
+      }
+    },
+    {
+      "name": "stream | initially set | no key change | key in value | aliasing + duplicate | downstream query | key change",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT foo as aliased, bar as foo FROM INPUT;",
+        "CREATE STREAM DOWNSTREAM AS SELECT aliased, foo FROM OUTPUT PARTITION BY foo;"
+      ],
+      "inputs": [
+        {"topic": "OUTPUT", "key": "1" ,"value": {"ALIASED":1, "FOO": 2}}
+      ],
+      "outputs": [
+        {"topic": "DOWNSTREAM", "key": "2", "value": {"ALIASED":1, "FOO": 2}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "DOWNSTREAM", "type": "stream", "keyField": {"name": "FOO", "legacyName": "FOO", "legacySchema": "INT"}}
+        ]
+      }
+    },
+    {
+      "name": "stream | initially set | no key change | key not in value | -",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT bar FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"BAR": 2}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "INPUT", "type": "stream", "keyField": {"name": "FOO", "legacyName": "FOO", "legacySchema": "INT"}},
+          {"name": "OUTPUT", "type": "stream", "keyField": {"name": null, "legacyName": "FOO", "legacySchema": "INT"}}
+        ]
+      }
+    },
+    {
+      "name": "stream | initially set | no key change | key not in value | - | legacy downstream query",
+      "comments": [
+        "The purpose of this test is to capture the topology of a downstream query of the above test case",
+        "and test the key fields of the entities added to the metastore, to ensure backwards compatibility is maintained",
+        "In this case, the code previously incorrectly set the keyField to 'FOO' rather than the correct 'null'",
+        "This would not really create any problems, but its good to ensure things remain consistent."
+      ],
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT bar FROM INPUT;",
+        "CREATE STREAM DOWNSTREAM AS SELECT bar as FOO FROM OUTPUT PARTITION BY FOO;"
+      ],
+      "properties": {
+        "ksql.query.fields.key.legacy": "true"
+      },
+      "inputs": [
+        {"topic": "OUTPUT", "key": "-", "value": {"BAR": 2}}
+      ],
+      "outputs": [
+        {"topic": "DOWNSTREAM", "key": "-", "value": {"FOO": 2}}
+      ],
+      "post": {
+       "sources": [
+         {"name": "OUTPUT", "type": "stream", "keyField": {"name": null, "legacyName": "FOO", "legacySchema": "INT"}},
+           {"name": "DOWNSTREAM", "type": "stream", "keyField": {"name": "FOO", "legacyName": "FOO", "legacySchema": "INT"}}
+        ]
+      }
+    },
+    {
+      "name": "stream | initially set | partition by (same) | key in value | no aliasing",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT PARTITION BY foo;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key":"1", "value": {"FOO":1, "BAR": 2}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "INPUT", "type": "stream", "keyField": {"name": "FOO", "legacyName": "FOO", "legacySchema": "INT"}},
+          {"name": "OUTPUT", "type": "stream", "keyField": {"name": "FOO", "legacyName": "FOO", "legacySchema": "INT"}}
+        ]
+      }
+    },
+    {
+      "name": "stream | initially set | partition by (same) | key in value | aliasing",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT foo AS aliased, bar FROM INPUT PARTITION BY aliased;"
+      ],
+      "properties": {
+        "ksql.query.fields.key.legacy": "true"
+      },
+      "inputs": [
+        {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key":"1", "value": {"ALIASED":1, "BAR": 2}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "INPUT", "type": "stream", "keyField": {"name": "FOO", "legacyName": "FOO", "legacySchema": "INT"}},
+          {"name": "OUTPUT", "type": "stream", "keyField": {"name": "ALIASED", "legacyName": "ALIASED", "legacySchema": "INT"}}
+        ]
+      }
+    },
+    {
+      "name": "stream | initially set | partition by (same) | key in value | aliasing | non-legacy",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT foo AS aliased, bar FROM INPUT PARTITION BY aliased;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key":"1", "value": {"ALIASED":1, "BAR": 2}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "INPUT", "type": "stream", "keyField": {"name": "FOO"}},
+          {"name": "OUTPUT", "type": "stream", "keyField": {"name": "ALIASED"}}
+        ]
+      }
+    },
+    {
+      "name": "stream | initially set | partition by (same) | key not in value | -",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT bar FROM INPUT PARTITION BY foo;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Column FOO does not exist in the result schema. Error in Partition By clause."
+      }
+    },
+    {
+      "name": "stream | initially set | partition by (different) | key in value | no aliasing",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT PARTITION BY bar;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key":"2", "value": {"FOO": 1, "BAR": 2}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "INPUT", "type": "stream", "keyField": {"name": "FOO", "legacyName": "FOO", "legacySchema": "INT"}},
+          {"name": "OUTPUT", "type": "stream", "keyField": {"name": "BAR", "legacyName": "BAR", "legacySchema": "INT"}}
+        ]
+      }
+    },
+    {
+      "name": "stream | initially set | partition by (different) | key in value | aliasing",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT foo, bar AS aliased FROM INPUT PARTITION BY aliased;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key":"2", "value": {"FOO": 1, "ALIASED": 2}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "INPUT", "type": "stream", "keyField": {"name": "FOO", "legacyName": "FOO", "legacySchema": "INT"}},
+          {"name": "OUTPUT", "type": "stream", "keyField": {"name": "ALIASED", "legacyName": "ALIASED", "legacySchema": "INT"}}
+        ]
+      }
+    },
+    {
+      "name": "stream | initially set | partition by (different) | key not in value | -",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT foo FROM INPUT PARTITION BY bar;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Column BAR does not exist in the result schema. Error in Partition By clause."
+      }
+    },
+    {
+      "name": "stream | initially set | group by (same) | key in value | no aliasing",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT foo, COUNT(*) FROM INPUT GROUP BY foo;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key":"1", "value": {"FOO":1, "KSQL_COL_1": 1}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "INPUT", "type": "stream", "keyField": {"name": "FOO", "legacyName": "FOO", "legacySchema": "INT"}},
+          {"name": "OUTPUT", "type": "table", "keyField": {"name": "FOO", "legacyName": "FOO", "legacySchema": "INT"}}
+        ]
+      }
+    },
+    {
+      "name": "stream | initially set | group by (same) | key in value | aliasing",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT foo AS aliased, COUNT(*) FROM INPUT GROUP BY foo;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key":"1", "value": {"ALIASED":1, "KSQL_COL_1": 1}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "INPUT", "type": "stream", "keyField": {"name": "FOO", "legacyName": "FOO", "legacySchema": "INT"}},
+          {"name": "OUTPUT", "type": "table", "keyField": {"name": "ALIASED", "legacyName": "ALIASED", "legacySchema": "INT"}}
+        ]
+      }
+    },
+    {
+      "name": "stream | initially set | group by (same) | key not in value | -",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT COUNT(*) FROM INPUT GROUP BY foo;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key":"1", "value": {"KSQL_COL_0": 1}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "keyField": {"name": null, "legacyName": null}}
+        ]
+      }
+    },
+    {
+      "name": "stream | initially set | group by (different) | key in value | no aliasing",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT bar, COUNT(*) FROM INPUT GROUP BY bar;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key":"2", "value": {"BAR":2, "KSQL_COL_1": 1}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "keyField": {"name": "BAR", "legacyName": "KSQL_INTERNAL_COL_0", "legacySchema": "STRING"}}
+        ]
+      }
+    },
+    {
+      "name": "stream | initially set | group by (different) | key in value | no aliasing | legacy downstream query",
+      "comments": [
+        "The purpose of this test is to capture the topology of a downstream query of the above test case",
+        "and test the key fields of the entities added to the metastore, to ensure backwards compatibility is maintained",
+        "In this case, the code previously incorrectly set the keyField to 'KSQL_INTERNAL_COL_0' rather than the correct 'BAR'",
+        "This would result in an unnecessary repartition step being added to the DOWNSTREAM query.",
+        "New versions of the code must not remove this unnecessary step for existing queries, as that would break backwards compatibility"
+      ],
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT bar, COUNT(*) FROM INPUT GROUP BY bar;",
+        "CREATE TABLE DOWNSTREAM AS SELECT bar, COUNT(*) FROM OUTPUT GROUP BY bar;"
+      ],
+      "properties": {
+        "ksql.query.fields.key.legacy": "true"
+      },
+      "inputs": [
+        {"topic": "OUTPUT", "key":"2", "value": {"BAR":2, "KSQL_COL_1": 1}}
+      ],
+      "outputs": [
+        {"topic": "DOWNSTREAM", "key":"2", "value": {"BAR":2, "KSQL_COL_1": 1}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "keyField": {"name": "BAR", "legacyName": "KSQL_INTERNAL_COL_0", "legacySchema": "STRING"}},
+          {"name": "DOWNSTREAM", "type": "table", "keyField": {"name": "BAR", "legacyName": "KSQL_INTERNAL_COL_0", "legacySchema": "STRING"}}
+        ]
+      }
+    },
+    {
+      "name": "stream | initially set | group by (different) | key in value | aliasing",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT bar AS aliased, COUNT(*) FROM INPUT GROUP BY bar;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key":"2", "value": {"ALIASED":2, "KSQL_COL_1": 1}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "keyField": {"name": "ALIASED", "legacyName": "KSQL_INTERNAL_COL_0", "legacySchema": "STRING"}}
+        ]
+      }
+    },
+    {
+      "name": "stream | initially set | group by (different) | key in value | aliasing | legacy downstream query",
+      "comments": [
+        "The purpose of this test is to capture the topology of a downstream query of the above test case",
+        "and test the key fields of the entities added to the metastore, to ensure backwards compatibility is maintained",
+        "In this case, the code previously incorrectly set the keyField to 'KSQL_INTERNAL_COL_0' rather than the correct 'ALIASED'",
+        "This would result in an unnecessary repartition step being added to the DOWNSTREAM query.",
+        "New versions of the code must not remove this unnecessary step for existing queries, as that would break backwards compatibility"
+      ],
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT bar AS aliased, COUNT(*) FROM INPUT GROUP BY bar;",
+        "CREATE TABLE DOWNSTREAM AS SELECT aliased, COUNT(*) FROM OUTPUT GROUP BY aliased;"
+      ],
+      "properties": {
+        "ksql.query.fields.key.legacy": "true"
+      },
+      "inputs": [
+        {"topic": "OUTPUT", "key":"2", "value": {"ALIASED":2, "KSQL_COL_1": 1}}
+      ],
+      "outputs": [
+        {"topic": "DOWNSTREAM", "key":"2", "value": {"ALIASED":2, "KSQL_COL_1": 1}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "keyField": {"name": "ALIASED", "legacyName": "KSQL_INTERNAL_COL_0", "legacySchema": "STRING"}},
+          {"name": "DOWNSTREAM", "type": "table", "keyField": {"name": "ALIASED", "legacyName": "KSQL_INTERNAL_COL_0", "legacySchema": "STRING"}}
+        ]
+      }
+    },
+    {
+      "name": "stream | initially set | group by (different) | key not in value | -",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT COUNT(*) FROM INPUT GROUP BY bar;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key":"2", "value": {"KSQL_COL_0": 1}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "keyField": {"name": null, "legacyName": "KSQL_INTERNAL_COL_1", "legacySchema": "STRING"}}
+        ]
+      }
+    },
+    {
+      "name": "stream | initially set | group by (different) | key not in value | - | legacy downstream query",
+      "comments": [
+        "The purpose of this test is to capture the topology of a downstream query of the above test case",
+        "and test the key fields of the entities added to the metastore, to ensure backwards compatibility is maintained",
+        "In this case, the code previously incorrectly set the keyField to 'KSQL_INTERNAL_COL_1' rather than the correct 'null'",
+        "This would not really create any problems, but its good to ensure things remain consistent."
+      ],
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT COUNT(*) FROM INPUT GROUP BY bar;",
+        "CREATE TABLE DOWNSTREAM AS SELECT COUNT(*) FROM OUTPUT GROUP BY ROWKEY;"
+      ],
+      "properties": {
+        "ksql.query.fields.key.legacy": "true"
+      },
+      "inputs": [
+        {"topic": "OUTPUT", "key":"2", "value": {"KSQL_COL_0": 1}}
+      ],
+      "outputs": [
+        {"topic": "DOWNSTREAM", "key":"2", "value": {"KSQL_COL_0": 1}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "DOWNSTREAM", "type": "table", "keyField": {"name": null, "legacyName": "KSQL_INTERNAL_COL_1", "legacySchema": "STRING"}}
+        ]
+      }
+    },
+    {
+      "name": "table | initially null | no key change | - | -",
+      "comments": [
+        "Note: The INTERMEDIATE table is there to create a source where the key field is set to null"
+      ],
+      "statements": [
+        "CREATE TABLE INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE TABLE INTERMEDIATE AS SELECT bar FROM INPUT;",
+        "CREATE TABLE OUTPUT AS SELECT * FROM INTERMEDIATE;"
+      ],
+      "inputs": [
+        {"topic": "INTERMEDIATE", "key": "x", "value": {"bar": 1}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "x", "value": {"BAR": 1}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "INTERMEDIATE", "type": "table", "keyField": {"name": null, "legacyName": null}},
+          {"name": "OUTPUT", "type": "table", "keyField": {"name": null, "legacyName": null}}
+        ]
+      }
+    },
+    {
+      "name": "table | initially null | group by (-) | key in value | no aliasing",
+      "comments": [
+        "Note: The INTERMEDIATE table is there to create a source where the key field is null"
+      ],
+      "statements": [
+        "CREATE TABLE INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='bar', value_format='JSON');",
+        "CREATE TABLE INTERMEDIATE AS SELECT foo FROM INPUT;",
+        "CREATE TABLE OUTPUT AS SELECT foo, COUNT(*) FROM INTERMEDIATE GROUP BY foo;"
+      ],
+      "inputs": [
+        {"topic": "INTERMEDIATE", "key": "x", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "1", "value": {"FOO": 1, "KSQL_COL_1": 1}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "INTERMEDIATE", "type": "table", "keyField": {"name": null, "legacyName": null}},
+          {"name": "OUTPUT", "type": "table", "keyField": {"name": "FOO", "legacyName": "KSQL_INTERNAL_COL_0", "legacySchema": "STRING"}}
+        ]
+      }
+    },
+    {
+      "name": "table | initially null | group by (-) | key in value | no aliasing | legacy downstream query",
+      "comments": [
+        "The purpose of this test is to capture the topology of a downstream query of the above test case",
+        "and test the key fields of the entities added to the metastore, to ensure backwards compatibility is maintained",
+        "In this case, the code previously incorrectly set the keyField to 'KSQL_INTERNAL_COL_0' rather than the correct 'FOO'",
+        "This would result in an unnecessary repartition step being added to the DOWNSTREAM query.",
+        "New versions of the code must not remove this unnecessary step for existing queries, as that would break backwards compatibility",
+        "Note: The INTERMEDIATE table is there to create a source where the key field is set to null"
+      ],
+      "statements": [
+        "CREATE TABLE INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='bar', value_format='JSON');",
+        "CREATE TABLE INTERMEDIATE AS SELECT foo FROM INPUT;",
+        "CREATE TABLE OUTPUT AS SELECT foo, COUNT(*) FROM INTERMEDIATE GROUP BY foo;",
+        "CREATE TABLE DOWNSTREAM AS SELECT foo, COUNT(*) FROM OUTPUT GROUP BY foo;"
+      ],
+      "properties": {
+        "ksql.query.fields.key.legacy": "true"
+      },
+      "inputs": [
+        {"topic": "OUTPUT", "key": "1", "value": {"FOO": 1, "KSQL_COL_1": 1}}
+      ],
+      "outputs": [
+        {"topic": "DOWNSTREAM", "key": "1", "value": {"FOO": 1, "KSQL_COL_1": 1}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "keyField": {"name": "FOO", "legacyName": "KSQL_INTERNAL_COL_0", "legacySchema": "STRING"}},
+          {"name": "DOWNSTREAM", "type": "table", "keyField": {"name": "FOO", "legacyName": "KSQL_INTERNAL_COL_0", "legacySchema": "STRING"}}
+        ]
+      }
+    },
+    {
+      "name": "table | initially null | group by (-) | key in value | aliasing",
+      "comments": [
+        "Note: The INTERMEDIATE table is there to create a source where the key field is set to null",
+        "note: GROUP BY takes the name of the field from the source schema."
+      ],
+      "statements": [
+        "CREATE TABLE INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='bar', value_format='JSON');",
+        "CREATE TABLE INTERMEDIATE AS SELECT foo FROM INPUT;",
+        "CREATE TABLE OUTPUT AS SELECT foo AS aliased, COUNT(*) FROM INTERMEDIATE GROUP BY foo;"
+      ],
+      "inputs": [
+        {"topic": "INTERMEDIATE", "key": "x", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "1", "value": {"ALIASED": 1, "KSQL_COL_1": 1}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "INTERMEDIATE", "type": "table", "keyField": {"name": null, "legacyName": null}},
+          {"name": "OUTPUT", "type": "table", "keyField": {"name": "ALIASED", "legacyName": "KSQL_INTERNAL_COL_0", "legacySchema": "STRING"}}
+        ]
+      }
+    },
+    {
+      "name": "table | initially null | group by (-) | key in value | aliasing | legacy downstream query",
+      "comments": [
+        "The purpose of this test is to capture the topology of a downstream query of the above test case",
+        "and test the key fields of the entities added to the metastore, to ensure backwards compatibility is maintained",
+        "In this case, the code previously incorrectly set the keyField to 'KSQL_INTERNAL_COL_0' rather than the correct 'ALIASED'",
+        "This would result in an unnecessary repartition step being added to the DOWNSTREAM query.",
+        "New versions of the code must not remove this unnecessary step for existing queries, as that would break backwards compatibility",
+        "Note: The INTERMEDIATE table is there to create a source where the key field is set to null"
+      ],
+      "statements": [
+        "CREATE TABLE INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='bar', value_format='JSON');",
+        "CREATE TABLE INTERMEDIATE AS SELECT foo FROM INPUT;",
+        "CREATE TABLE OUTPUT AS SELECT foo AS aliased, COUNT(*) FROM INTERMEDIATE GROUP BY foo;",
+        "CREATE TABLE DOWNSTREAM AS SELECT aliased, COUNT(*) FROM OUTPUT GROUP BY aliased;"
+      ],
+      "properties": {
+        "ksql.query.fields.key.legacy": "true"
+      },
+      "inputs": [
+        {"topic": "OUTPUT", "key": "1", "value": {"ALIASED": 1, "KSQL_COL_1": 1}}
+      ],
+      "outputs": [
+        {"topic": "DOWNSTREAM", "key": "1", "value": {"ALIASED": 1, "KSQL_COL_1": 1}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "keyField": {"name": "ALIASED", "legacyName": "KSQL_INTERNAL_COL_0", "legacySchema": "STRING"}},
+          {"name": "DOWNSTREAM", "type": "table", "keyField": {"name": "ALIASED", "legacyName": "KSQL_INTERNAL_COL_0", "legacySchema": "STRING"}}
+        ]
+      }
+    },
+    {
+      "name": "table | initially set | no key change | key in value | no aliasing",
+      "statements": [
+        "CREATE TABLE INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "1", "value": {"FOO": 1, "BAR": 2}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "INPUT", "type": "table", "keyField": {"name": "FOO", "legacyName": "FOO", "legacySchema": "INT"}},
+          {"name": "OUTPUT", "type": "table", "keyField": {"name": "FOO", "legacyName": "FOO", "legacySchema": "INT"}}
+        ]
+      }
+    },
+    {
+      "name": "table | initially set | no key change | key in value | aliasing",
+      "statements": [
+        "CREATE TABLE INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT foo AS aliased, bar FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "1", "value": {"ALIASED": 1, "BAR": 2}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "INPUT", "type": "table", "keyField": {"name": "FOO", "legacyName": "FOO", "legacySchema": "INT"}},
+          {"name": "OUTPUT", "type": "table", "keyField": {"name": "ALIASED", "legacyName": "ALIASED", "legacySchema": "INT"}}
+        ]
+      }
+    },
+    {
+      "name": "table | initially set | no key change | key not in value | -",
+      "statements": [
+        "CREATE TABLE INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT bar FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "1", "value": {"BAR": 2}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "keyField": {"name": null, "legacyName": null}}
+        ]
+      }
+    },
+    {
+      "name": "table | initially set | group by (same) | key in value | no aliasing",
+      "statements": [
+        "CREATE TABLE INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT foo, COUNT(*) FROM INPUT GROUP BY foo;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "1", "value": {"FOO": 1, "KSQL_COL_1":  1}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "keyField": {"name": "FOO", "legacyName": "KSQL_INTERNAL_COL_0", "legacySchema": "STRING"}}
+        ]
+      }
+    },
+    {
+      "name": "table | initially set | group by (same) | key in value | no aliasing | legacy downstream query",
+      "comments": [
+        "The purpose of this test is to capture the topology of a downstream query of the above test case",
+        "and test the key fields of the entities added to the metastore, to ensure backwards compatibility is maintained",
+        "In this case, the code previously incorrectly set the keyField to 'KSQL_INTERNAL_COL_0' rather than the correct 'FOO'",
+        "This would result in an unnecessary repartition step being added to the DOWNSTREAM query.",
+        "New versions of the code must not remove this unnecessary step for existing queries, as that would break backwards compatibility"
+      ],
+      "statements": [
+        "CREATE TABLE INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT foo, COUNT(*) FROM INPUT GROUP BY foo;",
+        "CREATE TABLE DOWNSTREAM AS SELECT foo, COUNT(*) FROM OUTPUT GROUP BY foo;"
+      ],
+      "properties": {
+        "ksql.query.fields.key.legacy": "true"
+      },
+      "inputs": [
+        {"topic": "OUTPUT", "key": "1", "value": {"FOO": 1, "KSQL_COL_1":  1}}
+      ],
+      "outputs": [
+        {"topic": "DOWNSTREAM", "key": "1", "value": {"FOO": 1, "KSQL_COL_1":  1}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "keyField": {"name": "FOO", "legacyName": "KSQL_INTERNAL_COL_0", "legacySchema": "STRING"}},
+          {"name": "DOWNSTREAM", "type": "table", "keyField": {"name": "FOO", "legacyName": "KSQL_INTERNAL_COL_0", "legacySchema": "STRING"}}
+        ]
+      }
+    },
+    {
+      "name": "table | initially set | group by (same) | key in value | aliasing",
+      "statements": [
+        "CREATE TABLE INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT foo AS aliased, COUNT(*) FROM INPUT GROUP BY foo;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "1", "value": {"ALIASED": 1, "KSQL_COL_1":  1}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "keyField": {"name": "ALIASED", "legacyName": "KSQL_INTERNAL_COL_0", "legacySchema": "STRING"}}
+        ]
+      }
+    },
+    {
+      "name": "table | initially set | group by (same) | key in value | aliasing | legacy downstream query",
+      "comments": [
+        "The purpose of this test is to capture the topology of a downstream query of the above test case",
+        "and test the key fields of the entities added to the metastore, to ensure backwards compatibility is maintained",
+        "In this case, the code previously incorrectly set the keyField to 'KSQL_INTERNAL_COL_0' rather than the correct 'ALIASED'",
+        "This would result in an unnecessary repartition step being added to the DOWNSTREAM query.",
+        "New versions of the code must not remove this unnecessary step for existing queries, as that would break backwards compatibility"
+      ],
+      "statements": [
+        "CREATE TABLE INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT foo AS aliased, COUNT(*) FROM INPUT GROUP BY foo;",
+        "CREATE TABLE DOWNSTREAM AS SELECT aliased, COUNT(*) FROM OUTPUT GROUP BY aliased;"
+      ],
+      "properties": {
+        "ksql.query.fields.key.legacy": "true"
+      },
+      "inputs": [
+        {"topic": "OUTPUT", "key": "1", "value": {"ALIASED": 1, "KSQL_COL_1":  1}}
+      ],
+      "outputs": [
+        {"topic": "DOWNSTREAM", "key": "1", "value": {"ALIASED": 1, "KSQL_COL_1":  1}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "keyField": {"name": "ALIASED", "legacyName": "KSQL_INTERNAL_COL_0", "legacySchema": "STRING"}},
+          {"name": "DOWNSTREAM", "type": "table", "keyField": {"name": "ALIASED", "legacyName": "KSQL_INTERNAL_COL_0", "legacySchema": "STRING"}}
+        ]
+      }
+    },
+    {
+      "name": "table | initially set | group by (same) | key not in value | -",
+      "statements": [
+        "CREATE TABLE INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT COUNT(*) FROM INPUT GROUP BY foo;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "1", "value": {"KSQL_COL_0":  1}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "keyField": {"name": null, "legacyName": "KSQL_INTERNAL_COL_1", "legacySchema": "STRING"}}
+        ]
+      }
+    },
+    {
+      "name": "table | initially set | group by (same) | key not in value | - | legacy downstream query",
+      "comments": [
+        "The purpose of this test is to capture the topology of a downstream query of the above test case",
+        "and test the key fields of the entities added to the metastore, to ensure backwards compatibility is maintained",
+        "In this case, the code previously incorrectly set the keyField to 'KSQL_INTERNAL_COL_0' rather than the correct 'null'",
+        "This would not really create any problems, but its good to ensure things remain consistent."
+      ],
+      "statements": [
+        "CREATE TABLE INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT COUNT(*) FROM INPUT GROUP BY foo;",
+        "CREATE TABLE DOWNSTREAM AS SELECT COUNT(*) FROM OUTPUT GROUP BY ROWKEY;"
+      ],
+      "properties": {
+        "ksql.query.fields.key.legacy": "true"
+      },
+      "inputs": [
+        {"topic": "OUTPUT", "key": "1", "value": {"KSQL_COL_0":  1}}
+      ],
+      "outputs": [
+        {"topic": "DOWNSTREAM", "key": "1", "value": {"KSQL_COL_0":  1}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "keyField": {"name": null, "legacyName": "KSQL_INTERNAL_COL_1", "legacySchema": "STRING"}},
+          {"name": "DOWNSTREAM", "type": "table", "keyField": {"name": null, "legacyName": "KSQL_INTERNAL_COL_1", "legacySchema": "STRING"}}
+        ]
+      }
+    },
+    {
+      "name": "table | initially set | group by (different) | key in value | no aliasing",
+      "statements": [
+        "CREATE TABLE INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT bar, COUNT(*) FROM INPUT GROUP BY bar;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "2", "value": {"BAR": 2, "KSQL_COL_1":  1}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "keyField": {"name": "BAR", "legacyName": "KSQL_INTERNAL_COL_0", "legacySchema": "STRING"}}
+        ]
+      }
+    },
+    {
+      "name": "table | initially set | group by (different) | key in value | no aliasing | legacy downstream query",
+      "comments": [
+        "The purpose of this test is to capture the topology of a downstream query of the above test case",
+        "and test the key fields of the entities added to the metastore, to ensure backwards compatibility is maintained",
+        "In this case, the code previously incorrectly set the keyField to 'KSQL_INTERNAL_COL_0' rather than the correct 'BAR'",
+        "This would result in an unnecessary repartition step being added to the DOWNSTREAM query.",
+        "New versions of the code must not remove this unnecessary step for existing queries, as that would break backwards compatibility"
+      ],
+      "statements": [
+        "CREATE TABLE INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT bar, COUNT(*) FROM INPUT GROUP BY bar;",
+        "CREATE TABLE DOWNSTREAM AS SELECT bar, COUNT(*) FROM OUTPUT GROUP BY bar;"
+      ],
+      "properties": {
+        "ksql.query.fields.key.legacy": "true"
+      },
+      "inputs": [
+        {"topic": "OUTPUT", "key": "2", "value": {"BAR": 2, "KSQL_COL_1":  1}}
+      ],
+      "outputs": [
+        {"topic": "DOWNSTREAM", "key": "2", "value": {"BAR": 2, "KSQL_COL_1":  1}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "keyField": {"name": "BAR", "legacyName": "KSQL_INTERNAL_COL_0", "legacySchema": "STRING"}},
+          {"name": "DOWNSTREAM", "type": "table", "keyField": {"name": "BAR", "legacyName": "KSQL_INTERNAL_COL_0", "legacySchema": "STRING"}}
+        ]
+      }
+    },
+    {
+      "name": "table | initially set | group by (different) | key in value | aliasing",
+      "statements": [
+        "CREATE TABLE INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT bar AS aliased, COUNT(*) FROM INPUT GROUP BY bar;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "2", "value": {"ALIASED": 2, "KSQL_COL_1":  1}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "keyField": {"name": "ALIASED", "legacyName": "KSQL_INTERNAL_COL_0", "legacySchema": "STRING"}}
+        ]
+      }
+    },
+    {
+      "name": "table | initially set | group by (different) | key in value | aliasing | legacy downstream query",
+      "comments": [
+        "The purpose of this test is to capture the topology of a downstream query of the above test case",
+        "and test the key fields of the entities added to the metastore, to ensure backwards compatibility is maintained",
+        "In this case, the code previously incorrectly set the keyField to 'KSQL_INTERNAL_COL_0' rather than the correct 'ALIASED'",
+        "This would result in an unnecessary repartition step being added to the DOWNSTREAM query.",
+        "New versions of the code must not remove this unnecessary step for existing queries, as that would break backwards compatibility"
+      ],
+      "statements": [
+        "CREATE TABLE INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT bar AS aliased, COUNT(*) FROM INPUT GROUP BY bar;",
+        "CREATE TABLE DOWNSTREAM AS SELECT aliased, COUNT(*) FROM OUTPUT GROUP BY Aliased;"
+      ],
+      "properties": {
+        "ksql.query.fields.key.legacy": "true"
+      },
+      "inputs": [
+        {"topic": "OUTPUT", "key": "2", "value": {"ALIASED": 2, "KSQL_COL_1":  1}}
+      ],
+      "outputs": [
+        {"topic": "DOWNSTREAM", "key": "2", "value": {"ALIASED": 2, "KSQL_COL_1":  1}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "keyField": {"name": "ALIASED", "legacyName": "KSQL_INTERNAL_COL_0", "legacySchema": "STRING"}},
+          {"name": "DOWNSTREAM", "type": "table", "keyField": {"name": "ALIASED", "legacyName": "KSQL_INTERNAL_COL_0", "legacySchema": "STRING"}}
+        ]
+      }
+    },
+    {
+      "name": "table | initially set | group by (different) | key not in value | -",
+      "statements": [
+        "CREATE TABLE INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT COUNT(*) FROM INPUT GROUP BY bar;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "2", "value": {"KSQL_COL_0":  1}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "keyField": {"name": null, "legacyName": "KSQL_INTERNAL_COL_1", "legacySchema": "STRING"}}
+        ]
+      }
+    },
+    {
+      "name": "table | initially set | group by (different) | key not in value | - | legacy downstream query",
+      "comments": [
+        "The purpose of this test is to capture the topology of a downstream query of the above test case",
+        "and test the key fields of the entities added to the metastore, to ensure backwards compatibility is maintained",
+        "In this case, the code previously incorrectly set the keyField to 'KSQL_INTERNAL_COL_1' rather than the correct 'null'",
+        "This would not really create any problems, but its good to ensure things remain consistent."
+      ],
+      "statements": [
+        "CREATE TABLE INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT COUNT(*) FROM INPUT GROUP BY bar;",
+        "CREATE TABLE DOWNSTREAM AS SELECT COUNT(*) FROM OUTPUT GROUP BY ROWKEY;"
+      ],
+      "properties": {
+        "ksql.query.fields.key.legacy": "true"
+      },
+      "inputs": [
+        {"topic": "OUTPUT", "key": "2", "value": {"KSQL_COL_0":  1}}
+      ],
+      "outputs": [
+        {"topic": "DOWNSTREAM", "key": "2", "value": {"KSQL_COL_0":  1}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "keyField": {"name": null, "legacyName": "KSQL_INTERNAL_COL_1", "legacySchema": "STRING"}}
+        ]
+      }
+    },
+    {
+      "name": "stream | initially set | partition by expression | key in value | no aliasing",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT foo + bar FROM INPUT PARTITION BY foo + bar;"
+      ],
+      "comment": [
+        "This test is present so that it fails if/when we support PARTITION BY on multiple fields.",
+        "If/when we do, this test will fail to remind us to add tests to cover keyFields for new functionality"],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "line 2:70: mismatched input '+' expecting ';'"
+      }
+    },
+    {
+      "name": "stream | initially set | partition by multiple | key in value | no aliasing",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT PARTITION BY foo, bar;"
+      ],
+      "comment": [
+        "This test is present so that it fails if/when we support PARTITION BY on multiple fields.",
+        "If/when we do, this test will fail to remind us to add tests to cover keyFields for new functionality"],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "line 2:61: mismatched input ',' expecting ';'"
+      }
+    },
+    {
+      "name": "stream | initially set | group by multiple | key in value | no aliasing",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT foo, bar, COUNT(*) FROM INPUT GROUP BY bar, foo;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key":"2|+|1", "value": {"FOO": 1, "BAR": 2, "KSQL_COL_2": 1}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "keyField": {"name": null, "legacyName": "KSQL_INTERNAL_COL_1|+|KSQL_INTERNAL_COL_0", "legacySchema": "STRING"}}
+        ]
+      }
+    },
+    {
+      "name": "stream | initially set | group by multiple | key in value | no aliasing | legacy downstream query",
+      "comments": [
+        "The purpose of this test is to capture the topology of a downstream query of the above test case",
+        "and test the key fields of the entities added to the metastore, to ensure backwards compatibility is maintained",
+        "In this case, the code previously incorrectly set the keyField to 'KSQL_INTERNAL_COL_1|+|KSQL_INTERNAL_COL_0' rather than the correct 'null'",
+        "This would not really create any problems, but its good to ensure things remain consistent."
+      ],
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT foo, bar, COUNT(*) FROM INPUT GROUP BY bar, foo;",
+        "CREATE TABLE DOWNSTREAM AS SELECT COUNT(*) FROM OUTPUT GROUP BY ROWKEY;"
+      ],
+      "properties": {
+        "ksql.query.fields.key.legacy": "true"
+      },
+      "inputs": [
+        {"topic": "OUTPUT", "key":"2|+|1", "value": {"FOO": 1, "BAR": 2, "KSQL_COL_2": 1}}
+      ],
+      "outputs": [
+        {"topic": "DOWNSTREAM", "key":"2|+|1", "value": {"KSQL_COL_0": 1}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "keyField": {"name": null, "legacyName": "KSQL_INTERNAL_COL_1|+|KSQL_INTERNAL_COL_0", "legacySchema": "STRING"}}
+        ]
+      }
+    },
+    {
+      "name": "stream | initially set | group by expression | key in value | no aliasing",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT foo + bar, COUNT(*) FROM INPUT GROUP BY foo + bar;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key":"3", "value": {"KSQL_COL_0": 3, "KSQL_COL_1": 1}}
+      ],
+      "post": {
+        "issues": [
+          "key field of output has INCORRECT name: should be 'KSQL_COL_0'"
+        ],
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "keyField": {"name": null, "legacyName": "(KSQL_INTERNAL_COL_0 + KSQL_INTERNAL_COL_1)", "legacySchema": "STRING"}}
+        ]
+      }
+    },
+    {
+      "name": "stream | initially set | group by expression | key in value | no aliasing | legacy downstream query",
+      "comments": [
+        "The purpose of this test is to capture the topology of a downstream query of the above test case",
+        "and test the key fields of the entities added to the metastore, to ensure backwards compatibility is maintained",
+        "In this case, the code previously incorrectly set the keyField to 'KSQL_INTERNAL_COL_1' rather than the correct 'null'",
+        "This would not really create any problems, but its good to ensure things remain consistent."
+      ],
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT foo + bar, COUNT(*) FROM INPUT GROUP BY foo + bar;",
+        "CREATE TABLE DOWNSTREAM AS SELECT COUNT(*) FROM OUTPUT GROUP BY ROWKEY;"
+      ],
+      "properties": {
+        "ksql.query.fields.key.legacy": "true"
+      },
+      "inputs": [
+        {"topic": "OUTPUT", "key":"3", "value": {"KSQL_COL_0": 3, "KSQL_COL_1": 1}}
+      ],
+      "outputs": [
+        {"topic": "DOWNSTREAM", "key":"3", "value": {"KSQL_COL_0": 1}}
+      ],
+      "post": {
+        "issues": [
+          "key field of output has INCORRECT name: should be 'KSQL_COL_0'"
+        ],
+        "sources": [
+          {"name": "DOWNSTREAM", "type": "table", "keyField": {"name": null, "legacyName": "KSQL_INTERNAL_COL_1", "legacySchema": "STRING"}}
+        ]
+      }
+    },
+    {
+      "name": "where clause",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT foo FROM INPUT WHERE bar < 10;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"FOO": 1}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "keyField": {"name": "FOO", "legacyName": "FOO", "legacySchema": "INT"}}
+        ]
+      }
+    },
+    {
+      "name": "where clause with alias",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT foo as boo FROM INPUT WHERE bar < 10;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"BOO": 1}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "keyField": {"name": "BOO", "legacyName": "FOO", "legacySchema": "INT"}}
+        ]
+      }
+    },
+    {
+      "name": "using source alias in projection",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT i.foo FROM INPUT i WHERE bar < 10;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"FOO": 1}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "keyField": {"name": "FOO", "legacyName": "FOO", "legacySchema": "INT"}}
+        ]
+      }
+    },
+    {
+      "name": "using full source name in projection",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT input.foo FROM INPUT WHERE bar < 10;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"FOO": 1}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "keyField": {"name": "FOO", "legacyName": "FOO", "legacySchema": "INT"}}
+        ]
+      }
+    }
+  ]
+}

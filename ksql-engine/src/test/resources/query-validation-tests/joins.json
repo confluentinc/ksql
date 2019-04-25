@@ -1,12 +1,4 @@
 {
-  "comments": [
-    "You can specify multiple statements per test case, i.e., to set up the various streams needed",
-    "for joins etc, but currently only the final topology will be verified. This should be enough",
-    "for most tests as we can simulate the outputs from previous stages into the final stage. If we",
-    "take a modular approach to testing we can still verify that it all works correctly, i.e, if we",
-    "verify the output of a select or aggregate is correct, we can use simulated output to feed into",
-    "a join or another aggregate."
-  ],
   "tests": [
     {
       "name": "stream stream left join",
@@ -25,9 +17,16 @@
         {"topic": "right_topic", "key": 100, "value": {"ID": 100, "F1": "newblah", "F2": 150}, "timestamp": 16000},
         {"topic": "left_topic", "key": 90, "value": {"ID": 90, "NAME": "ninety", "VALUE": 90}, "timestamp": 17000},
         {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "bar", "VALUE": 99}, "timestamp": 30000}
-
       ],
       "outputs": [
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-KSTREAM-JOINTHIS-0000000008-store-changelog", "key": "0\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0001", "value": {"ROWTIME": 0, "ROWKEY": "0", "ID": 0, "NAME": "zero", "VALUE": 0}, "timestamp": 0},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-KSTREAM-OUTEROTHER-0000000009-store-changelog", "key": "0\u0000\u0000\u0000\u0000\u0000\u0000'\u0010\u0000\u0000\u0000\u0001", "value": {"ROWTIME": 10000, "ROWKEY": "0", "ID": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-KSTREAM-JOINTHIS-0000000008-store-changelog", "key": "10\u0000\u0000\u0000\u0000\u0000\u0000*�\u0000\u0000\u0000\u0002", "value": {"ROWTIME": 11000, "ROWKEY": "10", "ID": 10, "NAME": "100", "VALUE": 5}, "timestamp": 11000},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-KSTREAM-JOINTHIS-0000000008-store-changelog", "key": "0\u0000\u0000\u0000\u0000\u0000\u00002�\u0000\u0000\u0000\u0003", "value": {"ROWTIME": 13000, "ROWKEY": "0", "ID": 0, "NAME": "foo", "VALUE": 100}, "timestamp": 13000},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-KSTREAM-OUTEROTHER-0000000009-store-changelog", "key": "0\u0000\u0000\u0000\u0000\u0000\u0000:�\u0000\u0000\u0000\u0002", "value": {"ROWTIME": 15000, "ROWKEY": "0", "ID": 0, "F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-KSTREAM-OUTEROTHER-0000000009-store-changelog", "key": "100\u0000\u0000\u0000\u0000\u0000\u0000>�\u0000\u0000\u0000\u0003", "value": {"ROWTIME": 16000, "ROWKEY": "100", "ID": 100, "F1": "newblah", "F2": 150}, "timestamp": 16000},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-KSTREAM-JOINTHIS-0000000008-store-changelog", "key": "90\u0000\u0000\u0000\u0000\u0000\u0000Bh\u0000\u0000\u0000\u0004", "value": {"ROWTIME": 17000, "ROWKEY": "90", "ID": 90, "NAME": "ninety", "VALUE": 90}, "timestamp": 17000},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-KSTREAM-JOINTHIS-0000000008-store-changelog", "key": "0\u0000\u0000\u0000\u0000\u0000\u0000u0\u0000\u0000\u0000\u0005", "value": {"ROWTIME": 30000, "ROWKEY": "0", "ID": 0, "NAME": "bar", "VALUE": 99}, "timestamp": 30000},
         {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "zero", "VALUE": 0, "F1": null, "F2": null}, "timestamp": 0},
         {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "zero", "VALUE": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
         {"topic": "LEFT_OUTER_JOIN", "key": 10, "value": {"T_ID": 10, "NAME": "100", "VALUE": 5, "F1": null, "F2": null}, "timestamp": 11000},
@@ -35,9 +34,220 @@
         {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "a", "F2": 10}, "timestamp": 15000},
         {"topic": "LEFT_OUTER_JOIN", "key": 90, "value": {"T_ID": 90, "NAME": "ninety", "VALUE": 90, "F1": null, "F2": null}, "timestamp": 17000},
         {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "bar", "VALUE": 99, "F1": null, "F2": null}, "timestamp": 30000}
-      ]
+      ],
+      "post": {
+        "sources": [
+          {"name": "LEFT_OUTER_JOIN", "type": "stream", "keyField": {"name": "T_ID", "legacyName": "T.ID", "legacySchema": "BIGINT"}}
+        ]
+      }
     },
-   {
+    {
+      "name": "stream stream left join - legacy downstream query",
+      "comments": [
+        "The purpose of this test is to capture the topology of a downstream query of the above test case",
+        "and test the key fields of the entities added to the metastore, to ensure backwards compatibility is maintained",
+        "In this case, the code previously incorrectly set the keyField to 'T.ID' rather than the correct 'T_ID'",
+        "This would result in an unnecessary repartition step being added to the DOWNSTREAM query.",
+        "New versions of the code must not remove this unnecessary step for existing queries, as that would break backwards compatibility"
+      ],
+      "statements": [
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='JSON', key='ID');",
+        "CREATE STREAM TEST_STREAM (ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='JSON', key='ID');",
+        "CREATE STREAM LEFT_OUTER_JOIN as SELECT t.id, name, value, f1, f2 FROM test t left join TEST_STREAM tt WITHIN 11 seconds ON t.id = tt.id;",
+        "CREATE STREAM DOWNSTREAM as SELECT T_ID FROM LEFT_OUTER_JOIN PARTITION BY T_ID;"
+      ],
+      "properties": {
+        "ksql.query.fields.key.legacy": "true"
+      },
+      "inputs": [
+      ],
+      "outputs": [
+      ],
+      "post": {
+        "sources": [
+          {"name": "LEFT_OUTER_JOIN", "type": "stream", "keyField": {"name": "T_ID", "legacyName": "T.ID", "legacySchema": "BIGINT"}},
+          {"name": "DOWNSTREAM", "type": "stream", "keyField": {"name": "T_ID", "legacyName": "T_ID", "legacySchema": "BIGINT"}}
+        ]
+      }
+    },
+    {
+      "name": "stream stream left join - rekey",
+      "format": ["AVRO", "JSON"],
+      "statements": [
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='{FORMAT}');",
+        "CREATE STREAM TEST_STREAM (ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='{FORMAT}');",
+        "CREATE STREAM LEFT_OUTER_JOIN as SELECT t.id, name, value, f1, f2 FROM test t left join TEST_STREAM tt WITHIN 11 seconds ON t.id = tt.id;"
+      ],
+      "inputs": [
+        {"topic": "left_topic", "value": {"ID": 0, "NAME": "zero", "VALUE": 0}, "timestamp": 0},
+        {"topic": "right_topic", "value": {"ID": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
+        {"topic": "left_topic", "value": {"ID": 10, "NAME": "100", "VALUE": 5}, "timestamp": 11000},
+        {"topic": "left_topic", "value": {"ID": 0, "NAME": "foo", "VALUE": 100}, "timestamp": 13000},
+        {"topic": "right_topic", "value": {"ID": 0, "F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "right_topic", "value": {"ID": 100, "F1": "newblah", "F2": 150}, "timestamp": 16000},
+        {"topic": "left_topic", "value": {"ID": 90, "NAME": "ninety", "VALUE": 90}, "timestamp": 17000},
+        {"topic": "left_topic", "value": {"ID": 0, "NAME": "bar", "VALUE": 99}, "timestamp": 30000}
+      ],
+      "outputs": [
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-Join-left-repartition", "key": "0", "value": {"ROWTIME": 0, "ROWKEY": "0", "ID": 0, "NAME": "zero", "VALUE": 0}, "timestamp": 0},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-Join-right-repartition", "key": "0", "value": {"ROWTIME": 10000, "ROWKEY": "0", "ID": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-Join-left-repartition", "key": "10", "value": {"ROWTIME": 11000, "ROWKEY": "10", "ID": 10, "NAME": "100", "VALUE": 5}, "timestamp": 11000},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-Join-left-repartition", "key": "0", "value": {"ROWTIME": 13000, "ROWKEY": "0", "ID": 0, "NAME": "foo", "VALUE": 100}, "timestamp": 13000},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-Join-right-repartition", "key": "0", "value": {"ROWTIME": 15000, "ROWKEY": "0", "ID": 0, "F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-Join-right-repartition", "key": "100", "value": {"ROWTIME": 16000, "ROWKEY": "100", "ID": 100, "F1": "newblah", "F2": 150}, "timestamp": 16000},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-Join-left-repartition", "key": "90", "value": {"ROWTIME": 17000, "ROWKEY": "90", "ID": 90, "NAME": "ninety", "VALUE": 90}, "timestamp": 17000},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-Join-left-repartition", "key": "0", "value": {"ROWTIME": 30000, "ROWKEY": "0", "ID": 0, "NAME": "bar", "VALUE": 99}, "timestamp": 30000},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-KSTREAM-JOINTHIS-0000000020-store-changelog", "key": "0\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0001", "value": {"ROWTIME": 0, "ROWKEY": "0", "ID": 0, "NAME": "zero", "VALUE": 0}, "timestamp": 0},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-KSTREAM-OUTEROTHER-0000000021-store-changelog", "key": "0\u0000\u0000\u0000\u0000\u0000\u0000'\u0010\u0000\u0000\u0000\u0001", "value": {"ROWTIME": 10000, "ROWKEY": "0", "ID": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-KSTREAM-JOINTHIS-0000000020-store-changelog", "key": "10\u0000\u0000\u0000\u0000\u0000\u0000*�\u0000\u0000\u0000\u0002", "value": {"ROWTIME": 11000, "ROWKEY": "10", "ID": 10, "NAME": "100", "VALUE": 5}, "timestamp": 11000},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-KSTREAM-JOINTHIS-0000000020-store-changelog", "key": "0\u0000\u0000\u0000\u0000\u0000\u00002�\u0000\u0000\u0000\u0003", "value": {"ROWTIME": 13000, "ROWKEY": "0", "ID": 0, "NAME": "foo", "VALUE": 100}, "timestamp": 13000},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-KSTREAM-OUTEROTHER-0000000021-store-changelog", "key": "0\u0000\u0000\u0000\u0000\u0000\u0000:�\u0000\u0000\u0000\u0002", "value": {"ROWTIME": 15000, "ROWKEY": "0", "ID": 0, "F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-KSTREAM-OUTEROTHER-0000000021-store-changelog", "key": "100\u0000\u0000\u0000\u0000\u0000\u0000>�\u0000\u0000\u0000\u0003", "value": {"ROWTIME": 16000, "ROWKEY": "100", "ID": 100, "F1": "newblah", "F2": 150}, "timestamp": 16000},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-KSTREAM-JOINTHIS-0000000020-store-changelog", "key": "90\u0000\u0000\u0000\u0000\u0000\u0000Bh\u0000\u0000\u0000\u0004", "value": {"ROWTIME": 17000, "ROWKEY": "90", "ID": 90, "NAME": "ninety", "VALUE": 90}, "timestamp": 17000},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-KSTREAM-JOINTHIS-0000000020-store-changelog", "key": "0\u0000\u0000\u0000\u0000\u0000\u0000u0\u0000\u0000\u0000\u0005", "value": {"ROWTIME": 30000, "ROWKEY": "0", "ID": 0, "NAME": "bar", "VALUE": 99}, "timestamp": 30000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "zero", "VALUE": 0, "F1": null, "F2": null}, "timestamp": 0},
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "zero", "VALUE": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 10, "value": {"T_ID": 10, "NAME": "100", "VALUE": 5, "F1": null, "F2": null}, "timestamp": 11000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "blah", "F2": 50}, "timestamp": 13000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 90, "value": {"T_ID": 90, "NAME": "ninety", "VALUE": 90, "F1": null, "F2": null}, "timestamp": 17000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "bar", "VALUE": 99, "F1": null, "F2": null}, "timestamp": 30000}
+      ],
+      "post": {
+        "sources": [
+          {"name": "LEFT_OUTER_JOIN", "type": "stream", "keyField": {"name": "T_ID", "legacyName": "T.ID", "legacySchema": "BIGINT"}}
+        ]
+      }
+    },
+    {
+      "name": "stream stream left join - rekey - legacy downstream query",
+      "comments": [
+        "The purpose of this test is to capture the topology of a downstream query of the above test case",
+        "and test the key fields of the entities added to the metastore, to ensure backwards compatibility is maintained",
+        "In this case, the code previously incorrectly set the keyField to 'T.ID' rather than the correct 'T_ID'",
+        "This would result in an unnecessary repartition step being added to the DOWNSTREAM query.",
+        "New versions of the code must not remove this unnecessary step for existing queries, as that would break backwards compatibility"
+      ],
+      "statements": [
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='JSON');",
+        "CREATE STREAM TEST_STREAM (ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='JSON');",
+        "CREATE STREAM LEFT_OUTER_JOIN as SELECT t.id, name, value, f1, f2 FROM test t left join TEST_STREAM tt WITHIN 11 seconds ON t.id = tt.id;",
+        "CREATE TABLE DOWNSTREAM as SELECT T_ID, COUNT() FROM LEFT_OUTER_JOIN GROUP BY T_ID;"
+      ],
+      "properties": {
+        "ksql.query.fields.key.legacy": "true"
+      },
+      "inputs": [
+      ],
+      "outputs": [
+      ],
+      "post": {
+        "sources": [
+          {"name": "LEFT_OUTER_JOIN", "type": "stream", "keyField": {"name": "T_ID", "legacyName": "T.ID", "legacySchema": "BIGINT"}},
+          {"name": "DOWNSTREAM", "type": "table", "keyField": {"name": "T_ID", "legacyName": "KSQL_INTERNAL_COL_0", "legacySchema": "STRING"}}
+        ]
+      }
+    },
+    {
+      "name": "stream stream left join - join key not in projection",
+      "statements": [
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='JSON', key='ID');",
+        "CREATE STREAM TEST_STREAM (ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='JSON', key='ID');",
+        "CREATE STREAM LEFT_OUTER_JOIN as SELECT name, value, f1, f2 FROM test t left join TEST_STREAM tt WITHIN 11 seconds ON t.id = tt.id;"
+      ],
+      "inputs": [
+        {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "zero", "VALUE": 0}, "timestamp": 0},
+        {"topic": "right_topic", "key": 0, "value": {"ID": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
+        {"topic": "left_topic", "key": 10, "value": {"ID": 10, "NAME": "100", "VALUE": 5}, "timestamp": 11000},
+        {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "foo", "VALUE": 100}, "timestamp": 13000},
+        {"topic": "right_topic", "key": 0, "value": {"ID": 0, "F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "right_topic", "key": 100, "value": {"ID": 100, "F1": "newblah", "F2": 150}, "timestamp": 16000},
+        {"topic": "left_topic", "key": 90, "value": {"ID": 90, "NAME": "ninety", "VALUE": 90}, "timestamp": 17000},
+        {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "bar", "VALUE": 99}, "timestamp": 30000}
+      ],
+      "outputs": [
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"NAME": "zero", "VALUE": 0, "F1": null, "F2": null}, "timestamp": 0},
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"NAME": "zero", "VALUE": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 10, "value": {"NAME": "100", "VALUE": 5, "F1": null, "F2": null}, "timestamp": 11000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"NAME": "foo", "VALUE": 100, "F1": "blah", "F2": 50}, "timestamp": 13000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"NAME": "foo", "VALUE": 100, "F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 90, "value": {"NAME": "ninety", "VALUE": 90, "F1": null, "F2": null}, "timestamp": 17000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"NAME": "bar", "VALUE": 99, "F1": null, "F2": null}, "timestamp": 30000}
+      ],
+      "post": {
+        "sources": [
+          {"name": "LEFT_OUTER_JOIN", "type": "stream", "keyField": {"name": null, "legacyName": "T.ID", "legacySchema": "BIGINT"}}
+        ]
+      }
+    },
+    {
+      "name": "stream stream left join - right join key in projection",
+      "statements": [
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='JSON');",
+        "CREATE STREAM TEST_STREAM (ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='JSON');",
+        "CREATE STREAM LEFT_OUTER_JOIN as SELECT tt.id, name, value, f1, f2 FROM test t left join TEST_STREAM tt WITHIN 11 seconds ON t.id = tt.id;"
+      ],
+      "inputs": [
+        {"topic": "left_topic", "value": {"ID": 0, "NAME": "zero", "VALUE": 0}, "timestamp": 0},
+        {"topic": "right_topic", "value": {"ID": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
+        {"topic": "left_topic", "value": {"ID": 10, "NAME": "100", "VALUE": 5}, "timestamp": 11000},
+        {"topic": "left_topic", "value": {"ID": 0, "NAME": "foo", "VALUE": 100}, "timestamp": 13000},
+        {"topic": "right_topic", "value": {"ID": 0, "F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "right_topic", "value": {"ID": 100, "F1": "newblah", "F2": 150}, "timestamp": 16000},
+        {"topic": "left_topic", "value": {"ID": 90, "NAME": "ninety", "VALUE": 90}, "timestamp": 17000},
+        {"topic": "left_topic", "value": {"ID": 0, "NAME": "bar", "VALUE": 99}, "timestamp": 30000}
+      ],
+      "outputs": [
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"TT_ID": null, "NAME": "zero", "VALUE": 0, "F1": null, "F2": null}, "timestamp": 0},
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"TT_ID": 0, "NAME": "zero", "VALUE": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 10, "value": {"TT_ID": null, "NAME": "100", "VALUE": 5, "F1": null, "F2": null}, "timestamp": 11000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"TT_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "blah", "F2": 50}, "timestamp": 13000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"TT_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 90, "value": {"TT_ID": null, "NAME": "ninety", "VALUE": 90, "F1": null, "F2": null}, "timestamp": 17000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"TT_ID": null, "NAME": "bar", "VALUE": 99, "F1": null, "F2": null}, "timestamp": 30000}
+      ],
+      "post": {
+        "issues": [
+          "key field has incorrect name - should be TT_ID"
+        ],
+        "sources": [
+          {"name": "LEFT_OUTER_JOIN", "type": "stream", "keyField": {"name": null, "legacyName": "T.ID", "legacySchema": "BIGINT"}}
+        ]
+      }
+    },
+    {
+      "name": "stream stream left join - both join keys in projection",
+      "statements": [
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='JSON');",
+        "CREATE STREAM TEST_STREAM (ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='JSON');",
+        "CREATE STREAM LEFT_OUTER_JOIN as SELECT t.id, tt.id, name, value, f1, f2 FROM test t left join TEST_STREAM tt WITHIN 11 seconds ON t.id = tt.id;"
+      ],
+      "inputs": [
+        {"topic": "left_topic", "value": {"ID": 0, "NAME": "zero", "VALUE": 0}, "timestamp": 0},
+        {"topic": "right_topic", "value": {"ID": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
+        {"topic": "left_topic", "value": {"ID": 10, "NAME": "100", "VALUE": 5}, "timestamp": 11000},
+        {"topic": "left_topic", "value": {"ID": 0, "NAME": "foo", "VALUE": 100}, "timestamp": 13000},
+        {"topic": "right_topic", "value": {"ID": 0, "F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "right_topic", "value": {"ID": 100, "F1": "newblah", "F2": 150}, "timestamp": 16000},
+        {"topic": "left_topic", "value": {"ID": 90, "NAME": "ninety", "VALUE": 90}, "timestamp": 17000},
+        {"topic": "left_topic", "value": {"ID": 0, "NAME": "bar", "VALUE": 99}, "timestamp": 30000}
+      ],
+      "outputs": [
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "TT_ID": null, "NAME": "zero", "VALUE": 0, "F1": null, "F2": null}, "timestamp": 0},
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "TT_ID": 0, "NAME": "zero", "VALUE": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 10, "value": {"T_ID": 10, "TT_ID": null, "NAME": "100", "VALUE": 5, "F1": null, "F2": null}, "timestamp": 11000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "TT_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "blah", "F2": 50}, "timestamp": 13000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "TT_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 90, "value": {"T_ID": 90, "TT_ID": null, "NAME": "ninety", "VALUE": 90, "F1": null, "F2": null}, "timestamp": 17000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "TT_ID": null, "NAME": "bar", "VALUE": 99, "F1": null, "F2": null}, "timestamp": 30000}
+      ],
+      "post": {
+        "sources": [
+          {"name": "LEFT_OUTER_JOIN", "type": "stream", "keyField": {"name": "T_ID", "legacyName": "T.ID", "legacySchema": "BIGINT"}}
+        ]
+      }
+    },
+    {
       "name": "stream stream inner join",
       "format": ["AVRO", "JSON"],
       "statements": [
@@ -59,7 +269,41 @@
         {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "zero", "VALUE": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
         {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "blah", "F2": 50}, "timestamp": 13000},
         {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "a", "F2": 10}, "timestamp": 15000}
-      ]
+      ],
+      "post": {
+        "sources": [
+          {"name": "INNER_JOIN", "type": "stream", "keyField": {"name": "T_ID", "legacyName": "T.ID", "legacySchema": "BIGINT"}}
+        ]
+      }
+    },
+    {
+      "name": "stream stream inner join - legacy downstream query",
+      "comments": [
+        "The purpose of this test is to capture the topology of a downstream query of the above test case",
+        "and test the key fields of the entities added to the metastore, to ensure backwards compatibility is maintained",
+        "In this case, the code previously incorrectly set the keyField to 'T.ID' rather than the correct 'T_ID'",
+        "This would result in an unnecessary repartition step being added to the DOWNSTREAM query.",
+        "New versions of the code must not remove this unnecessary step for existing queries, as that would break backwards compatibility"
+      ],
+      "statements": [
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='JSON', key='ID');",
+        "CREATE STREAM TEST_STREAM (ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='JSON', key='ID');",
+        "CREATE STREAM INNER_JOIN as SELECT t.id, name, value, f1, f2 FROM test t join TEST_STREAM tt WITHIN 11 SECONDS ON t.id = tt.id;",
+        "CREATE STREAM DOWNSTREAM AS SELECT T_ID FROM INNER_JOIN;"
+      ],
+      "properties": {
+        "ksql.query.fields.key.legacy": "true"
+      },
+      "inputs": [
+      ],
+      "outputs": [
+      ],
+      "post": {
+        "sources": [
+          {"name": "INNER_JOIN", "type": "stream", "keyField": {"name": "T_ID", "legacyName": "T.ID", "legacySchema": "BIGINT"}},
+          {"name": "DOWNSTREAM", "type": "stream", "keyField": {"name": "T_ID", "legacyName": "T.ID", "legacySchema": "BIGINT"}}
+        ]
+      }
     },
     {
       "name": "stream stream inner join all left fields some right",
@@ -107,6 +351,38 @@
         {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "T_F1": "blah", "T_F2": 50, "T_ROWKEY": "0", "T_ROWTIME": 10000, "NAME": "zero"}, "timestamp": 10000},
         {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "T_F1": "blah", "T_F2": 50, "T_ROWKEY": "0", "T_ROWTIME": 10000, "NAME": "foo"}, "timestamp": 13000},
         {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "T_F1": "a", "T_F2": 10, "T_ROWKEY": "0", "T_ROWTIME": 15000, "NAME": "foo"}, "timestamp": 15000}
+      ]
+    },
+    {
+      "name": "stream stream inner join all fields",
+      "format": ["AVRO", "JSON"],
+      "statements": [
+        "CREATE STREAM TEST (ID bigint, NAME varchar) WITH (kafka_topic='left_topic', value_format='{FORMAT}', key='ID');",
+        "CREATE STREAM TEST_STREAM (ID bigint, F1 varchar) WITH (kafka_topic='right_topic', value_format='{FORMAT}', key='ID');",
+        "CREATE STREAM INNER_JOIN as SELECT * FROM test tt inner join TEST_STREAM t WITHIN 11 SECONDS ON t.id = tt.id;"
+      ],
+      "inputs": [
+        {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "zero"}, "timestamp": 0},
+        {"topic": "right_topic", "key": 0, "value": {"ID": 0, "F1": "blah"}, "timestamp": 10000},
+        {"topic": "left_topic", "key": 10, "value": {"ID": 10, "NAME": "100"}, "timestamp": 11000},
+        {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "foo"}, "timestamp": 13000},
+        {"topic": "right_topic", "key": 0, "value": {"ID": 0, "F1": "a"}, "timestamp": 15000},
+        {"topic": "right_topic", "key": 100, "value": {"ID": 100, "F1": "newblah"}, "timestamp": 16000},
+        {"topic": "left_topic", "key": 90, "value": {"ID": 90, "NAME": "ninety"}, "timestamp": 17000},
+        {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "bar"}, "timestamp": 30000}
+      ],
+      "outputs": [
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_INNER_JOIN_0-KSTREAM-JOINTHIS-0000000008-store-changelog", "key": "0\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0001", "value": {"ROWTIME": 0, "ROWKEY": "0", "ID": 0, "NAME": "zero"}, "timestamp": 0},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_INNER_JOIN_0-KSTREAM-JOINOTHER-0000000009-store-changelog", "key": "0\u0000\u0000\u0000\u0000\u0000\u0000'\u0010\u0000\u0000\u0000\u0001", "value": {"ROWTIME": 10000, "ROWKEY": "0", "ID": 0, "F1": "blah"}, "timestamp": 10000},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_INNER_JOIN_0-KSTREAM-JOINTHIS-0000000008-store-changelog", "key": "10\u0000\u0000\u0000\u0000\u0000\u0000*�\u0000\u0000\u0000\u0002", "value": {"ROWTIME": 11000, "ROWKEY": "10", "ID": 10, "NAME": "100"}, "timestamp": 11000},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_INNER_JOIN_0-KSTREAM-JOINTHIS-0000000008-store-changelog", "key": "0\u0000\u0000\u0000\u0000\u0000\u00002�\u0000\u0000\u0000\u0003", "value": {"ROWTIME": 13000, "ROWKEY": "0", "ID": 0, "NAME": "foo"}, "timestamp": 13000},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_INNER_JOIN_0-KSTREAM-JOINOTHER-0000000009-store-changelog", "key": "0\u0000\u0000\u0000\u0000\u0000\u0000:�\u0000\u0000\u0000\u0002", "value": {"ROWTIME": 15000, "ROWKEY": "0", "ID": 0, "F1": "a"}, "timestamp": 15000},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_INNER_JOIN_0-KSTREAM-JOINOTHER-0000000009-store-changelog", "key": "100\u0000\u0000\u0000\u0000\u0000\u0000>�\u0000\u0000\u0000\u0003", "value": {"ROWTIME": 16000, "ROWKEY": "100", "ID": 100, "F1": "newblah"}, "timestamp": 16000},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_INNER_JOIN_0-KSTREAM-JOINTHIS-0000000008-store-changelog", "key": "90\u0000\u0000\u0000\u0000\u0000\u0000Bh\u0000\u0000\u0000\u0004", "value": {"ROWTIME": 17000, "ROWKEY": "90", "ID": 90, "NAME": "ninety"}, "timestamp": 17000},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_INNER_JOIN_0-KSTREAM-JOINTHIS-0000000008-store-changelog", "key": "0\u0000\u0000\u0000\u0000\u0000\u0000u0\u0000\u0000\u0000\u0005", "value": {"ROWTIME": 30000, "ROWKEY": "0", "ID": 0, "NAME": "bar"}, "timestamp": 30000},
+        {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "T_F1": "blah", "T_ROWKEY": "0", "T_ROWTIME": 10000, "TT_ID": 0, "TT_NAME": "zero", "TT_ROWKEY": "0", "TT_ROWTIME": 0}, "timestamp": 10000},
+        {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "T_F1": "blah", "T_ROWKEY": "0", "T_ROWTIME": 10000, "TT_ID": 0, "TT_NAME": "foo", "TT_ROWKEY": "0", "TT_ROWTIME": 13000}, "timestamp": 13000},
+        {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "T_F1": "a", "T_ROWKEY": "0", "T_ROWTIME": 15000, "TT_ID": 0, "TT_NAME": "foo", "TT_ROWKEY": "0", "TT_ROWTIME": 13000}, "timestamp": 15000}
       ]
     },
     {
@@ -159,6 +435,65 @@
       ]
     },
     {
+      "name": "stream stream inner join - join key not in projection",
+      "statements": [
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='JSON', key='ID');",
+        "CREATE STREAM TEST_STREAM (ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='JSON', key='ID');",
+        "CREATE STREAM INNER_JOIN as SELECT name, value, f1, f2 FROM test t join TEST_STREAM tt WITHIN 11 SECONDS ON t.id = tt.id;"
+      ],
+      "inputs": [
+        {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "zero", "VALUE": 0}, "timestamp": 0},
+        {"topic": "right_topic", "key": 0, "value": {"ID": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
+        {"topic": "left_topic", "key": 10, "value": {"ID": 10, "NAME": "100", "VALUE": 5}, "timestamp": 11000},
+        {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "foo", "VALUE": 100}, "timestamp": 13000},
+        {"topic": "right_topic", "key": 0, "value": {"ID": 0, "F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "right_topic", "key": 100, "value": {"ID": 100, "F1": "newblah", "F2": 150}, "timestamp": 16000},
+        {"topic": "left_topic", "key": 90, "value": {"ID": 90, "NAME": "ninety", "VALUE": 90}, "timestamp": 17000},
+        {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "bar", "VALUE": 99}, "timestamp": 30000}
+      ],
+      "outputs": [
+        {"topic": "INNER_JOIN", "key": 0, "value": {"NAME": "zero", "VALUE": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
+        {"topic": "INNER_JOIN", "key": 0, "value": {"NAME": "foo", "VALUE": 100, "F1": "blah", "F2": 50}, "timestamp": 13000},
+        {"topic": "INNER_JOIN", "key": 0, "value": {"NAME": "foo", "VALUE": 100, "F1": "a", "F2": 10}, "timestamp": 15000}
+      ],
+      "post": {
+        "sources": [
+          {"name": "INNER_JOIN", "type": "stream", "keyField": {"name": null, "legacyName": "T.ID", "legacySchema": "BIGINT"}}
+        ]
+      }
+    },
+    {
+      "name": "stream stream inner join - right join key in projection",
+      "statements": [
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='JSON', key='ID');",
+        "CREATE STREAM TEST_STREAM (ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='JSON', key='ID');",
+        "CREATE STREAM INNER_JOIN as SELECT tt.id, name, value, f1, f2 FROM test t join TEST_STREAM tt WITHIN 11 SECONDS ON t.id = tt.id;"
+      ],
+      "inputs": [
+        {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "zero", "VALUE": 0}, "timestamp": 0},
+        {"topic": "right_topic", "key": 0, "value": {"ID": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
+        {"topic": "left_topic", "key": 10, "value": {"ID": 10, "NAME": "100", "VALUE": 5}, "timestamp": 11000},
+        {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "foo", "VALUE": 100}, "timestamp": 13000},
+        {"topic": "right_topic", "key": 0, "value": {"ID": 0, "F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "right_topic", "key": 100, "value": {"ID": 100, "F1": "newblah", "F2": 150}, "timestamp": 16000},
+        {"topic": "left_topic", "key": 90, "value": {"ID": 90, "NAME": "ninety", "VALUE": 90}, "timestamp": 17000},
+        {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "bar", "VALUE": 99}, "timestamp": 30000}
+      ],
+      "outputs": [
+        {"topic": "INNER_JOIN", "key": 0, "value": {"TT_ID": 0, "NAME": "zero", "VALUE": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
+        {"topic": "INNER_JOIN", "key": 0, "value": {"TT_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "blah", "F2": 50}, "timestamp": 13000},
+        {"topic": "INNER_JOIN", "key": 0, "value": {"TT_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "a", "F2": 10}, "timestamp": 15000}
+      ],
+      "post": {
+        "issues": [
+          "key field has incorrect name - should be TT_ID"
+        ],
+        "sources": [
+          {"name": "INNER_JOIN", "type": "stream", "keyField": {"name": null, "legacyName": "T.ID", "legacySchema": "BIGINT"}}
+        ]
+      }
+    },
+    {
       "name": "stream stream outer join",
       "format": ["AVRO", "JSON"],
       "statements": [
@@ -186,7 +521,83 @@
         {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "bar", "VALUE": 99, "F1": null, "F2": null}, "timestamp": 30000},
         {"topic": "LEFT_OUTER_JOIN", "key": 90, "value": {"T_ID": 90, "NAME": "ninety", "VALUE": 90, "F1": null, "F2": null}, "timestamp": 17000},
         {"topic": "LEFT_OUTER_JOIN", "key": 100, "value": {"T_ID": null, "NAME": null, "VALUE": null, "F1": "newblah", "F2": 150}, "timestamp": 20000}
-      ]
+      ],
+      "post": {
+        "sources": [
+          {"name": "LEFT_OUTER_JOIN", "type": "stream", "keyField": {"name": "T_ID", "legacyName": "T.ID", "legacySchema": "BIGINT"}}
+        ]
+      }
+    },
+    {
+      "name": "stream stream outer join - join key not in projection",
+      "statements": [
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='JSON', key='ID');",
+        "CREATE STREAM TEST_STREAM (ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='JSON', key='ID');",
+        "CREATE STREAM LEFT_OUTER_JOIN as SELECT name, value, f1, f2 FROM test t FULL OUTER join TEST_STREAM tt WITHIN 11 seconds on t.id = tt.id;"
+      ],
+      "inputs": [
+        {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "zero", "VALUE": 0}, "timestamp": 0},
+        {"topic": "right_topic", "key": 0, "value": {"ID": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
+        {"topic": "left_topic", "key": 10, "value": {"ID": 10, "NAME": "100", "VALUE": 5}, "timestamp": 11000},
+        {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "foo", "VALUE": 100}, "timestamp": 13000},
+        {"topic": "right_topic", "key": 0, "value": {"ID": 0, "F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "bar", "VALUE": 99}, "timestamp": 30000},
+        {"topic": "left_topic", "key": 90, "value": {"ID": 90, "NAME": "ninety", "VALUE": 90}, "timestamp": 17000},
+        {"topic": "right_topic", "key": 100, "value": {"ID": 100, "F1": "newblah", "F2": 150}, "timestamp": 20000}
+
+      ],
+      "outputs": [
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"NAME": "zero", "VALUE": 0, "F1": null, "F2": null}, "timestamp": 0},
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"NAME": "zero", "VALUE": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 10, "value": {"NAME": "100", "VALUE": 5, "F1": null, "F2": null}, "timestamp": 11000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"NAME": "foo", "VALUE": 100, "F1": "blah", "F2": 50}, "timestamp": 13000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"NAME": "foo", "VALUE": 100, "F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"NAME": "bar", "VALUE": 99, "F1": null, "F2": null}, "timestamp": 30000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 90, "value": {"NAME": "ninety", "VALUE": 90, "F1": null, "F2": null}, "timestamp": 17000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 100, "value": {"NAME": null, "VALUE": null, "F1": "newblah", "F2": 150}, "timestamp": 20000}
+      ],
+      "post": {
+        "sources": [
+          {"name": "LEFT_OUTER_JOIN", "type": "stream", "keyField": {"name": null, "legacyName": "T.ID", "legacySchema": "BIGINT"}}
+        ]
+      }
+    },
+    {
+      "name": "stream stream outer join - right join key in projection",
+      "statements": [
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='JSON', key='ID');",
+        "CREATE STREAM TEST_STREAM (ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='JSON', key='ID');",
+        "CREATE STREAM LEFT_OUTER_JOIN as SELECT tt.id, name, value, f1, f2 FROM test t FULL OUTER join TEST_STREAM tt WITHIN 11 seconds on t.id = tt.id;"
+      ],
+      "inputs": [
+        {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "zero", "VALUE": 0}, "timestamp": 0},
+        {"topic": "right_topic", "key": 0, "value": {"ID": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
+        {"topic": "left_topic", "key": 10, "value": {"ID": 10, "NAME": "100", "VALUE": 5}, "timestamp": 11000},
+        {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "foo", "VALUE": 100}, "timestamp": 13000},
+        {"topic": "right_topic", "key": 0, "value": {"ID": 0, "F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "bar", "VALUE": 99}, "timestamp": 30000},
+        {"topic": "left_topic", "key": 90, "value": {"ID": 90, "NAME": "ninety", "VALUE": 90}, "timestamp": 17000},
+        {"topic": "right_topic", "key": 100, "value": {"ID": 100, "F1": "newblah", "F2": 150}, "timestamp": 20000}
+
+      ],
+      "outputs": [
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"TT_ID": null, "NAME": "zero", "VALUE": 0, "F1": null, "F2": null}, "timestamp": 0},
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"TT_ID": 0, "NAME": "zero", "VALUE": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 10, "value": {"TT_ID": null, "NAME": "100", "VALUE": 5, "F1": null, "F2": null}, "timestamp": 11000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"TT_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "blah", "F2": 50}, "timestamp": 13000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"TT_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"TT_ID": null, "NAME": "bar", "VALUE": 99, "F1": null, "F2": null}, "timestamp": 30000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 90, "value": {"TT_ID": null, "NAME": "ninety", "VALUE": 90, "F1": null, "F2": null}, "timestamp": 17000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 100, "value": {"TT_ID": 100, "NAME": null, "VALUE": null, "F1": "newblah", "F2": 150}, "timestamp": 20000}
+      ],
+      "post": {
+        "issues": [
+          "key field has incorrect name - should be TT_ID"
+        ],
+        "sources": [
+          {"name": "LEFT_OUTER_JOIN", "type": "stream", "keyField": {"name": null, "legacyName": "T.ID", "legacySchema": "BIGINT"}}
+        ]
+      }
     },
     {
       "name": "table table left join",
@@ -212,7 +623,105 @@
         {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "blah", "F2": 50}, "timestamp": 13000},
         {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "a", "F2": 10}, "timestamp": 15000},
         {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "bar", "VALUE": 99, "F1": "a", "F2": 10}, "timestamp": 16000}
-      ]
+      ],
+      "post": {
+        "sources": [
+          {"name": "LEFT_OUTER_JOIN", "type": "table", "keyField": {"name": "T_ID", "legacyName": "T_ID", "legacySchema": "BIGINT"}}
+        ]
+      }
+    },
+    {
+      "name": "table table left join - join key not in projection",
+      "statements": [
+        "CREATE TABLE TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='JSON', key='ID');",
+        "CREATE TABLE TEST_TABLE (ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='JSON', key='ID');",
+        "CREATE TABLE LEFT_OUTER_JOIN as SELECT name, value, f1, f2 FROM test t left join TEST_TABLE tt on t.id = tt.id;"
+      ],
+      "inputs": [
+        {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "zero", "VALUE": 0}, "timestamp": 0},
+        {"topic": "right_topic", "key": 0, "value": {"ID": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
+        {"topic": "left_topic", "key": 10, "value": {"ID": 10, "NAME": "100", "VALUE": 5}, "timestamp": 11000},
+        {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "foo", "VALUE": 100}, "timestamp": 13000},
+        {"topic": "right_topic", "key": 0, "value": {"ID": 0, "F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "bar", "VALUE": 99}, "timestamp": 16000},
+        {"topic": "left_topic", "key": 90, "value": {"ID": 90, "NAME": "ninety", "VALUE": 90}, "timestamp": 17000}
+      ],
+      "outputs": [
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"NAME": "zero", "VALUE": 0, "F1": null, "F2": null}, "timestamp": 0},
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"NAME": "zero", "VALUE": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 10, "value": {"NAME": "100", "VALUE": 5, "F1": null, "F2": null}, "timestamp": 11000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"NAME": "foo", "VALUE": 100, "F1": "blah", "F2": 50}, "timestamp": 13000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"NAME": "foo", "VALUE": 100, "F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"NAME": "bar", "VALUE": 99, "F1": "a", "F2": 10}, "timestamp": 16000}
+      ],
+      "post": {
+        "sources": [
+          {"name": "LEFT_OUTER_JOIN", "type": "table", "keyField": {"name": null, "legacyName":null}}
+        ]
+      }
+    },
+    {
+      "name": "table table left join - right join key in projection",
+      "statements": [
+        "CREATE TABLE TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='JSON', key='ID');",
+        "CREATE TABLE TEST_TABLE (ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='JSON', key='ID');",
+        "CREATE TABLE LEFT_OUTER_JOIN as SELECT tt.id, name, value, f1, f2 FROM test t left join TEST_TABLE tt on t.id = tt.id;"
+      ],
+      "inputs": [
+        {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "zero", "VALUE": 0}, "timestamp": 0},
+        {"topic": "right_topic", "key": 0, "value": {"ID": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
+        {"topic": "left_topic", "key": 10, "value": {"ID": 10, "NAME": "100", "VALUE": 5}, "timestamp": 11000},
+        {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "foo", "VALUE": 100}, "timestamp": 13000},
+        {"topic": "right_topic", "key": 0, "value": {"ID": 0, "F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "bar", "VALUE": 99}, "timestamp": 16000},
+        {"topic": "left_topic", "key": 90, "value": {"ID": 90, "NAME": "ninety", "VALUE": 90}, "timestamp": 17000}
+      ],
+      "outputs": [
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"TT_ID": null, "NAME": "zero", "VALUE": 0, "F1": null, "F2": null}, "timestamp": 0},
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"TT_ID": 0, "NAME": "zero", "VALUE": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 10, "value": {"TT_ID": null, "NAME": "100", "VALUE": 5, "F1": null, "F2": null}, "timestamp": 11000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"TT_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "blah", "F2": 50}, "timestamp": 13000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"TT_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"TT_ID": 0, "NAME": "bar", "VALUE": 99, "F1": "a", "F2": 10}, "timestamp": 16000}
+      ],
+      "post": {
+        "issues": [
+          "key field has incorrect name - should be TT_ID"
+        ],
+        "sources": [
+          {"name": "LEFT_OUTER_JOIN", "type": "table", "keyField": {"name": null, "legacyName": null}}
+        ]
+      }
+    },
+    {
+      "name": "table table left join - both join keys in projection",
+      "statements": [
+        "CREATE TABLE TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='JSON', key='ID');",
+        "CREATE TABLE TEST_TABLE (ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='JSON', key='ID');",
+        "CREATE TABLE LEFT_OUTER_JOIN as SELECT t.id, tt.id, name, value, f1, f2 FROM test t left join TEST_TABLE tt on t.id = tt.id;"
+      ],
+      "inputs": [
+        {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "zero", "VALUE": 0}, "timestamp": 0},
+        {"topic": "right_topic", "key": 0, "value": {"ID": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
+        {"topic": "left_topic", "key": 10, "value": {"ID": 10, "NAME": "100", "VALUE": 5}, "timestamp": 11000},
+        {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "foo", "VALUE": 100}, "timestamp": 13000},
+        {"topic": "right_topic", "key": 0, "value": {"ID": 0, "F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "bar", "VALUE": 99}, "timestamp": 16000},
+        {"topic": "left_topic", "key": 90, "value": {"ID": 90, "NAME": "ninety", "VALUE": 90}, "timestamp": 17000}
+      ],
+      "outputs": [
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "TT_ID": null, "NAME": "zero", "VALUE": 0, "F1": null, "F2": null}, "timestamp": 0},
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "TT_ID": 0, "NAME": "zero", "VALUE": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 10, "value": {"T_ID": 10, "TT_ID": null, "NAME": "100", "VALUE": 5, "F1": null, "F2": null}, "timestamp": 11000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "TT_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "blah", "F2": 50}, "timestamp": 13000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "TT_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "TT_ID": 0, "NAME": "bar", "VALUE": 99, "F1": "a", "F2": 10}, "timestamp": 16000}
+      ],
+      "post": {
+        "sources": [
+          {"name": "LEFT_OUTER_JOIN", "type": "table", "keyField": {"name": "T_ID", "legacyName": "T_ID", "legacySchema": "BIGINT"}}
+        ]
+      }
     },
     {
       "name": "table table inner join",
@@ -237,7 +746,73 @@
         {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "blah", "F2": 50}, "timestamp": 13000},
         {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "a", "F2": 10}, "timestamp": 15000},
         {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "bar", "VALUE": 99, "F1": "a", "F2": 10}, "timestamp": 16000}
-      ]
+      ],
+      "post": {
+        "sources": [
+          {"name": "INNER_JOIN", "type": "table", "keyField": {"name": "T_ID", "legacyName": "T_ID", "legacySchema": "BIGINT"}}
+        ]
+      }
+    },
+    {
+      "name": "table table inner join - join key not in projection",
+      "statements": [
+        "CREATE TABLE TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='JSON', key='ID');",
+        "CREATE TABLE TEST_TABLE (ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='JSON', key='ID');",
+        "CREATE TABLE INNER_JOIN as SELECT name, value, f1, f2 FROM test t join TEST_TABLE tt on t.id = tt.id;"
+      ],
+      "inputs": [
+        {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "zero", "VALUE": 0}, "timestamp": 0},
+        {"topic": "right_topic", "key": 0, "value": {"ID": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
+        {"topic": "left_topic", "key": 10, "value": {"ID": 10, "NAME": "100", "VALUE": 5}, "timestamp": 11000},
+        {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "foo", "VALUE": 100}, "timestamp": 13000},
+        {"topic": "right_topic", "key": 0, "value": {"ID": 0, "F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "right_topic", "key": 15, "value": {"ID": 0, "F1": "c", "F2": 20}, "timestamp": 15500},
+        {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "bar", "VALUE": 99}, "timestamp": 16000},
+        {"topic": "left_topic", "key": 90, "value": {"ID": 90, "NAME": "ninety", "VALUE": 90}, "timestamp": 17000}
+      ],
+      "outputs": [
+        {"topic": "INNER_JOIN", "key": 0, "value": {"NAME": "zero", "VALUE": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
+        {"topic": "INNER_JOIN", "key": 0, "value": {"NAME": "foo", "VALUE": 100, "F1": "blah", "F2": 50}, "timestamp": 13000},
+        {"topic": "INNER_JOIN", "key": 0, "value": {"NAME": "foo", "VALUE": 100, "F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "INNER_JOIN", "key": 0, "value": {"NAME": "bar", "VALUE": 99, "F1": "a", "F2": 10}, "timestamp": 16000}
+      ],
+      "post": {
+        "sources": [
+          {"name": "INNER_JOIN", "type": "table", "keyField": {"name": null, "legacyName": null}}
+        ]
+      }
+    },
+    {
+      "name": "table table inner join - right join key in projection",
+      "statements": [
+        "CREATE TABLE TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='JSON', key='ID');",
+        "CREATE TABLE TEST_TABLE (ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='JSON', key='ID');",
+        "CREATE TABLE INNER_JOIN as SELECT tt.id, name, value, f1, f2 FROM test t join TEST_TABLE tt on t.id = tt.id;"
+      ],
+      "inputs": [
+        {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "zero", "VALUE": 0}, "timestamp": 0},
+        {"topic": "right_topic", "key": 0, "value": {"ID": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
+        {"topic": "left_topic", "key": 10, "value": {"ID": 10, "NAME": "100", "VALUE": 5}, "timestamp": 11000},
+        {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "foo", "VALUE": 100}, "timestamp": 13000},
+        {"topic": "right_topic", "key": 0, "value": {"ID": 0, "F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "right_topic", "key": 15, "value": {"ID": 0, "F1": "c", "F2": 20}, "timestamp": 15500},
+        {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "bar", "VALUE": 99}, "timestamp": 16000},
+        {"topic": "left_topic", "key": 90, "value": {"ID": 90, "NAME": "ninety", "VALUE": 90}, "timestamp": 17000}
+      ],
+      "outputs": [
+        {"topic": "INNER_JOIN", "key": 0, "value": {"TT_ID": 0, "NAME": "zero", "VALUE": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
+        {"topic": "INNER_JOIN", "key": 0, "value": {"TT_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "blah", "F2": 50}, "timestamp": 13000},
+        {"topic": "INNER_JOIN", "key": 0, "value": {"TT_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "INNER_JOIN", "key": 0, "value": {"TT_ID": 0, "NAME": "bar", "VALUE": 99, "F1": "a", "F2": 10}, "timestamp": 16000}
+      ],
+      "post": {
+        "issues": [
+          "key field has incorrect name - should be TT_ID"
+        ],
+        "sources": [
+          {"name": "INNER_JOIN", "type": "table", "keyField": {"name": null, "legacyName": null}}
+        ]
+      }
     },
     {
       "name": "table table outer join",
@@ -264,7 +839,77 @@
         {"topic": "OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "a", "F2": 10}, "timestamp": 15000},
         {"topic": "OUTER_JOIN", "key": 15, "value": {"T_ID": null, "NAME": null, "VALUE": null, "F1": "c", "F2": 20}, "timestamp": 15500},
         {"topic": "OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "bar", "VALUE": 99, "F1": "a", "F2": 10}, "timestamp": 16000}
-      ]
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTER_JOIN", "type": "table", "keyField": {"name": "T_ID", "legacyName": "T_ID", "legacySchema": "BIGINT"}}
+        ]
+      }
+    },
+    {
+      "name": "table table outer join - join key not in projection",
+      "statements": [
+        "CREATE TABLE TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='JSON', key='ID');",
+        "CREATE TABLE TEST_TABLE (ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='JSON', key='ID');",
+        "CREATE TABLE OUTER_JOIN as SELECT name, value, f1, f2 FROM test t FULL OUTER join TEST_TABLE tt on t.id = tt.id;"
+      ],
+      "inputs": [
+        {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "zero", "VALUE": 0}, "timestamp": 0},
+        {"topic": "right_topic", "key": 0, "value": {"ID": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
+        {"topic": "left_topic", "key": 10, "value": {"ID": 10, "NAME": "100", "VALUE": 5}, "timestamp": 11000},
+        {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "foo", "VALUE": 100}, "timestamp": 13000},
+        {"topic": "right_topic", "key": 0, "value": {"ID": 0, "F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "right_topic", "key": 15, "value": {"ID": 0, "F1": "c", "F2": 20}, "timestamp": 15500},
+        {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "bar", "VALUE": 99}, "timestamp": 16000}
+      ],
+      "outputs": [
+        {"topic": "OUTER_JOIN", "key": 0, "value": {"NAME": "zero", "VALUE": 0, "F1": null, "F2": null}, "timestamp": 0},
+        {"topic": "OUTER_JOIN", "key": 0, "value": {"NAME": "zero", "VALUE": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
+        {"topic": "OUTER_JOIN", "key": 10, "value": {"NAME": "100", "VALUE": 5, "F1": null, "F2": null}, "timestamp": 11000},
+        {"topic": "OUTER_JOIN", "key": 0, "value": {"NAME": "foo", "VALUE": 100, "F1": "blah", "F2": 50}, "timestamp": 13000},
+        {"topic": "OUTER_JOIN", "key": 0, "value": {"NAME": "foo", "VALUE": 100, "F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "OUTER_JOIN", "key": 15, "value": {"NAME": null, "VALUE": null, "F1": "c", "F2": 20}, "timestamp": 15500},
+        {"topic": "OUTER_JOIN", "key": 0, "value": {"NAME": "bar", "VALUE": 99, "F1": "a", "F2": 10}, "timestamp": 16000}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTER_JOIN", "type": "table", "keyField": {"name": null, "legacyName": null}}
+        ]
+      }
+    },
+    {
+      "name": "table table outer join - right join key in projection",
+      "statements": [
+        "CREATE TABLE TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='JSON', key='ID');",
+        "CREATE TABLE TEST_TABLE (ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='JSON', key='ID');",
+        "CREATE TABLE OUTER_JOIN as SELECT tt.id, name, value, f1, f2 FROM test t FULL OUTER join TEST_TABLE tt on t.id = tt.id;"
+      ],
+      "inputs": [
+        {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "zero", "VALUE": 0}, "timestamp": 0},
+        {"topic": "right_topic", "key": 0, "value": {"ID": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
+        {"topic": "left_topic", "key": 10, "value": {"ID": 10, "NAME": "100", "VALUE": 5}, "timestamp": 11000},
+        {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "foo", "VALUE": 100}, "timestamp": 13000},
+        {"topic": "right_topic", "key": 0, "value": {"ID": 0, "F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "right_topic", "key": 15, "value": {"ID": 0, "F1": "c", "F2": 20}, "timestamp": 15500},
+        {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "bar", "VALUE": 99}, "timestamp": 16000}
+      ],
+      "outputs": [
+        {"topic": "OUTER_JOIN", "key": 0, "value": {"TT_ID": null, "NAME": "zero", "VALUE": 0, "F1": null, "F2": null}, "timestamp": 0},
+        {"topic": "OUTER_JOIN", "key": 0, "value": {"TT_ID": 0, "NAME": "zero", "VALUE": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
+        {"topic": "OUTER_JOIN", "key": 10, "value": {"TT_ID": null, "NAME": "100", "VALUE": 5, "F1": null, "F2": null}, "timestamp": 11000},
+        {"topic": "OUTER_JOIN", "key": 0, "value": {"TT_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "blah", "F2": 50}, "timestamp": 13000},
+        {"topic": "OUTER_JOIN", "key": 0, "value": {"TT_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "OUTER_JOIN", "key": 15, "value": {"TT_ID": 0, "NAME": null, "VALUE": null, "F1": "c", "F2": 20}, "timestamp": 15500},
+        {"topic": "OUTER_JOIN", "key": 0, "value": {"TT_ID": 0, "NAME": "bar", "VALUE": 99, "F1": "a", "F2": 10}, "timestamp": 16000}
+      ],
+      "post": {
+        "issues": [
+          "key field has incorrect name - should be TT_ID"
+        ],
+        "sources": [
+          {"name": "OUTER_JOIN", "type": "table", "keyField": {"name": null, "legacyName": null}}
+        ]
+      }
     },
     {
       "name": "stream table left join",
@@ -288,7 +933,71 @@
         {"topic": "LEFT_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "zero", "F2": 0}, "timestamp": 10000},
         {"topic": "LEFT_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "bar", "VALUE": 99, "F1": "a", "F2": 10}, "timestamp": 15000},
         {"topic": "LEFT_JOIN", "key": 90, "value": {"T_ID": 90, "NAME": "ninety", "VALUE": 90, "F1": null, "F2": null}, "timestamp": 15000}
-      ]
+      ],
+      "post": {
+        "sources": [
+          {"name": "LEFT_JOIN", "type": "stream", "keyField": {"name": "T_ID", "legacyName": "T.ID", "legacySchema": "BIGINT"}}
+        ]
+      }
+    },
+    {
+      "name": "stream table left join - join key not in projection",
+      "statements": [
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
+        "CREATE TABLE TEST_TABLE (ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='test_table', value_format='JSON', key='ID');",
+        "CREATE STREAM LEFT_JOIN as SELECT name, value, f1, f2 FROM test t left join test_table tt on t.id = tt.id;"
+      ],
+      "inputs": [
+        {"topic": "test_table", "key": 0, "value": {"ID": 0, "F1": "zero", "F2": 0}, "timestamp": 0},
+        {"topic": "test_table", "key": 10, "value": {"ID": 10, "F1": "100", "F2": 5}, "timestamp": 10000},
+        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "blah", "VALUE": 50}, "timestamp": 10000},
+        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "foo", "VALUE": 100}, "timestamp": 10000},
+        {"topic": "test_table", "key": 0, "value": {"ID": 0, "F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "bar", "VALUE": 99}, "timestamp": 15000},
+        {"topic": "test_topic", "key": 90, "value": {"ID": 90, "NAME": "ninety", "VALUE": 90}, "timestamp": 15000}
+      ],
+      "outputs": [
+        {"topic": "LEFT_JOIN", "key": 0, "value": {"NAME": "blah", "VALUE": 50, "F1": "zero", "F2": 0}, "timestamp": 10000},
+        {"topic": "LEFT_JOIN", "key": 0, "value": {"NAME": "foo", "VALUE": 100, "F1": "zero", "F2": 0}, "timestamp": 10000},
+        {"topic": "LEFT_JOIN", "key": 0, "value": {"NAME": "bar", "VALUE": 99, "F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "LEFT_JOIN", "key": 90, "value": {"NAME": "ninety", "VALUE": 90, "F1": null, "F2": null}, "timestamp": 15000}
+      ],
+      "post": {
+        "sources": [
+          {"name": "LEFT_JOIN", "type": "stream", "keyField": {"name": null, "legacyName": "T.ID", "legacySchema": "BIGINT"}}
+        ]
+      }
+    },
+    {
+      "name": "stream table left join - right join key in projection",
+      "statements": [
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
+        "CREATE TABLE TEST_TABLE (ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='test_table', value_format='JSON', key='ID');",
+        "CREATE STREAM LEFT_JOIN as SELECT tt.id, name, value, f1, f2 FROM test t left join test_table tt on t.id = tt.id;"
+      ],
+      "inputs": [
+        {"topic": "test_table", "key": 0, "value": {"ID": 0, "F1": "zero", "F2": 0}, "timestamp": 0},
+        {"topic": "test_table", "key": 10, "value": {"ID": 10, "F1": "100", "F2": 5}, "timestamp": 10000},
+        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "blah", "VALUE": 50}, "timestamp": 10000},
+        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "foo", "VALUE": 100}, "timestamp": 10000},
+        {"topic": "test_table", "key": 0, "value": {"ID": 0, "F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "bar", "VALUE": 99}, "timestamp": 15000},
+        {"topic": "test_topic", "key": 90, "value": {"ID": 90, "NAME": "ninety", "VALUE": 90}, "timestamp": 15000}
+      ],
+      "outputs": [
+        {"topic": "LEFT_JOIN", "key": 0, "value": {"TT_ID": 0, "NAME": "blah", "VALUE": 50, "F1": "zero", "F2": 0}, "timestamp": 10000},
+        {"topic": "LEFT_JOIN", "key": 0, "value": {"TT_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "zero", "F2": 0}, "timestamp": 10000},
+        {"topic": "LEFT_JOIN", "key": 0, "value": {"TT_ID": 0, "NAME": "bar", "VALUE": 99, "F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "LEFT_JOIN", "key": 90, "value": {"TT_ID": null, "NAME": "ninety", "VALUE": 90, "F1": null, "F2": null}, "timestamp": 15000}
+      ],
+      "post": {
+        "issues": [
+          "key field has incorrect name - should be TT_ID"
+        ],
+        "sources": [
+          {"name": "LEFT_JOIN", "type": "stream", "keyField": {"name": null, "legacyName": "T.ID", "legacySchema": "BIGINT"}}
+        ]
+      }
     },
     {
       "name": "stream table inner join",
@@ -311,16 +1020,87 @@
         {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "blah", "VALUE": 50, "F1": "zero", "F2": 0}, "timestamp": 10000},
         {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "zero", "F2": 0}, "timestamp": 10000},
         {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "bar", "VALUE": 99, "F1": "a", "F2": 10}, "timestamp": 15000}
-      ]
+      ],
+      "post": {
+        "sources": [
+          {"name": "INNER_JOIN", "type": "stream", "keyField": {"name": "T_ID", "legacyName": "T.ID", "legacySchema": "BIGINT"}}
+        ]
+      }
+    },
+    {
+      "name": "stream table inner join - join key not in projection",
+      "statements": [
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
+        "CREATE TABLE TEST_TABLE (ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='test_table', value_format='JSON', key='ID');",
+        "CREATE STREAM INNER_JOIN as SELECT name, value, f1, f2 FROM test t join test_table tt on t.id = tt.id;"
+      ],
+      "inputs": [
+        {"topic": "test_table", "key": 0, "value": {"ID": 0, "F1": "zero", "F2": 0}, "timestamp": 0},
+        {"topic": "test_table", "key": 10, "value": {"ID": 10, "F1": "100", "F2": 5}, "timestamp": 10000},
+        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "blah", "VALUE": 50}, "timestamp": 10000},
+        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "foo", "VALUE": 100}, "timestamp": 10000},
+        {"topic": "test_table", "key": 0, "value": {"ID": 0, "F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "bar", "VALUE": 99}, "timestamp": 15000},
+        {"topic": "test_topic", "key": 90, "value": {"ID": 90, "NAME": "ninety", "VALUE": 90}, "timestamp": 15000}
+      ],
+      "outputs": [
+        {"topic": "INNER_JOIN", "key": 0, "value": {"NAME": "blah", "VALUE": 50, "F1": "zero", "F2": 0}, "timestamp": 10000},
+        {"topic": "INNER_JOIN", "key": 0, "value": {"NAME": "foo", "VALUE": 100, "F1": "zero", "F2": 0}, "timestamp": 10000},
+        {"topic": "INNER_JOIN", "key": 0, "value": {"NAME": "bar", "VALUE": 99, "F1": "a", "F2": 10}, "timestamp": 15000}
+      ],
+      "post": {
+        "sources": [
+          {"name": "INNER_JOIN", "type": "stream", "keyField": {"name": null, "legacyName": "T.ID", "legacySchema": "BIGINT"}}
+        ]
+      }
+    },
+    {
+      "name": "stream table inner join - right join key in projection",
+      "statements": [
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
+        "CREATE TABLE TEST_TABLE (ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='test_table', value_format='JSON', key='ID');",
+        "CREATE STREAM INNER_JOIN as SELECT tt.id, name, value, f1, f2 FROM test t join test_table tt on t.id = tt.id;"
+      ],
+      "inputs": [
+        {"topic": "test_table", "key": 0, "value": {"ID": 0, "F1": "zero", "F2": 0}, "timestamp": 0},
+        {"topic": "test_table", "key": 10, "value": {"ID": 10, "F1": "100", "F2": 5}, "timestamp": 10000},
+        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "blah", "VALUE": 50}, "timestamp": 10000},
+        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "foo", "VALUE": 100}, "timestamp": 10000},
+        {"topic": "test_table", "key": 0, "value": {"ID": 0, "F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "bar", "VALUE": 99}, "timestamp": 15000},
+        {"topic": "test_topic", "key": 90, "value": {"ID": 90, "NAME": "ninety", "VALUE": 90}, "timestamp": 15000}
+      ],
+      "outputs": [
+        {"topic": "INNER_JOIN", "key": 0, "value": {"TT_ID": 0, "NAME": "blah", "VALUE": 50, "F1": "zero", "F2": 0}, "timestamp": 10000},
+        {"topic": "INNER_JOIN", "key": 0, "value": {"TT_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "zero", "F2": 0}, "timestamp": 10000},
+        {"topic": "INNER_JOIN", "key": 0, "value": {"TT_ID": 0, "NAME": "bar", "VALUE": 99, "F1": "a", "F2": 10}, "timestamp": 15000}
+      ],
+      "post": {
+        "issues": [
+          "key field has incorrect name - should be TT_ID"
+        ],
+        "sources": [
+          {"name": "INNER_JOIN", "type": "stream", "keyField": {"name": null, "legacyName": "T.ID", "legacySchema": "BIGINT"}}
+        ]
+      }
     },
     {
       "name": "join using ROWKEY in the criteria",
+      "comments": [
+        "To maintain backwards compatibility with previous version's expected topologies this test",
+        "sets 'ksql.query.fields.key.legacy' to 'true'. A new test called:",
+        "'join using ROWKEY in the criteria - new key fields' has been added to test with the fixed",
+        "key field functionality"
+      ],
       "format": ["AVRO", "JSON"],
       "statements": [
         "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='test_topic', value_format='{FORMAT}', key='ID');",
         "CREATE TABLE TEST_TABLE (ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='test_table', value_format='{FORMAT}', key='ID');",
         "CREATE STREAM INNER_JOIN as SELECT t.id, name, value, f1, f2 FROM test t join test_table tt on t.ROWKEY = tt.ROWKEY;"
       ],
+      "properties": {
+        "ksql.query.fields.key.legacy": "true"
+      },
       "inputs": [
         {"topic": "test_table", "key": 0, "value": {"ID": 0, "F1": "zero", "F2": 0}, "timestamp": 0},
         {"topic": "test_table", "key": 10, "value": {"ID": 10, "F1": "100", "F2": 5}, "timestamp": 10000},
@@ -334,7 +1114,294 @@
         {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "blah", "VALUE": 50, "F1": "zero", "F2": 0}, "timestamp": 10000},
         {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "zero", "F2": 0}, "timestamp": 10000},
         {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "bar", "VALUE": 99, "F1": "a", "F2": 10}, "timestamp": 15000}
-      ]
+      ],
+      "post": {
+        "issues": [
+          "key field has incorrect name - should be T_ID",
+          "key field has incorrect type - should be BIGINT"
+        ],
+        "sources": [
+          {"name": "INNER_JOIN", "type": "stream", "keyField": {"name": null, "legacyName": "T.ROWKEY", "legacySchema": "STRING"}}
+        ]
+      }
+    },
+    {
+      "name": "join using ROWKEY in the criteria - legacy downstream query",
+      "comments": [
+        "The purpose of this test is to capture the topology of a downstream query of the above test case",
+        "and test the key fields of the entities added to the metastore, to ensure backwards compatibility is maintained",
+        "In this case, the code previously incorrectly set the keyField to 'T.ROWKEY' rather than the correct 'T_ID'",
+        "This would result in an unnecessary repartition step being added to the DOWNSTREAM query.",
+        "New versions of the code must not remove this unnecessary step for existing queries, as that would break backwards compatibility"
+      ],
+      "statements": [
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
+        "CREATE TABLE TEST_TABLE (ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='test_table', value_format='JSON', key='ID');",
+        "CREATE STREAM INNER_JOIN as SELECT t.id AS ID, name, value, f1, f2 FROM test t join test_table tt on t.ROWKEY = tt.ROWKEY;",
+        "CREATE STREAM DOWNSTREAM AS SELECT ID FROM INNER_JOIN PARTITION BY ID;"
+      ],
+      "properties": {
+        "ksql.query.fields.key.legacy": "true"
+      },
+      "inputs": [
+      ],
+      "outputs": [
+      ],
+      "post": {
+        "sources": [
+          {"name": "INNER_JOIN", "type": "stream", "keyField": {"name": null, "legacyName": "T.ROWKEY", "legacySchema": "STRING"}},
+          {"name": "DOWNSTREAM", "type": "stream", "keyField": {"name": "ID", "legacyName": "ID", "legacySchema": "BIGINT"}}
+        ]
+      }
+    },
+    {
+      "name": "join using ROWKEY in the criteria - legacy - JSON",
+      "comments": [
+        "This test ensures legacy queries continue to run with the unnecessary repartition step.",
+        "There are explicit tests for JSON and AVRO, rather than making use of the 'format's node,",
+        "as the internal topic schema differs between the formats"
+      ],
+      "statements": [
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
+        "CREATE TABLE TEST_TABLE (ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='test_table', value_format='JSON', key='ID');",
+        "CREATE STREAM INNER_JOIN as SELECT t.id, name, value, f1, f2 FROM test t join test_table tt on t.ROWKEY = tt.ROWKEY;"
+      ],
+      "properties": {
+        "ksql.named.internal.topics": "off",
+        "ksql.streams.topology.optimization": "none",
+        "ksql.query.fields.key.legacy": "true"
+      },
+      "inputs": [
+        {"topic": "test_table", "key": 0, "value": {"ID": 0, "F1": "zero", "F2": 0}, "timestamp": 0},
+        {"topic": "test_table", "key": 10, "value": {"ID": 10, "F1": "100", "F2": 5}, "timestamp": 10000},
+        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "blah", "VALUE": 50}, "timestamp": 10000},
+        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "foo", "VALUE": 100}, "timestamp": 10000},
+        {"topic": "test_table", "key": 0, "value": {"ID": 0, "F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "bar", "VALUE": 99}, "timestamp": 15000},
+        {"topic": "test_topic", "key": 90, "value": {"ID": 90, "NAME": "ninety", "VALUE": 90}, "timestamp": 15000}
+      ],
+      "outputs": [
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_INNER_JOIN_0-KSTREAM-AGGREGATE-STATE-STORE-0000000004-changelog", "key": "0", "value": {"TT.ROWTIME": 0, "TT.ROWKEY": "0", "TT.ID": 0, "TT.F1": "zero", "TT.F2": 0}, "timestamp": 0},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_INNER_JOIN_0-KSTREAM-AGGREGATE-STATE-STORE-0000000004-changelog", "key": "10", "value": {"TT.ROWTIME": 10000, "TT.ROWKEY": "10", "TT.ID": 10, "TT.F1": "100", "TT.F2": 5}, "timestamp": 10000},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_INNER_JOIN_0-KSTREAM-MAPVALUES-0000000011-repartition", "key": "0", "value": {"ROWTIME": 10000, "ROWKEY": "0", "ID": 0, "NAME": "blah", "VALUE":  50}, "timestamp": 10000},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_INNER_JOIN_0-KSTREAM-MAPVALUES-0000000011-repartition", "key": "0", "value": {"ROWTIME": 10000, "ROWKEY": "0", "ID": 0, "NAME": "foo", "VALUE": 100}, "timestamp": 10000},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_INNER_JOIN_0-KSTREAM-AGGREGATE-STATE-STORE-0000000004-changelog", "key": "0", "value": {"TT.ROWTIME": 15000, "TT.ROWKEY": "0", "TT.ID": 0, "TT.F1": "a", "TT.F2": 10}, "timestamp": 15000},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_INNER_JOIN_0-KSTREAM-MAPVALUES-0000000011-repartition", "key": "0", "value": {"ROWTIME": 15000, "ROWKEY": "0", "ID": 0, "NAME": "bar", "VALUE": 99}, "timestamp": 15000},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_INNER_JOIN_0-KSTREAM-MAPVALUES-0000000011-repartition", "key": "90", "value": {"ROWTIME": 15000, "ROWKEY": "90", "ID": 90, "NAME": "ninety", "VALUE": 90}, "timestamp": 15000},
+        {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "blah", "VALUE": 50, "F1": "zero", "F2": 0}, "timestamp": 10000},
+        {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "zero", "F2": 0}, "timestamp": 10000},
+        {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "bar", "VALUE": 99, "F1": "a", "F2": 10}, "timestamp": 15000}
+      ],
+      "post": {
+        "issues": [
+          "key field has incorrect name - should be T_ID",
+          "key field has incorrect type - should be BIGINT",
+          "There are unnecessary repartition steps in the topology!"
+        ],
+        "sources": [
+          {"name": "INNER_JOIN", "type": "stream", "keyField": {"name": null, "legacyName": "T.ROWKEY", "legacySchema": "STRING"}}
+        ]
+      }
+    },
+    {
+      "name": "join using ROWKEY in the criteria - legacy - AVRO",
+      "comments": [
+        "This test ensures legacy queries continue to run with the unnecessary repartition step.",
+        "There are explicit tests for JSON and AVRO, rather than making use of the 'format's node,",
+        "as the internal topic schema differs between the formats"
+      ],
+      "statements": [
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='test_topic', value_format='AVRO', key='ID');",
+        "CREATE TABLE TEST_TABLE (ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='test_table', value_format='AVRO', key='ID');",
+        "CREATE STREAM INNER_JOIN as SELECT t.id, name, value, f1, f2 FROM test t join test_table tt on t.ROWKEY = tt.ROWKEY;"
+      ],
+      "properties": {
+        "ksql.named.internal.topics": "off",
+        "ksql.streams.topology.optimization": "none",
+        "ksql.query.fields.key.legacy": "true"
+      },
+      "inputs": [
+        {"topic": "test_table", "key": 0, "value": {"ID": 0, "F1": "zero", "F2": 0}, "timestamp": 0},
+        {"topic": "test_table", "key": 10, "value": {"ID": 10, "F1": "100", "F2": 5}, "timestamp": 10000},
+        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "blah", "VALUE": 50}, "timestamp": 10000},
+        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "foo", "VALUE": 100}, "timestamp": 10000},
+        {"topic": "test_table", "key": 0, "value": {"ID": 0, "F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "bar", "VALUE": 99}, "timestamp": 15000},
+        {"topic": "test_topic", "key": 90, "value": {"ID": 90, "NAME": "ninety", "VALUE": 90}, "timestamp": 15000}
+      ],
+      "outputs": [
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_INNER_JOIN_0-KSTREAM-AGGREGATE-STATE-STORE-0000000004-changelog", "key": "0", "value": {"TT_ROWTIME": 0, "TT_ROWKEY": "0", "TT_ID": 0, "TT_F1": "zero", "TT_F2": 0}, "timestamp": 0},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_INNER_JOIN_0-KSTREAM-AGGREGATE-STATE-STORE-0000000004-changelog", "key": "10", "value": {"TT_ROWTIME": 10000, "TT_ROWKEY": "10", "TT_ID": 10, "TT_F1": "100", "TT_F2": 5}, "timestamp": 10000},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_INNER_JOIN_0-KSTREAM-MAPVALUES-0000000011-repartition", "key": "0", "value": {"ROWTIME": 10000, "ROWKEY": "0", "ID": 0, "NAME": "blah", "VALUE":  50}, "timestamp": 10000},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_INNER_JOIN_0-KSTREAM-MAPVALUES-0000000011-repartition", "key": "0", "value": {"ROWTIME": 10000, "ROWKEY": "0", "ID": 0, "NAME": "foo", "VALUE": 100}, "timestamp": 10000},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_INNER_JOIN_0-KSTREAM-AGGREGATE-STATE-STORE-0000000004-changelog", "key": "0", "value": {"TT_ROWTIME": 15000, "TT_ROWKEY": "0", "TT_ID": 0, "TT_F1": "a", "TT_F2": 10}, "timestamp": 15000},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_INNER_JOIN_0-KSTREAM-MAPVALUES-0000000011-repartition", "key": "0", "value": {"ROWTIME": 15000, "ROWKEY": "0", "ID": 0, "NAME": "bar", "VALUE": 99}, "timestamp": 15000},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_INNER_JOIN_0-KSTREAM-MAPVALUES-0000000011-repartition", "key": "90", "value": {"ROWTIME": 15000, "ROWKEY": "90", "ID": 90, "NAME": "ninety", "VALUE": 90}, "timestamp": 15000},
+        {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "blah", "VALUE": 50, "F1": "zero", "F2": 0}, "timestamp": 10000},
+        {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "zero", "F2": 0}, "timestamp": 10000},
+        {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "bar", "VALUE": 99, "F1": "a", "F2": 10}, "timestamp": 15000}
+      ],
+      "post": {
+        "issues": [
+          "key field has incorrect name - should be T_ID",
+          "key field has incorrect type - should be BIGINT",
+          "There are unnecessary repartition steps in the topology!"
+        ],
+        "sources": [
+          {"name": "INNER_JOIN", "type": "stream", "keyField": {"name": null, "legacyName": "T.ROWKEY", "legacySchema": "STRING"}}
+        ]
+      }
+    },
+    {
+      "name": "join using ROWKEY in the criteria - new internal topic names - JSON",
+      "comments": [
+        "This test ensures internal topics names (new style) and messages are correct.",
+        "There are explicit tests for JSON and AVRO, rather than making use of the 'format's node,",
+        "as the internal topic schema differs between the formats"
+      ],
+      "statements": [
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
+        "CREATE TABLE TEST_TABLE (ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='test_table', value_format='JSON', key='ID');",
+        "CREATE STREAM INNER_JOIN as SELECT t.id, name, value, f1, f2 FROM test t join test_table tt on t.ROWKEY = tt.ROWKEY;"
+      ],
+      "properties": {
+        "ksql.query.fields.key.legacy": "true"
+      },
+      "inputs": [
+        {"topic": "test_table", "key": 0, "value": {"ID": 0, "F1": "zero", "F2": 0}, "timestamp": 0},
+        {"topic": "test_table", "key": 10, "value": {"ID": 10, "F1": "100", "F2": 5}, "timestamp": 10000},
+        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "blah", "VALUE": 50}, "timestamp": 10000},
+        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "foo", "VALUE": 100}, "timestamp": 10000},
+        {"topic": "test_table", "key": 0, "value": {"ID": 0, "F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "bar", "VALUE": 99}, "timestamp": 15000},
+        {"topic": "test_topic", "key": 90, "value": {"ID": 90, "NAME": "ninety", "VALUE": 90}, "timestamp": 15000}
+      ],
+      "outputs": [
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_INNER_JOIN_0-KafkaTopic_Right-reduce-changelog", "key": "0", "value": {"TT.ROWTIME": 0, "TT.ROWKEY": "0", "TT.ID": 0, "TT.F1": "zero", "TT.F2": 0}, "timestamp": 0},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_INNER_JOIN_0-KafkaTopic_Right-reduce-changelog", "key": "10", "value": {"TT.ROWTIME": 10000, "TT.ROWKEY": "10", "TT.ID": 10, "TT.F1": "100", "TT.F2": 5}, "timestamp": 10000},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_INNER_JOIN_0-Join-repartition", "key": "0", "value": {"ROWTIME": 10000, "ROWKEY": "0", "ID": 0, "NAME": "blah", "VALUE":  50}, "timestamp": 10000},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_INNER_JOIN_0-Join-repartition", "key": "0", "value": {"ROWTIME": 10000, "ROWKEY": "0", "ID": 0, "NAME": "foo", "VALUE": 100}, "timestamp": 10000},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_INNER_JOIN_0-KafkaTopic_Right-reduce-changelog", "key": "0", "value": {"TT.ROWTIME": 15000, "TT.ROWKEY": "0", "TT.ID": 0, "TT.F1": "a", "TT.F2": 10}, "timestamp": 15000},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_INNER_JOIN_0-Join-repartition", "key": "0", "value": {"ROWTIME": 15000, "ROWKEY": "0", "ID": 0, "NAME": "bar", "VALUE": 99}, "timestamp": 15000},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_INNER_JOIN_0-Join-repartition", "key": "90", "value": {"ROWTIME": 15000, "ROWKEY": "90", "ID": 90, "NAME": "ninety", "VALUE": 90}, "timestamp": 15000},
+        {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "blah", "VALUE": 50, "F1": "zero", "F2": 0}, "timestamp": 10000},
+        {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "zero", "F2": 0}, "timestamp": 10000},
+        {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "bar", "VALUE": 99, "F1": "a", "F2": 10}, "timestamp": 15000}
+      ],
+      "post": {
+        "issues": [
+          "key field has incorrect name - should be T_ID",
+          "key field has incorrect type - should be BIGINT",
+          "There are unnecessary repartition steps in the topology!"
+        ],
+        "sources": [
+          {"name": "INNER_JOIN", "type": "stream", "keyField": {"name": null, "legacyName": "T.ROWKEY", "legacySchema": "STRING"}}
+        ]
+      }
+    },
+    {
+      "name": "join using ROWKEY in the criteria - new internal topic names - AVRO",
+      "comments": [
+        "This test ensures internal topics names (new style) and messages are correct.",
+        "There are explicit tests for JSON and AVRO, rather than making use of the 'format's node,",
+        "as the internal topic schema differs between the formats"
+      ],
+      "statements": [
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='test_topic', value_format='AVRO', key='ID');",
+        "CREATE TABLE TEST_TABLE (ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='test_table', value_format='AVRO', key='ID');",
+        "CREATE STREAM INNER_JOIN as SELECT t.id, name, value, f1, f2 FROM test t join test_table tt on t.ROWKEY = tt.ROWKEY;"
+      ],
+      "properties": {
+        "ksql.query.fields.key.legacy": "true"
+      },
+      "inputs": [
+        {"topic": "test_table", "key": 0, "value": {"ID": 0, "F1": "zero", "F2": 0}, "timestamp": 0},
+        {"topic": "test_table", "key": 10, "value": {"ID": 10, "F1": "100", "F2": 5}, "timestamp": 10000},
+        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "blah", "VALUE": 50}, "timestamp": 10000},
+        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "foo", "VALUE": 100}, "timestamp": 10000},
+        {"topic": "test_table", "key": 0, "value": {"ID": 0, "F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "bar", "VALUE": 99}, "timestamp": 15000},
+        {"topic": "test_topic", "key": 90, "value": {"ID": 90, "NAME": "ninety", "VALUE": 90}, "timestamp": 15000}
+      ],
+      "outputs": [
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_INNER_JOIN_0-KafkaTopic_Right-reduce-changelog", "key": "0", "value": {"TT_ROWTIME": 0, "TT_ROWKEY": "0", "TT_ID": 0, "TT_F1": "zero", "TT_F2": 0}, "timestamp": 0},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_INNER_JOIN_0-KafkaTopic_Right-reduce-changelog", "key": "10", "value": {"TT_ROWTIME": 10000, "TT_ROWKEY": "10", "TT_ID": 10, "TT_F1": "100", "TT_F2": 5}, "timestamp": 10000},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_INNER_JOIN_0-Join-repartition", "key": "0", "value": {"ROWTIME": 10000, "ROWKEY": "0", "ID": 0, "NAME": "blah", "VALUE":  50}, "timestamp": 10000},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_INNER_JOIN_0-Join-repartition", "key": "0", "value": {"ROWTIME": 10000, "ROWKEY": "0", "ID": 0, "NAME": "foo", "VALUE": 100}, "timestamp": 10000},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_INNER_JOIN_0-KafkaTopic_Right-reduce-changelog", "key": "0", "value": {"TT_ROWTIME": 15000, "TT_ROWKEY": "0", "TT_ID": 0, "TT_F1": "a", "TT_F2": 10}, "timestamp": 15000},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_INNER_JOIN_0-Join-repartition", "key": "0", "value": {"ROWTIME": 15000, "ROWKEY": "0", "ID": 0, "NAME": "bar", "VALUE": 99}, "timestamp": 15000},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_INNER_JOIN_0-Join-repartition", "key": "90", "value": {"ROWTIME": 15000, "ROWKEY": "90", "ID": 90, "NAME": "ninety", "VALUE": 90}, "timestamp": 15000},
+        {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "blah", "VALUE": 50, "F1": "zero", "F2": 0}, "timestamp": 10000},
+        {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "zero", "F2": 0}, "timestamp": 10000},
+        {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "bar", "VALUE": 99, "F1": "a", "F2": 10}, "timestamp": 15000}
+      ],
+      "post": {
+        "issues": [
+          "key field has incorrect name - should be T_ID",
+          "key field has incorrect type - should be BIGINT",
+          "There are unnecessary repartition steps in the topology!"
+        ],
+        "sources": [
+          {"name": "INNER_JOIN", "type": "stream", "keyField": {"name": null, "legacyName": "T.ROWKEY", "legacySchema": "STRING"}}
+        ]
+      }
+    },
+    {
+      "name": "join using ROWKEY in the criteria - join key not in projection",
+      "statements": [
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
+        "CREATE TABLE TEST_TABLE (ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='test_table', value_format='JSON', key='ID');",
+        "CREATE STREAM INNER_JOIN as SELECT name, value, f1, f2 FROM test t join test_table tt on t.ROWKEY = tt.ROWKEY;"
+      ],
+      "inputs": [
+        {"topic": "test_table", "key": 0, "value": {"ID": 0, "F1": "zero", "F2": 0}, "timestamp": 0},
+        {"topic": "test_table", "key": 10, "value": {"ID": 10, "F1": "100", "F2": 5}, "timestamp": 10000},
+        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "blah", "VALUE": 50}, "timestamp": 10000},
+        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "foo", "VALUE": 100}, "timestamp": 10000},
+        {"topic": "test_table", "key": 0, "value": {"ID": 0, "F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "bar", "VALUE": 99}, "timestamp": 15000},
+        {"topic": "test_topic", "key": 90, "value": {"ID": 90, "NAME": "ninety", "VALUE": 90}, "timestamp": 15000}
+      ],
+      "outputs": [
+        {"topic": "INNER_JOIN", "key": 0, "value": {"NAME": "blah", "VALUE": 50, "F1": "zero", "F2": 0}, "timestamp": 10000},
+        {"topic": "INNER_JOIN", "key": 0, "value": {"NAME": "foo", "VALUE": 100, "F1": "zero", "F2": 0}, "timestamp": 10000},
+        {"topic": "INNER_JOIN", "key": 0, "value": {"NAME": "bar", "VALUE": 99, "F1": "a", "F2": 10}, "timestamp": 15000}
+      ],
+      "post": {
+        "sources": [
+          {"name": "INNER_JOIN", "type": "stream", "keyField": {"name": null, "legacyName": "T.ROWKEY", "legacySchema": "STRING"}}
+        ]
+      }
+    },
+    {
+      "name": "join using ROWKEY in the criteria - right join key in projection",
+      "statements": [
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
+        "CREATE TABLE TEST_TABLE (ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='test_table', value_format='JSON', key='ID');",
+        "CREATE STREAM INNER_JOIN as SELECT tt.id, name, value, f1, f2 FROM test t join test_table tt on t.ROWKEY = tt.ROWKEY;"
+      ],
+      "inputs": [
+        {"topic": "test_table", "key": 0, "value": {"ID": 0, "F1": "zero", "F2": 0}, "timestamp": 0},
+        {"topic": "test_table", "key": 10, "value": {"ID": 10, "F1": "100", "F2": 5}, "timestamp": 10000},
+        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "blah", "VALUE": 50}, "timestamp": 10000},
+        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "foo", "VALUE": 100}, "timestamp": 10000},
+        {"topic": "test_table", "key": 0, "value": {"ID": 0, "F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "bar", "VALUE": 99}, "timestamp": 15000},
+        {"topic": "test_topic", "key": 90, "value": {"ID": 90, "NAME": "ninety", "VALUE": 90}, "timestamp": 15000}
+      ],
+      "outputs": [
+        {"topic": "INNER_JOIN", "key": 0, "value": {"TT_ID": 0, "NAME": "blah", "VALUE": 50, "F1": "zero", "F2": 0}, "timestamp": 10000},
+        {"topic": "INNER_JOIN", "key": 0, "value": {"TT_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "zero", "F2": 0}, "timestamp": 10000},
+        {"topic": "INNER_JOIN", "key": 0, "value": {"TT_ID": 0, "NAME": "bar", "VALUE": 99, "F1": "a", "F2": 10}, "timestamp": 15000}
+      ],
+      "post": {
+        "issues": [
+          "key field has incorrect name - should be TT_ID"
+        ],
+        "sources": [
+          {"name": "INNER_JOIN", "type": "stream", "keyField": {"name": null, "legacyName": "T.ROWKEY", "legacySchema": "STRING"}}
+        ]
+      }
     },
     {
       "name": "table join pipeline",
@@ -363,6 +1430,37 @@
         {"topic": "INNER_JOIN_2", "key": 0, "value": {"T_ID": 0, "NAME": "X", "F1": "yo dawg", "F3": "I heard you like joins"}, "timestamp": 10000},
         {"topic": "INNER_JOIN_2", "key": 100, "value": {"T_ID": 100, "NAME": "X", "F1": "KSQL has table-table joins", "F3": "so now you can join your join"}, "timestamp": 20000}
       ]
+    },
+    {
+      "name": "table table join with where clause",
+      "statements": [
+        "CREATE TABLE TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='JSON', key='ID');",
+        "CREATE TABLE TEST_TABLE (ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='JSON', key='ID');",
+        "CREATE TABLE OUTPUT as SELECT t.id, name, tt.f1, f2 FROM test t JOIN test_table tt ON t.id = tt.id WHERE t.value > 10 AND tt.f2 > 5;"
+      ],
+      "inputs": [
+        {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "zero", "VALUE": 0}, "timestamp": 0},
+        {"topic": "right_topic", "key": 0, "value": {"ID": 0, "F1": "blah", "F2": 4}, "timestamp": 10000},
+        {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "foo", "VALUE": 100}, "timestamp": 13000},
+        {"topic": "right_topic", "key": 0, "value": {"ID": 0, "F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "bar", "VALUE": 99}, "timestamp": 16000},
+        {"topic": "left_topic", "key": 90, "value": {"ID": 90, "NAME": "ninety", "VALUE": 90}, "timestamp": 17000},
+        {"topic": "right_topic", "key": 90, "value": {"ID": 0, "F1": "b", "F2": 10}, "timestamp": 18000},
+        {"topic": "right_topic", "key": 90, "value": null, "timestamp": 19000}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": null, "timestamp": 10000},
+        {"topic": "OUTPUT", "key": 0, "value": null, "timestamp": 13000},
+        {"topic": "OUTPUT", "key": 0, "value": {"T_ID": 0, "NAME": "foo", "F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "OUTPUT", "key": 0, "value": {"T_ID": 0, "NAME": "bar", "F1": "a", "F2": 10}, "timestamp": 16000},
+        {"topic": "OUTPUT", "key": 90, "value": {"T_ID": 90, "NAME": "ninety", "F1": "b", "F2": 10}, "timestamp": 18000},
+        {"topic": "OUTPUT", "key": 90, "value": null, "timestamp": 19000}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "keyField": {"name": "T_ID", "legacyName": "T_ID", "legacySchema": "BIGINT"}}
+        ]
+      }
     }
   ]
 }

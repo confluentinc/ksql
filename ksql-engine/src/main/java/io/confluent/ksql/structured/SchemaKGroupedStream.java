@@ -21,6 +21,8 @@ import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.UdafAggregator;
 import io.confluent.ksql.function.udaf.KudafAggregator;
 import io.confluent.ksql.function.udaf.window.WindowSelectMapper;
+import io.confluent.ksql.metastore.SerdeFactory;
+import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.parser.tree.KsqlWindowExpression;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.streams.MaterializedFactory;
@@ -32,7 +34,6 @@ import java.util.Objects;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.utils.Bytes;
-import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.kstream.Initializer;
 import org.apache.kafka.streams.kstream.KGroupedStream;
@@ -47,7 +48,7 @@ public class SchemaKGroupedStream {
 
   final Schema schema;
   final KGroupedStream kgroupedStream;
-  final Field keyField;
+  final KeyField keyField;
   final List<SchemaKStream> sourceSchemaKStreams;
   final KsqlConfig ksqlConfig;
   final FunctionRegistry functionRegistry;
@@ -56,7 +57,7 @@ public class SchemaKGroupedStream {
   SchemaKGroupedStream(
       final Schema schema,
       final KGroupedStream kgroupedStream,
-      final Field keyField,
+      final KeyField keyField,
       final List<SchemaKStream> sourceSchemaKStreams,
       final KsqlConfig ksqlConfig,
       final FunctionRegistry functionRegistry
@@ -75,7 +76,7 @@ public class SchemaKGroupedStream {
   SchemaKGroupedStream(
       final Schema schema,
       final KGroupedStream kgroupedStream,
-      final Field keyField,
+      final KeyField keyField,
       final List<SchemaKStream> sourceSchemaKStreams,
       final KsqlConfig ksqlConfig,
       final FunctionRegistry functionRegistry,
@@ -90,7 +91,7 @@ public class SchemaKGroupedStream {
     this.materializedFactory = materializedFactory;
   }
 
-  public Field getKeyField() {
+  public KeyField getKeyField() {
     return keyField;
   }
 
@@ -104,9 +105,9 @@ public class SchemaKGroupedStream {
       final QueryContext.Stacker contextStacker) {
 
     final KTable table;
-    final Serde<?> keySerde;
+    final SerdeFactory<?> keySerdeFactory;
     if (windowExpression != null) {
-      keySerde = getKeySerde(windowExpression);
+      keySerdeFactory = getKeySerde(windowExpression);
       table = aggregateWindowed(
           initializer,
           aggValToFunctionMap,
@@ -115,7 +116,7 @@ public class SchemaKGroupedStream {
           topicValueSerDe,
           contextStacker);
     } else {
-      keySerde = Serdes.String();
+      keySerdeFactory = (SerdeFactory)Serdes::String;
 
       table = aggregateNonWindowed(
           initializer,
@@ -130,7 +131,7 @@ public class SchemaKGroupedStream {
         table,
         keyField,
         sourceSchemaKStreams,
-        keySerde,
+        keySerdeFactory,
         SchemaKStream.Type.AGGREGATE,
         ksqlConfig,
         functionRegistry,
@@ -187,11 +188,11 @@ public class SchemaKGroupedStream {
         windowSelectMapper.apply((Windowed<?>) readOnlyKey, (GenericRow) value));
   }
 
-  private Serde<Windowed<String>> getKeySerde(final WindowExpression windowExpression) {
+  private SerdeFactory<Windowed<String>> getKeySerde(final WindowExpression windowExpression) {
     if (ksqlConfig.getBoolean(KsqlConfig.KSQL_WINDOWED_SESSION_KEY_LEGACY_CONFIG)) {
-      return WindowedSerdes.timeWindowedSerdeFrom(String.class);
+      return () -> WindowedSerdes.timeWindowedSerdeFrom(String.class);
     }
 
-    return windowExpression.getKsqlWindowExpression().getKeySerde(String.class);
+    return windowExpression.getKsqlWindowExpression().getKeySerdeFactory(String.class);
   }
 }

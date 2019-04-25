@@ -15,20 +15,19 @@
 package io.confluent.ksql.rest.server.computation;
 
 import io.confluent.ksql.KsqlExecutionContext;
-import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.server.execution.StatementExecutor;
-import io.confluent.ksql.schema.inference.SchemaInjector;
 import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.util.KsqlServerException;
 import java.time.Duration;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 
 /**
  * A {@code StatementExecutor} that encapsulates a command queue and will
@@ -36,43 +35,39 @@ import java.util.function.Function;
  * duration for the command to be executed remotely if configured with a
  * {@code distributedCmdResponseTimeout}.
  */
-public class DistributingExecutor implements StatementExecutor  {
+public class DistributingExecutor implements StatementExecutor<Statement> {
 
   private final CommandQueue commandQueue;
   private final Duration distributedCmdResponseTimeout;
-  private final Function<ServiceContext, SchemaInjector> schemaInjectorFactory;
+  private final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory;
 
   public DistributingExecutor(
       final CommandQueue commandQueue,
       final Duration distributedCmdResponseTimeout,
-      final Function<ServiceContext, SchemaInjector> schemaInjectorFactory) {
+      final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory) {
     this.commandQueue = Objects.requireNonNull(commandQueue, "commandQueue");
-    this.schemaInjectorFactory =
-        Objects.requireNonNull(schemaInjectorFactory, "schemaInjectorFactory");
     this.distributedCmdResponseTimeout =
         Objects.requireNonNull(distributedCmdResponseTimeout, "distributedCmdResponseTimeout");
+    this.injectorFactory = Objects.requireNonNull(injectorFactory, "injectorFactory");
   }
 
-  @SuppressWarnings("unchecked")
   @Override
   public Optional<KsqlEntity> execute(
-      final PreparedStatement statement,
+      final ConfiguredStatement<Statement> statement,
       final KsqlExecutionContext executionContext,
-      final ServiceContext serviceContext,
-      final KsqlConfig ksqlConfig,
-      final Map<String, Object> propertyOverrides) {
-    final PreparedStatement withSchema =
-        schemaInjectorFactory.apply(serviceContext).forStatement(statement);
+      final ServiceContext serviceContext
+  ) {
+    final ConfiguredStatement<?> injected = injectorFactory
+        .apply(executionContext, serviceContext)
+        .inject(statement);
 
     try {
-      final QueuedCommandStatus queuedCommandStatus = commandQueue
-          .enqueueCommand(withSchema, ksqlConfig, propertyOverrides);
-
+      final QueuedCommandStatus queuedCommandStatus = commandQueue.enqueueCommand(injected);
       final CommandStatus commandStatus = queuedCommandStatus
           .tryWaitForFinalStatus(distributedCmdResponseTimeout);
 
       return Optional.of(new CommandStatusEntity(
-          withSchema.getStatementText(),
+          injected.getStatementText(),
           queuedCommandStatus.getCommandId(),
           commandStatus,
           queuedCommandStatus.getCommandSequenceNumber()

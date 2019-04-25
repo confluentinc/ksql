@@ -32,6 +32,7 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
+import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.parser.tree.KsqlWindowExpression;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.query.QueryId;
@@ -41,6 +42,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
@@ -67,7 +69,7 @@ public class SchemaKGroupedStreamTest {
   @Mock
   private KGroupedStream groupedStream;
   @Mock
-  private Field keyField;
+  private KeyField keyField;
   @Mock
   private List<SchemaKStream> sourceStreams;
   @Mock
@@ -114,7 +116,7 @@ public class SchemaKGroupedStreamTest {
     when(windowEndFunc.getFunctionName()).thenReturn("WindowEnd");
     when(otherFunc.getFunctionName()).thenReturn("NotWindowStartFunc");
     when(windowExp.getKsqlWindowExpression()).thenReturn(ksqlWindowExp);
-    when(ksqlWindowExp.getKeySerde(String.class)).thenReturn(windowedKeySerde);
+    when(ksqlWindowExp.getKeySerdeFactory(String.class)).thenReturn(() -> windowedKeySerde);
     when(config.getBoolean(KsqlConfig.KSQL_WINDOWED_SESSION_KEY_LEGACY_CONFIG)).thenReturn(false);
     when(config.getKsqlStreamConfigProps()).thenReturn(Collections.emptyMap());
     when(materializedFactory.create(any(), any(), any())).thenReturn(materialized);
@@ -167,7 +169,7 @@ public class SchemaKGroupedStreamTest {
             initializer,emptyMap(), emptyMap(), null, topicValueSerDe, queryContext);
 
     // Then:
-    assertThat(result.getKeySerde(), instanceOf(Serdes.String().getClass()));
+    assertThat(result.getKeySerdeFactory().create(), instanceOf(Serdes.String().getClass()));
   }
 
   @Test
@@ -177,7 +179,7 @@ public class SchemaKGroupedStreamTest {
         .aggregate(initializer, emptyMap(), emptyMap(), windowExp, topicValueSerDe, queryContext);
 
     // Then:
-    assertThat(result.getKeySerde(), is(sameInstance(windowedKeySerde)));
+    assertThat(result.getKeySerdeFactory().create(), is(sameInstance(windowedKeySerde)));
   }
 
   @Test
@@ -193,7 +195,7 @@ public class SchemaKGroupedStreamTest {
         .aggregate(initializer, emptyMap(), emptyMap(), windowExp, topicValueSerDe, queryContext);
 
     // Then:
-    assertThat(result.getKeySerde(),
+    assertThat(result.getKeySerdeFactory().create(),
         is(instanceOf(WindowedSerdes.timeWindowedSerdeFrom(String.class).getClass())));
   }
 
@@ -286,7 +288,7 @@ public class SchemaKGroupedStreamTest {
   public void shouldUseMaterializedFactoryWindowedStateStore() {
     // Given:
     final Materialized materialized = whenMaterializedFactoryCreates();
-    when(ksqlWindowExp.getKeySerde(String.class)).thenReturn(windowedKeySerde);
+    when(ksqlWindowExp.getKeySerdeFactory(String.class)).thenReturn(() -> windowedKeySerde);
     when(ksqlWindowExp.applyAggregate(any(), any(), any(), same(materialized)))
         .thenReturn(table);
 

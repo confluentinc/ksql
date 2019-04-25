@@ -30,6 +30,7 @@ import io.confluent.ksql.rest.entity.QueryDescription;
 import io.confluent.ksql.rest.entity.QueryDescriptionEntity;
 import io.confluent.ksql.rest.server.TemporaryEngine;
 import io.confluent.ksql.serde.DataSource.DataSourceType;
+import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.util.Optional;
@@ -48,7 +49,7 @@ public class ExplainExecutorTest {
   @Test
   public void shouldExplainQueryId() {
     // Given:
-    final PreparedStatement explain = engine.prepare("EXPLAIN id;");
+    final ConfiguredStatement<?> explain = engine.configure("EXPLAIN id;");
     final PersistentQueryMetadata metadata = engine.givenPersistentQuery("id");
 
     KsqlEngine engine = mock(KsqlEngine.class);
@@ -58,9 +59,7 @@ public class ExplainExecutorTest {
     final QueryDescriptionEntity query = (QueryDescriptionEntity) CustomExecutors.EXPLAIN.execute(
         explain,
         engine,
-        this.engine.getServiceContext(),
-        this.engine.getKsqlConfig(),
-        ImmutableMap.of()
+        this.engine.getServiceContext()
     ).orElseThrow(IllegalStateException::new);
 
     // Then:
@@ -73,15 +72,13 @@ public class ExplainExecutorTest {
     // Given:
     engine.givenSource(DataSourceType.KSTREAM, "Y");
     final String statementText = "CREATE STREAM X AS SELECT * FROM Y;";
-    final PreparedStatement explain = engine.prepare("EXPLAIN " + statementText);
+    final ConfiguredStatement<?> explain = engine.configure("EXPLAIN " + statementText);
 
     // When:
     final QueryDescriptionEntity query = (QueryDescriptionEntity) CustomExecutors.EXPLAIN.execute(
         explain,
         engine.getEngine(),
-        engine.getServiceContext(),
-        engine.getKsqlConfig(),
-        ImmutableMap.of()
+        engine.getServiceContext()
     ).orElseThrow(IllegalStateException::new);
 
     // Then:
@@ -95,15 +92,13 @@ public class ExplainExecutorTest {
     // Given:
     engine.givenSource(DataSourceType.KSTREAM, "Y");
     final String statementText = "SELECT * FROM Y;";
-    final PreparedStatement explain = engine.prepare("EXPLAIN " + statementText);
+    final ConfiguredStatement<?> explain = engine.configure("EXPLAIN " + statementText);
 
     // When:
     final QueryDescriptionEntity query = (QueryDescriptionEntity) CustomExecutors.EXPLAIN.execute(
         explain,
         engine.getEngine(),
-        engine.getServiceContext(),
-        engine.getKsqlConfig(),
-        ImmutableMap.of()
+        engine.getServiceContext()
     ).orElseThrow(IllegalStateException::new);
 
     // Then:
@@ -119,11 +114,9 @@ public class ExplainExecutorTest {
 
     // When:
     CustomExecutors.EXPLAIN.execute(
-        engine.prepare("Explain SHOW TOPICS;"),
+        engine.configure("Explain SHOW TOPICS;"),
         engine.getEngine(),
-        engine.getServiceContext(),
-        engine.getKsqlConfig(),
-        ImmutableMap.of()
+        engine.getServiceContext()
     );
   }
 

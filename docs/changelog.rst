@@ -1,6 +1,21 @@
 Changelog
 =========
 
+Version 5.3.0
+-------------
+
+KSQL 5.3.0 includes new features, including:
+
+* Improved handling of ``KEY`` fields. The ``KEY`` field is an optional copy of the Kafka record's key held
+  within the record's value. Users can supply the name of the field that holds the copy of the key within
+  the ``WITH`` clause.
+  The improved handling may eliminate unnecessary repartition steps in certain queries.
+  Please note that preexisting persistent queries, e.g. those created via ``CREATE TABLE AS SELECT ...`` or
+  ``CREATE STREAM AS SELECT ...`` or ``INSERT INTO ...``, will continue to have the unnecessary repartition step.
+  This is required to avoid the potential for data loss should this step be dropped.
+  See `#2280 <https://github.com/confluentinc/ksql/pull/2636>`_ for more info.
+
+
 Version 5.2.0
 -------------
 

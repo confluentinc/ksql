@@ -46,149 +46,151 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.junit.Assert;
-import org.junit.Rule;
+import org.junit.Before;
 import org.junit.Test;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.junit.runner.RunWith;
+import org.mockito.junit.MockitoJUnitRunner;
 
-
+@RunWith(MockitoJUnitRunner.class)
 public class KsqlGenericRowAvroDeserializerTest {
-  private static final String schemaStr = "{"
-                     + "\"namespace\": \"kql\","
-                     + " \"name\": \"orders\","
-                     + " \"type\": \"record\","
-                     + " \"fields\": ["
-                     + "     {\"name\": \"orderTime\", \"type\": \"long\"},"
-                     + "     {\"name\": \"orderId\",  \"type\": \"long\"},"
-                     + "     {\"name\": \"itemId\", \"type\": \"string\"},"
-                     + "     {\"name\": \"orderUnits\", \"type\": \"double\"},"
-                     + "     {\"name\": \"arrayCol\", \"type\": {\"type\": \"array\", \"items\": "
-                     + "\"double\"}},"
-                     + "     {\"name\": \"mapCol\", \"type\": {\"type\": \"map\", \"values\": "
-                     + "\"double\"}}"
-                     + " ]"
-                     + "}";
 
-  private final Schema schema;
-  private final org.apache.avro.Schema avroSchema;
-  private final KsqlConfig ksqlConfig;
+  private static final String AVRO_SCHEMA_STRING = "{"
+      + "\"namespace\": \"kql\","
+      + " \"name\": \"orders\","
+      + " \"type\": \"record\","
+      + " \"fields\": ["
+      + "     {\"name\": \"orderTime\", \"type\": \"long\"},"
+      + "     {\"name\": \"orderId\",  \"type\": \"long\"},"
+      + "     {\"name\": \"itemId\", \"type\": \"string\"},"
+      + "     {\"name\": \"orderUnits\", \"type\": \"double\"},"
+      + "     {\"name\": \"arrayCol\", \"type\": {\"type\": \"array\", \"items\": "
+      + "\"double\"}},"
+      + "     {\"name\": \"mapCol\", \"type\": {\"type\": \"map\", \"values\": "
+      + "\"double\"}}"
+      + " ]"
+      + "}";
 
-  @Rule
-  public final MockitoRule mockitoRule = MockitoJUnit.rule();
+  private static final org.apache.avro.Schema AVRO_SCHEMA = new org.apache.avro.Schema.Parser()
+      .parse(AVRO_SCHEMA_STRING);
 
-  public KsqlGenericRowAvroDeserializerTest() {
-    final org.apache.avro.Schema.Parser parser = new org.apache.avro.Schema.Parser();
-    avroSchema = parser.parse(schemaStr);
-    schema = SchemaBuilder.struct()
-        .field("ORDERTIME".toUpperCase(), Schema.OPTIONAL_INT64_SCHEMA)
-        .field("ORDERID".toUpperCase(), Schema.OPTIONAL_INT64_SCHEMA)
-        .field("ITEMID".toUpperCase(), Schema.OPTIONAL_STRING_SCHEMA)
-        .field("ORDERUNITS".toUpperCase(), Schema.OPTIONAL_FLOAT64_SCHEMA)
-        .field(
-            "ARRAYCOL".toUpperCase(),
-            SchemaBuilder.array(Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build())
-        .field(
-            "MAPCOL".toUpperCase(),
-            SchemaBuilder.map(
-                Schema.STRING_SCHEMA,
-                Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build())
-        .optional()
-        .build();
+  private static final Schema schema = SchemaBuilder.struct()
+      .field("ORDERTIME", Schema.OPTIONAL_INT64_SCHEMA)
+      .field("ORDERID", Schema.OPTIONAL_INT64_SCHEMA)
+      .field("ITEMID", Schema.OPTIONAL_STRING_SCHEMA)
+      .field("ORDERUNITS", Schema.OPTIONAL_FLOAT64_SCHEMA)
+      .field("ARRAYCOL", SchemaBuilder
+          .array(Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build())
+      .field("MAPCOL", SchemaBuilder
+          .map(Schema.STRING_SCHEMA, Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build())
+      .optional()
+      .build();
 
-    ksqlConfig = new KsqlConfig(
-        Collections.singletonMap(
-            KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY,
-            "fake-schema-registry-url"));
+  private static final KsqlConfig KSQL_CONFIG = new KsqlConfig(Collections.singletonMap(
+          KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY, "fake-schema-registry-url"));
+
+  private SchemaRegistryClient schemaRegistryClient;
+
+  @Before
+  public void setUp() {
+    schemaRegistryClient = new MockSchemaRegistryClient();
   }
 
   @Test
-  @SuppressWarnings("unchecked")
   public void shouldDeserializeCorrectly() {
-    final SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
-    final List<Object> columns = Arrays.asList(
-        1511897796092L, 1L, "item_1", 10.0, Collections.singletonList(100.0),
-        Collections.singletonMap("key1", 100.0));
+    // Given:
+    final GenericRow genericRow = new GenericRow(Arrays.asList(
+        1511897796092L,
+        1L,
+        "item_1",
+        10.0,
+        Collections.singletonList(100.0),
+        Collections.singletonMap("key1", 100.0)
+    ));
 
-    final GenericRow genericRow = new GenericRow(columns);
+    // When:
     final GenericRow row = serializeDeserializeRow(
-        schema, "t1", schemaRegistryClient, avroSchema, genericRow);
+        schema, AVRO_SCHEMA, genericRow);
+
+    // Then:
     Assert.assertNotNull(row);
-    assertThat("Incorrect deserializarion", row.getColumns().size(), equalTo(6));
-    assertThat("Incorrect deserializarion", row.getColumns().get(0), equalTo(1511897796092L));
-    assertThat("Incorrect deserializarion", row.getColumns().get(1), equalTo
-        (1L));
-    assertThat("Incorrect deserializarion", row.getColumns().get(2), equalTo
-        ( "item_1"));
-    assertThat("Incorrect deserializarion", row.getColumns().get(3), equalTo
-        ( 10.0));
-    assertThat("Incorrect deserializarion", ((List<Double>)row.getColumns().get(4)).size(), equalTo
-        (1));
-    assertThat("Incorrect deserializarion", ((Map)row.getColumns().get(5)).size(), equalTo
-        (1));
+    assertThat(row.getColumns().size(), equalTo(6));
+    assertThat(row.getColumns().get(0), equalTo(1511897796092L));
+    assertThat(row.getColumns().get(1), equalTo(1L));
+    assertThat(row.getColumns().get(2), equalTo( "item_1"));
+    assertThat(row.getColumns().get(3), equalTo( 10.0));
+    assertThat(row.getColumns().get(4), equalTo(ImmutableList.of(100.0)));
+    assertThat(row.getColumns().get(5), equalTo(ImmutableMap.of("key1", 100.0)));
   }
 
   @Test
   public void shouldDeserializeIfThereAreRedundantFields() {
+    // Given:
     final Schema newSchema = SchemaBuilder.struct()
-        .field("ordertime".toUpperCase(), Schema.OPTIONAL_INT64_SCHEMA)
-        .field("orderid".toUpperCase(), Schema.OPTIONAL_INT64_SCHEMA)
-        .field("itemid".toUpperCase(), Schema.OPTIONAL_STRING_SCHEMA)
-        .field("orderunits".toUpperCase(), Schema.OPTIONAL_FLOAT64_SCHEMA)
+        .field("ORDERTIME", Schema.OPTIONAL_INT64_SCHEMA)
+        .field("ORDERID", Schema.OPTIONAL_INT64_SCHEMA)
+        .field("ITEMID", Schema.OPTIONAL_STRING_SCHEMA)
+        .field("ORDERUNITS", Schema.OPTIONAL_FLOAT64_SCHEMA)
         .build();
-    final SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
-    final List<Object> columns = Arrays.asList(
-        1511897796092L, 1L, "item_1", 10.0, Collections.emptyList(), Collections.emptyMap());
 
-    final GenericRow genericRow = new GenericRow(columns);
+    final GenericRow genericRow = new GenericRow(Arrays.asList(
+        1511897796092L,
+        1L,
+        "item_1",
+        10.0,
+        Collections.emptyList(),
+        Collections.emptyMap()));
+
+    // When:
     final GenericRow row = serializeDeserializeRow(
-        newSchema, "t1", schemaRegistryClient, avroSchema, genericRow);
+        newSchema, AVRO_SCHEMA, genericRow);
 
+    // Then:
     Assert.assertNotNull(row);
-    assertThat("Incorrect deserializarion", row.getColumns().size(), equalTo(4));
-    assertThat("Incorrect deserializarion", row.getColumns().get(0), equalTo(1511897796092L));
-    assertThat("Incorrect deserializarion", row.getColumns().get(1), equalTo
-        (1L));
-    assertThat("Incorrect deserializarion", row.getColumns().get(2), equalTo
-        ( "item_1"));
+    assertThat(row.getColumns().size(), equalTo(4));
+    assertThat(row.getColumns().get(0), equalTo(1511897796092L));
+    assertThat(row.getColumns().get(1), equalTo(1L));
+    assertThat(row.getColumns().get(2), equalTo( "item_1"));
   }
-
 
   @Test
   public void shouldDeserializeWithMissingFields() {
+    // Given:
     final String schemaStr1 = "{"
-                        + "\"namespace\": \"kql\","
-                        + " \"name\": \"orders\","
-                        + " \"type\": \"record\","
-                        + " \"fields\": ["
-                        + "     {\"name\": \"orderTime\", \"type\": \"long\"},"
-                        + "     {\"name\": \"orderId\",  \"type\": \"long\"},"
-                        + "     {\"name\": \"itemId\", \"type\": \"string\"},"
-                        + "     {\"name\": \"orderUnits\", \"type\": \"double\"}"
-                        + " ]"
-                        + "}";
-    final org.apache.avro.Schema.Parser parser = new org.apache.avro.Schema.Parser();
-    final org.apache.avro.Schema avroSchema1 = parser.parse(schemaStr1);
-    final SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
-    final List<Object> columns = Arrays.asList(1511897796092L, 1L, "item_1", 10.0);
+        + "\"namespace\": \"kql\","
+        + " \"name\": \"orders\","
+        + " \"type\": \"record\","
+        + " \"fields\": ["
+        + "     {\"name\": \"orderTime\", \"type\": \"long\"},"
+        + "     {\"name\": \"orderId\",  \"type\": \"long\"},"
+        + "     {\"name\": \"itemId\", \"type\": \"string\"},"
+        + "     {\"name\": \"orderUnits\", \"type\": \"double\"}"
+        + " ]"
+        + "}";
 
-    final GenericRow genericRow = new GenericRow(columns);
+    final org.apache.avro.Schema avroSchema1 = new org.apache.avro.Schema.Parser()
+        .parse(schemaStr1);
+
+    final GenericRow genericRow = new GenericRow(Arrays.asList(1511897796092L, 1L, "item_1", 10.0));
+
+    // When"
     final GenericRow row = serializeDeserializeRow(
-        schema, "t1", schemaRegistryClient, avroSchema1, genericRow);
+        schema, avroSchema1, genericRow);
 
-    assertThat("Incorrect deserializarion", row.getColumns().size(), equalTo(6));
-    assertThat("Incorrect deserializarion", row.getColumns().get(0), equalTo(1511897796092L));
-    assertThat("Incorrect deserializarion", row.getColumns().get(1), equalTo
-        (1L));
-    assertThat("Incorrect deserializarion", row.getColumns().get(2), equalTo
-        ( "item_1"));
+    // Then:
+    assertThat(row.getColumns().size(), equalTo(6));
+    assertThat(row.getColumns().get(0), equalTo(1511897796092L));
+    assertThat(row.getColumns().get(1), equalTo(1L));
+    assertThat(row.getColumns().get(2), equalTo( "item_1"));
     Assert.assertNull(row.getColumns().get(4));
     Assert.assertNull(row.getColumns().get(5));
   }
 
-  private GenericRow serializeDeserializeAvroRecord(final Schema schema,
-                                                    final String topicName,
-                                                    final SchemaRegistryClient schemaRegistryClient,
-                                                    final GenericRecord avroRecord) {
+  private static GenericRow serializeDeserializeAvroRecord(
+      final Schema schema,
+      final String topicName,
+      final SchemaRegistryClient schemaRegistryClient,
+      final GenericRecord avroRecord
+  ) {
     final Map<String, Object> map = new HashMap<>();
     map.put(AbstractKafkaAvroSerDeConfig.AUTO_REGISTER_SCHEMAS, true);
     map.put(AbstractKafkaAvroSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, "");
@@ -199,8 +201,7 @@ public class KsqlGenericRowAvroDeserializerTest {
     final Deserializer<GenericRow> deserializer =
         new KsqlAvroTopicSerDe(KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME).getGenericRowSerde(
             schema,
-            ksqlConfig,
-            false,
+            KSQL_CONFIG,
             () -> schemaRegistryClient,
             "loggerName",
             ProcessingLogContext.create()).deserializer();
@@ -208,17 +209,17 @@ public class KsqlGenericRowAvroDeserializerTest {
     return deserializer.deserialize(topicName, bytes);
   }
 
-  private GenericRow serializeDeserializeRow(final Schema schema,
-                                             final String topicName,
-                                             final SchemaRegistryClient schemaRegistryClient,
-                                             final org.apache.avro.Schema rowAvroSchema,
-                                             final GenericRow genericRow) {
+  private GenericRow serializeDeserializeRow(
+      final Schema schema,
+      final org.apache.avro.Schema rowAvroSchema,
+      final GenericRow genericRow
+  ) {
     final GenericRecord avroRecord = new GenericData.Record(rowAvroSchema);
     final List<org.apache.avro.Schema.Field> fields = rowAvroSchema.getFields();
     for (int i = 0; i < genericRow.getColumns().size(); i++) {
       avroRecord.put(fields.get(i).name(), genericRow.getColumns().get(i));
     }
-    return serializeDeserializeAvroRecord(schema, topicName, schemaRegistryClient, avroRecord);
+    return serializeDeserializeAvroRecord(schema, "t1", schemaRegistryClient, avroRecord);
   }
 
   private void shouldDeserializeTypeCorrectly(final org.apache.avro.Schema avroSchema,
@@ -231,7 +232,7 @@ public class KsqlGenericRowAvroDeserializerTest {
                                               final Object avroValue,
                                               final Schema ksqlSchema,
                                               final Object ksqlValue) {
-    final SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
+
 
     final org.apache.avro.Schema avroRecordSchema = org.apache.avro.SchemaBuilder.record("test_row")
         .fields()
@@ -475,7 +476,6 @@ public class KsqlGenericRowAvroDeserializerTest {
                                                      final Object connectValue,
                                                      final Schema ksqlSchema,
                                                      final Object ksqlValue) {
-    final SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
 
     final Schema connectRecordSchema = SchemaBuilder.struct()
         .field("field0", connectSchema)
@@ -502,8 +502,7 @@ public class KsqlGenericRowAvroDeserializerTest {
     final Deserializer<GenericRow> deserializer =
         new KsqlAvroTopicSerDe(KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME).getGenericRowSerde(
             ksqlRecordSchema,
-            ksqlConfig,
-            false,
+            KSQL_CONFIG,
             () -> schemaRegistryClient,
             "loggerName",
             ProcessingLogContext.create()).deserializer();
@@ -613,5 +612,4 @@ public class KsqlGenericRowAvroDeserializerTest {
         ImmutableMap.of("true", 10, "false", 20)
     );
   }
-
 }

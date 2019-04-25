@@ -1,11 +1,6 @@
 {
   "comments": [
-    "You can specify multiple statements per test case, i.e., to set up the various streams needed",
-    "for joins etc, but currently only the final topology will be verified. This should be enough",
-    "for most tests as we can simulate the outputs from previous stages into the final stage. If we",
-    "take a modular approach to testing we can still verify that it all works correctly, i.e, if we",
-    "verify the output of a select or aggregate is correct, we can use simulated output to feed into",
-    "a join or another aggregate."
+    "Test cases covering the use of the aggregate SUM function"
   ],
   "tests": [
     {
@@ -25,6 +20,34 @@
         {"topic": "S2", "key": 0, "value": "0,100"},
         {"topic": "S2", "key": 100, "value": "100,500"},
         {"topic": "S2", "key": 100, "value": "100,600"}
+      ]
+    },
+    {
+      "name": "sum int left join of table",
+      "comment": "from https://github.com/confluentinc/ksql/issues/2490",
+      "statements": [
+        "CREATE TABLE t1 (ID bigint, TOTAL integer) WITH (kafka_topic='T1', value_format='DELIMITED', key='ID');",
+        "CREATE TABLE t2 (ID bigint, TOTAL integer) WITH (kafka_topic='T2', value_format='DELIMITED', key='ID');",
+        "CREATE TABLE OUTPUT AS SELECT t1.id, SUM(t2.total) FROM T1 LEFT JOIN T2 ON (t1.id = t2.id) GROUP BY t1.id;"
+      ],
+      "inputs": [
+        {"topic": "T1", "key": 0, "value": "0,100"},
+        {"topic": "T1", "key": 1, "value": "1,101"},
+        {"topic": "T2", "key": 0, "value": "0,5"},
+        {"topic": "T2", "key": 1, "value": "1,10"},
+        {"topic": "T2", "key": 0, "value": "0,20"},
+        {"topic": "T2", "key": 0, "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": "0,0"},
+        {"topic": "OUTPUT", "key": 1, "value": "1,0"},
+        {"topic": "OUTPUT", "key": 0, "value": "0,0"},
+        {"topic": "OUTPUT", "key": 0, "value": "0,5"},
+        {"topic": "OUTPUT", "key": 1, "value": "1,0"},
+        {"topic": "OUTPUT", "key": 1, "value": "1,10"},
+        {"topic": "OUTPUT", "key": 0, "value": "0,0"},
+        {"topic": "OUTPUT", "key": 0, "value": "0,20"},
+        {"topic": "OUTPUT", "key": 0, "value": "0,0"}
       ]
     },
     {

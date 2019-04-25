@@ -31,7 +31,6 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doReturn;
@@ -61,6 +60,7 @@ import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
+import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
@@ -134,12 +134,6 @@ public class KsqlEngineTest {
     );
 
     sandbox = ksqlEngine.createSandbox();
-    doReturn(new TopicDescription("test1", true, Collections.singletonList(mock(TopicPartitionInfo.class))))
-        .when(topicClient).describeTopic("test1");
-    doReturn(new TopicDescription("test2", true, Collections.singletonList(mock(TopicPartitionInfo.class))))
-        .when(topicClient).describeTopic("test2");
-    doReturn(new TopicDescription("orders_topic", true, Collections.singletonList(mock(TopicPartitionInfo.class))))
-        .when(topicClient).describeTopic("orders_topic");
   }
 
   @After
@@ -150,15 +144,17 @@ public class KsqlEngineTest {
 
   @Test
   public void shouldCreatePersistentQueries() {
+    // When:
     final List<QueryMetadata> queries
         = KsqlEngineTestUtil.execute(ksqlEngine, "create table bar as select * from test2;" +
         "create table foo as select * from test2;", KSQL_CONFIG, Collections.emptyMap());
 
-    assertThat(queries.size(), equalTo(2));
-    final PersistentQueryMetadata queryOne = (PersistentQueryMetadata) queries.get(0);
-    final PersistentQueryMetadata queryTwo = (PersistentQueryMetadata) queries.get(1);
-    assertThat(queryOne.getEntity(), equalTo("BAR"));
-    assertThat(queryTwo.getEntity(), equalTo("FOO"));
+    // Then:
+    assertThat(queries, hasSize(2));
+    assertThat(queries.get(0), is(instanceOf(PersistentQueryMetadata.class)));
+    assertThat(queries.get(1), is(instanceOf(PersistentQueryMetadata.class)));
+    assertThat(((PersistentQueryMetadata) queries.get(0)).getSinkNames(), contains("BAR"));
+    assertThat(((PersistentQueryMetadata) queries.get(1)).getSinkNames(), contains("FOO"));
   }
 
   @Test
@@ -189,7 +185,10 @@ public class KsqlEngineTest {
 
     // When:
     final ExecuteResult result = sandbox
-        .execute(sandbox.prepare(statements.get(1)), KSQL_CONFIG, Collections.emptyMap());
+        .execute(ConfiguredStatement.of(
+            sandbox.prepare(statements.get(1)),
+            Collections.emptyMap(),
+            KSQL_CONFIG));
 
     // Then:
     assertThat(result.getQuery(), is(not(Optional.empty())));
@@ -298,7 +297,7 @@ public class KsqlEngineTest {
     expectedException.expectMessage("Kafka topic does not exist: S1_NOTEXIST");
 
     // When:
-    sandbox.execute(prepared, KSQL_CONFIG, Collections.emptyMap());
+    sandbox.execute(ConfiguredStatement.of(prepared,  Collections.emptyMap(), KSQL_CONFIG));
   }
 
   @Test
@@ -316,19 +315,6 @@ public class KsqlEngineTest {
 
     // Then:
     assertThat(metaStore.getSource("foo"), nullValue());
-  }
-
-  @Test
-  public void shouldEnforceTopicExistenceCorrectly() {
-    serviceContext.getTopicClient().createTopic("s1_topic", 1, (short) 1);
-
-    final String runScriptContent =
-        "CREATE STREAM S1 (COL1 BIGINT) WITH  (KAFKA_TOPIC = 's1_topic', VALUE_FORMAT = 'JSON');\n"
-            + "CREATE TABLE T1 AS SELECT COL1, count(*) FROM S1 GROUP BY COL1;\n"
-            + "CREATE STREAM S2 (C1 BIGINT) WITH (KAFKA_TOPIC = 'T1', VALUE_FORMAT = 'JSON');\n";
-
-    KsqlEngineTestUtil.execute(ksqlEngine, runScriptContent, KSQL_CONFIG, Collections.emptyMap());
-    Assert.assertTrue(serviceContext.getTopicClient().isTopicExists("T1"));
   }
 
   @Test
@@ -361,7 +347,7 @@ public class KsqlEngineTest {
             + " WITH (KAFKA_TOPIC = 'i_do_not_exist', VALUE_FORMAT = 'JSON');")));
 
     // When:
-    sandbox.execute(statement, KSQL_CONFIG, new HashMap<>());
+    sandbox.execute(ConfiguredStatement.of(statement, new HashMap<>(), KSQL_CONFIG));
   }
 
   @Test
@@ -376,103 +362,7 @@ public class KsqlEngineTest {
     expectedException.expect(rawMessage(is("Kafka topic does not exist: i_do_not_exist")));
 
     // When:
-    ksqlEngine.execute(statement, KSQL_CONFIG, new HashMap<>());
-  }
-
-  @Test
-  public void shouldThrowFromTryExecuteIfSinkTopicExistsWithWrongPartitionCount() {
-    // Given:
-    serviceContext.getTopicClient().createTopic("source", 1, (short) 1);
-    serviceContext.getTopicClient().createTopic("sink", 2, (short) 1);
-
-    final List<ParsedStatement> statements = parse(
-        "CREATE STREAM S1 (C1 BIGINT) WITH (KAFKA_TOPIC='source', VALUE_FORMAT='JSON');\n"
-            + "CREATE STREAM S2 WITH (KAFKA_TOPIC='sink') AS SELECT * FROM S1;\n");
-
-    givenStatementAlreadyExecuted(statements.get(0));
-
-    final PreparedStatement<?> prepared = prepare(statements.get(1));
-
-    // Expect:
-    expectedException.expect(KsqlStatementException.class);
-    expectedException.expect(rawMessage(containsString(
-        "A Kafka topic with the name 'sink' already exists, "
-            + "with different partition/replica configuration than required")));
-
-    // When:
-    sandbox.execute(prepared, KSQL_CONFIG, new HashMap<>());
-  }
-
-  @Test
-  public void shouldThrowFromExecuteIfSinkTopicExistsWithWrongPartitionCount() {
-    // Given:
-    final List<ParsedStatement> statements = parse(
-        "CREATE STREAM S1 (C1 BIGINT) WITH (KAFKA_TOPIC='source', VALUE_FORMAT='JSON');\n"
-            + "CREATE STREAM S2 WITH (KAFKA_TOPIC='sink') AS SELECT * FROM S1;\n");
-
-    serviceContext.getTopicClient().createTopic("source", 1, (short) 1);
-    serviceContext.getTopicClient().createTopic("sink", 2, (short) 1);
-
-    ksqlEngine.execute(prepare(statements.get(0)), KSQL_CONFIG, new HashMap<>());
-
-    final PreparedStatement<?> prepared = prepare(statements.get(1));
-
-    // Expect:
-    expectedException.expect(KsqlStatementException.class);
-    expectedException.expect(rawMessage(containsString(
-        "A Kafka topic with the name 'sink' already exists, "
-            + "with different partition/replica configuration than required")));
-
-    // When:
-    ksqlEngine.execute(prepared, KSQL_CONFIG, new HashMap<>());
-  }
-
-  @Test
-  public void shouldThrowFromTryExecuteIfSinkTopicExistsWithWrongReplicaCount() {
-    // Given:
-    final List<ParsedStatement> statements = parse(
-        "CREATE STREAM S1 (C1 BIGINT) WITH (KAFKA_TOPIC='source', VALUE_FORMAT='JSON');\n"
-            + "CREATE STREAM S2 WITH (KAFKA_TOPIC='sink') AS SELECT * FROM S1;\n");
-
-    serviceContext.getTopicClient().createTopic("sink", 1, (short) 2);
-    serviceContext.getTopicClient().createTopic("source", 1, (short) 3);
-
-    givenStatementAlreadyExecuted(statements.get(0));
-
-    final PreparedStatement<?> prepared = prepare(statements.get(1));
-
-    // Expect:
-    expectedException.expect(KsqlStatementException.class);
-    expectedException.expect(rawMessage(containsString(
-        "A Kafka topic with the name 'sink' already exists, "
-            + "with different partition/replica configuration than required")));
-
-    // When:
-    sandbox.execute(prepared, KSQL_CONFIG, new HashMap<>());
-  }
-
-  @Test
-  public void shouldThrowFromExecuteIfSinkTopicExistsWithWrongReplicaCount() {
-    // Given:
-    final List<ParsedStatement> statements = parse(
-        "CREATE STREAM S1 (C1 BIGINT) WITH (KAFKA_TOPIC='source', VALUE_FORMAT='JSON');\n"
-            + "CREATE STREAM S2 WITH (KAFKA_TOPIC='sink') AS SELECT * FROM S1;\n");
-
-    serviceContext.getTopicClient().createTopic("source", 1, (short) 3);
-    serviceContext.getTopicClient().createTopic("sink", 1, (short) 2);
-
-    givenStatementAlreadyExecuted(statements.get(0));
-
-    final PreparedStatement<?> prepared = prepare(statements.get(1));
-
-    // Expect:
-    expectedException.expect(KsqlStatementException.class);
-    expectedException.expect(rawMessage(containsString(
-        "A Kafka topic with the name 'sink' already exists, "
-            + "with different partition/replica configuration than required")));
-
-    // When:
-    ksqlEngine.execute(prepared, KSQL_CONFIG, new HashMap<>());
+    ksqlEngine.execute(ConfiguredStatement.of(statement, new HashMap<>(), KSQL_CONFIG));
   }
 
   @Test
@@ -540,6 +430,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldNotDeleteSchemaNorTopicForStream() throws Exception {
     // Given:
+    givenTopicsExist("BAR");
     final QueryMetadata query = KsqlEngineTestUtil.execute(ksqlEngine,
         "create stream bar with (value_format = 'avro') as select * from test1;"
             + "create stream foo as select * from test1;",
@@ -623,6 +514,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldNotDeleteSchemaNorTopicForTable() throws Exception {
     // Given:
+    givenTopicsExist("BAR");
     final QueryMetadata query = KsqlEngineTestUtil.execute(ksqlEngine,
         "create table bar with (value_format = 'avro') as select * from test2;",
         KSQL_CONFIG, Collections.emptyMap()).get(0);
@@ -678,7 +570,7 @@ public class KsqlEngineTest {
   public void shouldRemovePersistentQueryFromEngineWhenClosed() {
     // Given:
     final int startingLiveQueries = ksqlEngine.numberOfLiveQueries();
-    final int startingPersistentQueries = ksqlEngine.numberOfPersistentQueries();
+    final int startingPersistentQueries = ksqlEngine.getPersistentQueries().size();
 
     final QueryMetadata query = KsqlEngineTestUtil.execute(ksqlEngine,
         "create stream s1 with (value_format = 'avro') as select * from test1;",
@@ -690,7 +582,7 @@ public class KsqlEngineTest {
     // Then:
     assertThat(ksqlEngine.getPersistentQuery(getQueryId(query)), is(Optional.empty()));
     assertThat(ksqlEngine.numberOfLiveQueries(), is(startingLiveQueries));
-    assertThat(ksqlEngine.numberOfPersistentQueries(), is(startingPersistentQueries));
+    assertThat(ksqlEngine.getPersistentQueries().size(), is(startingPersistentQueries));
   }
 
   @Test
@@ -717,7 +609,7 @@ public class KsqlEngineTest {
 
     // Then:
     verify(jsonKsqlSerde, atLeastOnce()).getGenericRowSerde(
-        any(), any(), anyBoolean(), eq(schemaRegistryClientFactory), any(), any()
+        any(), any(), eq(schemaRegistryClientFactory), any(), any()
     );
   }
 
@@ -755,7 +647,8 @@ public class KsqlEngineTest {
         .map(stmt ->
         {
           final PreparedStatement<?> prepared = ksqlEngine.prepare(stmt);
-          final ExecuteResult result = ksqlEngine.execute(prepared, KSQL_CONFIG, new HashMap<>());
+          final ExecuteResult result = ksqlEngine.execute(
+              ConfiguredStatement.of(prepared, new HashMap<>(), KSQL_CONFIG));
           result.getQuery().ifPresent(queries::add);
           return prepared;
         })
@@ -836,7 +729,7 @@ public class KsqlEngineTest {
         "CREATE TABLE FOO WITH (KAFKA_TOPIC='BAR') AS SELECT * FROM TEST2;")));
 
     // When:
-    ksqlEngine.execute(prepared, KSQL_CONFIG, Collections.emptyMap());
+    ksqlEngine.execute(ConfiguredStatement.of(prepared, new HashMap<>(), KSQL_CONFIG));
   }
 
   @Test
@@ -889,7 +782,7 @@ public class KsqlEngineTest {
         "CREATE STREAM FOO WITH (KAFKA_TOPIC='BAR') AS SELECT * FROM ORDERS;")));
 
     // When:
-    ksqlEngine.execute(prepared, KSQL_CONFIG, Collections.emptyMap());
+    ksqlEngine.execute(ConfiguredStatement.of(prepared, new HashMap<>(), KSQL_CONFIG));
   }
 
   @Test
@@ -938,7 +831,7 @@ public class KsqlEngineTest {
         "CREATE STREAM FOO AS SELECT COUNT(ORDERID) FROM ORDERS GROUP BY ORDERID;")));
 
     // When:
-    sandbox.execute(statement, KSQL_CONFIG, Collections.emptyMap());
+    sandbox.execute(ConfiguredStatement.of(statement, new HashMap<>(), KSQL_CONFIG));
   }
 
   @Test
@@ -954,7 +847,7 @@ public class KsqlEngineTest {
             + "Please use CREATE STREAM AS SELECT statement instead.")));
 
     // When:
-    sandbox.execute(statement, KSQL_CONFIG, Collections.emptyMap());
+    sandbox.execute(ConfiguredStatement.of(statement, new HashMap<>(), KSQL_CONFIG));
   }
 
   @Test
@@ -970,7 +863,7 @@ public class KsqlEngineTest {
       final PreparedStatement<?> prepared = ksqlEngine.prepare(statement);
 
       try {
-        ksqlEngine.execute(prepared, KSQL_CONFIG, Collections.emptyMap());
+        ksqlEngine.execute(ConfiguredStatement.of(prepared, new HashMap<>(), KSQL_CONFIG));
         Assert.fail();
       } catch (final KsqlStatementException e) {
         assertThat(e.getMessage(), containsString(
@@ -994,7 +887,7 @@ public class KsqlEngineTest {
 
       try {
         // When:
-        ksqlEngine.execute(prepared, KSQL_CONFIG, Collections.emptyMap());
+        ksqlEngine.execute(ConfiguredStatement.of(prepared, new HashMap<>(), KSQL_CONFIG));
 
         // Then:
         Assert.fail();
@@ -1020,7 +913,7 @@ public class KsqlEngineTest {
   public void shouldNotUpdateMetaStoreDuringTryExecute() {
     // Given:
     final int numberOfLiveQueries = ksqlEngine.numberOfLiveQueries();
-    final int numPersistentQueries = ksqlEngine.numberOfPersistentQueries();
+    final int numPersistentQueries = ksqlEngine.getPersistentQueries().size();
 
     final List<ParsedStatement> statements = parse(
         "SET 'auto.offset.reset' = 'earliest';"
@@ -1033,7 +926,8 @@ public class KsqlEngineTest {
 
     // When:
     statements
-        .forEach(stmt -> sandbox.execute(sandbox.prepare(stmt), KSQL_CONFIG, new HashMap<>()));
+        .forEach(stmt -> sandbox.execute(
+            ConfiguredStatement.of(sandbox.prepare(stmt), new HashMap<>(), KSQL_CONFIG)));
 
     // Then:
     assertThat(metaStore.getSource("TEST3"), is(notNullValue()));
@@ -1041,7 +935,7 @@ public class KsqlEngineTest {
     assertThat(metaStore.getSource("BAR"), is(nullValue()));
     assertThat(metaStore.getSource("FOO"), is(nullValue()));
     assertThat("live", ksqlEngine.numberOfLiveQueries(), is(numberOfLiveQueries));
-    assertThat("peristent", ksqlEngine.numberOfPersistentQueries(), is(numPersistentQueries));
+    assertThat("peristent", ksqlEngine.getPersistentQueries().size(), is(numPersistentQueries));
   }
 
   @Test
@@ -1057,7 +951,7 @@ public class KsqlEngineTest {
 
     // When:
     statements.forEach(
-        stmt -> sandbox.execute(sandbox.prepare(stmt), KSQL_CONFIG, Collections.emptyMap()));
+        stmt -> sandbox.execute(ConfiguredStatement.of(sandbox.prepare(stmt), new HashMap<>(), KSQL_CONFIG)));
 
     // Then:
     assertThat("no topics should be created during a tryExecute call",
@@ -1071,7 +965,7 @@ public class KsqlEngineTest {
     final PreparedStatement<?> statement = prepare(parse(sql).get(0));
 
     // When:
-    sandbox.execute(statement, KSQL_CONFIG, Collections.emptyMap());
+    sandbox.execute(ConfiguredStatement.of(statement, new HashMap<>(), KSQL_CONFIG));
 
     // Then:
     final List<QueryMetadata> queries = KsqlEngineTestUtil
@@ -1092,7 +986,7 @@ public class KsqlEngineTest {
     final PreparedStatement<?> prepared = prepare(statements.get(1));
 
     // When:
-    sandbox.execute(prepared, KSQL_CONFIG, Collections.emptyMap());
+    sandbox.execute(ConfiguredStatement.of(prepared, new HashMap<>(), KSQL_CONFIG));
 
     // Then:
     verify(schemaRegistryClient, never()).register(any(), any());
@@ -1127,7 +1021,7 @@ public class KsqlEngineTest {
         "create table bar as select * from test2;").get(0));
 
     // When:
-    final ExecuteResult result = sandbox.execute(prepared, KSQL_CONFIG, Collections.emptyMap());
+    final ExecuteResult result = sandbox.execute(ConfiguredStatement.of(prepared, new HashMap<>(), KSQL_CONFIG));
 
     // Then:
     assertThat(result.getQuery(), is(not(Optional.empty())));
@@ -1144,7 +1038,7 @@ public class KsqlEngineTest {
         prepare(parse("SET 'auto.offset.reset' = 'earliest';").get(0));
 
     // When:
-    final ExecuteResult result = sandbox.execute(statement, KSQL_CONFIG, new HashMap<>());
+    final ExecuteResult result = sandbox.execute(ConfiguredStatement.of(statement, new HashMap<>(), KSQL_CONFIG));
 
     // Then:
     assertThat(result.getCommandResult(),
@@ -1228,13 +1122,15 @@ public class KsqlEngineTest {
   private void givenStatementAlreadyExecuted(
       final ParsedStatement statement
   ) {
-    ksqlEngine.execute(ksqlEngine.prepare(statement), KSQL_CONFIG, new HashMap<>());
+    ksqlEngine.execute(
+        ConfiguredStatement.of(ksqlEngine.prepare(statement), new HashMap<>(), KSQL_CONFIG));
     sandbox = ksqlEngine.createSandbox();
   }
 
   private void givenSqlAlreadyExecuted(final String sql) {
     parse(sql).forEach(stmt ->
-        ksqlEngine.execute(ksqlEngine.prepare(stmt), KSQL_CONFIG, new HashMap<>()));
+        ksqlEngine.execute(
+            ConfiguredStatement.of(ksqlEngine.prepare(stmt), new HashMap<>(), KSQL_CONFIG)));
 
     sandbox = ksqlEngine.createSandbox();
   }

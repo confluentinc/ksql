@@ -20,11 +20,11 @@ import static java.util.Objects.requireNonNull;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.UdafAggregator;
+import io.confluent.ksql.metastore.SerdeFactory;
 import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
-import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.streams.kstream.Initializer;
 import org.apache.kafka.streams.kstream.KGroupedStream;
 import org.apache.kafka.streams.kstream.KTable;
@@ -103,7 +103,7 @@ public class SessionWindowExpression extends KsqlWindowExpression {
   }
 
   @Override
-  public <K> Serde<Windowed<K>> getKeySerde(final Class<K> innerType) {
-    return WindowedSerdes.sessionWindowedSerdeFrom(innerType);
+  public <K> SerdeFactory<Windowed<K>> getKeySerdeFactory(final Class<K> innerType) {
+    return () -> WindowedSerdes.sessionWindowedSerdeFrom(innerType);
   }
 }

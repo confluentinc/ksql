@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.server.execution;
 
+import static io.confluent.ksql.parser.ParserMatchers.configured;
 import static io.confluent.ksql.parser.ParserMatchers.preparedStatement;
 import static io.confluent.ksql.parser.ParserMatchers.preparedStatementText;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -80,7 +81,7 @@ public class RequestHandlerTest {
     when(ksqlEngine.prepare(any()))
         .thenAnswer(invocation ->
             new DefaultKsqlParser().prepare(invocation.getArgument(0), metaStore));
-    when(distributor.execute(any(), any(), any(), any(), any())).thenReturn(Optional.of(entity));
+    when(distributor.execute(any(), any(), any())).thenReturn(Optional.of(entity));
     doNothing().when(sync).waitFor(any(), any());
   }
 
@@ -88,7 +89,8 @@ public class RequestHandlerTest {
   public void shouldUseCustomExecutor() {
     // Given
     final KsqlEntity entity = mock(KsqlEntity.class);
-    final StatementExecutor customExecutor = givenReturningExecutor(CreateStream.class, entity);
+    final StatementExecutor<CreateStream> customExecutor =
+        givenReturningExecutor(CreateStream.class, entity);
     givenRequestHandler(ImmutableMap.of(CreateStream.class, customExecutor));
 
     // When
@@ -99,11 +101,13 @@ public class RequestHandlerTest {
     // Then
     assertThat(entities, contains(entity));
     verify(customExecutor, times(1))
-        .execute(argThat(is(preparedStatement(instanceOf(CreateStream.class)))),
+        .execute(argThat(is(configured(
+            preparedStatement(instanceOf(CreateStream.class)),
+            ImmutableMap.of(),
+            ksqlConfig))),
             eq(ksqlEngine),
-            eq(serviceContext),
-            eq(ksqlConfig),
-            eq(ImmutableMap.of()));
+            eq(serviceContext)
+        );
   }
 
   @Test
@@ -119,11 +123,13 @@ public class RequestHandlerTest {
     // Then
     assertThat(entities, contains(entity));
     verify(distributor, times(1))
-        .execute(argThat(is(preparedStatement(instanceOf(CreateStream.class)))),
+        .execute(argThat(is(configured(
+            preparedStatement(instanceOf(CreateStream.class)),
+            ImmutableMap.of(),
+            ksqlConfig))),
             eq(ksqlEngine),
-            eq(serviceContext),
-            eq(ksqlConfig),
-            eq(ImmutableMap.of()));
+            eq(serviceContext)
+        );
   }
 
   @Test
@@ -139,11 +145,13 @@ public class RequestHandlerTest {
     // Then
     assertThat(entities, contains(entity));
     verify(distributor, times(1))
-        .execute(argThat(is(preparedStatement(instanceOf(CreateStream.class)))),
+        .execute(argThat(is(configured(
+            preparedStatement(instanceOf(CreateStream.class)),
+            ImmutableMap.of("x", "y"),
+            ksqlConfig))),
             eq(ksqlEngine),
-            eq(serviceContext),
-            eq(ksqlConfig),
-            eq(ImmutableMap.of("x", "y")));
+            eq(serviceContext)
+        );
   }
 
   @Test
@@ -153,7 +161,7 @@ public class RequestHandlerTest {
     final KsqlEntity entity2 = mock(KsqlEntity.class);
     final KsqlEntity entity3 = mock(KsqlEntity.class);
 
-    final StatementExecutor customExecutor = givenReturningExecutor(
+    final StatementExecutor<CreateStream> customExecutor = givenReturningExecutor(
         CreateStream.class, entity1, entity2, entity3);
     givenRequestHandler(
         ImmutableMap.of(CreateStream.class, customExecutor)
@@ -183,7 +191,7 @@ public class RequestHandlerTest {
         KsqlConstants.LEGACY_RUN_SCRIPT_STATEMENTS_CONTENT,
         "CREATE STREAM X WITH (kafka_topic='x');");
 
-    final StatementExecutor customExecutor = givenReturningExecutor(
+    final StatementExecutor<CreateStream> customExecutor = givenReturningExecutor(
         CreateStream.class,
         (KsqlEntity) null);
     givenRequestHandler(ImmutableMap.of(CreateStream.class, customExecutor));
@@ -196,11 +204,11 @@ public class RequestHandlerTest {
     // Then:
     verify(customExecutor, times(1))
         .execute(
-            argThat(is(preparedStatementText("CREATE STREAM X WITH (kafka_topic='x');"))),
+            argThat(is(
+                configured(preparedStatementText("CREATE STREAM X WITH (kafka_topic='x');")))),
             eq(ksqlEngine),
-            eq(serviceContext),
-            eq(ksqlConfig),
-            any());
+            eq(serviceContext)
+        );
   }
 
   @Test
@@ -214,7 +222,7 @@ public class RequestHandlerTest {
         "CREATE STREAM X WITH (kafka_topic='x');"
             + "CREATE STREAM Y WITH (kafka_topic='y');");
 
-    final StatementExecutor customExecutor = givenReturningExecutor(
+    final StatementExecutor<CreateStream> customExecutor = givenReturningExecutor(
         CreateStream.class, entity1, entity2);
     givenRequestHandler(ImmutableMap.of(CreateStream.class, customExecutor));
 
@@ -228,7 +236,7 @@ public class RequestHandlerTest {
   }
 
   private void givenRequestHandler(
-      final Map<Class<? extends Statement>, StatementExecutor> executors) {
+      final Map<Class<? extends Statement>, StatementExecutor<?>> executors) {
     handler = new RequestHandler(
         executors,
         distributor,
@@ -239,18 +247,18 @@ public class RequestHandlerTest {
     );
   }
 
-  private StatementExecutor givenReturningExecutor(
-      final Class<? extends Statement> statementClass,
+  @SuppressWarnings("unchecked")
+  private <T extends Statement> StatementExecutor<T> givenReturningExecutor(
+      final Class<T> statementClass,
       final KsqlEntity... returnedEntities
   ) {
     final AtomicInteger scn = new AtomicInteger();
-    final StatementExecutor customExecutor = mock(StatementExecutor.class);
+    final StatementExecutor<T> customExecutor = mock(StatementExecutor.class);
     when(customExecutor.execute(
-        argThat(is(preparedStatement(instanceOf(statementClass)))),
+        argThat(is(configured(preparedStatement(instanceOf(statementClass))))),
         eq(ksqlEngine),
-        eq(serviceContext),
-        eq(ksqlConfig),
-        any()))
+        eq(serviceContext)
+    ))
         .thenAnswer(inv -> Optional.ofNullable(returnedEntities[scn.getAndIncrement()]));
     return customExecutor;
   }

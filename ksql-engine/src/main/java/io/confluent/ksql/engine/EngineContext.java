@@ -110,10 +110,6 @@ final class EngineContext {
     return sandBox;
   }
 
-  int numberOfPersistentQueries() {
-    return persistentQueries.size();
-  }
-
   Optional<PersistentQueryMetadata> getPersistentQuery(final QueryId queryId) {
     return Optional.ofNullable(persistentQueries.get(queryId));
   }

@@ -15,13 +15,17 @@
 
 package io.confluent.ksql.planner;
 
+import static io.confluent.ksql.metastore.model.MetaStoreMatchers.FieldMatchers.hasName;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.metastore.StructuredDataSource;
+import io.confluent.ksql.metastore.model.StructuredDataSource;
+import io.confluent.ksql.metastore.model.MetaStoreMatchers.FieldMatchers;
+import io.confluent.ksql.metastore.model.MetaStoreMatchers.OptionalMatchers;
 import io.confluent.ksql.planner.plan.AggregateNode;
 import io.confluent.ksql.planner.plan.FilterNode;
 import io.confluent.ksql.planner.plan.JoinNode;
@@ -32,6 +36,7 @@ import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.DataSource.DataSourceType;
 import io.confluent.ksql.testutils.AnalysisTestUtil;
 import io.confluent.ksql.util.MetaStoreFixture;
+import java.util.Optional;
 import org.apache.kafka.connect.data.Schema;
 import org.junit.Assert;
 import org.junit.Before;
@@ -103,7 +108,8 @@ public class LogicalPlannerTest {
     assertThat(logicalPlan.getSources().get(0), instanceOf(ProjectNode.class));
     final ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
 
-    assertThat(projectNode.getKeyField().name(), equalTo("t1.col1".toUpperCase()));
+    assertThat(projectNode.getKeyField().name(), is(Optional.of("T1_COL1")));
+    assertThat(projectNode.getKeyField().legacy(), OptionalMatchers.of(hasName("T1.COL1")));
     assertThat(projectNode.getSchema().fields().size(), equalTo(5));
 
     assertThat(projectNode.getSources().get(0), instanceOf(FilterNode.class));
@@ -114,7 +120,6 @@ public class LogicalPlannerTest {
     final JoinNode joinNode = (JoinNode) filterNode.getSources().get(0);
     assertThat(joinNode.getSources().get(0), instanceOf(StructuredDataSourceNode.class));
     assertThat(joinNode.getSources().get(1), instanceOf(StructuredDataSourceNode.class));
-
   }
 
   @Test
@@ -224,6 +229,24 @@ public class LogicalPlannerTest {
     final String simpleQuery = "SELECT * FROM TEST2 INNER JOIN TEST3 ON TEST2.COL0=TEST3.COL0;";
     final PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
     assertThat(logicalPlan.getNodeOutputType(), equalTo(DataSourceType.KTABLE));
+  }
+
+  @Test
+  public void shouldUpdateKeyToReflectProjectionAlias() {
+    // Given:
+    final String simpleQuery = "SELECT COL0 AS NEW_KEY FROM TEST2;";
+
+    // When:
+    final PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
+
+    // Then:
+    assertThat(logicalPlan.getKeyField().name(), is(Optional.of("NEW_KEY")));
+    assertThat(logicalPlan.getKeyField().legacy(), is(Optional.empty()));
+
+    final PlanNode source = logicalPlan.getSources().get(0);
+    assertThat(source.getKeyField().name(), is(Optional.of("NEW_KEY")));
+    assertThat(source.getKeyField().legacy(),
+        is(OptionalMatchers.of(FieldMatchers.hasName("COL0"))));
   }
 
   private PlanNode buildLogicalPlan(final String query) {

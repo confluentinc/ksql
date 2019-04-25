@@ -5,8 +5,9 @@ KSQL Syntax Reference
 
 KSQL has similar semantics to SQL:
 
-- Terminate KSQL statements with a semicolon ``;``
-- Escape ' characters inside string literals by using '', for example, 'yyyy-MM-dd''T''HH:mm:ssX'
+- Terminate KSQL statements with a semicolon ``;``.
+- Escape ``'`` characters inside string literals by using ``''``. For example,
+  to escape ``'T'``, write ``''T''``.
 
 ===========
 Terminology
@@ -96,6 +97,55 @@ WITHIN clauses.
 * MILLISECOND, MILLISECONDS
 
 For more information, see :ref:`windows_in_ksql_queries`.
+
+KSQL Timestamp Formats
+----------------------
+
+Time-based operations, like windowing, process records according to the
+timestamp in ``ROWTIME``. By default, the implicit ``ROWTIME`` column is the
+timestamp of a message in a Kafka topic. Timestamps have an accuracy of
+one millisecond.
+
+Use the TIMESTAMP property to override ``ROWTIME`` with the contents of the 
+specified column. Define the format of a record's timestamp by using the
+TIMESTAMP_FORMAT property.
+
+If you use the TIMESTAMP property but don't set TIMESTAMP_FORMAT, KSQL assumes
+that the timestamp field is a ``bigint``. If you set TIMESTAMP_FORMAT, the
+TIMESTAMP field must be of type ``varchar`` and have a format that the 
+``DateTimeFormatter`` Java class can parse.
+
+If your timestamp format has embedded single quotes, you can escape them by
+using two successive single quotes, ``''``. For example, to escape ``'T'``,
+write ``''T''``. The following examples show how to escape the ``'`` character
+in KSQL statements.
+
+.. code:: sql
+
+    -- Example timestamp format: yyyy-MM-dd'T'HH:mm:ssX
+    CREATE STREAM TEST (ID bigint, event_timestamp VARCHAR)
+      WITH (kafka_topic='test_topic',
+            value_format='JSON',
+            timestamp='event_timestamp',
+            timestamp_format='yyyy-MM-dd''T''HH:mm:ssX');
+
+    -- Example timestamp format: yyyy.MM.dd G 'at' HH:mm:ss z
+    CREATE STREAM TEST (ID bigint, event_timestamp VARCHAR)
+      WITH (kafka_topic='test_topic',
+            value_format='JSON',
+            timestamp='event_timestamp',
+            timestamp_format='yyyy.MM.dd G ''at'' HH:mm:ss z');
+
+    -- Example timestamp format: hh 'o'clock' a, zzzz
+    CREATE STREAM TEST (ID bigint, event_timestamp VARCHAR)
+      WITH (kafka_topic='test_topic',
+            value_format='JSON',
+            timestamp='event_timestamp',
+            timestamp_format='hh ''o''clock'' a, zzzz');
+
+For more information on timestamp formats, see
+`DateTimeFormatter <https://docs.oracle.com/javase/8/docs/api/java/time/format/DateTimeFormatter.html>`__.
+
 
 =================
 KSQL CLI Commands
@@ -258,7 +308,7 @@ The WITH clause supports the following properties:
 |                         | such as windowing, will process a record according to the timestamp in ``ROWTIME``.        |
 +-------------------------+--------------------------------------------------------------------------------------------+
 | TIMESTAMP_FORMAT        | Used in conjunction with TIMESTAMP. If not set will assume that the timestamp field is a   |
-|                         | long. If it is set, then the TIMESTAMP field must be of type varchar and have a format     |
+|                         | bigint. If it is set, then the TIMESTAMP field must be of type varchar and have a format   |
 |                         | that can be parsed with the java ``DateTimeFormatter``. If your timestamp format has       |
 |                         | characters requiring single quotes, you can escape them with successive single quotes,     |
 |                         | ``''``, for example: ``'yyyy-MM-dd''T''HH:mm:ssX'``.                                       |
@@ -361,8 +411,8 @@ The WITH clause supports the following properties:
 |                         | as windowing, will process a record according to the timestamp in ``ROWTIME``.             |
 +-------------------------+--------------------------------------------------------------------------------------------+
 | TIMESTAMP_FORMAT        | Used in conjunction with TIMESTAMP. If not set will assume that the timestamp field is a   |
-|                         | long. If it is set, then the TIMESTAMP field must be of type varchar and have a format     |
-|                         | that can be parsed with the java ``DateTimeFormatter``. If your timestamp format has       |
+|                         | bigint. If it is set, then the TIMESTAMP field must be of type varchar and have a format   |
+|                         | that can be parsed with the Java ``DateTimeFormatter``. If your timestamp format has       |
 |                         | characters requiring single quotes, you can escape them with two successive single quotes, |
 |                         | ``''``, for example: ``'yyyy-MM-dd''T''HH:mm:ssX'``.                                       |
 +-------------------------+--------------------------------------------------------------------------------------------+
@@ -466,14 +516,17 @@ The WITH clause for the result supports the following properties:
 |                         |                                                                                                      |
 |                         | If not supplied, the ``ROWTIME`` of the source stream will be used.                                  |
 |                         |                                                                                                      |
-|                         | **NOTE**: This does _not_ affect the processing of the query that populates this stream,             |
-|                         | e.g. given the statement                                                                             |
-|                         | ``CREATE STEAM foo WITH (TIMESTAMP='t2') AS SELECT * FROM bar WINDOW TUMBLING (size 10 seconds);``,  |
-|                         | the window into which each row of ``bar`` is place is determined by bar's ``ROWTIME``, not ``t2``.   |
+|                         | **Note**: This doesn't affect the processing of the query that populates this stream.                |
+|                         | For example, given the following statement:                                                          |
+|                         |                                                                                                      |
+|                         | .. literalinclude:: ../includes/csas-snippet.sql                                                     |
+|                         |    :language: sql                                                                                    |
+|                         |                                                                                                      |
+|                         | The window into which each row of ``bar`` is placed is determined by bar's ``ROWTIME``, not ``t2``.  |
 +-------------------------+------------------------------------------------------------------------------------------------------+
 | TIMESTAMP_FORMAT        | Used in conjunction with TIMESTAMP. If not set will assume that the timestamp field is a             |
-|                         | long. If it is set, then the TIMESTAMP field must be of type varchar and have a format               |
-|                         | that can be parsed with the java ``DateTimeFormatter``. If your timestamp format has                 |
+|                         | bigint. If it is set, then the TIMESTAMP field must be of type varchar and have a format             |
+|                         | that can be parsed with the Java ``DateTimeFormatter``. If your timestamp format has                 |
 |                         | characters requiring single quotes, you can escape them with two successive single quotes,           |
 |                         | ``''``, for example: ``'yyyy-MM-dd''T''HH:mm:ssX'``.                                                 |
 +-------------------------+------------------------------------------------------------------------------------------------------+
@@ -552,17 +605,17 @@ The WITH clause supports the following properties:
 |                         |                                                                                                      |
 |                         | If not supplied, the ``ROWTIME`` of the source stream will be used.                                  |
 |                         |                                                                                                      |
-|                         | **NOTE**: This does _not_ affect the processing of the query that populates this table,              |
-|                         | e.g. given the statement                                                                             |
+|                         | **Note**: This doesn't affect the processing of the query that populates this table.                 |
+|                         | For example, given the following statement:                                                          |
 |                         |                                                                                                      |
 |                         | .. literalinclude:: ../includes/ctas-snippet.sql                                                     |
 |                         |    :language: sql                                                                                    |
 |                         |                                                                                                      |
-|                         | the window into which each row of ``bar`` is placed is determined by bar's ``ROWTIME``, not ``t2``.  |
+|                         | The window into which each row of ``bar`` is placed is determined by bar's ``ROWTIME``, not ``t2``.  |
 +-------------------------+------------------------------------------------------------------------------------------------------+
 | TIMESTAMP_FORMAT        | Used in conjunction with TIMESTAMP. If not set will assume that the timestamp field is a             |
-|                         | long. If it is set, then the TIMESTAMP field must be of type varchar and have a format               |
-|                         | that can be parsed with the java ``DateTimeFormatter``. If your timestamp format has                 |
+|                         | bigint. If it is set, then the TIMESTAMP field must be of type varchar and have a format             |
+|                         | that can be parsed with the Java ``DateTimeFormatter``. If your timestamp format has                 |
 |                         | characters requiring single quotes, you can escape them with two successive single quotes,           |
 |                         | ``''``, for example: ``'yyyy-MM-dd''T''HH:mm:ssX'``.                                                 |
 +-------------------------+------------------------------------------------------------------------------------------------------+
@@ -969,34 +1022,36 @@ example of converting a BIGINT into a VARCHAR type:
 CASE
 ~~~~
 
- **Synopsis**
+**Synopsis**
 
- .. code:: sql
+.. code:: sql
 
+    CASE
+       WHEN condition THEN result
+       [ WHEN ... THEN ... ]
+       …
+       [ WHEN … THEN … ]
+       [ ELSE result ]
+    END
+
+Currently, KSQL supports a ``searched`` form of CASE expression. In this form,
+CASE evaluates each boolean ``condition`` in WHEN clauses, from left to right.
+If a condition is true, CASE returns the corresponding result. If none of
+the conditions is true, CASE returns the result from the ELSE clause. If none
+of the conditions is true and there is no ELSE clause, CASE returns null.
+
+The schema for all results must be the same, otherwise, KSQL rejects the
+statement. Here's an example of a CASE expression:
+
+.. code:: sql
+
+    SELECT
      CASE
-        WHEN condition THEN result
-        [ WHEN ... THEN ... ]
-        …
-        [ WHEN … THEN … ]
-        [ ELSE result ]
-     END
-
- Currently, KSQL supports a ``searched`` form of CASE expression. In this form, CASE evaluates
-each boolean ``condition`` in WHEN caluses, from left to right. If a condition is true, then it returns the
-corresponding result. If none of the conditions are true, it returns the result from the ELSE clause.
-If none of the conditions are true and there is no ELSE clause, it returns null.
- The schema for all results should be the same, otherwise, KSQL will reject the statement.
- Here is an example of CASE expression:
-
- .. code:: sql
-
-     SELECT
-      CASE
-        WHEN orderunits < 2.0 THEN 'small'
-        WHEN orderunits < 4.0 THEN 'medium'
-        ELSE 'large'
-      END AS case_result
-     FROM orders;
+       WHEN orderunits < 2.0 THEN 'small'
+       WHEN orderunits < 4.0 THEN 'medium'
+       ELSE 'large'
+     END AS case_result
+    FROM orders;
 
 LIKE
 ~~~~
@@ -1124,6 +1179,40 @@ SHOW PROPERTIES
 List the :ref:`configuration settings <ksql-param-reference>` that are
 currently in effect.
 
+SET/UNSET property
+------------------
+**Synopsis**
+
+.. code:: sql
+
+    [SET] 'property_name' = 'property_value';
+    [UNSET] 'property_name';
+
+**Description**
+
+Set or unset the session properties in the CLI. The session properties that have been set will be sent to the server along with the subsequent KSQL statements.
+The properties that are set using these commands are session properties, meaning they will be only available in the current CLI session.
+The following are the properties that you can configure with SET/UNSET commands, in release 5.2 and above:
+
++---------------------------------------------------+--------------------------------------------------------------------------------------------+
+| Property                                          | Description                                                                                |
++===================================================+============================================================================================+
+| ksql.sink.window.change.log.additional.retention  | The default window change log additional retention time. This is a streams config value    |
+|                                                   | which will be added to a windows maintainMs to ensure data is not deleted from the log     |
+|                                                   | prematurely. Allows for clock drift. The default is 1 day.                                 |
++---------------------------------------------------+--------------------------------------------------------------------------------------------+
+| ksql.streams.commit.interval.ms                   | The frequency with which to save the position (offsets in source topics) of tasks.         |
+|                                                   | The default is 30000 milliseconds (at-least-once) / 100 milliseconds (exactly-once).       |
++---------------------------------------------------+--------------------------------------------------------------------------------------------+
+| auto.offset.reset                                 | Configure the KSQL queries to read the source topics from earliest or latest offset.       |
+|                                                   | The default in KSQL is ``latest``.                                                         |
++---------------------------------------------------+--------------------------------------------------------------------------------------------+
+| group.id                                          | A unique string that identifies the consumer group this consumer belongs to.               |
+|                                                   | This can be set for PRINT TOPIC command when ACLs are enabled in Kafka.                    |
+|                                                   | The default in KSQL is ````.                                                               |
++---------------------------------------------------+--------------------------------------------------------------------------------------------+
+
+
 .. _ksql-terminate:
 
 TERMINATE
@@ -1183,13 +1272,13 @@ The explanation for each operator includes a supporting example based on the fol
 
 .. code:: sql
 
-    SELECT TIMESTAMPTOSTRING(ROWTIME, 'yyyy-MM-dd HH:mm:ss') + \
-            ': :heavy_exclamation_mark: On ' + \
-            HOST + \
-            ' there were ' + \
-            CAST(INVALID_LOGIN_COUNT AS VARCHAR) + \
-            ' attempts in the last minute (threshold is >=4)' \
-    FROM INVALID_USERS_LOGINS_PER_HOST \
+    SELECT TIMESTAMPTOSTRING(ROWTIME, 'yyyy-MM-dd HH:mm:ss') +
+            ': :heavy_exclamation_mark: On ' +
+            HOST +
+            ' there were ' +
+            CAST(INVALID_LOGIN_COUNT AS VARCHAR) +
+            ' attempts in the last minute (threshold is >=4)'
+    FROM INVALID_USERS_LOGINS_PER_HOST
     WHERE INVALID_LOGIN_COUNT>=4;
 
 - Source Dereference (``.``) The source dereference operator can be used to specify columns

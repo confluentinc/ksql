@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.planner.plan;
 
+import static io.confluent.ksql.metastore.model.MetaStoreMatchers.FieldMatchers.hasName;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.MAPVALUES_NODE;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.SOURCE_NODE;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.getNodeByName;
@@ -28,26 +29,24 @@ import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.startsWith;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Streams;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.InternalFunctionRegistry;
-import io.confluent.ksql.function.MutableFunctionRegistry;
-import io.confluent.ksql.function.UdfLoaderUtil;
-import io.confluent.ksql.logging.processing.ProcessingLogConstants;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
-import io.confluent.ksql.logging.processing.ProcessingLoggerUtil;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.model.MetaStoreMatchers.OptionalMatchers;
+import io.confluent.ksql.physical.KsqlQueryBuilder;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.util.LimitedProxyBuilder;
-import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.structured.QueryContext;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
@@ -83,21 +82,22 @@ import org.apache.kafka.streams.kstream.ValueMapperWithKey;
 import org.apache.kafka.streams.kstream.ValueTransformerSupplier;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class AggregateNodeTest {
 
-  private static final MutableFunctionRegistry functionRegistry = new InternalFunctionRegistry();
-
-  static {
-    UdfLoaderUtil.load(functionRegistry);
-  }
+  private static final FunctionRegistry FUNCTION_REGISTRY = new InternalFunctionRegistry();
+  private static final KsqlConfig KSQL_CONFIG =  new KsqlConfig(new HashMap<>());
 
   @Mock
-  private ServiceContext serviceContext;
-  private final KsqlConfig ksqlConfig =  new KsqlConfig(new HashMap<>());
+  private KsqlQueryBuilder ksqlStreamBuilder;
+  @Captor
+  private ArgumentCaptor<QueryContext> queryContextCaptor;
+
   private StreamsBuilder builder = new StreamsBuilder();
   private final ProcessingLogContext processingLogContext = ProcessingLogContext.create();
   private final QueryId queryId = new QueryId("queryid");
@@ -183,7 +183,7 @@ public class AggregateNodeTest {
   public void shouldHaveSourceNodeForSecondSubtopolgyWithLegacyNameForRepartition() {
     // When:
     buildRequireRekey(
-        ksqlConfig.overrideBreakingConfigsWithOriginalValues(
+        KSQL_CONFIG.overrideBreakingConfigsWithOriginalValues(
             ImmutableMap.of(
                 KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS,
                 String.valueOf(KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS_OFF))));
@@ -297,11 +297,11 @@ public class AggregateNodeTest {
   @Test
   public void shouldBeWindowedWhenStatementSpecifiesWindowing() {
     final SchemaKStream stream = build();
-    assertThat(stream.getKeySerde(), is(not(Optional.empty())));
+    assertThat(stream.getKeySerdeFactory(), is(not(Optional.empty())));
   }
 
   private SchemaKStream build() {
-    return build(ksqlConfig);
+    return build(KSQL_CONFIG);
   }
 
   private SchemaKStream build(final KsqlConfig ksqlConfig) {
@@ -313,7 +313,7 @@ public class AggregateNodeTest {
 
   @SuppressWarnings("UnusedReturnValue")
   private SchemaKStream buildRequireRekey() {
-    return buildRequireRekey(ksqlConfig);
+    return buildRequireRekey(KSQL_CONFIG);
   }
 
   @SuppressWarnings("UnusedReturnValue")
@@ -324,61 +324,55 @@ public class AggregateNodeTest {
         + "GROUP BY col1;", ksqlConfig);
   }
 
-  private void shouldCreateLogger(final String name) {
+  @Test
+  public void shouldCreateLoggers() {
     // When:
     final AggregateNode node = buildAggregateNode(
         "SELECT col0, sum(col3), count(col3) FROM test1 GROUP BY col0;");
-    buildQuery(node, ksqlConfig);
+    buildQuery(node, KSQL_CONFIG);
 
     // Then:
-    assertThat(
-        processingLogContext.getLoggerFactory().getLoggers(),
-        hasItem(
-            startsWith(
-                ProcessingLoggerUtil.join(
-                    ProcessingLogConstants.PREFIX,
-                    QueryLoggerUtil.queryLoggerName(
-                        new QueryContext.Stacker(queryId)
-                            .push(node.getId().toString(), name)
-                            .getQueryContext())
-                )
-            )
-        )
+    verify(ksqlStreamBuilder, times(3)).buildGenericRowSerde(
+        any(),
+        any(),
+        queryContextCaptor.capture()
     );
-  }
 
-  @Test
-  public void shouldCreateLoggerForRepartition() {
-    shouldCreateLogger("groupby");
-  }
+    final List<String> loggers = queryContextCaptor.getAllValues().stream()
+        .map(QueryLoggerUtil::queryLoggerName)
+        .collect(Collectors.toList());
 
-  @Test
-  public void shouldCreateLoggerForStatestore() {
-    shouldCreateLogger("aggregate");
+    assertThat(loggers, contains(
+        "queryid.KsqlTopic.source",
+        "queryid.Aggregate.groupby",
+        "queryid.Aggregate.aggregate"
+    ));
   }
 
   @Test
   public void shouldGroupByFunction() {
     // Given:
-    final SchemaKStream stream = buildQuery("SELECT UCASE(col1), sum(col3), count(col3) FROM test1 "
+    final SchemaKStream<?> stream = buildQuery("SELECT UCASE(col1), sum(col3), count(col3) FROM test1 "
         + "GROUP BY UCASE(col1);");
 
     // Then:
-    assertThat(stream.getKeyField().name(), is("UCASE(KSQL_INTERNAL_COL_0)"));
+    assertThat(stream.getKeyField().name(), is(Optional.empty()));
+    assertThat(stream.getKeyField().legacy(), OptionalMatchers.of(hasName("UCASE(KSQL_INTERNAL_COL_0)")));
   }
 
   @Test
   public void shouldGroupByArithmetic() {
     // Given:
-    final SchemaKStream stream = buildQuery("SELECT col0 + 10, sum(col3), count(col3) FROM test1 "
+    final SchemaKStream<?> stream = buildQuery("SELECT col0 + 10, sum(col3), count(col3) FROM test1 "
         + "GROUP BY col0 + 10;");
 
     // Then:
-    assertThat(stream.getKeyField().name(), is("(KSQL_INTERNAL_COL_0 + 10)"));
+    assertThat(stream.getKeyField().name(), is(Optional.empty()));
+    assertThat(stream.getKeyField().legacy(), OptionalMatchers.of(hasName("(KSQL_INTERNAL_COL_0 + 10)")));
   }
 
   private SchemaKStream buildQuery(final String queryString) {
-    return buildQuery(queryString, ksqlConfig);
+    return buildQuery(queryString, KSQL_CONFIG);
   }
 
   private SchemaKStream buildQuery(final String queryString, final KsqlConfig ksqlConfig) {
@@ -386,13 +380,15 @@ public class AggregateNodeTest {
   }
 
   private SchemaKStream buildQuery(final AggregateNode aggregateNode, final KsqlConfig ksqlConfig) {
-        return aggregateNode.buildStream(
-            builder,
-            ksqlConfig,
-            serviceContext,
-            processingLogContext,
-            new InternalFunctionRegistry(),
-            queryId);
+    when(ksqlStreamBuilder.getKsqlConfig()).thenReturn(ksqlConfig);
+    when(ksqlStreamBuilder.getStreamsBuilder()).thenReturn(builder);
+    when(ksqlStreamBuilder.getProcessingLogContext()).thenReturn(processingLogContext);
+    when(ksqlStreamBuilder.getFunctionRegistry()).thenReturn(FUNCTION_REGISTRY);
+    when(ksqlStreamBuilder.buildNodeContext(any())).thenAnswer(inv ->
+        new QueryContext.Stacker(queryId)
+            .push(inv.getArgument(0).toString()));
+
+    return aggregateNode.buildStream(ksqlStreamBuilder);
   }
 
   private static AggregateNode buildAggregateNode(final String queryString) {

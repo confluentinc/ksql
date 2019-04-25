@@ -35,10 +35,11 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.engine.KsqlEngine;
-import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.metastore.StructuredDataSource;
+import io.confluent.ksql.metastore.model.KsqlTopic;
+import io.confluent.ksql.metastore.model.StructuredDataSource;
 import io.confluent.ksql.serde.DataSource.DataSourceSerDe;
+import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
@@ -402,7 +403,7 @@ public class ClusterTerminatorTest {
 
   private static KsqlTopic getKsqlTopic(final String topicName, final String kafkaTopicName,
       final boolean isSink) {
-    return new KsqlTopic(topicName, kafkaTopicName, null, isSink);
+    return new KsqlTopic(topicName, kafkaTopicName, new KsqlJsonTopicSerDe(), isSink);
   }
 
   private void givenSinkTopicsExistInMetastore(final String... kafkaTopicNames) {
@@ -421,7 +422,7 @@ public class ClusterTerminatorTest {
 
   private void givenTopicsUseAvroSerdes(final String... topicNames) {
     for (final String topicName : topicNames) {
-      final StructuredDataSource dataSource = mock(StructuredDataSource.class);
+      final StructuredDataSource<?> dataSource = mock(StructuredDataSource.class);
 
       when(metaStore.getSourcesForKafkaTopic(topicName)).thenReturn(ImmutableList.of(dataSource));
       when(dataSource.isSerdeFormat(DataSourceSerDe.AVRO)).thenReturn(true);

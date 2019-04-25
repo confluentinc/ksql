@@ -65,7 +65,10 @@ import java.io.IOException;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.time.Duration;
+import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Scanner;
@@ -73,6 +76,7 @@ import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.StreamingOutput;
@@ -86,6 +90,7 @@ import org.easymock.EasyMockRunner;
 import org.easymock.Mock;
 import org.easymock.MockType;
 import org.eclipse.jetty.http.HttpStatus.Code;
+import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -138,7 +143,6 @@ public class StreamedQueryResourceTest {
     testResource = new StreamedQueryResource(
         ksqlConfig,
         mockKsqlEngine,
-        serviceContext,
         mockStatementParser,
         commandQueue,
         DISCONNECT_CHECK_INTERVAL,
@@ -156,7 +160,10 @@ public class StreamedQueryResourceTest {
 
     // When:
     final Response response =
-        testResource.streamQuery(new KsqlRequest(queryString, Collections.emptyMap(), null));
+        testResource.streamQuery(
+            serviceContext,
+            new KsqlRequest(queryString, Collections.emptyMap(), null)
+        );
 
     // Then:
     assertThat(response.getStatus(), equalTo(Status.INTERNAL_SERVER_ERROR.getStatusCode()));
@@ -182,7 +189,10 @@ public class StreamedQueryResourceTest {
         exceptionErrorMessage(errorCode(is(Errors.ERROR_CODE_BAD_STATEMENT))));
 
     // When:
-    testResource.streamQuery(new KsqlRequest("query", Collections.emptyMap(), null));
+    testResource.streamQuery(
+        serviceContext,
+        new KsqlRequest("query", Collections.emptyMap(), null)
+    );
   }
 
   @Test
@@ -191,7 +201,10 @@ public class StreamedQueryResourceTest {
     replay(commandQueue);
 
     // When:
-    testResource.streamQuery(new KsqlRequest(queryString, Collections.emptyMap(), null));
+    testResource.streamQuery(
+        serviceContext,
+        new KsqlRequest(queryString, Collections.emptyMap(), null)
+    );
 
     // Then:
     verify(commandQueue);
@@ -206,7 +219,10 @@ public class StreamedQueryResourceTest {
     replay(commandQueue);
 
     // When:
-    testResource.streamQuery(new KsqlRequest(queryString, Collections.emptyMap(), 3L));
+    testResource.streamQuery(
+        serviceContext,
+        new KsqlRequest(queryString, Collections.emptyMap(), 3L)
+    );
 
     // Then:
     verify(commandQueue);
@@ -230,7 +246,10 @@ public class StreamedQueryResourceTest {
         exceptionErrorMessage(errorCode(is(Errors.ERROR_CODE_COMMAND_QUEUE_CATCHUP_TIMEOUT))));
 
     // When:
-    testResource.streamQuery(new KsqlRequest(queryString, Collections.emptyMap(), 3L));
+    testResource.streamQuery(
+        serviceContext,
+        new KsqlRequest(queryString, Collections.emptyMap(), 3L)
+    );
   }
 
   @SuppressWarnings("unchecked")
@@ -310,7 +329,10 @@ public class StreamedQueryResourceTest {
     replay(mockKsqlEngine, mockStatementParser, mockKafkaStreams, mockOutputNode);
 
     final Response response =
-        testResource.streamQuery(new KsqlRequest(queryString, requestStreamsProperties, null));
+        testResource.streamQuery(
+            serviceContext,
+            new KsqlRequest(queryString, requestStreamsProperties, null)
+        );
     final PipedOutputStream responseOutputStream = new EOFPipedOutputStream();
     final PipedInputStream responseInputStream = new PipedInputStream(responseOutputStream, 1);
     final StreamingOutput responseStream = (StreamingOutput) response.getEntity();
@@ -432,7 +454,10 @@ public class StreamedQueryResourceTest {
     EasyMock.replay(activenessRegistrar);
 
     // When:
-    testResource.streamQuery(new KsqlRequest(queryString, Collections.emptyMap(), null));
+    testResource.streamQuery(
+        serviceContext,
+        new KsqlRequest(queryString, Collections.emptyMap(), null)
+    );
 
     // Then:
     EasyMock.verify(activenessRegistrar);

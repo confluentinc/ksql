@@ -169,7 +169,6 @@ public class RecoveryTest {
       this.ksqlResource = new KsqlResource(
           ksqlConfig,
           ksqlEngine,
-          serviceContext,
           fakeCommandQueue,
           Duration.ofMillis(0),
           ()->{},
@@ -201,7 +200,7 @@ public class RecoveryTest {
 
     void submitCommands(final String ...statements) {
       for (final String statement : statements) {
-        final Response response = ksqlResource.handleKsqlStatements(
+        final Response response = ksqlResource.handleKsqlStatements(serviceContext,
             new KsqlRequest(statement, Collections.emptyMap(), null));
         assertThat(response.getStatus(), equalTo(200));
         executeCommands();

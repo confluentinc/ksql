@@ -238,38 +238,11 @@ public class SchemaKStream<K> {
         return Optional.empty();
       }
 
-      final String keyField = getKeyField().name().get();
+      final Field keyField = new Field(
+          getKeyField().name().get(), -1, Schema.OPTIONAL_STRING_SCHEMA);
 
-      for (SelectExpression selectExpression : selectExpressions) {
-        final String toName = selectExpression.getName();
-        final Expression toExpression = selectExpression.getExpression();
-
-        /*
-         * Sometimes a column reference is a DereferenceExpression, and sometimes its
-         * a QualifiedNameReference. We have an issue
-         * (https://github.com/confluentinc/ksql/issues/1695)
-         * to track cleaning this up and using DereferenceExpression for all column references.
-         * Until then, we have to check for both here.
-         */
-        if (toExpression instanceof DereferenceExpression) {
-          final DereferenceExpression dereferenceExpression =
-              (DereferenceExpression) toExpression;
-
-          if (keyField.equals(dereferenceExpression.toString())) {
-            return Optional.of(toName);
-          }
-        } else if (toExpression instanceof QualifiedNameReference) {
-          final QualifiedNameReference qualifiedNameReference =
-              (QualifiedNameReference) toExpression;
-
-          if (keyField.equals(qualifiedNameReference.getName().getSuffix())) {
-            return Optional.of(toName);
-          }
-        }
-      }
-
-      // Source key is not in selection:
-      return Optional.empty();
+      return doFindKeyField(selectExpressions, keyField)
+          .map(Field::name);
     }
 
     private Optional<Field> findLegacyKeyField(final List<SelectExpression> selectExpressions) {
@@ -282,6 +255,14 @@ public class SchemaKStream<K> {
         // The key "field" isn't an actual field in the schema
         return Optional.of(keyField);
       }
+
+      return doFindKeyField(selectExpressions, keyField);
+    }
+
+    private Optional<Field> doFindKeyField(
+        final List<SelectExpression> selectExpressions,
+        final Field keyField
+    ) {
       for (int i = 0; i < selectExpressions.size(); i++) {
         final String toName = selectExpressions.get(i).getName();
         final Expression toExpression = selectExpressions.get(i).getExpression();
@@ -296,15 +277,15 @@ public class SchemaKStream<K> {
         if (toExpression instanceof DereferenceExpression) {
           final DereferenceExpression dereferenceExpression
               = (DereferenceExpression) toExpression;
+
           if (SchemaUtil.matchFieldName(keyField, dereferenceExpression.toString())) {
             return Optional.of(new Field(toName, i, keyField.schema()));
           }
         } else if (toExpression instanceof QualifiedNameReference) {
           final QualifiedNameReference qualifiedNameReference
               = (QualifiedNameReference) toExpression;
-          if (SchemaUtil.matchFieldName(
-              keyField,
-              qualifiedNameReference.getName().getSuffix())) {
+
+          if (SchemaUtil.matchFieldName(keyField, qualifiedNameReference.getName().getSuffix())) {
             return Optional.of(new Field(toName, i, keyField.schema()));
           }
         }

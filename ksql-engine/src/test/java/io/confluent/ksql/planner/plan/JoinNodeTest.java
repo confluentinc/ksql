@@ -489,7 +489,7 @@ public class JoinNodeTest {
         rightKeyField,
         leftAlias,
         rightAlias,
-        withinExpression,
+        WITHIN_EXPRESSION,
         DataSource.DataSourceType.KSTREAM,
         DataSource.DataSourceType.KSTREAM);
 

@@ -19,6 +19,7 @@ import java.time.Duration;
 import java.util.Collection;
 import java.util.Map;
 import org.apache.kafka.clients.admin.AdminClient;
+import org.apache.kafka.clients.admin.AlterConfigOp;
 import org.apache.kafka.clients.admin.AlterConfigsOptions;
 import org.apache.kafka.clients.admin.AlterConfigsResult;
 import org.apache.kafka.clients.admin.AlterReplicaLogDirsOptions;
@@ -163,6 +164,14 @@ class SandboxedAdminClient extends AdminClient {
     throw new UnsupportedOperationException();
   }
 
+  @Override
+  public AlterConfigsResult incrementalAlterConfigs(
+      final Map<ConfigResource, Collection<AlterConfigOp>> configs,
+      final AlterConfigsOptions options) {
+    throw new UnsupportedOperationException();
+  }
+
+  @SuppressWarnings("deprecation")
   @Override
   public AlterConfigsResult alterConfigs(
       final Map<ConfigResource, Config> configs,

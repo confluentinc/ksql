@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.test.commons;
 
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -39,6 +41,8 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -67,6 +71,8 @@ public class TestCaseTest {
 
   @Mock
   private TopologyTestDriver topologyTestDriver;
+  @Captor
+  private ArgumentCaptor<ConsumerRecord> captor;
 
 
   @Before
@@ -87,7 +93,11 @@ public class TestCaseTest {
 
 
     // Then:
-    verify(topologyTestDriver).pipeInput(any(ConsumerRecord.class));
+    verify(topologyTestDriver).pipeInput(captor.capture());
+    assertThat(captor.getValue().topic(), equalTo(record.topic.getName()));
+    assertThat(new String((byte[])captor.getValue().key()), equalTo("k1"));
+    assertThat(new String((byte[])captor.getValue().value()), equalTo("v1, v2"));
+    assertThat(captor.getValue().timestamp(), equalTo(record.timestamp));
 
   }
 
@@ -100,6 +110,7 @@ public class TestCaseTest {
         ImmutableSet.of(new KsqlTopic("FOO", "foo_kafka_different_input", new KsqlJsonTopicSerDe(), false)),
         ImmutableSet.of(new KsqlTopic("BAR", "bar_kafka", new KsqlJsonTopicSerDe(), false))
     );
+
 
     // When:
     testCase.processInput(topologyTestDriverContainer, null);
@@ -128,6 +139,8 @@ public class TestCaseTest {
     final TopologyTestDriverContainer topologyTestDriverContainer = getSampleTopologyTestDriverContainer();
     when(topologyTestDriver.readOutput(any(), any(), any()))
         .thenReturn(new ProducerRecord<>("bar_kafka", 1, 123456789L, "k12", "v1, v2"));
+
+    // Expect
     expectedException.expect(AssertionError.class);
     expectedException.expectMessage("TestCase name: test in file: null failed while processing output row 0 topic: "
         + "foo_kafka due to: Expected <k1, v1, v2> with timestamp=123456789 "
@@ -152,7 +165,7 @@ public class TestCaseTest {
   }
 
   @Test
-  public void ShouldRegisterSchemaInInitialization() throws IOException, RestClientException {
+  public void shouldRegisterSchemaInInitialization() throws IOException, RestClientException {
     // Given:
     final KafkaTopicClient kafkaTopicClient = mock(KafkaTopicClient.class);
     final SchemaRegistryClient schemaRegistryClient = mock(SchemaRegistryClient.class);

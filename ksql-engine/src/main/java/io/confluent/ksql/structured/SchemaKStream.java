@@ -519,9 +519,10 @@ public class SchemaKStream<K> {
       final boolean updateRowKey,
       final QueryContext.Stacker contextStacker
   ) {
-    final boolean namesMatch = keyField.resolve(schema, ksqlConfig)
-        .map(Field::name)
-        .map(name -> name.equals(newKeyField.name()))
+    final Optional<Field> resolved = keyField.resolve(schema, ksqlConfig);
+
+    final boolean namesMatch = resolved
+        .map(kf -> SchemaUtil.matchFieldName(kf, newKeyField.name()))
         .orElse(false);
 
     if (namesMatch) {

@@ -211,7 +211,7 @@ public class LogicalPlanner {
     return new ProjectNode(
         new PlanNodeId("Project"),
         sourcePlanNode,
-        projectionSchema,
+        projectionSchema.build(),
         keyFieldName,
         analysis.getSelectExpressions()
     );
@@ -230,19 +230,10 @@ public class LogicalPlanner {
       throw new RuntimeException("Data source is not supported yet.");
     }
 
-    final Schema fromSchema = SchemaUtil.buildSchemaWithAlias(
-        dataSource.left.getSchema(),
-        dataSource.right
-    );
-
-    final Optional<String> newKeyName = dataSource.left.getKeyField().name()
-        .map(name -> SchemaUtil.buildAliasedFieldName(dataSource.right, name));
-
     return new StructuredDataSourceNode(
         new PlanNodeId("KsqlTopic"),
         dataSource.left,
-        fromSchema,
-        KeyField.of(newKeyName, dataSource.left.getKeyField().legacy())
+        dataSource.right
     );
   }
 }

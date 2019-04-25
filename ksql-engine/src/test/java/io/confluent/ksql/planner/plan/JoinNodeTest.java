@@ -26,11 +26,11 @@ import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
@@ -102,12 +102,13 @@ public class JoinNodeTest {
 
   private KafkaTopicClient mockKafkaTopicClient;
   private Supplier<SchemaRegistryClient> mockSchemaRegistryClientFactory;
-  private final Schema leftSchema = createSchema();
-  private final Schema rightSchema = createSchema();
-  private final Schema joinSchema = joinSchema();
 
   private static final String leftAlias = "left";
   private static final String rightAlias = "right";
+
+  private final Schema leftSchema = createSchema(leftAlias);
+  private final Schema rightSchema = createSchema(rightAlias);
+  private final Schema joinSchema = joinSchema();
 
   private static final String leftKeyFieldName = "COL0";
   private static final String rightKeyFieldName = "COL1";
@@ -302,7 +303,7 @@ public class JoinNodeTest {
   public void shouldPerformStreamToStreamLeftJoin() {
     // Given:
     setupStream(left, CONTEXT_STACKER, leftSchemaKStream, leftSchema, 2);
-    expectKeyField(leftSchemaKStream, leftKeyFieldName);
+    expectKeyField(leftSchemaKStream, leftAlias, leftKeyFieldName);
     setupStream(right, CONTEXT_STACKER, rightSchemaKStream, rightSchema, 2);
     final WithinExpression withinExpression = new WithinExpression(10, TimeUnit.SECONDS);
     expect(leftSchemaKStream.leftJoin(eq(rightSchemaKStream),
@@ -344,7 +345,7 @@ public class JoinNodeTest {
   public void shouldPerformStreamToStreamInnerJoin() {
     // Given:
     setupStream(left, CONTEXT_STACKER, leftSchemaKStream, leftSchema, 2);
-    expectKeyField(leftSchemaKStream, leftKeyFieldName);
+    expectKeyField(leftSchemaKStream, leftAlias, leftKeyFieldName);
     setupStream(right, CONTEXT_STACKER, rightSchemaKStream, rightSchema, 2);
     final WithinExpression withinExpression = new WithinExpression(10, TimeUnit.SECONDS);
     expect(leftSchemaKStream.join(eq(rightSchemaKStream),
@@ -386,7 +387,7 @@ public class JoinNodeTest {
   public void shouldPerformStreamToStreamOuterJoin() {
     // Given:
     setupStream(left, CONTEXT_STACKER, leftSchemaKStream, leftSchema, 2);
-    expectKeyField(leftSchemaKStream, leftKeyFieldName);
+    expectKeyField(leftSchemaKStream, leftAlias, leftKeyFieldName);
     setupStream(right, CONTEXT_STACKER, rightSchemaKStream, rightSchema, 2);
     final WithinExpression withinExpression = new WithinExpression(10, TimeUnit.SECONDS);
     expect(leftSchemaKStream.outerJoin(eq(rightSchemaKStream),
@@ -518,11 +519,19 @@ public class JoinNodeTest {
         .findFirst();
   }
 
-  private static Optional<String> getNonKeyColumn(final Schema schema, final String keyName) {
-    return getColumn(
-        schema,
-        s -> !ImmutableList.of(SchemaUtil.ROWKEY_NAME, SchemaUtil.ROWTIME_NAME, keyName).contains(s)
+  private static Optional<String> getNonKeyColumn(
+      final Schema schema,
+      final String alias,
+      final String keyName
+  ) {
+    final String prefix = alias + ".";
+    final ImmutableList<String> blackList = ImmutableList.of(
+        prefix + SchemaUtil.ROWKEY_NAME,
+        prefix + SchemaUtil.ROWTIME_NAME,
+        prefix + keyName
     );
+
+    return getColumn(schema, s -> !blackList.contains(s));
   }
 
   @Test
@@ -530,10 +539,11 @@ public class JoinNodeTest {
     setupStream(left, CONTEXT_STACKER, leftSchemaKStream, leftSchema, 2);
     EasyMock.reset(rightSchemaKTable);
     setupTable(right, rightSchemaKTable, rightSchema, 2);
-    expectKeyField(rightSchemaKTable, rightKeyFieldName);
+    expectKeyField(rightSchemaKTable, rightAlias, rightKeyFieldName);
     replay(left, right, leftSchemaKStream, rightSchemaKTable);
 
-    final String rightCriteriaColumn = getNonKeyColumn(rightSchema, rightKeyFieldName).get();
+    final String rightCriteriaColumn = getNonKeyColumn(rightSchema, rightAlias, rightKeyFieldName)
+        .get();
     final JoinNode joinNode = new JoinNode(nodeId,
         JoinNode.JoinType.LEFT,
         left,
@@ -557,7 +567,7 @@ public class JoinNodeTest {
                   "Source table (%s) key column (%s) is not the column " +
                       "used in the join criteria (%s).",
               rightAlias,
-              rightKeyFieldName,
+                  rightAlias + "." + rightKeyFieldName,
               rightCriteriaColumn)));
       return;
     }
@@ -569,7 +579,7 @@ public class JoinNodeTest {
   public void shouldPerformStreamToTableLeftJoin() {
     // Given:
     setupStream(left, CONTEXT_STACKER, leftSchemaKStream, leftSchema, 2);
-    expectKeyField(leftSchemaKStream, leftKeyFieldName);
+    expectKeyField(leftSchemaKStream, leftAlias, leftKeyFieldName);
     setupTable(right, rightSchemaKTable, rightSchema, 2);
     expect(leftSchemaKStream.leftJoin(eq(rightSchemaKTable),
                                       eq(joinSchema),
@@ -608,7 +618,7 @@ public class JoinNodeTest {
   public void shouldPerformStreamToTableInnerJoin() {
     // Given:
     setupStream(left, CONTEXT_STACKER, leftSchemaKStream, leftSchema, 2);
-    expectKeyField(leftSchemaKStream, leftKeyFieldName);
+    expectKeyField(leftSchemaKStream, leftAlias, leftKeyFieldName);
     setupTable(right, rightSchemaKTable, rightSchema, 2);
     expect(leftSchemaKStream.join(eq(rightSchemaKTable),
                                   eq(joinSchema),
@@ -729,11 +739,12 @@ public class JoinNodeTest {
   @Test
   public void shouldFailTableTableJoinIfLeftCriteriaColumnIsNotKey() {
     setupTable(left, leftSchemaKTable, leftSchema, 2);
-    expectKeyField(leftSchemaKTable, leftKeyFieldName);
+    expectKeyField(leftSchemaKTable, leftAlias, leftKeyFieldName);
     setupTable(right, rightSchemaKTable, rightSchema, 2);
     replay(left, right, leftSchemaKTable, rightSchemaKTable);
 
-    final String leftCriteriaColumn = getNonKeyColumn(leftSchema, leftKeyFieldName).get();
+    final String leftCriteriaColumn = getNonKeyColumn(leftSchema, leftAlias, leftKeyFieldName)
+        .get();
     final JoinNode joinNode = new JoinNode(nodeId,
         JoinNode.JoinType.LEFT,
         left,
@@ -757,7 +768,7 @@ public class JoinNodeTest {
                   "Source table (%s) key column (%s) is not the column " +
                       "used in the join criteria (%s).",
                   leftAlias,
-                  leftKeyFieldName,
+                  leftAlias + "." + leftKeyFieldName,
                   leftCriteriaColumn)));
       return;
     }
@@ -768,13 +779,14 @@ public class JoinNodeTest {
   @Test
   public void shouldFailTableTableJoinIfRightCriteriaColumnIsNotKey() {
     setupTable(left, leftSchemaKTable, leftSchema, 2);
-    expectKeyField(leftSchemaKTable, leftKeyFieldName);
+    expectKeyField(leftSchemaKTable, leftAlias, leftKeyFieldName);
     EasyMock.reset(rightSchemaKTable);
     setupTable(right, rightSchemaKTable, rightSchema, 2);
-    expectKeyField(rightSchemaKTable, rightKeyFieldName);
+    expectKeyField(rightSchemaKTable, rightAlias, rightKeyFieldName);
     replay(left, right, leftSchemaKTable, rightSchemaKTable);
 
-    final String rightCriteriaColumn = getNonKeyColumn(rightSchema, rightKeyFieldName).get();
+    final String rightCriteriaColumn = getNonKeyColumn(rightSchema, rightAlias, rightKeyFieldName)
+        .get();
     final JoinNode joinNode = new JoinNode(nodeId,
         JoinNode.JoinType.LEFT,
         left,
@@ -797,7 +809,7 @@ public class JoinNodeTest {
                   "Source table (%s) key column (%s) is not the column " +
                       "used in the join criteria (%s).",
                   rightAlias,
-                  rightKeyFieldName,
+                  rightAlias + "." + rightKeyFieldName,
                   rightCriteriaColumn)));
       return;
     }
@@ -809,7 +821,7 @@ public class JoinNodeTest {
   public void shouldPerformTableToTableInnerJoin() {
     // Given:
     setupTable(left, leftSchemaKTable, leftSchema, 2);
-    expectKeyField(leftSchemaKTable, leftKeyFieldName);
+    expectKeyField(leftSchemaKTable, leftAlias, leftKeyFieldName);
     setupTable(right, rightSchemaKTable, rightSchema, 2);
     replay(left, right);
     final JoinNode joinNode = new JoinNode(nodeId,
@@ -849,7 +861,7 @@ public class JoinNodeTest {
   public void shouldPerformTableToTableLeftJoin() {
     // Given:
     setupTable(left, leftSchemaKTable, leftSchema, 2);
-    expectKeyField(leftSchemaKTable, leftKeyFieldName);
+    expectKeyField(leftSchemaKTable, leftAlias, leftKeyFieldName);
     setupTable(right, rightSchemaKTable, rightSchema, 2);
     replay(left, right);
     final JoinNode joinNode = new JoinNode(
@@ -890,7 +902,7 @@ public class JoinNodeTest {
   public void shouldPerformTableToTableOuterJoin() {
     // Given:
     setupTable(left, leftSchemaKTable, leftSchema, 2);
-    expectKeyField(leftSchemaKTable, leftKeyFieldName);
+    expectKeyField(leftSchemaKTable, leftAlias, leftKeyFieldName);
     setupTable(right, rightSchemaKTable, rightSchema, 2);
     replay(left, right);
     final JoinNode joinNode = new JoinNode(
@@ -970,6 +982,43 @@ public class JoinNodeTest {
     assertEquals(JoinNode.JoinType.OUTER, joinNode.getJoinType());
   }
 
+  @Test
+  public void shouldHaveFullyQualifiedJoinSchema() {
+    // Given:
+    expect(left.getSchema()).andReturn(leftSchema);
+    expect(right.getSchema()).andReturn(rightSchema);
+
+    replay(left, right, leftSchemaKTable, rightSchemaKTable);
+
+    // When:
+    final JoinNode joinNode = new JoinNode(
+        nodeId,
+        JoinNode.JoinType.OUTER,
+        left,
+        right,
+        leftKeyFieldName,
+        rightKeyFieldName,
+        leftAlias,
+        rightAlias,
+        null,
+        DataSource.DataSourceType.KTABLE,
+        DataSource.DataSourceType.KTABLE
+    );
+
+    // When:
+    assertThat(joinNode.getSchema(), is(
+        SchemaBuilder.struct()
+            .field(leftAlias + ".ROWTIME", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
+            .field(leftAlias + ".ROWKEY", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
+            .field(leftAlias + ".COL0", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
+            .field(leftAlias + ".COL1", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
+            .field(rightAlias + ".ROWTIME", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
+            .field(rightAlias + ".ROWKEY", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
+            .field(rightAlias + ".COL0", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
+            .field(rightAlias + ".COL1", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
+            .build()
+    ));
+  }
 
   @SuppressWarnings("unchecked")
   private void setupTable(final StructuredDataSourceNode node, final SchemaKTable table,
@@ -1015,24 +1064,26 @@ public class JoinNodeTest {
     expectBuildStream(node, contextStacker, stream, schema);
   }
 
-  private static void expectKeyField(final SchemaKStream stream, final String keyFieldName) {
+  private static void expectKeyField(
+      final SchemaKStream stream,
+      final String alias,
+      final String keyFieldName
+  ) {
     final Field field = niceMock(Field.class);
     expect(field.name()).andStubReturn(keyFieldName);
     replay(field);
-    expect(stream.getKeyField()).andStubReturn(KeyField.of(keyFieldName, field));
+    expect(stream.getKeyField()).andStubReturn(KeyField.of(alias + "." + keyFieldName, field));
   }
 
   private Schema joinSchema() {
     final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
 
     for (final Field field : leftSchema.fields()) {
-      final String fieldName = leftAlias + "." + field.name();
-      schemaBuilder.field(fieldName, field.schema());
+      schemaBuilder.field(field.name(), field.schema());
     }
 
     for (final Field field : rightSchema.fields()) {
-      final String fieldName = rightAlias + "." + field.name();
-      schemaBuilder.field(fieldName, field.schema());
+      schemaBuilder.field(field.name(), field.schema());
     }
     return schemaBuilder.build();
   }
@@ -1077,12 +1128,12 @@ public class JoinNodeTest {
     ).andReturn(result);
   }
 
-  private static Schema createSchema() {
+  private static Schema createSchema(final String alias) {
     final SchemaBuilder schemaBuilder = SchemaBuilder.struct()
-        .field("ROWTIME", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
-        .field("ROWKEY", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
-        .field("COL0", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
-        .field("COL1", SchemaBuilder.OPTIONAL_STRING_SCHEMA);
+        .field(alias + ".ROWTIME", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
+        .field(alias + ".ROWKEY", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
+        .field(alias + ".COL0", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
+        .field(alias + ".COL1", SchemaBuilder.OPTIONAL_STRING_SCHEMA);
     return schemaBuilder.build();
   }
 }

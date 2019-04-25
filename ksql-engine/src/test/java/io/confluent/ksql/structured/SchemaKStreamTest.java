@@ -113,6 +113,13 @@ public class SchemaKStreamTest {
   private final Joined joined = Joined.with(
       Serdes.String(), Serdes.String(), Serdes.String(), "join");
 
+  private final KeyField validJoinKeyField = KeyField.of(
+      Optional.of("left.COL1"),
+      metaStore.getSource("TEST1")
+          .getKeyField()
+          .legacy()
+          .map(field -> SchemaUtil.buildAliasedField("left", field)));
+
   private KStream kStream;
   private KsqlStream<?> ksqlStream;
   private InternalFunctionRegistry functionRegistry;
@@ -400,15 +407,37 @@ public class SchemaKStreamTest {
   }
 
   @Test
-  public void testSelectKey() {
+  public void shouldSelectKey() {
+    // Given:
     givenInitialKStreamOf("SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;");
+
+    final KeyField validKeyField = KeyField.of(
+        Optional.of("TEST1.COL1"),
+        metaStore.getSource("TEST1")
+            .getKeyField()
+            .legacy()
+            .map(field -> SchemaUtil.buildAliasedField("TEST1", field)));
+
+    // When:
     final SchemaKStream<?> rekeyedSchemaKStream = initialSchemaKStream.selectKey(
-        initialSchemaKStream.getSchema().fields().get(3),
+        validKeyField,
         true,
         childContextStacker);
 
-    assertThat(rekeyedSchemaKStream.getKeyField().name(), is(Optional.of("TEST1.COL1")));
-    assertThat(rekeyedSchemaKStream.getKeyField().legacy(), OptionalMatchers.of(hasName("TEST1.COL1")));
+    // Then:
+    assertThat(rekeyedSchemaKStream.getKeyField(), is(validKeyField));
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void shouldThrowOnSelectKeyIfNewKeyNotInSchema() {
+    givenInitialKStreamOf("SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;");
+
+    final SchemaKStream<?> rekeyedSchemaKStream = initialSchemaKStream.selectKey(
+        KeyField.of(Optional.of("won't find me"), Optional.empty()),
+        true,
+        childContextStacker);
+
+    assertThat(rekeyedSchemaKStream.getKeyField(), is(validJoinKeyField));
   }
 
   @Test
@@ -549,7 +578,7 @@ public class SchemaKStreamTest {
     final SchemaKStream joinedKStream = initialSchemaKStream
         .leftJoin(secondSchemaKStream,
                   joinSchema,
-                  joinSchema.fields().get(0),
+            validJoinKeyField,
                   joinWindow,
                   leftSerde,
                   rightSerde,
@@ -566,7 +595,7 @@ public class SchemaKStreamTest {
     assertThat(joinedKStream, instanceOf(SchemaKStream.class));
     assertEquals(SchemaKStream.Type.JOIN, joinedKStream.type);
     assertEquals(joinSchema, joinedKStream.schema);
-    assertEquals(Optional.of(joinSchema.fields().get(0).name()), joinedKStream.keyField.name());
+    assertThat(joinedKStream.getKeyField(), is(validJoinKeyField));
     assertEquals(Arrays.asList(initialSchemaKStream, secondSchemaKStream),
                  joinedKStream.sourceSchemaKStreams);
   }
@@ -590,7 +619,7 @@ public class SchemaKStreamTest {
     final SchemaKStream joinedKStream = initialSchemaKStream
         .join(secondSchemaKStream,
               joinSchema,
-              joinSchema.fields().get(0),
+            validJoinKeyField,
               joinWindow,
               leftSerde,
               rightSerde,
@@ -608,7 +637,7 @@ public class SchemaKStreamTest {
     assertThat(joinedKStream, instanceOf(SchemaKStream.class));
     assertEquals(SchemaKStream.Type.JOIN, joinedKStream.type);
     assertEquals(joinSchema, joinedKStream.schema);
-    assertEquals(Optional.of(joinSchema.fields().get(0).name()), joinedKStream.keyField.name());
+    Assert.assertThat(joinedKStream.getKeyField(), is(validJoinKeyField));
     assertEquals(Arrays.asList(initialSchemaKStream, secondSchemaKStream),
                  joinedKStream.sourceSchemaKStreams);
   }
@@ -632,7 +661,7 @@ public class SchemaKStreamTest {
     final SchemaKStream joinedKStream = initialSchemaKStream
         .outerJoin(secondSchemaKStream,
                    joinSchema,
-                   joinSchema.fields().get(0),
+            validJoinKeyField,
                    joinWindow,
                    leftSerde,
                    rightSerde,
@@ -649,7 +678,7 @@ public class SchemaKStreamTest {
     assertThat(joinedKStream, instanceOf(SchemaKStream.class));
     assertEquals(SchemaKStream.Type.JOIN, joinedKStream.type);
     assertEquals(joinSchema, joinedKStream.schema);
-    assertEquals(Optional.of(joinSchema.fields().get(0).name()), joinedKStream.keyField.name());
+    assertThat(joinedKStream.getKeyField(), is(validJoinKeyField));
     assertEquals(Arrays.asList(initialSchemaKStream, secondSchemaKStream),
                  joinedKStream.sourceSchemaKStreams);
   }
@@ -672,7 +701,7 @@ public class SchemaKStreamTest {
         .leftJoin(
             schemaKTable,
             joinSchema,
-            joinSchema.fields().get(0),
+            validJoinKeyField,
             leftSerde,
             childContextStacker);
 
@@ -685,7 +714,7 @@ public class SchemaKStreamTest {
     assertThat(joinedKStream, instanceOf(SchemaKStream.class));
     assertEquals(SchemaKStream.Type.JOIN, joinedKStream.type);
     assertEquals(joinSchema, joinedKStream.schema);
-    assertEquals(Optional.of(joinSchema.fields().get(0).name()), joinedKStream.keyField.name());
+    assertThat(joinedKStream.getKeyField(), is(validJoinKeyField));
     assertEquals(Arrays.asList(initialSchemaKStream, schemaKTable),
                  joinedKStream.sourceSchemaKStreams);
   }
@@ -708,7 +737,7 @@ public class SchemaKStreamTest {
         .join(
             schemaKTable,
             joinSchema,
-            joinSchema.fields().get(0),
+            validJoinKeyField,
             leftSerde,
             childContextStacker);
 
@@ -723,7 +752,7 @@ public class SchemaKStreamTest {
     assertThat(joinedKStream, instanceOf(SchemaKStream.class));
     assertEquals(SchemaKStream.Type.JOIN, joinedKStream.type);
     assertEquals(joinSchema, joinedKStream.schema);
-    assertEquals(Optional.of(joinSchema.fields().get(0).name()), joinedKStream.keyField.name());
+    assertThat(joinedKStream.getKeyField(), is(validJoinKeyField));
     assertEquals(Arrays.asList(initialSchemaKStream, schemaKTable),
                  joinedKStream.sourceSchemaKStreams);
   }

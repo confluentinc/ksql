@@ -522,17 +522,45 @@ public class SchemaUtilTest {
   }
 
   @Test
+  public void shouldStripAliasFromField() {
+    // Given:
+    final Field field = new Field("alias.some-field-name", 1, Schema.OPTIONAL_STRING_SCHEMA);
+
+    // When:
+    final String result = SchemaUtil.getFieldNameWithNoAlias(field);
+
+    // Then:
+    assertThat(result, is("some-field-name"));
+  }
+
+  @Test
+  public void shouldReturnFieldWithoutAliasAsIs() {
+    // Given:
+    final Field field = new Field("some-field-name", 1, Schema.OPTIONAL_STRING_SCHEMA);
+
+    // When:
+    final String result = SchemaUtil.getFieldNameWithNoAlias(field);
+
+    // Then:
+    assertThat(result, is("some-field-name"));
+  }
+
+  @Test
   public void shouldStripAliasFromFieldName() {
-    final Schema schemaWithAlias = SchemaUtil.buildSchemaWithAlias(schema, "alias");
-    assertThat("Invalid field name",
-        SchemaUtil.getFieldNameWithNoAlias(schemaWithAlias.fields().get(0)),
-        equalTo(schema.fields().get(0).name()));
+    // When:
+    final String result = SchemaUtil.getFieldNameWithNoAlias("some-alias.some-field-name");
+
+    // Then:
+    assertThat(result, is("some-field-name"));
   }
 
   @Test
   public void shouldReturnFieldNameWithoutAliasAsIs() {
-    assertThat("Invalid field name", SchemaUtil.getFieldNameWithNoAlias(schema.fields().get(0)),
-        equalTo(schema.fields().get(0).name()));
+    // When:
+    final String result = SchemaUtil.getFieldNameWithNoAlias("some-field-name");
+
+    // Then:
+    assertThat(result, is("some-field-name"));
   }
 
   @Test

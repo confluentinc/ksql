@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.analyzer;
 
+import static io.confluent.ksql.metastore.model.MetaStoreMatchers.KeyFieldMatchers.hasLegacyName;
+import static io.confluent.ksql.metastore.model.MetaStoreMatchers.KeyFieldMatchers.hasName;
 import static io.confluent.ksql.util.ExpressionMatchers.dereferenceExpressions;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
@@ -47,6 +49,7 @@ import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Sink;
+import io.confluent.ksql.planner.plan.JoinNode;
 import io.confluent.ksql.serde.DataSource.DataSourceSerDe;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
@@ -353,9 +356,12 @@ public class QueryAnalyzerTest {
     final Analysis analysis = queryAnalyzer.analyze("sqlExpression", query, Optional.empty());
 
     // Then:
-    assertTrue(analysis.getJoin().isLeftJoin());
-    assertThat(analysis.getJoin().getLeftKeyFieldName(), equalTo("COL1"));
-    assertThat(analysis.getJoin().getRightKeyFieldName(), equalTo("COL2"));
+    final JoinNode join = analysis.getJoin();
+    assertTrue(join.isLeftJoin());
+    assertThat(join.getLeftKeyField(), hasName("TEST1.COL1"));
+    assertThat(join.getLeftKeyField(), hasLegacyName("TEST1.COL1"));
+    assertThat(join.getRightKeyField(), hasName("TEST2.COL2"));
+    assertThat(join.getRightKeyField(), hasLegacyName("TEST2.COL2"));
   }
 
   @Test

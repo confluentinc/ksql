@@ -365,12 +365,16 @@ public final class SchemaUtil {
 
   public static String getFieldNameWithNoAlias(final Field field) {
     final String name = field.name();
-    final int idx = name.indexOf(FIELD_NAME_DELIMITER);
+    return getFieldNameWithNoAlias(name);
+  }
+
+  public static String getFieldNameWithNoAlias(final String fieldName) {
+    final int idx = fieldName.indexOf(FIELD_NAME_DELIMITER);
     if (idx < 0) {
-      return name;
+      return fieldName;
     }
 
-    return name.substring(idx + 1);
+    return fieldName.substring(idx + 1);
   }
 
   public static boolean areEqualSchemas(final Schema schema1, final Schema schema2) {

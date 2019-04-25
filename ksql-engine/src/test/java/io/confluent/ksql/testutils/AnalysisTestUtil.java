@@ -76,7 +76,8 @@ public final class AnalysisTestUtil {
         final String queryStr,
         final MetaStore metaStore
     ) {
-      final List<PreparedStatement<?>> statements = KsqlParserTestUtil.buildAst(queryStr, metaStore);
+      final List<PreparedStatement<?>> statements =
+          KsqlParserTestUtil.buildAst(queryStr, metaStore);
       assertThat(statements, hasSize(1));
       return statements.get(0).getStatement();
     }

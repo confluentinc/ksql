@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.analyzer;
 
+import static io.confluent.ksql.metastore.model.MetaStoreMatchers.KeyFieldMatchers.hasLegacyName;
+import static io.confluent.ksql.metastore.model.MetaStoreMatchers.KeyFieldMatchers.hasName;
 import static io.confluent.ksql.testutils.AnalysisTestUtil.analyzeQuery;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -34,6 +36,7 @@ import io.confluent.ksql.parser.SqlFormatter;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.planner.plan.JoinNode;
 import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.KsqlConstants;
@@ -116,7 +119,8 @@ public class AnalyzerTest {
         + "t1.col1 = t2.col1;";
     final Analysis analysis = analyzeQuery(simpleQuery, jsonMetaStore);
     Assert.assertNotNull("INTO is null", analysis.getInto());
-    Assert.assertNotNull("JOIN is null", analysis.getJoin());
+    final JoinNode join = analysis.getJoin();
+    Assert.assertNotNull("JOIN is null", join);
 
     Assert.assertNotNull("SELECT is null", analysis.getSelectExpressions());
     Assert.assertNotNull("SELECT aliacs is null", analysis.getSelectExpressionAlias());
@@ -128,8 +132,10 @@ public class AnalyzerTest {
     Assert.assertEquals(analysis.getSelectExpressions().size(),
         analysis.getSelectExpressionAlias().size());
 
-    Assert.assertTrue(analysis.getJoin().getLeftKeyFieldName().equalsIgnoreCase("COL1"));
-    Assert.assertTrue(analysis.getJoin().getRightKeyFieldName().equalsIgnoreCase("COL1"));
+    assertThat(join.getLeftKeyField(), hasName("T1.COL1"));
+    assertThat(join.getLeftKeyField(), hasLegacyName("T1.COL1"));
+    assertThat(join.getRightKeyField(), hasName("T2.COL1"));
+    assertThat(join.getRightKeyField(), hasLegacyName("T2.COL1"));
 
     final String
         select1 =
@@ -157,7 +163,21 @@ public class AnalyzerTest {
     Assert.assertTrue(analysis.getSelectExpressionAlias().get(2).equalsIgnoreCase("T2_COL4"));
     Assert.assertTrue(analysis.getSelectExpressionAlias().get(3).equalsIgnoreCase("COL5"));
     Assert.assertTrue(analysis.getSelectExpressionAlias().get(4).equalsIgnoreCase("T2_COL2"));
+  }
 
+  @Test
+  public void shouldHandleJoinOnRowKey() {
+    // When:
+    final JoinNode join = analyzeQuery(
+        "SELECT * FROM test1 t1 LEFT JOIN test2 t2 ON t1.ROWKEY = t2.ROWKEY;",
+        jsonMetaStore)
+        .getJoin();
+
+    // Then:
+    assertThat(join.getLeftKeyField(), hasName("T1.ROWKEY"));
+    assertThat(join.getLeftKeyField(), hasLegacyName("T1.ROWKEY"));
+    assertThat(join.getRightKeyField(), hasName("T2.ROWKEY"));
+    assertThat(join.getRightKeyField(), hasLegacyName("T2.ROWKEY"));
   }
 
   @Test

@@ -20,6 +20,7 @@ import static java.lang.String.format;
 import io.confluent.ksql.analyzer.Analysis.Into;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.metastore.model.StructuredDataSource;
 import io.confluent.ksql.parser.DefaultTraversalVisitor;
@@ -402,19 +403,16 @@ class Analyzer {
       final ComparisonExpression comparisonExpression = (ComparisonExpression) joinOn
           .getExpression();
 
-      final Pair<String, String> leftSide = fetchKeyFieldName(
+      final KeyField leftKeyField = buildKeyField(
           comparisonExpression,
           leftAlias,
           leftDataSource.getSchema()
       );
-      final Pair<String, String> rightSide = fetchKeyFieldName(
+      final KeyField rightKeyField = buildKeyField(
           comparisonExpression,
           rightAlias,
           rightDataSource.getSchema()
       );
-
-      final String leftKeyFieldName = leftSide.getRight();
-      final String rightKeyFieldName = rightSide.getRight();
 
       if (comparisonExpression.getType() != ComparisonExpression.Type.EQUAL) {
         throw new KsqlException("Only equality join criteria is supported.");
@@ -441,8 +439,8 @@ class Analyzer {
               joinType,
               leftSourceKafkaTopicNode,
               rightSourceKafkaTopicNode,
-              leftKeyFieldName,
-              rightKeyFieldName,
+              leftKeyField,
+              rightKeyField,
               leftAlias,
               rightAlias,
               node.getWithinExpression().orElse(null),
@@ -475,24 +473,24 @@ class Analyzer {
     /**
      * From the join criteria expression fetch the field corresponding to the given source alias.
      */
-    private Pair<String, String> fetchKeyFieldName(
+    private KeyField buildKeyField(
         final ComparisonExpression comparisonExpression,
         final String sourceAlias,
         final Schema sourceSchema
     ) {
-      Pair<String, String> keyInfo = fetchFieldNameFromExpr(
+      KeyField keyField = buildKeyFieldFromExpr(
           comparisonExpression.getLeft(),
           sourceAlias,
           sourceSchema
       );
-      if (keyInfo == null) {
-        keyInfo = fetchFieldNameFromExpr(
+      if (keyField == null) {
+        keyField = buildKeyFieldFromExpr(
             comparisonExpression.getRight(),
             sourceAlias,
             sourceSchema
         );
       }
-      if (keyInfo == null) {
+      if (keyField == null) {
         throw new KsqlException(
             String.format(
                 "%s : Invalid join criteria %s. Could not find a join criteria operand for %s. ",
@@ -501,7 +499,7 @@ class Analyzer {
             )
         );
       }
-      return keyInfo;
+      return keyField;
     }
 
     /**
@@ -509,31 +507,47 @@ class Analyzer {
      * DereferenceExpression or QualifiedNameReference and if the variable prefix matches the source
      * Alias.
      */
-    private Pair<String, String> fetchFieldNameFromExpr(
-        final Expression expression, final String sourceAlias,
+    private KeyField buildKeyFieldFromExpr(
+        final Expression expression,
+        final String sourceAlias,
         final Schema sourceSchema
     ) {
       if (expression instanceof DereferenceExpression) {
-        final DereferenceExpression dereferenceExpression =
-            (DereferenceExpression) expression;
-        final String sourceAliasVal = dereferenceExpression.getBase().toString();
-        if (sourceAliasVal.equalsIgnoreCase(sourceAlias)) {
-          final String fieldName = dereferenceExpression.getFieldName();
-          if (SchemaUtil.getFieldByName(sourceSchema, fieldName).isPresent()) {
-            return new Pair<>(sourceAliasVal, fieldName);
-          }
+        final DereferenceExpression dereferenceExpr = (DereferenceExpression) expression;
+
+        final String sourceAliasVal = dereferenceExpr.getBase().toString();
+        if (!sourceAliasVal.equalsIgnoreCase(sourceAlias)) {
+          return null;
         }
-      } else if (expression instanceof QualifiedNameReference) {
-        final QualifiedNameReference qualifiedNameReference =
-            (QualifiedNameReference) expression;
-        final String fieldName = qualifiedNameReference.getName().getSuffix();
-        if (SchemaUtil.getFieldByName(sourceSchema, fieldName).isPresent()) {
-          return new Pair<>(sourceAlias, fieldName);
-        }
+
+        final String fieldName = dereferenceExpr.getFieldName();
+        return buildKeyFieldFromSource(fieldName, sourceAlias, sourceSchema);
+      }
+
+      if (expression instanceof QualifiedNameReference) {
+        final QualifiedNameReference qualifiedNameRef = (QualifiedNameReference) expression;
+
+        final String fieldName = qualifiedNameRef.getName().getSuffix();
+        return buildKeyFieldFromSource(fieldName, sourceAlias, sourceSchema);
       }
       return null;
     }
 
+    private KeyField buildKeyFieldFromSource(
+        final String fieldName,
+        final String sourceAlias,
+        final Schema sourceSchema
+    ) {
+      final Optional<Field> field = SchemaUtil.getFieldByName(sourceSchema, fieldName);
+      if (!field.isPresent()) {
+        return null;
+      }
+
+      final Field legacy = SchemaUtil.buildAliasedField(sourceAlias, field.get());
+      final String latest = SchemaUtil.buildAliasedFieldName(sourceAlias, fieldName);
+
+      return KeyField.of(latest, legacy);
+    }
 
     @Override
     protected Node visitAliasedRelation(final AliasedRelation node, final Void context) {

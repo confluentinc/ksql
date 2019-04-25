@@ -112,7 +112,7 @@ public class KeyFieldTest {
 
     // Then:
     expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("Invalid key field: ????");
+    expectedException.expectMessage("Invalid key field, not found in schema: ????");
 
     // When:
     keyField.validateKeyExistsIn(SCHEMA);
@@ -202,6 +202,54 @@ public class KeyFieldTest {
   }
 
   @Test
+  public void shouldResolveNameToNewKeyField() {
+    // Given:
+    final KeyField keyField = KeyField.of(Optional.of(SCHEMA_FIELD.name()), Optional.empty());
+
+    // When:
+    final Optional<String> resolved = keyField.resolveName(LATEST_CONFIG);
+
+    // Then:
+    assertThat(resolved, is(Optional.of(SCHEMA_FIELD.name())));
+  }
+
+  @Test
+  public void shouldResolveNameToEmptyNewKeyField() {
+    // Given:
+    final KeyField keyField = KeyField.of(Optional.empty(), Optional.of(SCHEMA_FIELD));
+
+    // When:
+    final Optional<?> resolved = keyField.resolveName(LATEST_CONFIG);
+
+    // Then:
+    assertThat(resolved, is(Optional.empty()));
+  }
+
+  @Test
+  public void shouldResolveNameToLegacyKeyField() {
+    // Given:
+    final KeyField keyField = KeyField.of(Optional.empty(), Optional.of(RANDOM_FIELD));
+
+    // When:
+    final Optional<String> resolved = keyField.resolveName(LEGACY_CONFIG);
+
+    // Then:
+    assertThat(resolved, is(Optional.of(RANDOM_FIELD.name())));
+  }
+
+  @Test
+  public void shouldResolveNameToEmptyLegacyKeyField() {
+    // Given:
+    final KeyField keyField = KeyField.of(Optional.of(SCHEMA_FIELD.name()), Optional.empty());
+
+    // When:
+    final Optional<String> resolved = keyField.resolveName(LEGACY_CONFIG);
+
+    // Then:
+    assertThat(resolved, is(Optional.empty()));
+  }
+
+  @Test
   public void shouldBuildNewWithNewName() {
     // Given:
     final KeyField keyField = KeyField.of(Optional.of("something"), Optional.empty());
@@ -212,5 +260,18 @@ public class KeyFieldTest {
     // Then:
     assertThat(keyField.name(), is(Optional.of("something")));
     assertThat(result, is(KeyField.of(Optional.of("new-name"), Optional.empty())));
+  }
+
+  @Test
+  public void shouldBuildNewWithLegacy() {
+    // Given:
+    final KeyField keyField = KeyField.of(Optional.of("something"), Optional.empty());
+
+    // When:
+    final KeyField result = keyField.withLegacy(Optional.of(SCHEMA_FIELD));
+
+    // Then:
+    assertThat(keyField.legacy(), is(Optional.empty()));
+    assertThat(result, is(KeyField.of("something", SCHEMA_FIELD)));
   }
 }

@@ -349,7 +349,7 @@ public class SchemaKStream<K> {
   public SchemaKStream<K> leftJoin(
       final SchemaKTable<K> schemaKTable,
       final Schema joinSchema,
-      final Field joinKey,
+      final KeyField joinKey,
       final Serde<GenericRow> leftValueSerDe,
       final QueryContext.Stacker contextStacker
   ) {
@@ -368,7 +368,7 @@ public class SchemaKStream<K> {
     return new SchemaKStream<>(
         joinSchema,
         joinedKStream,
-        KeyField.of(joinKey.name(), joinKey),
+        joinKey,
         ImmutableList.of(this, schemaKTable),
         keySerdeFactory,
         Type.JOIN,
@@ -381,7 +381,7 @@ public class SchemaKStream<K> {
   public SchemaKStream<K> leftJoin(
       final SchemaKStream<K> otherSchemaKStream,
       final Schema joinSchema,
-      final Field joinKey,
+      final KeyField joinKey,
       final JoinWindows joinWindows,
       final Serde<GenericRow> leftSerde,
       final Serde<GenericRow> rightSerde,
@@ -403,7 +403,7 @@ public class SchemaKStream<K> {
     return new SchemaKStream<>(
         joinSchema,
         joinStream,
-        KeyField.of(joinKey.name(), joinKey),
+        joinKey,
         ImmutableList.of(this, otherSchemaKStream),
         keySerdeFactory,
         Type.JOIN,
@@ -417,7 +417,7 @@ public class SchemaKStream<K> {
   public SchemaKStream<K> join(
       final SchemaKTable<K> schemaKTable,
       final Schema joinSchema,
-      final Field joinKey,
+      final KeyField joinKeyField,
       final Serde<GenericRow> joinSerDe,
       final QueryContext.Stacker contextStacker
   ) {
@@ -435,7 +435,7 @@ public class SchemaKStream<K> {
     return new SchemaKStream<>(
         joinSchema,
         joinedKStream,
-        KeyField.of(joinKey.name(), joinKey),
+        joinKeyField,
         ImmutableList.of(this, schemaKTable),
         keySerdeFactory,
         Type.JOIN,
@@ -448,7 +448,7 @@ public class SchemaKStream<K> {
   public SchemaKStream<K> join(
       final SchemaKStream<K> otherSchemaKStream,
       final Schema joinSchema,
-      final Field joinKey,
+      final KeyField joinKey,
       final JoinWindows joinWindows,
       final Serde<GenericRow> leftSerde,
       final Serde<GenericRow> rightSerde,
@@ -469,7 +469,7 @@ public class SchemaKStream<K> {
     return new SchemaKStream<>(
         joinSchema,
         joinStream,
-        KeyField.of(joinKey.name(), joinKey),
+        joinKey,
         ImmutableList.of(this, otherSchemaKStream),
         keySerdeFactory,
         Type.JOIN,
@@ -482,7 +482,7 @@ public class SchemaKStream<K> {
   public SchemaKStream<K> outerJoin(
       final SchemaKStream<K> otherSchemaKStream,
       final Schema joinSchema,
-      final Field joinKey,
+      final KeyField joinKey,
       final JoinWindows joinWindows,
       final Serde<GenericRow> leftSerde,
       final Serde<GenericRow> rightSerde,
@@ -502,7 +502,7 @@ public class SchemaKStream<K> {
     return new SchemaKStream<>(
         joinSchema,
         joinStream,
-        KeyField.of(joinKey.name(), joinKey),
+        joinKey,
         ImmutableList.of(this, otherSchemaKStream),
         keySerdeFactory,
         Type.JOIN,
@@ -515,21 +515,31 @@ public class SchemaKStream<K> {
 
   @SuppressWarnings("unchecked")
   public SchemaKStream<?> selectKey(
-      final Field newKeyField,
+      final KeyField selectKeyField,
       final boolean updateRowKey,
       final QueryContext.Stacker contextStacker
   ) {
-    final Optional<Field> resolved = keyField.resolve(schema, ksqlConfig);
+    final Field field = selectKeyField.resolve(schema, ksqlConfig)
+        .orElseThrow(IllegalArgumentException::new);
 
-    final boolean namesMatch = resolved
-        .map(kf -> SchemaUtil.matchFieldName(kf, newKeyField.name()))
+    final KeyField newKeyField =
+        selectKeyField.name().isPresent() && isRowKey(selectKeyField.name().get())
+            ? keyField.withLegacy(selectKeyField.legacy())
+            : selectKeyField;
+
+    final Optional<Field> existing = keyField.resolve(schema, ksqlConfig);
+    final boolean namesMatch = existing
+        .map(kf -> SchemaUtil.matchFieldName(kf, field.name()))
         .orElse(false);
 
-    if (namesMatch) {
+    // Note: Prior to v5.3 a selectKey(ROWKEY) would result in a repartition.
+    // To maintain compatibility, existing queries started prior to v5.3 must have repartition step.
+    // Hence 'usingNewKeyFields' in if below: new key field logic fixes this issue.
+    if (namesMatch || (usingNewKeyFields() && isRowKey(field.name()))) {
       return new SchemaKStream<>(
           schema,
           kstream,
-          KeyField.of(newKeyField.name(), newKeyField),
+          newKeyField,
           sourceSchemaKStreams,
           keySerdeFactory,
           type,
@@ -540,9 +550,8 @@ public class SchemaKStream<K> {
     }
 
     final KStream keyedKStream = kstream
-        .filter((key, value) -> value != null
-            && extractColumn(newKeyField, value) != null)
-        .selectKey((key, value) -> extractColumn(newKeyField, value).toString())
+        .filter((key, value) -> value != null && extractColumn(field, value) != null)
+        .selectKey((key, value) -> extractColumn(field, value).toString())
         .mapValues((key, row) -> {
           if (updateRowKey) {
             row.getColumns().set(SchemaUtil.ROWKEY_NAME_INDEX, key);
@@ -553,7 +562,7 @@ public class SchemaKStream<K> {
     return new SchemaKStream<>(
         schema,
         keyedKStream,
-        KeyField.of(newKeyField.name(), newKeyField),
+        newKeyField,
         Collections.singletonList(this),
         Serdes::String,
         Type.REKEY,
@@ -561,6 +570,16 @@ public class SchemaKStream<K> {
         functionRegistry,
         contextStacker.getQueryContext()
     );
+  }
+
+  private boolean usingNewKeyFields() {
+    return !ksqlConfig.getBoolean(KsqlConfig.KSQL_USE_LEGACY_KEY_FIELD);
+  }
+
+  private static boolean isRowKey(final String fieldName) {
+    return SchemaUtil
+        .getFieldNameWithNoAlias(fieldName)
+        .equals(SchemaUtil.ROWKEY_NAME);
   }
 
   private Object extractColumn(final Field newKeyField, final GenericRow value) {

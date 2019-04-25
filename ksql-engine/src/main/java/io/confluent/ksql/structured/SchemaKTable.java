@@ -225,7 +225,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
   public SchemaKTable<K> join(
       final SchemaKTable<K> schemaKTable,
       final Schema joinSchema,
-      final Field joinKey,
+      final KeyField joinKey,
       final QueryContext.Stacker contextStacker
   ) {
     final KTable<K, GenericRow> joinedKTable = ktable.join(
@@ -236,7 +236,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
     return new SchemaKTable<>(
         joinSchema,
         joinedKTable,
-        KeyField.of(joinKey.name(), joinKey),
+        joinKey,
         ImmutableList.of(this, schemaKTable),
         keySerdeFactory,
         Type.JOIN,
@@ -250,7 +250,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
   public SchemaKTable<K> leftJoin(
       final SchemaKTable<K> schemaKTable,
       final Schema joinSchema,
-      final Field joinKey,
+      final KeyField joinKey,
       final QueryContext.Stacker contextStacker
   ) {
     final KTable<K, GenericRow> joinedKTable =
@@ -262,7 +262,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
     return new SchemaKTable<>(
         joinSchema,
         joinedKTable,
-        KeyField.of(joinKey.name(), joinKey),
+        joinKey,
         ImmutableList.of(this, schemaKTable),
         keySerdeFactory,
         Type.JOIN,
@@ -276,7 +276,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
   public SchemaKTable<K> outerJoin(
       final SchemaKTable<K> schemaKTable,
       final Schema joinSchema,
-      final Field joinKey,
+      final KeyField joinKey,
       final QueryContext.Stacker contextStacker
   ) {
     final KTable<K, GenericRow> joinedKTable =
@@ -288,7 +288,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
     return new SchemaKTable<>(
         joinSchema,
         joinedKTable,
-        KeyField.of(joinKey.name(), joinKey),
+        joinKey,
         ImmutableList.of(this, schemaKTable),
         keySerdeFactory,
         Type.JOIN,

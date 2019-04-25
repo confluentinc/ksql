@@ -289,28 +289,11 @@ public class TopicCreateInjectorTest {
     injector.inject(statement, builder);
 
     // Then:
-    topicClient.createTopic(
+    verify(topicClient).createTopic(
         "expectedName",
         10,
         (short) 10,
-        ImmutableMap.of(TopicConfig.CLEANUP_POLICY_CONFIG, TopicCleanupPolicy.DELETE));
-  }
-
-  @Test
-  public void shouldCreateMissingTopicWithDeleteCleanupPolicyForStream() {
-    // Given:
-    givenStatement("CREATE STREAM x WITH (kafka_topic='topic') AS SELECT * FROM SOURCE;");
-    when(builder.build()).thenReturn(new TopicProperties("expectedName", 10, (short) 10));
-
-    // When:
-    injector.inject(statement, builder);
-
-    // Then:
-    topicClient.createTopic(
-        "expectedName",
-        10,
-        (short) 10,
-        ImmutableMap.of(TopicConfig.CLEANUP_POLICY_CONFIG, TopicCleanupPolicy.DELETE));
+        ImmutableMap.of());
   }
 
   @Test
@@ -324,15 +307,15 @@ public class TopicCreateInjectorTest {
     injector.inject(statement, builder);
 
     // Then:
-    topicClient.createTopic(
+    verify(topicClient).createTopic(
         "expectedName",
         10,
         (short) 10,
-        ImmutableMap.of(TopicConfig.CLEANUP_POLICY_CONFIG, TopicCleanupPolicy.COMPACT));
+        ImmutableMap.of(TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_COMPACT));
   }
 
   @Test
-  public void shouldCreateMissingTopicWithDeleteCleanupPolicyForWindowedTables() {
+  public void shouldCreateMissingTopicWithDefaultCleanupPolicyForWindowedTables() {
     // Given:
     givenStatement("CREATE TABLE x WITH (kafka_topic='topic') "
         + "AS SELECT * FROM SOURCE WINDOW TUMBLING (SIZE 10 SECONDS);");
@@ -342,11 +325,11 @@ public class TopicCreateInjectorTest {
     injector.inject(statement, builder);
 
     // Then:
-    topicClient.createTopic(
+    verify(topicClient).createTopic(
         "expectedName",
         10,
         (short) 10,
-        ImmutableMap.of(TopicConfig.CLEANUP_POLICY_CONFIG, TopicCleanupPolicy.DELETE));
+        ImmutableMap.of());
   }
 
   @SuppressWarnings("unchecked")

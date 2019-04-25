@@ -578,6 +578,19 @@ public class RecoveryTest {
   }
 
   @Test
+  public void shouldNotDeleteTopicsOnRecoveryEvenIfLegacyDropCommandAlreadyInCommandQueue() {
+    topicClient.preconditionTopicExists("B");
+
+    shouldRecover(ImmutableList.of(
+        new QueuedCommand(
+            new CommandId(Type.STREAM, "B", Action.DROP),
+            new Command("DROP STREAM B DELETE TOPIC;", ImmutableMap.of(), ImmutableMap.of()))
+    ));
+
+    assertThat(topicClient.listTopicNames(), hasItem("B"));
+  }
+
+  @Test
   public void shouldRecoverLogWithRepeatedTerminates() {
     server1.submitCommands(
         "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",

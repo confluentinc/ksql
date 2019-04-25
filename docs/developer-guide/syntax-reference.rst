@@ -1338,9 +1338,8 @@ Scalar functions
 |                        |                                                                           | ``java.util.TimeZone`` ID format, for example:    |
 |                        |                                                                           | "UTC", "America/Los_Angeles", "PDT",              |
 |                        |                                                                           | "Europe/London".                                  |
-|                        |                                                                           | Notice that the returned timestamp might be       |
-|                        |                                                                           | different in case of the local time in KSQL       |
-|                        |                                                                           | servers are not synchronized between them.        |
+|                        |                                                                           | The returned timestamp may differ depending on    |
+|                        |                                                                           | the local time of different KSQL Server instances.|
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | DATETOSTRING           |  ``DATETOSTRING(START_DATE, 'yyyy-MM-dd')``                               | Converts an integer representation of a date into |
 |                        |                                                                           | a string representing the date in                 |

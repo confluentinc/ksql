@@ -18,36 +18,44 @@ package io.confluent.ksql.test.commons;
 import static org.hamcrest.Matchers.allOf;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
+import io.confluent.ksql.metastore.model.MetaStoreMatchers;
 import io.confluent.ksql.metastore.model.StructuredDataSource;
+import io.confluent.ksql.schema.ksql.LogicalSchemas;
+import io.confluent.ksql.schema.ksql.TypeContextUtil;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Stream;
+import org.apache.kafka.connect.data.ConnectSchema;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
 import org.hamcrest.Matcher;
+import org.hamcrest.Matchers;
 import org.hamcrest.core.IsInstanceOf;
 
-@JsonDeserialize(using = SourceNodeDeserializer.class)
 class SourceNode {
 
   private final String name;
   private final Optional<Class<? extends StructuredDataSource>> type;
-  private final Optional<FieldNode> keyField;
+  private final Optional<KeyFieldNode> keyField;
+  private final Optional<Schema> valueSchema;
 
   SourceNode(
-      @JsonProperty("name") final String name,
-      @JsonProperty("type") final String type,
-      @JsonProperty("keyField") final Optional<FieldNode> keyField
+      @JsonProperty(value = "name", required = true) final String name,
+      @JsonProperty(value = "type", required = true) final String type,
+      @JsonProperty("keyField") final KeyFieldNode keyField,
+      @JsonProperty("valueSchema") final String valueSchema
   ) {
     this.name = name == null ? "" : name;
-    this.keyField = keyField;
+    this.keyField = Optional.ofNullable(keyField);
+    this.valueSchema = parseSchema(valueSchema);
     this.type = Optional.ofNullable(type)
         .map(String::toUpperCase)
         .map(SourceNode::toType);
 
     if (this.name.isEmpty()) {
-      throw new InvalidFieldException("name", "empty or missing");
+      throw new InvalidFieldException("name", "missing or empty");
     }
   }
 
@@ -57,7 +65,7 @@ class SourceNode {
       throw new InvalidFieldException("name", "missing or empty");
     }
 
-    final Matcher<StructuredDataSource<?>> nameMatcher = StructuredDataSourceMatchers
+    final Matcher<StructuredDataSource<?>> nameMatcher = MetaStoreMatchers
         .hasName(name);
 
     final Matcher<Object> typeMatcher = type
@@ -65,11 +73,17 @@ class SourceNode {
         .orElse(null);
 
     final Matcher<StructuredDataSource<?>> keyFieldMatcher = keyField
-        .map(FieldNode::build)
-        .map(StructuredDataSourceMatchers::hasKeyField)
+        .map(KeyFieldNode::build)
+        .map(MetaStoreMatchers::hasKeyField)
         .orElse(null);
 
-    final Matcher[] matchers = Stream.of(nameMatcher, typeMatcher, keyFieldMatcher)
+    final Matcher<StructuredDataSource<?>> valueSchemaMatcher = valueSchema
+        .map(Matchers::is)
+        .map(MetaStoreMatchers::hasValueSchema)
+        .orElse(null);
+
+    final Matcher[] matchers = Stream
+        .of(nameMatcher, typeMatcher, keyFieldMatcher, valueSchemaMatcher)
         .filter(Objects::nonNull)
         .toArray(Matcher[]::new);
 
@@ -87,5 +101,22 @@ class SourceNode {
       default:
         throw new InvalidFieldException("type", "must be either STREAM or TABLE");
     }
+  }
+
+  private static Optional<Schema> parseSchema(final String schema) {
+    return Optional.ofNullable(schema)
+        .map(TypeContextUtil::getType)
+        .map(LogicalSchemas.fromSqlTypeConverter()::fromSqlType)
+        .map(SourceNode::makeTopLevelStructNoneOptional);
+  }
+
+  private static ConnectSchema makeTopLevelStructNoneOptional(final Schema schema) {
+    if (schema.type() != Schema.Type.STRUCT) {
+      return (ConnectSchema) schema.schema();
+    }
+
+    final SchemaBuilder builder = SchemaBuilder.struct();
+    schema.fields().forEach(field -> builder.field(field.name(), field.schema()));
+    return (ConnectSchema) builder.build();
   }
 }

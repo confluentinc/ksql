@@ -425,14 +425,14 @@ class Analyzer {
           new StructuredDataSourceNode(
               new PlanNodeId("KafkaTopic_Left"),
               leftDataSource,
-              leftDataSource.getSchema()
+              leftAlias
           );
       final StructuredDataSourceNode
           rightSourceKafkaTopicNode =
           new StructuredDataSourceNode(
               new PlanNodeId("KafkaTopic_Right"),
               rightDataSource,
-              rightDataSource.getSchema()
+              rightAlias
           );
 
       final JoinNode joinNode =

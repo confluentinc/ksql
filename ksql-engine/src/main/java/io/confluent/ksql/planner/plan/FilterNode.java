@@ -18,14 +18,14 @@ package io.confluent.ksql.planner.plan;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.physical.KsqlQueryBuilder;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.util.KafkaTopicClient;
 import java.util.List;
-import java.util.Optional;
+import java.util.Objects;
 import javax.annotation.concurrent.Immutable;
-import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 
 @Immutable
@@ -33,7 +33,6 @@ public class FilterNode extends PlanNode {
 
   private final PlanNode source;
   private final Expression predicate;
-  private final Schema schema;
 
   @JsonCreator
   public FilterNode(@JsonProperty("id") final PlanNodeId id,
@@ -41,9 +40,8 @@ public class FilterNode extends PlanNode {
                     @JsonProperty("predicate") final Expression predicate) {
     super(id, source.getNodeOutputType());
 
-    this.source = source;
-    this.schema = source.getSchema();
-    this.predicate = predicate;
+    this.source = Objects.requireNonNull(source, "source");
+    this.predicate = Objects.requireNonNull(predicate, "predicate");
   }
 
   @JsonProperty("predicate")
@@ -53,11 +51,11 @@ public class FilterNode extends PlanNode {
 
   @Override
   public Schema getSchema() {
-    return this.schema;
+    return source.getSchema();
   }
 
   @Override
-  public Optional<Field> getKeyField() {
+  public KeyField getKeyField() {
     return source.getKeyField();
   }
 

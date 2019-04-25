@@ -43,19 +43,6 @@ final class StructuredDataSourceMatchers {
     };
   }
 
-  static Matcher<StructuredDataSource<?>> hasKeyField(
-      final Matcher<Optional<Field>> fieldMatcher
-  ) {
-    return new FeatureMatcher<StructuredDataSource<?>, Optional<Field>>(
-        fieldMatcher,
-        "source with key field",
-        "key field") {
-      @Override
-      protected Optional<Field> featureValueOf(final StructuredDataSource<?> actual) {
-        return actual.getKeyField();
-      }
-    };
-  }
 
   static final class FieldMatchers {
 

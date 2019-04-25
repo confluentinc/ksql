@@ -43,18 +43,14 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.isIn;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 
 import com.google.common.collect.ImmutableList;
@@ -66,6 +62,7 @@ import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlEngineTestUtil;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStoreImpl;
+import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.metastore.model.KsqlTopic;
@@ -134,13 +131,7 @@ import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import io.confluent.rest.RestConfig;
 import java.io.IOException;
 import java.time.Duration;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Properties;
+import java.util.*;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -1498,7 +1489,7 @@ public class KsqlResourceTest {
   @Test
   public void shouldUpdateTheLastRequestTime() {
     // When:
-    ksqlResource.handleKsqlStatements(VALID_EXECUTABLE_REQUEST);
+    ksqlResource.handleKsqlStatements(serviceContext, VALID_EXECUTABLE_REQUEST);
 
     // Then:
     verify(activenessRegistrar).updateLastRequestTime();
@@ -1507,7 +1498,10 @@ public class KsqlResourceTest {
   @Test
   public void shouldHandleTerminateRequestCorrectly() {
     // When:
-    final Response response = ksqlResource.terminateCluster(VALID_TERMINATE_REQUEST);
+    final Response response = ksqlResource.terminateCluster(
+        serviceContext,
+        VALID_TERMINATE_REQUEST
+    );
 
     // Then:
     assertThat(response.getStatus(), equalTo(200));
@@ -1533,7 +1527,10 @@ public class KsqlResourceTest {
     when(commandStore.enqueueCommand(any())).thenThrow(new KsqlException(""));
 
     // When:
-    final Response response = ksqlResource.terminateCluster(VALID_TERMINATE_REQUEST);
+    final Response response = ksqlResource.terminateCluster(
+        serviceContext,
+        VALID_TERMINATE_REQUEST
+    );
 
     // Then:
     assertThat(response.getStatus(), equalTo(500));
@@ -1555,7 +1552,7 @@ public class KsqlResourceTest {
         "Invalid pattern: [Invalid Regex"))));
 
     // When:
-    ksqlResource.terminateCluster(request);
+    ksqlResource.terminateCluster(serviceContext, request);
   }
 
   @Test
@@ -1786,7 +1783,7 @@ public class KsqlResourceTest {
 
   private KsqlErrorMessage makeFailingRequest(final KsqlRequest ksqlRequest, final Code errorCode) {
     try {
-      final Response response = ksqlResource.handleKsqlStatements(ksqlRequest);
+      final Response response = ksqlResource.handleKsqlStatements(serviceContext, ksqlRequest);
       assertThat(response.getStatus(), is(errorCode.getCode()));
       assertThat(response.getEntity(), instanceOf(KsqlErrorMessage.class));
       return (KsqlErrorMessage) response.getEntity();
@@ -1846,7 +1843,7 @@ public class KsqlResourceTest {
       final KsqlRequest ksqlRequest,
       final Class<T> expectedEntityType) {
 
-    final Response response = ksqlResource.handleKsqlStatements(ksqlRequest);
+    final Response response = ksqlResource.handleKsqlStatements(serviceContext, ksqlRequest);
     if (response.getStatus() != Response.Status.OK.getStatusCode()) {
       throw new KsqlRestException(response);
     }
@@ -1887,7 +1884,6 @@ public class KsqlResourceTest {
     ksqlResource = new KsqlResource(
         ksqlConfig,
         ksqlEngine,
-        serviceContext,
         commandStore,
         DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT,
         activenessRegistrar,
@@ -1938,13 +1934,15 @@ public class KsqlResourceTest {
     if (type == DataSource.DataSourceType.KSTREAM) {
       metaStore.putSource(
           new KsqlStream<>(
-              "statementText", sourceName, schema, Optional.of(schema.fields().get(0)),
+              "statementText", sourceName, schema,
+              KeyField.of(schema.fields().get(0).name(), schema.fields().get(0)),
               new MetadataTimestampExtractionPolicy(), ksqlTopic, Serdes::String));
     }
     if (type == DataSource.DataSourceType.KTABLE) {
       metaStore.putSource(
           new KsqlTable<>(
-              "statementText", sourceName, schema, Optional.of(schema.fields().get(0)),
+              "statementText", sourceName, schema,
+              KeyField.of(schema.fields().get(0).name(), schema.fields().get(0)),
               new MetadataTimestampExtractionPolicy(), ksqlTopic, Serdes::String));
     }
   }

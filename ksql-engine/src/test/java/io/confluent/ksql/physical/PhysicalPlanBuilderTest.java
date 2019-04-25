@@ -79,6 +79,7 @@ import org.apache.kafka.clients.producer.ProducerInterceptor;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
@@ -211,6 +212,39 @@ public class PhysicalPlanBuilderTest {
   public void shouldMakeBareQuery() {
     final QueryMetadata queryMetadata = buildPhysicalPlan(simpleSelectFilter);
     assertThat(queryMetadata, instanceOf(QueuedQueryMetadata.class));
+  }
+
+  @Test
+  public void shouldBuildTransientQueryWithCorrectSchema() {
+    // When:
+    final QueryMetadata queryMetadata = buildPhysicalPlan(simpleSelectFilter);
+
+    // Then:
+    assertThat(queryMetadata.getResultSchema(), is(
+        SchemaBuilder.struct()
+            .field("COL0", Schema.OPTIONAL_INT64_SCHEMA)
+            .field("COL2", Schema.OPTIONAL_STRING_SCHEMA)
+            .field("COL3", Schema.OPTIONAL_FLOAT64_SCHEMA)
+            .build()
+    ));
+  }
+
+  @Test
+  public void shouldBuildPersistentQueryWithCorrectSchema() {
+    // When:
+    final QueryMetadata queryMetadata = buildPhysicalPlan(
+        "CREATE STREAM FOO AS " + simpleSelectFilter);
+
+    // Then:
+    assertThat(queryMetadata.getResultSchema(), is(
+        SchemaBuilder.struct()
+            .field("ROWTIME", Schema.OPTIONAL_INT64_SCHEMA)
+            .field("ROWKEY", Schema.OPTIONAL_STRING_SCHEMA)
+            .field("COL0", Schema.OPTIONAL_INT64_SCHEMA)
+            .field("COL2", Schema.OPTIONAL_STRING_SCHEMA)
+            .field("COL3", Schema.OPTIONAL_FLOAT64_SCHEMA)
+            .build()
+    ));
   }
 
   @Test

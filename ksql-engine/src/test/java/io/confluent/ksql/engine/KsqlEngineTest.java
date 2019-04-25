@@ -134,12 +134,6 @@ public class KsqlEngineTest {
     );
 
     sandbox = ksqlEngine.createSandbox();
-    doReturn(new TopicDescription("test1", true, Collections.singletonList(mock(TopicPartitionInfo.class))))
-        .when(topicClient).describeTopic("test1");
-    doReturn(new TopicDescription("test2", true, Collections.singletonList(mock(TopicPartitionInfo.class))))
-        .when(topicClient).describeTopic("test2");
-    doReturn(new TopicDescription("orders_topic", true, Collections.singletonList(mock(TopicPartitionInfo.class))))
-        .when(topicClient).describeTopic("orders_topic");
   }
 
   @After

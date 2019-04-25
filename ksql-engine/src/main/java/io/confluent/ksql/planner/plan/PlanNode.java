@@ -18,13 +18,12 @@ package io.confluent.ksql.planner.plan;
 import static java.util.Objects.requireNonNull;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.physical.KsqlQueryBuilder;
 import io.confluent.ksql.serde.DataSource.DataSourceType;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.util.KafkaTopicClient;
 import java.util.List;
-import java.util.Optional;
-import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 
 
@@ -51,7 +50,7 @@ public abstract class PlanNode {
 
   public abstract Schema getSchema();
 
-  public abstract Optional<Field> getKeyField();
+  public abstract KeyField getKeyField();
 
   public abstract List<PlanNode> getSources();
 

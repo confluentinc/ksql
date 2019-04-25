@@ -136,6 +136,8 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_USE_NAMED_AVRO_MAPS = "ksql.avro.maps.named";
   private static final String KSQL_USE_NAMED_AVRO_MAPS_DOC = "";
 
+  public static final String KSQL_USE_LEGACY_KEY_FIELD = "ksql.query.fields.key.legacy";
+
   public static final String
       defaultSchemaRegistryUrl = "http://localhost:8081";
 
@@ -211,6 +213,17 @@ public class KsqlConfig extends AbstractConfig {
               true,
               ConfigDef.Importance.LOW,
               KSQL_USE_NAMED_AVRO_MAPS_DOC
+          ),
+          new CompatibilityBreakingConfigDef(
+              KSQL_USE_LEGACY_KEY_FIELD,
+              ConfigDef.Type.BOOLEAN,
+              true,
+              false,
+              ConfigDef.Importance.LOW,
+              "Determines if the legacy key field is used when building queries. "
+                  + "This setting is automatically applied for persistent queries started by "
+                  + "older versions of KSQL. "
+                  + "This setting should not be set manually."
           )
   );
 

@@ -31,6 +31,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.metastore.model.KsqlTopic;
@@ -51,13 +52,11 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.ListIterator;
-import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
-import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.StreamsBuilder;
@@ -85,6 +84,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class StructuredDataSourceNodeTest {
 
   private static final String TIMESTAMP_FIELD = "timestamp";
+  private static final PlanNodeId PLAN_NODE_ID = new PlanNodeId("0");
 
   private final KsqlConfig realConfig = new KsqlConfig(Collections.emptyMap());
   private SchemaKStream realStream;
@@ -97,15 +97,20 @@ public class StructuredDataSourceNodeTest {
       .field("key", Schema.OPTIONAL_STRING_SCHEMA)
       .build();
 
+  private final KsqlStream<String> SOME_SOURCE = new KsqlStream<>(
+      "sqlExpression",
+      "datasource",
+      realSchema,
+      KeyField.of("key", realSchema.field("key")),
+      new LongColumnTimestampExtractionPolicy("timestamp"),
+      new KsqlTopic("topic", "topic",
+          new KsqlJsonTopicSerDe(), false), Serdes::String);
+
   private final StructuredDataSourceNode node = new StructuredDataSourceNode(
-      new PlanNodeId("0"),
-      new KsqlStream<>("sqlExpression", "datasource",
-          realSchema,
-          Optional.of(realSchema.field("key")),
-          new LongColumnTimestampExtractionPolicy("timestamp"),
-          new KsqlTopic("topic", "topic",
-              new KsqlJsonTopicSerDe(), false), Serdes::String),
-      realSchema);
+      PLAN_NODE_ID,
+      SOME_SOURCE,
+      SOME_SOURCE.getName());
+
   private final QueryId queryId = new QueryId("source-test");
 
   private final PlanNodeId realNodeId = new PlanNodeId("source");
@@ -240,39 +245,48 @@ public class StructuredDataSourceNodeTest {
   }
 
   @Test
-  public void shouldExtracKeyField() {
-    assertThat(realStream.getKeyField(),
-        equalTo(Optional.of(new Field("key", 4, Schema.OPTIONAL_STRING_SCHEMA))));
+  public void shouldBuildStreamWithSameKeyField() {
+    // When:
+    final SchemaKStream<?> stream = node.buildStream(ksqlStreamBuilder);
+
+    // Then:
+    assertThat(stream.getKeyField(), is(node.getKeyField()));
   }
 
   @Test
   public void shouldBuildSchemaKTableWhenKTableSource() {
+    final KsqlTable<String> table = new KsqlTable<>("sqlExpression", "datasource",
+        realSchema,
+        KeyField.of("field1", realSchema.field("field1")),
+        new LongColumnTimestampExtractionPolicy("timestamp"),
+        new KsqlTopic("topic2", "topic2",
+            new KsqlJsonTopicSerDe(), false),
+        Serdes::String);
+
     final StructuredDataSourceNode node = new StructuredDataSourceNode(
-        new PlanNodeId("0"),
-        new KsqlTable<>("sqlExpression", "datasource",
-            realSchema,
-            Optional.ofNullable(realSchema.field("field1")),
-            new LongColumnTimestampExtractionPolicy("timestamp"),
-            new KsqlTopic("topic2", "topic2",
-                new KsqlJsonTopicSerDe(), false),
-            Serdes::String),
-        realSchema);
+        PLAN_NODE_ID,
+        table,
+        table.getName());
+
     final SchemaKStream result = node.buildStream(ksqlStreamBuilder);
     assertThat(result.getClass(), equalTo(SchemaKTable.class));
   }
 
   @Test
   public void shouldTransformKStreamToKTableCorrectly() {
+    final KsqlTable<String> table = new KsqlTable<>("sqlExpression", "datasource",
+        realSchema,
+        KeyField.of("field1", realSchema.field("field1")),
+        new LongColumnTimestampExtractionPolicy("timestamp"),
+        new KsqlTopic("topic2", "topic2",
+            new KsqlJsonTopicSerDe(), false),
+        Serdes::String);
+
     final StructuredDataSourceNode node = new StructuredDataSourceNode(
-        new PlanNodeId("0"),
-        new KsqlTable<>("sqlExpression", "datasource",
-            realSchema,
-            Optional.ofNullable(realSchema.field("field1")),
-            new LongColumnTimestampExtractionPolicy("timestamp"),
-            new KsqlTopic("topic2", "topic2",
-                new KsqlJsonTopicSerDe(), false),
-            Serdes::String),
-        realSchema);
+        PLAN_NODE_ID,
+        table,
+        table.getName());
+
     realBuilder = new StreamsBuilder();
     when(ksqlStreamBuilder.getStreamsBuilder()).thenReturn(realBuilder);
     node.buildStream(ksqlStreamBuilder);
@@ -304,15 +318,37 @@ public class StructuredDataSourceNodeTest {
     }
   }
 
+  @Test
+  public void shouldHaveFullyQualifiedSchema() {
+    // Given:
+    final String sourceName = SOME_SOURCE.getName();
+
+    // When:
+    final Schema schema = node.getSchema();
+
+    // Then:
+    assertThat(schema, is(
+        SchemaBuilder.struct()
+            .field(sourceName + ".field1", Schema.OPTIONAL_STRING_SCHEMA)
+            .field(sourceName + ".field2", Schema.OPTIONAL_STRING_SCHEMA)
+            .field(sourceName + ".field3", Schema.OPTIONAL_STRING_SCHEMA)
+            .field(sourceName + "." + TIMESTAMP_FIELD, Schema.OPTIONAL_INT64_SCHEMA)
+            .field(sourceName + ".key", Schema.OPTIONAL_STRING_SCHEMA)
+            .build()));
+  }
+
   @SuppressWarnings("unchecked")
   private StructuredDataSourceNode nodeWithMockTableSource() {
     when(ksqlStreamBuilder.getStreamsBuilder()).thenReturn(streamsBuilder);
     when(streamsBuilder.stream(anyString(), any())).thenReturn((KStream)kStream);
+    when(tableSource.getSchema()).thenReturn(realSchema);
+    when(tableSource.getKeyField())
+        .thenReturn(KeyField.of("field1", realSchema.field("field1")));
 
     return new StructuredDataSourceNode(
         realNodeId,
         tableSource,
-        realSchema,
+        "t",
         materializedFactorySupplier);
   }
 }

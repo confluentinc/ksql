@@ -5,8 +5,9 @@ KSQL Syntax Reference
 
 KSQL has similar semantics to SQL:
 
-- Terminate KSQL statements with a semicolon ``;``
-- Escape ' characters inside string literals by using '', for example, 'yyyy-MM-dd''T''HH:mm:ssX'
+- Terminate KSQL statements with a semicolon ``;``.
+- Escape ``'`` characters inside string literals by using ``''``. For example,
+  to escape ``'T'``, write ``''T''``.
 
 ===========
 Terminology
@@ -96,6 +97,55 @@ WITHIN clauses.
 * MILLISECOND, MILLISECONDS
 
 For more information, see :ref:`windows_in_ksql_queries`.
+
+KSQL Timestamp Formats
+----------------------
+
+Time-based operations, like windowing, process records according to the
+timestamp in ``ROWTIME``. By default, the implicit ``ROWTIME`` column is the
+timestamp of a message in a Kafka topic. Timestamps have an accuracy of
+one millisecond.
+
+Use the TIMESTAMP property to override ``ROWTIME`` with the contents of the 
+specified column. Define the format of a record's timestamp by using the
+TIMESTAMP_FORMAT property.
+
+If you use the TIMESTAMP property but don't set TIMESTAMP_FORMAT, KSQL assumes
+that the timestamp field is a ``bigint``. If you set TIMESTAMP_FORMAT, the
+TIMESTAMP field must be of type ``varchar`` and have a format that the 
+``DateTimeFormatter`` Java class can parse.
+
+If your timestamp format has embedded single quotes, you can escape them by
+using two successive single quotes, ``''``. For example, to escape ``'T'``,
+write ``''T''``. The following examples show how to escape the ``'`` character
+in KSQL statements.
+
+.. code:: sql
+
+    -- Example timestamp format: yyyy-MM-dd'T'HH:mm:ssX
+    CREATE STREAM TEST (ID bigint, event_timestamp VARCHAR)
+      WITH (kafka_topic='test_topic',
+            value_format='JSON',
+            timestamp='event_timestamp',
+            timestamp_format='yyyy-MM-dd''T''HH:mm:ssX');
+
+    -- Example timestamp format: yyyy.MM.dd G 'at' HH:mm:ss z
+    CREATE STREAM TEST (ID bigint, event_timestamp VARCHAR)
+      WITH (kafka_topic='test_topic',
+            value_format='JSON',
+            timestamp='event_timestamp',
+            timestamp_format='yyyy.MM.dd G ''at'' HH:mm:ss z');
+
+    -- Example timestamp format: hh 'o'clock' a, zzzz
+    CREATE STREAM TEST (ID bigint, event_timestamp VARCHAR)
+      WITH (kafka_topic='test_topic',
+            value_format='JSON',
+            timestamp='event_timestamp',
+            timestamp_format='hh ''o''clock'' a, zzzz');
+
+For more information on timestamp formats, see
+`DateTimeFormatter <https://docs.oracle.com/javase/8/docs/api/java/time/format/DateTimeFormatter.html>`__.
+
 
 =================
 KSQL CLI Commands
@@ -258,7 +308,7 @@ The WITH clause supports the following properties:
 |                         | such as windowing, will process a record according to the timestamp in ``ROWTIME``.        |
 +-------------------------+--------------------------------------------------------------------------------------------+
 | TIMESTAMP_FORMAT        | Used in conjunction with TIMESTAMP. If not set will assume that the timestamp field is a   |
-|                         | long. If it is set, then the TIMESTAMP field must be of type varchar and have a format     |
+|                         | bigint. If it is set, then the TIMESTAMP field must be of type varchar and have a format   |
 |                         | that can be parsed with the java ``DateTimeFormatter``. If your timestamp format has       |
 |                         | characters requiring single quotes, you can escape them with successive single quotes,     |
 |                         | ``''``, for example: ``'yyyy-MM-dd''T''HH:mm:ssX'``.                                       |
@@ -361,8 +411,8 @@ The WITH clause supports the following properties:
 |                         | as windowing, will process a record according to the timestamp in ``ROWTIME``.             |
 +-------------------------+--------------------------------------------------------------------------------------------+
 | TIMESTAMP_FORMAT        | Used in conjunction with TIMESTAMP. If not set will assume that the timestamp field is a   |
-|                         | long. If it is set, then the TIMESTAMP field must be of type varchar and have a format     |
-|                         | that can be parsed with the java ``DateTimeFormatter``. If your timestamp format has       |
+|                         | bigint. If it is set, then the TIMESTAMP field must be of type varchar and have a format   |
+|                         | that can be parsed with the Java ``DateTimeFormatter``. If your timestamp format has       |
 |                         | characters requiring single quotes, you can escape them with two successive single quotes, |
 |                         | ``''``, for example: ``'yyyy-MM-dd''T''HH:mm:ssX'``.                                       |
 +-------------------------+--------------------------------------------------------------------------------------------+
@@ -475,8 +525,8 @@ The WITH clause for the result supports the following properties:
 |                         | The window into which each row of ``bar`` is placed is determined by bar's ``ROWTIME``, not ``t2``.  |
 +-------------------------+------------------------------------------------------------------------------------------------------+
 | TIMESTAMP_FORMAT        | Used in conjunction with TIMESTAMP. If not set will assume that the timestamp field is a             |
-|                         | long. If it is set, then the TIMESTAMP field must be of type varchar and have a format               |
-|                         | that can be parsed with the java ``DateTimeFormatter``. If your timestamp format has                 |
+|                         | bigint. If it is set, then the TIMESTAMP field must be of type varchar and have a format             |
+|                         | that can be parsed with the Java ``DateTimeFormatter``. If your timestamp format has                 |
 |                         | characters requiring single quotes, you can escape them with two successive single quotes,           |
 |                         | ``''``, for example: ``'yyyy-MM-dd''T''HH:mm:ssX'``.                                                 |
 +-------------------------+------------------------------------------------------------------------------------------------------+
@@ -564,8 +614,8 @@ The WITH clause supports the following properties:
 |                         | The window into which each row of ``bar`` is placed is determined by bar's ``ROWTIME``, not ``t2``.  |
 +-------------------------+------------------------------------------------------------------------------------------------------+
 | TIMESTAMP_FORMAT        | Used in conjunction with TIMESTAMP. If not set will assume that the timestamp field is a             |
-|                         | long. If it is set, then the TIMESTAMP field must be of type varchar and have a format               |
-|                         | that can be parsed with the java ``DateTimeFormatter``. If your timestamp format has                 |
+|                         | bigint. If it is set, then the TIMESTAMP field must be of type varchar and have a format             |
+|                         | that can be parsed with the Java ``DateTimeFormatter``. If your timestamp format has                 |
 |                         | characters requiring single quotes, you can escape them with two successive single quotes,           |
 |                         | ``''``, for example: ``'yyyy-MM-dd''T''HH:mm:ssX'``.                                                 |
 +-------------------------+------------------------------------------------------------------------------------------------------+

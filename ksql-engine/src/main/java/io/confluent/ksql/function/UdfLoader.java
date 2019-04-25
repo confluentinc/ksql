@@ -50,7 +50,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-
 import org.apache.kafka.common.Configurable;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.metrics.Sensor;
@@ -267,6 +266,14 @@ public class UdfLoader {
           .orElse(param.isNamePresent() ? param.getName() : "");
 
       final String doc = annotation.map(UdfParameter::description).orElse("");
+      if (annotation.isPresent() && !annotation.get().schema().isEmpty()) {
+        return LogicalSchemas.fromSqlTypeConverter()
+            .fromSqlType(
+                TypeContextUtil.getType(annotation.get().schema()),
+                name,
+                doc);
+      }
+
       return SchemaUtil.getSchemaFromType(type, name, doc);
     }).collect(Collectors.toList());
 

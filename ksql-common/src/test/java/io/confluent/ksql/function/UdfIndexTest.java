@@ -29,6 +29,8 @@ public class UdfIndexTest {
   private static final Schema INT = Schema.OPTIONAL_INT32_SCHEMA;
   private static final Schema STRUCT1 = SchemaBuilder.struct().field("a", STRING).build();
   private static final Schema STRUCT2 = SchemaBuilder.struct().field("b", INT).build();
+  private static final Schema STRUCT3 = SchemaBuilder.struct().field("c", INT).field("d", INT).build();
+  private static final Schema STRUCT3_PERMUTE = SchemaBuilder.struct().field("d", INT).field("c", INT).build();
   private static final Schema MAP1 = SchemaBuilder.map(STRING, STRING).build();
   private static final Schema MAP2 = SchemaBuilder.map(STRING, INT).build();
 
@@ -148,6 +150,21 @@ public class UdfIndexTest {
 
     // When:
     final KsqlFunction fun = udfIndex.getFunction(Arrays.asList(MAP1));
+
+    // Then:
+    assertThat(fun.getFunctionName(), equalTo(EXPECTED));
+  }
+
+  @Test
+  public void shouldChooseCorrectPermutedStruct() {
+    // Given:
+    final KsqlFunction[] functions = new KsqlFunction[]{
+        function(OTHER, false, STRUCT3_PERMUTE),
+        function(EXPECTED, false, STRUCT3)};
+    Arrays.stream(functions).forEach(udfIndex::addFunction);
+
+    // When:
+    final KsqlFunction fun = udfIndex.getFunction(Arrays.asList(STRUCT3));
 
     // Then:
     assertThat(fun.getFunctionName(), equalTo(EXPECTED));
@@ -524,7 +541,21 @@ public class UdfIndexTest {
 
     // When:
     udfIndex.getFunction(Arrays.asList(STRUCT1, STRUCT2));
+  }
 
+  @Test
+  public void shouldNotMatchPermutedStructs() {
+    // Given:
+    final KsqlFunction[] functions = new KsqlFunction[]{
+        function(OTHER, false, STRUCT3)};
+    Arrays.stream(functions).forEach(udfIndex::addFunction);
+
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Function 'name' does not accept parameters");
+
+    // When:
+    udfIndex.getFunction(Arrays.asList(STRUCT3_PERMUTE));
   }
 
 

@@ -283,7 +283,7 @@ public class PhysicalPlanBuilder {
     return new PersistentQueryMetadata(
         sqlExpression,
         streams,
-        outputNode.getSchema(),
+        sinkSchema,
         getSourceNames(outputNode),
         sinkDataSource.getName(),
         schemaKStream.getExecutionPlan(""),
@@ -332,7 +332,10 @@ public class PhysicalPlanBuilder {
           SchemaUtil.getSchemaDefinitionString(existingSchema)));
     }
 
-    enforceKeyEquivalence(existing.getKeyField(), sinkDataSource.getKeyField());
+    enforceKeyEquivalence(
+        existing.getKeyField().resolve(existing.getSchema(), ksqlConfig),
+        sinkDataSource.getKeyField().resolve(sinkDataSource.getSchema(), ksqlConfig)
+    );
   }
 
   private static String getQueryApplicationId(

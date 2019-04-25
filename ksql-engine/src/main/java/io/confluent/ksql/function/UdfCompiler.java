@@ -38,6 +38,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import org.apache.kafka.common.metrics.Metrics;
+import org.apache.kafka.connect.data.Struct;
 import org.codehaus.commons.compiler.CompilerFactoryFactory;
 import org.codehaus.commons.compiler.IScriptEvaluator;
 import org.codehaus.janino.JavaSourceClassLoader;
@@ -70,6 +71,7 @@ public class UdfCompiler {
       .addAll(SUPPORTED_UDAF_TYPES)
       .add(List.class)
       .add(Map.class)
+      .add(Struct.class)
       .build();
 
   private static final String UDAF_PACKAGE = "io.confluent.ksql.function.udaf.";

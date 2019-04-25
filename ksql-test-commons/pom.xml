@@ -19,6 +19,13 @@
     </dependency>
 
     <dependency>
+      <groupId>io.confluent.ksql</groupId>
+      <artifactId>ksql-metastore</artifactId>
+      <version>${project.version}</version>
+      <type>test-jar</type>
+    </dependency>
+
+    <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
       <scope>compile</scope>

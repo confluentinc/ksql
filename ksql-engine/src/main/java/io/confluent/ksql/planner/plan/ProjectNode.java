@@ -15,9 +15,12 @@
 
 package io.confluent.ksql.planner.plan;
 
+import static java.util.Objects.requireNonNull;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.physical.KsqlQueryBuilder;
 import io.confluent.ksql.structured.SchemaKStream;
@@ -26,30 +29,35 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SelectExpression;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import javax.annotation.concurrent.Immutable;
-import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 
 @Immutable
-public class ProjectNode
-    extends PlanNode {
+public class ProjectNode extends PlanNode {
+
   private final PlanNode source;
   private final Schema schema;
   private final List<Expression> projectExpressions;
+  private final KeyField keyField;
 
   @JsonCreator
-  public ProjectNode(@JsonProperty("id") final PlanNodeId id,
-                     @JsonProperty("source") final PlanNode source,
-                     @JsonProperty("schema") final Schema schema,
-                     @JsonProperty("projectExpressions")
-                       final List<Expression> projectExpressions) {
+  public ProjectNode(
+      @JsonProperty("id") final PlanNodeId id,
+      @JsonProperty("source") final PlanNode source,
+      @JsonProperty("schema") final Schema schema,
+      @JsonProperty("key") final Optional<String> keyFieldName,
+      @JsonProperty("projectExpressions") final List<Expression> projectExpressions
+  ) {
     super(id, source.getNodeOutputType());
 
-    this.source = Objects.requireNonNull(source, "source");
-    this.schema = Objects.requireNonNull(schema, "schema");
-    this.projectExpressions = Objects.requireNonNull(projectExpressions, "projectExpressions");
+    this.source = requireNonNull(source, "source");
+    this.schema = requireNonNull(schema, "schema");
+    this.projectExpressions = requireNonNull(projectExpressions, "projectExpressions");
+    this.keyField = KeyField.of(
+        requireNonNull(keyFieldName, "keyFieldName"),
+        source.getKeyField().legacy())
+        .validateKeyExistsIn(schema);
 
     if (schema.fields().size() != projectExpressions.size()) {
       throw new KsqlException("Error in projection. Schema fields and expression list are not "
@@ -78,8 +86,8 @@ public class ProjectNode
   }
 
   @Override
-  public Optional<Field> getKeyField() {
-    return source.getKeyField();
+  public KeyField getKeyField() {
+    return keyField;
   }
 
   public List<SelectExpression> getProjectSelectExpressions() {

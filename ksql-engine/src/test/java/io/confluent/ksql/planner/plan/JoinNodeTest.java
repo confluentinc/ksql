@@ -478,8 +478,6 @@ public class JoinNodeTest {
   public void shouldNotPerformJoinIfInputPartitionsMisMatch() {
     when(left.getPartitions(mockKafkaTopicClient)).thenReturn(3);
 
-    final WithinExpression withinExpression = new WithinExpression(10, TimeUnit.SECONDS);
-
     final JoinNode joinNode = new JoinNode(
         nodeId,
         JoinNode.JoinType.OUTER,

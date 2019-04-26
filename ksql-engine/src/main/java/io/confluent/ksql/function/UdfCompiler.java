@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.function;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.function.udaf.TableUdaf;
 import io.confluent.ksql.function.udaf.Udaf;
@@ -82,7 +83,8 @@ public class UdfCompiler {
     this.metrics = Objects.requireNonNull(metrics, "metrics can't be null");
   }
 
-  UdfInvoker compile(final Method method, final ClassLoader loader) {
+  @VisibleForTesting
+  public UdfInvoker compile(final Method method, final ClassLoader loader) {
     try {
       final IScriptEvaluator scriptEvaluator = createScriptEvaluator(method,
           loader,

@@ -515,18 +515,18 @@ public class SchemaKStream<K> {
 
   @SuppressWarnings("unchecked")
   public SchemaKStream<?> selectKey(
-      final KeyField selectKeyField,
+      final String fieldName,
       final boolean updateRowKey,
       final QueryContext.Stacker contextStacker
   ) {
     final Optional<Field> existingKey = keyField.resolve(schema, ksqlConfig);
 
-    final Field proposedKey = selectKeyField.resolve(schema, ksqlConfig)
+    final Field proposedKey = SchemaUtil.getFieldByName(schema, fieldName)
         .orElseThrow(IllegalArgumentException::new);
 
-    final KeyField resultantKeyField = isRowKey(selectKeyField.name().orElse(""))
-            ? keyField.withLegacy(selectKeyField.legacy())
-            : selectKeyField;
+    final KeyField resultantKeyField = isRowKey(fieldName)
+            ? keyField.withLegacy(proposedKey)
+            : KeyField.of(fieldName, proposedKey);
 
     final boolean namesMatch = existingKey
         .map(kf -> SchemaUtil.matchFieldName(kf, proposedKey.name()))

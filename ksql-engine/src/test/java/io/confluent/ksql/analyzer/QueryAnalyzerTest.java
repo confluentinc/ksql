@@ -15,8 +15,6 @@
 
 package io.confluent.ksql.analyzer;
 
-import static io.confluent.ksql.metastore.model.MetaStoreMatchers.KeyFieldMatchers.hasLegacyName;
-import static io.confluent.ksql.metastore.model.MetaStoreMatchers.KeyFieldMatchers.hasName;
 import static io.confluent.ksql.util.ExpressionMatchers.dereferenceExpressions;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
@@ -61,7 +59,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-@SuppressWarnings({"unchecked", "OptionalGetWithoutIsPresent"})
+@SuppressWarnings("OptionalGetWithoutIsPresent")
 public class QueryAnalyzerTest {
 
   private static final DereferenceExpression ITEM_ID = new DereferenceExpression(
@@ -358,10 +356,8 @@ public class QueryAnalyzerTest {
     // Then:
     final JoinNode join = analysis.getJoin();
     assertTrue(join.isLeftJoin());
-    assertThat(join.getLeftKeyField(), hasName("TEST1.COL1"));
-    assertThat(join.getLeftKeyField(), hasLegacyName("TEST1.COL1"));
-    assertThat(join.getRightKeyField(), hasName("TEST2.COL2"));
-    assertThat(join.getRightKeyField(), hasLegacyName("TEST2.COL2"));
+    assertThat(join.getLeftKeyFieldName(), is("TEST1.COL1"));
+    assertThat(join.getRightKeyFieldName(), is("TEST2.COL2"));
   }
 
   @Test

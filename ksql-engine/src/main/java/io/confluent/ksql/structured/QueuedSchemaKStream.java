@@ -82,7 +82,7 @@ public class QueuedSchemaKStream<K> extends SchemaKStream<K> {
 
   @Override
   public SchemaKStream<K> selectKey(
-      final KeyField newKeyField,
+      final String fieldName,
       final boolean updateRowKey,
       final QueryContext.Stacker contextStacker) {
     throw new UnsupportedOperationException();

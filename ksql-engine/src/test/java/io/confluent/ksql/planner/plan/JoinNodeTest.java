@@ -85,7 +85,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 
-@SuppressWarnings({"SameParameterValue", "OptionalGetWithoutIsPresent"})
+@SuppressWarnings({"SameParameterValue", "OptionalGetWithoutIsPresent", "unchecked"})
 @RunWith(MockitoJUnitRunner.class)
 public class JoinNodeTest {
 
@@ -104,10 +104,13 @@ public class JoinNodeTest {
   private final Schema rightSchema = createSchema(rightAlias);
   private final Schema joinSchema = joinSchema();
 
-  private static final KeyField leftKeyField = KeyField
-      .of(leftAlias + ".COL0", new Field(leftAlias + ".COL0", 1, Schema.OPTIONAL_STRING_SCHEMA));
-  private static final KeyField rightKeyField = KeyField
-      .of(rightAlias + ".COL1", new Field(rightAlias + ".COL1", 1, Schema.OPTIONAL_STRING_SCHEMA));
+  private static final String LEFT_JOIN_FIELD_NAME = leftAlias + ".COL0";
+  private static final String RIGHT_JOIN_FIELD_NAME = rightAlias + ".COL1";
+  private static final KeyField leftJoinField = KeyField
+      .of(LEFT_JOIN_FIELD_NAME, new Field(LEFT_JOIN_FIELD_NAME, 1, Schema.OPTIONAL_STRING_SCHEMA));
+  private static final KeyField rightJoinField = KeyField
+      .of(RIGHT_JOIN_FIELD_NAME,
+          new Field(RIGHT_JOIN_FIELD_NAME, 1, Schema.OPTIONAL_STRING_SCHEMA));
 
   private static final WithinExpression WITHIN_EXPRESSION =
       new WithinExpression(10, TimeUnit.SECONDS);
@@ -163,19 +166,16 @@ public class JoinNodeTest {
     setUpSource(left);
     setUpSource(right);
 
-    when(leftSchemaKStream.getKeyField()).thenReturn(leftKeyField);
-    when(leftSchemaKTable.getKeyField()).thenReturn(leftKeyField);
-    when(rightSchemaKTable.getKeyField()).thenReturn(rightKeyField);
+    when(leftSchemaKStream.getKeyField()).thenReturn(leftJoinField);
+    when(leftSchemaKTable.getKeyField()).thenReturn(leftJoinField);
+    when(rightSchemaKTable.getKeyField()).thenReturn(rightJoinField);
   }
 
   @Test
   public void shouldThrowIfLeftKeyFieldNotInLeftSchema() {
-    // Given:
-    final KeyField leftKeyField = KeyField.of(Optional.of("won't find me"), Optional.empty());
-
     // Then:
     expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("Invalid key field");
+    expectedException.expectMessage("Invalid join field");
 
     // When:
     new JoinNode(
@@ -183,8 +183,8 @@ public class JoinNodeTest {
         JoinNode.JoinType.LEFT,
         left,
         right,
-        leftKeyField,
-        rightKeyField,
+        "won't find me",
+        RIGHT_JOIN_FIELD_NAME,
         leftAlias,
         rightAlias,
         null,
@@ -194,12 +194,9 @@ public class JoinNodeTest {
 
   @Test
   public void shouldThrowIfRightKeyFieldNotInRightSchema() {
-    // Given:
-    final KeyField rightKeyField = KeyField.of(Optional.of("won't find me"), Optional.empty());
-
     // Then:
     expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("Invalid key field");
+    expectedException.expectMessage("Invalid join field");
 
     // When:
     new JoinNode(
@@ -207,8 +204,8 @@ public class JoinNodeTest {
         JoinNode.JoinType.LEFT,
         left,
         right,
-        leftKeyField,
-        rightKeyField,
+        LEFT_JOIN_FIELD_NAME,
+        "won't find me",
         leftAlias,
         rightAlias,
         null,
@@ -224,8 +221,8 @@ public class JoinNodeTest {
         JoinType.LEFT,
         left,
         right,
-        leftKeyField,
-        rightKeyField,
+        LEFT_JOIN_FIELD_NAME,
+        RIGHT_JOIN_FIELD_NAME,
         leftAlias,
         rightAlias,
         null,
@@ -233,7 +230,69 @@ public class JoinNodeTest {
         DataSourceType.KSTREAM);
 
     // Then:
-    assertThat(joinNode.getKeyField(), is(leftKeyField));
+    assertThat(joinNode.getKeyField().name(), is(Optional.of(LEFT_JOIN_FIELD_NAME)));
+  }
+
+  @Test
+  public void shouldReturnJoinKeyNames() {
+    // When:
+    final JoinNode joinNode = new JoinNode(
+        nodeId,
+        JoinType.LEFT,
+        left,
+        right,
+        LEFT_JOIN_FIELD_NAME,
+        RIGHT_JOIN_FIELD_NAME,
+        leftAlias,
+        rightAlias,
+        null,
+        DataSourceType.KSTREAM,
+        DataSourceType.KSTREAM);
+
+    // Then:
+    assertThat(joinNode.getLeftKeyFieldName(), is(LEFT_JOIN_FIELD_NAME));
+    assertThat(joinNode.getRightKeyFieldName(), is(RIGHT_JOIN_FIELD_NAME));
+  }
+
+  @Test
+  public void shouldReturnAliases() {
+    // When:
+    final JoinNode joinNode = new JoinNode(
+        nodeId,
+        JoinType.LEFT,
+        left,
+        right,
+        LEFT_JOIN_FIELD_NAME,
+        RIGHT_JOIN_FIELD_NAME,
+        leftAlias,
+        rightAlias,
+        null,
+        DataSourceType.KSTREAM,
+        DataSourceType.KSTREAM);
+
+    // Then:
+    assertThat(joinNode.getLeftAlias(), is(leftAlias));
+    assertThat(joinNode.getRightAlias(), is(rightAlias));
+  }
+
+  @Test
+  public void shouldReturnJoinType() {
+    // When:
+    final JoinNode joinNode = new JoinNode(
+        nodeId,
+        JoinType.LEFT,
+        left,
+        right,
+        LEFT_JOIN_FIELD_NAME,
+        RIGHT_JOIN_FIELD_NAME,
+        leftAlias,
+        rightAlias,
+        null,
+        DataSourceType.KSTREAM,
+        DataSourceType.KSTREAM);
+
+    // Then:
+    assertThat(joinNode.getJoinType(), is(JoinType.LEFT));
   }
 
   @Test
@@ -327,23 +386,13 @@ public class JoinNodeTest {
     setupStream(left, leftSchemaKStream, leftSchema);
     setupStream(right, rightSchemaKStream, rightSchema);
 
-    when(leftSchemaKStream.leftJoin(
-        eq(rightSchemaKStream),
-        eq(joinSchema),
-        eq(leftKeyField),
-        eq(WITHIN_EXPRESSION.joinWindow()),
-        any(),
-        any(),
-        eq(CONTEXT_STACKER)))
-        .thenReturn(mock(SchemaKStream.class));
-
     final JoinNode joinNode = new JoinNode(
         nodeId,
         JoinNode.JoinType.LEFT,
         left,
         right,
-        leftKeyField,
-        rightKeyField,
+        LEFT_JOIN_FIELD_NAME,
+        RIGHT_JOIN_FIELD_NAME,
         leftAlias,
         rightAlias,
         WITHIN_EXPRESSION,
@@ -354,11 +403,14 @@ public class JoinNodeTest {
     joinNode.buildStream(ksqlStreamBuilder);
 
     // Then:
-    assertThat(joinNode.getLeftKeyField(), is(leftKeyField));
-    assertThat(joinNode.getRightKeyField(), is(rightKeyField));
-    assertEquals(leftAlias, joinNode.getLeftAlias());
-    assertEquals(rightAlias, joinNode.getRightAlias());
-    assertEquals(JoinNode.JoinType.LEFT, joinNode.getJoinType());
+    verify(leftSchemaKStream).leftJoin(
+        eq(rightSchemaKStream),
+        eq(joinSchema),
+        eq(leftJoinField),
+        eq(WITHIN_EXPRESSION.joinWindow()),
+        any(),
+        any(),
+        eq(CONTEXT_STACKER));
   }
 
   @SuppressWarnings("unchecked")
@@ -368,23 +420,13 @@ public class JoinNodeTest {
     setupStream(left, leftSchemaKStream, leftSchema);
     setupStream(right, rightSchemaKStream, rightSchema);
 
-    when(leftSchemaKStream.join(
-        eq(rightSchemaKStream),
-        eq(joinSchema),
-        eq(leftKeyField),
-        eq(WITHIN_EXPRESSION.joinWindow()),
-        any(),
-        any(),
-        eq(CONTEXT_STACKER)))
-        .thenReturn(mock(SchemaKStream.class));
-
     final JoinNode joinNode = new JoinNode(
         nodeId,
         JoinNode.JoinType.INNER,
         left,
         right,
-        leftKeyField,
-        rightKeyField,
+        LEFT_JOIN_FIELD_NAME,
+        RIGHT_JOIN_FIELD_NAME,
         leftAlias,
         rightAlias,
         WITHIN_EXPRESSION,
@@ -395,11 +437,14 @@ public class JoinNodeTest {
     joinNode.buildStream(ksqlStreamBuilder);
 
     // Then:
-    assertThat(joinNode.getLeftKeyField(), is(leftKeyField));
-    assertThat(joinNode.getRightKeyField(), is(rightKeyField));
-    assertEquals(leftAlias, joinNode.getLeftAlias());
-    assertEquals(rightAlias, joinNode.getRightAlias());
-    assertEquals(JoinNode.JoinType.INNER, joinNode.getJoinType());
+    verify(leftSchemaKStream).join(
+        eq(rightSchemaKStream),
+        eq(joinSchema),
+        eq(leftJoinField),
+        eq(WITHIN_EXPRESSION.joinWindow()),
+        any(),
+        any(),
+        eq(CONTEXT_STACKER));
   }
 
   @SuppressWarnings("unchecked")
@@ -409,23 +454,13 @@ public class JoinNodeTest {
     setupStream(left, leftSchemaKStream, leftSchema);
     setupStream(right, rightSchemaKStream, rightSchema);
 
-    when(leftSchemaKStream.outerJoin(
-        eq(rightSchemaKStream),
-        eq(joinSchema),
-        eq(leftKeyField),
-        eq(WITHIN_EXPRESSION.joinWindow()),
-        any(),
-        any(),
-        eq(CONTEXT_STACKER)))
-        .thenReturn(mock(SchemaKStream.class));
-
     final JoinNode joinNode = new JoinNode(
         nodeId,
         JoinNode.JoinType.OUTER,
         left,
         right,
-        leftKeyField,
-        rightKeyField,
+        LEFT_JOIN_FIELD_NAME,
+        RIGHT_JOIN_FIELD_NAME,
         leftAlias,
         rightAlias,
         WITHIN_EXPRESSION,
@@ -436,11 +471,14 @@ public class JoinNodeTest {
     joinNode.buildStream(ksqlStreamBuilder);
 
     // Then:
-    assertThat(joinNode.getLeftKeyField(), is(leftKeyField));
-    assertThat(joinNode.getRightKeyField(), is(rightKeyField));
-    assertEquals(leftAlias, joinNode.getLeftAlias());
-    assertEquals(rightAlias, joinNode.getRightAlias());
-    assertEquals(JoinNode.JoinType.OUTER, joinNode.getJoinType());
+    verify(leftSchemaKStream).outerJoin(
+        eq(rightSchemaKStream),
+        eq(joinSchema),
+        eq(leftJoinField.withName(Optional.empty())),
+        eq(WITHIN_EXPRESSION.joinWindow()),
+        any(),
+        any(),
+        eq(CONTEXT_STACKER));
   }
 
   @Test
@@ -450,8 +488,8 @@ public class JoinNodeTest {
         JoinNode.JoinType.INNER,
         left,
         right,
-        leftKeyField,
-        rightKeyField,
+        LEFT_JOIN_FIELD_NAME,
+        RIGHT_JOIN_FIELD_NAME,
         leftAlias,
         rightAlias,
         null,
@@ -466,12 +504,6 @@ public class JoinNodeTest {
       assertTrue(e.getMessage().startsWith("Stream-Stream joins must have a WITHIN clause specified"
           + ". None was provided."));
     }
-
-    assertThat(joinNode.getLeftKeyField(), is(leftKeyField));
-    assertThat(joinNode.getRightKeyField(), is(rightKeyField));
-    assertEquals(leftAlias, joinNode.getLeftAlias());
-    assertEquals(rightAlias, joinNode.getRightAlias());
-    assertEquals(JoinNode.JoinType.INNER, joinNode.getJoinType());
   }
 
   @Test
@@ -483,8 +515,8 @@ public class JoinNodeTest {
         JoinNode.JoinType.OUTER,
         left,
         right,
-        leftKeyField,
-        rightKeyField,
+        LEFT_JOIN_FIELD_NAME,
+        RIGHT_JOIN_FIELD_NAME,
         leftAlias,
         rightAlias,
         WITHIN_EXPRESSION,
@@ -500,39 +532,6 @@ public class JoinNodeTest {
       assertTrue(e.getMessage().startsWith("Can't join Foobar with Foobar since the number of "
           + "partitions don't match."));
     }
-
-    assertThat(joinNode.getLeftKeyField(), is(leftKeyField));
-    assertThat(joinNode.getRightKeyField(), is(rightKeyField));
-    assertEquals(leftAlias, joinNode.getLeftAlias());
-    assertEquals(rightAlias, joinNode.getRightAlias());
-    assertEquals(JoinNode.JoinType.OUTER, joinNode.getJoinType());
-  }
-
-  private static Optional<String> getColumn(final Schema schema, final Predicate<String> filter) {
-    return schema.fields().stream()
-        .map(Field::name)
-        .filter(filter)
-        .findFirst();
-  }
-
-  private static KeyField getNonKeyColumn(
-      final Schema schema,
-      final String alias,
-      final KeyField keyName
-  ) {
-    final String prefix = alias + ".";
-    final ImmutableList<String> blackList = ImmutableList.of(
-        prefix + SchemaUtil.ROWKEY_NAME,
-        prefix + SchemaUtil.ROWTIME_NAME,
-        keyName.name().get()
-    );
-
-    final String column =
-        getColumn(schema, s -> !blackList.contains(s))
-            .orElseThrow(AssertionError::new);
-
-    final Field field = SchemaUtil.getFieldByName(schema, column).get();
-    return KeyField.of(column, field);
   }
 
   @Test
@@ -540,14 +539,15 @@ public class JoinNodeTest {
     setupStream(left, leftSchemaKStream, leftSchema);
     setupTable(right, rightSchemaKTable, rightSchema);
 
-    final KeyField rightCriteriaColumn = getNonKeyColumn(rightSchema, rightAlias, rightKeyField);
+    final String rightCriteriaColumn =
+        getNonKeyColumn(rightSchema, rightAlias, RIGHT_JOIN_FIELD_NAME);
 
     final JoinNode joinNode = new JoinNode(
         nodeId,
         JoinNode.JoinType.LEFT,
         left,
         right,
-        leftKeyField,
+        LEFT_JOIN_FIELD_NAME,
         rightCriteriaColumn,
         leftAlias,
         rightAlias,
@@ -557,7 +557,7 @@ public class JoinNodeTest {
 
     try {
       joinNode.buildStream(ksqlStreamBuilder);
-
+      fail("buildStream did not throw exception");
     } catch (final KsqlException e) {
       assertThat(
           e.getMessage(),
@@ -566,11 +566,9 @@ public class JoinNodeTest {
                   "Source table (%s) key column (%s) is not the column " +
                       "used in the join criteria (%s).",
                   rightAlias,
-                  rightKeyField.name().get(),
-                  rightCriteriaColumn.name().get())));
-      return;
+                  RIGHT_JOIN_FIELD_NAME,
+                  rightCriteriaColumn)));
     }
-    fail("buildStream did not throw exception");
   }
 
   @SuppressWarnings("unchecked")
@@ -580,21 +578,13 @@ public class JoinNodeTest {
     setupStream(left, leftSchemaKStream, leftSchema);
     setupTable(right, rightSchemaKTable, rightSchema);
 
-    when(leftSchemaKStream.leftJoin(
-        eq(rightSchemaKTable),
-        eq(joinSchema),
-        eq(leftKeyField),
-        any(),
-        eq(CONTEXT_STACKER)))
-        .thenReturn(mock(SchemaKStream.class));
-
     final JoinNode joinNode = new JoinNode(
         nodeId,
         JoinNode.JoinType.LEFT,
         left,
         right,
-        leftKeyField,
-        rightKeyField,
+        LEFT_JOIN_FIELD_NAME,
+        RIGHT_JOIN_FIELD_NAME,
         leftAlias,
         rightAlias,
         null,
@@ -605,35 +595,27 @@ public class JoinNodeTest {
     joinNode.buildStream(ksqlStreamBuilder);
 
     // Then:
-    assertThat(joinNode.getLeftKeyField(), is(leftKeyField));
-    assertThat(joinNode.getRightKeyField(), is(rightKeyField));
-    assertEquals(leftAlias, joinNode.getLeftAlias());
-    assertEquals(rightAlias, joinNode.getRightAlias());
-    assertEquals(JoinNode.JoinType.LEFT, joinNode.getJoinType());
+    verify(leftSchemaKStream).leftJoin(
+        eq(rightSchemaKTable),
+        eq(joinSchema),
+        eq(leftJoinField),
+        any(),
+        eq(CONTEXT_STACKER));
   }
 
-  @SuppressWarnings("unchecked")
   @Test
   public void shouldPerformStreamToTableInnerJoin() {
     // Given:
     setupStream(left, leftSchemaKStream, leftSchema);
     setupTable(right, rightSchemaKTable, rightSchema);
 
-    when(leftSchemaKStream.join(
-        eq(rightSchemaKTable),
-        eq(joinSchema),
-        eq(leftKeyField),
-        any(),
-        eq(CONTEXT_STACKER)))
-        .thenReturn(mock(SchemaKStream.class));
-
     final JoinNode joinNode = new JoinNode(
         nodeId,
         JoinNode.JoinType.INNER,
         left,
         right,
-        leftKeyField,
-        rightKeyField,
+        LEFT_JOIN_FIELD_NAME,
+        RIGHT_JOIN_FIELD_NAME,
         leftAlias,
         rightAlias,
         null,
@@ -644,11 +626,12 @@ public class JoinNodeTest {
     joinNode.buildStream(ksqlStreamBuilder);
 
     // Then:
-    assertThat(joinNode.getLeftKeyField(), is(leftKeyField));
-    assertThat(joinNode.getRightKeyField(), is(rightKeyField));
-    assertEquals(leftAlias, joinNode.getLeftAlias());
-    assertEquals(rightAlias, joinNode.getRightAlias());
-    assertEquals(JoinNode.JoinType.INNER, joinNode.getJoinType());
+    verify(leftSchemaKStream).join(
+        eq(rightSchemaKTable),
+        eq(joinSchema),
+        eq(leftJoinField),
+        any(),
+        eq(CONTEXT_STACKER));
   }
 
   @Test
@@ -662,8 +645,8 @@ public class JoinNodeTest {
         JoinNode.JoinType.OUTER,
         left,
         right,
-        leftKeyField,
-        rightKeyField,
+        LEFT_JOIN_FIELD_NAME,
+        RIGHT_JOIN_FIELD_NAME,
         leftAlias,
         rightAlias,
         null,
@@ -681,13 +664,6 @@ public class JoinNodeTest {
       assertEquals("Full outer joins between streams and tables (stream: left, table: right) are "
           + "not supported.", e.getMessage());
     }
-
-    // Then:
-    assertThat(joinNode.getLeftKeyField(), is(leftKeyField));
-    assertThat(joinNode.getRightKeyField(), is(rightKeyField));
-    assertEquals(leftAlias, joinNode.getLeftAlias());
-    assertEquals(rightAlias, joinNode.getRightAlias());
-    assertEquals(JoinNode.JoinType.OUTER, joinNode.getJoinType());
   }
 
   @Test
@@ -704,8 +680,8 @@ public class JoinNodeTest {
         JoinNode.JoinType.OUTER,
         left,
         right,
-        leftKeyField,
-        rightKeyField,
+        LEFT_JOIN_FIELD_NAME,
+        RIGHT_JOIN_FIELD_NAME,
         leftAlias,
         rightAlias,
         withinExpression,
@@ -720,12 +696,6 @@ public class JoinNodeTest {
       assertTrue(e.getMessage().startsWith("A window definition was provided for a "
           + "Stream-Table join."));
     }
-
-    assertThat(joinNode.getLeftKeyField(), is(leftKeyField));
-    assertThat(joinNode.getRightKeyField(), is(rightKeyField));
-    assertEquals(leftAlias, joinNode.getLeftAlias());
-    assertEquals(rightAlias, joinNode.getRightAlias());
-    assertEquals(JoinNode.JoinType.OUTER, joinNode.getJoinType());
   }
 
   @Test
@@ -733,7 +703,7 @@ public class JoinNodeTest {
     setupTable(left, leftSchemaKTable, leftSchema);
     setupTable(right, rightSchemaKTable, rightSchema);
 
-    final KeyField leftCriteriaColumn = getNonKeyColumn(leftSchema, leftAlias, leftKeyField);
+    final String leftCriteriaColumn = getNonKeyColumn(leftSchema, leftAlias, LEFT_JOIN_FIELD_NAME);
 
     final JoinNode joinNode = new JoinNode(
         nodeId,
@@ -741,7 +711,7 @@ public class JoinNodeTest {
         left,
         right,
         leftCriteriaColumn,
-        rightKeyField,
+        RIGHT_JOIN_FIELD_NAME,
         leftAlias,
         rightAlias,
         null,
@@ -750,7 +720,7 @@ public class JoinNodeTest {
 
     try {
       joinNode.buildStream(ksqlStreamBuilder);
-
+      fail("buildStream did not throw exception");
     } catch (final KsqlException e) {
       assertThat(
           e.getMessage(),
@@ -759,11 +729,9 @@ public class JoinNodeTest {
                   "Source table (%s) key column (%s) is not the column " +
                       "used in the join criteria (%s).",
                   leftAlias,
-                  leftKeyField.name().get(),
-                  leftCriteriaColumn.name().get())));
-      return;
+                  LEFT_JOIN_FIELD_NAME,
+                  leftCriteriaColumn)));
     }
-    fail("buildStream did not throw exception");
   }
 
   @Test
@@ -771,14 +739,15 @@ public class JoinNodeTest {
     setupTable(left, leftSchemaKTable, leftSchema);
     setupTable(right, rightSchemaKTable, rightSchema);
 
-    final KeyField rightCriteriaColumn = getNonKeyColumn(rightSchema, rightAlias, rightKeyField);
+    final String rightCriteriaColumn =
+        getNonKeyColumn(rightSchema, rightAlias, RIGHT_JOIN_FIELD_NAME);
 
     final JoinNode joinNode = new JoinNode(
         nodeId,
         JoinNode.JoinType.LEFT,
         left,
         right,
-        leftKeyField,
+        LEFT_JOIN_FIELD_NAME,
         rightCriteriaColumn,
         leftAlias,
         rightAlias,
@@ -788,6 +757,7 @@ public class JoinNodeTest {
 
     try {
       joinNode.buildStream(ksqlStreamBuilder);
+      fail("buildStream did not throw exception");
     } catch (final KsqlException e) {
       assertThat(
           e.getMessage(),
@@ -796,14 +766,11 @@ public class JoinNodeTest {
                   "Source table (%s) key column (%s) is not the column " +
                       "used in the join criteria (%s).",
                   rightAlias,
-                  rightKeyField.name().get(),
-                  rightCriteriaColumn.name().get())));
-      return;
+                  RIGHT_JOIN_FIELD_NAME,
+                  rightCriteriaColumn)));
     }
-    fail("buildStream did not throw exception");
   }
 
-  @SuppressWarnings("unchecked")
   @Test
   public void shouldPerformTableToTableInnerJoin() {
     // Given:
@@ -815,33 +782,25 @@ public class JoinNodeTest {
         JoinNode.JoinType.INNER,
         left,
         right,
-        leftKeyField,
-        rightKeyField,
+        LEFT_JOIN_FIELD_NAME,
+        RIGHT_JOIN_FIELD_NAME,
         leftAlias,
         rightAlias,
         null,
         DataSource.DataSourceType.KTABLE,
         DataSource.DataSourceType.KTABLE);
-    when(
-        leftSchemaKTable.join(
-            eq(rightSchemaKTable),
-            eq(joinSchema),
-            eq(leftKeyField),
-            eq(CONTEXT_STACKER))
-    ).thenReturn(mock(SchemaKTable.class));
 
     // When:
     joinNode.buildStream(ksqlStreamBuilder);
 
     // Then:
-    assertThat(joinNode.getLeftKeyField(), is(leftKeyField));
-    assertThat(joinNode.getRightKeyField(), is(rightKeyField));
-    assertEquals(leftAlias, joinNode.getLeftAlias());
-    assertEquals(rightAlias, joinNode.getRightAlias());
-    assertEquals(JoinNode.JoinType.INNER, joinNode.getJoinType());
+    verify(leftSchemaKTable).join(
+        eq(rightSchemaKTable),
+        eq(joinSchema),
+        eq(leftJoinField),
+        eq(CONTEXT_STACKER));
   }
 
-  @SuppressWarnings("unchecked")
   @Test
   public void shouldPerformTableToTableLeftJoin() {
     // Given:
@@ -853,30 +812,24 @@ public class JoinNodeTest {
         JoinNode.JoinType.LEFT,
         left,
         right,
-        leftKeyField,
-        rightKeyField,
+        LEFT_JOIN_FIELD_NAME,
+        RIGHT_JOIN_FIELD_NAME,
         leftAlias,
         rightAlias,
         null,
         DataSource.DataSourceType.KTABLE,
         DataSource.DataSourceType.KTABLE
     );
-    when(leftSchemaKTable.leftJoin(
-        eq(rightSchemaKTable),
-        eq(joinSchema),
-        eq(leftKeyField),
-        eq(CONTEXT_STACKER))
-    ).thenReturn(mock(SchemaKTable.class));
 
     // When:
     joinNode.buildStream(ksqlStreamBuilder);
 
     // Then:
-    assertThat(joinNode.getLeftKeyField(), is(leftKeyField));
-    assertThat(joinNode.getRightKeyField(), is(rightKeyField));
-    assertEquals(leftAlias, joinNode.getLeftAlias());
-    assertEquals(rightAlias, joinNode.getRightAlias());
-    assertEquals(JoinNode.JoinType.LEFT, joinNode.getJoinType());
+    verify(leftSchemaKTable).leftJoin(
+        eq(rightSchemaKTable),
+        eq(joinSchema),
+        eq(leftJoinField),
+        eq(CONTEXT_STACKER));
   }
 
   @SuppressWarnings("unchecked")
@@ -891,30 +844,24 @@ public class JoinNodeTest {
         JoinNode.JoinType.OUTER,
         left,
         right,
-        leftKeyField,
-        rightKeyField,
+        LEFT_JOIN_FIELD_NAME,
+        RIGHT_JOIN_FIELD_NAME,
         leftAlias,
         rightAlias,
         null,
         DataSource.DataSourceType.KTABLE,
         DataSource.DataSourceType.KTABLE
     );
-    when(leftSchemaKTable.outerJoin(
-        eq(rightSchemaKTable),
-        eq(joinSchema),
-        eq(leftKeyField),
-        eq(CONTEXT_STACKER))
-    ).thenReturn(mock(SchemaKTable.class));
 
     // When:
     joinNode.buildStream(ksqlStreamBuilder);
 
     // Then:
-    assertThat(joinNode.getLeftKeyField(), is(leftKeyField));
-    assertThat(joinNode.getRightKeyField(), is(rightKeyField));
-    assertEquals(leftAlias, joinNode.getLeftAlias());
-    assertEquals(rightAlias, joinNode.getRightAlias());
-    assertEquals(JoinNode.JoinType.OUTER, joinNode.getJoinType());
+    verify(leftSchemaKTable).outerJoin(
+        eq(rightSchemaKTable),
+        eq(joinSchema),
+        eq(leftJoinField.withName(Optional.empty())),
+        eq(CONTEXT_STACKER));
   }
 
   @Test
@@ -931,8 +878,8 @@ public class JoinNodeTest {
         JoinNode.JoinType.OUTER,
         left,
         right,
-        leftKeyField,
-        rightKeyField,
+        LEFT_JOIN_FIELD_NAME,
+        RIGHT_JOIN_FIELD_NAME,
         leftAlias,
         rightAlias,
         withinExpression,
@@ -948,12 +895,6 @@ public class JoinNodeTest {
       assertTrue(e.getMessage().startsWith("A window definition was provided for a "
           + "Table-Table join."));
     }
-
-    assertThat(joinNode.getLeftKeyField(), is(leftKeyField));
-    assertThat(joinNode.getRightKeyField(), is(rightKeyField));
-    assertEquals(leftAlias, joinNode.getLeftAlias());
-    assertEquals(rightAlias, joinNode.getRightAlias());
-    assertEquals(JoinNode.JoinType.OUTER, joinNode.getJoinType());
   }
 
   @Test
@@ -964,8 +905,8 @@ public class JoinNodeTest {
         JoinNode.JoinType.OUTER,
         left,
         right,
-        leftKeyField,
-        rightKeyField,
+        LEFT_JOIN_FIELD_NAME,
+        RIGHT_JOIN_FIELD_NAME,
         leftAlias,
         rightAlias,
         null,
@@ -999,8 +940,8 @@ public class JoinNodeTest {
         JoinNode.JoinType.OUTER,
         left,
         right,
-        leftKeyField,
-        rightKeyField,
+        LEFT_JOIN_FIELD_NAME,
+        RIGHT_JOIN_FIELD_NAME,
         leftAlias,
         rightAlias,
         WITHIN_EXPRESSION,
@@ -1013,7 +954,7 @@ public class JoinNodeTest {
 
     // Then:
     verify(leftSchemaKStream).selectKey(
-        eq(leftKeyField),
+        eq(LEFT_JOIN_FIELD_NAME),
         anyBoolean(),
         any()
     );
@@ -1098,6 +1039,33 @@ public class JoinNodeTest {
 
     when(mockKafkaTopicClient.describeTopic("test2"))
         .thenReturn(new TopicDescription("test2", false, tablePartitionInfoList));
+  }
+
+  private static Optional<String> getColumn(final Schema schema, final Predicate<String> filter) {
+    return schema.fields().stream()
+        .map(Field::name)
+        .filter(filter)
+        .findFirst();
+  }
+
+  private static String getNonKeyColumn(
+      final Schema schema,
+      final String alias,
+      final String keyName
+  ) {
+    final String prefix = alias + ".";
+    final ImmutableList<String> blackList = ImmutableList.of(
+        prefix + SchemaUtil.ROWKEY_NAME,
+        prefix + SchemaUtil.ROWTIME_NAME,
+        keyName
+    );
+
+    final String column =
+        getColumn(schema, s -> !blackList.contains(s))
+            .orElseThrow(AssertionError::new);
+
+    final Field field = SchemaUtil.getFieldByName(schema, column).get();
+    return field.name();
   }
 
   private static void setUpSource(final StructuredDataSourceNode node) {

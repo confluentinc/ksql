@@ -15,8 +15,6 @@
 
 package io.confluent.ksql.analyzer;
 
-import static io.confluent.ksql.metastore.model.MetaStoreMatchers.KeyFieldMatchers.hasLegacyName;
-import static io.confluent.ksql.metastore.model.MetaStoreMatchers.KeyFieldMatchers.hasName;
 import static io.confluent.ksql.testutils.AnalysisTestUtil.analyzeQuery;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -132,10 +130,8 @@ public class AnalyzerTest {
     Assert.assertEquals(analysis.getSelectExpressions().size(),
         analysis.getSelectExpressionAlias().size());
 
-    assertThat(join.getLeftKeyField(), hasName("T1.COL1"));
-    assertThat(join.getLeftKeyField(), hasLegacyName("T1.COL1"));
-    assertThat(join.getRightKeyField(), hasName("T2.COL1"));
-    assertThat(join.getRightKeyField(), hasLegacyName("T2.COL1"));
+    assertThat(analysis.getJoin().getLeftKeyFieldName(), is("T1.COL1"));
+    assertThat(analysis.getJoin().getRightKeyFieldName(), is("T2.COL1"));
 
     final String
         select1 =
@@ -174,10 +170,8 @@ public class AnalyzerTest {
         .getJoin();
 
     // Then:
-    assertThat(join.getLeftKeyField(), hasName("T1.ROWKEY"));
-    assertThat(join.getLeftKeyField(), hasLegacyName("T1.ROWKEY"));
-    assertThat(join.getRightKeyField(), hasName("T2.ROWKEY"));
-    assertThat(join.getRightKeyField(), hasLegacyName("T2.ROWKEY"));
+    assertThat(join.getLeftKeyFieldName(), is("T1.ROWKEY"));
+    assertThat(join.getRightKeyFieldName(), is("T2.ROWKEY"));
   }
 
   @Test

@@ -16,6 +16,7 @@
 package io.confluent.ksql.metastore.model;
 
 import com.google.errorprone.annotations.Immutable;
+import com.sun.tools.javac.resources.legacy;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.Objects;
@@ -143,8 +144,12 @@ public final class KeyField {
    * @param newName the new name.
    * @return the new instance.
    */
+  public KeyField withName(final Optional<String> newName) {
+    return KeyField.of(newName, legacyKeyField);
+  }
+
   public KeyField withName(final String newName) {
-    return KeyField.of(Optional.of(newName), legacyKeyField);
+    return withName(Optional.of(newName));
   }
 
   /**
@@ -155,6 +160,10 @@ public final class KeyField {
    */
   public KeyField withLegacy(final Optional<Field> legacy) {
     return KeyField.of(keyField, legacy);
+  }
+
+  public KeyField withLegacy(final Field legacy) {
+    return withLegacy(Optional.of(legacy));
   }
 
   /**

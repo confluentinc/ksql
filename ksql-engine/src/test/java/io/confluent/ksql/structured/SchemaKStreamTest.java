@@ -411,29 +411,27 @@ public class SchemaKStreamTest {
     // Given:
     givenInitialKStreamOf("SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;");
 
-    final KeyField validKeyField = KeyField.of(
+    final KeyField expected = KeyField.of(
         Optional.of("TEST1.COL1"),
-        metaStore.getSource("TEST1")
-            .getKeyField()
-            .legacy()
-            .map(field -> SchemaUtil.buildAliasedField("TEST1", field)));
+        SchemaUtil.getFieldByName(initialSchemaKStream.getSchema(), "TEST1.COL1")
+    );
 
     // When:
     final SchemaKStream<?> rekeyedSchemaKStream = initialSchemaKStream.selectKey(
-        validKeyField,
+        "TEST1.COL1",
         true,
         childContextStacker);
 
     // Then:
-    assertThat(rekeyedSchemaKStream.getKeyField(), is(validKeyField));
+    assertThat(rekeyedSchemaKStream.getKeyField(), is(expected));
   }
 
   @Test(expected = IllegalArgumentException.class)
-  public void shouldThrowOnSelectKeyIfNewKeyNotInSchema() {
+  public void shouldThrowOnSelectKeyIfKeyNotInSchema() {
     givenInitialKStreamOf("SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;");
 
     final SchemaKStream<?> rekeyedSchemaKStream = initialSchemaKStream.selectKey(
-        KeyField.of(Optional.of("won't find me"), Optional.empty()),
+        "won't find me",
         true,
         childContextStacker);
 

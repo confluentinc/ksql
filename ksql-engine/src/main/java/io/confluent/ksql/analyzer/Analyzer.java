@@ -539,14 +539,9 @@ class Analyzer {
         final Schema sourceSchema
     ) {
       final Optional<Field> field = SchemaUtil.getFieldByName(sourceSchema, fieldName);
-      if (!field.isPresent()) {
-        return null;
-      }
-
-      final Field legacy = SchemaUtil.buildAliasedField(sourceAlias, field.get());
-      final String latest = SchemaUtil.buildAliasedFieldName(sourceAlias, fieldName);
-
-      return KeyField.of(latest, legacy);
+      return field
+          .map(f -> KeyField.of(f.name(), f).withAlias(sourceAlias))
+          .orElse(null);
     }
 
     @Override

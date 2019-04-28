@@ -392,6 +392,28 @@ public class SchemaUtilTest {
   }
 
   @Test
+  public void shouldMatchFieldNameOnExactMatch() {
+    assertThat(SchemaUtil.isFieldName("bob", "bob"), is(true));
+    assertThat(SchemaUtil.isFieldName("aliased.bob", "aliased.bob"), is(true));
+  }
+
+  @Test
+  public void shouldMatchFieldNameEvenIfActualAliased() {
+    assertThat(SchemaUtil.isFieldName("aliased.bob", "bob"), is(true));
+  }
+
+  @Test
+  public void shouldNotMatchFieldNamesOnMismatch() {
+    assertThat(SchemaUtil.isFieldName("different", "bob"), is(false));
+    assertThat(SchemaUtil.isFieldName("aliased.different", "bob"), is(false));
+  }
+
+  @Test
+  public void shouldNotMatchFieldNamesIfRequiredIsAliased() {
+    assertThat(SchemaUtil.isFieldName("bob", "aliased.bob"), is(false));
+  }
+
+  @Test
   public void shouldGetTheCorrectFieldName() {
     final Optional<Field> field = SchemaUtil.getFieldByName(schema, "orderid".toUpperCase());
     Assert.assertTrue(field.isPresent());

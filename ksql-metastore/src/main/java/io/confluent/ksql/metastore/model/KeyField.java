@@ -157,6 +157,19 @@ public final class KeyField {
     return KeyField.of(keyField, legacy);
   }
 
+  /**
+   * Build a new instance with the supplied {@code alias} applied to both new and legacy fields.
+   *
+   * @param alias the field alias to apply.
+   * @return the new instance.
+   */
+  public KeyField withAlias(final String alias) {
+    return KeyField.of(
+        keyField.map(fieldName -> SchemaUtil.buildAliasedFieldName(alias, fieldName)),
+        legacyKeyField.map(field -> SchemaUtil.buildAliasedField(alias, field))
+    );
+  }
+
   @Override
   public boolean equals(final Object o) {
     if (this == o) {

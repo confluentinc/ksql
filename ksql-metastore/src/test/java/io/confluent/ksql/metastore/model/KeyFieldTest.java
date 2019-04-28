@@ -48,6 +48,21 @@ public class KeyFieldTest {
       new Field("won't find me anywhere", 0, Schema.OPTIONAL_STRING_SCHEMA);
 
   private static final Field SCHEMA_FIELD = SCHEMA.fields().get(0);
+  private static final Field OTHER_SCHEMA_FIELD = SCHEMA.fields().get(1);
+
+  private static final String SOME_ALIAS = "fred";
+
+  private static final KeyField ALIASED_KEY_FIELD = KeyField.of(
+      SOME_ALIAS + "." + OTHER_SCHEMA_FIELD.name(),
+      new Field(
+          SOME_ALIAS + "." + SCHEMA_FIELD.name(),
+          SCHEMA_FIELD.index(),
+          SCHEMA_FIELD.schema()
+      )
+  );
+
+  private static final KeyField UNALIASED_KEY_FIELD = KeyField
+      .of(OTHER_SCHEMA_FIELD.name(),SCHEMA_FIELD);
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -273,5 +288,23 @@ public class KeyFieldTest {
     // Then:
     assertThat(keyField.legacy(), is(Optional.empty()));
     assertThat(result, is(KeyField.of("something", SCHEMA_FIELD)));
+  }
+
+  @Test
+  public void shouldBuildWithAlias() {
+    // When:
+    final KeyField result = UNALIASED_KEY_FIELD.withAlias("fred");
+
+    // Then:
+    assertThat(result, is(ALIASED_KEY_FIELD));
+  }
+
+  @Test
+  public void shouldBuildWithAliasIfAlreadyAliased() {
+    // When:
+    final KeyField result = ALIASED_KEY_FIELD.withAlias("fred");
+
+    // Then:
+    assertThat(result, is(ALIASED_KEY_FIELD));
   }
 }

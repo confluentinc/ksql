@@ -356,14 +356,9 @@ public class JoinNode extends PlanNode {
     }
 
     static KeyField getJoinKey(final String alias, final KeyField keyField) {
-      final String latest = keyField.name()
-          .map(name -> SchemaUtil.buildAliasedFieldName(alias, name))
-          .orElse(SchemaUtil.buildAliasedFieldName(alias, SchemaUtil.ROWKEY_NAME));
-
-      return KeyField.of(
-          Optional.of(latest),
-          keyField.legacy().map(field -> SchemaUtil.buildAliasedField(alias, field))
-      );
+      final Optional<String> latest = Optional.of(keyField.name().orElse(SchemaUtil.ROWKEY_NAME));
+      return KeyField.of(latest, keyField.legacy())
+          .withAlias(alias);
     }
   }
 

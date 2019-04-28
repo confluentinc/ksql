@@ -1357,7 +1357,7 @@
       ],
       "post": {
         "issues": [
-          "key field of output has INCORRECT name: should be 'KSQL_COL_0'"
+          "key field of output has INCORRECT name: should be 'KSQL_COL_0'. See https://github.com/confluentinc/ksql/issues/2740"
         ],
         "sources": [
           {"name": "OUTPUT", "type": "table", "keyField": {"name": null, "legacyName": "(KSQL_INTERNAL_COL_0 + KSQL_INTERNAL_COL_1)", "legacySchema": "STRING"}}
@@ -1387,9 +1387,6 @@
         {"topic": "DOWNSTREAM", "key":"3", "value": {"KSQL_COL_0": 1}}
       ],
       "post": {
-        "issues": [
-          "key field of output has INCORRECT name: should be 'KSQL_COL_0'"
-        ],
         "sources": [
           {"name": "DOWNSTREAM", "type": "table", "keyField": {"name": null, "legacyName": "KSQL_INTERNAL_COL_1", "legacySchema": "STRING"}}
         ]
@@ -1464,6 +1461,29 @@
       "post": {
         "sources": [
           {"name": "OUTPUT", "type": "stream", "keyField": {"name": "FOO", "legacyName": "FOO", "legacySchema": "INT"}}
+        ]
+      }
+    },
+    {
+      "name": "multiple copies of key field in projection",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT foo as foo0, foo as foo1, rowkey as foo2, rowkey as foo3 FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "1", "value": {"FOO0": 1, "FOO1": 1, "FOO2": "1", "FOO3": "1"}}
+      ],
+      "post": {
+        "issues": [
+          "There are multiple copies of the key field in the projection.",
+          "KSQL should avoid unnecessary repartition steps when GROUPing BY or PARTITIONing BY or JOINing on _any_ of them.",
+          "see: https://github.com/confluentinc/ksql/issues/2742"
+        ],
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "keyField": {"name": "FOO0", "legacyName": "FOO", "legacySchema": "INT"}}
         ]
       }
     }

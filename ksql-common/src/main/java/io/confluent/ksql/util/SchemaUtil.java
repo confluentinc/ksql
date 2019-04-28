@@ -162,7 +162,21 @@ public final class SchemaUtil {
 
   public static boolean matchFieldName(final Field field, final String fieldName) {
     return field.name().equals(fieldName)
-        || field.name().equals(fieldName.substring(fieldName.indexOf(FIELD_NAME_DELIMITER) + 1));
+        || field.name().equals(getFieldNameWithNoAlias(fieldName));
+  }
+
+  /**
+   * Check if the supplied {@code actual} field name matches the supplied {@code required}.
+   *
+   * <p>Note: if {@code required} is not aliases and {@code actual} is, then the alias is stripped
+   * from {@code actual} to allow a match.
+   * @param actual   the field name to be checked
+   * @param required the required field name.
+   * @return {@code true} on a match, {@code false} otherwise.
+   */
+  public static boolean isFieldName(final String actual, final String required) {
+    return required.equals(actual)
+        || required.equals(getFieldNameWithNoAlias(actual));
   }
 
   public static Field buildAliasedField(final String alias, final Field field) {

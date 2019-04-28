@@ -207,8 +207,8 @@
         {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"TT_ID": null, "NAME": "bar", "VALUE": 99, "F1": null, "F2": null}, "timestamp": 30000}
       ],
       "post": {
-        "issues": [
-          "key field has incorrect name - should be TT_ID"
+        "comments": [
+          "key field is null because field 'TT_ID' does not always match the key of the output record due to it being an left join"
         ],
         "sources": [
           {"name": "LEFT_OUTER_JOIN", "type": "stream", "keyField": {"name": null, "legacyName": "T.ID", "legacySchema": "BIGINT"}}
@@ -351,7 +351,15 @@
         {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "T_F1": "blah", "T_F2": 50, "T_ROWKEY": "0", "T_ROWTIME": 10000, "NAME": "zero"}, "timestamp": 10000},
         {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "T_F1": "blah", "T_F2": 50, "T_ROWKEY": "0", "T_ROWTIME": 10000, "NAME": "foo"}, "timestamp": 13000},
         {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "T_F1": "a", "T_F2": 10, "T_ROWKEY": "0", "T_ROWTIME": 15000, "NAME": "foo"}, "timestamp": 15000}
-      ]
+      ],
+      "post": {
+        "issues": [
+          "keyField is wrong - should be T_ID as right join key always matches record key. See https://github.com/confluentinc/ksql/issues/2741."
+        ],
+        "sources": [
+          {"name": "INNER_JOIN", "type": "stream", "keyField": {"name": null, "legacyName": "TT.ID", "legacySchema": "BIGINT"}}
+        ]
+      }
     },
     {
       "name": "stream stream inner join all fields",
@@ -383,7 +391,12 @@
         {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "T_F1": "blah", "T_ROWKEY": "0", "T_ROWTIME": 10000, "TT_ID": 0, "TT_NAME": "zero", "TT_ROWKEY": "0", "TT_ROWTIME": 0}, "timestamp": 10000},
         {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "T_F1": "blah", "T_ROWKEY": "0", "T_ROWTIME": 10000, "TT_ID": 0, "TT_NAME": "foo", "TT_ROWKEY": "0", "TT_ROWTIME": 13000}, "timestamp": 13000},
         {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "T_F1": "a", "T_ROWKEY": "0", "T_ROWTIME": 15000, "TT_ID": 0, "TT_NAME": "foo", "TT_ROWKEY": "0", "TT_ROWTIME": 13000}, "timestamp": 15000}
-      ]
+      ],
+      "post": {
+        "sources": [
+          {"name": "INNER_JOIN", "type": "stream", "keyField": {"name": "TT_ID", "legacyName": "TT.ID", "legacySchema": "BIGINT"}}
+        ]
+      }
     },
     {
       "name": "stream stream inner join with different before and after windows",
@@ -486,7 +499,7 @@
       ],
       "post": {
         "issues": [
-          "key field has incorrect name - should be TT_ID"
+          "key field has incorrect name - should be TT_ID as right join key always matches record key. See https://github.com/confluentinc/ksql/issues/2741."
         ],
         "sources": [
           {"name": "INNER_JOIN", "type": "stream", "keyField": {"name": null, "legacyName": "T.ID", "legacySchema": "BIGINT"}}
@@ -523,42 +536,12 @@
         {"topic": "LEFT_OUTER_JOIN", "key": 100, "value": {"T_ID": null, "NAME": null, "VALUE": null, "F1": "newblah", "F2": 150}, "timestamp": 20000}
       ],
       "post": {
+        "comments": [
+          "key field is null because field 'T_ID' does not always match the key of the output record due to it being a full outer join"
+        ],
+        "issues": "key field should be null - todo",
         "sources": [
           {"name": "LEFT_OUTER_JOIN", "type": "stream", "keyField": {"name": "T_ID", "legacyName": "T.ID", "legacySchema": "BIGINT"}}
-        ]
-      }
-    },
-    {
-      "name": "stream stream outer join - join key not in projection",
-      "statements": [
-        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='JSON', key='ID');",
-        "CREATE STREAM TEST_STREAM (ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='JSON', key='ID');",
-        "CREATE STREAM LEFT_OUTER_JOIN as SELECT name, value, f1, f2 FROM test t FULL OUTER join TEST_STREAM tt WITHIN 11 seconds on t.id = tt.id;"
-      ],
-      "inputs": [
-        {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "zero", "VALUE": 0}, "timestamp": 0},
-        {"topic": "right_topic", "key": 0, "value": {"ID": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
-        {"topic": "left_topic", "key": 10, "value": {"ID": 10, "NAME": "100", "VALUE": 5}, "timestamp": 11000},
-        {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "foo", "VALUE": 100}, "timestamp": 13000},
-        {"topic": "right_topic", "key": 0, "value": {"ID": 0, "F1": "a", "F2": 10}, "timestamp": 15000},
-        {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "bar", "VALUE": 99}, "timestamp": 30000},
-        {"topic": "left_topic", "key": 90, "value": {"ID": 90, "NAME": "ninety", "VALUE": 90}, "timestamp": 17000},
-        {"topic": "right_topic", "key": 100, "value": {"ID": 100, "F1": "newblah", "F2": 150}, "timestamp": 20000}
-
-      ],
-      "outputs": [
-        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"NAME": "zero", "VALUE": 0, "F1": null, "F2": null}, "timestamp": 0},
-        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"NAME": "zero", "VALUE": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
-        {"topic": "LEFT_OUTER_JOIN", "key": 10, "value": {"NAME": "100", "VALUE": 5, "F1": null, "F2": null}, "timestamp": 11000},
-        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"NAME": "foo", "VALUE": 100, "F1": "blah", "F2": 50}, "timestamp": 13000},
-        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"NAME": "foo", "VALUE": 100, "F1": "a", "F2": 10}, "timestamp": 15000},
-        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"NAME": "bar", "VALUE": 99, "F1": null, "F2": null}, "timestamp": 30000},
-        {"topic": "LEFT_OUTER_JOIN", "key": 90, "value": {"NAME": "ninety", "VALUE": 90, "F1": null, "F2": null}, "timestamp": 17000},
-        {"topic": "LEFT_OUTER_JOIN", "key": 100, "value": {"NAME": null, "VALUE": null, "F1": "newblah", "F2": 150}, "timestamp": 20000}
-      ],
-      "post": {
-        "sources": [
-          {"name": "LEFT_OUTER_JOIN", "type": "stream", "keyField": {"name": null, "legacyName": "T.ID", "legacySchema": "BIGINT"}}
         ]
       }
     },
@@ -591,8 +574,8 @@
         {"topic": "LEFT_OUTER_JOIN", "key": 100, "value": {"TT_ID": 100, "NAME": null, "VALUE": null, "F1": "newblah", "F2": 150}, "timestamp": 20000}
       ],
       "post": {
-        "issues": [
-          "key field has incorrect name - should be TT_ID"
+        "comments": [
+          "key field is null because field 'TT_ID' does not always match the key of the output record due to it being a full outer join"
         ],
         "sources": [
           {"name": "LEFT_OUTER_JOIN", "type": "stream", "keyField": {"name": null, "legacyName": "T.ID", "legacySchema": "BIGINT"}}
@@ -685,8 +668,8 @@
         {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"TT_ID": 0, "NAME": "bar", "VALUE": 99, "F1": "a", "F2": 10}, "timestamp": 16000}
       ],
       "post": {
-        "issues": [
-          "key field has incorrect name - should be TT_ID"
+        "comments": [
+          "key field is null because field 'TT_ID' does not always match the key of the output record due to it being an outer join"
         ],
         "sources": [
           {"name": "LEFT_OUTER_JOIN", "type": "table", "keyField": {"name": null, "legacyName": null}}
@@ -737,7 +720,7 @@
         {"topic": "left_topic", "key": 10, "value": {"ID": 10, "NAME": "100", "VALUE": 5}, "timestamp": 11000},
         {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "foo", "VALUE": 100}, "timestamp": 13000},
         {"topic": "right_topic", "key": 0, "value": {"ID": 0, "F1": "a", "F2": 10}, "timestamp": 15000},
-        {"topic": "right_topic", "key": 15, "value": {"ID": 0, "F1": "c", "F2": 20}, "timestamp": 15500},
+        {"topic": "right_topic", "key": 15, "value": {"ID": 15, "F1": "c", "F2": 20}, "timestamp": 15500},
         {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "bar", "VALUE": 99}, "timestamp": 16000},
         {"topic": "left_topic", "key": 90, "value": {"ID": 90, "NAME": "ninety", "VALUE": 90}, "timestamp": 17000}
       ],
@@ -766,7 +749,7 @@
         {"topic": "left_topic", "key": 10, "value": {"ID": 10, "NAME": "100", "VALUE": 5}, "timestamp": 11000},
         {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "foo", "VALUE": 100}, "timestamp": 13000},
         {"topic": "right_topic", "key": 0, "value": {"ID": 0, "F1": "a", "F2": 10}, "timestamp": 15000},
-        {"topic": "right_topic", "key": 15, "value": {"ID": 0, "F1": "c", "F2": 20}, "timestamp": 15500},
+        {"topic": "right_topic", "key": 15, "value": {"ID": 15, "F1": "c", "F2": 20}, "timestamp": 15500},
         {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "bar", "VALUE": 99}, "timestamp": 16000},
         {"topic": "left_topic", "key": 90, "value": {"ID": 90, "NAME": "ninety", "VALUE": 90}, "timestamp": 17000}
       ],
@@ -795,7 +778,7 @@
         {"topic": "left_topic", "key": 10, "value": {"ID": 10, "NAME": "100", "VALUE": 5}, "timestamp": 11000},
         {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "foo", "VALUE": 100}, "timestamp": 13000},
         {"topic": "right_topic", "key": 0, "value": {"ID": 0, "F1": "a", "F2": 10}, "timestamp": 15000},
-        {"topic": "right_topic", "key": 15, "value": {"ID": 0, "F1": "c", "F2": 20}, "timestamp": 15500},
+        {"topic": "right_topic", "key": 15, "value": {"ID": 15, "F1": "c", "F2": 20}, "timestamp": 15500},
         {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "bar", "VALUE": 99}, "timestamp": 16000},
         {"topic": "left_topic", "key": 90, "value": {"ID": 90, "NAME": "ninety", "VALUE": 90}, "timestamp": 17000}
       ],
@@ -807,7 +790,7 @@
       ],
       "post": {
         "issues": [
-          "key field has incorrect name - should be TT_ID"
+          "key field has incorrect name - should be TT_ID as the right key always matches the record key. See https://github.com/confluentinc/ksql/issues/2741."
         ],
         "sources": [
           {"name": "INNER_JOIN", "type": "table", "keyField": {"name": null, "legacyName": null}}
@@ -828,7 +811,7 @@
         {"topic": "left_topic", "key": 10, "value": {"ID": 10, "NAME": "100", "VALUE": 5}, "timestamp": 11000},
         {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "foo", "VALUE": 100}, "timestamp": 13000},
         {"topic": "right_topic", "key": 0, "value": {"ID": 0, "F1": "a", "F2": 10}, "timestamp": 15000},
-        {"topic": "right_topic", "key": 15, "value": {"ID": 0, "F1": "c", "F2": 20}, "timestamp": 15500},
+        {"topic": "right_topic", "key": 15, "value": {"ID": 15, "F1": "c", "F2": 20}, "timestamp": 15500},
         {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "bar", "VALUE": 99}, "timestamp": 16000}
       ],
       "outputs": [
@@ -841,39 +824,12 @@
         {"topic": "OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "bar", "VALUE": 99, "F1": "a", "F2": 10}, "timestamp": 16000}
       ],
       "post": {
+        "comments": [
+          "key field is null because field 'T_ID' does not always match the key of the output record due to it being a full outer join"
+        ],
+        "issues": "key field should be null - todo",
         "sources": [
           {"name": "OUTER_JOIN", "type": "table", "keyField": {"name": "T_ID", "legacyName": "T_ID", "legacySchema": "BIGINT"}}
-        ]
-      }
-    },
-    {
-      "name": "table table outer join - join key not in projection",
-      "statements": [
-        "CREATE TABLE TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='JSON', key='ID');",
-        "CREATE TABLE TEST_TABLE (ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='JSON', key='ID');",
-        "CREATE TABLE OUTER_JOIN as SELECT name, value, f1, f2 FROM test t FULL OUTER join TEST_TABLE tt on t.id = tt.id;"
-      ],
-      "inputs": [
-        {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "zero", "VALUE": 0}, "timestamp": 0},
-        {"topic": "right_topic", "key": 0, "value": {"ID": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
-        {"topic": "left_topic", "key": 10, "value": {"ID": 10, "NAME": "100", "VALUE": 5}, "timestamp": 11000},
-        {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "foo", "VALUE": 100}, "timestamp": 13000},
-        {"topic": "right_topic", "key": 0, "value": {"ID": 0, "F1": "a", "F2": 10}, "timestamp": 15000},
-        {"topic": "right_topic", "key": 15, "value": {"ID": 0, "F1": "c", "F2": 20}, "timestamp": 15500},
-        {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "bar", "VALUE": 99}, "timestamp": 16000}
-      ],
-      "outputs": [
-        {"topic": "OUTER_JOIN", "key": 0, "value": {"NAME": "zero", "VALUE": 0, "F1": null, "F2": null}, "timestamp": 0},
-        {"topic": "OUTER_JOIN", "key": 0, "value": {"NAME": "zero", "VALUE": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
-        {"topic": "OUTER_JOIN", "key": 10, "value": {"NAME": "100", "VALUE": 5, "F1": null, "F2": null}, "timestamp": 11000},
-        {"topic": "OUTER_JOIN", "key": 0, "value": {"NAME": "foo", "VALUE": 100, "F1": "blah", "F2": 50}, "timestamp": 13000},
-        {"topic": "OUTER_JOIN", "key": 0, "value": {"NAME": "foo", "VALUE": 100, "F1": "a", "F2": 10}, "timestamp": 15000},
-        {"topic": "OUTER_JOIN", "key": 15, "value": {"NAME": null, "VALUE": null, "F1": "c", "F2": 20}, "timestamp": 15500},
-        {"topic": "OUTER_JOIN", "key": 0, "value": {"NAME": "bar", "VALUE": 99, "F1": "a", "F2": 10}, "timestamp": 16000}
-      ],
-      "post": {
-        "sources": [
-          {"name": "OUTER_JOIN", "type": "table", "keyField": {"name": null, "legacyName": null}}
         ]
       }
     },
@@ -890,7 +846,7 @@
         {"topic": "left_topic", "key": 10, "value": {"ID": 10, "NAME": "100", "VALUE": 5}, "timestamp": 11000},
         {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "foo", "VALUE": 100}, "timestamp": 13000},
         {"topic": "right_topic", "key": 0, "value": {"ID": 0, "F1": "a", "F2": 10}, "timestamp": 15000},
-        {"topic": "right_topic", "key": 15, "value": {"ID": 0, "F1": "c", "F2": 20}, "timestamp": 15500},
+        {"topic": "right_topic", "key": 15, "value": {"ID": 15, "F1": "c", "F2": 20}, "timestamp": 15500},
         {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "bar", "VALUE": 99}, "timestamp": 16000}
       ],
       "outputs": [
@@ -899,12 +855,12 @@
         {"topic": "OUTER_JOIN", "key": 10, "value": {"TT_ID": null, "NAME": "100", "VALUE": 5, "F1": null, "F2": null}, "timestamp": 11000},
         {"topic": "OUTER_JOIN", "key": 0, "value": {"TT_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "blah", "F2": 50}, "timestamp": 13000},
         {"topic": "OUTER_JOIN", "key": 0, "value": {"TT_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "a", "F2": 10}, "timestamp": 15000},
-        {"topic": "OUTER_JOIN", "key": 15, "value": {"TT_ID": 0, "NAME": null, "VALUE": null, "F1": "c", "F2": 20}, "timestamp": 15500},
+        {"topic": "OUTER_JOIN", "key": 15, "value": {"TT_ID": 15, "NAME": null, "VALUE": null, "F1": "c", "F2": 20}, "timestamp": 15500},
         {"topic": "OUTER_JOIN", "key": 0, "value": {"TT_ID": 0, "NAME": "bar", "VALUE": 99, "F1": "a", "F2": 10}, "timestamp": 16000}
       ],
       "post": {
-        "issues": [
-          "key field has incorrect name - should be TT_ID"
+        "comments": [
+          "key field is null because field 'TT_ID' does not always match the key of the output record due to it being a full outer join"
         ],
         "sources": [
           {"name": "OUTER_JOIN", "type": "table", "keyField": {"name": null, "legacyName": null}}
@@ -991,8 +947,8 @@
         {"topic": "LEFT_JOIN", "key": 90, "value": {"TT_ID": null, "NAME": "ninety", "VALUE": 90, "F1": null, "F2": null}, "timestamp": 15000}
       ],
       "post": {
-        "issues": [
-          "key field has incorrect name - should be TT_ID"
+        "comments": [
+          "key field is null because field 'TT_ID' does not always match the key of the output record due to it being an outer join"
         ],
         "sources": [
           {"name": "LEFT_JOIN", "type": "stream", "keyField": {"name": null, "legacyName": "T.ID", "legacySchema": "BIGINT"}}
@@ -1077,7 +1033,7 @@
       ],
       "post": {
         "issues": [
-          "key field has incorrect name - should be TT_ID"
+          "key field has incorrect name - should be TT_ID as right join key always matches record key. See https://github.com/confluentinc/ksql/issues/2741."
         ],
         "sources": [
           {"name": "INNER_JOIN", "type": "stream", "keyField": {"name": null, "legacyName": "T.ID", "legacySchema": "BIGINT"}}
@@ -1432,10 +1388,102 @@
       ],
       "post": {
         "issues": [
-          "key field has incorrect name - should be TT_ID"
+          "key field has incorrect name - should be TT_ID as right join key always matches record key. See https://github.com/confluentinc/ksql/issues/2741."
         ],
         "sources": [
           {"name": "INNER_JOIN", "type": "stream", "keyField": {"name": null, "legacyName": "T.ROWKEY", "legacySchema": "STRING"}}
+        ]
+      }
+    },
+    {
+      "name": "join using ROWKEY in the criteria - left rowkey in projection",
+      "statements": [
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
+        "CREATE TABLE TEST_TABLE (ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='test_table', value_format='JSON', key='ID');",
+        "CREATE STREAM INNER_JOIN as SELECT t.rowkey AS ID, name, value, f1, f2 FROM test t join test_table tt on t.ROWKEY = tt.ROWKEY;"
+      ],
+      "inputs": [
+        {"topic": "test_table", "key": 0, "value": {"ID": 0, "F1": "zero", "F2": 0}, "timestamp": 0},
+        {"topic": "test_table", "key": 10, "value": {"ID": 10, "F1": "100", "F2": 5}, "timestamp": 10000},
+        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "blah", "VALUE": 50}, "timestamp": 10000},
+        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "foo", "VALUE": 100}, "timestamp": 10000},
+        {"topic": "test_table", "key": 0, "value": {"ID": 0, "F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "bar", "VALUE": 99}, "timestamp": 15000},
+        {"topic": "test_topic", "key": 90, "value": {"ID": 90, "NAME": "ninety", "VALUE": 90}, "timestamp": 15000}
+      ],
+      "outputs": [
+        {"topic": "INNER_JOIN", "key": 0, "value": {"ID": "0", "NAME": "blah", "VALUE": 50, "F1": "zero", "F2": 0}, "timestamp": 10000},
+        {"topic": "INNER_JOIN", "key": 0, "value": {"ID": "0", "NAME": "foo", "VALUE": 100, "F1": "zero", "F2": 0}, "timestamp": 10000},
+        {"topic": "INNER_JOIN", "key": 0, "value": {"ID": "0", "NAME": "bar", "VALUE": 99, "F1": "a", "F2": 10}, "timestamp": 15000}
+      ],
+      "post": {
+        "issues": [
+          "key field has incorrect name - should be ID. See https://github.com/confluentinc/ksql/issues/2741."
+        ],
+        "sources": [
+          {"name": "INNER_JOIN", "type": "stream", "keyField": {"name": null, "legacyName": "T.ROWKEY", "legacySchema": "STRING"}}
+        ]
+      }
+    },
+    {
+      "name": "join using ROWKEY in the criteria - right rowkey in projection",
+      "statements": [
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
+        "CREATE TABLE TEST_TABLE (ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='test_table', value_format='JSON', key='ID');",
+        "CREATE STREAM INNER_JOIN as SELECT tt.rowkey AS ID, name, value, f1, f2 FROM test t join test_table tt on t.ROWKEY = tt.ROWKEY;"
+      ],
+      "inputs": [
+        {"topic": "test_table", "key": 0, "value": {"ID": 0, "F1": "zero", "F2": 0}, "timestamp": 0},
+        {"topic": "test_table", "key": 10, "value": {"ID": 10, "F1": "100", "F2": 5}, "timestamp": 10000},
+        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "blah", "VALUE": 50}, "timestamp": 10000},
+        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "foo", "VALUE": 100}, "timestamp": 10000},
+        {"topic": "test_table", "key": 0, "value": {"ID": 0, "F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "bar", "VALUE": 99}, "timestamp": 15000},
+        {"topic": "test_topic", "key": 90, "value": {"ID": 90, "NAME": "ninety", "VALUE": 90}, "timestamp": 15000}
+      ],
+      "outputs": [
+        {"topic": "INNER_JOIN", "key": 0, "value": {"ID": "0", "NAME": "blah", "VALUE": 50, "F1": "zero", "F2": 0}, "timestamp": 10000},
+        {"topic": "INNER_JOIN", "key": 0, "value": {"ID": "0", "NAME": "foo", "VALUE": 100, "F1": "zero", "F2": 0}, "timestamp": 10000},
+        {"topic": "INNER_JOIN", "key": 0, "value": {"ID": "0", "NAME": "bar", "VALUE": 99, "F1": "a", "F2": 10}, "timestamp": 15000}
+      ],
+      "post": {
+        "issues": [
+          "key field has incorrect name - should be ID as right rowkey always matches record key. See https://github.com/confluentinc/ksql/issues/2741."
+        ],
+        "sources": [
+          {"name": "INNER_JOIN", "type": "stream", "keyField": {"name": null, "legacyName": "T.ROWKEY", "legacySchema": "STRING"}}
+        ]
+      }
+    },
+    {
+      "name": "multiple join keys in projection",
+      "statements": [
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
+        "CREATE TABLE TEST_TABLE (ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='test_table', value_format='JSON', key='ID');",
+        "CREATE STREAM INNER_JOIN as SELECT t.ID AS ID1, t.ID AS ID2, t.rowkey AS ID3, tt.ID AS ID4, tt.ROWKEY AS ID5 FROM test t join test_table tt on t.ROWKEY = tt.ROWKEY;"
+      ],
+      "inputs": [
+        {"topic": "test_table", "key": 0, "value": {"ID": 0, "F1": "zero", "F2": 0}, "timestamp": 0},
+        {"topic": "test_table", "key": 10, "value": {"ID": 10, "F1": "100", "F2": 5}, "timestamp": 10000},
+        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "blah", "VALUE": 50}, "timestamp": 10000},
+        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "foo", "VALUE": 100}, "timestamp": 10000},
+        {"topic": "test_table", "key": 0, "value": {"ID": 0, "F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "bar", "VALUE": 99}, "timestamp": 15000},
+        {"topic": "test_topic", "key": 90, "value": {"ID": 90, "NAME": "ninety", "VALUE": 90}, "timestamp": 15000}
+      ],
+      "outputs": [
+        {"topic": "INNER_JOIN", "key": 0, "value": {"ID1": 0, "ID2": 0, "ID3": "0", "ID4": 0, "ID5": "0"}, "timestamp": 10000},
+        {"topic": "INNER_JOIN", "key": 0, "value": {"ID1": 0, "ID2": 0, "ID3": "0", "ID4": 0, "ID5": "0"}, "timestamp": 10000},
+        {"topic": "INNER_JOIN", "key": 0, "value": {"ID1": 0, "ID2": 0, "ID3": "0", "ID4": 0, "ID5": "0"}, "timestamp": 15000}
+      ],
+      "post": {
+        "issues": [
+          "There are multiple copies of the key field in the projection.",
+          "KSQL should avoid unnecessary repartition steps when GROUPing BY or PARTITIONing BY or JOINing on _any_ of them.",
+          "see: https://github.com/confluentinc/ksql/issues/2742"
+        ],
+        "sources": [
+          {"name": "INNER_JOIN", "type": "stream", "keyField": {"name": "ID1", "legacyName": "T.ROWKEY", "legacySchema": "STRING"}}
         ]
       }
     },

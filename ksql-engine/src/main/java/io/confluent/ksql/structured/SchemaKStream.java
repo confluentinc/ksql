@@ -519,27 +519,29 @@ public class SchemaKStream<K> {
       final boolean updateRowKey,
       final QueryContext.Stacker contextStacker
   ) {
-    final Field field = selectKeyField.resolve(schema, ksqlConfig)
+    final Optional<Field> existingKey = keyField.resolve(schema, ksqlConfig);
+
+    final Field proposedKey = selectKeyField.resolve(schema, ksqlConfig)
         .orElseThrow(IllegalArgumentException::new);
 
-    final KeyField newKeyField =
-        selectKeyField.name().isPresent() && isRowKey(selectKeyField.name().get())
+    final KeyField resultantKeyField = isRowKey(selectKeyField.name().orElse(""))
             ? keyField.withLegacy(selectKeyField.legacy())
             : selectKeyField;
 
-    final Optional<Field> existing = keyField.resolve(schema, ksqlConfig);
-    final boolean namesMatch = existing
-        .map(kf -> SchemaUtil.matchFieldName(kf, field.name()))
+    final boolean namesMatch = existingKey
+        .map(kf -> SchemaUtil.matchFieldName(kf, proposedKey.name()))
         .orElse(false);
 
     // Note: Prior to v5.3 a selectKey(ROWKEY) would result in a repartition.
-    // To maintain compatibility, existing queries started prior to v5.3 must have repartition step.
-    // Hence 'usingNewKeyFields' in if below: new key field logic fixes this issue.
-    if (namesMatch || (usingNewKeyFields() && isRowKey(field.name()))) {
+    // To maintain compatibility, old queries, started prior to v5.3, must have repartition step.
+    // So we only handle rowkey for new queries:
+    final boolean treatAsRowKey = usingNewKeyFields() && isRowKey(proposedKey.name());
+
+    if (namesMatch || treatAsRowKey) {
       return new SchemaKStream<>(
           schema,
           kstream,
-          newKeyField,
+          resultantKeyField,
           sourceSchemaKStreams,
           keySerdeFactory,
           type,
@@ -550,8 +552,8 @@ public class SchemaKStream<K> {
     }
 
     final KStream keyedKStream = kstream
-        .filter((key, value) -> value != null && extractColumn(field, value) != null)
-        .selectKey((key, value) -> extractColumn(field, value).toString())
+        .filter((key, value) -> value != null && extractColumn(proposedKey, value) != null)
+        .selectKey((key, value) -> extractColumn(proposedKey, value).toString())
         .mapValues((key, row) -> {
           if (updateRowKey) {
             row.getColumns().set(SchemaUtil.ROWKEY_NAME_INDEX, key);
@@ -562,7 +564,7 @@ public class SchemaKStream<K> {
     return new SchemaKStream<>(
         schema,
         keyedKStream,
-        newKeyField,
+        resultantKeyField,
         Collections.singletonList(this),
         Serdes::String,
         Type.REKEY,
@@ -577,9 +579,7 @@ public class SchemaKStream<K> {
   }
 
   private static boolean isRowKey(final String fieldName) {
-    return SchemaUtil
-        .getFieldNameWithNoAlias(fieldName)
-        .equals(SchemaUtil.ROWKEY_NAME);
+    return SchemaUtil.isFieldName(fieldName, SchemaUtil.ROWKEY_NAME);
   }
 
   private Object extractColumn(final Field newKeyField, final GenericRow value) {

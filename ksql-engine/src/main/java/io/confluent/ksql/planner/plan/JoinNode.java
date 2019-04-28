@@ -355,10 +355,34 @@ public class JoinNode extends PlanNode {
       );
     }
 
-    static KeyField getJoinKey(final String alias, final KeyField keyField) {
-      final Optional<String> latest = Optional.of(keyField.name().orElse(SchemaUtil.ROWKEY_NAME));
-      return KeyField.of(latest, keyField.legacy())
-          .withAlias(alias);
+    /**
+     * The key field of the resultant joined stream.
+     *
+     * @param leftAlias the alias of the left source.
+     * @param leftKeyField the key field of the left source.
+     * @return the key field that should be used by the resultant joined stream.
+     */
+    static KeyField getJoinedKeyField(final String leftAlias, final KeyField leftKeyField) {
+      final Optional<String> latest = Optional
+          .of(leftKeyField.name().orElse(SchemaUtil.ROWKEY_NAME));
+
+      return KeyField.of(latest, leftKeyField.legacy())
+          .withAlias(leftAlias);
+    }
+
+    /**
+     * The key field of the resultant joined stream for OUTER joins.
+     *
+     * <p>Note: for outer joins neither source's key field can be used as they may be null.
+     *
+     * @param leftAlias the alias of the left source.
+     * @param leftKeyField the key field of the left source.
+     * @return the key field that should be used by the resultant joined stream.
+     */
+    static KeyField getOuterJoinedKeyField(final String leftAlias, final KeyField leftKeyField) {
+      return KeyField.none()
+          .withLegacy(leftKeyField.legacy())
+          .withAlias(leftAlias);
     }
   }
 
@@ -393,7 +417,7 @@ public class JoinNode extends PlanNode {
           return leftStream.leftJoin(
               rightStream,
               joinNode.schema,
-              getJoinKey(joinNode.leftAlias, leftStream.getKeyField()),
+              getJoinedKeyField(joinNode.leftAlias, leftStream.getKeyField()),
               joinNode.withinExpression.joinWindow(),
               getSerDeForNode(joinNode.left, contextStacker.push(LEFT_SERDE_CONTEXT_NAME)),
               getSerDeForNode(joinNode.right, contextStacker.push(RIGHT_SERDE_CONTEXT_NAME)),
@@ -402,7 +426,7 @@ public class JoinNode extends PlanNode {
           return leftStream.outerJoin(
               rightStream,
               joinNode.schema,
-              getJoinKey(joinNode.leftAlias, leftStream.getKeyField()),
+              getOuterJoinedKeyField(joinNode.leftAlias, leftStream.getKeyField()),
               joinNode.withinExpression.joinWindow(),
               getSerDeForNode(joinNode.left, contextStacker.push(LEFT_SERDE_CONTEXT_NAME)),
               getSerDeForNode(joinNode.right, contextStacker.push(RIGHT_SERDE_CONTEXT_NAME)),
@@ -411,7 +435,7 @@ public class JoinNode extends PlanNode {
           return leftStream.join(
               rightStream,
               joinNode.schema,
-              getJoinKey(joinNode.leftAlias, leftStream.getKeyField()),
+              getJoinedKeyField(joinNode.leftAlias, leftStream.getKeyField()),
               joinNode.withinExpression.joinWindow(),
               getSerDeForNode(joinNode.left, contextStacker.push(LEFT_SERDE_CONTEXT_NAME)),
               getSerDeForNode(joinNode.right, contextStacker.push(RIGHT_SERDE_CONTEXT_NAME)),
@@ -451,7 +475,7 @@ public class JoinNode extends PlanNode {
           return leftStream.leftJoin(
               rightTable,
               joinNode.schema,
-              getJoinKey(joinNode.leftAlias, leftStream.getKeyField()),
+              getJoinedKeyField(joinNode.leftAlias, leftStream.getKeyField()),
               getSerDeForNode(joinNode.left, contextStacker.push(LEFT_SERDE_CONTEXT_NAME)),
               contextStacker);
 
@@ -459,7 +483,7 @@ public class JoinNode extends PlanNode {
           return leftStream.join(
               rightTable,
               joinNode.schema,
-              getJoinKey(joinNode.leftAlias, leftStream.getKeyField()),
+              getJoinedKeyField(joinNode.leftAlias, leftStream.getKeyField()),
               getSerDeForNode(joinNode.left, contextStacker.push(LEFT_SERDE_CONTEXT_NAME)),
               contextStacker);
         case OUTER:
@@ -501,19 +525,19 @@ public class JoinNode extends PlanNode {
           return leftTable.leftJoin(
               rightTable,
               joinNode.schema,
-              getJoinKey(joinNode.leftAlias, leftTable.getKeyField()),
+              getJoinedKeyField(joinNode.leftAlias, leftTable.getKeyField()),
               contextStacker);
         case INNER:
           return leftTable.join(
               rightTable,
               joinNode.schema,
-              getJoinKey(joinNode.leftAlias, leftTable.getKeyField()),
+              getJoinedKeyField(joinNode.leftAlias, leftTable.getKeyField()),
               contextStacker);
         case OUTER:
           return leftTable.outerJoin(
               rightTable,
               joinNode.schema,
-              getJoinKey(joinNode.leftAlias, leftTable.getKeyField()),
+              getOuterJoinedKeyField(joinNode.leftAlias, leftTable.getKeyField()),
               contextStacker);
         default:
           throw new KsqlException("Invalid join type encountered: " + joinNode.joinType);

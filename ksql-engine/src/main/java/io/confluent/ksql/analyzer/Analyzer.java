@@ -470,6 +470,7 @@ class Analyzer {
       return joinType;
     }
 
+    // Todo(ac): Put this back to a String... i.e. leftJoinKey and rightJoinKey.
     /**
      * From the join criteria expression fetch the field corresponding to the given source alias.
      */

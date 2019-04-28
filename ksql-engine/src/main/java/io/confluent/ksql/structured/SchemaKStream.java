@@ -349,7 +349,7 @@ public class SchemaKStream<K> {
   public SchemaKStream<K> leftJoin(
       final SchemaKTable<K> schemaKTable,
       final Schema joinSchema,
-      final KeyField joinKey,
+      final KeyField keyField,
       final Serde<GenericRow> leftValueSerDe,
       final QueryContext.Stacker contextStacker
   ) {
@@ -368,7 +368,7 @@ public class SchemaKStream<K> {
     return new SchemaKStream<>(
         joinSchema,
         joinedKStream,
-        joinKey,
+        keyField,
         ImmutableList.of(this, schemaKTable),
         keySerdeFactory,
         Type.JOIN,
@@ -381,7 +381,7 @@ public class SchemaKStream<K> {
   public SchemaKStream<K> leftJoin(
       final SchemaKStream<K> otherSchemaKStream,
       final Schema joinSchema,
-      final KeyField joinKey,
+      final KeyField keyField,
       final JoinWindows joinWindows,
       final Serde<GenericRow> leftSerde,
       final Serde<GenericRow> rightSerde,
@@ -403,7 +403,7 @@ public class SchemaKStream<K> {
     return new SchemaKStream<>(
         joinSchema,
         joinStream,
-        joinKey,
+        keyField,
         ImmutableList.of(this, otherSchemaKStream),
         keySerdeFactory,
         Type.JOIN,
@@ -417,7 +417,7 @@ public class SchemaKStream<K> {
   public SchemaKStream<K> join(
       final SchemaKTable<K> schemaKTable,
       final Schema joinSchema,
-      final KeyField joinKeyField,
+      final KeyField keyField,
       final Serde<GenericRow> joinSerDe,
       final QueryContext.Stacker contextStacker
   ) {
@@ -435,7 +435,7 @@ public class SchemaKStream<K> {
     return new SchemaKStream<>(
         joinSchema,
         joinedKStream,
-        joinKeyField,
+        keyField,
         ImmutableList.of(this, schemaKTable),
         keySerdeFactory,
         Type.JOIN,
@@ -448,7 +448,7 @@ public class SchemaKStream<K> {
   public SchemaKStream<K> join(
       final SchemaKStream<K> otherSchemaKStream,
       final Schema joinSchema,
-      final KeyField joinKey,
+      final KeyField keyField,
       final JoinWindows joinWindows,
       final Serde<GenericRow> leftSerde,
       final Serde<GenericRow> rightSerde,
@@ -469,7 +469,7 @@ public class SchemaKStream<K> {
     return new SchemaKStream<>(
         joinSchema,
         joinStream,
-        joinKey,
+        keyField,
         ImmutableList.of(this, otherSchemaKStream),
         keySerdeFactory,
         Type.JOIN,
@@ -482,7 +482,7 @@ public class SchemaKStream<K> {
   public SchemaKStream<K> outerJoin(
       final SchemaKStream<K> otherSchemaKStream,
       final Schema joinSchema,
-      final KeyField joinKey,
+      final KeyField keyField,
       final JoinWindows joinWindows,
       final Serde<GenericRow> leftSerde,
       final Serde<GenericRow> rightSerde,
@@ -502,7 +502,7 @@ public class SchemaKStream<K> {
     return new SchemaKStream<>(
         joinSchema,
         joinStream,
-        joinKey,
+        keyField,
         ImmutableList.of(this, otherSchemaKStream),
         keySerdeFactory,
         Type.JOIN,

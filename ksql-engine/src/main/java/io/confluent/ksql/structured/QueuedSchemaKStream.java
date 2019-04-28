@@ -73,7 +73,7 @@ public class QueuedSchemaKStream<K> extends SchemaKStream<K> {
   public SchemaKStream<K> leftJoin(
       final SchemaKTable<K> schemaKTable,
       final Schema joinSchema,
-      final KeyField joinKey,
+      final KeyField keyField,
       final Serde<GenericRow> joinSerde,
       final QueryContext.Stacker contextStacker
   ) {

@@ -539,9 +539,8 @@
         "comments": [
           "key field is null because field 'T_ID' does not always match the key of the output record due to it being a full outer join"
         ],
-        "issues": "key field should be null - todo",
         "sources": [
-          {"name": "LEFT_OUTER_JOIN", "type": "stream", "keyField": {"name": "T_ID", "legacyName": "T.ID", "legacySchema": "BIGINT"}}
+          {"name": "LEFT_OUTER_JOIN", "type": "stream", "keyField": {"name": null, "legacyName": "T.ID", "legacySchema": "BIGINT"}}
         ]
       }
     },
@@ -827,9 +826,8 @@
         "comments": [
           "key field is null because field 'T_ID' does not always match the key of the output record due to it being a full outer join"
         ],
-        "issues": "key field should be null - todo",
         "sources": [
-          {"name": "OUTER_JOIN", "type": "table", "keyField": {"name": "T_ID", "legacyName": "T_ID", "legacySchema": "BIGINT"}}
+          {"name": "OUTER_JOIN", "type": "table", "keyField": {"name": null, "legacyName": "T_ID", "legacySchema": "BIGINT"}}
         ]
       }
     },
@@ -1418,7 +1416,7 @@
       ],
       "post": {
         "issues": [
-          "key field has incorrect name - should be ID. See https://github.com/confluentinc/ksql/issues/2741."
+          "key field has incorrect name - should be ID. See https://github.com/confluentinc/ksql/issues/2743."
         ],
         "sources": [
           {"name": "INNER_JOIN", "type": "stream", "keyField": {"name": null, "legacyName": "T.ROWKEY", "legacySchema": "STRING"}}

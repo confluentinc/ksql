@@ -1465,6 +1465,27 @@
       }
     },
     {
+      "name": "where only rowkey is in projection",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ROWKEY AS ID FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "1", "value": {"ID": "1"}}
+      ],
+      "post": {
+        "issues": [
+          "key field has incorrect name - should be ID. See https://github.com/confluentinc/ksql/issues/2743."
+        ],
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "keyField": {"name": null, "legacyName": "FOO", "legacySchema": "INT"}}
+        ]
+      }
+    },
+    {
       "name": "multiple copies of key field in projection",
       "statements": [
         "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",

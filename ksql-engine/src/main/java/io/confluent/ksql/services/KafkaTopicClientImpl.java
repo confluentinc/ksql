@@ -31,7 +31,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import javax.annotation.concurrent.ThreadSafe;
 import org.apache.kafka.clients.admin.AdminClient;
-import org.apache.kafka.clients.admin.AlterConfigOp;
 import org.apache.kafka.clients.admin.Config;
 import org.apache.kafka.clients.admin.ConfigEntry;
 import org.apache.kafka.clients.admin.DeleteTopicsResult;
@@ -164,16 +163,15 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
 
       existingConfig.putAll(toStringConfigs(overrides));
 
-      final Set<AlterConfigOp> entries = existingConfig.entrySet().stream()
-          .map(e -> new AlterConfigOp(
-              new ConfigEntry(e.getKey(), e.getValue()), AlterConfigOp.OpType.SET))
+      final Set<ConfigEntry> entries = existingConfig.entrySet().stream()
+          .map(e -> new ConfigEntry(e.getKey(), e.getValue()))
           .collect(Collectors.toSet());
 
-      final Map<ConfigResource, Collection<AlterConfigOp>> request =
-          Collections.singletonMap(resource, entries);
+      final Map<ConfigResource, Config> request =
+          Collections.singletonMap(resource, new Config(entries));
 
       ExecutorUtil.executeWithRetries(
-          () -> adminClient.incrementalAlterConfigs(request).all().get(),
+          () -> adminClient.alterConfigs(request).all().get(),
           ExecutorUtil.RetryBehaviour.ON_RETRYABLE);
 
       return true;

@@ -431,7 +431,7 @@
         {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "zero", "VALUE": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
         {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "blah", "F2": 50}, "timestamp": 13000},
         {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "a", "F2": 10}, "timestamp": 15000},
-        {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "late-message", "VALUE": 10000, "F1": "blah", "F2": 50}, "timestamp": 6000}
+        {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "late-message", "VALUE": 10000, "F1": "blah", "F2": 50}, "timestamp": 10000}
       ]
     },
     {

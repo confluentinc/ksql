@@ -15,7 +15,7 @@ the status of your KLIP in the table to `[In Discussion](https://github.com/conf
 
 # KsqL Improvement Proposals (aka KLIPs)
 
-Next KLIP number: 4.
+Next KLIP number: 7.
 
 | KLIP                                                                               | Status         | Release |
 |------------------------------------------------------------------------------------|:--------------:| ------: |
@@ -23,6 +23,4 @@ Next KLIP number: 4.
 | [KLIP-1: Improve UDF Interfaces](klip-1-improve-udf-interfaces.md)                 | Accepted       | N/A     |
 | [KLIP-2: Insert Into Semantics](klip-2-produce-data.md)                            | Accepted       | N/A     |
 | [KLIP-3: Serialization of single Fields](klip-3-serialization-of-single-fields.md) | Accepted       | N/A     |
-
-
-
+| [KLIP-6: Execution Plans](klip-6-execution-plans.md)                               | Accepted       | N/A     |

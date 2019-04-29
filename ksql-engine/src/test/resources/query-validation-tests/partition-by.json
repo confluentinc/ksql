@@ -1,12 +1,4 @@
 {
-  "comments": [
-    "You can specify multiple statements per test case, i.e., to set up the various streams needed",
-    "for joins etc, but currently only the final topology will be verified. This should be enough",
-    "for most tests as we can simulate the outputs from previous stages into the final stage. If we",
-    "take a modular approach to testing we can still verify that it all works correctly, i.e, if we",
-    "verify the output of a select or aggregate is correct, we can use simulated output to feed into",
-    "a join or another aggregate."
-  ],
   "tests": [
     {
       "name": "partition by with projection select some",
@@ -61,6 +53,49 @@
       "outputs": [
         {"topic": "REPARTITIONED", "key": "zero", "value": "zero,0"}
       ]
+    },
+    {
+      "name": "aliased key field - different name",
+      "statements": [
+        "CREATE STREAM TEST (ID varchar, NAME varchar) with (kafka_topic='test_topic', value_format = 'delimited', key='ID');",
+        "CREATE STREAM REPARTITIONED AS select ID + '_new' AS ID_new, NAME from TEST partition by ID_NEW;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": "0,a"},
+        {"topic": "test_topic", "key": 1, "value": "1,b"}
+      ],
+      "outputs": [
+        {"topic": "REPARTITIONED", "key": "0_new", "value": "0_new,a"},
+        {"topic": "REPARTITIONED", "key": "1_new", "value": "1_new,b"}
+      ],
+      "post": {
+        "sources": [
+          {"name": "REPARTITIONED", "type": "stream", "keyField": {"name": "ID_NEW", "legacyName": "ID_NEW", "legacySchema": "STRING"}}
+        ]
+      }
+    },
+    {
+      "name": "aliased key field - same name",
+      "comments": [
+        "See https://github.com/confluentinc/ksql/issues/2525"
+      ],
+      "statements": [
+        "CREATE STREAM TEST (ID varchar, NAME varchar) with (kafka_topic='test_topic', value_format = 'delimited', key='ID');",
+        "CREATE STREAM REPARTITIONED AS select ID + '_new' AS ID, NAME from TEST partition by ID;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": "0,a"},
+        {"topic": "test_topic", "key": 1, "value": "1,b"}
+      ],
+      "outputs": [
+        {"topic": "REPARTITIONED", "key": "0_new", "value": "0_new,a"},
+        {"topic": "REPARTITIONED", "key": "1_new", "value": "1_new,b"}
+      ],
+      "post": {
+        "sources": [
+          {"name": "REPARTITIONED", "type": "stream", "keyField": {"name": "ID", "legacyName": "ID", "legacySchema": "STRING"}}
+        ]
+      }
     }
   ]
 }

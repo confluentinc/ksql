@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.entity;
 
+import static io.confluent.ksql.metastore.model.StructuredDataSource.DataSourceType;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
@@ -28,7 +29,6 @@ import io.confluent.ksql.physical.LimitHandler;
 import io.confluent.ksql.physical.QuerySchemas;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.SchemaInfo.Type;
-import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
@@ -39,7 +39,6 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.function.Consumer;
 import org.apache.kafka.common.serialization.Serdes;
@@ -98,7 +97,7 @@ public class QueryDescriptionTest {
         limitHandler,
         "execution plan",
         new LinkedBlockingQueue<>(),
-        DataSource.DataSourceType.KSTREAM,
+        DataSourceType.KSTREAM,
         "app id",
         topology,
         STREAMS_PROPS,
@@ -135,7 +134,7 @@ public class QueryDescriptionTest {
         fakeSink.getName(),
         "execution plan",
         new QueryId("query_id"),
-        DataSource.DataSourceType.KSTREAM,
+        DataSourceType.KSTREAM,
         "app id",
         sinkTopic,
         topology,

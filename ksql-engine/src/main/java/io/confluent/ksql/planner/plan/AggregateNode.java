@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.planner.plan;
 
+import static io.confluent.ksql.metastore.model.StructuredDataSource.DataSourceType;
 import static java.util.Objects.requireNonNull;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
@@ -36,7 +37,6 @@ import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.physical.KsqlQueryBuilder;
-import io.confluent.ksql.serde.DataSource.DataSourceType;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.QueryContext;

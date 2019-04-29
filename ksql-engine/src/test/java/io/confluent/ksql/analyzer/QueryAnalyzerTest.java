@@ -47,7 +47,7 @@ import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Sink;
-import io.confluent.ksql.serde.DataSource.DataSourceSerDe;
+import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.Pair;
@@ -492,7 +492,7 @@ public class QueryAnalyzerTest {
 
     // Then:
     assertThat(analysis.getInto().get().getKsqlTopic().getKsqlTopicSerDe().getSerDe(),
-        is(DataSourceSerDe.DELIMITED));
+        is(Format.DELIMITED));
   }
 
   private Query givenQuery(final String sql) {

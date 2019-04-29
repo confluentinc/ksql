@@ -97,7 +97,7 @@ public class AvroUtilTest {
     when(persistentQuery.getResultSchema()).thenReturn(RESULT_SCHEMA);
 
     final org.apache.avro.Schema expectedAvroSchema = SchemaUtil
-        .buildAvroSchema(RESULT_SCHEMA, RESULT_TOPIC.getName());
+        .buildAvroSchema(RESULT_SCHEMA, RESULT_TOPIC.getKsqlTopicName());
 
     // When:
     AvroUtil.isValidSchemaEvolution(persistentQuery, srClient);

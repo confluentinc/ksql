@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.planner.plan;
 
+import static io.confluent.ksql.metastore.model.StructuredDataSource.DataSourceType;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -22,7 +23,6 @@ import static org.mockito.Mockito.when;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.physical.KsqlQueryBuilder;
-import io.confluent.ksql.serde.DataSource.DataSourceType;
 import io.confluent.ksql.structured.QueryContext.Stacker;
 import io.confluent.ksql.structured.SchemaKStream;
 import org.junit.Before;

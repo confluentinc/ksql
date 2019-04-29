@@ -15,12 +15,12 @@
 
 package io.confluent.ksql.integration;
 
-import static io.confluent.ksql.serde.DataSource.DataSourceSerDe.AVRO;
-import static io.confluent.ksql.serde.DataSource.DataSourceSerDe.JSON;
+import static io.confluent.ksql.serde.Format.AVRO;
+import static io.confluent.ksql.serde.Format.JSON;
 
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.serde.DataSource;
+import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.test.util.TopicTestUtil;
 import io.confluent.ksql.util.ItemDataProvider;
 import io.confluent.ksql.util.OrderDataProvider;
@@ -89,7 +89,7 @@ public class JoinIntTest {
                                           final String orderStreamTopic,
                                           final String orderStreamName,
                                           final String itemTableName,
-                                          final DataSource.DataSourceSerDe dataSourceSerDe)
+                                          final Format dataSourceSerDe)
       throws Exception {
 
     final String queryString = String.format(
@@ -206,7 +206,7 @@ public class JoinIntTest {
         orderStreamTopicJson,
         ORDER_STREAM_NAME_JSON,
         ITEM_TABLE_NAME_JSON,
-        DataSource.DataSourceSerDe.JSON);
+        Format.JSON);
 
   }
 

@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.metastore;
 
+import static io.confluent.ksql.metastore.model.StructuredDataSource.DataSourceType;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -28,8 +29,6 @@ import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.metastore.model.StructuredDataSource;
-import io.confluent.ksql.serde.DataSource;
-import io.confluent.ksql.serde.DataSource.DataSourceType;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.List;
@@ -63,7 +62,7 @@ public class MetaStoreTest {
   public void testStreamMap() {
     final StructuredDataSource<?> structuredDataSource1 = metaStore.getSource("ORDERS");
     Assert.assertNotNull(structuredDataSource1);
-    assertThat(structuredDataSource1.getDataSourceType(), is(DataSource.DataSourceType.KSTREAM));
+    assertThat(structuredDataSource1.getDataSourceType(), is(DataSourceType.KSTREAM));
 
     // Check non-existent stream
     final StructuredDataSource<?> structuredDataSource2 = metaStore.getSource("nonExistentStream");

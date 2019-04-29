@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.planner.plan;
 
+import static io.confluent.ksql.metastore.model.StructuredDataSource.DataSourceType;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.MAPVALUES_NODE;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.SOURCE_NODE;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.getNodeByName;
@@ -47,7 +48,6 @@ import io.confluent.ksql.metastore.model.StructuredDataSource;
 import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.physical.KsqlQueryBuilder;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
@@ -325,8 +325,8 @@ public class JoinNodeTest {
         leftAlias,
         rightAlias,
         withinExpression,
-        DataSource.DataSourceType.KSTREAM,
-        DataSource.DataSourceType.KSTREAM);
+        DataSourceType.KSTREAM,
+        DataSourceType.KSTREAM);
 
     // When:
     joinNode.buildStream(ksqlStreamBuilder);
@@ -367,8 +367,8 @@ public class JoinNodeTest {
         leftAlias,
         rightAlias,
         withinExpression,
-        DataSource.DataSourceType.KSTREAM,
-        DataSource.DataSourceType.KSTREAM);
+        DataSourceType.KSTREAM,
+        DataSourceType.KSTREAM);
 
     // When:
     joinNode.buildStream(ksqlStreamBuilder);
@@ -409,8 +409,8 @@ public class JoinNodeTest {
         leftAlias,
         rightAlias,
         withinExpression,
-        DataSource.DataSourceType.KSTREAM,
-        DataSource.DataSourceType.KSTREAM);
+        DataSourceType.KSTREAM,
+        DataSourceType.KSTREAM);
 
     // When:
     joinNode.buildStream(ksqlStreamBuilder);
@@ -444,8 +444,8 @@ public class JoinNodeTest {
                                            leftAlias,
                                            rightAlias,
                                            null,
-                                           DataSource.DataSourceType.KSTREAM,
-                                           DataSource.DataSourceType.KSTREAM);
+                                           DataSourceType.KSTREAM,
+                                           DataSourceType.KSTREAM);
 
     try {
       joinNode.buildStream(ksqlStreamBuilder);
@@ -490,8 +490,8 @@ public class JoinNodeTest {
                                            leftAlias,
                                            rightAlias,
                                            withinExpression,
-                                           DataSource.DataSourceType.KSTREAM,
-                                           DataSource.DataSourceType.KSTREAM);
+                                           DataSourceType.KSTREAM,
+                                           DataSourceType.KSTREAM);
 
     try {
       joinNode.buildStream(ksqlStreamBuilder);
@@ -553,8 +553,8 @@ public class JoinNodeTest {
         leftAlias,
         rightAlias,
         null,
-        DataSource.DataSourceType.KSTREAM,
-        DataSource.DataSourceType.KTABLE);
+        DataSourceType.KSTREAM,
+        DataSourceType.KTABLE);
 
     try {
       joinNode.buildStream(ksqlStreamBuilder);
@@ -598,8 +598,8 @@ public class JoinNodeTest {
         leftAlias,
         rightAlias,
         null,
-        DataSource.DataSourceType.KSTREAM,
-        DataSource.DataSourceType.KTABLE);
+        DataSourceType.KSTREAM,
+        DataSourceType.KTABLE);
 
     // When:
     joinNode.buildStream(ksqlStreamBuilder);
@@ -637,8 +637,8 @@ public class JoinNodeTest {
         leftAlias,
         rightAlias,
         null,
-        DataSource.DataSourceType.KSTREAM,
-        DataSource.DataSourceType.KTABLE);
+        DataSourceType.KSTREAM,
+        DataSourceType.KTABLE);
 
     // When:
     joinNode.buildStream(ksqlStreamBuilder);
@@ -668,8 +668,8 @@ public class JoinNodeTest {
                                            leftAlias,
                                            rightAlias,
                                            null,
-                                           DataSource.DataSourceType.KSTREAM,
-                                           DataSource.DataSourceType.KTABLE);
+                                           DataSourceType.KSTREAM,
+                                           DataSourceType.KTABLE);
 
     // When:
     try {
@@ -714,8 +714,8 @@ public class JoinNodeTest {
                                            leftAlias,
                                            rightAlias,
                                            withinExpression,
-                                           DataSource.DataSourceType.KSTREAM,
-                                           DataSource.DataSourceType.KTABLE);
+                                           DataSourceType.KSTREAM,
+                                           DataSourceType.KTABLE);
 
     try {
       joinNode.buildStream(ksqlStreamBuilder);
@@ -754,8 +754,8 @@ public class JoinNodeTest {
         leftAlias,
         rightAlias,
         null,
-        DataSource.DataSourceType.KTABLE,
-        DataSource.DataSourceType.KTABLE);
+        DataSourceType.KTABLE,
+        DataSourceType.KTABLE);
 
     try {
       joinNode.buildStream(ksqlStreamBuilder);
@@ -796,8 +796,8 @@ public class JoinNodeTest {
         leftAlias,
         rightAlias,
         null,
-        DataSource.DataSourceType.KTABLE,
-        DataSource.DataSourceType.KTABLE);
+        DataSourceType.KTABLE,
+        DataSourceType.KTABLE);
 
     try {
       joinNode.buildStream(ksqlStreamBuilder);
@@ -833,8 +833,8 @@ public class JoinNodeTest {
         leftAlias,
         rightAlias,
         null,
-        DataSource.DataSourceType.KTABLE,
-        DataSource.DataSourceType.KTABLE);
+        DataSourceType.KTABLE,
+        DataSourceType.KTABLE);
     expect(
         leftSchemaKTable.join(
             eq(rightSchemaKTable),
@@ -874,8 +874,8 @@ public class JoinNodeTest {
         leftAlias,
         rightAlias,
         null,
-        DataSource.DataSourceType.KTABLE,
-        DataSource.DataSourceType.KTABLE
+        DataSourceType.KTABLE,
+        DataSourceType.KTABLE
     );
     expect(leftSchemaKTable.leftJoin(
         eq(rightSchemaKTable),
@@ -915,8 +915,8 @@ public class JoinNodeTest {
         leftAlias,
         rightAlias,
         null,
-        DataSource.DataSourceType.KTABLE,
-        DataSource.DataSourceType.KTABLE
+        DataSourceType.KTABLE,
+        DataSourceType.KTABLE
     );
     expect(leftSchemaKTable.outerJoin(
         eq(rightSchemaKTable),
@@ -960,8 +960,8 @@ public class JoinNodeTest {
                                            leftAlias,
                                            rightAlias,
                                            withinExpression,
-                                           DataSource.DataSourceType.KTABLE,
-                                           DataSource.DataSourceType.KTABLE);
+                                           DataSourceType.KTABLE,
+                                           DataSourceType.KTABLE);
 
     try {
       joinNode.buildStream(ksqlStreamBuilder);
@@ -1001,8 +1001,8 @@ public class JoinNodeTest {
         leftAlias,
         rightAlias,
         null,
-        DataSource.DataSourceType.KTABLE,
-        DataSource.DataSourceType.KTABLE
+        DataSourceType.KTABLE,
+        DataSourceType.KTABLE
     );
 
     // When:

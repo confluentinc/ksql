@@ -19,8 +19,8 @@ import static java.util.Objects.requireNonNull;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.confluent.ksql.metastore.model.KeyField;
+import io.confluent.ksql.metastore.model.StructuredDataSource.DataSourceType;
 import io.confluent.ksql.physical.KsqlQueryBuilder;
-import io.confluent.ksql.serde.DataSource.DataSourceType;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.SchemaKStream;
 import java.util.List;

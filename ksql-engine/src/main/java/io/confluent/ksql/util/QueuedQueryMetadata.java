@@ -16,8 +16,8 @@
 package io.confluent.ksql.util;
 
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.metastore.model.StructuredDataSource.DataSourceType;
 import io.confluent.ksql.physical.LimitHandler;
-import io.confluent.ksql.serde.DataSource;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -47,7 +47,7 @@ public class QueuedQueryMetadata extends QueryMetadata {
       final Consumer<LimitHandler> limitHandlerSetter,
       final String executionPlan,
       final BlockingQueue<KeyValue<String, GenericRow>> rowQueue,
-      final DataSource.DataSourceType dataSourceType,
+      final DataSourceType dataSourceType,
       final String queryApplicationId,
       final Topology topology,
       final Map<String, Object> streamsProperties,

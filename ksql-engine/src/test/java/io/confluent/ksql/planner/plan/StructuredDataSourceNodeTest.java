@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.planner.plan;
 
+import static io.confluent.ksql.metastore.model.StructuredDataSource.DataSourceType;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.getNodeByName;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.verifyProcessorNode;
 import static org.hamcrest.Matchers.equalTo;
@@ -37,7 +38,6 @@ import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.physical.KsqlQueryBuilder;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.serde.DataSource.DataSourceType;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.streams.MaterializedFactory;

@@ -15,13 +15,14 @@
 
 package io.confluent.ksql.engine;
 
+import static io.confluent.ksql.metastore.model.StructuredDataSource.DataSourceType;
+
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.ExecutableDdlStatement;
 import io.confluent.ksql.planner.LogicalPlanNode;
-import io.confluent.ksql.serde.DataSource.DataSourceType;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.AvroUtil;
 import io.confluent.ksql.util.KsqlConfig;

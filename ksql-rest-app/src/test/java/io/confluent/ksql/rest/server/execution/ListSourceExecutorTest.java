@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.server.execution;
 
+import static io.confluent.ksql.metastore.model.StructuredDataSource.DataSourceType;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
@@ -38,7 +39,6 @@ import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.entity.TopicDescription;
 import io.confluent.ksql.rest.server.TemporaryEngine;
-import io.confluent.ksql.serde.DataSource.DataSourceType;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlException;

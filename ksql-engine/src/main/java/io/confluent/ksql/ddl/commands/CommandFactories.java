@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.ddl.commands;
 
+import static io.confluent.ksql.metastore.model.StructuredDataSource.DataSourceType;
+
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.DdlStatement;
@@ -24,7 +26,6 @@ import io.confluent.ksql.parser.tree.DropTopic;
 import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.UnsetProperty;
-import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.HandlerMaps;
 import io.confluent.ksql.util.HandlerMaps.ClassHandlerMapR2;
@@ -105,7 +106,7 @@ public class CommandFactories implements DdlCommandFactory {
   private DropSourceCommand handleDropStream(final DropStream statement) {
     return new DropSourceCommand(
         statement,
-        DataSource.DataSourceType.KSTREAM,
+        DataSourceType.KSTREAM,
         serviceContext.getTopicClient(),
         serviceContext.getSchemaRegistryClient(),
         statement.isDeleteTopic());
@@ -114,7 +115,7 @@ public class CommandFactories implements DdlCommandFactory {
   private DropSourceCommand handleDropTable(final DropTable statement) {
     return new DropSourceCommand(
         statement,
-        DataSource.DataSourceType.KTABLE,
+        DataSourceType.KTABLE,
         serviceContext.getTopicClient(),
         serviceContext.getSchemaRegistryClient(),
         statement.isDeleteTopic());

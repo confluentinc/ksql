@@ -20,9 +20,10 @@ import static io.confluent.ksql.util.ExecutorUtil.RetryBehaviour.ALWAYS;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.model.StructuredDataSource;
+import io.confluent.ksql.metastore.model.StructuredDataSource.DataSourceType;
 import io.confluent.ksql.parser.tree.AbstractStreamDropStatement;
 import io.confluent.ksql.schema.registry.SchemaRegistryUtil;
-import io.confluent.ksql.serde.DataSource;
+import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.ExecutorUtil;
 import io.confluent.ksql.util.KsqlConstants;
@@ -34,14 +35,14 @@ public class DropSourceCommand implements DdlCommand {
 
   private final String sourceName;
   private final boolean ifExists;
-  private final DataSource.DataSourceType dataSourceType;
+  private final DataSourceType dataSourceType;
   private final KafkaTopicClient kafkaTopicClient;
   private final SchemaRegistryClient schemaRegistryClient;
   private final boolean deleteTopic;
 
   public DropSourceCommand(
       final AbstractStreamDropStatement statement,
-      final DataSource.DataSourceType dataSourceType,
+      final DataSourceType dataSourceType,
       final KafkaTopicClient kafkaTopicClient,
       final SchemaRegistryClient schemaRegistryClient,
       final boolean deleteTopic) {
@@ -66,8 +67,8 @@ public class DropSourceCommand implements DdlCommand {
     if (dataSource.getDataSourceType() != dataSourceType) {
       throw new KsqlException(String.format(
           "Incompatible data source type is %s, but statement was DROP %s",
-          dataSource.getDataSourceType() == DataSource.DataSourceType.KSTREAM ? "STREAM" : "TABLE",
-          dataSourceType == DataSource.DataSourceType.KSTREAM ? "STREAM" : "TABLE"
+          dataSource.getDataSourceType() == DataSourceType.KSTREAM ? "STREAM" : "TABLE",
+          dataSourceType == DataSourceType.KSTREAM ? "STREAM" : "TABLE"
       ));
     }
     final DropTopicCommand dropTopicCommand =
@@ -102,7 +103,7 @@ public class DropSourceCommand implements DdlCommand {
           + dataSource.getKafkaTopicName(), e);
     }
 
-    if (dataSource.isSerdeFormat(DataSource.DataSourceSerDe.AVRO)) {
+    if (dataSource.getKsqlTopicSerde().getSerDe() == Format.AVRO) {
       try {
         SchemaRegistryUtil.deleteSubjectWithRetries(
             schemaRegistryClient,

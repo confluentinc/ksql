@@ -17,7 +17,7 @@ package io.confluent.ksql.util;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.internal.QueryStateListener;
-import io.confluent.ksql.serde.DataSource;
+import io.confluent.ksql.metastore.model.StructuredDataSource.DataSourceType;
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.util.Map;
 import java.util.Objects;
@@ -37,7 +37,7 @@ public class QueryMetadata {
   private final String statementString;
   private final KafkaStreams kafkaStreams;
   private final String executionPlan;
-  private final DataSource.DataSourceType dataSourceType;
+  private final DataSourceType dataSourceType;
   private final String queryApplicationId;
   private final Topology topology;
   private final Map<String, Object> streamsProperties;
@@ -56,7 +56,7 @@ public class QueryMetadata {
       final Schema schema,
       final Set<String> sourceNames,
       final String executionPlan,
-      final DataSource.DataSourceType dataSourceType,
+      final DataSourceType dataSourceType,
       final String queryApplicationId,
       final Topology topology,
       final Map<String, Object> streamsProperties,
@@ -120,7 +120,7 @@ public class QueryMetadata {
     return executionPlan;
   }
 
-  public DataSource.DataSourceType getDataSourceType() {
+  public DataSourceType getDataSourceType() {
     return dataSourceType;
   }
 

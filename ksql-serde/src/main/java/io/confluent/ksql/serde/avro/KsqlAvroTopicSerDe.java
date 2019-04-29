@@ -24,7 +24,7 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.AbstractKafkaAvroSerDeConfig;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
-import io.confluent.ksql.serde.DataSource;
+import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.connect.KsqlConnectDeserializer;
 import io.confluent.ksql.serde.connect.KsqlConnectSerializer;
@@ -47,7 +47,7 @@ public class KsqlAvroTopicSerDe extends KsqlTopicSerDe {
   private final String fullSchemaName;
 
   public KsqlAvroTopicSerDe(final String fullSchemaName) {
-    super(DataSource.DataSourceSerDe.AVRO);
+    super(Format.AVRO);
     this.fullSchemaName = Objects.requireNonNull(fullSchemaName, "fullSchemaName").trim();
     if (this.fullSchemaName.isEmpty()) {
       throw new IllegalArgumentException("the schema name cannot be empty");

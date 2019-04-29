@@ -17,9 +17,10 @@ package io.confluent.ksql.util;
 
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.metastore.model.KsqlTopic;
+import io.confluent.ksql.metastore.model.StructuredDataSource.DataSourceType;
 import io.confluent.ksql.physical.QuerySchemas;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.serde.DataSource;
+import io.confluent.ksql.serde.Format;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -47,7 +48,7 @@ public class PersistentQueryMetadata extends QueryMetadata {
       final String sinkName,
       final String executionPlan,
       final QueryId id,
-      final DataSource.DataSourceType dataSourceType,
+      final DataSourceType dataSourceType,
       final String queryApplicationId,
       final KsqlTopic resultTopic,
       final Topology topology,
@@ -73,11 +74,6 @@ public class PersistentQueryMetadata extends QueryMetadata {
     this.resultTopic = Objects.requireNonNull(resultTopic, "resultTopic");
     this.sinkNames = ImmutableSet.of(sinkName);
     this.schemas = Objects.requireNonNull(schemas, "schemas");
-
-    if (resultTopic.getKsqlTopicSerDe() == null) {
-      throw new KsqlException(String.format("Invalid result topic: %s. Serde cannot be null.",
-          resultTopic.getName()));
-    }
   }
 
   private PersistentQueryMetadata(
@@ -107,7 +103,7 @@ public class PersistentQueryMetadata extends QueryMetadata {
     return sinkNames;
   }
 
-  public DataSource.DataSourceSerDe getResultTopicSerde() {
+  public Format getResultTopicSerde() {
     return resultTopic.getKsqlTopicSerDe().getSerDe();
   }
 

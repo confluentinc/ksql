@@ -16,6 +16,7 @@
 package io.confluent.ksql.planner;
 
 import static io.confluent.ksql.metastore.model.MetaStoreMatchers.FieldMatchers.hasName;
+import static io.confluent.ksql.metastore.model.StructuredDataSource.DataSourceType;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -23,17 +24,15 @@ import static org.hamcrest.Matchers.is;
 
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.metastore.model.StructuredDataSource;
 import io.confluent.ksql.metastore.model.MetaStoreMatchers.FieldMatchers;
 import io.confluent.ksql.metastore.model.MetaStoreMatchers.OptionalMatchers;
+import io.confluent.ksql.metastore.model.StructuredDataSource;
 import io.confluent.ksql.planner.plan.AggregateNode;
 import io.confluent.ksql.planner.plan.FilterNode;
 import io.confluent.ksql.planner.plan.JoinNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
 import io.confluent.ksql.planner.plan.StructuredDataSourceNode;
-import io.confluent.ksql.serde.DataSource;
-import io.confluent.ksql.serde.DataSource.DataSourceType;
 import io.confluent.ksql.testutils.AnalysisTestUtil;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.Optional;
@@ -63,7 +62,7 @@ public class LogicalPlannerTest {
         .getStructuredDataSource();
     assertThat(structuredDataSource
             .getDataSourceType(),
-        equalTo(DataSource.DataSourceType.KTABLE));
+        equalTo(DataSourceType.KTABLE));
     assertThat(structuredDataSource.getName(), equalTo("TEST2"));
   }
 

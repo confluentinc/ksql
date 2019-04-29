@@ -16,7 +16,7 @@
 package io.confluent.ksql.integration;
 
 
-import static io.confluent.ksql.serde.DataSource.DataSourceSerDe.JSON;
+import static io.confluent.ksql.serde.Format.JSON;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItems;
@@ -47,7 +47,6 @@ import org.apache.kafka.test.IntegrationTest;
 import org.apache.kafka.test.TestUtils;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;

@@ -231,7 +231,7 @@ public class RecoveryTest {
     final Matcher<KsqlTopicSerDe> serDeMatcher;
 
     TopicMatcher(final KsqlTopic topic) {
-      this.nameMatcher = equalTo(topic.getName());
+      this.nameMatcher = equalTo(topic.getKsqlTopicName());
       this.kafkaNameMatcher = equalTo(topic.getKafkaTopicName());
       this.serDeMatcher = instanceOf(topic.getKsqlTopicSerDe().getClass());
     }
@@ -245,7 +245,7 @@ public class RecoveryTest {
 
     @Override
     public boolean matchesSafely(final KsqlTopic other, final Description description) {
-      if (!test(nameMatcher, other.getName(), description, "name mismatch: ")) {
+      if (!test(nameMatcher, other.getKsqlTopicName(), description, "name mismatch: ")) {
         return false;
       }
       if (!test(

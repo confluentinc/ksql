@@ -20,13 +20,12 @@ import static java.util.Objects.requireNonNull;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.metastore.SerdeFactory;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
-import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import org.apache.kafka.connect.data.Schema;
 
 @Immutable
-public abstract class StructuredDataSource<K> implements DataSource {
+public abstract class StructuredDataSource<K> {
 
   private final String dataSourceName;
   private final DataSourceType dataSourceType;
@@ -58,12 +57,10 @@ public abstract class StructuredDataSource<K> implements DataSource {
     this.keySerde = requireNonNull(keySerde, "keySerde");
   }
 
-  @Override
   public String getName() {
     return this.dataSourceName;
   }
 
-  @Override
   public DataSourceType getDataSourceType() {
     return this.dataSourceType;
   }
@@ -88,10 +85,6 @@ public abstract class StructuredDataSource<K> implements DataSource {
     return ksqlTopic.getKsqlTopicSerDe();
   }
 
-  public boolean isSerdeFormat(final DataSource.DataSourceSerDe format) {
-    return getKsqlTopicSerde() != null && getKsqlTopicSerde().getSerDe() == format;
-  }
-
   public TimestampExtractionPolicy getTimestampExtractionPolicy() {
     return timestampExtractionPolicy;
   }
@@ -106,5 +99,21 @@ public abstract class StructuredDataSource<K> implements DataSource {
 
   public String getSqlExpression() {
     return sqlExpression;
+  }
+
+  public enum DataSourceType {
+
+    KSTREAM("STREAM"),
+    KTABLE("TABLE");
+
+    private final String kqlType;
+
+    DataSourceType(final String ksqlType) {
+      this.kqlType = ksqlType;
+    }
+
+    public String getKqlType() {
+      return kqlType;
+    }
   }
 }

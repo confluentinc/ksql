@@ -26,7 +26,7 @@ import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.schema.inference.TopicSchemaSupplier.SchemaAndId;
 import io.confluent.ksql.schema.inference.TopicSchemaSupplier.SchemaResult;
-import io.confluent.ksql.serde.DataSource;
+import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.util.KsqlConstants;
@@ -121,7 +121,7 @@ public class DefaultSchemaInjector implements Injector {
     final String valueFormat =
         getRequiredProperty(statement, DdlConfig.VALUE_FORMAT_PROPERTY);
 
-    return !valueFormat.equalsIgnoreCase(DataSource.AVRO_SERDE_NAME);
+    return !valueFormat.equalsIgnoreCase(Format.AVRO.toString());
   }
 
   private static String getKafkaTopicName(

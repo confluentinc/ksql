@@ -18,11 +18,10 @@ package io.confluent.ksql.metastore.model;
 import static java.util.Objects.requireNonNull;
 
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 
 @Immutable
-public class KsqlTopic implements DataSource {
+public class KsqlTopic {
 
   private final String ksqlTopicName;
   private final String kafkaTopicName;
@@ -55,15 +54,5 @@ public class KsqlTopic implements DataSource {
 
   public boolean isKsqlSink() {
     return isKsqlSink;
-  }
-
-  @Override
-  public String getName() {
-    return ksqlTopicName;
-  }
-
-  @Override
-  public DataSourceType getDataSourceType() {
-    return DataSourceType.KTOPIC;
   }
 }

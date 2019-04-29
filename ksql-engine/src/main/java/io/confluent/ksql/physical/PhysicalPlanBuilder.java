@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.physical;
 
+import static io.confluent.ksql.metastore.model.StructuredDataSource.DataSourceType;
+
 import io.confluent.ksql.errors.ProductionExceptionHandlerUtil;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
@@ -32,7 +34,6 @@ import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.structured.QueuedSchemaKStream;
 import io.confluent.ksql.structured.SchemaKStream;
@@ -212,7 +213,8 @@ public class PhysicalPlanBuilder {
         schemaKStream.getExecutionPlan(""),
         queue.getQueue(),
         (sourceSchemaKstream instanceof SchemaKTable)
-            ? DataSource.DataSourceType.KTABLE : DataSource.DataSourceType.KSTREAM,
+            ? DataSourceType.KTABLE
+            : DataSourceType.KSTREAM,
         applicationId,
         builder.build(),
         streamsProperties,
@@ -230,7 +232,7 @@ public class PhysicalPlanBuilder {
       final QueryId queryId,
       final QuerySchemas schemas
   ) {
-    if (metaStore.getTopic(outputNode.getKsqlTopic().getName()) == null) {
+    if (metaStore.getTopic(outputNode.getKsqlTopic().getKsqlTopicName()) == null) {
       metaStore.putTopic(outputNode.getKsqlTopic());
     }
 
@@ -288,8 +290,9 @@ public class PhysicalPlanBuilder {
         sinkDataSource.getName(),
         schemaKStream.getExecutionPlan(""),
         queryId,
-        (schemaKStream instanceof SchemaKTable) ? DataSource.DataSourceType.KTABLE
-                                                : DataSource.DataSourceType.KSTREAM,
+        (schemaKStream instanceof SchemaKTable)
+            ? DataSourceType.KTABLE
+            : DataSourceType.KSTREAM,
         applicationId,
         sinkDataSource.getKsqlTopic(),
         topology,

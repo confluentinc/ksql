@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.server.resources;
 
+import static io.confluent.ksql.metastore.model.StructuredDataSource.DataSourceType;
 import static io.confluent.ksql.rest.entity.KsqlErrorMessageMatchers.errorCode;
 import static io.confluent.ksql.rest.entity.KsqlErrorMessageMatchers.errorMessage;
 import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.exceptionErrorMessage;
@@ -52,7 +53,6 @@ import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
-import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -65,10 +65,7 @@ import java.io.IOException;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.time.Duration;
-import java.util.Arrays;
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Scanner;
@@ -76,7 +73,6 @@ import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.StreamingOutput;
@@ -90,7 +86,6 @@ import org.easymock.EasyMockRunner;
 import org.easymock.Mock;
 import org.easymock.MockType;
 import org.eclipse.jetty.http.HttpStatus.Code;
-import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -315,7 +310,7 @@ public class StreamedQueryResourceTest {
             limitHandler -> {},
             "",
             rowQueue,
-            DataSource.DataSourceType.KSTREAM,
+            DataSourceType.KSTREAM,
             "",
             mock(Topology.class),
             Collections.emptyMap(),

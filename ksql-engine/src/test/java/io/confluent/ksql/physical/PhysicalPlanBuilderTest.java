@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.physical;
 
+import static io.confluent.ksql.metastore.model.StructuredDataSource.DataSourceType;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.verifyProcessorNode;
 import static io.confluent.ksql.util.KsqlExceptionMatcher.rawMessage;
 import static io.confluent.ksql.util.KsqlExceptionMatcher.statementText;
@@ -49,7 +50,7 @@ import io.confluent.ksql.planner.LogicalPlanNode;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanTestUtil;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.serde.DataSource;
+import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
@@ -205,7 +206,7 @@ public class PhysicalPlanBuilderTest {
   @Test
   public void shouldHaveKStreamDataSource() {
     final QueryMetadata metadata = buildPhysicalPlan(simpleSelectFilter);
-    assertThat(metadata.getDataSourceType(), equalTo(DataSource.DataSourceType.KSTREAM));
+    assertThat(metadata.getDataSourceType(), equalTo(DataSourceType.KSTREAM));
   }
 
   @Test
@@ -339,7 +340,7 @@ public class PhysicalPlanBuilderTest {
     final PersistentQueryMetadata persistentQuery = (PersistentQueryMetadata)
         queryMetadataList.get(1);
     assertThat(persistentQuery.getResultTopic().getKsqlTopicSerDe().getSerDe(),
-        equalTo(DataSource.DataSourceSerDe.DELIMITED));
+        equalTo(Format.DELIMITED));
     closeQueries(queryMetadataList);
   }
 

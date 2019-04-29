@@ -64,10 +64,10 @@ public final class MetaStoreImpl implements MutableMetaStore {
 
   @Override
   public void putTopic(final KsqlTopic topic) {
-    if (topics.putIfAbsent(topic.getName(), topic) != null) {
+    if (topics.putIfAbsent(topic.getKsqlTopicName(), topic) != null) {
       throw new KsqlException(
           "Cannot add the new topic. Another topic with the same name already exists: "
-          + topic.getName());
+          + topic.getKsqlTopicName());
     }
   }
 

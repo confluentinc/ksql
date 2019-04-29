@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.util;
 
+import static io.confluent.ksql.metastore.model.StructuredDataSource.DataSourceType;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.inOrder;
@@ -24,7 +25,6 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.internal.QueryStateListener;
 import io.confluent.ksql.planner.plan.OutputNode;
-import io.confluent.ksql.serde.DataSource.DataSourceType;
 import java.util.Collections;
 import java.util.Set;
 import java.util.function.Consumer;

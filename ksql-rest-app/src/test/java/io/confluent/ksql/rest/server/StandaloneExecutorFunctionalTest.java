@@ -15,8 +15,8 @@
 
 package io.confluent.ksql.rest.server;
 
-import static io.confluent.ksql.serde.DataSource.DataSourceSerDe.AVRO;
-import static io.confluent.ksql.serde.DataSource.DataSourceSerDe.JSON;
+import static io.confluent.ksql.serde.Format.AVRO;
+import static io.confluent.ksql.serde.Format.JSON;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;

@@ -46,7 +46,7 @@ import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.planner.plan.JoinNode;
 import io.confluent.ksql.planner.plan.PlanNodeId;
 import io.confluent.ksql.planner.plan.StructuredDataSourceNode;
-import io.confluent.ksql.serde.DataSource;
+import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
 import io.confluent.ksql.serde.delimited.KsqlDelimitedTopicSerDe;
@@ -205,18 +205,18 @@ class Analyzer {
         .getFromDataSources();
 
     if (analysis.getIntoFormat() != null) {
-      switch (analysis.getIntoFormat().toUpperCase()) {
-        case DataSource.AVRO_SERDE_NAME:
+      switch (analysis.getIntoFormat()) {
+        case AVRO:
           final String schemaFullName =
               StringUtil.cleanQuotes(
                   analysis.getIntoProperties().get(
                       DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME).toString());
           return new KsqlAvroTopicSerDe(schemaFullName);
 
-        case DataSource.JSON_SERDE_NAME:
+        case JSON:
           return new KsqlJsonTopicSerDe();
 
-        case DataSource.DELIMITED_SERDE_NAME:
+        case DELIMITED:
           return new KsqlDelimitedTopicSerDe();
 
         default:
@@ -253,27 +253,21 @@ class Analyzer {
   private void setIntoTopicFormat(final Sink sink) {
     final Object serdeProperty = sink.getProperties().get(DdlConfig.VALUE_FORMAT_PROPERTY);
 
-    String serde;
+    final Format format;
     if (serdeProperty != null) {
-      serde = serdeProperty.toString();
-
-      if (!serde.startsWith("'") && !serde.endsWith("'")) {
-        throw new KsqlException(
-            serde + " value is string and should be enclosed between " + "\"'\".");
-      }
-      serde = serde.substring(1, serde.length() - 1).toUpperCase();
+      format = Format.of(StringUtil.cleanQuotes(serdeProperty.toString()));
     } else {
       final StructuredDataSource leftSource = analysis.getFromDataSource(0).left;
-      serde = leftSource.getKsqlTopic().getKsqlTopicSerDe().getSerDe().toString();
+      format = leftSource.getKsqlTopic().getKsqlTopicSerDe().getSerDe();
     }
 
-    analysis.setIntoFormat(serde);
-    analysis.getIntoProperties().put(DdlConfig.VALUE_FORMAT_PROPERTY, serde);
+    analysis.setIntoFormat(format);
+    analysis.getIntoProperties().put(DdlConfig.VALUE_FORMAT_PROPERTY, format);
 
     final Expression avroSchemaFullName =
         sink.getProperties().get(DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME);
 
-    if ("AVRO".equals(serde)) {
+    if (format == Format.AVRO) {
       analysis.getIntoProperties().put(
           DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME,
           avroSchemaFullName != null

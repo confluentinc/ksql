@@ -71,7 +71,7 @@ import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.schema.ksql.LogicalSchemas;
 import io.confluent.ksql.schema.ksql.TypeContextUtil;
-import io.confluent.ksql.serde.DataSource;
+import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.StringUtil;
@@ -192,18 +192,16 @@ public class QueryTranslationTest {
         .findTestCases(QUERY_VALIDATION_TEST_DIR, testFiles, QttTestFile.class);
   }
 
-  private static SerdeSupplier getSerdeSupplier(final String format) {
-    switch(format.toUpperCase()) {
-      case DataSource.AVRO_SERDE_NAME:
+  private static SerdeSupplier getSerdeSupplier(final Format format) {
+    switch(format) {
+      case AVRO:
         return new ValueSpecAvroSerdeSupplier();
-      case DataSource.JSON_SERDE_NAME:
+      case JSON:
         return new ValueSpecJsonSerdeSupplier();
-      case DataSource.DELIMITED_SERDE_NAME:
+      case DELIMITED:
         return new StringSerdeSupplier();
       default:
-        throw new InvalidFieldException("format", format.isEmpty()
-            ? "missing or empty"
-            : "unknown value: " + format);
+        throw new InvalidFieldException("format", "unsupported value: " + format);
     }
   }
 
@@ -250,11 +248,11 @@ public class QueryTranslationTest {
       final Map<String, Expression> properties = statement.getProperties();
       final String topicName
           = StringUtil.cleanQuotes(properties.get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY).toString());
-      final String format
-          = StringUtil.cleanQuotes(properties.get(DdlConfig.VALUE_FORMAT_PROPERTY).toString());
+      final Format format = Format.of(
+          StringUtil.cleanQuotes(properties.get(DdlConfig.VALUE_FORMAT_PROPERTY).toString()));
 
       final Optional<org.apache.avro.Schema> avroSchema;
-      if (format.equals(DataSource.AVRO_SERDE_NAME)) {
+      if (format == Format.AVRO) {
         // add avro schema
         final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
         statement.getElements().forEach(e -> schemaBuilder.field(
@@ -562,7 +560,7 @@ public class QueryTranslationTest {
       return new Topic(
           name,
           schema,
-          getSerdeSupplier(format),
+          getSerdeSupplier(Format.of(format)),
           numPartitions,
           replicas
       );

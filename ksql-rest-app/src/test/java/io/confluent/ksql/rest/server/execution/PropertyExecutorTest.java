@@ -15,13 +15,13 @@
 
 package io.confluent.ksql.rest.server.execution;
 
+import static io.confluent.ksql.metastore.model.StructuredDataSource.DataSourceType;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.not;
 
 import io.confluent.ksql.rest.server.TemporaryEngine;
-import io.confluent.ksql.serde.DataSource.DataSourceType;
 import java.util.HashMap;
 import java.util.Map;
 import org.junit.Rule;

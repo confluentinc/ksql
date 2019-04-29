@@ -28,13 +28,13 @@ import org.apache.kafka.connect.data.Schema;
 @Immutable
 public abstract class KsqlTopicSerDe {
 
-  private final DataSource.DataSourceSerDe serDe;
+  private final Format serDe;
 
-  protected KsqlTopicSerDe(final DataSource.DataSourceSerDe serDe) {
+  protected KsqlTopicSerDe(final Format serDe) {
     this.serDe = serDe;
   }
 
-  public DataSource.DataSourceSerDe getSerDe() {
+  public Format getSerDe() {
     return serDe;
   }
 

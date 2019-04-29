@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.parser;
 
+import static io.confluent.ksql.metastore.model.StructuredDataSource.DataSourceType;
 import static io.confluent.ksql.schema.ksql.TypeContextUtil.getType;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toList;
@@ -108,7 +109,6 @@ import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.parser.tree.WhenClause;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.parser.tree.WithinExpression;
-import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.util.DataSourceExtractor;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
@@ -267,7 +267,7 @@ public class AstBuilder {
       final StructuredDataSource target =
           getSource(targetName.getSuffix(), targetLocation);
 
-      if (target.getDataSourceType() != DataSource.DataSourceType.KSTREAM) {
+      if (target.getDataSourceType() != DataSourceType.KSTREAM) {
         throw new KsqlException(
             "INSERT INTO can only be used to insert into a stream. "
                 + targetName + " is a table.");

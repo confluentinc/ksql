@@ -33,7 +33,7 @@ import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
-import io.confluent.ksql.serde.DataSource.DataSourceSerDe;
+import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.test.util.secure.ClientTrustStore;
 import io.confluent.ksql.test.util.secure.Credentials;
@@ -118,7 +118,7 @@ public class RestApiTest {
   public static void setUpClass() {
     TEST_HARNESS.ensureTopics(PAGE_VIEW_TOPIC);
 
-    TEST_HARNESS.produceRows(PAGE_VIEW_TOPIC, new PageViewDataProvider(), DataSourceSerDe.JSON);
+    TEST_HARNESS.produceRows(PAGE_VIEW_TOPIC, new PageViewDataProvider(), Format.JSON);
 
     RestIntegrationTestUtil.createStreams(REST_APP, PAGE_VIEW_STREAM, PAGE_VIEW_TOPIC);
   }

@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.ddl.commands;
 
+import static io.confluent.ksql.metastore.model.MetaStoreMatchers.KeyFieldMatchers.hasLegacyName;
+import static io.confluent.ksql.metastore.model.MetaStoreMatchers.KeyFieldMatchers.hasName;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
@@ -40,6 +42,7 @@ import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.kstream.WindowedSerdes;
 import org.junit.Before;
@@ -52,6 +55,8 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class CreateTableCommandTest {
+
+  private static final String TABLE_NAME = "t1";
 
   @Mock
   private KafkaTopicClient topicClient;
@@ -67,7 +72,7 @@ public class CreateTableCommandTest {
   @Before
   public void setUp() {
     givenPropertiesWith((Collections.emptyMap()));
-    when(createTableStatement.getName()).thenReturn(QualifiedName.of("name"));
+    when(createTableStatement.getName()).thenReturn(QualifiedName.of(TABLE_NAME));
     when(createTableStatement.getElements()).thenReturn(ImmutableList.of(
         new TableElement("SOME-KEY", PrimitiveType.of(SqlType.STRING))
     ));
@@ -170,18 +175,47 @@ public class CreateTableCommandTest {
   }
 
   @Test
-  public void testCreateAlreadyRegisteredTableThrowsException() {
+  public void shouldThrowIfAlreadyRegistered() {
     // Given:
     final CreateTableCommand cmd = createCmd();
     cmd.run(metaStore);
 
     // Then:
-    expectedException.expectMessage("Cannot create table 'name': A table " +
-            "with name 'name' already exists");
+    expectedException.expectMessage("Cannot create table 't1': A table " +
+        "with name 't1' already exists");
 
     // When:
     cmd.run(metaStore);
   }
+
+  @Test
+  public void shouldAddSourceWithKeyField() {
+    // Given:
+    givenPropertiesWith(ImmutableMap.of(
+        "KEY", new StringLiteral("some-key")));
+    final CreateTableCommand cmd = createCmd();
+
+    // When:
+    cmd.run(metaStore);
+
+    // Then:
+    assertThat(metaStore.getSource(TABLE_NAME).getKeyField(), hasName("SOME-KEY"));
+    assertThat(metaStore.getSource(TABLE_NAME).getKeyField(), hasLegacyName("SOME-KEY"));
+  }
+
+  @Test
+  public void shouldAddSourceWithNoKeyField() {
+    // Given:
+    final CreateTableCommand cmd = createCmd();
+
+    // When:
+    cmd.run(metaStore);
+
+    // Then:
+    assertThat(metaStore.getSource(TABLE_NAME).getKeyField(), hasName(Optional.empty()));
+    assertThat(metaStore.getSource(TABLE_NAME).getKeyField(), hasLegacyName(Optional.empty()));
+  }
+
 
   private CreateTableCommand createCmd() {
     return new CreateTableCommand("some sql", createTableStatement, topicClient);
@@ -191,7 +225,6 @@ public class CreateTableCommandTest {
     final Map<String, Expression> allProps = new HashMap<>(props);
     allProps.putIfAbsent(DdlConfig.VALUE_FORMAT_PROPERTY, new StringLiteral("Json"));
     allProps.putIfAbsent(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral("some-topic"));
-    allProps.putIfAbsent(DdlConfig.KEY_NAME_PROPERTY, new StringLiteral("some-key"));
     when(createTableStatement.getProperties()).thenReturn(allProps);
   }
 }

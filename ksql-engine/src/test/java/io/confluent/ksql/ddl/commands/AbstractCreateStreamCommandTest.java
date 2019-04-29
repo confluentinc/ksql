@@ -146,6 +146,38 @@ public class AbstractCreateStreamCommandTest {
     verify(kafkaTopicClient).isTopicExists(TOPIC_NAME);
   }
 
+  @Test
+  public void shouldThrowIfKeyFieldNotInSchema() {
+    // Given:
+    when(statement.getProperties()).thenReturn(minValidProps());
+    givenPropertiesWith(ImmutableMap.of(
+        DdlConfig.KEY_NAME_PROPERTY, new StringLiteral("will-not-find-me")));
+
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(
+        "The KEY column 'WILL-NOT-FIND-ME', set in the WITH clause, does not exist in the schema");
+
+    // When:
+    new TestCmd("key not in schema!", statement, kafkaTopicClient);
+  }
+
+  @Test
+  public void shouldThrowIfTimestampColumnDoesNotExist() {
+    // Given:
+    when(statement.getProperties()).thenReturn(minValidProps());
+    givenPropertiesWith(ImmutableMap.of(
+        DdlConfig.TIMESTAMP_NAME_PROPERTY, new StringLiteral("will-not-find-me")));
+
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(
+        "The TIMESTAMP column 'WILL-NOT-FIND-ME', set in the WITH clause, does not exist in the schema");
+
+    // When:
+    new TestCmd("key not in schema!", statement, kafkaTopicClient);
+  }
+
   private static Map<String, Expression> minValidProps() {
     return ImmutableMap.of(
         DdlConfig.VALUE_FORMAT_PROPERTY, new StringLiteral("json"),
@@ -158,6 +190,12 @@ public class AbstractCreateStreamCommandTest {
     final Expression removed = props.remove(name);
     assertThat("invalid test", removed, is(notNullValue()));
     return ImmutableMap.copyOf(props);
+  }
+
+  private void givenPropertiesWith(final Map<String, Expression> additionalProps) {
+    final Map<String, Expression> allProps = new HashMap<>(minValidProps());
+    allProps.putAll(additionalProps);
+    when(statement.getProperties()).thenReturn(allProps);
   }
 
   private static final class TestCmd extends AbstractCreateStreamCommand {

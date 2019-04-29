@@ -379,10 +379,7 @@ timestamp and message key, respectively. The timestamp has milliseconds accuracy
 
 KSQL has currently the following requirements for creating a table from a Kafka topic:
 
-1. The Kafka message key must also be present as a field/column in the Kafka message value. The ``KEY`` property (see
-   below) must be defined to inform KSQL which field/column in the message value represents the key. If the message key
-   is not present in the message value, follow the instructions in :ref:`ksql_key_requirements`.
-2. The message key must be in ``VARCHAR`` aka ``STRING`` format. If the message key is not in this format, follow the
+1. The message key must be in ``VARCHAR`` aka ``STRING`` format. If the message key is not in this format, follow the
    instructions in :ref:`ksql_key_requirements`.
 
 The WITH clause supports the following properties:
@@ -395,13 +392,13 @@ The WITH clause supports the following properties:
 | VALUE_FORMAT (required) | Specifies the serialization format of message values in the topic. Supported formats:      |
 |                         | ``JSON``, ``DELIMITED`` (comma-separated value), and ``AVRO``.                             |
 +-------------------------+--------------------------------------------------------------------------------------------+
-| KEY (required)          | Associates a field/column within the Kafka message value with the implicit ``ROWKEY``      |
-|                         | column (message key) in the KSQL table.                                                    |
-|                         |                                                                                            |
-|                         | KSQL currently requires that the Kafka message key, which will be available as the         |
-|                         | implicit ``ROWKEY`` column in the table, must also be present as a field/column in the     |
-|                         | message value. You must set the KEY property to this corresponding field/column in the     |
-|                         | message value, and this column must be in ``VARCHAR`` aka ``STRING`` format.               |
+| KEY                     | Optimization hint: If the Kafka message key is also present as a field/column in the Kafka |
+|                         | message value, you may set this property to associate the corresponding field/column with  |
+|                         | the implicit ``ROWKEY`` column (message key).                                              |
+|                         | If set, KSQL uses it as an optimization hint to determine if repartitioning can be avoided |
+|                         | when performing aggregations and joins.                                                    |
+|                         | You can only use this if the key format in kafka is ``VARCHAR`` or ``STRING``. Do not use  |
+|                         | this hint if the message key format in kafka is AVRO or JSON.                              |
 |                         | See :ref:`ksql_key_requirements` for more information.                                     |
 +-------------------------+--------------------------------------------------------------------------------------------+
 | TIMESTAMP               | By default, the implicit ``ROWTIME`` column is the timestamp of the message in the Kafka   |
@@ -1649,7 +1646,8 @@ Key Requirements
 Message Keys
 ------------
 
-The ``CREATE STREAM`` and ``CREATE TABLE`` statements, which read data from a Kafka topic into a stream or table, allow you to specify a field/column in the Kafka message value that corresponds to the Kafka message key by setting the ``KEY`` property of the ``WITH`` clause.
+The ``CREATE STREAM`` and ``CREATE TABLE`` statements, which read data from a Kafka topic into a stream or table,
+allow you to specify a field/column in the Kafka message value that corresponds to the Kafka message key by setting the ``KEY`` property of the ``WITH`` clause.
 
 Example:
 
@@ -1659,10 +1657,7 @@ Example:
       WITH (KAFKA_TOPIC='users', VALUE_FORMAT='JSON', KEY = 'userid');
 
 
-The ``KEY`` property is:
-
-- Required for tables.
-- Optional for streams. Here, KSQL uses it as an optimization hint to determine if repartitioning can be avoided when performing aggregations and joins.
+The ``KEY`` property is optional. KSQL uses it as an optimization hint to determine if repartitioning can be avoided when performing aggregations and joins.
   
   .. important::
      Don't set the KEY property, unless you have validated that your stream doesn't need to be re-partitioned for future joins.

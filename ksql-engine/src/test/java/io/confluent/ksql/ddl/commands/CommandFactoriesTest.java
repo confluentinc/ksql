@@ -17,7 +17,6 @@ package io.confluent.ksql.ddl.commands;
 
 import static org.easymock.EasyMock.anyString;
 import static org.easymock.EasyMock.expect;
-import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 
@@ -104,64 +103,6 @@ public class CommandFactoriesTest {
             NO_PROPS);
 
     assertThat(result, instanceOf(CreateTableCommand.class));
-  }
-
-  @Test
-  public void shouldFailCreateTableIfKeyNameIsIncorrect() {
-    final HashMap<String, Expression> tableProperties = validTableProps();
-    tableProperties.put(DdlConfig.KEY_NAME_PROPERTY, new StringLiteral("COL3"));
-
-    try {
-      commandFactories
-          .create(sqlExpression, createTable(tableProperties), NO_PROPS);
-
-    } catch (final KsqlException e) {
-      assertThat(e.getMessage(), equalTo("No column with the provided key column name in the "
-                                         + "WITH clause, COL3, exists in the defined schema."));
-    }
-
-  }
-
-  @Test
-  public void shouldFailCreateTableIfTimestampColumnNameIsIncorrect() {
-    final HashMap<String, Expression> tableProperties = validTableProps();
-    tableProperties.put(DdlConfig.TIMESTAMP_NAME_PROPERTY, new StringLiteral("COL3"));
-
-    try {
-      commandFactories
-          .create(sqlExpression, createTable(tableProperties), NO_PROPS);
-
-    } catch (final KsqlException e) {
-      assertThat(e.getMessage(), equalTo("No column with the provided timestamp column name in the WITH clause, COL3, exists in the defined schema."));
-    }
-  }
-
-  @Test
-  public void shouldFailCreateTableIfKeyIsNotProvided() {
-    final HashMap<String, Expression> tableProperties = validTableProps();
-    tableProperties.remove(DdlConfig.KEY_NAME_PROPERTY);
-
-    try {
-      commandFactories.create(sqlExpression, createTable(properties), NO_PROPS);
-
-    } catch (final KsqlException e) {
-      assertThat(e.getMessage(), equalTo("Cannot define a TABLE without providing the KEY column name in the WITH clause."));
-    }
-  }
-
-  @Test
-  public void shouldFailCreateTableIfTopicNotExist() {
-    final HashMap<String, Expression> tableProperties = validTableProps();
-
-    givenTopicsDoNotExist();
-
-    try {
-      commandFactories.create(sqlExpression, createTable(tableProperties),
-          NO_PROPS);
-
-    } catch (final KsqlException e) {
-      assertThat(e.getMessage(), equalTo("Kafka topic does not exist: topic"));
-    }
   }
 
   @Test

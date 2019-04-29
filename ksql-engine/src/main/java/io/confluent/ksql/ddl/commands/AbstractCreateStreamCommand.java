@@ -97,8 +97,8 @@ abstract class AbstractCreateStreamCommand implements DdlCommand {
       final String keyFieldName = StringUtil.cleanQuotes(name);
       final Field keyField = SchemaUtil.getFieldByName(schema, keyFieldName)
           .orElseThrow(() -> new KsqlException(
-            "No column with the provided key column name in the WITH "
-                + "clause, " + keyFieldName + ", exists in the defined schema."
+              "The KEY column '" + keyFieldName
+                  + "', set in the WITH clause, does not exist in the schema"
           ));
 
       this.keyField = KeyField.of(keyFieldName, keyField);
@@ -120,7 +120,6 @@ abstract class AbstractCreateStreamCommand implements DdlCommand {
   }
 
   private static void checkTopicNameNotNull(final Map<String, Expression> properties) {
-    // TODO: move the check to grammar
     if (properties.get(DdlConfig.TOPIC_NAME_PROPERTY) == null) {
       throw new KsqlException("Topic name should be set in WITH clause.");
     }
@@ -155,7 +154,6 @@ abstract class AbstractCreateStreamCommand implements DdlCommand {
       final String sourceName,
       final String topicName
   ) {
-    // TODO: move the check to the runtime since it accesses metaStore
     if (metaStore.getSource(sourceName) != null) {
       throw new KsqlException(String.format("Source already exists: %s", sourceName));
     }

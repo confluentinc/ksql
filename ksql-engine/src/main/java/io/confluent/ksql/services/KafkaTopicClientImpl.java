@@ -125,24 +125,9 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
    */
   private short getDefaultClusterReplication() {
     try {
-      final Collection<Node> brokers = adminClient.describeCluster().nodes().get();
-      final Node broker = Iterables.getFirst(brokers, null);
-      if (broker == null) {
-        throw new KsqlServerException(
-            "AdminClient discovered an empty Kafka Cluster. "
-                + "Check that Kafka is deployed and KSQL is properly configured.");
-      }
-
-      final ConfigResource configResource = new ConfigResource(Type.BROKER, broker.idString());
-      final String defaultReplication =
-          adminClient.describeConfigs(
-              ImmutableList.of(configResource)
-          ).all()
-              .get()
-              .get(configResource)
-              .get(DEFAULT_REPLICATION_PROP)
-              .value();
-
+      final String defaultReplication = getConfig(adminClient)
+          .get(DEFAULT_REPLICATION_PROP)
+          .value();
       return Short.parseShort(defaultReplication);
     } catch (final KsqlServerException e) {
       throw e;
@@ -298,23 +283,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
 
   private static boolean isTopicDeleteEnabled(final AdminClient adminClient) {
     try {
-      final DescribeClusterResult describeClusterResult = adminClient.describeCluster();
-      final Collection<Node> nodes = describeClusterResult.nodes().get();
-      if (nodes.isEmpty()) {
-        LOG.warn("No available broker found to fetch config info.");
-        throw new KsqlException("Could not fetch broker information. KSQL cannot initialize");
-      }
-
-      final ConfigResource resource = new ConfigResource(
-          ConfigResource.Type.BROKER,
-          String.valueOf(nodes.iterator().next().id())
-      );
-
-      final Map<ConfigResource, Config> config = ExecutorUtil.executeWithRetries(
-          () -> adminClient.describeConfigs(Collections.singleton(resource)).all().get(),
-          ExecutorUtil.RetryBehaviour.ON_RETRYABLE);
-
-      return config.get(resource)
+      return getConfig(adminClient)
           .entries()
           .stream()
           .filter(configEntry -> configEntry.name().equalsIgnoreCase("delete.topic.enable"))
@@ -327,6 +296,31 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
     } catch (final Exception e) {
       LOG.error("Failed to initialize TopicClient: {}", e.getMessage());
       throw new KsqlException("Could not fetch broker information. KSQL cannot initialize", e);
+    }
+  }
+
+  private static Config getConfig(final AdminClient adminClient) {
+    try {
+      final Collection<Node> brokers = adminClient.describeCluster().nodes().get();
+      final Node broker = Iterables.getFirst(brokers, null);
+      if (broker == null) {
+        LOG.warn("No available broker found to fetch config info.");
+        throw new KsqlServerException(
+            "AdminClient discovered an empty Kafka Cluster. "
+                + "Check that Kafka is deployed and KSQL is properly configured.");
+      }
+
+      final ConfigResource configResource = new ConfigResource(Type.BROKER, broker.idString());
+
+      final Map<ConfigResource, Config> brokerConfig = ExecutorUtil.executeWithRetries(
+          () -> adminClient.describeConfigs(Collections.singleton(configResource)).all().get(),
+          ExecutorUtil.RetryBehaviour.ON_RETRYABLE);
+
+      return brokerConfig.get(configResource);
+    } catch (final KsqlServerException e) {
+      throw e;
+    } catch (final Exception e) {
+      throw new KsqlServerException("Could not get Kafka cluster configuration!", e);
     }
   }
 

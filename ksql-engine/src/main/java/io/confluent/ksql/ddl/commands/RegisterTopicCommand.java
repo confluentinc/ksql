@@ -21,6 +21,7 @@ import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.metastore.model.StructuredDataSource;
 import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
@@ -39,7 +40,6 @@ public class RegisterTopicCommand implements DdlCommand {
   private final boolean notExists;
 
   public RegisterTopicCommand(final RegisterTopic registerTopic) {
-    // TODO: find a way to merge overriddenProperties
     this(registerTopic.getName().getSuffix(),
          registerTopic.isNotExists(),
          registerTopic.getProperties()
@@ -47,9 +47,8 @@ public class RegisterTopicCommand implements DdlCommand {
   }
 
   RegisterTopicCommand(final String topicName, final boolean notExist,
-                       final Map<String, Expression> properties) {
+                       final Map<String, Literal> properties) {
     this.topicName = topicName;
-    // TODO: find a way to merge overriddenProperties
     enforceTopicProperties(properties);
     this.kafkaTopicName = StringUtil.cleanQuotes(
         properties.get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY).toString());
@@ -60,9 +59,7 @@ public class RegisterTopicCommand implements DdlCommand {
   }
 
   private KsqlTopicSerDe extractTopicSerDe(
-      final String serde, final Map<String, Expression> properties) {
-    // TODO: Find a way to avoid calling toUpperCase() here;
-    // if the property can be an unquoted identifier, then capitalization will have already happened
+      final String serde, final Map<String, Literal> properties) {
     if (!serde.equalsIgnoreCase(DataSource.AVRO_SERDE_NAME)
         && properties.containsKey(DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME)) {
       throw new KsqlException(
@@ -85,7 +82,7 @@ public class RegisterTopicCommand implements DdlCommand {
     }
   }
 
-  private static void enforceTopicProperties(final Map<String, Expression> properties) {
+  private static void enforceTopicProperties(final Map<String, ?> properties) {
     if (!properties.containsKey(DdlConfig.VALUE_FORMAT_PROPERTY)) {
       throw new KsqlException("Topic format("
           + DdlConfig.VALUE_FORMAT_PROPERTY + ") should be set in WITH clause.");
@@ -113,8 +110,6 @@ public class RegisterTopicCommand implements DdlCommand {
 
     final KsqlTopic ksqlTopic = new KsqlTopic(topicName, kafkaTopicName, topicSerDe, false);
 
-    // TODO: Need to check if the topic exists.
-    // Add the topic to the metastore
     metaStore.putTopic(ksqlTopic);
 
     return new DdlCommandResult(true, "Topic registered");

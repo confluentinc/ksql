@@ -188,10 +188,10 @@ public class AstBuilder {
       return visit(context.expression());
     }
 
-    private Map<String, Expression> processTableProperties(
+    private Map<String, Literal> processTableProperties(
         final TablePropertiesContext tablePropertiesContext
     ) {
-      final ImmutableMap.Builder<String, Expression> properties = ImmutableMap.builder();
+      final ImmutableMap.Builder<String, Literal> properties = ImmutableMap.builder();
       if (tablePropertiesContext != null) {
         for (final TablePropertyContext prop : tablePropertiesContext.tableProperty()) {
           properties.put(

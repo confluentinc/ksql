@@ -32,7 +32,7 @@ public class CreateTableTest {
   private static final List<TableElement> SOME_ELEMENTS = ImmutableList.of(
       new TableElement("Bob", PrimitiveType.of(SqlType.STRING))
   );
-  private static final Map<String, Expression> SOME_PROPS = ImmutableMap.of(
+  private static final Map<String, Literal> SOME_PROPS = ImmutableMap.of(
       "key", new StringLiteral("value")
   );
 

@@ -28,7 +28,7 @@ import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.parser.tree.BooleanLiteral;
 import io.confluent.ksql.parser.tree.CreateStream;
-import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.StringLiteral;
@@ -189,8 +189,8 @@ public class CreateStreamCommandTest {
     return new CreateStreamCommand("some sql", createStreamStatement, topicClient);
   }
 
-  private void givenPropertiesWith(final Map<String, Expression> props) {
-    final Map<String, Expression> allProps = new HashMap<>(props);
+  private void givenPropertiesWith(final Map<String, Literal> props) {
+    final Map<String, Literal> allProps = new HashMap<>(props);
     allProps.putIfAbsent(DdlConfig.VALUE_FORMAT_PROPERTY, new StringLiteral("Json"));
     allProps.putIfAbsent(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral("some-topic"));
     when(createStreamStatement.getProperties()).thenReturn(allProps);

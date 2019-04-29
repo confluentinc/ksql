@@ -34,7 +34,6 @@ import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.engine.KsqlEngine;
@@ -49,8 +48,8 @@ import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.DropStream;
-import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.InsertInto;
+import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.Query;
@@ -113,11 +112,11 @@ public class StandaloneExecutorTest {
 
   private static final QualifiedName SOME_NAME = QualifiedName.of("Bob");
 
-  private static final ImmutableMap<String, Expression> JSON_PROPS = ImmutableMap
+  private static final ImmutableMap<String, Literal> JSON_PROPS = ImmutableMap
       .of("VALUE_FORMAT", new StringLiteral("json"));
 
   private static final String SOME_TOPIC = "some-topic";
-  private static final ImmutableMap<String, Expression> AVRO_PROPS = ImmutableMap.of(
+  private static final ImmutableMap<String, Literal> AVRO_PROPS = ImmutableMap.of(
       "VALUE_FORMAT", new StringLiteral("avro"),
       "KAFKA_TOPIC", new StringLiteral(SOME_TOPIC));
 
@@ -147,9 +146,6 @@ public class StandaloneExecutorTest {
 
   private final static ParsedStatement PARSED_STMT_1 = ParsedStatement
       .of("sql 1", mock(SingleStatementContext.class));
-
-  private static final ParsedStatement PARSED_CSAS = ParsedStatement
-      .of("CSAS", mock(SingleStatementContext.class));
 
   private final static PreparedStatement<?> PREPARED_STMT_0 = PreparedStatement
       .of("sql 0", CREATE_STREAM);
@@ -218,8 +214,6 @@ public class StandaloneExecutorTest {
   private ServiceContext serviceContext;
   @Mock
   private KafkaTopicClient kafkaTopicClient;
-  @Mock
-  private SchemaRegistryClient srClient;
   @Mock
   private BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory;
   @Mock

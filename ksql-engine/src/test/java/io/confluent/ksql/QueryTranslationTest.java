@@ -68,7 +68,7 @@ import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
-import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.schema.ksql.LogicalSchemas;
 import io.confluent.ksql.schema.ksql.TypeContextUtil;
 import io.confluent.ksql.serde.DataSource;
@@ -247,7 +247,7 @@ public class QueryTranslationTest {
       final AbstractStreamCreateStatement statement = (AbstractStreamCreateStatement) stmt
           .getStatement();
 
-      final Map<String, Expression> properties = statement.getProperties();
+      final Map<String, Literal> properties = statement.getProperties();
       final String topicName
           = StringUtil.cleanQuotes(properties.get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY).toString());
       final String format

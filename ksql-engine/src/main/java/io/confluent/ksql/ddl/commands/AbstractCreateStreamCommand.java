@@ -21,7 +21,7 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.SerdeFactory;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
-import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.schema.ksql.LogicalSchemas;
@@ -74,7 +74,7 @@ abstract class AbstractCreateStreamCommand implements DdlCommand {
     this.sourceName = statement.getName().getSuffix();
     this.kafkaTopicClient = kafkaTopicClient;
 
-    final Map<String, Expression> properties = statement.getProperties();
+    final Map<String, Literal> properties = statement.getProperties();
     validateWithClause(properties.keySet());
 
     if (properties.containsKey(DdlConfig.TOPIC_NAME_PROPERTY)
@@ -119,8 +119,7 @@ abstract class AbstractCreateStreamCommand implements DdlCommand {
     this.keySerdeFactory = extractKeySerde(properties);
   }
 
-  private static void checkTopicNameNotNull(final Map<String, Expression> properties) {
-    // TODO: move the check to grammar
+  private static void checkTopicNameNotNull(final Map<String, ?> properties) {
     if (properties.get(DdlConfig.TOPIC_NAME_PROPERTY) == null) {
       throw new KsqlException("Topic name should be set in WITH clause.");
     }
@@ -167,9 +166,9 @@ abstract class AbstractCreateStreamCommand implements DdlCommand {
   }
 
   private RegisterTopicCommand registerTopicFirst(
-      final Map<String, Expression> properties
+      final Map<String, Literal> properties
   ) {
-    final Expression topicNameExp = properties.get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY);
+    final Literal topicNameExp = properties.get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY);
 
     if (topicNameExp == null) {
       throw new KsqlException("Corresponding Kafka topic ("
@@ -206,7 +205,7 @@ abstract class AbstractCreateStreamCommand implements DdlCommand {
   }
 
   private static SerdeFactory<?> extractKeySerde(
-      final Map<String, Expression> properties
+      final Map<String, Literal> properties
   ) {
     final String windowType = StringUtil.cleanQuotes(properties
         .getOrDefault(DdlConfig.WINDOW_TYPE_PROPERTY, new StringLiteral(""))

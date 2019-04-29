@@ -27,6 +27,7 @@ import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
 import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.StringLiteral;
@@ -146,15 +147,15 @@ public class AbstractCreateStreamCommandTest {
     verify(kafkaTopicClient).isTopicExists(TOPIC_NAME);
   }
 
-  private static Map<String, Expression> minValidProps() {
+  private static Map<String, Literal> minValidProps() {
     return ImmutableMap.of(
         DdlConfig.VALUE_FORMAT_PROPERTY, new StringLiteral("json"),
         DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral(TOPIC_NAME)
     );
   }
 
-  private static Map<String, Expression> propsWithout(final String name) {
-    final HashMap<String, Expression> props = new HashMap<>(minValidProps());
+  private static Map<String, Literal> propsWithout(final String name) {
+    final HashMap<String, Literal> props = new HashMap<>(minValidProps());
     final Expression removed = props.remove(name);
     assertThat("invalid test", removed, is(notNullValue()));
     return ImmutableMap.copyOf(props);

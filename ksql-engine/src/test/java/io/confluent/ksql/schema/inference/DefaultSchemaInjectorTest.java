@@ -35,7 +35,7 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateTable;
-import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.Statement;
@@ -67,11 +67,11 @@ public class DefaultSchemaInjectorTest {
 
   private static final List<TableElement> SOME_ELEMENTS = ImmutableList.of(
       new TableElement("bob", PrimitiveType.of(SqlType.STRING)));
-  private static final Map<String, Expression> UNSUPPORTED_PROPS = ImmutableMap.of(
+  private static final Map<String, Literal> UNSUPPORTED_PROPS = ImmutableMap.of(
       "VALUE_FORMAT", new StringLiteral("json")
   );
   private static final String KAFKA_TOPIC = "some-topic";
-  private static final Map<String, Expression> SUPPORTED_PROPS = ImmutableMap.of(
+  private static final Map<String, Literal> SUPPORTED_PROPS = ImmutableMap.of(
       "VALUE_FORMAT", new StringLiteral("avro"),
       "KAFKA_TOPIC", new StringLiteral(KAFKA_TOPIC)
   );
@@ -461,17 +461,17 @@ public class DefaultSchemaInjectorTest {
   }
 
   @SuppressWarnings("SameParameterValue")
-  private static Map<String, Expression> supportedPropsWith(
+  private static Map<String, Literal> supportedPropsWith(
       final String property,
       final String value
   ) {
-    final HashMap<String, Expression> props = new HashMap<>(SUPPORTED_PROPS);
+    final HashMap<String, Literal> props = new HashMap<>(SUPPORTED_PROPS);
     props.put(property, new StringLiteral(value));
     return props;
   }
 
-  private static Map<String, Expression> supportedPropsWithout(final String property) {
-    final HashMap<String, Expression> props = new HashMap<>(SUPPORTED_PROPS);
+  private static Map<String, Literal> supportedPropsWithout(final String property) {
+    final HashMap<String, Literal> props = new HashMap<>(SUPPORTED_PROPS);
     assertThat("Invalid test", props.remove(property), is(notNullValue()));
     return props;
   }

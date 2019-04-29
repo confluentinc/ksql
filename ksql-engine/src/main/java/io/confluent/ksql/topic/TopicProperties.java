@@ -19,6 +19,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
@@ -106,7 +107,7 @@ public final class TopicProperties {
       return this;
     }
 
-    public Builder withWithClause(final Map<String, Expression> withClause) {
+    public Builder withWithClause(final Map<String, Literal> withClause) {
       final Expression nameExpression = withClause.get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY);
       final String name = nameExpression == null
           ? null

@@ -33,7 +33,7 @@ import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.CreateStream;
-import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.RegisterTopic;
@@ -339,7 +339,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         ksqlConfig, KsqlRestConfig.COMMAND_TOPIC_SUFFIX);
     KsqlInternalTopicUtils.ensureTopic(commandTopic, ksqlConfig, serviceContext.getTopicClient());
 
-    final Map<String, Expression> commandTopicProperties = new HashMap<>();
+    final Map<String, Literal> commandTopicProperties = new HashMap<>();
     commandTopicProperties.put(
         DdlConfig.VALUE_FORMAT_PROPERTY,
         new StringLiteral("json")

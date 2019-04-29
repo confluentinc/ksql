@@ -29,7 +29,7 @@ public class CreateStreamAsSelectTest {
   public static final NodeLocation SOME_LOCATION = new NodeLocation(0, 0);
   public static final NodeLocation OTHER_LOCATION = new NodeLocation(1, 0);
   private static final QualifiedName SOME_NAME = QualifiedName.of("bob");
-  private static final Map<String, Expression> SOME_PROPS = ImmutableMap.of(
+  private static final Map<String, Literal> SOME_PROPS = ImmutableMap.of(
       "key", new StringLiteral("value")
   );
   private static final Query SOME_QUERY = mock(Query.class);

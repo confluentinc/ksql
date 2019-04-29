@@ -27,7 +27,7 @@ public abstract class CreateAsSelect extends Statement implements QueryContainer
   private final QualifiedName name;
   private final Query query;
   private final boolean notExists;
-  private final ImmutableMap<String, Expression> properties;
+  private final ImmutableMap<String, Literal> properties;
   private final Optional<Expression> partitionByColumn;
 
   CreateAsSelect(
@@ -35,7 +35,7 @@ public abstract class CreateAsSelect extends Statement implements QueryContainer
       final QualifiedName name,
       final Query query,
       final boolean notExists,
-      final Map<String, Expression> properties,
+      final Map<String, Literal> properties,
       final Optional<Expression> partitionByColumn) {
     super(location);
     this.name = requireNonNull(name, "name is null");
@@ -48,7 +48,7 @@ public abstract class CreateAsSelect extends Statement implements QueryContainer
 
   CreateAsSelect(
       final CreateAsSelect other,
-      final Map<String, Expression> properties) {
+      final Map<String, Literal> properties) {
     this(
         other.getLocation(),
         other.name,
@@ -58,7 +58,7 @@ public abstract class CreateAsSelect extends Statement implements QueryContainer
         other.partitionByColumn);
   }
 
-  public abstract CreateAsSelect copyWith(Map<String, Expression> properties);
+  public abstract CreateAsSelect copyWith(Map<String, Literal> properties);
 
   public QualifiedName getName() {
     return name;
@@ -73,7 +73,7 @@ public abstract class CreateAsSelect extends Statement implements QueryContainer
     return notExists;
   }
 
-  public Map<String, Expression> getProperties() {
+  public Map<String, Literal> getProperties() {
     return properties;
   }
 

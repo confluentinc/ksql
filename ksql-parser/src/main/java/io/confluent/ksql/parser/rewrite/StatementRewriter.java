@@ -397,13 +397,13 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
         .map(tableElement -> (TableElement) process(tableElement, context))
         .collect(Collectors.toList());
 
-    final Map<String, Expression> rewrittenProps = node
+    final Map<String, Literal> rewrittenProps = node
         .getProperties()
         .entrySet()
         .stream()
         .collect(Collectors.toMap(
             Entry::getKey,
-            e -> (Expression) process(e.getValue(), context)
+            e -> (Literal) process(e.getValue(), context)
         ));
 
     return node.copyWith(rewrittenElements, rewrittenProps);
@@ -418,7 +418,7 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
         node.getProperties().entrySet().stream()
             .collect(Collectors.toMap(
                 Map.Entry::getKey,
-                e -> (Expression) process(e.getValue(), context)
+                e -> (Literal) process(e.getValue(), context)
             )),
         node.getPartitionByColumn().isPresent()
             ? Optional.ofNullable(
@@ -433,13 +433,13 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
         .map(tableElement -> (TableElement) process(tableElement, context))
         .collect(Collectors.toList());
 
-    final Map<String, Expression> rewrittenProps = node
+    final Map<String, Literal> rewrittenProps = node
         .getProperties()
         .entrySet()
         .stream()
         .collect(Collectors.toMap(
             Entry::getKey,
-            e -> (Expression) process(e.getValue(), context)
+            e -> (Literal) process(e.getValue(), context)
         ));
 
     return node.copyWith(rewrittenElements, rewrittenProps);
@@ -453,7 +453,7 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
         node.getProperties().entrySet().stream()
             .collect(Collectors.toMap(
                 Entry::getKey,
-                e -> (Expression) process(e.getValue(), context)
+                e -> (Literal) process(e.getValue(), context)
             )));
   }
 

@@ -31,14 +31,14 @@ public abstract class AbstractStreamCreateStatement extends Statement {
   private final QualifiedName name;
   private final ImmutableList<TableElement> elements;
   private final boolean notExists;
-  private final ImmutableMap<String, Expression> properties;
+  private final ImmutableMap<String, Literal> properties;
 
   AbstractStreamCreateStatement(
       final Optional<NodeLocation> location,
       final QualifiedName name,
       final List<TableElement> elements,
       final boolean notExists,
-      final Map<String, Expression> properties
+      final Map<String, Literal> properties
   ) {
     super(location);
     this.name = requireNonNull(name, "name");
@@ -47,7 +47,7 @@ public abstract class AbstractStreamCreateStatement extends Statement {
     this.properties = ImmutableMap.copyOf(requireNonNull(properties, "properties"));
   }
 
-  public Map<String, Expression> getProperties() {
+  public Map<String, Literal> getProperties() {
     return properties;
   }
 
@@ -65,7 +65,7 @@ public abstract class AbstractStreamCreateStatement extends Statement {
 
   public abstract AbstractStreamCreateStatement copyWith(
       List<TableElement> elements,
-      Map<String, Expression> properties);
+      Map<String, Literal> properties);
 
   @Override
   public int hashCode() {

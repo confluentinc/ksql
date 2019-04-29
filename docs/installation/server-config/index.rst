@@ -27,6 +27,13 @@ or the ``KSQL_OPTS`` environment variable. Properties set with ``KSQL_OPTS`` tak
 KSQL configuration file. A recommended approach is to configure a common set of properties using the KSQL configuration
 file and override specific properties as needed, using the ``KSQL_OPTS`` environment variable.
 
+.. tip::
+
+   If you deploy |cp| by using Docker containers, you can specify configuration
+   parameters as environment variables to the
+   `KSQL Server image <https://hub.docker.com/r/confluentinc/cp-ksql-server/>`__.
+   For more information, see :ref:`install-ksql-with-docker`.
+
 KSQL Server Configuration File
 ------------------------------
 

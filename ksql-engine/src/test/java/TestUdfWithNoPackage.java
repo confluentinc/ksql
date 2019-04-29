@@ -13,13 +13,12 @@
  * specific language governing permissions and limitations under the License.
  */
 
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import io.confluent.ksql.function.UdfCompiler;
 import io.confluent.ksql.function.UdfInvoker;
 import java.util.Optional;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -28,10 +27,10 @@ public class TestUdfWithNoPackage {
   private final UdfCompiler udfCompiler = new UdfCompiler(Optional.empty());
 
   @BeforeClass
-  public static void ensureTestHasNoPackage() {
+  public static void ensureTestHasNoPackage() throws ClassNotFoundException {
     // guard against someone accidentally refactoring and moving this test
     // into a non-empty package
-    assertThat(TestUdfWithNoPackage.class.getPackage().getName(), is(""));
+    assertThat(Class.forName("TestUdfWithNoPackage").getPackage().getName(), is(""));
   }
 
   @Test

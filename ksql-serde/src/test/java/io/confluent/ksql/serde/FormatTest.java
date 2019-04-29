@@ -38,8 +38,8 @@ public class FormatTest {
   @Test
   public void shouldHaveCorrectToString() {
     assertThat(Format.JSON.toString(), is("JSON"));
-    assertThat(Format.AVRO, is("AVRO"));
-    assertThat(Format.DELIMITED, is("DELIMITED"));
+    assertThat(Format.AVRO.toString(), is("AVRO"));
+    assertThat(Format.DELIMITED.toString(), is("DELIMITED"));
   }
 
   @Test

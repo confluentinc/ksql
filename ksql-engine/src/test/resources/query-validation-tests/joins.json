@@ -1461,6 +1461,58 @@
           {"name": "OUTPUT", "type": "table", "keyField": {"name": "T_ID", "legacyName": "T_ID", "legacySchema": "BIGINT"}}
         ]
       }
+    },
+    {
+      "name": "to table using something other than ROWKEY",
+      "statements": [
+        "CREATE STREAM S (ID bigint) WITH (kafka_topic='S', value_format='JSON');",
+        "CREATE TABLE NO_KEY (ID bigint, NAME string) WITH (kafka_topic='NO_KEY', value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT s.id, name FROM S JOIN NO_KEY t ON s.id = t.id;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Source table (T) has no key column defined. Only 'ROWKEY' is supported in the join criteria."
+      }
+    },
+    {
+      "name": "stream to table when neither have key field and joining by table ROWKEY",
+      "statements": [
+        "CREATE STREAM S (ID bigint) WITH (kafka_topic='S', value_format='JSON');",
+        "CREATE TABLE NO_KEY (ID bigint, NAME string) WITH (kafka_topic='NO_KEY', value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT s.id, name FROM S JOIN NO_KEY t ON s.id = t.ROWKEY;"
+      ],
+      "inputs": [
+        {"topic": "NO_KEY", "key": 0, "value": {"ID": 0, "name": "bob"}, "timestamp": 0},
+        {"topic": "S", "key": 0, "value": {"ID": 0}, "timestamp": 10}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"S_ID": 0, "NAME": "bob"}, "timestamp": 10}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "keyField": {"name": "S_ID"}}
+        ]
+      }
+    },
+    {
+      "name": "stream to table when table does not have key field and joining by table ROWKEY",
+      "statements": [
+        "CREATE STREAM S (ID bigint) WITH (kafka_topic='S', value_format='JSON', key='ID');",
+        "CREATE TABLE NO_KEY (ID bigint, NAME string) WITH (kafka_topic='NO_KEY', value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT s.id, name FROM S JOIN NO_KEY t ON s.id = t.ROWKEY;"
+      ],
+      "inputs": [
+        {"topic": "NO_KEY", "key": 0, "value": {"ID": 0, "name": "bob"}, "timestamp": 0},
+        {"topic": "S", "key": 0, "value": {"ID": 0}, "timestamp": 10}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"S_ID": 0, "NAME": "bob"}, "timestamp": 10}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "keyField": {"name": "S_ID"}}
+        ]
+      }
     }
   ]
 }

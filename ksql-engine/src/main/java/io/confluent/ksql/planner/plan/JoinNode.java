@@ -298,21 +298,26 @@ public class JoinNode extends PlanNode {
           .getKeyField()
           .resolve(schemaKStream.getSchema(), builder.getKsqlConfig());
 
-      if (keyField.isPresent()
-          && !keyFieldName.equals(SchemaUtil.ROWKEY_NAME)
-          && !SchemaUtil.matchFieldName(keyField.get(), expectedKeyField)) {
+      final boolean namesMatch = keyField
+          .map(field -> SchemaUtil.matchFieldName(field, expectedKeyField))
+          .orElse(false);
+
+      if (namesMatch || keyFieldName.equals(SchemaUtil.ROWKEY_NAME)) {
+        return (SchemaKTable) schemaKStream;
+      }
+
+      if (!keyField.isPresent()) {
         throw new KsqlException(
-            String.format(
-                "Source table (%s) key column (%s) "
-                    + "is not the column used in the join criteria (%s).",
-                tableName,
-                keyField.get().name(),
-                keyFieldName
-            )
+            "Source table (" + tableName + ") has no key column defined. "
+                + "Only 'ROWKEY' is supported in the join criteria."
         );
       }
 
-      return (SchemaKTable) schemaKStream;
+      throw new KsqlException(
+          "Source table (" + tableName + ") key column (" + keyField.get().name() + ") "
+              + "is not the column used in the join criteria (%s). "
+              + "Only the table's key column or 'ROWKEY' is supported in the join criteria."
+        );
     }
 
     @SuppressWarnings("unchecked")

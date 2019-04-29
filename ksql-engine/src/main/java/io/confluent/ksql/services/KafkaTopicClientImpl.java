@@ -43,6 +43,7 @@ import org.apache.kafka.common.Node;
 import org.apache.kafka.common.config.ConfigResource;
 import org.apache.kafka.common.config.TopicConfig;
 import org.apache.kafka.common.errors.TopicExistsException;
+import org.apache.kafka.common.errors.UnsupportedVersionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -87,10 +88,6 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
       ExecutorUtil.executeWithRetries(
           () -> adminClient.createTopics(Collections.singleton(newTopic)).all().get(),
           ExecutorUtil.RetryBehaviour.ON_RETRYABLE);
-    } catch (final InterruptedException e) {
-      throw new KafkaResponseGetFailedException(
-          "Failed to guarantee existence of topic " + topic, e);
-
     } catch (final TopicExistsException e) {
       // if the topic already exists, it is most likely because another node just created it.
       // ensure that it matches the partition count and replication factor before returning
@@ -162,11 +159,9 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
         return false;
       }
 
-      existingConfig.putAll(toStringConfigs(overrides));
-
-      final Set<AlterConfigOp> entries = existingConfig.entrySet().stream()
-          .map(e -> new AlterConfigOp(
-              new ConfigEntry(e.getKey(), e.getValue()), AlterConfigOp.OpType.SET))
+      final Set<AlterConfigOp> entries = overrides.entrySet().stream()
+          .map(e -> new ConfigEntry(e.getKey(), e.getValue().toString()))
+          .map(ce -> new AlterConfigOp(ce, AlterConfigOp.OpType.APPEND))
           .collect(Collectors.toSet());
 
       final Map<ConfigResource, Collection<AlterConfigOp>> request =
@@ -177,6 +172,8 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
           ExecutorUtil.RetryBehaviour.ON_RETRYABLE);
 
       return true;
+    } catch (final UnsupportedVersionException e) {
+      return addTopicConfigLegacy(topicName, overrides);
     } catch (final Exception e) {
       throw new KafkaResponseGetFailedException(
           "Failed to set config for Kafka Topic " + topicName, e);
@@ -221,8 +218,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
       }
     }
     if (!failList.isEmpty()) {
-      throw new KsqlException("Failed to clean up topics: " + failList.stream()
-          .collect(Collectors.joining(",")));
+      throw new KsqlException("Failed to clean up topics: " + String.join(",", failList));
     }
   }
 
@@ -319,6 +315,34 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
     } catch (final Exception e) {
       throw new KafkaResponseGetFailedException(
           "Failed to get config for Kafka Topic " + topicName, e);
+    }
+  }
+
+  // 'alterConfigs' deprecated, but new `incrementalAlterConfigs` only available on Kafka v2.3+
+  // So we need to continue to support older brokers until our min requirements reaches v2.3
+  @SuppressWarnings({"deprecation", "RedundantSuppression"})
+  private boolean addTopicConfigLegacy(final String topicName, final Map<String, ?> overrides) {
+    final ConfigResource resource = new ConfigResource(ConfigResource.Type.TOPIC, topicName);
+
+    try {
+      final Map<String, String> existingConfig = topicConfig(topicName, false);
+      existingConfig.putAll(toStringConfigs(overrides));
+
+      final Set<ConfigEntry> entries = existingConfig.entrySet().stream()
+          .map(e -> new ConfigEntry(e.getKey(), e.getValue()))
+          .collect(Collectors.toSet());
+
+      final Map<ConfigResource, Config> request =
+          Collections.singletonMap(resource, new Config(entries));
+
+      ExecutorUtil.executeWithRetries(
+          () -> adminClient.alterConfigs(request).all().get(),
+          ExecutorUtil.RetryBehaviour.ON_RETRYABLE);
+
+      return true;
+    } catch (final Exception e) {
+      throw new KafkaResponseGetFailedException(
+          "Failed to set config for Kafka Topic " + topicName, e);
     }
   }
 

@@ -30,6 +30,7 @@ import static io.confluent.ksql.topic.TopicPropertiesTest.Inject.WITH_P;
 import static io.confluent.ksql.topic.TopicPropertiesTest.Inject.WITH_R;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -40,6 +41,7 @@ import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.parser.tree.IntegerLiteral;
 import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.parser.tree.StringLiteral;
+import io.confluent.ksql.topic.TopicProperties.Builder;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
@@ -169,21 +171,20 @@ public class TopicPropertiesTest {
     }
 
     @Test
-    public void shouldFailIfNoReplicasSupplied() {
+    public void shouldDefaultIfNoReplicasSupplied() {
       // Given:
       final KsqlConfig config = new KsqlConfig(ImmutableMap.of(
           KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY, 1
       ));
 
-      // Expect:
-      expectedException.expect(NullPointerException.class);
-      expectedException.expectMessage("Was not supplied with any valid source for replicas!");
-
       // When:
-      new TopicProperties.Builder()
+      final TopicProperties properties = new Builder()
           .withName("name")
           .withKsqlConfig(config)
           .build();
+
+      // Then:
+      assertThat(properties.getReplicas(), is(TopicProperties.DEFAULT_REPLICAS));
     }
 
     @Test

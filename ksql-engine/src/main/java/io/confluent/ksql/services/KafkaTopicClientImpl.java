@@ -15,11 +15,15 @@
 
 package io.confluent.ksql.services;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import io.confluent.ksql.exception.KafkaResponseGetFailedException;
+import io.confluent.ksql.topic.TopicProperties;
 import io.confluent.ksql.util.ExecutorUtil;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlServerException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -30,6 +34,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import javax.annotation.concurrent.ThreadSafe;
+import kafka.server.KafkaConfig;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.AlterConfigOp;
 import org.apache.kafka.clients.admin.Config;
@@ -41,6 +46,7 @@ import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.KafkaFuture;
 import org.apache.kafka.common.Node;
 import org.apache.kafka.common.config.ConfigResource;
+import org.apache.kafka.common.config.ConfigResource.Type;
 import org.apache.kafka.common.config.TopicConfig;
 import org.apache.kafka.common.errors.TopicExistsException;
 import org.apache.kafka.common.errors.UnsupportedVersionException;
@@ -53,7 +59,8 @@ import org.slf4j.LoggerFactory;
 @ThreadSafe
 public class KafkaTopicClientImpl implements KafkaTopicClient {
 
-  private static final Logger log = LoggerFactory.getLogger(KafkaTopicClient.class);
+  private static final Logger LOG = LoggerFactory.getLogger(KafkaTopicClient.class);
+  private static final String DEFAULT_REPLICATION_PROP = KafkaConfig.DefaultReplicationFactorProp();
 
   private final AdminClient adminClient;
   private final boolean isDeleteTopicEnabled;
@@ -75,16 +82,19 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
       final short replicationFactor,
       final Map<String, ?> configs
   ) {
+    final short replicas = replicationFactor == TopicProperties.DEFAULT_REPLICAS
+        ? getDefaultClusterReplication()
+        : replicationFactor;
     if (isTopicExists(topic)) {
-      validateTopicProperties(topic, numPartitions, replicationFactor);
+      validateTopicProperties(topic, numPartitions, replicas);
       return;
     }
 
-    final NewTopic newTopic = new NewTopic(topic, numPartitions, replicationFactor);
+    final NewTopic newTopic = new NewTopic(topic, numPartitions, replicas);
     newTopic.configs(toStringConfigs(configs));
 
     try {
-      log.info("Creating topic '{}'", topic);
+      LOG.info("Creating topic '{}'", topic);
       ExecutorUtil.executeWithRetries(
           () -> adminClient.createTopics(Collections.singleton(newTopic)).all().get(),
           ExecutorUtil.RetryBehaviour.ON_RETRYABLE);
@@ -97,7 +107,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
       // if the topic already exists, it is most likely because another node just created it.
       // ensure that it matches the partition count and replication factor before returning
       // success
-      validateTopicProperties(topic, numPartitions, replicationFactor);
+      validateTopicProperties(topic, numPartitions, replicas);
 
     } catch (final Exception e) {
       throw new KafkaResponseGetFailedException(
@@ -106,9 +116,44 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
     }
   }
 
+  /**
+   * We need this method because {@link AdminClient#createTopics(Collection)} does not allow
+   * you to pass in only partitions. Instead, we determine the default number from the cluster
+   * config and then pass that value back.
+   *
+   * @return the default broker configuration
+   */
+  private short getDefaultClusterReplication() {
+    try {
+      final Collection<Node> brokers = adminClient.describeCluster().nodes().get();
+      final Node broker = Iterables.getFirst(brokers, null);
+      if (broker == null) {
+        throw new KsqlServerException(
+            "AdminClient discovered an empty Kafka Cluster. "
+                + "Check that Kafka is deployed and KSQL is properly configured.");
+      }
+
+      final ConfigResource configResource = new ConfigResource(Type.BROKER, broker.idString());
+      final String defaultReplication =
+          adminClient.describeConfigs(
+              ImmutableList.of(configResource)
+          ).all()
+              .get()
+              .get(configResource)
+              .get(DEFAULT_REPLICATION_PROP)
+              .value();
+
+      return Short.parseShort(defaultReplication);
+    } catch (final KsqlServerException e) {
+      throw e;
+    } catch (final Exception e) {
+      throw new KsqlServerException("Could not get default replication from Kafka cluster!", e);
+    }
+  }
+
   @Override
   public boolean isTopicExists(final String topic) {
-    log.trace("Checking for existence of topic '{}'", topic);
+    LOG.trace("Checking for existence of topic '{}'", topic);
     return listTopicNames().contains(topic);
   }
 
@@ -208,7 +253,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
       return;
     }
     if (!isDeleteTopicEnabled) {
-      log.info("Cannot delete topics since 'delete.topic.enable' is false. ");
+      LOG.info("Cannot delete topics since 'delete.topic.enable' is false. ");
       return;
     }
     final DeleteTopicsResult deleteTopicsResult = adminClient.deleteTopics(topicsToDelete);
@@ -230,7 +275,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   @Override
   public void deleteInternalTopics(final String applicationId) {
     if (!isDeleteTopicEnabled) {
-      log.warn("Cannot delete topics since 'delete.topic.enable' is false. ");
+      LOG.warn("Cannot delete topics since 'delete.topic.enable' is false. ");
       return;
     }
     try {
@@ -245,7 +290,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
         deleteTopics(internalTopics);
       }
     } catch (final Exception e) {
-      log.error("Exception while trying to clean up internal topics for application id: {}.",
+      LOG.error("Exception while trying to clean up internal topics for application id: {}.",
           applicationId, e
       );
     }
@@ -256,7 +301,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
       final DescribeClusterResult describeClusterResult = adminClient.describeCluster();
       final Collection<Node> nodes = describeClusterResult.nodes().get();
       if (nodes.isEmpty()) {
-        log.warn("No available broker found to fetch config info.");
+        LOG.warn("No available broker found to fetch config info.");
         throw new KsqlException("Could not fetch broker information. KSQL cannot initialize");
       }
 
@@ -280,7 +325,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
           .orElse(true);
 
     } catch (final Exception e) {
-      log.error("Failed to initialize TopicClient: {}", e.getMessage());
+      LOG.error("Failed to initialize TopicClient: {}", e.getMessage());
       throw new KsqlException("Could not fetch broker information. KSQL cannot initialize", e);
     }
   }
@@ -299,7 +344,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
     final TopicDescription existingTopic = describeTopic(topic);
     TopicValidationUtil
         .validateTopicProperties(requiredNumPartition, requiredNumReplicas, existingTopic);
-    log.debug(
+    LOG.debug(
         "Did not create topic {} with {} partitions and replication-factor {} since it exists",
         topic, requiredNumPartition, requiredNumReplicas);
   }

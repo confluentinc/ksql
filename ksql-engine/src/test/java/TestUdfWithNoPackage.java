@@ -14,31 +14,34 @@
  */
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import io.confluent.ksql.function.UdfCompiler;
 import io.confluent.ksql.function.UdfInvoker;
 import java.util.Optional;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class TestUdfWithNoPackage {
 
   private final UdfCompiler udfCompiler = new UdfCompiler(Optional.empty());
 
-  @BeforeClass
-  public static void ensureTestHasNoPackage() throws ClassNotFoundException {
-    // guard against someone accidentally refactoring and moving this test
-    // into a non-empty package
-    assertThat(Class.forName("TestUdfWithNoPackage").getPackage().getName(), is(""));
-  }
-
   @Test
   public void shouldCompileMethodsWithNoPackage() throws Exception {
+    // Given:
+    double version = Double.parseDouble(System.getProperty("java.specification.version"));
+    if (version < 1.9) {
+      assertThat(this.getClass().getPackage(), nullValue());
+    } else {
+      assertThat(this.getClass().getPackage().getName(), is(""));
+    }
+
+    // When:
     // motivated by https://github.com/square/javapoet/pull/723
     final UdfInvoker udf = udfCompiler
         .compile(getClass().getMethod("udf"), this.getClass().getClassLoader());
 
+    // Then:
     assertThat(udf.eval(this), is("udf"));
   }
 

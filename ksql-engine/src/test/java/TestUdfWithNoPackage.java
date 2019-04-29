@@ -19,14 +19,24 @@ import static org.hamcrest.CoreMatchers.is;
 import io.confluent.ksql.function.UdfCompiler;
 import io.confluent.ksql.function.UdfInvoker;
 import java.util.Optional;
+import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class TestUdfWithNoPackage {
 
   private final UdfCompiler udfCompiler = new UdfCompiler(Optional.empty());
 
+  @BeforeClass
+  public static void ensureTestHasNoPackage() {
+    // guard against someone accidentally refactoring and moving this test
+    // into a non-empty package
+    assertThat(TestUdfWithNoPackage.class.getPackage().getName(), is(""));
+  }
+
   @Test
   public void shouldCompileMethodsWithNoPackage() throws Exception {
+    // motivated by https://github.com/square/javapoet/pull/723
     final UdfInvoker udf = udfCompiler
         .compile(getClass().getMethod("udf"), this.getClass().getClassLoader());
 

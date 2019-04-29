@@ -49,8 +49,6 @@ public final class UdfTemplate {
         .mapToObj(i -> "arg" + i)
         .collect(Collectors.joining(", "));
 
-    // use the canonical name instead of relying on $T because there is a bug
-    // in javapoet when trying to compile using the default package
     code.addStatement("return (($L) $L).$L($L)",
         method.getDeclaringClass().getCanonicalName(), obj, method.getName(), args);
 

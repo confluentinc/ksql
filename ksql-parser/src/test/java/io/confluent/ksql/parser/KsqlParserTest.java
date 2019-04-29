@@ -74,7 +74,6 @@ import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Schema;
@@ -1203,6 +1202,17 @@ public class KsqlParserTest {
     // Then:
     final SearchedCaseExpression searchedCaseExpression = getSearchedCaseExpressionFromCsas(statement);
     assertThat(searchedCaseExpression.getDefaultValue().isPresent(), equalTo(false));
+  }
+
+  // https://github.com/confluentinc/ksql/issues/2287
+  @Test
+  public void shouldThrowHelpfulErrorMessageIfKeyFieldNotQuoted() {
+    // Then:
+    expectedException.expect(ParseFailedException.class);
+    expectedException.expectMessage("mismatched input 'ID'");
+
+    // When:
+    KsqlParserTestUtil.buildSingleAst("CREATE STREAM S (ID INT) WITH (KEY=ID);", metaStore);
   }
 
   private static SearchedCaseExpression getSearchedCaseExpressionFromCsas(final Statement statement) {

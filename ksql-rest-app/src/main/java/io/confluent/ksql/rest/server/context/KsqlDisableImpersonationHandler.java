@@ -15,29 +15,47 @@
 
 package io.confluent.ksql.rest.server.context;
 
+import io.confluent.ksql.services.DefaultServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
-import org.glassfish.hk2.utilities.binding.AbstractBinder;
+import org.glassfish.hk2.api.Factory;
 import org.glassfish.jersey.process.internal.RequestScoped;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Configures the {@link ServiceContext} class for dependency injection using the
  * {@link javax.ws.rs.core.Context} annotation.
  * </p>
+ * This class does not use an impersonated ServiceContext. It is used only to inject
+ * a default ServiceContext on each REST request.
+ * </p>
  * Inject {@code ServiceContext} on each REST method as follows:
  * i.e. myMethod(@Context ServiceContext serviceContext)
  */
-public class KsqlRestServiceContextBinder extends AbstractBinder {
-  private final KsqlConfig ksqlConfig;
+public class KsqlDisableImpersonationHandler extends KsqlImpersonationHandler {
+  private static final Logger log = LoggerFactory.getLogger(KsqlDisableImpersonationHandler.class);
 
-  public KsqlRestServiceContextBinder(final KsqlConfig ksqlConfig) {
-    this.ksqlConfig = ksqlConfig;
+  public KsqlDisableImpersonationHandler(final KsqlConfig ksqlConfig) {
+    super(ksqlConfig);
   }
 
   @Override
-  protected void configure() {
-    bindFactory(new KsqlRestServiceContextFactory(ksqlConfig))
-        .to(ServiceContext.class)
-        .in(RequestScoped.class);
+  public void configure() {
+    bindFactory(new Factory<ServiceContext>() {
+      @Override
+      public ServiceContext provide() {
+        return DefaultServiceContext.create(ksqlConfig);
+      }
+
+      @Override
+      public void dispose(final ServiceContext serviceContext) {
+        if (serviceContext != null) {
+          serviceContext.close();
+        }
+      }
+    }).to(ServiceContext.class).in(RequestScoped.class);
+
+    log.info("KSQL impersonation disabled.");
   }
 }

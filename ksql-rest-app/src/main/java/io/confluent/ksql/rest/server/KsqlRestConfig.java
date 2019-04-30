@@ -58,6 +58,14 @@ public class KsqlRestConfig extends RestConfig {
   private static final String KSQL_WEBSOCKETS_NUM_THREADS_DOC =
       "The number of websocket threads to handle query results";
 
+  public static final String KSQL_IMPERSONATION_HANDLER =
+      "ksql.impersonation.handler";
+  public static final String KSQL_IMPERSONATION_HANDLER_DEFAULT =
+      "io.confluent.ksql.rest.server.context.KsqlDisableImpersonationHandler";
+  public static final String KSQL_IMPERSONATION_HANDLER_DOC =
+      "KSQL Impersonation handling class that extends from "
+          + "<code>io.confluent.ksql.rest.server.context.KsqlImpersonationHandler</code>";
+
   private static final ConfigDef CONFIG_DEF;
 
   static {
@@ -85,6 +93,12 @@ public class KsqlRestConfig extends RestConfig {
         5,
         Importance.LOW,
         KSQL_WEBSOCKETS_NUM_THREADS_DOC
+    ).define(
+        KSQL_IMPERSONATION_HANDLER,
+        Type.CLASS,
+        KSQL_IMPERSONATION_HANDLER_DEFAULT,
+        Importance.LOW,
+        KSQL_IMPERSONATION_HANDLER_DOC
     );
   }
 

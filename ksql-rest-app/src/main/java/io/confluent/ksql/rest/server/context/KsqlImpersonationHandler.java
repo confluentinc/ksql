@@ -15,29 +15,21 @@
 
 package io.confluent.ksql.rest.server.context;
 
-import io.confluent.ksql.services.DefaultServiceContext;
-import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.util.KsqlConfig;
-import org.glassfish.hk2.api.Factory;
+import org.glassfish.hk2.utilities.binding.AbstractBinder;
 
 /**
- * This class implements {@link Factory}, which allows a REST application to create
- * a new {@link ServiceContext} during REST requests.
+ * Abstract class to handle KSQL user impersonation. Subclass implementation needs to implement
+ * the {@link AbstractBinder} methods and configure the binder.
+ * </p>
+ * The subclass implementation must be registered with the
+ * {@link KsqlRestConfig#KSQL_IMPERSONATION_HANDLER} configuration.
  */
-public class KsqlRestServiceContextFactory implements Factory<ServiceContext> {
-  private final KsqlConfig ksqlConfig;
+public abstract class KsqlImpersonationHandler extends AbstractBinder {
+  protected final KsqlConfig ksqlConfig;
 
-  public KsqlRestServiceContextFactory(final KsqlConfig ksqlConfig) {
+  public KsqlImpersonationHandler(final KsqlConfig ksqlConfig) {
     this.ksqlConfig = ksqlConfig;
-  }
-
-  @Override
-  public ServiceContext provide() {
-    return DefaultServiceContext.create(ksqlConfig);
-  }
-
-  @Override
-  public void dispose(final ServiceContext serviceContext) {
-    serviceContext.close();
   }
 }

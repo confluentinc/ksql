@@ -63,9 +63,9 @@ public class QueryAnalyzer {
     final MutableAggregateAnalysis aggregateAnalysis = new MutableAggregateAnalysis();
     final DereferenceExpression defaultArgument = analysis.getDefaultArgument();
     final AggregateAnalyzer aggregateAnalyzer =
-        new AggregateAnalyzer(aggregateAnalysis, defaultArgument, metaStore);
+        new AggregateAnalyzer(aggregateAnalysis, defaultArgument, metaStore.getFunctionRegistry());
     final AggregateExpressionRewriter aggregateExpressionRewriter =
-        new AggregateExpressionRewriter(metaStore);
+        new AggregateExpressionRewriter(metaStore.getFunctionRegistry());
 
     processSelectExpressions(
         analysis,

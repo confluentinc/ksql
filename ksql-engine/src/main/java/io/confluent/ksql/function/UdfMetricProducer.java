@@ -23,13 +23,13 @@ import org.apache.kafka.common.utils.Time;
 /**
  * Capture metrics for a given Kudf
  */
-class UdfMetricProducer implements Kudf {
+public class UdfMetricProducer implements Kudf {
 
   private final Sensor sensor;
   private final Kudf kudf;
   private final Time time;
 
-  UdfMetricProducer(final Sensor sensor,
+  public UdfMetricProducer(final Sensor sensor,
                     final Kudf kudf,
                     final Time time) {
     this.sensor = Objects.requireNonNull(sensor, "sensor can't be null");

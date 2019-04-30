@@ -20,7 +20,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.mockito.Mockito.mock;
 
-import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.function.MutableFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParserTestUtil;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
@@ -44,7 +44,7 @@ public class StatementRewriteForStructTest {
 
   @Before
   public void init() {
-    metaStore = MetaStoreFixture.getNewMetaStore(mock(FunctionRegistry.class));
+    metaStore = MetaStoreFixture.getNewMetaStore(mock(MutableFunctionRegistry.class));
   }
 
   @Test

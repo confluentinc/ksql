@@ -28,7 +28,7 @@ public class UdfFactory {
   private final Class<? extends Kudf> udfClass;
   private final UdfIndex udfIndex;
 
-  UdfFactory(final Class<? extends Kudf> udfClass,
+  public UdfFactory(final Class<? extends Kudf> udfClass,
              final UdfMetadata metadata) {
     this.udfClass = Objects.requireNonNull(udfClass, "udfClass can't be null");
     this.metadata = Objects.requireNonNull(metadata, "metadata can't be null");
@@ -38,6 +38,14 @@ public class UdfFactory {
   void addFunction(final KsqlFunction ksqlFunction) {
     checkCompatible(ksqlFunction);
     udfIndex.addFunction(ksqlFunction);
+  }
+
+  void addOrReplaceFunction(final KsqlFunction ksqlFunction) {
+    udfIndex.addOrReplaceFunction(ksqlFunction);
+  }
+
+  void dropFunction(final String functionName) {
+    udfIndex.dropFunction(functionName);
   }
 
   private void checkCompatible(final KsqlFunction ksqlFunction) {
@@ -76,13 +84,20 @@ public class UdfFactory {
     return metadata.isInternal();
   }
 
+  public boolean isInline() {
+    return metadata.isInline();
+  }
+
   public String getPath() {
     return metadata.getPath();
   }
 
   public boolean matches(final UdfFactory that) {
-    return this == that
-        || (this.udfClass.equals(that.udfClass) && this.metadata.equals(that.metadata));
+    return this == that || this.udfClass.equals(that.udfClass);
+  }
+
+  public boolean metadataMatches(final UdfFactory that) {
+    return this.metadata.equals(that.metadata);
   }
 
   @Override

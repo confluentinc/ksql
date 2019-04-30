@@ -37,7 +37,7 @@ public final class ListFunctionsExecutor {
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext
   ) {
-    final FunctionRegistry functionRegistry = executionContext.getMetaStore();
+    final FunctionRegistry functionRegistry = executionContext.getFunctionRegistry();
 
     final List<SimpleFunctionInfo> all = functionRegistry.listFunctions().stream()
         .filter(factory -> !factory.isInternal())

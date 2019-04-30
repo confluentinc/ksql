@@ -48,17 +48,40 @@ import java.util.concurrent.ConcurrentHashMap;
 import javax.annotation.concurrent.ThreadSafe;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @ThreadSafe
 public class InternalFunctionRegistry implements MutableFunctionRegistry {
 
+  private static final Logger LOG = LoggerFactory.getLogger(InternalFunctionRegistry.class);
+
   private final Object lock = new Object();
-  private final Map<String, UdfFactory> udfs = new ConcurrentHashMap<>();
-  private final Map<String, AggregateFunctionFactory> udafs = new ConcurrentHashMap<>();
   private final FunctionNameValidator functionNameValidator = new FunctionNameValidator();
+  private final Map<String, UdfFactory> udfs;
+  private final Map<String, AggregateFunctionFactory> udafs;
 
   public InternalFunctionRegistry() {
+    udfs = new ConcurrentHashMap<>();
+    udafs = new ConcurrentHashMap<>();
     new BuiltInInitializer(this).init();
+  }
+
+  public InternalFunctionRegistry(
+      final Map<String, UdfFactory> udfs,
+      final Map<String, AggregateFunctionFactory> udafs) {
+    this.udfs = udfs;
+    this.udafs = udafs;
+  }
+
+  @Override
+  public MutableFunctionRegistry copy() {
+    synchronized (lock) {
+      return new InternalFunctionRegistry(
+        new ConcurrentHashMap<>(udfs),
+        new ConcurrentHashMap<>(udafs)
+      );
+    }
   }
 
   public UdfFactory getUdfFactory(final String functionName) {
@@ -80,6 +103,29 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
   }
 
   @Override
+  public void addOrReplaceFunction(final KsqlFunction ksqlFunction) {
+    synchronized (lock) {
+      final UdfFactory udfFactory = udfs.get(ksqlFunction.getFunctionName().toUpperCase());
+      if (udfFactory == null) {
+        throw new KsqlException("Unknown function factory: " + ksqlFunction.getFunctionName());
+      }
+      udfFactory.addOrReplaceFunction(ksqlFunction);
+    }
+  }
+
+  @Override
+  public void dropFunction(final String ksqlFunctionName) {
+    synchronized (lock) {
+      final UdfFactory udfFactory = udfs.get(ksqlFunctionName.toUpperCase());
+      if (udfFactory == null) {
+        throw new KsqlException("Unknown function factory: " + ksqlFunctionName);
+      }
+      udfs.remove(ksqlFunctionName);
+      udfFactory.dropFunction(ksqlFunctionName);
+    }
+  }
+
+  @Override
   public UdfFactory ensureFunctionFactory(final UdfFactory factory) {
     validateFunctionName(factory.getName());
 
@@ -97,8 +143,22 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
             + ", factory: " + factory);
       }
 
+      if (existing != null && !existing.metadataMatches(factory)) {
+        LOG.info("Updating metadata for function: " + functionName);
+        return udfs.put(functionName, factory);
+      }
+
       return existing == null ? factory : existing;
     }
+  }
+
+  @Override
+  public boolean isInline(final String functionName) {
+    if (udfs.containsKey(functionName.toUpperCase())) {
+      final UdfFactory udfFactory = udfs.get(functionName.toUpperCase());
+      return udfFactory.isInline();
+    }
+    return false;
   }
 
   @Override

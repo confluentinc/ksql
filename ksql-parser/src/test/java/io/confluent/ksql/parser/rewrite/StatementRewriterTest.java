@@ -24,7 +24,7 @@ import static org.hamcrest.core.IsNot.not;
 import static org.mockito.Mockito.mock;
 
 import io.confluent.ksql.ddl.DdlConfig;
-import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.function.MutableFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParserTestUtil;
 import io.confluent.ksql.parser.tree.AliasedRelation;
@@ -50,7 +50,7 @@ public class StatementRewriterTest {
 
   @Before
   public void init() {
-    metaStore = MetaStoreFixture.getNewMetaStore(mock(FunctionRegistry.class));
+    metaStore = MetaStoreFixture.getNewMetaStore(mock(MutableFunctionRegistry.class));
   }
   
   @Test

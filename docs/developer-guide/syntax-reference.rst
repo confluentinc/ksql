@@ -624,6 +624,93 @@ The WITH clause supports the following properties:
     :start-after: Avro_note_start
     :end-before: Avro_note_end
 
+.. create-function:
+
+CREATE [OR REPLACE] FUNCTION
+----------------------------
+
+**Synopsis**
+
+.. code:: sql
+
+    CREATE (OR REPLACE?) FUNCTION function_name ( { field_name data_type } [, ...] )
+    RETURNS data_type
+    LANGUAGE language_name
+    WITH ( property_name = expression [, ...] );
+    AS $$
+        inline_script
+    $$;
+
+**Description**
+
+Create a new inline UDF with the specified arguments and properties.
+Currently, the only supported language is Java.
+
+If the OR REPLACE clause is present, the statement doesn't fail if the function
+already exists. Instead, the existing function will be replaced. Note: if an
+active query is using a UDF that was replaced, it continues to use the
+underlying UDF instance it created when the query was first initiated. You must
+restart the query for it to pick up any changes that were made to the inline UDF.
+
+The supported column data types are:
+
+-  ``BOOLEAN``
+-  ``INTEGER``
+-  ``BIGINT``
+-  ``DOUBLE``
+-  ``VARCHAR`` (or ``STRING``)
+-  ``ARRAY<ArrayType>`` (JSON and AVRO only. Index starts from 0)
+-  ``MAP<VARCHAR, ValueType>`` (JSON and AVRO only)
+-  ``STRUCT<FieldName FieldType, ...>`` (JSON and AVRO only)
+
+The WITH clause supports the following properties:
+
++-------------------------+--------------------------------------------------------------------------------------------+
+| Property                | Description                                                                                |
++=========================+============================================================================================+
+| AUTHOR                  | The author of the function                                                                 |
++-------------------------+--------------------------------------------------------------------------------------------+
+| DESCRIPTION             | A description of the function                                                              |
++-------------------------+--------------------------------------------------------------------------------------------+
+| VERSION                 | The version (e.g. 0.1.0) of the function                                                   |
++-------------------------+--------------------------------------------------------------------------------------------+
+
+
+The following example creates a simple function. The arguments are
+converted to uppercase when passed to the inline script.
+
+Also, when defining an inline UDF in the KSQL CLI, you will need to escape
+any ``;`` characters within the inline script with ``\;``. However, this is
+not necessary when defining an inline UDF inside of a queries file (e.g. in headless mode).
+
+.. code:: sql
+
+    CREATE OR REPLACE FUNCTION GREET(name STRING)
+    RETURNS STRING
+    LANGUAGE JAVA
+    WITH(author='Jane', description='Create a greeting', version='0.1.0')
+    AS $$
+        return "Hello " + NAME;
+    $$;
+
+
+Here's a more complex inline UDF that imports some classes from the standard library and
+returns a ``Map`` object.
+
+.. code:: sql
+
+    CREATE OR REPLACE FUNCTION ZIP(a VARCHAR, b VARCHAR)
+    RETURNS MAP<VARCHAR, VARCHAR>
+    LANGUAGE JAVA
+    WITH(author='Bob', description='Create a map from two objects', version='0.1.0')
+    AS $$
+        import java.util.HashMap;
+        import java.util.Map;
+        Map<String,String> m =  new HashMap<String,String>();
+        m.put(A, B);
+        return m;
+    $$ ;
+
 .. _insert-into:
 
 INSERT INTO
@@ -849,6 +936,26 @@ deleted, too. Topic deletion is asynchronous, and actual removal from brokers
 may take some time to complete.
 
 If the IF EXISTS clause is present, the statement doesn't fail if the table
+doesn't exist.
+
+DROP FUNCTION [IF EXISTS];
+--------------------------
+
+**Synopsis**
+
+.. code:: sql
+
+    DROP FUNCTION [IF EXISTS] function_name;
+
+**Description**
+
+Drop an inline UDF from the function registry. Note: you cannot drop UDFs that were not
+created via the CREATE [OR REPLACE] FUNCTION query. Furthermore, if an active query
+is using a UDF that was dropped, it continues to use the underlying UDF instance
+it created when the query was first initiated. You must terminate the query in order
+to destroy existing instances of the UDF.
+
+If the IF EXISTS clause is present, the statement doesn't fail if the function
 doesn't exist.
 
 PRINT

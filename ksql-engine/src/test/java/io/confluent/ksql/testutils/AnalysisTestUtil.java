@@ -48,7 +48,7 @@ public final class AnalysisTestUtil {
     final LogicalPlanner logicalPlanner = new LogicalPlanner(
         analyzer.analysis,
         analyzer.aggregateAnalys(),
-        metaStore);
+        metaStore.getFunctionRegistry());
 
     return logicalPlanner.buildPlan();
   }

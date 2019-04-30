@@ -23,7 +23,7 @@ package io.confluent.ksql.function;
 public enum TestFunctionRegistry {
   INSTANCE;
 
-  private final transient FunctionRegistry delegate;
+  private final transient MutableFunctionRegistry delegate;
 
   TestFunctionRegistry() {
     final InternalFunctionRegistry mutable = new InternalFunctionRegistry();
@@ -31,7 +31,7 @@ public enum TestFunctionRegistry {
     this.delegate = mutable;
   }
 
-  public FunctionRegistry get() {
+  public MutableFunctionRegistry get() {
     return delegate;
   }
 }

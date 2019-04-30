@@ -31,7 +31,7 @@ import org.apache.kafka.connect.data.Schema.Type;
 @Immutable
 public final class KsqlFunction {
 
-  static final String INTERNAL_PATH = "internal";
+  public static final String INTERNAL_PATH = "internal";
 
   private final Schema returnType;
   private final List<Schema> arguments;
@@ -70,7 +70,7 @@ public final class KsqlFunction {
    *
    * <p>Can be either built-in UDF or true user-supplied.
    */
-  static KsqlFunction create(
+  public static KsqlFunction create(
       final Schema returnType,
       final List<Schema> arguments,
       final String functionName,

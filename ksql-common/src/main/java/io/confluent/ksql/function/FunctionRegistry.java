@@ -24,6 +24,16 @@ public interface FunctionRegistry {
   Schema DEFAULT_FUNCTION_ARG_SCHEMA = Schema.OPTIONAL_INT64_SCHEMA;
 
   /**
+   * Test if the supplied {@code functionName} is an inline function.
+   *
+   * <p>Note: unknown functions result in {@code false} return value.
+   *
+   * @param functionName the name of the function to test
+   * @return {@code true} if it is an inline function, {@code false} otherwise.
+   */
+  boolean isInline(String functionName);
+
+  /**
    * Test if the supplied {@code functionName} is an aggregate function.
    *
    * <p>Note: unknown functions result in {@code false} return value.

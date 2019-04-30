@@ -16,6 +16,12 @@ KSQL 5.3.0 includes new features, including:
   See `#2280 <https://github.com/confluentinc/ksql/pull/2636>`_ for more info.
 
 
+KSQL 5.3.0 includes bug fixes, including:
+
+* The ``ROWTIME`` of the row generated when a ``JOIN`` encounters late data was previous the ``ROWTIME`` of the late event,
+  where as now it is the max of ``ROWTIME`` of the rows involved in the join.  This provides more deterministic join semantics.
+
+
 Version 5.2.0
 -------------
 

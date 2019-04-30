@@ -25,6 +25,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
@@ -204,11 +205,11 @@ public class AggregateNodeTest {
     buildRequireRekey();
 
     // Then:
-    final TopologyDescription.Source node = (TopologyDescription.Source) getNodeByName(builder.build(), "KSTREAM-SOURCE-0000000009");
+    final TopologyDescription.Source node = (TopologyDescription.Source) getNodeByName(builder.build(), "KSTREAM-SOURCE-0000000008");
     final List<String> successors = node.successors().stream().map(TopologyDescription.Node::name).collect(Collectors.toList());
     assertThat(node.predecessors(), equalTo(Collections.emptySet()));
-    assertThat(successors, equalTo(Collections.singletonList("KSTREAM-AGGREGATE-0000000006")));
-    assertThat(node.topicSet(), hasItem(equalTo("Aggregate-groupby-repartition")));
+    assertThat(successors, equalTo(Collections.singletonList("KSTREAM-AGGREGATE-0000000005")));
+    assertThat(node.topicSet(), containsInAnyOrder("Aggregate-groupby-repartition"));
   }
 
   @Test
@@ -268,8 +269,8 @@ public class AggregateNodeTest {
         + "GROUP BY col1;");
 
     // Then:
-    final TopologyDescription.Sink sink = (TopologyDescription.Sink) getNodeByName(builder.build(), "KSTREAM-SINK-0000000007");
-    final TopologyDescription.Source source = (TopologyDescription.Source) getNodeByName(builder.build(), "KSTREAM-SOURCE-0000000009");
+    final TopologyDescription.Sink sink = (TopologyDescription.Sink) getNodeByName(builder.build(), "KSTREAM-SINK-0000000006");
+    final TopologyDescription.Source source = (TopologyDescription.Source) getNodeByName(builder.build(), "KSTREAM-SOURCE-0000000008");
     assertThat(sink.successors(), equalTo(Collections.emptySet()));
     assertThat(source.topicSet(), hasItem(sink.topic()));
   }

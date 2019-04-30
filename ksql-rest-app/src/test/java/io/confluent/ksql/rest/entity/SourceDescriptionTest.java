@@ -19,10 +19,10 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertThat;
 
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTopic;
-import io.confluent.ksql.metastore.model.StructuredDataSource;
 import io.confluent.ksql.metrics.ConsumerCollector;
 import io.confluent.ksql.metrics.StreamsErrorCollector;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
@@ -60,7 +60,7 @@ public class SourceDescriptionTest {
     consumerCollector.close();
   }
 
-  private StructuredDataSource<?> buildDataSource(final String kafkaTopicName) {
+  private DataSource<?> buildDataSource(final String kafkaTopicName) {
     final Schema schema = SchemaBuilder.struct()
         .field("field0", Schema.OPTIONAL_INT32_SCHEMA)
         .build();
@@ -88,7 +88,7 @@ public class SourceDescriptionTest {
   public void shouldReturnStatsBasedOnKafkaTopic() {
     // Given:
     final String kafkaTopicName = "kafka";
-    final StructuredDataSource<?> dataSource = buildDataSource(kafkaTopicName);
+    final DataSource<?> dataSource = buildDataSource(kafkaTopicName);
     consumerCollector.onConsume(buildRecords(kafkaTopicName));
     StreamsErrorCollector.recordError(APP_ID, kafkaTopicName);
 

@@ -20,8 +20,8 @@ import static java.util.Objects.requireNonNull;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.metastore.SerdeFactory;
+import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KsqlTopic;
-import io.confluent.ksql.metastore.model.StructuredDataSource;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.QualifiedName;
@@ -44,7 +44,7 @@ public class Analysis {
   private final Map<String, Object> intoProperties = new HashMap<>();
   private Format intoFormat = null;
   private String intoKafkaTopicName = null;
-  private final List<Pair<StructuredDataSource, String>> fromDataSources = new ArrayList<>();
+  private final List<Pair<DataSource<?>, String>> fromDataSources = new ArrayList<>();
   private JoinNode join;
   private Expression whereExpression = null;
   private final List<Expression> selectExpressions = new ArrayList<>();
@@ -72,7 +72,7 @@ public class Analysis {
   }
 
 
-  public List<Pair<StructuredDataSource, String>> getFromDataSources() {
+  public List<Pair<DataSource<?>, String>> getFromDataSources() {
     return fromDataSources;
   }
 
@@ -152,11 +152,11 @@ public class Analysis {
     this.limitClause = limitClause;
   }
 
-  public Pair<StructuredDataSource, String> getFromDataSource(final int index) {
+  public Pair<DataSource<?>, String> getFromDataSource(final int index) {
     return fromDataSources.get(index);
   }
 
-  void addDataSource(final Pair<StructuredDataSource, String> fromDataSource) {
+  void addDataSource(final Pair<DataSource<?>, String> fromDataSource) {
     fromDataSources.add(fromDataSource);
   }
 

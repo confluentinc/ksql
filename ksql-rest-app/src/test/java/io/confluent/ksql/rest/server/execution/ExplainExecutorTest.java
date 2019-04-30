@@ -15,7 +15,7 @@
 
 package io.confluent.ksql.rest.server.execution;
 
-import static io.confluent.ksql.metastore.model.StructuredDataSource.DataSourceType;
+import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.empty;

@@ -18,9 +18,9 @@ package io.confluent.ksql.planner.plan;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KeyField;
-import io.confluent.ksql.metastore.model.StructuredDataSource;
-import io.confluent.ksql.metastore.model.StructuredDataSource.DataSourceType;
 import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.physical.KsqlQueryBuilder;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
@@ -212,7 +212,7 @@ public class JoinNode extends PlanNode {
       throw new RuntimeException("The source for a join must be a Stream or a Table.");
     }
     final StructuredDataSourceNode dataSource = (StructuredDataSourceNode) node;
-    return dataSource.getStructuredDataSource().getName();
+    return dataSource.getDataSource().getName();
   }
 
   private static class JoinerFactory {
@@ -336,7 +336,7 @@ public class JoinNode extends PlanNode {
             "The source for Join must be a primitive data source (Stream or Table).");
       }
       final StructuredDataSourceNode dataSourceNode = (StructuredDataSourceNode) node;
-      final StructuredDataSource dataSource = dataSourceNode.getStructuredDataSource();
+      final DataSource<?> dataSource = dataSourceNode.getDataSource();
 
       final KsqlTopicSerDe ksqlTopicSerDe = dataSource
           .getKsqlTopic()

@@ -15,7 +15,7 @@
 
 package io.confluent.ksql.planner.plan;
 
-import static io.confluent.ksql.metastore.model.StructuredDataSource.DataSourceType;
+import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.getNodeByName;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.verifyProcessorNode;
 import static org.hamcrest.Matchers.equalTo;
@@ -81,7 +81,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class StructuredDataSourceNodeTest {
+public class DataSourceNodeTest {
 
   private static final String TIMESTAMP_FIELD = "timestamp";
   private static final PlanNodeId PLAN_NODE_ID = new PlanNodeId("0");

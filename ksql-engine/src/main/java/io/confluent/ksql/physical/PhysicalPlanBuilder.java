@@ -15,13 +15,14 @@
 
 package io.confluent.ksql.physical;
 
-import static io.confluent.ksql.metastore.model.StructuredDataSource.DataSourceType;
+import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 
 import io.confluent.ksql.errors.ProductionExceptionHandlerUtil;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.metastore.MutableMetaStore;
+import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.metastore.model.StructuredDataSource;
@@ -238,7 +239,7 @@ public class PhysicalPlanBuilder {
 
     final Schema sinkSchema = SchemaUtil.addImplicitRowTimeRowKeyToSchema(outputNode.getSchema());
 
-    final StructuredDataSource sinkDataSource;
+    final StructuredDataSource<?> sinkDataSource;
     if (schemaKStream instanceof SchemaKTable) {
       final SchemaKTable<?> schemaKTable = (SchemaKTable) schemaKStream;
       sinkDataSource =
@@ -310,7 +311,7 @@ public class PhysicalPlanBuilder {
       return;
     }
 
-    final StructuredDataSource<?> existing =
+    final DataSource<?> existing =
         metaStore.getSource(sinkDataSource.getName());
 
     if (existing.getDataSourceType() != sinkDataSource.getDataSourceType()) {

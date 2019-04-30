@@ -31,9 +31,9 @@ import static org.junit.Assert.assertTrue;
 import io.confluent.ksql.analyzer.Analysis.Into;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
-import io.confluent.ksql.metastore.model.StructuredDataSource;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.KsqlParserTestUtil;
 import io.confluent.ksql.parser.tree.ComparisonExpression;
@@ -85,7 +85,7 @@ public class QueryAnalyzerTest {
     final Analysis analysis = queryAnalyzer.analyze("sqlExpression", query, Optional.empty());
 
     // Then:
-    final Pair<StructuredDataSource, String> fromDataSource = analysis.getFromDataSource(0);
+    final Pair<DataSource<?>, String> fromDataSource = analysis.getFromDataSource(0);
     assertThat(analysis.getSelectExpressions(), equalTo(Collections.singletonList(ORDER_ID)));
     assertThat(analysis.getFromDataSources().size(), equalTo(1));
     assertThat(fromDataSource.left, instanceOf(KsqlStream.class));
@@ -109,7 +109,7 @@ public class QueryAnalyzerTest {
 
     assertThat(analysis.getFromDataSources(), hasSize(1));
 
-    final Pair<StructuredDataSource, String> fromDataSource = analysis.getFromDataSource(0);
+    final Pair<DataSource<?>, String> fromDataSource = analysis.getFromDataSource(0);
     assertThat(fromDataSource.left, instanceOf(KsqlStream.class));
     assertThat(fromDataSource.right, equalTo("TEST1"));
     assertThat(analysis.getInto().get().getName(), is("S"));
@@ -132,7 +132,7 @@ public class QueryAnalyzerTest {
 
     assertThat(analysis.getFromDataSources(), hasSize(1));
 
-    final Pair<StructuredDataSource, String> fromDataSource = analysis.getFromDataSource(0);
+    final Pair<DataSource<?>, String> fromDataSource = analysis.getFromDataSource(0);
     assertThat(fromDataSource.left, instanceOf(KsqlTable.class));
     assertThat(fromDataSource.right, equalTo("TEST2"));
     assertThat(analysis.getInto().get().getName(), is("T"));
@@ -155,12 +155,12 @@ public class QueryAnalyzerTest {
 
     assertThat(analysis.getFromDataSources(), hasSize(1));
 
-    final Pair<StructuredDataSource, String> fromDataSource = analysis.getFromDataSource(0);
+    final Pair<DataSource<?>, String> fromDataSource = analysis.getFromDataSource(0);
     assertThat(fromDataSource.left, instanceOf(KsqlStream.class));
     assertThat(fromDataSource.right, equalTo("TEST1"));
     assertThat(analysis.getInto(), is(not(Optional.empty())));
     final Into into = analysis.getInto().get();
-    final StructuredDataSource<?> test0 = metaStore.getSource("TEST0");
+    final DataSource<?> test0 = metaStore.getSource("TEST0");
     assertThat(into.getName(), is(test0.getName()));
     assertThat(into.getKsqlTopic(), is(test0.getKsqlTopic()));
     assertThat(into.getKeySerdeFactory().create(),

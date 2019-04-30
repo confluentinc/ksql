@@ -20,7 +20,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeName;
-import io.confluent.ksql.metastore.model.StructuredDataSource;
+import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.rest.util.EntityUtil;
 import io.confluent.ksql.services.KafkaTopicClient;
@@ -86,7 +86,7 @@ public class SourceDescription {
   }
 
   public SourceDescription(
-      final StructuredDataSource<?> dataSource,
+      final DataSource<?> dataSource,
       final boolean extended,
       final String format,
       final List<RunningQuery> readQueries,

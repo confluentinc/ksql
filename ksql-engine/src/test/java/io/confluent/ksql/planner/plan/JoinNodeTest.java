@@ -15,7 +15,7 @@
 
 package io.confluent.ksql.planner.plan;
 
-import static io.confluent.ksql.metastore.model.StructuredDataSource.DataSourceType;
+import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.MAPVALUES_NODE;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.SOURCE_NODE;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.getNodeByName;
@@ -42,6 +42,7 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.metastore.model.StructuredDataSource;
@@ -91,7 +92,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 
-@SuppressWarnings("SameParameterValue")
+@SuppressWarnings({"SameParameterValue", "OptionalGetWithoutIsPresent"})
 @RunWith(MockitoJUnitRunner.class)
 public class JoinNodeTest {
 
@@ -125,7 +126,7 @@ public class JoinNodeTest {
   private SchemaKTable leftSchemaKTable;
   private SchemaKTable rightSchemaKTable;
   private Field joinKey;
-  private ProcessingLogContext processingLogContext = ProcessingLogContext.create();
+  private final ProcessingLogContext processingLogContext = ProcessingLogContext.create();
   @Mock
   private KsqlQueryBuilder ksqlStreamBuilder;
 
@@ -286,9 +287,9 @@ public class JoinNodeTest {
     setupTopicClientExpectations(1, 1);
     buildJoin();
     final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
-    final StructuredDataSource source1
+    final DataSource<?> source1
         = metaStore.getSource("TEST1");
-    final StructuredDataSource source2 = metaStore.getSource("TEST2");
+    final DataSource<?> source2 = metaStore.getSource("TEST2");
     final Set<String> expected = source1.getSchema()
         .fields().stream()
         .map(field -> "T1."+field.name()).collect(Collectors.toSet());
@@ -424,7 +425,6 @@ public class JoinNodeTest {
     assertEquals(JoinNode.JoinType.OUTER, joinNode.getJoinType());
   }
 
-  @SuppressWarnings("unchecked")
   @Test
   public void shouldNotPerformStreamStreamJoinWithoutJoinWindow() {
     expect(left.getSchema()).andReturn(leftSchema);
@@ -465,8 +465,6 @@ public class JoinNodeTest {
     assertEquals(JoinNode.JoinType.INNER, joinNode.getJoinType());
   }
 
-
-  @SuppressWarnings("unchecked")
   @Test
   public void shouldNotPerformJoinIfInputPartitionsMisMatch() {
     expect(left.getSchema()).andReturn(leftSchema);
@@ -652,7 +650,6 @@ public class JoinNodeTest {
     assertEquals(JoinNode.JoinType.INNER, joinNode.getJoinType());
   }
 
-  @SuppressWarnings("unchecked")
   @Test
   public void shouldNotAllowStreamToTableOuterJoin() {
     // Given:
@@ -692,7 +689,6 @@ public class JoinNodeTest {
     assertEquals(JoinNode.JoinType.OUTER, joinNode.getJoinType());
   }
 
-  @SuppressWarnings("unchecked")
   @Test
   public void shouldNotPerformStreamToTableJoinIfJoinWindowIsSpecified() {
     expect(left.getSchema()).andReturn(leftSchema);
@@ -735,7 +731,6 @@ public class JoinNodeTest {
     assertEquals(JoinNode.JoinType.OUTER, joinNode.getJoinType());
   }
 
-  @SuppressWarnings("unchecked")
   @Test
   public void shouldFailTableTableJoinIfLeftCriteriaColumnIsNotKey() {
     setupTable(left, leftSchemaKTable, leftSchema, 2);
@@ -775,7 +770,6 @@ public class JoinNodeTest {
     fail("buildStream did not throw exception");
   }
 
-  @SuppressWarnings("unchecked")
   @Test
   public void shouldFailTableTableJoinIfRightCriteriaColumnIsNotKey() {
     setupTable(left, leftSchemaKTable, leftSchema, 2);
@@ -938,7 +932,6 @@ public class JoinNodeTest {
     assertEquals(JoinNode.JoinType.OUTER, joinNode.getJoinType());
   }
 
-  @SuppressWarnings("unchecked")
   @Test
   public void shouldNotPerformTableToTableJoinIfJoinWindowIsSpecified() {
     expect(left.getSchema()).andReturn(leftSchema);
@@ -1030,9 +1023,10 @@ public class JoinNodeTest {
     expect(node.buildStream(ksqlStreamBuilder)).andReturn(table);
   }
 
+  @SuppressWarnings("unchecked")
   private static void expectSourceName(final StructuredDataSourceNode node) {
-    final StructuredDataSource dataSource = niceMock(StructuredDataSource.class);
-    expect(node.getStructuredDataSource()).andReturn(dataSource).anyTimes();
+    final DataSource<?> dataSource = niceMock(StructuredDataSource.class);
+    expect(node.getDataSource()).andReturn((DataSource)dataSource).anyTimes();
 
     expect(dataSource.getName()).andReturn("Foobar").anyTimes();
     replay(dataSource);
@@ -1085,6 +1079,7 @@ public class JoinNodeTest {
     for (final Field field : rightSchema.fields()) {
       schemaBuilder.field(field.name(), field.schema());
     }
+
     return schemaBuilder.build();
   }
 
@@ -1092,11 +1087,11 @@ public class JoinNodeTest {
   private void expectGetSerde(final StructuredDataSourceNode node,
                               final Schema schema,
                               final String loggerNamePrefix) {
-    final StructuredDataSource structuredDataSource = niceMock(StructuredDataSource.class);
-    expect(node.getStructuredDataSource()).andReturn(structuredDataSource);
+    final DataSource<?> dataSource = niceMock(StructuredDataSource.class);
+    expect(node.getDataSource()).andReturn((DataSource)dataSource);
 
     final KsqlTopic ksqlTopic = niceMock(KsqlTopic.class);
-    expect(structuredDataSource.getKsqlTopic()).andReturn(ksqlTopic);
+    expect(dataSource.getKsqlTopic()).andReturn(ksqlTopic);
 
     final KsqlTopicSerDe ksqlTopicSerde = niceMock(KsqlTopicSerDe.class);
     expect(ksqlTopic.getKsqlTopicSerDe()).andReturn(ksqlTopicSerde);
@@ -1109,7 +1104,7 @@ public class JoinNodeTest {
         loggerNamePrefix,
         processingLogContext))
         .andReturn(serde);
-    replay(structuredDataSource, ksqlTopic, ksqlTopicSerde);
+    replay(dataSource, ksqlTopic, ksqlTopicSerde);
   }
 
   @SuppressWarnings("unchecked")

@@ -17,7 +17,7 @@ package io.confluent.ksql.util;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.internal.QueryStateListener;
-import io.confluent.ksql.metastore.model.StructuredDataSource.DataSourceType;
+import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.util.Map;
 import java.util.Objects;

@@ -15,7 +15,7 @@
 
 package io.confluent.ksql.ddl.commands;
 
-import static io.confluent.ksql.metastore.model.StructuredDataSource.DataSourceType;
+import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateTable;

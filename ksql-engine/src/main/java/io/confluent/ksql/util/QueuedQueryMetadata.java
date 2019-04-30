@@ -16,7 +16,7 @@
 package io.confluent.ksql.util;
 
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.metastore.model.StructuredDataSource.DataSourceType;
+import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.physical.LimitHandler;
 import java.util.Map;
 import java.util.Objects;

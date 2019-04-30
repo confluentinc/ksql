@@ -26,6 +26,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.metastore.model.StructuredDataSource;
 import io.confluent.ksql.util.KsqlException;
@@ -142,7 +143,7 @@ public class MetaStoreImplTest {
     // Given:
     metaStore.putSource(dataSource);
 
-    final Map<String, StructuredDataSource<?>> dataSources = metaStore
+    final Map<String, DataSource<?>> dataSources = metaStore
         .getAllStructuredDataSources();
 
     // When

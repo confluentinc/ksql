@@ -15,7 +15,7 @@
 
 package io.confluent.ksql.planner.plan;
 
-import static io.confluent.ksql.metastore.model.StructuredDataSource.DataSourceType;
+import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import static java.util.Objects.requireNonNull;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
@@ -201,7 +201,7 @@ public class AggregateNode extends PlanNode {
 
     final QueryContext.Stacker groupByContext = contextStacker.push(GROUP_BY_OP_NAME);
 
-    final KsqlTopicSerDe ksqlTopicSerDe = streamSourceNode.getStructuredDataSource()
+    final KsqlTopicSerDe ksqlTopicSerDe = streamSourceNode.getDataSource()
         .getKsqlTopicSerde();
 
     final Serde<GenericRow> genericRowSerde = builder.buildGenericRowSerde(

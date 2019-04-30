@@ -19,8 +19,8 @@ import static io.confluent.ksql.util.ExecutorUtil.RetryBehaviour.ALWAYS;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.metastore.MutableMetaStore;
-import io.confluent.ksql.metastore.model.StructuredDataSource;
-import io.confluent.ksql.metastore.model.StructuredDataSource.DataSourceType;
+import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.parser.tree.AbstractStreamDropStatement;
 import io.confluent.ksql.schema.registry.SchemaRegistryUtil;
 import io.confluent.ksql.serde.Format;
@@ -57,7 +57,7 @@ public class DropSourceCommand implements DdlCommand {
 
   @Override
   public DdlCommandResult run(final MutableMetaStore metaStore) {
-    final StructuredDataSource dataSource = metaStore.getSource(sourceName);
+    final DataSource<?> dataSource = metaStore.getSource(sourceName);
     if (dataSource == null) {
       if (ifExists) {
         return new DdlCommandResult(true, "Source " + sourceName + " does not exist.");
@@ -88,7 +88,7 @@ public class DropSourceCommand implements DdlCommand {
             + "to complete." : ""));
   }
 
-  private void deleteTopicIfNeeded(final StructuredDataSource dataSource) {
+  private void deleteTopicIfNeeded(final DataSource<?> dataSource) {
     if (!deleteTopic) {
       return;
     }

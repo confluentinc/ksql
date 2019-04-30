@@ -25,7 +25,7 @@ import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import org.apache.kafka.connect.data.Schema;
 
 @Immutable
-public abstract class StructuredDataSource<K> {
+public abstract class StructuredDataSource<K> implements DataSource<K> {
 
   private final String dataSourceName;
   private final DataSourceType dataSourceType;
@@ -57,63 +57,59 @@ public abstract class StructuredDataSource<K> {
     this.keySerde = requireNonNull(keySerde, "keySerde");
   }
 
+  @Override
   public String getName() {
     return this.dataSourceName;
   }
 
+  @Override
   public DataSourceType getDataSourceType() {
     return this.dataSourceType;
   }
 
+  @Override
   public Schema getSchema() {
     return schema.getSchema();
   }
 
+  @Override
   public KeyField getKeyField() {
     return keyField;
   }
 
+  @Override
   public KsqlTopic getKsqlTopic() {
     return ksqlTopic;
   }
 
+  @Override
   public SerdeFactory<K> getKeySerdeFactory() {
     return keySerde;
   }
 
+  @Override
   public KsqlTopicSerDe getKsqlTopicSerde() {
     return ksqlTopic.getKsqlTopicSerDe();
   }
 
+  @Override
   public TimestampExtractionPolicy getTimestampExtractionPolicy() {
     return timestampExtractionPolicy;
   }
 
+  @Override
   public String getKsqlTopicName() {
     return ksqlTopic.getKsqlTopicName();
   }
 
+  @Override
   public String getKafkaTopicName() {
     return ksqlTopic.getKafkaTopicName();
   }
 
+  @Override
   public String getSqlExpression() {
     return sqlExpression;
   }
 
-  public enum DataSourceType {
-
-    KSTREAM("STREAM"),
-    KTABLE("TABLE");
-
-    private final String ksqlType;
-
-    DataSourceType(final String ksqlType) {
-      this.ksqlType = ksqlType;
-    }
-
-    public String getKsqlType() {
-      return ksqlType;
-    }
-  }
 }

@@ -19,6 +19,7 @@ import io.confluent.ksql.function.AggregateFunctionFactory;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.UdfFactory;
+import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.metastore.model.StructuredDataSource;
 import io.confluent.ksql.util.KsqlException;
@@ -72,7 +73,7 @@ public final class MetaStoreImpl implements MutableMetaStore {
   }
 
   @Override
-  public StructuredDataSource<?> getSource(final String sourceName) {
+  public DataSource<?> getSource(final String sourceName) {
     final SourceInfo source = dataSources.get(sourceName);
     if (source == null) {
       return null;
@@ -80,9 +81,8 @@ public final class MetaStoreImpl implements MutableMetaStore {
     return source.source;
   }
 
-  @SuppressWarnings("unchecked")
   @Override
-  public List<StructuredDataSource<?>> getSourcesForKafkaTopic(final String kafkaTopicName) {
+  public List<DataSource<?>> getSourcesForKafkaTopic(final String kafkaTopicName) {
     return dataSources.values()
         .stream()
         .map(sourceInfo -> sourceInfo.source)
@@ -139,7 +139,7 @@ public final class MetaStoreImpl implements MutableMetaStore {
   }
 
   @Override
-  public Map<String, StructuredDataSource<?>> getAllStructuredDataSources() {
+  public Map<String, DataSource<?>> getAllStructuredDataSources() {
     return dataSources
         .entrySet()
         .stream()
@@ -261,18 +261,18 @@ public final class MetaStoreImpl implements MutableMetaStore {
 
   private static final class SourceInfo {
 
-    private final StructuredDataSource<?> source;
+    private final DataSource<?> source;
     private final ReferentialIntegrityTableEntry referentialIntegrity;
 
     private SourceInfo(
-        final StructuredDataSource<?> source
+        final DataSource<?> source
     ) {
       this.source = Objects.requireNonNull(source, "source");
       this.referentialIntegrity = new ReferentialIntegrityTableEntry();
     }
 
     private SourceInfo(
-        final StructuredDataSource<?> source,
+        final DataSource<?> source,
         final ReferentialIntegrityTableEntry referentialIntegrity
     ) {
       this.source = Objects.requireNonNull(source, "source");

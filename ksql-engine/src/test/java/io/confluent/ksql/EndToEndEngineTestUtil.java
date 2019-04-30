@@ -47,7 +47,7 @@ import io.confluent.ksql.function.TestFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.MutableMetaStore;
-import io.confluent.ksql.metastore.model.StructuredDataSource;
+import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
@@ -686,16 +686,16 @@ final class EndToEndEngineTestUtil {
 
     static final PostConditions NONE = new PostConditions(hasItems(anything()));
 
-    final Matcher<Iterable<StructuredDataSource<?>>> sourcesMatcher;
+    final Matcher<Iterable<DataSource<?>>> sourcesMatcher;
 
     PostConditions(
-        final Matcher<Iterable<StructuredDataSource<?>>> sourcesMatcher
+        final Matcher<Iterable<DataSource<?>>> sourcesMatcher
     ) {
       this.sourcesMatcher = Objects.requireNonNull(sourcesMatcher, "sourcesMatcher");
     }
 
     public void verify(final MetaStore metaStore) {
-      final Collection<StructuredDataSource<?>> values = metaStore
+      final Collection<DataSource<?>> values = metaStore
           .getAllStructuredDataSources()
           .values();
 

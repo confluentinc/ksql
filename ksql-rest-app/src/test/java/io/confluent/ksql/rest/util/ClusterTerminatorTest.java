@@ -36,6 +36,7 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.metastore.model.StructuredDataSource;
 import io.confluent.ksql.serde.Format;
@@ -423,7 +424,7 @@ public class ClusterTerminatorTest {
 
   private void givenTopicsUseAvroSerdes(final String... topicNames) {
     for (final String topicName : topicNames) {
-      final StructuredDataSource<?> dataSource = mock(StructuredDataSource.class);
+      final DataSource<?> dataSource = mock(StructuredDataSource.class);
       final KsqlTopicSerDe ksqlTopicSerDe = mock(KsqlTopicSerDe.class);
 
       when(dataSource.getKsqlTopicSerde()).thenReturn(ksqlTopicSerDe);

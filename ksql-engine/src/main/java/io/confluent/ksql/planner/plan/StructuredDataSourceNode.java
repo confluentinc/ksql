@@ -21,6 +21,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
@@ -89,7 +90,7 @@ public class StructuredDataSourceNode
   private static final String SOURCE_OP_NAME = "source";
   private static final String REDUCE_OP_NAME = "reduce";
 
-  private final StructuredDataSource<?> structuredDataSource;
+  private final DataSource<?> dataSource;
   private final Schema schema;
   private final KeyField keyField;
   private final Function<KsqlConfig, MaterializedFactory> materializedFactorySupplier;
@@ -97,27 +98,27 @@ public class StructuredDataSourceNode
   @JsonCreator
   public StructuredDataSourceNode(
       @JsonProperty("id") final PlanNodeId id,
-      @JsonProperty("structuredDataSource") final StructuredDataSource structuredDataSource,
+      @JsonProperty("dataSource") final DataSource<?> dataSource,
       @JsonProperty("alias") final String alias
   ) {
-    this(id, structuredDataSource, alias, MaterializedFactory::create);
+    this(id, dataSource, alias, MaterializedFactory::create);
   }
 
   @VisibleForTesting
   StructuredDataSourceNode(
       final PlanNodeId id,
-      final StructuredDataSource structuredDataSource,
+      final DataSource<?> dataSource,
       final String alias,
       final Function<KsqlConfig, MaterializedFactory> materializedFactorySupplier
   ) {
-    super(id, structuredDataSource.getDataSourceType());
-    this.structuredDataSource = requireNonNull(structuredDataSource, "structuredDataSource");
-    this.schema = SchemaUtil.buildSchemaWithAlias(structuredDataSource.getSchema(), alias);
+    super(id, dataSource.getDataSourceType());
+    this.dataSource = requireNonNull(dataSource, "dataSource");
+    this.schema = SchemaUtil.buildSchemaWithAlias(dataSource.getSchema(), alias);
 
-    final Optional<String> keyFieldName = structuredDataSource.getKeyField().name()
+    final Optional<String> keyFieldName = dataSource.getKeyField().name()
         .map(name -> SchemaUtil.buildAliasedFieldName(alias, name));
 
-    this.keyField = KeyField.of(keyFieldName, structuredDataSource.getKeyField().legacy())
+    this.keyField = KeyField.of(keyFieldName, dataSource.getKeyField().legacy())
         .validateKeyExistsIn(schema);
 
     this.materializedFactorySupplier =
@@ -125,7 +126,7 @@ public class StructuredDataSourceNode
   }
 
   public String getTopicName() {
-    return structuredDataSource.getKsqlTopicName();
+    return dataSource.getKsqlTopicName();
   }
 
   @Override
@@ -138,13 +139,13 @@ public class StructuredDataSourceNode
     return keyField;
   }
 
-  public StructuredDataSource getStructuredDataSource() {
-    return structuredDataSource;
+  public DataSource<?> getDataSource() {
+    return dataSource;
   }
 
   @Override
   public int getPartitions(final KafkaTopicClient kafkaTopicClient) {
-    final String topicName = getStructuredDataSource().getKsqlTopic().getKafkaTopicName();
+    final String topicName = getDataSource().getKsqlTopic().getKafkaTopicName();
 
     return kafkaTopicClient.describeTopic(topicName)
         .partitions()
@@ -169,7 +170,7 @@ public class StructuredDataSourceNode
     final TimestampExtractor timestampExtractor = getTimestampExtractionPolicy()
         .create(timeStampColumnIndex);
 
-    final KsqlTopicSerDe ksqlTopicSerDe = getStructuredDataSource()
+    final KsqlTopicSerDe ksqlTopicSerDe = getDataSource()
         .getKsqlTopic()
         .getKsqlTopicSerDe();
 
@@ -180,7 +181,7 @@ public class StructuredDataSourceNode
     );
 
     if (getDataSourceType() == StructuredDataSource.DataSourceType.KTABLE) {
-      final KsqlTable table = (KsqlTable) getStructuredDataSource();
+      final KsqlTable table = (KsqlTable) getDataSource();
       final QueryContext.Stacker reduceContextStacker = contextStacker.push(REDUCE_OP_NAME);
 
       final Serde<GenericRow> aggregateSerde = builder.buildGenericRowSerde(
@@ -211,7 +212,7 @@ public class StructuredDataSourceNode
       );
     }
 
-    final KsqlStream stream = (KsqlStream) getStructuredDataSource();
+    final KsqlStream stream = (KsqlStream) getDataSource();
     final KStream kstream = createKStream(
         builder.getStreamsBuilder(),
         timestampExtractor,
@@ -293,7 +294,7 @@ public class StructuredDataSourceNode
       final StreamsBuilder builder,
       final TimestampExtractor timestampExtractor,
       final Serde<GenericRow> streamSerde) {
-    final KsqlStream ksqlStream = (KsqlStream) getStructuredDataSource();
+    final KsqlStream ksqlStream = (KsqlStream) getDataSource();
 
     if (ksqlStream.hasWindowedKey()) {
       return stream(builder, timestampExtractor, streamSerde,
@@ -316,7 +317,7 @@ public class StructuredDataSourceNode
         .withTimestampExtractor(timestampExtractor);
 
     return builder
-        .stream(getStructuredDataSource().getKsqlTopic().getKafkaTopicName(), consumed)
+        .stream(getDataSource().getKsqlTopic().getKafkaTopicName(), consumed)
         .mapValues(mapper)
         .transformValues(new AddTimestampColumn());
   }
@@ -343,7 +344,7 @@ public class StructuredDataSourceNode
     //    that the key was deleted. So we preserve these "tombstone" records by converting them
     //    to a not-null representation.
     // 5. Aggregate the KStream into a KTable using a custom aggregator that handles Optional.EMPTY
-    final KsqlTable ksqlTable = (KsqlTable) getStructuredDataSource();
+    final KsqlTable ksqlTable = (KsqlTable) getDataSource();
 
     if (ksqlTable.isWindowed()) {
       return table(
@@ -393,10 +394,10 @@ public class StructuredDataSourceNode
   }
 
   public StructuredDataSource.DataSourceType getDataSourceType() {
-    return structuredDataSource.getDataSourceType();
+    return dataSource.getDataSourceType();
   }
 
   private TimestampExtractionPolicy getTimestampExtractionPolicy() {
-    return structuredDataSource.getTimestampExtractionPolicy();
+    return dataSource.getTimestampExtractionPolicy();
   }
 }

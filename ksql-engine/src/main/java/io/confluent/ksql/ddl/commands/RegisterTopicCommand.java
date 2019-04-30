@@ -18,8 +18,8 @@ package io.confluent.ksql.ddl.commands;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MutableMetaStore;
+import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KsqlTopic;
-import io.confluent.ksql.metastore.model.StructuredDataSource;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.serde.Format;
@@ -126,7 +126,7 @@ public class RegisterTopicCommand implements DdlCommand {
   }
 
   private String getSourceType(final MetaStore metaStore) {
-    final StructuredDataSource source = metaStore.getSource(topicName);
+    final DataSource<?> source = metaStore.getSource(topicName);
     if (source == null) {
       return "A topic";
     }

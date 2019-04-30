@@ -15,7 +15,7 @@
 
 package io.confluent.ksql.parser;
 
-import static io.confluent.ksql.metastore.model.StructuredDataSource.DataSourceType;
+import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import static io.confluent.ksql.schema.ksql.TypeContextUtil.getType;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toList;
@@ -23,7 +23,7 @@ import static java.util.stream.Collectors.toList;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.metastore.model.StructuredDataSource;
+import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.parser.SqlBaseParser.IntegerLiteralContext;
 import io.confluent.ksql.parser.SqlBaseParser.IntervalClauseContext;
 import io.confluent.ksql.parser.SqlBaseParser.LimitClauseContext;
@@ -264,7 +264,7 @@ public class AstBuilder {
       final QualifiedName targetName = ParserUtil.getQualifiedName(context.qualifiedName());
       final Optional<NodeLocation> targetLocation = getLocation(context.qualifiedName());
 
-      final StructuredDataSource target =
+      final DataSource<?> target =
           getSource(targetName.getSuffix(), targetLocation);
 
       if (target.getDataSourceType() != DataSourceType.KSTREAM) {
@@ -358,15 +358,15 @@ public class AstBuilder {
         final Join join = (Join) from;
         if (allColumns.getPrefix().isPresent()) {
           final QualifiedName alias = allColumns.getPrefix().get();
-          final StructuredDataSource source = getDataSourceForAlias(join, alias);
+          final DataSource<?> source = getDataSourceForAlias(join, alias);
           final String aliasStr = alias.toString();
           addFieldsFromDataSource(selectItems, source, location, aliasStr, aliasStr, allColumns);
         } else {
           final AliasedRelation left = (AliasedRelation) join.getLeft();
-          final StructuredDataSource leftDataSource =
+          final DataSource<?> leftDataSource =
               getSource(left.getRelation().toString(), left.getRelation().getLocation());
           final AliasedRelation right = (AliasedRelation) join.getRight();
-          final StructuredDataSource rightDataSource =
+          final DataSource<?> rightDataSource =
               getSource(right.getRelation().toString(), right.getRelation().getLocation());
 
           addFieldsFromDataSource(selectItems, leftDataSource, location,
@@ -377,7 +377,7 @@ public class AstBuilder {
       } else {
         final AliasedRelation fromRel = (AliasedRelation) from;
         final Table table = (Table) fromRel.getRelation();
-        final StructuredDataSource fromDataSource =
+        final DataSource<?> fromDataSource =
             getSource(table.getName().getSuffix(), table.getLocation());
 
         addFieldsFromDataSource(selectItems, fromDataSource, location,
@@ -388,7 +388,7 @@ public class AstBuilder {
 
     private static void addFieldsFromDataSource(
         final List<SelectItem> selectItems,
-        final StructuredDataSource dataSource,
+        final DataSource<?> dataSource,
         final Optional<NodeLocation> location,
         final String alias,
         final String columnNamePrefix,
@@ -413,7 +413,7 @@ public class AstBuilder {
       }
     }
 
-    private StructuredDataSource getDataSourceForAlias(
+    private DataSource<?> getDataSourceForAlias(
         final Join join,
         final QualifiedName alias
     ) {
@@ -432,7 +432,7 @@ public class AstBuilder {
             + rightAliased.getAlias() + "'");
       }
 
-      final StructuredDataSource source = metaStore.getSource(sourceName);
+      final DataSource<?> source = metaStore.getSource(sourceName);
 
       if (source == null) {
         throw new InvalidColumnReferenceException(
@@ -1306,11 +1306,11 @@ public class AstBuilder {
           : OptionalInt.of(processIntegerNumber(limitContext.number(), "LIMIT"));
     }
 
-    private StructuredDataSource getSource(
+    private DataSource<?> getSource(
         final String name,
         final Optional<NodeLocation> location
     ) {
-      final StructuredDataSource source = metaStore.getSource(name);
+      final DataSource<?> source = metaStore.getSource(name);
       if (source == null) {
         throw new InvalidColumnReferenceException(location, name + " does not exist.");
       }

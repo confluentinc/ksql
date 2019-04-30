@@ -15,8 +15,8 @@
 
 package io.confluent.ksql.planner;
 
+import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import static io.confluent.ksql.metastore.model.MetaStoreMatchers.FieldMatchers.hasName;
-import static io.confluent.ksql.metastore.model.StructuredDataSource.DataSourceType;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -24,9 +24,9 @@ import static org.hamcrest.Matchers.is;
 
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.MetaStoreMatchers.FieldMatchers;
 import io.confluent.ksql.metastore.model.MetaStoreMatchers.OptionalMatchers;
-import io.confluent.ksql.metastore.model.StructuredDataSource;
 import io.confluent.ksql.planner.plan.AggregateNode;
 import io.confluent.ksql.planner.plan.FilterNode;
 import io.confluent.ksql.planner.plan.JoinNode;
@@ -54,16 +54,16 @@ public class LogicalPlannerTest {
   public void shouldCreatePlanWithTableAsSource() {
     final PlanNode planNode = buildLogicalPlan("select col0 from TEST2 limit 5;");
     assertThat(planNode.getSources().size(), equalTo(1));
-    final StructuredDataSource structuredDataSource = ((StructuredDataSourceNode) planNode
+    final DataSource<?> dataSource = ((StructuredDataSourceNode) planNode
         .getSources()
         .get(0)
         .getSources()
         .get(0))
-        .getStructuredDataSource();
-    assertThat(structuredDataSource
+        .getDataSource();
+    assertThat(dataSource
             .getDataSourceType(),
         equalTo(DataSourceType.KTABLE));
-    assertThat(structuredDataSource.getName(), equalTo("TEST2"));
+    assertThat(dataSource.getName(), equalTo("TEST2"));
   }
 
   @Test

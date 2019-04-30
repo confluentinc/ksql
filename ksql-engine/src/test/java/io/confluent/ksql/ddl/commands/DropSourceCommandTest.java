@@ -15,7 +15,7 @@
 
 package io.confluent.ksql.ddl.commands;
 
-import static io.confluent.ksql.metastore.model.StructuredDataSource.DataSourceType;
+import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -26,7 +26,7 @@ import static org.mockito.Mockito.when;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.metastore.MutableMetaStore;
-import io.confluent.ksql.metastore.model.StructuredDataSource;
+import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.serde.Format;
@@ -60,7 +60,7 @@ public class DropSourceCommandTest {
   @Mock
   private SchemaRegistryClient schemaRegistryClient;
   @Mock
-  private StructuredDataSource<?> dataSource;
+  private DataSource<?> dataSource;
   @Mock
   private KsqlTopicSerDe ksqlTopicSerDe;
 
@@ -72,7 +72,7 @@ public class DropSourceCommandTest {
   @SuppressWarnings("unchecked")
   @Before
   public void setUp() {
-    when(metaStore.getSource(STREAM_NAME)).thenReturn((StructuredDataSource)dataSource);
+    when(metaStore.getSource(STREAM_NAME)).thenReturn((DataSource)dataSource);
     when(dataSource.getDataSourceType()).thenReturn(DataSourceType.KSTREAM);
     when(dataSource.getKafkaTopicName()).thenReturn(TOPIC_NAME);
     when(dataSource.getKsqlTopicSerde()).thenReturn(ksqlTopicSerDe);

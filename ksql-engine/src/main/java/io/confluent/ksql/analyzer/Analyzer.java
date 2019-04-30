@@ -20,8 +20,8 @@ import static java.lang.String.format;
 import io.confluent.ksql.analyzer.Analysis.Into;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KsqlTopic;
-import io.confluent.ksql.metastore.model.StructuredDataSource;
 import io.confluent.ksql.parser.DefaultTraversalVisitor;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AllColumns;
@@ -160,7 +160,7 @@ class Analyzer {
     setIntoProperties(sink);
 
     if (!sink.shouldCreateSink()) {
-      final StructuredDataSource<?> existing = metaStore.getSource(sink.getName());
+      final DataSource<?> existing = metaStore.getSource(sink.getName());
       if (existing == null) {
         throw new KsqlException("Unknown source: " + sink.getName());
       }
@@ -201,7 +201,7 @@ class Analyzer {
   }
 
   private KsqlTopicSerDe getIntoValueSerde() {
-    final List<Pair<StructuredDataSource, String>> fromDataSources = analysis
+    final List<Pair<DataSource<?>, String>> fromDataSources = analysis
         .getFromDataSources();
 
     if (analysis.getIntoFormat() != null) {
@@ -257,7 +257,7 @@ class Analyzer {
     if (serdeProperty != null) {
       format = Format.of(StringUtil.cleanQuotes(serdeProperty.toString()));
     } else {
-      final StructuredDataSource leftSource = analysis.getFromDataSource(0).left;
+      final DataSource<?> leftSource = analysis.getFromDataSource(0).left;
       format = leftSource.getKsqlTopic().getKsqlTopicSerDe().getSerDe();
     }
 
@@ -376,13 +376,13 @@ class Analyzer {
       final AliasedRelation right = (AliasedRelation) process(node.getRight(), context);
 
       final String leftSideName = ((Table) left.getRelation()).getName().getSuffix();
-      final StructuredDataSource leftDataSource = metaStore.getSource(leftSideName);
+      final DataSource<?> leftDataSource = metaStore.getSource(leftSideName);
       if (leftDataSource == null) {
         throw new KsqlException(format("Resource %s does not exist.", leftSideName));
       }
 
       final String rightSideName = ((Table) right.getRelation()).getName().getSuffix();
-      final StructuredDataSource rightDataSource = metaStore.getSource(rightSideName);
+      final DataSource<?> rightDataSource = metaStore.getSource(rightSideName);
       if (rightDataSource == null) {
         throw new KsqlException(format("Resource %s does not exist.", rightSideName));
       }
@@ -536,7 +536,7 @@ class Analyzer {
         throw new KsqlException(structuredDataSourceName + " does not exist.");
       }
 
-      final Pair<StructuredDataSource, String> fromDataSource =
+      final Pair<DataSource<?>, String> fromDataSource =
           new Pair<>(
               metaStore.getSource(structuredDataSourceName),
               node.getAlias()

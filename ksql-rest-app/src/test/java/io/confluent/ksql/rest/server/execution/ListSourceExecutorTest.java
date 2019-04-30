@@ -15,7 +15,7 @@
 
 package io.confluent.ksql.rest.server.execution;
 
-import static io.confluent.ksql.metastore.model.StructuredDataSource.DataSourceType;
+import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
@@ -23,9 +23,9 @@ import static org.hamcrest.Matchers.equalTo;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
+import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
-import io.confluent.ksql.metastore.model.StructuredDataSource;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.ShowColumns;
@@ -155,7 +155,7 @@ public class ListSourceExecutorTest {
     );
     final PersistentQueryMetadata metadata = (PersistentQueryMetadata) result.getQuery()
         .orElseThrow(IllegalArgumentException::new);
-    final StructuredDataSource<?> stream = engine.getEngine().getMetaStore().getSource("SINK");
+    final DataSource<?> stream = engine.getEngine().getMetaStore().getSource("SINK");
 
     // When:
     final SourceDescriptionEntity sourceDescription = (SourceDescriptionEntity)

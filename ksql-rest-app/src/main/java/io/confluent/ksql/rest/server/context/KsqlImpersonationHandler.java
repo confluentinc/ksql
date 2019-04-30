@@ -24,7 +24,7 @@ import org.glassfish.hk2.utilities.binding.AbstractBinder;
  * the {@link AbstractBinder} methods and configure the binder.
  * </p>
  * The subclass implementation must be registered with the
- * {@link KsqlRestConfig#KSQL_IMPERSONATION_HANDLER} configuration.
+ * {@link KsqlRestConfig#KSQL_IMPERSONATION_HANDLER_CLASS} configuration.
  */
 public abstract class KsqlImpersonationHandler extends AbstractBinder {
   protected final KsqlConfig ksqlConfig;

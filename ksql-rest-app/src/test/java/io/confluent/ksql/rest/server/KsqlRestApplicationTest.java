@@ -19,7 +19,9 @@ import static io.confluent.ksql.parser.ParserMatchers.configured;
 import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
@@ -32,6 +34,7 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.computation.CommandRunner;
 import io.confluent.ksql.rest.server.computation.QueuedCommandStatus;
+import io.confluent.ksql.rest.server.context.KsqlDisableImpersonationHandler;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.rest.server.resources.RootDocument;
 import io.confluent.ksql.rest.server.resources.StatusResource;
@@ -49,6 +52,8 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
+
+import javax.ws.rs.core.Configurable;
 
 @RunWith(MockitoJUnitRunner.class)
 public class KsqlRestApplicationTest {
@@ -86,6 +91,9 @@ public class KsqlRestApplicationTest {
   private CommandQueue commandQueue;
   @Mock
   private QueuedCommandStatus queuedCommandStatus;
+  @Mock
+  private Configurable<?> configurable;
+
   private KsqlRestApplication app;
 
   @Before
@@ -200,5 +208,18 @@ public class KsqlRestApplicationTest {
 
     // Then:
     verify(commandQueue, never()).enqueueCommand(any());
+  }
+
+  @Test
+  public void shouldDisableImpersonationByDefault() {
+    // Given:
+    // Nothing to do. App is already setup
+
+    // When:
+    app.configureBaseApplication(configurable, any());
+
+    // Then:
+    verify(configurable, times(1))
+        .register(any(KsqlDisableImpersonationHandler.class));
   }
 }

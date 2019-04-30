@@ -45,7 +45,7 @@ import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.computation.CommandRunner;
 import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.StatementExecutor;
-import io.confluent.ksql.rest.server.context.KsqlRestServiceContextBinder;
+import io.confluent.ksql.rest.server.context.KsqlImpersonationHandler;
 import io.confluent.ksql.rest.server.resources.KsqlExceptionMapper;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.rest.server.resources.RootDocument;
@@ -70,10 +70,12 @@ import io.confluent.ksql.util.WelcomeMsgUtils;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
 import io.confluent.rest.Application;
+import io.confluent.rest.RestConfig;
 import io.confluent.rest.validation.JacksonMessageBodyProvider;
 import java.io.Console;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.lang.reflect.Constructor;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -112,6 +114,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
   public static final String COMMANDS_KSQL_TOPIC_NAME = "__KSQL_COMMANDS_TOPIC";
   private static final String COMMANDS_STREAM_NAME = "KSQL_COMMANDS";
 
+  private final RestConfig restConfig;
   private final KsqlConfig ksqlConfig;
   private final KsqlEngine ksqlEngine;
   private final CommandRunner commandRunner;
@@ -144,6 +147,8 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
       final VersionCheckerAgent versionCheckerAgent
   ) {
     super(config);
+
+    this.restConfig = config;
     this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
@@ -245,11 +250,34 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         new JacksonMessageBodyProvider(JsonMapper.INSTANCE.mapper);
     config.register(jsonProvider);
     config.register(JsonParseExceptionMapper.class);
-    config.register(new KsqlRestServiceContextBinder(ksqlConfig));
+
+    // Configure the impersonation handler
+    configureImpersonationHandler(config);
 
     // Don't want to buffer rows when streaming JSON in a request to the query resource
     config.property(ServerProperties.OUTBOUND_CONTENT_LENGTH_BUFFER, 0);
     config.property(ServerProperties.WADL_FEATURE_DISABLE, true);
+  }
+
+  private void configureImpersonationHandler(final Configurable<?> config) {
+    final Class<?> handler = restConfig.getClass(KsqlRestConfig.KSQL_IMPERSONATION_HANDLER_CLASS);
+
+    if (!KsqlImpersonationHandler.class.isAssignableFrom(handler)) {
+      throw new KsqlException(
+          String.format("Cannot register impersonation handler because class %s is not an "
+              + "implementation of %s", handler.getName(),
+              KsqlImpersonationHandler.class.getName())
+      );
+    }
+
+    try {
+      final Class<?>[] args = new Class<?>[] { KsqlConfig.class };
+      final Constructor<?> constructor = handler.getConstructor(args);
+      config.register((KsqlImpersonationHandler) constructor.newInstance(ksqlConfig));
+      log.info("Registered impersonation handler: " + handler.getName());
+    } catch (final Exception e) {
+      throw new KsqlException("Cannot register impersonation handler: " + e.getMessage(), e);
+    }
   }
 
   @Override

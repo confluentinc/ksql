@@ -88,6 +88,11 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
       ExecutorUtil.executeWithRetries(
           () -> adminClient.createTopics(Collections.singleton(newTopic)).all().get(),
           ExecutorUtil.RetryBehaviour.ON_RETRYABLE);
+    } catch (final InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new KafkaResponseGetFailedException(
+          "Failed to guarantee existence of topic " + topic, e);
+
     } catch (final TopicExistsException e) {
       // if the topic already exists, it is most likely because another node just created it.
       // ensure that it matches the partition count and replication factor before returning

@@ -5,6 +5,16 @@ KSQL Configuration Parameter Reference
 
 Here are some common configuration properties that you can customize.
 
+.. tip::
+
+   Each property has a corresponding environment variable in the Docker image 
+   for `KSQL Server <https://hub.docker.com/r/confluentinc/cp-ksql-server/>`__.
+   The environment variable name is constructed from the configuration property
+   name by converting to uppercase, replacing periods with underscores, and
+   prepending with ``KSQL_``. For example, the name of the ``ksql.service.id``
+   environment variable is ``KSQL_KSQL_SERVICE_ID``. For more information, see
+   :ref:`install-ksql-with-docker`.
+
 Kafka Streams and Kafka Client Settings
 ---------------------------------------
 
@@ -30,6 +40,10 @@ to change it to earliest by using the KSQL command line:
 
 For more information, see :ref:`kafka_consumer` and the :cp-javadoc:`Javadoc|clients/javadocs/org/apache/kafka/clients/consumer/ConsumerConfig.html#AUTO_OFFSET_RESET_CONFIG`.
 
+The corresponding environment variable in the
+`KSQL Server image <https://hub.docker.com/r/confluentinc/cp-ksql-server/>`__ is
+``KSQL_KSQL_STREAMS_AUTO_OFFSET_RESET``. 
+
 .. _ksql-bootstrap-servers:
 
 ------------------------------
@@ -46,6 +60,11 @@ by using the KSQL command line:
 
 For more information, see :ref:`Streams parameter reference <streams_developer-guide_required-configs>` and the :cp-javadoc:`Javadoc|clients/javadocs/org/apache/kafka/clients/consumer/ConsumerConfig.html#BOOTSTRAP_SERVERS_CONFIG`.
 
+The corresponding environment variable in the
+`KSQL Server image <https://hub.docker.com/r/confluentinc/cp-ksql-server/>`__ is
+``KSQL_KSQL_STREAMS_BOOTSTRAP_SERVERS`` or ``KSQL_BOOTSTRAP_SERVERS``.
+For more information, see :ref:`install-ksql-with-docker`.
+
 .. _ksql-commit-interval-ms:
 
 -------------------------------
@@ -60,6 +79,10 @@ the value to ``5000`` by using the KSQL command line:
     SET 'commit.interval.ms'='5000';
 
 For more information, see the :ref:`Streams parameter reference <streams_developer-guide_optional-configs>` and the :cp-javadoc:`Javadoc|streams/javadocs/org/apache/kafka/streams/StreamsConfig.html#COMMIT_INTERVAL_MS_CONFIG`,
+
+The corresponding environment variable in the
+`KSQL Server image <https://hub.docker.com/r/confluentinc/cp-ksql-server/>`__ is
+``KSQL_KSQL_STREAMS_COMMIT_INTERVAL_MS``.
 
 .. _ksql-cache-max-bytes-buffering:
 
@@ -76,6 +99,10 @@ Here is an example to change the value to ``20000000`` by using the KSQL command
 
 For more information, see the :ref:`Streams parameter reference <streams_developer-guide_optional-configs>` and :cp-javadoc:`Javadoc|streams/javadocs/org/apache/kafka/streams/StreamsConfig.html#CACHE_MAX_BYTES_BUFFERING_CONFIG`.
 
+The corresponding environment variable in the
+`KSQL Server image <https://hub.docker.com/r/confluentinc/cp-ksql-server/>`__ is
+``KSQL_KSQL_STREAMS_CACHE_MAX_BYTES_BUFFERING``.
+
 .. _ksql-streams-num-streams-threads:
 
 -------------------------------
@@ -84,6 +111,10 @@ ksql.streams.num.stream.threads
 
 This number of stream threads in an instance of the Kafka Streams application. The stream processing code runs in these
 threads. For more information about Kafka Streams threading model, see :ref:`streams_architecture_threads`.
+
+The corresponding environment variable in the
+`KSQL Server image <https://hub.docker.com/r/confluentinc/cp-ksql-server/>`__ is
+``KSQL_KSQL_STREAMS_NUM_STREAM_THREADS``.
 
 -----------------------------
 ksql.output.topic.name.prefix
@@ -96,12 +127,15 @@ topics. For example, you might use "ksql-interactive-" to name output topics
 in a KSQL Server cluster that's deployed in interactive mode. For more information, see
 :ref:`Configuring Security for KSQL <config-security-ksql-acl-interactive_post_ak_2_0>`.
 
+The corresponding environment variable in the
+`KSQL Server image <https://hub.docker.com/r/confluentinc/cp-ksql-server/>`__ is
+``KSQL_KSQL_OUTPUT_TOPIC_NAME_PREFIX``.
+
 KSQL Query Settings
 -------------------
 
 These configurations control how KSQL executes queries. These configurations can be specified via the ``ksql-server.properties``
 file or via ``SET`` in a KSQL CLI. For example, ``ksql.service.id`` and ``ksql.persistent.prefix``.
-
 
 .. _ksql-fail-on-deserialization-error:
 
@@ -120,6 +154,10 @@ properties file:
 
     fail.on.deserialization.error=false
 
+The corresponding environment variable in the
+`KSQL Server image <https://hub.docker.com/r/confluentinc/cp-ksql-server/>`__ is
+``KSQL_KSQL_FAIL_ON_DESERIALIZATION_ERROR``.
+
 .. _ksql-schema-registry-url:
 
 ------------------------
@@ -128,6 +166,10 @@ ksql.schema.registry.url
 
 The |sr| URL path to connect KSQL to. To communicate with |sr| over a secure
 connection, see :ref:`config-security-ksql-sr`.
+
+The corresponding environment variable in the
+`KSQL Server image <https://hub.docker.com/r/confluentinc/cp-ksql-server/>`__ is
+``KSQL_KSQL_SCHEMA_REGISTRY_URL``.
 
 .. _ksql-service-id:
 
@@ -139,6 +181,10 @@ The service ID of the KSQL server. By default, the service ID of KSQL servers is
 the prefix for the internal topics created by KSQL. Using the default value ``ksql.service.id``, the KSQL internal topics
 will be prefixed as ``_confluent-ksql-default_`` (e.g. ``_command_topic`` becomes ``_confluent-ksql-default__command_topic``).
 
+The corresponding environment variable in the
+`KSQL Server image <https://hub.docker.com/r/confluentinc/cp-ksql-server/>`__ is
+``KSQL_KSQL_SERVICE_ID``.
+
 .. _ksql-sink-partitions:
 
 --------------------
@@ -147,6 +193,10 @@ ksql.sink.partitions
 
 The default number of partitions for the topics created by KSQL. The default is four.
 
+The corresponding environment variable in the
+`KSQL Server image <https://hub.docker.com/r/confluentinc/cp-ksql-server/>`__ is
+``KSQL_KSQL_SINK_PARTITIONS``.
+
 .. _ksql-sink-replicas:
 
 ------------------
@@ -154,6 +204,10 @@ ksql.sink.replicas
 ------------------
 
 The default number of replicas for the topics created by KSQL. The default is one.
+
+The corresponding environment variable in the
+`KSQL Server image <https://hub.docker.com/r/confluentinc/cp-ksql-server/>`__ is
+``KSQL_KSQL_SINK_REPLICAS``.
 
 KSQL Server Settings
 --------------------
@@ -172,6 +226,10 @@ ksql.queries.file
 
 A file that specifies a predefined set of queries for the KSQL and KSQL server.
 For an example, see :ref:`restrict-ksql-interactive`.
+
+The corresponding environment variable in the
+`KSQL Server image <https://hub.docker.com/r/confluentinc/cp-ksql-server/>`__ is
+``KSQL_KSQL_QUERIES_FILE``.
 
 .. _ksql-listeners:
 
@@ -192,6 +250,10 @@ bind to the default interface. For example:
 
     # Bind only to localhost.
     listeners=http://localhost:8088
+
+The corresponding environment variable in the
+`KSQL Server image <https://hub.docker.com/r/confluentinc/cp-ksql-server/>`__ is
+``KSQL_LISTENERS``.
 
 .. _ksql-c3-settings:
 

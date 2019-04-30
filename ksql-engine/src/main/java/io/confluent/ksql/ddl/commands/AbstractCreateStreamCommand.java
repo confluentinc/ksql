@@ -97,8 +97,8 @@ abstract class AbstractCreateStreamCommand implements DdlCommand {
       final String keyFieldName = StringUtil.cleanQuotes(name);
       final Field keyField = SchemaUtil.getFieldByName(schema, keyFieldName)
           .orElseThrow(() -> new KsqlException(
-              "The KEY column '" + keyFieldName
-                  + "', set in the WITH clause, does not exist in the schema"
+              "The KEY column set in the WITH clause, does not exist in the schema: '"
+              + keyFieldName + "'" 
           ));
 
       this.keyField = KeyField.of(keyFieldName, keyField);

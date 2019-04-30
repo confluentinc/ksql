@@ -166,7 +166,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
 
       final Set<AlterConfigOp> entries = overrides.entrySet().stream()
           .map(e -> new ConfigEntry(e.getKey(), e.getValue().toString()))
-          .map(ce -> new AlterConfigOp(ce, AlterConfigOp.OpType.APPEND))
+          .map(ce -> new AlterConfigOp(ce, AlterConfigOp.OpType.SET))
           .collect(Collectors.toSet());
 
       final Map<ConfigResource, Collection<AlterConfigOp>> request =

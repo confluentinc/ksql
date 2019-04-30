@@ -46,6 +46,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.AlterConfigOp;
+import org.apache.kafka.clients.admin.AlterConfigOp.OpType;
 import org.apache.kafka.clients.admin.AlterConfigsResult;
 import org.apache.kafka.clients.admin.Config;
 import org.apache.kafka.clients.admin.ConfigEntry;
@@ -360,7 +361,7 @@ public class KafkaTopicClientImplTest {
   }
 
   @Test
-  public void shouldAppendTopicConfig() {
+  public void shouldSetTopicConfig() {
     final Map<String, ?> overrides = ImmutableMap.of(
         TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_COMPACT
     );
@@ -376,7 +377,7 @@ public class KafkaTopicClientImplTest {
         ImmutableMap.of(
             new ConfigResource(ConfigResource.Type.TOPIC, "peter"),
             ImmutableSet.of(
-              new AlterConfigOp(new ConfigEntry(TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_COMPACT), AlterConfigOp.OpType.APPEND)
+              new AlterConfigOp(new ConfigEntry(TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_COMPACT), OpType.SET)
         ))))
         .andReturn(alterTopicConfigResponse());
     replay(adminClient);

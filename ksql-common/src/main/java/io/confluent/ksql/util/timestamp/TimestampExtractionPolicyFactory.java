@@ -39,8 +39,8 @@ public final class TimestampExtractionPolicyFactory {
     final Field timestampField = SchemaUtil.getFieldByName(schema,
         fieldName)
         .orElseThrow(() -> new KsqlException(
-            "The TIMESTAMP column set in the WITH clause, does not exist in the schema: '"
-            + fieldName + "'"));
+            "The TIMESTAMP column set in the WITH clause does not exist in the schema: '"
+                + fieldName + "'"));
 
     final Schema.Type timestampFieldType = timestampField.schema().type();
     if (timestampFieldType == Schema.Type.STRING) {

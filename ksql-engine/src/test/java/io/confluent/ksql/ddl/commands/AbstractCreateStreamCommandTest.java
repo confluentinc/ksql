@@ -156,7 +156,8 @@ public class AbstractCreateStreamCommandTest {
     // Then:
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage(
-        "The KEY column 'WILL-NOT-FIND-ME', set in the WITH clause, does not exist in the schema");
+        "The KEY column set in the WITH clause does not exist in the schema: "
+            + "'WILL-NOT-FIND-ME'");
 
     // When:
     new TestCmd("key not in schema!", statement, kafkaTopicClient);
@@ -172,7 +173,8 @@ public class AbstractCreateStreamCommandTest {
     // Then:
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage(
-        "The TIMESTAMP column 'WILL-NOT-FIND-ME', set in the WITH clause, does not exist in the schema");
+        "The TIMESTAMP column set in the WITH clause does not exist in the schema: "
+            + "'WILL-NOT-FIND-ME'");
 
     // When:
     new TestCmd("key not in schema!", statement, kafkaTopicClient);

@@ -25,8 +25,8 @@
       ],
       "outputs": [
         {"topic": "S1_JOIN_S2", "key": 0, "value": {"ID": 0, "NAME": "zero", "TS": 0, "F1": "blah", "F2": "foo"}, "timestamp": 10000},
-        {"topic": "S1_JOIN_S2", "key": 10, "value": {"ID": 10, "NAME": "100", "TS": 11000, "F1": "foo", "F2": "bar"}, "timestamp": 11000},
-        {"topic": "S1_JOIN_S2", "key": 0, "value": {"ID": 0, "NAME": "jan", "TS": 8000, "F1": "blah", "F2": "foo"}, "timestamp": 8000}
+        {"topic": "S1_JOIN_S2", "key": 10, "value": {"ID": 10, "NAME": "100", "TS": 11000, "F1": "foo", "F2": "bar"}, "timestamp": 13000},
+        {"topic": "S1_JOIN_S2", "key": 0, "value": {"ID": 0, "NAME": "jan", "TS": 8000, "F1": "blah", "F2": "foo"}, "timestamp": 10000}
       ]
     },
     {
@@ -46,8 +46,8 @@
       ],
       "outputs": [
         {"topic": "S1_JOIN_S2", "key": 0, "value": {"ID": 0, "NAME": "zero", "TS": 0, "F1": "blah", "F2": "foo"}, "timestamp": 10000},
-        {"topic": "S1_JOIN_S2", "key": 10, "value": {"ID": 10, "NAME": "100", "TS": 11000, "F1": "foo", "F2": "bar"}, "timestamp": 11000},
-        {"topic": "S1_JOIN_S2", "key": 0, "value": {"ID": 0, "NAME": "jan", "TS": 8000, "F1": "blah", "F2": "foo"}, "timestamp": 8000}
+        {"topic": "S1_JOIN_S2", "key": 10, "value": {"ID": 10, "NAME": "100", "TS": 11000, "F1": "foo", "F2": "bar"}, "timestamp": 13000},
+        {"topic": "S1_JOIN_S2", "key": 0, "value": {"ID": 0, "NAME": "jan", "TS": 8000, "F1": "blah", "F2": "foo"}, "timestamp": 10000}
       ]
     },
     {

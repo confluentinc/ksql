@@ -218,8 +218,8 @@ public class TestCaseTest {
     expectedException.expect(AssertionError.class);
     expectedException.expectMessage("Generated topology differs from that built by previous versions of KSQL - this likely means there is a non-backwards compatible change.\n"
         + "THIS IS BAD!\n"
-        + "Expected: is \"Test_topology1\"\n"
-        + "     but: was \"Test_topology\"");
+        + "Expected: is \"Test_topology1\\n\"\n"
+        + "     but: was \"Test_topology\\n\"");
 
     // When:
     testCase.verifyTopology();

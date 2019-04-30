@@ -32,7 +32,7 @@ final class ExpectedExceptionNode {
   private final Optional<String> type;
   private final Optional<String> message;
 
-  public ExpectedExceptionNode(
+  ExpectedExceptionNode(
       @JsonProperty("type") final String type,
       @JsonProperty("message") final String message
   ) {

@@ -22,6 +22,7 @@ import static org.hamcrest.Matchers.not;
 import static org.junit.internal.matchers.ThrowableMessageMatcher.hasMessage;
 
 import com.google.common.collect.ImmutableMap;
+import io.confluent.common.config.ConfigException;
 import io.confluent.ksql.test.util.secure.ClientTrustStore;
 import io.confluent.ksql.test.util.secure.ServerKeyStore;
 import io.confluent.ksql.util.KsqlException;
@@ -30,7 +31,6 @@ import java.security.KeyStore;
 import java.util.Map;
 import java.util.Optional;
 import org.apache.http.conn.ssl.NoopHostnameVerifier;
-import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.common.config.SslConfigs;
 import org.junit.Rule;
 import org.junit.Test;

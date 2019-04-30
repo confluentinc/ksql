@@ -15,13 +15,13 @@
 
 package io.confluent.ksql.function.udf.string;
 
+import io.confluent.common.Configurable;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Map;
 import java.util.Objects;
-import org.apache.kafka.common.Configurable;
 
 @SuppressWarnings("unused") // Invoked via reflection.
 @UdfDescription(name = "substring",

@@ -15,13 +15,13 @@
 
 package io.confluent.ksql.rest.server;
 
+import io.confluent.common.config.ConfigDef;
+import io.confluent.common.config.ConfigDef.Importance;
+import io.confluent.common.config.ConfigDef.Type;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.rest.RestConfig;
 import java.util.Map;
-import org.apache.kafka.common.config.ConfigDef;
-import org.apache.kafka.common.config.ConfigDef.Importance;
-import org.apache.kafka.common.config.ConfigDef.Type;
 
 public class KsqlRestConfig extends RestConfig {
 

@@ -9,10 +9,11 @@ Here are some common configuration properties that you can customize.
 
    Each property has a corresponding environment variable in the Docker image 
    for `KSQL Server <https://hub.docker.com/r/confluentinc/cp-ksql-server/>`__.
-   The environment variable name is the name of the configuration property
-   converted to uppercase and underscores, and prepended with ``KSQL_``. For
-   example, the name of the ``ksql.service.id`` environment variable is
-   ``KSQL_KSQL_SERVICE_ID``. For more information, see :ref:`install-ksql-with-docker`. 
+   The environment variable name is constructed from the configuration property
+   name by converting to uppercase, replacing periods with underscores, and
+   prepending with ``KSQL_``. For example, the name of the ``ksql.service.id``
+   environment variable is ``KSQL_KSQL_SERVICE_ID``. For more information, see
+   :ref:`install-ksql-with-docker`.
 
 Kafka Streams and Kafka Client Settings
 ---------------------------------------

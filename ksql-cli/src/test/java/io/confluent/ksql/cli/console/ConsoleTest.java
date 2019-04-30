@@ -152,7 +152,7 @@ public class ConsoleTest {
               "e",
               new SourceDescription(
                   "TestSource", Collections.emptyList(), Collections.emptyList(), buildTestSchema(i),
-                  DataSourceType.KTABLE.getKqlType(), "key", "2000-01-01", "stats",
+                  DataSourceType.KTABLE.getKsqlType(), "key", "2000-01-01", "stats",
                   "errors", false, "avro", "kadka-topic", 1, 1)),
           new TopicDescription("e", "TestTopic", "TestKafkaTopic", "AVRO", "schemaString"),
           new StreamsList("e", ImmutableList.of(new SourceInfo.Stream("TestStream", "TestTopic", "AVRO"))),
@@ -172,7 +172,7 @@ public class ConsoleTest {
             "e",
             new SourceDescription(
                 "TestSource", Collections.emptyList(), Collections.emptyList(),
-                buildTestSchema(2), DataSourceType.KTABLE.getKqlType(),
+                buildTestSchema(2), DataSourceType.KTABLE.getKsqlType(),
                 "key", "2000-01-01", "stats", "errors", true, "avro", "kadka-topic",
                 2, 1))));
 

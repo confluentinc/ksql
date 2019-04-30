@@ -106,14 +106,14 @@ public abstract class StructuredDataSource<K> {
     KSTREAM("STREAM"),
     KTABLE("TABLE");
 
-    private final String kqlType;
+    private final String ksqlType;
 
     DataSourceType(final String ksqlType) {
-      this.kqlType = ksqlType;
+      this.ksqlType = ksqlType;
     }
 
-    public String getKqlType() {
-      return kqlType;
+    public String getKsqlType() {
+      return ksqlType;
     }
   }
 }

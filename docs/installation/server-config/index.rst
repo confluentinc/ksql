@@ -79,6 +79,66 @@ You can specify multiple parameters at the same time. For example, to configure 
     $ KSQL_OPTS="-Dksql.streams.auto.offset.reset=earliest -Dksql.streams.num.stream.threads=1" <path-to-confluent>/bin/ksql-server-start \
       <path-to-confluent>/etc/ksql/ksql-server.properties
 
+KSQL Server Runtime Environment Variables
+-----------------------------------------
+
+
+
+KSQL_CLASSPATH
+    Path to the Java deployment of KSQL Server and related Java classes. The
+    following command shows an example KSQL_CLASSPATH setting.
+
+.. code:: bash
+
+    export CLASSPATH=/usr/share/java/my-base/*:/usr/share/java/my-ksql-server/*:/opt/my-company/lib/ksql/*:$CLASSPATH
+    export KSQL_CLASSPATH="${CLASSPATH}"
+
+KSQL_LOG4J_OPTS
+    
+
+.. code:: bash
+
+    export KSQL_LOG4J_OPTS="-Dlog4j.configuration=file:$KSQL_CONFIG_DIR/log4j-rolling.properties"
+
+KSQL_JMX_OPTS
+
+.. code:: bash
+
+    export KSQL_JMX_OPTS="-Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false "
+
+
+KSQL_OPTS
+
+KSQL_HEAP_OPTS
+    Specifies the initial size and maximum size of the JVM heap for the KSQL
+    Server process. The following command sets the initial size and maximum 
+    size to 15GB.  
+
+.. code:: bash
+
+    export KSQL_HEAP_OPTS="-Xms15G -Xmx15G"
+
+KSQL_JVM_PERFORMANCE_OPTS
+
+
+.. code:: bash
+
+    export KSQL_JVM_PERFORMANCE_OPTS="-server -XX:+UseConcMarkSweepGC -XX:+CMSClassUnload ingEnabled -XX:+CMSScavengeBeforeRemark -XX:+ExplicitGCInvokesConcurrent -XX:New Ratio=1 -Djava.awt.headless=true"
+
+
+JMX_PORT
+
+.. code:: bash
+
+    export JMX_PORT=1099 
+
+JAVA_HOME
+
+.. code:: bash
+
+    export JAVA_HOME=<jdk-install-directory>
+
+
 -----------
 JMX Metrics
 -----------

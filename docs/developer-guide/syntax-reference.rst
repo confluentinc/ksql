@@ -377,10 +377,7 @@ KSQL adds the implicit columns ``ROWTIME`` and ``ROWKEY`` to every
 stream and table, which represent the corresponding Kafka message
 timestamp and message key, respectively. The timestamp has milliseconds accuracy.
 
-KSQL has currently the following requirements for creating a table from a Kafka topic:
-
-1. The message key must be in ``VARCHAR`` aka ``STRING`` format. If the message key is not in this format, follow the
-   instructions in :ref:`ksql_key_requirements`.
+When creating a table from a Kafka topic, KSQL requries the message key to be a ``VARCHAR`` aka ``STRING``. If the message key is not of this type follow the instructions in :ref:`ksql_key_requirements`.
 
 The WITH clause supports the following properties:
 

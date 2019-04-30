@@ -29,6 +29,7 @@ import static org.hamcrest.Matchers.is;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.exception.KafkaResponseGetFailedException;
 import io.confluent.ksql.exception.KafkaTopicExistsException;
 import io.confluent.ksql.util.KsqlConstants;
@@ -44,6 +45,7 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.admin.AdminClient;
+import org.apache.kafka.clients.admin.AlterConfigOp;
 import org.apache.kafka.clients.admin.AlterConfigsResult;
 import org.apache.kafka.clients.admin.Config;
 import org.apache.kafka.clients.admin.ConfigEntry;
@@ -64,6 +66,7 @@ import org.apache.kafka.common.errors.DisconnectException;
 import org.apache.kafka.common.errors.NotControllerException;
 import org.apache.kafka.common.errors.TopicExistsException;
 import org.apache.kafka.common.errors.UnknownTopicOrPartitionException;
+import org.apache.kafka.common.errors.UnsupportedVersionException;
 import org.apache.kafka.common.utils.Utils;
 import org.easymock.EasyMock;
 import org.easymock.EasyMockRunner;
@@ -338,7 +341,6 @@ public class KafkaTopicClientImplTest {
     assertThat(config.get(TopicConfig.COMPRESSION_TYPE_CONFIG), is("producer"));
   }
 
-
   @Test
   public void shouldSetTopicCleanupPolicyToCompact() {
     expect(adminClient.listTopics()).andReturn(getEmptyListTopicResult());
@@ -357,9 +359,8 @@ public class KafkaTopicClientImplTest {
     verify(adminClient);
   }
 
-  @SuppressWarnings("deprecation")
   @Test
-  public void shouldAddTopicConfig() {
+  public void shouldAppendTopicConfig() {
     final Map<String, ?> overrides = ImmutableMap.of(
         TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_COMPACT
     );
@@ -370,6 +371,39 @@ public class KafkaTopicClientImplTest {
             overriddenConfigEntry(TopicConfig.RETENTION_MS_CONFIG, "12345"),
             defaultConfigEntry(TopicConfig.COMPRESSION_TYPE_CONFIG, "snappy")
         ));
+
+    expect(adminClient.incrementalAlterConfigs(
+        ImmutableMap.of(
+            new ConfigResource(ConfigResource.Type.TOPIC, "peter"),
+            ImmutableSet.of(
+              new AlterConfigOp(new ConfigEntry(TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_COMPACT), AlterConfigOp.OpType.APPEND)
+        ))))
+        .andReturn(alterTopicConfigResponse());
+    replay(adminClient);
+
+    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
+    kafkaTopicClient.addTopicConfig("peter", overrides);
+
+    verify(adminClient);
+  }
+
+  @SuppressWarnings("deprecation")
+  @Test
+  public void shouldFallBackToAddTopicConfigForOlderBrokers() {
+    final Map<String, ?> overrides = ImmutableMap.of(
+        TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_COMPACT
+    );
+
+    expect(adminClient.describeConfigs(topicConfigsRequest("peter")))
+        .andReturn(topicConfigResponse(
+            "peter",
+            overriddenConfigEntry(TopicConfig.RETENTION_MS_CONFIG, "12345"),
+            defaultConfigEntry(TopicConfig.COMPRESSION_TYPE_CONFIG, "snappy")
+        ))
+        .anyTimes();
+
+    expect(adminClient.incrementalAlterConfigs(anyObject()))
+        .andThrow(new UnsupportedVersionException(""));
 
     expect(adminClient.alterConfigs(
         withResourceConfig(
@@ -407,7 +441,6 @@ public class KafkaTopicClientImplTest {
     verify(adminClient);
   }
 
-  @SuppressWarnings("deprecation")
   @Test
   public void shouldRetryAddingTopicConfig() {
     final Map<String, ?> overrides = ImmutableMap.of(
@@ -421,7 +454,7 @@ public class KafkaTopicClientImplTest {
             defaultConfigEntry(TopicConfig.COMPRESSION_TYPE_CONFIG, "snappy")
         ));
 
-    expect(adminClient.alterConfigs(anyObject()))
+    expect(adminClient.incrementalAlterConfigs(anyObject()))
         .andReturn(alterTopicConfigResponse(new DisconnectException()))
         .andReturn(alterTopicConfigResponse());
     replay(adminClient);
@@ -432,7 +465,6 @@ public class KafkaTopicClientImplTest {
     verify(adminClient);
   }
 
-  @SuppressWarnings("unchecked")
   private static DescribeTopicsResult describeTopicReturningUnknownPartitionException() {
     final DescribeTopicsResult describeTopicsResult = niceMock(DescribeTopicsResult.class);
     expect(describeTopicsResult.all())
@@ -453,8 +485,7 @@ public class KafkaTopicClientImplTest {
     return describeTopicsResult;
   }
 
-  @SuppressWarnings("unchecked")
-  private CreateTopicsResult createTopicReturningTopicExistsException() {
+  private static CreateTopicsResult createTopicReturningTopicExistsException() {
     final CreateTopicsResult createTopicsResult = niceMock(CreateTopicsResult.class);
     expect(createTopicsResult.all())
         .andReturn(failedFuture(new TopicExistsException("Topic already exists")));
@@ -462,14 +493,14 @@ public class KafkaTopicClientImplTest {
     return createTopicsResult;
   }
 
-  private CreateTopicsResult getCreateTopicsResult() {
+  private static CreateTopicsResult getCreateTopicsResult() {
     final CreateTopicsResult createTopicsResult = mock(CreateTopicsResult.class);
     expect(createTopicsResult.all()).andReturn(KafkaFuture.allOf());
     replay(createTopicsResult);
     return createTopicsResult;
   }
 
-  private DeleteTopicsResult getDeleteInternalTopicsResult() {
+  private static DeleteTopicsResult getDeleteInternalTopicsResult() {
     final DeleteTopicsResult deleteTopicsResult = mock(DeleteTopicsResult.class);
     final Map<String, KafkaFuture<Void>> deletedTopics = new HashMap<>();
     deletedTopics.put(internalTopic1, KafkaFuture.allOf());
@@ -479,7 +510,7 @@ public class KafkaTopicClientImplTest {
     return deleteTopicsResult;
   }
 
-  private DeleteTopicsResult getDeleteTopicsResult() {
+  private static DeleteTopicsResult getDeleteTopicsResult() {
     final DeleteTopicsResult deleteTopicsResult = mock(DeleteTopicsResult.class);
     expect(deleteTopicsResult.values()).andReturn(Collections.singletonMap(topicName1, KafkaFuture
         .allOf()));
@@ -487,7 +518,7 @@ public class KafkaTopicClientImplTest {
     return deleteTopicsResult;
   }
 
-  private ListTopicsResult getEmptyListTopicResult() {
+  private static ListTopicsResult getEmptyListTopicResult() {
     final ListTopicsResult listTopicsResult = mock(ListTopicsResult.class);
     final List<String> topicNamesList = Collections.emptyList();
     expect(listTopicsResult.names())
@@ -496,8 +527,7 @@ public class KafkaTopicClientImplTest {
     return listTopicsResult;
   }
 
-  @SuppressWarnings("unchecked")
-  private ListTopicsResult listTopicResultWithNotControllerException() {
+  private static ListTopicsResult listTopicResultWithNotControllerException() {
     final ListTopicsResult listTopicsResult = mock(ListTopicsResult.class);
     expect(listTopicsResult.names())
         .andReturn(failedFuture(new NotControllerException("Not Controller")));
@@ -505,7 +535,7 @@ public class KafkaTopicClientImplTest {
     return listTopicsResult;
   }
 
-  private ListTopicsResult getListTopicsResultWithInternalTopics() {
+  private static ListTopicsResult getListTopicsResultWithInternalTopics() {
     final ListTopicsResult listTopicsResult = mock(ListTopicsResult.class);
     final List<String> topicNamesList = Arrays.asList(topicName1, topicName2, topicName3,
         internalTopic1, internalTopic2,
@@ -516,7 +546,7 @@ public class KafkaTopicClientImplTest {
     return listTopicsResult;
   }
 
-  private ListTopicsResult getListTopicsResult() {
+  private static ListTopicsResult getListTopicsResult() {
     final ListTopicsResult listTopicsResult = mock(ListTopicsResult.class);
     final List<String> topicNamesList = Arrays.asList(topicName1, topicName2, topicName3);
     expect(listTopicsResult.names())
@@ -566,12 +596,12 @@ public class KafkaTopicClientImplTest {
     final DescribeConfigsResult describeConfigsResult = mock(DescribeConfigsResult.class);
     final Map<ConfigResource, Config> config = ImmutableMap.of(
         new ConfigResource(ConfigResource.Type.BROKER, node.idString()), new Config(brokerConfigs));
-    expect(describeConfigsResult.all()).andReturn(KafkaFuture.completedFuture(config));
+    expect(describeConfigsResult.all()).andReturn(KafkaFuture.completedFuture(config)).anyTimes();
     replay(describeConfigsResult);
     return describeConfigsResult;
   }
 
-  private ConfigEntry defaultConfigEntry(final String key, final String value) {
+  private static ConfigEntry defaultConfigEntry(final String key, final String value) {
     final ConfigEntry config = niceMock(ConfigEntry.class);
     expect(config.name()).andReturn(key).anyTimes();
     expect(config.value()).andReturn(value).anyTimes();
@@ -580,7 +610,7 @@ public class KafkaTopicClientImplTest {
     return config;
   }
 
-  private ConfigEntry overriddenConfigEntry(final String key, final String value) {
+  private static ConfigEntry overriddenConfigEntry(final String key, final String value) {
     final ConfigEntry config = niceMock(ConfigEntry.class);
     expect(config.name()).andReturn(key).anyTimes();
     expect(config.value()).andReturn(value).anyTimes();
@@ -603,7 +633,7 @@ public class KafkaTopicClientImplTest {
         new Config(Arrays.asList(entries)));
 
     final DescribeConfigsResult response = mock(DescribeConfigsResult.class);
-    expect(response.all()).andReturn(KafkaFuture.completedFuture(config));
+    expect(response.all()).andReturn(KafkaFuture.completedFuture(config)).anyTimes();
     replay(response);
     return response;
   }
@@ -611,7 +641,7 @@ public class KafkaTopicClientImplTest {
 
   private static DescribeConfigsResult topicConfigResponse(final Exception cause) {
     final DescribeConfigsResult response = mock(DescribeConfigsResult.class);
-    expect(response.all()).andReturn(failedFuture(cause));
+    expect(response.all()).andReturn(failedFuture(cause)).anyTimes();
     replay(response);
     return response;
   }
@@ -630,7 +660,6 @@ public class KafkaTopicClientImplTest {
     return response;
   }
 
-  @SuppressWarnings("unchecked")
   private static <T> KafkaFuture<T> failedFuture(final Exception cause) {
     try {
       final KafkaFuture<T> future = mock(KafkaFuture.class);

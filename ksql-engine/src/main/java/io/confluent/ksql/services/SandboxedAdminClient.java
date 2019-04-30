@@ -171,7 +171,7 @@ class SandboxedAdminClient extends AdminClient {
     throw new UnsupportedOperationException();
   }
 
-  @SuppressWarnings("deprecation")
+  @SuppressWarnings({"deprecation", "RedundantSuppression"})
   @Override
   public AlterConfigsResult alterConfigs(
       final Map<ConfigResource, Config> configs,

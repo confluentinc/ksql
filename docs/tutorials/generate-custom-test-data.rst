@@ -86,6 +86,7 @@ Name                                          Default                           
 ``iterations=<number of records>``            1,000,000                                            The maximum number of records to generate.
 ``maxInterval=<max time between records>``    500                                                  Longest time to wait before generating a new record, in milliseconds. 
 ``propertiesFile=<path-to-properties-file>``  ``<path-to-confluent>/etc/ksql/datagen.properties``  Path to the ``ksql-datagen`` properties file. 
+``schemaRegistryUrl``                         http://localhost:8081                                URL of |sr| when ``format`` is ``avro``.
 ============================================  ===================================================  =========================================================================================
 
 Records are generated at random intervals, with the longest interval specified

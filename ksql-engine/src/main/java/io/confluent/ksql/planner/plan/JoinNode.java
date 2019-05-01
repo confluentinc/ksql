@@ -494,8 +494,7 @@ public class JoinNode extends PlanNode {
               getSerDeForNode(joinNode.left, contextStacker.push(LEFT_SERDE_CONTEXT_NAME)),
               contextStacker);
         case OUTER:
-          throw new KsqlException("Full outer joins between streams and tables (stream: left, "
-              + "table: right) are not supported.");
+          throw new KsqlException("Full outer joins between streams and tables are not supported.");
 
         default:
           throw new KsqlException("Invalid join type encountered: " + joinNode.joinType);

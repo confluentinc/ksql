@@ -21,8 +21,6 @@ import static io.confluent.ksql.planner.plan.PlanTestUtil.getNodeByName;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.startsWith;
-import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
@@ -159,8 +157,8 @@ public class JoinNodeTest {
     when(left.getPartitions(mockKafkaTopicClient)).thenReturn(2);
     when(right.getPartitions(mockKafkaTopicClient)).thenReturn(2);
 
-    setUpSource(left);
-    setUpSource(right);
+    setUpSource(left, "Foobar1");
+    setUpSource(right, "Foobar2");
 
     when(leftSchemaKStream.getKeyField()).thenReturn(leftJoinField);
     when(leftSchemaKTable.getKeyField()).thenReturn(leftJoinField);
@@ -340,20 +338,22 @@ public class JoinNodeTest {
 
   @Test
   public void shouldThrowOnPartitionMismatch() {
+    // Given:
     setupTopicClientExpectations(1, 2);
 
-    try {
-      buildJoin(
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(
+        "Can't join TEST1 with TEST2 since the number of partitions don't match. TEST1 "
+            + "partitions = 1; TEST2 partitions = 2. Please repartition either one so that the "
+            + "number of partitions match."
+    );
+
+    // When:
+    buildJoin(
           "SELECT t1.col0, t2.col0, t2.col1 "
               + "FROM test1 t1 LEFT JOIN test2 t2 ON t1.col0 = t2.col0;"
-      );
-    } catch (final KsqlException e) {
-      assertThat(e.getMessage(), equalTo(
-          "Can't join TEST1 with TEST2 since the number of partitions don't match. TEST1 "
-              + "partitions = 1; TEST2 partitions = 2. Please repartition either one so that the "
-              + "number of partitions match."
-      ));
-    }
+    );
   }
 
   @Test
@@ -479,6 +479,7 @@ public class JoinNodeTest {
 
   @Test
   public void shouldNotPerformStreamStreamJoinWithoutJoinWindow() {
+    // Given:
     final JoinNode joinNode = new JoinNode(
         nodeId,
         JoinNode.JoinType.INNER,
@@ -492,19 +493,19 @@ public class JoinNodeTest {
         DataSource.DataSourceType.KSTREAM,
         DataSource.DataSourceType.KSTREAM);
 
-    try {
-      joinNode.buildStream(ksqlStreamBuilder);
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(
+        "Stream-Stream joins must have a WITHIN clause specified. None was provided."
+    );
 
-      fail("Should have raised an exception since no join window was specified");
-    } catch (final KsqlException e) {
-      assertThat(e.getMessage(),
-          startsWith(
-              "Stream-Stream joins must have a WITHIN clause specified. None was provided."));
-    }
+    // When:
+    joinNode.buildStream(ksqlStreamBuilder);
   }
 
   @Test
   public void shouldNotPerformJoinIfInputPartitionsMisMatch() {
+    // Given:
     when(left.getPartitions(mockKafkaTopicClient)).thenReturn(3);
 
     final JoinNode joinNode = new JoinNode(
@@ -520,19 +521,19 @@ public class JoinNodeTest {
         DataSource.DataSourceType.KSTREAM,
         DataSource.DataSourceType.KSTREAM);
 
-    try {
-      joinNode.buildStream(ksqlStreamBuilder);
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(
+        "Can't join Foobar1 with Foobar2 since the number of partitions don't match."
+    );
 
-      fail("should have raised an exception since the number of partitions on the input sources "
-          + "don't match");
-    } catch (final KsqlException e) {
-      assertThat(e.getMessage(),
-          startsWith("Can't join Foobar with Foobar since the number of partitions don't match."));
-    }
+    // When:
+    joinNode.buildStream(ksqlStreamBuilder);
   }
 
   @Test
   public void shouldFailJoinIfTableCriteriaColumnIsNotKey() {
+    // Given:
     setupStream(left, leftSchemaKStream, leftSchema);
     setupTable(right, rightSchemaKTable, rightSchema);
 
@@ -552,17 +553,18 @@ public class JoinNodeTest {
         DataSource.DataSourceType.KSTREAM,
         DataSource.DataSourceType.KTABLE);
 
-    try {
-      joinNode.buildStream(ksqlStreamBuilder);
-      fail("buildStream did not throw exception");
-    } catch (final KsqlException e) {
-      assertThat(e.getMessage(), equalTo(String.format(
-          "Source table (%s) key column (%s) is not the column used in the join criteria (%s). "
-              + "Only the table's key column or 'ROWKEY' is supported in the join criteria.",
-          rightAlias,
-          RIGHT_JOIN_FIELD_NAME,
-          rightCriteriaColumn)));
-    }
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(String.format(
+        "Source table (%s) key column (%s) is not the column used in the join criteria (%s). "
+            + "Only the table's key column or 'ROWKEY' is supported in the join criteria.",
+        rightAlias,
+        RIGHT_JOIN_FIELD_NAME,
+        rightCriteriaColumn
+    ));
+
+    // When:
+    joinNode.buildStream(ksqlStreamBuilder);
   }
 
   @Test
@@ -708,26 +710,19 @@ public class JoinNodeTest {
         DataSource.DataSourceType.KSTREAM,
         DataSource.DataSourceType.KTABLE);
 
-    // When:
-    try {
-      joinNode.buildStream(ksqlStreamBuilder);
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(
+        "Full outer joins between streams and tables are not supported."
+    );
 
-      fail("Should have failed to build the stream since stream-table outer joins are not "
-          + "supported");
-    } catch (final KsqlException e) {
-      // Then:
-      assertThat(e.getMessage(),
-          is("Full outer joins between streams and tables (stream: left, table: right) are not supported."));
-    }
+    // When:
+    joinNode.buildStream(ksqlStreamBuilder);
   }
 
   @Test
   public void shouldNotPerformStreamToTableJoinIfJoinWindowIsSpecified() {
-    when(left.getPartitions(mockKafkaTopicClient)).thenReturn(3);
-
-
-    when(right.getPartitions(mockKafkaTopicClient)).thenReturn(3);
-
+    // Given:
     final WithinExpression withinExpression = new WithinExpression(10, TimeUnit.SECONDS);
 
     final JoinNode joinNode = new JoinNode(
@@ -743,18 +738,19 @@ public class JoinNodeTest {
         DataSource.DataSourceType.KSTREAM,
         DataSource.DataSourceType.KTABLE);
 
-    try {
-      joinNode.buildStream(ksqlStreamBuilder);
-      fail("should have raised an exception since a join window was provided for a stream-table "
-          + "join");
-    } catch (final KsqlException e) {
-      assertThat(e.getMessage(),
-          startsWith("A window definition was provided for a Stream-Table join."));
-    }
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(
+        "A window definition was provided for a Stream-Table join."
+    );
+
+    // When:
+    joinNode.buildStream(ksqlStreamBuilder);
   }
 
   @Test
   public void shouldFailTableTableJoinIfLeftCriteriaColumnIsNotKey() {
+    // Given:
     setupTable(left, leftSchemaKTable, leftSchema);
     setupTable(right, rightSchemaKTable, rightSchema);
 
@@ -773,21 +769,23 @@ public class JoinNodeTest {
         DataSource.DataSourceType.KTABLE,
         DataSource.DataSourceType.KTABLE);
 
-    try {
-      joinNode.buildStream(ksqlStreamBuilder);
-      fail("buildStream did not throw exception");
-    } catch (final KsqlException e) {
-      assertThat(e.getMessage(), equalTo(String.format(
-          "Source table (%s) key column (%s) is not the column used in the join criteria (%s). "
-              + "Only the table's key column or 'ROWKEY' is supported in the join criteria.",
-          leftAlias,
-          LEFT_JOIN_FIELD_NAME,
-          leftCriteriaColumn)));
-    }
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(String.format(
+        "Source table (%s) key column (%s) is not the column used in the join criteria (%s). "
+            + "Only the table's key column or 'ROWKEY' is supported in the join criteria.",
+        leftAlias,
+        LEFT_JOIN_FIELD_NAME,
+        leftCriteriaColumn
+    ));
+
+    // When:
+    joinNode.buildStream(ksqlStreamBuilder);
   }
 
   @Test
   public void shouldFailTableTableJoinIfRightCriteriaColumnIsNotKey() {
+    // Given:
     setupTable(left, leftSchemaKTable, leftSchema);
     setupTable(right, rightSchemaKTable, rightSchema);
 
@@ -807,17 +805,18 @@ public class JoinNodeTest {
         DataSource.DataSourceType.KTABLE,
         DataSource.DataSourceType.KTABLE);
 
-    try {
-      joinNode.buildStream(ksqlStreamBuilder);
-      fail("buildStream did not throw exception");
-    } catch (final KsqlException e) {
-      assertThat(e.getMessage(), equalTo(String.format(
-          "Source table (%s) key column (%s) is not the column used in the join criteria (%s). "
-              + "Only the table's key column or 'ROWKEY' is supported in the join criteria.",
-          rightAlias,
-          RIGHT_JOIN_FIELD_NAME,
-          rightCriteriaColumn)));
-    }
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(String.format(
+        "Source table (%s) key column (%s) is not the column used in the join criteria (%s). "
+            + "Only the table's key column or 'ROWKEY' is supported in the join criteria.",
+        rightAlias,
+        RIGHT_JOIN_FIELD_NAME,
+        rightCriteriaColumn
+    ));
+
+    // When:
+    joinNode.buildStream(ksqlStreamBuilder);
   }
 
   @Test
@@ -915,11 +914,7 @@ public class JoinNodeTest {
 
   @Test
   public void shouldNotPerformTableToTableJoinIfJoinWindowIsSpecified() {
-    when(left.getPartitions(mockKafkaTopicClient)).thenReturn(3);
-
-
-    when(right.getPartitions(mockKafkaTopicClient)).thenReturn(3);
-
+    // Given:
     final WithinExpression withinExpression = new WithinExpression(10, TimeUnit.SECONDS);
 
     final JoinNode joinNode = new JoinNode(
@@ -935,15 +930,14 @@ public class JoinNodeTest {
         DataSource.DataSourceType.KTABLE,
         DataSource.DataSourceType.KTABLE);
 
-    try {
-      joinNode.buildStream(ksqlStreamBuilder);
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(
+        "A window definition was provided for a Table-Table join."
+    );
 
-      fail("should have raised an exception since a join window was provided for a stream-table "
-          + "join");
-    } catch (final KsqlException e) {
-      assertThat(e.getMessage(),
-          startsWith("A window definition was provided for a Table-Table join."));
-    }
+    // When:
+    joinNode.buildStream(ksqlStreamBuilder);
   }
 
   @Test
@@ -1130,9 +1124,9 @@ public class JoinNodeTest {
     return field.name();
   }
 
-  private static void setUpSource(final StructuredDataSourceNode node) {
+  private static void setUpSource(final StructuredDataSourceNode node, final String name) {
     final StructuredDataSource structuredDataSource = mock(StructuredDataSource.class);
-    when(structuredDataSource.getName()).thenReturn("Foobar");
+    when(structuredDataSource.getName()).thenReturn(name);
     when(node.getStructuredDataSource()).thenReturn(structuredDataSource);
 
     final KsqlTopic ksqlTopic = mock(KsqlTopic.class);

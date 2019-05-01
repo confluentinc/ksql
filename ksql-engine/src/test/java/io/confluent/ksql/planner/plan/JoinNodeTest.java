@@ -997,6 +997,7 @@ public class JoinNodeTest {
     );
   }
 
+  @SuppressWarnings("unchecked")
   private void setupTable(
       final StructuredDataSourceNode node,
       final SchemaKTable table,

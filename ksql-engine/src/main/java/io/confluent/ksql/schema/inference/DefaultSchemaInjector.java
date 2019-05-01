@@ -183,7 +183,7 @@ public class DefaultSchemaInjector implements Injector {
     final List<TableElement> elements = buildElements(schema.schema, preparedStatement);
 
     final AbstractStreamCreateStatement statement = preparedStatement.getStatement();
-    final Map<String, Expression> properties = new HashMap<>(statement.getProperties());
+    final Map<String, Literal> properties = new HashMap<>(statement.getProperties());
     properties
         .putIfAbsent(KsqlConstants.AVRO_SCHEMA_ID, new StringLiteral(String.valueOf(schema.id)));
 

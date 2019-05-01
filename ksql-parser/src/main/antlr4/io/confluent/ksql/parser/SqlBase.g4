@@ -86,7 +86,7 @@ tableProperties
     ;
 
 tableProperty
-    : identifier EQ expression
+    : identifier EQ literal
     ;
 
 printClause
@@ -231,11 +231,8 @@ valueExpression
     ;
 
 primaryExpression
-    : NULL                                                                           #nullLiteral
+    : literal                                                                        #literalExpression
     | identifier STRING                                                              #typeConstructor
-    | number                                                                         #numericLiteral
-    | booleanValue                                                                   #booleanLiteral
-    | STRING                                                                         #stringLiteral
     | qualifiedName '(' ASTERISK ')'                              		               #functionCall
     | qualifiedName '(' (expression (',' expression)*)? ')' 						             #functionCall
     | CASE valueExpression whenClause+ (ELSE elseExpression=expression)? END         #simpleCase
@@ -296,6 +293,13 @@ identifier
 number
     : DECIMAL_VALUE  #decimalLiteral
     | INTEGER_VALUE  #integerLiteral
+    ;
+
+literal
+    : NULL                                                                           #nullLiteral
+    | number                                                                         #numericLiteral
+    | booleanValue                                                                   #booleanLiteral
+    | STRING                                                                         #stringLiteral
     ;
 
 nonReserved

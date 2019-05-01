@@ -28,7 +28,7 @@ public class CreateStreamAsSelect extends CreateAsSelect {
       final QualifiedName name,
       final Query query,
       final boolean notExists,
-      final Map<String, Expression> properties,
+      final Map<String, Literal> properties,
       final Optional<Expression> partitionByColumn
   ) {
     this(Optional.empty(), name, query, notExists, properties, partitionByColumn);
@@ -39,14 +39,14 @@ public class CreateStreamAsSelect extends CreateAsSelect {
       final QualifiedName name,
       final Query query,
       final boolean notExists,
-      final Map<String, Expression> properties,
+      final Map<String, Literal> properties,
       final Optional<Expression> partitionByColumn) {
     super(location, name, query, notExists, properties, partitionByColumn);
   }
 
   private CreateStreamAsSelect(
       final CreateStreamAsSelect other,
-      final Map<String, Expression> properties
+      final Map<String, Literal> properties
   ) {
     super(other, properties);
   }
@@ -59,13 +59,13 @@ public class CreateStreamAsSelect extends CreateAsSelect {
             .put(DdlConfig.PARTITION_BY_PROPERTY, exp)
             .build()
         )
-        .orElse(getProperties());
+        .orElseGet(() -> ImmutableMap.copyOf(getProperties()));
 
     return Sink.of(getName().getSuffix(), true, sinkProperties);
   }
 
   @Override
-  public CreateAsSelect copyWith(final Map<String, Expression> properties) {
+  public CreateAsSelect copyWith(final Map<String, Literal> properties) {
     return new CreateStreamAsSelect(this, properties);
   }
 

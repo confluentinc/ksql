@@ -29,12 +29,12 @@ public class RegisterTopic extends Statement implements ExecutableDdlStatement {
 
   private final QualifiedName name;
   private final boolean notExists;
-  private final ImmutableMap<String, Expression> properties;
+  private final ImmutableMap<String, Literal> properties;
 
   public RegisterTopic(
       final QualifiedName name,
       final boolean notExists,
-      final Map<String, Expression> properties
+      final Map<String, Literal> properties
   ) {
     this(Optional.empty(), name, notExists, properties);
   }
@@ -43,7 +43,7 @@ public class RegisterTopic extends Statement implements ExecutableDdlStatement {
       final Optional<NodeLocation> location,
       final QualifiedName name,
       final boolean notExists,
-      final Map<String, Expression> properties
+      final Map<String, Literal> properties
   ) {
     super(location);
     this.name = requireNonNull(name, "name");
@@ -59,7 +59,7 @@ public class RegisterTopic extends Statement implements ExecutableDdlStatement {
     return notExists;
   }
 
-  public Map<String, Expression> getProperties() {
+  public Map<String, Literal> getProperties() {
     return properties;
   }
 

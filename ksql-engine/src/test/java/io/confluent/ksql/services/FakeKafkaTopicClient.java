@@ -20,6 +20,7 @@ import static org.apache.kafka.common.config.TopicConfig.CLEANUP_POLICY_CONFIG;
 import static org.apache.kafka.common.config.TopicConfig.COMPRESSION_TYPE_CONFIG;
 
 import com.google.common.annotations.VisibleForTesting;
+import io.confluent.ksql.topic.TopicProperties;
 import io.confluent.ksql.util.KsqlConstants;
 import java.util.Collection;
 import java.util.Collections;
@@ -118,13 +119,17 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
       final short replicationFactor,
       final Map<String, ?> configs
   ) {
+    final short replicas = replicationFactor == TopicProperties.DEFAULT_REPLICAS
+        ? 1
+        : replicationFactor;
+
     final FakeTopic existing = topicMap.get(topic);
     if (existing != null) {
-      validateTopicProperties(numPartitions, replicationFactor, existing);
+      validateTopicProperties(numPartitions, replicas, existing);
       return;
     }
 
-    final FakeTopic info = createFakeTopic(topic, numPartitions, replicationFactor, configs);
+    final FakeTopic info = createFakeTopic(topic, numPartitions, replicas, configs);
     topicMap.put(topic, info);
     createdTopics.put(topic, info);
   }

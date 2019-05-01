@@ -38,9 +38,10 @@ import org.apache.kafka.clients.admin.TopicDescription;
  */
 public final class TopicProperties {
 
+  public static final short DEFAULT_REPLICAS = -1;
+
   private static final String INVALID_TOPIC_NAME = ":INVALID:";
   private static final int INVALID_PARTITIONS = -1;
-  private static final short INVALID_REPLICAS = -1;
 
   private final String topicName;
   private final Integer partitions;
@@ -74,7 +75,7 @@ public final class TopicProperties {
   }
 
   public short getReplicas() {
-    return replicas == null ? INVALID_REPLICAS : replicas;
+    return replicas == null ? DEFAULT_REPLICAS : replicas;
   }
 
   /**
@@ -195,7 +196,6 @@ public final class TopicProperties {
           .filter(Objects::nonNull)
           .findFirst()
           .orElseGet(() -> fromSource.get().replicas);
-      Objects.requireNonNull(replicas, "Was not supplied with any valid source for replicas!");
 
       return new TopicProperties(name, partitions, replicas);
     }

@@ -28,6 +28,7 @@ import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.KafkaTopicClientImpl;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
+import io.confluent.ksql.topic.TopicProperties;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
@@ -201,6 +202,21 @@ public class KafkaTopicClientImplIntegrationTest {
     assertThat(topicDescription.partitions().get(0).replicas(), hasSize(1));
     final Map<String, String> configs = client.getTopicConfig(topicName);
     assertThat(configs.get(TopicConfig.COMPRESSION_TYPE_CONFIG), is("snappy"));
+  }
+
+  @Test
+  public void shouldCreateTopicWithDefaultReplicationFactor() {
+    // Given:
+    final String topicName = UUID.randomUUID().toString();
+
+    // When:
+    client.createTopic(topicName, 2, TopicProperties.DEFAULT_REPLICAS);
+
+    // Then:
+    assertThatEventually(() -> topicExists(topicName), is(true));
+    final TopicDescription topicDescription = getTopicDescription(topicName);
+    assertThat(topicDescription.partitions(), hasSize(2));
+    assertThat(topicDescription.partitions().get(0).replicas(), hasSize(1));
   }
 
   @Test

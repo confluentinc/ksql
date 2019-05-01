@@ -51,6 +51,7 @@ import io.confluent.ksql.planner.LogicalPlanNode;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanTestUtil;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.services.KafkaTopicClient;
@@ -253,13 +254,13 @@ public class PhysicalPlanBuilderTest {
     final QueryMetadata queryMetadata = buildPhysicalPlan(simpleSelectFilter);
 
     // Then:
-    assertThat(queryMetadata.getResultSchema(), is(
+    assertThat(queryMetadata.getResultSchema(), is(KsqlSchema.of(
         SchemaBuilder.struct()
             .field("COL0", Schema.OPTIONAL_INT64_SCHEMA)
             .field("COL2", Schema.OPTIONAL_STRING_SCHEMA)
             .field("COL3", Schema.OPTIONAL_FLOAT64_SCHEMA)
             .build()
-    ));
+    )));
   }
 
   @Test
@@ -269,7 +270,7 @@ public class PhysicalPlanBuilderTest {
         "CREATE STREAM FOO AS " + simpleSelectFilter);
 
     // Then:
-    assertThat(queryMetadata.getResultSchema(), is(
+    assertThat(queryMetadata.getResultSchema(), is(KsqlSchema.of(
         SchemaBuilder.struct()
             .field("ROWTIME", Schema.OPTIONAL_INT64_SCHEMA)
             .field("ROWKEY", Schema.OPTIONAL_STRING_SCHEMA)
@@ -277,7 +278,7 @@ public class PhysicalPlanBuilderTest {
             .field("COL2", Schema.OPTIONAL_STRING_SCHEMA)
             .field("COL3", Schema.OPTIONAL_FLOAT64_SCHEMA)
             .build()
-    ));
+    )));
   }
 
   @Test
@@ -744,7 +745,7 @@ public class PhysicalPlanBuilderTest {
     givenKafkaTopicsExist("test1");
     final List<QueryMetadata> queryMetadataList = execute(
         CREATE_STREAM_TEST1 + csasQuery + insertIntoQuery);
-    final Schema resultSchema = queryMetadataList.get(0).getResultSchema();
+    final KsqlSchema resultSchema = queryMetadataList.get(0).getResultSchema();
     resultSchema.fields().forEach(
         field -> Assert.assertTrue(field.schema().isOptional())
     );

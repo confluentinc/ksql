@@ -21,10 +21,10 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.physical.KsqlQueryBuilder;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.SchemaKStream;
 import java.util.List;
-import org.apache.kafka.connect.data.Schema;
 
 
 public abstract class PlanNode {
@@ -48,7 +48,7 @@ public abstract class PlanNode {
     return nodeOutputType;
   }
 
-  public abstract Schema getSchema();
+  public abstract KsqlSchema getSchema();
 
   public abstract KeyField getKeyField();
 

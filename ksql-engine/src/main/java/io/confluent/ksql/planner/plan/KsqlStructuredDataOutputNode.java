@@ -26,6 +26,7 @@ import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.physical.KsqlQueryBuilder;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.structured.QueryContext;
 import io.confluent.ksql.structured.SchemaKStream;
@@ -33,7 +34,6 @@ import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.QueryIdGenerator;
-import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import java.util.Collections;
 import java.util.Map;
@@ -42,9 +42,9 @@ import java.util.Optional;
 import java.util.Set;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
 
 public class KsqlStructuredDataOutputNode extends OutputNode {
+
   private final String kafkaTopicName;
   private final KsqlTopic ksqlTopic;
   private final KeyField keyField;
@@ -55,7 +55,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
   public KsqlStructuredDataOutputNode(
       @JsonProperty("id") final PlanNodeId id,
       @JsonProperty("source") final PlanNode source,
-      @JsonProperty("schema") final Schema schema,
+      @JsonProperty("schema") final KsqlSchema schema,
       @JsonProperty("timestamp") final TimestampExtractionPolicy timestampExtractionPolicy,
       @JsonProperty("key") final KeyField keyField,
       @JsonProperty("ksqlTopic") final KsqlTopic ksqlTopic,
@@ -114,8 +114,8 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
 
     final QueryContext.Stacker contextStacker = builder.buildNodeContext(getId());
 
-    final Set<Integer> rowkeyIndexes = SchemaUtil.getRowTimeRowKeyIndexes(getSchema());
-    final Schema schema = SchemaUtil.removeImplicitRowTimeRowKeyFromSchema(getSchema());
+    final Set<Integer> rowkeyIndexes = getSchema().implicitColumnIndexes();
+    final KsqlSchema schema = getSchema().withoutImplicitFields();
 
     final SchemaKStream<?> result = createOutputStream(
         schemaKStream,
@@ -129,7 +129,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
 
     final Serde<GenericRow> outputRowSerde = builder.buildGenericRowSerde(
         ksqlTopicSerDe,
-        schema,
+        schema.getSchema(),
         contextStacker.getQueryContext());
 
     result.into(
@@ -180,10 +180,10 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     return result.selectKey(field.name(), false, contextStacker);
   }
 
-  private Optional<Field> getPartitionByField(final Schema schema) {
+  private Optional<Field> getPartitionByField(final KsqlSchema schema) {
     return Optional.ofNullable(outputProperties.get(DdlConfig.PARTITION_BY_PROPERTY))
         .map(Object::toString)
-        .map(keyName -> SchemaUtil.getFieldByName(schema, keyName)
+        .map(keyName -> schema.findField(keyName)
             .orElseThrow(() -> new KsqlException(
                 "Column " + keyName + " does not exist in the result schema. "
                     + "Error in Partition By clause.")

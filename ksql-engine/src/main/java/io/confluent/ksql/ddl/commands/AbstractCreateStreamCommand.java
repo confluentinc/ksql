@@ -24,6 +24,7 @@ import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
 import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.schema.ksql.LogicalSchemas;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConstants;
@@ -38,7 +39,6 @@ import java.util.Map;
 import java.util.Set;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.kstream.WindowedSerdes;
@@ -58,7 +58,7 @@ abstract class AbstractCreateStreamCommand implements DdlCommand {
   final String sqlExpression;
   final String sourceName;
   final String topicName;
-  final Schema schema;
+  final KsqlSchema schema;
   final KeyField keyField;
   final RegisterTopicCommand registerTopicCommand;
   private final KafkaTopicClient kafkaTopicClient;
@@ -95,7 +95,7 @@ abstract class AbstractCreateStreamCommand implements DdlCommand {
       final String name = properties.get(DdlConfig.KEY_NAME_PROPERTY).toString().toUpperCase();
 
       final String keyFieldName = StringUtil.cleanQuotes(name);
-      final Field keyField = SchemaUtil.getFieldByName(schema, keyFieldName)
+      final Field keyField = schema.findField(keyFieldName)
           .orElseThrow(() -> new KsqlException(
               "The KEY column set in the WITH clause does not exist in the schema: '"
                   + keyFieldName + "'"
@@ -125,7 +125,7 @@ abstract class AbstractCreateStreamCommand implements DdlCommand {
     }
   }
 
-  private static Schema getStreamTableSchema(final List<TableElement> tableElements) {
+  private static KsqlSchema getStreamTableSchema(final List<TableElement> tableElements) {
     if (tableElements.isEmpty()) {
       throw new KsqlException("The statement does not define any columns.");
     }
@@ -146,7 +146,7 @@ abstract class AbstractCreateStreamCommand implements DdlCommand {
       );
     }
 
-    return tableSchema.build();
+    return KsqlSchema.of(tableSchema.build());
   }
 
   static void checkMetaData(

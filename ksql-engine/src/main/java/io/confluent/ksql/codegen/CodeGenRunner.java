@@ -35,6 +35,7 @@ import io.confluent.ksql.parser.tree.NotExpression;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.parser.tree.SearchedCaseExpression;
 import io.confluent.ksql.parser.tree.SubscriptExpression;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.util.ExpressionMetadata;
 import io.confluent.ksql.util.ExpressionTypeManager;
 import io.confluent.ksql.util.GenericRowValueTypeEnforcer;
@@ -57,7 +58,7 @@ import org.codehaus.commons.compiler.IExpressionEvaluator;
 
 public class CodeGenRunner {
 
-  private final Schema schema;
+  private final KsqlSchema schema;
   private final FunctionRegistry functionRegistry;
   private final ExpressionTypeManager expressionTypeManager;
   private final KsqlConfig ksqlConfig;
@@ -65,7 +66,7 @@ public class CodeGenRunner {
   public static List<ExpressionMetadata> compileExpressions(
       final Stream<Expression> expressions,
       final String type,
-      final Schema schema,
+      final KsqlSchema schema,
       final KsqlConfig ksqlConfig,
       final FunctionRegistry functionRegistry
   ) {
@@ -77,11 +78,12 @@ public class CodeGenRunner {
   }
 
   public CodeGenRunner(
-      final Schema schema,
+      final KsqlSchema schema,
       final KsqlConfig ksqlConfig,
-      final FunctionRegistry functionRegistry) {
-    this.functionRegistry = functionRegistry;
-    this.schema = schema;
+      final FunctionRegistry functionRegistry
+  ) {
+    this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
+    this.schema = Objects.requireNonNull(schema, "schema");
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     this.expressionTypeManager = new ExpressionTypeManager(schema, functionRegistry);
   }
@@ -110,7 +112,7 @@ public class CodeGenRunner {
       for (final ParameterType param : parameters) {
         parameterNames[index] = param.name;
         parameterTypes[index] = param.type;
-        columnIndexes.add(SchemaUtil.getFieldIndexByName(schema, param.name));
+        columnIndexes.add(schema.findFieldIndex(param.name).orElse(-1));
         kudfObjects.add(param.getKudf());
         index++;
       }
@@ -147,7 +149,7 @@ public class CodeGenRunner {
 
   private static final class Visitor extends AstVisitor<Object, Object> {
 
-    private final Schema schema;
+    private final KsqlSchema schema;
     private final Set<ParameterType> parameters;
     private final FunctionRegistry functionRegistry;
     private final ExpressionTypeManager expressionTypeManager;
@@ -156,11 +158,12 @@ public class CodeGenRunner {
     private int functionCounter = 0;
 
     private Visitor(
-        final Schema schema,
+        final KsqlSchema schema,
         final FunctionRegistry functionRegistry,
         final ExpressionTypeManager expressionTypeManager,
-        final KsqlConfig ksqlConfig) {
-      this.schema = schema;
+        final KsqlConfig ksqlConfig
+    ) {
+      this.schema = Objects.requireNonNull(schema, "schema");
       this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
       this.parameters = new HashSet<>();
       this.functionRegistry = functionRegistry;
@@ -243,15 +246,9 @@ public class CodeGenRunner {
     @Override
     protected Object visitDereferenceExpression(
         final DereferenceExpression node,
-        final Object context) {
-      final Optional<Field> schemaField = SchemaUtil.getFieldByName(schema, node.toString());
-      if (!schemaField.isPresent()) {
-        throw new RuntimeException(
-            "Cannot find the select field in the available fields."
-                + " field: " + node
-                + ", schema: " + schema.fields());
-      }
-      addParameter(schemaField.get());
+        final Object context
+    ) {
+      addParameter(getRequiredField(node.toString()));
       return null;
     }
 
@@ -283,11 +280,7 @@ public class CodeGenRunner {
       if (node.getBase() instanceof DereferenceExpression
           || node.getBase() instanceof QualifiedNameReference) {
         final String arrayBaseName = node.getBase().toString();
-        final Field schemaField = SchemaUtil.getFieldByName(schema, arrayBaseName)
-            .orElseThrow(
-                () -> new RuntimeException("Cannot find the select "
-                    + "field in the available fields: " + arrayBaseName));
-        addParameter(schemaField);
+        addParameter(getRequiredField(arrayBaseName));
       } else {
         process(node.getBase(), context);
       }
@@ -298,21 +291,22 @@ public class CodeGenRunner {
     @Override
     protected Object visitQualifiedNameReference(
         final QualifiedNameReference node,
-        final Object context) {
-      final Optional<Field> schemaField =
-          SchemaUtil.getFieldByName(schema, node.getName().getSuffix());
-
-      if (!schemaField.isPresent()) {
-        throw new RuntimeException(
-            "Cannot find the select field in the available fields."
-                + " name field: " + node.getName().getSuffix()
-                + ", schema: " + schema.fields());
-      }
-      addParameter(schemaField.get());
+        final Object context
+    ) {
+      addParameter(getRequiredField(node.getName().getSuffix()));
       return null;
     }
 
+    private Field getRequiredField(final String fieldName) {
+      return schema.findField(fieldName)
+          .orElseThrow(() -> new RuntimeException(
+              "Cannot find the select field in the available fields."
+                  + " field: " + fieldName
+                  + ", schema: " + schema.fields()));
+    }
   }
+
+
 
   public static final class ParameterType {
 

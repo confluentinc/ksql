@@ -35,11 +35,11 @@ import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.PlanNodeId;
 import io.confluent.ksql.planner.plan.ProjectNode;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.util.ExpressionTypeManager;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
-import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicyFactory;
 import java.util.Map;
@@ -86,7 +86,7 @@ public class LogicalPlanner {
   }
 
   private OutputNode buildOutputNode(final PlanNode sourcePlanNode) {
-    final Schema inputSchema = sourcePlanNode.getSchema();
+    final KsqlSchema inputSchema = sourcePlanNode.getSchema();
     final Map<String, Object> intoProperties = analysis.getIntoProperties();
     final TimestampExtractionPolicy extractionPolicy =
         getTimestampExtractionPolicy(inputSchema, intoProperties);
@@ -106,7 +106,7 @@ public class LogicalPlanner {
     final Optional<Field> partitionByField = Optional
         .ofNullable(intoProperties.get(DdlConfig.PARTITION_BY_PROPERTY))
         .map(Object::toString)
-        .map(keyName -> SchemaUtil.getFieldByName(inputSchema, keyName)
+        .map(keyName -> inputSchema.findField(keyName)
             .orElseThrow(() -> new KsqlException(
                 "Column " + keyName + " does not exist in the result schema. "
                     + "Error in Partition By clause.")
@@ -132,7 +132,7 @@ public class LogicalPlanner {
   }
 
   private static TimestampExtractionPolicy getTimestampExtractionPolicy(
-      final Schema inputSchema,
+      final KsqlSchema inputSchema,
       final Map<String, Object> intoProperties) {
 
     return TimestampExtractionPolicyFactory.create(
@@ -152,14 +152,14 @@ public class LogicalPlanner {
         : null;
 
     Optional<String> keyField = Optional.empty();
-    SchemaBuilder aggregateSchema = SchemaBuilder.struct();
+    final SchemaBuilder aggregateSchema = SchemaBuilder.struct();
     for (int i = 0; i < analysis.getSelectExpressions().size(); i++) {
       final Expression expression = analysis.getSelectExpressions().get(i);
       final String alias = analysis.getSelectExpressionAlias().get(i);
 
       final Schema expressionType = expressionTypeManager.getExpressionSchema(expression);
 
-      aggregateSchema = aggregateSchema.field(alias, expressionType);
+      aggregateSchema.field(alias, expressionType);
 
       if (expression.equals(groupBy)) {
         keyField = Optional.of(alias);
@@ -169,7 +169,7 @@ public class LogicalPlanner {
     return new AggregateNode(
         new PlanNodeId("Aggregate"),
         sourcePlanNode,
-        aggregateSchema,
+        KsqlSchema.of(aggregateSchema.build()),
         keyField,
         analysis.getGroupByExpressions(),
         analysis.getWindowExpression(),
@@ -211,7 +211,7 @@ public class LogicalPlanner {
     return new ProjectNode(
         new PlanNodeId("Project"),
         sourcePlanNode,
-        projectionSchema.build(),
+        KsqlSchema.of(projectionSchema.build()),
         keyFieldName,
         analysis.getSelectExpressions()
     );

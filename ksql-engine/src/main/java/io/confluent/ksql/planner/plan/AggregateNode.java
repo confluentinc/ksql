@@ -37,6 +37,7 @@ import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.physical.KsqlQueryBuilder;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.QueryContext;
@@ -46,7 +47,6 @@ import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.AggregateExpressionRewriter;
 import io.confluent.ksql.util.ExpressionTypeManager;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.SelectExpression;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -75,7 +75,7 @@ public class AggregateNode extends PlanNode {
   private static final String PROJECT_OP_NAME = "project";
 
   private final PlanNode source;
-  private final Schema schema;
+  private final KsqlSchema schema;
   private final KeyField keyField;
   private final List<Expression> groupByExpressions;
   private final WindowExpression windowExpression;
@@ -90,7 +90,7 @@ public class AggregateNode extends PlanNode {
   public AggregateNode(
       @JsonProperty("id") final PlanNodeId id,
       @JsonProperty("source") final PlanNode source,
-      @JsonProperty("schema") final Schema schema,
+      @JsonProperty("schema") final KsqlSchema schema,
       @JsonProperty("keyField") final Optional<String> keyFieldName,
       @JsonProperty("groupby") final List<Expression> groupByExpressions,
       @JsonProperty("window") final WindowExpression windowExpression,
@@ -120,7 +120,7 @@ public class AggregateNode extends PlanNode {
   }
 
   @Override
-  public Schema getSchema() {
+  public KsqlSchema getSchema() {
     return this.schema;
   }
 
@@ -206,7 +206,7 @@ public class AggregateNode extends PlanNode {
 
     final Serde<GenericRow> genericRowSerde = builder.buildGenericRowSerde(
         ksqlTopicSerDe,
-        aggregateArgExpanded.getSchema(),
+        aggregateArgExpanded.getSchema().getSchema(),
         groupByContext.getQueryContext()
     );
 
@@ -224,7 +224,7 @@ public class AggregateNode extends PlanNode {
         internalSchema
     );
 
-    final Schema aggStageSchema = buildAggregateSchema(
+    final KsqlSchema aggStageSchema = buildAggregateSchema(
         aggregateArgExpanded.getSchema(),
         builder.getFunctionRegistry(),
         internalSchema
@@ -234,7 +234,7 @@ public class AggregateNode extends PlanNode {
 
     final Serde<GenericRow> aggValueGenericRowSerde = builder.buildGenericRowSerde(
         ksqlTopicSerDe,
-        aggStageSchema,
+        aggStageSchema.getSchema(),
         aggregationContext.getQueryContext()
     );
 
@@ -290,7 +290,7 @@ public class AggregateNode extends PlanNode {
     for (final Expression expression : getRequiredColumns()) {
       final String exprStr =
           internalSchema.getInternalColumnForExpression(expression);
-      final int index = SchemaUtil.getIndexInSchema(exprStr, aggregateArgExpanded.getSchema());
+      final int index = aggregateArgExpanded.getSchema().fieldIndex(exprStr);
       aggValToValColumnMap.put(nonAggColumnIndex, index);
       nonAggColumnIndex++;
     }
@@ -333,7 +333,7 @@ public class AggregateNode extends PlanNode {
       final FunctionRegistry functionRegistry,
       final InternalSchema internalSchema,
       final FunctionCall functionCall,
-      final Schema schema
+      final KsqlSchema schema
   ) {
     final ExpressionTypeManager expressionTypeManager =
         new ExpressionTypeManager(schema, functionRegistry);
@@ -352,8 +352,8 @@ public class AggregateNode extends PlanNode {
     return aggregateFunctionInfo.getInstance(new AggregateFunctionArguments(udafIndex, args));
   }
 
-  private Schema buildAggregateSchema(
-      final Schema schema,
+  private KsqlSchema buildAggregateSchema(
+      final KsqlSchema schema,
       final FunctionRegistry functionRegistry,
       final InternalSchema internalSchema
   ) {
@@ -376,7 +376,7 @@ public class AggregateNode extends PlanNode {
       );
     }
 
-    return schemaBuilder.build();
+    return KsqlSchema.of(schemaBuilder.build());
   }
 
   private static class InternalSchema {

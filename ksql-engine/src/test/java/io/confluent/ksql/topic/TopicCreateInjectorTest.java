@@ -39,20 +39,16 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.IntegerLiteral;
 import io.confluent.ksql.parser.tree.StringLiteral;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
-import io.confluent.ksql.services.FakeKafkaTopicClient;
-import io.confluent.ksql.services.FakeKafkaTopicClient.FakeTopic;
 import io.confluent.ksql.services.KafkaTopicClient;
-import io.confluent.ksql.services.KafkaTopicClient.TopicCleanupPolicy;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 import java.util.function.Supplier;
-import kafka.server.KafkaConfig;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.config.TopicConfig;
 import org.apache.kafka.common.serialization.Serdes;
@@ -69,10 +65,10 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class TopicCreateInjectorTest {
 
-  private static final Schema SCHEMA = SchemaBuilder
+  private static final KsqlSchema SCHEMA = KsqlSchema.of(SchemaBuilder
       .struct()
       .field("F1", Schema.OPTIONAL_STRING_SCHEMA)
-      .build();
+      .build());
 
   @Mock
   private TopicProperties.Builder builder;

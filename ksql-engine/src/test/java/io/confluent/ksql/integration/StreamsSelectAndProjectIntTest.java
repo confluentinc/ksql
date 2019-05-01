@@ -23,6 +23,7 @@ import static org.hamcrest.Matchers.is;
 
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import io.confluent.ksql.test.util.TopicTestUtil;
@@ -36,7 +37,6 @@ import java.util.concurrent.TimeUnit;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
-import org.apache.kafka.connect.data.Schema;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -219,16 +219,11 @@ public class StreamsSelectAndProjectIntTest {
             "ORDER_6",
             "ITEM_8")));
 
-    final Schema resultSchema = ksqlContext
-        .getMetaStore()
-        .getSource(resultStream.toUpperCase())
-        .getSchema();
-
     TEST_HARNESS.verifyAvailableRows(
         resultStream.toUpperCase(),
         expectedResults.size(),
         dataSourceSerDe,
-        resultSchema);
+        getResultSchema());
   }
 
   private void testSelectProjectKeyTimestamp(
@@ -240,16 +235,11 @@ public class StreamsSelectAndProjectIntTest {
                                   + "AS RTIME, ITEMID FROM %s WHERE ORDERUNITS > 20 AND ITEMID = "
                                   + "'ITEM_8';", resultStream, inputStreamName));
 
-    final Schema resultSchema = ksqlContext
-        .getMetaStore()
-        .getSource(resultStream.toUpperCase())
-        .getSchema();
-
     final List<ConsumerRecord<String, GenericRow>> results = TEST_HARNESS.verifyAvailableRows(
         resultStream.toUpperCase(),
         1,
         dataSourceSerDe,
-        resultSchema);
+        getResultSchema());
 
     assertThat(results.get(0).key(), is("8"));
     assertThat(results.get(0).value(), is(new GenericRow(
@@ -263,16 +253,11 @@ public class StreamsSelectAndProjectIntTest {
     ksqlContext.sql(String.format("CREATE STREAM %s AS SELECT ITEMID, ORDERUNITS, "
                                   + "PRICEARRAY FROM %s;", resultStream, inputStreamName));
 
-    final Schema resultSchema = ksqlContext
-        .getMetaStore()
-        .getSource(resultStream.toUpperCase())
-        .getSchema();
-
     final List<ConsumerRecord<String, GenericRow>> results = TEST_HARNESS.verifyAvailableRows(
         resultStream.toUpperCase(),
         DATA_PROVIDER.data().size(),
         dataSourceSerDe,
-        resultSchema);
+        getResultSchema());
 
     final GenericRow value = results.get(0).value();
     // skip over first to values (rowKey, rowTime)
@@ -288,16 +273,11 @@ public class StreamsSelectAndProjectIntTest {
                                   + "ORDERUNITS, "
         + "PRICEARRAY FROM %s;", resultStream, AVRO_STREAM_NAME));
 
-    final Schema resultSchema = ksqlContext
-        .getMetaStore()
-        .getSource(resultStream.toUpperCase())
-        .getSchema();
-
     final List<ConsumerRecord<String, GenericRow>> results = TEST_HARNESS.verifyAvailableRows(
         resultStream.toUpperCase(),
         DATA_PROVIDER.data().size(),
         JSON,
-        resultSchema);
+        getResultSchema());
 
     final GenericRow value = results.get(0).value();
     // skip over first to values (rowKey, rowTime)
@@ -342,15 +322,11 @@ public class StreamsSelectAndProjectIntTest {
     ksqlContext.sql("INSERT INTO " + resultStream +
         " SELECT ITEMID, ORDERUNITS, PRICEARRAY FROM " + JSON_STREAM_NAME + ";");
 
-    final Schema resultSchema = ksqlContext.getMetaStore()
-        .getSource(resultStream.toUpperCase())
-        .getSchema();
-
     final List<ConsumerRecord<String, GenericRow>> results = TEST_HARNESS.verifyAvailableRows(
         resultStream.toUpperCase(),
         DATA_PROVIDER.data().size(),
         JSON,
-        resultSchema);
+        getResultSchema());
 
     final GenericRow value = results.get(0).value();
     // skip over first to values (rowKey, rowTime)
@@ -365,16 +341,11 @@ public class StreamsSelectAndProjectIntTest {
     ksqlContext.sql("INSERT INTO " + resultStream + " "
         + "SELECT ITEMID, ORDERUNITS, PRICEARRAY FROM " + AVRO_STREAM_NAME + ";");
 
-    final Schema resultSchema = ksqlContext
-        .getMetaStore()
-        .getSource(resultStream.toUpperCase())
-        .getSchema();
-
     final List<ConsumerRecord<String, GenericRow>> results = TEST_HARNESS.verifyAvailableRows(
         resultStream.toUpperCase(),
         DATA_PROVIDER.data().size(),
         AVRO,
-        resultSchema);
+        getResultSchema());
 
     final GenericRow value = results.get(0).value();
     // skip over first to values (rowKey, rowTime)
@@ -439,6 +410,13 @@ public class StreamsSelectAndProjectIntTest {
         4,
         AVRO,
         DATA_PROVIDER.schema());
+  }
+
+  private KsqlSchema getResultSchema() {
+    return ksqlContext
+        .getMetaStore()
+        .getSource(resultStream.toUpperCase())
+        .getSchema();
   }
 
   private void createOrdersStream() {

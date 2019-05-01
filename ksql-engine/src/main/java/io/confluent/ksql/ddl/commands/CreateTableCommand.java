@@ -20,7 +20,6 @@ import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.SchemaUtil;
 
 public class CreateTableCommand extends AbstractCreateStreamCommand {
 
@@ -48,7 +47,7 @@ public class CreateTableCommand extends AbstractCreateStreamCommand {
     final KsqlTable ksqlTable = new KsqlTable<>(
         sqlExpression,
         sourceName,
-        SchemaUtil.addImplicitRowTimeRowKeyToSchema(schema),
+        schema.withImplicitFields(),
         keyField,
         timestampExtractionPolicy,
         metaStore.getTopic(topicName),

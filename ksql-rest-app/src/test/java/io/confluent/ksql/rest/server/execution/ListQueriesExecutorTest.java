@@ -23,7 +23,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.rest.entity.EntityQueryId;
 import io.confluent.ksql.rest.entity.Queries;
@@ -59,7 +58,7 @@ public class ListQueriesExecutorTest {
   public void shouldListQueriesBasic() {
     // Given
     final ConfiguredStatement<?> showQueries = engine.configure("SHOW QUERIES;");
-    final PersistentQueryMetadata metadata = engine.givenPersistentQuery("id");
+    final PersistentQueryMetadata metadata = TemporaryEngine.givenPersistentQuery("id");
 
     final KsqlEngine engine = mock(KsqlEngine.class);
     when(engine.getPersistentQueries()).thenReturn(ImmutableList.of(metadata));
@@ -82,7 +81,7 @@ public class ListQueriesExecutorTest {
   public void shouldListQueriesExtended() {
     // Given
     final ConfiguredStatement<?> showQueries = engine.configure("SHOW QUERIES EXTENDED;");
-    final PersistentQueryMetadata metadata = engine.givenPersistentQuery("id");
+    final PersistentQueryMetadata metadata = TemporaryEngine.givenPersistentQuery("id");
 
     final KsqlEngine engine = mock(KsqlEngine.class);
     when(engine.getPersistentQueries()).thenReturn(ImmutableList.of(metadata));

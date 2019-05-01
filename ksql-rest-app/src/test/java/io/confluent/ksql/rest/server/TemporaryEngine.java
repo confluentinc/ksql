@@ -32,6 +32,7 @@ import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
@@ -52,8 +53,9 @@ import org.junit.rules.ExternalResource;
 
 public class TemporaryEngine extends ExternalResource {
 
-  public static final Schema SCHEMA =
-      SchemaBuilder.struct().field("val", Schema.OPTIONAL_STRING_SCHEMA).build();
+  public static final KsqlSchema SCHEMA = KsqlSchema.of(SchemaBuilder.struct()
+      .field("val", Schema.OPTIONAL_STRING_SCHEMA)
+      .build());
 
   private MutableMetaStore metaStore;
 
@@ -96,14 +98,14 @@ public class TemporaryEngine extends ExternalResource {
         source =
             new KsqlStream<>(
                 "statement", name, SCHEMA,
-                KeyField.of("val", SCHEMA.field("val")),
+                KeyField.of("val", SCHEMA.getSchema().field("val")),
                 new MetadataTimestampExtractionPolicy(), topic, Serdes::String);
         break;
       case KTABLE:
         source =
             new KsqlTable<>(
                 "statement", name, SCHEMA,
-                KeyField.of("val", SCHEMA.field("val")),
+                KeyField.of("val", SCHEMA.getSchema().field("val")),
                 new MetadataTimestampExtractionPolicy(), topic, Serdes::String);
         break;
       default:
@@ -134,7 +136,7 @@ public class TemporaryEngine extends ExternalResource {
   }
 
   @SuppressWarnings("SameParameterValue")
-  public PersistentQueryMetadata givenPersistentQuery(final String id) {
+  public static PersistentQueryMetadata givenPersistentQuery(final String id) {
     final PersistentQueryMetadata metadata = mock(PersistentQueryMetadata.class);
     when(metadata.getQueryId()).thenReturn(new QueryId(id));
     when(metadata.getSinkNames()).thenReturn(ImmutableSet.of(id));

@@ -23,6 +23,7 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.rest.server.computation.ConfigStore;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
@@ -69,7 +70,7 @@ public class StandaloneExecutorFunctionalTest {
   private static final String AVRO_TOPIC = "avro-topic";
   private static final String JSON_TOPIC = "json-topic";
   private static int DATA_SIZE;
-  private static Schema DATA_SCHEMA;
+  private static KsqlSchema DATA_SCHEMA;
 
   @Mock
   private VersionCheckerAgent versionChecker;
@@ -278,9 +279,9 @@ public class StandaloneExecutorFunctionalTest {
   }
 
   private static void givenIncompatibleSchemaExists(final String topicName) {
-    final Schema incompatible = SchemaBuilder.struct()
+    final KsqlSchema incompatible = KsqlSchema.of(SchemaBuilder.struct()
         .field("ORDERID", Schema.INT64_SCHEMA)
-        .build();
+        .build());
 
     TEST_HARNESS.ensureSchema(topicName, incompatible);
   }

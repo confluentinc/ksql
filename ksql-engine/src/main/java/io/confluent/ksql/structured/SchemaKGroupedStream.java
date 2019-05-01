@@ -25,6 +25,7 @@ import io.confluent.ksql.metastore.SerdeFactory;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.parser.tree.KsqlWindowExpression;
 import io.confluent.ksql.parser.tree.WindowExpression;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.streams.MaterializedFactory;
 import io.confluent.ksql.streams.StreamsUtil;
 import io.confluent.ksql.util.KsqlConfig;
@@ -34,7 +35,6 @@ import java.util.Objects;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.utils.Bytes;
-import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.kstream.Initializer;
 import org.apache.kafka.streams.kstream.KGroupedStream;
 import org.apache.kafka.streams.kstream.KTable;
@@ -46,7 +46,7 @@ import org.apache.kafka.streams.state.WindowStore;
 
 public class SchemaKGroupedStream {
 
-  final Schema schema;
+  final KsqlSchema schema;
   final KGroupedStream kgroupedStream;
   final KeyField keyField;
   final List<SchemaKStream> sourceSchemaKStreams;
@@ -55,7 +55,7 @@ public class SchemaKGroupedStream {
   final MaterializedFactory materializedFactory;
 
   SchemaKGroupedStream(
-      final Schema schema,
+      final KsqlSchema schema,
       final KGroupedStream kgroupedStream,
       final KeyField keyField,
       final List<SchemaKStream> sourceSchemaKStreams,
@@ -74,7 +74,7 @@ public class SchemaKGroupedStream {
   }
 
   SchemaKGroupedStream(
-      final Schema schema,
+      final KsqlSchema schema,
       final KGroupedStream kgroupedStream,
       final KeyField keyField,
       final List<SchemaKStream> sourceSchemaKStreams,

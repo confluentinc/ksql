@@ -50,7 +50,6 @@ import java.util.List;
 import java.util.Optional;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.Schema.Type;
 import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
@@ -155,7 +154,6 @@ public class ProcessingLogServerUtilsTest {
     final Schema expected = ProcessingLogServerUtils.getMessageSchema();
     assertThat(stream.getKsqlTopicSerde(), instanceOf(KsqlJsonTopicSerDe.class));
     assertThat(stream.getKsqlTopic().getKafkaTopicName(), equalTo(topicName));
-    assertThat(stream.getSchema().type(), equalTo(Type.STRUCT));
     assertThat(
         stream.getSchema().fields().stream().map(Field::name).collect(toList()),
         equalTo(
@@ -172,7 +170,7 @@ public class ProcessingLogServerUtilsTest {
     expected.fields().forEach(
         f -> assertLogSchema(
             f.schema(),
-            stream.getSchema().field(f.name().toUpperCase()).schema(),
+            stream.getSchema().getSchema().field(f.name().toUpperCase()).schema(),
             ImmutableList.of(f.name())));
   }
 

@@ -356,8 +356,8 @@ public class QueryAnalyzerTest {
     // Then:
     final JoinNode join = analysis.getJoin();
     assertTrue(join.isLeftJoin());
-    assertThat(join.getLeftKeyFieldName(), is("TEST1.COL1"));
-    assertThat(join.getRightKeyFieldName(), is("TEST2.COL2"));
+    assertThat(join.getLeftJoinFieldName(), is("TEST1.COL1"));
+    assertThat(join.getRightJoinFieldName(), is("TEST2.COL2"));
   }
 
   @Test

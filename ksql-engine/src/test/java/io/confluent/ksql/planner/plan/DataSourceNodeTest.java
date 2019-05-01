@@ -32,12 +32,14 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.physical.KsqlQueryBuilder;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.streams.MaterializedFactory;
@@ -89,19 +91,19 @@ public class DataSourceNodeTest {
   private final KsqlConfig realConfig = new KsqlConfig(Collections.emptyMap());
   private SchemaKStream realStream;
   private StreamsBuilder realBuilder;
-  private final Schema realSchema = SchemaBuilder.struct()
+  private final KsqlSchema realSchema = KsqlSchema.of(SchemaBuilder.struct()
       .field("field1", Schema.OPTIONAL_STRING_SCHEMA)
       .field("field2", Schema.OPTIONAL_STRING_SCHEMA)
       .field("field3", Schema.OPTIONAL_STRING_SCHEMA)
       .field(TIMESTAMP_FIELD, Schema.OPTIONAL_INT64_SCHEMA)
       .field("key", Schema.OPTIONAL_STRING_SCHEMA)
-      .build();
+      .build());
 
   private final KsqlStream<String> SOME_SOURCE = new KsqlStream<>(
       "sqlExpression",
       "datasource",
       realSchema,
-      KeyField.of("key", realSchema.field("key")),
+      KeyField.of("key", realSchema.getSchema().field("key")),
       new LongColumnTimestampExtractionPolicy("timestamp"),
       new KsqlTopic("topic", "topic",
           new KsqlJsonTopicSerDe(), false), Serdes::String);
@@ -144,6 +146,8 @@ public class DataSourceNodeTest {
   private Materialized materialized;
   @Mock
   private KsqlQueryBuilder ksqlStreamBuilder;
+  @Mock
+  private FunctionRegistry functionRegistry;
   @Captor
   private ArgumentCaptor<QueryContext> queryContextCaptor;
 
@@ -157,6 +161,8 @@ public class DataSourceNodeTest {
     when(ksqlStreamBuilder.buildNodeContext(any())).thenAnswer(inv ->
         new QueryContext.Stacker(queryId)
             .push(inv.getArgument(0).toString()));
+    when(ksqlStreamBuilder.buildGenericRowSerde(any(), any(), any())).thenReturn(rowSerde);
+    when(ksqlStreamBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
 
     realStream = node.buildStream(ksqlStreamBuilder);
 
@@ -167,7 +173,6 @@ public class DataSourceNodeTest {
     when(tableSource.getTimestampExtractionPolicy()).thenReturn(timestampExtractionPolicy);
     when(ksqlTopic.getKafkaTopicName()).thenReturn("topic");
     when(ksqlTopic.getKsqlTopicSerDe()).thenReturn(topicSerDe);
-    when(ksqlStreamBuilder.buildGenericRowSerde(any(), any(), any())).thenReturn(rowSerde);
     when(timestampExtractionPolicy.timestampField()).thenReturn(TIMESTAMP_FIELD);
     when(timestampExtractionPolicy.create(anyInt())).thenReturn(timestampExtractor);
     when(kStream.transformValues(any(ValueTransformerSupplier.class))).thenReturn(kStream);
@@ -257,7 +262,7 @@ public class DataSourceNodeTest {
   public void shouldBuildSchemaKTableWhenKTableSource() {
     final KsqlTable<String> table = new KsqlTable<>("sqlExpression", "datasource",
         realSchema,
-        KeyField.of("field1", realSchema.field("field1")),
+        KeyField.of("field1", realSchema.getSchema().field("field1")),
         new LongColumnTimestampExtractionPolicy("timestamp"),
         new KsqlTopic("topic2", "topic2",
             new KsqlJsonTopicSerDe(), false),
@@ -276,7 +281,7 @@ public class DataSourceNodeTest {
   public void shouldTransformKStreamToKTableCorrectly() {
     final KsqlTable<String> table = new KsqlTable<>("sqlExpression", "datasource",
         realSchema,
-        KeyField.of("field1", realSchema.field("field1")),
+        KeyField.of("field1", realSchema.getSchema().field("field1")),
         new LongColumnTimestampExtractionPolicy("timestamp"),
         new KsqlTopic("topic2", "topic2",
             new KsqlJsonTopicSerDe(), false),
@@ -324,17 +329,17 @@ public class DataSourceNodeTest {
     final String sourceName = SOME_SOURCE.getName();
 
     // When:
-    final Schema schema = node.getSchema();
+    final KsqlSchema schema = node.getSchema();
 
     // Then:
     assertThat(schema, is(
-        SchemaBuilder.struct()
+        KsqlSchema.of(SchemaBuilder.struct()
             .field(sourceName + ".field1", Schema.OPTIONAL_STRING_SCHEMA)
             .field(sourceName + ".field2", Schema.OPTIONAL_STRING_SCHEMA)
             .field(sourceName + ".field3", Schema.OPTIONAL_STRING_SCHEMA)
             .field(sourceName + "." + TIMESTAMP_FIELD, Schema.OPTIONAL_INT64_SCHEMA)
             .field(sourceName + ".key", Schema.OPTIONAL_STRING_SCHEMA)
-            .build()));
+            .build())));
   }
 
   @SuppressWarnings("unchecked")
@@ -343,7 +348,7 @@ public class DataSourceNodeTest {
     when(streamsBuilder.stream(anyString(), any())).thenReturn((KStream)kStream);
     when(tableSource.getSchema()).thenReturn(realSchema);
     when(tableSource.getKeyField())
-        .thenReturn(KeyField.of("field1", realSchema.field("field1")));
+        .thenReturn(KeyField.of("field1", realSchema.getSchema().field("field1")));
 
     return new DataSourceNode(
         realNodeId,

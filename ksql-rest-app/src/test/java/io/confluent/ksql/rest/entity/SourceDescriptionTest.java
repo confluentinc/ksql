@@ -25,6 +25,7 @@ import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.metrics.ConsumerCollector;
 import io.confluent.ksql.metrics.StreamsErrorCollector;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
 import java.util.Arrays;
@@ -61,9 +62,9 @@ public class SourceDescriptionTest {
   }
 
   private DataSource<?> buildDataSource(final String kafkaTopicName) {
-    final Schema schema = SchemaBuilder.struct()
+    final KsqlSchema schema = KsqlSchema.of(SchemaBuilder.struct()
         .field("field0", Schema.OPTIONAL_INT32_SCHEMA)
-        .build();
+        .build());
     final KsqlTopic topic = new KsqlTopic("internal", kafkaTopicName, new KsqlJsonTopicSerDe(), true);
     return new KsqlStream<>(
         "query", "stream", schema,

@@ -23,6 +23,7 @@ import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.physical.KsqlQueryBuilder;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.QueryContext;
@@ -41,7 +42,6 @@ import java.util.function.Supplier;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 
 
@@ -57,9 +57,9 @@ public class JoinNode extends PlanNode {
   private final JoinType joinType;
   private final PlanNode left;
   private final PlanNode right;
-  private final Schema schema;
-  private final String leftKeyFieldName;
-  private final String rightKeyFieldName;
+  private final KsqlSchema schema;
+  private final String leftJoinFieldName;
+  private final String rightJoinFieldName;
   private final KeyField keyField;
 
   private final String leftAlias;
@@ -74,8 +74,8 @@ public class JoinNode extends PlanNode {
       @JsonProperty("type") final JoinType joinType,
       @JsonProperty("left") final PlanNode left,
       @JsonProperty("right") final PlanNode right,
-      @JsonProperty("leftKeyFieldName") final String leftKeyFieldName,
-      @JsonProperty("rightKeyFieldName") final String rightKeyFieldName,
+      @JsonProperty("leftJoinFieldName") final String leftJoinFieldName,
+      @JsonProperty("rightJoinFieldName") final String rightJoinFieldName,
       @JsonProperty("leftAlias") final String leftAlias,
       @JsonProperty("rightAlias") final String rightAlias,
       @JsonProperty("within") final WithinExpression withinExpression,
@@ -90,40 +90,40 @@ public class JoinNode extends PlanNode {
     this.left = Objects.requireNonNull(left, "left");
     this.right = Objects.requireNonNull(right, "right");
     this.schema = buildSchema(left, right);
-    this.leftKeyFieldName = Objects.requireNonNull(leftKeyFieldName, "leftKeyFieldName");
-    this.rightKeyFieldName = Objects.requireNonNull(rightKeyFieldName, "rightKeyFieldName");
+    this.leftJoinFieldName = Objects.requireNonNull(leftJoinFieldName, "leftJoinFieldName");
+    this.rightJoinFieldName = Objects.requireNonNull(rightJoinFieldName, "rightJoinFieldName");
     this.leftAlias = Objects.requireNonNull(leftAlias, "leftAlias");
     this.rightAlias = Objects.requireNonNull(rightAlias, rightAlias);
     this.withinExpression = withinExpression;
     this.leftType = Objects.requireNonNull(leftType, "leftType");
     this.rightType = Objects.requireNonNull(rightType, "rightType");
 
-    final Field leftKeyField = validateFieldInSchema(leftKeyFieldName, left.getSchema());
-    validateFieldInSchema(rightKeyFieldName, right.getSchema());
+    final Field leftKeyField = validateFieldInSchema(leftJoinFieldName, left.getSchema());
+    validateFieldInSchema(rightJoinFieldName, right.getSchema());
 
-    this.keyField = KeyField.of(leftKeyFieldName, leftKeyField);
+    this.keyField = KeyField.of(leftJoinFieldName, leftKeyField);
   }
 
-  private static Schema buildSchema(final PlanNode left, final PlanNode right) {
+  private static KsqlSchema buildSchema(final PlanNode left, final PlanNode right) {
 
-    final Schema leftSchema = left.getSchema();
-    final Schema rightSchema = right.getSchema();
+    final KsqlSchema leftSchema = left.getSchema();
+    final KsqlSchema rightSchema = right.getSchema();
 
     final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
 
-    for (final Field field : leftSchema.fields()) {
+    for (final Field field : leftSchema.getSchema().fields()) {
       schemaBuilder.field(field.name(), field.schema());
     }
 
-    for (final Field field : rightSchema.fields()) {
+    for (final Field field : rightSchema.getSchema().fields()) {
       schemaBuilder.field(field.name(), field.schema());
     }
-    return schemaBuilder.build();
+    return KsqlSchema.of(schemaBuilder.build());
   }
 
   @Override
-  public Schema getSchema() {
-    return this.schema;
+  public KsqlSchema getSchema() {
+    return schema;
   }
 
   @Override
@@ -149,12 +149,12 @@ public class JoinNode extends PlanNode {
     return right;
   }
 
-  public String getLeftKeyFieldName() {
-    return leftKeyFieldName;
+  public String getLeftJoinFieldName() {
+    return leftJoinFieldName;
   }
 
-  public String getRightKeyFieldName() {
-    return rightKeyFieldName;
+  public String getRightJoinFieldName() {
+    return rightJoinFieldName;
   }
 
   public String getLeftAlias() {
@@ -214,8 +214,8 @@ public class JoinNode extends PlanNode {
     return dataSource.getDataSource().getName();
   }
 
-  private static Field validateFieldInSchema(final String fieldName, final Schema schema) {
-    return SchemaUtil.getFieldByName(schema, fieldName)
+  private static Field validateFieldInSchema(final String fieldName, final KsqlSchema schema) {
+    return schema.findField(fieldName)
         .orElseThrow(() -> new IllegalArgumentException(
             "Invalid join field, not found in schema: " + fieldName));
   }
@@ -329,9 +329,9 @@ public class JoinNode extends PlanNode {
         final String joinFieldName,
         final QueryContext.Stacker contextStacker
     ) {
-      final Schema schema = stream.getSchema();
+      final KsqlSchema schema = stream.getSchema();
 
-      SchemaUtil.getFieldByName(schema, joinFieldName)
+      schema.findField(joinFieldName)
           .orElseThrow(() ->
               new KsqlException("couldn't find key field: " + joinFieldName + " in schema"));
 
@@ -352,11 +352,11 @@ public class JoinNode extends PlanNode {
           .getKsqlTopic()
           .getKsqlTopicSerDe();
 
-      final Schema schema = dataSource.getSchema();
+      final KsqlSchema schema = dataSource.getSchema();
 
       return builder.buildGenericRowSerde(
           ksqlTopicSerDe,
-          schema,
+          schema.getSchema(),
           contextStacker.getQueryContext()
       );
     }
@@ -413,10 +413,10 @@ public class JoinNode extends PlanNode {
       }
 
       final SchemaKStream<K> leftStream = buildStream(
-          joinNode.getLeft(), joinNode.getLeftKeyFieldName());
+          joinNode.getLeft(), joinNode.getLeftJoinFieldName());
 
       final SchemaKStream<K> rightStream = buildStream(
-          joinNode.getRight(), joinNode.getRightKeyFieldName());
+          joinNode.getRight(), joinNode.getRightJoinFieldName());
 
       switch (joinNode.joinType) {
         case LEFT:
@@ -471,10 +471,10 @@ public class JoinNode extends PlanNode {
       }
 
       final SchemaKTable<K> rightTable = buildTable(
-          joinNode.getRight(), joinNode.getRightKeyFieldName(), joinNode.getRightAlias());
+          joinNode.getRight(), joinNode.getRightJoinFieldName(), joinNode.getRightAlias());
 
       final SchemaKStream<K> leftStream = buildStream(
-          joinNode.getLeft(), joinNode.getLeftKeyFieldName());
+          joinNode.getLeft(), joinNode.getLeftJoinFieldName());
 
       switch (joinNode.joinType) {
         case LEFT:
@@ -521,9 +521,9 @@ public class JoinNode extends PlanNode {
       }
 
       final SchemaKTable<K> leftTable = buildTable(
-          joinNode.getLeft(), joinNode.getLeftKeyFieldName(), joinNode.getLeftAlias());
+          joinNode.getLeft(), joinNode.getLeftJoinFieldName(), joinNode.getLeftAlias());
       final SchemaKTable<K> rightTable = buildTable(
-          joinNode.getRight(), joinNode.getRightKeyFieldName(), joinNode.getRightAlias());
+          joinNode.getRight(), joinNode.getRightJoinFieldName(), joinNode.getRightAlias());
 
       switch (joinNode.joinType) {
         case LEFT:

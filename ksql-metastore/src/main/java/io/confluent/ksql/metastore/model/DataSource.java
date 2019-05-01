@@ -16,9 +16,9 @@
 package io.confluent.ksql.metastore.model;
 
 import io.confluent.ksql.metastore.SerdeFactory;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
-import org.apache.kafka.connect.data.Schema;
 
 public interface DataSource<K> {
 
@@ -48,9 +48,9 @@ public interface DataSource<K> {
   DataSourceType getDataSourceType();
 
   /**
-   * @return the value schema of the source.
+   * @return the schema of the source.
    */
-  Schema getSchema();
+  KsqlSchema getSchema();
 
   /**
    * @return the key field of the source.

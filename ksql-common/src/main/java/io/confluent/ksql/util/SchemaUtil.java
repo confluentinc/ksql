@@ -20,8 +20,10 @@ import static org.apache.avro.Schema.createArray;
 import static org.apache.avro.Schema.createMap;
 import static org.apache.avro.Schema.createUnion;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Ordering;
 import java.lang.reflect.ParameterizedType;
@@ -51,7 +53,9 @@ public final class SchemaUtil {
 
   public static final String ROWKEY_NAME = "ROWKEY";
   public static final String ROWTIME_NAME = "ROWTIME";
-  public static final int ROWKEY_NAME_INDEX = 1;
+
+  public static final int ROWTIME_INDEX = 0;
+  public static final int ROWKEY_INDEX = 1;
   private static final Map<Type, Supplier<SchemaBuilder>> typeToSchema
       = ImmutableMap.<Type, Supplier<SchemaBuilder>>builder()
       .put(String.class, () -> SchemaBuilder.string().optional())
@@ -65,7 +69,8 @@ public final class SchemaUtil {
       .put(double.class, SchemaBuilder::float64)
       .build();
 
-  private static final Ordering<Schema.Type> ARITHMETIC_TYPE_ORDERING = Ordering.explicit(
+  @VisibleForTesting
+  static final List<Schema.Type> ARITHMETIC_TYPES_LIST =
       ImmutableList.of(
           Schema.Type.INT8,
           Schema.Type.INT16,
@@ -73,7 +78,13 @@ public final class SchemaUtil {
           Schema.Type.INT64,
           Schema.Type.FLOAT32,
           Schema.Type.FLOAT64
-      )
+      );
+
+  private static final Set<Schema.Type> ARITHMETIC_TYPES =
+      ImmutableSet.copyOf(ARITHMETIC_TYPES_LIST);
+
+  private static final Ordering<Schema.Type> ARITHMETIC_TYPE_ORDERING = Ordering.explicit(
+      ARITHMETIC_TYPES_LIST
   );
 
   private static final NavigableMap<Schema.Type, Schema> TYPE_TO_SCHEMA =
@@ -110,7 +121,7 @@ public final class SchemaUtil {
 
   private static final char FIELD_NAME_DELIMITER = '.';
 
-  private static Map<Schema.Type, Function<Schema, String>> SCHEMA_TYPE_TO_SQL_TYPE =
+  private static final Map<Schema.Type, Function<Schema, String>> SCHEMA_TYPE_TO_SQL_TYPE =
       ImmutableMap.<Schema.Type, Function<Schema, String>>builder()
           .put(Schema.Type.INT32, s -> "INT")
           .put(Schema.Type.INT64, s -> "BIGINT")
@@ -432,11 +443,8 @@ public final class SchemaUtil {
     return TYPE_TO_SCHEMA.ceilingEntry(ARITHMETIC_TYPE_ORDERING.max(left, right)).getValue();
   }
 
-  static boolean isNumber(final Schema.Type type) {
-    return type == Schema.Type.INT32
-        || type == Schema.Type.INT64
-        || type == Schema.Type.FLOAT64
-        ;
+  public static boolean isNumber(final Schema.Type type) {
+    return ARITHMETIC_TYPES.contains(type);
   }
 
   private static SchemaBuilder handleParametrizedType(final Type type) {

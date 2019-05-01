@@ -537,7 +537,7 @@ public class SchemaKStream<K> {
         .selectKey((key, value) -> extractColumn(proposedKey, value).toString())
         .mapValues((key, row) -> {
           if (updateRowKey) {
-            row.getColumns().set(SchemaUtil.ROWKEY_NAME_INDEX, key);
+            row.getColumns().set(SchemaUtil.ROWKEY_INDEX, key);
           }
           return row;
         });

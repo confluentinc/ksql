@@ -32,6 +32,7 @@ import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.ComparisonExpression;
 import io.confluent.ksql.parser.tree.CreateStream;
@@ -60,9 +61,14 @@ import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 public class SqlFormatterTest {
+
+  @Rule
+  public final ExpectedException expectedException = ExpectedException.none();
 
   private AliasedRelation leftAlias;
   private AliasedRelation rightAlias;
@@ -439,6 +445,41 @@ public class SqlFormatterTest {
 
     // Then:
     assertThat(formatted, is("DROP TABLE SOMETHING"));
+  }
+
+  @Test
+  public void shouldFormatInsertValuesStatement() {
+    final String statementString = "INSERT INTO ADDRESS (NUMBER, STREET, CITY) VALUES (2, 'high', 'palo alto');";
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
+        .getStatement();
+
+    final String result = SqlFormatter.formatSql(statement);
+
+    assertThat(result, is("INSERT INTO ADDRESS (NUMBER, STREET, CITY) VALUES (2, 'high', 'palo alto')"));
+  }
+
+  @Test
+  public void shouldFormatInsertValuesNoSchema() {
+    final String statementString = "INSERT INTO ADDRESS VALUES (2);";
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
+        .getStatement();
+
+    final String result = SqlFormatter.formatSql(statement);
+
+    assertThat(result, is("INSERT INTO ADDRESS VALUES (2)"));
+  }
+
+  @Test
+  public void shouldNotParseArbitraryExpressions() {
+    // Given:
+    final String statementString = "INSERT INTO ADDRESS VALUES (2 + 1);";
+
+    // Expect:
+    expectedException.expect(ParseFailedException.class);
+    expectedException.expectMessage("mismatched input");
+
+    // When:
+    KsqlParserTestUtil.buildSingleAst(statementString, metaStore);
   }
 }
 

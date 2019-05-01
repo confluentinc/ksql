@@ -389,8 +389,9 @@ public class StandaloneExecutorTest {
         new SetProperty(Optional.empty(), "name", "value")));
 
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("The SQL file does not contain any INSERT "
-            + "or CREATE statements with persistent queries");
+    expectedException.expectMessage(
+      "The SQL file does not contain any persistent queries."
+    );
 
     // When:
     standaloneExecutor.start();

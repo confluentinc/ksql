@@ -15,11 +15,14 @@
 
 package io.confluent.ksql.physical;
 
+import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
+
 import io.confluent.ksql.errors.ProductionExceptionHandlerUtil;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.metastore.MutableMetaStore;
+import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.metastore.model.StructuredDataSource;
@@ -32,7 +35,6 @@ import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.structured.QueuedSchemaKStream;
 import io.confluent.ksql.structured.SchemaKStream;
@@ -212,7 +214,8 @@ public class PhysicalPlanBuilder {
         schemaKStream.getExecutionPlan(""),
         queue.getQueue(),
         (sourceSchemaKstream instanceof SchemaKTable)
-            ? DataSource.DataSourceType.KTABLE : DataSource.DataSourceType.KSTREAM,
+            ? DataSourceType.KTABLE
+            : DataSourceType.KSTREAM,
         applicationId,
         builder.build(),
         streamsProperties,
@@ -230,13 +233,13 @@ public class PhysicalPlanBuilder {
       final QueryId queryId,
       final QuerySchemas schemas
   ) {
-    if (metaStore.getTopic(outputNode.getKsqlTopic().getName()) == null) {
+    if (metaStore.getTopic(outputNode.getKsqlTopic().getKsqlTopicName()) == null) {
       metaStore.putTopic(outputNode.getKsqlTopic());
     }
 
     final Schema sinkSchema = SchemaUtil.addImplicitRowTimeRowKeyToSchema(outputNode.getSchema());
 
-    final StructuredDataSource sinkDataSource;
+    final StructuredDataSource<?> sinkDataSource;
     if (schemaKStream instanceof SchemaKTable) {
       final SchemaKTable<?> schemaKTable = (SchemaKTable) schemaKStream;
       sinkDataSource =
@@ -288,8 +291,9 @@ public class PhysicalPlanBuilder {
         sinkDataSource.getName(),
         schemaKStream.getExecutionPlan(""),
         queryId,
-        (schemaKStream instanceof SchemaKTable) ? DataSource.DataSourceType.KTABLE
-                                                : DataSource.DataSourceType.KSTREAM,
+        (schemaKStream instanceof SchemaKTable)
+            ? DataSourceType.KTABLE
+            : DataSourceType.KSTREAM,
         applicationId,
         sinkDataSource.getKsqlTopic(),
         topology,
@@ -307,7 +311,7 @@ public class PhysicalPlanBuilder {
       return;
     }
 
-    final StructuredDataSource<?> existing =
+    final DataSource<?> existing =
         metaStore.getSource(sinkDataSource.getName());
 
     if (existing.getDataSourceType() != sinkDataSource.getDataSourceType()) {

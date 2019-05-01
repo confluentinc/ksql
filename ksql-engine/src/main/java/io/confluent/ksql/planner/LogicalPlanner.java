@@ -20,10 +20,10 @@ import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.Analysis.Into;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
-import io.confluent.ksql.metastore.model.StructuredDataSource;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.planner.plan.AggregateNode;
@@ -225,7 +225,7 @@ public class LogicalPlanner {
 
   private StructuredDataSourceNode buildSourceNode() {
 
-    final Pair<StructuredDataSource, String> dataSource = analysis.getFromDataSource(0);
+    final Pair<DataSource<?>, String> dataSource = analysis.getFromDataSource(0);
     if (!(dataSource.left instanceof KsqlStream) && !(dataSource.left instanceof KsqlTable)) {
       throw new RuntimeException("Data source is not supported yet.");
     }

@@ -18,12 +18,11 @@ package io.confluent.ksql.planner.plan;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KeyField;
-import io.confluent.ksql.metastore.model.StructuredDataSource;
 import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.physical.KsqlQueryBuilder;
-import io.confluent.ksql.serde.DataSource;
-import io.confluent.ksql.serde.DataSource.DataSourceType;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.QueryContext;
@@ -66,8 +65,8 @@ public class JoinNode extends PlanNode {
   private final String leftAlias;
   private final String rightAlias;
   private final WithinExpression withinExpression;
-  private final DataSource.DataSourceType leftType;
-  private final DataSource.DataSourceType rightType;
+  private final DataSourceType leftType;
+  private final DataSourceType rightType;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   public JoinNode(
@@ -80,8 +79,8 @@ public class JoinNode extends PlanNode {
       @JsonProperty("leftAlias") final String leftAlias,
       @JsonProperty("rightAlias") final String rightAlias,
       @JsonProperty("within") final WithinExpression withinExpression,
-      @JsonProperty("leftType") final DataSource.DataSourceType leftType,
-      @JsonProperty("rightType") final DataSource.DataSourceType rightType
+      @JsonProperty("leftType") final DataSourceType leftType,
+      @JsonProperty("rightType") final DataSourceType rightType
   ) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     super(id, (leftType == DataSourceType.KTABLE && rightType == DataSourceType.KTABLE)
@@ -212,7 +211,7 @@ public class JoinNode extends PlanNode {
       throw new RuntimeException("The source for a join must be a Stream or a Table.");
     }
     final StructuredDataSourceNode dataSource = (StructuredDataSourceNode) node;
-    return dataSource.getStructuredDataSource().getName();
+    return dataSource.getDataSource().getName();
   }
 
   private static Field validateFieldInSchema(final String fieldName, final Schema schema) {
@@ -224,7 +223,7 @@ public class JoinNode extends PlanNode {
   private static class JoinerFactory {
 
     private final Map<
-        Pair<DataSource.DataSourceType, DataSource.DataSourceType>,
+        Pair<DataSourceType, DataSourceType>,
         Supplier<Joiner>> joinerMap;
 
     JoinerFactory(
@@ -233,17 +232,17 @@ public class JoinNode extends PlanNode {
         final QueryContext.Stacker contextStacker
     ) {
       this.joinerMap = ImmutableMap.of(
-          new Pair<>(DataSource.DataSourceType.KSTREAM, DataSource.DataSourceType.KSTREAM),
+          new Pair<>(DataSourceType.KSTREAM, DataSourceType.KSTREAM),
           () -> new StreamToStreamJoiner(builder, joinNode, contextStacker),
-          new Pair<>(DataSource.DataSourceType.KSTREAM, DataSource.DataSourceType.KTABLE),
+          new Pair<>(DataSourceType.KSTREAM, DataSourceType.KTABLE),
           () -> new StreamToTableJoiner(builder, joinNode, contextStacker),
-          new Pair<>(DataSource.DataSourceType.KTABLE, DataSource.DataSourceType.KTABLE),
+          new Pair<>(DataSourceType.KTABLE, DataSourceType.KTABLE),
           () -> new TableToTableJoiner(builder, joinNode, contextStacker)
       );
     }
 
-    Joiner getJoiner(final DataSource.DataSourceType leftType,
-        final DataSource.DataSourceType rightType) {
+    Joiner getJoiner(final DataSourceType leftType,
+        final DataSourceType rightType) {
 
       return joinerMap.getOrDefault(new Pair<>(leftType, rightType), () -> {
         throw new KsqlException("Join between invalid operands requested: left type: "
@@ -347,7 +346,7 @@ public class JoinNode extends PlanNode {
             "The source for Join must be a primitive data source (Stream or Table).");
       }
       final StructuredDataSourceNode dataSourceNode = (StructuredDataSourceNode) node;
-      final StructuredDataSource dataSource = dataSourceNode.getStructuredDataSource();
+      final DataSource<?> dataSource = dataSourceNode.getDataSource();
 
       final KsqlTopicSerDe ksqlTopicSerDe = dataSource
           .getKsqlTopic()

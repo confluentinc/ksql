@@ -15,7 +15,7 @@
 
 package io.confluent.ksql.rest.integration;
 
-import static io.confluent.ksql.serde.DataSource.DataSourceSerDe.JSON;
+import static io.confluent.ksql.serde.Format.JSON;
 import static org.junit.Assert.assertEquals;
 
 import com.google.common.collect.ImmutableList;

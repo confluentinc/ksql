@@ -56,12 +56,12 @@ import io.confluent.ksql.EndToEndEngineTestUtil.WindowData;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStoreImpl;
+import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.metastore.model.MetaStoreMatchers;
 import io.confluent.ksql.metastore.model.MetaStoreMatchers.KeyFieldMatchers;
-import io.confluent.ksql.metastore.model.StructuredDataSource;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
@@ -71,7 +71,7 @@ import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
 import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.schema.ksql.LogicalSchemas;
 import io.confluent.ksql.schema.ksql.TypeContextUtil;
-import io.confluent.ksql.serde.DataSource;
+import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.StringUtil;
@@ -192,18 +192,16 @@ public class QueryTranslationTest {
         .findTestCases(QUERY_VALIDATION_TEST_DIR, testFiles, QttTestFile.class);
   }
 
-  private static SerdeSupplier getSerdeSupplier(final String format) {
-    switch(format.toUpperCase()) {
-      case DataSource.AVRO_SERDE_NAME:
+  private static SerdeSupplier getSerdeSupplier(final Format format) {
+    switch(format) {
+      case AVRO:
         return new ValueSpecAvroSerdeSupplier();
-      case DataSource.JSON_SERDE_NAME:
+      case JSON:
         return new ValueSpecJsonSerdeSupplier();
-      case DataSource.DELIMITED_SERDE_NAME:
+      case DELIMITED:
         return new StringSerdeSupplier();
       default:
-        throw new InvalidFieldException("format", format.isEmpty()
-            ? "missing or empty"
-            : "unknown value: " + format);
+        throw new InvalidFieldException("format", "unsupported value: " + format);
     }
   }
 
@@ -250,11 +248,11 @@ public class QueryTranslationTest {
       final Map<String, Literal> properties = statement.getProperties();
       final String topicName
           = StringUtil.cleanQuotes(properties.get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY).toString());
-      final String format
-          = StringUtil.cleanQuotes(properties.get(DdlConfig.VALUE_FORMAT_PROPERTY).toString());
+      final Format format = Format.of(
+          StringUtil.cleanQuotes(properties.get(DdlConfig.VALUE_FORMAT_PROPERTY).toString()));
 
       final Optional<org.apache.avro.Schema> avroSchema;
-      if (format.equals(DataSource.AVRO_SERDE_NAME)) {
+      if (format == Format.AVRO) {
         // add avro schema
         final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
         statement.getElements().forEach(e -> schemaBuilder.field(
@@ -562,7 +560,7 @@ public class QueryTranslationTest {
       return new Topic(
           name,
           schema,
-          getSerdeSupplier(format),
+          getSerdeSupplier(Format.of(format)),
           numPartitions,
           replicas
       );
@@ -641,11 +639,11 @@ public class QueryTranslationTest {
 
     @SuppressWarnings("unchecked")
     PostConditions build() {
-      final Matcher<StructuredDataSource<?>>[] matchers = sources.stream()
+      final Matcher<DataSource<?>>[] matchers = sources.stream()
           .map(SourceNode::build)
           .toArray(Matcher[]::new);
 
-      final Matcher<Iterable<StructuredDataSource<?>>> sourcesMatcher = hasItems(matchers);
+      final Matcher<Iterable<DataSource<?>>> sourcesMatcher = hasItems(matchers);
       return new PostConditions(sourcesMatcher);
     }
   }
@@ -653,7 +651,7 @@ public class QueryTranslationTest {
   static class SourceNode {
 
     private final String name;
-    private final Optional<Class<? extends StructuredDataSource>> type;
+    private final Optional<Class<? extends DataSource>> type;
     private final Optional<KeyFieldNode> keyField;
     private final Optional<Schema> valueSchema;
 
@@ -676,24 +674,24 @@ public class QueryTranslationTest {
     }
 
     @SuppressWarnings("unchecked")
-    Matcher<? super StructuredDataSource<?>> build() {
+    Matcher<? super DataSource<?>> build() {
       if (name.isEmpty()) {
         throw new InvalidFieldException("name", "missing or empty");
       }
 
-      final Matcher<StructuredDataSource<?>> nameMatcher = MetaStoreMatchers
+      final Matcher<DataSource<?>> nameMatcher = MetaStoreMatchers
           .hasName(name);
 
       final Matcher<Object> typeMatcher = type
           .map(IsInstanceOf::instanceOf)
           .orElse(null);
 
-      final Matcher<StructuredDataSource<?>> keyFieldMatcher = keyField
+      final Matcher<DataSource<?>> keyFieldMatcher = keyField
           .map(KeyFieldNode::build)
           .map(MetaStoreMatchers::hasKeyField)
           .orElse(null);
 
-      final Matcher<StructuredDataSource<?>> valueSchemaMatcher = valueSchema
+      final Matcher<DataSource<?>> valueSchemaMatcher = valueSchema
           .map(Matchers::is)
           .map(MetaStoreMatchers::hasValueSchema)
           .orElse(null);
@@ -706,7 +704,7 @@ public class QueryTranslationTest {
       return allOf(matchers);
     }
 
-    private static Class<? extends StructuredDataSource> toType(final String type) {
+    private static Class<? extends DataSource> toType(final String type) {
       switch (type) {
         case "STREAM":
           return KsqlStream.class;

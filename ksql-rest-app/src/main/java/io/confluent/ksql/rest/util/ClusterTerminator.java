@@ -20,7 +20,7 @@ import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.schema.registry.SchemaRegistryUtil;
-import io.confluent.ksql.serde.DataSource.DataSourceSerDe;
+import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.ExecutorUtil;
 import io.confluent.ksql.util.KsqlConfig;
@@ -122,7 +122,7 @@ public class ClusterTerminator {
 
   private boolean hasAvroSource(final String topicName) {
     return ksqlEngine.getMetaStore().getSourcesForKafkaTopic(topicName).stream()
-        .anyMatch(dataSource -> dataSource.isSerdeFormat(DataSourceSerDe.AVRO));
+        .anyMatch(dataSource -> dataSource.getKsqlTopicSerde().getSerDe() == Format.AVRO);
   }
 
   private Stream<String> filterNonExistingSubjects(final Stream<String> subjects) {

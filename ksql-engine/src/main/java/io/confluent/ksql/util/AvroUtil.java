@@ -17,7 +17,7 @@ package io.confluent.ksql.util;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
-import io.confluent.ksql.serde.DataSource;
+import io.confluent.ksql.serde.Format;
 import java.io.IOException;
 import org.apache.http.HttpStatus;
 
@@ -30,13 +30,13 @@ public final class AvroUtil {
       final PersistentQueryMetadata persistentQueryMetadata,
       final SchemaRegistryClient schemaRegistryClient
   ) {
-    if (persistentQueryMetadata.getResultTopicSerde() != DataSource.DataSourceSerDe.AVRO) {
+    if (persistentQueryMetadata.getResultTopicSerde() != Format.AVRO) {
       return true;
     }
 
     final org.apache.avro.Schema avroSchema = SchemaUtil.buildAvroSchema(
         persistentQueryMetadata.getResultSchema(),
-        persistentQueryMetadata.getResultTopic().getName()
+        persistentQueryMetadata.getResultTopic().getKsqlTopicName()
     );
 
     final String topicName = persistentQueryMetadata.getResultTopic().getKafkaTopicName();

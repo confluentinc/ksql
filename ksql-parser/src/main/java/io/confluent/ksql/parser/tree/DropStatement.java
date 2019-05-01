@@ -20,13 +20,13 @@ import java.util.Objects;
 import java.util.Optional;
 
 @Immutable
-public abstract class AbstractStreamDropStatement extends Statement {
+public abstract class DropStatement extends Statement {
 
   private final QualifiedName name;
   private final boolean ifExists;
   private final boolean deleteTopic;
 
-  AbstractStreamDropStatement(
+  DropStatement(
       final Optional<NodeLocation> location,
       final QualifiedName name,
       final boolean ifExists,
@@ -50,6 +50,8 @@ public abstract class AbstractStreamDropStatement extends Statement {
     return deleteTopic;
   }
 
+  public abstract DropStatement withoutDeleteClause();
+
   @Override
   public int hashCode() {
     return Objects.hash(name, ifExists, deleteTopic);
@@ -60,10 +62,10 @@ public abstract class AbstractStreamDropStatement extends Statement {
     if (this == obj) {
       return true;
     }
-    if (!(obj instanceof AbstractStreamDropStatement)) {
+    if (!(obj instanceof DropStatement)) {
       return false;
     }
-    final AbstractStreamDropStatement o = (AbstractStreamDropStatement) obj;
+    final DropStatement o = (DropStatement) obj;
     return Objects.equals(name, o.name)
         && (ifExists == o.ifExists)
         && (deleteTopic == o.deleteTopic);

@@ -42,6 +42,7 @@ import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.services.FakeKafkaTopicClient.FakeTopic;
+import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.KafkaTopicClient.TopicCleanupPolicy;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
@@ -51,7 +52,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
+import kafka.server.KafkaConfig;
 import org.apache.kafka.clients.admin.TopicDescription;
+import org.apache.kafka.common.config.TopicConfig;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -64,23 +67,26 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class DefaultTopicInjectorTest {
+public class TopicCreateInjectorTest {
 
   private static final Schema SCHEMA = SchemaBuilder
       .struct()
       .field("F1", Schema.OPTIONAL_STRING_SCHEMA)
       .build();
 
-  @Mock public TopicProperties.Builder builder;
+  @Mock
+  private TopicProperties.Builder builder;
+  @Mock
+  private KafkaTopicClient topicClient;
+  @Mock
+  private TopicDescription sourceDescription;
 
   private KsqlParser parser;
   private MutableMetaStore metaStore;
-  private DefaultTopicInjector injector;
+  private TopicCreateInjector injector;
   private Map<String, Object> overrides;
   private ConfiguredStatement<CreateAsSelect> statement;
   private KsqlConfig config;
-  private TopicDescription sourceDescription;
-  private FakeKafkaTopicClient topicClient;
 
   @Before
   public void setUp() {
@@ -89,13 +95,7 @@ public class DefaultTopicInjectorTest {
     overrides = new HashMap<>();
     config = new KsqlConfig(new HashMap<>());
 
-    topicClient = new FakeKafkaTopicClient();
-    injector = new DefaultTopicInjector(topicClient, metaStore);
-
-    topicClient.createTopic("source", 1, (short) 1);
-    sourceDescription = topicClient.describeTopic("source");
-
-    topicClient.createTopic("jSource", 2, (short) 2);
+    injector = new TopicCreateInjector(topicClient, metaStore);
 
     final KsqlTopic sourceTopic =
         new KsqlTopic("SOURCE", "source", new KsqlJsonTopicSerDe(), false);
@@ -121,6 +121,7 @@ public class DefaultTopicInjectorTest {
         Serdes::String);
     metaStore.putSource(joinSource);
 
+    when(topicClient.describeTopic("source")).thenReturn(sourceDescription);
     when(builder.withName(any())).thenReturn(builder);
     when(builder.withWithClause(any())).thenReturn(builder);
     when(builder.withOverrides(any())).thenReturn(builder);
@@ -283,30 +284,16 @@ public class DefaultTopicInjectorTest {
     // Given:
     givenStatement("CREATE STREAM x WITH (kafka_topic='topic') AS SELECT * FROM SOURCE;");
     when(builder.build()).thenReturn(new TopicProperties("expectedName", 10, (short) 10));
-    assertThat("topic did not exist", !topicClient.isTopicExists("expectedName"));
 
     // When:
     injector.inject(statement, builder);
 
     // Then:
-    assertThat(topicClient.createdTopics(),
-        hasEntry(
-            "expectedName",
-            new FakeTopic("expectedName", 10, (short) 10, TopicCleanupPolicy.DELETE)));
-  }
-
-  @Test
-  public void shouldCreateMissingTopicWithDeleteCleanupPolicyForStream() {
-    // Given:
-    givenStatement("CREATE STREAM x WITH (kafka_topic='topic') AS SELECT * FROM SOURCE;");
-    when(builder.build()).thenReturn(new TopicProperties("expectedName", 10, (short) 10));
-
-    // When:
-    injector.inject(statement, builder);
-
-    // Then:
-    assertThat(topicClient.getTopicCleanupPolicy("expectedName"),
-        equalTo(TopicCleanupPolicy.DELETE));
+    verify(topicClient).createTopic(
+        "expectedName",
+        10,
+        (short) 10,
+        ImmutableMap.of());
   }
 
   @Test
@@ -320,12 +307,15 @@ public class DefaultTopicInjectorTest {
     injector.inject(statement, builder);
 
     // Then:
-    assertThat(topicClient.getTopicCleanupPolicy("expectedName"),
-        equalTo(TopicCleanupPolicy.COMPACT));
+    verify(topicClient).createTopic(
+        "expectedName",
+        10,
+        (short) 10,
+        ImmutableMap.of(TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_COMPACT));
   }
 
   @Test
-  public void shouldCreateMissingTopicWithDeleteCleanupPolicyForWindowedTables() {
+  public void shouldCreateMissingTopicWithDefaultCleanupPolicyForWindowedTables() {
     // Given:
     givenStatement("CREATE TABLE x WITH (kafka_topic='topic') "
         + "AS SELECT * FROM SOURCE WINDOW TUMBLING (SIZE 10 SECONDS);");
@@ -335,8 +325,11 @@ public class DefaultTopicInjectorTest {
     injector.inject(statement, builder);
 
     // Then:
-    assertThat(topicClient.getTopicCleanupPolicy("expectedName"),
-        equalTo(TopicCleanupPolicy.DELETE));
+    verify(topicClient).createTopic(
+        "expectedName",
+        10,
+        (short) 10,
+        ImmutableMap.of());
   }
 
   @SuppressWarnings("unchecked")

@@ -106,19 +106,15 @@ public class CommandFactories implements DdlCommandFactory {
   private DropSourceCommand handleDropStream(final DropStream statement) {
     return new DropSourceCommand(
         statement,
-        DataSourceType.KSTREAM,
-        serviceContext.getTopicClient(),
-        serviceContext.getSchemaRegistryClient(),
-        statement.isDeleteTopic());
+        DataSourceType.KSTREAM
+    );
   }
 
   private DropSourceCommand handleDropTable(final DropTable statement) {
     return new DropSourceCommand(
         statement,
-        DataSourceType.KTABLE,
-        serviceContext.getTopicClient(),
-        serviceContext.getSchemaRegistryClient(),
-        statement.isDeleteTopic());
+        DataSourceType.KTABLE
+    );
   }
 
   private static DropTopicCommand handleDropTopic(final DropTopic statement) {

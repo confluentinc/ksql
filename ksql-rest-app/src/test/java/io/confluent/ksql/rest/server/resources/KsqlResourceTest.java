@@ -116,12 +116,14 @@ import io.confluent.ksql.rest.util.EntityUtil;
 import io.confluent.ksql.rest.util.TerminateCluster;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
+import io.confluent.ksql.services.SandboxedServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.statement.InjectorChain;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
+import io.confluent.ksql.topic.TopicDeleteInjector;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
@@ -277,6 +279,8 @@ public class KsqlResourceTest {
     );
 
     ksqlEngine = realEngine;
+    when(sandbox.getServiceContext()).thenAnswer(inv -> SandboxedServiceContext.create(serviceContext));
+    when(sandbox.getMetaStore()).thenAnswer(inv -> metaStore.copy());
 
     addTestTopicAndSources();
 
@@ -1744,6 +1748,8 @@ public class KsqlResourceTest {
     when(sandbox.prepare(any()))
         .thenAnswer(invocation -> realEngine.createSandbox().prepare(invocation.getArgument(0)));
     when(ksqlEngine.createSandbox()).thenReturn(sandbox);
+    when(ksqlEngine.getServiceContext()).thenReturn(serviceContext);
+    when(ksqlEngine.getMetaStore()).thenReturn(metaStore);
     when(topicInjectorFactory.apply(ksqlEngine)).thenReturn(topicInjector);
     setUpKsqlResource();
   }
@@ -1897,7 +1903,8 @@ public class KsqlResourceTest {
         activenessRegistrar,
         (ec, sc) -> InjectorChain.of(
             schemaInjectorFactory.apply(sc),
-            topicInjectorFactory.apply(ec))
+            topicInjectorFactory.apply(ec),
+            new TopicDeleteInjector(ec))
     );
   }
 

@@ -43,6 +43,7 @@ import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.Struct;
 import io.confluent.ksql.parser.tree.Type.SqlType;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -72,21 +73,21 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class InsertValuesExecutorTest {
 
-  private static final Schema SCHEMA = SchemaBuilder.struct()
+  private static final KsqlSchema SCHEMA = KsqlSchema.of(SchemaBuilder.struct()
       .field("ROWTIME", Schema.OPTIONAL_INT64_SCHEMA)
       .field("ROWKEY", Schema.OPTIONAL_INT64_SCHEMA)
       .field("COL0", Schema.OPTIONAL_INT64_SCHEMA)
       .field("COL1", Schema.OPTIONAL_STRING_SCHEMA)
-      .build();
+      .build());
 
-  private static final Schema STRICT_SCHEMA = SchemaBuilder.struct()
+  private static final KsqlSchema STRICT_SCHEMA = KsqlSchema.of(SchemaBuilder.struct()
       .field("ROWTIME", Schema.INT64_SCHEMA)
       .field("ROWKEY", Schema.INT64_SCHEMA)
       .field("COL0", Schema.OPTIONAL_INT64_SCHEMA)
       .field("COL1", Schema.STRING_SCHEMA)
-      .build();
+      .build());
 
-  private static final Schema BIG_SCHEMA = SchemaBuilder.struct()
+  private static final KsqlSchema BIG_SCHEMA = KsqlSchema.of(SchemaBuilder.struct()
       .field("ROWTIME", Schema.OPTIONAL_INT64_SCHEMA)
       .field("ROWKEY", Schema.OPTIONAL_INT64_SCHEMA)
       .field("INT", Schema.OPTIONAL_INT32_SCHEMA)
@@ -94,7 +95,7 @@ public class InsertValuesExecutorTest {
       .field("DOUBLE", Schema.OPTIONAL_FLOAT64_SCHEMA)
       .field("BOOLEAN", Schema.OPTIONAL_BOOLEAN_SCHEMA)
       .field("VARCHAR", Schema.OPTIONAL_STRING_SCHEMA)
-      .build();
+      .build());
 
   private static final byte[] KEY = new byte[]{1};
   private static final byte[] VALUE = new byte[]{2};
@@ -482,13 +483,13 @@ public class InsertValuesExecutorTest {
     );
   }
 
-  private void givenDataSourceWithSchema(final Schema schema) {
+  private void givenDataSourceWithSchema(final KsqlSchema schema) {
     final KsqlTopic topic = new KsqlTopic("TOPIC", TOPIC_NAME, topicSerDe, false);
     final DataSource<?> dataSource = new KsqlStream<>(
         "",
         "TOPIC",
         schema,
-        KeyField.of(Optional.of("COL0"), Optional.of(schema.field("COL0"))),
+        KeyField.of(Optional.of("COL0"), Optional.of(schema.getSchema().field("COL0"))),
         new MetadataTimestampExtractionPolicy(),
         topic,
         () -> keySerDe

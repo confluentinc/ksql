@@ -75,7 +75,9 @@ public class EntityUtilTest {
     // Given:
     final KsqlSchema schema = KsqlSchema.of(SchemaBuilder
         .struct()
-        .field("field", SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.INT32_SCHEMA))
+        .field("field", SchemaBuilder
+            .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_INT32_SCHEMA)
+            .build())
         .build());
 
     // When:
@@ -94,7 +96,9 @@ public class EntityUtilTest {
     // Given:
     final KsqlSchema schema = KsqlSchema.of(SchemaBuilder
         .struct()
-        .field("field", SchemaBuilder.array(SchemaBuilder.INT64_SCHEMA))
+        .field("field", SchemaBuilder
+            .array(SchemaBuilder.OPTIONAL_INT64_SCHEMA)
+            .build())
         .build());
 
     // When:

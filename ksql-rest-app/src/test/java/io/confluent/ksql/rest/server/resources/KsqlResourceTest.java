@@ -1921,13 +1921,18 @@ public class KsqlResourceTest {
   }
 
   private void addTestTopicAndSources() {
-    final KsqlSchema schema1 = KsqlSchema.of(
-        SchemaBuilder.struct().field("S1_F1", Schema.OPTIONAL_BOOLEAN_SCHEMA));
+    final KsqlSchema schema1 = KsqlSchema.of(SchemaBuilder.struct()
+            .field("S1_F1", Schema.OPTIONAL_BOOLEAN_SCHEMA)
+            .build());
+
     givenSource(
         DataSourceType.KTABLE,
         "TEST_TABLE", "KAFKA_TOPIC_1", "KSQL_TOPIC_1", schema1);
-    final KsqlSchema schema2 = KsqlSchema.of(
-        SchemaBuilder.struct().field("S2_F1", Schema.OPTIONAL_STRING_SCHEMA));
+
+    final KsqlSchema schema2 = KsqlSchema.of(SchemaBuilder.struct()
+        .field("S2_F1", Schema.OPTIONAL_STRING_SCHEMA)
+        .build());
+
     givenSource(
         DataSourceType.KSTREAM,
         "TEST_STREAM", "KAFKA_TOPIC_2", "KSQL_TOPIC_2", schema2);

@@ -43,7 +43,7 @@ public abstract class PollingSubscription<T> implements Flow.Subscription {
   ) {
     this.exec = Objects.requireNonNull(exec, "exec");
     this.subscriber = Objects.requireNonNull(subscriber, "subscriber");
-    this.schema = Objects.requireNonNull(schema, "schema");
+    this.schema = schema;
   }
 
   @Override

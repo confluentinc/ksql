@@ -120,8 +120,8 @@ public class WebSocketSubscriberTest {
     EasyMock.replay(subscription, session, basic);
 
     subscriber.onSchema(KsqlSchema.of(SchemaBuilder.struct()
-        .field("currency", Schema.STRING_SCHEMA)
-        .field("amount", Schema.OPTIONAL_FLOAT32_SCHEMA)
+        .field("currency", Schema.OPTIONAL_STRING_SCHEMA)
+        .field("amount", Schema.OPTIONAL_FLOAT64_SCHEMA)
         .build()));
 
     subscriber.close();

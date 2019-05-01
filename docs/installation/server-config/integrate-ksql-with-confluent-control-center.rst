@@ -34,7 +34,7 @@ as part of the KSQL Server URL in |c3-short| configuration.
 ::
 
     # KSQL cluster URL
-    confluent.controlcenter.ksql.url=http://<username>:<password>@localhost:8088
+    confluent.controlcenter.ksql.<name>.url=http://<username>:<password>@localhost:8088
 
 You can set up KSQL Server to communicate securely with other components in
 |cp|. For more information, see :ref:`ksql-security`.

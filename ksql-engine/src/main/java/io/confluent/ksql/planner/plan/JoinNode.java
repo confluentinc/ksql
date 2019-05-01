@@ -319,7 +319,7 @@ public class JoinNode extends PlanNode {
 
       throw new KsqlException(
           "Source table (" + tableName + ") key column (" + keyField.get().name() + ") "
-              + "is not the column used in the join criteria (%s). "
+              + "is not the column used in the join criteria (" + joinFieldName + "). "
               + "Only the table's key column or 'ROWKEY' is supported in the join criteria."
       );
     }

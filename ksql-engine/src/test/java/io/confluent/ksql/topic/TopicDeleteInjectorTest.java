@@ -29,13 +29,14 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.metastore.MutableMetaStore;
-import io.confluent.ksql.metastore.model.StructuredDataSource;
+import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.ListProperties;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.Statement;
-import io.confluent.ksql.serde.DataSource.DataSourceSerDe;
+import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
+import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
@@ -67,7 +68,7 @@ public class TopicDeleteInjectorTest {
   @Mock
   private MutableMetaStore metaStore;
   @Mock
-  private StructuredDataSource<?> source;
+  private DataSource<?> source;
   @Mock
   private SchemaRegistryClient registryClient;
   @Mock
@@ -81,6 +82,7 @@ public class TopicDeleteInjectorTest {
 
     when(metaStore.getSource("SOMETHING")).thenAnswer(inv -> source);
     when(source.getKafkaTopicName()).thenReturn("something");
+    when(source.getKsqlTopicSerde()).thenReturn(new KsqlJsonTopicSerDe());
   }
 
   @Test
@@ -128,7 +130,7 @@ public class TopicDeleteInjectorTest {
   @Test
   public void shouldDeleteSchemaInSR() throws IOException, RestClientException {
     // Given:
-    when(source.isSerdeFormat(DataSourceSerDe.AVRO)).thenReturn(true);
+    when(source.getKsqlTopicSerde()).thenReturn(new KsqlAvroTopicSerDe("foo"));
 
     // When:
     deleteInjector.inject(DROP_WITH_DELETE_TOPIC);

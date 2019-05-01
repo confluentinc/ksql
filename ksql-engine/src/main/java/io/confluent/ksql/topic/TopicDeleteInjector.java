@@ -20,12 +20,12 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.metastore.model.StructuredDataSource;
+import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.parser.SqlFormatter;
 import io.confluent.ksql.parser.tree.DropStatement;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.schema.registry.SchemaRegistryUtil;
-import io.confluent.ksql.serde.DataSource;
+import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
@@ -41,7 +41,7 @@ import java.util.Objects;
  * passed through. Furthermore, it will remove the DELETE TOPIC clause from
  * the statement, indicating that the operation has already been done.
  *
- * <p>If the topic being deleted is {@link DataSource.DataSourceSerDe#AVRO},
+ * <p>If the topic being deleted is {@link Format#AVRO},
  * this injector will also clean up the corresponding schema in the schema
  * registry.
  */
@@ -85,7 +85,7 @@ public class TopicDeleteInjector implements Injector {
     }
 
     final String sourceName = dropStatement.getName().getSuffix();
-    final StructuredDataSource<?> source = metastore.getSource(sourceName);
+    final DataSource<?> source = metastore.getSource(sourceName);
 
     if (source != null) {
       try {
@@ -97,7 +97,7 @@ public class TopicDeleteInjector implements Injector {
             + source.getKafkaTopicName(), e);
       }
 
-      if (source.isSerdeFormat(DataSource.DataSourceSerDe.AVRO)) {
+      if (source.getKsqlTopicSerde().getSerDe() == Format.AVRO) {
         try {
           SchemaRegistryUtil.deleteSubjectWithRetries(
               schemaRegistryClient,

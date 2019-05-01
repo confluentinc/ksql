@@ -114,8 +114,9 @@ public class StructuredDataSourceNode
     this.structuredDataSource = requireNonNull(structuredDataSource, "structuredDataSource");
     this.schema = SchemaUtil.buildSchemaWithAlias(structuredDataSource.getSchema(), alias);
 
-    final Optional<String> keyFieldName = structuredDataSource.getKeyField().name()
-        .map(name -> SchemaUtil.buildAliasedFieldName(alias, name));
+    final Optional<String> keyFieldName = structuredDataSource.getKeyField()
+        .withAlias(alias)
+        .name();
 
     this.keyField = KeyField.of(keyFieldName, structuredDataSource.getKeyField().legacy())
         .validateKeyExistsIn(schema);

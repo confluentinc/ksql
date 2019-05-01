@@ -37,7 +37,7 @@ CTAS_OUTPUT_1.OUTPUT = struct<FOO optional<int32>,KSQL_COL_1 optional<int64>>
 SCHEMAS_END
 Topologies:
    Sub-topology: 0
-    Source: KSTREAM-SOURCE-0000000000 (topics: [INTERMEDIATE])
+    Source: KSTREAM-SOURCE-0000000000 (topics: [input_topic])
       --> KSTREAM-MAPVALUES-0000000001
     Processor: KSTREAM-MAPVALUES-0000000001 (stores: [])
       --> KSTREAM-TRANSFORMVALUES-0000000002

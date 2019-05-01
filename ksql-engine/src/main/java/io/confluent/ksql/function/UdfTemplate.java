@@ -50,8 +50,8 @@ public final class UdfTemplate {
         .mapToObj(i -> "arg" + i)
         .collect(Collectors.joining(", "));
 
-    code.addStatement("return (($T) $L).$L($L)",
-                      method.getDeclaringClass(), obj, method.getName(), args);
+    code.addStatement("return (($L) $L).$L($L)",
+        method.getDeclaringClass().getCanonicalName(), obj, method.getName(), args);
 
     final String codeString = code.build().toString();
     LOG.trace("Generated code:\n" + codeString);

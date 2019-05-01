@@ -392,6 +392,28 @@ public class SchemaUtilTest {
   }
 
   @Test
+  public void shouldMatchFieldNameOnExactMatch() {
+    assertThat(SchemaUtil.isFieldName("bob", "bob"), is(true));
+    assertThat(SchemaUtil.isFieldName("aliased.bob", "aliased.bob"), is(true));
+  }
+
+  @Test
+  public void shouldMatchFieldNameEvenIfActualAliased() {
+    assertThat(SchemaUtil.isFieldName("aliased.bob", "bob"), is(true));
+  }
+
+  @Test
+  public void shouldNotMatchFieldNamesOnMismatch() {
+    assertThat(SchemaUtil.isFieldName("different", "bob"), is(false));
+    assertThat(SchemaUtil.isFieldName("aliased.different", "bob"), is(false));
+  }
+
+  @Test
+  public void shouldNotMatchFieldNamesIfRequiredIsAliased() {
+    assertThat(SchemaUtil.isFieldName("bob", "aliased.bob"), is(false));
+  }
+
+  @Test
   public void shouldGetTheCorrectFieldName() {
     final Optional<Field> field = SchemaUtil.getFieldByName(schema, "orderid".toUpperCase());
     Assert.assertTrue(field.isPresent());
@@ -522,17 +544,45 @@ public class SchemaUtilTest {
   }
 
   @Test
+  public void shouldStripAliasFromField() {
+    // Given:
+    final Field field = new Field("alias.some-field-name", 1, Schema.OPTIONAL_STRING_SCHEMA);
+
+    // When:
+    final String result = SchemaUtil.getFieldNameWithNoAlias(field);
+
+    // Then:
+    assertThat(result, is("some-field-name"));
+  }
+
+  @Test
+  public void shouldReturnFieldWithoutAliasAsIs() {
+    // Given:
+    final Field field = new Field("some-field-name", 1, Schema.OPTIONAL_STRING_SCHEMA);
+
+    // When:
+    final String result = SchemaUtil.getFieldNameWithNoAlias(field);
+
+    // Then:
+    assertThat(result, is("some-field-name"));
+  }
+
+  @Test
   public void shouldStripAliasFromFieldName() {
-    final Schema schemaWithAlias = SchemaUtil.buildSchemaWithAlias(schema, "alias");
-    assertThat("Invalid field name",
-        SchemaUtil.getFieldNameWithNoAlias(schemaWithAlias.fields().get(0)),
-        equalTo(schema.fields().get(0).name()));
+    // When:
+    final String result = SchemaUtil.getFieldNameWithNoAlias("some-alias.some-field-name");
+
+    // Then:
+    assertThat(result, is("some-field-name"));
   }
 
   @Test
   public void shouldReturnFieldNameWithoutAliasAsIs() {
-    assertThat("Invalid field name", SchemaUtil.getFieldNameWithNoAlias(schema.fields().get(0)),
-        equalTo(schema.fields().get(0).name()));
+    // When:
+    final String result = SchemaUtil.getFieldNameWithNoAlias("some-field-name");
+
+    // Then:
+    assertThat(result, is("some-field-name"));
   }
 
   @Test

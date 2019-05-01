@@ -61,10 +61,10 @@ public class JoinNode extends PlanNode {
   private final Schema schema;
   private final String leftKeyFieldName;
   private final String rightKeyFieldName;
+  private final KeyField keyField;
 
   private final String leftAlias;
   private final String rightAlias;
-  private final KeyField keyField;
   private final WithinExpression withinExpression;
   private final DataSource.DataSourceType leftType;
   private final DataSource.DataSourceType rightType;
@@ -88,22 +88,21 @@ public class JoinNode extends PlanNode {
         ? DataSourceType.KTABLE
         : DataSourceType.KSTREAM);
     this.joinType = joinType;
-    this.left = left;
-    this.right = right;
-    this.leftKeyFieldName = leftKeyFieldName;
-    this.rightKeyFieldName = rightKeyFieldName;
-    this.leftAlias = leftAlias;
-    this.rightAlias = rightAlias;
+    this.left = Objects.requireNonNull(left, "left");
+    this.right = Objects.requireNonNull(right, "right");
     this.schema = buildSchema(left, right);
+    this.leftKeyFieldName = Objects.requireNonNull(leftKeyFieldName, "leftKeyFieldName");
+    this.rightKeyFieldName = Objects.requireNonNull(rightKeyFieldName, "rightKeyFieldName");
+    this.leftAlias = Objects.requireNonNull(leftAlias, "leftAlias");
+    this.rightAlias = Objects.requireNonNull(rightAlias, rightAlias);
     this.withinExpression = withinExpression;
-    this.leftType = leftType;
-    this.rightType = rightType;
+    this.leftType = Objects.requireNonNull(leftType, "leftType");
+    this.rightType = Objects.requireNonNull(rightType, "rightType");
 
-    final String keyFieldName = SchemaUtil.buildAliasedFieldName(leftAlias, leftKeyFieldName);
-    this.keyField = Optional.ofNullable(schema.field(keyFieldName))
-        .map(legacy -> KeyField.of(keyFieldName, legacy))
-        .orElseGet(KeyField::none)
-        .validateKeyExistsIn(schema);
+    final Field leftKeyField = validateFieldInSchema(leftKeyFieldName, left.getSchema());
+    validateFieldInSchema(rightKeyFieldName, right.getSchema());
+
+    this.keyField = KeyField.of(leftKeyFieldName, leftKeyField);
   }
 
   private static Schema buildSchema(final PlanNode left, final PlanNode right) {
@@ -216,6 +215,12 @@ public class JoinNode extends PlanNode {
     return dataSource.getStructuredDataSource().getName();
   }
 
+  private static Field validateFieldInSchema(final String fieldName, final Schema schema) {
+    return SchemaUtil.getFieldByName(schema, fieldName)
+        .orElseThrow(() -> new IllegalArgumentException(
+            "Invalid join field, not found in schema: " + fieldName));
+  }
+
   private static class JoinerFactory {
 
     private final Map<
@@ -267,19 +272,18 @@ public class JoinNode extends PlanNode {
 
     protected SchemaKStream<K> buildStream(
         final PlanNode node,
-        final String keyFieldName,
-        final String alias
+        final String joinFieldName
     ) {
       return maybeRePartitionByKey(
           node.buildStream(builder),
-          SchemaUtil.buildAliasedFieldName(alias, keyFieldName),
+          joinFieldName,
           contextStacker);
     }
 
     @SuppressWarnings("unchecked")
     protected SchemaKTable<K> buildTable(
         final PlanNode node,
-        final String keyFieldName,
+        final String joinFieldName,
         final String tableName
     ) {
       final SchemaKStream<?> schemaKStream = node.buildStream(
@@ -292,17 +296,17 @@ public class JoinNode extends PlanNode {
         throw new RuntimeException("Expected to find a Table, found a stream instead.");
       }
 
-      final String expectedKeyField = SchemaUtil.buildAliasedFieldName(tableName, keyFieldName);
-
       final Optional<Field> keyField = schemaKStream
           .getKeyField()
           .resolve(schemaKStream.getSchema(), builder.getKsqlConfig());
 
+      final String rowKey = SchemaUtil.buildAliasedFieldName(tableName, SchemaUtil.ROWKEY_NAME);
+
       final boolean namesMatch = keyField
-          .map(field -> SchemaUtil.matchFieldName(field, expectedKeyField))
+          .map(field -> SchemaUtil.matchFieldName(field, joinFieldName))
           .orElse(false);
 
-      if (namesMatch || keyFieldName.equals(SchemaUtil.ROWKEY_NAME)) {
+      if (namesMatch || joinFieldName.equals(rowKey)) {
         return (SchemaKTable) schemaKStream;
       }
 
@@ -317,21 +321,22 @@ public class JoinNode extends PlanNode {
           "Source table (" + tableName + ") key column (" + keyField.get().name() + ") "
               + "is not the column used in the join criteria (%s). "
               + "Only the table's key column or 'ROWKEY' is supported in the join criteria."
-        );
+      );
     }
 
     @SuppressWarnings("unchecked")
     static <K> SchemaKStream<K> maybeRePartitionByKey(
         final SchemaKStream stream,
-        final String targetKey,
+        final String joinFieldName,
         final QueryContext.Stacker contextStacker
     ) {
       final Schema schema = stream.getSchema();
-      final Field field = SchemaUtil.getFieldByName(schema, targetKey)
-          .orElseThrow(() ->
-              new KsqlException("couldn't find key field: " + targetKey + " in schema"));
 
-      return stream.selectKey(field, true, contextStacker);
+      SchemaUtil.getFieldByName(schema, joinFieldName)
+          .orElseThrow(() ->
+              new KsqlException("couldn't find key field: " + joinFieldName + " in schema"));
+
+      return stream.selectKey(joinFieldName, true, contextStacker);
     }
 
     Serde<GenericRow> getSerDeForNode(
@@ -357,19 +362,34 @@ public class JoinNode extends PlanNode {
       );
     }
 
-    @SuppressWarnings("OptionalGetWithoutIsPresent")
-    Field getJoinKey(final String alias, final KeyField keyField) {
-      final KeyField keyFieldWithAlias = KeyField.of(
-          keyField.name().map(name -> SchemaUtil.buildAliasedFieldName(alias, name)),
-          keyField.legacy().map(field -> SchemaUtil.buildAliasedField(alias, field))
-      );
+    /**
+     * The key field of the resultant joined stream.
+     *
+     * @param leftAlias the alias of the left source.
+     * @param leftKeyField the key field of the left source.
+     * @return the key field that should be used by the resultant joined stream.
+     */
+    static KeyField getJoinedKeyField(final String leftAlias, final KeyField leftKeyField) {
+      final Optional<String> latest = Optional
+          .of(leftKeyField.name().orElse(SchemaUtil.ROWKEY_NAME));
 
-      final String keyFieldName = keyFieldWithAlias
-          .resolve(joinNode.schema, builder.getKsqlConfig())
-          .get()
-          .name();
+      return KeyField.of(latest, leftKeyField.legacy())
+          .withAlias(leftAlias);
+    }
 
-      return joinNode.schema.field(keyFieldName);
+    /**
+     * The key field of the resultant joined stream for OUTER joins.
+     *
+     * <p>Note: for outer joins neither source's key field can be used as they may be null.
+     *
+     * @param leftAlias the alias of the left source.
+     * @param leftKeyField the key field of the left source.
+     * @return the key field that should be used by the resultant joined stream.
+     */
+    static KeyField getOuterJoinedKeyField(final String leftAlias, final KeyField leftKeyField) {
+      return KeyField.none()
+          .withLegacy(leftKeyField.legacy())
+          .withAlias(leftAlias);
     }
   }
 
@@ -383,7 +403,6 @@ public class JoinNode extends PlanNode {
       super(builder, joinNode, contextStacker);
     }
 
-    @SuppressWarnings({"unchecked", "OptionalGetWithoutIsPresent"})
     @Override
     public SchemaKStream<K> join() {
       if (joinNode.withinExpression == null) {
@@ -395,17 +414,17 @@ public class JoinNode extends PlanNode {
       }
 
       final SchemaKStream<K> leftStream = buildStream(
-          joinNode.getLeft(), joinNode.getLeftKeyFieldName(), joinNode.getLeftAlias());
+          joinNode.getLeft(), joinNode.getLeftKeyFieldName());
 
       final SchemaKStream<K> rightStream = buildStream(
-          joinNode.getRight(), joinNode.getRightKeyFieldName(), joinNode.getRightAlias());
+          joinNode.getRight(), joinNode.getRightKeyFieldName());
 
       switch (joinNode.joinType) {
         case LEFT:
           return leftStream.leftJoin(
               rightStream,
               joinNode.schema,
-              getJoinKey(joinNode.leftAlias, leftStream.getKeyField()),
+              getJoinedKeyField(joinNode.leftAlias, leftStream.getKeyField()),
               joinNode.withinExpression.joinWindow(),
               getSerDeForNode(joinNode.left, contextStacker.push(LEFT_SERDE_CONTEXT_NAME)),
               getSerDeForNode(joinNode.right, contextStacker.push(RIGHT_SERDE_CONTEXT_NAME)),
@@ -414,7 +433,7 @@ public class JoinNode extends PlanNode {
           return leftStream.outerJoin(
               rightStream,
               joinNode.schema,
-              getJoinKey(joinNode.leftAlias, leftStream.getKeyField()),
+              getOuterJoinedKeyField(joinNode.leftAlias, leftStream.getKeyField()),
               joinNode.withinExpression.joinWindow(),
               getSerDeForNode(joinNode.left, contextStacker.push(LEFT_SERDE_CONTEXT_NAME)),
               getSerDeForNode(joinNode.right, contextStacker.push(RIGHT_SERDE_CONTEXT_NAME)),
@@ -423,7 +442,7 @@ public class JoinNode extends PlanNode {
           return leftStream.join(
               rightStream,
               joinNode.schema,
-              getJoinKey(joinNode.leftAlias, leftStream.getKeyField()),
+              getJoinedKeyField(joinNode.leftAlias, leftStream.getKeyField()),
               joinNode.withinExpression.joinWindow(),
               getSerDeForNode(joinNode.left, contextStacker.push(LEFT_SERDE_CONTEXT_NAME)),
               getSerDeForNode(joinNode.right, contextStacker.push(RIGHT_SERDE_CONTEXT_NAME)),
@@ -444,7 +463,6 @@ public class JoinNode extends PlanNode {
       super(builder, joinNode, contextStacker);
     }
 
-    @SuppressWarnings({"unchecked", "OptionalGetWithoutIsPresent"})
     @Override
     public SchemaKStream<K> join() {
       if (joinNode.withinExpression != null) {
@@ -457,14 +475,14 @@ public class JoinNode extends PlanNode {
           joinNode.getRight(), joinNode.getRightKeyFieldName(), joinNode.getRightAlias());
 
       final SchemaKStream<K> leftStream = buildStream(
-          joinNode.getLeft(), joinNode.getLeftKeyFieldName(), joinNode.getLeftAlias());
+          joinNode.getLeft(), joinNode.getLeftKeyFieldName());
 
       switch (joinNode.joinType) {
         case LEFT:
           return leftStream.leftJoin(
               rightTable,
               joinNode.schema,
-              getJoinKey(joinNode.leftAlias, leftStream.getKeyField()),
+              getJoinedKeyField(joinNode.leftAlias, leftStream.getKeyField()),
               getSerDeForNode(joinNode.left, contextStacker.push(LEFT_SERDE_CONTEXT_NAME)),
               contextStacker);
 
@@ -472,7 +490,7 @@ public class JoinNode extends PlanNode {
           return leftStream.join(
               rightTable,
               joinNode.schema,
-              getJoinKey(joinNode.leftAlias, leftStream.getKeyField()),
+              getJoinedKeyField(joinNode.leftAlias, leftStream.getKeyField()),
               getSerDeForNode(joinNode.left, contextStacker.push(LEFT_SERDE_CONTEXT_NAME)),
               contextStacker);
         case OUTER:
@@ -495,7 +513,6 @@ public class JoinNode extends PlanNode {
       super(builder, joinNode, contextStacker);
     }
 
-    @SuppressWarnings({"unchecked", "OptionalGetWithoutIsPresent"})
     @Override
     public SchemaKTable<K> join() {
       if (joinNode.withinExpression != null) {
@@ -505,31 +522,29 @@ public class JoinNode extends PlanNode {
             + "join again.");
       }
 
-      final SchemaKTable<K> leftTable = buildTable(joinNode.getLeft(),
-          joinNode.getLeftKeyFieldName(),
-          joinNode.getLeftAlias());
-      final SchemaKTable<K> rightTable = buildTable(joinNode.getRight(),
-          joinNode.getRightKeyFieldName(),
-          joinNode.getRightAlias());
+      final SchemaKTable<K> leftTable = buildTable(
+          joinNode.getLeft(), joinNode.getLeftKeyFieldName(), joinNode.getLeftAlias());
+      final SchemaKTable<K> rightTable = buildTable(
+          joinNode.getRight(), joinNode.getRightKeyFieldName(), joinNode.getRightAlias());
 
       switch (joinNode.joinType) {
         case LEFT:
           return leftTable.leftJoin(
               rightTable,
               joinNode.schema,
-              getJoinKey(joinNode.leftAlias, leftTable.getKeyField()),
+              getJoinedKeyField(joinNode.leftAlias, leftTable.getKeyField()),
               contextStacker);
         case INNER:
           return leftTable.join(
               rightTable,
               joinNode.schema,
-              getJoinKey(joinNode.leftAlias, leftTable.getKeyField()),
+              getJoinedKeyField(joinNode.leftAlias, leftTable.getKeyField()),
               contextStacker);
         case OUTER:
           return leftTable.outerJoin(
               rightTable,
               joinNode.schema,
-              getJoinKey(joinNode.leftAlias, leftTable.getKeyField()),
+              getOuterJoinedKeyField(joinNode.leftAlias, leftTable.getKeyField()),
               contextStacker);
         default:
           throw new KsqlException("Invalid join type encountered: " + joinNode.joinType);

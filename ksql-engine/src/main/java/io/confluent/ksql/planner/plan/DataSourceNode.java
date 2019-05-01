@@ -22,11 +22,11 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.metastore.model.KsqlTopic;
-import io.confluent.ksql.metastore.model.StructuredDataSource;
 import io.confluent.ksql.physical.AddTimestampColumn;
 import io.confluent.ksql.physical.KsqlQueryBuilder;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
@@ -64,7 +64,7 @@ import org.apache.kafka.streams.processor.TimestampExtractor;
 import org.apache.kafka.streams.state.KeyValueStore;
 
 @Immutable
-public class StructuredDataSourceNode
+public class DataSourceNode
     extends PlanNode {
 
   private static final ValueMapperWithKey<String, GenericRow, GenericRow>
@@ -96,7 +96,7 @@ public class StructuredDataSourceNode
   private final Function<KsqlConfig, MaterializedFactory> materializedFactorySupplier;
 
   @JsonCreator
-  public StructuredDataSourceNode(
+  public DataSourceNode(
       @JsonProperty("id") final PlanNodeId id,
       @JsonProperty("dataSource") final DataSource<?> dataSource,
       @JsonProperty("alias") final String alias
@@ -105,7 +105,7 @@ public class StructuredDataSourceNode
   }
 
   @VisibleForTesting
-  StructuredDataSourceNode(
+  DataSourceNode(
       final PlanNodeId id,
       final DataSource<?> dataSource,
       final String alias,
@@ -160,7 +160,7 @@ public class StructuredDataSourceNode
 
   @Override
   public <C, R> R accept(final PlanVisitor<C, R> visitor, final C context) {
-    return visitor.visitStructuredDataSourceNode(this, context);
+    return visitor.visitDataSourceNode(this, context);
   }
 
   @SuppressWarnings("unchecked")
@@ -181,7 +181,7 @@ public class StructuredDataSourceNode
         contextStacker.push(SOURCE_OP_NAME).getQueryContext()
     );
 
-    if (getDataSourceType() == StructuredDataSource.DataSourceType.KTABLE) {
+    if (getDataSourceType() == DataSourceType.KTABLE) {
       final KsqlTable table = (KsqlTable) getDataSource();
       final QueryContext.Stacker reduceContextStacker = contextStacker.push(REDUCE_OP_NAME);
 
@@ -394,7 +394,7 @@ public class StructuredDataSourceNode
             materialized);
   }
 
-  public StructuredDataSource.DataSourceType getDataSourceType() {
+  public DataSourceType getDataSourceType() {
     return dataSource.getDataSourceType();
   }
 

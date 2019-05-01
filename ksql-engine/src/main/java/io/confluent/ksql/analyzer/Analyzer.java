@@ -43,9 +43,9 @@ import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Sink;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.WindowExpression;
+import io.confluent.ksql.planner.plan.DataSourceNode;
 import io.confluent.ksql.planner.plan.JoinNode;
 import io.confluent.ksql.planner.plan.PlanNodeId;
-import io.confluent.ksql.planner.plan.StructuredDataSourceNode;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
@@ -412,20 +412,17 @@ class Analyzer {
         throw new KsqlException("Only equality join criteria is supported.");
       }
 
-      final StructuredDataSourceNode
-          leftSourceKafkaTopicNode =
-          new StructuredDataSourceNode(
-              new PlanNodeId("KafkaTopic_Left"),
-              leftDataSource,
-              leftAlias
-          );
-      final StructuredDataSourceNode
-          rightSourceKafkaTopicNode =
-          new StructuredDataSourceNode(
-              new PlanNodeId("KafkaTopic_Right"),
-              rightDataSource,
-              rightAlias
-          );
+      final DataSourceNode leftSourceKafkaTopicNode = new DataSourceNode(
+          new PlanNodeId("KafkaTopic_Left"),
+          leftDataSource,
+          leftAlias
+      );
+
+      final DataSourceNode rightSourceKafkaTopicNode = new DataSourceNode(
+          new PlanNodeId("KafkaTopic_Right"),
+          rightDataSource,
+          rightAlias
+      );
 
       final JoinNode joinNode =
           new JoinNode(

@@ -30,7 +30,7 @@ public interface MetaStore extends FunctionRegistry {
 
   List<DataSource<?>> getSourcesForKafkaTopic(String kafkaTopicName);
 
-  Map<String, DataSource<?>> getAllStructuredDataSources();
+  Map<String, DataSource<?>> getAllDataSources();
 
   Map<String, KsqlTopic> getAllKsqlTopics();
 

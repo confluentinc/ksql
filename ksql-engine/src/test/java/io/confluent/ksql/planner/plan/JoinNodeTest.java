@@ -120,9 +120,9 @@ public class JoinNodeTest {
   public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
-  private StructuredDataSourceNode left;
+  private DataSourceNode left;
   @Mock
-  private StructuredDataSourceNode right;
+  private DataSourceNode right;
   @Mock
   private SchemaKStream<String> leftSchemaKStream;
   @Mock
@@ -999,7 +999,7 @@ public class JoinNodeTest {
 
   @SuppressWarnings("unchecked")
   private void setupTable(
-      final StructuredDataSourceNode node,
+      final DataSourceNode node,
       final SchemaKTable table,
       final Schema schema
   ) {
@@ -1008,7 +1008,7 @@ public class JoinNodeTest {
   }
 
   private void setupTable(
-      final StructuredDataSourceNode node,
+      final DataSourceNode node,
       final SchemaKTable table,
       final Schema schema,
       final Optional<String> keyFieldName
@@ -1023,7 +1023,7 @@ public class JoinNodeTest {
 
   @SuppressWarnings("unchecked")
   private void setupStream(
-      final StructuredDataSourceNode node,
+      final DataSourceNode node,
       final SchemaKStream stream,
       final Schema schema
   ) {
@@ -1121,7 +1121,7 @@ public class JoinNodeTest {
   }
 
   @SuppressWarnings("unchecked")
-  private static void setUpSource(final StructuredDataSourceNode node, final String name) {
+  private static void setUpSource(final DataSourceNode node, final String name) {
     final DataSource<?> dataSource = mock(DataSource.class);
     when(dataSource.getName()).thenReturn(name);
     when(node.getDataSource()).thenReturn((DataSource)dataSource);

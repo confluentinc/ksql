@@ -29,7 +29,6 @@ import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.metastore.model.KsqlTopic;
-import io.confluent.ksql.metastore.model.StructuredDataSource;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.List;
@@ -73,7 +72,7 @@ public class MetaStoreTest {
   @Test
   public void testDelete() {
     final DataSource<?> dataSource1 = metaStore.getSource("ORDERS");
-    final StructuredDataSource<?> dataSource2 = new KsqlStream<>(
+    final DataSource<?> dataSource2 = new KsqlStream<>(
         "sqlexpression", "testStream",
         dataSource1.getSchema(),
         dataSource1.getKeyField(),
@@ -105,7 +104,7 @@ public class MetaStoreTest {
   @Test
   public void shouldGetSourcesForKafkaTopicWithMultipleSources() {
     // Given:
-    final StructuredDataSource<?> mockSource = mock(StructuredDataSource.class);
+    final DataSource<?> mockSource = mock(DataSource.class);
     when(mockSource.getKafkaTopicName()).thenReturn("test1");
     when(mockSource.getName()).thenReturn("new source name");
     metaStore.putSource(mockSource);

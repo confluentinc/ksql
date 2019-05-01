@@ -135,7 +135,7 @@ public final class ListSourceExecutor {
   private static List<KsqlTable<?>> getSpecificTables(
       final KsqlExecutionContext executionContext
   ) {
-    return executionContext.getMetaStore().getAllStructuredDataSources().values().stream()
+    return executionContext.getMetaStore().getAllDataSources().values().stream()
         .filter(KsqlTable.class::isInstance)
         .filter(structuredDataSource -> !structuredDataSource.getName().equalsIgnoreCase(
             KsqlRestApplication.getCommandsStreamName()))
@@ -146,7 +146,7 @@ public final class ListSourceExecutor {
   private static List<KsqlStream<?>> getSpecificStreams(
       final KsqlExecutionContext executionContext
   ) {
-    return executionContext.getMetaStore().getAllStructuredDataSources().values().stream()
+    return executionContext.getMetaStore().getAllDataSources().values().stream()
         .filter(KsqlStream.class::isInstance)
         .filter(structuredDataSource -> !structuredDataSource.getName().equalsIgnoreCase(
             KsqlRestApplication.getCommandsStreamName()))

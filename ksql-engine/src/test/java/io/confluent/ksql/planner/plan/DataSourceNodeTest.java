@@ -106,7 +106,7 @@ public class DataSourceNodeTest {
       new KsqlTopic("topic", "topic",
           new KsqlJsonTopicSerDe(), false), Serdes::String);
 
-  private final StructuredDataSourceNode node = new StructuredDataSourceNode(
+  private final DataSourceNode node = new DataSourceNode(
       PLAN_NODE_ID,
       SOME_SOURCE,
       SOME_SOURCE.getName());
@@ -188,7 +188,7 @@ public class DataSourceNodeTest {
   @SuppressWarnings("unchecked")
   public void shouldMaterializeTableCorrectly() {
     // Given:
-    final StructuredDataSourceNode node = nodeWithMockTableSource();
+    final DataSourceNode node = nodeWithMockTableSource();
 
     // When:
     node.buildStream(ksqlStreamBuilder);
@@ -263,7 +263,7 @@ public class DataSourceNodeTest {
             new KsqlJsonTopicSerDe(), false),
         Serdes::String);
 
-    final StructuredDataSourceNode node = new StructuredDataSourceNode(
+    final DataSourceNode node = new DataSourceNode(
         PLAN_NODE_ID,
         table,
         table.getName());
@@ -282,7 +282,7 @@ public class DataSourceNodeTest {
             new KsqlJsonTopicSerDe(), false),
         Serdes::String);
 
-    final StructuredDataSourceNode node = new StructuredDataSourceNode(
+    final DataSourceNode node = new DataSourceNode(
         PLAN_NODE_ID,
         table,
         table.getName());
@@ -338,14 +338,14 @@ public class DataSourceNodeTest {
   }
 
   @SuppressWarnings("unchecked")
-  private StructuredDataSourceNode nodeWithMockTableSource() {
+  private DataSourceNode nodeWithMockTableSource() {
     when(ksqlStreamBuilder.getStreamsBuilder()).thenReturn(streamsBuilder);
     when(streamsBuilder.stream(anyString(), any())).thenReturn((KStream)kStream);
     when(tableSource.getSchema()).thenReturn(realSchema);
     when(tableSource.getKeyField())
         .thenReturn(KeyField.of("field1", realSchema.field("field1")));
 
-    return new StructuredDataSourceNode(
+    return new DataSourceNode(
         realNodeId,
         tableSource,
         "t",

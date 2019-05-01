@@ -31,7 +31,6 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KsqlTopic;
-import io.confluent.ksql.metastore.model.StructuredDataSource;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.server.StatementParser;
@@ -271,7 +270,7 @@ public class RecoveryTest {
   private static class StructuredDataSourceMatcher
       extends TypeSafeDiagnosingMatcher<DataSource<?>> {
     final DataSource<?> source;
-    final Matcher<StructuredDataSource.DataSourceType> typeMatcher;
+    final Matcher<DataSource.DataSourceType> typeMatcher;
     final Matcher<String> nameMatcher;
     final Matcher<Schema> schemaMatcher;
     final Matcher<String> sqlMatcher;
@@ -357,7 +356,7 @@ public class RecoveryTest {
     final Map<String, Matcher<DataSource<?>>> sourceMatchers;
 
     MetaStoreMatcher(final MetaStore metaStore) {
-      this.sourceMatchers = metaStore.getAllStructuredDataSources().entrySet().stream()
+      this.sourceMatchers = metaStore.getAllDataSources().entrySet().stream()
           .collect(
               Collectors.toMap(Entry::getKey, e -> sameSource(e.getValue())));
     }
@@ -376,7 +375,7 @@ public class RecoveryTest {
     protected boolean matchesSafely(final MetaStore other, final Description description) {
       if (!test(
           equalTo(sourceMatchers.keySet()),
-          other.getAllStructuredDataSources().keySet(),
+          other.getAllDataSources().keySet(),
           description,
           "source set mismatch: ")) {
         return false;
@@ -626,7 +625,7 @@ public class RecoveryTest {
     final KsqlServer server = new KsqlServer(commands);
     server.recover();
     assertThat(
-        server.ksqlEngine.getMetaStore().getAllStructuredDataSources().keySet(),
+        server.ksqlEngine.getMetaStore().getAllDataSources().keySet(),
         contains("A", "B"));
     commands.add(
         new QueuedCommand(
@@ -637,7 +636,7 @@ public class RecoveryTest {
     final KsqlServer recovered = new KsqlServer(commands);
     recovered.recover();
     assertThat(
-        recovered.ksqlEngine.getMetaStore().getAllStructuredDataSources().keySet(),
+        recovered.ksqlEngine.getMetaStore().getAllDataSources().keySet(),
         contains("A"));
   }
 }

@@ -25,7 +25,6 @@ import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
-import io.confluent.ksql.metastore.model.StructuredDataSource;
 import io.confluent.ksql.metrics.ConsumerCollector;
 import io.confluent.ksql.metrics.ProducerCollector;
 import io.confluent.ksql.planner.LogicalPlanNode;
@@ -239,7 +238,7 @@ public class PhysicalPlanBuilder {
 
     final Schema sinkSchema = SchemaUtil.addImplicitRowTimeRowKeyToSchema(outputNode.getSchema());
 
-    final StructuredDataSource<?> sinkDataSource;
+    final DataSource<?> sinkDataSource;
     if (schemaKStream instanceof SchemaKTable) {
       final SchemaKTable<?> schemaKTable = (SchemaKTable) schemaKStream;
       sinkDataSource =
@@ -304,8 +303,10 @@ public class PhysicalPlanBuilder {
     );
   }
 
-  private void sinkSetUp(final KsqlStructuredDataOutputNode outputNode,
-                         final StructuredDataSource<?> sinkDataSource) {
+  private void sinkSetUp(
+      final KsqlStructuredDataOutputNode outputNode,
+      final DataSource<?> sinkDataSource
+  ) {
     if (outputNode.isDoCreateInto()) {
       metaStore.putSource(sinkDataSource);
       return;

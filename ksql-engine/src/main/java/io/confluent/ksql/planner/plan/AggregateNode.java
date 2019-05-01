@@ -186,7 +186,7 @@ public class AggregateNode extends PlanNode {
   @Override
   public SchemaKStream<?> buildStream(final KsqlQueryBuilder builder) {
     final QueryContext.Stacker contextStacker = builder.buildNodeContext(getId());
-    final StructuredDataSourceNode streamSourceNode = getTheSourceNode();
+    final DataSourceNode streamSourceNode = getTheSourceNode();
     final SchemaKStream sourceSchemaKStream = getSource().buildStream(builder);
 
     // Pre aggregate computations

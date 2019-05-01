@@ -283,11 +283,13 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
 
   private boolean isTopicDeleteEnabled() {
     try {
-      return getConfig().get(KafkaConfig.DeleteTopicEnableProp()).value().equalsIgnoreCase("true");
-
+      final ConfigEntry configEntry = getConfig().get(KafkaConfig.DeleteTopicEnableProp());
+      // default to true if there is no entry
+      return configEntry == null || Boolean.valueOf(configEntry.value());
     } catch (final Exception e) {
       LOG.error("Failed to initialize TopicClient: {}", e.getMessage());
-      throw new KsqlException("Could not fetch broker information. KSQL cannot initialize", e);
+      throw new KafkaResponseGetFailedException(
+          "Could not fetch broker information. KSQL cannot initialize", e);
     }
   }
 

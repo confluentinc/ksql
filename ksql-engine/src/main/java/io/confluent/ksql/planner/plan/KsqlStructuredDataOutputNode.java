@@ -177,7 +177,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     }
 
     final Field field = partitionByField.get();
-    return result.selectKey(field, false, contextStacker);
+    return result.selectKey(field.name(), false, contextStacker);
   }
 
   private Optional<Field> getPartitionByField(final Schema schema) {

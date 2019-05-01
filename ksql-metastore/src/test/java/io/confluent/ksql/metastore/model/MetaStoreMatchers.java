@@ -69,6 +69,10 @@ public final class MetaStoreMatchers {
     private KeyFieldMatchers() {
     }
 
+    public static Matcher<KeyField> hasName(final String name) {
+      return hasName(Optional.of(name));
+    }
+
     public static Matcher<KeyField> hasName(final Optional<String> name) {
       return new FeatureMatcher<KeyField, Optional<String>>
           (is(name), "field with name", "name") {
@@ -77,6 +81,10 @@ public final class MetaStoreMatchers {
           return actual.name();
         }
       };
+    }
+
+    public static Matcher<KeyField> hasLegacyName(final String name) {
+      return hasLegacyName(Optional.of(name));
     }
 
     public static Matcher<KeyField> hasLegacyName(final Optional<String> name) {

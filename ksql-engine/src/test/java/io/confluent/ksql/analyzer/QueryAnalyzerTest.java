@@ -47,6 +47,7 @@ import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Sink;
+import io.confluent.ksql.planner.plan.JoinNode;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
@@ -58,7 +59,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-@SuppressWarnings({"unchecked", "OptionalGetWithoutIsPresent"})
+@SuppressWarnings("OptionalGetWithoutIsPresent")
 public class QueryAnalyzerTest {
 
   private static final DereferenceExpression ITEM_ID = new DereferenceExpression(
@@ -353,9 +354,10 @@ public class QueryAnalyzerTest {
     final Analysis analysis = queryAnalyzer.analyze("sqlExpression", query, Optional.empty());
 
     // Then:
-    assertTrue(analysis.getJoin().isLeftJoin());
-    assertThat(analysis.getJoin().getLeftKeyFieldName(), equalTo("COL1"));
-    assertThat(analysis.getJoin().getRightKeyFieldName(), equalTo("COL2"));
+    final JoinNode join = analysis.getJoin();
+    assertTrue(join.isLeftJoin());
+    assertThat(join.getLeftKeyFieldName(), is("TEST1.COL1"));
+    assertThat(join.getRightKeyFieldName(), is("TEST2.COL2"));
   }
 
   @Test

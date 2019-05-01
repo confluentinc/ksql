@@ -73,6 +73,7 @@ import io.confluent.ksql.parser.tree.ListRegisteredTopics;
 import io.confluent.ksql.parser.tree.ListStreams;
 import io.confluent.ksql.parser.tree.ListTables;
 import io.confluent.ksql.parser.tree.ListTopics;
+import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.parser.tree.LogicalBinaryExpression;
 import io.confluent.ksql.parser.tree.LongLiteral;
 import io.confluent.ksql.parser.tree.Node;
@@ -187,15 +188,15 @@ public class AstBuilder {
       return visit(context.expression());
     }
 
-    private Map<String, Expression> processTableProperties(
+    private Map<String, Literal> processTableProperties(
         final TablePropertiesContext tablePropertiesContext
     ) {
-      final ImmutableMap.Builder<String, Expression> properties = ImmutableMap.builder();
+      final ImmutableMap.Builder<String, Literal> properties = ImmutableMap.builder();
       if (tablePropertiesContext != null) {
         for (final TablePropertyContext prop : tablePropertiesContext.tableProperty()) {
           properties.put(
               ParserUtil.getIdentifierText(prop.identifier()),
-              (Expression) visit(prop.expression())
+              (Literal) visit(prop.literal())
           );
         }
       }

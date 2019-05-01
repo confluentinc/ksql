@@ -54,8 +54,10 @@ import org.slf4j.LoggerFactory;
 /**
  * Note: all calls make cross machine calls and are synchronous.
  */
+// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 @ThreadSafe
 public class KafkaTopicClientImpl implements KafkaTopicClient {
+  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private static final Logger LOG = LoggerFactory.getLogger(KafkaTopicClient.class);
   private static final String DEFAULT_REPLICATION_PROP = KafkaConfig.DefaultReplicationFactorProp();

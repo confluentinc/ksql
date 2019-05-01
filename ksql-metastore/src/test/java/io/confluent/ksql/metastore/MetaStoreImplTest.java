@@ -26,6 +26,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.metastore.model.StructuredDataSource;
 import io.confluent.ksql.util.KsqlException;
@@ -69,7 +70,7 @@ public class MetaStoreImplTest {
   public void setUp() {
     metaStore = new MetaStoreImpl(functionRegistry);
 
-    when(topic.getName()).thenReturn("some registered topic");
+    when(topic.getKsqlTopicName()).thenReturn("some registered topic");
     when(dataSource.getName()).thenReturn("some source");
     when(dataSource1.getName()).thenReturn("some other source");
 
@@ -89,10 +90,10 @@ public class MetaStoreImplTest {
 
     // When:
     final MetaStore copy = metaStore.copy();
-    metaStore.deleteTopic(topic.getName());
+    metaStore.deleteTopic(topic.getKsqlTopicName());
 
     // Then:
-    assertThat(copy.getAllKsqlTopics().keySet(), contains(topic.getName()));
+    assertThat(copy.getAllKsqlTopics().keySet(), contains(topic.getKsqlTopicName()));
     assertThat(metaStore.getAllKsqlTopics().keySet(), is(empty()));
   }
 
@@ -142,7 +143,7 @@ public class MetaStoreImplTest {
     // Given:
     metaStore.putSource(dataSource);
 
-    final Map<String, StructuredDataSource<?>> dataSources = metaStore
+    final Map<String, DataSource<?>> dataSources = metaStore
         .getAllStructuredDataSources();
 
     // When
@@ -352,9 +353,9 @@ public class MetaStoreImplTest {
         .parallel()
         .forEach(idx -> {
           final KsqlTopic topic = mock(KsqlTopic.class);
-          when(topic.getName()).thenReturn("topic" + idx);
+          when(topic.getKsqlTopicName()).thenReturn("topic" + idx);
           metaStore.putTopic(topic);
-          metaStore.getTopic(topic.getName());
+          metaStore.getTopic(topic.getKsqlTopicName());
 
           final StructuredDataSource<?> source = mock(StructuredDataSource.class);
           when(source.getName()).thenReturn("source" + idx);
@@ -375,7 +376,7 @@ public class MetaStoreImplTest {
           metaStore.copy();
 
           metaStore.removePersistentQuery(queryId);
-          metaStore.deleteTopic(topic.getName());
+          metaStore.deleteTopic(topic.getKsqlTopicName());
           metaStore.deleteSource(source.getName());
         });
 

@@ -18,12 +18,12 @@ package io.confluent.ksql.ddl.commands;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MutableMetaStore;
+import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KsqlTopic;
-import io.confluent.ksql.metastore.model.StructuredDataSource;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.parser.tree.RegisterTopic;
-import io.confluent.ksql.serde.DataSource;
+import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
 import io.confluent.ksql.serde.delimited.KsqlDelimitedTopicSerDe;
@@ -52,31 +52,38 @@ public class RegisterTopicCommand implements DdlCommand {
     enforceTopicProperties(properties);
     this.kafkaTopicName = StringUtil.cleanQuotes(
         properties.get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY).toString());
-    final String serde = StringUtil.cleanQuotes(
-        properties.get(DdlConfig.VALUE_FORMAT_PROPERTY).toString());
-    this.topicSerDe = extractTopicSerDe(serde, properties);
+    final Format format = Format
+        .of(StringUtil.cleanQuotes(properties.get(DdlConfig.VALUE_FORMAT_PROPERTY).toString()));
+    this.topicSerDe = extractTopicSerDe(format, properties);
     this.notExists = notExist;
   }
 
-  private KsqlTopicSerDe extractTopicSerDe(
-      final String serde, final Map<String, Literal> properties) {
-    if (!serde.equalsIgnoreCase(DataSource.AVRO_SERDE_NAME)
-        && properties.containsKey(DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME)) {
+  private static KsqlTopicSerDe extractTopicSerDe(
+      final Format format,
+      final Map<String, Literal> properties
+  ) {
+    if (properties.containsKey(DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME)
+        && format != Format.AVRO
+    ) {
       throw new KsqlException(
               DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME + " is only valid for AVRO topics.");
     }
-    switch (serde.toUpperCase()) {
-      case DataSource.AVRO_SERDE_NAME:
+
+    switch (format) {
+      case AVRO:
         final Expression schemaFullNameExp =
                 properties.get(DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME);
         final String schemaFullName = schemaFullNameExp == null
                 ? KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME :
                   StringUtil.cleanQuotes(schemaFullNameExp.toString());
         return new KsqlAvroTopicSerDe(schemaFullName);
-      case DataSource.JSON_SERDE_NAME:
+
+      case JSON:
         return new KsqlJsonTopicSerDe();
-      case DataSource.DELIMITED_SERDE_NAME:
+
+      case DELIMITED:
         return new KsqlDelimitedTopicSerDe();
+
       default:
         throw new KsqlException("The specified topic serde is not supported.");
     }
@@ -116,7 +123,7 @@ public class RegisterTopicCommand implements DdlCommand {
   }
 
   private String getSourceType(final MetaStore metaStore) {
-    final StructuredDataSource source = metaStore.getSource(topicName);
+    final DataSource<?> source = metaStore.getSource(topicName);
     if (source == null) {
       return "A topic";
     }
@@ -127,9 +134,6 @@ public class RegisterTopicCommand implements DdlCommand {
 
       case KTABLE:
         return "A table";
-
-      case KTOPIC:
-        return "A topic";
 
       default:
         return "An entity";

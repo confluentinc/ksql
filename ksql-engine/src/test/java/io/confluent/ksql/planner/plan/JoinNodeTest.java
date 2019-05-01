@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.planner.plan;
 
+import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.MAPVALUES_NODE;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.SOURCE_NODE;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.getNodeByName;
@@ -36,15 +37,13 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlTopic;
-import io.confluent.ksql.metastore.model.StructuredDataSource;
 import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.physical.KsqlQueryBuilder;
 import io.confluent.ksql.planner.plan.JoinNode.JoinType;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.serde.DataSource;
-import io.confluent.ksql.serde.DataSource.DataSourceType;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
@@ -85,7 +84,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 
-@SuppressWarnings({"SameParameterValue", "OptionalGetWithoutIsPresent", "unchecked"})
+@SuppressWarnings({"SameParameterValue", "OptionalGetWithoutIsPresent"})
 @RunWith(MockitoJUnitRunner.class)
 public class JoinNodeTest {
 
@@ -128,13 +127,13 @@ public class JoinNodeTest {
   @Mock
   private StructuredDataSourceNode right;
   @Mock
-  private SchemaKStream leftSchemaKStream;
+  private SchemaKStream<String> leftSchemaKStream;
   @Mock
-  private SchemaKStream rightSchemaKStream;
+  private SchemaKStream<String> rightSchemaKStream;
   @Mock
-  private SchemaKTable leftSchemaKTable;
+  private SchemaKTable<String> leftSchemaKTable;
   @Mock
-  private SchemaKTable rightSchemaKTable;
+  private SchemaKTable<String> rightSchemaKTable;
   @Mock
   private KsqlQueryBuilder ksqlStreamBuilder;
 
@@ -365,9 +364,9 @@ public class JoinNodeTest {
     setupTopicClientExpectations(1, 1);
     buildJoin();
     final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
-    final StructuredDataSource source1
+    final DataSource<?> source1
         = metaStore.getSource("TEST1");
-    final StructuredDataSource source2 = metaStore.getSource("TEST2");
+    final DataSource<?> source2 = metaStore.getSource("TEST2");
     final Set<String> expected = source1.getSchema()
         .fields().stream()
         .map(field -> "T1." + field.name()).collect(Collectors.toSet());
@@ -379,7 +378,6 @@ public class JoinNodeTest {
     assertThat(fields, equalTo(expected));
   }
 
-  @SuppressWarnings("unchecked")
   @Test
   public void shouldPerformStreamToStreamLeftJoin() {
     // Given:
@@ -396,8 +394,8 @@ public class JoinNodeTest {
         leftAlias,
         rightAlias,
         WITHIN_EXPRESSION,
-        DataSource.DataSourceType.KSTREAM,
-        DataSource.DataSourceType.KSTREAM);
+        DataSourceType.KSTREAM,
+        DataSourceType.KSTREAM);
 
     // When:
     joinNode.buildStream(ksqlStreamBuilder);
@@ -413,7 +411,6 @@ public class JoinNodeTest {
         eq(CONTEXT_STACKER));
   }
 
-  @SuppressWarnings("unchecked")
   @Test
   public void shouldPerformStreamToStreamInnerJoin() {
     // Given:
@@ -430,8 +427,8 @@ public class JoinNodeTest {
         leftAlias,
         rightAlias,
         WITHIN_EXPRESSION,
-        DataSource.DataSourceType.KSTREAM,
-        DataSource.DataSourceType.KSTREAM);
+        DataSourceType.KSTREAM,
+        DataSourceType.KSTREAM);
 
     // When:
     joinNode.buildStream(ksqlStreamBuilder);
@@ -447,7 +444,6 @@ public class JoinNodeTest {
         eq(CONTEXT_STACKER));
   }
 
-  @SuppressWarnings("unchecked")
   @Test
   public void shouldPerformStreamToStreamOuterJoin() {
     // Given:
@@ -464,8 +460,8 @@ public class JoinNodeTest {
         leftAlias,
         rightAlias,
         WITHIN_EXPRESSION,
-        DataSource.DataSourceType.KSTREAM,
-        DataSource.DataSourceType.KSTREAM);
+        DataSourceType.KSTREAM,
+        DataSourceType.KSTREAM);
 
     // When:
     joinNode.buildStream(ksqlStreamBuilder);
@@ -493,8 +489,8 @@ public class JoinNodeTest {
         leftAlias,
         rightAlias,
         null,
-        DataSource.DataSourceType.KSTREAM,
-        DataSource.DataSourceType.KSTREAM);
+        DataSourceType.KSTREAM,
+        DataSourceType.KSTREAM);
 
     try {
       joinNode.buildStream(ksqlStreamBuilder);
@@ -520,8 +516,8 @@ public class JoinNodeTest {
         leftAlias,
         rightAlias,
         WITHIN_EXPRESSION,
-        DataSource.DataSourceType.KSTREAM,
-        DataSource.DataSourceType.KSTREAM);
+        DataSourceType.KSTREAM,
+        DataSourceType.KSTREAM);
 
     try {
       joinNode.buildStream(ksqlStreamBuilder);
@@ -552,8 +548,8 @@ public class JoinNodeTest {
         leftAlias,
         rightAlias,
         null,
-        DataSource.DataSourceType.KSTREAM,
-        DataSource.DataSourceType.KTABLE);
+        DataSourceType.KSTREAM,
+        DataSourceType.KTABLE);
 
     try {
       joinNode.buildStream(ksqlStreamBuilder);
@@ -571,7 +567,6 @@ public class JoinNodeTest {
     }
   }
 
-  @SuppressWarnings("unchecked")
   @Test
   public void shouldPerformStreamToTableLeftJoin() {
     // Given:
@@ -588,8 +583,8 @@ public class JoinNodeTest {
         leftAlias,
         rightAlias,
         null,
-        DataSource.DataSourceType.KSTREAM,
-        DataSource.DataSourceType.KTABLE);
+        DataSourceType.KSTREAM,
+        DataSourceType.KTABLE);
 
     // When:
     joinNode.buildStream(ksqlStreamBuilder);
@@ -619,8 +614,8 @@ public class JoinNodeTest {
         leftAlias,
         rightAlias,
         null,
-        DataSource.DataSourceType.KSTREAM,
-        DataSource.DataSourceType.KTABLE);
+        DataSourceType.KSTREAM,
+        DataSourceType.KTABLE);
 
     // When:
     joinNode.buildStream(ksqlStreamBuilder);
@@ -650,8 +645,8 @@ public class JoinNodeTest {
         leftAlias,
         rightAlias,
         null,
-        DataSource.DataSourceType.KSTREAM,
-        DataSource.DataSourceType.KTABLE);
+        DataSourceType.KSTREAM,
+        DataSourceType.KTABLE);
 
     // When:
     try {
@@ -685,8 +680,8 @@ public class JoinNodeTest {
         leftAlias,
         rightAlias,
         withinExpression,
-        DataSource.DataSourceType.KSTREAM,
-        DataSource.DataSourceType.KTABLE);
+        DataSourceType.KSTREAM,
+        DataSourceType.KTABLE);
 
     try {
       joinNode.buildStream(ksqlStreamBuilder);
@@ -715,8 +710,8 @@ public class JoinNodeTest {
         leftAlias,
         rightAlias,
         null,
-        DataSource.DataSourceType.KTABLE,
-        DataSource.DataSourceType.KTABLE);
+        DataSourceType.KTABLE,
+        DataSourceType.KTABLE);
 
     try {
       joinNode.buildStream(ksqlStreamBuilder);
@@ -752,8 +747,8 @@ public class JoinNodeTest {
         leftAlias,
         rightAlias,
         null,
-        DataSource.DataSourceType.KTABLE,
-        DataSource.DataSourceType.KTABLE);
+        DataSourceType.KTABLE,
+        DataSourceType.KTABLE);
 
     try {
       joinNode.buildStream(ksqlStreamBuilder);
@@ -787,8 +782,8 @@ public class JoinNodeTest {
         leftAlias,
         rightAlias,
         null,
-        DataSource.DataSourceType.KTABLE,
-        DataSource.DataSourceType.KTABLE);
+        DataSourceType.KTABLE,
+        DataSourceType.KTABLE);
 
     // When:
     joinNode.buildStream(ksqlStreamBuilder);
@@ -817,8 +812,8 @@ public class JoinNodeTest {
         leftAlias,
         rightAlias,
         null,
-        DataSource.DataSourceType.KTABLE,
-        DataSource.DataSourceType.KTABLE
+        DataSourceType.KTABLE,
+        DataSourceType.KTABLE
     );
 
     // When:
@@ -832,7 +827,6 @@ public class JoinNodeTest {
         eq(CONTEXT_STACKER));
   }
 
-  @SuppressWarnings("unchecked")
   @Test
   public void shouldPerformTableToTableOuterJoin() {
     // Given:
@@ -849,8 +843,8 @@ public class JoinNodeTest {
         leftAlias,
         rightAlias,
         null,
-        DataSource.DataSourceType.KTABLE,
-        DataSource.DataSourceType.KTABLE
+        DataSourceType.KTABLE,
+        DataSourceType.KTABLE
     );
 
     // When:
@@ -883,8 +877,8 @@ public class JoinNodeTest {
         leftAlias,
         rightAlias,
         withinExpression,
-        DataSource.DataSourceType.KTABLE,
-        DataSource.DataSourceType.KTABLE);
+        DataSourceType.KTABLE,
+        DataSourceType.KTABLE);
 
     try {
       joinNode.buildStream(ksqlStreamBuilder);
@@ -910,8 +904,8 @@ public class JoinNodeTest {
         leftAlias,
         rightAlias,
         null,
-        DataSource.DataSourceType.KTABLE,
-        DataSource.DataSourceType.KTABLE
+        DataSourceType.KTABLE,
+        DataSourceType.KTABLE
     );
 
     // When:
@@ -992,6 +986,7 @@ public class JoinNodeTest {
     for (final Field field : rightSchema.fields()) {
       schemaBuilder.field(field.name(), field.schema());
     }
+
     return schemaBuilder.build();
   }
 
@@ -1068,13 +1063,14 @@ public class JoinNodeTest {
     return field.name();
   }
 
+  @SuppressWarnings("unchecked")
   private static void setUpSource(final StructuredDataSourceNode node) {
-    final StructuredDataSource structuredDataSource = mock(StructuredDataSource.class);
-    when(structuredDataSource.getName()).thenReturn("Foobar");
-    when(node.getStructuredDataSource()).thenReturn(structuredDataSource);
+    final DataSource<?> dataSource = mock(DataSource.class);
+    when(dataSource.getName()).thenReturn("Foobar");
+    when(node.getDataSource()).thenReturn((DataSource)dataSource);
 
     final KsqlTopic ksqlTopic = mock(KsqlTopic.class);
-    when(structuredDataSource.getKsqlTopic()).thenReturn(ksqlTopic);
+    when(dataSource.getKsqlTopic()).thenReturn(ksqlTopic);
 
     final KsqlTopicSerDe ksqlTopicSerde = mock(KsqlTopicSerDe.class);
     when(ksqlTopic.getKsqlTopicSerDe()).thenReturn(ksqlTopicSerde);

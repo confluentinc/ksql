@@ -330,7 +330,7 @@ public class SchemaKStream<K> {
   public SchemaKStream<K> leftJoin(
       final SchemaKTable<K> schemaKTable,
       final Schema joinSchema,
-      final Field joinKey,
+      final KeyField keyField,
       final Serde<GenericRow> leftValueSerDe,
       final QueryContext.Stacker contextStacker
   ) {
@@ -349,7 +349,7 @@ public class SchemaKStream<K> {
     return new SchemaKStream<>(
         joinSchema,
         joinedKStream,
-        KeyField.of(joinKey.name(), joinKey),
+        keyField,
         ImmutableList.of(this, schemaKTable),
         keySerdeFactory,
         Type.JOIN,
@@ -362,7 +362,7 @@ public class SchemaKStream<K> {
   public SchemaKStream<K> leftJoin(
       final SchemaKStream<K> otherSchemaKStream,
       final Schema joinSchema,
-      final Field joinKey,
+      final KeyField keyField,
       final JoinWindows joinWindows,
       final Serde<GenericRow> leftSerde,
       final Serde<GenericRow> rightSerde,
@@ -384,7 +384,7 @@ public class SchemaKStream<K> {
     return new SchemaKStream<>(
         joinSchema,
         joinStream,
-        KeyField.of(joinKey.name(), joinKey),
+        keyField,
         ImmutableList.of(this, otherSchemaKStream),
         keySerdeFactory,
         Type.JOIN,
@@ -398,7 +398,7 @@ public class SchemaKStream<K> {
   public SchemaKStream<K> join(
       final SchemaKTable<K> schemaKTable,
       final Schema joinSchema,
-      final Field joinKey,
+      final KeyField keyField,
       final Serde<GenericRow> joinSerDe,
       final QueryContext.Stacker contextStacker
   ) {
@@ -416,7 +416,7 @@ public class SchemaKStream<K> {
     return new SchemaKStream<>(
         joinSchema,
         joinedKStream,
-        KeyField.of(joinKey.name(), joinKey),
+        keyField,
         ImmutableList.of(this, schemaKTable),
         keySerdeFactory,
         Type.JOIN,
@@ -429,7 +429,7 @@ public class SchemaKStream<K> {
   public SchemaKStream<K> join(
       final SchemaKStream<K> otherSchemaKStream,
       final Schema joinSchema,
-      final Field joinKey,
+      final KeyField keyField,
       final JoinWindows joinWindows,
       final Serde<GenericRow> leftSerde,
       final Serde<GenericRow> rightSerde,
@@ -450,7 +450,7 @@ public class SchemaKStream<K> {
     return new SchemaKStream<>(
         joinSchema,
         joinStream,
-        KeyField.of(joinKey.name(), joinKey),
+        keyField,
         ImmutableList.of(this, otherSchemaKStream),
         keySerdeFactory,
         Type.JOIN,
@@ -463,7 +463,7 @@ public class SchemaKStream<K> {
   public SchemaKStream<K> outerJoin(
       final SchemaKStream<K> otherSchemaKStream,
       final Schema joinSchema,
-      final Field joinKey,
+      final KeyField keyField,
       final JoinWindows joinWindows,
       final Serde<GenericRow> leftSerde,
       final Serde<GenericRow> rightSerde,
@@ -483,7 +483,7 @@ public class SchemaKStream<K> {
     return new SchemaKStream<>(
         joinSchema,
         joinStream,
-        KeyField.of(joinKey.name(), joinKey),
+        keyField,
         ImmutableList.of(this, otherSchemaKStream),
         keySerdeFactory,
         Type.JOIN,
@@ -496,21 +496,33 @@ public class SchemaKStream<K> {
 
   @SuppressWarnings("unchecked")
   public SchemaKStream<?> selectKey(
-      final Field newKeyField,
+      final String fieldName,
       final boolean updateRowKey,
       final QueryContext.Stacker contextStacker
   ) {
-    final Optional<Field> resolved = keyField.resolve(schema, ksqlConfig);
+    final Optional<Field> existingKey = keyField.resolve(schema, ksqlConfig);
 
-    final boolean namesMatch = resolved
-        .map(kf -> SchemaUtil.matchFieldName(kf, newKeyField.name()))
+    final Field proposedKey = SchemaUtil.getFieldByName(schema, fieldName)
+        .orElseThrow(IllegalArgumentException::new);
+
+    final KeyField resultantKeyField = isRowKey(fieldName)
+            ? keyField.withLegacy(proposedKey)
+            : KeyField.of(fieldName, proposedKey);
+
+    final boolean namesMatch = existingKey
+        .map(kf -> SchemaUtil.matchFieldName(kf, proposedKey.name()))
         .orElse(false);
 
-    if (namesMatch) {
+    // Note: Prior to v5.3 a selectKey(ROWKEY) would result in a repartition.
+    // To maintain compatibility, old queries, started prior to v5.3, must have repartition step.
+    // So we only handle rowkey for new queries:
+    final boolean treatAsRowKey = usingNewKeyFields() && isRowKey(proposedKey.name());
+
+    if (namesMatch || treatAsRowKey) {
       return new SchemaKStream<>(
           schema,
           kstream,
-          KeyField.of(newKeyField.name(), newKeyField),
+          resultantKeyField,
           sourceSchemaKStreams,
           keySerdeFactory,
           type,
@@ -521,9 +533,8 @@ public class SchemaKStream<K> {
     }
 
     final KStream keyedKStream = kstream
-        .filter((key, value) -> value != null
-            && extractColumn(newKeyField, value) != null)
-        .selectKey((key, value) -> extractColumn(newKeyField, value).toString())
+        .filter((key, value) -> value != null && extractColumn(proposedKey, value) != null)
+        .selectKey((key, value) -> extractColumn(proposedKey, value).toString())
         .mapValues((key, row) -> {
           if (updateRowKey) {
             row.getColumns().set(SchemaUtil.ROWKEY_NAME_INDEX, key);
@@ -534,7 +545,7 @@ public class SchemaKStream<K> {
     return new SchemaKStream<>(
         schema,
         keyedKStream,
-        KeyField.of(newKeyField.name(), newKeyField),
+        resultantKeyField,
         Collections.singletonList(this),
         Serdes::String,
         Type.REKEY,
@@ -542,6 +553,14 @@ public class SchemaKStream<K> {
         functionRegistry,
         contextStacker.getQueryContext()
     );
+  }
+
+  private boolean usingNewKeyFields() {
+    return !ksqlConfig.getBoolean(KsqlConfig.KSQL_USE_LEGACY_KEY_FIELD);
+  }
+
+  private static boolean isRowKey(final String fieldName) {
+    return SchemaUtil.isFieldName(fieldName, SchemaUtil.ROWKEY_NAME);
   }
 
   private Object extractColumn(final Field newKeyField, final GenericRow value) {

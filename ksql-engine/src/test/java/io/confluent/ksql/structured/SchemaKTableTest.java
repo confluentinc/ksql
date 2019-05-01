@@ -25,9 +25,9 @@ import static org.easymock.EasyMock.same;
 import static org.easymock.EasyMock.verify;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
@@ -94,6 +94,12 @@ public class SchemaKTableTest {
   private final GroupedFactory groupedFactory = mock(GroupedFactory.class);
   private final Grouped grouped = Grouped.with(
       "group", Serdes.String(), Serdes.String());
+  private final KeyField validKeyField = KeyField.of(
+      Optional.of("left.COL1"),
+      metaStore.getSource("TEST2")
+          .getKeyField()
+          .legacy()
+          .map(field -> SchemaUtil.buildAliasedField("left", field)));
 
   private SchemaKTable initialSchemaKTable;
   private KTable kTable;
@@ -429,7 +435,7 @@ public class SchemaKTableTest {
   public void shouldPerformTableToTableLeftJoin() {
     expect(mockKTable.leftJoin(eq(secondSchemaKTable.getKtable()),
                                anyObject(SchemaKStream.KsqlValueJoiner.class)))
-        .andReturn(mockKTable);
+        .andReturn(EasyMock.niceMock(KTable.class));
 
     replay(mockKTable);
 
@@ -437,7 +443,7 @@ public class SchemaKTableTest {
         .leftJoin(
             secondSchemaKTable,
             joinSchema,
-            joinSchema.fields().get(0),
+            validKeyField,
             childContextStacker);
 
     verify(mockKTable);
@@ -445,7 +451,7 @@ public class SchemaKTableTest {
     assertThat(joinedKStream, instanceOf(SchemaKTable.class));
     assertEquals(SchemaKStream.Type.JOIN, joinedKStream.type);
     assertEquals(joinSchema, joinedKStream.schema);
-    assertEquals(Optional.of(joinSchema.fields().get(0).name()), joinedKStream.keyField.name());
+    assertThat(joinedKStream.getKeyField(), is(validKeyField));
     assertEquals(Arrays.asList(firstSchemaKTable, secondSchemaKTable),
                  joinedKStream.sourceSchemaKStreams);
   }
@@ -460,14 +466,16 @@ public class SchemaKTableTest {
     replay(mockKTable);
 
     final SchemaKStream joinedKStream = firstSchemaKTable
-        .join(secondSchemaKTable, joinSchema, joinSchema.fields().get(0), childContextStacker);
+        .join(secondSchemaKTable, joinSchema,
+            validKeyField,
+            childContextStacker);
 
     verify(mockKTable);
 
     assertThat(joinedKStream, instanceOf(SchemaKTable.class));
     assertEquals(SchemaKStream.Type.JOIN, joinedKStream.type);
     assertEquals(joinSchema, joinedKStream.schema);
-    assertEquals(Optional.of(joinSchema.fields().get(0).name()), joinedKStream.keyField.name());
+    assertThat(joinedKStream.getKeyField(), is(validKeyField));
     assertEquals(Arrays.asList(firstSchemaKTable, secondSchemaKTable),
                  joinedKStream.sourceSchemaKStreams);
   }
@@ -482,17 +490,18 @@ public class SchemaKTableTest {
     replay(mockKTable);
 
     final SchemaKStream joinedKStream = firstSchemaKTable
-        .outerJoin(secondSchemaKTable, joinSchema, joinSchema.fields().get(0), childContextStacker);
+        .outerJoin(secondSchemaKTable, joinSchema,
+            validKeyField,
+            childContextStacker);
 
     verify(mockKTable);
 
     assertThat(joinedKStream, instanceOf(SchemaKTable.class));
     assertEquals(SchemaKStream.Type.JOIN, joinedKStream.type);
     assertEquals(joinSchema, joinedKStream.schema);
-    assertEquals(Optional.of(joinSchema.fields().get(0).name()), joinedKStream.keyField.name());
+    assertThat(joinedKStream.getKeyField(), is(validKeyField));
     assertEquals(Arrays.asList(firstSchemaKTable, secondSchemaKTable),
                  joinedKStream.sourceSchemaKStreams);
-
   }
 
   @Test
@@ -505,7 +514,7 @@ public class SchemaKTableTest {
     final SchemaKStream result = initialSchemaKTable
         .select(selectExpressions, childContextStacker, processingLogContext);
 
-    MatcherAssert.assertThat(result.getKeyField(),
+    assertThat(result.getKeyField(),
         is(KeyField.of("NEWKEY", new Field("NEWKEY", 0, Schema.OPTIONAL_INT64_SCHEMA))));
   }
 
@@ -520,7 +529,7 @@ public class SchemaKTableTest {
         .select(selectExpressions, childContextStacker, processingLogContext);
 
     // Then:
-    MatcherAssert.assertThat(result.getKeyField(),
+    assertThat(result.getKeyField(),
         is(KeyField.of("NEWKEY", new Field("NEWKEY", 0, Schema.OPTIONAL_INT64_SCHEMA))));
   }
 
@@ -535,7 +544,7 @@ public class SchemaKTableTest {
         .select(selectExpressions, childContextStacker, processingLogContext);
 
     // Then:
-    MatcherAssert.assertThat(result.getKeyField(),
+    assertThat(result.getKeyField(),
         is(KeyField.of("NEWKEY", new Field("NEWKEY", 0, Schema.OPTIONAL_INT64_SCHEMA))));
   }
 
@@ -550,7 +559,7 @@ public class SchemaKTableTest {
         .select(selectExpressions, childContextStacker, processingLogContext);
 
     // Then:
-    MatcherAssert.assertThat(result.getKeyField(),
+    assertThat(result.getKeyField(),
         is(KeyField.of(Optional.of("COL0"), initialSchemaKTable.keyField.legacy())));
   }
 
@@ -565,7 +574,7 @@ public class SchemaKTableTest {
         .select(selectExpressions, childContextStacker, processingLogContext);
 
     // Then:
-    MatcherAssert.assertThat(result.getKeyField(),
+    assertThat(result.getKeyField(),
         Matchers.equalTo(KeyField.of("COL0", new Field("COL0", 1, Schema.OPTIONAL_INT64_SCHEMA))));
   }
 
@@ -580,7 +589,7 @@ public class SchemaKTableTest {
         .select(selectExpressions, childContextStacker, processingLogContext);
 
     // Then:
-    MatcherAssert.assertThat(result.getKeyField(), is(KeyField.none()));
+    assertThat(result.getKeyField(), is(KeyField.none()));
   }
 
   @Test
@@ -594,7 +603,7 @@ public class SchemaKTableTest {
         .select(selectExpressions, childContextStacker, processingLogContext);
 
     // Then:
-    MatcherAssert.assertThat(result.getKeyField(), is(KeyField.none()));
+    assertThat(result.getKeyField(), is(KeyField.none()));
   }
 
   @Test
@@ -608,7 +617,7 @@ public class SchemaKTableTest {
         .groupBy(rowSerde, groupByExprs, childContextStacker);
 
     // Then:
-    MatcherAssert.assertThat(result.getKeyField(),
+    assertThat(result.getKeyField(),
         is(KeyField.of("TEST2.COL1", new Field("TEST2.COL1", -1, Schema.OPTIONAL_STRING_SCHEMA))));
   }
 

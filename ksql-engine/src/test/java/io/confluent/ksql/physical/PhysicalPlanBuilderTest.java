@@ -23,6 +23,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.startsWith;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.mockito.ArgumentMatchers.any;
@@ -57,12 +58,14 @@ import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.testutils.AnalysisTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryIdGenerator;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.QueuedQueryMetadata;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -104,12 +107,38 @@ public class PhysicalPlanBuilderTest {
   private static final String FILTER_MAPVALUES_NODE = "KSTREAM-MAPVALUES-0000000004";
   private static final String FOREACH_NODE = "KSTREAM-FOREACH-0000000005";
 
-  private static final String createStream = "CREATE STREAM TEST1 (COL0 BIGINT, COL1 VARCHAR, COL2 DOUBLE) WITH ( "
-      + "KAFKA_TOPIC = 'test1', VALUE_FORMAT = 'JSON' );";
+  private static final String CREATE_STREAM_TEST1 = "CREATE STREAM TEST1 "
+      + "(COL0 BIGINT, COL1 VARCHAR, COL2 DOUBLE) "
+      + "WITH (KAFKA_TOPIC = 'test1', VALUE_FORMAT = 'JSON');";
+
+  private static final String CREATE_STREAM_TEST2 = "CREATE STREAM TEST2 "
+      + "(ID BIGINT, COL0 VARCHAR, COL1 DOUBLE) "
+      + " WITH (KAFKA_TOPIC = 'test2', VALUE_FORMAT = 'JSON', KEY='ID');";
+
+  private static final String CREATE_STREAM_TEST3 = "CREATE STREAM TEST3 "
+      + "(ID BIGINT, COL0 VARCHAR, COL1 DOUBLE) "
+      + " WITH (KAFKA_TOPIC = 'test3', VALUE_FORMAT = 'JSON', KEY='ID');";
+
+  private static final String CREATE_TABLE_TEST4 = "CREATE TABLE TEST4 "
+      + "(ID BIGINT, COL0 VARCHAR, COL1 DOUBLE) "
+      + " WITH (KAFKA_TOPIC = 'test4', VALUE_FORMAT = 'JSON', KEY='ID');";
+
+  private static final String CREATE_TABLE_TEST5 = "CREATE TABLE TEST5 "
+      + "(ID BIGINT, COL0 VARCHAR, COL1 DOUBLE) "
+      + " WITH (KAFKA_TOPIC = 'test5', VALUE_FORMAT = 'JSON', KEY='ID');";
+
+  private static final String CREATE_STREAM_TEST6 = "CREATE STREAM TEST6 "
+      + "(ID BIGINT, COL0 VARCHAR, COL1 DOUBLE) "
+      + " WITH (KAFKA_TOPIC = 'test6', VALUE_FORMAT = 'JSON');";
+
+  private static final String CREATE_STREAM_TEST7 = "CREATE STREAM TEST7 "
+      + "(ID BIGINT, COL0 VARCHAR, COL1 DOUBLE) "
+      + " WITH (KAFKA_TOPIC = 'test7', VALUE_FORMAT = 'JSON');";
+
   private static final String simpleSelectFilter = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
   private PhysicalPlanBuilder physicalPlanBuilder;
   private final MutableMetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
-  private final KsqlConfig ksqlConfig = new KsqlConfig(
+  private static final KsqlConfig INITIAL_CONFIG = new KsqlConfig(
       ImmutableMap.of(
           ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092",
           "commit.interval.ms", 0,
@@ -125,6 +154,8 @@ public class PhysicalPlanBuilderTest {
   private ServiceContext serviceContext;
   @Mock
   private Consumer<QueryMetadata> queryCloseCallback;
+
+  private KsqlConfig ksqlConfig;
 
   // Test implementation of KafkaStreamsBuilder that tracks calls and returned values
   private static class TestKafkaStreamsBuilder implements KafkaStreamsBuilder {
@@ -163,6 +194,7 @@ public class PhysicalPlanBuilderTest {
 
   @Before
   public void before() {
+    ksqlConfig = INITIAL_CONFIG;
     serviceContext = TestServiceContext.create(kafkaTopicClient);
     processingLogContext = ProcessingLogContext.create();
     testKafkaStreamsBuilder = new TestKafkaStreamsBuilder(serviceContext);
@@ -250,7 +282,7 @@ public class PhysicalPlanBuilderTest {
   @Test
   public void shouldMakePersistentQuery() {
     // Given:
-    givenKafkaTopicExists("test1");
+    givenKafkaTopicsExist("test1");
 
     // When:
     final QueryMetadata queryMetadata =
@@ -318,13 +350,10 @@ public class PhysicalPlanBuilderTest {
         + "col2 FROM "
         + "test1;";
     final String insertIntoQuery = "INSERT INTO s1 SELECT col0, col1, col2 FROM test1;";
-    givenKafkaTopicExists("test1");
+    givenKafkaTopicsExist("test1");
 
-    final List<QueryMetadata> queryMetadataList = KsqlEngineTestUtil.execute(
-        ksqlEngine,
-        createStream + "\n " + csasQuery + "\n " + insertIntoQuery,
-        ksqlConfig,
-        Collections.emptyMap());
+    final List<QueryMetadata> queryMetadataList = execute(
+        CREATE_STREAM_TEST1 + csasQuery + insertIntoQuery);
     Assert.assertTrue(queryMetadataList.size() == 2);
     final String planText = queryMetadataList.get(1).getExecutionPlan();
     final String[] lines = planText.split("\n");
@@ -340,27 +369,21 @@ public class PhysicalPlanBuilderTest {
         queryMetadataList.get(1);
     assertThat(persistentQuery.getResultTopic().getKsqlTopicSerDe().getSerDe(),
         equalTo(DataSource.DataSourceSerDe.DELIMITED));
-    closeQueries(queryMetadataList);
   }
 
   @Test
   public void shouldFailIfInsertSinkDoesNotExist() {
     // Given:
     final String insertIntoQuery = "INSERT INTO s1 SELECT col0, col1, col2 FROM test1;";
-    givenKafkaTopicExists("test1");
+    givenKafkaTopicsExist("test1");
 
     // Then:
     expectedException.expect(ParseFailedException.class);
     expectedException.expect(statementText(is("INSERT INTO s1 SELECT col0, col1, col2 FROM test1;")));
-    expectedException.expect(rawMessage(containsString(
-        "Line: 2, Col: 14: S1 does not exist.")));
+    expectedException.expect(rawMessage(containsString("S1 does not exist.")));
 
     // When:
-    KsqlEngineTestUtil.execute(
-          ksqlEngine,
-          createStream + "\n " + insertIntoQuery,
-          ksqlConfig,
-          Collections.emptyMap());
+    execute(CREATE_STREAM_TEST1 + insertIntoQuery);
   }
 
   @Test
@@ -368,7 +391,7 @@ public class PhysicalPlanBuilderTest {
     // Given:
     final String csasQuery = "CREATE STREAM s1 AS SELECT col0, col1 FROM test1;";
     final String insertIntoQuery = "INSERT INTO s1 SELECT col0, col1, col2 FROM test1;";
-    givenKafkaTopicExists("test1");
+    givenKafkaTopicsExist("test1");
 
     // Then:
     expectedException.expect(KsqlStatementException.class);
@@ -378,11 +401,7 @@ public class PhysicalPlanBuilderTest {
         + "but the sink schema is [COL0 : BIGINT, COL1 : VARCHAR].")));
 
     // When:
-    KsqlEngineTestUtil.execute(
-          ksqlEngine,
-          createStream + "\n " + csasQuery + "\n " + insertIntoQuery,
-          ksqlConfig,
-          Collections.emptyMap());
+    execute(CREATE_STREAM_TEST1 + csasQuery + insertIntoQuery);
   }
 
   @Test
@@ -394,7 +413,7 @@ public class PhysicalPlanBuilderTest {
         + "KAFKA_TOPIC = 'test1', VALUE_FORMAT = 'JSON', KEY = 'COL1' );";
     final String csasQuery = "CREATE TABLE T2 AS SELECT * FROM T1;";
     final String insertIntoQuery = "INSERT INTO T2 SELECT *  FROM T1;";
-    givenKafkaTopicExists("test1");
+    givenKafkaTopicsExist("test1");
 
     // Then:
     expectedException.expect(KsqlStatementException.class);
@@ -402,10 +421,7 @@ public class PhysicalPlanBuilderTest {
         "INSERT INTO can only be used to insert into a stream. T2 is a table.")));
 
     // When:
-    KsqlEngineTestUtil.execute(ksqlEngine,
-        createTable + "\n " + csasQuery + "\n " + insertIntoQuery,
-        ksqlConfig,
-        Collections.emptyMap());
+    execute(createTable + csasQuery + insertIntoQuery);
   }
 
   @Test
@@ -415,13 +431,10 @@ public class PhysicalPlanBuilderTest {
         + "WITH (KAFKA_TOPIC='test1', VALUE_FORMAT='JSON');";
     final String csas = "CREATE STREAM s0 AS SELECT * FROM test1;";
     final String insertInto = "INSERT INTO s0 SELECT * FROM test1;";
-    givenKafkaTopicExists("test1");
+    givenKafkaTopicsExist("test1");
 
     // When:
-    final List<QueryMetadata> queries = KsqlEngineTestUtil.execute(ksqlEngine,
-        cs + csas + insertInto,
-        ksqlConfig,
-        Collections.emptyMap());
+    final List<QueryMetadata> queries = execute(cs + csas + insertInto);
 
     // Then:
     assertThat(queries, hasSize(2));
@@ -436,7 +449,6 @@ public class PhysicalPlanBuilderTest {
 
     assertThat(lines[2], containsString("> [ SOURCE ] | "
         + "Schema: [TEST1.ROWTIME : BIGINT, TEST1.ROWKEY : VARCHAR, TEST1.COL0 : INT]"));
-    closeQueries(queries);
   }
 
   @Test
@@ -449,8 +461,8 @@ public class PhysicalPlanBuilderTest {
     final String csasQuery = "CREATE STREAM S2 AS SELECT * FROM TEST1;";
     final String insertIntoQuery = "INSERT INTO S2 SELECT col0, col1, col2, col3 FROM T1;";
     // No need for setting the correct clean up policy in test.
-    givenKafkaTopicExists("t1");
-    givenKafkaTopicExists("test1");
+    givenKafkaTopicsExist("t1");
+    givenKafkaTopicsExist("test1");
 
     // Then:
     expectedException.expect(KsqlStatementException.class);
@@ -459,24 +471,18 @@ public class PhysicalPlanBuilderTest {
         + "Data sink (S2) type is KTABLE but select query result is KSTREAM.")));
 
     // When:
-    KsqlEngineTestUtil.execute(ksqlEngine,
-          createTable + "\n " + createStream + "\n " + csasQuery + "\n " + insertIntoQuery,
-          ksqlConfig,
-          Collections.emptyMap());
+    execute(createTable + CREATE_STREAM_TEST1 + csasQuery + insertIntoQuery);
   }
 
   @Test
   public void shouldCheckSinkAndResultKeysDoNotMatch() {
     final String csasQuery = "CREATE STREAM s1 AS SELECT col0, col1, col2 FROM test1 PARTITION BY col0;";
     final String insertIntoQuery = "INSERT INTO s1 SELECT col0, col1, col2 FROM test1 PARTITION BY col0;";
-    givenKafkaTopicExists("test1");
+    givenKafkaTopicsExist("test1");
 
-    final List<QueryMetadata> queryMetadataList = KsqlEngineTestUtil.execute(
-        ksqlEngine,
-        createStream + "\n " + csasQuery + "\n " + insertIntoQuery,
-        ksqlConfig,
-        Collections.emptyMap());
-    Assert.assertTrue(queryMetadataList.size() == 2);
+    final List<QueryMetadata> queryMetadataList = execute(
+        CREATE_STREAM_TEST1 + csasQuery + insertIntoQuery);
+    assertThat(queryMetadataList, hasSize(2));
     final String planText = queryMetadataList.get(1).getExecutionPlan();
     final String[] lines = planText.split("\n");
     assertThat(lines.length, equalTo(4));
@@ -487,14 +493,13 @@ public class PhysicalPlanBuilderTest {
         + ": DOUBLE] | Logger: InsertQuery_1.S1"));
     assertThat(lines[2], equalTo("\t\t\t\t > [ PROJECT ] | Schema: [COL0 : BIGINT, COL1 : VARCHAR"
         + ", COL2 : DOUBLE] | Logger: InsertQuery_1.Project"));
-    closeQueries(queryMetadataList);
   }
 
   @Test
   public void shouldFailIfSinkAndResultKeysDoNotMatch() {
     final String csasQuery = "CREATE STREAM s1 AS SELECT col0, col1, col2 FROM test1 PARTITION BY col0;";
     final String insertIntoQuery = "INSERT INTO s1 SELECT col0, col1, col2 FROM test1;";
-    givenKafkaTopicExists("test1");
+    givenKafkaTopicsExist("test1");
 
     // Then:
     expectedException.expect(KsqlStatementException.class);
@@ -504,11 +509,7 @@ public class PhysicalPlanBuilderTest {
         + "while result key field is null (type: null)")));
 
     // When:
-    KsqlEngineTestUtil.execute(
-          ksqlEngine,
-          createStream + "\n " + csasQuery + "\n " + insertIntoQuery,
-          ksqlConfig,
-          Collections.emptyMap());
+    execute(CREATE_STREAM_TEST1 + csasQuery + insertIntoQuery);
   }
 
   @Test
@@ -739,42 +740,333 @@ public class PhysicalPlanBuilderTest {
         + "col2 FROM "
         + "test1;";
     final String insertIntoQuery = "INSERT INTO s1 SELECT col0, col1, col2 FROM test1;";
-    givenKafkaTopicExists("test1");
-    final List<QueryMetadata> queryMetadataList = KsqlEngineTestUtil.execute(
-        ksqlEngine, createStream + "\n " +
-        csasQuery + "\n " +
-        insertIntoQuery,
-        ksqlConfig,
-        Collections.emptyMap());
+    givenKafkaTopicsExist("test1");
+    final List<QueryMetadata> queryMetadataList = execute(
+        CREATE_STREAM_TEST1 + csasQuery + insertIntoQuery);
     final Schema resultSchema = queryMetadataList.get(0).getResultSchema();
     resultSchema.fields().forEach(
         field -> Assert.assertTrue(field.schema().isOptional())
     );
-    closeQueries(queryMetadataList);
   }
 
   @Test
   public void shouldSetIsKSQLSinkInMetastoreCorrectly() {
     final String csasQuery = "CREATE STREAM s1 AS SELECT col0, col1, col2 FROM test1;";
     final String ctasQuery = "CREATE TABLE t1 AS SELECT col0, COUNT(*) FROM test1 GROUP BY col0;";
-    givenKafkaTopicExists("test1");
-    KsqlEngineTestUtil.execute(
-        ksqlEngine,
-        createStream + "\n " + csasQuery + "\n " + ctasQuery,
-        ksqlConfig,
-        Collections.emptyMap());
+    givenKafkaTopicsExist("test1");
+    execute(CREATE_STREAM_TEST1 + csasQuery + ctasQuery);
     assertThat(ksqlEngine.getMetaStore().getSource("TEST1").getKsqlTopic().isKsqlSink(), equalTo(false));
     assertThat(ksqlEngine.getMetaStore().getSource("S1").getKsqlTopic().isKsqlSink(), equalTo(true));
     assertThat(ksqlEngine.getMetaStore().getSource("T1").getKsqlTopic().isKsqlSink(), equalTo(true));
   }
 
+  @Test
+  public void shouldRepartitionLeftStreamIfNotCorrectKey() {
+    // Given:
+    givenKafkaTopicsExist("test2", "test3");
+    execute(CREATE_STREAM_TEST2 + CREATE_STREAM_TEST3);
 
-  private static void closeQueries(final List<QueryMetadata> queryMetadataList) {
-    queryMetadataList.forEach(QueryMetadata::close);
+    // When:
+    final QueryMetadata result = execute("CREATE STREAM s1 AS "
+        + "SELECT * FROM test2 JOIN test3 WITHIN 1 SECOND "
+        + "ON test2.col1 = test3.id;")
+        .get(0);
+
+    // Then:
+    assertThat(result.getExecutionPlan(),
+        containsString("[ REKEY ] | Schema: [TEST2.ROWTIME : BIGINT"));
   }
 
-  private void givenKafkaTopicExists(final String name) {
-    kafkaTopicClient.createTopic(name, 1, (short) 1, Collections.emptyMap());
+  @Test
+  public void shouldRepartitionRightStreamIfNotCorrectKey() {
+    // Given:
+    givenKafkaTopicsExist("test2", "test3");
+    execute(CREATE_STREAM_TEST2 + CREATE_STREAM_TEST3);
+
+    // When:
+    final QueryMetadata result = execute("CREATE STREAM s1 AS "
+        + "SELECT * FROM test2 JOIN test3 WITHIN 1 SECOND "
+        + "ON test2.id = test3.col0;")
+        .get(0);
+
+    // Then:
+    assertThat(result.getExecutionPlan(),
+        containsString("[ REKEY ] | Schema: [TEST3.ROWTIME : BIGINT"));
+  }
+
+  @Test
+  public void shouldThrowIfLeftTableNotJoiningOnTableKey() {
+    // Given:
+    givenKafkaTopicsExist("test4", "test5");
+    execute(CREATE_TABLE_TEST4 + CREATE_TABLE_TEST5);
+
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(
+        "Source table (TEST4) key column (TEST4.ID) is not the column "
+            + "used in the join criteria (TEST4.COL0).");
+
+    // When:
+    execute("CREATE TABLE t1 AS "
+        + "SELECT * FROM test4 JOIN test5 "
+        + "ON test4.col0 = test5.id;");
+  }
+
+  @Test
+  public void shouldThrowIfRightTableNotJoiningOnTableKey() {
+    // Given:
+    givenKafkaTopicsExist("test4", "test5");
+    execute(CREATE_TABLE_TEST4 + CREATE_TABLE_TEST5);
+
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(
+        "Source table (TEST5) key column (TEST5.ID) is not the column "
+            + "used in the join criteria (TEST5.COL0).");
+
+    // When:
+    execute("CREATE TABLE t1 AS "
+        + "SELECT * FROM test4 JOIN test5 "
+        + "ON test4.id = test5.col0;");
+  }
+
+  @Test
+  public void shouldNotRepartitionEitherStreamsIfJoiningOnKeys() {
+    // Given:
+    givenKafkaTopicsExist("test2", "test3");
+    execute(CREATE_STREAM_TEST2 + CREATE_STREAM_TEST3);
+
+    // When:
+    final QueryMetadata result = execute("CREATE STREAM s1 AS "
+        + "SELECT * FROM test2 JOIN test3 WITHIN 1 SECOND "
+        + "ON test2.id = test3.id;")
+        .get(0);
+
+    // Then:
+    assertThat(result.getExecutionPlan(), not(containsString("[ REKEY ]")));
+  }
+
+  @Test
+  public void shouldNotRepartitionEitherStreamsIfJoiningOnRowKey() {
+    // Given:
+    givenKafkaTopicsExist("test2", "test3");
+    execute(CREATE_STREAM_TEST2 + CREATE_STREAM_TEST3);
+
+    // When:
+    final QueryMetadata result = execute("CREATE STREAM s1 AS "
+        + "SELECT * FROM test2 JOIN test3 WITHIN 1 SECOND "
+        + "ON test2.rowkey = test3.rowkey;")
+        .get(0);
+
+    // Then:
+    assertThat(result.getExecutionPlan(), not(containsString("[ REKEY ]")));
+  }
+
+  @Test
+  public void shouldNotRepartitionEitherStreamsIfJoiningOnRowKeyEvenIfStreamsHaveNoKeyField() {
+    // Given:
+    givenKafkaTopicsExist("test6", "test7");
+    execute(CREATE_STREAM_TEST6 + CREATE_STREAM_TEST7);
+
+    // When:
+    final QueryMetadata result = execute("CREATE STREAM s1 AS "
+        + "SELECT * FROM test6 JOIN test7 WITHIN 1 SECOND "
+        + "ON test6.rowkey = test7.rowkey;")
+        .get(0);
+
+    // Then:
+    assertThat(result.getExecutionPlan(), not(containsString("[ REKEY ]")));
+  }
+
+  @Test
+  public void shouldHandleLeftTableJoiningOnRowKey() {
+    // Given:
+    givenKafkaTopicsExist("test4", "test5");
+    execute(CREATE_TABLE_TEST4 + CREATE_TABLE_TEST5);
+
+    // When:
+    execute("CREATE TABLE t1 AS "
+        + "SELECT * FROM test4 JOIN test5 "
+        + "ON test4.rowkey = test5.id;");
+
+    // Then: did not throw.
+  }
+
+  @Test
+  public void shouldHandleRightTableJoiningOnRowKey() {
+    // Given:
+    givenKafkaTopicsExist("test4", "test5");
+    execute(CREATE_TABLE_TEST4 + CREATE_TABLE_TEST5);
+
+    // When:
+    execute("CREATE TABLE t1 AS "
+        + "SELECT * FROM test4 JOIN test5 "
+        + "ON test4.id = test5.rowkey;");
+
+    // Then: did not throw.
+  }
+
+  @Test
+  public void shouldRepartitionLeftStreamIfNotCorrectKey_Legacy() {
+    // Given:
+    givenConfigWith(KsqlConfig.KSQL_USE_LEGACY_KEY_FIELD, true);
+    givenKafkaTopicsExist("test2", "test3");
+    execute(CREATE_STREAM_TEST2 + CREATE_STREAM_TEST3);
+
+    // When:
+    final QueryMetadata result = execute("CREATE STREAM s1 AS "
+        + "SELECT * FROM test2 JOIN test3 WITHIN 1 SECOND "
+        + "ON test2.col1 = test3.id;")
+        .get(0);
+
+    // Then:
+    assertThat(result.getExecutionPlan(),
+        containsString("[ REKEY ] | Schema: [TEST2.ROWTIME : BIGINT"));
+  }
+
+  @Test
+  public void shouldRepartitionRightStreamIfNotCorrectKey_Legacy() {
+    // Given:
+    givenConfigWith(KsqlConfig.KSQL_USE_LEGACY_KEY_FIELD, true);
+    givenKafkaTopicsExist("test2", "test3");
+    execute(CREATE_STREAM_TEST2 + CREATE_STREAM_TEST3);
+
+    // When:
+    final QueryMetadata result = execute("CREATE STREAM s1 AS "
+        + "SELECT * FROM test2 JOIN test3 WITHIN 1 SECOND "
+        + "ON test2.id = test3.col0;")
+        .get(0);
+
+    // Then:
+    assertThat(result.getExecutionPlan(),
+        containsString("[ REKEY ] | Schema: [TEST3.ROWTIME : BIGINT"));
+  }
+
+  @Test
+  public void shouldThrowIfLeftTableNotJoiningOnTableKey_Legacy() {
+    // Given:
+    givenConfigWith(KsqlConfig.KSQL_USE_LEGACY_KEY_FIELD, true);
+    givenKafkaTopicsExist("test4", "test5");
+    execute(CREATE_TABLE_TEST4 + CREATE_TABLE_TEST5);
+
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(
+        "Source table (TEST4) key column (ID) is not the column "
+            + "used in the join criteria (TEST4.COL0).");
+
+    // When:
+    execute("CREATE TABLE t1 AS "
+        + "SELECT * FROM test4 JOIN test5 "
+        + "ON test4.col0 = test5.id;");
+  }
+
+  @Test
+  public void shouldThrowIfRightTableNotJoiningOnTableKey_Legacy() {
+    // Given:
+    givenConfigWith(KsqlConfig.KSQL_USE_LEGACY_KEY_FIELD, true);
+    givenKafkaTopicsExist("test4", "test5");
+    execute(CREATE_TABLE_TEST4 + CREATE_TABLE_TEST5);
+
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(
+        "Source table (TEST5) key column (ID) is not the column "
+            + "used in the join criteria (TEST5.COL0).");
+
+    // When:
+    execute("CREATE TABLE t1 AS "
+        + "SELECT * FROM test4 JOIN test5 "
+        + "ON test4.id = test5.col0;");
+  }
+
+  @Test
+  public void shouldRepartitionBothStreamsIfJoiningOnRowKey_Legacy() {
+    // Given:
+    givenConfigWith(KsqlConfig.KSQL_USE_LEGACY_KEY_FIELD, true);
+    givenKafkaTopicsExist("test2", "test3");
+    execute(CREATE_STREAM_TEST2 + CREATE_STREAM_TEST3);
+
+    // When:
+    final QueryMetadata result = execute("CREATE STREAM s1 AS "
+        + "SELECT * FROM test2 JOIN test3 WITHIN 1 SECOND "
+        + "ON test2.rowkey = test3.rowkey;")
+        .get(0);
+
+    // Then:
+    assertThat(result.getExecutionPlan(),
+        containsString("[ REKEY ] | Schema: [TEST2.ROWTIME : BIGINT"));
+    assertThat(result.getExecutionPlan(),
+        containsString("[ REKEY ] | Schema: [TEST3.ROWTIME : BIGINT"));
+  }
+
+  @Test
+  public void shouldRepartitionBothStreamsIfJoiningOnRowKeyWhenStreamsHaveNoKeyField_Legacy() {
+    // Given:
+    givenConfigWith(KsqlConfig.KSQL_USE_LEGACY_KEY_FIELD, true);
+    givenKafkaTopicsExist("test6", "test7");
+    execute(CREATE_STREAM_TEST6 + CREATE_STREAM_TEST7);
+
+    // When:
+    final QueryMetadata result = execute("CREATE STREAM s1 AS "
+        + "SELECT * FROM test6 JOIN test7 WITHIN 1 SECOND "
+        + "ON test6.rowkey = test7.rowkey;")
+        .get(0);
+
+    // Then:
+    assertThat(result.getExecutionPlan(),
+        containsString("[ REKEY ] | Schema: [TEST7.ROWTIME : BIGINT"));
+    assertThat(result.getExecutionPlan(),
+        containsString("[ REKEY ] | Schema: [TEST7.ROWTIME : BIGINT"));
+  }
+
+  @Test
+  public void shouldHandleLeftTableJoiningOnRowKey_Legacy() {
+    // Given:
+    givenConfigWith(KsqlConfig.KSQL_USE_LEGACY_KEY_FIELD, true);
+    givenKafkaTopicsExist("test4", "test5");
+    execute(CREATE_TABLE_TEST4 + CREATE_TABLE_TEST5);
+
+    // When:
+    execute("CREATE TABLE t1 AS "
+        + "SELECT * FROM test4 JOIN test5 "
+        + "ON test4.rowkey = test5.id;");
+
+    // Then: did not throw.
+  }
+
+  @Test
+  public void shouldHandleRightTableJoiningOnRowKey_Legacy() {
+    // Given:
+    givenConfigWith(KsqlConfig.KSQL_USE_LEGACY_KEY_FIELD, true);
+    givenKafkaTopicsExist("test4", "test5");
+    execute(CREATE_TABLE_TEST4 + CREATE_TABLE_TEST5);
+
+    // When:
+    execute("CREATE TABLE t1 AS "
+        + "SELECT * FROM test4 JOIN test5 "
+        + "ON test4.id = test5.rowkey;");
+
+    // Then: did not throw.
+  }
+
+  @SuppressWarnings("SameParameterValue")
+  private void givenConfigWith(final String name, final Object value) {
+    ksqlConfig = ksqlConfig.cloneWithPropertyOverwrite(ImmutableMap.of(name, value));
+  }
+
+  private List<QueryMetadata> execute(final String sql) {
+    return KsqlEngineTestUtil.execute(
+        ksqlEngine,
+        sql,
+        ksqlConfig,
+        Collections.emptyMap());
+  }
+
+  private void givenKafkaTopicsExist(final String... names) {
+    Arrays.stream(names).forEach(name ->
+        kafkaTopicClient.createTopic(name, 1, (short) 1, Collections.emptyMap())
+    );
   }
 
   private static Processor getNodeByName(final QueryMetadata query, final String nodeName) {

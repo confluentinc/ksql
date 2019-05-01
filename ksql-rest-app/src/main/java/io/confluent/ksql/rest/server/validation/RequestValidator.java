@@ -174,7 +174,11 @@ public class RequestValidator {
       final Map<String, Object> propertyOverrides
   ) {
     final KsqlConfigResolver ksqlConfigResolver = new KsqlConfigResolver();
-    propertyOverrides.keySet()
+    propertyOverrides
+            .keySet()
+            .stream()
+            .filter(propertyName -> !KsqlConstants.LEGACY_RUN_SCRIPT_STATEMENTS_CONTENT
+                    .equals(propertyName))
             .forEach(propertyName -> {
               if (!ksqlConfigResolver.resolve(propertyName,true).isPresent()) {
                 throw new KsqlException("Invalid config property: " + propertyName);

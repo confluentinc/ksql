@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.services;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import io.confluent.ksql.exception.KafkaResponseGetFailedException;
@@ -40,7 +39,6 @@ import org.apache.kafka.clients.admin.AlterConfigOp;
 import org.apache.kafka.clients.admin.Config;
 import org.apache.kafka.clients.admin.ConfigEntry;
 import org.apache.kafka.clients.admin.DeleteTopicsResult;
-import org.apache.kafka.clients.admin.DescribeClusterResult;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.KafkaFuture;
@@ -72,7 +70,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
    */
   public KafkaTopicClientImpl(final AdminClient adminClient) {
     this.adminClient = Objects.requireNonNull(adminClient, "adminClient");
-    this.isDeleteTopicEnabled = isTopicDeleteEnabled(adminClient);
+    this.isDeleteTopicEnabled = isTopicDeleteEnabled();
   }
 
   @Override
@@ -125,7 +123,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
    */
   private short getDefaultClusterReplication() {
     try {
-      final String defaultReplication = getConfig(adminClient)
+      final String defaultReplication = getConfig()
           .get(DEFAULT_REPLICATION_PROP)
           .value();
       return Short.parseShort(defaultReplication);
@@ -281,17 +279,9 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
     }
   }
 
-  private static boolean isTopicDeleteEnabled(final AdminClient adminClient) {
+  private boolean isTopicDeleteEnabled() {
     try {
-      return getConfig(adminClient)
-          .entries()
-          .stream()
-          .filter(configEntry -> configEntry.name().equalsIgnoreCase("delete.topic.enable"))
-          .findFirst()
-          .map(configEntry -> configEntry.value().equalsIgnoreCase("true"))
-          // if the broker does not provide the config value, default to true in an attempt
-          // to clean up topics
-          .orElse(true);
+      return getConfig().get(KafkaConfig.DeleteTopicEnableProp()).value().equalsIgnoreCase("true");
 
     } catch (final Exception e) {
       LOG.error("Failed to initialize TopicClient: {}", e.getMessage());
@@ -299,7 +289,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
     }
   }
 
-  private static Config getConfig(final AdminClient adminClient) {
+  private Config getConfig() {
     try {
       final Collection<Node> brokers = adminClient.describeCluster().nodes().get();
       final Node broker = Iterables.getFirst(brokers, null);

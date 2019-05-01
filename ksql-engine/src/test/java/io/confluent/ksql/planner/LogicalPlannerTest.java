@@ -28,11 +28,11 @@ import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.MetaStoreMatchers.FieldMatchers;
 import io.confluent.ksql.metastore.model.MetaStoreMatchers.OptionalMatchers;
 import io.confluent.ksql.planner.plan.AggregateNode;
+import io.confluent.ksql.planner.plan.DataSourceNode;
 import io.confluent.ksql.planner.plan.FilterNode;
 import io.confluent.ksql.planner.plan.JoinNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
-import io.confluent.ksql.planner.plan.StructuredDataSourceNode;
 import io.confluent.ksql.testutils.AnalysisTestUtil;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.Optional;
@@ -54,7 +54,7 @@ public class LogicalPlannerTest {
   public void shouldCreatePlanWithTableAsSource() {
     final PlanNode planNode = buildLogicalPlan("select col0 from TEST2 limit 5;");
     assertThat(planNode.getSources().size(), equalTo(1));
-    final DataSource<?> dataSource = ((StructuredDataSourceNode) planNode
+    final DataSource<?> dataSource = ((DataSourceNode) planNode
         .getSources()
         .get(0)
         .getSources()
@@ -74,7 +74,7 @@ public class LogicalPlannerTest {
     assertThat(logicalPlan.getSources().get(0), instanceOf(ProjectNode.class));
     assertThat(logicalPlan.getSources().get(0).getSources().get(0), instanceOf(FilterNode.class));
     assertThat(logicalPlan.getSources().get(0).getSources().get(0).getSources().get(0),
-        instanceOf(StructuredDataSourceNode.class));
+        instanceOf(DataSourceNode.class));
 
     assertThat(logicalPlan.getSchema().fields().size(), equalTo( 3));
     Assert.assertNotNull(((FilterNode) logicalPlan.getSources().get(0).getSources().get(0)).getPredicate());
@@ -88,9 +88,9 @@ public class LogicalPlannerTest {
     assertThat(logicalPlan.getSources().get(0), instanceOf(ProjectNode.class));
     assertThat(logicalPlan.getSources().get(0).getSources().get(0), instanceOf(JoinNode.class));
     assertThat(logicalPlan.getSources().get(0).getSources().get(0).getSources()
-                          .get(0), instanceOf(StructuredDataSourceNode.class));
+                          .get(0), instanceOf(DataSourceNode.class));
     assertThat(logicalPlan.getSources().get(0).getSources().get(0).getSources()
-                          .get(1), instanceOf(StructuredDataSourceNode.class));
+                          .get(1), instanceOf(DataSourceNode.class));
 
     assertThat(logicalPlan.getSchema().fields().size(), equalTo(4));
 
@@ -117,8 +117,8 @@ public class LogicalPlannerTest {
 
     assertThat(filterNode.getSources().get(0), instanceOf(JoinNode.class));
     final JoinNode joinNode = (JoinNode) filterNode.getSources().get(0);
-    assertThat(joinNode.getSources().get(0), instanceOf(StructuredDataSourceNode.class));
-    assertThat(joinNode.getSources().get(1), instanceOf(StructuredDataSourceNode.class));
+    assertThat(joinNode.getSources().get(0), instanceOf(DataSourceNode.class));
+    assertThat(joinNode.getSources().get(1), instanceOf(DataSourceNode.class));
   }
 
   @Test

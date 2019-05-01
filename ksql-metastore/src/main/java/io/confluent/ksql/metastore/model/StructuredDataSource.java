@@ -25,7 +25,7 @@ import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import org.apache.kafka.connect.data.Schema;
 
 @Immutable
-public abstract class StructuredDataSource<K> implements DataSource<K> {
+abstract class StructuredDataSource<K> implements DataSource<K> {
 
   private final String dataSourceName;
   private final DataSourceType dataSourceType;
@@ -36,7 +36,7 @@ public abstract class StructuredDataSource<K> implements DataSource<K> {
   private final KsqlTopic ksqlTopic;
   private final String sqlExpression;
 
-  public StructuredDataSource(
+  StructuredDataSource(
       final String sqlExpression,
       final String dataSourceName,
       final Schema schema,

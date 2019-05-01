@@ -207,10 +207,10 @@ public class JoinNode extends PlanNode {
   }
 
   private static String getSourceName(final PlanNode node) {
-    if (!(node instanceof StructuredDataSourceNode)) {
+    if (!(node instanceof DataSourceNode)) {
       throw new RuntimeException("The source for a join must be a Stream or a Table.");
     }
-    final StructuredDataSourceNode dataSource = (StructuredDataSourceNode) node;
+    final DataSourceNode dataSource = (DataSourceNode) node;
     return dataSource.getDataSource().getName();
   }
 
@@ -341,11 +341,11 @@ public class JoinNode extends PlanNode {
     Serde<GenericRow> getSerDeForNode(
         final PlanNode node,
         final QueryContext.Stacker contextStacker) {
-      if (!(node instanceof StructuredDataSourceNode)) {
+      if (!(node instanceof DataSourceNode)) {
         throw new KsqlException(
             "The source for Join must be a primitive data source (Stream or Table).");
       }
-      final StructuredDataSourceNode dataSourceNode = (StructuredDataSourceNode) node;
+      final DataSourceNode dataSourceNode = (DataSourceNode) node;
       final DataSource<?> dataSource = dataSourceNode.getDataSource();
 
       final KsqlTopicSerDe ksqlTopicSerDe = dataSource

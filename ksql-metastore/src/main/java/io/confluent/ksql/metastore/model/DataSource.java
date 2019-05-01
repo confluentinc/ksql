@@ -22,30 +22,7 @@ import org.apache.kafka.connect.data.Schema;
 
 public interface DataSource<K> {
 
-  String getName();
-
-  DataSourceType getDataSourceType();
-
-  Schema getSchema();
-
-  KeyField getKeyField();
-
-  KsqlTopic getKsqlTopic();
-
-  SerdeFactory<K> getKeySerdeFactory();
-
-  KsqlTopicSerDe getKsqlTopicSerde();
-
-  TimestampExtractionPolicy getTimestampExtractionPolicy();
-
-  String getKsqlTopicName();
-
-  String getKafkaTopicName();
-
-  String getSqlExpression();
-
   enum DataSourceType {
-
     KSTREAM("STREAM"),
     KTABLE("TABLE");
 
@@ -59,4 +36,65 @@ public interface DataSource<K> {
       return ksqlType;
     }
   }
+
+  /**
+   * @return the name of the data source.
+   */
+  String getName();
+
+  /**
+   * @return the type of the data source.
+   */
+  DataSourceType getDataSourceType();
+
+  /**
+   * @return the value schema of the source.
+   */
+  Schema getSchema();
+
+  /**
+   * @return the key field of the source.
+   */
+  KeyField getKeyField();
+
+  /**
+   * @return the topic backing the source.
+   */
+  KsqlTopic getKsqlTopic();
+
+  /**
+   * @return the serde factory for the source.
+   */
+  SerdeFactory<K> getKeySerdeFactory();
+
+  /**
+   * @return the topic serde for the source.
+   */
+  KsqlTopicSerDe getKsqlTopicSerde();
+
+  /**
+   * The timestamp extraction policy of the source.
+   *
+   * <p>This is controlled by the {@link io.confluent.ksql.ddl.DdlConfig#TIMESTAMP_NAME_PROPERTY}
+   * and {@link io.confluent.ksql.ddl.DdlConfig#TIMESTAMP_FORMAT_PROPERTY} properties set in the
+   * WITH clause.
+   *
+   * @return the timestamp extraction policy of the source.
+   */
+  TimestampExtractionPolicy getTimestampExtractionPolicy();
+
+  /**
+   * @return the name of the KSQL REGISTERED TOPIC backing this source.
+   */
+  String getKsqlTopicName();
+
+  /**
+   * @return the name of the KAFKA topic backing this source.
+   */
+  String getKafkaTopicName();
+
+  /**
+   * @return the SQL statement used to create this source.
+   */
+  String getSqlExpression();
 }

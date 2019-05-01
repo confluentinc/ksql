@@ -27,6 +27,7 @@ import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.planner.plan.AggregateNode;
+import io.confluent.ksql.planner.plan.DataSourceNode;
 import io.confluent.ksql.planner.plan.FilterNode;
 import io.confluent.ksql.planner.plan.KsqlBareOutputNode;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
@@ -34,7 +35,6 @@ import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.PlanNodeId;
 import io.confluent.ksql.planner.plan.ProjectNode;
-import io.confluent.ksql.planner.plan.StructuredDataSourceNode;
 import io.confluent.ksql.util.ExpressionTypeManager;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
@@ -223,14 +223,14 @@ public class LogicalPlanner {
     return new FilterNode(new PlanNodeId("Filter"), sourcePlanNode, filterExpression);
   }
 
-  private StructuredDataSourceNode buildSourceNode() {
+  private DataSourceNode buildSourceNode() {
 
     final Pair<DataSource<?>, String> dataSource = analysis.getFromDataSource(0);
     if (!(dataSource.left instanceof KsqlStream) && !(dataSource.left instanceof KsqlTable)) {
       throw new RuntimeException("Data source is not supported yet.");
     }
 
-    return new StructuredDataSourceNode(
+    return new DataSourceNode(
         new PlanNodeId("KsqlTopic"),
         dataSource.left,
         dataSource.right

@@ -106,7 +106,7 @@ public class KsqlStructuredDataOutputNodeTest {
       new KsqlTopic(SOURCE_TOPIC_NAME, SOURCE_KAFKA_TOPIC_NAME,
           new KsqlJsonTopicSerDe(), false), Serdes::String);
 
-  private final StructuredDataSourceNode sourceNode = new StructuredDataSourceNode(
+  private final DataSourceNode sourceNode = new DataSourceNode(
       new PlanNodeId("0"),
       dataSource,
       dataSource.getName());
@@ -378,7 +378,7 @@ public class KsqlStructuredDataOutputNodeTest {
         new KsqlTopic(SOURCE_TOPIC_NAME, SOURCE_KAFKA_TOPIC_NAME, new KsqlJsonTopicSerDe(), false),
         keySerdeFatory);
 
-    final StructuredDataSourceNode tableSourceNode = new StructuredDataSourceNode(
+    final DataSourceNode tableSourceNode = new DataSourceNode(
         new PlanNodeId("0"),
         dataSource,
         dataSource.getName());

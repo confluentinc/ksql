@@ -21,7 +21,6 @@ import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.UdfFactory;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KsqlTopic;
-import io.confluent.ksql.metastore.model.StructuredDataSource;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlReferentialIntegrityException;
 import java.util.Collections;
@@ -91,7 +90,7 @@ public final class MetaStoreImpl implements MutableMetaStore {
   }
 
   @Override
-  public void putSource(final StructuredDataSource<?> dataSource) {
+  public void putSource(final DataSource<?> dataSource) {
     if (dataSources.putIfAbsent(dataSource.getName(), new SourceInfo(dataSource)) != null) {
       throw new KsqlException(
           "Cannot add the new data source. Another data source with the same name already exists: "
@@ -139,7 +138,7 @@ public final class MetaStoreImpl implements MutableMetaStore {
   }
 
   @Override
-  public Map<String, DataSource<?>> getAllStructuredDataSources() {
+  public Map<String, DataSource<?>> getAllDataSources() {
     return dataSources
         .entrySet()
         .stream()

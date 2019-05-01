@@ -745,7 +745,7 @@ final class EndToEndEngineTestUtil {
 
     public void verify(final MetaStore metaStore) {
       final Collection<DataSource<?>> values = metaStore
-          .getAllStructuredDataSources()
+          .getAllDataSources()
           .values();
 
       final String text = values.stream()

@@ -58,9 +58,9 @@ public abstract class PlanNode {
     return visitor.visitPlan(this, context);
   }
 
-  public StructuredDataSourceNode getTheSourceNode() {
-    if (this instanceof StructuredDataSourceNode) {
-      return (StructuredDataSourceNode) this;
+  public DataSourceNode getTheSourceNode() {
+    if (this instanceof DataSourceNode) {
+      return (DataSourceNode) this;
     } else if (this.getSources() != null && !this.getSources().isEmpty()) {
       return this.getSources().get(0).getTheSourceNode();
     }

@@ -24,12 +24,12 @@ import io.confluent.ksql.engine.KsqlEngineTestUtil;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.MutableMetaStore;
+import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.metastore.model.KsqlTopic;
-import io.confluent.ksql.metastore.model.StructuredDataSource;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
@@ -84,13 +84,13 @@ public class TemporaryEngine extends ExternalResource {
   }
 
   @SuppressWarnings("unchecked")
-  public <T extends StructuredDataSource<?>> T givenSource(
+  public <T extends DataSource<?>> T givenSource(
       final DataSourceType type,
       final String name) {
     final KsqlTopic topic = givenKsqlTopic(name);
     givenKafkaTopic(name);
 
-    final StructuredDataSource<?> source;
+    final DataSource<?> source;
     switch (type) {
       case KSTREAM:
         source =

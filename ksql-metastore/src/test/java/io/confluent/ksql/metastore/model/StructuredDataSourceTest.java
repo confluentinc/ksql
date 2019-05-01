@@ -13,14 +13,11 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.metastore;
+package io.confluent.ksql.metastore.model;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
-import io.confluent.ksql.metastore.model.KeyField;
-import io.confluent.ksql.metastore.model.KsqlTopic;
-import io.confluent.ksql.metastore.model.StructuredDataSource;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Schema;

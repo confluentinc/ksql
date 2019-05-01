@@ -27,11 +27,11 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import io.confluent.ksql.util.ItemDataProvider;
 import io.confluent.ksql.util.OrderDataProvider;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -39,7 +39,6 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.clients.producer.RecordMetadata;
-import org.apache.kafka.connect.data.Schema;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -248,8 +247,12 @@ public class UdfIntTest {
   }
 
   private Map<String, GenericRow> consumeOutputMessages() {
-    final Schema resultSchema = SchemaUtil.removeImplicitRowTimeRowKeyFromSchema(
-        ksqlContext.getMetaStore().getSource(resultStreamName).getSchema());
+
+    final KsqlSchema resultSchema = ksqlContext
+        .getMetaStore()
+        .getSource(resultStreamName)
+        .getSchema()
+        .withoutImplicitFields();
 
     return TEST_HARNESS.verifyAvailableUniqueRows(
         resultStreamName,

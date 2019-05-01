@@ -139,7 +139,7 @@ public class InsertValuesExecutor {
     final Map<String, Object> values = new HashMap<>();
     for (int i = 0; i < columns.size(); i++) {
       final String column = columns.get(i);
-      final Schema columnSchema = dataSource.getSchema().field(column).schema();
+      final Schema columnSchema = dataSource.getSchema().getSchema().field(column).schema();
       final Expression valueExp = insertValues.getValues().get(i);
 
       values.put(column, new ExpressionResolver(columnSchema, column).process(valueExp, null));
@@ -202,7 +202,7 @@ public class InsertValuesExecutor {
   ) {
     final Serde<GenericRow> rowSerde = dataSource.getKsqlTopicSerde()
         .getGenericRowSerde(
-            dataSource.getSchema(),
+            dataSource.getSchema().getSchema(),
             config,
             serviceContext.getSchemaRegistryClientFactory(),
             "",

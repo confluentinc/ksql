@@ -25,6 +25,7 @@ import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.Node;
 import io.confluent.ksql.parser.tree.NodeLocation;
 import io.confluent.ksql.parser.tree.Table;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Optional;
@@ -33,14 +34,13 @@ import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
 
 public class DataSourceExtractor {
 
   private final MetaStore metaStore;
 
-  private Schema joinLeftSchema;
-  private Schema joinRightSchema;
+  private KsqlSchema joinLeftSchema;
+  private KsqlSchema joinRightSchema;
 
   private String fromAlias;
   private String fromName;

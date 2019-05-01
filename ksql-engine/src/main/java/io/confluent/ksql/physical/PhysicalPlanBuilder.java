@@ -34,6 +34,7 @@ import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.structured.QueuedSchemaKStream;
 import io.confluent.ksql.structured.SchemaKStream;
@@ -45,7 +46,6 @@ import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryIdGenerator;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.QueuedQueryMetadata;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -58,7 +58,6 @@ import java.util.function.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
@@ -236,7 +235,7 @@ public class PhysicalPlanBuilder {
       metaStore.putTopic(outputNode.getKsqlTopic());
     }
 
-    final Schema sinkSchema = SchemaUtil.addImplicitRowTimeRowKeyToSchema(outputNode.getSchema());
+    final KsqlSchema sinkSchema = outputNode.getSchema().withImplicitFields();
 
     final DataSource<?> sinkDataSource;
     if (schemaKStream instanceof SchemaKTable) {
@@ -323,18 +322,13 @@ public class PhysicalPlanBuilder {
           existing.getDataSourceType()));
     }
 
-    final Schema resultSchema = SchemaUtil
-        .removeImplicitRowTimeRowKeyFromSchema(sinkDataSource.getSchema());
+    final KsqlSchema resultSchema = sinkDataSource.getSchema().withoutImplicitFields();
+    final KsqlSchema existingSchema = existing.getSchema().withoutImplicitFields();
 
-    final Schema existingSchema = SchemaUtil
-        .removeImplicitRowTimeRowKeyFromSchema(existing.getSchema());
-
-    if (!SchemaUtil.areEqualSchemas(resultSchema, existingSchema)) {
-      throw new KsqlException(String.format("Incompatible schema between results and sink. "
-              + "Result schema is %s, but the sink schema is %s"
-              + ".",
-          SchemaUtil.getSchemaDefinitionString(resultSchema),
-          SchemaUtil.getSchemaDefinitionString(existingSchema)));
+    if (!resultSchema.equals(existingSchema)) {
+      throw new KsqlException("Incompatible schema between results and sink. "
+          + "Result schema is " + resultSchema
+          + ", but the sink schema is " + existingSchema + ".");
     }
 
     enforceKeyEquivalence(

@@ -22,6 +22,8 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 
 public final class SchemaTestUtil {
 
+  private SchemaTestUtil() {}
+
   /**
    * Remove the alias when reading/writing from outside
    */

@@ -58,6 +58,7 @@ import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.entity.TopicDescription;
 import io.confluent.ksql.rest.server.computation.CommandId;
 import io.confluent.ksql.rest.util.EntityUtil;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.schema.ksql.LogicalSchemas;
 import io.confluent.ksql.serde.Format;
 import java.io.IOException;
@@ -388,6 +389,6 @@ public class ConsoleTest {
     for (int i = 0; i < size; i++) {
       dataSourceBuilder.field("f_" + i, LogicalSchemas.STRING);
     }
-    return EntityUtil.buildSourceSchemaEntity(dataSourceBuilder.build());
+    return EntityUtil.buildSourceSchemaEntity(KsqlSchema.of(dataSourceBuilder.build()));
   }
 }

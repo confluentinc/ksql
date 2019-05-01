@@ -22,6 +22,7 @@ import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.metastore.model.KsqlTopic;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
@@ -65,7 +66,7 @@ public final class MetaStoreFixture {
     final KsqlStream<?> ksqlStream0 = new KsqlStream<>(
         "sqlexpression",
         "TEST0",
-        test1Schema,
+        KsqlSchema.of(test1Schema),
         KeyField.of("COL0", test1Schema.field("COL0")),
         timestampExtractionPolicy,
         ksqlTopic0,
@@ -80,7 +81,7 @@ public final class MetaStoreFixture {
 
     final KsqlStream<?> ksqlStream1 = new KsqlStream<>("sqlexpression",
         "TEST1",
-        test1Schema,
+        KsqlSchema.of(test1Schema),
         KeyField.of("COL0", test1Schema.field("COL0")),
         timestampExtractionPolicy,
         ksqlTopic1,
@@ -105,7 +106,7 @@ public final class MetaStoreFixture {
     final KsqlTable<String> ksqlTable = new KsqlTable<>(
         "sqlexpression",
         "TEST2",
-        test2Schema,
+        KsqlSchema.of(test2Schema),
         KeyField.of("COL0", test2Schema.field("COL0")),
         timestampExtractionPolicy,
         ksqlTopic2,
@@ -138,7 +139,7 @@ public final class MetaStoreFixture {
         .field("ORDERID", Schema.OPTIONAL_INT64_SCHEMA)
         .field("ITEMID", Schema.OPTIONAL_STRING_SCHEMA)
         .field("ITEMINFO", itemInfoSchema)
-        .field("ORDERUNITS", Schema.INT32_SCHEMA)
+        .field("ORDERUNITS", Schema.OPTIONAL_INT32_SCHEMA)
         .field("ARRAYCOL",SchemaBuilder.array(Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build())
         .field("MAPCOL", SchemaBuilder.map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build())
         .field("ADDRESS", addressSchema)
@@ -151,7 +152,7 @@ public final class MetaStoreFixture {
     final KsqlStream<?> ksqlStreamOrders = new KsqlStream<>(
         "sqlexpression",
         "ORDERS",
-        ordersSchema,
+        KsqlSchema.of(ordersSchema),
         KeyField.of("ORDERTIME", ordersSchema.field("ORDERTIME")),
         timestampExtractionPolicy,
         ksqlTopicOrders,
@@ -160,7 +161,7 @@ public final class MetaStoreFixture {
     metaStore.putTopic(ksqlTopicOrders);
     metaStore.putSource(ksqlStreamOrders);
 
-    final Schema schemaBuilderTestTable3 = SchemaBuilder.struct()
+    final Schema testTable3 = SchemaBuilder.struct()
         .field("ROWTIME", Schema.OPTIONAL_INT64_SCHEMA)
         .field("ROWKEY", Schema.OPTIONAL_INT64_SCHEMA)
         .field("COL0", Schema.OPTIONAL_INT64_SCHEMA)
@@ -176,8 +177,8 @@ public final class MetaStoreFixture {
     final KsqlTable<String> ksqlTable3 = new KsqlTable<>(
         "sqlexpression",
         "TEST3",
-        schemaBuilderTestTable3,
-        KeyField.of("COL0", schemaBuilderTestTable3.field("COL0")),
+        KsqlSchema.of(testTable3),
+        KeyField.of("COL0", testTable3.field("COL0")),
         timestampExtractionPolicy,
         ksqlTopic3,
         Serdes::String);
@@ -186,8 +187,8 @@ public final class MetaStoreFixture {
     metaStore.putSource(ksqlTable3);
 
     final Schema nestedArrayStructMapSchema = SchemaBuilder.struct()
-        .field("ARRAYCOL", SchemaBuilder.array(itemInfoSchema).build())
-        .field("MAPCOL", SchemaBuilder.map(Schema.OPTIONAL_STRING_SCHEMA, itemInfoSchema).build())
+        .field("ARRAYCOL", SchemaBuilder.array(itemInfoSchema).optional().build())
+        .field("MAPCOL", SchemaBuilder.map(Schema.OPTIONAL_STRING_SCHEMA, itemInfoSchema).optional().build())
         .field("NESTED_ORDER_COL", ordersSchema)
         .field("ITEM", itemInfoSchema)
         .optional().build();
@@ -199,7 +200,7 @@ public final class MetaStoreFixture {
     final KsqlStream<?> nestedArrayStructMapOrders = new KsqlStream<>(
         "sqlexpression",
         "NESTED_STREAM",
-        nestedArrayStructMapSchema,
+        KsqlSchema.of(nestedArrayStructMapSchema),
         KeyField.of(Optional.empty(), Optional.empty()),
         timestampExtractionPolicy,
         nestedArrayStructMapTopic,
@@ -214,7 +215,7 @@ public final class MetaStoreFixture {
     final KsqlStream<?> ksqlStream4 = new KsqlStream<>(
         "sqlexpression4",
         "TEST4",
-        test1Schema,
+        KsqlSchema.of(test1Schema),
         KeyField.of(Optional.empty(), Optional.empty()),
         timestampExtractionPolicy,
         ksqlTopic4,

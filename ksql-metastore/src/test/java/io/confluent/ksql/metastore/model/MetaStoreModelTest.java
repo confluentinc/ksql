@@ -32,6 +32,7 @@ import java.lang.reflect.Modifier;
 import java.util.Collection;
 import java.util.Optional;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -50,6 +51,11 @@ public class MetaStoreModelTest {
       .put(org.apache.kafka.connect.data.Field.class,
           new org.apache.kafka.connect.data.Field("bob", 1, Schema.OPTIONAL_STRING_SCHEMA))
       .put(KeyField.class, KeyField.of(Optional.empty(), Optional.empty()))
+      .put(KsqlSchema.class, KsqlSchema.of(SchemaBuilder
+          .struct()
+          .optional()
+          .field("f0", Schema.OPTIONAL_INT64_SCHEMA)
+          .build()))
       .build();
 
   private final Class<?> modelClass;

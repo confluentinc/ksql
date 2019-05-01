@@ -48,7 +48,7 @@ public class ExplainExecutorTest {
   public void shouldExplainQueryId() {
     // Given:
     final ConfiguredStatement<?> explain = engine.configure("EXPLAIN id;");
-    final PersistentQueryMetadata metadata = engine.givenPersistentQuery("id");
+    final PersistentQueryMetadata metadata = TemporaryEngine.givenPersistentQuery("id");
 
     KsqlEngine engine = mock(KsqlEngine.class);
     when(engine.getPersistentQuery(metadata.getQueryId())).thenReturn(Optional.of(metadata));

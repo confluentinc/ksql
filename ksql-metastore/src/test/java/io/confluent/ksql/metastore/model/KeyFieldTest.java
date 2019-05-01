@@ -20,6 +20,7 @@ import static org.hamcrest.Matchers.is;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.testing.EqualsTester;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Optional;
 import org.apache.kafka.connect.data.Field;
@@ -31,10 +32,12 @@ import org.junit.rules.ExpectedException;
 
 public class KeyFieldTest {
 
-  private static final Schema SCHEMA = SchemaBuilder.struct()
+  private static final KsqlSchema SCHEMA = KsqlSchema.of(
+      SchemaBuilder.struct()
       .field("field0", Schema.OPTIONAL_STRING_SCHEMA)
-      .field("field1", Schema.OPTIONAL_BYTES_SCHEMA)
-      .build();
+      .field("field1", Schema.OPTIONAL_INT64_SCHEMA)
+          .build()
+  );
 
   private static final KsqlConfig LEGACY_CONFIG = new KsqlConfig(
       ImmutableMap.of(KsqlConfig.KSQL_USE_LEGACY_KEY_FIELD, true)

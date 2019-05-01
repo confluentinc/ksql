@@ -21,12 +21,12 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.physical.KsqlQueryBuilder;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.SchemaKStream;
 import java.util.List;
 import java.util.Objects;
 import javax.annotation.concurrent.Immutable;
-import org.apache.kafka.connect.data.Schema;
 
 @Immutable
 public class FilterNode extends PlanNode {
@@ -50,7 +50,7 @@ public class FilterNode extends PlanNode {
   }
 
   @Override
-  public Schema getSchema() {
+  public KsqlSchema getSchema() {
     return source.getSchema();
   }
 

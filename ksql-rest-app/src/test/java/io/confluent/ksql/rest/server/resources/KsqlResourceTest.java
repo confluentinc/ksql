@@ -114,6 +114,7 @@ import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.QueuedCommandStatus;
 import io.confluent.ksql.rest.util.EntityUtil;
 import io.confluent.ksql.rest.util.TerminateCluster;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.services.SandboxedServiceContext;
@@ -177,8 +178,9 @@ public class KsqlResourceTest {
       "CREATE STREAM S AS SELECT * FROM test_stream;",
       ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"),
       0L);
-  private static final Schema SINGLE_FIELD_SCHEMA = SchemaBuilder.struct()
-      .field("val", Schema.OPTIONAL_STRING_SCHEMA);
+  private static final KsqlSchema SINGLE_FIELD_SCHEMA = KsqlSchema.of(SchemaBuilder.struct()
+      .field("val", Schema.OPTIONAL_STRING_SCHEMA)
+      .build());
 
   private static final ClusterTerminateRequest VALID_TERMINATE_REQUEST =
       new ClusterTerminateRequest(ImmutableList.of("Foo"));
@@ -216,6 +218,10 @@ public class KsqlResourceTest {
       ImmutableMap.of(),
       new KsqlConfig(getDefaultKsqlConfig())
   );
+
+  private static final KsqlSchema SOME_SCHEMA = KsqlSchema.of(SchemaBuilder.struct()
+      .field("f1", Schema.OPTIONAL_STRING_SCHEMA)
+      .build());
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -372,9 +378,10 @@ public class KsqlResourceTest {
   @Test
   public void shouldShowStreamsExtended() {
     // Given:
-    final Schema schema = SchemaBuilder.struct()
+    final KsqlSchema schema = KsqlSchema.of(SchemaBuilder.struct()
         .field("FIELD1", Schema.OPTIONAL_BOOLEAN_SCHEMA)
-        .field("FIELD2", Schema.OPTIONAL_STRING_SCHEMA);
+        .field("FIELD2", Schema.OPTIONAL_STRING_SCHEMA)
+        .build());
 
     givenSource(
         DataSourceType.KSTREAM, "new_stream", "new_topic",
@@ -399,9 +406,10 @@ public class KsqlResourceTest {
   @Test
   public void shouldShowTablesExtended() {
     // Given:
-    final Schema schema = SchemaBuilder.struct()
+    final KsqlSchema schema = KsqlSchema.of(SchemaBuilder.struct()
         .field("FIELD1", Schema.OPTIONAL_BOOLEAN_SCHEMA)
-        .field("FIELD2", Schema.OPTIONAL_STRING_SCHEMA);
+        .field("FIELD2", Schema.OPTIONAL_STRING_SCHEMA)
+        .build());
 
     givenSource(
         DataSourceType.KTABLE, "new_table", "new_topic",
@@ -686,9 +694,8 @@ public class KsqlResourceTest {
   @Test
   public void shouldSupportTopicInferenceInVerification() {
     // Given:
-    final Schema schema = SchemaBuilder.struct().field("f1", Schema.OPTIONAL_STRING_SCHEMA).build();
     givenMockEngine();
-    givenSource(DataSourceType.KSTREAM, "ORDERS1", "ORDERS1", "ORDERS1", schema);
+    givenSource(DataSourceType.KSTREAM, "ORDERS1", "ORDERS1", "ORDERS1", SOME_SCHEMA);
 
     final String sql = "CREATE STREAM orders2 AS SELECT * FROM orders1;";
     final String sqlWithTopic = "CREATE STREAM orders2 WITH(kafka_topic='orders2') AS SELECT * FROM orders1;";
@@ -712,9 +719,8 @@ public class KsqlResourceTest {
   @Test
   public void shouldSupportTopicInferenceInExecution() {
     // Given:
-    final Schema schema = SchemaBuilder.struct().field("f1", Schema.OPTIONAL_STRING_SCHEMA).build();
     givenMockEngine();
-    givenSource(DataSourceType.KSTREAM, "ORDERS1", "ORDERS1", "ORDERS1", schema);
+    givenSource(DataSourceType.KSTREAM, "ORDERS1", "ORDERS1", "ORDERS1", SOME_SCHEMA);
 
     final String sql = "CREATE STREAM orders2 AS SELECT * FROM orders1;";
     final String sqlWithTopic = "CREATE STREAM orders2 WITH(kafka_topic='orders2') AS SELECT * FROM orders1;";
@@ -737,8 +743,7 @@ public class KsqlResourceTest {
   @Test
   public void shouldFailWhenTopicInferenceFailsDuringValidate() {
     // Given:
-    final Schema schema = SchemaBuilder.struct().field("f1", Schema.OPTIONAL_STRING_SCHEMA).build();
-    givenSource(DataSourceType.KSTREAM, "ORDERS1", "ORDERS1", "ORDERS1", schema);
+    givenSource(DataSourceType.KSTREAM, "ORDERS1", "ORDERS1", "ORDERS1", SOME_SCHEMA);
     when(sandboxTopicInjector.inject(any()))
         .thenThrow(new KsqlStatementException("boom", "sql"));
 
@@ -755,8 +760,7 @@ public class KsqlResourceTest {
   @Test
   public void shouldFailWhenTopicInferenceFailsDuringExecute() {
     // Given:
-    final Schema schema = SchemaBuilder.struct().field("f1", Schema.OPTIONAL_STRING_SCHEMA).build();
-    givenSource(DataSourceType.KSTREAM, "ORDERS1", "ORDERS1", "ORDERS1", schema);
+    givenSource(DataSourceType.KSTREAM, "ORDERS1", "ORDERS1", "ORDERS1", SOME_SCHEMA);
 
     when(topicInjector.inject(any()))
         .thenThrow(new KsqlStatementException("boom", "some-sql"));
@@ -1917,11 +1921,18 @@ public class KsqlResourceTest {
   }
 
   private void addTestTopicAndSources() {
-    final Schema schema1 = SchemaBuilder.struct().field("S1_F1", Schema.OPTIONAL_BOOLEAN_SCHEMA);
+    final KsqlSchema schema1 = KsqlSchema.of(SchemaBuilder.struct()
+            .field("S1_F1", Schema.OPTIONAL_BOOLEAN_SCHEMA)
+            .build());
+
     givenSource(
         DataSourceType.KTABLE,
         "TEST_TABLE", "KAFKA_TOPIC_1", "KSQL_TOPIC_1", schema1);
-    final Schema schema2 = SchemaBuilder.struct().field("S2_F1", Schema.OPTIONAL_STRING_SCHEMA);
+
+    final KsqlSchema schema2 = KsqlSchema.of(SchemaBuilder.struct()
+        .field("S2_F1", Schema.OPTIONAL_STRING_SCHEMA)
+        .build());
+
     givenSource(
         DataSourceType.KSTREAM,
         "TEST_STREAM", "KAFKA_TOPIC_2", "KSQL_TOPIC_2", schema2);
@@ -1933,7 +1944,7 @@ public class KsqlResourceTest {
       final String sourceName,
       final String topicName,
       final String ksqlTopicName,
-      final Schema schema
+      final KsqlSchema schema
   ) {
     if (metaStore.getTopic(ksqlTopicName) != null) {
       return;

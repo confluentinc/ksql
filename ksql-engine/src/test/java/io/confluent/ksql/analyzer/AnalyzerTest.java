@@ -35,6 +35,7 @@ import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.planner.plan.JoinNode;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.KsqlConstants;
@@ -130,8 +131,8 @@ public class AnalyzerTest {
     Assert.assertEquals(analysis.getSelectExpressions().size(),
         analysis.getSelectExpressionAlias().size());
 
-    assertThat(analysis.getJoin().getLeftKeyFieldName(), is("T1.COL1"));
-    assertThat(analysis.getJoin().getRightKeyFieldName(), is("T2.COL1"));
+    assertThat(analysis.getJoin().getLeftJoinFieldName(), is("T1.COL1"));
+    assertThat(analysis.getJoin().getRightJoinFieldName(), is("T2.COL1"));
 
     final String
         select1 =
@@ -170,8 +171,8 @@ public class AnalyzerTest {
         .getJoin();
 
     // Then:
-    assertThat(join.getLeftKeyFieldName(), is("T1.ROWKEY"));
-    assertThat(join.getRightKeyFieldName(), is("T2.ROWKEY"));
+    assertThat(join.getLeftJoinFieldName(), is("T1.ROWKEY"));
+    assertThat(join.getRightJoinFieldName(), is("T2.ROWKEY"));
   }
 
   @Test
@@ -320,13 +321,13 @@ public class AnalyzerTest {
     final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
     final Schema schema = schemaBuilder
             .name("org.ac.s1")
-            .field("FIELD1", Schema.INT64_SCHEMA)
+            .field("FIELD1", Schema.OPTIONAL_INT64_SCHEMA)
             .build();
 
     final KsqlStream<?> ksqlStream = new KsqlStream<>(
             "create stream s0 with(KAFKA_TOPIC='s0', VALUE_AVRO_SCHEMA_FULL_NAME='org.ac.s1', VALUE_FORMAT='avro');",
             "S0",
-            schema,
+            KsqlSchema.of(schema),
             KeyField.of("FIELD1", schema.field("FIELD1")),
             new MetadataTimestampExtractionPolicy(),
             ksqlTopic,

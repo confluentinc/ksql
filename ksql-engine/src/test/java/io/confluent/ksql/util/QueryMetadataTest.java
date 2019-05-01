@@ -24,11 +24,10 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.internal.QueryStateListener;
-import io.confluent.ksql.planner.plan.OutputNode;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
 import java.util.Collections;
 import java.util.Set;
 import java.util.function.Consumer;
-import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
@@ -44,11 +43,11 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class QueryMetadataTest {
 
   private static final String QUERY_APPLICATION_ID = "Query1";
-  private static final Schema SOME_SCHEMA = SchemaBuilder.OPTIONAL_STRING_SCHEMA;
+  private static final KsqlSchema SOME_SCHEMA = KsqlSchema.of(SchemaBuilder.struct()
+      .field("f0", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
+      .build());
   private static final Set<String> SOME_SOURCES = ImmutableSet.of("s1", "s2");
 
-  @Mock
-  private OutputNode outputNode;
   @Mock
   private Topology topoplogy;
   @Mock

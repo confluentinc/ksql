@@ -22,11 +22,11 @@ import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.SerdeFactory;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.streams.StreamsFactories;
 import io.confluent.ksql.streams.StreamsUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.QueryLoggerUtil;
-import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.SelectExpression;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -49,7 +49,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
   private final KTable<K, GenericRow> ktable;
 
   public SchemaKTable(
-      final Schema schema,
+      final KsqlSchema schema,
       final KTable<K, GenericRow> ktable,
       final KeyField keyField,
       final List<SchemaKStream> sourceSchemaKStreams,
@@ -74,7 +74,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
   }
 
   SchemaKTable(
-      final Schema schema,
+      final KsqlSchema schema,
       final KTable<K, GenericRow> ktable,
       final KeyField keyField,
       final List<SchemaKStream> sourceSchemaKStreams,
@@ -209,7 +209,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
     final Field legacyKeyField = new Field(
         groupBy.aggregateKeyName, -1, Schema.OPTIONAL_STRING_SCHEMA);
 
-    final Optional<String> newKeyField = SchemaUtil.getFieldByName(schema, groupBy.aggregateKeyName)
+    final Optional<String> newKeyField = schema.findField(groupBy.aggregateKeyName)
         .map(Field::name);
 
     return new SchemaKGroupedTable(
@@ -224,7 +224,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
   @SuppressWarnings("unchecked")
   public SchemaKTable<K> join(
       final SchemaKTable<K> schemaKTable,
-      final Schema joinSchema,
+      final KsqlSchema joinSchema,
       final KeyField keyField,
       final QueryContext.Stacker contextStacker
   ) {
@@ -249,7 +249,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
   @SuppressWarnings("unchecked")
   public SchemaKTable<K> leftJoin(
       final SchemaKTable<K> schemaKTable,
-      final Schema joinSchema,
+      final KsqlSchema joinSchema,
       final KeyField keyField,
       final QueryContext.Stacker contextStacker
   ) {
@@ -275,7 +275,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
   @SuppressWarnings("unchecked")
   public SchemaKTable<K> outerJoin(
       final SchemaKTable<K> schemaKTable,
-      final Schema joinSchema,
+      final KsqlSchema joinSchema,
       final KeyField keyField,
       final QueryContext.Stacker contextStacker
   ) {

@@ -20,12 +20,12 @@ import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.physical.QuerySchemas;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.serde.Format;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
-import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.Topology;
 
@@ -43,7 +43,7 @@ public class PersistentQueryMetadata extends QueryMetadata {
   public PersistentQueryMetadata(
       final String statementString,
       final KafkaStreams kafkaStreams,
-      final Schema resultSchema,
+      final KsqlSchema resultSchema,
       final Set<String> sourceNames,
       final String sinkName,
       final String executionPlan,

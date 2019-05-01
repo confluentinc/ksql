@@ -29,6 +29,7 @@ import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.physical.AddTimestampColumn;
 import io.confluent.ksql.physical.KsqlQueryBuilder;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.streams.MaterializedFactory;
@@ -37,7 +38,6 @@ import io.confluent.ksql.structured.QueryContext;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import java.util.ArrayList;
 import java.util.List;
@@ -49,7 +49,6 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.kstream.Consumed;
@@ -91,7 +90,7 @@ public class DataSourceNode
   private static final String REDUCE_OP_NAME = "reduce";
 
   private final DataSource<?> dataSource;
-  private final Schema schema;
+  private final KsqlSchema schema;
   private final KeyField keyField;
   private final Function<KsqlConfig, MaterializedFactory> materializedFactorySupplier;
 
@@ -113,7 +112,8 @@ public class DataSourceNode
   ) {
     super(id, dataSource.getDataSourceType());
     this.dataSource = requireNonNull(dataSource, "dataSource");
-    this.schema = SchemaUtil.buildSchemaWithAlias(dataSource.getSchema(), alias);
+    this.schema = dataSource.getSchema()
+      .withAlias(alias);
 
     final Optional<String> keyFieldName = dataSource.getKeyField()
         .withAlias(alias)
@@ -131,7 +131,7 @@ public class DataSourceNode
   }
 
   @Override
-  public Schema getSchema() {
+  public KsqlSchema getSchema() {
     return schema;
   }
 
@@ -177,7 +177,7 @@ public class DataSourceNode
 
     final Serde<GenericRow> streamSerde = builder.buildGenericRowSerde(
         ksqlTopicSerDe,
-        SchemaUtil.removeImplicitRowTimeRowKeyFromSchema(getSchema()),
+        schema.withoutImplicitFields().getSchema(),
         contextStacker.push(SOURCE_OP_NAME).getQueryContext()
     );
 
@@ -187,7 +187,7 @@ public class DataSourceNode
 
       final Serde<GenericRow> aggregateSerde = builder.buildGenericRowSerde(
           ksqlTopicSerDe,
-          getSchema(),
+          schema.getSchema(),
           reduceContextStacker.getQueryContext()
       );
 
@@ -201,7 +201,7 @@ public class DataSourceNode
           reduceContextStacker.getQueryContext()
       );
       return new SchemaKTable<>(
-          getSchema(),
+          schema,
           kTable,
           getKeyField(),
           new ArrayList<>(),

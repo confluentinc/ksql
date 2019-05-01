@@ -16,8 +16,8 @@
 package io.confluent.ksql.util.timestamp;
 
 import io.confluent.ksql.ddl.DdlConfig;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.StringUtil;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -28,7 +28,7 @@ public final class TimestampExtractionPolicyFactory {
   }
 
   public static TimestampExtractionPolicy create(
-      final Schema schema,
+      final KsqlSchema schema,
       final String timestampColumnName,
       final String timestampFormat) {
     if (timestampColumnName == null) {
@@ -36,8 +36,7 @@ public final class TimestampExtractionPolicyFactory {
     }
 
     final String fieldName = StringUtil.cleanQuotes(timestampColumnName.toUpperCase());
-    final Field timestampField = SchemaUtil.getFieldByName(schema,
-        fieldName)
+    final Field timestampField = schema.findField(fieldName)
         .orElseThrow(() -> new KsqlException(
             "The TIMESTAMP column set in the WITH clause does not exist in the schema: '"
                 + fieldName + "'"));

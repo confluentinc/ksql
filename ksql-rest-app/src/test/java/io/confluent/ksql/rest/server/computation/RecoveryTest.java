@@ -42,6 +42,7 @@ import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.rest.util.ClusterTerminator;
 import io.confluent.ksql.schema.inference.DefaultSchemaInjector;
 import io.confluent.ksql.schema.inference.SchemaRegistryTopicSchemaSupplier;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
@@ -65,7 +66,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.ws.rs.core.Response;
-import org.apache.kafka.connect.data.Schema;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeDiagnosingMatcher;
@@ -276,7 +276,7 @@ public class RecoveryTest {
     final DataSource<?> source;
     final Matcher<DataSource.DataSourceType> typeMatcher;
     final Matcher<String> nameMatcher;
-    final Matcher<Schema> schemaMatcher;
+    final Matcher<KsqlSchema> schemaMatcher;
     final Matcher<String> sqlMatcher;
     final Matcher<TimestampExtractionPolicy> extractionPolicyMatcher;
     final Matcher<KsqlTopic> topicMatcher;
@@ -408,7 +408,7 @@ public class RecoveryTest {
       extends TypeSafeDiagnosingMatcher<PersistentQueryMetadata> {
     private final Matcher<Set<String>> sourcesNamesMatcher;
     private final Matcher<Set<String>> sinkNamesMatcher;
-    private final Matcher<Schema> resultSchemaMatcher;
+    private final Matcher<KsqlSchema> resultSchemaMatcher;
     private final Matcher<String> sqlMatcher;
     private final Matcher<String> stateMatcher;
 

@@ -41,6 +41,7 @@ import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.Explain;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.services.SandboxedServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
@@ -67,8 +68,10 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class RequestValidatorTest {
 
-  private static final Schema SCHEMA =
-      SchemaBuilder.struct().field("val", Schema.OPTIONAL_STRING_SCHEMA).build();
+  private static final KsqlSchema SCHEMA = KsqlSchema.of(SchemaBuilder
+      .struct()
+      .field("val", Schema.OPTIONAL_STRING_SCHEMA)
+      .build());
 
   @Rule
   public ExpectedException expectedException = ExpectedException.none();

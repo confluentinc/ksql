@@ -46,6 +46,7 @@ import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.planner.plan.DataSourceNode;
 import io.confluent.ksql.planner.plan.JoinNode;
 import io.confluent.ksql.planner.plan.PlanNodeId;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
@@ -66,7 +67,6 @@ import java.util.Optional;
 import java.util.Set;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 class Analyzer {
@@ -348,7 +348,7 @@ class Analyzer {
     }
 
     private void analyzeExpressions() {
-      Schema schema = analysis.getFromDataSources().get(0).getLeft().getSchema();
+      KsqlSchema schema = analysis.getFromDataSources().get(0).getLeft().getSchema();
       boolean isJoinSchema = false;
       if (analysis.getJoin() != null) {
         schema = analysis.getJoin().getSchema();
@@ -464,7 +464,7 @@ class Analyzer {
     private Field getJoinField(
         final ComparisonExpression comparisonExpression,
         final String sourceAlias,
-        final Schema sourceSchema
+        final KsqlSchema sourceSchema
     ) {
       Optional<Field> joinField = getJoinFieldFromExpr(
           comparisonExpression.getLeft(),
@@ -493,7 +493,7 @@ class Analyzer {
     private Optional<Field> getJoinFieldFromExpr(
         final Expression expression,
         final String sourceAlias,
-        final Schema sourceSchema
+        final KsqlSchema sourceSchema
     ) {
       if (expression instanceof DereferenceExpression) {
         final DereferenceExpression dereferenceExpr = (DereferenceExpression) expression;
@@ -519,9 +519,9 @@ class Analyzer {
     private Optional<Field> getJoinFieldFromSource(
         final String fieldName,
         final String sourceAlias,
-        final Schema sourceSchema
+        final KsqlSchema sourceSchema
     ) {
-      return SchemaUtil.getFieldByName(sourceSchema, fieldName)
+      return sourceSchema.findField(fieldName)
           .map(field -> SchemaUtil.buildAliasedField(sourceAlias, field));
     }
 

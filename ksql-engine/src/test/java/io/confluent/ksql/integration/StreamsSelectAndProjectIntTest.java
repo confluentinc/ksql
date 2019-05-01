@@ -15,15 +15,15 @@
 
 package io.confluent.ksql.integration;
 
-import static io.confluent.ksql.serde.DataSource.DataSourceSerDe.AVRO;
-import static io.confluent.ksql.serde.DataSource.DataSourceSerDe.JSON;
+import static io.confluent.ksql.serde.Format.AVRO;
+import static io.confluent.ksql.serde.Format.JSON;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.serde.DataSource;
+import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import io.confluent.ksql.test.util.TopicTestUtil;
 import io.confluent.ksql.util.OrderDataProvider;
@@ -190,7 +190,7 @@ public class StreamsSelectAndProjectIntTest {
 
   private void testTimestampColumnSelection(
       final String inputStreamName,
-      final DataSource.DataSourceSerDe dataSourceSerDe,
+      final Format dataSourceSerDe,
       final Map<String, RecordMetadata> recordMetadataMap
   ) {
     final String query1String =
@@ -233,7 +233,7 @@ public class StreamsSelectAndProjectIntTest {
 
   private void testSelectProjectKeyTimestamp(
       final String inputStreamName,
-      final DataSource.DataSourceSerDe dataSourceSerDe,
+      final Format dataSourceSerDe,
       final Map<String, RecordMetadata> recordMetadataMap
   ) {
     ksqlContext.sql(String.format("CREATE STREAM %s AS SELECT ROWKEY AS RKEY, ROWTIME "
@@ -258,7 +258,7 @@ public class StreamsSelectAndProjectIntTest {
 
   private void testSelectProject(
       final String inputStreamName,
-      final DataSource.DataSourceSerDe dataSourceSerDe
+      final Format dataSourceSerDe
   ) {
     ksqlContext.sql(String.format("CREATE STREAM %s AS SELECT ITEMID, ORDERUNITS, "
                                   + "PRICEARRAY FROM %s;", resultStream, inputStreamName));
@@ -306,7 +306,7 @@ public class StreamsSelectAndProjectIntTest {
 
   private void testSelectStar(
       final String inputStreamName,
-      final DataSource.DataSourceSerDe dataSourceSerDe
+      final Format dataSourceSerDe
   ) {
     ksqlContext.sql(String.format("CREATE STREAM %s AS SELECT * FROM %s;",
                                   resultStream,
@@ -323,7 +323,7 @@ public class StreamsSelectAndProjectIntTest {
 
   private void testSelectWithFilter(
       final String inputStreamName,
-      final DataSource.DataSourceSerDe dataSourceSerDe
+      final Format dataSourceSerDe
   ) {
     ksqlContext.sql("CREATE STREAM " + resultStream + " AS "
         + "SELECT * FROM " + inputStreamName + " WHERE ORDERUNITS > 40;");

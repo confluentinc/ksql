@@ -22,7 +22,7 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
-import io.confluent.ksql.serde.DataSource;
+import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.util.SerdeUtils;
 import io.confluent.ksql.util.KsqlConfig;
@@ -39,7 +39,7 @@ import org.apache.kafka.connect.data.Schema;
 public class KsqlJsonTopicSerDe extends KsqlTopicSerDe {
 
   public KsqlJsonTopicSerDe() {
-    super(DataSource.DataSourceSerDe.JSON);
+    super(Format.JSON);
   }
 
   @Override

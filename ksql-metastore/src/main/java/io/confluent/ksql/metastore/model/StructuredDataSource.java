@@ -20,13 +20,12 @@ import static java.util.Objects.requireNonNull;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.metastore.SerdeFactory;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
-import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import org.apache.kafka.connect.data.Schema;
 
 @Immutable
-public abstract class StructuredDataSource<K> implements DataSource {
+public abstract class StructuredDataSource<K> implements DataSource<K> {
 
   private final String dataSourceName;
   private final DataSourceType dataSourceType;
@@ -68,43 +67,49 @@ public abstract class StructuredDataSource<K> implements DataSource {
     return this.dataSourceType;
   }
 
+  @Override
   public Schema getSchema() {
     return schema.getSchema();
   }
 
+  @Override
   public KeyField getKeyField() {
     return keyField;
   }
 
+  @Override
   public KsqlTopic getKsqlTopic() {
     return ksqlTopic;
   }
 
+  @Override
   public SerdeFactory<K> getKeySerdeFactory() {
     return keySerde;
   }
 
+  @Override
   public KsqlTopicSerDe getKsqlTopicSerde() {
     return ksqlTopic.getKsqlTopicSerDe();
   }
 
-  public boolean isSerdeFormat(final DataSource.DataSourceSerDe format) {
-    return getKsqlTopicSerde() != null && getKsqlTopicSerde().getSerDe() == format;
-  }
-
+  @Override
   public TimestampExtractionPolicy getTimestampExtractionPolicy() {
     return timestampExtractionPolicy;
   }
 
+  @Override
   public String getKsqlTopicName() {
     return ksqlTopic.getKsqlTopicName();
   }
 
+  @Override
   public String getKafkaTopicName() {
     return ksqlTopic.getKafkaTopicName();
   }
 
+  @Override
   public String getSqlExpression() {
     return sqlExpression;
   }
+
 }

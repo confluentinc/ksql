@@ -52,7 +52,7 @@ public class PlanSourceExtractorVisitor<C, R> extends PlanVisitor<C, R> {
   }
 
   protected R visitStructuredDataSourceNode(final StructuredDataSourceNode node, final C context) {
-    sourceNames.add(node.getStructuredDataSource().getName());
+    sourceNames.add(node.getDataSource().getName());
     return null;
   }
 

@@ -18,7 +18,7 @@ package io.confluent.ksql.util;
 import static java.util.Objects.requireNonNull;
 
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.metastore.model.StructuredDataSource;
+import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.parser.SqlBaseBaseVisitor;
 import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.parser.tree.AliasedRelation;
@@ -163,7 +163,7 @@ public class DataSourceExtractor {
       final AliasedRelation left = (AliasedRelation) visit(context.left);
       leftAlias = left.getAlias();
       leftName = ((Table) left.getRelation()).getName().getSuffix();
-      final StructuredDataSource
+      final DataSource
           leftDataSource =
           metaStore.getSource(((Table) left.getRelation()).getName().getSuffix());
       if (leftDataSource == null) {
@@ -175,7 +175,7 @@ public class DataSourceExtractor {
       final AliasedRelation right = (AliasedRelation) visit(context.right);
       rightAlias = right.getAlias();
       rightName = ((Table) right.getRelation()).getName().getSuffix();
-      final StructuredDataSource
+      final DataSource
           rightDataSource =
           metaStore.getSource(((Table) right.getRelation()).getName().getSuffix());
       if (rightDataSource == null) {

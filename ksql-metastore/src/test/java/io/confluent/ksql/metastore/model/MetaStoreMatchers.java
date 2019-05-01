@@ -30,35 +30,35 @@ public final class MetaStoreMatchers {
   private MetaStoreMatchers() {
   }
 
-  public static Matcher<StructuredDataSource<?>> hasName(final String name) {
-    return new FeatureMatcher<StructuredDataSource<?>, String>
+  public static Matcher<DataSource<?>> hasName(final String name) {
+    return new FeatureMatcher<DataSource<?>, String>
         (is(name), "source with name", "name") {
       @Override
-      protected String featureValueOf(final StructuredDataSource<?> actual) {
+      protected String featureValueOf(final DataSource<?> actual) {
         return actual.getName();
       }
     };
   }
 
-  public static Matcher<StructuredDataSource<?>> hasKeyField(
+  public static Matcher<DataSource<?>> hasKeyField(
       final Matcher<KeyField> fieldMatcher
   ) {
-    return new FeatureMatcher<StructuredDataSource<?>, KeyField>
+    return new FeatureMatcher<DataSource<?>, KeyField>
         (fieldMatcher, "source with key field", "key field") {
       @Override
-      protected KeyField featureValueOf(final StructuredDataSource<?> actual) {
+      protected KeyField featureValueOf(final DataSource<?> actual) {
         return actual.getKeyField();
       }
     };
   }
 
-  public static Matcher<StructuredDataSource<?>> hasValueSchema(
+  public static Matcher<DataSource<?>> hasValueSchema(
       final Matcher<Schema> schemaMatcher
   ) {
-    return new FeatureMatcher<StructuredDataSource<?>, Schema>
+    return new FeatureMatcher<DataSource<?>, Schema>
         (schemaMatcher, "source with value schema", "value schema") {
       @Override
-      protected Schema featureValueOf(final StructuredDataSource<?> actual) {
+      protected Schema featureValueOf(final DataSource<?> actual) {
         return actual.getSchema();
       }
     };
@@ -69,6 +69,10 @@ public final class MetaStoreMatchers {
     private KeyFieldMatchers() {
     }
 
+    public static Matcher<KeyField> hasName(final String name) {
+      return hasName(Optional.of(name));
+    }
+
     public static Matcher<KeyField> hasName(final Optional<String> name) {
       return new FeatureMatcher<KeyField, Optional<String>>
           (is(name), "field with name", "name") {
@@ -77,6 +81,10 @@ public final class MetaStoreMatchers {
           return actual.name();
         }
       };
+    }
+
+    public static Matcher<KeyField> hasLegacyName(final String name) {
+      return hasLegacyName(Optional.of(name));
     }
 
     public static Matcher<KeyField> hasLegacyName(final Optional<String> name) {

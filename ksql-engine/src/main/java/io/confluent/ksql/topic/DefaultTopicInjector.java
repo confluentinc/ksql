@@ -19,16 +19,16 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.metastore.model.StructuredDataSource;
+import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.parser.DefaultTraversalVisitor;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.SqlFormatter;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
-import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.IntegerLiteral;
 import io.confluent.ksql.parser.tree.Join;
+import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.parser.tree.Node;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.StringLiteral;
@@ -112,7 +112,7 @@ public class DefaultTopicInjector implements Injector {
         : Collections.emptyMap();
     topicClient.createTopic(info.getTopicName(), info.getPartitions(), info.getReplicas(), config);
 
-    final Map<String, Expression> props = new HashMap<>(cas.getStatement().getProperties());
+    final Map<String, Literal> props = new HashMap<>(cas.getStatement().getProperties());
     props.put(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral(info.getTopicName()));
     props.put(KsqlConstants.SINK_NUMBER_OF_REPLICAS, new IntegerLiteral(info.getReplicas()));
     props.put(KsqlConstants.SINK_NUMBER_OF_PARTITIONS, new IntegerLiteral(info.getPartitions()));
@@ -149,7 +149,7 @@ public class DefaultTopicInjector implements Injector {
     @Override
     protected Node visitAliasedRelation(final AliasedRelation node, final Void context) {
       final String structuredDataSourceName = ((Table) node.getRelation()).getName().getSuffix();
-      final StructuredDataSource<?> source = metaStore.getSource(structuredDataSourceName);
+      final DataSource<?> source = metaStore.getSource(structuredDataSourceName);
       if (source == null) {
         throw new KsqlException(structuredDataSourceName + " does not exist.");
       }

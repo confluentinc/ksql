@@ -20,7 +20,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import io.confluent.ksql.metastore.model.KsqlTopic;
-import io.confluent.ksql.serde.DataSource;
+import io.confluent.ksql.serde.Format;
 import java.util.Objects;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -28,13 +28,13 @@ import java.util.Objects;
 public class KsqlTopicInfo {
   private final String name;
   private final String kafkaTopic;
-  private final DataSource.DataSourceSerDe format;
+  private final Format format;
 
   @JsonCreator
   public KsqlTopicInfo(
       @JsonProperty("name") final String name,
       @JsonProperty("kafkaTopic") final String kafkaTopic,
-      @JsonProperty("format") final DataSource.DataSourceSerDe format
+      @JsonProperty("format") final Format format
   ) {
     this.name = name;
     this.kafkaTopic = kafkaTopic;
@@ -57,7 +57,7 @@ public class KsqlTopicInfo {
     return kafkaTopic;
   }
 
-  public DataSource.DataSourceSerDe getFormat() {
+  public Format getFormat() {
     return format;
   }
 

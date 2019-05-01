@@ -301,21 +301,26 @@ public class JoinNode extends PlanNode {
 
       final String rowKey = SchemaUtil.buildAliasedFieldName(tableName, SchemaUtil.ROWKEY_NAME);
 
-      if (keyField.isPresent()
-          && !joinFieldName.equals(rowKey)
-          && !SchemaUtil.matchFieldName(keyField.get(), joinFieldName)) {
+      final boolean namesMatch = keyField
+          .map(field -> SchemaUtil.matchFieldName(field, joinFieldName))
+          .orElse(false);
+
+      if (namesMatch || joinFieldName.equals(rowKey)) {
+        return (SchemaKTable) schemaKStream;
+      }
+
+      if (!keyField.isPresent()) {
         throw new KsqlException(
-            String.format(
-                "Source table (%s) key column (%s) "
-                    + "is not the column used in the join criteria (%s).",
-                tableName,
-                keyField.get().name(),
-                joinFieldName
-            )
+            "Source table (" + tableName + ") has no key column defined. "
+                + "Only 'ROWKEY' is supported in the join criteria."
         );
       }
 
-      return (SchemaKTable) schemaKStream;
+      throw new KsqlException(
+          "Source table (" + tableName + ") key column (" + keyField.get().name() + ") "
+              + "is not the column used in the join criteria (" + joinFieldName + "). "
+              + "Only the table's key column or 'ROWKEY' is supported in the join criteria."
+      );
     }
 
     @SuppressWarnings("unchecked")
@@ -488,8 +493,7 @@ public class JoinNode extends PlanNode {
               getSerDeForNode(joinNode.left, contextStacker.push(LEFT_SERDE_CONTEXT_NAME)),
               contextStacker);
         case OUTER:
-          throw new KsqlException("Full outer joins between streams and tables (stream: left, "
-              + "table: right) are not supported.");
+          throw new KsqlException("Full outer joins between streams and tables are not supported.");
 
         default:
           throw new KsqlException("Invalid join type encountered: " + joinNode.joinType);

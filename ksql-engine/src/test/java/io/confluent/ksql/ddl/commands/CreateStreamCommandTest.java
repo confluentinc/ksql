@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.ddl.commands;
 
+import static io.confluent.ksql.metastore.model.MetaStoreMatchers.KeyFieldMatchers.hasLegacyName;
+import static io.confluent.ksql.metastore.model.MetaStoreMatchers.KeyFieldMatchers.hasName;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
@@ -41,6 +43,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.kstream.WindowedSerdes;
 import org.junit.Before;
@@ -54,8 +57,11 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class CreateStreamCommandTest {
 
+  private static final String STREAM_NAME = "s1";
   private static final List<TableElement> SOME_ELEMENTS = ImmutableList.of(
-      new TableElement("bob", PrimitiveType.of(SqlType.STRING)));
+      new TableElement("ID", PrimitiveType.of(SqlType.BIGINT)),
+      new TableElement("bob", PrimitiveType.of(SqlType.STRING))
+  );
 
   @Mock
   private KafkaTopicClient topicClient;
@@ -71,7 +77,7 @@ public class CreateStreamCommandTest {
   @Before
   public void setUp() {
     givenPropertiesWith((Collections.emptyMap()));
-    when(createStreamStatement.getName()).thenReturn(QualifiedName.of("name"));
+    when(createStreamStatement.getName()).thenReturn(QualifiedName.of(STREAM_NAME));
     when(createStreamStatement.getElements()).thenReturn(SOME_ELEMENTS);
     when(topicClient.isTopicExists(any())).thenReturn(true);
   }
@@ -172,17 +178,45 @@ public class CreateStreamCommandTest {
   }
 
   @Test
-  public void testCreateAlreadyRegisteredStreamThrowsException() {
+  public void shouldThrowIfAlreadyRegistered() {
     // Given:
     final CreateStreamCommand cmd = createCmd();
     cmd.run(metaStore);
 
     // Then:
-    expectedException.expectMessage("Cannot create stream 'name': A stream " +
-            "with name 'name' already exists");
+    expectedException.expectMessage("Cannot create stream 's1': A stream " +
+            "with name 's1' already exists");
 
     // When:
     cmd.run(metaStore);
+  }
+
+  @Test
+  public void shouldAddSourceWithKeyField() {
+    // Given:
+    givenPropertiesWith(ImmutableMap.of(
+        "KEY", new StringLiteral("id")));
+    final CreateStreamCommand cmd = createCmd();
+
+    // When:
+    cmd.run(metaStore);
+
+    // Then:
+    assertThat(metaStore.getSource(STREAM_NAME).getKeyField(), hasName("ID"));
+    assertThat(metaStore.getSource(STREAM_NAME).getKeyField(), hasLegacyName("ID"));
+  }
+
+  @Test
+  public void shouldAddSourceWithNoKeyField() {
+    // Given:
+    final CreateStreamCommand cmd = createCmd();
+
+    // When:
+    cmd.run(metaStore);
+
+    // Then:
+    assertThat(metaStore.getSource(STREAM_NAME).getKeyField(), hasName(Optional.empty()));
+    assertThat(metaStore.getSource(STREAM_NAME).getKeyField(), hasLegacyName(Optional.empty()));
   }
 
   private CreateStreamCommand createCmd() {

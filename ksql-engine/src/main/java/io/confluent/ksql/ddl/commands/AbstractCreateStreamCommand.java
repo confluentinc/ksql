@@ -97,8 +97,8 @@ abstract class AbstractCreateStreamCommand implements DdlCommand {
       final String keyFieldName = StringUtil.cleanQuotes(name);
       final Field keyField = SchemaUtil.getFieldByName(schema, keyFieldName)
           .orElseThrow(() -> new KsqlException(
-            "No column with the provided key column name in the WITH "
-                + "clause, " + keyFieldName + ", exists in the defined schema."
+              "The KEY column set in the WITH clause does not exist in the schema: '"
+                  + keyFieldName + "'"
           ));
 
       this.keyField = KeyField.of(keyFieldName, keyField);
@@ -154,7 +154,6 @@ abstract class AbstractCreateStreamCommand implements DdlCommand {
       final String sourceName,
       final String topicName
   ) {
-    // TODO: move the check to the runtime since it accesses metaStore
     if (metaStore.getSource(sourceName) != null) {
       throw new KsqlException(String.format("Source already exists: %s", sourceName));
     }

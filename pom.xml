@@ -97,7 +97,7 @@
         <guava.version>24.0-jre</guava.version>
         <inject.version>1</inject.version>
         <janino.version>3.0.7</janino.version>
-        <jline.version>3.9.0</jline.version>
+        <jline.version>3.11.0</jline.version>
         <jna.version>4.4.0</jna.version>
         <jsr305.version>3.0.2</jsr305.version>
         <maven.plugins.version>3.0.0-M1</maven.plugins.version>

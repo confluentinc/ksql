@@ -469,6 +469,16 @@ public class CliTest {
   }
 
   @Test
+  public void testPrefixedPropertySet() {
+    assertRunCommand("set 'ksql.streams.auto.offset.reset' = 'latest'", is(EMPTY_RESULT));
+
+
+    final TestResult.Builder builder = new TestResult.Builder();
+    builder.addRows(startUpConfigs());
+    assertRunListCommand("properties", hasItems(builder.build()));
+  }
+
+  @Test
   public void testDescribe() {
     assertRunCommand("describe topic " + COMMANDS_KSQL_TOPIC_NAME,
         contains(new TestResult(COMMANDS_KSQL_TOPIC_NAME, commandTopicName, "JSON")));

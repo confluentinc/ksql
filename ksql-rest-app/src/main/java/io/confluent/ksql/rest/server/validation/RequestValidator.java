@@ -19,6 +19,7 @@ import static io.confluent.ksql.util.SandboxUtil.requireSandbox;
 import static java.util.Objects.requireNonNull;
 
 import io.confluent.ksql.KsqlExecutionContext;
+import io.confluent.ksql.config.KsqlConfigResolver;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
@@ -26,7 +27,6 @@ import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.RunScript;
 import io.confluent.ksql.parser.tree.Statement;
-import io.confluent.ksql.rest.client.properties.LocalPropertyValidator;
 import io.confluent.ksql.rest.util.QueryCapacityUtil;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -173,10 +173,10 @@ public class RequestValidator {
   private static void validateOverriddenConfigProperties(
       final Map<String, Object> propertyOverrides
   ) {
+    final KsqlConfigResolver ksqlConfigResolver = new KsqlConfigResolver();
     propertyOverrides.keySet()
-        .forEach(
-            propertyName -> {
-              if (!LocalPropertyValidator.CONFIG_PROPERTY_WHITELIST.contains(propertyName)) {
+            .forEach(propertyName -> {
+              if (!ksqlConfigResolver.resolve(propertyName,true).isPresent()) {
                 throw new KsqlException("Invalid config property: " + propertyName);
               }
             });

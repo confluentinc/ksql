@@ -816,11 +816,11 @@
     {
       "name": "table | initially null | group by (-) | key in value | no aliasing",
       "statements": [
-        "CREATE TABLE INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE TABLE INPUT (foo INT) WITH (kafka_topic='input_topic', value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT foo, COUNT(*) FROM INPUT GROUP BY foo;"
       ],
       "inputs": [
-        {"topic": "input_topic", "key": "x", "value": {"foo": 1, "bar": 2}}
+        {"topic": "input_topic", "key": "x", "value": {"foo": 1}}
       ],
       "outputs": [
         {"topic": "OUTPUT", "key": "1", "value": {"FOO": 1, "KSQL_COL_1": 1}}
@@ -868,11 +868,11 @@
         "Note: GROUP BY takes the name of the field from the source schema."
       ],
       "statements": [
-        "CREATE TABLE INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE TABLE INPUT (foo INT) WITH (kafka_topic='input_topic', value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT foo AS aliased, COUNT(*) FROM INPUT GROUP BY foo;"
       ],
       "inputs": [
-        {"topic": "input_topic", "key": "x", "value": {"foo": 1, "bar": 2}}
+        {"topic": "input_topic", "key": "x", "value": {"foo": 1}}
       ],
       "outputs": [
         {"topic": "OUTPUT", "key": "1", "value": {"ALIASED": 1, "KSQL_COL_1": 1}}

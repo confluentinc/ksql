@@ -49,6 +49,7 @@ import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
 import java.util.HashMap;
 import java.util.Map;
@@ -61,7 +62,9 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 import org.hamcrest.Description;
 import org.hamcrest.TypeSafeMatcher;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -73,6 +76,9 @@ public class TopicCreateInjectorTest {
       .struct()
       .field("F1", Schema.OPTIONAL_STRING_SCHEMA)
       .build());
+
+  @Rule
+  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private TopicProperties.Builder builder;
@@ -427,6 +433,24 @@ public class TopicCreateInjectorTest {
         10,
         (short) 10,
         ImmutableMap.of());
+  }
+
+  @Test
+  public void shouldHaveSuperUsefulErrorMessageIfCreateWithNoPartitions() {
+    // Given:
+    givenStatement("CREATE STREAM foo (FOO STRING) WITH (kafka_topic='doesntexist');");
+
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(
+        "Topic 'doesntexist' does not exist. If you want to create a new topic for the "
+            + "stream/table please re-run the statement providing th required 'PARTITIONS' "
+            + "configuration in the WITH clause (and optionally 'REPLICAS'). For example: "
+            + "CREATE STREAM FOO (FOO STRING) WITH (KAFKA_TOPIC='doesntexist', REPLICAS=1"
+            + ", PARTITIONS=2);");
+
+    // When:
+    injector.inject(statement, builder);
   }
 
   private ConfiguredStatement<?> givenStatement(final String sql) {

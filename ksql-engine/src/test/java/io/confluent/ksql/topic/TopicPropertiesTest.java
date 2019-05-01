@@ -160,8 +160,8 @@ public class TopicPropertiesTest {
       ));
 
       // Expect:
-      expectedException.expect(NullPointerException.class);
-      expectedException.expectMessage("Was not supplied with any valid source for partitions!");
+      expectedException.expect(KsqlException.class);
+      expectedException.expectMessage("Cannot create determine partitions for creating topic");
 
       // When:
       new TopicProperties.Builder()

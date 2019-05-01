@@ -32,7 +32,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
-import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
+import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.Literal;
@@ -478,8 +478,8 @@ public class DefaultSchemaInjectorTest {
 
   private static Object setupCopy(
       final InvocationOnMock inv,
-      final AbstractStreamCreateStatement source,
-      final AbstractStreamCreateStatement mock
+      final CreateSource source,
+      final CreateSource mock
   ) {
     final QualifiedName name = source.getName();
     when(mock.getName()).thenReturn(name);

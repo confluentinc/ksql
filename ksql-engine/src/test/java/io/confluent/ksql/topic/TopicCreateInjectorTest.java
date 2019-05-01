@@ -21,6 +21,9 @@ import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyShort;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.hamcrest.MockitoHamcrest.argThat;
@@ -37,6 +40,7 @@ import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
+import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.IntegerLiteral;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
@@ -81,7 +85,7 @@ public class TopicCreateInjectorTest {
   private MutableMetaStore metaStore;
   private TopicCreateInjector injector;
   private Map<String, Object> overrides;
-  private ConfiguredStatement<CreateAsSelect> statement;
+  private ConfiguredStatement<?> statement;
   private KsqlConfig config;
 
   @Before
@@ -118,6 +122,7 @@ public class TopicCreateInjectorTest {
     metaStore.putSource(joinSource);
 
     when(topicClient.describeTopic("source")).thenReturn(sourceDescription);
+    when(topicClient.isTopicExists("source")).thenReturn(true);
     when(builder.withName(any())).thenReturn(builder);
     when(builder.withWithClause(any())).thenReturn(builder);
     when(builder.withOverrides(any())).thenReturn(builder);
@@ -148,6 +153,18 @@ public class TopicCreateInjectorTest {
 
     // Then:
     verify(builder).withName("X");
+  }
+
+  @Test
+  public void shouldUseNameFromCreate() {
+    // Given:
+    givenStatement("CREATE STREAM x (FOO VARCHAR) WITH (kafka_topic='foo');");
+
+    // When:
+    injector.inject(statement, builder);
+
+    // Then:
+    verify(builder).withName("foo");
   }
 
   @Test
@@ -190,13 +207,37 @@ public class TopicCreateInjectorTest {
     injector.inject(statement, builder);
 
     // Then:
-    verify(builder).withWithClause(statement.getStatement().getProperties());
+    verify(builder).withWithClause(((CreateAsSelect) (statement.getStatement())).getProperties());
+  }
+
+  @Test
+  public void shouldPassThroughWithClauseToBuilderForCreate() {
+    // Given:
+    givenStatement("CREATE STREAM x (FOO VARCHAR) WITH(kafka_topic='topic', partitions=2);");
+
+    // When:
+    injector.inject(statement, builder);
+
+    // Then:
+    verify(builder).withWithClause(((CreateSource) (statement.getStatement())).getProperties());
   }
 
   @Test
   public void shouldPassThroughOverridesToBuilder() {
     // Given:
     givenStatement("CREATE STREAM x WITH (kafka_topic='topic') AS SELECT * FROM SOURCE;");
+
+    // When:
+    injector.inject(statement, builder);
+
+    // Then:
+    verify(builder).withOverrides(overrides);
+  }
+
+  @Test
+  public void shouldPassThroughOverridesToBuilderForCreate() {
+    // Given:
+    givenStatement("CREATE STREAM x (FOO VARCHAR) WITH(kafka_topic='topic', partitions=2);");
 
     // When:
     injector.inject(statement, builder);
@@ -215,6 +256,30 @@ public class TopicCreateInjectorTest {
 
     // Then:
     verify(builder).withKsqlConfig(config);
+  }
+
+  @Test
+  public void shouldPassThroughConfigToBuilderForCreate() {
+    // Given:
+    givenStatement("CREATE STREAM x (FOO VARCHAR) WITH(kafka_topic='topic', partitions=2);");
+
+    // When:
+    injector.inject(statement, builder);
+
+    // Then:
+    verify(builder).withKsqlConfig(config);
+  }
+
+  @Test
+  public void shouldNotUseSourceTopicForCreate() {
+    // Given:
+    givenStatement("CREATE STREAM x (FOO VARCHAR) WITH(kafka_topic='topic', partitions=2);");
+
+    // When:
+    injector.inject(statement, builder);
+
+    // Then:
+    verify(builder, never()).withSource(any());
   }
 
   @Test
@@ -242,6 +307,7 @@ public class TopicCreateInjectorTest {
     verify(builder).withSource(argThat(supplierThatGets(sourceDescription)));
   }
 
+  @SuppressWarnings("unchecked")
   @Test
   public void shouldBuildWithClauseWithTopicProperties() {
     // Given:
@@ -249,7 +315,8 @@ public class TopicCreateInjectorTest {
     when(builder.build()).thenReturn(new TopicProperties("expectedName", 10, (short) 10));
 
     // When:
-    final ConfiguredStatement<CreateAsSelect> result = injector.inject(statement, builder);
+    final ConfiguredStatement<CreateAsSelect> result =
+        (ConfiguredStatement<CreateAsSelect>) injector.inject(statement, builder);
 
     // Then:
     assertThat(result.getStatement().getProperties(),
@@ -293,6 +360,23 @@ public class TopicCreateInjectorTest {
   }
 
   @Test
+  public void shouldCreateMissingTopicForCreate() {
+    // Given:
+    givenStatement("CREATE STREAM x WITH (kafka_topic='topic') AS SELECT * FROM SOURCE;");
+    when(builder.build()).thenReturn(new TopicProperties("expectedName", 10, (short) 10));
+
+    // When:
+    injector.inject(statement, builder);
+
+    // Then:
+    verify(topicClient).createTopic(
+        "expectedName",
+        10,
+        (short) 10,
+        ImmutableMap.of());
+  }
+
+  @Test
   public void shouldCreateMissingTopicWithCompactCleanupPolicyForNonWindowedTables() {
     // Given:
     givenStatement("CREATE TABLE x WITH (kafka_topic='topic') "
@@ -305,6 +389,23 @@ public class TopicCreateInjectorTest {
     // Then:
     verify(topicClient).createTopic(
         "expectedName",
+        10,
+        (short) 10,
+        ImmutableMap.of(TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_COMPACT));
+  }
+
+  @Test
+  public void shouldCreateMissingTopicWithCompactCleanupPolicyForCreateTable() {
+    // Given:
+    givenStatement("CREATE TABLE foo (FOO VARCHAR) WITH (kafka_topic='topic');");
+    when(builder.build()).thenReturn(new TopicProperties("topic", 10, (short) 10));
+
+    // When:
+    injector.inject(statement, builder);
+
+    // Then:
+    verify(topicClient).createTopic(
+        "topic",
         10,
         (short) 10,
         ImmutableMap.of(TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_COMPACT));
@@ -328,7 +429,6 @@ public class TopicCreateInjectorTest {
         ImmutableMap.of());
   }
 
-  @SuppressWarnings("unchecked")
   private ConfiguredStatement<?> givenStatement(final String sql) {
     final PreparedStatement<?> preparedStatement =
         parser.prepare(parser.parse(sql).get(0), metaStore);
@@ -337,9 +437,7 @@ public class TopicCreateInjectorTest {
             preparedStatement,
             overrides,
             config);
-    if (preparedStatement.getStatement() instanceof CreateAsSelect) {
-      statement = (ConfiguredStatement<CreateAsSelect>) configuredStatement;
-    }
+    statement = configuredStatement;
     return configuredStatement;
   }
 

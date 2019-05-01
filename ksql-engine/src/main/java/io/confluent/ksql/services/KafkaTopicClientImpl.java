@@ -83,15 +83,16 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
       final short replicationFactor,
       final Map<String, ?> configs
   ) {
-    final short replicas = replicationFactor == TopicProperties.DEFAULT_REPLICAS
-        ? getDefaultClusterReplication()
-        : replicationFactor;
     if (isTopicExists(topic)) {
-      validateTopicProperties(topic, numPartitions, replicas);
+      validateTopicProperties(topic, numPartitions, replicationFactor);
       return;
     }
 
-    final NewTopic newTopic = new NewTopic(topic, numPartitions, replicas);
+    final short resolvedReplicationFactor = replicationFactor == TopicProperties.DEFAULT_REPLICAS
+        ? getDefaultClusterReplication()
+        : replicationFactor;
+
+    final NewTopic newTopic = new NewTopic(topic, numPartitions, resolvedReplicationFactor);
     newTopic.configs(toStringConfigs(configs));
 
     try {
@@ -108,7 +109,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
       // if the topic already exists, it is most likely because another node just created it.
       // ensure that it matches the partition count and replication factor before returning
       // success
-      validateTopicProperties(topic, numPartitions, replicas);
+      validateTopicProperties(topic, numPartitions, replicationFactor);
 
     } catch (final Exception e) {
       throw new KafkaResponseGetFailedException(

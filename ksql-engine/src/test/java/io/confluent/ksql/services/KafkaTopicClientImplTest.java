@@ -142,6 +142,16 @@ public class KafkaTopicClientImplTest {
   }
 
   @Test
+  public void shouldNotFailIfTopicAlreadyExistsButCreateUsesDefaultReplicas() {
+    expect(adminClient.listTopics()).andReturn(getListTopicsResult());
+    expect(adminClient.describeTopics(anyObject())).andReturn(getDescribeTopicsResult());
+    replay(adminClient);
+    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
+    kafkaTopicClient.createTopic(topicName1, 1, (short) -1);
+    verify(adminClient);
+  }
+
+  @Test
   public void shouldNotFailIfTopicAlreadyExistsWhenCreating() {
     expect(adminClient.listTopics()).andReturn(getEmptyListTopicResult());
     expect(adminClient.createTopics(anyObject()))

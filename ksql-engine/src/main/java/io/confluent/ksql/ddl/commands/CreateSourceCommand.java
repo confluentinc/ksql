@@ -20,7 +20,7 @@ import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.SerdeFactory;
 import io.confluent.ksql.metastore.model.KeyField;
-import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
+import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
@@ -47,7 +47,7 @@ import org.apache.kafka.streams.kstream.WindowedSerdes;
 /**
  * Base class of create table/stream command
  */
-abstract class AbstractCreateStreamCommand implements DdlCommand {
+abstract class CreateSourceCommand implements DdlCommand {
 
   private static final Map<String, SerdeFactory<Windowed<String>>> WINDOW_TYPES = ImmutableMap.of(
       "SESSION", () -> WindowedSerdes.sessionWindowedSerdeFrom(String.class),
@@ -65,9 +65,9 @@ abstract class AbstractCreateStreamCommand implements DdlCommand {
   final SerdeFactory<?> keySerdeFactory;
   final TimestampExtractionPolicy timestampExtractionPolicy;
 
-  AbstractCreateStreamCommand(
+  CreateSourceCommand(
       final String sqlExpression,
-      final AbstractStreamCreateStatement statement,
+      final CreateSource statement,
       final KafkaTopicClient kafkaTopicClient
   ) {
     this.sqlExpression = sqlExpression;
@@ -188,6 +188,8 @@ abstract class AbstractCreateStreamCommand implements DdlCommand {
     final Set<String> validSet = new HashSet<>();
     validSet.add(DdlConfig.VALUE_FORMAT_PROPERTY.toUpperCase());
     validSet.add(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY.toUpperCase());
+    validSet.add(KsqlConstants.SINK_NUMBER_OF_PARTITIONS.toUpperCase());
+    validSet.add(KsqlConstants.SINK_NUMBER_OF_REPLICAS.toUpperCase());
     validSet.add(DdlConfig.KEY_NAME_PROPERTY.toUpperCase());
     validSet.add(DdlConfig.WINDOW_TYPE_PROPERTY.toUpperCase());
     validSet.add(DdlConfig.TIMESTAMP_NAME_PROPERTY.toUpperCase());

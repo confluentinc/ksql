@@ -24,6 +24,8 @@ import io.confluent.ksql.parser.DefaultTraversalVisitor;
 import io.confluent.ksql.parser.SqlFormatter;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
+import io.confluent.ksql.parser.tree.CreateSource;
+import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.IntegerLiteral;
 import io.confluent.ksql.parser.tree.Join;
@@ -35,6 +37,7 @@ import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
+import io.confluent.ksql.topic.TopicProperties.Builder;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
@@ -49,8 +52,8 @@ import org.apache.kafka.common.config.TopicConfig;
  * An injector which injects the topic name, number of partitions and number of
  * replicas into the topic properties of the supplied {@code statement}.
  *
- * <p>If a statement that is not {@code CreateAsSelect} is passed in, this results in a
- * no-op that returns the incoming statement.</p>
+ * <p>If a statement that is not {@code CreateAsSelect} or {@code CreateSource }
+ * is passed in, this results in a no-op that returns the incoming statement.</p>
  *
  * @see TopicProperties.Builder
  */
@@ -83,43 +86,92 @@ public class TopicCreateInjector implements Injector {
   @VisibleForTesting
   <T extends Statement> ConfiguredStatement<T> inject(
       final ConfiguredStatement<T> statement,
-      final TopicProperties.Builder topicPropertiesBuilder) {
-    if (!(statement.getStatement() instanceof CreateAsSelect)) {
-      return statement;
+      final TopicProperties.Builder topicPropertiesBuilder
+  ) {
+    if (statement.getStatement() instanceof CreateAsSelect) {
+      return (ConfiguredStatement<T>) injectCreateAsSelect(
+          (ConfiguredStatement<? extends CreateAsSelect>) statement,
+          topicPropertiesBuilder);
     }
 
-    final ConfiguredStatement<? extends CreateAsSelect> cas =
-        (ConfiguredStatement<? extends CreateAsSelect>) statement;
+    if (statement.getStatement() instanceof CreateSource) {
+      return (ConfiguredStatement<T>) injectCreateSource(
+          (ConfiguredStatement<? extends CreateSource>) statement,
+          topicPropertiesBuilder);
+    }
 
+    return statement;
+  }
+
+  private ConfiguredStatement<? extends CreateSource> injectCreateSource(
+      final ConfiguredStatement<? extends CreateSource> statement,
+      final TopicProperties.Builder topicPropertiesBuilder
+  ) {
+    final CreateSource createSource = statement.getStatement();
+    final String topicName =
+        ((StringLiteral) createSource.getProperties()
+            .get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY))
+            .getValue();
+
+    topicPropertiesBuilder
+        .withName(topicName)
+        .withWithClause(createSource.getProperties());
+    createTopic(topicPropertiesBuilder, statement, createSource instanceof CreateTable);
+
+    return statement;
+  }
+
+  @SuppressWarnings("unchecked")
+  private <T extends CreateAsSelect> ConfiguredStatement<?> injectCreateAsSelect(
+      final ConfiguredStatement<T> statement,
+      final TopicProperties.Builder topicPropertiesBuilder
+  ) {
     final String prefix =
-        cas.getOverrides().getOrDefault(
+        statement.getOverrides().getOrDefault(
             KsqlConfig.KSQL_OUTPUT_TOPIC_NAME_PREFIX_CONFIG,
-            cas.getConfig().getString(KsqlConfig.KSQL_OUTPUT_TOPIC_NAME_PREFIX_CONFIG)).toString();
+            statement.getConfig().getString(KsqlConfig.KSQL_OUTPUT_TOPIC_NAME_PREFIX_CONFIG))
+            .toString();
 
-    final TopicProperties info = topicPropertiesBuilder
-        .withName(prefix + cas.getStatement().getName().getSuffix())
-        .withWithClause(cas.getStatement().getProperties())
-        .withOverrides(cas.getOverrides())
-        .withKsqlConfig(cas.getConfig())
-        .withSource(() -> describeSource(topicClient, cas))
-        .build();
+    final T createAsSelect = statement.getStatement();
 
-    final boolean shouldCompactTopic = statement.getStatement() instanceof CreateTableAsSelect
-        && !((CreateAsSelect) statement.getStatement()).getQuery().getWindow().isPresent();
-    final Map<String, ?> config = shouldCompactTopic
-        ? ImmutableMap.of(TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_COMPACT)
-        : Collections.emptyMap();
-    topicClient.createTopic(info.getTopicName(), info.getPartitions(), info.getReplicas(), config);
+    topicPropertiesBuilder
+        .withName(prefix + createAsSelect.getName().getSuffix())
+        .withWithClause(createAsSelect.getProperties())
+        .withSource(() -> describeSource(topicClient, statement));
 
-    final Map<String, Literal> props = new HashMap<>(cas.getStatement().getProperties());
+    final boolean shouldCompactTopic = createAsSelect instanceof CreateTableAsSelect
+        && !createAsSelect.getQuery().getWindow().isPresent();
+
+    final TopicProperties info = createTopic(topicPropertiesBuilder, statement, shouldCompactTopic);
+
+    final Map<String, Literal> props = new HashMap<>(createAsSelect.getProperties());
     props.put(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral(info.getTopicName()));
     props.put(KsqlConstants.SINK_NUMBER_OF_REPLICAS, new IntegerLiteral(info.getReplicas()));
     props.put(KsqlConstants.SINK_NUMBER_OF_PARTITIONS, new IntegerLiteral(info.getPartitions()));
 
-    final T withTopic = (T) cas.getStatement().copyWith(props);
+    final T withTopic = (T) createAsSelect.copyWith(props);
     final String withTopicText = SqlFormatter.formatSql(withTopic) + ";";
 
     return statement.withStatement(withTopicText, withTopic);
+  }
+
+  private TopicProperties createTopic(
+      final Builder topicPropertiesBuilder,
+      final ConfiguredStatement<?> statement,
+      final boolean shouldCompactTopic
+  ) {
+    final TopicProperties info = topicPropertiesBuilder
+        .withOverrides(statement.getOverrides())
+        .withKsqlConfig(statement.getConfig())
+        .build();
+
+    final Map<String, ?> config = shouldCompactTopic
+        ? ImmutableMap.of(TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_COMPACT)
+        : Collections.emptyMap();
+
+    topicClient.createTopic(info.getTopicName(), info.getPartitions(), info.getReplicas(), config);
+
+    return info;
   }
 
   private TopicDescription describeSource(

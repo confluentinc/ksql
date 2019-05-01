@@ -90,61 +90,66 @@ KSQL_CLASSPATH
     Path to the Java deployment of KSQL Server and related Java classes. The
     following command shows an example KSQL_CLASSPATH setting.
 
-.. code:: bash
+    .. code:: bash
 
-    export CLASSPATH=/usr/share/java/my-base/*:/usr/share/java/my-ksql-server/*:/opt/my-company/lib/ksql/*:$CLASSPATH
-    export KSQL_CLASSPATH="${CLASSPATH}"
+       export CLASSPATH=/usr/share/java/my-base/*:/usr/share/java/my-ksql-server/*:/opt/my-company/lib/ksql/*:$CLASSPATH
+       export KSQL_CLASSPATH="${CLASSPATH}"
 
 KSQL_LOG4J_OPTS
     Specifies KSQL Server logging options by using the Log4j configuration settings.
+    The following example command sets the default Log4j configuration.
+
+    .. code:: bash
+
+       export KSQL_LOG4J_OPTS="-Dlog4j.configuration=file:$KSQL_CONFIG_DIR/log4j-rolling.properties"
+
     For more information, see `Log4j Configuration <https://logging.apache.org/log4j/2.x/manual/configuration.html>`__.
 
-.. code:: bash
-
-    export KSQL_LOG4J_OPTS="-Dlog4j.configuration=file:$KSQL_CONFIG_DIR/log4j-rolling.properties"
-
 KSQL_JMX_OPTS
-   Specifies KSQL metrics options by using Java Management Extensions (JMX).
-   For more information, see `Monitoring and Management Using JMX Technology <https://docs.oracle.com/en/java/javase/11/management/monitoring-and-management-using-jmx-technology.html>`__.
+    Specifies KSQL metrics options by using Java Management Extensions (JMX).
+    The following example command sets the default JMX configuration.
 
-.. code:: bash
+    .. code:: bash
 
-    export KSQL_JMX_OPTS="-Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false "
+       export KSQL_JMX_OPTS="-Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false "
 
-KSQL_OPTS
+    For more information, see `Monitoring and Management Using JMX Technology <https://docs.oracle.com/en/java/javase/11/management/monitoring-and-management-using-jmx-technology.html>`__.
 
 KSQL_HEAP_OPTS
     Specifies the initial size and maximum size of the JVM heap for the KSQL
-    Server process. The following command sets the initial size and maximum 
-    size to 15GB.
+    Server process. The following example command sets the initial size and
+    maximum size to 15GB.
 
-.. code:: bash
+    .. code:: bash
 
-    export KSQL_HEAP_OPTS="-Xms15G -Xmx15G"
+       export KSQL_HEAP_OPTS="-Xms15G -Xmx15G"
+
+    For more information, see `JRockit JVM Heap Size Options <https://docs.oracle.com/cd/E15523_01/web.1111/e13814/jvm_tuning.htm#PERFM161>`__.
 
 KSQL_JVM_PERFORMANCE_OPTS
     Specifies performance tuning options for the JVM that runs KSQL Server.
+    The following example command sets the default JVM configuration.
+
+    .. code:: bash
+
+       export KSQL_JVM_PERFORMANCE_OPTS="-server -XX:+UseConcMarkSweepGC -XX:+CMSClassUnload ingEnabled -XX:+CMSScavengeBeforeRemark -XX:+ExplicitGCInvokesConcurrent -XX:New Ratio=1 -Djava.awt.headless=true"
+
     For more information, see
     `D Command-Line Options <https://docs.oracle.com/en/java/javase/11/troubleshoot/command-line-options1.html>`__.
-
-.. code:: bash
-
-    export KSQL_JVM_PERFORMANCE_OPTS="-server -XX:+UseConcMarkSweepGC -XX:+CMSClassUnload ingEnabled -XX:+CMSScavengeBeforeRemark -XX:+ExplicitGCInvokesConcurrent -XX:New Ratio=1 -Djava.awt.headless=true"
 
 JMX_PORT
     Specifies the port that JMX uses to report metrics. 
 
-.. code:: bash
+    .. code:: bash
 
-    export JMX_PORT=1099 
+       export JMX_PORT=1099 
 
 JAVA_HOME
-    Specifies the location of the java executable file.
+    Specifies the location of the ``java`` executable file.
 
-.. code:: bash
+    .. code:: bash
 
-    export JAVA_HOME=<jdk-install-directory>
-
+       export JAVA_HOME=<jdk-install-directory>
 
 -----------
 JMX Metrics

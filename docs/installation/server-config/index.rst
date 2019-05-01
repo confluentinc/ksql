@@ -84,7 +84,9 @@ KSQL Server Runtime Environment Variables
 
 When KSQL Server starts, it checks for shell environment variables that
 control the host Java Virtual Machine (JVM). Set the following environment
-variables to control options like heap size and Log4j configuration.
+variables to control options like heap size and Log4j configuration. These
+settings are applied by the `ksql-run-class <https://github.com/confluentinc/ksql/blob/master/bin/ksql-run-class>`__
+shell script when KSQL Server starts.
 
 KSQL_CLASSPATH
     Path to the Java deployment of KSQL Server and related Java classes. The

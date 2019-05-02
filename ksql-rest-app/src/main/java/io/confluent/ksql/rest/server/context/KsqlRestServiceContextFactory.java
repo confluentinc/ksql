@@ -18,6 +18,8 @@ package io.confluent.ksql.rest.server.context;
 import io.confluent.ksql.services.DefaultServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
+import java.util.Objects;
+
 import org.glassfish.hk2.api.Factory;
 
 /**
@@ -25,10 +27,10 @@ import org.glassfish.hk2.api.Factory;
  * a new {@link ServiceContext} during REST requests.
  */
 public class KsqlRestServiceContextFactory implements Factory<ServiceContext> {
-  private final KsqlConfig ksqlConfig;
+  private static KsqlConfig ksqlConfig;
 
-  public KsqlRestServiceContextFactory(final KsqlConfig ksqlConfig) {
-    this.ksqlConfig = ksqlConfig;
+  public static void configure(final KsqlConfig ksqlConfig) {
+    KsqlRestServiceContextFactory.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
   }
 
   @Override

@@ -33,10 +33,6 @@ public abstract class BaseAggregateFunction<V, A> implements KsqlAggregateFuncti
   protected final String functionName;
   private final String description;
 
-  public BaseAggregateFunction(final String functionName, final Integer argIndexInValue) {
-    this(functionName, argIndexInValue, null, null, null, "");
-  }
-
   public BaseAggregateFunction(
       final String functionName,
       final int argIndexInValue,
@@ -51,6 +47,10 @@ public abstract class BaseAggregateFunction<V, A> implements KsqlAggregateFuncti
     this.arguments = arguments;
     this.functionName = functionName;
     this.description = description;
+
+    if (!returnType.isOptional()) {
+      throw new IllegalArgumentException("KSQL only supports optional field types");
+    }
   }
 
   public boolean hasSameArgTypes(final List<Schema> argTypeList) {

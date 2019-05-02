@@ -277,15 +277,7 @@ public class UdfLoader {
       return SchemaUtil.getSchemaFromType(type, name, doc);
     }).collect(Collectors.toList());
 
-    final Schema returnType;
-    try {
-      returnType = udfAnnotation.schema().isEmpty()
-          ? SchemaUtil.getSchemaFromType(method.getGenericReturnType())
-          : LogicalSchemas.fromSqlTypeConverter().fromSqlType(
-              TypeContextUtil.getType(udfAnnotation.schema()));
-    } catch (final KsqlException e) {
-      throw new KsqlException("Could not load UDF method with signature: " + method, e);
-    }
+    final Schema returnType = getReturnType(method, udfAnnotation);
 
     functionRegistry.addFunction(KsqlFunction.create(
         returnType,
@@ -366,5 +358,19 @@ public class UdfLoader {
         metrics,
         loadCustomerUdfs
     );
+  }
+
+  private static Schema getReturnType(final Method method, final Udf udfAnnotation) {
+    try {
+      final Schema returnType = udfAnnotation.schema().isEmpty()
+          ? SchemaUtil.getSchemaFromType(method.getGenericReturnType())
+          : LogicalSchemas
+              .fromSqlTypeConverter()
+              .fromSqlType(TypeContextUtil.getType(udfAnnotation.schema()));
+
+      return SchemaUtil.ensureOptional(returnType);
+    } catch (final KsqlException e) {
+      throw new KsqlException("Could not load UDF method with signature: " + method, e);
+    }
   }
 }

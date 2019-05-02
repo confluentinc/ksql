@@ -33,7 +33,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import javax.annotation.concurrent.ThreadSafe;
-import kafka.server.KafkaConfig;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.AlterConfigOp;
 import org.apache.kafka.clients.admin.Config;
@@ -60,7 +59,9 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private static final Logger LOG = LoggerFactory.getLogger(KafkaTopicClient.class);
-  private static final String DEFAULT_REPLICATION_PROP = KafkaConfig.DefaultReplicationFactorProp();
+
+  private static final String DEFAULT_REPLICATION_PROP = "default.replication.factor";
+  private static final String DELETE_TOPIC_ENABLE = "delete.topic.enable";
 
   private final AdminClient adminClient;
   private final boolean isDeleteTopicEnabled;
@@ -238,7 +239,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
       return;
     }
     if (!isDeleteTopicEnabled) {
-      LOG.info("Cannot delete topics since 'delete.topic.enable' is false. ");
+      LOG.info("Cannot delete topics since '" + DELETE_TOPIC_ENABLE + "' is false. ");
       return;
     }
     final DeleteTopicsResult deleteTopicsResult = adminClient.deleteTopics(topicsToDelete);
@@ -260,7 +261,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   @Override
   public void deleteInternalTopics(final String applicationId) {
     if (!isDeleteTopicEnabled) {
-      LOG.warn("Cannot delete topics since 'delete.topic.enable' is false. ");
+      LOG.warn("Cannot delete topics since '" + DELETE_TOPIC_ENABLE + "' is false. ");
       return;
     }
     try {
@@ -283,7 +284,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
 
   private boolean isTopicDeleteEnabled() {
     try {
-      final ConfigEntry configEntry = getConfig().get(KafkaConfig.DeleteTopicEnableProp());
+      final ConfigEntry configEntry = getConfig().get(DELETE_TOPIC_ENABLE);
       // default to true if there is no entry
       return configEntry == null || Boolean.valueOf(configEntry.value());
     } catch (final Exception e) {

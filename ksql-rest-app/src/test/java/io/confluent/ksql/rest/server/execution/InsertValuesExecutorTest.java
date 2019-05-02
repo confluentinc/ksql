@@ -302,6 +302,26 @@ public class InsertValuesExecutorTest {
   }
 
   @Test
+  public void shouldAllowUpcast() {
+    // Given:
+    givenDataSourceWithSchema(SCHEMA);
+
+    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
+        ImmutableList.of("COL0"),
+        ImmutableList.of(
+            new IntegerLiteral(1)
+        )
+    );
+
+    // When:
+    new InsertValuesExecutor(() -> 1L).execute(statement, engine, serviceContext);
+
+    // Then:
+    verify(rowSerializer).serialize(TOPIC_NAME, new GenericRow(1L, 1L, 1L, null));
+    verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
+  }
+
+  @Test
   public void shouldThrowOnSerializingKeyError() {
     // Given:
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
@@ -378,7 +398,27 @@ public class InsertValuesExecutorTest {
     new InsertValuesExecutor(() -> 1L).execute(statement, engine, serviceContext);
   }
 
-  private static ConfiguredStatement<InsertValues> givenInsertValues(
+  @Test
+  public void shouldFailOnDowncast() {
+    // Given:
+    givenDataSourceWithSchema(BIG_SCHEMA);
+
+    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
+        ImmutableList.of("INT"),
+        ImmutableList.of(
+            new DoubleLiteral("1.1")
+        )
+    );
+
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Expected type INT32 for field");
+
+    // When:
+    new InsertValuesExecutor(() -> 1L).execute(statement, engine, serviceContext);
+  }
+
+  private ConfiguredStatement<InsertValues> givenInsertValues(
       final List<String> columns,
       final List<Expression> values
   ) {

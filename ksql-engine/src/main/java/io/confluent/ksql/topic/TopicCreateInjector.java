@@ -45,7 +45,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.config.TopicConfig;
 
 /**
@@ -113,8 +112,9 @@ public class TopicCreateInjector implements Injector {
             .get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY))
             .getValue();
 
-    if (!topicClient.isTopicExists(topicName)
-        && !createSource.getProperties().containsKey(KsqlConstants.SINK_NUMBER_OF_PARTITIONS)) {
+    if (topicClient.isTopicExists(topicName)) {
+      topicPropertiesBuilder.withSource(() -> topicClient.describeTopic(topicName));
+    } else if (!createSource.getProperties().containsKey(KsqlConstants.SINK_NUMBER_OF_PARTITIONS)) {
       final Map<String, Literal> exampleProps = new HashMap<>(createSource.getProperties());
       exampleProps.put(KsqlConstants.SINK_NUMBER_OF_PARTITIONS, new IntegerLiteral(2));
       exampleProps.putIfAbsent(KsqlConstants.SINK_NUMBER_OF_REPLICAS, new IntegerLiteral(1));
@@ -130,6 +130,7 @@ public class TopicCreateInjector implements Injector {
     topicPropertiesBuilder
         .withName(topicName)
         .withWithClause(createSource.getProperties());
+
     createTopic(topicPropertiesBuilder, statement, createSource instanceof CreateTable);
 
     return statement;
@@ -148,10 +149,14 @@ public class TopicCreateInjector implements Injector {
 
     final T createAsSelect = statement.getStatement();
 
+    final SourceTopicExtractor extractor = new SourceTopicExtractor();
+    extractor.process(statement.getStatement().getQuery(), null);
+    final String sourceTopicName = extractor.primaryKafkaTopicName;
+
     topicPropertiesBuilder
         .withName(prefix + createAsSelect.getName().getSuffix())
         .withWithClause(createAsSelect.getProperties())
-        .withSource(() -> describeSource(topicClient, statement));
+        .withSource(() -> topicClient.describeTopic(sourceTopicName));
 
     final boolean shouldCompactTopic = createAsSelect instanceof CreateTableAsSelect
         && !createAsSelect.getQuery().getWindow().isPresent();
@@ -186,16 +191,6 @@ public class TopicCreateInjector implements Injector {
     topicClient.createTopic(info.getTopicName(), info.getPartitions(), info.getReplicas(), config);
 
     return info;
-  }
-
-  private TopicDescription describeSource(
-      final KafkaTopicClient topicClient,
-      final ConfiguredStatement<? extends CreateAsSelect> cas
-  ) {
-    final SourceTopicExtractor extractor = new SourceTopicExtractor();
-    extractor.process(cas.getStatement().getQuery(), null);
-    final String kafkaTopicName = extractor.primaryKafkaTopicName;
-    return topicClient.describeTopic(kafkaTopicName);
   }
 
   private final class SourceTopicExtractor extends DefaultTraversalVisitor<Node, Void> {

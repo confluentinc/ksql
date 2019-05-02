@@ -164,7 +164,7 @@ public class TopicCreateInjectorTest {
   @Test
   public void shouldUseNameFromCreate() {
     // Given:
-    givenStatement("CREATE STREAM x (FOO VARCHAR) WITH (kafka_topic='foo');");
+    givenStatement("CREATE STREAM x (FOO VARCHAR) WITH (kafka_topic='foo', partitions=1);");
 
     // When:
     injector.inject(statement, builder);
@@ -277,7 +277,7 @@ public class TopicCreateInjectorTest {
   }
 
   @Test
-  public void shouldNotUseSourceTopicForCreate() {
+  public void shouldNotUseSourceTopicForCreateMissingTopic() {
     // Given:
     givenStatement("CREATE STREAM x (FOO VARCHAR) WITH(kafka_topic='topic', partitions=2);");
 
@@ -286,6 +286,18 @@ public class TopicCreateInjectorTest {
 
     // Then:
     verify(builder, never()).withSource(any());
+  }
+
+  @Test
+  public void shouldUseSourceTopicForCreateMissingTopic() {
+    // Given:
+    givenStatement("CREATE STREAM x (FOO VARCHAR) WITH(kafka_topic='source', partitions=2);");
+
+    // When:
+    injector.inject(statement, builder);
+
+    // Then:
+    verify(builder).withSource(argThat(supplierThatGets(sourceDescription)));
   }
 
   @Test
@@ -403,7 +415,7 @@ public class TopicCreateInjectorTest {
   @Test
   public void shouldCreateMissingTopicWithCompactCleanupPolicyForCreateTable() {
     // Given:
-    givenStatement("CREATE TABLE foo (FOO VARCHAR) WITH (kafka_topic='topic');");
+    givenStatement("CREATE TABLE foo (FOO VARCHAR) WITH (kafka_topic='topic', partitions=1);");
     when(builder.build()).thenReturn(new TopicProperties("topic", 10, (short) 10));
 
     // When:

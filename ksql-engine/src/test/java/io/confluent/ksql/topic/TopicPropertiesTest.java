@@ -161,7 +161,7 @@ public class TopicPropertiesTest {
 
       // Expect:
       expectedException.expect(KsqlException.class);
-      expectedException.expectMessage("Cannot create determine partitions for creating topic");
+      expectedException.expectMessage("Cannot determine partitions for creating topic");
 
       // When:
       new TopicProperties.Builder()

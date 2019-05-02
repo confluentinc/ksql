@@ -188,7 +188,7 @@ public final class TopicProperties {
           .findFirst()
           .orElseGet(() -> fromSource.get().partitions);
       if (partitions == null) {
-        throw new KsqlException("Cannot create determine partitions for creating topic " + name);
+        throw new KsqlException("Cannot determine partitions for creating topic " + name);
       }
 
       final Short replicas = Stream.of(

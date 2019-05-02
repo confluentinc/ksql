@@ -367,6 +367,10 @@ public final class SchemaUtil {
         .build();
   }
 
+  public static boolean canUpCast(final Schema.Type expected, final Schema.Type actual) {
+    return ARITHMETIC_TYPE_ORDERING.max(expected, actual) == expected;
+  }
+
   private static SchemaBuilder handleParametrizedType(final Type type) {
     if (type instanceof ParameterizedType) {
       final ParameterizedType parameterizedType = (ParameterizedType) type;

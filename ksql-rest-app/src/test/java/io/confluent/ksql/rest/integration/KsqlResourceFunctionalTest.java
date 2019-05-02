@@ -22,7 +22,10 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertThat;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.common.utils.IntegrationTest;
+import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
+import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.rest.client.KsqlRestClient;
@@ -31,11 +34,23 @@ import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
+import io.confluent.ksql.schema.inference.DefaultSchemaInjector;
+import io.confluent.ksql.schema.inference.SchemaRegistryTopicSchemaSupplier;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
+import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.util.SchemaUtil;
+import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import kafka.zookeeper.ZooKeeperClientException;
+import org.apache.avro.Schema.Field;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.Schema.Type;
+import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -145,6 +160,46 @@ public class KsqlResourceFunctionalTest {
     ));
 
     assertSuccessful(results);
+  }
+
+  @Test
+  public void shouldInsertIntoValuesForAvroTopic() throws Exception {
+    // Given:
+    final Schema schema = new SchemaBuilder(Type.STRUCT)
+        .field("ROWTIME", Schema.OPTIONAL_INT64_SCHEMA)
+        .field("ROWKEY", Schema.OPTIONAL_STRING_SCHEMA)
+        .field("AUTHOR", Schema.OPTIONAL_STRING_SCHEMA)
+        .field("TITLE", Schema.OPTIONAL_STRING_SCHEMA)
+        .build();
+
+    TEST_HARNESS.ensureTopics("books");
+    TEST_HARNESS.getSchemaRegistryClient()
+        .register(
+            "books" + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX,
+            SchemaUtil.buildAvroSchema(schema, "books" + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX));
+
+    // When:
+    final List<KsqlEntity> results = makeKsqlRequest(""
+        + "CREATE STREAM books (author VARCHAR, title VARCHAR) "
+        + "WITH (kafka_topic='books', key='author', value_format='avro');"
+        + " "
+        + "INSERT INTO BOOKS (ROWTIME, author, title) VALUES (123, 'Metamorphosis', 'Franz Kafka');"
+    );
+
+    // Then:
+    assertSuccessful(results);
+
+    TEST_HARNESS.verifyAvailableRows(
+        "books",
+        is(ImmutableList.of(
+            new ConsumerRecord<>(
+                "books",
+                0,
+                0,
+                "Metamorphosis",
+                new GenericRow(ImmutableList.of(123L, "Metamorphosis", "Franz Kafka"))))),
+        Format.AVRO,
+        KsqlSchema.of(schema));
   }
 
   private static void assertSuccessful(final List<KsqlEntity> results) {

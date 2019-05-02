@@ -16,6 +16,7 @@
 package io.confluent.ksql.rest.server.execution;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
@@ -40,6 +41,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.function.LongSupplier;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.producer.Producer;
@@ -224,6 +226,14 @@ public class InsertValuesExecutor {
     private final Schema schema;
     private final String field;
 
+    private static final Map<Type, Function<Number, Object>> CASTER =
+        ImmutableMap.<Type, Function<Number, Object>>builder()
+            .put(Type.INT32, Number::intValue)
+            .put(Type.INT64, Number::longValue)
+            .put(Type.FLOAT32, Number::floatValue)
+            .put(Type.FLOAT64, Number::doubleValue)
+            .build();
+
     ExpressionResolver(final Schema schema, final String field) {
       this.schema = Objects.requireNonNull(schema, "schema");
       this.field = Objects.requireNonNull(field, "field");
@@ -245,6 +255,8 @@ public class InsertValuesExecutor {
       final Type valueType = SchemaUtil.getSchemaFromType(value.getClass()).type();
       if (valueType.equals(schema.type())) {
         return value;
+      } else if (SchemaUtil.isNumber(valueType) && SchemaUtil.canUpCast(schema.type(), valueType)) {
+        return CASTER.get(schema.type()).apply((Number) value);
       }
 
       throw new KsqlException(

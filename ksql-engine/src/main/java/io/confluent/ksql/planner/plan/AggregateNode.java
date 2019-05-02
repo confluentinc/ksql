@@ -290,7 +290,10 @@ public class AggregateNode extends PlanNode {
     for (final Expression expression : getRequiredColumns()) {
       final String exprStr =
           internalSchema.getInternalColumnForExpression(expression);
-      final int index = aggregateArgExpanded.getSchema().fieldIndex(exprStr);
+
+      final int index = aggregateArgExpanded.getSchema().fieldIndex(exprStr)
+          .orElseThrow(IllegalStateException::new);
+
       aggValToValColumnMap.put(nonAggColumnIndex, index);
       nonAggColumnIndex++;
     }

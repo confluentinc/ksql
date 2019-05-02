@@ -322,8 +322,8 @@ public class PhysicalPlanBuilder {
           existing.getDataSourceType()));
     }
 
-    final KsqlSchema resultSchema = sinkDataSource.getSchema().withoutImplicitFields();
-    final KsqlSchema existingSchema = existing.getSchema().withoutImplicitFields();
+    final KsqlSchema resultSchema = sinkDataSource.getSchema();
+    final KsqlSchema existingSchema = existing.getSchema();
 
     if (!resultSchema.equals(existingSchema)) {
       throw new KsqlException("Incompatible schema between results and sink. "
@@ -332,8 +332,8 @@ public class PhysicalPlanBuilder {
     }
 
     enforceKeyEquivalence(
-        existing.getKeyField().resolve(existing.getSchema(), ksqlConfig),
-        sinkDataSource.getKeyField().resolve(sinkDataSource.getSchema(), ksqlConfig)
+        existing.getKeyField().resolve(existingSchema, ksqlConfig),
+        sinkDataSource.getKeyField().resolve(resultSchema, ksqlConfig)
     );
   }
 

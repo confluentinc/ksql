@@ -570,7 +570,7 @@ public class SchemaKStream<K> {
   private Object extractColumn(final Field newKeyField, final GenericRow value) {
     return value
         .getColumns()
-        .get(schema.findFieldIndex(newKeyField.name()).orElseThrow(IllegalStateException::new));
+        .get(schema.fieldIndex(newKeyField.name()).orElseThrow(IllegalStateException::new));
   }
 
   private static String fieldNameFromExpression(final Expression expression) {

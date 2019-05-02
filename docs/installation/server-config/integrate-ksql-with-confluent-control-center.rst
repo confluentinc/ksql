@@ -87,6 +87,7 @@ Assign the following configuration properties to integrate KSQL Server with
 |c3-short| when they run on separate hosts.
 
 KSQL Server Configuration
+=========================
 
 In the KSQL Server configuration file, set ``listeners`` to bind to all
 interfaces:

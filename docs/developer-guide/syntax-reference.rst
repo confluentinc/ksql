@@ -7,8 +7,8 @@ KSQL has similar semantics to SQL:
 
 - Terminate KSQL statements with a semicolon ``;``.
 - Use a back-slash ``\`` to indicate continuation of a multi-line statement on the next line.
-- Escape ``'`` characters inside string literals by using ``''``. For example,
-  to escape ``'T'``, write ``''T''``.
+- Escape single-quote characters (``'``) inside string literals by using two successive
+  single quotes (``''``). For example, to escape ``'T'``, write ``''T''``.
 
 ===========
 Terminology

@@ -289,7 +289,7 @@ public class TopicCreateInjectorTest {
   }
 
   @Test
-  public void shouldUseSourceTopicForCreateMissingTopic() {
+  public void shouldUseSourceTopicForCreateExistingTopic() {
     // Given:
     givenStatement("CREATE STREAM x (FOO VARCHAR) WITH(kafka_topic='source', partitions=2);");
 

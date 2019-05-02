@@ -50,6 +50,11 @@ settings:
     ssl.truststore.location=/var/private/ssl/ksql.server.truststore.jks
     ssl.truststore.password=zzzz
 
+Additional settings are available for configuring KSQL for HTTPS. For example,
+if you need to restrict the default configuration for
+`Jetty <https://www.eclipse.org/jetty/>`, there are settings like
+``ssl.enabled.protocols``. For more information, see :ref:`kafka-rest-https-config`.
+
 .. _configuring-cli-for-https:
 
 -----------------------------

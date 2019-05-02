@@ -11,9 +11,29 @@ Upgrading from KSQL 5.2 to KSQL 5.3
 
 Notable changes in 5.3:
 
+* KSQL Server
+
+    * Avro schema compatibility
+
+        * This version of KSQL sees a bug fixes where the schemas returned by UDF and UDAFs might
+          not be marked as nullable. This can cause serialization issues in the presence of ``null``
+          values, as might be encountered if the UDF fails.
+
+          With the bug fix all fields are now optional.
+
+          This is a forward compatible change in Avro, i.e. after upgrading, KSQL will be able to
+          read old values using the new schema. However, it is important to ensure downstream
+          consumers of the data are using the updated schema before upgrading KSQL, as otherwise
+          deserialization may fail. The updated schema is best obtained from running the query in
+          another KSQL cluster, running version 5.3.
+
+          See `Github issue #2769 <https://github.com/confluentinc/ksql/pull/2769>`_ for more info.
+
 * Configuration:
 
-    * ``ksql.sink.partitions`` and ``ksql.sink.replicas`` are deprecated. All new queries will use the source topic partition count and replica count for the sink topic instead unless partitions and replicas are set in the WITH clause.
+    * ``ksql.sink.partitions`` and ``ksql.sink.replicas`` are deprecated.
+    All new queries will use the source topic partition count and replica count for the sink topic
+    instead unless partitions and replicas are set in the WITH clause.
 
 
 Upgrading from KSQL 5.1 to KSQL 5.2

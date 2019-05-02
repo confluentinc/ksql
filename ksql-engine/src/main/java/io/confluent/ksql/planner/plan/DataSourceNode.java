@@ -177,7 +177,9 @@ public class DataSourceNode
 
     final Serde<GenericRow> streamSerde = builder.buildGenericRowSerde(
         ksqlTopicSerDe,
-        schema.withoutImplicitFields().getSchema(),
+        schema.withoutAlias()
+            .withoutImplicitFields()
+            .getSchema(),
         contextStacker.push(SOURCE_OP_NAME).getQueryContext()
     );
 

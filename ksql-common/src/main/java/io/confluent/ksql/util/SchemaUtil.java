@@ -117,7 +117,7 @@ public final class SchemaUtil {
           .put(Schema.Type.STRUCT, Struct.class)
           .build();
 
-  public static final char FIELD_NAME_DELIMITER = '.';
+  private static final char FIELD_NAME_DELIMITER = '.';
 
   private static final Map<Schema.Type, Function<Schema, String>> SCHEMA_TYPE_TO_SQL_TYPE =
       ImmutableMap.<Schema.Type, Function<Schema, String>>builder()

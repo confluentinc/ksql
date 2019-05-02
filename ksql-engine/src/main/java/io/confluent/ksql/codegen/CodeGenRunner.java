@@ -110,9 +110,9 @@ public class CodeGenRunner {
 
       int index = 0;
       for (final ParameterType param : parameters) {
-        parameterNames[index] = param.name;
+        parameterNames[index] = param.paramName;
         parameterTypes[index] = param.type;
-        columnIndexes.add(schema.findFieldIndex(param.name).orElse(-1));
+        columnIndexes.add(schema.fieldIndex(param.fieldName).orElse(-1));
         kudfObjects.add(param.getKudf());
         index++;
       }
@@ -173,7 +173,9 @@ public class CodeGenRunner {
     private void addParameter(final Field schemaField) {
       parameters.add(new ParameterType(
           SchemaUtil.getJavaType(schemaField.schema()),
-          schemaField.name().replace(".", "_"), ksqlConfig));
+          schemaField.name(),
+          schemaField.name().replace(".", "_"),
+          ksqlConfig));
     }
 
     protected Object visitLikePredicate(final LikePredicate node, final Object context) {
@@ -192,8 +194,12 @@ public class CodeGenRunner {
 
       final UdfFactory holder = functionRegistry.getUdfFactory(functionName);
       final KsqlFunction function = holder.getFunction(argumentTypes);
-      parameters.add(new ParameterType(function,
-          node.getName().getSuffix() + "_" + functionNumber, ksqlConfig));
+      final String parameterName = node.getName().getSuffix() + "_" + functionNumber;
+      parameters.add(new ParameterType(
+          function,
+          parameterName,
+          parameterName,
+          ksqlConfig));
       return null;
     }
 
@@ -306,37 +312,52 @@ public class CodeGenRunner {
     }
   }
 
-
-
   public static final class ParameterType {
 
     private final Class type;
-    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     private final Optional<KsqlFunction> function;
-    private final String name;
+    private final String paramName;
+    private final String fieldName;
     private final KsqlConfig ksqlConfig;
 
-    private ParameterType(final Class type, final String name, final KsqlConfig ksqlConfig) {
-      this(null, Objects.requireNonNull(type, "type can't be null"), name, ksqlConfig);
+    private ParameterType(
+        final Class type,
+        final String fieldName,
+        final String paramName,
+        final KsqlConfig ksqlConfig
+    ) {
+      this(
+          null,
+          Objects.requireNonNull(type, "type"),
+          fieldName,
+          paramName,
+          ksqlConfig);
     }
 
     private ParameterType(
         final KsqlFunction function,
-        final String name,
+        final String fieldName,
+        final String paramName,
         final KsqlConfig ksqlConfig) {
-      this(Objects.requireNonNull(function, "function can't be null"),
+      this(
+          Objects.requireNonNull(function, "function"),
           function.getKudfClass(),
-          name, ksqlConfig);
+          fieldName,
+          paramName,
+          ksqlConfig);
     }
 
     private ParameterType(
         final KsqlFunction function,
         final Class type,
-        final String name,
-        final KsqlConfig ksqlConfig) {
+        final String fieldName,
+        final String paramName,
+        final KsqlConfig ksqlConfig
+    ) {
       this.function = Optional.ofNullable(function);
       this.type = Objects.requireNonNull(type, "type");
-      this.name = Objects.requireNonNull(name, "name");
+      this.fieldName = Objects.requireNonNull(fieldName, "fieldName");
+      this.paramName = Objects.requireNonNull(paramName, "paramName");
       this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     }
 
@@ -344,8 +365,12 @@ public class CodeGenRunner {
       return type;
     }
 
-    public String getName() {
-      return name;
+    public String getParamName() {
+      return paramName;
+    }
+
+    public String getFieldName() {
+      return fieldName;
     }
 
     public Kudf getKudf() {
@@ -363,12 +388,13 @@ public class CodeGenRunner {
       final ParameterType that = (ParameterType) o;
       return Objects.equals(type, that.type)
           && Objects.equals(function, that.function)
-          && Objects.equals(name, that.name);
+          && Objects.equals(paramName, that.paramName)
+          && Objects.equals(fieldName, that.fieldName);
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(type, function, name);
+      return Objects.hash(type, function, paramName, fieldName);
     }
   }
 }

@@ -50,6 +50,10 @@ public class KsqlSchemaTest {
       .field("f1", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
       .build();
 
+  private static final Schema OTHER_CONNECT_SCHEMA = SchemaBuilder.struct()
+      .field("id", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
+      .build();
+
   private static final Schema ALIASED_CONNECT_SCHEMA = SchemaBuilder.struct()
       .field("bob.f0", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
       .field("bob.f1", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
@@ -66,9 +70,13 @@ public class KsqlSchemaTest {
     new EqualsTester()
         .addEqualityGroup(
             KsqlSchema.of(SOME_CONNECT_SCHEMA), KsqlSchema.of(SOME_CONNECT_SCHEMA)
-        ).addEqualityGroup(
-        KsqlSchema.of(ALIASED_CONNECT_SCHEMA)
-    )
+        )
+        .addEqualityGroup(
+            KsqlSchema.of(ALIASED_CONNECT_SCHEMA)
+        )
+        .addEqualityGroup(
+            KsqlSchema.of(OTHER_CONNECT_SCHEMA)
+        )
         .testEquals();
   }
 
@@ -88,6 +96,16 @@ public class KsqlSchemaTest {
         assertThat(schema.toString(), e.getMessage(), containsString("Unsupported schema type"));
       }
     });
+  }
+
+  @Test
+  public void shouldThrowIfNotTopLevelStruct() {
+    // Then:
+    expectedException.expect(IllegalArgumentException.class);
+    expectedException.expectMessage("Top level schema must be STRUCT");
+
+    // When:
+    KsqlSchema.of(Schema.OPTIONAL_INT64_SCHEMA);
   }
 
   @Test
@@ -260,6 +278,51 @@ public class KsqlSchemaTest {
   }
 
   @Test
+  public void shouldBuildSchemaWithoutAlias() {
+    // When:
+    final KsqlSchema result = ALIASED_SCHEMA.withoutAlias();
+
+    // Then:
+    assertThat(result, is(SOME_SCHEMA));
+  }
+
+  @Test
+  public void shouldCopySchemaIfSchemaAlreadyUnaliased() {
+    // When:
+    final KsqlSchema result = SOME_SCHEMA.withoutAlias();
+
+    // Then:
+    assertThat(result, is(SOME_SCHEMA));
+  }
+
+  @Test
+  public void shouldOnlyRemoveAliasFromTopLevelFields() {
+    // Given:
+    final KsqlSchema schema = KsqlSchema.of(
+        SchemaBuilder.struct()
+            .field("bob.f0", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
+            .field("bob.f1", SchemaBuilder.struct()
+                .field("bob.nested", Schema.OPTIONAL_INT64_SCHEMA)
+                .optional()
+                .build())
+            .build()
+    );
+
+    // When:
+    final KsqlSchema result = schema.withoutAlias();
+
+    // Then:
+    assertThat(result, is(KsqlSchema.of(SchemaBuilder.struct()
+        .field("f0", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
+        .field("f1", SchemaBuilder
+            .struct()
+            .field("bob.nested", Schema.OPTIONAL_INT64_SCHEMA)
+            .optional()
+            .build())
+        .build())));
+  }
+
+  @Test
   public void shouldGetFieldByName() {
     // When:
     final Optional<Field> result = SOME_SCHEMA.findField("f0");
@@ -306,33 +369,33 @@ public class KsqlSchemaTest {
 
   @Test
   public void shouldGetFieldIndex() {
-    assertThat(SOME_SCHEMA.findFieldIndex("f0"), is(OptionalInt.of(0)));
-    assertThat(SOME_SCHEMA.findFieldIndex("f1"), is(OptionalInt.of(1)));
+    assertThat(SOME_SCHEMA.fieldIndex("f0"), is(OptionalInt.of(0)));
+    assertThat(SOME_SCHEMA.fieldIndex("f1"), is(OptionalInt.of(1)));
   }
 
   @Test
   public void shouldReturnMinusOneForIndexIfFieldNotFound() {
-    assertThat(SOME_SCHEMA.findFieldIndex("wontfindme"), is(OptionalInt.empty()));
+    assertThat(SOME_SCHEMA.fieldIndex("wontfindme"), is(OptionalInt.empty()));
   }
 
   @Test
   public void shouldNotFindFieldIfDifferentCase() {
-    assertThat(SOME_SCHEMA.findFieldIndex("F0"), is(OptionalInt.empty()));
+    assertThat(SOME_SCHEMA.fieldIndex("F0"), is(OptionalInt.empty()));
   }
 
   @Test
   public void shouldGetAliasedFieldIndex() {
-    assertThat(ALIASED_SCHEMA.findFieldIndex("bob.f1"), is(OptionalInt.of(1)));
+    assertThat(ALIASED_SCHEMA.fieldIndex("bob.f1"), is(OptionalInt.of(1)));
   }
 
   @Test
   public void shouldNotFindUnaliasedFieldIndexInAliasedSchema() {
-    assertThat(ALIASED_SCHEMA.findFieldIndex("f1"), is(OptionalInt.empty()));
+    assertThat(ALIASED_SCHEMA.fieldIndex("f1"), is(OptionalInt.empty()));
   }
 
   @Test
   public void shouldNotFindAliasedFieldIndexInUnaliasedSchema() {
-    assertThat(SOME_SCHEMA.findFieldIndex("bob.f1"), is(OptionalInt.empty()));
+    assertThat(SOME_SCHEMA.fieldIndex("bob.f1"), is(OptionalInt.empty()));
   }
 
   @Test
@@ -500,8 +563,8 @@ public class KsqlSchemaTest {
 
     // Then:
     assertThat(result, is(KsqlSchema.of(SchemaBuilder.struct()
-        .field("f0", Schema.OPTIONAL_INT64_SCHEMA)
-        .field("f1", Schema.OPTIONAL_INT64_SCHEMA)
+        .field("bob.f0", Schema.OPTIONAL_INT64_SCHEMA)
+        .field("bob.f1", Schema.OPTIONAL_INT64_SCHEMA)
         .build()
     )));
   }

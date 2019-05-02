@@ -16,10 +16,9 @@
 package io.confluent.ksql.schema.ksql;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -53,6 +52,11 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 @Immutable
 public final class KsqlSchema {
 
+  private static final Set<String> IMPLICIT_FIELD_NAMES = ImmutableSet.of(
+      SchemaUtil.ROWTIME_NAME,
+      SchemaUtil.ROWKEY_NAME
+  );
+
   private static final Consumer<Schema> NO_ADDITIONAL_VALIDATION = schema -> {
   };
 
@@ -82,10 +86,70 @@ public final class KsqlSchema {
     return schema;
   }
 
+  /**
+   * Get all the fields in the schema.
+   *
+   * @return all the fields in the schema.
+   */
   public List<Field> fields() {
     return schema.fields();
   }
 
+  /**
+   * Get the set of field indexes for the implicit fields, if any.
+   *
+   * @return the set of indexes to the implicit fields.
+   */
+  public Set<Integer> implicitColumnIndexes() {
+    return IMPLICIT_FIELD_NAMES.stream()
+        .map(schema::field)
+        .filter(Objects::nonNull)
+        .map(Field::index)
+        .collect(Collectors.toSet());
+  }
+
+  /**
+   * Search for a field with the supplied {@code fieldName}.
+   *
+   * <p>If the fieldName and the name of a field are an exact match, it will return that field.
+   *
+   * <p>If not exact match is found, any alias is stripped from the supplied  {@code fieldName}
+   * before attempting to find a match again.
+   *
+   * @param fieldName the field name, where any alias is ignored.
+   */
+  public Optional<Field> findField(final String fieldName) {
+    return schema.fields()
+        .stream()
+        .filter(f -> SchemaUtil.matchFieldName(f, fieldName))
+        .findFirst();
+  }
+
+  /**
+   * Find the index of the field with the supplied exact {@code fieldName}.
+   *
+   * @param fieldName the exact name of the field to get the index of.
+   * @return the index if it exists or else {@code empty()}.
+   */
+  public OptionalInt fieldIndex(final String fieldName) {
+    final Field field = schema.field(fieldName);
+    if (field == null) {
+      return OptionalInt.empty();
+    }
+
+    return OptionalInt.of(field.index());
+  }
+
+  /**
+   * Add the supplied {@code alias} to each field.
+   *
+   * <p>If the fields are already aliased with this alias this is a no-op.
+   *
+   * <p>If the fields are already aliased with a different alias the field prefixed again.
+   *
+   * @param alias the alias to add.
+   * @return the schema with the alias applied.
+   */
   public KsqlSchema withAlias(final String alias) {
     final SchemaBuilder newSchema = SchemaBuilder
         .struct()
@@ -94,6 +158,24 @@ public final class KsqlSchema {
     for (final Field field : schema.fields()) {
       final String aliased = SchemaUtil.buildAliasedFieldName(alias, field.name());
       newSchema.field(aliased, field.schema());
+    }
+
+    return KsqlSchema.of(newSchema.build());
+  }
+
+  /**
+   * Strip any alias from the field name.
+   *
+   * @return the schema without any aliases in the field name.
+   */
+  public KsqlSchema withoutAlias() {
+    final SchemaBuilder newSchema = SchemaBuilder
+        .struct()
+        .name(schema.name());
+
+    for (final Field field : schema.fields()) {
+      final String unaliased = SchemaUtil.getFieldNameWithNoAlias(field.name());
+      newSchema.field(unaliased, field.schema());
     }
 
     return KsqlSchema.of(newSchema.build());
@@ -119,8 +201,7 @@ public final class KsqlSchema {
     schemaBuilder.field(SchemaUtil.ROWTIME_NAME, Schema.OPTIONAL_INT64_SCHEMA);
     schemaBuilder.field(SchemaUtil.ROWKEY_NAME, Schema.OPTIONAL_STRING_SCHEMA);
     for (final Field field : ((Schema) schema).fields()) {
-      if (!field.name().equals(SchemaUtil.ROWKEY_NAME)
-          && !field.name().equals(SchemaUtil.ROWTIME_NAME)) {
+      if (notImplicitField(field.name())) {
         schemaBuilder.field(field.name(), field.schema());
       }
     }
@@ -138,88 +219,19 @@ public final class KsqlSchema {
    *
    * <p><b>NOTE:</b> the function DOES take any aliases in the fields into account.
    *
-   * <p><b>NOTE:</b> the function also removes aliasing from any other fields.
-   *
-   * @return the new schema with the implicit fields removed and any aliasing removed.
+   * @return the new schema with the implicit fields removed.
    */
   public KsqlSchema withoutImplicitFields() {
     final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
-    for (final Field field : getSchema().fields()) {
-      String fieldName = field.name();
-      fieldName = fieldName.substring(fieldName.indexOf(SchemaUtil.FIELD_NAME_DELIMITER) + 1);
-      if (!fieldName.equalsIgnoreCase(SchemaUtil.ROWTIME_NAME)
-          && !fieldName.equalsIgnoreCase(SchemaUtil.ROWKEY_NAME)) {
-        schemaBuilder.field(fieldName, field.schema());
+
+    for (final Field field : schema.fields()) {
+      final String fieldName = SchemaUtil.getFieldNameWithNoAlias(field.name());
+      if (notImplicitField(fieldName)) {
+        schemaBuilder.field(field.name(), field.schema());
       }
     }
+
     return KsqlSchema.of(schemaBuilder.build());
-  }
-
-  public Set<Integer> implicitColumnIndexes() {
-    final Set<Integer> indexSet = new HashSet<>();
-    for (int i = 0; i < ((Schema) schema).fields().size(); i++) {
-      final Field field = ((Schema) schema).fields().get(i);
-      if (field.name().equalsIgnoreCase(SchemaUtil.ROWTIME_NAME)
-          || field.name().equalsIgnoreCase(SchemaUtil.ROWKEY_NAME)) {
-        indexSet.add(i);
-      }
-    }
-    return indexSet;
-  }
-
-  public Optional<Field> findField(final String fieldName) {
-    return schema.fields()
-        .stream()
-        .filter(f -> SchemaUtil.matchFieldName(f, fieldName))
-        .findFirst();
-  }
-
-  public OptionalInt findFieldIndex(final String fieldName) {
-    if (schema.fields() == null) {
-      return OptionalInt.empty();
-    }
-
-    for (int i = 0; i < schema.fields().size(); i++) {
-      final Field field = schema.fields().get(i);
-      final int dotIndex = field.name().indexOf(SchemaUtil.FIELD_NAME_DELIMITER);
-      if (dotIndex == -1) {
-        if (field.name().equals(fieldName)) {
-          return OptionalInt.of(i);
-        }
-      } else {
-        if (dotIndex < fieldName.length()) {
-          final String fieldNameWithDot =
-              fieldName.substring(0, dotIndex)
-                  + SchemaUtil.FIELD_NAME_DELIMITER
-                  + fieldName.substring(dotIndex + 1);
-          if (field.name().equals(fieldNameWithDot)) {
-            return OptionalInt.of(i);
-          }
-        }
-      }
-
-    }
-    return OptionalInt.empty();
-  }
-
-  /**
-   * Simpliar to {@link #findFieldIndex(String)}, except requires an exact match.
-   *
-   * @param fieldName the exact name of the field.
-   * @return the name of the field.
-   */
-  public int fieldIndex(final String fieldName) {
-    for (int i = 0; i < schema.fields().size(); i++) {
-      final Field field = schema.fields().get(i);
-      if (field.name().equals(fieldName)) {
-        return i;
-      }
-    }
-
-    throw new KsqlException("Could not find field in schema."
-        + " field: " + fieldName
-        + " schema: " + schema
-    );
   }
 
   @Override
@@ -298,6 +310,10 @@ public final class KsqlSchema {
     }
 
     return true;
+  }
+
+  private static boolean notImplicitField(final String fieldName) {
+    return !IMPLICIT_FIELD_NAMES.contains(fieldName);
   }
 }
 

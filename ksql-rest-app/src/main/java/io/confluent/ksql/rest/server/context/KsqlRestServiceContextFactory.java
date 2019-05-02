@@ -19,7 +19,6 @@ import io.confluent.ksql.services.DefaultServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 
-import java.util.Collections;
 import java.util.Objects;
 
 import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
@@ -42,7 +41,7 @@ public class KsqlRestServiceContextFactory implements Factory<ServiceContext> {
         ksqlConfig,
         new ConfiguredKafkaClientSupplier(
             new DefaultKafkaClientSupplier(),
-            Collections.emptyMap()
+            KsqlRestContextProvider.getRestContextThreadLocal().getRestContextProperties()
         )
     );
   }

@@ -295,7 +295,7 @@ The WITH clause supports the following properties:
 |                         | ``JSON``, ``DELIMITED`` (comma-separated value), and ``AVRO``.                             |
 +-------------------------+--------------------------------------------------------------------------------------------+
 | PARTITIONS              | The number of partitions in the backing topic. This property must be set if creating a     |
-|                         | SOURCE without an existing topic (the command will fail if the topic does not exist).      |
+|                         | STREAM without an existing topic (the command will fail if the topic does not exist).      |
 +-------------------------+--------------------------------------------------------------------------------------------+
 | REPLICAS                | The number of replicas in the backing topic. If this property is not set but PARTITIONS is |
 |                         | set, then the default Kafka cluster configuration for replicas will be used for creating a |
@@ -402,7 +402,7 @@ The WITH clause supports the following properties:
 |                         | ``JSON``, ``DELIMITED`` (comma-separated value), and ``AVRO``.                             |
 +-------------------------+--------------------------------------------------------------------------------------------+
 | PARTITIONS              | The number of partitions in the backing topic. This property must be set if creating a     |
-|                         | SOURCE without an existing topic (the command will fail if the topic does not exist).      |
+|                         | TABLE without an existing topic (the command will fail if the topic does not exist).       |
 +-------------------------+--------------------------------------------------------------------------------------------+
 | REPLICAS                | The number of replicas in the backing topic. If this property is not set but PARTITIONS is |
 |                         | set, then the default Kafka cluster configuration for replicas will be used for creating a |
@@ -681,13 +681,14 @@ INSERT VALUES
 
 Produce a row into an existing stream or table and its underlying topic based on
 explicitly specified values. The first ``column_name`` of every schema is ``ROWKEY``, which
-defines the corresponding kafka key - if the source specifies a ``key`` and that column is present
-in the column names for this insert statement, the values are expected to match, otherwise the
-value will be duplicated into the value (or conversely from the value into the ``ROWKEY``).
+defines the corresponding Kafka key. If the source specifies a ``key`` and that column is present
+in the column names for this INSERT statement then that value and the ``ROWKEY`` value are expected
+to match, otherwise the value from ``ROWKEY`` will be copied into the value of the key column (or
+conversely from the key column into the ``ROWKEY`` column).
 
-Any column not explicitly given a value is set to ``null`` (KSQL does not yet support DEFAULT
-values).  If no columns are specified, a value for every column is expected in the same order as
-the schema with ``ROWKEY`` as the first column. If columns are specified, the order does not matter.
+Any column not explicitly given a value is set to ``null``.  If no columns are specified, a value
+for every column is expected in the same order as the schema with ``ROWKEY`` as the first column.
+If columns are specified, the order does not matter.
 
 .. note:: ``ROWTIME`` may be specified as an explicit column, but is not required when omitting the
   column specifications.
@@ -710,6 +711,7 @@ For example, the statements below would all be valid for a source with schema
       INSERT INTO foo (KEY_COL) VALUES ("key");
 
 The values will serialize using the ``value_format`` specified in the original `CREATE` statement.
+The key will always be serialized as a String.
 
 
 DESCRIBE

@@ -23,8 +23,8 @@ public final class KsqlConstants {
   public static final String KSQL_INTERNAL_TOPIC_PREFIX = "_confluent-ksql-";
   public static final String CONFLUENT_INTERNAL_TOPIC_PREFIX = "__confluent";
 
-  public static final String SINK_NUMBER_OF_PARTITIONS = "PARTITIONS";
-  public static final String SINK_NUMBER_OF_REPLICAS = "REPLICAS";
+  public static final String WITH_CLAUSE_PARTITIONS = "PARTITIONS";
+  public static final String WITH_CLAUSE_REPLICAS = "REPLICAS";
 
   public static final String SINK_TIMESTAMP_COLUMN_NAME = "TIMESTAMP";
 

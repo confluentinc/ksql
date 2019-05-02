@@ -88,13 +88,13 @@ public class TopicCreateInjector implements Injector {
       final TopicProperties.Builder topicPropertiesBuilder
   ) {
     if (statement.getStatement() instanceof CreateAsSelect) {
-      return (ConfiguredStatement<T>) injectCreateAsSelect(
+      return (ConfiguredStatement<T>) injectForCreateAsSelect(
           (ConfiguredStatement<? extends CreateAsSelect>) statement,
           topicPropertiesBuilder);
     }
 
     if (statement.getStatement() instanceof CreateSource) {
-      return (ConfiguredStatement<T>) injectCreateSource(
+      return (ConfiguredStatement<T>) injectForCreateSource(
           (ConfiguredStatement<? extends CreateSource>) statement,
           topicPropertiesBuilder);
     }
@@ -102,7 +102,7 @@ public class TopicCreateInjector implements Injector {
     return statement;
   }
 
-  private ConfiguredStatement<? extends CreateSource> injectCreateSource(
+  private ConfiguredStatement<? extends CreateSource> injectForCreateSource(
       final ConfiguredStatement<? extends CreateSource> statement,
       final TopicProperties.Builder topicPropertiesBuilder
   ) {
@@ -114,16 +114,16 @@ public class TopicCreateInjector implements Injector {
 
     if (topicClient.isTopicExists(topicName)) {
       topicPropertiesBuilder.withSource(() -> topicClient.describeTopic(topicName));
-    } else if (!createSource.getProperties().containsKey(KsqlConstants.SINK_NUMBER_OF_PARTITIONS)) {
+    } else if (!createSource.getProperties().containsKey(KsqlConstants.WITH_CLAUSE_PARTITIONS)) {
       final Map<String, Literal> exampleProps = new HashMap<>(createSource.getProperties());
-      exampleProps.put(KsqlConstants.SINK_NUMBER_OF_PARTITIONS, new IntegerLiteral(2));
-      exampleProps.putIfAbsent(KsqlConstants.SINK_NUMBER_OF_REPLICAS, new IntegerLiteral(1));
+      exampleProps.put(KsqlConstants.WITH_CLAUSE_PARTITIONS, new IntegerLiteral(2));
+      exampleProps.putIfAbsent(KsqlConstants.WITH_CLAUSE_REPLICAS, new IntegerLiteral(1));
       final CreateSource example = createSource.copyWith(createSource.getElements(), exampleProps);
       throw new KsqlException(
           "Topic '" + topicName + "' does not exist. If you want to create a new topic for the "
-              + "stream/table please re-run the statement providing th required '"
-              + KsqlConstants.SINK_NUMBER_OF_PARTITIONS + "' configuration in the WITH clause "
-              + "(and optionally '" + KsqlConstants.SINK_NUMBER_OF_REPLICAS + "'). For example: "
+              + "stream/table please re-run the statement providing the required '"
+              + KsqlConstants.WITH_CLAUSE_PARTITIONS + "' configuration in the WITH clause "
+              + "(and optionally '" + KsqlConstants.WITH_CLAUSE_REPLICAS + "'). For example: "
               + SqlFormatter.formatSql(example));
     }
 
@@ -137,7 +137,7 @@ public class TopicCreateInjector implements Injector {
   }
 
   @SuppressWarnings("unchecked")
-  private <T extends CreateAsSelect> ConfiguredStatement<?> injectCreateAsSelect(
+  private <T extends CreateAsSelect> ConfiguredStatement<?> injectForCreateAsSelect(
       final ConfiguredStatement<T> statement,
       final TopicProperties.Builder topicPropertiesBuilder
   ) {
@@ -165,8 +165,8 @@ public class TopicCreateInjector implements Injector {
 
     final Map<String, Literal> props = new HashMap<>(createAsSelect.getProperties());
     props.put(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral(info.getTopicName()));
-    props.put(KsqlConstants.SINK_NUMBER_OF_REPLICAS, new IntegerLiteral(info.getReplicas()));
-    props.put(KsqlConstants.SINK_NUMBER_OF_PARTITIONS, new IntegerLiteral(info.getPartitions()));
+    props.put(KsqlConstants.WITH_CLAUSE_REPLICAS, new IntegerLiteral(info.getReplicas()));
+    props.put(KsqlConstants.WITH_CLAUSE_PARTITIONS, new IntegerLiteral(info.getPartitions()));
 
     final T withTopic = (T) createAsSelect.copyWith(props);
     final String withTopicText = SqlFormatter.formatSql(withTopic) + ";";

@@ -21,8 +21,6 @@ import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyShort;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -340,9 +338,9 @@ public class TopicCreateInjectorTest {
     assertThat(result.getStatement().getProperties(),
         hasEntry(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral("expectedName")));
     assertThat(result.getStatement().getProperties(),
-        hasEntry(KsqlConstants.SINK_NUMBER_OF_PARTITIONS, new IntegerLiteral(10)));
+        hasEntry(KsqlConstants.WITH_CLAUSE_PARTITIONS, new IntegerLiteral(10)));
     assertThat(result.getStatement().getProperties(),
-        hasEntry(KsqlConstants.SINK_NUMBER_OF_REPLICAS, new IntegerLiteral(10)));
+        hasEntry(KsqlConstants.WITH_CLAUSE_REPLICAS, new IntegerLiteral(10)));
   }
 
   @Test

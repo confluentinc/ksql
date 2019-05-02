@@ -18,14 +18,12 @@ package io.confluent.ksql.test.model;
 import static org.hamcrest.Matchers.containsString;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.confluent.ksql.test.tools.exceptions.ExpectedException;
 import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;
+import io.confluent.ksql.test.tools.exceptions.KsqlExpectedException;
 import io.confluent.ksql.test.tools.exceptions.MissingFieldException;
+import io.confluent.ksql.util.KsqlExceptionMatcher;
 import io.confluent.ksql.util.KsqlStatementException;
 import java.util.Optional;
-import org.hamcrest.Description;
-import org.hamcrest.Matcher;
-import org.hamcrest.TypeSafeDiagnosingMatcher;
 
 final class ExpectedExceptionNode {
 
@@ -44,8 +42,8 @@ final class ExpectedExceptionNode {
     }
   }
 
-  public ExpectedException build(final String lastStatement) {
-    final ExpectedException expectedException = ExpectedException.none();
+  public KsqlExpectedException build(final String lastStatement) {
+    final KsqlExpectedException expectedException = KsqlExpectedException.none();
 
     type
         .map(ExpectedExceptionNode::parseThrowable)
@@ -54,7 +52,8 @@ final class ExpectedExceptionNode {
 
           if (KsqlStatementException.class.isAssignableFrom(type)) {
             // Ensure exception contains last statement, otherwise the test case is invalid:
-            expectedException.expect(statementText(containsString(lastStatement)));
+            expectedException.expect(
+                KsqlExceptionMatcher.statementText(containsString(lastStatement)));
           }
         });
 
@@ -75,25 +74,4 @@ final class ExpectedExceptionNode {
     }
   }
 
-  private static Matcher<?  super KsqlStatementException> statementText(
-      final Matcher<String> statementMatcher
-  ) {
-    return new TypeSafeDiagnosingMatcher<KsqlStatementException>() {
-      @Override
-      protected boolean matchesSafely(
-          final KsqlStatementException actual,
-          final Description mismatchDescription) {
-        if (!statementMatcher.matches(actual.getSqlStatement())) {
-          statementMatcher.describeMismatch(actual.getSqlStatement(), mismatchDescription);
-          return false;
-        }
-        return true;
-      }
-
-      @Override
-      public void describeTo(final Description description) {
-        description.appendText("statement text ").appendDescriptionOf(statementMatcher);
-      }
-    };
-  }
 }

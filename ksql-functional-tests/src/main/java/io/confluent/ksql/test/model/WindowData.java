@@ -28,7 +28,7 @@ public class WindowData {
   public final long end;
   public final Type type;
 
-  WindowData(
+  public WindowData(
       @JsonProperty("start") final long start,
       @JsonProperty("end") final long end,
       @JsonProperty("type") final String type

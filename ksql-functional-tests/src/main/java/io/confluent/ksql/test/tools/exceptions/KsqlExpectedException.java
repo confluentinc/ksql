@@ -26,11 +26,11 @@ import org.hamcrest.Matcher;
 import org.junit.internal.matchers.ThrowableMessageMatcher;
 
 @SuppressFBWarnings("NM_CLASS_NOT_EXCEPTION")
-public class ExpectedException {
+public class KsqlExpectedException {
   public final List<Matcher<?>> matchers = new ArrayList<>();
 
-  public static ExpectedException none() {
-    return new ExpectedException();
+  public static KsqlExpectedException none() {
+    return new KsqlExpectedException();
   }
 
   public void expect(final Class<? extends Throwable> type) {

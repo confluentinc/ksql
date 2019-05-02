@@ -43,8 +43,8 @@ import io.confluent.ksql.test.tools.Record;
 import io.confluent.ksql.test.tools.TestCase;
 import io.confluent.ksql.test.tools.Topic;
 import io.confluent.ksql.test.tools.conditions.PostConditions;
-import io.confluent.ksql.test.tools.exceptions.ExpectedException;
 import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;
+import io.confluent.ksql.test.tools.exceptions.KsqlExpectedException;
 import io.confluent.ksql.test.tools.exceptions.MissingFieldException;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.StringUtil;
@@ -147,7 +147,7 @@ public class TestCaseNode {
     try {
       final List<String> statements = buildStatements(format);
 
-      final Optional<ExpectedException> ee = buildExpectedException(statements);
+      final Optional<KsqlExpectedException> ee = buildExpectedException(statements);
 
       final Map<String, Topic> topics = getTestCaseTopics(
           statements,
@@ -174,7 +174,7 @@ public class TestCaseNode {
           inputRecords,
           outputRecords,
           statements,
-          ee.orElseGet(ExpectedException::none),
+          ee.orElseGet(KsqlExpectedException::none),
           post
       );
     } catch (final Exception e) {
@@ -182,7 +182,7 @@ public class TestCaseNode {
     }
   }
 
-  private Optional<ExpectedException> buildExpectedException(final List<String> statements) {
+  private Optional<KsqlExpectedException> buildExpectedException(final List<String> statements) {
     return this.expectedException
         .map(ee -> ee.build(Iterables.getLast(statements)));
   }

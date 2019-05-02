@@ -34,7 +34,7 @@ import io.confluent.ksql.test.serde.SerdeSupplier;
 import io.confluent.ksql.test.serde.avro.AvroSerdeSupplier;
 import io.confluent.ksql.test.serde.string.StringSerdeSupplier;
 import io.confluent.ksql.test.tools.conditions.PostConditions;
-import io.confluent.ksql.test.tools.exceptions.ExpectedException;
+import io.confluent.ksql.test.tools.exceptions.KsqlExpectedException;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Optional;
@@ -69,7 +69,7 @@ public class TestCaseTest {
       ImmutableList.of(record),
       ImmutableList.of(record),
       Collections.emptyList(),
-      ExpectedException.none(),
+      KsqlExpectedException.none(),
       PostConditions.NONE
   );
 
@@ -184,7 +184,7 @@ public class TestCaseTest {
         ImmutableList.of(record),
         ImmutableList.of(record),
         Collections.emptyList(),
-        ExpectedException.none(),
+        KsqlExpectedException.none(),
         PostConditions.NONE
     );
 

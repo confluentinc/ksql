@@ -18,7 +18,7 @@ import io.confluent.ksql.test.tools.Record;
 import io.confluent.ksql.test.tools.TestCase;
 import io.confluent.ksql.test.tools.Topic;
 import io.confluent.ksql.test.tools.conditions.PostConditions;
-import io.confluent.ksql.test.tools.exceptions.ExpectedException;
+import io.confluent.ksql.test.tools.exceptions.KsqlExpectedException;
 import io.confluent.ksql.test.tools.exceptions.MissingFieldException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -174,7 +174,7 @@ public class SchemaTranslationTest {
             inputRecords,
             outputRecords,
             ImmutableList.of(DDL_STATEMENT, csasStatement),
-            ExpectedException.none(),
+            KsqlExpectedException.none(),
             PostConditions.NONE
         ));
       } catch (final Exception e) {

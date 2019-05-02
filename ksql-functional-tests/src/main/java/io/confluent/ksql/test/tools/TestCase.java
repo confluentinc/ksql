@@ -26,7 +26,7 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.test.tools.conditions.PostConditions;
-import io.confluent.ksql.test.tools.exceptions.ExpectedException;
+import io.confluent.ksql.test.tools.exceptions.KsqlExpectedException;
 import io.confluent.ksql.util.KsqlConstants;
 import java.nio.file.Path;
 import java.util.Collection;
@@ -53,7 +53,7 @@ public class TestCase implements Test {
   private final List<Record> inputRecords;
   private final List<Record> outputRecords;
   private final List<String> statements;
-  private final ExpectedException expectedException;
+  private final KsqlExpectedException ksqlExpectedException;
   private List<String> generatedTopologies;
   private List<String> generatedSchemas;
   private Optional<TopologyAndConfigs> expectedTopology = Optional.empty();
@@ -77,7 +77,7 @@ public class TestCase implements Test {
       final List<Record> inputRecords,
       final List<Record> outputRecords,
       final List<String> statements,
-      final ExpectedException expectedException,
+      final KsqlExpectedException ksqlExpectedException,
       final PostConditions postConditions
   ) {
     this.topics = topics;
@@ -87,7 +87,7 @@ public class TestCase implements Test {
     this.name = name;
     this.properties = ImmutableMap.copyOf(properties);
     this.statements = statements;
-    this.expectedException = expectedException;
+    this.ksqlExpectedException = ksqlExpectedException;
     this.postConditions = Objects.requireNonNull(postConditions, "postConditions");
   }
 
@@ -100,7 +100,7 @@ public class TestCase implements Test {
         inputRecords,
         outputRecords,
         statements,
-        expectedException,
+        ksqlExpectedException,
         postConditions);
     copy.generatedTopologies = generatedTopologies;
     copy.expectedTopology = expectedTopology;
@@ -235,18 +235,18 @@ public class TestCase implements Test {
   }
 
   public boolean isAnyExceptionExpected() {
-    return !expectedException.matchers.isEmpty();
+    return !ksqlExpectedException.matchers.isEmpty();
   }
 
   private void failDueToMissingException() {
-    final String expectation = StringDescription.toString(expectedException.build());
+    final String expectation = StringDescription.toString(ksqlExpectedException.build());
     final String message = "Expected test to throw" + expectation;
     fail(message);
   }
 
   public void handleException(final RuntimeException e) {
     if (isAnyExceptionExpected()) {
-      assertThat(e, isThrowable(expectedException.build()));
+      assertThat(e, isThrowable(ksqlExpectedException.build()));
     } else {
       throw e;
     }

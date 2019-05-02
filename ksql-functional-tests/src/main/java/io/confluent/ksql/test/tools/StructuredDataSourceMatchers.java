@@ -19,8 +19,6 @@ import static org.hamcrest.Matchers.is;
 
 import io.confluent.ksql.metastore.model.StructuredDataSource;
 import java.util.Optional;
-import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
 import org.hamcrest.Description;
 import org.hamcrest.FeatureMatcher;
 import org.hamcrest.Matcher;
@@ -43,36 +41,6 @@ public final class StructuredDataSourceMatchers {
     };
   }
 
-
-  public static final class FieldMatchers {
-
-    private FieldMatchers() {
-    }
-
-    static Matcher<Field> hasName(final String name) {
-      return new FeatureMatcher<Field, String>(
-          is(name),
-          "field with name",
-          "name") {
-        @Override
-        protected String featureValueOf(final Field actual) {
-          return actual.name();
-        }
-      };
-    }
-
-    static Matcher<Field> hasSchema(final Schema schema) {
-      return new FeatureMatcher<Field, Schema>(
-          is(schema),
-          "field with schema",
-          "schema") {
-        @Override
-        protected Schema featureValueOf(final Field actual) {
-          return actual.schema();
-        }
-      };
-    }
-  }
 
   public static final class OptionalMatchers {
 

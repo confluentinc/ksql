@@ -32,8 +32,8 @@ CONFIGS_END
 CTAS_COUNT_BY_REGION_0.KsqlTopic.source = struct<ID optional<int64>,NAME optional<string>,REGION optional<string>>
 CTAS_COUNT_BY_REGION_0.KsqlTopic.reduce = struct<TEST.ROWTIME optional<int64>,TEST.ROWKEY optional<string>,TEST.ID optional<int64>,TEST.NAME optional<string>,TEST.REGION optional<string>>
 CTAS_COUNT_BY_REGION_0.Aggregate.groupby = struct<KSQL_INTERNAL_COL_0 optional<string>,KSQL_INTERNAL_COL_1 optional<string>>
-CTAS_COUNT_BY_REGION_0.Aggregate.aggregate = struct<KSQL_INTERNAL_COL_0 optional<string>,KSQL_INTERNAL_COL_1 optional<string>,KSQL_AGG_VARIABLE_0 optional<map<optional<string>, optional<int64>>>>
-CTAS_COUNT_BY_REGION_0.COUNT_BY_REGION = struct<REGION optional<string>,COUNTS optional<map<optional<string>, optional<int64>>>>
+CTAS_COUNT_BY_REGION_0.Aggregate.aggregate = struct<KSQL_INTERNAL_COL_0 optional<string>,KSQL_INTERNAL_COL_1 optional<string>,KSQL_AGG_VARIABLE_0 map<optional<string>, optional<int64>>>
+CTAS_COUNT_BY_REGION_0.COUNT_BY_REGION = struct<REGION optional<string>,COUNTS map<optional<string>, optional<int64>>>
 SCHEMAS_END
 Topologies:
    Sub-topology: 0

@@ -43,7 +43,6 @@ import java.util.Map;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.function.Consumer;
 import org.apache.kafka.common.serialization.Serdes;
-import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.Topology;
@@ -59,8 +58,8 @@ public class QueryDescriptionTest {
 
   private static final KsqlSchema SCHEMA = KsqlSchema.of(
       SchemaBuilder.struct()
-          .field("field1", Schema.OPTIONAL_INT32_SCHEMA)
-          .field("field2", Schema.OPTIONAL_STRING_SCHEMA)
+          .field("field1", SchemaBuilder.int32().build())
+          .field("field2", SchemaBuilder.string().build())
           .build());
 
   private static final List<FieldInfo> EXPECTED_FIELDS = Arrays.asList(

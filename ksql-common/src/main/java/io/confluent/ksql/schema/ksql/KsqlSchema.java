@@ -267,10 +267,6 @@ public final class KsqlSchema {
       throw new IllegalArgumentException("Mutable schema found: " + schema);
     }
 
-    if (!topLevel && !schema.isOptional()) {
-      throw new IllegalArgumentException("Non-optional field found: " + schema);
-    }
-
     final Consumer<Schema> validator = VALIDATORS.get(schema.type());
     if (validator == null) {
       throw new IllegalArgumentException("Unsupported schema type: " + schema);

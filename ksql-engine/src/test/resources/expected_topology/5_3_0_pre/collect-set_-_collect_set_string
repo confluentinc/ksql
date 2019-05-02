@@ -31,8 +31,8 @@
 CONFIGS_END
 CTAS_S2_0.KsqlTopic.source = struct<ID optional<int64>,VALUE optional<string>>
 CTAS_S2_0.Aggregate.groupby = struct<KSQL_INTERNAL_COL_0 optional<int64>,KSQL_INTERNAL_COL_1 optional<string>>
-CTAS_S2_0.Aggregate.aggregate = struct<KSQL_INTERNAL_COL_0 optional<int64>,KSQL_INTERNAL_COL_1 optional<string>,KSQL_AGG_VARIABLE_0 optional<array<optional<string>>>>
-CTAS_S2_0.S2 = struct<ID optional<int64>,COLLECTED optional<array<optional<string>>>>
+CTAS_S2_0.Aggregate.aggregate = struct<KSQL_INTERNAL_COL_0 optional<int64>,KSQL_INTERNAL_COL_1 optional<string>,KSQL_AGG_VARIABLE_0 array<optional<string>>>
+CTAS_S2_0.S2 = struct<ID optional<int64>,COLLECTED array<optional<string>>>
 SCHEMAS_END
 Topologies:
    Sub-topology: 0

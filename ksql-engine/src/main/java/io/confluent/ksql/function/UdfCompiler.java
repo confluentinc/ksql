@@ -17,7 +17,6 @@ package io.confluent.ksql.function;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
-import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.function.udaf.TableUdaf;
 import io.confluent.ksql.function.udaf.Udaf;
 import io.confluent.ksql.function.udaf.UdfArgSupplier;
@@ -40,7 +39,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import org.apache.kafka.common.metrics.Metrics;
-import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
 import org.codehaus.commons.compiler.CompilerFactoryFactory;
 import org.codehaus.commons.compiler.IScriptEvaluator;
@@ -55,7 +53,6 @@ import org.slf4j.LoggerFactory;
  * Each method gets a class generated for it. For Udfs it is an {@link UdfInvoker}.
  * For UDAFs it is a {@link KsqlAggregateFunction}
  */
-@Immutable
 public class UdfCompiler {
   private static final Logger LOGGER = LoggerFactory.getLogger(UdfCompiler.class);
 
@@ -133,14 +130,9 @@ public class UdfCompiler {
           scriptEvaluator.createFastEvaluator("return new " + generatedClassName
                   + "(args, returnType, metrics);",
               UdfArgSupplier.class, new String[]{"args", "returnType", "metrics"});
-
-      final List<Schema> args = Collections.singletonList(
-          SchemaUtil.getSchemaFromType(valueAndAggregateTypes.left));
-
-      final Schema returnValue = SchemaUtil.ensureOptional(
-          SchemaUtil.getSchemaFromType(valueAndAggregateTypes.right));
-
-      return evaluator.apply(args, returnValue, metrics);
+      return evaluator.apply(Collections.singletonList(
+          SchemaUtil.getSchemaFromType(valueAndAggregateTypes.left)),
+          SchemaUtil.getSchemaFromType(valueAndAggregateTypes.right), metrics);
     } catch (final Exception e) {
       throw new KsqlException("Failed to compile KSqlAggregateFunction for method='"
           + method.getName() + "' in class='" + method.getDeclaringClass() + "'", e);

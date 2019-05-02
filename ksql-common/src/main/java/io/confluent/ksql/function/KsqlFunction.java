@@ -122,10 +122,6 @@ public final class KsqlFunction {
             "KSQL variadic functions must have ARRAY type as their last parameter");
       }
     }
-
-    if (!returnType.isOptional()) {
-      throw new IllegalArgumentException("KSQL only supports optional field types");
-    }
   }
 
 

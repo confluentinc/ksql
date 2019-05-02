@@ -18,8 +18,11 @@ package io.confluent.ksql.rest.server.context;
 import io.confluent.ksql.services.DefaultServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
+
+import java.util.Collections;
 import java.util.Objects;
 
+import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
 import org.glassfish.hk2.api.Factory;
 
 /**
@@ -35,7 +38,13 @@ public class KsqlRestServiceContextFactory implements Factory<ServiceContext> {
 
   @Override
   public ServiceContext provide() {
-    return DefaultServiceContext.create(ksqlConfig);
+    return DefaultServiceContext.create(
+        ksqlConfig,
+        new ConfiguredKafkaClientSupplier(
+            new DefaultKafkaClientSupplier(),
+            Collections.emptyMap()
+        )
+    );
   }
 
   @Override

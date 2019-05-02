@@ -32,9 +32,9 @@ import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
-import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.schema.ksql.LogicalSchemas;
-import io.confluent.ksql.serde.DataSource;
+import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.test.serde.SerdeSupplier;
 import io.confluent.ksql.test.serde.avro.ValueSpecAvroSerdeSupplier;
 import io.confluent.ksql.test.serde.json.ValueSpecJsonSerdeSupplier;
@@ -244,14 +244,14 @@ public class TestCaseNode {
       final AbstractStreamCreateStatement statement = (AbstractStreamCreateStatement) stmt
           .getStatement();
 
-      final Map<String, Expression> properties = statement.getProperties();
+      final Map<String, Literal> properties = statement.getProperties();
       final String topicName
           = StringUtil.cleanQuotes(properties.get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY).toString());
-      final String format
-          = StringUtil.cleanQuotes(properties.get(DdlConfig.VALUE_FORMAT_PROPERTY).toString());
+      final Format format = Format.of(
+          StringUtil.cleanQuotes(properties.get(DdlConfig.VALUE_FORMAT_PROPERTY).toString()));
 
       final Optional<org.apache.avro.Schema> avroSchema;
-      if (format.equals(DataSource.AVRO_SERDE_NAME)) {
+      if (format == Format.AVRO) {
         // add avro schema
         final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
         statement.getElements().forEach(e -> schemaBuilder.field(
@@ -318,18 +318,16 @@ public class TestCaseNode {
     return builder.build();
   }
 
-  private static SerdeSupplier getSerdeSupplier(final String format) {
-    switch (format.toUpperCase()) {
-      case DataSource.AVRO_SERDE_NAME:
+  private static SerdeSupplier getSerdeSupplier(final Format format) {
+    switch (format) {
+      case AVRO:
         return new ValueSpecAvroSerdeSupplier();
-      case DataSource.JSON_SERDE_NAME:
+      case JSON:
         return new ValueSpecJsonSerdeSupplier();
-      case DataSource.DELIMITED_SERDE_NAME:
+      case DELIMITED:
         return new StringSerdeSupplier();
       default:
-        throw new InvalidFieldException("format", format.isEmpty()
-            ? "missing or empty"
-            : "unknown value: " + format);
+        throw new InvalidFieldException("format", "unsupported value: " + format);
     }
   }
 

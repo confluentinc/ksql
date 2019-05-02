@@ -20,7 +20,7 @@ import static org.hamcrest.Matchers.hasItems;
 import static org.junit.Assert.assertThat;
 
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.metastore.model.StructuredDataSource;
+import io.confluent.ksql.metastore.model.DataSource;
 import java.util.Collection;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -31,17 +31,17 @@ public class PostConditions {
 
   public static final PostConditions NONE = new PostConditions(hasItems(anything()));
 
-  private final Matcher<Iterable<StructuredDataSource<?>>> sourcesMatcher;
+  private final Matcher<Iterable<DataSource<?>>> sourcesMatcher;
 
   public PostConditions(
-      final Matcher<Iterable<StructuredDataSource<?>>> sourcesMatcher
+      final Matcher<Iterable<DataSource<?>>> sourcesMatcher
   ) {
     this.sourcesMatcher = Objects.requireNonNull(sourcesMatcher, "sourcesMatcher");
   }
 
   public void verify(final MetaStore metaStore) {
-    final Collection<StructuredDataSource<?>> values = metaStore
-        .getAllStructuredDataSources()
+    final Collection<DataSource<?>> values = metaStore
+        .getAllDataSources()
         .values();
 
     final String text = values.stream()

@@ -272,6 +272,10 @@ public abstract class AstVisitor<R, C> {
     return visitStatement(node, context);
   }
 
+  protected R visitInsertValues(final InsertValues node, final C context) {
+    return visitStatement(node, context);
+  }
+
   protected R visitDropTopic(final DropTopic node, final C context) {
     return visitStatement(node, context);
   }

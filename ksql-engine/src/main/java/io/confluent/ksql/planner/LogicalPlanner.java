@@ -20,13 +20,14 @@ import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.Analysis.Into;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
-import io.confluent.ksql.metastore.model.StructuredDataSource;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.planner.plan.AggregateNode;
+import io.confluent.ksql.planner.plan.DataSourceNode;
 import io.confluent.ksql.planner.plan.FilterNode;
 import io.confluent.ksql.planner.plan.KsqlBareOutputNode;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
@@ -34,12 +35,11 @@ import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.PlanNodeId;
 import io.confluent.ksql.planner.plan.ProjectNode;
-import io.confluent.ksql.planner.plan.StructuredDataSourceNode;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.util.ExpressionTypeManager;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
-import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicyFactory;
 import java.util.Map;
@@ -86,7 +86,7 @@ public class LogicalPlanner {
   }
 
   private OutputNode buildOutputNode(final PlanNode sourcePlanNode) {
-    final Schema inputSchema = sourcePlanNode.getSchema();
+    final KsqlSchema inputSchema = sourcePlanNode.getSchema();
     final Map<String, Object> intoProperties = analysis.getIntoProperties();
     final TimestampExtractionPolicy extractionPolicy =
         getTimestampExtractionPolicy(inputSchema, intoProperties);
@@ -106,7 +106,7 @@ public class LogicalPlanner {
     final Optional<Field> partitionByField = Optional
         .ofNullable(intoProperties.get(DdlConfig.PARTITION_BY_PROPERTY))
         .map(Object::toString)
-        .map(keyName -> SchemaUtil.getFieldByName(inputSchema, keyName)
+        .map(keyName -> inputSchema.findField(keyName)
             .orElseThrow(() -> new KsqlException(
                 "Column " + keyName + " does not exist in the result schema. "
                     + "Error in Partition By clause.")
@@ -132,7 +132,7 @@ public class LogicalPlanner {
   }
 
   private static TimestampExtractionPolicy getTimestampExtractionPolicy(
-      final Schema inputSchema,
+      final KsqlSchema inputSchema,
       final Map<String, Object> intoProperties) {
 
     return TimestampExtractionPolicyFactory.create(
@@ -152,14 +152,14 @@ public class LogicalPlanner {
         : null;
 
     Optional<String> keyField = Optional.empty();
-    SchemaBuilder aggregateSchema = SchemaBuilder.struct();
+    final SchemaBuilder aggregateSchema = SchemaBuilder.struct();
     for (int i = 0; i < analysis.getSelectExpressions().size(); i++) {
       final Expression expression = analysis.getSelectExpressions().get(i);
       final String alias = analysis.getSelectExpressionAlias().get(i);
 
       final Schema expressionType = expressionTypeManager.getExpressionSchema(expression);
 
-      aggregateSchema = aggregateSchema.field(alias, expressionType);
+      aggregateSchema.field(alias, expressionType);
 
       if (expression.equals(groupBy)) {
         keyField = Optional.of(alias);
@@ -169,7 +169,7 @@ public class LogicalPlanner {
     return new AggregateNode(
         new PlanNodeId("Aggregate"),
         sourcePlanNode,
-        aggregateSchema,
+        KsqlSchema.of(aggregateSchema.build()),
         keyField,
         analysis.getGroupByExpressions(),
         analysis.getWindowExpression(),
@@ -211,7 +211,7 @@ public class LogicalPlanner {
     return new ProjectNode(
         new PlanNodeId("Project"),
         sourcePlanNode,
-        projectionSchema.build(),
+        KsqlSchema.of(projectionSchema.build()),
         keyFieldName,
         analysis.getSelectExpressions()
     );
@@ -223,14 +223,14 @@ public class LogicalPlanner {
     return new FilterNode(new PlanNodeId("Filter"), sourcePlanNode, filterExpression);
   }
 
-  private StructuredDataSourceNode buildSourceNode() {
+  private DataSourceNode buildSourceNode() {
 
-    final Pair<StructuredDataSource, String> dataSource = analysis.getFromDataSource(0);
+    final Pair<DataSource<?>, String> dataSource = analysis.getFromDataSource(0);
     if (!(dataSource.left instanceof KsqlStream) && !(dataSource.left instanceof KsqlTable)) {
       throw new RuntimeException("Data source is not supported yet.");
     }
 
-    return new StructuredDataSourceNode(
+    return new DataSourceNode(
         new PlanNodeId("KsqlTopic"),
         dataSource.left,
         dataSource.right

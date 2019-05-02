@@ -41,7 +41,7 @@ import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
-import io.confluent.ksql.metastore.model.StructuredDataSource;
+import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
@@ -584,7 +584,7 @@ public class StatementExecutorTest extends EasyMockSupport {
     // Given:
     final DropStream mockDropStream = mockDropStream("foo");
     expect(mockMetaStore.getSource("foo"))
-        .andStubReturn(mock(StructuredDataSource.class));
+        .andStubReturn(mock(DataSource.class));
     expect(mockMetaStore.getQueriesWithSink("foo"))
         .andStubReturn(ImmutableSet.of("query-id"));
     expect(mockEngine.getMetaStore()).andStubReturn(mockMetaStore);

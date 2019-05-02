@@ -23,6 +23,8 @@ import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.hasEntry;
+import static org.hamcrest.Matchers.hasKey;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler;
@@ -573,6 +575,22 @@ public class KsqlConfigTest {
     assertThat(
         merged.getKsqlStreamConfigProps().get(StreamsConfig.TOPOLOGY_OPTIMIZATION),
         equalTo(StreamsConfig.NO_OPTIMIZATION));
+  }
+
+  @Test
+  public void shouldFilterProducerConfigs() {
+    // Given:
+    final Map<String, Object> configs = new HashMap<>();
+    configs.put(ProducerConfig.ACKS_CONFIG, "all");
+    configs.put(ProducerConfig.CLIENT_ID_CONFIG, null);
+    configs.put("not.a.config", "123");
+
+    final KsqlConfig ksqlConfig = new KsqlConfig(configs);
+
+    // When:
+    assertThat(ksqlConfig.getProducerClientConfigProps(), hasEntry(ProducerConfig.ACKS_CONFIG, "all"));
+    assertThat(ksqlConfig.getProducerClientConfigProps(), hasEntry(ProducerConfig.CLIENT_ID_CONFIG, null));
+    assertThat(ksqlConfig.getProducerClientConfigProps(), not(hasKey("not.a.config")));
   }
 
   @Test

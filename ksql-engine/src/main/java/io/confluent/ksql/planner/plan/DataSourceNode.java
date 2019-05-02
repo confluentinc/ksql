@@ -21,13 +21,15 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.metastore.model.KsqlTopic;
-import io.confluent.ksql.metastore.model.StructuredDataSource;
 import io.confluent.ksql.physical.AddTimestampColumn;
 import io.confluent.ksql.physical.KsqlQueryBuilder;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.streams.MaterializedFactory;
@@ -36,7 +38,6 @@ import io.confluent.ksql.structured.QueryContext;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import java.util.ArrayList;
 import java.util.List;
@@ -48,7 +49,6 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.kstream.Consumed;
@@ -63,7 +63,7 @@ import org.apache.kafka.streams.processor.TimestampExtractor;
 import org.apache.kafka.streams.state.KeyValueStore;
 
 @Immutable
-public class StructuredDataSourceNode
+public class DataSourceNode
     extends PlanNode {
 
   private static final ValueMapperWithKey<String, GenericRow, GenericRow>
@@ -89,35 +89,37 @@ public class StructuredDataSourceNode
   private static final String SOURCE_OP_NAME = "source";
   private static final String REDUCE_OP_NAME = "reduce";
 
-  private final StructuredDataSource<?> structuredDataSource;
-  private final Schema schema;
+  private final DataSource<?> dataSource;
+  private final KsqlSchema schema;
   private final KeyField keyField;
   private final Function<KsqlConfig, MaterializedFactory> materializedFactorySupplier;
 
   @JsonCreator
-  public StructuredDataSourceNode(
+  public DataSourceNode(
       @JsonProperty("id") final PlanNodeId id,
-      @JsonProperty("structuredDataSource") final StructuredDataSource structuredDataSource,
+      @JsonProperty("dataSource") final DataSource<?> dataSource,
       @JsonProperty("alias") final String alias
   ) {
-    this(id, structuredDataSource, alias, MaterializedFactory::create);
+    this(id, dataSource, alias, MaterializedFactory::create);
   }
 
   @VisibleForTesting
-  StructuredDataSourceNode(
+  DataSourceNode(
       final PlanNodeId id,
-      final StructuredDataSource structuredDataSource,
+      final DataSource<?> dataSource,
       final String alias,
       final Function<KsqlConfig, MaterializedFactory> materializedFactorySupplier
   ) {
-    super(id, structuredDataSource.getDataSourceType());
-    this.structuredDataSource = requireNonNull(structuredDataSource, "structuredDataSource");
-    this.schema = SchemaUtil.buildSchemaWithAlias(structuredDataSource.getSchema(), alias);
+    super(id, dataSource.getDataSourceType());
+    this.dataSource = requireNonNull(dataSource, "dataSource");
+    this.schema = dataSource.getSchema()
+      .withAlias(alias);
 
-    final Optional<String> keyFieldName = structuredDataSource.getKeyField().name()
-        .map(name -> SchemaUtil.buildAliasedFieldName(alias, name));
+    final Optional<String> keyFieldName = dataSource.getKeyField()
+        .withAlias(alias)
+        .name();
 
-    this.keyField = KeyField.of(keyFieldName, structuredDataSource.getKeyField().legacy())
+    this.keyField = KeyField.of(keyFieldName, dataSource.getKeyField().legacy())
         .validateKeyExistsIn(schema);
 
     this.materializedFactorySupplier =
@@ -125,11 +127,11 @@ public class StructuredDataSourceNode
   }
 
   public String getTopicName() {
-    return structuredDataSource.getKsqlTopicName();
+    return dataSource.getKsqlTopicName();
   }
 
   @Override
-  public Schema getSchema() {
+  public KsqlSchema getSchema() {
     return schema;
   }
 
@@ -138,13 +140,13 @@ public class StructuredDataSourceNode
     return keyField;
   }
 
-  public StructuredDataSource getStructuredDataSource() {
-    return structuredDataSource;
+  public DataSource<?> getDataSource() {
+    return dataSource;
   }
 
   @Override
   public int getPartitions(final KafkaTopicClient kafkaTopicClient) {
-    final String topicName = getStructuredDataSource().getKsqlTopic().getKafkaTopicName();
+    final String topicName = getDataSource().getKsqlTopic().getKafkaTopicName();
 
     return kafkaTopicClient.describeTopic(topicName)
         .partitions()
@@ -158,7 +160,7 @@ public class StructuredDataSourceNode
 
   @Override
   public <C, R> R accept(final PlanVisitor<C, R> visitor, final C context) {
-    return visitor.visitStructuredDataSourceNode(this, context);
+    return visitor.visitDataSourceNode(this, context);
   }
 
   @SuppressWarnings("unchecked")
@@ -169,23 +171,25 @@ public class StructuredDataSourceNode
     final TimestampExtractor timestampExtractor = getTimestampExtractionPolicy()
         .create(timeStampColumnIndex);
 
-    final KsqlTopicSerDe ksqlTopicSerDe = getStructuredDataSource()
+    final KsqlTopicSerDe ksqlTopicSerDe = getDataSource()
         .getKsqlTopic()
         .getKsqlTopicSerDe();
 
     final Serde<GenericRow> streamSerde = builder.buildGenericRowSerde(
         ksqlTopicSerDe,
-        SchemaUtil.removeImplicitRowTimeRowKeyFromSchema(getSchema()),
+        schema.withoutAlias()
+            .withoutImplicitFields()
+            .getSchema(),
         contextStacker.push(SOURCE_OP_NAME).getQueryContext()
     );
 
-    if (getDataSourceType() == StructuredDataSource.DataSourceType.KTABLE) {
-      final KsqlTable table = (KsqlTable) getStructuredDataSource();
+    if (getDataSourceType() == DataSourceType.KTABLE) {
+      final KsqlTable table = (KsqlTable) getDataSource();
       final QueryContext.Stacker reduceContextStacker = contextStacker.push(REDUCE_OP_NAME);
 
       final Serde<GenericRow> aggregateSerde = builder.buildGenericRowSerde(
           ksqlTopicSerDe,
-          getSchema(),
+          schema.getSchema(),
           reduceContextStacker.getQueryContext()
       );
 
@@ -199,7 +203,7 @@ public class StructuredDataSourceNode
           reduceContextStacker.getQueryContext()
       );
       return new SchemaKTable<>(
-          getSchema(),
+          schema,
           kTable,
           getKeyField(),
           new ArrayList<>(),
@@ -211,7 +215,7 @@ public class StructuredDataSourceNode
       );
     }
 
-    final KsqlStream stream = (KsqlStream) getStructuredDataSource();
+    final KsqlStream stream = (KsqlStream) getDataSource();
     final KStream kstream = createKStream(
         builder.getStreamsBuilder(),
         timestampExtractor,
@@ -293,7 +297,7 @@ public class StructuredDataSourceNode
       final StreamsBuilder builder,
       final TimestampExtractor timestampExtractor,
       final Serde<GenericRow> streamSerde) {
-    final KsqlStream ksqlStream = (KsqlStream) getStructuredDataSource();
+    final KsqlStream ksqlStream = (KsqlStream) getDataSource();
 
     if (ksqlStream.hasWindowedKey()) {
       return stream(builder, timestampExtractor, streamSerde,
@@ -316,7 +320,7 @@ public class StructuredDataSourceNode
         .withTimestampExtractor(timestampExtractor);
 
     return builder
-        .stream(getStructuredDataSource().getKsqlTopic().getKafkaTopicName(), consumed)
+        .stream(getDataSource().getKsqlTopic().getKafkaTopicName(), consumed)
         .mapValues(mapper)
         .transformValues(new AddTimestampColumn());
   }
@@ -343,7 +347,7 @@ public class StructuredDataSourceNode
     //    that the key was deleted. So we preserve these "tombstone" records by converting them
     //    to a not-null representation.
     // 5. Aggregate the KStream into a KTable using a custom aggregator that handles Optional.EMPTY
-    final KsqlTable ksqlTable = (KsqlTable) getStructuredDataSource();
+    final KsqlTable ksqlTable = (KsqlTable) getDataSource();
 
     if (ksqlTable.isWindowed()) {
       return table(
@@ -392,11 +396,11 @@ public class StructuredDataSourceNode
             materialized);
   }
 
-  public StructuredDataSource.DataSourceType getDataSourceType() {
-    return structuredDataSource.getDataSourceType();
+  public DataSourceType getDataSourceType() {
+    return dataSource.getDataSourceType();
   }
 
   private TimestampExtractionPolicy getTimestampExtractionPolicy() {
-    return structuredDataSource.getTimestampExtractionPolicy();
+    return dataSource.getTimestampExtractionPolicy();
   }
 }

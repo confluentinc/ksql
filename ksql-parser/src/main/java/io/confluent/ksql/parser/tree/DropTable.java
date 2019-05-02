@@ -21,7 +21,7 @@ import com.google.errorprone.annotations.Immutable;
 import java.util.Optional;
 
 @Immutable
-public class DropTable extends AbstractStreamDropStatement implements ExecutableDdlStatement {
+public class DropTable extends DropStatement implements ExecutableDdlStatement {
 
   public DropTable(
       final QualifiedName tableName,
@@ -38,6 +38,11 @@ public class DropTable extends AbstractStreamDropStatement implements Executable
       final boolean deleteTopic
   ) {
     super(location, tableName, ifExists, deleteTopic);
+  }
+
+  @Override
+  public DropStatement withoutDeleteClause() {
+    return new DropTable(getLocation(), getName(), getIfExists(), false);
   }
 
   @Override

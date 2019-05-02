@@ -20,17 +20,17 @@ import static org.apache.avro.Schema.createArray;
 import static org.apache.avro.Schema.createMap;
 import static org.apache.avro.Schema.createUnion;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Ordering;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
-import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -51,7 +51,9 @@ public final class SchemaUtil {
 
   public static final String ROWKEY_NAME = "ROWKEY";
   public static final String ROWTIME_NAME = "ROWTIME";
-  public static final int ROWKEY_NAME_INDEX = 1;
+
+  public static final int ROWTIME_INDEX = 0;
+  public static final int ROWKEY_INDEX = 1;
   private static final Map<Type, Supplier<SchemaBuilder>> typeToSchema
       = ImmutableMap.<Type, Supplier<SchemaBuilder>>builder()
       .put(String.class, () -> SchemaBuilder.string().optional())
@@ -65,7 +67,8 @@ public final class SchemaUtil {
       .put(double.class, SchemaBuilder::float64)
       .build();
 
-  private static final Ordering<Schema.Type> ARITHMETIC_TYPE_ORDERING = Ordering.explicit(
+  @VisibleForTesting
+  static final List<Schema.Type> ARITHMETIC_TYPES_LIST =
       ImmutableList.of(
           Schema.Type.INT8,
           Schema.Type.INT16,
@@ -73,7 +76,13 @@ public final class SchemaUtil {
           Schema.Type.INT64,
           Schema.Type.FLOAT32,
           Schema.Type.FLOAT64
-      )
+      );
+
+  private static final Set<Schema.Type> ARITHMETIC_TYPES =
+      ImmutableSet.copyOf(ARITHMETIC_TYPES_LIST);
+
+  private static final Ordering<Schema.Type> ARITHMETIC_TYPE_ORDERING = Ordering.explicit(
+      ARITHMETIC_TYPES_LIST
   );
 
   private static final NavigableMap<Schema.Type, Schema> TYPE_TO_SCHEMA =
@@ -110,7 +119,7 @@ public final class SchemaUtil {
 
   private static final char FIELD_NAME_DELIMITER = '.';
 
-  private static Map<Schema.Type, Function<Schema, String>> SCHEMA_TYPE_TO_SQL_TYPE =
+  private static final Map<Schema.Type, Function<Schema, String>> SCHEMA_TYPE_TO_SQL_TYPE =
       ImmutableMap.<Schema.Type, Function<Schema, String>>builder()
           .put(Schema.Type.INT32, s -> "INT")
           .put(Schema.Type.INT64, s -> "BIGINT")
@@ -162,7 +171,21 @@ public final class SchemaUtil {
 
   public static boolean matchFieldName(final Field field, final String fieldName) {
     return field.name().equals(fieldName)
-        || field.name().equals(fieldName.substring(fieldName.indexOf(FIELD_NAME_DELIMITER) + 1));
+        || field.name().equals(getFieldNameWithNoAlias(fieldName));
+  }
+
+  /**
+   * Check if the supplied {@code actual} field name matches the supplied {@code required}.
+   *
+   * <p>Note: if {@code required} is not aliases and {@code actual} is, then the alias is stripped
+   * from {@code actual} to allow a match.
+   * @param actual   the field name to be checked
+   * @param required the required field name.
+   * @return {@code true} on a match, {@code false} otherwise.
+   */
+  public static boolean isFieldName(final String actual, final String required) {
+    return required.equals(actual)
+        || required.equals(getFieldNameWithNoAlias(actual));
   }
 
   public static Field buildAliasedField(final String alias, final Field field) {
@@ -175,48 +198,6 @@ public final class SchemaUtil {
       return fieldName;
     }
     return prefix + fieldName;
-  }
-
-  public static Optional<Field> getFieldByName(final Schema schema, final String fieldName) {
-    return schema.fields()
-        .stream()
-        .filter(f -> matchFieldName(f, fieldName))
-        .findFirst();
-  }
-
-  public static int getFieldIndexByName(final Schema schema, final String fieldName) {
-    if (schema.fields() == null) {
-      return -1;
-    }
-    for (int i = 0; i < schema.fields().size(); i++) {
-      final Field field = schema.fields().get(i);
-      final int dotIndex = field.name().indexOf(FIELD_NAME_DELIMITER);
-      if (dotIndex == -1) {
-        if (field.name().equals(fieldName)) {
-          return i;
-        }
-      } else {
-        if (dotIndex < fieldName.length()) {
-          final String fieldNameWithDot =
-              fieldName.substring(0, dotIndex)
-                  + FIELD_NAME_DELIMITER
-                  + fieldName.substring(dotIndex + 1);
-          if (field.name().equals(fieldNameWithDot)) {
-            return i;
-          }
-        }
-      }
-
-    }
-    return -1;
-  }
-
-  public static Schema buildSchemaWithAlias(final Schema schema, final String alias) {
-    final SchemaBuilder newSchema = SchemaBuilder.struct().name(schema.name());
-    for (final Field field : schema.fields()) {
-      newSchema.field((buildAliasedFieldName(alias, field.name())), field.schema());
-    }
-    return newSchema.build();
   }
 
   public static String getSchemaTypeAsSqlType(final Schema.Type type) {
@@ -236,50 +217,6 @@ public final class SchemaUtil {
     }
 
     return castString;
-  }
-
-  public static Schema addImplicitRowTimeRowKeyToSchema(final Schema schema) {
-    final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
-    schemaBuilder.field(SchemaUtil.ROWTIME_NAME, Schema.OPTIONAL_INT64_SCHEMA);
-    schemaBuilder.field(SchemaUtil.ROWKEY_NAME, Schema.OPTIONAL_STRING_SCHEMA);
-    for (final Field field : schema.fields()) {
-      if (!field.name().equals(SchemaUtil.ROWKEY_NAME)
-          && !field.name().equals(SchemaUtil.ROWTIME_NAME)) {
-        schemaBuilder.field(field.name(), field.schema());
-      }
-    }
-    return schemaBuilder.build();
-  }
-
-  public static Schema removeImplicitRowTimeRowKeyFromSchema(final Schema schema) {
-    final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
-    for (final Field field : schema.fields()) {
-      String fieldName = field.name();
-      fieldName = fieldName.substring(fieldName.indexOf(FIELD_NAME_DELIMITER) + 1);
-      if (!fieldName.equalsIgnoreCase(SchemaUtil.ROWTIME_NAME)
-          && !fieldName.equalsIgnoreCase(SchemaUtil.ROWKEY_NAME)) {
-        schemaBuilder.field(fieldName, field.schema());
-      }
-    }
-    return schemaBuilder.build();
-  }
-
-  public static Set<Integer> getRowTimeRowKeyIndexes(final Schema schema) {
-    final Set<Integer> indexSet = new HashSet<>();
-    for (int i = 0; i < schema.fields().size(); i++) {
-      final Field field = schema.fields().get(i);
-      if (field.name().equalsIgnoreCase(SchemaUtil.ROWTIME_NAME)
-          || field.name().equalsIgnoreCase(SchemaUtil.ROWKEY_NAME)) {
-        indexSet.add(i);
-      }
-    }
-    return indexSet;
-  }
-
-  public static String getSchemaDefinitionString(final Schema schema) {
-    return schema.fields().stream()
-        .map(field -> field.name() + " : " + getSqlTypeName(field.schema()))
-        .collect(Collectors.joining(", ", "[", "]"));
   }
 
   public static String getSqlTypeName(final Schema schema) {
@@ -365,40 +302,16 @@ public final class SchemaUtil {
 
   public static String getFieldNameWithNoAlias(final Field field) {
     final String name = field.name();
-    final int idx = name.indexOf(FIELD_NAME_DELIMITER);
+    return getFieldNameWithNoAlias(name);
+  }
+
+  public static String getFieldNameWithNoAlias(final String fieldName) {
+    final int idx = fieldName.indexOf(FIELD_NAME_DELIMITER);
     if (idx < 0) {
-      return name;
+      return fieldName;
     }
 
-    return name.substring(idx + 1);
-  }
-
-  public static boolean areEqualSchemas(final Schema schema1, final Schema schema2) {
-    if (schema1.fields().size() != schema2.fields().size()) {
-      return false;
-    }
-    for (int i = 0; i < schema1.fields().size(); i++) {
-      if (!schema1.fields().get(i).equals(schema2.fields().get(i))) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  public static int getIndexInSchema(final String fieldName, final Schema schema) {
-    final List<Field> fields = schema.fields();
-    for (int i = 0; i < fields.size(); i++) {
-      final Field field = fields.get(i);
-      if (field.name().equals(fieldName)) {
-        return i;
-      }
-    }
-    throw new KsqlException(
-        "Couldn't find field with name="
-            + fieldName
-            + " in schema. fields="
-            + fields
-    );
+    return fieldName.substring(idx + 1);
   }
 
   public static Schema resolveBinaryOperatorResultType(final Schema.Type left,
@@ -414,11 +327,8 @@ public final class SchemaUtil {
     return TYPE_TO_SCHEMA.ceilingEntry(ARITHMETIC_TYPE_ORDERING.max(left, right)).getValue();
   }
 
-  static boolean isNumber(final Schema.Type type) {
-    return type == Schema.Type.INT32
-        || type == Schema.Type.INT64
-        || type == Schema.Type.FLOAT64
-        ;
+  public static boolean isNumber(final Schema.Type type) {
+    return ARITHMETIC_TYPES.contains(type);
   }
 
   private static SchemaBuilder handleParametrizedType(final Type type) {

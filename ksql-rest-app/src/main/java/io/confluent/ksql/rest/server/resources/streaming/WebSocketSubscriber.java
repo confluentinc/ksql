@@ -18,11 +18,11 @@ package io.confluent.ksql.rest.server.resources.streaming;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.rest.util.EntityUtil;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
 import java.io.IOException;
 import java.util.Collection;
 import javax.websocket.CloseReason.CloseCodes;
 import javax.websocket.Session;
-import org.apache.kafka.connect.data.Schema;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -90,7 +90,7 @@ class WebSocketSubscriber<T> implements Flow.Subscriber<Collection<T>>, AutoClos
   }
 
   @Override
-  public void onSchema(final Schema schema) {
+  public void onSchema(final KsqlSchema schema) {
     try {
       session.getBasicRemote().sendText(
           mapper.writeValueAsString(EntityUtil.buildSourceSchemaEntity(schema))

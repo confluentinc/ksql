@@ -78,6 +78,11 @@ public final class ImmutableTester {
   }
 
   public void test(final Class<?> typeUnderTest) {
+    if (typeUnderTest.isEnum() || typeUnderTest.isInterface()) {
+      // Implicitly immutable
+      return;
+    }
+
     final String className = typeUnderTest.getSimpleName();
 
     final Predicate<Class<?>> knownImmutable = knownImmutables

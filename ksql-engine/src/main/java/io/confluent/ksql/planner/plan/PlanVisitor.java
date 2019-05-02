@@ -29,7 +29,7 @@ public class PlanVisitor<C, R> {
     return visitPlan(node, context);
   }
 
-  protected R visitStructuredDataSourceNode(final StructuredDataSourceNode node, final C context) {
+  protected R visitDataSourceNode(final DataSourceNode node, final C context) {
     return visitPlan(node, context);
   }
 

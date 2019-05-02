@@ -18,13 +18,14 @@ package io.confluent.ksql.util;
 import static java.util.Objects.requireNonNull;
 
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.metastore.model.StructuredDataSource;
+import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.parser.SqlBaseBaseVisitor;
 import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.Node;
 import io.confluent.ksql.parser.tree.NodeLocation;
 import io.confluent.ksql.parser.tree.Table;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Optional;
@@ -33,14 +34,13 @@ import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
 
 public class DataSourceExtractor {
 
   private final MetaStore metaStore;
 
-  private Schema joinLeftSchema;
-  private Schema joinRightSchema;
+  private KsqlSchema joinLeftSchema;
+  private KsqlSchema joinRightSchema;
 
   private String fromAlias;
   private String fromName;
@@ -163,7 +163,7 @@ public class DataSourceExtractor {
       final AliasedRelation left = (AliasedRelation) visit(context.left);
       leftAlias = left.getAlias();
       leftName = ((Table) left.getRelation()).getName().getSuffix();
-      final StructuredDataSource
+      final DataSource
           leftDataSource =
           metaStore.getSource(((Table) left.getRelation()).getName().getSuffix());
       if (leftDataSource == null) {
@@ -175,7 +175,7 @@ public class DataSourceExtractor {
       final AliasedRelation right = (AliasedRelation) visit(context.right);
       rightAlias = right.getAlias();
       rightName = ((Table) right.getRelation()).getName().getSuffix();
-      final StructuredDataSource
+      final DataSource
           rightDataSource =
           metaStore.getSource(((Table) right.getRelation()).getName().getSuffix());
       if (rightDataSource == null) {

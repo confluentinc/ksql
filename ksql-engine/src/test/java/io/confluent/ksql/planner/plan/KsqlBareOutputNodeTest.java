@@ -19,24 +19,26 @@ import static io.confluent.ksql.planner.plan.PlanTestUtil.verifyProcessorNode;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableSet;
+import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.physical.KsqlQueryBuilder;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.structured.QueryContext;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.testutils.AnalysisTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.QueryIdGenerator;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -69,6 +71,8 @@ public class KsqlBareOutputNodeTest {
 
   @Mock
   private KsqlQueryBuilder ksqlStreamBuilder;
+  @Mock
+  private FunctionRegistry functionRegistry;
 
   @Before
   public void before() {
@@ -77,6 +81,7 @@ public class KsqlBareOutputNodeTest {
     when(ksqlStreamBuilder.getKsqlConfig()).thenReturn(new KsqlConfig(Collections.emptyMap()));
     when(ksqlStreamBuilder.getStreamsBuilder()).thenReturn(builder);
     when(ksqlStreamBuilder.getProcessingLogContext()).thenReturn(ProcessingLogContext.create());
+    when(ksqlStreamBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
     when(ksqlStreamBuilder.buildNodeContext(any())).thenAnswer(inv ->
         new QueryContext.Stacker(queryId)
             .push(inv.getArgument(0).toString()));
@@ -117,10 +122,11 @@ public class KsqlBareOutputNodeTest {
 
   @Test
   public void shouldCreateCorrectSchema() {
-    final Schema schema = stream.getSchema();
-    assertThat(schema.fields(), equalTo(Arrays.asList(new Field("COL0", 0, Schema.OPTIONAL_INT64_SCHEMA),
+    final KsqlSchema schema = stream.getSchema();
+    assertThat(schema.fields(), contains(
+        new Field("COL0", 0, Schema.OPTIONAL_INT64_SCHEMA),
         new Field("COL2", 1, Schema.OPTIONAL_STRING_SCHEMA),
-        new Field("COL3", 2, Schema.OPTIONAL_FLOAT64_SCHEMA))));
+        new Field("COL3", 2, Schema.OPTIONAL_FLOAT64_SCHEMA)));
   }
 
   @Test

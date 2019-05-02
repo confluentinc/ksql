@@ -68,13 +68,13 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.Struct;
 import io.confluent.ksql.parser.tree.Type.SqlType;
 import io.confluent.ksql.parser.tree.WithinExpression;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Schema;
@@ -117,20 +117,26 @@ public class KsqlParserTest {
         .optional().build();
 
     final Schema itemInfoSchema = SchemaBuilder.struct()
-        .field("ITEMID", Schema.INT64_SCHEMA)
-        .field("NAME", Schema.STRING_SCHEMA)
+        .field("ITEMID", Schema.OPTIONAL_INT64_SCHEMA)
+        .field("NAME", Schema.OPTIONAL_STRING_SCHEMA)
         .field("CATEGORY", categorySchema)
         .optional().build();
 
     final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
     final Schema schemaBuilderOrders = schemaBuilder
-        .field("ORDERTIME", Schema.INT64_SCHEMA)
+        .field("ORDERTIME", Schema.OPTIONAL_INT64_SCHEMA)
         .field("ORDERID", Schema.OPTIONAL_INT64_SCHEMA)
         .field("ITEMID", Schema.OPTIONAL_STRING_SCHEMA)
         .field("ITEMINFO", itemInfoSchema)
-        .field("ORDERUNITS", Schema.INT32_SCHEMA)
-        .field("ARRAYCOL",SchemaBuilder.array(Schema.FLOAT64_SCHEMA).optional().build())
-        .field("MAPCOL", SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.FLOAT64_SCHEMA).optional().build())
+        .field("ORDERUNITS", Schema.OPTIONAL_INT32_SCHEMA)
+        .field("ARRAYCOL",SchemaBuilder
+            .array(Schema.OPTIONAL_FLOAT64_SCHEMA)
+            .optional()
+            .build())
+        .field("MAPCOL", SchemaBuilder
+            .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_FLOAT64_SCHEMA)
+            .optional()
+            .build())
         .field("ADDRESS", addressSchema)
         .build();
 
@@ -141,7 +147,7 @@ public class KsqlParserTest {
     final KsqlStream ksqlStreamOrders = new KsqlStream<>(
         "sqlexpression",
         "ADDRESS",
-        schemaBuilderOrders,
+        KsqlSchema.of(schemaBuilderOrders),
         KeyField.of("ORDERTIME", schemaBuilderOrders.field("ORDERTIME")),
         new MetadataTimestampExtractionPolicy(),
         ksqlTopicOrders,
@@ -156,7 +162,7 @@ public class KsqlParserTest {
     final KsqlTable<String> ksqlTableOrders = new KsqlTable<>(
         "sqlexpression",
         "ITEMID",
-        itemInfoSchema,
+        KsqlSchema.of(itemInfoSchema),
         KeyField.of("ITEMID", itemInfoSchema.field("ITEMID")),
         new MetadataTimestampExtractionPolicy(),
         ksqlTopicItems,
@@ -1203,6 +1209,17 @@ public class KsqlParserTest {
     // Then:
     final SearchedCaseExpression searchedCaseExpression = getSearchedCaseExpressionFromCsas(statement);
     assertThat(searchedCaseExpression.getDefaultValue().isPresent(), equalTo(false));
+  }
+
+  // https://github.com/confluentinc/ksql/issues/2287
+  @Test
+  public void shouldThrowHelpfulErrorMessageIfKeyFieldNotQuoted() {
+    // Then:
+    expectedException.expect(ParseFailedException.class);
+    expectedException.expectMessage("mismatched input 'ID'");
+
+    // When:
+    KsqlParserTestUtil.buildSingleAst("CREATE STREAM S (ID INT) WITH (KEY=ID);", metaStore);
   }
 
   private static SearchedCaseExpression getSearchedCaseExpressionFromCsas(final Statement statement) {

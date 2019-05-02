@@ -181,6 +181,10 @@ public class TestKsqlRestApp extends ExternalResource {
     return ClientBuilder.newBuilder().register(jsonProvider).build();
   }
 
+  public ServiceContext getServiceContext() {
+    return serviceContext.get();
+  }
+
   @Override
   protected void before() {
     if (restServer != null) {

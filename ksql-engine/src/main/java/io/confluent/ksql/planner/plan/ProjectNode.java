@@ -23,6 +23,7 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.physical.KsqlQueryBuilder;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.util.KsqlException;
@@ -31,13 +32,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import javax.annotation.concurrent.Immutable;
-import org.apache.kafka.connect.data.Schema;
 
 @Immutable
 public class ProjectNode extends PlanNode {
 
   private final PlanNode source;
-  private final Schema schema;
+  private final KsqlSchema schema;
   private final List<Expression> projectExpressions;
   private final KeyField keyField;
 
@@ -45,7 +45,7 @@ public class ProjectNode extends PlanNode {
   public ProjectNode(
       @JsonProperty("id") final PlanNodeId id,
       @JsonProperty("source") final PlanNode source,
-      @JsonProperty("schema") final Schema schema,
+      @JsonProperty("schema") final KsqlSchema schema,
       @JsonProperty("key") final Optional<String> keyFieldName,
       @JsonProperty("projectExpressions") final List<Expression> projectExpressions
   ) {
@@ -76,7 +76,7 @@ public class ProjectNode extends PlanNode {
   }
 
   @Override
-  public Schema getSchema() {
+  public KsqlSchema getSchema() {
     return schema;
   }
 

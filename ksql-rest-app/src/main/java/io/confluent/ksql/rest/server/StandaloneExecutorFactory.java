@@ -32,7 +32,7 @@ import io.confluent.ksql.services.DefaultServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.statement.InjectorChain;
-import io.confluent.ksql.topic.DefaultTopicInjector;
+import io.confluent.ksql.topic.TopicCreateInjector;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.version.metrics.KsqlVersionCheckerAgent;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
@@ -134,7 +134,7 @@ public final class StandaloneExecutorFactory {
         (ec, sc) -> InjectorChain.of(
             new DefaultSchemaInjector(
                 new SchemaRegistryTopicSchemaSupplier(sc.getSchemaRegistryClient())),
-            new DefaultTopicInjector(ec)
+            new TopicCreateInjector(ec)
         )
     );
   }

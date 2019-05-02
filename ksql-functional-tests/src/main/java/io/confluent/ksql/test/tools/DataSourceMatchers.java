@@ -17,25 +17,25 @@ package io.confluent.ksql.test.tools;
 
 import static org.hamcrest.Matchers.is;
 
-import io.confluent.ksql.metastore.model.StructuredDataSource;
+import io.confluent.ksql.metastore.model.DataSource;
 import java.util.Optional;
 import org.hamcrest.Description;
 import org.hamcrest.FeatureMatcher;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeDiagnosingMatcher;
 
-public final class StructuredDataSourceMatchers {
+public final class DataSourceMatchers {
 
-  private StructuredDataSourceMatchers() {
+  private DataSourceMatchers() {
   }
 
-  static Matcher<StructuredDataSource<?>> hasName(final String name) {
-    return new FeatureMatcher<StructuredDataSource<?>, String>(
+  static Matcher<DataSource<?>> hasName(final String name) {
+    return new FeatureMatcher<DataSource<?>, String>(
         is(name),
         "source with name",
         "name") {
       @Override
-      protected String featureValueOf(final StructuredDataSource<?> actual) {
+      protected String featureValueOf(final DataSource<?> actual) {
         return actual.getName();
       }
     };

@@ -21,7 +21,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.NullNode;
-import io.confluent.ksql.serde.DataSource;
+import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.test.serde.SerdeSupplier;
 import io.confluent.ksql.test.serde.avro.ValueSpecAvroSerdeSupplier;
 import io.confluent.ksql.test.serde.json.ValueSpecJsonSerdeSupplier;
@@ -63,7 +63,7 @@ class TopicNode {
     return new Topic(
         name,
         schema,
-        getSerdeSupplier(format),
+        getSerdeSupplier(Format.of(format)),
         numPartitions,
         replicas
     );
@@ -83,18 +83,16 @@ class TopicNode {
     }
   }
 
-  private static SerdeSupplier getSerdeSupplier(final String format) {
-    switch (format.toUpperCase()) {
-      case DataSource.AVRO_SERDE_NAME:
+  private static SerdeSupplier getSerdeSupplier(final Format format) {
+    switch (format) {
+      case AVRO:
         return new ValueSpecAvroSerdeSupplier();
-      case DataSource.JSON_SERDE_NAME:
+      case JSON:
         return new ValueSpecJsonSerdeSupplier();
-      case DataSource.DELIMITED_SERDE_NAME:
+      case DELIMITED:
         return new StringSerdeSupplier();
       default:
-        throw new InvalidFieldException("format", format.isEmpty()
-            ? "missing or empty"
-            : "unknown value: " + format);
+        throw new InvalidFieldException("format", "unsupported value: " + format);
     }
   }
 }

@@ -33,7 +33,8 @@ import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
-import io.confluent.ksql.serde.DataSource.DataSourceSerDe;
+import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.test.util.secure.ClientTrustStore;
 import io.confluent.ksql.test.util.secure.Credentials;
@@ -98,6 +99,16 @@ public class RestApiTest {
                   prefixedResource(GROUP, "_confluent-ksql-default_transient_"),
                   ops(ALL)
               )
+              .withAcl(
+                  NORMAL_USER,
+                  prefixedResource(GROUP, "_confluent-ksql-default_query"),
+                  ops(ALL)
+              )
+              .withAcl(
+                  NORMAL_USER,
+                  resource(TOPIC, "X"),
+                  ops(ALL)
+              )
       )
       .build();
 
@@ -118,7 +129,7 @@ public class RestApiTest {
   public static void setUpClass() {
     TEST_HARNESS.ensureTopics(PAGE_VIEW_TOPIC);
 
-    TEST_HARNESS.produceRows(PAGE_VIEW_TOPIC, new PageViewDataProvider(), DataSourceSerDe.JSON);
+    TEST_HARNESS.produceRows(PAGE_VIEW_TOPIC, new PageViewDataProvider(), Format.JSON);
 
     RestIntegrationTestUtil.createStreams(REST_APP, PAGE_VIEW_STREAM, PAGE_VIEW_TOPIC);
   }
@@ -169,6 +180,27 @@ public class RestApiTest {
 
     // Then:
     assertThat(messages, hasSize(is(LIMIT)));
+  }
+
+  @Test
+  public void shouldDeleteTopic() {
+    try (final ServiceContext serviceContext = REST_APP.getServiceContext()) {
+      // Given:
+      RestIntegrationTestUtil.makeKsqlRequest(
+          REST_APP,
+          REST_APP.buildKsqlClient(),
+          "CREATE STREAM X AS SELECT * FROM " + PAGE_VIEW_STREAM + ";");
+      assertThat("Expected topic X to be created", serviceContext.getTopicClient().isTopicExists("X"));
+
+      // When:
+      RestIntegrationTestUtil.makeKsqlRequest(
+          REST_APP,
+          REST_APP.buildKsqlClient(),
+          "TERMINATE QUERY CSAS_X_0; DROP STREAM X DELETE TOPIC;");
+
+      // Then:
+      assertThat("Expected topic X to be deleted", !serviceContext.getTopicClient().isTopicExists("X"));
+    }
   }
 
   private static List<String> makeStreamingRequest(

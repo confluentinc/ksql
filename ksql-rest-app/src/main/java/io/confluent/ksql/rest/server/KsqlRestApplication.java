@@ -33,7 +33,7 @@ import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.CreateStream;
-import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.RegisterTopic;
@@ -62,7 +62,8 @@ import io.confluent.ksql.services.DefaultServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.InjectorChain;
-import io.confluent.ksql.topic.DefaultTopicInjector;
+import io.confluent.ksql.topic.TopicCreateInjector;
+import io.confluent.ksql.topic.TopicDeleteInjector;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Version;
@@ -339,7 +340,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         ksqlConfig, KsqlRestConfig.COMMAND_TOPIC_SUFFIX);
     KsqlInternalTopicUtils.ensureTopic(commandTopic, ksqlConfig, serviceContext.getTopicClient());
 
-    final Map<String, Expression> commandTopicProperties = new HashMap<>();
+    final Map<String, Literal> commandTopicProperties = new HashMap<>();
     commandTopicProperties.put(
         DdlConfig.VALUE_FORMAT_PROPERTY,
         new StringLiteral("json")
@@ -411,7 +412,8 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         (ec, sc) -> InjectorChain.of(
             new DefaultSchemaInjector(
                 new SchemaRegistryTopicSchemaSupplier(sc.getSchemaRegistryClient())),
-            new DefaultTopicInjector(ec)
+            new TopicCreateInjector(ec),
+            new TopicDeleteInjector(ec)
         ));
 
     final Optional<String> processingLogTopic =

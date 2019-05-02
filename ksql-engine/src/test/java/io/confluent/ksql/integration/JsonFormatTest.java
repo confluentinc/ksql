@@ -17,7 +17,6 @@ package io.confluent.ksql.integration;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.hasSize;
 
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.GenericRow;
@@ -28,6 +27,7 @@ import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.services.DefaultServiceContext;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
@@ -36,7 +36,6 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.OrderDataProvider;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.TopicConsumer;
 import io.confluent.ksql.util.TopicProducer;
 import java.util.Arrays;
@@ -49,7 +48,6 @@ import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
-import org.apache.kafka.test.TestUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -129,7 +127,7 @@ public class JsonFormatTest {
     final Map<String, GenericRow> records = new HashMap<>();
     records.put("1", messageRow);
 
-    topicProducer.produceInputData(messageLogTopic, records, messageSchema);
+    topicProducer.produceInputData(messageLogTopic, records, KsqlSchema.of(messageSchema));
   }
 
   private void execInitCreateStreamQueries() {
@@ -181,15 +179,12 @@ public class JsonFormatTest {
 
     executePersistentQuery(queryString);
 
-    final Schema resultSchema = SchemaUtil
-        .removeImplicitRowTimeRowKeyFromSchema(metaStore.getSource(streamName).getSchema());
-
     final Map<String, GenericRow> expectedResults = new HashMap<>();
     expectedResults.put("8", new GenericRow(Arrays.asList(1500962514814L,
         "2017-07-24 23:01:54.814",
         1500962514814L)));
 
-    final Map<String, GenericRow> results = readNormalResults(streamName, resultSchema, expectedResults.size());
+    final Map<String, GenericRow> results = readNormalResults(streamName, expectedResults.size());
 
     assertThat(results, equalTo(expectedResults));
   }
@@ -203,13 +198,10 @@ public class JsonFormatTest {
 
     executePersistentQuery(queryString);
 
-    final Schema resultSchema = SchemaUtil
-            .removeImplicitRowTimeRowKeyFromSchema(metaStore.getSource(streamName).getSchema());
-
     final Map<String, GenericRow> expectedResults = new HashMap<>();
     expectedResults.put("1", new GenericRow(Collections.singletonList("aws")));
 
-    final Map<String, GenericRow> results = readNormalResults(streamName, resultSchema, expectedResults.size());
+    final Map<String, GenericRow> results = readNormalResults(streamName, expectedResults.size());
 
     assertThat(results, equalTo(expectedResults));
   }
@@ -223,13 +215,10 @@ public class JsonFormatTest {
 
     executePersistentQuery(queryString);
 
-    final Schema resultSchema = SchemaUtil
-            .removeImplicitRowTimeRowKeyFromSchema(metaStore.getSource(streamName).getSchema());
-
     final Map<String, GenericRow> expectedResults = new HashMap<>();
     expectedResults.put("1", new GenericRow(Collections.singletonList("first")));
 
-    final Map<String, GenericRow> results = readNormalResults(streamName, resultSchema, expectedResults.size());
+    final Map<String, GenericRow> results = readNormalResults(streamName, expectedResults.size());
 
     assertThat(results, equalTo(expectedResults));
   }
@@ -242,7 +231,15 @@ public class JsonFormatTest {
     queryId = ((PersistentQueryMetadata)queryMetadata).getQueryId();
   }
 
-  private Map<String, GenericRow> readNormalResults(final String resultTopic, final Schema resultSchema, final int expectedNumMessages) {
+  private Map<String, GenericRow> readNormalResults(
+      final String resultTopic,
+      final int expectedNumMessages
+  ) {
+    final KsqlSchema resultSchema = metaStore
+        .getSource(streamName)
+        .getSchema()
+        .withoutImplicitFields();
+
     return topicConsumer.readResults(resultTopic, resultSchema, expectedNumMessages, new StringDeserializer());
   }
 

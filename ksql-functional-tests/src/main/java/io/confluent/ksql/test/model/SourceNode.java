@@ -18,10 +18,10 @@ package io.confluent.ksql.test.model;
 import static org.hamcrest.Matchers.allOf;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.metastore.model.MetaStoreMatchers;
-import io.confluent.ksql.metastore.model.StructuredDataSource;
 import io.confluent.ksql.schema.ksql.LogicalSchemas;
 import io.confluent.ksql.schema.ksql.TypeContextUtil;
 import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;
@@ -38,7 +38,7 @@ import org.hamcrest.core.IsInstanceOf;
 class SourceNode {
 
   private final String name;
-  private final Optional<Class<? extends StructuredDataSource>> type;
+  private final Optional<Class<? extends DataSource>> type;
   private final Optional<KeyFieldNode> keyField;
   private final Optional<Schema> valueSchema;
 
@@ -61,24 +61,24 @@ class SourceNode {
   }
 
   @SuppressWarnings("unchecked")
-  Matcher<? super StructuredDataSource<?>> build() {
+  Matcher<? super DataSource<?>> build() {
     if (name.isEmpty()) {
       throw new InvalidFieldException("name", "missing or empty");
     }
 
-    final Matcher<StructuredDataSource<?>> nameMatcher = MetaStoreMatchers
+    final Matcher<DataSource<?>> nameMatcher = MetaStoreMatchers
         .hasName(name);
 
     final Matcher<Object> typeMatcher = type
         .map(IsInstanceOf::instanceOf)
         .orElse(null);
 
-    final Matcher<StructuredDataSource<?>> keyFieldMatcher = keyField
+    final Matcher<DataSource<?>> keyFieldMatcher = keyField
         .map(KeyFieldNode::build)
         .map(MetaStoreMatchers::hasKeyField)
         .orElse(null);
 
-    final Matcher<StructuredDataSource<?>> valueSchemaMatcher = valueSchema
+    final Matcher<DataSource<?>> valueSchemaMatcher = valueSchema
         .map(Matchers::is)
         .map(MetaStoreMatchers::hasValueSchema)
         .orElse(null);
@@ -91,7 +91,7 @@ class SourceNode {
     return allOf(matchers);
   }
 
-  private static Class<? extends StructuredDataSource> toType(final String type) {
+  private static Class<? extends DataSource> toType(final String type) {
     switch (type) {
       case "STREAM":
         return KsqlStream.class;

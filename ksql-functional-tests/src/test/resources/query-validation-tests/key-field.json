@@ -796,46 +796,38 @@
     },
     {
       "name": "table | initially null | no key change | - | -",
-      "comments": [
-        "Note: The INTERMEDIATE table is there to create a source where the key field is set to null"
-      ],
       "statements": [
-        "CREATE TABLE INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
-        "CREATE TABLE INTERMEDIATE AS SELECT bar FROM INPUT;",
-        "CREATE TABLE OUTPUT AS SELECT * FROM INTERMEDIATE;"
+        "CREATE TABLE INPUT (bar INT) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT * FROM INPUT;"
       ],
       "inputs": [
-        {"topic": "INTERMEDIATE", "key": "x", "value": {"bar": 1}}
+        {"topic": "input_topic", "key": "x", "value": {"bar": 1}}
       ],
       "outputs": [
         {"topic": "OUTPUT", "key": "x", "value": {"BAR": 1}}
       ],
       "post": {
         "sources": [
-          {"name": "INTERMEDIATE", "type": "table", "keyField": {"name": null, "legacyName": null}},
+          {"name": "INPUT", "type": "table", "keyField": {"name": null, "legacyName": null}},
           {"name": "OUTPUT", "type": "table", "keyField": {"name": null, "legacyName": null}}
         ]
       }
     },
     {
       "name": "table | initially null | group by (-) | key in value | no aliasing",
-      "comments": [
-        "Note: The INTERMEDIATE table is there to create a source where the key field is null"
-      ],
       "statements": [
-        "CREATE TABLE INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='bar', value_format='JSON');",
-        "CREATE TABLE INTERMEDIATE AS SELECT foo FROM INPUT;",
-        "CREATE TABLE OUTPUT AS SELECT foo, COUNT(*) FROM INTERMEDIATE GROUP BY foo;"
+        "CREATE TABLE INPUT (foo INT) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT foo, COUNT(*) FROM INPUT GROUP BY foo;"
       ],
       "inputs": [
-        {"topic": "INTERMEDIATE", "key": "x", "value": {"foo": 1, "bar": 2}}
+        {"topic": "input_topic", "key": "x", "value": {"foo": 1}}
       ],
       "outputs": [
         {"topic": "OUTPUT", "key": "1", "value": {"FOO": 1, "KSQL_COL_1": 1}}
       ],
       "post": {
         "sources": [
-          {"name": "INTERMEDIATE", "type": "table", "keyField": {"name": null, "legacyName": null}},
+          {"name": "INPUT", "type": "table", "keyField": {"name": null, "legacyName": null}},
           {"name": "OUTPUT", "type": "table", "keyField": {"name": "FOO", "legacyName": "KSQL_INTERNAL_COL_0", "legacySchema": "STRING"}}
         ]
       }
@@ -847,13 +839,11 @@
         "and test the key fields of the entities added to the metastore, to ensure backwards compatibility is maintained",
         "In this case, the code previously incorrectly set the keyField to 'KSQL_INTERNAL_COL_0' rather than the correct 'FOO'",
         "This would result in an unnecessary repartition step being added to the DOWNSTREAM query.",
-        "New versions of the code must not remove this unnecessary step for existing queries, as that would break backwards compatibility",
-        "Note: The INTERMEDIATE table is there to create a source where the key field is set to null"
+        "New versions of the code must not remove this unnecessary step for existing queries, as that would break backwards compatibility"
       ],
       "statements": [
-        "CREATE TABLE INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='bar', value_format='JSON');",
-        "CREATE TABLE INTERMEDIATE AS SELECT foo FROM INPUT;",
-        "CREATE TABLE OUTPUT AS SELECT foo, COUNT(*) FROM INTERMEDIATE GROUP BY foo;",
+        "CREATE TABLE INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT foo, COUNT(*) FROM INPUT GROUP BY foo;",
         "CREATE TABLE DOWNSTREAM AS SELECT foo, COUNT(*) FROM OUTPUT GROUP BY foo;"
       ],
       "properties": {
@@ -875,23 +865,21 @@
     {
       "name": "table | initially null | group by (-) | key in value | aliasing",
       "comments": [
-        "Note: The INTERMEDIATE table is there to create a source where the key field is set to null",
-        "note: GROUP BY takes the name of the field from the source schema."
+        "Note: GROUP BY takes the name of the field from the source schema."
       ],
       "statements": [
-        "CREATE TABLE INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='bar', value_format='JSON');",
-        "CREATE TABLE INTERMEDIATE AS SELECT foo FROM INPUT;",
-        "CREATE TABLE OUTPUT AS SELECT foo AS aliased, COUNT(*) FROM INTERMEDIATE GROUP BY foo;"
+        "CREATE TABLE INPUT (foo INT) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT foo AS aliased, COUNT(*) FROM INPUT GROUP BY foo;"
       ],
       "inputs": [
-        {"topic": "INTERMEDIATE", "key": "x", "value": {"foo": 1, "bar": 2}}
+        {"topic": "input_topic", "key": "x", "value": {"foo": 1}}
       ],
       "outputs": [
         {"topic": "OUTPUT", "key": "1", "value": {"ALIASED": 1, "KSQL_COL_1": 1}}
       ],
       "post": {
         "sources": [
-          {"name": "INTERMEDIATE", "type": "table", "keyField": {"name": null, "legacyName": null}},
+          {"name": "INPUT", "type": "table", "keyField": {"name": null, "legacyName": null}},
           {"name": "OUTPUT", "type": "table", "keyField": {"name": "ALIASED", "legacyName": "KSQL_INTERNAL_COL_0", "legacySchema": "STRING"}}
         ]
       }
@@ -903,13 +891,11 @@
         "and test the key fields of the entities added to the metastore, to ensure backwards compatibility is maintained",
         "In this case, the code previously incorrectly set the keyField to 'KSQL_INTERNAL_COL_0' rather than the correct 'ALIASED'",
         "This would result in an unnecessary repartition step being added to the DOWNSTREAM query.",
-        "New versions of the code must not remove this unnecessary step for existing queries, as that would break backwards compatibility",
-        "Note: The INTERMEDIATE table is there to create a source where the key field is set to null"
+        "New versions of the code must not remove this unnecessary step for existing queries, as that would break backwards compatibility"
       ],
       "statements": [
-        "CREATE TABLE INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='bar', value_format='JSON');",
-        "CREATE TABLE INTERMEDIATE AS SELECT foo FROM INPUT;",
-        "CREATE TABLE OUTPUT AS SELECT foo AS aliased, COUNT(*) FROM INTERMEDIATE GROUP BY foo;",
+        "CREATE TABLE INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT foo AS aliased, COUNT(*) FROM INPUT GROUP BY foo;",
         "CREATE TABLE DOWNSTREAM AS SELECT aliased, COUNT(*) FROM OUTPUT GROUP BY aliased;"
       ],
       "properties": {
@@ -1357,7 +1343,7 @@
       ],
       "post": {
         "issues": [
-          "key field of output has INCORRECT name: should be 'KSQL_COL_0'"
+          "key field of output has INCORRECT name: should be 'KSQL_COL_0'. See https://github.com/confluentinc/ksql/issues/2740"
         ],
         "sources": [
           {"name": "OUTPUT", "type": "table", "keyField": {"name": null, "legacyName": "(KSQL_INTERNAL_COL_0 + KSQL_INTERNAL_COL_1)", "legacySchema": "STRING"}}
@@ -1387,9 +1373,6 @@
         {"topic": "DOWNSTREAM", "key":"3", "value": {"KSQL_COL_0": 1}}
       ],
       "post": {
-        "issues": [
-          "key field of output has INCORRECT name: should be 'KSQL_COL_0'"
-        ],
         "sources": [
           {"name": "DOWNSTREAM", "type": "table", "keyField": {"name": null, "legacyName": "KSQL_INTERNAL_COL_1", "legacySchema": "STRING"}}
         ]
@@ -1464,6 +1447,50 @@
       "post": {
         "sources": [
           {"name": "OUTPUT", "type": "stream", "keyField": {"name": "FOO", "legacyName": "FOO", "legacySchema": "INT"}}
+        ]
+      }
+    },
+    {
+      "name": "where only rowkey is in projection",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ROWKEY AS ID FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "1", "value": {"ID": "1"}}
+      ],
+      "post": {
+        "issues": [
+          "key field has incorrect name - should be ID. See https://github.com/confluentinc/ksql/issues/2743."
+        ],
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "keyField": {"name": null, "legacyName": "FOO", "legacySchema": "INT"}}
+        ]
+      }
+    },
+    {
+      "name": "multiple copies of key field in projection",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT foo as foo0, foo as foo1, rowkey as foo2, rowkey as foo3 FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "1", "value": {"FOO0": 1, "FOO1": 1, "FOO2": "1", "FOO3": "1"}}
+      ],
+      "post": {
+        "issues": [
+          "There are multiple copies of the key field in the projection.",
+          "KSQL should avoid unnecessary repartition steps when GROUPing BY or PARTITIONing BY or JOINing on _any_ of them.",
+          "see: https://github.com/confluentinc/ksql/issues/2742"
+        ],
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "keyField": {"name": "FOO0", "legacyName": "FOO", "legacySchema": "INT"}}
         ]
       }
     }

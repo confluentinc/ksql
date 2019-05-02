@@ -14,7 +14,7 @@
  */
 package io.confluent.ksql.integration;
 
-import static io.confluent.ksql.serde.DataSource.DataSourceSerDe.JSON;
+import static io.confluent.ksql.serde.Format.JSON;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_FUNCTIONS_PROPERTY_PREFIX;
 import static java.lang.String.format;
 import static org.hamcrest.Matchers.either;

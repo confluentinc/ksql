@@ -32,9 +32,12 @@ import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.ComparisonExpression;
 import io.confluent.ksql.parser.tree.CreateStream;
+import io.confluent.ksql.parser.tree.DropStream;
+import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.JoinCriteria;
 import io.confluent.ksql.parser.tree.JoinOn;
@@ -46,6 +49,7 @@ import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.Type.SqlType;
 import io.confluent.ksql.parser.tree.WithinExpression;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
@@ -58,9 +62,14 @@ import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 public class SqlFormatterTest {
+
+  @Rule
+  public final ExpectedException expectedException = ExpectedException.none();
 
   private AliasedRelation leftAlias;
   private AliasedRelation rightAlias;
@@ -82,20 +91,26 @@ public class SqlFormatterTest {
       .optional().build();
 
   private static final Schema itemInfoSchema = SchemaBuilder.struct()
-      .field("ITEMID", Schema.INT64_SCHEMA)
-      .field("NAME", Schema.STRING_SCHEMA)
+      .field("ITEMID", Schema.OPTIONAL_INT64_SCHEMA)
+      .field("NAME", Schema.OPTIONAL_STRING_SCHEMA)
       .field("CATEGORY", categorySchema)
       .optional().build();
 
   private static final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
   private static final Schema schemaBuilderOrders = schemaBuilder
-      .field("ORDERTIME", Schema.INT64_SCHEMA)
+      .field("ORDERTIME", Schema.OPTIONAL_INT64_SCHEMA)
       .field("ORDERID", Schema.OPTIONAL_INT64_SCHEMA)
       .field("ITEMID", Schema.OPTIONAL_STRING_SCHEMA)
       .field("ITEMINFO", itemInfoSchema)
-      .field("ORDERUNITS", Schema.INT32_SCHEMA)
-      .field("ARRAYCOL",SchemaBuilder.array(Schema.FLOAT64_SCHEMA).optional().build())
-      .field("MAPCOL", SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.FLOAT64_SCHEMA).optional().build())
+      .field("ORDERUNITS", Schema.OPTIONAL_INT32_SCHEMA)
+      .field("ARRAYCOL",SchemaBuilder
+          .array(Schema.OPTIONAL_FLOAT64_SCHEMA)
+          .optional()
+          .build())
+      .field("MAPCOL", SchemaBuilder
+          .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_FLOAT64_SCHEMA)
+          .optional()
+          .build())
       .field("ADDRESS", addressSchema)
       .build();
 
@@ -120,7 +135,7 @@ public class SqlFormatterTest {
     final KsqlStream ksqlStreamOrders = new KsqlStream<>(
         "sqlexpression",
         "ADDRESS",
-        schemaBuilderOrders,
+        KsqlSchema.of(schemaBuilderOrders),
         KeyField.of("ORDERTIME", schemaBuilderOrders.field("ORDERTIME")),
         new MetadataTimestampExtractionPolicy(),
         ksqlTopicOrders,
@@ -135,7 +150,7 @@ public class SqlFormatterTest {
     final KsqlTable<String> ksqlTableOrders = new KsqlTable<>(
         "sqlexpression",
         "ITEMID",
-        itemInfoSchema,
+        KsqlSchema.of(itemInfoSchema),
         KeyField.of("ITEMID", itemInfoSchema.field("ITEMID")),
         new MetadataTimestampExtractionPolicy(),
         ksqlTopicItems,
@@ -389,6 +404,89 @@ public class SqlFormatterTest {
     final String result = SqlFormatter.formatSql(statement);
 
     assertThat(result, is("EXPLAIN \nSELECT *\nFROM ADDRESS ADDRESS"));
+  }
+
+  @Test
+  public void shouldFormatDropStreamStatementIfExistsDeleteTopic() {
+    // Given:
+    final DropStream dropStream = new DropStream(QualifiedName.of("SOMETHING"), true, true);
+
+    // When:
+    final String formatted = SqlFormatter.formatSql(dropStream);
+
+    // Then:
+    assertThat(formatted, is("DROP STREAM IF EXISTS SOMETHING DELETE TOPIC"));
+  }
+
+  @Test
+  public void shouldFormatDropStreamStatementIfExists() {
+    // Given:
+    final DropStream dropStream = new DropStream(QualifiedName.of("SOMETHING"), true, false);
+
+    // When:
+    final String formatted = SqlFormatter.formatSql(dropStream);
+
+    // Then:
+    assertThat(formatted, is("DROP STREAM IF EXISTS SOMETHING"));
+  }
+
+  @Test
+  public void shouldFormatDropStreamStatement() {
+    // Given:
+    final DropStream dropStream = new DropStream(QualifiedName.of("SOMETHING"), false, false);
+
+    // When:
+    final String formatted = SqlFormatter.formatSql(dropStream);
+
+    // Then:
+    assertThat(formatted, is("DROP STREAM SOMETHING"));
+  }
+
+  @Test
+  public void shouldFormatDropTableStatement() {
+    // Given:
+    final DropTable dropStream = new DropTable(QualifiedName.of("SOMETHING"), false, false);
+
+    // When:
+    final String formatted = SqlFormatter.formatSql(dropStream);
+
+    // Then:
+    assertThat(formatted, is("DROP TABLE SOMETHING"));
+  }
+
+  @Test
+  public void shouldFormatInsertValuesStatement() {
+    final String statementString = "INSERT INTO ADDRESS (NUMBER, STREET, CITY) VALUES (2, 'high', 'palo alto');";
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
+        .getStatement();
+
+    final String result = SqlFormatter.formatSql(statement);
+
+    assertThat(result, is("INSERT INTO ADDRESS (NUMBER, STREET, CITY) VALUES (2, 'high', 'palo alto')"));
+  }
+
+  @Test
+  public void shouldFormatInsertValuesNoSchema() {
+    final String statementString = "INSERT INTO ADDRESS VALUES (2);";
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
+        .getStatement();
+
+    final String result = SqlFormatter.formatSql(statement);
+
+    assertThat(result, is("INSERT INTO ADDRESS VALUES (2)"));
+  }
+
+  @Test
+  public void shouldNotParseArbitraryExpressions() {
+    // Given:
+    final String statementString = "INSERT INTO ADDRESS VALUES (2 + 1);";
+
+    // Expect:
+    expectedException.expect(ParseFailedException.class);
+    expectedException.expectMessage("mismatched input");
+
+    // When:
+    KsqlParserTestUtil.buildSingleAst(statementString, metaStore);
   }
 }
 

@@ -19,6 +19,8 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.not;
 import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableList;
@@ -29,8 +31,8 @@ import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.internal.KsqlEngineMetrics;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
+import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KsqlTopic;
-import io.confluent.ksql.metastore.model.StructuredDataSource;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.server.StatementParser;
@@ -40,13 +42,15 @@ import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.rest.util.ClusterTerminator;
 import io.confluent.ksql.schema.inference.DefaultSchemaInjector;
 import io.confluent.ksql.schema.inference.SchemaRegistryTopicSchemaSupplier;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.InjectorChain;
-import io.confluent.ksql.topic.DefaultTopicInjector;
+import io.confluent.ksql.topic.TopicCreateInjector;
+import io.confluent.ksql.topic.TopicDeleteInjector;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
@@ -62,7 +66,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.ws.rs.core.Response;
-import org.apache.kafka.connect.data.Schema;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeDiagnosingMatcher;
@@ -175,7 +178,8 @@ public class RecoveryTest {
           (ec, sc) -> InjectorChain.of(
               new DefaultSchemaInjector(
                   new SchemaRegistryTopicSchemaSupplier(sc.getSchemaRegistryClient())),
-              new DefaultTopicInjector(ec)
+              new TopicCreateInjector(ec),
+              new TopicDeleteInjector(ec)
           ));
       this.statementExecutor = new StatementExecutor(
           ksqlConfig,
@@ -231,7 +235,7 @@ public class RecoveryTest {
     final Matcher<KsqlTopicSerDe> serDeMatcher;
 
     TopicMatcher(final KsqlTopic topic) {
-      this.nameMatcher = equalTo(topic.getName());
+      this.nameMatcher = equalTo(topic.getKsqlTopicName());
       this.kafkaNameMatcher = equalTo(topic.getKafkaTopicName());
       this.serDeMatcher = instanceOf(topic.getKsqlTopicSerDe().getClass());
     }
@@ -245,7 +249,7 @@ public class RecoveryTest {
 
     @Override
     public boolean matchesSafely(final KsqlTopic other, final Description description) {
-      if (!test(nameMatcher, other.getName(), description, "name mismatch: ")) {
+      if (!test(nameMatcher, other.getKsqlTopicName(), description, "name mismatch: ")) {
         return false;
       }
       if (!test(
@@ -268,16 +272,16 @@ public class RecoveryTest {
   }
 
   private static class StructuredDataSourceMatcher
-      extends TypeSafeDiagnosingMatcher<StructuredDataSource<?>> {
-    final StructuredDataSource<?> source;
-    final Matcher<StructuredDataSource.DataSourceType> typeMatcher;
+      extends TypeSafeDiagnosingMatcher<DataSource<?>> {
+    final DataSource<?> source;
+    final Matcher<DataSource.DataSourceType> typeMatcher;
     final Matcher<String> nameMatcher;
-    final Matcher<Schema> schemaMatcher;
+    final Matcher<KsqlSchema> schemaMatcher;
     final Matcher<String> sqlMatcher;
     final Matcher<TimestampExtractionPolicy> extractionPolicyMatcher;
     final Matcher<KsqlTopic> topicMatcher;
 
-    StructuredDataSourceMatcher(final StructuredDataSource<?> source) {
+    StructuredDataSourceMatcher(final DataSource<?> source) {
       this.source = source;
       this.typeMatcher = equalTo(source.getDataSourceType());
       this.nameMatcher = equalTo(source.getName());
@@ -303,7 +307,7 @@ public class RecoveryTest {
 
     @Override
     protected boolean matchesSafely(
-        final StructuredDataSource<?> other,
+        final DataSource<?> other,
         final Description description) {
       if (!test(
           typeMatcher,
@@ -348,15 +352,15 @@ public class RecoveryTest {
     }
   }
 
-  private static Matcher<StructuredDataSource<?>> sameSource(final StructuredDataSource<?> source) {
+  private static Matcher<DataSource<?>> sameSource(final DataSource<?> source) {
     return new StructuredDataSourceMatcher(source);
   }
 
   private static class MetaStoreMatcher extends TypeSafeDiagnosingMatcher<MetaStore> {
-    final Map<String, Matcher<StructuredDataSource<?>>> sourceMatchers;
+    final Map<String, Matcher<DataSource<?>>> sourceMatchers;
 
     MetaStoreMatcher(final MetaStore metaStore) {
-      this.sourceMatchers = metaStore.getAllStructuredDataSources().entrySet().stream()
+      this.sourceMatchers = metaStore.getAllDataSources().entrySet().stream()
           .collect(
               Collectors.toMap(Entry::getKey, e -> sameSource(e.getValue())));
     }
@@ -375,13 +379,13 @@ public class RecoveryTest {
     protected boolean matchesSafely(final MetaStore other, final Description description) {
       if (!test(
           equalTo(sourceMatchers.keySet()),
-          other.getAllStructuredDataSources().keySet(),
+          other.getAllDataSources().keySet(),
           description,
           "source set mismatch: ")) {
         return false;
       }
 
-      for (final Entry<String, Matcher<StructuredDataSource<?>>> e : sourceMatchers.entrySet()) {
+      for (final Entry<String, Matcher<DataSource<?>>> e : sourceMatchers.entrySet()) {
         final String name = e.getKey();
         if (!test(
             e.getValue(),
@@ -404,7 +408,7 @@ public class RecoveryTest {
       extends TypeSafeDiagnosingMatcher<PersistentQueryMetadata> {
     private final Matcher<Set<String>> sourcesNamesMatcher;
     private final Matcher<Set<String>> sinkNamesMatcher;
-    private final Matcher<Schema> resultSchemaMatcher;
+    private final Matcher<KsqlSchema> resultSchemaMatcher;
     private final Matcher<String> sqlMatcher;
     private final Matcher<String> stateMatcher;
 
@@ -556,6 +560,37 @@ public class RecoveryTest {
   }
 
   @Test
+  public void shouldNotDeleteTopicsOnRecovery() {
+    topicClient.preconditionTopicExists("B");
+    server1.submitCommands(
+        "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
+        "CREATE STREAM B AS SELECT * FROM A;",
+        "TERMINATE CSAS_B_0;",
+        "DROP STREAM B DELETE TOPIC;"
+    );
+
+    assertThat(topicClient.listTopicNames(), not(hasItem("B")));
+
+    topicClient.preconditionTopicExists("B");
+    shouldRecover(commands);
+
+    assertThat(topicClient.listTopicNames(), hasItem("B"));
+  }
+
+  @Test
+  public void shouldNotDeleteTopicsOnRecoveryEvenIfLegacyDropCommandAlreadyInCommandQueue() {
+    topicClient.preconditionTopicExists("B");
+
+    shouldRecover(ImmutableList.of(
+        new QueuedCommand(
+            new CommandId(Type.STREAM, "B", Action.DROP),
+            new Command("DROP STREAM B DELETE TOPIC;", ImmutableMap.of(), ImmutableMap.of()))
+    ));
+
+    assertThat(topicClient.listTopicNames(), hasItem("B"));
+  }
+
+  @Test
   public void shouldRecoverLogWithRepeatedTerminates() {
     server1.submitCommands(
         "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
@@ -625,7 +660,7 @@ public class RecoveryTest {
     final KsqlServer server = new KsqlServer(commands);
     server.recover();
     assertThat(
-        server.ksqlEngine.getMetaStore().getAllStructuredDataSources().keySet(),
+        server.ksqlEngine.getMetaStore().getAllDataSources().keySet(),
         contains("A", "B"));
     commands.add(
         new QueuedCommand(
@@ -636,7 +671,7 @@ public class RecoveryTest {
     final KsqlServer recovered = new KsqlServer(commands);
     recovered.recover();
     assertThat(
-        recovered.ksqlEngine.getMetaStore().getAllStructuredDataSources().keySet(),
+        recovered.ksqlEngine.getMetaStore().getAllDataSources().keySet(),
         contains("A"));
   }
 }

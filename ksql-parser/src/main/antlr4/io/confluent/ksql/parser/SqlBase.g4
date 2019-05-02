@@ -60,6 +60,7 @@ statement
     | CREATE TABLE (IF NOT EXISTS)? qualifiedName
             (WITH tableProperties)? AS query                                #createTableAs
     | INSERT INTO qualifiedName query (PARTITION BY identifier)?            #insertInto
+    | INSERT INTO qualifiedName (columns)? VALUES values                    #insertValues
     | DROP TOPIC (IF EXISTS)? qualifiedName                                 #dropTopic
     | DROP STREAM (IF EXISTS)? qualifiedName (DELETE TOPIC)?                #dropStream
     | DROP TABLE (IF EXISTS)? qualifiedName  (DELETE TOPIC)?                #dropTable
@@ -86,7 +87,7 @@ tableProperties
     ;
 
 tableProperty
-    : identifier EQ expression
+    : identifier EQ literal
     ;
 
 printClause
@@ -144,6 +145,10 @@ groupingExpressions
     | expression
     ;
 
+values
+    : '(' (literal (',' literal)*)? ')'
+    ;
+
 /*
  * Dropped `namedQuery` as we don't support them.
  */
@@ -186,7 +191,7 @@ aliasedRelation
     : relationPrimary (AS? identifier)?
     ;
 
-columnAliases
+columns
     : '(' identifier (',' identifier)* ')'
     ;
 
@@ -231,11 +236,8 @@ valueExpression
     ;
 
 primaryExpression
-    : NULL                                                                           #nullLiteral
+    : literal                                                                        #literalExpression
     | identifier STRING                                                              #typeConstructor
-    | number                                                                         #numericLiteral
-    | booleanValue                                                                   #booleanLiteral
-    | STRING                                                                         #stringLiteral
     | qualifiedName '(' ASTERISK ')'                              		               #functionCall
     | qualifiedName '(' (expression (',' expression)*)? ')' 						             #functionCall
     | CASE valueExpression whenClause+ (ELSE elseExpression=expression)? END         #simpleCase
@@ -296,6 +298,13 @@ identifier
 number
     : DECIMAL_VALUE  #decimalLiteral
     | INTEGER_VALUE  #integerLiteral
+    ;
+
+literal
+    : NULL                                                                           #nullLiteral
+    | number                                                                         #numericLiteral
+    | booleanValue                                                                   #booleanLiteral
+    | STRING                                                                         #stringLiteral
     ;
 
 nonReserved

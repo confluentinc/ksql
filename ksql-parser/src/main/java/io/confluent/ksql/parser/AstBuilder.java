@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.parser;
 
+import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import static io.confluent.ksql.schema.ksql.TypeContextUtil.getType;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toList;
@@ -22,7 +23,8 @@ import static java.util.stream.Collectors.toList;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.metastore.model.StructuredDataSource;
+import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.parser.SqlBaseParser.InsertValuesContext;
 import io.confluent.ksql.parser.SqlBaseParser.IntegerLiteralContext;
 import io.confluent.ksql.parser.SqlBaseParser.IntervalClauseContext;
 import io.confluent.ksql.parser.SqlBaseParser.LimitClauseContext;
@@ -58,6 +60,7 @@ import io.confluent.ksql.parser.tree.HoppingWindowExpression;
 import io.confluent.ksql.parser.tree.InListExpression;
 import io.confluent.ksql.parser.tree.InPredicate;
 import io.confluent.ksql.parser.tree.InsertInto;
+import io.confluent.ksql.parser.tree.InsertValues;
 import io.confluent.ksql.parser.tree.IntegerLiteral;
 import io.confluent.ksql.parser.tree.IsNotNullPredicate;
 import io.confluent.ksql.parser.tree.IsNullPredicate;
@@ -72,6 +75,7 @@ import io.confluent.ksql.parser.tree.ListRegisteredTopics;
 import io.confluent.ksql.parser.tree.ListStreams;
 import io.confluent.ksql.parser.tree.ListTables;
 import io.confluent.ksql.parser.tree.ListTopics;
+import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.parser.tree.LogicalBinaryExpression;
 import io.confluent.ksql.parser.tree.LongLiteral;
 import io.confluent.ksql.parser.tree.Node;
@@ -108,7 +112,6 @@ import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.parser.tree.WhenClause;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.parser.tree.WithinExpression;
-import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.util.DataSourceExtractor;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
@@ -121,6 +124,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.RuleContext;
 import org.antlr.v4.runtime.Token;
@@ -187,15 +191,15 @@ public class AstBuilder {
       return visit(context.expression());
     }
 
-    private Map<String, Expression> processTableProperties(
+    private Map<String, Literal> processTableProperties(
         final TablePropertiesContext tablePropertiesContext
     ) {
-      final ImmutableMap.Builder<String, Expression> properties = ImmutableMap.builder();
+      final ImmutableMap.Builder<String, Literal> properties = ImmutableMap.builder();
       if (tablePropertiesContext != null) {
         for (final TablePropertyContext prop : tablePropertiesContext.tableProperty()) {
           properties.put(
               ParserUtil.getIdentifierText(prop.identifier()),
-              (Expression) visit(prop.expression())
+              (Literal) visit(prop.literal())
           );
         }
       }
@@ -264,10 +268,10 @@ public class AstBuilder {
       final QualifiedName targetName = ParserUtil.getQualifiedName(context.qualifiedName());
       final Optional<NodeLocation> targetLocation = getLocation(context.qualifiedName());
 
-      final StructuredDataSource target =
+      final DataSource<?> target =
           getSource(targetName.getSuffix(), targetLocation);
 
-      if (target.getDataSourceType() != DataSource.DataSourceType.KSTREAM) {
+      if (target.getDataSourceType() != DataSourceType.KSTREAM) {
         throw new KsqlException(
             "INSERT INTO can only be used to insert into a stream. "
                 + targetName + " is a table.");
@@ -278,6 +282,28 @@ public class AstBuilder {
           targetName,
           visitQuery(context.query()),
           getPartitionBy(context.identifier()));
+    }
+
+    @Override
+    public Node visitInsertValues(final InsertValuesContext context) {
+      final QualifiedName targetName = ParserUtil.getQualifiedName(context.qualifiedName());
+      final Optional<NodeLocation> targetLocation = getLocation(context.qualifiedName());
+
+      final List<String> columns;
+      if (context.columns() != null) {
+        columns = context.columns().identifier()
+            .stream()
+            .map(ParserUtil::getIdentifierText)
+            .collect(Collectors.toList());
+      } else {
+        columns = ImmutableList.of();
+      }
+
+      return new InsertValues(
+          targetLocation,
+          targetName,
+          columns,
+          visit(context.values().literal(), Expression.class));
     }
 
     @Override
@@ -358,15 +384,15 @@ public class AstBuilder {
         final Join join = (Join) from;
         if (allColumns.getPrefix().isPresent()) {
           final QualifiedName alias = allColumns.getPrefix().get();
-          final StructuredDataSource source = getDataSourceForAlias(join, alias);
+          final DataSource<?> source = getDataSourceForAlias(join, alias);
           final String aliasStr = alias.toString();
           addFieldsFromDataSource(selectItems, source, location, aliasStr, aliasStr, allColumns);
         } else {
           final AliasedRelation left = (AliasedRelation) join.getLeft();
-          final StructuredDataSource leftDataSource =
+          final DataSource<?> leftDataSource =
               getSource(left.getRelation().toString(), left.getRelation().getLocation());
           final AliasedRelation right = (AliasedRelation) join.getRight();
-          final StructuredDataSource rightDataSource =
+          final DataSource<?> rightDataSource =
               getSource(right.getRelation().toString(), right.getRelation().getLocation());
 
           addFieldsFromDataSource(selectItems, leftDataSource, location,
@@ -377,7 +403,7 @@ public class AstBuilder {
       } else {
         final AliasedRelation fromRel = (AliasedRelation) from;
         final Table table = (Table) fromRel.getRelation();
-        final StructuredDataSource fromDataSource =
+        final DataSource<?> fromDataSource =
             getSource(table.getName().getSuffix(), table.getLocation());
 
         addFieldsFromDataSource(selectItems, fromDataSource, location,
@@ -388,7 +414,7 @@ public class AstBuilder {
 
     private static void addFieldsFromDataSource(
         final List<SelectItem> selectItems,
-        final StructuredDataSource dataSource,
+        final DataSource<?> dataSource,
         final Optional<NodeLocation> location,
         final String alias,
         final String columnNamePrefix,
@@ -413,7 +439,7 @@ public class AstBuilder {
       }
     }
 
-    private StructuredDataSource getDataSourceForAlias(
+    private DataSource<?> getDataSourceForAlias(
         final Join join,
         final QualifiedName alias
     ) {
@@ -432,7 +458,7 @@ public class AstBuilder {
             + rightAliased.getAlias() + "'");
       }
 
-      final StructuredDataSource source = metaStore.getSource(sourceName);
+      final DataSource<?> source = metaStore.getSource(sourceName);
 
       if (source == null) {
         throw new InvalidColumnReferenceException(
@@ -1306,11 +1332,11 @@ public class AstBuilder {
           : OptionalInt.of(processIntegerNumber(limitContext.number(), "LIMIT"));
     }
 
-    private StructuredDataSource getSource(
+    private DataSource<?> getSource(
         final String name,
         final Optional<NodeLocation> location
     ) {
-      final StructuredDataSource source = metaStore.getSource(name);
+      final DataSource<?> source = metaStore.getSource(name);
       if (source == null) {
         throw new InvalidColumnReferenceException(location, name + " does not exist.");
       }

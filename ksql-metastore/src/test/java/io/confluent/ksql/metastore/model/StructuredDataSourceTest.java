@@ -13,14 +13,12 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.metastore;
+package io.confluent.ksql.metastore.model;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
-import io.confluent.ksql.metastore.model.KeyField;
-import io.confluent.ksql.metastore.model.KsqlTopic;
-import io.confluent.ksql.metastore.model.StructuredDataSource;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Schema;
@@ -33,9 +31,11 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class StructuredDataSourceTest {
 
-  private static final Schema SOME_SCHEMA = SchemaBuilder.struct()
+  private static final KsqlSchema SOME_SCHEMA = KsqlSchema.of(
+      SchemaBuilder.struct()
       .field("f0", Schema.OPTIONAL_INT64_SCHEMA)
-      .build();
+          .build()
+  );
 
   @Mock
   public KeyField keyField;
@@ -58,7 +58,7 @@ public class StructuredDataSourceTest {
   private static final class TestStructuredDataSource extends StructuredDataSource<String> {
 
     private TestStructuredDataSource(
-        final Schema schema,
+        final KsqlSchema schema,
         final KeyField keyField
     ) {
       super(

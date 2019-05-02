@@ -20,7 +20,7 @@ import static org.hamcrest.Matchers.hasItems;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.metastore.model.StructuredDataSource;
+import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.test.tools.conditions.PostConditions;
 import java.util.List;
 import org.hamcrest.Matcher;
@@ -36,11 +36,11 @@ public class PostConditionsNode {
 
   @SuppressWarnings("unchecked")
   public PostConditions build() {
-    final Matcher<StructuredDataSource<?>>[] matchers = sources.stream()
+    final Matcher<DataSource<?>>[] matchers = sources.stream()
         .map(SourceNode::build)
         .toArray(Matcher[]::new);
 
-    final Matcher<Iterable<StructuredDataSource<?>>> sourcesMatcher = hasItems(matchers);
+    final Matcher<Iterable<DataSource<?>>> sourcesMatcher = hasItems(matchers);
     return new PostConditions(sourcesMatcher);
   }
 }

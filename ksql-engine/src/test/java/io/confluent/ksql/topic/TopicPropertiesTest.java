@@ -15,9 +15,22 @@
 
 package io.confluent.ksql.topic;
 
-import static io.confluent.ksql.topic.TopicPropertiesTest.Inject.*;
+import static io.confluent.ksql.topic.TopicPropertiesTest.Inject.KSQL_CONFIG;
+import static io.confluent.ksql.topic.TopicPropertiesTest.Inject.KSQL_CONFIG_P;
+import static io.confluent.ksql.topic.TopicPropertiesTest.Inject.KSQL_CONFIG_R;
+import static io.confluent.ksql.topic.TopicPropertiesTest.Inject.NO_CONFIG;
+import static io.confluent.ksql.topic.TopicPropertiesTest.Inject.NO_OVERRIDES;
+import static io.confluent.ksql.topic.TopicPropertiesTest.Inject.NO_WITH;
+import static io.confluent.ksql.topic.TopicPropertiesTest.Inject.OVERRIDES;
+import static io.confluent.ksql.topic.TopicPropertiesTest.Inject.OVERRIDES_P;
+import static io.confluent.ksql.topic.TopicPropertiesTest.Inject.OVERRIDES_R;
+import static io.confluent.ksql.topic.TopicPropertiesTest.Inject.SOURCE;
+import static io.confluent.ksql.topic.TopicPropertiesTest.Inject.WITH;
+import static io.confluent.ksql.topic.TopicPropertiesTest.Inject.WITH_P;
+import static io.confluent.ksql.topic.TopicPropertiesTest.Inject.WITH_R;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -25,9 +38,10 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import io.confluent.ksql.ddl.DdlConfig;
-import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.IntegerLiteral;
+import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.parser.tree.StringLiteral;
+import io.confluent.ksql.topic.TopicProperties.Builder;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
@@ -69,7 +83,7 @@ public class TopicPropertiesTest {
     @Test
     public void shouldUseNameFromWithClause() {
       // Given:
-      final Map<String, Expression> withClause = ImmutableMap.of(
+      final Map<String, Literal> withClause = ImmutableMap.of(
           DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral("name")
       );
 
@@ -86,7 +100,7 @@ public class TopicPropertiesTest {
     @Test
     public void shouldUseNameFromWithClauseWhenNameIsAlsoPresent() {
       // Given:
-      final Map<String, Expression> withClause = ImmutableMap.of(
+      final Map<String, Literal> withClause = ImmutableMap.of(
           DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral("name")
       );
 
@@ -157,27 +171,26 @@ public class TopicPropertiesTest {
     }
 
     @Test
-    public void shouldFailIfNoReplicasSupplied() {
+    public void shouldDefaultIfNoReplicasSupplied() {
       // Given:
       final KsqlConfig config = new KsqlConfig(ImmutableMap.of(
           KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY, 1
       ));
 
-      // Expect:
-      expectedException.expect(NullPointerException.class);
-      expectedException.expectMessage("Was not supplied with any valid source for replicas!");
-
       // When:
-      new TopicProperties.Builder()
+      final TopicProperties properties = new Builder()
           .withName("name")
           .withKsqlConfig(config)
           .build();
+
+      // Then:
+      assertThat(properties.getReplicas(), is(TopicProperties.DEFAULT_REPLICAS));
     }
 
     @Test
     public void shouldNotMakeRemoteCallIfUnnecessary() {
       // Given:
-      final Map<String, Expression> withClause = ImmutableMap.of(
+      final Map<String, Literal> withClause = ImmutableMap.of(
           DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral("name"),
           KsqlConstants.SINK_NUMBER_OF_PARTITIONS, new IntegerLiteral(1),
           KsqlConstants.SINK_NUMBER_OF_REPLICAS, new IntegerLiteral(1)
@@ -328,8 +341,8 @@ public class TopicPropertiesTest {
     public Inject expectedReplicas;
 
     private KsqlConfig ksqlConfig = new KsqlConfig(new HashMap<>());
-    private Map<String, Object> propertyOverrides = new HashMap<>();
-    private Map<String, Expression> withClause = new HashMap<>();
+    private final Map<String, Object> propertyOverrides = new HashMap<>();
+    private final Map<String, Literal> withClause = new HashMap<>();
 
     @Test
     public void shouldInferCorrectPartitionsAndReplicas() {

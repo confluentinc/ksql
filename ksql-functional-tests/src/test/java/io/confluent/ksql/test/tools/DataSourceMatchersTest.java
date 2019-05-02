@@ -20,8 +20,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
 
+import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.MetaStoreMatchers.FieldMatchers;
-import io.confluent.ksql.metastore.model.StructuredDataSource;
 import java.util.Optional;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -34,24 +34,24 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class StructuredDataSourceMatchersTest {
+public class DataSourceMatchersTest {
 
   @Mock
-  private StructuredDataSource structuredDataSource;
+  private DataSource dataSource;
 
   @Test
   @SuppressWarnings("unchecked")
   public void shouldGetMatcherForName() {
     // Given:
-    when(structuredDataSource.getName()).thenReturn("foo");
+    when(dataSource.getName()).thenReturn("foo");
 
     // When:
-    final Matcher matcher = StructuredDataSourceMatchers.hasName("foo");
+    final Matcher matcher = DataSourceMatchers.hasName("foo");
 
     // Then:
     assertThat(matcher, instanceOf(FeatureMatcher.class));
-    final FeatureMatcher<StructuredDataSource<?>, String> featureMatcher = (FeatureMatcher<StructuredDataSource<?>, String>) matcher;
-    assertTrue(featureMatcher.matches(structuredDataSource));
+    final FeatureMatcher<DataSource<?>, String> featureMatcher = (FeatureMatcher<DataSource<?>, String>) matcher;
+    assertTrue(featureMatcher.matches(dataSource));
   }
 
 
@@ -61,7 +61,7 @@ public class StructuredDataSourceMatchersTest {
     // Given:
 
     // When:
-    final Matcher matcher = StructuredDataSourceMatchers.OptionalMatchers.of(FieldMatchers.hasName("foo"));
+    final Matcher matcher = DataSourceMatchers.OptionalMatchers.of(FieldMatchers.hasName("foo"));
 
     // Then:
     assertThat(matcher, instanceOf(TypeSafeDiagnosingMatcher.class));

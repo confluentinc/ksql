@@ -37,6 +37,7 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
@@ -375,82 +376,6 @@ public class KsqlEngineTest {
     final List<?> parsedStatements = ksqlEngine.parse(runScriptContent);
 
     assertThat(parsedStatements, hasSize(1));
-  }
-
-  @Test
-  public void shouldCleanupSchemaAndTopicForStream() throws Exception {
-    // Given:
-    final QueryMetadata query = KsqlEngineTestUtil.execute(ksqlEngine,
-        "create stream bar with (value_format = 'avro') as select * from test1;",
-        KSQL_CONFIG, Collections.emptyMap()).get(0);
-
-    query.close();
-
-    final Schema schema = SchemaBuilder
-        .record("Test").fields()
-        .name("clientHash").type().fixed("MD5").size(16).noDefault()
-        .endRecord();
-
-    schemaRegistryClient.register("BAR-value", schema);
-
-    // When:
-    KsqlEngineTestUtil
-        .execute(ksqlEngine, "DROP STREAM bar DELETE TOPIC;", KSQL_CONFIG, Collections.emptyMap());
-
-    // Then:
-    assertThat(serviceContext.getTopicClient().isTopicExists("BAR"), equalTo(false));
-    assertThat(schemaRegistryClient.getAllSubjects(), not(hasItem("BAR-value")));
-  }
-
-  @Test
-  public void shouldCleanupSchemaAndTopicForTable() throws Exception {
-    // Given:
-    final QueryMetadata query = KsqlEngineTestUtil.execute(ksqlEngine,
-        "create table bar with (value_format = 'avro') as select * from test2;",
-        KSQL_CONFIG, Collections.emptyMap()).get(0);
-
-    query.close();
-
-    final Schema schema = SchemaBuilder
-        .record("Test").fields()
-        .name("clientHash").type().fixed("MD5").size(16).noDefault()
-        .endRecord();
-
-    schemaRegistryClient.register("BAR-value", schema);
-
-    // When:
-    KsqlEngineTestUtil
-        .execute(ksqlEngine, "DROP TABLE bar DELETE TOPIC;", KSQL_CONFIG, Collections.emptyMap());
-
-    // Then:
-    assertThat(serviceContext.getTopicClient().isTopicExists("BAR"), equalTo(false));
-    assertThat(schemaRegistryClient.getAllSubjects(), not(hasItem("BAR-value")));
-  }
-
-  @Test
-  public void shouldNotDeleteSchemaNorTopicForStream() throws Exception {
-    // Given:
-    givenTopicsExist("BAR");
-    final QueryMetadata query = KsqlEngineTestUtil.execute(ksqlEngine,
-        "create stream bar with (value_format = 'avro') as select * from test1;"
-            + "create stream foo as select * from test1;",
-        KSQL_CONFIG, Collections.emptyMap()).get(0);
-
-    query.close();
-
-    final Schema schema = SchemaBuilder
-        .record("Test").fields()
-        .name("clientHash").type().fixed("MD5").size(16).noDefault()
-        .endRecord();
-
-    schemaRegistryClient.register("BAR-value", schema);
-
-    // When:
-    KsqlEngineTestUtil.execute(ksqlEngine, "DROP STREAM bar;", KSQL_CONFIG, Collections.emptyMap());
-
-    // Then:
-    assertThat(serviceContext.getTopicClient().isTopicExists("BAR"), equalTo(true));
-    assertThat(schemaRegistryClient.getAllSubjects(), hasItem("BAR-value"));
   }
 
   @Test
@@ -1087,6 +1012,22 @@ public class KsqlEngineTest {
     parsed.forEach(ksqlEngine::prepare);
 
     // Then: did not throw.
+  }
+
+  @Test
+  public void shouldIgnoreLegacyDeleteTopicPartOfDropCommand() {
+    // Given:
+    final QueryMetadata query = KsqlEngineTestUtil.execute(ksqlEngine,
+        "CREATE STREAM FOO AS SELECT * FROM TEST1;",
+        KSQL_CONFIG, Collections.emptyMap()).get(0);
+    query.close();
+
+    // When:
+    KsqlEngineTestUtil.execute(ksqlEngine, "DROP STREAM FOO DELETE TOPIC;", KSQL_CONFIG, Collections.emptyMap());
+
+    // Then:
+    verifyNoMoreInteractions(topicClient);
+    verifyNoMoreInteractions(schemaRegistryClient);
   }
 
   private void givenTopicsExist(final String... topics) {

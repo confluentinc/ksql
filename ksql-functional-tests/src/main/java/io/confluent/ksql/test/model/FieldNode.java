@@ -28,7 +28,7 @@ import io.confluent.ksql.metastore.model.MetaStoreMatchers.FieldMatchers;
 import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.schema.ksql.LogicalSchemas;
 import io.confluent.ksql.schema.ksql.LogicalSchemas.SqlTypeToLogicalConverter;
-import io.confluent.ksql.test.tools.StructuredDataSourceMatchers.OptionalMatchers;
+import io.confluent.ksql.test.tools.DataSourceMatchers.OptionalMatchers;
 import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;
 import io.confluent.ksql.test.tools.exceptions.MissingFieldException;
 import java.io.IOException;

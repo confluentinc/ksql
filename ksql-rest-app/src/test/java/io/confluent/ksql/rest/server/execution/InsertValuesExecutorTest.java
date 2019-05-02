@@ -470,6 +470,27 @@ public class InsertValuesExecutorTest {
     new InsertValuesExecutor(() -> 1L).execute(statement, engine, serviceContext);
   }
 
+  @Test
+  public void shouldThrowIfInsertValuesIsDisabled() {
+    // Given:
+    givenDataSourceWithSchema(STRICT_SCHEMA);
+
+    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
+        ImmutableList.of("ROWKEY"),
+        ImmutableList.of(
+            new StringLiteral("1.1")
+        )
+    ).withConfig(
+        new KsqlConfig(ImmutableMap.of(KsqlConfig.KSQL_INSERT_INTO_VALUES_ENABLED, false)));
+
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("The server has disabled INSERT INTO ... VALUES ");
+
+    // When:
+    new InsertValuesExecutor(() -> 1L).execute(statement, engine, serviceContext);
+  }
+
   private ConfiguredStatement<InsertValues> givenInsertValues(
       final List<String> columns,
       final List<Expression> values

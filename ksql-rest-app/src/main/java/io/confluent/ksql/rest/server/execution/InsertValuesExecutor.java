@@ -69,6 +69,11 @@ public class InsertValuesExecutor {
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext
   ) {
+    if (!statement.getConfig().getBoolean(KsqlConfig.KSQL_INSERT_INTO_VALUES_ENABLED)) {
+      throw new KsqlException("The server has disabled INSERT INTO ... VALUES functionality. "
+          + "To enable it, restart your KSQL-server with 'ksql.insert.into.values.enabled'=true");
+    }
+
     final InsertValues insertValues = statement.getStatement();
     final DataSource<?> dataSource = executionContext
         .getMetaStore()

@@ -287,10 +287,19 @@ The WITH clause supports the following properties:
 +-------------------------+--------------------------------------------------------------------------------------------+
 | Property                | Description                                                                                |
 +=========================+============================================================================================+
-| KAFKA_TOPIC (required)  | The name of the Kafka topic that backs this stream. The topic must already exist in Kafka. |
+| KAFKA_TOPIC (required)  | The name of the Kafka topic that backs this source. The topic must either already exist in |
+|                         | Kafka, or PARTITIONS must be specified to create the topic. Command will fail if the topic |
+|                         | exists with different partition/replica counts.                                            |
 +-------------------------+--------------------------------------------------------------------------------------------+
 | VALUE_FORMAT (required) | Specifies the serialization format of the message value in the topic. Supported formats:   |
 |                         | ``JSON``, ``DELIMITED`` (comma-separated value), and ``AVRO``.                             |
++-------------------------+--------------------------------------------------------------------------------------------+
+| PARTITIONS              | The number of partitions in the backing topic. This property must be set if creating a     |
+|                         | SOURCE without an existing topic (the command will fail if the topic does not exist).      |
++-------------------------+--------------------------------------------------------------------------------------------+
+| REPLICAS                | The number of replicas in the backing topic. If this property is not set but PARTITIONS is |
+|                         | set, then the default Kafka cluster configuration for replicas will be used for creating a |
+|                         | new topic.                                                                                 |
 +-------------------------+--------------------------------------------------------------------------------------------+
 | KEY                     | Optimization hint: If the Kafka message key is also present as a field/column in the Kafka |
 |                         | message value, you may set this property to associate the corresponding field/column with  |
@@ -377,17 +386,27 @@ KSQL adds the implicit columns ``ROWTIME`` and ``ROWKEY`` to every
 stream and table, which represent the corresponding Kafka message
 timestamp and message key, respectively. The timestamp has milliseconds accuracy.
 
-When creating a table from a Kafka topic, KSQL requries the message key to be a ``VARCHAR`` aka ``STRING``. If the message key is not of this type follow the instructions in :ref:`ksql_key_requirements`.
+When creating a table from a Kafka topic, KSQL requries the message key to be a ``VARCHAR`` aka ``STRING``. If the message
+key is not of this type follow the instructions in :ref:`ksql_key_requirements`.
 
 The WITH clause supports the following properties:
 
 +-------------------------+--------------------------------------------------------------------------------------------+
 | Property                | Description                                                                                |
 +=========================+============================================================================================+
-| KAFKA_TOPIC (required)  | The name of the Kafka topic that backs this table. The topic must already exist in Kafka.  |
+| KAFKA_TOPIC (required)  | The name of the Kafka topic that backs this source. The topic must either already exist in |
+|                         | Kafka, or PARTITIONS must be specified to create the topic. Command will fail if the topic |
+|                         | exists with different partition/replica counts.                                            |
 +-------------------------+--------------------------------------------------------------------------------------------+
 | VALUE_FORMAT (required) | Specifies the serialization format of message values in the topic. Supported formats:      |
 |                         | ``JSON``, ``DELIMITED`` (comma-separated value), and ``AVRO``.                             |
++-------------------------+--------------------------------------------------------------------------------------------+
+| PARTITIONS              | The number of partitions in the backing topic. This property must be set if creating a     |
+|                         | SOURCE without an existing topic (the command will fail if the topic does not exist).      |
++-------------------------+--------------------------------------------------------------------------------------------+
+| REPLICAS                | The number of replicas in the backing topic. If this property is not set but PARTITIONS is |
+|                         | set, then the default Kafka cluster configuration for replicas will be used for creating a |
+|                         | new topic.                                                                                 |
 +-------------------------+--------------------------------------------------------------------------------------------+
 | KEY                     | Optimization hint: If the Kafka message key is also present as a field/column in the Kafka |
 |                         | message value, you may set this property to associate the corresponding field/column with  |
@@ -646,6 +665,52 @@ stream_name and from_item must both refer to a Stream. Tables are not supported.
 Records written into the stream are not timestamp-ordered with respect to other queries.
 Therefore, the topic partitions of the output stream may contain out-of-order records even
 if the source stream for the query is ordered by timestamp.
+
+
+INSERT VALUES
+-----------
+
+**Synopsis**
+
+.. code:: sql
+
+    INSERT INTO <stream_name|table_name> [(column_name [, ...]])]
+      VALUES (value [,...]);
+
+**Description**
+
+Produce a row into an existing stream or table and its underlying topic based on
+explicitly specified values. The first ``column_name`` of every schema is ``ROWKEY``, which
+defines the corresponding kafka key - if the source specifies a ``key`` and that column is present
+in the column names for this insert statement, the values are expected to match, otherwise the
+value will be duplicated into the value (or conversely from the value into the ``ROWKEY``).
+
+Any column not explicitly given a value is set to ``null`` (KSQL does not yet support DEFAULT
+values).  If no columns are specified, a value for every column is expected in the same order as
+the schema with ``ROWKEY`` as the first column. If columns are specified, the order does not matter.
+
+.. note:: ``ROWTIME`` may be specified as an explicit column, but is not required when omitting the
+  column specifications.
+
+For example, the statements below would all be valid for a source with schema
+``<KEY_COL VARCHAR, COL_A VARCHAR>`` with ``KEY=KEY_COL``:
+
+  .. code:: sql
+
+      // inserts (1234, "key", "key", "A")
+      INSERT INTO foo (ROWTIME, ROWKEY, KEY_COL, COL_A) VALUES (1234, "key", "key", "A");
+
+      // inserts (current_time(), "key", "key", "A")
+      INSERT INTO foo VALUES ("key", "key", "A");
+
+      // inserts (current_time(), "key", "key", "A")
+      INSERT INTO foo (KEY_COL, COL_A) VALUES ("key", "A");
+
+      // inserts (current_time(), "key", "key", null)
+      INSERT INTO foo (KEY_COL) VALUES ("key");
+
+The values will serialize using the ``value_format`` specified in the original `CREATE` statement.
+
 
 DESCRIBE
 --------

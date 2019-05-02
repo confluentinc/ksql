@@ -43,14 +43,20 @@ import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.SchemaUtil;
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.avro.Schema.Field;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.common.header.internals.RecordHeaders;
+import org.apache.kafka.common.record.TimestampType;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Schema.Type;
 import org.apache.kafka.connect.data.SchemaBuilder;
+import org.hamcrest.Description;
+import org.hamcrest.Matcher;
+import org.hamcrest.TypeSafeMatcher;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -191,15 +197,45 @@ public class KsqlResourceFunctionalTest {
 
     TEST_HARNESS.verifyAvailableRows(
         "books",
-        is(ImmutableList.of(
-            new ConsumerRecord<>(
-                "books",
-                0,
-                0,
-                "Metamorphosis",
-                new GenericRow(ImmutableList.of(123L, "Metamorphosis", "Franz Kafka"))))),
+        contains(matches(
+            "Metamorphosis",
+            new GenericRow(ImmutableList.of(123L, "Metamorphosis", "Metamorphosis", "Franz Kafka")),
+            0,
+            0L,
+            123L)),
         Format.AVRO,
         KsqlSchema.of(schema));
+  }
+
+  @SuppressWarnings("SameParameterValue")
+  private static Matcher<ConsumerRecord<String, GenericRow>> matches(
+      final String key,
+      final GenericRow value,
+      final int partition,
+      final long offset,
+      final long timestamp
+  ) {
+    return new TypeSafeMatcher<ConsumerRecord<String, GenericRow>>() {
+      @Override
+      protected boolean matchesSafely(final ConsumerRecord<String, GenericRow> item) {
+        return item.key().equalsIgnoreCase(key)
+            && item.value().equals(value)
+            && item.offset() == offset
+            && item.partition() == partition
+            && item.timestamp() == timestamp;
+      }
+
+      @Override
+      public void describeTo(final Description description) {
+        description.appendText(
+            String.format("Expected key: %s value: %s partition: %d offset: %d timestamp: %d",
+                key,
+                value,
+                partition,
+                offset,
+                timestamp));
+      }
+    };
   }
 
   private static void assertSuccessful(final List<KsqlEntity> results) {

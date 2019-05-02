@@ -6,8 +6,8 @@ KSQL Syntax Reference
 KSQL has similar semantics to SQL:
 
 - Terminate KSQL statements with a semicolon ``;``.
-- Escape ``'`` characters inside string literals by using ``''``. For example,
-  to escape ``'T'``, write ``''T''``.
+- Escape single-quote characters (``'``) inside string literals by using two successive
+  single quotes (``''``). For example, to escape ``'T'``, write ``''T''``.
 
 ===========
 Terminology

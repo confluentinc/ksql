@@ -47,27 +47,27 @@ public class EntityUtilTest {
 
   @Test
   public void shouldBuildCorrectIntegerField() {
-    shouldBuildCorrectPrimitiveField(Schema.INT32_SCHEMA, "INTEGER");
+    shouldBuildCorrectPrimitiveField(Schema.OPTIONAL_INT32_SCHEMA, "INTEGER");
   }
 
   @Test
   public void shouldBuildCorrectBigintField() {
-    shouldBuildCorrectPrimitiveField(Schema.INT64_SCHEMA, "BIGINT");
+    shouldBuildCorrectPrimitiveField(Schema.OPTIONAL_INT64_SCHEMA, "BIGINT");
   }
 
   @Test
   public void shouldBuildCorrectDoubleField() {
-    shouldBuildCorrectPrimitiveField(Schema.FLOAT64_SCHEMA, "DOUBLE");
+    shouldBuildCorrectPrimitiveField(Schema.OPTIONAL_FLOAT64_SCHEMA, "DOUBLE");
   }
 
   @Test
   public void shouldBuildCorrectStringField() {
-    shouldBuildCorrectPrimitiveField(Schema.STRING_SCHEMA, "STRING");
+    shouldBuildCorrectPrimitiveField(Schema.OPTIONAL_STRING_SCHEMA, "STRING");
   }
 
   @Test
   public void shouldBuildCorrectBooleanField() {
-    shouldBuildCorrectPrimitiveField(Schema.BOOLEAN_SCHEMA, "BOOLEAN");
+    shouldBuildCorrectPrimitiveField(Schema.OPTIONAL_BOOLEAN_SCHEMA, "BOOLEAN");
   }
 
   @Test
@@ -77,6 +77,7 @@ public class EntityUtilTest {
         .struct()
         .field("field", SchemaBuilder
             .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_INT32_SCHEMA)
+            .optional()
             .build())
         .build());
 
@@ -98,6 +99,7 @@ public class EntityUtilTest {
         .struct()
         .field("field", SchemaBuilder
             .array(SchemaBuilder.OPTIONAL_INT64_SCHEMA)
+            .optional()
             .build())
         .build());
 
@@ -121,7 +123,8 @@ public class EntityUtilTest {
             "field",
             SchemaBuilder.
                 struct()
-                .field("innerField", Schema.STRING_SCHEMA)
+                .field("innerField", Schema.OPTIONAL_STRING_SCHEMA)
+                .optional()
                 .build())
         .build());
 
@@ -143,8 +146,8 @@ public class EntityUtilTest {
     // Given:
     final KsqlSchema schema = KsqlSchema.of(SchemaBuilder
         .struct()
-        .field("field1", Schema.INT32_SCHEMA)
-        .field("field2", Schema.INT64_SCHEMA)
+        .field("field1", Schema.OPTIONAL_INT32_SCHEMA)
+        .field("field2", Schema.OPTIONAL_INT64_SCHEMA)
         .build());
 
     // When:

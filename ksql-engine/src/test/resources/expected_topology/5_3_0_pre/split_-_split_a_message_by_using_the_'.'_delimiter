@@ -30,7 +30,7 @@
 }
 CONFIGS_END
 CSAS_OUTPUT_0.KsqlTopic.source = struct<MESSAGE optional<string>>
-CSAS_OUTPUT_0.OUTPUT = struct<SPLIT_MSG array<optional<string>>>
+CSAS_OUTPUT_0.OUTPUT = struct<SPLIT_MSG optional<array<optional<string>>>>
 SCHEMAS_END
 Topologies:
    Sub-topology: 0

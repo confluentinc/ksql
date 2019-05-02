@@ -99,6 +99,8 @@ WITHIN clauses.
 
 For more information, see :ref:`windows_in_ksql_queries`.
 
+.. _ksql-timestamp-formats:
+
 KSQL Timestamp Formats
 ----------------------
 

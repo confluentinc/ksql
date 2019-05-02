@@ -93,9 +93,11 @@ semantics.
 
 .. important::
 
-    If you use the WITH(timestamp=...) clause, this timestamp must be expressible
+    If you use the WITH(TIMESTAMP=...) clause, this timestamp must be expressible
     as a Unix epoch time in milliseconds, which is the number of milliseconds
-    that have elapsed since 1 January 1970 at midnight UTC/GMT.
+    that have elapsed since 1 January 1970 at midnight UTC/GMT. Also, you can 
+    specify the timestamp as a string when you provide a TIMESTAMP_FORMAT.
+    For more information, see :ref:`ksql-timestamp-formats`. 
 
     When working with time you should also make sure that additional
     aspects of time, like time zones and calendars, are correctly synchronized – or

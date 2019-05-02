@@ -67,20 +67,6 @@ public class GeoDistanceKudfTest {
         (double) distanceUdf.geoDistance(-33.9323, 18.4197, -33.8666, 151.1, "MI"), 0.5);
   }
 
-
-  @Test
-  public void shouldFailWithTooFewParams() {
-    expectedException.expect(KsqlFunctionException.class);
-    expectedException.expectMessage("GeoDistance function expects either 4 or 5 arguments");
-    distanceUdf.evaluate(37.4439, -122.1663);
-  }
-
-  @Test
-  public void shouldFailWithTooManyParams() {
-    expectedException.expect(KsqlFunctionException.class);
-    expectedException.expectMessage("GeoDistance function expects either 4 or 5 arguments");
-    distanceUdf.geoDistance(37.4439, -122.1663, 51.5257, -0.1122, "Foo", "Bar");
-  }
   /**
    * Valid values for latitude range from -90->90 decimal degrees, and longitude is from -180->180
    */

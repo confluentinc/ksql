@@ -23,7 +23,6 @@ import io.confluent.ksql.function.udaf.sum.SumAggFunctionFactory;
 import io.confluent.ksql.function.udaf.topk.TopKAggregateFunctionFactory;
 import io.confluent.ksql.function.udaf.topkdistinct.TopkDistinctAggFunctionFactory;
 import io.confluent.ksql.function.udf.UdfMetadata;
-import io.confluent.ksql.function.udf.geo.GeoDistanceKudf;
 import io.confluent.ksql.function.udf.json.ArrayContainsKudf;
 import io.confluent.ksql.function.udf.json.JsonExtractStringKudf;
 import io.confluent.ksql.function.udf.math.AbsKudf;
@@ -69,7 +68,6 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
     return udfFactory;
   }
 
-  @SuppressWarnings("unchecked")
   @Override
   public void addFunction(final KsqlFunction ksqlFunction) {
     final UdfFactory udfFactory = udfs.get(ksqlFunction.getFunctionName().toUpperCase());
@@ -262,16 +260,6 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
 
     private void addGeoFunctions() {
 
-      addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
-          Schema.OPTIONAL_FLOAT64_SCHEMA,
-          ImmutableList.of(
-              Schema.OPTIONAL_FLOAT64_SCHEMA,
-              Schema.OPTIONAL_FLOAT64_SCHEMA,
-              Schema.OPTIONAL_FLOAT64_SCHEMA,
-              Schema.OPTIONAL_FLOAT64_SCHEMA,
-              Schema.OPTIONAL_STRING_SCHEMA),
-          "GEO_DISTANCE",
-          GeoDistanceKudf.class));
     }
 
     private void addJsonFunctions() {

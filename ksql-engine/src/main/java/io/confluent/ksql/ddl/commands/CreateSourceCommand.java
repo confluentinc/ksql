@@ -188,8 +188,8 @@ abstract class CreateSourceCommand implements DdlCommand {
     final Set<String> validSet = new HashSet<>();
     validSet.add(DdlConfig.VALUE_FORMAT_PROPERTY.toUpperCase());
     validSet.add(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY.toUpperCase());
-    validSet.add(KsqlConstants.WITH_CLAUSE_PARTITIONS.toUpperCase());
-    validSet.add(KsqlConstants.WITH_CLAUSE_REPLICAS.toUpperCase());
+    validSet.add(KsqlConstants.SINK_NUMBER_OF_PARTITIONS.toUpperCase());
+    validSet.add(KsqlConstants.SINK_NUMBER_OF_REPLICAS.toUpperCase());
     validSet.add(DdlConfig.KEY_NAME_PROPERTY.toUpperCase());
     validSet.add(DdlConfig.WINDOW_TYPE_PROPERTY.toUpperCase());
     validSet.add(DdlConfig.TIMESTAMP_NAME_PROPERTY.toUpperCase());

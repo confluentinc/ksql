@@ -114,12 +114,12 @@ public final class TopicProperties {
           ? null
           : StringUtils.strip(nameExpression.toString(), "'");
 
-      final Expression partitionExp = withClause.get(KsqlConstants.WITH_CLAUSE_PARTITIONS);
+      final Expression partitionExp = withClause.get(KsqlConstants.SINK_NUMBER_OF_PARTITIONS);
       final Integer partitions = partitionExp == null
           ? null
           : WithClauseUtil.parsePartitions(partitionExp.toString());
 
-      final Expression replicasExp = withClause.get(KsqlConstants.WITH_CLAUSE_REPLICAS);
+      final Expression replicasExp = withClause.get(KsqlConstants.SINK_NUMBER_OF_REPLICAS);
       final Short replicas = replicasExp == null
           ? null
           : WithClauseUtil.parseReplicas(replicasExp.toString());

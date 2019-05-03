@@ -338,9 +338,9 @@ public class TopicCreateInjectorTest {
     assertThat(result.getStatement().getProperties(),
         hasEntry(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral("expectedName")));
     assertThat(result.getStatement().getProperties(),
-        hasEntry(KsqlConstants.WITH_CLAUSE_PARTITIONS, new IntegerLiteral(10)));
+        hasEntry(KsqlConstants.SINK_NUMBER_OF_PARTITIONS, new IntegerLiteral(10)));
     assertThat(result.getStatement().getProperties(),
-        hasEntry(KsqlConstants.WITH_CLAUSE_REPLICAS, new IntegerLiteral(10)));
+        hasEntry(KsqlConstants.SINK_NUMBER_OF_REPLICAS, new IntegerLiteral(10)));
   }
 
   @Test

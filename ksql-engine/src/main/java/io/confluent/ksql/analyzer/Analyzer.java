@@ -136,10 +136,10 @@ class Analyzer {
       setIntoTimestampColumnAndFormat(sink);
     }
 
-    if (sink.getProperties().get(KsqlConstants.WITH_CLAUSE_PARTITIONS) != null) {
+    if (sink.getProperties().get(KsqlConstants.SINK_NUMBER_OF_PARTITIONS) != null) {
       final int numberOfPartitions =
           WithClauseUtil.parsePartitions(
-              sink.getProperties().get(KsqlConstants.WITH_CLAUSE_PARTITIONS).toString());
+              sink.getProperties().get(KsqlConstants.SINK_NUMBER_OF_PARTITIONS).toString());
 
       analysis.getIntoProperties().put(
           KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY,
@@ -147,10 +147,10 @@ class Analyzer {
       );
     }
 
-    if (sink.getProperties().get(KsqlConstants.WITH_CLAUSE_REPLICAS) != null) {
+    if (sink.getProperties().get(KsqlConstants.SINK_NUMBER_OF_REPLICAS) != null) {
       final short numberOfReplications =
           WithClauseUtil.parseReplicas(
-              sink.getProperties().get(KsqlConstants.WITH_CLAUSE_REPLICAS).toString());
+              sink.getProperties().get(KsqlConstants.SINK_NUMBER_OF_REPLICAS).toString());
       analysis.getIntoProperties()
           .put(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, numberOfReplications);
     }
@@ -310,8 +310,8 @@ class Analyzer {
     validSet.add(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY.toUpperCase());
     validSet.add(DdlConfig.PARTITION_BY_PROPERTY.toUpperCase());
     validSet.add(KsqlConstants.SINK_TIMESTAMP_COLUMN_NAME.toUpperCase());
-    validSet.add(KsqlConstants.WITH_CLAUSE_PARTITIONS.toUpperCase());
-    validSet.add(KsqlConstants.WITH_CLAUSE_REPLICAS.toUpperCase());
+    validSet.add(KsqlConstants.SINK_NUMBER_OF_PARTITIONS.toUpperCase());
+    validSet.add(KsqlConstants.SINK_NUMBER_OF_REPLICAS.toUpperCase());
     validSet.add(DdlConfig.TIMESTAMP_FORMAT_PROPERTY.toUpperCase());
     validSet.add(DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME.toUpperCase());
 

@@ -192,8 +192,8 @@ public class TopicPropertiesTest {
       // Given:
       final Map<String, Literal> withClause = ImmutableMap.of(
           DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral("name"),
-          KsqlConstants.WITH_CLAUSE_PARTITIONS, new IntegerLiteral(1),
-          KsqlConstants.WITH_CLAUSE_REPLICAS, new IntegerLiteral(1)
+          KsqlConstants.SINK_NUMBER_OF_PARTITIONS, new IntegerLiteral(1),
+          KsqlConstants.SINK_NUMBER_OF_REPLICAS, new IntegerLiteral(1)
       );
 
       // When:
@@ -368,12 +368,12 @@ public class TopicPropertiesTest {
         case WITH:
           if (inject.partitions != null) {
             withClause.put(
-                KsqlConstants.WITH_CLAUSE_PARTITIONS,
+                KsqlConstants.SINK_NUMBER_OF_PARTITIONS,
                 new IntegerLiteral(inject.partitions));
           }
           if (inject.replicas != null) {
             withClause.put(
-                KsqlConstants.WITH_CLAUSE_REPLICAS,
+                KsqlConstants.SINK_NUMBER_OF_REPLICAS,
                 new IntegerLiteral(inject.replicas));
           }
           break;

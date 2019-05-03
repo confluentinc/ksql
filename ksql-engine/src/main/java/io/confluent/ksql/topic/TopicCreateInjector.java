@@ -114,16 +114,17 @@ public class TopicCreateInjector implements Injector {
 
     if (topicClient.isTopicExists(topicName)) {
       topicPropertiesBuilder.withSource(() -> topicClient.describeTopic(topicName));
-    } else if (!createSource.getProperties().containsKey(KsqlConstants.WITH_CLAUSE_PARTITIONS)) {
+    } else if (!createSource.getProperties()
+        .containsKey(KsqlConstants.SOURCE_NUMBER_OF_PARTITIONS)) {
       final Map<String, Literal> exampleProps = new HashMap<>(createSource.getProperties());
-      exampleProps.put(KsqlConstants.WITH_CLAUSE_PARTITIONS, new IntegerLiteral(2));
-      exampleProps.putIfAbsent(KsqlConstants.WITH_CLAUSE_REPLICAS, new IntegerLiteral(1));
+      exampleProps.put(KsqlConstants.SOURCE_NUMBER_OF_PARTITIONS, new IntegerLiteral(2));
+      exampleProps.putIfAbsent(KsqlConstants.SOURCE_NUMBER_OF_REPLICAS, new IntegerLiteral(1));
       final CreateSource example = createSource.copyWith(createSource.getElements(), exampleProps);
       throw new KsqlException(
           "Topic '" + topicName + "' does not exist. If you want to create a new topic for the "
               + "stream/table please re-run the statement providing the required '"
-              + KsqlConstants.WITH_CLAUSE_PARTITIONS + "' configuration in the WITH clause "
-              + "(and optionally '" + KsqlConstants.WITH_CLAUSE_REPLICAS + "'). For example: "
+              + KsqlConstants.SOURCE_NUMBER_OF_PARTITIONS + "' configuration in the WITH clause "
+              + "(and optionally '" + KsqlConstants.SOURCE_NUMBER_OF_REPLICAS + "'). For example: "
               + SqlFormatter.formatSql(example));
     }
 
@@ -165,8 +166,8 @@ public class TopicCreateInjector implements Injector {
 
     final Map<String, Literal> props = new HashMap<>(createAsSelect.getProperties());
     props.put(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral(info.getTopicName()));
-    props.put(KsqlConstants.WITH_CLAUSE_REPLICAS, new IntegerLiteral(info.getReplicas()));
-    props.put(KsqlConstants.WITH_CLAUSE_PARTITIONS, new IntegerLiteral(info.getPartitions()));
+    props.put(KsqlConstants.SINK_NUMBER_OF_REPLICAS, new IntegerLiteral(info.getReplicas()));
+    props.put(KsqlConstants.SINK_NUMBER_OF_PARTITIONS, new IntegerLiteral(info.getPartitions()));
 
     final T withTopic = (T) createAsSelect.copyWith(props);
     final String withTopicText = SqlFormatter.formatSql(withTopic) + ";";

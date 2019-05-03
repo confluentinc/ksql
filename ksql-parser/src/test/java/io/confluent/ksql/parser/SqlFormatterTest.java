@@ -24,6 +24,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.mockito.Mockito.mock;
 
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MutableMetaStore;
@@ -171,9 +172,9 @@ public class SqlFormatterTest {
         QualifiedName.of("TEST"),
         tableElements,
         false,
-        Collections.singletonMap(
-            DdlConfig.TOPIC_NAME_PROPERTY,
-            new StringLiteral("topic_test")
+        ImmutableMap.of(
+            DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral("topic_test"),
+            DdlConfig.VALUE_FORMAT_PROPERTY, new StringLiteral("avro")
         ));
     final String sql = SqlFormatter.formatSql(createStream);
     assertThat("literal escaping failure", sql, containsString("`GROUP` STRING"));
@@ -190,12 +191,12 @@ public class SqlFormatterTest {
         QualifiedName.of("TEST"),
         Collections.emptyList(),
         false,
-        Collections.singletonMap(
-            DdlConfig.KAFKA_TOPIC_NAME_PROPERTY,
-            new StringLiteral("topic_test")
+        ImmutableMap.of(
+            DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral("topic_test"),
+            DdlConfig.VALUE_FORMAT_PROPERTY, new StringLiteral("avro")
         ));
     final String sql = SqlFormatter.formatSql(createStream);
-    final String expectedSql = "CREATE STREAM TEST  WITH (KAFKA_TOPIC='topic_test');";
+    final String expectedSql = "CREATE STREAM TEST  WITH (VALUE_FORMAT='avro', KAFKA_TOPIC='topic_test');";
     assertThat(sql, equalTo(expectedSql));
   }
 

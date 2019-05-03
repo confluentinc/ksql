@@ -20,8 +20,7 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KsqlTopic;
-import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.parser.tree.Literal;
+import io.confluent.ksql.parser.tree.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
@@ -30,8 +29,6 @@ import io.confluent.ksql.serde.delimited.KsqlDelimitedTopicSerDe;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.StringUtil;
-import java.util.Map;
 
 public class RegisterTopicCommand implements DdlCommand {
   private final String topicName;
@@ -42,42 +39,36 @@ public class RegisterTopicCommand implements DdlCommand {
   public RegisterTopicCommand(final RegisterTopic registerTopic) {
     this(registerTopic.getName().getSuffix(),
          registerTopic.isNotExists(),
-         registerTopic.getProperties()
+         new CreateSourceProperties(registerTopic.getProperties())
     );
   }
 
-  RegisterTopicCommand(final String topicName, final boolean notExist,
-                       final Map<String, Literal> properties) {
+  RegisterTopicCommand(
+      final String topicName,
+      final boolean notExist,
+      final CreateSourceProperties properties
+  ) {
     this.topicName = topicName;
-    enforceTopicProperties(properties);
-    this.kafkaTopicName = StringUtil.cleanQuotes(
-        properties.get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY).toString());
-    final Format format = Format
-        .of(StringUtil.cleanQuotes(properties.get(DdlConfig.VALUE_FORMAT_PROPERTY).toString()));
+    this.kafkaTopicName = properties.getKafkaTopic();
+    final Format format = properties.getValueFormat();
     this.topicSerDe = extractTopicSerDe(format, properties);
     this.notExists = notExist;
   }
 
   private static KsqlTopicSerDe extractTopicSerDe(
       final Format format,
-      final Map<String, Literal> properties
+      final CreateSourceProperties properties
   ) {
-    if (properties.containsKey(DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME)
-        && format != Format.AVRO
-    ) {
+    if (properties.getAvroSchemaName().isPresent() && format != Format.AVRO) {
       throw new KsqlException(
               DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME + " is only valid for AVRO topics.");
     }
 
     switch (format) {
       case AVRO:
-        final Expression schemaFullNameExp =
-                properties.get(DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME);
-        final String schemaFullName = schemaFullNameExp == null
-                ? KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME :
-                  StringUtil.cleanQuotes(schemaFullNameExp.toString());
+        final String schemaFullName = properties.getAvroSchemaName()
+            .orElse(KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME);
         return new KsqlAvroTopicSerDe(schemaFullName);
-
       case JSON:
         return new KsqlJsonTopicSerDe();
 
@@ -86,18 +77,6 @@ public class RegisterTopicCommand implements DdlCommand {
 
       default:
         throw new KsqlException("The specified topic serde is not supported.");
-    }
-  }
-
-  private static void enforceTopicProperties(final Map<String, ?> properties) {
-    if (!properties.containsKey(DdlConfig.VALUE_FORMAT_PROPERTY)) {
-      throw new KsqlException("Topic format("
-          + DdlConfig.VALUE_FORMAT_PROPERTY + ") should be set in WITH clause.");
-    }
-
-    if (!properties.containsKey(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY)) {
-      throw new KsqlException("Corresponding Kafka topic ("
-          + DdlConfig.KAFKA_TOPIC_NAME_PROPERTY + ") should be set in WITH clause.");
     }
   }
 

@@ -28,11 +28,11 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MutableMetaStore;
-import io.confluent.ksql.parser.tree.BooleanLiteral;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.QualifiedName;
+import io.confluent.ksql.parser.tree.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.Type.SqlType;
@@ -131,36 +131,6 @@ public class CreateTableCommandTest {
   }
 
   @Test
-  public void shouldThrowOnUnknownWindowType() {
-    // Given:
-    givenPropertiesWith(ImmutableMap.of(
-        DdlConfig.WINDOW_TYPE_PROPERTY, new StringLiteral("Unknown")));
-
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("WINDOW_TYPE property is not set correctly. "
-        + "value: UNKNOWN, validValues: [SESSION, TUMBLING, HOPPING]");
-
-    // When:
-    createCmd();
-  }
-
-  @Test
-  public void shouldThrowOnOldWindowProperty() {
-    // Given:
-    givenPropertiesWith(ImmutableMap.of(
-        "WINDOWED", new BooleanLiteral("true")));
-
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "Invalid config variable in the WITH clause: WINDOWED");
-
-    // When:
-    createCmd();
-  }
-
-  @Test
   public void shouldThrowIfTopicDoesNotExist() {
     // Given:
     when(topicClient.isTopicExists(any())).thenReturn(false);
@@ -225,6 +195,6 @@ public class CreateTableCommandTest {
     final Map<String, Literal> allProps = new HashMap<>(props);
     allProps.putIfAbsent(DdlConfig.VALUE_FORMAT_PROPERTY, new StringLiteral("Json"));
     allProps.putIfAbsent(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral("some-topic"));
-    when(createTableStatement.getProperties()).thenReturn(allProps);
+    when(createTableStatement.getProperties()).thenReturn(new CreateSourceProperties(allProps));
   }
 }

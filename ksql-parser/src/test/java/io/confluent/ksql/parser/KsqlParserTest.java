@@ -69,6 +69,7 @@ import io.confluent.ksql.parser.tree.Struct;
 import io.confluent.ksql.parser.tree.Type.SqlType;
 import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
@@ -498,14 +499,14 @@ public class KsqlParserTest {
     final String
         queryStr =
         "CREATE STREAM orders (ordertime bigint, orderid varchar, itemid varchar, orderunits "
-        + "double) WITH (registered_topic = 'orders_topic' , key='ordertime');";
+        + "double) WITH (registered_topic = 'orders_topic' , key='ordertime', kafka_topic='foo', value_format='json');";
     final Statement statement = KsqlParserTestUtil.buildSingleAst(queryStr, metaStore).getStatement();
     Assert.assertTrue("testCreateStream failed.", statement instanceof CreateStream);
     final CreateStream createStream = (CreateStream)statement;
     Assert.assertTrue("testCreateStream failed.", createStream.getName().toString().equalsIgnoreCase("ORDERS"));
     Assert.assertTrue("testCreateStream failed.", createStream.getElements().size() == 4);
     Assert.assertTrue("testCreateStream failed.", createStream.getElements().get(0).getName().toString().equalsIgnoreCase("ordertime"));
-    Assert.assertTrue("testCreateStream failed.", createStream.getProperties().get(DdlConfig.TOPIC_NAME_PROPERTY).toString().equalsIgnoreCase("'orders_topic'"));
+    Assert.assertTrue("testCreateStream failed.", createStream.getProperties().getKsqlTopic().get().equalsIgnoreCase("orders_topic"));
   }
 
   @Test
@@ -515,7 +516,7 @@ public class KsqlParserTest {
         "CREATE STREAM orders (ordertime bigint, orderid varchar, itemid varchar, orderunits "
         + "double, arraycol array<double>, mapcol map<varchar, double>, "
         + "order_address STRUCT< number VARCHAR, street VARCHAR, zip INTEGER, city "
-        + "VARCHAR, state VARCHAR >) WITH (registered_topic = 'orders_topic' , key='ordertime');";
+        + "VARCHAR, state VARCHAR >) WITH (registered_topic = 'orders_topic' , key='ordertime', value_format='json', kafka_topic='foo');";
     final Statement statement = KsqlParserTestUtil.buildSingleAst(queryStr, metaStore).getStatement();
     Assert.assertTrue("testCreateStream failed.", statement instanceof CreateStream);
     final CreateStream createStream = (CreateStream)statement;
@@ -526,8 +527,7 @@ public class KsqlParserTest {
     final Struct struct = (Struct) createStream.getElements().get(6).getType();
     assertThat(struct.getFields(), hasSize(5));
     assertThat(struct.getFields().get(0).getType().getSqlType(), equalTo(SqlType.STRING));
-    assertThat(createStream.getProperties().get(DdlConfig.TOPIC_NAME_PROPERTY).toString().toLowerCase(),
-               equalTo("'orders_topic'"));
+    assertThat(createStream.getProperties().getKsqlTopic().get().toLowerCase(), equalTo("orders_topic"));
   }
 
   @Test
@@ -542,23 +542,24 @@ public class KsqlParserTest {
     Assert.assertTrue("testCreateStream failed.", createStream.getName().toString().equalsIgnoreCase("ORDERS"));
     Assert.assertTrue("testCreateStream failed.", createStream.getElements().size() == 4);
     Assert.assertTrue("testCreateStream failed.", createStream.getElements().get(0).getName().toString().equalsIgnoreCase("ordertime"));
-    Assert.assertTrue("testCreateStream failed.", createStream.getProperties().get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY).toString().equalsIgnoreCase("'orders_topic'"));
-    Assert.assertTrue("testCreateStream failed.", createStream.getProperties().get(DdlConfig
-                                                                                       .VALUE_FORMAT_PROPERTY).toString().equalsIgnoreCase("'avro'"));
+    Assert.assertTrue("testCreateStream failed.", createStream.getProperties().getKafkaTopic().equalsIgnoreCase("orders_topic"));
+    Assert.assertTrue("testCreateStream failed.", createStream.getProperties().getValueFormat().equals(Format.AVRO));
+
   }
 
   @Test
   public void testCreateTableWithTopic() {
     final String
         queryStr =
-        "CREATE TABLE users (usertime bigint, userid varchar, regionid varchar, gender varchar) WITH (registered_topic = 'users_topic', key='userid', statestore='user_statestore');";
+        "CREATE TABLE users (usertime bigint, userid varchar, regionid varchar, gender varchar) "
+            + "WITH (kafka_topic='foo', value_format='json', registered_topic = 'users_topic', key='userid');";
     final Statement statement = KsqlParserTestUtil.buildSingleAst(queryStr, metaStore).getStatement();
     Assert.assertTrue("testRegisterTopic failed.", statement instanceof CreateTable);
     final CreateTable createTable = (CreateTable)statement;
     Assert.assertTrue("testCreateTable failed.", createTable.getName().toString().equalsIgnoreCase("USERS"));
     Assert.assertTrue("testCreateTable failed.", createTable.getElements().size() == 4);
     Assert.assertTrue("testCreateTable failed.", createTable.getElements().get(0).getName().toString().equalsIgnoreCase("usertime"));
-    Assert.assertTrue("testCreateTable failed.", createTable.getProperties().get(DdlConfig.TOPIC_NAME_PROPERTY).toString().equalsIgnoreCase("'users_topic'"));
+    Assert.assertTrue("testCreateTable failed.", createTable.getProperties().getKsqlTopic().get().equalsIgnoreCase("users_topic"));
   }
 
   @Test
@@ -573,10 +574,8 @@ public class KsqlParserTest {
     Assert.assertTrue("testCreateTable failed.", createTable.getName().toString().equalsIgnoreCase("USERS"));
     Assert.assertTrue("testCreateTable failed.", createTable.getElements().size() == 4);
     Assert.assertTrue("testCreateTable failed.", createTable.getElements().get(0).getName().toString().equalsIgnoreCase("usertime"));
-    Assert.assertTrue("testCreateTable failed.", createTable.getProperties().get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY)
-        .toString().equalsIgnoreCase("'users_topic'"));
-    Assert.assertTrue("testCreateTable failed.", createTable.getProperties().get(DdlConfig.VALUE_FORMAT_PROPERTY)
-        .toString().equalsIgnoreCase("'json'"));
+    Assert.assertTrue("testCreateTable failed.", createTable.getProperties().getKafkaTopic().equalsIgnoreCase("users_topic"));
+    Assert.assertTrue("testCreateTable failed.", createTable.getProperties().getValueFormat().equals(Format.JSON));
   }
 
   @Test

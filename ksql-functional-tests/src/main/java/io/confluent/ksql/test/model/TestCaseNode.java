@@ -32,6 +32,7 @@ import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.parser.tree.CreateSource;
+import io.confluent.ksql.parser.tree.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.schema.ksql.LogicalSchemas;
 import io.confluent.ksql.serde.Format;
@@ -244,11 +245,9 @@ public class TestCaseNode {
       final CreateSource statement = (CreateSource) stmt
           .getStatement();
 
-      final Map<String, Literal> properties = statement.getProperties();
-      final String topicName
-          = StringUtil.cleanQuotes(properties.get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY).toString());
-      final Format format = Format.of(
-          StringUtil.cleanQuotes(properties.get(DdlConfig.VALUE_FORMAT_PROPERTY).toString()));
+      final CreateSourceProperties properties = statement.getProperties();
+      final String topicName = properties.getKafkaTopic();
+      final Format format = properties.getValueFormat();
 
       final Optional<org.apache.avro.Schema> avroSchema;
       if (format == Format.AVRO) {

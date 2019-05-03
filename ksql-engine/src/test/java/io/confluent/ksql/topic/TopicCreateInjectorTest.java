@@ -454,7 +454,7 @@ public class TopicCreateInjectorTest {
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage(
         "Topic 'doesntexist' does not exist. If you want to create a new topic for the "
-            + "stream/table please re-run the statement providing th required 'PARTITIONS' "
+            + "stream/table please re-run the statement providing the required 'PARTITIONS' "
             + "configuration in the WITH clause (and optionally 'REPLICAS'). For example: "
             + "CREATE STREAM FOO (FOO STRING) WITH (KAFKA_TOPIC='doesntexist', REPLICAS=1"
             + ", PARTITIONS=2);");

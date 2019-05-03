@@ -28,7 +28,8 @@ The ``ksql-datagen`` tool is installed with |cp| by default.
 .. note::
 
    KSQL Server doesn't need to be running for ``ksql-datagen`` to generate
-   records to a topic.
+   records to a topic. The ``ksql-datagen`` tool isn't just for KSQL. You can
+   use it to produce data to any Kafka topic that you have write access to.
 
 Usage
 =====

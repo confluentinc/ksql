@@ -178,7 +178,6 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
     private void init() {
       addStringFunctions();
       addMathFunctions();
-      addGeoFunctions();
       addJsonFunctions();
       addStructFieldFetcher();
       addUdafFunctions();
@@ -256,10 +255,6 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
           Collections.emptyList(),
           "RANDOM",
           RandomKudf.class));
-    }
-
-    private void addGeoFunctions() {
-
     }
 
     private void addJsonFunctions() {

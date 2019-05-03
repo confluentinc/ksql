@@ -52,7 +52,7 @@ public class GeoDistanceKudf {
   @Udf(description = "The 2 input points should be specified as (lat, lon) pairs, measured"
       + " in decimal degrees. An optional fifth parameter allows to specify either \"MI\" (miles)"
       + " or \"KM\" (kilometers) as the desired unit for the output measurement. Default is KM.")
-  public Object geoDistance(
+  public Double geoDistance(
       @UdfParameter(description = "The latitude of the first point in decimal degrees.")
         final double lat1,
       @UdfParameter(description = "The longitude of the second point in decimal degrees.")
@@ -61,7 +61,7 @@ public class GeoDistanceKudf {
         final double lat2,
       @UdfParameter(description = "The longitude of the second point in decimal degrees.")
         final double lon2,
-      @UdfParameter(description = "The chosen Earth radius.")
+      @UdfParameter(description = "The units for the return value.")
         final String radius) {
 
     validateLatLonValues(lat1, lon1, lat2, lon2);
@@ -80,9 +80,8 @@ public class GeoDistanceKudf {
   }
 
   @Udf(description = "The 2 input points should be specified as (lat, lon) pairs, measured"
-      + " in decimal degrees. An optional fifth parameter allows to specify either \"MI\" (miles)"
-      + " or \"KM\" (kilometers) as the desired unit for the output measurement. Default is KM.")
-  public Object geoDistance(
+      + " in decimal degrees. The distance returned is in kilometers.")
+  public Double geoDistance(
       @UdfParameter(description = "The latitude of the first point in decimal degrees.")
       final double lat1,
       @UdfParameter(description = "The longitude of the second point in decimal degrees.")
@@ -92,7 +91,7 @@ public class GeoDistanceKudf {
       @UdfParameter(description = "The longitude of the second point in decimal degrees.")
       final double lon2) {
 
-    return this.geoDistance(lat1, lon1, lat2, lon2, "KM");
+    return geoDistance(lat1, lon1, lat2, lon2, VALID_RADIUS_NAMES_KMS.get(0));
   }
 
   private void validateLatLonValues(
@@ -109,18 +108,18 @@ public class GeoDistanceKudf {
     }
   }
 
-  private double selectEarthRadiusToUse(final String... radius) {
+  private double selectEarthRadiusToUse(final String radius) {
     double chosenRadius = EARTH_RADIUS_KM;
-    if (radius != null && radius.length > 0) {
-      final String outputUnit = radius[0].toLowerCase();
+    if (radius != null && radius.trim().length() > 0) {
+      final String outputUnit = radius.toLowerCase();
       if (VALID_RADIUS_NAMES_MILES.contains(outputUnit)) {
         chosenRadius = EARTH_RADIUS_MILES;
       } else if (VALID_RADIUS_NAMES_KMS.contains(outputUnit)) {
         chosenRadius = EARTH_RADIUS_KM;
       } else {
         throw new KsqlFunctionException(
-            "GeoDistance function fifth parameter must be ('MI' or 'miles')"
-            + " or ('KM' or 'kilometers'). Values are case-insensitive.");
+            "GeoDistance function fifth parameter must be one of " + VALID_RADIUS_NAMES_MILES
+            + " or " + VALID_RADIUS_NAMES_KMS + ". Values are case-insensitive.");
       }
     }
     return chosenRadius;

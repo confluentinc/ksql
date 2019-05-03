@@ -50,6 +50,8 @@ Name                                        Default  Description
 ``format=<record format>``                    json   Format of generated records: one of ``avro``, ``json``, or ``delimited``. Case-insensitive.
 ``topic=<kafka topic name>``                         Name of the topic that receives generated records.
 ``key=<name of key column>``                         Field to use as the key for generated records.
+``quickstart=<quickstart preset>``                   Generate records from a preset schema: ``orders``, ``users``, or ``pageviews``. Case-insensitive.
+                                                     If ``topic`` isn't specified, creates a topic named ``<preset>_kafka_topic_json``, for example, ``users_kafka_topic_json``.
 ==========================================  =======  ===========================================================================================
 
 Use the following command to generate records from one of the predefined
@@ -58,19 +60,6 @@ schemas:
 .. sourcecode:: bash
    
    <path-to-confluent>/bin/ksql-datagen quickstart=<quickstart preset> [options ...]
-
-
-Required Arguments
-------------------
-
-==========================================  =======  ===========================================================================================================================
-Name                                        Default  Description
-==========================================  =======  ===========================================================================================================================
-``quickstart=<quickstart preset>``                   Generate records from a preset schema: ``orders``, ``users``, ``users_``, or ``pageviews``. Case-insensitive.
-                                                     If ``topic`` isn't specified, creates a topic named ``<preset>_kafka_topic_json``, for example, ``users_kafka_topic_json``.
-==========================================  =======  ===========================================================================================================================
-
-
 
 Optional Arguments
 ------------------

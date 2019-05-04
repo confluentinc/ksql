@@ -118,7 +118,7 @@ public class GeoDistanceKudf {
         chosenRadius = EARTH_RADIUS_KM;
       } else {
         throw new KsqlFunctionException(
-            "GeoDistance function fifth parameter must be one of " + VALID_RADIUS_NAMES_MILES
+            "GeoDistance function radius parameter must be one of " + VALID_RADIUS_NAMES_MILES
             + " or " + VALID_RADIUS_NAMES_KMS + ". Values are case-insensitive.");
       }
     }

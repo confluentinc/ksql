@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2019 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -73,14 +73,14 @@ public class GeoDistanceKudfTest {
   @Test
   public void shouldFailOutOfBoundsCoordinates() {
     expectedException.expect(KsqlFunctionException.class);
-    expectedException.expectMessage("valid latitude values");
+    expectedException.expectMessage("valid latitude values for GeoDistance function");
     distanceUdf.geoDistance(90.1, -122.1663, -91.5257, -0.1122);
   }
 
   @Test
   public void shouldFailInvalidUnitOfMeasure() {
     expectedException.expect(KsqlFunctionException.class);
-    expectedException.expectMessage("GeoDistance function fifth parameter must be");
+    expectedException.expectMessage("GeoDistance function radius parameter must be one of");
     distanceUdf.geoDistance(37.4439, -122.1663, 51.5257, -0.1122, "Widget");
   }
 }

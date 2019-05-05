@@ -17,7 +17,7 @@ package io.confluent.ksql.rest.server.context;
 
 import java.util.Collections;
 
-public final class KsqlRestContextProvider {
+public final class  KsqlRestContextProvider {
   private static final ThreadLocal<KsqlRestContext> restContextThreadLocal = new ThreadLocal<>();
 
   private static final KsqlRestContext defaultRestContext = new KsqlRestContext(

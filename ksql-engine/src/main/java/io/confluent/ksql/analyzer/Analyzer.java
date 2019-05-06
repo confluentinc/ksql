@@ -217,7 +217,7 @@ class Analyzer {
           return new KsqlJsonTopicSerDe();
 
         case DELIMITED:
-          return new KsqlDelimitedTopicSerDe();
+          return new KsqlDelimitedTopicSerDe(DdlConfig.VALUE_DELIMITER_DEFAULT);
 
         default:
           throw new KsqlException(

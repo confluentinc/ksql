@@ -24,6 +24,7 @@ import org.apache.kafka.common.serialization.Serializer;
 public class DelimitedProducer extends DataGenProducer {
 
   private final CSVFormat csvFormat;
+
   public DelimitedProducer(final String valueDelimiter) {
     super();
     this.csvFormat = CSVFormat.DEFAULT.withDelimiter(valueDelimiter.charAt(0));
@@ -35,6 +36,6 @@ public class DelimitedProducer extends DataGenProducer {
       final org.apache.kafka.connect.data.Schema kafkaSchema,
       final String topicName
   ) {
-    return new KsqlDelimitedSerializer(kafkaSchema, csvFormat);
+    return new KsqlDelimitedSerializer(csvFormat);
   }
 }

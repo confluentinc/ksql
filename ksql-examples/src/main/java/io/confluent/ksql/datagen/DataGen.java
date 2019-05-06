@@ -95,10 +95,12 @@ public final class DataGen {
         + "[quickstart=<quickstart preset> (case-insensitive; one of 'orders', 'users', or "
         + "'pageviews')] " + newLine
         + "schema=<avro schema file> " + newLine
-        + "[schemaRegistryUrl=<url for Confluent Schema Registry> (defaults to http://localhost:8081)] " + newLine
-        + "format=<message format> (case-insensitive; one of 'avro', 'json', or 'delimited') " + newLine
-        + "[value_delimiter=<delimiter for delimited format> (used only when format is 'delimited', only "
-        + "single characters, defaults to ',' )] " + newLine
+        + "[schemaRegistryUrl=<url for Confluent Schema Registry> "
+        + "(defaults to http://localhost:8081)] " + newLine
+        + "format=<message format> (case-insensitive; one of 'avro', "
+        + "'json', or 'delimited') " + newLine
+        + "[value_delimiter=<delimiter for delimited format> (used only when format is "
+        + "'delimited', only single characters, defaults to ',' )] " + newLine
         + "(defaults to http://localhost:8081)] " + newLine
         + "format=<message format> (case-insensitive; one of 'avro', 'json', or "
         + "'delimited') " + newLine
@@ -126,6 +128,7 @@ public final class DataGen {
     private final String schemaRegistryUrl;
     private final InputStream propertiesFile;
 
+    // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
     Arguments(
         final boolean help,
         final String bootstrapServer,
@@ -139,6 +142,7 @@ public final class DataGen {
         final String schemaRegistryUrl,
         final InputStream propertiesFile
     ) {
+      // CHECKSTYLE_RULES.ON: ParameterNumberCheck
       this.help = help;
       this.bootstrapServer = bootstrapServer;
       this.schemaFile = schemaFile;
@@ -167,7 +171,8 @@ public final class DataGen {
               .put("bootstrap-server", (builder, argVal) -> builder.bootstrapServer = argVal)
               .put("schema", (builder, argVal) -> builder.schemaFile = toFileInputStream(argVal))
               .put("format", (builder, argVal) -> builder.format = parseFormat(argVal))
-              .put("value_delimiter", (builder, argVal) -> builder.valueDelimiter = parseValueDelimiter(argVal))
+              .put("value_delimiter",
+                  (builder, argVal) -> builder.valueDelimiter = parseValueDelimiter(argVal))
               .put("topic", (builder, argVal) -> builder.topicName = argVal)
               .put("key", (builder, argVal) -> builder.keyName = argVal)
               .put("iterations", (builder, argVal) -> builder.iterations = parseIterations(argVal))

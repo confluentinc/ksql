@@ -19,13 +19,14 @@ import io.confluent.ksql.function.AggregateFunctionFactory;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.UdfFactory;
+import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlReferentialIntegrityException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -63,15 +64,15 @@ public final class MetaStoreImpl implements MutableMetaStore {
 
   @Override
   public void putTopic(final KsqlTopic topic) {
-    if (topics.putIfAbsent(topic.getName(), topic) != null) {
+    if (topics.putIfAbsent(topic.getKsqlTopicName(), topic) != null) {
       throw new KsqlException(
           "Cannot add the new topic. Another topic with the same name already exists: "
-          + topic.getName());
+          + topic.getKsqlTopicName());
     }
   }
 
   @Override
-  public StructuredDataSource getSource(final String sourceName) {
+  public DataSource<?> getSource(final String sourceName) {
     final SourceInfo source = dataSources.get(sourceName);
     if (source == null) {
       return null;
@@ -80,17 +81,16 @@ public final class MetaStoreImpl implements MutableMetaStore {
   }
 
   @Override
-  public Optional<StructuredDataSource> getSourceForTopic(final String ksqlTopicName) {
+  public List<DataSource<?>> getSourcesForKafkaTopic(final String kafkaTopicName) {
     return dataSources.values()
         .stream()
-        .filter(p -> p.source.getKsqlTopic().getName() != null
-            && p.source.getKsqlTopic().getName().equals(ksqlTopicName))
         .map(sourceInfo -> sourceInfo.source)
-        .findFirst();
+        .filter(source -> source.getKafkaTopicName().equals(kafkaTopicName))
+        .collect(Collectors.toList());
   }
 
   @Override
-  public void putSource(final StructuredDataSource dataSource) {
+  public void putSource(final DataSource<?> dataSource) {
     if (dataSources.putIfAbsent(dataSource.getName(), new SourceInfo(dataSource)) != null) {
       throw new KsqlException(
           "Cannot add the new data source. Another data source with the same name already exists: "
@@ -138,7 +138,7 @@ public final class MetaStoreImpl implements MutableMetaStore {
   }
 
   @Override
-  public Map<String, StructuredDataSource> getAllStructuredDataSources() {
+  public Map<String, DataSource<?>> getAllDataSources() {
     return dataSources
         .entrySet()
         .stream()
@@ -224,8 +224,10 @@ public final class MetaStoreImpl implements MutableMetaStore {
     return functionRegistry.isAggregate(functionName);
   }
 
-  public KsqlAggregateFunction getAggregate(final String functionName,
-                                            final Schema argumentType) {
+  public KsqlAggregateFunction<?, ?> getAggregate(
+      final String functionName,
+      final Schema argumentType
+  ) {
     return functionRegistry.getAggregate(functionName, argumentType);
   }
 
@@ -258,18 +260,18 @@ public final class MetaStoreImpl implements MutableMetaStore {
 
   private static final class SourceInfo {
 
-    private final StructuredDataSource source;
+    private final DataSource<?> source;
     private final ReferentialIntegrityTableEntry referentialIntegrity;
 
     private SourceInfo(
-        final StructuredDataSource source
+        final DataSource<?> source
     ) {
       this.source = Objects.requireNonNull(source, "source");
       this.referentialIntegrity = new ReferentialIntegrityTableEntry();
     }
 
     private SourceInfo(
-        final StructuredDataSource source,
+        final DataSource<?> source,
         final ReferentialIntegrityTableEntry referentialIntegrity
     ) {
       this.source = Objects.requireNonNull(source, "source");

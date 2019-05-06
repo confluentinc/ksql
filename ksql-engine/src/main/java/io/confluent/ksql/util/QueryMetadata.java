@@ -17,16 +17,14 @@ package io.confluent.ksql.util;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.internal.QueryStateListener;
-import io.confluent.ksql.planner.PlanSourceExtractorVisitor;
-import io.confluent.ksql.planner.plan.OutputNode;
-import io.confluent.ksql.serde.DataSource;
+import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
-import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.Topology;
 import org.slf4j.Logger;
@@ -38,34 +36,36 @@ public class QueryMetadata {
 
   private final String statementString;
   private final KafkaStreams kafkaStreams;
-  private final OutputNode outputNode;
   private final String executionPlan;
-  private final DataSource.DataSourceType dataSourceType;
+  private final DataSourceType dataSourceType;
   private final String queryApplicationId;
   private final Topology topology;
   private final Map<String, Object> streamsProperties;
   private final Map<String, Object> overriddenProperties;
   private final Consumer<QueryMetadata> closeCallback;
   private final Set<String> sourceNames;
+  private final KsqlSchema schema;
 
   private Optional<QueryStateListener> queryStateListener = Optional.empty();
   private boolean everStarted = false;
 
+  // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   protected QueryMetadata(
       final String statementString,
       final KafkaStreams kafkaStreams,
-      final OutputNode outputNode,
+      final KsqlSchema schema,
+      final Set<String> sourceNames,
       final String executionPlan,
-      final DataSource.DataSourceType dataSourceType,
+      final DataSourceType dataSourceType,
       final String queryApplicationId,
       final Topology topology,
       final Map<String, Object> streamsProperties,
       final Map<String, Object> overriddenProperties,
       final Consumer<QueryMetadata> closeCallback
   ) {
+    // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     this.statementString = Objects.requireNonNull(statementString, "statementString");
     this.kafkaStreams = Objects.requireNonNull(kafkaStreams, "kafkaStreams");
-    this.outputNode = Objects.requireNonNull(outputNode, "outputNode");
     this.executionPlan = Objects.requireNonNull(executionPlan, "executionPlan");
     this.dataSourceType = Objects.requireNonNull(dataSourceType, "dataSourceType");
     this.queryApplicationId = Objects.requireNonNull(queryApplicationId, "queryApplicationId");
@@ -77,16 +77,13 @@ public class QueryMetadata {
         ImmutableMap.copyOf(
             Objects.requireNonNull(overriddenProperties, "overriddenProperties"));
     this.closeCallback = Objects.requireNonNull(closeCallback, "closeCallback");
-
-    final PlanSourceExtractorVisitor<?, ?> visitor = new PlanSourceExtractorVisitor<>();
-    visitor.process(outputNode, null);
-    this.sourceNames = visitor.getSourceNames();
+    this.sourceNames = Objects.requireNonNull(sourceNames, "sourceNames");
+    this.schema = Objects.requireNonNull(schema, "schema");
   }
 
   protected QueryMetadata(final QueryMetadata other, final Consumer<QueryMetadata> closeCallback) {
     this.statementString = other.statementString;
     this.kafkaStreams = other.kafkaStreams;
-    this.outputNode = other.outputNode;
     this.executionPlan = other.executionPlan;
     this.dataSourceType = other.dataSourceType;
     this.queryApplicationId = other.queryApplicationId;
@@ -94,6 +91,7 @@ public class QueryMetadata {
     this.streamsProperties = other.streamsProperties;
     this.overriddenProperties = other.overriddenProperties;
     this.sourceNames = other.sourceNames;
+    this.schema = other.schema;
     this.closeCallback = Objects.requireNonNull(closeCallback, "closeCallback");
   }
 
@@ -118,15 +116,11 @@ public class QueryMetadata {
     return kafkaStreams.state().toString();
   }
 
-  public OutputNode getOutputNode() {
-    return outputNode;
-  }
-
   public String getExecutionPlan() {
     return executionPlan;
   }
 
-  public DataSource.DataSourceType getDataSourceType() {
+  public DataSourceType getDataSourceType() {
     return dataSourceType;
   }
 
@@ -142,8 +136,8 @@ public class QueryMetadata {
     return streamsProperties;
   }
 
-  public Schema getResultSchema() {
-    return outputNode.getSchema();
+  public KsqlSchema getResultSchema() {
+    return schema;
   }
 
   public Set<String> getSourceNames() {

@@ -35,8 +35,11 @@ public final class SerdeTestUtils {
   public static void shouldLogError(
       final ProcessingLogger recordLogger,
       final SchemaAndValue expected,
-      final ProcessingLogConfig config) {
-    final ArgumentCaptor<Function> capture = ArgumentCaptor.forClass(Function.class);
+      final ProcessingLogConfig config
+  ) {
+    final ArgumentCaptor<Function<ProcessingLogConfig, SchemaAndValue>> capture = ArgumentCaptor
+        .forClass(Function.class);
+
     verify(recordLogger, times(1)).error(capture.capture());
     final Object errorMsg = capture.getValue().apply(config);
     assertThat(errorMsg, instanceOf(SchemaAndValue.class));

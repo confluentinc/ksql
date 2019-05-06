@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.analyzer;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.parser.DefaultTraversalVisitor;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
@@ -52,7 +53,7 @@ class AggregateAnalyzer {
       }
     });
 
-    visitor.process(expression, new AnalysisContext());
+    visitor.process(expression, null);
 
     if (visitor.visitedAggFunction) {
       aggregateAnalysis.addAggregateSelectField(nonAggParams);
@@ -69,7 +70,7 @@ class AggregateAnalyzer {
       }
     });
 
-    visitor.process(expression, new AnalysisContext());
+    visitor.process(expression, null);
   }
 
   void processHaving(final Expression expression) {
@@ -78,10 +79,10 @@ class AggregateAnalyzer {
         aggregateAnalysis.addNonAggregateHavingField(node);
       }
     });
-    visitor.process(expression, new AnalysisContext());
+    visitor.process(expression, null);
   }
 
-  private final class AggregateVisitor extends DefaultTraversalVisitor<Node, AnalysisContext> {
+  private final class AggregateVisitor extends DefaultTraversalVisitor<Node, Void> {
 
     private final BiConsumer<Optional<String>, DereferenceExpression> dereferenceCollector;
     private Optional<String> aggFunctionName = Optional.empty();
@@ -95,9 +96,14 @@ class AggregateAnalyzer {
     }
 
     @Override
-    protected Node visitFunctionCall(final FunctionCall node, final AnalysisContext context) {
+    protected Node visitFunctionCall(final FunctionCall node, final Void context) {
       final String functionName = node.getName().getSuffix();
       final boolean aggregateFunc = functionRegistry.isAggregate(functionName);
+
+      final FunctionCall functionCall = aggregateFunc && node.getArguments().isEmpty()
+          ? new FunctionCall(node.getLocation(), node.getName(), ImmutableList.of(defaultArgument))
+          : node;
+
       if (aggregateFunc) {
         if (aggFunctionName.isPresent()) {
           throw new KsqlException("Aggregate functions can not be nested: "
@@ -107,15 +113,11 @@ class AggregateAnalyzer {
         visitedAggFunction = true;
         aggFunctionName = Optional.of(functionName);
 
-        if (node.getArguments().isEmpty()) {
-          node.getArguments().add(defaultArgument);
-        }
-
-        node.getArguments().forEach(aggregateAnalysis::addAggregateFunctionArgument);
-        aggregateAnalysis.addAggFunction(node);
+        functionCall.getArguments().forEach(aggregateAnalysis::addAggregateFunctionArgument);
+        aggregateAnalysis.addAggFunction(functionCall);
       }
 
-      final Node result = super.visitFunctionCall(node, context);
+      final Node result = super.visitFunctionCall(functionCall, context);
 
       if (aggregateFunc) {
         aggFunctionName = Optional.empty();
@@ -127,7 +129,7 @@ class AggregateAnalyzer {
     @Override
     protected Node visitDereferenceExpression(
         final DereferenceExpression node,
-        final AnalysisContext context
+        final Void context
     ) {
       dereferenceCollector.accept(aggFunctionName, node);
       aggregateAnalysis.addRequiredColumn(node);

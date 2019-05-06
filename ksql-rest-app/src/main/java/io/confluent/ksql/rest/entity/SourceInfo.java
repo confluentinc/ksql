@@ -20,8 +20,8 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import io.confluent.ksql.metastore.KsqlStream;
-import io.confluent.ksql.metastore.KsqlTable;
+import io.confluent.ksql.metastore.model.KsqlStream;
+import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.rest.entity.SourceInfo.Stream;
 import io.confluent.ksql.rest.entity.SourceInfo.Table;
 import java.util.Objects;
@@ -54,7 +54,7 @@ public class SourceInfo {
       super(name, topic, format);
     }
 
-    public Stream(final KsqlStream ksqlStream) {
+    public Stream(final KsqlStream<?> ksqlStream) {
       this(
           ksqlStream.getName(),
           ksqlStream.getKsqlTopic().getKafkaTopicName(),
@@ -78,7 +78,7 @@ public class SourceInfo {
       this.isWindowed = isWindowed;
     }
 
-    public Table(final KsqlTable ksqlTable) {
+    public Table(final KsqlTable<?> ksqlTable) {
       this(
           ksqlTable.getName(),
           ksqlTable.getKsqlTopic().getKafkaTopicName(),

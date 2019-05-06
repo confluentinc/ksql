@@ -17,27 +17,45 @@ package ${package};
 
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
+import io.confluent.ksql.function.udf.UdfParameter;
 
-@UdfDescription(name = "reverse", description = "Example UDF that reverses an object")
+@UdfDescription(
+    name = "reverse",
+    description = "Example UDF that reverses an object",
+    version = "${version}",
+    author = "${author}"
+)
 public class ReverseUdf {
 
   @Udf(description = "Reverse a string")
-  public String reverseString(String source) {
+  public String reverseString(
+      @UdfParameter(value = "source", description = "the value to reverse")
+      final String source
+  ) {
     return new StringBuilder(source).reverse().toString();
   }
 
   @Udf(description = "Reverse an integer")
-  public String reverseInt(Integer source) {
+  public String reverseInt(
+      @UdfParameter(value = "source", description = "the value to reverse")
+      final Integer source
+  ) {
     return new StringBuilder(source.toString()).reverse().toString();
   }
 
   @Udf(description = "Reverse a long")
-  public String reverseLong(Long source) {
+  public String reverseLong(
+      @UdfParameter(value = "source", description = "the value to reverse")
+      final Long source
+  ) {
     return new StringBuilder(source.toString()).reverse().toString();
   }
 
   @Udf(description = "Reverse a double")
-  public String reverseDouble(Double source) {
+  public String reverseDouble(
+      @UdfParameter(value = "source", description = "the value to reverse")
+      final Double source
+  ) {
     return new StringBuilder(source.toString()).reverse().toString();
   }
 }

@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.rest.ssl;
 
-import io.confluent.common.config.ConfigException;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.rest.RestConfig;
 import java.io.FileInputStream;
@@ -24,6 +23,7 @@ import java.util.Map;
 import java.util.Optional;
 import javax.net.ssl.HostnameVerifier;
 import org.apache.http.conn.ssl.NoopHostnameVerifier;
+import org.apache.kafka.common.config.ConfigException;
 
 public final class SslUtil {
 

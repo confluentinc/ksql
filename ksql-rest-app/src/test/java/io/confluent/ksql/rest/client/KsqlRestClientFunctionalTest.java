@@ -222,9 +222,7 @@ public class KsqlRestClientFunctionalTest {
   public void shouldThrowIfAnyServerAddressIsInvalid() {
     expectedException.expect(KsqlRestClientException.class);
     expectedException.expectMessage("The supplied serverAddress is invalid: secondBuggyServer.8088");
-    try (KsqlRestClient client = new KsqlRestClient("http://firstServer:8088,secondBuggyServer.8088")) {
-      // Meh
-    }
+    new KsqlRestClient("http://firstServer:8088,secondBuggyServer.8088");
   }
 
   @Test

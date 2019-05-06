@@ -18,7 +18,6 @@ package io.confluent.ksql.rest.server.resources.streaming;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Lists;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.QueuedQueryMetadata;
@@ -144,7 +143,7 @@ class QueryStreamWriter implements StreamingOutput {
     }
   }
 
-  private class LimitHandler implements OutputNode.LimitHandler {
+  private class LimitHandler implements io.confluent.ksql.physical.LimitHandler {
     @Override
     public void limitReached() {
       limitReached = true;

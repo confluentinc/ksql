@@ -19,16 +19,17 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Streams;
-import io.confluent.ksql.parser.tree.NodeLocation;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.rest.server.resources.streaming.Flow.Subscriber;
 import io.confluent.ksql.rest.server.resources.streaming.Flow.Subscription;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.concurrent.CountDownLatch;
 import java.util.function.Function;
@@ -37,7 +38,6 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.utils.Bytes;
-import org.apache.kafka.connect.data.Schema;
 
 class StreamingTestUtils {
 
@@ -73,7 +73,7 @@ class StreamingTestUtils {
         recordMap.computeIfAbsent(tp, ignored -> new ArrayList<>()).addAll(records.records(tp));
       }
     }
-    return new ConsumerRecords<K, V>(recordMap);
+    return new ConsumerRecords<>(recordMap);
   }
 
   static PrintTopic printTopic(
@@ -82,7 +82,7 @@ class StreamingTestUtils {
       final Integer interval,
       final Integer limit) {
     return new PrintTopic(
-        new NodeLocation(0, 1),
+        Optional.empty(),
         QualifiedName.of(name),
         fromBeginning,
         interval == null ? OptionalInt.empty() : OptionalInt.of(interval),
@@ -95,7 +95,7 @@ class StreamingTestUtils {
     CountDownLatch done = new CountDownLatch(1);
     Throwable error = null;
     List<T> elements = Lists.newLinkedList();
-    Schema schema = null;
+    KsqlSchema schema = null;
     Subscription subscription;
 
     @Override
@@ -125,7 +125,7 @@ class StreamingTestUtils {
     }
 
     @Override
-    public void onSchema(final Schema s) {
+    public void onSchema(final KsqlSchema s) {
       if (done.getCount() == 0) {
         throw new IllegalStateException("already done");
       }

@@ -15,12 +15,10 @@
 
 package io.confluent.ksql.rest.server.computation;
 
-import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
-import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.statement.ConfiguredStatement;
 import java.io.Closeable;
 import java.time.Duration;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.TimeoutException;
 
 /**
@@ -36,30 +34,28 @@ public interface CommandQueue extends Closeable {
    * it is guaranteed that the command has been persisted, without regard
    * for the {@link io.confluent.ksql.rest.entity.CommandStatus CommandStatus}.
    *
-   * @param statementString     The string of the statement to be distributed
    * @param statement           The statement to be distributed
-   * @param ksqlConfig          The application-scoped configurations
-   * @param overwriteProperties Any command-specific Streams properties to use.
    *
    * @return an asynchronous tracker that can be used to determine the current
    *         state of the command
    */
-  QueuedCommandStatus enqueueCommand(
-      PreparedStatement<?> statement,
-      KsqlConfig ksqlConfig,
-      Map<String, Object> overwriteProperties
-  );
+  QueuedCommandStatus enqueueCommand(ConfiguredStatement<?> statement);
 
   /**
    * Polls the Queue for any commands that have been enqueued since the last
-   * invocation to this method, blocking until there is data to return. If
-   * between invocations to this method, {@link #getRestoreCommands()} is
+   * invocation to this method.
+   *
+   * <p>The method blocks until either there is data to return or the
+   * supplied {@code timeout} expires.
+   *
+   * <p>If between invocations to this method, {@link #getRestoreCommands()} is
    * invoked, this command will begin where the results of that call ended.
    *
+   * @param timeout the max time to wait for new commands.
    * @return a list of commands that have been enqueued since the last call
    * @apiNote this method may block
    */
-  List<QueuedCommand> getNewCommands();
+  List<QueuedCommand> getNewCommands(Duration timeout);
 
   /**
    * Seeks to the earliest point in history available in the command queue
@@ -82,6 +78,13 @@ public interface CommandQueue extends Closeable {
    * @return whether or not there are any enqueued commands
    */
   boolean isEmpty();
+
+  /**
+   * Cause any blocked {@link #getNewCommands(Duration)} calls to return early.
+   *
+   * <p>Useful when wanting to {@link #close()} the queue in a timely fashion.
+   */
+  void wakeup();
 
   /**
    * Closes the queue so that no more reads or writes will be accepted.

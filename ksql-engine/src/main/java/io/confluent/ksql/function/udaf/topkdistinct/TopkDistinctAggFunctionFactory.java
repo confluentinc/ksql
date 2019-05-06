@@ -31,9 +31,7 @@ public class TopkDistinctAggFunctionFactory extends AggregateFunctionFactory {
 
   public TopkDistinctAggFunctionFactory() {
     super(NAME, createDescriptionFunctions());
-    eachFunction(func -> {
-      functions.put(((TopkDistinctKudaf)func).getOutputSchema().type(), func);
-    });
+    eachFunction(func -> functions.put(((TopkDistinctKudaf)func).getOutputSchema().type(), func));
   }
 
   private static List<KsqlAggregateFunction<?, ?>> createDescriptionFunctions() {

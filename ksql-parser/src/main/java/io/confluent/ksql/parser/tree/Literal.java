@@ -15,10 +15,11 @@
 
 package io.confluent.ksql.parser.tree;
 
+import com.google.errorprone.annotations.Immutable;
 import java.util.Optional;
 
-public abstract class Literal
-    extends Expression {
+@Immutable
+public abstract class Literal extends Expression {
 
   protected Literal(final Optional<NodeLocation> location) {
     super(location);

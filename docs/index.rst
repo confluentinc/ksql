@@ -6,7 +6,7 @@ KSQL
 What Is KSQL?
 -------------
 
-KSQL is the streaming SQL engine for Apache Kafka\ :sup:`®`\ . It provides an easy-to-use yet powerful interactive SQL
+KSQL is the streaming SQL engine for |ak-tm|. It provides an easy-to-use yet powerful interactive SQL
 interface for stream processing on Kafka, without the need to write code in a programming language such as Java or
 Python. KSQL is scalable, elastic, fault-tolerant, and real-time. It supports a wide range of streaming operations,
 including data filtering, transformations, aggregations, joins, windowing, and sessionization.

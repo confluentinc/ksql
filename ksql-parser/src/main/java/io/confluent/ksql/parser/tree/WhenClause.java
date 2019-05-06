@@ -15,11 +15,14 @@
 
 package io.confluent.ksql.parser.tree;
 
+import static java.util.Objects.requireNonNull;
+
+import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
 import java.util.Optional;
 
-public class WhenClause
-    extends Expression {
+@Immutable
+public class WhenClause extends Expression {
 
   private final Expression operand;
   private final Expression result;
@@ -29,15 +32,13 @@ public class WhenClause
   }
 
   public WhenClause(
-      final NodeLocation location, final Expression operand, final Expression result) {
-    this(Optional.of(location), operand, result);
-  }
-
-  private WhenClause(
-      final Optional<NodeLocation> location, final Expression operand, final Expression result) {
+      final Optional<NodeLocation> location,
+      final Expression operand,
+      final Expression result
+  ) {
     super(location);
-    this.operand = operand;
-    this.result = result;
+    this.operand = requireNonNull(operand, "operand");
+    this.result = requireNonNull(result, "result");
   }
 
   public Expression getOperand() {

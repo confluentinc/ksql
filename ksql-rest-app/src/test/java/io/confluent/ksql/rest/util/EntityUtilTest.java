@@ -19,6 +19,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 
 import io.confluent.ksql.rest.entity.FieldInfo;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
 import java.util.List;
 import java.util.Optional;
 import org.apache.kafka.connect.data.Schema;
@@ -26,12 +27,14 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Test;
 
 public class EntityUtilTest {
-  private void shouldBuildCorrectPrimitiveField(final Schema primitiveSchema,
-                                                final String schemaName) {
-    final Schema schema = SchemaBuilder
+  private static void shouldBuildCorrectPrimitiveField(
+      final Schema primitiveSchema,
+      final String schemaName
+  ) {
+    final KsqlSchema schema = KsqlSchema.of(SchemaBuilder
         .struct()
         .field("field", primitiveSchema)
-        .build();
+        .build());
 
     final List<FieldInfo> entity = EntityUtil.buildSourceSchemaEntity(schema);
 
@@ -69,13 +72,18 @@ public class EntityUtilTest {
 
   @Test
   public void shouldBuildCorrectMapField() {
-    final Schema schema = SchemaBuilder
+    // Given:
+    final KsqlSchema schema = KsqlSchema.of(SchemaBuilder
         .struct()
-        .field("field", SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.INT32_SCHEMA))
-        .build();
+        .field("field", SchemaBuilder
+            .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_INT32_SCHEMA)
+            .build())
+        .build());
 
+    // When:
     final List<FieldInfo> entity = EntityUtil.buildSourceSchemaEntity(schema);
 
+    // Then:
     assertThat(entity.size(), equalTo(1));
     assertThat(entity.get(0).getName(), equalTo("field"));
     assertThat(entity.get(0).getSchema().getTypeName(), equalTo("MAP"));
@@ -85,13 +93,18 @@ public class EntityUtilTest {
 
   @Test
   public void shouldBuildCorrectArrayField() {
-    final Schema schema = SchemaBuilder
+    // Given:
+    final KsqlSchema schema = KsqlSchema.of(SchemaBuilder
         .struct()
-        .field("field", SchemaBuilder.array(SchemaBuilder.INT64_SCHEMA))
-        .build();
+        .field("field", SchemaBuilder
+            .array(SchemaBuilder.OPTIONAL_INT64_SCHEMA)
+            .build())
+        .build());
 
+    // When:
     final List<FieldInfo> entity = EntityUtil.buildSourceSchemaEntity(schema);
 
+    // Then:
     assertThat(entity.size(), equalTo(1));
     assertThat(entity.get(0).getName(), equalTo("field"));
     assertThat(entity.get(0).getSchema().getTypeName(), equalTo("ARRAY"));
@@ -101,7 +114,8 @@ public class EntityUtilTest {
 
   @Test
   public void shouldBuildCorrectStructField() {
-    final Schema schema = SchemaBuilder
+    // Given:
+    final KsqlSchema schema = KsqlSchema.of(SchemaBuilder
         .struct()
         .field(
             "field",
@@ -109,11 +123,12 @@ public class EntityUtilTest {
                 struct()
                 .field("innerField", Schema.STRING_SCHEMA)
                 .build())
-        .build();
+        .build());
 
-
+    // When:
     final List<FieldInfo> entity = EntityUtil.buildSourceSchemaEntity(schema);
 
+    // Then:
     assertThat(entity.size(), equalTo(1));
     assertThat(entity.get(0).getName(), equalTo("field"));
     assertThat(entity.get(0).getSchema().getTypeName(), equalTo("STRUCT"));
@@ -125,15 +140,17 @@ public class EntityUtilTest {
 
   @Test
   public void shouldBuildMiltipleFieldsCorrectly() {
-    final Schema schema = SchemaBuilder
+    // Given:
+    final KsqlSchema schema = KsqlSchema.of(SchemaBuilder
         .struct()
         .field("field1", Schema.INT32_SCHEMA)
         .field("field2", Schema.INT64_SCHEMA)
-        .build();
+        .build());
 
-
+    // When:
     final List<FieldInfo> entity = EntityUtil.buildSourceSchemaEntity(schema);
 
+    // Then:
     assertThat(entity.size(), equalTo(2));
     assertThat(entity.get(0).getName(), equalTo("field1"));
     assertThat(entity.get(0).getSchema().getTypeName(), equalTo("INTEGER"));

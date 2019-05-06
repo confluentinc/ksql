@@ -3,7 +3,7 @@
 Create a KSQL Table
 ###################
 
-In KSQL, you create tables from Kafka topics, and you create tables of
+In KSQL, you create tables from |ak-tm| topics, and you create tables of
 query results from other tables or streams.
 
 * Use the CREATE TABLE statement to create a table from a Kafka topic.
@@ -45,13 +45,13 @@ In the KSQL CLI, paste the following CREATE TABLE statement:
 
 .. code:: sql
 
-    CREATE TABLE users \
-      (registertime BIGINT, \
-       userid VARCHAR, \
-       gender VARCHAR, \
-       regionid VARCHAR) \
-      WITH (KAFKA_TOPIC = 'users', \
-            VALUE_FORMAT='JSON', \
+    CREATE TABLE users
+      (registertime BIGINT,
+       userid VARCHAR,
+       gender VARCHAR,
+       regionid VARCHAR)
+      WITH (KAFKA_TOPIC = 'users',
+            VALUE_FORMAT='JSON',
             KEY = 'userid');
 
 Your output should resemble:
@@ -141,8 +141,8 @@ results from a persistent query for users that have ``gender`` set to ``FEMALE``
 
 .. code:: sql
 
-    CREATE TABLE users_female AS \
-      SELECT userid, gender, regionid FROM users \
+    CREATE TABLE users_female AS
+      SELECT userid, gender, regionid FROM users
       WHERE gender='FEMALE';
 
 Your output should resemble:

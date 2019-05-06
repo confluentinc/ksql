@@ -33,6 +33,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.ListIterator;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -70,13 +72,13 @@ public class KafkaConfigStoreTest {
       ImmutableMap.of(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG, "bad"));
 
   private final KsqlProperties properties = new KsqlProperties(
-      currentConfig.getAllConfigPropsWithSecretsObfuscated()
+      filterNullValues(currentConfig.getAllConfigPropsWithSecretsObfuscated())
   );
   private final KsqlProperties savedProperties = new KsqlProperties(
-      savedConfig.getAllConfigPropsWithSecretsObfuscated()
+      filterNullValues(savedConfig.getAllConfigPropsWithSecretsObfuscated())
   );
   private final KsqlProperties badProperties = new KsqlProperties(
-      badConfig.getAllConfigPropsWithSecretsObfuscated()
+      filterNullValues(badConfig.getAllConfigPropsWithSecretsObfuscated())
   );
 
   private final TopicPartition topicPartition = new TopicPartition(TOPIC_NAME, 0);
@@ -110,7 +112,7 @@ public class KafkaConfigStoreTest {
     when(producerSupplier.get()).thenReturn(producer);
     when(consumerSupplier.get()).thenReturn(consumerBefore).thenReturn(consumerAfter);
     when(currentConfigProxy.getAllConfigPropsWithSecretsObfuscated()).thenReturn(
-        currentConfig.getAllConfigPropsWithSecretsObfuscated());
+        filterNullValues(currentConfig.getAllConfigPropsWithSecretsObfuscated()));
     when(currentConfigProxy.overrideBreakingConfigsWithOriginalValues(any()))
         .thenReturn(mergedConfig);
     inOrder = Mockito.inOrder(consumerBefore, consumerAfter, producer);
@@ -217,7 +219,7 @@ public class KafkaConfigStoreTest {
         msgCaptor.getValue().key().getValue(), equalTo(KafkaConfigStore.CONFIG_MSG_KEY));
     assertThat(
         msgCaptor.getValue().value().getKsqlProperties(),
-        equalTo(currentConfig.getAllConfigPropsWithSecretsObfuscated()));
+        equalTo(filterNullValues(currentConfig.getAllConfigPropsWithSecretsObfuscated())));
     inOrder.verify(producer).flush();
   }
 
@@ -225,7 +227,7 @@ public class KafkaConfigStoreTest {
   private void verifyMergedConfig(final KsqlConfig mergedConfig) {
     assertThat(mergedConfig, is(this.mergedConfig));
     verify(currentConfigProxy).overrideBreakingConfigsWithOriginalValues(
-        savedConfig.getAllConfigPropsWithSecretsObfuscated());
+        filterNullValues(savedConfig.getAllConfigPropsWithSecretsObfuscated()));
   }
 
   @Test
@@ -376,5 +378,12 @@ public class KafkaConfigStoreTest {
 
     // Then:
     assertThat(ksqlProperties.getKsqlProperties(), equalTo(Collections.emptyMap()));
+  }
+
+  private static Map<String, String> filterNullValues(final Map<String, String> map) {
+    return map.entrySet()
+        .stream()
+        .filter(e -> e.getValue() != null)
+        .collect(Collectors.toMap(Entry::getKey, Entry::getValue));
   }
 }

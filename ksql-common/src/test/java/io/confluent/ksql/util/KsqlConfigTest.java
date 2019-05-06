@@ -23,6 +23,8 @@ import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.hasEntry;
+import static org.hamcrest.Matchers.hasKey;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler;
@@ -258,6 +260,51 @@ public class KsqlConfigTest {
             ConsumerConfig.FETCH_MIN_BYTES_CONFIG, "200"));
     final Object result = ksqlConfigClone.getKsqlStreamConfigProps().get(ConsumerConfig.FETCH_MIN_BYTES_CONFIG);
     assertThat(result, equalTo(200));
+  }
+
+  @Test
+  public void shouldHaveCorrectOriginalsAfterCloneWithOverwrite() {
+    // Given:
+    final KsqlConfig initial = new KsqlConfig(ImmutableMap.of(
+        KsqlConfig.KSQL_SERVICE_ID_CONFIG, "original-id",
+        KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS, "on"
+    ));
+
+    // When:
+    final KsqlConfig cloned = initial.cloneWithPropertyOverwrite(ImmutableMap.of(
+        KsqlConfig.KSQL_SERVICE_ID_CONFIG, "overridden-id",
+        KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG, "bob"
+    ));
+
+    // Then:
+    assertThat(cloned.originals(), is(ImmutableMap.of(
+        KsqlConfig.KSQL_SERVICE_ID_CONFIG, "overridden-id",
+        KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS, "on",
+        KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG, "bob"
+    )));
+  }
+
+  @Test
+  public void shouldCloneWithUdfProperty() {
+    // Given:
+    final String functionName = "bob";
+    final String settingPrefix = KsqlConfig.KSQL_FUNCTIONS_PROPERTY_PREFIX + functionName + ".";
+
+    final KsqlConfig config = new KsqlConfig(ImmutableMap.of(
+        settingPrefix + "one", "should-be-cloned",
+        settingPrefix + "two", "should-be-overwritten"
+    ));
+
+    // When:
+    final KsqlConfig cloned = config.cloneWithPropertyOverwrite(ImmutableMap.of(
+        settingPrefix + "two", "should-be-new-value"
+    ));
+
+    // Then:
+    assertThat(cloned.getKsqlFunctionsConfigProps(functionName), is(ImmutableMap.of(
+        settingPrefix + "one", "should-be-cloned",
+        settingPrefix + "two", "should-be-new-value"
+    )));
   }
 
   @Test
@@ -528,6 +575,22 @@ public class KsqlConfigTest {
     assertThat(
         merged.getKsqlStreamConfigProps().get(StreamsConfig.TOPOLOGY_OPTIMIZATION),
         equalTo(StreamsConfig.NO_OPTIMIZATION));
+  }
+
+  @Test
+  public void shouldFilterProducerConfigs() {
+    // Given:
+    final Map<String, Object> configs = new HashMap<>();
+    configs.put(ProducerConfig.ACKS_CONFIG, "all");
+    configs.put(ProducerConfig.CLIENT_ID_CONFIG, null);
+    configs.put("not.a.config", "123");
+
+    final KsqlConfig ksqlConfig = new KsqlConfig(configs);
+
+    // When:
+    assertThat(ksqlConfig.getProducerClientConfigProps(), hasEntry(ProducerConfig.ACKS_CONFIG, "all"));
+    assertThat(ksqlConfig.getProducerClientConfigProps(), hasEntry(ProducerConfig.CLIENT_ID_CONFIG, null));
+    assertThat(ksqlConfig.getProducerClientConfigProps(), not(hasKey("not.a.config")));
   }
 
   @Test

@@ -33,7 +33,7 @@ public class ProducerCollectorTest {
     final ProducerCollector collector = new ProducerCollector().configure(new Metrics(), "clientid", MetricCollectors.getTime());
 
     for (int i = 0; i < 1000; i++){
-      collector.onSend(new ProducerRecord(TEST_TOPIC, 1, "key", "value"));
+      collector.onSend(new ProducerRecord<>(TEST_TOPIC, 1, "key", "value"));
     }
 
     final Collection<TopicSensors.Stat> stats = collector.stats("test-topic", false);

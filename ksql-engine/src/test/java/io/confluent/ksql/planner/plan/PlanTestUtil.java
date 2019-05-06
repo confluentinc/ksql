@@ -25,13 +25,19 @@ import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.TopologyDescription;
 
 
-public class PlanTestUtil {
+public final class PlanTestUtil {
 
   static final String TRANSFORM_NODE = "KSTREAM-TRANSFORMVALUES-0000000002";
   static final String SOURCE_NODE = "KSTREAM-SOURCE-0000000000";
   static final String MAPVALUES_NODE = "KSTREAM-MAPVALUES-0000000001";
 
-  static TopologyDescription.Node getNodeByName(final Topology topology, final String nodeName) {
+  private PlanTestUtil() {
+  }
+
+  public static TopologyDescription.Node getNodeByName(
+      final Topology topology,
+      final String nodeName
+  ) {
     final TopologyDescription description = topology.describe();
 
     final Set<TopologyDescription.Subtopology> subtopologies = description.subtopologies();
@@ -40,9 +46,11 @@ public class PlanTestUtil {
     return nodesByName.get(nodeName).get(0);
   }
 
-  static void verifyProcessorNode(final TopologyDescription.Processor node,
-                                   final List<String> expectedPredecessors,
-                                   final List<String> expectedSuccessors) {
+  public static void verifyProcessorNode(
+      final TopologyDescription.Processor node,
+      final List<String> expectedPredecessors,
+      final List<String> expectedSuccessors
+  ) {
     final List<String> successors = node.successors().stream().map(TopologyDescription.Node::name).collect(Collectors.toList());
     final List<String> predecessors = node.predecessors().stream().map(TopologyDescription.Node::name).collect(Collectors.toList());
     assertThat(predecessors, equalTo(expectedPredecessors));

@@ -16,32 +16,15 @@
 package io.confluent.ksql.function.udaf.min;
 
 import io.confluent.ksql.function.AggregateFunctionArguments;
-import io.confluent.ksql.function.BaseAggregateFunction;
 import io.confluent.ksql.function.KsqlAggregateFunction;
-import java.util.Collections;
+import io.confluent.ksql.function.udaf.BaseNumberKudaf;
 import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.streams.kstream.Merger;
 
-public class DoubleMinKudaf extends BaseAggregateFunction<Double, Double> {
+public class DoubleMinKudaf extends BaseNumberKudaf<Double> {
 
   DoubleMinKudaf(final String functionName, final int argIndexInValue) {
-    super(functionName, argIndexInValue, () -> Double.MAX_VALUE, Schema.OPTIONAL_FLOAT64_SCHEMA,
-        Collections.singletonList(Schema.OPTIONAL_FLOAT64_SCHEMA),
-        "Computes the minimum double value by key."
-    );
-  }
-
-  @Override
-  public Double aggregate(final Double currentValue, final Double aggregateValue) {
-    if (currentValue == null) {
-      return aggregateValue;
-    }
-    return Math.min(currentValue, aggregateValue);
-  }
-
-  @Override
-  public Merger<String, Double> getMerger() {
-    return (aggKey, aggOne, aggTwo) -> Math.min(aggOne, aggTwo);
+    super(functionName, argIndexInValue, Schema.OPTIONAL_FLOAT64_SCHEMA, Double::min,
+        "Computes the minimum double value by key.");
   }
 
   @Override

@@ -28,7 +28,7 @@ public final class QueryCapacityUtil {
       final KsqlConfig ksqlConfig,
       final long additionalQueries
   ) {
-    final long newTotal = executionContext.numberOfPersistentQueries() + additionalQueries;
+    final long newTotal = executionContext.getPersistentQueries().size() + additionalQueries;
     return newTotal > getQueryLimit(ksqlConfig);
   }
 
@@ -46,7 +46,7 @@ public final class QueryCapacityUtil {
                 + "Current persistent query count: %d. Configured limit: %d.",
             statementStr,
             KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG,
-            executionContext.numberOfPersistentQueries(),
+            executionContext.getPersistentQueries().size(),
             getQueryLimit(ksqlConfig)
         )
     );

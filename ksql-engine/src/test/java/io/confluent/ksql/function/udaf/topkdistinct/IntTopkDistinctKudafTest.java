@@ -43,8 +43,8 @@ public class IntTopkDistinctKudafTest {
       currentVal = intTopkDistinctKudaf.aggregate(d, currentVal);
     }
 
-    assertThat("Invalid results.", currentVal, equalTo(new ArrayList<Integer>(ImmutableList.of(80,
-        60, 50))));
+    assertThat("Invalid results.", currentVal, equalTo(new ArrayList<>(ImmutableList.of(80,
+            60, 50))));
   }
 
   @Test
@@ -89,7 +89,7 @@ public class IntTopkDistinctKudafTest {
 
     assertThat("Invalid results.", intTopkDistinctKudaf.getMerger().apply("key", array1, array2),
         equalTo(
-            new ArrayList<Integer>(ImmutableList.of(60))));
+                new ArrayList<>(ImmutableList.of(60))));
   }
 
   @SuppressWarnings("unchecked")

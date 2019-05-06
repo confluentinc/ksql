@@ -27,12 +27,12 @@ import io.confluent.connect.avro.AvroData;
 import io.confluent.connect.avro.AvroDataConfig;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
-import io.confluent.ksql.metastore.KsqlTopic;
+import io.confluent.ksql.metastore.model.KsqlTopic;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
 import io.confluent.ksql.serde.connect.ConnectSchemaTranslator;
 import java.io.IOException;
 import java.util.Collections;
-import org.apache.kafka.connect.data.Schema;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -58,7 +58,7 @@ public class AvroUtilTest {
       + " ]"
       + "}";
 
-  private static final Schema RESULT_SCHEMA = toKsqlSchema(AVRO_SCHEMA_STRING);
+  private static final KsqlSchema RESULT_SCHEMA = toKsqlSchema(AVRO_SCHEMA_STRING);
 
   private static final KsqlTopic RESULT_TOPIC =
       new KsqlTopic("registered-name", "actual-name", new KsqlAvroTopicSerDe(KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME), false);
@@ -97,7 +97,7 @@ public class AvroUtilTest {
     when(persistentQuery.getResultSchema()).thenReturn(RESULT_SCHEMA);
 
     final org.apache.avro.Schema expectedAvroSchema = SchemaUtil
-        .buildAvroSchema(RESULT_SCHEMA, RESULT_TOPIC.getName());
+        .buildAvroSchema(RESULT_SCHEMA.getSchema(), RESULT_TOPIC.getKsqlTopicName());
 
     // When:
     AvroUtil.isValidSchemaEvolution(persistentQuery, srClient);
@@ -171,10 +171,11 @@ public class AvroUtilTest {
     AvroUtil.isValidSchemaEvolution(persistentQuery, srClient);
   }
 
-  private static Schema toKsqlSchema(final String avroSchemaString) {
+  private static KsqlSchema toKsqlSchema(final String avroSchemaString) {
     final org.apache.avro.Schema avroSchema =
         new org.apache.avro.Schema.Parser().parse(avroSchemaString);
     final AvroData avroData = new AvroData(new AvroDataConfig(Collections.emptyMap()));
-    return new ConnectSchemaTranslator().toKsqlSchema(avroData.toConnectSchema(avroSchema));
+    return KsqlSchema.of(new ConnectSchemaTranslator()
+        .toKsqlSchema(avroData.toConnectSchema(avroSchema)));
   }
 }

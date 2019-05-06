@@ -15,14 +15,20 @@
 
 package io.confluent.ksql.analyzer;
 
+import static java.util.Objects.requireNonNull;
+
 import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.metastore.StructuredDataSource;
+import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.metastore.SerdeFactory;
+import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.planner.plan.JoinNode;
+import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.ArrayList;
@@ -34,12 +40,11 @@ import java.util.Set;
 
 public class Analysis {
 
-  private StructuredDataSource into;
+  private Optional<Into> into = Optional.empty();
   private final Map<String, Object> intoProperties = new HashMap<>();
-  private String intoFormat = null;
-  private boolean doCreateInto;
+  private Format intoFormat = null;
   private String intoKafkaTopicName = null;
-  private final List<Pair<StructuredDataSource, String>> fromDataSources = new ArrayList<>();
+  private final List<Pair<DataSource<?>, String>> fromDataSources = new ArrayList<>();
   private JoinNode join;
   private Expression whereExpression = null;
   private final List<Expression> selectExpressions = new ArrayList<>();
@@ -58,21 +63,16 @@ public class Analysis {
     selectExpressionAlias.add(alias);
   }
 
-  public StructuredDataSource getInto() {
+  public Optional<Into> getInto() {
     return into;
   }
 
-  public void setInto(final StructuredDataSource into, final boolean doCreateInto) {
-    this.into = into;
-    this.doCreateInto = doCreateInto;
-  }
-
-  public boolean isDoCreateInto() {
-    return doCreateInto;
+  public void setInto(final Into into) {
+    this.into = Optional.of(into);
   }
 
 
-  public List<Pair<StructuredDataSource, String>> getFromDataSources() {
+  public List<Pair<DataSource<?>, String>> getFromDataSources() {
     return fromDataSources;
   }
 
@@ -100,7 +100,7 @@ public class Analysis {
     this.join = join;
   }
 
-  public void setIntoFormat(final String intoFormat) {
+  public void setIntoFormat(final Format intoFormat) {
     this.intoFormat = intoFormat;
   }
 
@@ -108,7 +108,7 @@ public class Analysis {
     this.intoKafkaTopicName = intoKafkaTopicName;
   }
 
-  public String getIntoFormat() {
+  public Format getIntoFormat() {
     return intoFormat;
   }
 
@@ -152,11 +152,11 @@ public class Analysis {
     this.limitClause = limitClause;
   }
 
-  public Pair<StructuredDataSource, String> getFromDataSource(final int index) {
+  public Pair<DataSource<?>, String> getFromDataSource(final int index) {
     return fromDataSources.get(index);
   }
 
-  void addDataSource(final Pair<StructuredDataSource, String> fromDataSource) {
+  void addDataSource(final Pair<DataSource<?>, String> fromDataSource) {
     fromDataSources.add(fromDataSource);
   }
 
@@ -167,6 +167,60 @@ public class Analysis {
 
     final Expression baseExpression = new QualifiedNameReference(QualifiedName.of(base));
     return new DereferenceExpression(baseExpression, SchemaUtil.ROWTIME_NAME);
+  }
+
+  @Immutable
+  public static final class Into {
+
+    private final String sqlExpression;
+    private final String name;
+    private final KsqlTopic topic;
+    private final SerdeFactory<?> keySerdeFactory;
+    private final boolean create;
+
+    public static <K> Into of(
+        final String sqlExpression,
+        final String name,
+        final boolean create,
+        final KsqlTopic topic,
+        final SerdeFactory<K> keySerde
+    ) {
+      return new Into(sqlExpression, name, create, topic, keySerde);
+    }
+
+    private Into(
+        final String sqlExpression,
+        final String name,
+        final boolean create,
+        final KsqlTopic topic,
+        final SerdeFactory<?> keySerdeFactory
+    ) {
+      this.sqlExpression = requireNonNull(sqlExpression, "sqlExpression");
+      this.name = requireNonNull(name, "name");
+      this.create = create;
+      this.topic = requireNonNull(topic, "topic");
+      this.keySerdeFactory = requireNonNull(keySerdeFactory, "keySerdeFactory");
+    }
+
+    public String getSqlExpression() {
+      return sqlExpression;
+    }
+
+    public String getName() {
+      return name;
+    }
+
+    public boolean isCreate() {
+      return create;
+    }
+
+    public KsqlTopic getKsqlTopic() {
+      return topic;
+    }
+
+    public SerdeFactory<?> getKeySerdeFactory() {
+      return keySerdeFactory;
+    }
   }
 }
 

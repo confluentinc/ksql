@@ -89,7 +89,7 @@ public final class RemoteServerSpecificCommand implements CliSpecificCommand {
       final KsqlRestClient restClient
   ) {
     try {
-      final RestResponse restResponse = restClient.makeRootRequest();
+      final RestResponse<?> restResponse = restClient.makeRootRequest();
       if (restResponse.isErroneous()) {
         final KsqlErrorMessage ksqlError = restResponse.getErrorMessage();
         if (Errors.toStatusCode(ksqlError.getErrorCode()) == NOT_ACCEPTABLE.getStatusCode()) {

@@ -15,8 +15,10 @@
 
 package io.confluent.ksql.util.timestamp;
 
+import com.google.errorprone.annotations.Immutable;
 import org.apache.kafka.streams.processor.TimestampExtractor;
 
+@Immutable
 public interface TimestampExtractionPolicy {
 
   TimestampExtractor create(int columnIndex);

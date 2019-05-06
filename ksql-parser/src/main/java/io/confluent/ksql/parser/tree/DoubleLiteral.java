@@ -17,10 +17,11 @@ package io.confluent.ksql.parser.tree;
 
 import static java.util.Objects.requireNonNull;
 
+import com.google.errorprone.annotations.Immutable;
 import java.util.Optional;
 
-public class DoubleLiteral
-    extends Literal {
+@Immutable
+public class DoubleLiteral extends Literal {
 
   private final double value;
 
@@ -28,14 +29,9 @@ public class DoubleLiteral
     this(Optional.empty(), value);
   }
 
-  public DoubleLiteral(final NodeLocation location, final String value) {
-    this(Optional.of(location), value);
-  }
-
-  private DoubleLiteral(final Optional<NodeLocation> location, final String value) {
+  public DoubleLiteral(final Optional<NodeLocation> location, final String value) {
     super(location);
-    requireNonNull(value, "value is null");
-    this.value = Double.parseDouble(value);
+    this.value = Double.parseDouble(requireNonNull(value, "value"));
   }
 
   @Override

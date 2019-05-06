@@ -34,8 +34,8 @@ public final class KsqlConstants {
   public static final String SCHEMA_REGISTRY_VALUE_SUFFIX = "-value";
   public static final String AVRO_SCHEMA_ID = "AVRO_SCHEMA_ID";
 
-  public static final int defaultSinkNumberOfPartitions = 4;
-  public static final short defaultSinkNumberOfReplications = 1;
+  public static final int legacyDefaultSinkPartitionCount = 4;
+  public static final short legacyDefaultSinkReplicaCount = 1;
   // TODO: Find out the best default value.
   public static final long defaultSinkWindowChangeLogAdditionalRetention = 1000000;
 

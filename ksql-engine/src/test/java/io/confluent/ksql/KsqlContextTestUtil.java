@@ -15,15 +15,16 @@
 
 package io.confluent.ksql;
 
+import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
-import io.confluent.ksql.schema.inference.DefaultSchemaInjector;
-import io.confluent.ksql.schema.inference.SchemaRegistryTopicSchemaSupplier;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.KafkaTopicClientImpl;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
+import io.confluent.ksql.statement.Injectors;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Collections;
@@ -67,10 +68,12 @@ public final class KsqlContextTestUtil {
         ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)
     );
 
-    final DefaultSchemaInjector schemaInjector = new DefaultSchemaInjector(
-        new SchemaRegistryTopicSchemaSupplier(serviceContext.getSchemaRegistryClient()));
-
-    return new KsqlContext(serviceContext, ksqlConfig, engine, schemaInjector);
+    return new KsqlContext(
+        serviceContext,
+        ksqlConfig,
+        engine,
+        Injectors.DEFAULT
+    );
   }
 
   public static KsqlConfig createKsqlConfig(final EmbeddedSingleNodeKafkaCluster kafkaCluster) {
@@ -81,7 +84,11 @@ public final class KsqlContextTestUtil {
       final EmbeddedSingleNodeKafkaCluster kafkaCluster,
       final Map<String, Object> additionalConfig
   ) {
-    return createKsqlConfig(kafkaCluster.bootstrapServers(), additionalConfig);
+    final ImmutableMap<String, Object> config = ImmutableMap.<String, Object>builder()
+        .putAll(kafkaCluster.getClientProperties())
+        .putAll(additionalConfig)
+        .build();
+    return createKsqlConfig(kafkaCluster.bootstrapServers(), config);
   }
 
   public static KsqlConfig createKsqlConfig(

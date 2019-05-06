@@ -109,7 +109,7 @@ currently supported in KSQL.
 ------------------------------------------
 KSQL doesn’t clean up its internal topics?
 ------------------------------------------
-Make sure that your Kafka cluster is configured with ``delete.topic.enable=true``. For more information, see :cp-javadoc:`deleteTopics|clients/javadocs/org/apache/kafka/clients/admin/AdminClient.html`.
+Make sure that your |ak-tm| cluster is configured with ``delete.topic.enable=true``. For more information, see :cp-javadoc:`deleteTopics|clients/javadocs/org/apache/kafka/clients/admin/AdminClient.html`.
 
 ----------------------------------------
 KSQL CLI doesn’t connect to KSQL server? 
@@ -158,7 +158,7 @@ setting:
 
 .. code:: bash
 
-    listeners=http://localhost:8088
+    listeners=http://0.0.0.0:8088
 
 For more info, see :ref:`Starting KSQL Server <start_ksql-server>`.
 

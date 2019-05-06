@@ -5,7 +5,6 @@
   "tests": [
     {
       "name": "test BETWEEN with integers",
-      "format": ["JSON"],
       "statements": [
         "CREATE STREAM TEST (source int) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT source AS THING FROM TEST WHERE source BETWEEN 2 AND 4;"
@@ -26,7 +25,6 @@
     },
     {
       "name": "test BETWEEN with bigint",
-      "format": ["JSON"],
       "statements": [
         "CREATE STREAM TEST (source bigint) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT source AS THING FROM TEST WHERE source BETWEEN 2 AND 4;"
@@ -47,7 +45,6 @@
     },
     {
       "name": "test BETWEEN with floating point",
-      "format": ["JSON"],
       "statements": [
         "CREATE STREAM TEST (source double) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT source AS THING FROM TEST WHERE source BETWEEN 2 AND 3.9;"
@@ -68,7 +65,6 @@
     },
     {
       "name": "test BETWEEN with string values",
-      "format": ["JSON"],
       "statements": [
         "CREATE STREAM TEST (source string) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT source AS THING FROM TEST WHERE source BETWEEN 'b' AND 'c';"
@@ -88,27 +84,7 @@
       ]
     },
     {
-      "name": "test NOT BETWEEN with integers",
-      "format": ["JSON"],
-      "statements": [
-        "CREATE STREAM TEST (source int) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT source AS THING FROM TEST WHERE source NOT BETWEEN 2 AND 4;"
-      ],
-      "inputs": [
-        {"topic": "test_topic", "key": 1, "value": {"source": 1}, "timestamp": 0},
-        {"topic": "test_topic", "key": 2, "value": {"source": 2}, "timestamp": 0},
-        {"topic": "test_topic", "key": 3, "value": {"source": 3}, "timestamp": 0},
-        {"topic": "test_topic", "key": 4, "value": {"source": 4}, "timestamp": 0},
-        {"topic": "test_topic", "key": 5, "value": {"source": 5}, "timestamp": 0}
-      ],
-      "outputs": [
-        {"topic": "OUTPUT", "key": 1, "value": {"THING": 1}, "timestamp": 0},
-        {"topic": "OUTPUT", "key": 5, "value": {"THING": 5}, "timestamp": 0}
-      ]
-    },
-    {
       "name": "test BETWEEN with integers and variable values",
-      "format": ["JSON"],
       "statements": [
         "CREATE STREAM TEST (source int, min int, max int) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT source AS THING FROM TEST WHERE source BETWEEN min AND max;"
@@ -126,7 +102,6 @@
     },
     {
       "name": "test BETWEEN with integers and expressions",
-      "format": ["JSON"],
       "statements": [
         "CREATE STREAM TEST (source int, avg int) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT source AS THING FROM TEST WHERE source + 2 BETWEEN avg / 2 AND avg * 2;"
@@ -144,7 +119,6 @@
     },
     {
       "name": "test NOT BETWEEN with integers",
-      "format": ["JSON"],
       "statements": [
         "CREATE STREAM TEST (source int) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT source AS THING FROM TEST WHERE source NOT BETWEEN 2 AND 4;"
@@ -163,7 +137,6 @@
     },
     {
       "name": "test BETWEEN with array dereference",
-      "format": ["JSON"],
       "statements": [
         "CREATE STREAM TEST (source array<int>) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT source[1] AS THING FROM TEST WHERE source[1] BETWEEN 2 AND 4;"
@@ -182,8 +155,7 @@
       ]
     },
     {
-      "name": "test BETWEEN with string values",
-      "format": ["JSON"],
+      "name": "test BETWEEN with string values with substring",
       "statements": [
         "CREATE STREAM TEST (source string) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT source AS THING FROM TEST WHERE source BETWEEN SUBSTRING('zb',2) AND 'c';"

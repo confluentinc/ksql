@@ -15,13 +15,16 @@
 
 package io.confluent.ksql.parser.tree;
 
+import static java.util.Objects.requireNonNull;
+
+import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.UdafAggregator;
+import io.confluent.ksql.metastore.SerdeFactory;
 import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
-import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.streams.kstream.Initializer;
 import org.apache.kafka.streams.kstream.KGroupedStream;
 import org.apache.kafka.streams.kstream.KTable;
@@ -30,6 +33,7 @@ import org.apache.kafka.streams.kstream.TimeWindows;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.kstream.WindowedSerdes;
 
+@Immutable
 public class TumblingWindowExpression extends KsqlWindowExpression {
 
   private final long size;
@@ -39,11 +43,14 @@ public class TumblingWindowExpression extends KsqlWindowExpression {
     this(Optional.empty(), size, sizeUnit);
   }
 
-  private TumblingWindowExpression(final Optional<NodeLocation> location, final long size,
-                                   final TimeUnit sizeUnit) {
+  public TumblingWindowExpression(
+      final Optional<NodeLocation> location,
+      final long size,
+      final TimeUnit sizeUnit
+  ) {
     super(location);
     this.size = size;
-    this.sizeUnit = sizeUnit;
+    this.sizeUnit = requireNonNull(sizeUnit, "sizeUnit");
   }
 
   public long getSize() {
@@ -84,9 +91,9 @@ public class TumblingWindowExpression extends KsqlWindowExpression {
   @SuppressWarnings("unchecked")
   @Override
   public KTable applyAggregate(final KGroupedStream groupedStream,
-                               final Initializer initializer,
-                               final UdafAggregator aggregator,
-                               final Materialized<String, GenericRow, ?> materialized) {
+      final Initializer initializer,
+      final UdafAggregator aggregator,
+      final Materialized<String, GenericRow, ?> materialized) {
 
     final TimeWindows windows = TimeWindows.of(Duration.ofMillis(sizeUnit.toMillis(size)));
 
@@ -97,7 +104,7 @@ public class TumblingWindowExpression extends KsqlWindowExpression {
   }
 
   @Override
-  public <K> Serde<Windowed<K>> getKeySerde(final Class<K> innerType) {
-    return WindowedSerdes.timeWindowedSerdeFrom(innerType);
+  public <K> SerdeFactory<Windowed<K>> getKeySerdeFactory(final Class<K> innerType) {
+    return () -> WindowedSerdes.timeWindowedSerdeFrom(innerType);
   }
 }

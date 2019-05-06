@@ -21,6 +21,7 @@ import static org.hamcrest.Matchers.hasSize;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.serde.json.KsqlJsonDeserializer;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import java.time.Duration;
@@ -34,7 +35,6 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.kafka.common.serialization.Deserializer;
-import org.apache.kafka.connect.data.Schema;
 import org.hamcrest.Matcher;
 
 public class TopicConsumer {
@@ -49,10 +49,12 @@ public class TopicConsumer {
     this.cluster = cluster;
   }
 
-  public <K, V> Map<K, V> readResults(final String topic,
-                                      final Matcher<Integer> expectedNumMessages,
-                                      final Deserializer<V> valueDeserializer,
-                                      final Deserializer<K> keyDeserializer) {
+  public <K, V> Map<K, V> readResults(
+      final String topic,
+      final Matcher<Integer> expectedNumMessages,
+      final Deserializer<V> valueDeserializer,
+      final Deserializer<K> keyDeserializer
+  ) {
     final Map<K, V> result = new HashMap<>();
 
     final Properties consumerConfig = new Properties();
@@ -84,16 +86,17 @@ public class TopicConsumer {
     return result;
   }
 
-  public <K> Map<K, GenericRow> readResults(final String topic,
-                                            final Schema schema,
-                                            final int expectedNumMessages,
-                                            final Deserializer<K> keyDeserializer) {
+  public <K> Map<K, GenericRow> readResults(
+      final String topic,
+      final KsqlSchema schema,
+      final int expectedNumMessages,
+      final Deserializer<K> keyDeserializer
+  ) {
     return readResults(
         topic,
         greaterThanOrEqualTo(expectedNumMessages),
         new KsqlJsonDeserializer(
-            schema,
-            false,
+            schema.getSchema(),
             processingLogContext.getLoggerFactory().getLogger("consumer")),
         keyDeserializer
     );

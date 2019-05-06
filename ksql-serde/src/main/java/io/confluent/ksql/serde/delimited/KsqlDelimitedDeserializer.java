@@ -42,9 +42,9 @@ public class KsqlDelimitedDeserializer implements Deserializer<GenericRow> {
       final Schema schema,
       final CSVFormat csvFormat,
       final ProcessingLogger recordLogger) {
-    this.schema = Objects.requireNonNull(schema);
-    this.csvFormat = Objects.requireNonNull(csvFormat);
-    this.recordLogger = Objects.requireNonNull(recordLogger);
+    this.csvFormat = Objects.requireNonNull(csvFormat, "csvFormat");
+    this.schema = Objects.requireNonNull(schema, "schema").schema();
+    this.recordLogger = Objects.requireNonNull(recordLogger, "recordLogger");
   }
 
   @Override
@@ -94,10 +94,7 @@ public class KsqlDelimitedDeserializer implements Deserializer<GenericRow> {
               e,
               Optional.ofNullable(bytes))
       );
-      throw new SerializationException(
-          "Exception in deserializing the delimited row: " + recordCsvString,
-          e
-      );
+      throw new SerializationException("Error deserializing delimited row", e);
     }
   }
 

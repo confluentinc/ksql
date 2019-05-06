@@ -104,7 +104,7 @@ public final class Errors {
         .build();
   }
 
-  static Response queryEndpoint(final String statementText) {
+  public static Response queryEndpoint(final String statementText) {
     return Response
         .status(BAD_REQUEST)
         .entity(new KsqlStatementErrorMessage(
@@ -142,7 +142,7 @@ public final class Errors {
         .build();
   }
 
-  static Response serverShuttingDown() {
+  public static Response serverShuttingDown() {
     return Response
         .status(SERVICE_UNAVAILABLE)
         .entity(new KsqlErrorMessage(

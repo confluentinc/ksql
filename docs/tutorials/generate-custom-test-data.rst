@@ -15,7 +15,7 @@ Also, you can generate data from a few simple, predefined schemas.
 **Prerequisites:** 
 
 - :ref:`Confluent Platform <installation>` is installed and running.
-  This installation includes a Kafka broker, KSQL, |c3-short|, |zk|,
+  This installation includes an |ak-tm| broker, KSQL, |c3-short|, |zk|,
   |sr|, REST Proxy, and Kafka Connect.
 - If you installed |cp| via TAR or ZIP, navigate to the installation
   directory. The paths and commands used throughout this tutorial assume
@@ -28,7 +28,8 @@ The ``ksql-datagen`` tool is installed with |cp| by default.
 .. note::
 
    KSQL Server doesn't need to be running for ``ksql-datagen`` to generate
-   records to a topic.
+   records to a topic. The ``ksql-datagen`` tool isn't just for KSQL. You can
+   use it to produce data to any Kafka topic that you have write access to.
 
 Usage
 =====
@@ -49,6 +50,8 @@ Name                                        Default  Description
 ``format=<record format>``                    json   Format of generated records: one of ``avro``, ``json``, or ``delimited``. Case-insensitive.
 ``topic=<kafka topic name>``                         Name of the topic that receives generated records.
 ``key=<name of key column>``                         Field to use as the key for generated records.
+``quickstart=<quickstart preset>``                   Generate records from a preset schema: ``orders``, ``users``, or ``pageviews``. Case-insensitive.
+                                                     If ``topic`` isn't specified, creates a topic named ``<preset>_kafka_topic_json``, for example, ``users_kafka_topic_json``.
 ==========================================  =======  ===========================================================================================
 
 Use the following command to generate records from one of the predefined
@@ -57,19 +60,6 @@ schemas:
 .. sourcecode:: bash
    
    <path-to-confluent>/bin/ksql-datagen quickstart=<quickstart preset> [options ...]
-
-
-Required Arguments
-------------------
-
-==========================================  =======  ===========================================================================================================================
-Name                                        Default  Description
-==========================================  =======  ===========================================================================================================================
-``quickstart=<quickstart preset>``                   Generate records from a preset schema: ``orders``, ``users``, ``users_``, or ``pageviews``. Case-insensitive.
-                                                     If ``topic`` isn't specified, creates a topic named ``<preset>_kafka_topic_json``, for example, ``users_kafka_topic_json``.
-==========================================  =======  ===========================================================================================================================
-
-
 
 Optional Arguments
 ------------------
@@ -86,6 +76,7 @@ Name                                          Default                           
 ``iterations=<number of records>``            1,000,000                                            The maximum number of records to generate.
 ``maxInterval=<max time between records>``    500                                                  Longest time to wait before generating a new record, in milliseconds. 
 ``propertiesFile=<path-to-properties-file>``  ``<path-to-confluent>/etc/ksql/datagen.properties``  Path to the ``ksql-datagen`` properties file. 
+``schemaRegistryUrl``                         http://localhost:8081                                URL of |sr| when ``format`` is ``avro``.
 ============================================  ===================================================  =========================================================================================
 
 Records are generated at random intervals, with the longest interval specified
@@ -117,16 +108,16 @@ In the KSQL CLI or in |c3-short|, register a stream on ``orders_topic``:
 
 .. code:: sql
 
-   CREATE STREAM orders_raw (      \
-       itemid VARCHAR,             \
-       price DOUBLE,               \
-       location STRUCT<            \
-           city VARCHAR,           \
-           state VARCHAR,          \
-           zipcode INT>,           \
-       timestamp VARCHAR)          \
-    WITH (                         \
-       KAFKA_TOPIC='orders_topic', \
+   CREATE STREAM orders_raw (
+       itemid VARCHAR,
+       price DOUBLE,
+       location STRUCT<
+           city VARCHAR,
+           state VARCHAR,
+           zipcode INT>,
+       timestamp VARCHAR)
+    WITH (
+       KAFKA_TOPIC='orders_topic',
        VALUE_FORMAT='JSON');
 
 Inspect the schema of the ``orders_raw`` stream by using the DESCRIBE statement:
@@ -173,14 +164,14 @@ In the KSQL CLI or in |c3-short|, register a table on ``users_kafka_topic_json``
 
 .. code:: sql
 
-   CREATE TABLE users_original (             \
-       registertime BIGINT,                  \
-       gender VARCHAR,                       \
-       regionid VARCHAR,                     \
-       userid VARCHAR)                       \
-   WITH (                                    \
-       kafka_topic='users_kafka_topic_json', \
-       value_format='JSON',                  \
+   CREATE TABLE users_original (
+       registertime BIGINT,
+       gender VARCHAR,
+       regionid VARCHAR,
+       userid VARCHAR)
+   WITH (
+       kafka_topic='users_kafka_topic_json',
+       value_format='JSON',
        key = 'userid');                   
 
 Inspect the schema of the ``users_original`` table by using the DESCRIBE
@@ -226,16 +217,16 @@ In the KSQL CLI or in |c3-short|, register a table on ``users_extended``:
 
 .. code:: sql
 
-   CREATE TABLE users_extended (        \
-       registertime BIGINT,             \
-       gender VARCHAR,                  \
-       regionid VARCHAR,                \
-       userid VARCHAR,                  \
-       interests ARRAY<STRING>,         \
-       contactInfo MAP<STRING, STRING>) \
-   WITH (                               \
-       kafka_topic='users_extended',    \
-       value_format='JSON',             \
+   CREATE TABLE users_extended (
+       registertime BIGINT,
+       gender VARCHAR,
+       regionid VARCHAR,
+       userid VARCHAR,
+       interests ARRAY<STRING>,
+       contactInfo MAP<STRING, STRING>)
+   WITH (
+       kafka_topic='users_extended',
+       value_format='JSON',
        key = 'userid');
 
 Inspect the schema of the ``users_extended`` table by using the DESCRIBE
@@ -282,12 +273,12 @@ In the KSQL CLI or in |c3-short|, register a stream on ``pageviews``:
 
 .. code:: sql
 
-   CREATE STREAM pageviews_original ( \
-       viewtime bigint,               \
-       userid varchar,                \
-       pageid varchar)                \
-   WITH (                             \
-       kafka_topic='pageviews',       \
+   CREATE STREAM pageviews_original (
+       viewtime bigint,
+       userid varchar,
+       pageid varchar)
+   WITH (
+       kafka_topic='pageviews',
        value_format='DELIMITED');
 
 Inspect the schema of the ``pageviews_original`` stream by using the DESCRIBE

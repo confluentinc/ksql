@@ -69,8 +69,8 @@ public final class KsqlInternalTopicUtils {
                                  final KsqlConfig ksqlConfig,
                                  final KafkaTopicClient topicClient) {
     final short replicationFactor =
-        ksqlConfig.originals().containsKey(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY)
-            ? ksqlConfig.getShort(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY) : 1;
+        ksqlConfig.originals().containsKey(KsqlConfig.KSQL_INTERNAL_TOPIC_REPLICAS_PROPERTY)
+            ? ksqlConfig.getShort(KsqlConfig.KSQL_INTERNAL_TOPIC_REPLICAS_PROPERTY) : 1;
     if (replicationFactor < 2) {
       log.warn("Creating topic {} with replication factor of {} which is less than 2. "
               + "This is not advisable in a production environment. ",

@@ -42,13 +42,13 @@ public class AggregateExpressionRewriter extends ExpressionRewriter<Void> {
     if (functionRegistry.isAggregate(functionName)) {
       final String aggVarName = AGGREGATE_FUNCTION_VARIABLE_PREFIX + aggVariableIndex;
       aggVariableIndex++;
-      return new QualifiedNameReference(QualifiedName.of(aggVarName));
+      return new QualifiedNameReference(node.getLocation(), QualifiedName.of(aggVarName));
     } else {
       final List<Expression> arguments = new ArrayList<>();
       for (final Expression argExpression: node.getArguments()) {
         arguments.add(treeRewriter.rewrite(argExpression, context));
       }
-      return new FunctionCall(node.getName(), arguments);
+      return new FunctionCall(node.getLocation(), node.getName(), arguments);
     }
   }
 }

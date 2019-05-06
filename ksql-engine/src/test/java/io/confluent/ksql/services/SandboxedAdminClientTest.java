@@ -38,7 +38,7 @@ public final class SandboxedAdminClientTest {
   public static class UnsupportedMethods {
 
     @Parameterized.Parameters(name = "{0}")
-    public static Collection<TestCase> getMethodsToTest() {
+    public static Collection<TestCase<AdminClient>> getMethodsToTest() {
       return TestMethods.builder(AdminClient.class)
           .ignore("close")
           .ignore("close", Duration.class)

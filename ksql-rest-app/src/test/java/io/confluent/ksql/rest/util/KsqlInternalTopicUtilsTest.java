@@ -67,9 +67,9 @@ public class KsqlInternalTopicUtilsTest {
   @Before
   public void setUp() {
     when(ksqlConfig.originals()).thenReturn(
-        ImmutableMap.of(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, NREPLICAS)
+        ImmutableMap.of(KsqlConfig.KSQL_INTERNAL_TOPIC_REPLICAS_PROPERTY, NREPLICAS)
     );
-    when(ksqlConfig.getShort(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY)).thenReturn(NREPLICAS);
+    when(ksqlConfig.getShort(KsqlConfig.KSQL_INTERNAL_TOPIC_REPLICAS_PROPERTY)).thenReturn(NREPLICAS);
     when(topicClient.isTopicExists(TOPIC_NAME)).thenReturn(false);
   }
 
@@ -129,7 +129,7 @@ public class KsqlInternalTopicUtilsTest {
   @Test
   public void shouldCreateInternalTopicWithNumReplicasFromConfig() {
     // Given:
-    when(ksqlConfig.getShort(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY)).thenReturn((short)3);
+    when(ksqlConfig.getShort(KsqlConfig.KSQL_INTERNAL_TOPIC_REPLICAS_PROPERTY)).thenReturn((short)3);
 
     // When:
     KsqlInternalTopicUtils.ensureTopic(TOPIC_NAME, ksqlConfig, topicClient);

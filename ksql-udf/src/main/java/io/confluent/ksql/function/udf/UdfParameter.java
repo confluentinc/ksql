@@ -49,4 +49,13 @@ public @interface UdfParameter {
    * @return parameter description.
    */
   String description() default "";
+
+  /**
+   * The schema for this parameter.
+   *
+   * <p>For simple parameters, this is optional and can be determined from
+   * the Java value itself. For complex return types (e.g. {@code Struct} types),
+   * this is required and will fail if not supplied.
+   */
+  String schema() default "";
 }

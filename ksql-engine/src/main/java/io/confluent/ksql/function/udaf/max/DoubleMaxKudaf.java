@@ -16,33 +16,15 @@
 package io.confluent.ksql.function.udaf.max;
 
 import io.confluent.ksql.function.AggregateFunctionArguments;
-import io.confluent.ksql.function.BaseAggregateFunction;
 import io.confluent.ksql.function.KsqlAggregateFunction;
-import java.util.Collections;
+import io.confluent.ksql.function.udaf.BaseNumberKudaf;
 import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.streams.kstream.Merger;
 
-public class DoubleMaxKudaf extends BaseAggregateFunction<Double, Double> {
+public class DoubleMaxKudaf extends BaseNumberKudaf<Double> {
 
   DoubleMaxKudaf(final String functionName, final int argIndexInValue) {
-    super(functionName, argIndexInValue, () -> Double.NEGATIVE_INFINITY,
-        Schema.OPTIONAL_FLOAT64_SCHEMA,
-        Collections.singletonList(Schema.OPTIONAL_FLOAT64_SCHEMA),
-        "Computes the maximum double value for a key."
-    );
-  }
-
-  @Override
-  public Double aggregate(final Double currentValue, final Double aggregateValue) {
-    if (currentValue == null) {
-      return aggregateValue;
-    }
-    return Math.max(currentValue, aggregateValue);
-  }
-
-  @Override
-  public Merger<String, Double> getMerger() {
-    return (aggKey, aggOne, aggTwo) -> Math.max(aggOne, aggTwo);
+    super(functionName, argIndexInValue, Schema.OPTIONAL_FLOAT64_SCHEMA, Double::max,
+        "Computes the maximum double value for a key.");
   }
 
   @Override

@@ -40,7 +40,7 @@ public abstract class AggregateFunctionFactory {
         "aggregateFunctionList can't be null");
   }
 
-  public abstract KsqlAggregateFunction getProperAggregateFunction(List<Schema> argTypeList);
+  public abstract KsqlAggregateFunction<?, ?> getProperAggregateFunction(List<Schema> argTypeList);
 
   public String getName() {
     return metadata.getName();

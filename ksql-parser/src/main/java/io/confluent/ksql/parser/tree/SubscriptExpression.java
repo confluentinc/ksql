@@ -17,29 +17,31 @@ package io.confluent.ksql.parser.tree;
 
 import static java.util.Objects.requireNonNull;
 
+import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
 import java.util.Optional;
 
-public class SubscriptExpression
-    extends Expression {
+@Immutable
+public class SubscriptExpression extends Expression {
 
   private final Expression base;
   private final Expression index;
 
-  public SubscriptExpression(final Expression base, final Expression index) {
+  public SubscriptExpression(
+      final Expression base,
+      final Expression index
+  ) {
     this(Optional.empty(), base, index);
   }
 
   public SubscriptExpression(
-      final NodeLocation location, final Expression base, final Expression index) {
-    this(Optional.of(location), base, index);
-  }
-
-  private SubscriptExpression(
-      final Optional<NodeLocation> location, final Expression base, final Expression index) {
+      final Optional<NodeLocation> location,
+      final Expression base,
+      final Expression index
+  ) {
     super(location);
-    this.base = requireNonNull(base, "base is null");
-    this.index = requireNonNull(index, "index is null");
+    this.base = requireNonNull(base, "base");
+    this.index = requireNonNull(index, "index");
   }
 
   @Override

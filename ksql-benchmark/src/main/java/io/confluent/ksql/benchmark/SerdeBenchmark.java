@@ -163,7 +163,6 @@ public class SerdeBenchmark {
       return new KsqlJsonTopicSerDe().getGenericRowSerde(
           schema,
           new KsqlConfig(Collections.emptyMap()),
-          false,
           () -> null,
           "benchmark",
           ProcessingLogContext.create());
@@ -175,7 +174,6 @@ public class SerdeBenchmark {
       return new KsqlAvroTopicSerDe("benchmarkSchema").getGenericRowSerde(
           schema,
           new KsqlConfig(Collections.emptyMap()),
-          false,
           () -> schemaRegistryClient,
           "benchmark",
           ProcessingLogContext.create());

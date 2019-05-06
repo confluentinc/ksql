@@ -4,7 +4,7 @@
 KSQL Capacity Planning
 ======================
 
-KSQL is a simple and powerful tool for building streaming applications on top of Kafka. This guide helps you plan for provisioning your KSQL deployment and answers these questions:
+KSQL is a simple and powerful tool for building streaming applications on top of |ak-tm|. This guide helps you plan for provisioning your KSQL deployment and answers these questions:
 
 - What server specification should I use to run KSQL?
 - Approximately how many KSQL server nodes do I need?

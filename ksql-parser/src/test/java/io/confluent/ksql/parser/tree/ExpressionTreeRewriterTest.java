@@ -78,17 +78,14 @@ public class ExpressionTreeRewriterTest {
 
     // Then:
     assertThat(result.getName(), is(original.getName()));
-    assertThat(result.getWindow(), is(original.getWindow()));
     assertThat(result.getLocation(), is(original.getLocation()));
-    assertThat(result.isDistinct(), is(original.isDistinct()));
     assertThat(result.getArguments(), is(ImmutableList.of(DEREF_2, DEREF_1)));
   }
 
   private static FunctionCall givenFunctionCall() {
     final Optional<NodeLocation> location = Optional.of(new NodeLocation(42, 6));
     final QualifiedName name = QualifiedName.of("bob");
-    final Optional<Window> window = Optional.of(mock(Window.class));
     final List<Expression> args = ImmutableList.of(DEREF_0, DEREF_1);
-    return new FunctionCall(location, name, window, true, args);
+    return new FunctionCall(location, name, args);
   }
 }

@@ -15,35 +15,34 @@
 
 package io.confluent.ksql.planner.plan;
 
+import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.MAPVALUES_NODE;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.SOURCE_NODE;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.getNodeByName;
-import static org.easymock.EasyMock.anyObject;
-import static org.easymock.EasyMock.eq;
-import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.niceMock;
-import static org.easymock.EasyMock.replay;
-import static org.easymock.EasyMock.verify;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.hamcrest.Matchers.is;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.InternalFunctionRegistry;
-import io.confluent.ksql.logging.processing.ProcessingLogContext;
-import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.metastore.StructuredDataSource;
+import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.metastore.model.KeyField;
+import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.parser.tree.WithinExpression;
+import io.confluent.ksql.physical.KsqlQueryBuilder;
+import io.confluent.ksql.planner.plan.JoinNode.JoinType;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.serde.DataSource;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
@@ -54,7 +53,6 @@ import io.confluent.ksql.testutils.AnalysisTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
-import io.confluent.ksql.util.QueryLoggerUtil;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.Collections;
 import java.util.HashMap;
@@ -63,14 +61,11 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.apache.kafka.clients.admin.TopicDescription;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.Node;
 import org.apache.kafka.common.TopicPartitionInfo;
-import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.utils.Utils;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -78,152 +73,234 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.TopologyDescription;
-import org.easymock.EasyMock;
-import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
 
-@SuppressWarnings("SameParameterValue")
+@SuppressWarnings({"SameParameterValue", "OptionalGetWithoutIsPresent"})
+@RunWith(MockitoJUnitRunner.class)
 public class JoinNodeTest {
 
+  private static final Optional<String> NO_KEY_FIELD = Optional.empty();
   private final KsqlConfig ksqlConfig = new KsqlConfig(new HashMap<>());
-  private StreamsBuilder builder = new StreamsBuilder();
+  private StreamsBuilder builder;
   private SchemaKStream stream;
   private JoinNode joinNode;
 
-  private StreamsBuilder mockStreamsBuilder;
-  private KsqlConfig mockKsqlConfig;
-  private KsqlConfig mockKsqlConfigClonedWithOffsetReset;
+  @Mock
   private KafkaTopicClient mockKafkaTopicClient;
-  private FunctionRegistry mockFunctionRegistry;
-  private Supplier<SchemaRegistryClient> mockSchemaRegistryClientFactory;
-  private final Schema leftSchema = createSchema();
-  private final Schema rightSchema = createSchema();
-  private final Schema joinSchema = joinSchema();
 
   private static final String leftAlias = "left";
   private static final String rightAlias = "right";
 
-  private static final String leftKeyFieldName = "COL0";
-  private static final String rightKeyFieldName = "COL1";
+  private final KsqlSchema leftSchema = createSchema(leftAlias);
+  private final KsqlSchema rightSchema = createSchema(rightAlias);
+  private final KsqlSchema joinSchema = joinSchema();
+
+  private static final String LEFT_JOIN_FIELD_NAME = leftAlias + ".COL0";
+  private static final String RIGHT_JOIN_FIELD_NAME = rightAlias + ".COL1";
+  private static final KeyField leftJoinField = KeyField
+      .of(LEFT_JOIN_FIELD_NAME, new Field(LEFT_JOIN_FIELD_NAME, 1, Schema.OPTIONAL_STRING_SCHEMA));
+  private static final KeyField rightJoinField = KeyField
+      .of(RIGHT_JOIN_FIELD_NAME,
+          new Field(RIGHT_JOIN_FIELD_NAME, 1, Schema.OPTIONAL_STRING_SCHEMA));
+
+  private static final WithinExpression WITHIN_EXPRESSION =
+      new WithinExpression(10, TimeUnit.SECONDS);
 
   private static final PlanNodeId nodeId = new PlanNodeId("join");
   private static final QueryId queryId = new QueryId("join-query");
   private static final QueryContext.Stacker CONTEXT_STACKER =
       new QueryContext.Stacker(queryId).push(nodeId.toString());
 
-  private StructuredDataSourceNode left;
-  private StructuredDataSourceNode right;
-  private SchemaKStream leftSchemaKStream;
-  private SchemaKStream rightSchemaKStream;
-  private SchemaKTable leftSchemaKTable;
-  private SchemaKTable rightSchemaKTable;
-  private Field joinKey;
-  private ServiceContext serviceContext;
-  private ProcessingLogContext processingLogContext = ProcessingLogContext.create();
+  @Rule
+  public final ExpectedException expectedException = ExpectedException.none();
+
+  @Mock
+  private DataSourceNode left;
+  @Mock
+  private DataSourceNode right;
+  @Mock
+  private SchemaKStream<String> leftSchemaKStream;
+  @Mock
+  private SchemaKStream<String> rightSchemaKStream;
+  @Mock
+  private SchemaKTable<String> leftSchemaKTable;
+  @Mock
+  private SchemaKTable<String> rightSchemaKTable;
+  @Mock
+  private KsqlQueryBuilder ksqlStreamBuilder;
+  @Mock
+  private FunctionRegistry functionRegistry;
 
   @Before
-  @SuppressWarnings("unchecked")
   public void setUp() {
-    mockStreamsBuilder = niceMock(StreamsBuilder.class);
-    mockKsqlConfig = niceMock(KsqlConfig.class);
-    mockKsqlConfigClonedWithOffsetReset = niceMock(KsqlConfig.class);
-    mockKafkaTopicClient = niceMock(KafkaTopicClient.class);
-    mockFunctionRegistry = niceMock(FunctionRegistry.class);
-    mockSchemaRegistryClientFactory = niceMock(Supplier.class);
-
-    left = niceMock(StructuredDataSourceNode.class);
-    right = niceMock(StructuredDataSourceNode.class);
-    leftSchemaKStream = niceMock(SchemaKStream.class);
-    rightSchemaKStream = niceMock(SchemaKStream.class);
-    leftSchemaKTable = niceMock(SchemaKTable.class);
-    rightSchemaKTable = niceMock(SchemaKTable.class);
-
-    serviceContext = niceMock(ServiceContext.class);
-    EasyMock.expect(serviceContext.getTopicClient())
-        .andReturn(mockKafkaTopicClient)
-        .anyTimes();
-    EasyMock.expect(serviceContext.getSchemaRegistryClientFactory())
-        .andReturn(mockSchemaRegistryClientFactory)
-        .anyTimes();
-    EasyMock.expect(mockKsqlConfig.cloneWithPropertyOverwrite(
-        Collections.singletonMap(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")))
-        .andStubReturn(mockKsqlConfigClonedWithOffsetReset);
-
-    EasyMock.replay(serviceContext, mockKsqlConfig);
-
-    joinKey = joinSchema.field(leftAlias + "." + leftKeyFieldName);
-
-  }
-
-  private void buildJoin() {
-    buildJoin(ksqlConfig);
-  }
-
-  private void buildJoin(final KsqlConfig ksqlConfig) {
-    buildJoin(
-        "SELECT t1.col1, t2.col1, t2.col4, col5, t2.col2 "
-            + "FROM test1 t1 LEFT JOIN test2 t2 "
-            + "ON t1.col1 = t2.col0;",
-        ksqlConfig);
-  }
-
-  private void buildJoin(final String queryString, final KsqlConfig ksqlConfig) {
-    buildJoinNode(queryString);
-    stream = buildStream(ksqlConfig);
-  }
-
-  private void buildJoinNode(final String queryString) {
-    final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
-
-    final KsqlBareOutputNode planNode =
-        (KsqlBareOutputNode) AnalysisTestUtil.buildLogicalPlan(queryString, metaStore);
-
-    joinNode = (JoinNode) ((ProjectNode) planNode.getSource()).getSource();
-  }
-
-  private SchemaKStream buildStream(final KsqlConfig ksqlConfig) {
     builder = new StreamsBuilder();
-    return joinNode.buildStream(
-        builder,
-        ksqlConfig,
-        serviceContext,
-        processingLogContext,
-        new InternalFunctionRegistry(),
-        queryId);
+
+    final ServiceContext serviceContext = mock(ServiceContext.class);
+    when(serviceContext.getTopicClient())
+        .thenReturn(mockKafkaTopicClient);
+
+    when(ksqlStreamBuilder.getKsqlConfig()).thenReturn(ksqlConfig);
+    when(ksqlStreamBuilder.getStreamsBuilder()).thenReturn(builder);
+    when(ksqlStreamBuilder.getServiceContext()).thenReturn(serviceContext);
+    when(ksqlStreamBuilder.withKsqlConfig(any())).thenReturn(ksqlStreamBuilder);
+    when(ksqlStreamBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
+    when(ksqlStreamBuilder.buildNodeContext(any())).thenAnswer(inv ->
+        new QueryContext.Stacker(queryId)
+            .push(inv.getArgument(0).toString()));
+
+    when(left.getSchema()).thenReturn(leftSchema);
+    when(right.getSchema()).thenReturn(rightSchema);
+
+    when(left.getPartitions(mockKafkaTopicClient)).thenReturn(2);
+    when(right.getPartitions(mockKafkaTopicClient)).thenReturn(2);
+
+    setUpSource(left, "Foobar1");
+    setUpSource(right, "Foobar2");
+
+    when(leftSchemaKStream.getKeyField()).thenReturn(leftJoinField);
+    when(leftSchemaKTable.getKeyField()).thenReturn(leftJoinField);
+    when(rightSchemaKTable.getKeyField()).thenReturn(rightJoinField);
   }
 
-  private void setupTopicClientExpectations(final int streamPartitions, final int tablePartitions) {
-    final Node node = new Node(0, "localhost", 9091);
+  @Test
+  public void shouldThrowIfLeftKeyFieldNotInLeftSchema() {
+    // Then:
+    expectedException.expect(IllegalArgumentException.class);
+    expectedException.expectMessage("Invalid join field");
 
-    final List<TopicPartitionInfo> streamPartitionInfoList =
-        IntStream.range(0, streamPartitions)
-            .mapToObj(
-                p -> new TopicPartitionInfo(p, node, Collections.emptyList(), Collections.emptyList()))
-            .collect(Collectors.toList());
+    // When:
+    new JoinNode(
+        nodeId,
+        JoinNode.JoinType.LEFT,
+        left,
+        right,
+        "won't find me",
+        RIGHT_JOIN_FIELD_NAME,
+        leftAlias,
+        rightAlias,
+        null,
+        DataSource.DataSourceType.KSTREAM,
+        DataSource.DataSourceType.KSTREAM);
+  }
 
-    expect(mockKafkaTopicClient.describeTopic("test1"))
-        .andReturn(new TopicDescription("test1", false, streamPartitionInfoList));
+  @Test
+  public void shouldThrowIfRightKeyFieldNotInRightSchema() {
+    // Then:
+    expectedException.expect(IllegalArgumentException.class);
+    expectedException.expectMessage("Invalid join field");
 
-    final List<TopicPartitionInfo> tablePartitionInfoList =
-        IntStream.range(0, tablePartitions)
-        .mapToObj(
-            p -> new TopicPartitionInfo(p, node, Collections.emptyList(), Collections.emptyList()))
-        .collect(Collectors.toList());
+    // When:
+    new JoinNode(
+        nodeId,
+        JoinNode.JoinType.LEFT,
+        left,
+        right,
+        LEFT_JOIN_FIELD_NAME,
+        "won't find me",
+        leftAlias,
+        rightAlias,
+        null,
+        DataSource.DataSourceType.KSTREAM,
+        DataSource.DataSourceType.KSTREAM);
+  }
 
-    expect(mockKafkaTopicClient.describeTopic("test2"))
-        .andReturn(new TopicDescription("test2", false, tablePartitionInfoList));
+  @Test
+  public void shouldReturnLeftJoinKeyAsKeyField() {
+    // When:
+    final JoinNode joinNode = new JoinNode(
+        nodeId,
+        JoinType.LEFT,
+        left,
+        right,
+        LEFT_JOIN_FIELD_NAME,
+        RIGHT_JOIN_FIELD_NAME,
+        leftAlias,
+        rightAlias,
+        null,
+        DataSourceType.KSTREAM,
+        DataSourceType.KSTREAM);
 
-    replay(mockKafkaTopicClient);
+    // Then:
+    assertThat(joinNode.getKeyField().name(), is(Optional.of(LEFT_JOIN_FIELD_NAME)));
+  }
+
+  @Test
+  public void shouldReturnJoinKeyNames() {
+    // When:
+    final JoinNode joinNode = new JoinNode(
+        nodeId,
+        JoinType.LEFT,
+        left,
+        right,
+        LEFT_JOIN_FIELD_NAME,
+        RIGHT_JOIN_FIELD_NAME,
+        leftAlias,
+        rightAlias,
+        null,
+        DataSourceType.KSTREAM,
+        DataSourceType.KSTREAM);
+
+    // Then:
+    assertThat(joinNode.getLeftJoinFieldName(), is(LEFT_JOIN_FIELD_NAME));
+    assertThat(joinNode.getRightJoinFieldName(), is(RIGHT_JOIN_FIELD_NAME));
+  }
+
+  @Test
+  public void shouldReturnAliases() {
+    // When:
+    final JoinNode joinNode = new JoinNode(
+        nodeId,
+        JoinType.LEFT,
+        left,
+        right,
+        LEFT_JOIN_FIELD_NAME,
+        RIGHT_JOIN_FIELD_NAME,
+        leftAlias,
+        rightAlias,
+        null,
+        DataSourceType.KSTREAM,
+        DataSourceType.KSTREAM);
+
+    // Then:
+    assertThat(joinNode.getLeftAlias(), is(leftAlias));
+    assertThat(joinNode.getRightAlias(), is(rightAlias));
+  }
+
+  @Test
+  public void shouldReturnJoinType() {
+    // When:
+    final JoinNode joinNode = new JoinNode(
+        nodeId,
+        JoinType.LEFT,
+        left,
+        right,
+        LEFT_JOIN_FIELD_NAME,
+        RIGHT_JOIN_FIELD_NAME,
+        leftAlias,
+        rightAlias,
+        null,
+        DataSourceType.KSTREAM,
+        DataSourceType.KSTREAM);
+
+    // Then:
+    assertThat(joinNode.getJoinType(), is(JoinType.LEFT));
   }
 
   @Test
   public void shouldBuildSourceNode() {
     setupTopicClientExpectations(1, 1);
     buildJoin();
-    final TopologyDescription.Source node = (TopologyDescription.Source) getNodeByName(builder.build(), SOURCE_NODE);
-    final List<String> successors = node.successors().stream().map(TopologyDescription.Node::name).collect(Collectors.toList());
+    final TopologyDescription.Source node = (TopologyDescription.Source) getNodeByName(
+        builder.build(), SOURCE_NODE);
+    final List<String> successors = node.successors().stream().map(TopologyDescription.Node::name)
+        .collect(Collectors.toList());
     assertThat(node.predecessors(), equalTo(Collections.emptySet()));
     assertThat(successors, equalTo(Collections.singletonList(MAPVALUES_NODE)));
     assertThat(node.topicSet(), equalTo(ImmutableSet.of("test2")));
@@ -232,13 +309,16 @@ public class JoinNodeTest {
   @Test
   public void shouldUseLegacyNameForReduceTopicIfOptimizationsOff() {
     setupTopicClientExpectations(1, 1);
-    buildJoin(
+    when(ksqlStreamBuilder.getKsqlConfig()).thenReturn(
         ksqlConfig.overrideBreakingConfigsWithOriginalValues(
             ImmutableMap.of(
                 KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS,
-                String.valueOf(KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS_OFF))
+                KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS_OFF)
         )
     );
+
+    buildJoin();
+
     final Topology topology = builder.build();
     final TopologyDescription.Processor leftJoin
         = (TopologyDescription.Processor) getNodeByName(topology, "KSTREAM-LEFTJOIN-0000000015");
@@ -254,29 +334,30 @@ public class JoinNodeTest {
     final Topology topology = builder.build();
     final TopologyDescription.Processor leftJoin
         = (TopologyDescription.Processor) getNodeByName(topology, "KSTREAM-LEFTJOIN-0000000014");
-    final List<String> predecessors = leftJoin.predecessors().stream().map(TopologyDescription.Node::name).collect(Collectors.toList());
+    final List<String> predecessors = leftJoin.predecessors().stream()
+        .map(TopologyDescription.Node::name).collect(Collectors.toList());
     assertThat(leftJoin.stores(), equalTo(Utils.mkSet("KafkaTopic_Right-reduce")));
     assertThat(predecessors, equalTo(Collections.singletonList("KSTREAM-SOURCE-0000000013")));
   }
 
   @Test
   public void shouldThrowOnPartitionMismatch() {
+    // Given:
     setupTopicClientExpectations(1, 2);
 
-    try {
-      buildJoin(
-          "SELECT t1.col0, t2.col0, t2.col1 "
-              + "FROM test1 t1 LEFT JOIN test2 t2 ON t1.col0 = t2.col0;",
-          ksqlConfig);
-    } catch (final KsqlException e) {
-      Assert.assertThat(e.getMessage(), equalTo(
-          "Can't join TEST1 with TEST2 since the number of partitions don't match. TEST1 "
-          + "partitions = 1; TEST2 partitions = 2. Please repartition either one so that the "
-          + "number of partitions match."
-      ));
-    }
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(
+        "Can't join TEST1 with TEST2 since the number of partitions don't match. TEST1 "
+            + "partitions = 1; TEST2 partitions = 2. Please repartition either one so that the "
+            + "number of partitions match."
+    );
 
-    verify(mockKafkaTopicClient);
+    // When:
+    buildJoin(
+          "SELECT t1.col0, t2.col0, t2.col1 "
+              + "FROM test1 t1 LEFT JOIN test2 t2 ON t1.col0 = t2.col0;"
+    );
   }
 
   @Test
@@ -284,914 +365,787 @@ public class JoinNodeTest {
     setupTopicClientExpectations(1, 1);
     buildJoin();
     final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
-    final StructuredDataSource source1
+    final DataSource<?> source1
         = metaStore.getSource("TEST1");
-    final StructuredDataSource source2 = metaStore.getSource("TEST2");
+    final DataSource<?> source2 = metaStore.getSource("TEST2");
     final Set<String> expected = source1.getSchema()
         .fields().stream()
-        .map(field -> "T1."+field.name()).collect(Collectors.toSet());
+        .map(field -> "T1." + field.name()).collect(Collectors.toSet());
 
-    expected.addAll(source2.getSchema().fields().stream().map(field -> "T2." + field.name()).collect(Collectors.toSet()));
-    final Set<String> fields = stream.getSchema().fields().stream().map(Field::name).collect(Collectors.toSet());
+    expected.addAll(source2.getSchema().fields().stream().map(field -> "T2." + field.name())
+        .collect(Collectors.toSet()));
+    final Set<String> fields = stream.getSchema().fields().stream().map(Field::name)
+        .collect(Collectors.toSet());
     assertThat(fields, equalTo(expected));
   }
 
-  @SuppressWarnings("unchecked")
   @Test
   public void shouldPerformStreamToStreamLeftJoin() {
     // Given:
-    setupStream(left, CONTEXT_STACKER, leftSchemaKStream, leftSchema, 2);
-    expectKeyField(leftSchemaKStream, leftKeyFieldName);
-    setupStream(right, CONTEXT_STACKER, rightSchemaKStream, rightSchema, 2);
-    final WithinExpression withinExpression = new WithinExpression(10, TimeUnit.SECONDS);
-    expect(leftSchemaKStream.leftJoin(eq(rightSchemaKStream),
-                                      eq(joinSchema),
-                                      eq(joinKey),
-                                      eq(withinExpression.joinWindow()),
-                                      anyObject(Serde.class),
-                                      anyObject(Serde.class),
-                                      eq(CONTEXT_STACKER)))
-        .andReturn(niceMock(SchemaKStream.class));
-    replay(left, right, leftSchemaKStream, rightSchemaKStream);
+    setupStream(left, leftSchemaKStream, leftSchema);
+    setupStream(right, rightSchemaKStream, rightSchema);
 
-    final JoinNode joinNode = new JoinNode(nodeId,
+    final JoinNode joinNode = new JoinNode(
+        nodeId,
         JoinNode.JoinType.LEFT,
         left,
         right,
-        leftKeyFieldName,
-        rightKeyFieldName,
+        LEFT_JOIN_FIELD_NAME,
+        RIGHT_JOIN_FIELD_NAME,
         leftAlias,
         rightAlias,
-        withinExpression,
-        DataSource.DataSourceType.KSTREAM,
-        DataSource.DataSourceType.KSTREAM);
+        WITHIN_EXPRESSION,
+        DataSourceType.KSTREAM,
+        DataSourceType.KSTREAM);
 
     // When:
-    joinNode.buildStream(
-        mockStreamsBuilder,
-        mockKsqlConfig,
-        serviceContext,
-        processingLogContext,
-        mockFunctionRegistry,
-        queryId
-    );
+    joinNode.buildStream(ksqlStreamBuilder);
 
     // Then:
-    verify(left, right, leftSchemaKStream, rightSchemaKStream);
-    assertEquals(leftKeyFieldName, joinNode.getLeftKeyFieldName());
-    assertEquals(rightKeyFieldName, joinNode.getRightKeyFieldName());
-    assertEquals(leftAlias, joinNode.getLeftAlias());
-    assertEquals(rightAlias, joinNode.getRightAlias());
-    assertEquals(JoinNode.JoinType.LEFT, joinNode.getJoinType());
+    verify(leftSchemaKStream).leftJoin(
+        eq(rightSchemaKStream),
+        eq(joinSchema),
+        eq(leftJoinField),
+        eq(WITHIN_EXPRESSION.joinWindow()),
+        any(),
+        any(),
+        eq(CONTEXT_STACKER));
   }
 
-  @SuppressWarnings("unchecked")
   @Test
   public void shouldPerformStreamToStreamInnerJoin() {
     // Given:
-    setupStream(left, CONTEXT_STACKER, leftSchemaKStream, leftSchema, 2);
-    expectKeyField(leftSchemaKStream, leftKeyFieldName);
-    setupStream(right, CONTEXT_STACKER, rightSchemaKStream, rightSchema, 2);
-    final WithinExpression withinExpression = new WithinExpression(10, TimeUnit.SECONDS);
-    expect(leftSchemaKStream.join(eq(rightSchemaKStream),
-                                  eq(joinSchema),
-                                  eq(joinKey),
-                                  eq(withinExpression.joinWindow()),
-                                  anyObject(Serde.class),
-                                  anyObject(Serde.class),
-                                  eq(CONTEXT_STACKER)))
-        .andReturn(niceMock(SchemaKStream.class));
-    replay(left, right, leftSchemaKStream, rightSchemaKStream);
+    setupStream(left, leftSchemaKStream, leftSchema);
+    setupStream(right, rightSchemaKStream, rightSchema);
 
-    final JoinNode joinNode = new JoinNode(nodeId,
+    final JoinNode joinNode = new JoinNode(
+        nodeId,
         JoinNode.JoinType.INNER,
         left,
         right,
-        leftKeyFieldName,
-        rightKeyFieldName,
+        LEFT_JOIN_FIELD_NAME,
+        RIGHT_JOIN_FIELD_NAME,
         leftAlias,
         rightAlias,
-        withinExpression,
-        DataSource.DataSourceType.KSTREAM,
-        DataSource.DataSourceType.KSTREAM);
+        WITHIN_EXPRESSION,
+        DataSourceType.KSTREAM,
+        DataSourceType.KSTREAM);
 
     // When:
-    joinNode.buildStream(
-        mockStreamsBuilder,
-        mockKsqlConfig,
-        serviceContext,
-        processingLogContext,
-        mockFunctionRegistry,
-        queryId
-    );
+    joinNode.buildStream(ksqlStreamBuilder);
 
     // Then:
-    verify(left, right, leftSchemaKStream, rightSchemaKStream);
-    assertEquals(leftKeyFieldName, joinNode.getLeftKeyFieldName());
-    assertEquals(rightKeyFieldName, joinNode.getRightKeyFieldName());
-    assertEquals(leftAlias, joinNode.getLeftAlias());
-    assertEquals(rightAlias, joinNode.getRightAlias());
-    assertEquals(JoinNode.JoinType.INNER, joinNode.getJoinType());
+    verify(leftSchemaKStream).join(
+        eq(rightSchemaKStream),
+        eq(joinSchema),
+        eq(leftJoinField),
+        eq(WITHIN_EXPRESSION.joinWindow()),
+        any(),
+        any(),
+        eq(CONTEXT_STACKER));
   }
 
-  @SuppressWarnings("unchecked")
   @Test
   public void shouldPerformStreamToStreamOuterJoin() {
     // Given:
-    setupStream(left, CONTEXT_STACKER, leftSchemaKStream, leftSchema, 2);
-    expectKeyField(leftSchemaKStream, leftKeyFieldName);
-    setupStream(right, CONTEXT_STACKER, rightSchemaKStream, rightSchema, 2);
-    final WithinExpression withinExpression = new WithinExpression(10, TimeUnit.SECONDS);
-    expect(leftSchemaKStream.outerJoin(eq(rightSchemaKStream),
-                                       eq(joinSchema),
-                                       eq(joinKey),
-                                       eq(withinExpression.joinWindow()),
-                                       anyObject(Serde.class),
-                                       anyObject(Serde.class),
-                                       eq(CONTEXT_STACKER)))
-        .andReturn(niceMock(SchemaKStream.class));
-    replay(left, right, leftSchemaKStream, rightSchemaKStream);
+    setupStream(left, leftSchemaKStream, leftSchema);
+    setupStream(right, rightSchemaKStream, rightSchema);
 
-    final JoinNode joinNode = new JoinNode(nodeId,
+    final JoinNode joinNode = new JoinNode(
+        nodeId,
         JoinNode.JoinType.OUTER,
         left,
         right,
-        leftKeyFieldName,
-        rightKeyFieldName,
+        LEFT_JOIN_FIELD_NAME,
+        RIGHT_JOIN_FIELD_NAME,
+        leftAlias,
+        rightAlias,
+        WITHIN_EXPRESSION,
+        DataSourceType.KSTREAM,
+        DataSourceType.KSTREAM);
+
+    // When:
+    joinNode.buildStream(ksqlStreamBuilder);
+
+    // Then:
+    verify(leftSchemaKStream).outerJoin(
+        eq(rightSchemaKStream),
+        eq(joinSchema),
+        eq(leftJoinField.withName(Optional.empty())),
+        eq(WITHIN_EXPRESSION.joinWindow()),
+        any(),
+        any(),
+        eq(CONTEXT_STACKER));
+  }
+
+  @Test
+  public void shouldNotPerformStreamStreamJoinWithoutJoinWindow() {
+    // Given:
+    final JoinNode joinNode = new JoinNode(
+        nodeId,
+        JoinNode.JoinType.INNER,
+        left,
+        right,
+        LEFT_JOIN_FIELD_NAME,
+        RIGHT_JOIN_FIELD_NAME,
+        leftAlias,
+        rightAlias,
+        null,
+        DataSourceType.KSTREAM,
+        DataSourceType.KSTREAM);
+
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(
+        "Stream-Stream joins must have a WITHIN clause specified. None was provided."
+    );
+
+    // When:
+    joinNode.buildStream(ksqlStreamBuilder);
+  }
+
+  @Test
+  public void shouldNotPerformJoinIfInputPartitionsMisMatch() {
+    // Given:
+    when(left.getPartitions(mockKafkaTopicClient)).thenReturn(3);
+
+    final JoinNode joinNode = new JoinNode(
+        nodeId,
+        JoinNode.JoinType.OUTER,
+        left,
+        right,
+        LEFT_JOIN_FIELD_NAME,
+        RIGHT_JOIN_FIELD_NAME,
+        leftAlias,
+        rightAlias,
+        WITHIN_EXPRESSION,
+        DataSourceType.KSTREAM,
+        DataSourceType.KSTREAM);
+
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(
+        "Can't join Foobar1 with Foobar2 since the number of partitions don't match."
+    );
+
+    // When:
+    joinNode.buildStream(ksqlStreamBuilder);
+  }
+
+  @Test
+  public void shouldFailJoinIfTableCriteriaColumnIsNotKey() {
+    // Given:
+    setupStream(left, leftSchemaKStream, leftSchema);
+    setupTable(right, rightSchemaKTable, rightSchema);
+
+    final String rightCriteriaColumn =
+        getNonKeyColumn(rightSchema, rightAlias, RIGHT_JOIN_FIELD_NAME);
+
+    final JoinNode joinNode = new JoinNode(
+        nodeId,
+        JoinNode.JoinType.LEFT,
+        left,
+        right,
+        LEFT_JOIN_FIELD_NAME,
+        rightCriteriaColumn,
+        leftAlias,
+        rightAlias,
+        null,
+        DataSourceType.KSTREAM,
+        DataSourceType.KTABLE);
+
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(String.format(
+        "Source table (%s) key column (%s) is not the column used in the join criteria (%s). "
+            + "Only the table's key column or 'ROWKEY' is supported in the join criteria.",
+        rightAlias,
+        RIGHT_JOIN_FIELD_NAME,
+        rightCriteriaColumn
+    ));
+
+    // When:
+    joinNode.buildStream(ksqlStreamBuilder);
+  }
+
+  @Test
+  public void shouldFailJoinIfTableHasNoKeyAndJoinFieldIsNotRowKey() {
+    // Given:
+    setupStream(left, leftSchemaKStream, leftSchema);
+    setupTable(right, rightSchemaKTable, rightSchema, NO_KEY_FIELD);
+
+    final JoinNode joinNode = new JoinNode(
+        nodeId,
+        JoinNode.JoinType.LEFT,
+        left,
+        right,
+        LEFT_JOIN_FIELD_NAME,
+        RIGHT_JOIN_FIELD_NAME,
+        leftAlias,
+        rightAlias,
+        null,
+        DataSource.DataSourceType.KSTREAM,
+        DataSource.DataSourceType.KTABLE);
+
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(
+        "Source table (" + rightAlias +") has no key column defined. "
+            + "Only 'ROWKEY' is supported in the join criteria."
+    );
+
+    // When:
+    joinNode.buildStream(ksqlStreamBuilder);
+  }
+
+  @Test
+  public void shouldHandleJoinIfTableHasNoKeyAndJoinFieldIsRowKey() {
+    // Given:
+    setupStream(left, leftSchemaKStream, leftSchema);
+    setupTable(right, rightSchemaKTable, rightSchema, NO_KEY_FIELD);
+
+    final JoinNode joinNode = new JoinNode(
+        nodeId,
+        JoinNode.JoinType.LEFT,
+        left,
+        right,
+        LEFT_JOIN_FIELD_NAME,
+        "right.ROWKEY",
+        leftAlias,
+        rightAlias,
+        null,
+        DataSource.DataSourceType.KSTREAM,
+        DataSource.DataSourceType.KTABLE);
+
+    // When:
+    joinNode.buildStream(ksqlStreamBuilder);
+
+    // Then:
+    verify(leftSchemaKStream).leftJoin(
+        eq(rightSchemaKTable),
+        eq(joinSchema),
+        eq(leftJoinField),
+        any(),
+        eq(CONTEXT_STACKER));
+  }
+
+  @Test
+  public void shouldPerformStreamToTableLeftJoin() {
+    // Given:
+    setupStream(left, leftSchemaKStream, leftSchema);
+    setupTable(right, rightSchemaKTable, rightSchema);
+
+    final JoinNode joinNode = new JoinNode(
+        nodeId,
+        JoinNode.JoinType.LEFT,
+        left,
+        right,
+        LEFT_JOIN_FIELD_NAME,
+        RIGHT_JOIN_FIELD_NAME,
+        leftAlias,
+        rightAlias,
+        null,
+        DataSourceType.KSTREAM,
+        DataSourceType.KTABLE);
+
+    // When:
+    joinNode.buildStream(ksqlStreamBuilder);
+
+    // Then:
+    verify(leftSchemaKStream).leftJoin(
+        eq(rightSchemaKTable),
+        eq(joinSchema),
+        eq(leftJoinField),
+        any(),
+        eq(CONTEXT_STACKER));
+  }
+
+  @Test
+  public void shouldPerformStreamToTableInnerJoin() {
+    // Given:
+    setupStream(left, leftSchemaKStream, leftSchema);
+    setupTable(right, rightSchemaKTable, rightSchema);
+
+    final JoinNode joinNode = new JoinNode(
+        nodeId,
+        JoinNode.JoinType.INNER,
+        left,
+        right,
+        LEFT_JOIN_FIELD_NAME,
+        RIGHT_JOIN_FIELD_NAME,
+        leftAlias,
+        rightAlias,
+        null,
+        DataSourceType.KSTREAM,
+        DataSourceType.KTABLE);
+
+    // When:
+    joinNode.buildStream(ksqlStreamBuilder);
+
+    // Then:
+    verify(leftSchemaKStream).join(
+        eq(rightSchemaKTable),
+        eq(joinSchema),
+        eq(leftJoinField),
+        any(),
+        eq(CONTEXT_STACKER));
+  }
+
+  @Test
+  public void shouldNotAllowStreamToTableOuterJoin() {
+    // Given:
+    setupStream(left, leftSchemaKStream, leftSchema);
+    setupTable(right, rightSchemaKTable, rightSchema);
+
+    final JoinNode joinNode = new JoinNode(
+        nodeId,
+        JoinNode.JoinType.OUTER,
+        left,
+        right,
+        LEFT_JOIN_FIELD_NAME,
+        RIGHT_JOIN_FIELD_NAME,
+        leftAlias,
+        rightAlias,
+        null,
+        DataSourceType.KSTREAM,
+        DataSourceType.KTABLE);
+
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(
+        "Full outer joins between streams and tables are not supported."
+    );
+
+    // When:
+    joinNode.buildStream(ksqlStreamBuilder);
+  }
+
+  @Test
+  public void shouldNotPerformStreamToTableJoinIfJoinWindowIsSpecified() {
+    // Given:
+    final WithinExpression withinExpression = new WithinExpression(10, TimeUnit.SECONDS);
+
+    final JoinNode joinNode = new JoinNode(
+        nodeId,
+        JoinNode.JoinType.OUTER,
+        left,
+        right,
+        LEFT_JOIN_FIELD_NAME,
+        RIGHT_JOIN_FIELD_NAME,
         leftAlias,
         rightAlias,
         withinExpression,
-        DataSource.DataSourceType.KSTREAM,
-        DataSource.DataSourceType.KSTREAM);
-
-    // When:
-    joinNode.buildStream(
-        mockStreamsBuilder,
-        mockKsqlConfig,
-        serviceContext,
-        processingLogContext,
-        mockFunctionRegistry,
-        queryId
-    );
+        DataSourceType.KSTREAM,
+        DataSourceType.KTABLE);
 
     // Then:
-    verify(left, right, leftSchemaKStream, rightSchemaKStream);
-    assertEquals(leftKeyFieldName, joinNode.getLeftKeyFieldName());
-    assertEquals(rightKeyFieldName, joinNode.getRightKeyFieldName());
-    assertEquals(leftAlias, joinNode.getLeftAlias());
-    assertEquals(rightAlias, joinNode.getRightAlias());
-    assertEquals(JoinNode.JoinType.OUTER, joinNode.getJoinType());
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(
+        "A window definition was provided for a Stream-Table join."
+    );
+
+    // When:
+    joinNode.buildStream(ksqlStreamBuilder);
   }
 
-  @SuppressWarnings("unchecked")
   @Test
-  public void shouldNotPerformStreamStreamJoinWithoutJoinWindow() {
-    expect(left.getSchema()).andReturn(leftSchema);
-    expect(left.getPartitions(mockKafkaTopicClient)).andReturn(2);
+  public void shouldFailTableTableJoinIfLeftCriteriaColumnIsNotKey() {
+    // Given:
+    setupTable(left, leftSchemaKTable, leftSchema);
+    setupTable(right, rightSchemaKTable, rightSchema);
 
-    expect(right.getSchema()).andReturn(rightSchema);
-    expect(right.getPartitions(mockKafkaTopicClient)).andReturn(2);
+    final String leftCriteriaColumn = getNonKeyColumn(leftSchema, leftAlias, LEFT_JOIN_FIELD_NAME);
 
-    replay(left, right, leftSchemaKStream, rightSchemaKStream);
+    final JoinNode joinNode = new JoinNode(
+        nodeId,
+        JoinNode.JoinType.LEFT,
+        left,
+        right,
+        leftCriteriaColumn,
+        RIGHT_JOIN_FIELD_NAME,
+        leftAlias,
+        rightAlias,
+        null,
+        DataSourceType.KTABLE,
+        DataSourceType.KTABLE);
 
-    final JoinNode joinNode = new JoinNode(nodeId,
-                                           JoinNode.JoinType.INNER,
-                                           left,
-                                           right,
-                                           leftKeyFieldName,
-                                           rightKeyFieldName,
-                                           leftAlias,
-                                           rightAlias,
-                                           null,
-                                           DataSource.DataSourceType.KSTREAM,
-                                           DataSource.DataSourceType.KSTREAM);
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(String.format(
+        "Source table (%s) key column (%s) is not the column used in the join criteria (%s). "
+            + "Only the table's key column or 'ROWKEY' is supported in the join criteria.",
+        leftAlias,
+        LEFT_JOIN_FIELD_NAME,
+        leftCriteriaColumn
+    ));
 
-    try {
-      joinNode.buildStream(
-          mockStreamsBuilder,
-          mockKsqlConfig,
-          serviceContext,
-          processingLogContext,
-          mockFunctionRegistry,
-          queryId
-      );
-      fail("Should have raised an exception since no join window was specified");
-    } catch (final KsqlException e) {
-      assertTrue(e.getMessage().startsWith("Stream-Stream joins must have a WITHIN clause specified"
-                                           + ". None was provided."));
-    }
-
-    verify(left, right, leftSchemaKStream, rightSchemaKStream);
-
-    assertEquals(leftKeyFieldName, joinNode.getLeftKeyFieldName());
-    assertEquals(rightKeyFieldName, joinNode.getRightKeyFieldName());
-    assertEquals(leftAlias, joinNode.getLeftAlias());
-    assertEquals(rightAlias, joinNode.getRightAlias());
-    assertEquals(JoinNode.JoinType.INNER, joinNode.getJoinType());
+    // When:
+    joinNode.buildStream(ksqlStreamBuilder);
   }
 
-
-  @SuppressWarnings("unchecked")
   @Test
-  public void shouldNotPerformJoinIfInputPartitionsMisMatch() {
-    expect(left.getSchema()).andReturn(leftSchema);
-    expect(left.getPartitions(mockKafkaTopicClient)).andReturn(3);
+  public void shouldFailTableTableJoinIfRightCriteriaColumnIsNotKey() {
+    // Given:
+    setupTable(left, leftSchemaKTable, leftSchema);
+    setupTable(right, rightSchemaKTable, rightSchema);
 
-    expect(right.getSchema()).andReturn(rightSchema);
-    expect(right.getPartitions(mockKafkaTopicClient)).andReturn(2);
+    final String rightCriteriaColumn =
+        getNonKeyColumn(rightSchema, rightAlias, RIGHT_JOIN_FIELD_NAME);
 
-    expectSourceName(left);
-    expectSourceName(right);
+    final JoinNode joinNode = new JoinNode(
+        nodeId,
+        JoinNode.JoinType.LEFT,
+        left,
+        right,
+        LEFT_JOIN_FIELD_NAME,
+        rightCriteriaColumn,
+        leftAlias,
+        rightAlias,
+        null,
+        DataSourceType.KTABLE,
+        DataSourceType.KTABLE);
+
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(String.format(
+        "Source table (%s) key column (%s) is not the column used in the join criteria (%s). "
+            + "Only the table's key column or 'ROWKEY' is supported in the join criteria.",
+        rightAlias,
+        RIGHT_JOIN_FIELD_NAME,
+        rightCriteriaColumn
+    ));
+
+    // When:
+    joinNode.buildStream(ksqlStreamBuilder);
+  }
+
+  @Test
+  public void shouldPerformTableToTableInnerJoin() {
+    // Given:
+    setupTable(left, leftSchemaKTable, leftSchema);
+    setupTable(right, rightSchemaKTable, rightSchema);
+
+    final JoinNode joinNode = new JoinNode(
+        nodeId,
+        JoinNode.JoinType.INNER,
+        left,
+        right,
+        LEFT_JOIN_FIELD_NAME,
+        RIGHT_JOIN_FIELD_NAME,
+        leftAlias,
+        rightAlias,
+        null,
+        DataSourceType.KTABLE,
+        DataSourceType.KTABLE);
+
+    // When:
+    joinNode.buildStream(ksqlStreamBuilder);
+
+    // Then:
+    verify(leftSchemaKTable).join(
+        eq(rightSchemaKTable),
+        eq(joinSchema),
+        eq(leftJoinField),
+        eq(CONTEXT_STACKER));
+  }
+
+  @Test
+  public void shouldPerformTableToTableLeftJoin() {
+    // Given:
+    setupTable(left, leftSchemaKTable, leftSchema);
+    setupTable(right, rightSchemaKTable, rightSchema);
+
+    final JoinNode joinNode = new JoinNode(
+        nodeId,
+        JoinNode.JoinType.LEFT,
+        left,
+        right,
+        LEFT_JOIN_FIELD_NAME,
+        RIGHT_JOIN_FIELD_NAME,
+        leftAlias,
+        rightAlias,
+        null,
+        DataSourceType.KTABLE,
+        DataSourceType.KTABLE
+    );
+
+    // When:
+    joinNode.buildStream(ksqlStreamBuilder);
+
+    // Then:
+    verify(leftSchemaKTable).leftJoin(
+        eq(rightSchemaKTable),
+        eq(joinSchema),
+        eq(leftJoinField),
+        eq(CONTEXT_STACKER));
+  }
+
+  @Test
+  public void shouldPerformTableToTableOuterJoin() {
+    // Given:
+    setupTable(left, leftSchemaKTable, leftSchema);
+    setupTable(right, rightSchemaKTable, rightSchema);
+
+    final JoinNode joinNode = new JoinNode(
+        nodeId,
+        JoinNode.JoinType.OUTER,
+        left,
+        right,
+        LEFT_JOIN_FIELD_NAME,
+        RIGHT_JOIN_FIELD_NAME,
+        leftAlias,
+        rightAlias,
+        null,
+        DataSourceType.KTABLE,
+        DataSourceType.KTABLE
+    );
+
+    // When:
+    joinNode.buildStream(ksqlStreamBuilder);
+
+    // Then:
+    verify(leftSchemaKTable).outerJoin(
+        eq(rightSchemaKTable),
+        eq(joinSchema),
+        eq(leftJoinField.withName(Optional.empty())),
+        eq(CONTEXT_STACKER));
+  }
+
+  @Test
+  public void shouldNotPerformTableToTableJoinIfJoinWindowIsSpecified() {
+    // Given:
     final WithinExpression withinExpression = new WithinExpression(10, TimeUnit.SECONDS);
 
-    replay(left, right, leftSchemaKStream, rightSchemaKStream);
+    final JoinNode joinNode = new JoinNode(
+        nodeId,
+        JoinNode.JoinType.OUTER,
+        left,
+        right,
+        LEFT_JOIN_FIELD_NAME,
+        RIGHT_JOIN_FIELD_NAME,
+        leftAlias,
+        rightAlias,
+        withinExpression,
+        DataSourceType.KTABLE,
+        DataSourceType.KTABLE);
 
-    final JoinNode joinNode = new JoinNode(nodeId,
-                                           JoinNode.JoinType.OUTER,
-                                           left,
-                                           right,
-                                           leftKeyFieldName,
-                                           rightKeyFieldName,
-                                           leftAlias,
-                                           rightAlias,
-                                           withinExpression,
-                                           DataSource.DataSourceType.KSTREAM,
-                                           DataSource.DataSourceType.KSTREAM);
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(
+        "A window definition was provided for a Table-Table join."
+    );
 
-    try {
-      joinNode.buildStream(
-          mockStreamsBuilder,
-          mockKsqlConfig,
-          serviceContext,
-          processingLogContext,
-          mockFunctionRegistry,
-          queryId
-      );
-      fail("should have raised an exception since the number of partitions on the input sources "
-           + "don't match");
-    } catch (final KsqlException e) {
-      assertTrue(e.getMessage().startsWith("Can't join Foobar with Foobar since the number of "
-                                           + "partitions don't match."));
-    }
-
-    verify(left, right, leftSchemaKStream, rightSchemaKStream);
-
-    assertEquals(leftKeyFieldName, joinNode.getLeftKeyFieldName());
-    assertEquals(rightKeyFieldName, joinNode.getRightKeyFieldName());
-    assertEquals(leftAlias, joinNode.getLeftAlias());
-    assertEquals(rightAlias, joinNode.getRightAlias());
-    assertEquals(JoinNode.JoinType.OUTER, joinNode.getJoinType());
+    // When:
+    joinNode.buildStream(ksqlStreamBuilder);
   }
 
-  private static Optional<String> getColumn(final Schema schema, final Predicate<String> filter) {
+  @Test
+  public void shouldHaveFullyQualifiedJoinSchema() {
+    // When:
+    final JoinNode joinNode = new JoinNode(
+        nodeId,
+        JoinNode.JoinType.OUTER,
+        left,
+        right,
+        LEFT_JOIN_FIELD_NAME,
+        RIGHT_JOIN_FIELD_NAME,
+        leftAlias,
+        rightAlias,
+        null,
+        DataSourceType.KTABLE,
+        DataSourceType.KTABLE
+    );
+
+    // When:
+    assertThat(joinNode.getSchema(), is(KsqlSchema.of(
+        SchemaBuilder.struct()
+            .field(leftAlias + ".ROWTIME", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
+            .field(leftAlias + ".ROWKEY", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
+            .field(leftAlias + ".COL0", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
+            .field(leftAlias + ".COL1", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
+            .field(rightAlias + ".ROWTIME", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
+            .field(rightAlias + ".ROWKEY", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
+            .field(rightAlias + ".COL0", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
+            .field(rightAlias + ".COL1", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
+            .build()
+    )));
+  }
+
+  @Test
+  public void shouldSelectLeftKeyField() {
+    // Given:
+    setupStream(left, leftSchemaKStream, leftSchema);
+    setupStream(right, rightSchemaKStream, rightSchema);
+
+    final JoinNode joinNode = new JoinNode(
+        nodeId,
+        JoinNode.JoinType.OUTER,
+        left,
+        right,
+        LEFT_JOIN_FIELD_NAME,
+        RIGHT_JOIN_FIELD_NAME,
+        leftAlias,
+        rightAlias,
+        WITHIN_EXPRESSION,
+        DataSourceType.KSTREAM,
+        DataSourceType.KSTREAM
+    );
+
+    // When:
+    joinNode.buildStream(ksqlStreamBuilder);
+
+    // Then:
+    verify(leftSchemaKStream).selectKey(
+        eq(LEFT_JOIN_FIELD_NAME),
+        anyBoolean(),
+        any()
+    );
+  }
+
+  @SuppressWarnings("unchecked")
+  private void setupTable(
+      final DataSourceNode node,
+      final SchemaKTable table,
+      final KsqlSchema schema
+  ) {
+    when(node.buildStream(ksqlStreamBuilder)).thenReturn(table);
+    when(table.getSchema()).thenReturn(schema);
+  }
+
+  private void setupTable(
+      final DataSourceNode node,
+      final SchemaKTable table,
+      final KsqlSchema schema,
+      final Optional<String> keyFieldName
+  ) {
+    setupTable(node, table, schema);
+
+    final Optional<Field> keyField = keyFieldName
+        .map(key -> schema.findField(key).orElseThrow(AssertionError::new));
+
+    when(table.getKeyField()).thenReturn(KeyField.of(keyFieldName, keyField));
+  }
+
+  @SuppressWarnings("unchecked")
+  private void setupStream(
+      final DataSourceNode node,
+      final SchemaKStream stream,
+      final KsqlSchema schema
+  ) {
+    when(node.buildStream(ksqlStreamBuilder)).thenReturn(stream);
+    when(stream.getSchema()).thenReturn(schema);
+    when(stream.selectKey(any(), eq(true), any())).thenReturn(stream);
+  }
+
+  @SuppressWarnings("Duplicates")
+  private KsqlSchema joinSchema() {
+    final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
+
+    for (final Field field : leftSchema.fields()) {
+      schemaBuilder.field(field.name(), field.schema());
+    }
+
+    for (final Field field : rightSchema.fields()) {
+      schemaBuilder.field(field.name(), field.schema());
+    }
+
+    return KsqlSchema.of(schemaBuilder.build());
+  }
+
+  private void buildJoin() {
+    buildJoin(
+        "SELECT t1.col1, t2.col1, t2.col4, col5, t2.col2 "
+            + "FROM test1 t1 LEFT JOIN test2 t2 "
+            + "ON t1.col1 = t2.col0;"
+    );
+  }
+
+  private void buildJoin(final String queryString) {
+    buildJoinNode(queryString);
+    stream = joinNode.buildStream(ksqlStreamBuilder);
+  }
+
+  private void buildJoinNode(final String queryString) {
+    final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
+
+    final KsqlBareOutputNode planNode =
+        (KsqlBareOutputNode) AnalysisTestUtil.buildLogicalPlan(queryString, metaStore);
+
+    joinNode = (JoinNode) ((ProjectNode) planNode.getSource()).getSource();
+  }
+
+  private void setupTopicClientExpectations(final int streamPartitions, final int tablePartitions) {
+    final Node node = new Node(0, "localhost", 9091);
+
+    final List<TopicPartitionInfo> streamPartitionInfoList =
+        IntStream.range(0, streamPartitions)
+            .mapToObj(
+                p -> new TopicPartitionInfo(p, node, Collections.emptyList(),
+                    Collections.emptyList()))
+            .collect(Collectors.toList());
+
+    when(mockKafkaTopicClient.describeTopic("test1"))
+        .thenReturn(new TopicDescription("test1", false, streamPartitionInfoList));
+
+    final List<TopicPartitionInfo> tablePartitionInfoList =
+        IntStream.range(0, tablePartitions)
+            .mapToObj(
+                p -> new TopicPartitionInfo(p, node, Collections.emptyList(),
+                    Collections.emptyList()))
+            .collect(Collectors.toList());
+
+    when(mockKafkaTopicClient.describeTopic("test2"))
+        .thenReturn(new TopicDescription("test2", false, tablePartitionInfoList));
+  }
+
+  private static Optional<String> getColumn(final KsqlSchema schema, final Predicate<String> filter) {
     return schema.fields().stream()
         .map(Field::name)
         .filter(filter)
         .findFirst();
   }
 
-  private static Optional<String> getNonKeyColumn(final Schema schema, final String keyName) {
-    return getColumn(
-        schema,
-        s -> !ImmutableList.of(SchemaUtil.ROWKEY_NAME, SchemaUtil.ROWTIME_NAME, keyName).contains(s)
-    );
-  }
-
-  @SuppressWarnings("unchecked")
-  @Test
-  public void shouldFailJoinIfTableCriteriaColumnIsNotKey() {
-    setupStream(left, CONTEXT_STACKER, leftSchemaKStream, leftSchema, 2);
-    setupTable(right, rightSchemaKTable, rightSchema, 2);
-    expectKeyField(rightSchemaKTable, rightKeyFieldName);
-    replay(left, right, leftSchemaKStream, rightSchemaKTable);
-
-    final String rightCriteriaColumn = getNonKeyColumn(rightSchema, rightKeyFieldName).get();
-    final JoinNode joinNode = new JoinNode(nodeId,
-        JoinNode.JoinType.LEFT,
-        left,
-        right,
-        leftKeyFieldName,
-        rightCriteriaColumn,
-        leftAlias,
-        rightAlias,
-        null,
-        DataSource.DataSourceType.KSTREAM,
-        DataSource.DataSourceType.KTABLE);
-
-    try {
-      joinNode.buildStream(
-          mockStreamsBuilder,
-          mockKsqlConfig,
-          serviceContext,
-          processingLogContext,
-          mockFunctionRegistry,
-          queryId);
-    } catch (final KsqlException e) {
-      assertThat(
-          e.getMessage(),
-          equalTo(
-              String.format(
-                  "Source table (%s) key column (%s) is not the column " +
-                      "used in the join criteria (%s).",
-              rightAlias,
-              rightKeyFieldName,
-              rightCriteriaColumn)));
-      return;
-    }
-    fail("buildStream did not throw exception");
-  }
-
-  @SuppressWarnings("unchecked")
-  @Test
-  public void shouldPerformStreamToTableLeftJoin() {
-    // Given:
-    setupStream(left, CONTEXT_STACKER, leftSchemaKStream, leftSchema, 2);
-    expectKeyField(leftSchemaKStream, leftKeyFieldName);
-    setupTable(right, rightSchemaKTable, rightSchema, 2);
-    expect(leftSchemaKStream.leftJoin(eq(rightSchemaKTable),
-                                      eq(joinSchema),
-                                      eq(joinKey),
-                                      anyObject(Serde.class),
-                                      eq(CONTEXT_STACKER)))
-        .andReturn(niceMock(SchemaKStream.class));
-    replay(left, right, leftSchemaKStream, rightSchemaKTable);
-
-    final JoinNode joinNode = new JoinNode(nodeId,
-        JoinNode.JoinType.LEFT,
-        left,
-        right,
-        leftKeyFieldName,
-        rightKeyFieldName,
-        leftAlias,
-        rightAlias,
-        null,
-        DataSource.DataSourceType.KSTREAM,
-        DataSource.DataSourceType.KTABLE);
-
-    // When:
-    joinNode.buildStream(
-        mockStreamsBuilder,
-        mockKsqlConfig,
-        serviceContext,
-        processingLogContext,
-        mockFunctionRegistry,
-        queryId
+  private static String getNonKeyColumn(
+      final KsqlSchema schema,
+      final String alias,
+      final String keyName
+  ) {
+    final String prefix = alias + ".";
+    final ImmutableList<String> blackList = ImmutableList.of(
+        prefix + SchemaUtil.ROWKEY_NAME,
+        prefix + SchemaUtil.ROWTIME_NAME,
+        keyName
     );
 
-    // Then:
-    verify(left, right, leftSchemaKStream, rightSchemaKTable);
-    assertEquals(leftKeyFieldName, joinNode.getLeftKeyFieldName());
-    assertEquals(rightKeyFieldName, joinNode.getRightKeyFieldName());
-    assertEquals(leftAlias, joinNode.getLeftAlias());
-    assertEquals(rightAlias, joinNode.getRightAlias());
-    assertEquals(JoinNode.JoinType.LEFT, joinNode.getJoinType());
+    final String column =
+        getColumn(schema, s -> !blackList.contains(s))
+            .orElseThrow(AssertionError::new);
+
+    final Field field = schema.findField(column).get();
+    return field.name();
   }
 
   @SuppressWarnings("unchecked")
-  @Test
-  public void shouldPerformStreamToTableInnerJoin() {
-    // Given:
-    setupStream(left, CONTEXT_STACKER, leftSchemaKStream, leftSchema, 2);
-    expectKeyField(leftSchemaKStream, leftKeyFieldName);
-    setupTable(right, rightSchemaKTable, rightSchema, 2);
-    expect(leftSchemaKStream.join(eq(rightSchemaKTable),
-                                  eq(joinSchema),
-                                  eq(joinKey),
-                                  anyObject(Serde.class),
-                                  eq(CONTEXT_STACKER)))
-        .andReturn(niceMock(SchemaKStream.class));
-    replay(left, right, leftSchemaKStream, rightSchemaKTable);
+  private static void setUpSource(final DataSourceNode node, final String name) {
+    final DataSource<?> dataSource = mock(DataSource.class);
+    when(dataSource.getName()).thenReturn(name);
+    when(node.getDataSource()).thenReturn((DataSource)dataSource);
+    final KsqlSchema schema = node.getSchema();
+    when(dataSource.getSchema()).thenReturn(schema);
 
-    final JoinNode joinNode = new JoinNode(nodeId,
-        JoinNode.JoinType.INNER,
-        left,
-        right,
-        leftKeyFieldName,
-        rightKeyFieldName,
-        leftAlias,
-        rightAlias,
-        null,
-        DataSource.DataSourceType.KSTREAM,
-        DataSource.DataSourceType.KTABLE);
+    final KsqlTopic ksqlTopic = mock(KsqlTopic.class);
+    when(dataSource.getKsqlTopic()).thenReturn(ksqlTopic);
 
-    // When:
-    joinNode.buildStream(
-        mockStreamsBuilder,
-        mockKsqlConfig,
-        serviceContext,
-        processingLogContext,
-        mockFunctionRegistry,
-        queryId);
-
-    // Then:
-    verify(left, right, leftSchemaKStream, rightSchemaKTable);
-    assertEquals(leftKeyFieldName, joinNode.getLeftKeyFieldName());
-    assertEquals(rightKeyFieldName, joinNode.getRightKeyFieldName());
-    assertEquals(leftAlias, joinNode.getLeftAlias());
-    assertEquals(rightAlias, joinNode.getRightAlias());
-    assertEquals(JoinNode.JoinType.INNER, joinNode.getJoinType());
+    final KsqlTopicSerDe ksqlTopicSerde = mock(KsqlTopicSerDe.class);
+    when(ksqlTopic.getKsqlTopicSerDe()).thenReturn(ksqlTopicSerde);
   }
 
-  @SuppressWarnings("unchecked")
-  @Test
-  public void shouldNotAllowStreamToTableOuterJoin() {
-    // Given:
-    setupStreamWithoutSerde(left, CONTEXT_STACKER, leftSchemaKStream, leftSchema, 2);
-    setupTable(right, rightSchemaKTable, rightSchema, 2);
-    replay(left, right, leftSchemaKStream, rightSchemaKTable);
-    final JoinNode joinNode = new JoinNode(nodeId,
-                                           JoinNode.JoinType.OUTER,
-                                           left,
-                                           right,
-                                           leftKeyFieldName,
-                                           rightKeyFieldName,
-                                           leftAlias,
-                                           rightAlias,
-                                           null,
-                                           DataSource.DataSourceType.KSTREAM,
-                                           DataSource.DataSourceType.KTABLE);
-
-    // When:
-    try {
-      joinNode.buildStream(
-          mockStreamsBuilder,
-          mockKsqlConfig,
-          serviceContext,
-          processingLogContext,
-          mockFunctionRegistry,
-          queryId);
-      fail("Should have failed to build the stream since stream-table outer joins are not "
-           + "supported");
-    } catch (final KsqlException e) {
-      // Then:
-      assertEquals("Full outer joins between streams and tables (stream: left, table: right) are "
-                   + "not supported.", e.getMessage());
-    }
-
-    // Then:
-    verify(left, right, leftSchemaKStream, rightSchemaKTable);
-    assertEquals(leftKeyFieldName, joinNode.getLeftKeyFieldName());
-    assertEquals(rightKeyFieldName, joinNode.getRightKeyFieldName());
-    assertEquals(leftAlias, joinNode.getLeftAlias());
-    assertEquals(rightAlias, joinNode.getRightAlias());
-    assertEquals(JoinNode.JoinType.OUTER, joinNode.getJoinType());
-  }
-
-  @SuppressWarnings("unchecked")
-  @Test
-  public void shouldNotPerformStreamToTableJoinIfJoinWindowIsSpecified() {
-    expect(left.getSchema()).andReturn(leftSchema);
-    expect(left.getPartitions(mockKafkaTopicClient)).andReturn(3);
-
-    expect(right.getSchema()).andReturn(rightSchema);
-    expect(right.getPartitions(mockKafkaTopicClient)).andReturn(3);
-
-    final WithinExpression withinExpression = new WithinExpression(10, TimeUnit.SECONDS);
-
-    replay(left, right, leftSchemaKStream, rightSchemaKTable);
-
-    final JoinNode joinNode = new JoinNode(nodeId,
-                                           JoinNode.JoinType.OUTER,
-                                           left,
-                                           right,
-                                           leftKeyFieldName,
-                                           rightKeyFieldName,
-                                           leftAlias,
-                                           rightAlias,
-                                           withinExpression,
-                                           DataSource.DataSourceType.KSTREAM,
-                                           DataSource.DataSourceType.KTABLE);
-
-    try {
-      joinNode.buildStream(
-          mockStreamsBuilder,
-          mockKsqlConfig,
-          serviceContext,
-          processingLogContext,
-          mockFunctionRegistry,
-          queryId);
-      fail("should have raised an exception since a join window was provided for a stream-table "
-           + "join");
-    } catch (final KsqlException e) {
-        assertTrue(e.getMessage().startsWith("A window definition was provided for a "
-                                             + "Stream-Table join."));
-    }
-
-    verify(left, right, leftSchemaKStream, rightSchemaKTable);
-
-    assertEquals(leftKeyFieldName, joinNode.getLeftKeyFieldName());
-    assertEquals(rightKeyFieldName, joinNode.getRightKeyFieldName());
-    assertEquals(leftAlias, joinNode.getLeftAlias());
-    assertEquals(rightAlias, joinNode.getRightAlias());
-    assertEquals(JoinNode.JoinType.OUTER, joinNode.getJoinType());
-  }
-
-  @SuppressWarnings("unchecked")
-  @Test
-  public void shouldFailTableTableJoinIfLeftCriteriaColumnIsNotKey() {
-    setupTable(left, leftSchemaKTable, leftSchema, 2);
-    expectKeyField(leftSchemaKTable, leftKeyFieldName);
-    setupTable(right, rightSchemaKTable, rightSchema, 2);
-    replay(left, right, leftSchemaKTable, rightSchemaKTable);
-
-    final String leftCriteriaColumn = getNonKeyColumn(leftSchema, leftKeyFieldName).get();
-    final JoinNode joinNode = new JoinNode(nodeId,
-        JoinNode.JoinType.LEFT,
-        left,
-        right,
-        leftCriteriaColumn,
-        rightKeyFieldName,
-        leftAlias,
-        rightAlias,
-        null,
-        DataSource.DataSourceType.KTABLE,
-        DataSource.DataSourceType.KTABLE);
-
-    try {
-      joinNode.buildStream(
-          mockStreamsBuilder,
-          mockKsqlConfig,
-          serviceContext,
-          processingLogContext,
-          mockFunctionRegistry,
-          queryId);
-    } catch (final KsqlException e) {
-      assertThat(
-          e.getMessage(),
-          equalTo(
-              String.format(
-                  "Source table (%s) key column (%s) is not the column " +
-                      "used in the join criteria (%s).",
-                  leftAlias,
-                  leftKeyFieldName,
-                  leftCriteriaColumn)));
-      return;
-    }
-    fail("buildStream did not throw exception");
-  }
-
-  @SuppressWarnings("unchecked")
-  @Test
-  public void shouldFailTableTableJoinIfRightCriteriaColumnIsNotKey() {
-    setupTable(left, leftSchemaKTable, leftSchema, 2);
-    expectKeyField(leftSchemaKTable, leftKeyFieldName);
-    setupTable(right, rightSchemaKTable, rightSchema, 2);
-    expectKeyField(rightSchemaKTable, rightKeyFieldName);
-    replay(left, right, leftSchemaKTable, rightSchemaKTable);
-
-    final String rightCriteriaColumn = getNonKeyColumn(rightSchema, rightKeyFieldName).get();
-    final JoinNode joinNode = new JoinNode(nodeId,
-        JoinNode.JoinType.LEFT,
-        left,
-        right,
-        leftKeyFieldName,
-        rightCriteriaColumn,
-        leftAlias,
-        rightAlias,
-        null,
-        DataSource.DataSourceType.KTABLE,
-        DataSource.DataSourceType.KTABLE);
-
-    try {
-      joinNode.buildStream(
-          mockStreamsBuilder,
-          mockKsqlConfig,
-          serviceContext,
-          processingLogContext,
-          mockFunctionRegistry,
-          queryId);
-    } catch (final KsqlException e) {
-      assertThat(
-          e.getMessage(),
-          equalTo(
-              String.format(
-                  "Source table (%s) key column (%s) is not the column " +
-                      "used in the join criteria (%s).",
-                  rightAlias,
-                  rightKeyFieldName,
-                  rightCriteriaColumn)));
-      return;
-    }
-    fail("buildStream did not throw exception");
-  }
-
-  @SuppressWarnings("unchecked")
-  @Test
-  public void shouldPerformTableToTableInnerJoin() {
-    // Given:
-    setupTable(left, leftSchemaKTable, leftSchema, 2);
-    expectKeyField(leftSchemaKTable, leftKeyFieldName);
-    setupTable(right, rightSchemaKTable, rightSchema, 2);
-    replay(left, right);
-    final JoinNode joinNode = new JoinNode(nodeId,
-        JoinNode.JoinType.INNER,
-        left,
-        right,
-        leftKeyFieldName,
-        rightKeyFieldName,
-        leftAlias,
-        rightAlias,
-        null,
-        DataSource.DataSourceType.KTABLE,
-        DataSource.DataSourceType.KTABLE);
-    expect(
-        leftSchemaKTable.join(
-            eq(rightSchemaKTable),
-            eq(joinSchema),
-            eq(joinKey),
-            eq(CONTEXT_STACKER))
-    ).andReturn(niceMock(SchemaKTable.class));
-    replay(leftSchemaKTable, rightSchemaKTable);
-
-    // When:
-    joinNode.buildStream(
-        mockStreamsBuilder,
-        mockKsqlConfig,
-        serviceContext,
-        processingLogContext,
-        mockFunctionRegistry,
-        queryId);
-
-    // Then:
-    verify(left, right, leftSchemaKTable, rightSchemaKTable);
-    assertEquals(leftKeyFieldName, joinNode.getLeftKeyFieldName());
-    assertEquals(rightKeyFieldName, joinNode.getRightKeyFieldName());
-    assertEquals(leftAlias, joinNode.getLeftAlias());
-    assertEquals(rightAlias, joinNode.getRightAlias());
-    assertEquals(JoinNode.JoinType.INNER, joinNode.getJoinType());
-  }
-
-  @SuppressWarnings("unchecked")
-  @Test
-  public void shouldPerformTableToTableLeftJoin() {
-    // Given:
-    setupTable(left, leftSchemaKTable, leftSchema, 2);
-    expectKeyField(leftSchemaKTable, leftKeyFieldName);
-    setupTable(right, rightSchemaKTable, rightSchema, 2);
-    replay(left, right);
-    final JoinNode joinNode = new JoinNode(
-        nodeId,
-        JoinNode.JoinType.LEFT,
-        left,
-        right,
-        leftKeyFieldName,
-        rightKeyFieldName,
-        leftAlias,
-        rightAlias,
-        null,
-        DataSource.DataSourceType.KTABLE,
-        DataSource.DataSourceType.KTABLE
-    );
-    expect(leftSchemaKTable.leftJoin(
-        eq(rightSchemaKTable),
-        eq(joinSchema),
-        eq(joinKey),
-        eq(CONTEXT_STACKER))
-    ).andReturn(niceMock(SchemaKTable.class));
-    replay(leftSchemaKTable, rightSchemaKTable);
-
-    // When:
-    joinNode.buildStream(
-        mockStreamsBuilder,
-        mockKsqlConfig,
-        serviceContext,
-        processingLogContext,
-        mockFunctionRegistry,
-        queryId);
-
-    // Then:
-    verify(left, right, leftSchemaKTable, rightSchemaKTable);
-    assertEquals(leftKeyFieldName, joinNode.getLeftKeyFieldName());
-    assertEquals(rightKeyFieldName, joinNode.getRightKeyFieldName());
-    assertEquals(leftAlias, joinNode.getLeftAlias());
-    assertEquals(rightAlias, joinNode.getRightAlias());
-    assertEquals(JoinNode.JoinType.LEFT, joinNode.getJoinType());
-  }
-
-  @SuppressWarnings("unchecked")
-  @Test
-  public void shouldPerformTableToTableOuterJoin() {
-    // Given:
-    setupTable(left, leftSchemaKTable, leftSchema, 2);
-    expectKeyField(leftSchemaKTable, leftKeyFieldName);
-    setupTable(right, rightSchemaKTable, rightSchema, 2);
-    replay(left, right);
-    final JoinNode joinNode = new JoinNode(
-        nodeId,
-        JoinNode.JoinType.OUTER,
-        left,
-        right,
-        leftKeyFieldName,
-        rightKeyFieldName,
-        leftAlias,
-        rightAlias,
-        null,
-        DataSource.DataSourceType.KTABLE,
-        DataSource.DataSourceType.KTABLE
-    );
-    expect(leftSchemaKTable.outerJoin(
-        eq(rightSchemaKTable),
-        eq(joinSchema),
-        eq(joinKey),
-        eq(CONTEXT_STACKER))
-    ).andReturn(niceMock(SchemaKTable.class));
-    replay(leftSchemaKTable, rightSchemaKTable);
-
-    // When:
-    joinNode.buildStream(
-        mockStreamsBuilder,
-        mockKsqlConfig,
-        serviceContext,
-        processingLogContext,
-        mockFunctionRegistry,
-        queryId);
-
-    // Then:
-    verify(left, right, leftSchemaKTable, rightSchemaKTable);
-    assertEquals(leftKeyFieldName, joinNode.getLeftKeyFieldName());
-    assertEquals(rightKeyFieldName, joinNode.getRightKeyFieldName());
-    assertEquals(leftAlias, joinNode.getLeftAlias());
-    assertEquals(rightAlias, joinNode.getRightAlias());
-    assertEquals(JoinNode.JoinType.OUTER, joinNode.getJoinType());
-  }
-
-  @SuppressWarnings("unchecked")
-  @Test
-  public void shouldNotPerformTableToTableJoinIfJoinWindowIsSpecified() {
-    expect(left.getSchema()).andReturn(leftSchema);
-    expect(left.getPartitions(mockKafkaTopicClient)).andReturn(3);
-
-    expect(right.getSchema()).andReturn(rightSchema);
-    expect(right.getPartitions(mockKafkaTopicClient)).andReturn(3);
-
-    final WithinExpression withinExpression = new WithinExpression(10, TimeUnit.SECONDS);
-
-    replay(left, right, leftSchemaKTable, rightSchemaKTable);
-
-    final JoinNode joinNode = new JoinNode(nodeId,
-                                           JoinNode.JoinType.OUTER,
-                                           left,
-                                           right,
-                                           leftKeyFieldName,
-                                           rightKeyFieldName,
-                                           leftAlias,
-                                           rightAlias,
-                                           withinExpression,
-                                           DataSource.DataSourceType.KTABLE,
-                                           DataSource.DataSourceType.KTABLE);
-
-    try {
-      joinNode.buildStream(
-          mockStreamsBuilder,
-          mockKsqlConfig,
-          serviceContext,
-          processingLogContext,
-          mockFunctionRegistry,
-          queryId);
-      fail("should have raised an exception since a join window was provided for a stream-table "
-           + "join");
-    } catch (final KsqlException e) {
-        assertTrue(e.getMessage().startsWith("A window definition was provided for a "
-                                             + "Table-Table join."));
-    }
-
-    verify(left, right, leftSchemaKTable, rightSchemaKTable);
-
-    assertEquals(leftKeyFieldName, joinNode.getLeftKeyFieldName());
-    assertEquals(rightKeyFieldName, joinNode.getRightKeyFieldName());
-    assertEquals(leftAlias, joinNode.getLeftAlias());
-    assertEquals(rightAlias, joinNode.getRightAlias());
-    assertEquals(JoinNode.JoinType.OUTER, joinNode.getJoinType());
-  }
-
-
-  @SuppressWarnings("unchecked")
-  private void setupTable(final StructuredDataSourceNode node, final SchemaKTable table,
-                          final Schema schema, final int partitions) {
-    expect(node.getSchema()).andReturn(schema);
-    expect(node.getPartitions(mockKafkaTopicClient)).andReturn(partitions);
-
-    expect(node.buildStream(
-        mockStreamsBuilder,
-        mockKsqlConfigClonedWithOffsetReset,
-        serviceContext,
-        processingLogContext,
-        mockFunctionRegistry,
-        queryId))
-        .andReturn(table);
-  }
-
-  private static void expectSourceName(final StructuredDataSourceNode node) {
-    final StructuredDataSource dataSource = niceMock(StructuredDataSource.class);
-    expect(node.getStructuredDataSource()).andReturn(dataSource).anyTimes();
-
-    expect(dataSource.getName()).andReturn("Foobar").anyTimes();
-    replay(dataSource);
-  }
-
-  private void setupStream(
-      final StructuredDataSourceNode node,
-      final QueryContext.Stacker contextStacker,
-      final SchemaKStream stream,
-      final Schema schema,
-      final int partitions) {
-    setupStreamWithoutSerde(node, contextStacker, stream, schema, partitions);
-    expectGetSerde(
-        node,
-        schema,
-        QueryLoggerUtil.queryLoggerName(
-            new QueryContext.Stacker(queryId).push(nodeId.toString(), "join").getQueryContext())
-    );
-  }
-
-  private void setupStreamWithoutSerde(
-      final StructuredDataSourceNode node,
-      final QueryContext.Stacker contextStacker,
-      final SchemaKStream stream,
-      final Schema schema,
-      final int partitions) {
-    expect(node.getSchema()).andReturn(schema);
-    expect(node.getPartitions(mockKafkaTopicClient)).andReturn(partitions);
-    expectBuildStream(node, contextStacker, stream, schema);
-  }
-
-
-  private static void expectKeyField(final SchemaKStream stream, final String keyFieldName) {
-    final Field field = niceMock(Field.class);
-    expect(stream.getKeyField()).andStubReturn(field);
-    expect(field.name()).andStubReturn(keyFieldName);
-    replay(field);
-  }
-
-  private Schema joinSchema() {
-    final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
-
-    for (final Field field : leftSchema.fields()) {
-      final String fieldName = leftAlias + "." + field.name();
-      schemaBuilder.field(fieldName, field.schema());
-    }
-
-    for (final Field field : rightSchema.fields()) {
-      final String fieldName = rightAlias + "." + field.name();
-      schemaBuilder.field(fieldName, field.schema());
-    }
-    return schemaBuilder.build();
-  }
-
-  @SuppressWarnings("unchecked")
-  private void expectGetSerde(final StructuredDataSourceNode node,
-                              final Schema schema,
-                              final String loggerNamePrefix) {
-    final StructuredDataSource structuredDataSource = niceMock(StructuredDataSource.class);
-    expect(node.getStructuredDataSource()).andReturn(structuredDataSource);
-
-    final KsqlTopic ksqlTopic = niceMock(KsqlTopic.class);
-    expect(structuredDataSource.getKsqlTopic()).andReturn(ksqlTopic);
-
-    final KsqlTopicSerDe ksqlTopicSerde = niceMock(KsqlTopicSerDe.class);
-    expect(ksqlTopic.getKsqlTopicSerDe()).andReturn(ksqlTopicSerde);
-
-    final Serde<GenericRow> serde = niceMock(Serde.class);
-    expect(node.getSchema()).andReturn(schema);
-    expect(ksqlTopicSerde.getGenericRowSerde(
-        schema,
-        ksqlConfig,
-        false,
-        mockSchemaRegistryClientFactory,
-        loggerNamePrefix,
-        processingLogContext))
-        .andReturn(serde);
-    replay(structuredDataSource, ksqlTopic, ksqlTopicSerde);
-  }
-
-  @SuppressWarnings("unchecked")
-  private void expectBuildStream(
-      final StructuredDataSourceNode node,
-      final QueryContext.Stacker contextStacker,
-      final SchemaKStream result,
-      final Schema schema) {
-    expect(node.buildStream(
-        mockStreamsBuilder,
-        mockKsqlConfig,
-        serviceContext,
-        processingLogContext,
-        mockFunctionRegistry,
-        queryId))
-        .andReturn(result);
-
-    expect(result.getSchema()).andReturn(schema);
-    expect(
-        result.selectKey(
-            anyObject(Field.class), eq(true), eq(contextStacker))
-    ).andReturn(result);
-  }
-
-  private static Schema createSchema() {
+  private static KsqlSchema createSchema(final String alias) {
     final SchemaBuilder schemaBuilder = SchemaBuilder.struct()
-        .field("ROWTIME", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
-        .field("ROWKEY", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
-        .field("COL0", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
-        .field("COL1", SchemaBuilder.OPTIONAL_STRING_SCHEMA);
-    return schemaBuilder.build();
+        .field(alias + ".ROWTIME", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
+        .field(alias + ".ROWKEY", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
+        .field(alias + ".COL0", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
+        .field(alias + ".COL1", SchemaBuilder.OPTIONAL_STRING_SCHEMA);
+    return KsqlSchema.of(schemaBuilder.build());
   }
 }

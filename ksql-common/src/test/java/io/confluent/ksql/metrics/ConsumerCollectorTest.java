@@ -46,7 +46,7 @@ public class ConsumerCollectorTest {
 
       final Map<TopicPartition, List<ConsumerRecord<Object, Object>>> records = ImmutableMap.of(
               new TopicPartition(TEST_TOPIC, 1), Arrays.asList(
-                      new ConsumerRecord<>(TEST_TOPIC, 1, i,  1l, TimestampType.CREATE_TIME,  1l, 10, 10, "key", "1234567890")) );
+                      new ConsumerRecord<>(TEST_TOPIC, 1, i, 1L, TimestampType.CREATE_TIME, 1L, 10, 10, "key", "1234567890")) );
       final ConsumerRecords<Object, Object> consumerRecords = new ConsumerRecords<>(records);
 
       collector.onConsume(consumerRecords);

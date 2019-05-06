@@ -17,16 +17,16 @@ package io.confluent.ksql.parser.tree;
 
 import static java.util.Objects.requireNonNull;
 
+import com.google.errorprone.annotations.Immutable;
 import java.util.Optional;
 
+@Immutable
 public abstract class Node {
 
   private final Optional<NodeLocation> location;
 
-  private Optional<Node> parent = Optional.empty();
-
   protected Node(final Optional<NodeLocation> location) {
-    this.location = requireNonNull(location, "location is null");
+    this.location = requireNonNull(location, "location");
   }
 
   /**
@@ -38,18 +38,6 @@ public abstract class Node {
 
   public Optional<NodeLocation> getLocation() {
     return location;
-  }
-
-  public Optional<Node> getParent() {
-    return parent;
-  }
-
-  public void setParent(final Optional<Node> parent) {
-    this.parent = parent;
-  }
-  
-  public void setParent(final Node parent) {
-    this.parent = Optional.ofNullable(parent);
   }
 
   // Force subclasses to have a proper equals and hashcode implementation

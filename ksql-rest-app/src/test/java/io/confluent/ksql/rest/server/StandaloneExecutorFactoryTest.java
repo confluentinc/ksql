@@ -8,9 +8,11 @@ import static org.mockito.ArgumentMatchers.anyShort;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 
+import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.rest.server.StandaloneExecutorFactory.StandaloneExecutorConstructor;
 import io.confluent.ksql.rest.server.computation.ConfigStore;
 import io.confluent.ksql.rest.util.KsqlInternalTopicUtils;
@@ -25,9 +27,12 @@ import java.util.function.Function;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -62,6 +67,8 @@ public class StandaloneExecutorFactoryTest {
   private StandaloneExecutor standaloneExecutor;
   @Mock
   private VersionCheckerAgent versionChecker;
+  @Captor
+  private ArgumentCaptor<KsqlEngine> engineCaptor;
 
   @Before
   public void setup() {
@@ -73,6 +80,14 @@ public class StandaloneExecutorFactoryTest {
     when(constructor
         .create(any(), any(), any(), any(), anyString(), any(), anyBoolean(), any(), any()))
         .thenReturn(standaloneExecutor);
+  }
+
+  @After
+  public void tearDown() throws Exception {
+    verify(constructor)
+        .create(any(), any(), any(), engineCaptor.capture(), any(), any(), anyBoolean(), any(), any());
+
+    engineCaptor.getAllValues().forEach(KsqlEngine::close);
   }
 
   private void create() {

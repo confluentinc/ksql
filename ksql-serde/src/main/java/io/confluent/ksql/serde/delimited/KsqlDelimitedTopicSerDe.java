@@ -17,10 +17,11 @@ package io.confluent.ksql.serde.delimited;
 
 import static io.confluent.ksql.logging.processing.ProcessingLoggerUtil.join;
 
+import com.google.errorprone.annotations.Immutable;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
-import io.confluent.ksql.serde.DataSource;
+import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.util.SerdeUtils;
 import io.confluent.ksql.util.KsqlConfig;
@@ -38,12 +39,13 @@ import org.apache.kafka.connect.data.Schema;
 
 
 
+@Immutable
 public class KsqlDelimitedTopicSerDe extends KsqlTopicSerDe {
 
   private final CSVFormat csvFormat;
 
   public KsqlDelimitedTopicSerDe(final String delimiter) {
-    super(DataSource.DataSourceSerDe.DELIMITED);
+      super(Format.DELIMITED);
 
     if (delimiter.length() == 1) {
       this.csvFormat = CSVFormat.DEFAULT.withDelimiter(delimiter.charAt(0));
@@ -56,10 +58,10 @@ public class KsqlDelimitedTopicSerDe extends KsqlTopicSerDe {
   public Serde<GenericRow> getGenericRowSerde(
       final Schema schema,
       final KsqlConfig ksqlConfig,
-      final boolean isInternal,
       final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
       final String loggerNamePrefix,
-      final ProcessingLogContext processingLogContext) {
+      final ProcessingLogContext processingLogContext
+  ) {
     final Map<String, Object> serdeProps = new HashMap<>();
 
     final Serializer<GenericRow> genericRowSerializer = new KsqlDelimitedSerializer(
@@ -73,7 +75,6 @@ public class KsqlDelimitedTopicSerDe extends KsqlTopicSerDe {
         processingLogContext.getLoggerFactory().getLogger(
             join(loggerNamePrefix, SerdeUtils.DESERIALIZER_LOGGER_NAME))
     );
-
     genericRowDeserializer.configure(serdeProps, false);
 
     return Serdes.serdeFrom(genericRowSerializer, genericRowDeserializer);

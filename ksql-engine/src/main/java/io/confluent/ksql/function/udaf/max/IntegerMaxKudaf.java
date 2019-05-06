@@ -16,32 +16,15 @@
 package io.confluent.ksql.function.udaf.max;
 
 import io.confluent.ksql.function.AggregateFunctionArguments;
-import io.confluent.ksql.function.BaseAggregateFunction;
 import io.confluent.ksql.function.KsqlAggregateFunction;
-import java.util.Collections;
+import io.confluent.ksql.function.udaf.BaseNumberKudaf;
 import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.streams.kstream.Merger;
 
-public class IntegerMaxKudaf extends BaseAggregateFunction<Integer, Integer> {
+public class IntegerMaxKudaf extends BaseNumberKudaf<Integer> {
 
   IntegerMaxKudaf(final String functionName, final int argIndexInValue) {
-    super(functionName, argIndexInValue, () -> Integer.MIN_VALUE, Schema.OPTIONAL_INT32_SCHEMA,
-        Collections.singletonList(Schema.OPTIONAL_INT32_SCHEMA),
-        "Computes the maximum integer value for a key."
-    );
-  }
-
-  @Override
-  public Integer aggregate(final Integer currentValue, final Integer aggregateValue) {
-    if (currentValue == null) {
-      return aggregateValue;
-    }
-    return Math.max(currentValue, aggregateValue);
-  }
-
-  @Override
-  public Merger<String, Integer> getMerger() {
-    return (aggKey, aggOne, aggTwo) -> Math.max(aggOne, aggTwo);
+    super(functionName, argIndexInValue, Schema.OPTIONAL_INT32_SCHEMA, Integer::max,
+        "Computes the maximum integer value for a key.");
   }
 
   @Override

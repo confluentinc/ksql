@@ -28,7 +28,11 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <ksql.version>5.0.1</ksql.version>
+        <ksql.version>@{project.version}</ksql.version>
+        <junit.jupiter.version>5.4.1</junit.jupiter.version>
+        <maven.shade.version>3.2.1</maven.shade.version>
+        <!-- JUnit 5 requires Surefire version 2.22.1 or higher -->
+        <maven.surefire.version>2.22.1</maven.surefire.version>
     </properties>
 
     <repositories>
@@ -44,9 +48,9 @@
     </repositories>
 
     <!--
-		Execute "mvn clean package"
-		to build a jar file out of this project!
-	-->
+        Execute "mvn clean package"
+        to build a jar file out of this project!
+    -->
 
     <build>
         <plugins>
@@ -62,7 +66,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
-                <version>3.2.1</version>
+                <version>${maven.shade.version}</version>
                 <executions>
                     <execution>
                         <phase>package</phase>
@@ -71,6 +75,10 @@
                         </goals>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>${maven.surefire.version}</version>
             </plugin>
         </plugins>
     </build>
@@ -81,6 +89,13 @@
             <groupId>io.confluent.ksql</groupId>
             <artifactId>ksql-udf</artifactId>
             <version>${ksql.version}</version>
+        </dependency>
+        <!-- Test dependencies -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>${junit.jupiter.version}</version>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 </project>

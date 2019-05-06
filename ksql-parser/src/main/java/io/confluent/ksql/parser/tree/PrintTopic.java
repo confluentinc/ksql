@@ -18,10 +18,12 @@ package io.confluent.ksql.parser.tree;
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
+import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
 
+@Immutable
 public class PrintTopic extends Statement {
 
   private final QualifiedName topic;
@@ -29,18 +31,7 @@ public class PrintTopic extends Statement {
   private final int intervalValue;
   private final OptionalInt limit;
 
-
   public PrintTopic(
-      final NodeLocation location,
-      final QualifiedName topic,
-      final boolean fromBeginning,
-      final OptionalInt intervalValue,
-      final OptionalInt limitValue
-  ) {
-    this(Optional.of(location), topic, fromBeginning, intervalValue, limitValue);
-  }
-
-  private PrintTopic(
       final Optional<NodeLocation> location,
       final QualifiedName topic,
       final boolean fromBeginning,
@@ -48,10 +39,10 @@ public class PrintTopic extends Statement {
       final OptionalInt limit
   ) {
     super(location);
-    this.topic = requireNonNull(topic, "table is null");
+    this.topic = requireNonNull(topic, "topic");
     this.fromBeginning = fromBeginning;
-    this.intervalValue = intervalValue.orElse(1);
-    this.limit = limit;
+    this.intervalValue = requireNonNull(intervalValue, "intervalValue").orElse(1);
+    this.limit = requireNonNull(limit, "limit");
   }
 
   public QualifiedName getTopic() {
@@ -94,6 +85,9 @@ public class PrintTopic extends Statement {
   public String toString() {
     return toStringHelper(this)
         .add("topic", topic)
+        .add("fromBeginning", fromBeginning)
+        .add("intervalValue", intervalValue)
+        .add("limit", limit)
         .toString();
   }
 }

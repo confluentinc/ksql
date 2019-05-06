@@ -30,5 +30,15 @@
         <fileSet encoding="UTF-8">
             <directory>src/main/resources</directory>
         </fileSet>
+        <fileSet filtered="true" packaged="true" encoding="UTF-8">
+            <directory>src/test/java</directory>
+            <includes>
+                <include>**/*.java</include>
+            </includes>
+        </fileSet>
     </fileSets>
+
+    <requiredProperties>
+        <requiredProperty key="author"/>
+    </requiredProperties>
 </archetype-descriptor>

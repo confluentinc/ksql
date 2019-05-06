@@ -31,24 +31,22 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
-import io.confluent.ksql.parser.KsqlParserTestUtil;
 import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateTable;
-import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
-import io.confluent.ksql.parser.tree.Type;
-import io.confluent.ksql.parser.tree.Type.KsqlType;
+import io.confluent.ksql.parser.tree.Type.SqlType;
 import io.confluent.ksql.schema.inference.TopicSchemaSupplier.SchemaResult;
+import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
-import io.confluent.ksql.util.Pair;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -68,12 +66,12 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class DefaultSchemaInjectorTest {
 
   private static final List<TableElement> SOME_ELEMENTS = ImmutableList.of(
-      new TableElement("bob", new PrimitiveType(KsqlType.STRING)));
-  private static final Map<String, Expression> UNSUPPORTED_PROPS = ImmutableMap.of(
+      new TableElement("bob", PrimitiveType.of(SqlType.STRING)));
+  private static final Map<String, Literal> UNSUPPORTED_PROPS = ImmutableMap.of(
       "VALUE_FORMAT", new StringLiteral("json")
   );
   private static final String KAFKA_TOPIC = "some-topic";
-  private static final Map<String, Expression> SUPPORTED_PROPS = ImmutableMap.of(
+  private static final Map<String, Literal> SUPPORTED_PROPS = ImmutableMap.of(
       "VALUE_FORMAT", new StringLiteral("avro"),
       "KAFKA_TOPIC", new StringLiteral(KAFKA_TOPIC)
   );
@@ -104,18 +102,19 @@ public class DefaultSchemaInjectorTest {
 
   private static final List<TableElement> EXPECTED_KSQL_SCHEMA = ImmutableList
       .<TableElement>builder()
-      .add(new TableElement("INTFIELD", new PrimitiveType(Type.KsqlType.INTEGER)))
-      .add(new TableElement("BIGINTFIELD", new PrimitiveType(KsqlType.BIGINT)))
-      .add(new TableElement("FLOATFIELD", new PrimitiveType(KsqlType.DOUBLE)))
-      .add(new TableElement("DOUBLEFIELD", new PrimitiveType(KsqlType.DOUBLE)))
-      .add(new TableElement("STRINGFIELD", new PrimitiveType(KsqlType.STRING)))
-      .add(new TableElement("BOOLEANFIELD", new PrimitiveType(KsqlType.BOOLEAN)))
-      .add(new TableElement("ARRAYFIELD", new io.confluent.ksql.parser.tree.Array(
-          new PrimitiveType(KsqlType.INTEGER))))
-      .add(new TableElement("MAPFIELD", new io.confluent.ksql.parser.tree.Map(
-          new PrimitiveType(KsqlType.BIGINT))))
-      .add(new TableElement("STRUCTFIELD", new io.confluent.ksql.parser.tree.Struct(
-          ImmutableList.of(new Pair<>("s0", new PrimitiveType(KsqlType.BIGINT))))))
+      .add(new TableElement("INTFIELD", PrimitiveType.of(SqlType.INTEGER)))
+      .add(new TableElement("BIGINTFIELD", PrimitiveType.of(SqlType.BIGINT)))
+      .add(new TableElement("FLOATFIELD", PrimitiveType.of(SqlType.DOUBLE)))
+      .add(new TableElement("DOUBLEFIELD", PrimitiveType.of(SqlType.DOUBLE)))
+      .add(new TableElement("STRINGFIELD", PrimitiveType.of(SqlType.STRING)))
+      .add(new TableElement("BOOLEANFIELD", PrimitiveType.of(SqlType.BOOLEAN)))
+      .add(new TableElement("ARRAYFIELD", io.confluent.ksql.parser.tree.Array.of(
+          PrimitiveType.of(SqlType.INTEGER))))
+      .add(new TableElement("MAPFIELD", io.confluent.ksql.parser.tree.Map.of(
+          PrimitiveType.of(SqlType.BIGINT))))
+      .add(new TableElement("STRUCTFIELD", io.confluent.ksql.parser.tree.Struct.builder()
+          .addField("s0", PrimitiveType.of(SqlType.BIGINT))
+          .build()))
       .build();
   private static final int SCHEMA_ID = 5;
 
@@ -130,8 +129,8 @@ public class DefaultSchemaInjectorTest {
   private CreateTable ct;
   @Mock
   private TopicSchemaSupplier schemaSupplier;
-  private PreparedStatement<CreateStream> csStatement;
-  private PreparedStatement<CreateTable> ctStatement;
+  private ConfiguredStatement<CreateStream> csStatement;
+  private ConfiguredStatement<CreateTable> ctStatement;
 
   private DefaultSchemaInjector injector;
 
@@ -146,8 +145,9 @@ public class DefaultSchemaInjectorTest {
     when(cs.copyWith(any(), any())).thenAnswer(inv -> setupCopy(inv, cs, mock(CreateStream.class)));
     when(ct.copyWith(any(), any())).thenAnswer(inv -> setupCopy(inv, ct, mock(CreateTable.class)));
 
-    csStatement = PreparedStatement.of(SQL_TEXT, cs);
-    ctStatement = PreparedStatement.of(SQL_TEXT, ct);
+    final KsqlConfig config = new KsqlConfig(ImmutableMap.of());
+    csStatement = ConfiguredStatement.of(PreparedStatement.of(SQL_TEXT, cs), ImmutableMap.of(), config);
+    ctStatement = ConfiguredStatement.of(PreparedStatement.of(SQL_TEXT, ct), ImmutableMap.of(), config);
 
     when(schemaSupplier.getValueSchema(eq(KAFKA_TOPIC), any()))
         .thenReturn(SchemaResult.success(schemaAndId(SUPPORTED_SCHEMA, SCHEMA_ID)));
@@ -158,10 +158,13 @@ public class DefaultSchemaInjectorTest {
   @Test
   public void shouldReturnStatementUnchangedIfNotCreateStatement() {
     // Given:
-    final PreparedStatement<?> prepared = PreparedStatement.of("sql", statement);
+    final ConfiguredStatement<?> prepared = ConfiguredStatement.of(
+        PreparedStatement.of("sql", statement),
+        ImmutableMap.of(),
+        new KsqlConfig(ImmutableMap.of()));
 
     // When:
-    final PreparedStatement<?> result = injector.forStatement(prepared);
+    final ConfiguredStatement<?> result = injector.inject(prepared);
 
     // Then:
     assertThat(result, is(sameInstance(prepared)));
@@ -173,7 +176,7 @@ public class DefaultSchemaInjectorTest {
     when(cs.getElements()).thenReturn(SOME_ELEMENTS);
 
     // When:
-    final PreparedStatement<?> result = injector.forStatement(csStatement);
+    final ConfiguredStatement<?> result = injector.inject(csStatement);
 
     // Then:
     assertThat(result, is(sameInstance(csStatement)));
@@ -185,7 +188,7 @@ public class DefaultSchemaInjectorTest {
     when(ct.getElements()).thenReturn(SOME_ELEMENTS);
 
     // When:
-    final PreparedStatement<?> result = injector.forStatement(ctStatement);
+    final ConfiguredStatement<?> result = injector.inject(ctStatement);
 
     // Then:
     assertThat(result, is(sameInstance(ctStatement)));
@@ -197,7 +200,7 @@ public class DefaultSchemaInjectorTest {
     when(cs.getProperties()).thenReturn(UNSUPPORTED_PROPS);
 
     // When:
-    final PreparedStatement<?> result = injector.forStatement(csStatement);
+    final ConfiguredStatement<?> result = injector.inject(csStatement);
 
     // Then:
     assertThat(result, is(sameInstance(csStatement)));
@@ -209,7 +212,7 @@ public class DefaultSchemaInjectorTest {
     when(ct.getProperties()).thenReturn(UNSUPPORTED_PROPS);
 
     // When:
-    final PreparedStatement<?> result = injector.forStatement(ctStatement);
+    final ConfiguredStatement<?> result = injector.inject(ctStatement);
 
     // Then:
     assertThat(result, is(sameInstance(ctStatement)));
@@ -227,7 +230,7 @@ public class DefaultSchemaInjectorTest {
     expectedException.expectMessage(SQL_TEXT);
 
     // When:
-    injector.forStatement(csStatement);
+    injector.inject(csStatement);
   }
 
   @Test
@@ -242,7 +245,7 @@ public class DefaultSchemaInjectorTest {
     expectedException.expectMessage(SQL_TEXT);
 
     // When:
-    injector.forStatement(ctStatement);
+    injector.inject(ctStatement);
   }
 
   @Test
@@ -256,7 +259,7 @@ public class DefaultSchemaInjectorTest {
     expectedException.expectMessage("schema missing or incompatible");
 
     // When:
-    injector.forStatement(ctStatement);
+    injector.inject(ctStatement);
   }
 
   @Test
@@ -266,7 +269,7 @@ public class DefaultSchemaInjectorTest {
         .thenReturn(SchemaResult.success(schemaAndId(SUPPORTED_SCHEMA, SCHEMA_ID)));
 
     // When:
-    final PreparedStatement<CreateStream> result = injector.forStatement(csStatement);
+    final ConfiguredStatement<CreateStream> result = injector.inject(csStatement);
 
     // Then:
     assertThat(result.getStatement().getElements(), is(EXPECTED_KSQL_SCHEMA));
@@ -279,7 +282,7 @@ public class DefaultSchemaInjectorTest {
         .thenReturn(SchemaResult.success(schemaAndId(SUPPORTED_SCHEMA, SCHEMA_ID)));
 
     // When:
-    final PreparedStatement<CreateTable> result = injector.forStatement(ctStatement);
+    final ConfiguredStatement<CreateTable> result = injector.inject(ctStatement);
 
     // Then:
     assertThat(result.getStatement().getElements(), is(EXPECTED_KSQL_SCHEMA));
@@ -292,7 +295,7 @@ public class DefaultSchemaInjectorTest {
         .thenReturn(SchemaResult.success(schemaAndId(SUPPORTED_SCHEMA, SCHEMA_ID)));
 
     // When:
-    final PreparedStatement<CreateStream> result = injector.forStatement(csStatement);
+    final ConfiguredStatement<CreateStream> result = injector.inject(csStatement);
 
     // Then:
     assertThat(result.getStatementText(), is(
@@ -317,7 +320,7 @@ public class DefaultSchemaInjectorTest {
         .thenReturn(SchemaResult.success(schemaAndId(SUPPORTED_SCHEMA, SCHEMA_ID)));
 
     // When:
-    final PreparedStatement<CreateTable> result = injector.forStatement(ctStatement);
+    final ConfiguredStatement<CreateTable> result = injector.inject(ctStatement);
 
     // Then:
     assertThat(result.getStatementText(), is(
@@ -344,7 +347,7 @@ public class DefaultSchemaInjectorTest {
         .thenReturn(SchemaResult.success(schemaAndId(SUPPORTED_SCHEMA, SCHEMA_ID)));
 
     // When:
-    final PreparedStatement<CreateStream> result = injector.forStatement(csStatement);
+    final ConfiguredStatement<CreateStream> result = injector.inject(csStatement);
 
     // Then:
     assertThat(result.getStatementText(), is(
@@ -371,7 +374,7 @@ public class DefaultSchemaInjectorTest {
         .thenReturn(SchemaResult.success(schemaAndId(SUPPORTED_SCHEMA, SCHEMA_ID)));
 
     // When:
-    final PreparedStatement<CreateTable> result = injector.forStatement(ctStatement);
+    final ConfiguredStatement<CreateTable> result = injector.inject(ctStatement);
 
     // Then:
     assertThat(result.getStatementText(), is(
@@ -396,7 +399,7 @@ public class DefaultSchemaInjectorTest {
         .thenReturn(SchemaResult.success(schemaAndId(SUPPORTED_SCHEMA, SCHEMA_ID)));
 
     // When:
-    final PreparedStatement<CreateStream> result = injector.forStatement(csStatement);
+    final ConfiguredStatement<CreateStream> result = injector.inject(csStatement);
 
     // Then:
     assertThat(result.getStatement().getProperties().get("AVRO_SCHEMA_ID"),
@@ -411,7 +414,7 @@ public class DefaultSchemaInjectorTest {
     when(cs.getProperties()).thenReturn(supportedPropsWith("AVRO_SCHEMA_ID", "42"));
 
     // When:
-    final PreparedStatement<CreateStream> result = injector.forStatement(csStatement);
+    final ConfiguredStatement<CreateStream> result = injector.inject(csStatement);
 
     // Then:
     assertThat(result.getStatement().getProperties().get("AVRO_SCHEMA_ID"),
@@ -429,7 +432,7 @@ public class DefaultSchemaInjectorTest {
 
       try {
         // When:
-        injector.forStatement(ctStatement);
+        injector.inject(ctStatement);
 
         // Then:
         fail("Expected KsqlStatementException. schema: " + unsupportedSchema);
@@ -454,21 +457,21 @@ public class DefaultSchemaInjectorTest {
     expectedException.expectMessage("Oh no");
 
     // When:
-    injector.forStatement(csStatement);
+    injector.inject(csStatement);
   }
 
   @SuppressWarnings("SameParameterValue")
-  private static Map<String, Expression> supportedPropsWith(
+  private static Map<String, Literal> supportedPropsWith(
       final String property,
       final String value
   ) {
-    final HashMap<String, Expression> props = new HashMap<>(SUPPORTED_PROPS);
+    final HashMap<String, Literal> props = new HashMap<>(SUPPORTED_PROPS);
     props.put(property, new StringLiteral(value));
     return props;
   }
 
-  private static Map<String, Expression> supportedPropsWithout(final String property) {
-    final HashMap<String, Expression> props = new HashMap<>(SUPPORTED_PROPS);
+  private static Map<String, Literal> supportedPropsWithout(final String property) {
+    final HashMap<String, Literal> props = new HashMap<>(SUPPORTED_PROPS);
     assertThat("Invalid test", props.remove(property), is(notNullValue()));
     return props;
   }

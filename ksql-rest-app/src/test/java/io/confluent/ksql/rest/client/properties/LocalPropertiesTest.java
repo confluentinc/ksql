@@ -184,41 +184,9 @@ public class LocalPropertiesTest {
     realProps.set(StreamsConfig.CONSUMER_PREFIX + "some.unknown.prop", "some.value");
   }
 
-  @Test
-  public void shouldAllowKnownConsumerPropertyToBeSet() {
-    realProps.set(ConsumerConfig.FETCH_MIN_BYTES_CONFIG, "100");
-  }
-
-  @Test
-  public void shouldAllowKnownPrefixedConsumerPropertyToBeSet() {
-    realProps.set(StreamsConfig.CONSUMER_PREFIX + ConsumerConfig.FETCH_MIN_BYTES_CONFIG, "100");
-  }
-
-  @Test
-  public void shouldAllowKnownKsqlPrefixedConsumerPropertyToBeSet() {
-    realProps.set(KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.CONSUMER_PREFIX
-        + ConsumerConfig.FETCH_MIN_BYTES_CONFIG, "100");
-  }
-
   @Test(expected = IllegalArgumentException.class)
   public void shouldNotAllowUnknownProducerPropertyToBeSet() {
     realProps.set(StreamsConfig.PRODUCER_PREFIX + "some.unknown.prop", "some.value");
-  }
-
-  @Test
-  public void shouldAllowKnownProducerPropertyToBeSet() {
-    realProps.set(ProducerConfig.BUFFER_MEMORY_CONFIG, "100");
-  }
-
-  @Test
-  public void shouldAllowKnownKsqlPrefixedProducerPropertyToBeSet() {
-    realProps.set(KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.PRODUCER_PREFIX
-        + ProducerConfig.BUFFER_MEMORY_CONFIG, "100");
-  }
-
-  @Test
-  public void shouldAllowKnownPrefixedProducerPropertyToBeSet() {
-    realProps.set(StreamsConfig.PRODUCER_PREFIX + ProducerConfig.BUFFER_MEMORY_CONFIG, "100");
   }
 
   @Test(expected = IllegalArgumentException.class)
@@ -226,28 +194,9 @@ public class LocalPropertiesTest {
     realProps.set(KsqlConfig.KSQL_STREAMS_PREFIX + "some.unknown.prop", "some.value");
   }
 
-  @Test
-  public void shouldAllowKnownStreamsConfigToBeSet() {
-    realProps.set(StreamsConfig.NUM_STREAM_THREADS_CONFIG, "2");
-  }
-
-  @Test
-  public void shouldAllowKnownPrefixedStreamsConfigToBeSet() {
-    realProps.set(KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STREAM_THREADS_CONFIG, "2");
-  }
-
   @Test(expected = IllegalArgumentException.class)
   public void shouldNotAllowUnknownKsqlConfigToBeSet() {
     realProps.set(KsqlConfig.KSQL_CONFIG_PROPERTY_PREFIX + "some.unknown.prop", "some.value");
   }
 
-  @Test
-  public void shouldAllowKnownUdfConfigToBeSet() {
-    realProps.set(KsqlConfig.KSQL_FUNCTIONS_SUBSTRING_LEGACY_ARGS_CONFIG, "true");
-  }
-
-  @Test
-  public void shouldAllowUnknownUdfConfigToBeSet() {
-    realProps.set(KsqlConfig.KSQL_FUNCTIONS_PROPERTY_PREFIX + "some_udf.some.prop", "some thing");
-  }
 }

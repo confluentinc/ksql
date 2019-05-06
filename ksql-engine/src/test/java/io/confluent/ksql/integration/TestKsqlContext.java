@@ -18,9 +18,7 @@ package io.confluent.ksql.integration;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.KsqlContext;
 import io.confluent.ksql.KsqlContextTestUtil;
-import io.confluent.ksql.function.InternalFunctionRegistry;
-import io.confluent.ksql.function.MutableFunctionRegistry;
-import io.confluent.ksql.function.UdfLoaderUtil;
+import io.confluent.ksql.function.TestFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.services.ServiceContext;
@@ -36,7 +34,6 @@ public final class TestKsqlContext extends ExternalResource {
 
   private final IntegrationTestHarness testHarness;
   private final Map<String, Object> additionalConfig;
-  private final MutableFunctionRegistry functionRegistry;
   private KsqlContext delegate;
 
   TestKsqlContext(
@@ -45,9 +42,6 @@ public final class TestKsqlContext extends ExternalResource {
   ) {
     this.testHarness = Objects.requireNonNull(testHarness, "testHarness");
     this.additionalConfig = Objects.requireNonNull(additionalConfig, "additionalConfig");
-    this.functionRegistry = new InternalFunctionRegistry();
-
-    UdfLoaderUtil.load(functionRegistry);
   }
 
   public ServiceContext getServiceContext() {
@@ -81,7 +75,8 @@ public final class TestKsqlContext extends ExternalResource {
         .getServiceContext()
         .getSchemaRegistryClient();
 
-    delegate = KsqlContextTestUtil.create(ksqlConfig, srClient, functionRegistry);
+    delegate = KsqlContextTestUtil
+        .create(ksqlConfig, srClient, TestFunctionRegistry.INSTANCE.get());
   }
 
   @Override

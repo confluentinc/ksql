@@ -16,9 +16,12 @@
 package io.confluent.ksql.util;
 
 import static io.confluent.ksql.util.ErrorMessageUtil.buildErrorMessage;
+import static io.confluent.ksql.util.ErrorMessageUtil.getErrorMessages;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import com.google.common.collect.ImmutableList;
 import java.net.ConnectException;
 import java.sql.SQLDataException;
 import org.junit.Test;
@@ -112,6 +115,15 @@ public class ErrorMessageUtilTest {
         is("Top level" + System.lineSeparator()
            + "Caused by: Something went wrong")
     );
+  }
+
+  @Test
+  public void shouldBuildErrorMessageChain() {
+    // Given:
+    final Throwable e = new Exception("root", new Exception("cause"));
+
+    // Then:
+    assertThat(getErrorMessages(e), equalTo(ImmutableList.of("root", "cause")));
   }
 
   private static class TestException extends Exception {

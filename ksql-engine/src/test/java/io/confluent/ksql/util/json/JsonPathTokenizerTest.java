@@ -20,7 +20,7 @@ import static org.hamcrest.core.IsEqual.equalTo;
 import static org.junit.Assert.assertThat;
 
 import com.google.common.collect.ImmutableList;
-import java.io.IOException;
+
 import java.util.List;
 import org.junit.Test;
 

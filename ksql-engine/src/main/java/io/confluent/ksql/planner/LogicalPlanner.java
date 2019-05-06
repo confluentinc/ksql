@@ -17,14 +17,17 @@ package io.confluent.ksql.planner;
 
 import io.confluent.ksql.analyzer.AggregateAnalysisResult;
 import io.confluent.ksql.analyzer.Analysis;
+import io.confluent.ksql.analyzer.Analysis.Into;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.metastore.KsqlStdOut;
-import io.confluent.ksql.metastore.KsqlStream;
-import io.confluent.ksql.metastore.KsqlTable;
-import io.confluent.ksql.metastore.StructuredDataSource;
+import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.metastore.model.KeyField;
+import io.confluent.ksql.metastore.model.KsqlStream;
+import io.confluent.ksql.metastore.model.KsqlTable;
+import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.planner.plan.AggregateNode;
+import io.confluent.ksql.planner.plan.DataSourceNode;
 import io.confluent.ksql.planner.plan.FilterNode;
 import io.confluent.ksql.planner.plan.KsqlBareOutputNode;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
@@ -32,14 +35,16 @@ import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.PlanNodeId;
 import io.confluent.ksql.planner.plan.ProjectNode;
-import io.confluent.ksql.planner.plan.StructuredDataSourceNode;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.util.ExpressionTypeManager;
 import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
-import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicyFactory;
 import java.util.Map;
+import java.util.Optional;
+import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 
@@ -61,7 +66,7 @@ public class LogicalPlanner {
     this.functionRegistry = functionRegistry;
   }
 
-  public PlanNode buildPlan() {
+  public OutputNode buildPlan() {
     PlanNode currentNode;
     if (analysis.getJoin() != null) {
       currentNode = analysis.getJoin();
@@ -72,52 +77,62 @@ public class LogicalPlanner {
       currentNode = buildFilterNode(currentNode);
     }
     if (!analysis.getGroupByExpressions().isEmpty()) {
-      currentNode = buildAggregateNode(currentNode.getSchema(), currentNode);
+      currentNode = buildAggregateNode(currentNode);
     } else {
-      currentNode = buildProjectNode(currentNode.getSchema(), currentNode);
+      currentNode = buildProjectNode(currentNode);
     }
 
-    return buildOutputNode(
-        currentNode.getSchema(),
-        currentNode);
+    return buildOutputNode(currentNode);
   }
 
-  private OutputNode buildOutputNode(final Schema inputSchema,
-                                     final PlanNode sourcePlanNode) {
-    final StructuredDataSource intoDataSource = analysis.getInto();
-
+  private OutputNode buildOutputNode(final PlanNode sourcePlanNode) {
+    final KsqlSchema inputSchema = sourcePlanNode.getSchema();
     final Map<String, Object> intoProperties = analysis.getIntoProperties();
-    final TimestampExtractionPolicy extractionPolicy = getTimestampExtractionPolicy(
-        inputSchema,
-        intoProperties);
-    if (intoDataSource instanceof KsqlStdOut) {
+    final TimestampExtractionPolicy extractionPolicy =
+        getTimestampExtractionPolicy(inputSchema, intoProperties);
+
+    if (!analysis.getInto().isPresent()) {
       return new KsqlBareOutputNode(
-          new PlanNodeId(KsqlStdOut.KSQL_STDOUT_NAME),
+          new PlanNodeId("KSQL_STDOUT_NAME"),
           sourcePlanNode,
           inputSchema,
           analysis.getLimitClause(),
           extractionPolicy
       );
-    } else if (intoDataSource != null) {
-      return new KsqlStructuredDataOutputNode(
-          new PlanNodeId(intoDataSource.getName()),
-          sourcePlanNode,
-          inputSchema,
-          extractionPolicy,
-          sourcePlanNode.getKeyField(),
-          intoDataSource.getKsqlTopic(),
-          intoDataSource.getKsqlTopic().getKafkaTopicName(),
-          intoProperties,
-          analysis.getLimitClause(),
-          analysis.isDoCreateInto()
-      );
-
     }
-    throw new RuntimeException("INTO clause is not supported in SELECT.");
+
+    final Into intoDataSource = analysis.getInto().get();
+
+    final Optional<Field> partitionByField = Optional
+        .ofNullable(intoProperties.get(DdlConfig.PARTITION_BY_PROPERTY))
+        .map(Object::toString)
+        .map(keyName -> inputSchema.findField(keyName)
+            .orElseThrow(() -> new KsqlException(
+                "Column " + keyName + " does not exist in the result schema. "
+                    + "Error in Partition By clause.")
+            ));
+
+    final KeyField keyField = partitionByField
+        .map(Field::name)
+        .map(newKeyField -> sourcePlanNode.getKeyField().withName(newKeyField))
+        .orElse(sourcePlanNode.getKeyField());
+
+    return new KsqlStructuredDataOutputNode(
+        new PlanNodeId(intoDataSource.getName()),
+        sourcePlanNode,
+        inputSchema,
+        extractionPolicy,
+        keyField,
+        intoDataSource.getKsqlTopic(),
+        intoDataSource.getKsqlTopic().getKafkaTopicName(),
+        intoProperties,
+        analysis.getLimitClause(),
+        intoDataSource.isCreate()
+    );
   }
 
   private static TimestampExtractionPolicy getTimestampExtractionPolicy(
-      final Schema inputSchema,
+      final KsqlSchema inputSchema,
       final Map<String, Object> intoProperties) {
 
     return TimestampExtractionPolicyFactory.create(
@@ -126,28 +141,36 @@ public class LogicalPlanner {
         (String) intoProperties.get(DdlConfig.TIMESTAMP_FORMAT_PROPERTY));
   }
 
-  private AggregateNode buildAggregateNode(
-      final Schema inputSchema,
-      final PlanNode sourcePlanNode
-  ) {
-    SchemaBuilder aggregateSchema = SchemaBuilder.struct();
+  private AggregateNode buildAggregateNode(final PlanNode sourcePlanNode) {
     final ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(
-        inputSchema,
+        sourcePlanNode.getSchema(),
         functionRegistry
     );
+
+    final Expression groupBy = analysis.getGroupByExpressions().size() == 1
+        ? analysis.getGroupByExpressions().get(0)
+        : null;
+
+    Optional<String> keyField = Optional.empty();
+    final SchemaBuilder aggregateSchema = SchemaBuilder.struct();
     for (int i = 0; i < analysis.getSelectExpressions().size(); i++) {
       final Expression expression = analysis.getSelectExpressions().get(i);
       final String alias = analysis.getSelectExpressionAlias().get(i);
 
       final Schema expressionType = expressionTypeManager.getExpressionSchema(expression);
 
-      aggregateSchema = aggregateSchema.field(alias, expressionType);
+      aggregateSchema.field(alias, expressionType);
+
+      if (expression.equals(groupBy)) {
+        keyField = Optional.of(alias);
+      }
     }
 
     return new AggregateNode(
         new PlanNodeId("Aggregate"),
         sourcePlanNode,
-        aggregateSchema,
+        KsqlSchema.of(aggregateSchema.build()),
+        keyField,
         analysis.getGroupByExpressions(),
         analysis.getWindowExpression(),
         aggregateAnalysis.getAggregateFunctionArguments(),
@@ -158,26 +181,38 @@ public class LogicalPlanner {
     );
   }
 
-  private ProjectNode buildProjectNode(final Schema inputSchema, final PlanNode sourcePlanNode) {
-    SchemaBuilder projectionSchema = SchemaBuilder.struct();
+  private ProjectNode buildProjectNode(final PlanNode sourcePlanNode) {
     final ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(
-        inputSchema,
+        sourcePlanNode.getSchema(),
         functionRegistry
     );
+
+    final String sourceKeyFieldName = sourcePlanNode
+        .getKeyField()
+        .name()
+        .orElse(null);
+
+    Optional<String> keyFieldName = Optional.empty();
+    final SchemaBuilder projectionSchema = SchemaBuilder.struct();
     for (int i = 0; i < analysis.getSelectExpressions().size(); i++) {
       final Expression expression = analysis.getSelectExpressions().get(i);
       final String alias = analysis.getSelectExpressionAlias().get(i);
 
       final Schema expressionType = expressionTypeManager.getExpressionSchema(expression);
 
-      projectionSchema = projectionSchema.field(alias, expressionType);
+      projectionSchema.field(alias, expressionType);
 
+      if (expression instanceof DereferenceExpression
+          && expression.toString().equals(sourceKeyFieldName)) {
+        keyFieldName = Optional.of(alias);
+      }
     }
 
     return new ProjectNode(
         new PlanNodeId("Project"),
         sourcePlanNode,
-        projectionSchema,
+        KsqlSchema.of(projectionSchema.build()),
+        keyFieldName,
         analysis.getSelectExpressions()
     );
   }
@@ -188,18 +223,17 @@ public class LogicalPlanner {
     return new FilterNode(new PlanNodeId("Filter"), sourcePlanNode, filterExpression);
   }
 
-  private StructuredDataSourceNode buildSourceNode() {
+  private DataSourceNode buildSourceNode() {
 
-    final Pair<StructuredDataSource, String> dataSource = analysis.getFromDataSource(0);
-    final Schema fromSchema = SchemaUtil.buildSchemaWithAlias(
-        dataSource.left.getSchema(),
+    final Pair<DataSource<?>, String> dataSource = analysis.getFromDataSource(0);
+    if (!(dataSource.left instanceof KsqlStream) && !(dataSource.left instanceof KsqlTable)) {
+      throw new RuntimeException("Data source is not supported yet.");
+    }
+
+    return new DataSourceNode(
+        new PlanNodeId("KsqlTopic"),
+        dataSource.left,
         dataSource.right
     );
-
-    if (dataSource.left instanceof KsqlStream || dataSource.left instanceof KsqlTable) {
-      return new StructuredDataSourceNode(new PlanNodeId("KsqlTopic"), dataSource.left, fromSchema);
-    }
-    throw new RuntimeException("Data source is not supported yet.");
   }
-
 }

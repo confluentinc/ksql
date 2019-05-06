@@ -20,7 +20,7 @@ import static org.junit.Assert.assertEquals;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.json.JsonMapper;
-import io.confluent.ksql.serde.DataSource.DataSourceSerDe;
+import io.confluent.ksql.serde.Format;
 import org.junit.Test;
 
 
@@ -30,7 +30,7 @@ public class KsqlTopicsListTest {
     final ObjectMapper mapper = JsonMapper.INSTANCE.mapper;
     final KsqlTopicsList expected = new KsqlTopicsList(
         "SHOW TOPICS;",
-        ImmutableList.of(new KsqlTopicInfo("ksqltopic", "kafkatopic", DataSourceSerDe.JSON))
+        ImmutableList.of(new KsqlTopicInfo("ksqltopic", "kafkatopic", Format.JSON))
     );
     final String json = mapper.writeValueAsString(expected);
     assertEquals(

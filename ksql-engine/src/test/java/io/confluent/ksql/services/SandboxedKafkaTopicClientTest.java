@@ -64,7 +64,7 @@ public class SandboxedKafkaTopicClientTest {
   public static class UnsupportedMethods {
 
     @Parameterized.Parameters(name = "{0}")
-    public static Collection<TestCase> getMethodsToTest() {
+    public static Collection<TestCase<KafkaTopicClient>> getMethodsToTest() {
       return TestMethods.builder(KafkaTopicClient.class)
           .ignore("createTopic", String.class, int.class, short.class)
           .ignore("createTopic", String.class, int.class, short.class, Map.class)

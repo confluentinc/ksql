@@ -16,33 +16,40 @@
 package io.confluent.ksql.parser.tree;
 
 import static com.google.common.base.MoreObjects.toStringHelper;
+import static java.util.Objects.requireNonNull;
 
+import com.google.common.collect.ImmutableList;
+import com.google.errorprone.annotations.Immutable;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
+@Immutable
 public class Statements extends Node {
 
-  public List<Statement> statementList;
+  private final ImmutableList<Statement> statements;
 
-  public Statements(final List<Statement> statementList) {
-    super(Optional.empty());
-    this.statementList = statementList;
+  public Statements(
+      final Optional<NodeLocation> location,
+      final List<Statement> statements
+  ) {
+    super(location);
+    this.statements = ImmutableList.copyOf(requireNonNull(statements, "statements"));
   }
 
-  protected Statements(final Optional<NodeLocation> location, final List<Statement> statementList) {
-    super(location);
+  public List<Statement> getStatements() {
+    return statements;
   }
 
   @Override
   public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
-
     return visitor.visitStatements(this, context);
   }
 
   @Override
   public String toString() {
     return toStringHelper(this)
+        .add("statements", statements)
         .toString();
   }
 
@@ -55,11 +62,11 @@ public class Statements extends Node {
       return false;
     }
     final Statements o = (Statements) obj;
-    return Objects.equals(statementList, o.statementList);
+    return Objects.equals(statements, o.statements);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(statementList);
+    return Objects.hash(statements);
   }
 }

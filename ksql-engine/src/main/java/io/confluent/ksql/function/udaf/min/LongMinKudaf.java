@@ -16,32 +16,15 @@
 package io.confluent.ksql.function.udaf.min;
 
 import io.confluent.ksql.function.AggregateFunctionArguments;
-import io.confluent.ksql.function.BaseAggregateFunction;
 import io.confluent.ksql.function.KsqlAggregateFunction;
-import java.util.Collections;
+import io.confluent.ksql.function.udaf.BaseNumberKudaf;
 import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.streams.kstream.Merger;
 
-public class LongMinKudaf extends BaseAggregateFunction<Long, Long> {
+public class LongMinKudaf extends BaseNumberKudaf<Long> {
 
   LongMinKudaf(final String functionName, final int argIndexInValue) {
-    super(functionName, argIndexInValue, () -> Long.MAX_VALUE, Schema.OPTIONAL_INT64_SCHEMA,
-        Collections.singletonList(Schema.OPTIONAL_INT64_SCHEMA),
-        "Computes the minimum long value for a key."
-    );
-  }
-
-  @Override
-  public Long aggregate(final Long currentValue, final Long aggregateValue) {
-    if (currentValue == null) {
-      return aggregateValue;
-    }
-    return Math.min(currentValue, aggregateValue);
-  }
-
-  @Override
-  public Merger<String, Long> getMerger() {
-    return (aggKey, aggOne, aggTwo) -> Math.min(aggOne, aggTwo);
+    super(functionName, argIndexInValue, Schema.OPTIONAL_INT64_SCHEMA, Long::min,
+        "Computes the minimum long value for a key.");
   }
 
   @Override

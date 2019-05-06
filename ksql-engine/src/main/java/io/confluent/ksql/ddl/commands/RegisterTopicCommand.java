@@ -16,14 +16,15 @@
 package io.confluent.ksql.ddl.commands;
 
 import io.confluent.ksql.ddl.DdlConfig;
-import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MutableMetaStore;
-import io.confluent.ksql.metastore.StructuredDataSource;
+import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.parser.tree.StringLiteral;
-import io.confluent.ksql.serde.DataSource;
+import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
 import io.confluent.ksql.serde.delimited.KsqlDelimitedTopicSerDe;
@@ -40,7 +41,6 @@ public class RegisterTopicCommand implements DdlCommand {
   private final boolean notExists;
 
   public RegisterTopicCommand(final RegisterTopic registerTopic) {
-    // TODO: find a way to merge overriddenProperties
     this(registerTopic.getName().getSuffix(),
          registerTopic.isNotExists(),
          registerTopic.getProperties()
@@ -48,42 +48,46 @@ public class RegisterTopicCommand implements DdlCommand {
   }
 
   RegisterTopicCommand(final String topicName, final boolean notExist,
-                       final Map<String, Expression> properties) {
+                       final Map<String, Literal> properties) {
     this.topicName = topicName;
-    // TODO: find a way to merge overriddenProperties
     enforceTopicProperties(properties);
     this.kafkaTopicName = StringUtil.cleanQuotes(
         properties.get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY).toString());
-    final String serde = cleanQuotesAndUpperCase(
-        properties.get(DdlConfig.VALUE_FORMAT_PROPERTY).toString());
-    this.topicSerDe = extractTopicSerDe(serde, properties);
+    final Format format = Format
+        .of(StringUtil.cleanQuotes(properties.get(DdlConfig.VALUE_FORMAT_PROPERTY).toString()));
+    this.topicSerDe = extractTopicSerDe(format, properties);
     this.notExists = notExist;
   }
 
-  private KsqlTopicSerDe extractTopicSerDe(
-      final String serde, final Map<String, Expression> properties) {
-    // TODO: Find a way to avoid calling toUpperCase() here;
-    // if the property can be an unquoted identifier, then capitalization will have already happened
-    if (!serde.equalsIgnoreCase(DataSource.AVRO_SERDE_NAME)
-        && properties.containsKey(DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME)) {
+  private static KsqlTopicSerDe extractTopicSerDe(
+      final Format format,
+      final Map<String, Literal> properties
+  ) {
+    if (properties.containsKey(DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME)
+        && format != Format.AVRO
+    ) {
       throw new KsqlException(
               DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME + " is only valid for AVRO topics.");
     }
-    switch (serde.toUpperCase()) {
-      case DataSource.AVRO_SERDE_NAME:
+
+    switch (format) {
+      case AVRO:
         final Expression schemaFullNameExp =
                 properties.get(DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME);
         final String schemaFullName = schemaFullNameExp == null
                 ? KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME :
                   StringUtil.cleanQuotes(schemaFullNameExp.toString());
         return new KsqlAvroTopicSerDe(schemaFullName);
-      case DataSource.JSON_SERDE_NAME:
+
+      case JSON:
         return new KsqlJsonTopicSerDe();
-      case DataSource.DELIMITED_SERDE_NAME:
+
+      case DELIMITED:
         final String delimiter = StringUtil.cleanQuotes(properties.getOrDefault(
                 DdlConfig.VALUE_DELIMITER_PROPERTY,
                 new StringLiteral(DdlConfig.VALUE_DELIMITER_DEFAULT)).toString());
         return new KsqlDelimitedTopicSerDe(delimiter);
+
       default:
         throw new KsqlException("The specified topic serde is not supported.");
     }
@@ -93,7 +97,7 @@ public class RegisterTopicCommand implements DdlCommand {
     return StringUtil.cleanQuotes(string.toUpperCase());
   }
 
-  private static void enforceTopicProperties(final Map<String, Expression> properties) {
+  private static void enforceTopicProperties(final Map<String, ?> properties) {
     if (!properties.containsKey(DdlConfig.VALUE_FORMAT_PROPERTY)) {
       throw new KsqlException("Topic format("
           + DdlConfig.VALUE_FORMAT_PROPERTY + ") should be set in WITH clause.");
@@ -102,10 +106,10 @@ public class RegisterTopicCommand implements DdlCommand {
     if (properties.containsKey(DdlConfig.VALUE_DELIMITER_PROPERTY) && (
          !properties.containsKey(DdlConfig.VALUE_FORMAT_PROPERTY)
          || !cleanQuotesAndUpperCase(properties.get(DdlConfig.VALUE_FORMAT_PROPERTY).toString())
-           .equals(DataSource.DELIMITED_SERDE_NAME))) {
+           .equals(Format.DELIMITED))) {
       throw new KsqlException(
           DdlConfig.VALUE_DELIMITER_PROPERTY + " can only be used with "
-           + DdlConfig.VALUE_FORMAT_PROPERTY + "='" + DataSource.DELIMITED_SERDE_NAME + "'"
+           + DdlConfig.VALUE_FORMAT_PROPERTY + "='" + Format.DELIMITED + "'"
       );
     }
 
@@ -131,15 +135,13 @@ public class RegisterTopicCommand implements DdlCommand {
 
     final KsqlTopic ksqlTopic = new KsqlTopic(topicName, kafkaTopicName, topicSerDe, false);
 
-    // TODO: Need to check if the topic exists.
-    // Add the topic to the metastore
     metaStore.putTopic(ksqlTopic);
 
     return new DdlCommandResult(true, "Topic registered");
   }
 
   private String getSourceType(final MetaStore metaStore) {
-    final StructuredDataSource source = metaStore.getSource(topicName);
+    final DataSource<?> source = metaStore.getSource(topicName);
     if (source == null) {
       return "A topic";
     }
@@ -150,9 +152,6 @@ public class RegisterTopicCommand implements DdlCommand {
 
       case KTABLE:
         return "A table";
-
-      case KTOPIC:
-        return "A topic";
 
       default:
         return "An entity";

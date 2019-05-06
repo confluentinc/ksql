@@ -39,7 +39,7 @@ Check a KSQL Server by using the REST API
 
 The KSQL REST API supports a "server info" request, which you access with a URL
 like ``http://<ksql-server-url>/info``. The ``/info`` endpoint returns the
-KSQL Server version, the Kafka cluster ID, and the service ID of the KSQL Server.
+KSQL Server version, the |ak-tm| cluster ID, and the service ID of the KSQL Server.
 For more information, see :ref:`ksql-rest-api`.
 
 .. code:: bash

@@ -43,6 +43,7 @@ import io.confluent.ksql.cli.console.Console.RowCaptor;
 import io.confluent.ksql.cli.console.OutputFormat;
 import io.confluent.ksql.cli.console.cmd.RemoteServerSpecificCommand;
 import io.confluent.ksql.cli.console.cmd.RequestPipeliningCommand;
+import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
@@ -54,11 +55,12 @@ import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.server.KsqlRestApplication;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
+import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.rest.server.computation.CommandId;
 import io.confluent.ksql.rest.server.resources.Errors;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
-import io.confluent.ksql.test.util.TestKsqlRestApp;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.OrderDataProvider;
@@ -78,6 +80,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
 import javax.ws.rs.ProcessingException;
+import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.connect.data.Schema;
@@ -128,7 +131,10 @@ public class CliTest {
   public static final TemporaryFolder TMP = new TemporaryFolder();
 
   @ClassRule
-  public static final RuleChain CHAIN = RuleChain.outerRule(CLUSTER).around(REST_APP);
+  public static final RuleChain CHAIN = RuleChain
+      .outerRule(Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS))
+      .around(CLUSTER)
+      .around(REST_APP);
 
   @Rule
   public final Timeout timeout = Timeout.builder()
@@ -304,20 +310,16 @@ public class CliTest {
         // SESSION OVERRIDES:
         ImmutableList.of(
             KsqlConfig.KSQL_STREAMS_PREFIX + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG,
-            SESSION_OVERRIDE, "latest"),
+            SESSION_OVERRIDE, "latest")
 
-        // DEFAULTS:
-        ImmutableList.of(
-            KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, "",
-            "" + KsqlConstants.defaultSinkNumberOfReplications)
-        ,
-        ImmutableList.of(
-            KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, "",
-            "" + KsqlConstants.defaultSinkNumberOfReplications)
     );
   }
 
-  private void testCreateStreamAsSelect(String selectQuery, final Schema resultSchema, final Map<String, GenericRow> expectedResults) {
+  private void testCreateStreamAsSelect(
+      String selectQuery,
+      final KsqlSchema resultSchema,
+      final Map<String, GenericRow> expectedResults
+  ) {
     if (!selectQuery.endsWith(";")) {
       selectQuery += ";";
     }
@@ -341,7 +343,7 @@ public class CliTest {
   }
 
   private static void runStatement(final String statement, final KsqlRestClient restClient) {
-    final RestResponse response = restClient.makeKsqlRequest(statement, null);
+    final RestResponse<?> response = restClient.makeKsqlRequest(statement, null);
     Assert.assertThat(response.isSuccessful(), is(true));
     final KsqlEntityList entityList = ((KsqlEntityList) response.get());
     Assert.assertThat(entityList.size(), equalTo(1));
@@ -354,7 +356,7 @@ public class CliTest {
       assertThatEventually(
           "",
           () -> {
-            final RestResponse statusResponse = restClient
+            final RestResponse<?> statusResponse = restClient
                 .makeStatusRequest(entity.getCommandId().toString());
             Assert.assertThat(statusResponse.isSuccessful(), is(true));
             Assert.assertThat(statusResponse.get(), instanceOf(CommandStatus.class));
@@ -377,7 +379,7 @@ public class CliTest {
   private static void dropStream(final String name) {
     final String dropStatement = String.format("drop stream %s;", name);
 
-    final RestResponse response = restClient.makeKsqlRequest(dropStatement, null);
+    final RestResponse<?> response = restClient.makeKsqlRequest(dropStatement, null);
     if (response.isSuccessful()) {
       return;
     }
@@ -398,7 +400,7 @@ public class CliTest {
   private static void maybeDropStream(final String name) {
     final String dropStatement = String.format("drop stream %s;", name);
 
-    final RestResponse response = restClient.makeKsqlRequest(dropStatement, null);
+    final RestResponse<?> response = restClient.makeKsqlRequest(dropStatement, null);
     if (response.isSuccessful()
         || response.getErrorMessage().toString().contains("does not exist")) {
       return;
@@ -462,29 +464,7 @@ public class CliTest {
   @Test
   public void testPropertySetUnset() {
     assertRunCommand("set 'auto.offset.reset' = 'latest'", is(EMPTY_RESULT));
-    assertRunCommand("set 'application.id' = 'Test_App'", is(EMPTY_RESULT));
-    assertRunCommand("set 'producer.batch.size' = '16384'", is(EMPTY_RESULT));
-    assertRunCommand("set 'max.request.size' = '1048576'", is(EMPTY_RESULT));
-    assertRunCommand("set 'consumer.max.poll.records' = '500'", is(EMPTY_RESULT));
-    assertRunCommand("set 'enable.auto.commit' = 'true'", is(EMPTY_RESULT));
-    assertRunCommand("set 'ksql.streams.application.id' = 'Test_App'", is(EMPTY_RESULT));
-    assertRunCommand("set 'ksql.streams.producer.batch.size' = '16384'", is(EMPTY_RESULT));
-    assertRunCommand("set 'ksql.streams.max.request.size' = '1048576'", is(EMPTY_RESULT));
-    assertRunCommand("set 'ksql.streams.consumer.max.poll.records' = '500'", is(EMPTY_RESULT));
-    assertRunCommand("set 'ksql.streams.enable.auto.commit' = 'true'", is(EMPTY_RESULT));
-    assertRunCommand("set 'ksql.service.id' = 'assertPrint'", is(EMPTY_RESULT));
-
-    assertRunCommand("unset 'application.id'", is(EMPTY_RESULT));
-    assertRunCommand("unset 'producer.batch.size'", is(EMPTY_RESULT));
-    assertRunCommand("unset 'max.request.size'", is(EMPTY_RESULT));
-    assertRunCommand("unset 'consumer.max.poll.records'", is(EMPTY_RESULT));
-    assertRunCommand("unset 'enable.auto.commit'", is(EMPTY_RESULT));
-    assertRunCommand("unset 'ksql.streams.application.id'", is(EMPTY_RESULT));
-    assertRunCommand("unset 'ksql.streams.producer.batch.size'", is(EMPTY_RESULT));
-    assertRunCommand("unset 'ksql.streams.max.request.size'", is(EMPTY_RESULT));
-    assertRunCommand("unset 'ksql.streams.consumer.max.poll.records'", is(EMPTY_RESULT));
-    assertRunCommand("unset 'ksql.streams.enable.auto.commit'", is(EMPTY_RESULT));
-    assertRunCommand("unset 'ksql.service.id'", is(EMPTY_RESULT));
+    
 
     final TestResult.Builder builder = new TestResult.Builder();
     builder.addRows(startUpConfigs());
@@ -575,11 +555,11 @@ public class CliTest {
             80.0,
             new Double[]{1100.0, 1110.99, 970.0})));
 
-    final Schema resultSchema = SchemaBuilder.struct()
+    final KsqlSchema resultSchema = KsqlSchema.of(SchemaBuilder.struct()
         .field("ITEMID", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
         .field("ORDERUNITS", SchemaBuilder.OPTIONAL_FLOAT64_SCHEMA)
         .field("PRICEARRAY", SchemaBuilder.array(SchemaBuilder.OPTIONAL_FLOAT64_SCHEMA).optional().build())
-        .build();
+        .build());
 
     testCreateStreamAsSelect(
         "SELECT ITEMID, ORDERUNITS, PRICEARRAY FROM " + orderDataProvider.kstreamName(),
@@ -640,14 +620,14 @@ public class CliTest {
         orderDataProvider.kstreamName()
     );
 
-    final Schema sourceSchema = orderDataProvider.schema();
-    final Schema resultSchema = SchemaBuilder.struct()
+    final Schema sourceSchema = orderDataProvider.schema().getSchema();
+    final KsqlSchema resultSchema = KsqlSchema.of(SchemaBuilder.struct()
         .field("ITEMID", sourceSchema.field("ITEMID").schema())
         .field("COL1", sourceSchema.field("ORDERUNITS").schema())
         .field("COL2", sourceSchema.field("PRICEARRAY").schema().valueSchema())
         .field("COL3", sourceSchema.field("KEYVALUEMAP").schema().valueSchema())
         .field("COL4", SchemaBuilder.OPTIONAL_BOOLEAN_SCHEMA)
-        .build();
+        .build());
 
     final Map<String, GenericRow> expectedResults = new HashMap<>();
     expectedResults.put("8", new GenericRow(ImmutableList.of("ITEM_8", 800.0, 1110.0, 12.0, true)));

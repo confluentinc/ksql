@@ -15,13 +15,16 @@
 
 package io.confluent.ksql.parser.tree;
 
+import static java.util.Objects.requireNonNull;
+
+import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.UdafAggregator;
+import io.confluent.ksql.metastore.SerdeFactory;
 import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
-import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.streams.kstream.Initializer;
 import org.apache.kafka.streams.kstream.KGroupedStream;
 import org.apache.kafka.streams.kstream.KTable;
@@ -30,6 +33,7 @@ import org.apache.kafka.streams.kstream.SessionWindows;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.kstream.WindowedSerdes;
 
+@Immutable
 public class SessionWindowExpression extends KsqlWindowExpression {
 
   private final long gap;
@@ -39,11 +43,14 @@ public class SessionWindowExpression extends KsqlWindowExpression {
     this(Optional.empty(), gap, sizeUnit);
   }
 
-  private SessionWindowExpression(final Optional<NodeLocation> location, final long gap,
-                                  final TimeUnit sizeUnit) {
+  public SessionWindowExpression(
+      final Optional<NodeLocation> location,
+      final long gap,
+      final TimeUnit sizeUnit
+  ) {
     super(location);
     this.gap = gap;
-    this.sizeUnit = sizeUnit;
+    this.sizeUnit = requireNonNull(sizeUnit, "sizeUnit");
   }
 
   public long getGap() {
@@ -58,7 +65,6 @@ public class SessionWindowExpression extends KsqlWindowExpression {
   public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitSessionWindowExpression(this, context);
   }
-
 
   @Override
   public String toString() {
@@ -97,7 +103,7 @@ public class SessionWindowExpression extends KsqlWindowExpression {
   }
 
   @Override
-  public <K> Serde<Windowed<K>> getKeySerde(final Class<K> innerType) {
-    return WindowedSerdes.sessionWindowedSerdeFrom(innerType);
+  public <K> SerdeFactory<Windowed<K>> getKeySerdeFactory(final Class<K> innerType) {
+    return () -> WindowedSerdes.sessionWindowedSerdeFrom(innerType);
   }
 }

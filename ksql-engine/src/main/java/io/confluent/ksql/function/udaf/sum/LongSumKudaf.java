@@ -33,21 +33,24 @@ public class LongSumKudaf
   }
 
   @Override
-  public Long aggregate(final Long currentValue, final Long aggregateValue) {
-    if (currentValue == null) {
+  public Long aggregate(final Long valueToAdd, final Long aggregateValue) {
+    if (valueToAdd == null) {
       return aggregateValue;
     }
-    return currentValue + aggregateValue;
+    return aggregateValue + valueToAdd;
+  }
+
+  @Override
+  public Long undo(final Long valueToUndo, final Long aggregateValue) {
+    if (valueToUndo == null) {
+      return aggregateValue;
+    }
+    return aggregateValue - valueToUndo;
   }
 
   @Override
   public Merger<String, Long> getMerger() {
     return (aggKey, aggOne, aggTwo) -> aggOne + aggTwo;
-  }
-
-  @Override
-  public Long undo(final Long valueToUndo, final Long aggregateValue) {
-    return aggregateValue - valueToUndo;
   }
 
   @Override

@@ -26,6 +26,8 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlReferentialIntegrityException;
 import java.util.Map;
@@ -57,9 +59,9 @@ public class MetaStoreImplTest {
   @Mock
   private KsqlTopic topic;
   @Mock
-  private StructuredDataSource dataSource;
+  private DataSource<?> dataSource;
   @Mock
-  private StructuredDataSource dataSource1;
+  private DataSource<?> dataSource1;
   private MetaStoreImpl metaStore;
   private ExecutorService executor;
 
@@ -67,7 +69,7 @@ public class MetaStoreImplTest {
   public void setUp() {
     metaStore = new MetaStoreImpl(functionRegistry);
 
-    when(topic.getName()).thenReturn("some registered topic");
+    when(topic.getKsqlTopicName()).thenReturn("some registered topic");
     when(dataSource.getName()).thenReturn("some source");
     when(dataSource1.getName()).thenReturn("some other source");
 
@@ -87,10 +89,10 @@ public class MetaStoreImplTest {
 
     // When:
     final MetaStore copy = metaStore.copy();
-    metaStore.deleteTopic(topic.getName());
+    metaStore.deleteTopic(topic.getKsqlTopicName());
 
     // Then:
-    assertThat(copy.getAllKsqlTopics().keySet(), contains(topic.getName()));
+    assertThat(copy.getAllKsqlTopics().keySet(), contains(topic.getKsqlTopicName()));
     assertThat(metaStore.getAllKsqlTopics().keySet(), is(empty()));
   }
 
@@ -104,8 +106,8 @@ public class MetaStoreImplTest {
     metaStore.deleteSource(dataSource.getName());
 
     // Then:
-    assertThat(copy.getAllStructuredDataSources().keySet(), contains(dataSource.getName()));
-    assertThat(metaStore.getAllStructuredDataSources().keySet(), is(empty()));
+    assertThat(copy.getAllDataSources().keySet(), contains(dataSource.getName()));
+    assertThat(metaStore.getAllDataSources().keySet(), is(empty()));
   }
 
   @Test
@@ -136,18 +138,18 @@ public class MetaStoreImplTest {
   }
 
   @Test
-  public void shouldNotAllowModificationViaGetAllStructuredDataSources() {
+  public void shouldNotAllowModificationViaGetAllDataSources() {
     // Given:
     metaStore.putSource(dataSource);
 
-    final Map<String, StructuredDataSource> dataSources = metaStore
-        .getAllStructuredDataSources();
+    final Map<String, DataSource<?>> dataSources = metaStore
+        .getAllDataSources();
 
     // When
     dataSources.keySet().clear();
 
     // Then:
-    assertThat(metaStore.getAllStructuredDataSources().keySet(), contains(dataSource.getName()));
+    assertThat(metaStore.getAllDataSources().keySet(), contains(dataSource.getName()));
   }
 
   @Test
@@ -350,16 +352,16 @@ public class MetaStoreImplTest {
         .parallel()
         .forEach(idx -> {
           final KsqlTopic topic = mock(KsqlTopic.class);
-          when(topic.getName()).thenReturn("topic" + idx);
+          when(topic.getKsqlTopicName()).thenReturn("topic" + idx);
           metaStore.putTopic(topic);
-          metaStore.getTopic(topic.getName());
+          metaStore.getTopic(topic.getKsqlTopicName());
 
-          final StructuredDataSource source = mock(StructuredDataSource.class);
+          final DataSource<?> source = mock(DataSource.class);
           when(source.getName()).thenReturn("source" + idx);
           metaStore.putSource(source);
           metaStore.getSource(source.getName());
 
-          metaStore.getAllStructuredDataSources();
+          metaStore.getAllDataSources();
 
           final String queryId = "query" + idx;
           metaStore.updateForPersistentQuery(
@@ -373,12 +375,12 @@ public class MetaStoreImplTest {
           metaStore.copy();
 
           metaStore.removePersistentQuery(queryId);
-          metaStore.deleteTopic(topic.getName());
+          metaStore.deleteTopic(topic.getKsqlTopicName());
           metaStore.deleteSource(source.getName());
         });
 
     assertThat(metaStore.getAllKsqlTopics().keySet(), is(empty()));
-    assertThat(metaStore.getAllStructuredDataSources().keySet(), is(empty()));
+    assertThat(metaStore.getAllDataSources().keySet(), is(empty()));
   }
 
   @Test(timeout = 10_000)

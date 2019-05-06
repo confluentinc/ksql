@@ -49,7 +49,7 @@ public final class SandboxedServiceContextTest {
   public static class UnsupportedMethods {
 
     @Parameterized.Parameters(name = "{0}")
-    public static Collection<TestCase> getMethodsToTest() {
+    public static Collection<TestCase<SandboxedServiceContext>> getMethodsToTest() {
       return TestMethods.builder(SandboxedServiceContext.class)
           .ignore("getTopicClient")
           .ignore("getKafkaClientSupplier")

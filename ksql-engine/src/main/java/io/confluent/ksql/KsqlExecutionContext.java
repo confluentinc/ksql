@@ -15,15 +15,16 @@
 
 package io.confluent.ksql;
 
+import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -46,11 +47,9 @@ public interface KsqlExecutionContext {
   MetaStore getMetaStore();
 
   /**
-   * Get the number of persistent queries.
-   *
-   * @return the number of queries
+   * @return the service context used for this execution context
    */
-  int numberOfPersistentQueries();
+  ServiceContext getServiceContext();
 
   /**
    * Retrieve the details of a persistent query.
@@ -59,6 +58,14 @@ public interface KsqlExecutionContext {
    * @return the query's details or else {@code Optional.empty()} if no found.
    */
   Optional<PersistentQueryMetadata> getPersistentQuery(QueryId queryId);
+
+  /**
+   * Retrieves the list of all running persistent queries.
+   *
+   * @return the list of all persistent queries
+   * @see #getPersistentQuery(QueryId)
+   */
+  List<PersistentQueryMetadata> getPersistentQueries();
 
   /**
    * Parse the statement(s) in supplied {@code sql}.
@@ -89,14 +96,9 @@ public interface KsqlExecutionContext {
    * <p>If the statement contains a query, then it will be tracked, but not started.
    *
    * @param statement The SQL to execute.
-   * @param ksqlConfig the config.
-   * @param overriddenProperties The user-requested property overrides.
    * @return The execution result.
    */
-  ExecuteResult execute(
-      PreparedStatement<?> statement,
-      KsqlConfig ksqlConfig,
-      Map<String, Object> overriddenProperties);
+  ExecuteResult execute(ConfiguredStatement<?> statement);
 
   /**
    * Holds the union of possible results from an {@link #execute} call.

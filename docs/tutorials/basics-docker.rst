@@ -1,7 +1,7 @@
 .. _ksql_quickstart-docker:
 
-Writing Streaming Queries Against Kafka Using KSQL (Docker)
-===========================================================
+Writing Streaming Queries Against |ak-tm| Using KSQL (Docker)
+=============================================================
 
 This tutorial demonstrates a simple workflow using KSQL to write streaming queries against messages in Kafka in a Docker
 environment.

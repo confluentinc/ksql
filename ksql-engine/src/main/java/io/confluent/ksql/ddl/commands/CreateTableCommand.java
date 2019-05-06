@@ -15,20 +15,13 @@
 
 package io.confluent.ksql.ddl.commands;
 
-import io.confluent.ksql.ddl.DdlConfig;
-import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.MutableMetaStore;
+import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.parser.tree.CreateTable;
-import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.SchemaUtil;
-import io.confluent.ksql.util.StringUtil;
-import java.util.Map;
 
 public class CreateTableCommand extends AbstractCreateStreamCommand {
-
-  private final String stateStoreName;
 
   CreateTableCommand(
       final String sqlExpression,
@@ -36,22 +29,6 @@ public class CreateTableCommand extends AbstractCreateStreamCommand {
       final KafkaTopicClient kafkaTopicClient
   ) {
     super(sqlExpression, createTable, kafkaTopicClient);
-
-    final Map<String, Expression> properties = createTable.getProperties();
-
-    if (!properties.containsKey(DdlConfig.KEY_NAME_PROPERTY)) {
-      throw new KsqlException(
-          "Cannot define a TABLE without providing the KEY column name in the WITH clause."
-      );
-    }
-
-    if (properties.containsKey(DdlConfig.STATE_STORE_NAME_PROPERTY)) {
-      this.stateStoreName = StringUtil.cleanQuotes(
-          properties.get(DdlConfig.STATE_STORE_NAME_PROPERTY).toString()
-      );
-    } else {
-      this.stateStoreName = createTable.getName().toString() + "_statestore";
-    }
   }
 
   @Override
@@ -66,18 +43,18 @@ public class CreateTableCommand extends AbstractCreateStreamCommand {
       }
     }
     checkMetaData(metaStore, sourceName, topicName);
+
     final KsqlTable ksqlTable = new KsqlTable<>(
         sqlExpression,
         sourceName,
-        schema,
-        (keyColumnName.isEmpty())
-          ? null : SchemaUtil.getFieldByName(schema, keyColumnName).orElse(null),
+        schema.withImplicitFields(),
+        keyField,
         timestampExtractionPolicy,
         metaStore.getTopic(topicName),
-        stateStoreName, keySerde
+        keySerdeFactory
     );
 
-    metaStore.putSource(ksqlTable.cloneWithTimeKeyColumns());
+    metaStore.putSource(ksqlTable);
     return new DdlCommandResult(true, "Table created");
   }
 }

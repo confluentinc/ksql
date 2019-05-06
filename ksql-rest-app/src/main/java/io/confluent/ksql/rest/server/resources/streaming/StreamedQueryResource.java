@@ -16,7 +16,7 @@
 package io.confluent.ksql.rest.server.resources.streaming;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.PrintTopic;
@@ -30,18 +30,21 @@ import io.confluent.ksql.rest.server.resources.Errors;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.rest.util.CommandStoreUtil;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.QueuedQueryMetadata;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import org.slf4j.Logger;
@@ -56,7 +59,6 @@ public class StreamedQueryResource {
 
   private final KsqlConfig ksqlConfig;
   private final KsqlEngine ksqlEngine;
-  private final ServiceContext serviceContext;
   private final StatementParser statementParser;
   private final CommandQueue commandQueue;
   private final Duration disconnectCheckInterval;
@@ -67,7 +69,6 @@ public class StreamedQueryResource {
   public StreamedQueryResource(
       final KsqlConfig ksqlConfig,
       final KsqlEngine ksqlEngine,
-      final ServiceContext serviceContext,
       final StatementParser statementParser,
       final CommandQueue commandQueue,
       final Duration disconnectCheckInterval,
@@ -76,7 +77,6 @@ public class StreamedQueryResource {
   ) {
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
-    this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
     this.statementParser = Objects.requireNonNull(statementParser, "statementParser");
     this.commandQueue = Objects.requireNonNull(commandQueue, "commandQueue");
     this.disconnectCheckInterval =
@@ -89,7 +89,10 @@ public class StreamedQueryResource {
   }
 
   @POST
-  public Response streamQuery(final KsqlRequest request) throws Exception {
+  public Response streamQuery(
+      @Context final ServiceContext serviceContext,
+      final KsqlRequest request
+  ) throws Exception {
     if (!ksqlEngine.isAcceptingStatements()) {
       return Errors.serverErrorForStatement(
           new KsqlException("Cluster has been terminated."),
@@ -104,7 +107,7 @@ public class StreamedQueryResource {
     CommandStoreUtil.httpWaitForCommandSequenceNumber(
         commandQueue, request, commandQueueCatchupTimeout);
 
-    return handleStatement(request, statement);
+    return handleStatement(serviceContext, request, statement);
   }
 
   private PreparedStatement<?> parseStatement(final KsqlRequest request) {
@@ -122,6 +125,7 @@ public class StreamedQueryResource {
 
   @SuppressWarnings("unchecked")
   private Response handleStatement(
+      final ServiceContext serviceContext,
       final KsqlRequest request,
       final PreparedStatement<?> statement
   ) throws Exception {
@@ -131,7 +135,10 @@ public class StreamedQueryResource {
       }
 
       if (statement.getStatement() instanceof PrintTopic) {
-        return handlePrintTopic((PreparedStatement<PrintTopic>) statement);
+        return handlePrintTopic(
+            serviceContext,
+            request.getStreamsProperties(),
+            (PreparedStatement<PrintTopic>) statement);
       }
 
       return Errors.badRequest(String.format(
@@ -142,12 +149,13 @@ public class StreamedQueryResource {
     }
   }
 
-  @SuppressWarnings("ConstantConditions")
   private Response handleQuery(
       final PreparedStatement<Query> statement,
       final Map<String, Object> streamsProperties
   ) throws Exception {
-    final QueryMetadata query = ksqlEngine.execute(statement, ksqlConfig, streamsProperties)
+    final ConfiguredStatement<Query> configured =
+        ConfiguredStatement.of(statement, streamsProperties, ksqlConfig);
+    final QueryMetadata query = ksqlEngine.execute(configured)
         .getQuery()
         .get();
 
@@ -167,7 +175,11 @@ public class StreamedQueryResource {
     return Response.ok().entity(queryStreamWriter).build();
   }
 
-  private Response handlePrintTopic(final PreparedStatement<PrintTopic> statement) {
+  private Response handlePrintTopic(
+      final ServiceContext serviceContext,
+      final Map<String, Object> streamProperties,
+      final PreparedStatement<PrintTopic> statement
+  ) {
     final PrintTopic printTopic = statement.getStatement();
     final String topicName = printTopic.getTopic().toString();
 
@@ -183,9 +195,13 @@ public class StreamedQueryResource {
               topicName)));
     }
 
+    final Map<String, Object> propertiesWithOverrides =
+        new HashMap<>(ksqlConfig.getKsqlStreamConfigProps());
+    propertiesWithOverrides.putAll(streamProperties);
+
     final TopicStreamWriter topicStreamWriter = new TopicStreamWriter(
         serviceContext.getSchemaRegistryClient(),
-        ksqlConfig.getKsqlStreamConfigProps(),
+        propertiesWithOverrides,
         printTopic,
         disconnectCheckInterval
     );

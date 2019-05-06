@@ -15,24 +15,25 @@
 
 package io.confluent.ksql.planner;
 
-import io.confluent.ksql.planner.plan.PlanNode;
+import io.confluent.ksql.planner.plan.OutputNode;
 import java.util.Objects;
+import java.util.Optional;
 
 public final class LogicalPlanNode {
 
   private final String statementText;
-  private final PlanNode node;
+  private final Optional<OutputNode> node;
 
-  public LogicalPlanNode(final String statementText, final PlanNode node) {
+  public LogicalPlanNode(final String statementText, final Optional<OutputNode> node) {
     this.statementText = Objects.requireNonNull(statementText, "statementText");
-    this.node = node;
+    this.node = Objects.requireNonNull(node, "node");
   }
 
   public String getStatementText() {
     return statementText;
   }
 
-  public PlanNode getNode() {
+  public Optional<OutputNode> getNode() {
     return node;
   }
 }

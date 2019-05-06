@@ -54,6 +54,18 @@ public final class ErrorMessageUtil {
     return causeMsg.isEmpty() ? msg : msg + System.lineSeparator() + causeMsg;
   }
 
+  /**
+   * Build a list containing the error message for each throwable in the chain.
+   *
+   * @param e the top level error.
+   * @return the list of error messages.
+   */
+  public static List<String> getErrorMessages(final Throwable e) {
+    return getThrowables(e).stream()
+        .map(ErrorMessageUtil::getErrorMessage)
+        .collect(Collectors.toList());
+  }
+
   private static String getErrorMessage(final Throwable e) {
     if (e instanceof ConnectException) {
       return "Could not connect to the server.";
@@ -70,12 +82,6 @@ public final class ErrorMessageUtil {
       cause = cause.getCause();
     }
     return list;
-  }
-
-  private static List<String> getErrorMessages(final Throwable e) {
-    return getThrowables(e).stream()
-        .map(ErrorMessageUtil::getErrorMessage)
-        .collect(Collectors.toList());
   }
 
   private static void dedup(final List<String> messages) {

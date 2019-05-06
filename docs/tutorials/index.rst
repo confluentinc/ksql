@@ -8,6 +8,7 @@ KSQL Tutorials and Examples
 
     basics-docker
     basics-local
+    basics-control-center
     clickstream-docker
     generate-custom-test-data
     examples
@@ -15,7 +16,7 @@ KSQL Tutorials and Examples
 KSQL Basics
 ***********
 
-This tutorial demonstrates a simple workflow using KSQL to write streaming queries against messages in Kafka.
+This tutorial demonstrates a simple workflow using KSQL to write streaming queries against messages in |ak-tm|.
 
 Write Streaming Queries with the KSQL CLI
 -----------------------------------------

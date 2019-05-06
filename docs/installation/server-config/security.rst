@@ -4,9 +4,9 @@ Configuring Security for KSQL
 =============================
 
 KSQL supports authentication on its HTTP endpoints and also supports many of the security features
-of the other services it communicates with both Apache Kafka and the |sr|.
+of the other services it communicates with, like |ak-tm| and |sr|.
 
-- KSQL supports Basic HTTP authentication on its RESTful and Websocket HTTP endpoints, which means
+- KSQL supports Basic HTTP authentication on its RESTful and WebSocket endpoints, which means
   that the endpoints can be protected by a username and password.
 - KSQL supports Apache Kafka security features such as :ref:`SSL for encryption <kafka_ssl_encryption>`,
   :ref:`SASL for authentication <kafka_sasl_auth>`, and :ref:`authorization with ACLs <kafka_authorization>`.
@@ -46,9 +46,14 @@ settings:
 
 ::
 
-    ssl.client.auth=required
+    ssl.client.auth=true
     ssl.truststore.location=/var/private/ssl/ksql.server.truststore.jks
     ssl.truststore.password=zzzz
+
+Additional settings are available for configuring KSQL for HTTPS. For example,
+if you need to restrict the default configuration for
+`Jetty <https://www.eclipse.org/jetty/>`__, there are settings like
+``ssl.enabled.protocols``. For more information, see :ref:`kafka-rest-https-config`.
 
 .. _configuring-cli-for-https:
 
@@ -92,23 +97,36 @@ KSQL can be configured to require users to authenticate using a username and pas
 HTTP authentication mechanism.
 
 .. note:: If you're using Basic authentication, we recommended that you
-          :ref:`configure KSQL to use HTTPS to secure communication <config-ksql-for-https>`,
-          as the Basic protocol passes credentials in plain text.
+          :ref:`configure KSQL to use HTTPS for secure communication <config-ksql-for-https>`,
+          because the Basic protocol passes credentials in plain text.
 
 Use the following settings to configure the KSQL server to require authentication:
 
 ::
 
     authentication.method=BASIC
-    authentication.roles=some-ksql-cluster-id
-    authentication.realm=KsqlServer-Props
-    java.security.auth.login.config=/path/to/the/jaas_config.file
+    authentication.roles=<user-role1>,<user-role2>,...
+    authentication.realm=<KsqlServer-Props-in-jaas_config.file>
 
-The ``authentication.roles`` config defines a comma separated list of user roles. To be authorized
-to use the KSQL server an authenticated user must belong to at least one of these roles.
+The ``authentication.roles`` config defines a comma-separated list of user roles. To be authorized
+to use the KSQL server, an authenticated user must belong to at least one of these roles.
 
-The ``authentication.realm`` config must match a section with in ``jaas_config.file``, which
-defines how the server authenticates users, for example:
+For example, if you define ``admin``, ``developer``, ``user``, and ``ksq-user``
+roles, the following configuration assigns them for authentication.
+
+::
+
+    authentication.roles=admin,developer,user,ksq-user
+
+The ``authentication.realm`` config must match a section within ``jaas_config.file``, which
+defines how the server authenticates users and should be passed as a JVM option during server start:
+
+.. code:: bash
+
+    $ export KSQL_OPTS=-Djava.security.auth.login.config=/path/to/the/jaas_config.file
+    $ <path-to-confluent>/bin/ksql-server-start <path-to-confluent>/etc/ksql/ksql-server.properties
+
+An example ``jaas_config.file`` is:
 
 ::
 
@@ -121,10 +139,17 @@ defines how the server authenticates users, for example:
 The example ``jaas_config.file`` above uses the Jetty ``PropertyFileLoginModule``, which itself
 authenticates users by checking for their credentials in a password file.
 
+Assign the ``KsqlServer-Props`` section to the ``authentication.realm`` config setting:
+
+::
+
+    authentication.realm=KsqlServer-Props
+
+
 You can also use other implementations of the standard Java ``LoginModule`` interface, such as
 ``JDBCLoginModule`` for reading credentials from a database or the ``LdapLoginModule``.
 
-The file parameter is the location of the properties file, The format is:
+The file parameter is the location of the password file, The format is:
 
 ::
 
@@ -174,6 +199,12 @@ Configuring KSQL for |ccloud|
 
 You can use KSQL with a Kafka cluster in |ccloud|. For more information, see :ref:`install_ksql-ccloud`.
 
+Configuring KSQL for |c3|
+-----------------------------
+
+You can use KSQL with a Kafka cluster in |c3|. For more information, see
+:ref:`integrate-ksql-with-confluent-control-center`.
+
 .. _config-security-ksql-sr:
 
 Configuring KSQL for Secured |sr-long|
@@ -207,11 +238,11 @@ between Kafka and |sr|:
 ::
 
     ksql.schema.registry.url=https://<host-name-of-schema-registry>:<ssl-port>
-    ssl.truststore.location=/etc/kafka/secrets/ksql.truststore.jks
-    ssl.truststore.password=confluent
-    ssl.keystore.location=/etc/kafka/secrets/ksql.keystore.jks
-    ssl.keystore.password=confluent
-    ssl.key.password=confluent
+    ksql.schema.registry.ssl.truststore.location=/etc/kafka/secrets/ksql.truststore.jks
+    ksql.schema.registry.ssl.truststore.password=<your-secure-password>
+    ksql.schema.registry.ssl.keystore.location=/etc/kafka/secrets/ksql.keystore.jks
+    ksql.schema.registry.ssl.keystore.password=<your-secure-password>
+    ksql.schema.registry.ssl.key.password=<your-secure-password>
 
 Use the following to configure KSQL to communicate with |sr| over HTTP, without
 mutual authentication and with an explicit trustStore. These settings explicitly configure only
@@ -221,7 +252,7 @@ KSQL to |sr| SSL communication.
 
     ksql.schema.registry.url=https://<host-name-of-schema-registry>:<ssl-port>
     ksql.schema.registry.ssl.truststore.location=/etc/kafka/secrets/sr.truststore.jks
-    ksql.schema.registry.ssl.truststore.password=confluent
+    ksql.schema.registry.ssl.truststore.password=<your-secure-password>
 
 The exact settings will vary depending on the encryption and authentication mechanisms 
 |sr| is using, and how your SSL certificates are signed.
@@ -338,8 +369,7 @@ The ACLs described below list a ``RESOURCE_TYPE``, resource name, ``PATTERN_TYPE
 All ACLs described are ``ALLOW`` ACLs, where the principal is the user the KSQL server has authenticated as,
 with the Apache Kafka cluster, or an appropriate group that includes the authenticated KSQL user.
 
-.. tip:: For more information about ACLs see :ref:`kafka_authorization` and for more information about interactive and
-         non-interactive queries, see :ref:`restrict-ksql-interactive`.
+.. tip:: For more information about ACLs, see :ref:`kafka_authorization`.
 
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 ACLs on Literal Resource Pattern
@@ -376,6 +406,13 @@ KSQL always requires the following ACLs for its internal operations and data man
 
 Where ``ksql.service.id`` can be configured in the KSQL configuration and defaults to ``default_``.
 
+If KSQL is configured to create a topic for the :ref:`record processing log <ksql_processing_log>`
+which is the default configuration since KSQL version 5.2, the following ACLs are also needed:
+
+- The ``ALL`` operation on the ``TOPIC`` with ``LITERAL`` name ``<ksql.logging.processing.topic.name>``.
+
+Where ``ksql.logging.processing.topic.name`` can be configured in the KSQL configuration and defaults to ``<ksql.service.id>ksql_processing_log``.
+
 In addition to the general permissions above, KSQL also needs permissions to perform the actual processing of your data.
 Here, KSQL needs permissions to read data from your desired input topics and/or permissions to write data to your desired output topics:
 
@@ -401,7 +438,7 @@ For example, given the following setup:
 - A 3-node KSQL cluster with KSQL servers running on IPs 198.51.100.0, 198.51.100.1, 198.51.100.2
 - Authenticating with the Kafka cluster as a ``KSQL1`` user.
 - With ``ksql.service.id`` set to ``production_``.
-- Running queries the read from input topics ``input-topic1`` and ``input-topic2``.
+- Running queries that read from input topics ``input-topic1`` and ``input-topic2``.
 - Writing to output topics ``output-topic1`` and ``output-topic2``.
 - Where ``output-topic1`` is also used as an input for another query.
 
@@ -423,6 +460,9 @@ Then the following commands would create the necessary ACLs in the Kafka cluster
     # Allow KSQL to manage its own internal topics and consumer groups:
     bin/kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation All --resource-pattern-type prefixed --topic _confluent-ksql-production_ --group _confluent-ksql-production_
 
+    # Allow KSQL to manage its record processing log topic, if configured:
+    bin/kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation All --topic production_ksql_processing_log
+
 .. _config-security-ksql-acl-interactive_post_ak_2_0:
 
 Interactive KSQL clusters
@@ -435,8 +475,8 @@ access to the input and output topics, as required.
 .. tip:: To simplify ACL management, you should configure a default custom topic name prefix such as ``ksql-interactive-`` for your
          KSQL cluster via the ``ksql.output.topic.name.prefix`` :ref:`server configuration setting <set-ksql-server-properties>`.
          Unless a user defines an explicit topic name in a KSQL statement, KSQL will then always prefix the name of any automatically
-         created output topics.
-         Then add an ACL to allow ``ALL`` operations on ``TOPIC``s ``PREFIXED`` with the configured custom name prefix (in the example above: ``ksql-interactive-``).
+         created output topics. Then add an ACL to allow ``ALL`` operations on ``TOPICs`` that are ``PREFIXED`` with the configured
+         custom name prefix (in the example above: ``ksql-interactive-``).
 
 For example, given the following setup:
 
@@ -463,6 +503,9 @@ Then the following commands would create the necessary ACLs in the Kafka cluster
 
     # Allow KSQL to manage its own internal topics and consumer groups:
     bin/kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation All --resource-pattern-type prefixed --topic _confluent-ksql-fraud_ --group _confluent-ksql-fraud_
+
+    # Allow KSQL to manage its record processing log topic, if configured:
+    bin/kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation All --topic fraud_ksql_processing_log
 
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 |cp| versions below v5.0 (Apache Kafka < v2.0)
@@ -505,8 +548,7 @@ The ACLs described below list a ``RESOURCE_TYPE``, resource name, and ``OPERATIO
 the principal is the user the KSQL server has authenticated as, with the Apache Kafka cluster, or an appropriate group
 that includes the authenticated KSQL user.
 
-.. tip:: For more information about ACLs see :ref:`kafka_authorization` and for more information about interactive and
-   non-interactive queries, see :ref:`restrict-ksql-interactive`.
+.. tip:: For more information about ACLs, see :ref:`kafka_authorization`.
 
 .. _config-security-ksql-acl-interactive_pre_ak_2_0:
 
@@ -601,11 +643,13 @@ Consumer groups
     Consumer group names are formatted like ``_confluent-ksql-<value of ksql.service.id property>_query_<query id>``,
     where the default of ``ksql.service.id`` is ``default_``.
 
+.. tip:: For more information about interactive and non-interactive queries, see :ref:`restrict-ksql-interactive`.
+
 ----------------------------------------------
 Configuring |c3-short| Monitoring Interceptors
 ----------------------------------------------
 
-This configuration enables SASL and SSL for the :ref:`monitoring intercepts <controlcenter_clients>` that integrate KSQL
+This configuration enables SASL and SSL for the :ref:`monitoring interceptors <controlcenter_clients>` that integrate KSQL
 with |c3-short|.
 
 ::

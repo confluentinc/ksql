@@ -15,10 +15,14 @@
 
 package io.confluent.ksql.parser.tree;
 
+import com.google.errorprone.annotations.Immutable;
 import java.util.Optional;
 
-public abstract class Statement
-    extends Node {
+/**
+ * A {@code Statement} represents the parsed AST version of a single SQL statement.
+ */
+@Immutable
+public abstract class Statement extends Node {
 
   protected Statement(final Optional<NodeLocation> location) {
     super(location);

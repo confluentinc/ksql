@@ -35,6 +35,7 @@ import io.confluent.ksql.parser.tree.NotExpression;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.parser.tree.SearchedCaseExpression;
 import io.confluent.ksql.parser.tree.SubscriptExpression;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.util.ExpressionMetadata;
 import io.confluent.ksql.util.ExpressionTypeManager;
 import io.confluent.ksql.util.GenericRowValueTypeEnforcer;
@@ -57,7 +58,7 @@ import org.codehaus.commons.compiler.IExpressionEvaluator;
 
 public class CodeGenRunner {
 
-  private final Schema schema;
+  private final KsqlSchema schema;
   private final FunctionRegistry functionRegistry;
   private final ExpressionTypeManager expressionTypeManager;
   private final KsqlConfig ksqlConfig;
@@ -65,7 +66,7 @@ public class CodeGenRunner {
   public static List<ExpressionMetadata> compileExpressions(
       final Stream<Expression> expressions,
       final String type,
-      final Schema schema,
+      final KsqlSchema schema,
       final KsqlConfig ksqlConfig,
       final FunctionRegistry functionRegistry
   ) {
@@ -77,11 +78,12 @@ public class CodeGenRunner {
   }
 
   public CodeGenRunner(
-      final Schema schema,
+      final KsqlSchema schema,
       final KsqlConfig ksqlConfig,
-      final FunctionRegistry functionRegistry) {
-    this.functionRegistry = functionRegistry;
-    this.schema = schema;
+      final FunctionRegistry functionRegistry
+  ) {
+    this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
+    this.schema = Objects.requireNonNull(schema, "schema");
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     this.expressionTypeManager = new ExpressionTypeManager(schema, functionRegistry);
   }
@@ -108,9 +110,9 @@ public class CodeGenRunner {
 
       int index = 0;
       for (final ParameterType param : parameters) {
-        parameterNames[index] = param.name;
+        parameterNames[index] = param.paramName;
         parameterTypes[index] = param.type;
-        columnIndexes.add(SchemaUtil.getFieldIndexByName(schema, param.name));
+        columnIndexes.add(schema.fieldIndex(param.fieldName).orElse(-1));
         kudfObjects.add(param.getKudf());
         index++;
       }
@@ -147,7 +149,7 @@ public class CodeGenRunner {
 
   private static final class Visitor extends AstVisitor<Object, Object> {
 
-    private final Schema schema;
+    private final KsqlSchema schema;
     private final Set<ParameterType> parameters;
     private final FunctionRegistry functionRegistry;
     private final ExpressionTypeManager expressionTypeManager;
@@ -156,11 +158,12 @@ public class CodeGenRunner {
     private int functionCounter = 0;
 
     private Visitor(
-        final Schema schema,
+        final KsqlSchema schema,
         final FunctionRegistry functionRegistry,
         final ExpressionTypeManager expressionTypeManager,
-        final KsqlConfig ksqlConfig) {
-      this.schema = schema;
+        final KsqlConfig ksqlConfig
+    ) {
+      this.schema = Objects.requireNonNull(schema, "schema");
       this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
       this.parameters = new HashSet<>();
       this.functionRegistry = functionRegistry;
@@ -170,7 +173,9 @@ public class CodeGenRunner {
     private void addParameter(final Field schemaField) {
       parameters.add(new ParameterType(
           SchemaUtil.getJavaType(schemaField.schema()),
-          schemaField.name().replace(".", "_"), ksqlConfig));
+          schemaField.name(),
+          schemaField.name().replace(".", "_"),
+          ksqlConfig));
     }
 
     protected Object visitLikePredicate(final LikePredicate node, final Object context) {
@@ -189,8 +194,12 @@ public class CodeGenRunner {
 
       final UdfFactory holder = functionRegistry.getUdfFactory(functionName);
       final KsqlFunction function = holder.getFunction(argumentTypes);
-      parameters.add(new ParameterType(function,
-          node.getName().getSuffix() + "_" + functionNumber, ksqlConfig));
+      final String parameterName = node.getName().getSuffix() + "_" + functionNumber;
+      parameters.add(new ParameterType(
+          function,
+          parameterName,
+          parameterName,
+          ksqlConfig));
       return null;
     }
 
@@ -243,15 +252,9 @@ public class CodeGenRunner {
     @Override
     protected Object visitDereferenceExpression(
         final DereferenceExpression node,
-        final Object context) {
-      final Optional<Field> schemaField = SchemaUtil.getFieldByName(schema, node.toString());
-      if (!schemaField.isPresent()) {
-        throw new RuntimeException(
-            "Cannot find the select field in the available fields."
-                + " field: " + node
-                + ", schema: " + schema.fields());
-      }
-      addParameter(schemaField.get());
+        final Object context
+    ) {
+      addParameter(getRequiredField(node.toString()));
       return null;
     }
 
@@ -283,11 +286,7 @@ public class CodeGenRunner {
       if (node.getBase() instanceof DereferenceExpression
           || node.getBase() instanceof QualifiedNameReference) {
         final String arrayBaseName = node.getBase().toString();
-        final Field schemaField = SchemaUtil.getFieldByName(schema, arrayBaseName)
-            .orElseThrow(
-                () -> new RuntimeException("Cannot find the select "
-                    + "field in the available fields: " + arrayBaseName));
-        addParameter(schemaField);
+        addParameter(getRequiredField(arrayBaseName));
       } else {
         process(node.getBase(), context);
       }
@@ -298,51 +297,67 @@ public class CodeGenRunner {
     @Override
     protected Object visitQualifiedNameReference(
         final QualifiedNameReference node,
-        final Object context) {
-      final Optional<Field> schemaField =
-          SchemaUtil.getFieldByName(schema, node.getName().getSuffix());
-
-      if (!schemaField.isPresent()) {
-        throw new RuntimeException(
-            "Cannot find the select field in the available fields."
-                + " name field: " + node.getName().getSuffix()
-                + ", schema: " + schema.fields());
-      }
-      addParameter(schemaField.get());
+        final Object context
+    ) {
+      addParameter(getRequiredField(node.getName().getSuffix()));
       return null;
     }
 
+    private Field getRequiredField(final String fieldName) {
+      return schema.findField(fieldName)
+          .orElseThrow(() -> new RuntimeException(
+              "Cannot find the select field in the available fields."
+                  + " field: " + fieldName
+                  + ", schema: " + schema.fields()));
+    }
   }
 
   public static final class ParameterType {
 
     private final Class type;
-    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     private final Optional<KsqlFunction> function;
-    private final String name;
+    private final String paramName;
+    private final String fieldName;
     private final KsqlConfig ksqlConfig;
 
-    private ParameterType(final Class type, final String name, final KsqlConfig ksqlConfig) {
-      this(null, Objects.requireNonNull(type, "type can't be null"), name, ksqlConfig);
+    private ParameterType(
+        final Class type,
+        final String fieldName,
+        final String paramName,
+        final KsqlConfig ksqlConfig
+    ) {
+      this(
+          null,
+          Objects.requireNonNull(type, "type"),
+          fieldName,
+          paramName,
+          ksqlConfig);
     }
 
     private ParameterType(
         final KsqlFunction function,
-        final String name,
+        final String fieldName,
+        final String paramName,
         final KsqlConfig ksqlConfig) {
-      this(Objects.requireNonNull(function, "function can't be null"),
+      this(
+          Objects.requireNonNull(function, "function"),
           function.getKudfClass(),
-          name, ksqlConfig);
+          fieldName,
+          paramName,
+          ksqlConfig);
     }
 
     private ParameterType(
         final KsqlFunction function,
         final Class type,
-        final String name,
-        final KsqlConfig ksqlConfig) {
+        final String fieldName,
+        final String paramName,
+        final KsqlConfig ksqlConfig
+    ) {
       this.function = Optional.ofNullable(function);
       this.type = Objects.requireNonNull(type, "type");
-      this.name = Objects.requireNonNull(name, "name");
+      this.fieldName = Objects.requireNonNull(fieldName, "fieldName");
+      this.paramName = Objects.requireNonNull(paramName, "paramName");
       this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     }
 
@@ -350,8 +365,12 @@ public class CodeGenRunner {
       return type;
     }
 
-    public String getName() {
-      return name;
+    public String getParamName() {
+      return paramName;
+    }
+
+    public String getFieldName() {
+      return fieldName;
     }
 
     public Kudf getKudf() {
@@ -369,12 +388,13 @@ public class CodeGenRunner {
       final ParameterType that = (ParameterType) o;
       return Objects.equals(type, that.type)
           && Objects.equals(function, that.function)
-          && Objects.equals(name, that.name);
+          && Objects.equals(paramName, that.paramName)
+          && Objects.equals(fieldName, that.fieldName);
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(type, function, name);
+      return Objects.hash(type, function, paramName, fieldName);
     }
   }
 }

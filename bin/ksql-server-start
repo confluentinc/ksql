@@ -15,7 +15,7 @@ base_dir=$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )
 : "${KSQL_CONFIG_DIR:="$base_dir/config"}"
 
 : "${KSQL_LOG4J_OPTS:=""}"
-if [ -z "$KSQL_LOG4J_OPTS" ] && [ -e "$KSQL_CONFIG_DIR/log4j-silent.properties" ]; then
+if [ -z "$KSQL_LOG4J_OPTS" ] && [ -e "$KSQL_CONFIG_DIR/log4j-rolling.properties" ]; then
   export KSQL_LOG4J_OPTS="-Dlog4j.configuration=file:$KSQL_CONFIG_DIR/log4j-rolling.properties"
 fi
 

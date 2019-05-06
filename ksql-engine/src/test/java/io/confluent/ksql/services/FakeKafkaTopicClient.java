@@ -16,14 +16,18 @@
 package io.confluent.ksql.services;
 
 import static org.apache.kafka.common.config.TopicConfig.CLEANUP_POLICY_COMPACT;
+import static org.apache.kafka.common.config.TopicConfig.CLEANUP_POLICY_CONFIG;
 import static org.apache.kafka.common.config.TopicConfig.COMPRESSION_TYPE_CONFIG;
 
+import com.google.common.annotations.VisibleForTesting;
+import io.confluent.ksql.topic.TopicProperties;
 import io.confluent.ksql.util.KsqlConstants;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -38,14 +42,14 @@ import org.apache.kafka.common.errors.UnknownTopicOrPartitionException;
  */
 public class FakeKafkaTopicClient implements KafkaTopicClient {
 
-  private static class FakeTopic {
+  public static class FakeTopic {
 
     private final String topicName;
     private final int numPartitions;
     private final int replicatonFactor;
     private final TopicCleanupPolicy cleanupPolicy;
 
-    private FakeTopic(final String topicName,
+    public FakeTopic(final String topicName,
         final int numPartitions,
         final int replicatonFactor,
         final TopicCleanupPolicy cleanupPolicy) {
@@ -68,6 +72,26 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
                   p -> new TopicPartitionInfo(p, node, replicas, Collections.emptyList()))
               .collect(Collectors.toList());
       return new TopicDescription(topicName, false, partitionInfoList);
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+      final FakeTopic fakeTopic = (FakeTopic) o;
+      return numPartitions == fakeTopic.numPartitions
+          && replicatonFactor == fakeTopic.replicatonFactor
+          && Objects.equals(topicName, fakeTopic.topicName)
+          && cleanupPolicy == fakeTopic.cleanupPolicy;
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(topicName, numPartitions, replicatonFactor, cleanupPolicy);
     }
   }
 
@@ -95,13 +119,17 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
       final short replicationFactor,
       final Map<String, ?> configs
   ) {
+    final short replicas = replicationFactor == TopicProperties.DEFAULT_REPLICAS
+        ? 1
+        : replicationFactor;
+
     final FakeTopic existing = topicMap.get(topic);
     if (existing != null) {
-      validateTopicProperties(numPartitions, replicationFactor, existing);
+      validateTopicProperties(numPartitions, replicas, existing);
       return;
     }
 
-    final FakeTopic info = createFakeTopic(topic, numPartitions, replicationFactor, configs);
+    final FakeTopic info = createFakeTopic(topic, numPartitions, replicas, configs);
     topicMap.put(topic, info);
     createdTopics.put(topic, info);
   }
@@ -156,7 +184,7 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
 
   @Override
   public TopicCleanupPolicy getTopicCleanupPolicy(final String topicName) {
-    return null;
+    return topicMap.get(topicName).cleanupPolicy;
   }
 
   @Override
@@ -177,7 +205,7 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
       final Map<String, ?> configs
   ) {
     final TopicCleanupPolicy cleanUpPolicy =
-        CLEANUP_POLICY_COMPACT.equals(configs.get(COMPRESSION_TYPE_CONFIG))
+        CLEANUP_POLICY_COMPACT.equals(configs.get(CLEANUP_POLICY_CONFIG))
             ? TopicCleanupPolicy.COMPACT
             : TopicCleanupPolicy.DELETE;
 

@@ -26,10 +26,11 @@ import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.schema.inference.TopicSchemaSupplier.SchemaAndId;
 import io.confluent.ksql.schema.inference.TopicSchemaSupplier.SchemaResult;
-import io.confluent.ksql.serde.DataSource;
+import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlStatementException;
-import io.confluent.ksql.util.TypeUtil;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -37,7 +38,19 @@ import java.util.Objects;
 import java.util.Optional;
 import org.apache.kafka.connect.data.Schema;
 
-public class DefaultSchemaInjector implements SchemaInjector {
+/**
+ * An injector which injects the schema into the supplied {@code statement}.
+ *
+ * <p>The schema is only injected if:
+ * <ul>
+ * <li>The statement is a CT/CS.</li>
+ * <li>The statement does not defined a schema.</li>
+ * <li>The format of the statement supports schema inference.</li>
+ * </ul>
+ *
+ * <p>If any of the above are not true then the {@code statement} is returned unchanged.
+ */
+public class DefaultSchemaInjector implements Injector {
 
   private final TopicSchemaSupplier schemaSupplier;
 
@@ -45,35 +58,39 @@ public class DefaultSchemaInjector implements SchemaInjector {
     this.schemaSupplier = Objects.requireNonNull(schemaSupplier, "schemaSupplier");
   }
 
+
   @SuppressWarnings("unchecked")
   @Override
-  public <T extends Statement> PreparedStatement<T> forStatement(
-      final PreparedStatement<T> statement
+  public <T extends Statement> ConfiguredStatement<T> inject(
+      final ConfiguredStatement<T> statement
   ) {
     if (!(statement.getStatement() instanceof AbstractStreamCreateStatement)) {
       return statement;
     }
 
-    return forCreateStatement((PreparedStatement<AbstractStreamCreateStatement>) statement)
-        .map(DefaultSchemaInjector::buildPreparedStatement)
-        .orElse(statement);
+    final ConfiguredStatement<AbstractStreamCreateStatement> createStatement =
+        (ConfiguredStatement<AbstractStreamCreateStatement>) statement;
+
+    return (ConfiguredStatement<T>) forCreateStatement(createStatement).orElse(createStatement);
   }
 
-  private Optional<AbstractStreamCreateStatement> forCreateStatement(
-      final PreparedStatement<AbstractStreamCreateStatement> statement
+  private Optional<ConfiguredStatement<AbstractStreamCreateStatement>> forCreateStatement(
+      final ConfiguredStatement<AbstractStreamCreateStatement> statement
   ) {
     if (hasElements(statement) || isUnsupportedFormat(statement)) {
       return Optional.empty();
     }
 
     final SchemaAndId valueSchema = getValueSchema(statement);
-
-    return Optional.of(addSchemaFields(statement, valueSchema));
+    final AbstractStreamCreateStatement withSchema = addSchemaFields(statement, valueSchema);
+    final PreparedStatement<AbstractStreamCreateStatement> prepared =
+        buildPreparedStatement(withSchema);
+    return Optional.of(ConfiguredStatement.of(
+        prepared, statement.getOverrides(), statement.getConfig()));
   }
 
-  @SuppressWarnings("ConstantConditions") // result is union.
   private SchemaAndId getValueSchema(
-      final PreparedStatement<AbstractStreamCreateStatement> statement
+      final ConfiguredStatement<AbstractStreamCreateStatement> statement
   ) {
     final String topicName = getKafkaTopicName(statement);
 
@@ -93,28 +110,28 @@ public class DefaultSchemaInjector implements SchemaInjector {
   }
 
   private static boolean hasElements(
-      final PreparedStatement<AbstractStreamCreateStatement> statement
+      final ConfiguredStatement<AbstractStreamCreateStatement> statement
   ) {
     return !statement.getStatement().getElements().isEmpty();
   }
 
   private static boolean isUnsupportedFormat(
-      final PreparedStatement<AbstractStreamCreateStatement> statement
+      final ConfiguredStatement<AbstractStreamCreateStatement> statement
   ) {
     final String valueFormat =
         getRequiredProperty(statement, DdlConfig.VALUE_FORMAT_PROPERTY);
 
-    return !valueFormat.equalsIgnoreCase(DataSource.AVRO_SERDE_NAME);
+    return !valueFormat.equalsIgnoreCase(Format.AVRO.toString());
   }
 
   private static String getKafkaTopicName(
-      final PreparedStatement<AbstractStreamCreateStatement> statement
+      final ConfiguredStatement<AbstractStreamCreateStatement> statement
   ) {
     return getRequiredProperty(statement, DdlConfig.KAFKA_TOPIC_NAME_PROPERTY);
   }
 
   private static Optional<Integer> getSchemaId(
-      final PreparedStatement<AbstractStreamCreateStatement> statement
+      final ConfiguredStatement<AbstractStreamCreateStatement> statement
   ) {
     try {
       return getOptionalProperty(statement, KsqlConstants.AVRO_SCHEMA_ID)
@@ -128,7 +145,7 @@ public class DefaultSchemaInjector implements SchemaInjector {
   }
 
   private static String getRequiredProperty(
-      final PreparedStatement<AbstractStreamCreateStatement> statement,
+      final ConfiguredStatement<AbstractStreamCreateStatement> statement,
       final String property
   ) {
     return getOptionalProperty(statement, property)
@@ -138,7 +155,7 @@ public class DefaultSchemaInjector implements SchemaInjector {
   }
 
   private static Optional<String> getOptionalProperty(
-      final PreparedStatement<AbstractStreamCreateStatement> statement,
+      final ConfiguredStatement<AbstractStreamCreateStatement> statement,
       final String property
   ) {
     final Expression valueFormat = statement
@@ -160,13 +177,13 @@ public class DefaultSchemaInjector implements SchemaInjector {
   }
 
   private static AbstractStreamCreateStatement addSchemaFields(
-      final PreparedStatement<AbstractStreamCreateStatement> preparedStatement,
+      final ConfiguredStatement<AbstractStreamCreateStatement> preparedStatement,
       final SchemaAndId schema
   ) {
     final List<TableElement> elements = buildElements(schema.schema, preparedStatement);
 
     final AbstractStreamCreateStatement statement = preparedStatement.getStatement();
-    final Map<String, Expression> properties = new HashMap<>(statement.getProperties());
+    final Map<String, Literal> properties = new HashMap<>(statement.getProperties());
     properties
         .putIfAbsent(KsqlConstants.AVRO_SCHEMA_ID, new StringLiteral(String.valueOf(schema.id)));
 
@@ -175,10 +192,10 @@ public class DefaultSchemaInjector implements SchemaInjector {
 
   private static List<TableElement> buildElements(
       final Schema schema,
-      final PreparedStatement<AbstractStreamCreateStatement> preparedStatement
+      final ConfiguredStatement<AbstractStreamCreateStatement> preparedStatement
   ) {
     try {
-      return TypeUtil.buildTableElementsForSchema(schema);
+      return TableElement.fromSchema(schema);
     } catch (final Exception e) {
       throw new KsqlStatementException(
           "Failed to convert schema to KSQL model: " + e.getMessage(),
@@ -187,7 +204,7 @@ public class DefaultSchemaInjector implements SchemaInjector {
     }
   }
 
-  private static PreparedStatement buildPreparedStatement(
+  private static PreparedStatement<AbstractStreamCreateStatement> buildPreparedStatement(
       final AbstractStreamCreateStatement stmt
   ) {
     return PreparedStatement.of(SqlFormatter.formatSql(stmt), stmt);

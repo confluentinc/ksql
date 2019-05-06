@@ -17,72 +17,54 @@ package io.confluent.ksql.parser.tree;
 
 import static java.util.Objects.requireNonNull;
 
+import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.Objects;
 import java.util.Optional;
 
-public class SingleColumn
-    extends SelectItem {
+@Immutable
+public class SingleColumn extends SelectItem {
 
-  private final Optional<AllColumns> allColumns;
+  private final Optional<AllColumns> source;
   private final Optional<String> alias;
   private final Expression expression;
 
-  public SingleColumn(final Expression expression) {
-    this(Optional.empty(), expression, Optional.empty(), Optional.empty());
-  }
-
-  public SingleColumn(final Expression expression, final Optional<String> alias) {
-    this(Optional.empty(), expression, alias, Optional.empty());
-  }
-
-  public SingleColumn(final Expression expression, final String alias) {
-    this(Optional.empty(), expression, Optional.of(alias), Optional.empty());
-  }
-
-  public SingleColumn(
-      final NodeLocation location, final Expression expression, final Optional<String> alias) {
-    this(Optional.of(location), expression, alias, Optional.empty());
-  }
-
   public SingleColumn(
       final Expression expression,
-      final String alias,
-      final AllColumns allColumns) {
-    this(Optional.empty(), expression, Optional.of(alias), Optional.of(allColumns));
+      final Optional<String> alias,
+      final Optional<AllColumns> source
+  ) {
+    this(Optional.empty(), expression, alias, source);
   }
 
-  private SingleColumn(final SingleColumn other, final Expression expression) {
-    this(other.getLocation(), expression, other.alias, other.allColumns);
-  }
-
-  private SingleColumn(
+  public SingleColumn(
       final Optional<NodeLocation> location,
       final Expression expression,
       final Optional<String> alias,
-      final Optional<AllColumns> allColumns) {
+      final Optional<AllColumns> source
+  ) {
     super(location);
-    requireNonNull(expression, "expression is null");
-    requireNonNull(alias, "alias is null");
-    requireNonNull(allColumns, "allColumns is null");
 
     alias.ifPresent(name -> {
       checkForReservedToken(expression, name, SchemaUtil.ROWTIME_NAME);
       checkForReservedToken(expression, name, SchemaUtil.ROWKEY_NAME);
     });
 
-    this.expression = expression;
-    this.alias = alias;
-    this.allColumns = allColumns;
+    this.expression = requireNonNull(expression, "expression");
+    this.alias = requireNonNull(alias, "alias");
+    this.source = requireNonNull(source, "source");
   }
 
   public SingleColumn copyWithExpression(final Expression expression) {
-    return new SingleColumn(this, expression);
+    return new SingleColumn(getLocation(), expression, alias, source);
   }
 
-  private void checkForReservedToken(
-      final Expression expression, final String alias, final String reservedToken) {
+  private static void checkForReservedToken(
+      final Expression expression,
+      final String alias,
+      final String reservedToken
+  ) {
     if (alias.equalsIgnoreCase(reservedToken)) {
       final String text = expression.toString();
       if (!text.substring(text.indexOf(".") + 1).equalsIgnoreCase(reservedToken)) {
@@ -106,7 +88,7 @@ public class SingleColumn
    *         returns an empty optional
    */
   public Optional<AllColumns> getAllColumns() {
-    return allColumns;
+    return source;
   }
 
   @Override
@@ -120,17 +102,17 @@ public class SingleColumn
     final SingleColumn other = (SingleColumn) obj;
     return Objects.equals(this.alias, other.alias)
         && Objects.equals(this.expression, other.expression)
-        && Objects.equals(this.allColumns, other.allColumns);
+        && Objects.equals(this.source, other.source);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(allColumns, alias, expression);
+    return Objects.hash(source, alias, expression);
   }
 
   @Override
   public String toString() {
-    return "SingleColumn{" + "allColumns=" + allColumns
+    return "SingleColumn{" + "source=" + source
         + ", alias=" + alias
         + ", expression=" + expression
         + '}';

@@ -17,10 +17,11 @@ package io.confluent.ksql.parser.tree;
 
 import static com.google.common.base.MoreObjects.toStringHelper;
 
+import com.google.errorprone.annotations.Immutable;
 import java.util.Optional;
 
-public class ListFunctions
-    extends Statement {
+@Immutable
+public class ListFunctions extends Statement {
 
   public ListFunctions(final Optional<NodeLocation> location) {
     super(location);

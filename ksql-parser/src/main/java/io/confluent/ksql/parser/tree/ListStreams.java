@@ -17,12 +17,14 @@ package io.confluent.ksql.parser.tree;
 
 import static com.google.common.base.MoreObjects.toStringHelper;
 
+import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
 import java.util.Optional;
 
-public class ListStreams
-    extends Statement {
-  boolean showExtended;
+@Immutable
+public class ListStreams extends Statement {
+
+  private final boolean showExtended;
 
   public ListStreams(final Optional<NodeLocation> location, final boolean showExtended) {
     super(location);
@@ -34,18 +36,26 @@ public class ListStreams
   }
 
   @Override
-  public int hashCode() {
-    return Objects.hash("ListStreams");
+  public boolean equals(final Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    final ListStreams that = (ListStreams) o;
+    return showExtended == that.showExtended;
   }
 
   @Override
-  public boolean equals(final Object obj) {
-    return this == obj;
+  public int hashCode() {
+    return Objects.hash(showExtended);
   }
 
   @Override
   public String toString() {
     return toStringHelper(this)
+        .add("showExtended", showExtended)
         .toString();
   }
 }

@@ -15,7 +15,7 @@
 
 package io.confluent.ksql.internal;
 
-import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.QueryMetadata;
@@ -216,7 +216,7 @@ public class KsqlEngineMetrics implements Closeable {
         new MeasurableStat() {
           @Override
           public double measure(final MetricConfig metricConfig, final long l) {
-            return ksqlEngine.numberOfPersistentQueries();
+            return ksqlEngine.getPersistentQueries().size();
           }
 
           @Override

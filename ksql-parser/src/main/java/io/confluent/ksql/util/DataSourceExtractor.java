@@ -16,35 +16,31 @@
 package io.confluent.ksql.util;
 
 import static java.util.Objects.requireNonNull;
-import static java.util.stream.Collectors.toList;
 
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.metastore.StructuredDataSource;
-import io.confluent.ksql.parser.AstBuilder;
+import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.parser.SqlBaseBaseVisitor;
 import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.Node;
 import io.confluent.ksql.parser.tree.NodeLocation;
-import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.Table;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
 
 public class DataSourceExtractor {
 
   private final MetaStore metaStore;
 
-  private Schema joinLeftSchema;
-  private Schema joinRightSchema;
-  private Schema fromSchema;
+  private KsqlSchema joinLeftSchema;
+  private KsqlSchema joinRightSchema;
 
   private String fromAlias;
   private String fromName;
@@ -83,10 +79,6 @@ public class DataSourceExtractor {
     return metaStore;
   }
 
-  public Schema getJoinLeftSchema() {
-    return joinLeftSchema;
-  }
-
   public String getFromAlias() {
     return fromAlias;
   }
@@ -111,10 +103,6 @@ public class DataSourceExtractor {
     return rightFieldNames;
   }
 
-  public Schema getJoinRightSchema() {
-    return joinRightSchema;
-  }
-
   public String getFromName() {
     return fromName;
   }
@@ -131,21 +119,17 @@ public class DataSourceExtractor {
     return isJoin;
   }
 
-  public Schema getFromSchema() {
-    return fromSchema;
-  }
-
   private final class Visitor extends SqlBaseBaseVisitor<Node> {
 
     @Override
-    public Node visitQuerySpecification(final SqlBaseParser.QuerySpecificationContext ctx) {
+    public Node visitQuery(final SqlBaseParser.QueryContext ctx) {
       visit(ctx.from);
       return visitChildren(ctx);
     }
 
     @Override
     public Node visitTableName(final SqlBaseParser.TableNameContext context) {
-      return new Table(getLocation(context), getQualifiedName(context.qualifiedName()));
+      return new Table(getLocation(context), ParserUtil.getQualifiedName(context.qualifiedName()));
     }
 
     @Override
@@ -163,20 +147,14 @@ public class DataSourceExtractor {
       if (!isJoin) {
         fromAlias = alias;
         fromName = table.getName().getSuffix().toUpperCase();
-        final StructuredDataSource
-            fromDataSource =
-            metaStore.getSource(table.getName().getSuffix());
-        if (fromDataSource == null) {
+        if (metaStore.getSource(table.getName().getSuffix()) == null) {
           throw new KsqlException(table.getName().getSuffix() + " does not exist.");
         }
-        fromSchema = fromDataSource.getSchema();
+
         return null;
       }
 
-      // TODO: Figure out if the call to toUpperCase() here is really necessary
-      return new AliasedRelation(getLocation(context), table, alias.toUpperCase(),
-          getColumnAliases(context.columnAliases()));
-
+      return new AliasedRelation(getLocation(context), table, alias);
     }
 
     @Override
@@ -185,7 +163,7 @@ public class DataSourceExtractor {
       final AliasedRelation left = (AliasedRelation) visit(context.left);
       leftAlias = left.getAlias();
       leftName = ((Table) left.getRelation()).getName().getSuffix();
-      final StructuredDataSource
+      final DataSource
           leftDataSource =
           metaStore.getSource(((Table) left.getRelation()).getName().getSuffix());
       if (leftDataSource == null) {
@@ -197,7 +175,7 @@ public class DataSourceExtractor {
       final AliasedRelation right = (AliasedRelation) visit(context.right);
       rightAlias = right.getAlias();
       rightName = ((Table) right.getRelation()).getName().getSuffix();
-      final StructuredDataSource
+      final DataSource
           rightDataSource =
           metaStore.getSource(((Table) right.getRelation()).getName().getSuffix());
       if (rightDataSource == null) {
@@ -210,34 +188,13 @@ public class DataSourceExtractor {
     }
   }
 
-  private static QualifiedName getQualifiedName(final SqlBaseParser.QualifiedNameContext context) {
-    final List<String> parts = context
-        .identifier().stream()
-        .map(AstBuilder::getIdentifierText)
-        .collect(toList());
-
-    return QualifiedName.of(parts);
-  }
-
-  private static List<String> getColumnAliases(
-      final SqlBaseParser.ColumnAliasesContext columnAliasesContext) {
-    if (columnAliasesContext == null) {
-      return null;
-    }
-
-    return columnAliasesContext
-        .identifier().stream()
-        .map(AstBuilder::getIdentifierText)
-        .collect(toList());
-  }
-
-  private static NodeLocation getLocation(final ParserRuleContext parserRuleContext) {
+  private static Optional<NodeLocation> getLocation(final ParserRuleContext parserRuleContext) {
     requireNonNull(parserRuleContext, "parserRuleContext is null");
     return getLocation(parserRuleContext.getStart());
   }
 
-  private static NodeLocation getLocation(final Token token) {
+  private static Optional<NodeLocation> getLocation(final Token token) {
     requireNonNull(token, "token is null");
-    return new NodeLocation(token.getLine(), token.getCharPositionInLine());
+    return Optional.of(new NodeLocation(token.getLine(), token.getCharPositionInLine()));
   }
 }

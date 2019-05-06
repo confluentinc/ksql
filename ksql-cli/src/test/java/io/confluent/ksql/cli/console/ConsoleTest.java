@@ -31,6 +31,7 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.TestTerminal;
 import io.confluent.ksql.cli.console.Console.NoOpRowCaptor;
 import io.confluent.ksql.cli.console.cmd.CliSpecificCommand;
+import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.rest.entity.ArgumentInfo;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
@@ -57,8 +58,9 @@ import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.entity.TopicDescription;
 import io.confluent.ksql.rest.server.computation.CommandId;
 import io.confluent.ksql.rest.util.EntityUtil;
-import io.confluent.ksql.serde.DataSource;
-import io.confluent.ksql.util.SchemaUtil;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchemas;
+import io.confluent.ksql.serde.Format;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -151,12 +153,12 @@ public class ConsoleTest {
               "e",
               new SourceDescription(
                   "TestSource", Collections.emptyList(), Collections.emptyList(), buildTestSchema(i),
-                  DataSource.DataSourceType.KTABLE.getKqlType(), "key", "2000-01-01", "stats",
+                  DataSourceType.KTABLE.getKsqlType(), "key", "2000-01-01", "stats",
                   "errors", false, "avro", "kadka-topic", 1, 1)),
           new TopicDescription("e", "TestTopic", "TestKafkaTopic", "AVRO", "schemaString"),
           new StreamsList("e", ImmutableList.of(new SourceInfo.Stream("TestStream", "TestTopic", "AVRO"))),
           new TablesList("e", ImmutableList.of(new SourceInfo.Table("TestTable", "TestTopic", "JSON", false))),
-          new KsqlTopicsList("e", ImmutableList.of(new KsqlTopicInfo("TestTopic", "TestKafkaTopic", DataSource.DataSourceSerDe.JSON))),
+          new KsqlTopicsList("e", ImmutableList.of(new KsqlTopicInfo("TestTopic", "TestKafkaTopic", Format.JSON))),
           new KafkaTopicsList("e", ImmutableList.of(new KafkaTopicInfo("TestKafkaTopic", true, ImmutableList.of(1),  1, 1))),
           new ExecutionPlan("Test Execution Plan")
       ));
@@ -171,7 +173,7 @@ public class ConsoleTest {
             "e",
             new SourceDescription(
                 "TestSource", Collections.emptyList(), Collections.emptyList(),
-                buildTestSchema(2), DataSource.DataSourceType.KTABLE.getKqlType(),
+                buildTestSchema(2), DataSourceType.KTABLE.getKsqlType(),
                 "key", "2000-01-01", "stats", "errors", true, "avro", "kadka-topic",
                 2, 1))));
 
@@ -209,8 +211,8 @@ public class ConsoleTest {
                             + " really, really, really, really, really, really, really, long\n"
                             + "description\n"
                             + "\tContaining Tabs\n"
-                            + "and stuff"
-                        )
+                            + "and stuff",
+                        true)
                 ),
                 "LONG",
                 "The function description, which too can be really, really, really, "
@@ -238,7 +240,7 @@ public class ConsoleTest {
           + "Jar         : some.jar\n"
           + "Variations  : \n"
           + "\n"
-          + "\tVariation   : FOO(arg1 INT)\n"
+          + "\tVariation   : FOO(arg1 INT[])\n"
           + "\tReturns     : LONG\n"
           + "\tDescription : The function description, which too can be really, really, really, really, really, \n"
           + "                really, really, really, really, really, really, really, really, really, really, \n"
@@ -385,8 +387,8 @@ public class ConsoleTest {
   private static List<FieldInfo> buildTestSchema(final int size) {
     final SchemaBuilder dataSourceBuilder = SchemaBuilder.struct().name("TestSchema");
     for (int i = 0; i < size; i++) {
-      dataSourceBuilder.field("f_" + i, SchemaUtil.getTypeSchema("STRING"));
+      dataSourceBuilder.field("f_" + i, LogicalSchemas.STRING);
     }
-    return EntityUtil.buildSourceSchemaEntity(dataSourceBuilder.build());
+    return EntityUtil.buildSourceSchemaEntity(KsqlSchema.of(dataSourceBuilder.build()));
   }
 }

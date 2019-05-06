@@ -17,39 +17,35 @@ package io.confluent.ksql.parser.tree;
 
 import static java.util.Objects.requireNonNull;
 
+import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
 import java.util.Optional;
 
-public class BetweenPredicate
-    extends Expression {
+@Immutable
+public class BetweenPredicate extends Expression {
 
   private final Expression value;
   private final Expression min;
   private final Expression max;
 
-  public BetweenPredicate(final Expression value, final Expression min, final Expression max) {
+  public BetweenPredicate(
+      final Expression value,
+      final Expression min,
+      final Expression max
+  ) {
     this(Optional.empty(), value, min, max);
   }
 
   public BetweenPredicate(
-      final NodeLocation location,
+      final Optional<NodeLocation> location,
       final Expression value,
       final Expression min,
-      final Expression max) {
-    this(Optional.of(location), value, min, max);
-  }
-
-  private BetweenPredicate(
-      final Optional<NodeLocation> location, final Expression value, final Expression min,
-                           final Expression max) {
+      final Expression max
+  ) {
     super(location);
-    requireNonNull(value, "value is null");
-    requireNonNull(min, "min is null");
-    requireNonNull(max, "max is null");
-
-    this.value = value;
-    this.min = min;
-    this.max = max;
+    this.value = requireNonNull(value, "value");
+    this.min = requireNonNull(min, "min");
+    this.max = requireNonNull(max, "max");
   }
 
   public Expression getValue() {

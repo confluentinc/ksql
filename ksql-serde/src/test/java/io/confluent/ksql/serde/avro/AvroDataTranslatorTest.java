@@ -39,7 +39,10 @@ public class AvroDataTranslatorTest {
         .optional()
         .build();
 
-    final AvroDataTranslator dataTranslator = new AvroDataTranslator(schema, KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME);
+    final AvroDataTranslator dataTranslator = new AvroDataTranslator(
+        schema,
+        KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME,
+        true);
     final GenericRow ksqlRow = new GenericRow(ImmutableList.of(123));
     final Struct struct = dataTranslator.toConnectRow(ksqlRow);
 
@@ -89,7 +92,10 @@ public class AvroDataTranslatorTest {
     final Struct structInnerStruct = new Struct(structInner)
         .put("STRUCT_INNER", "foo");
 
-    final AvroDataTranslator dataTranslator = new AvroDataTranslator(schema, KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME);
+    final AvroDataTranslator dataTranslator = new AvroDataTranslator(
+        schema,
+        KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME,
+        true);
     final GenericRow ksqlRow = new GenericRow(
         ImmutableList.of(arrayInnerStruct),
         ImmutableMap.of("bar", mapInnerStruct),
@@ -153,7 +159,10 @@ public class AvroDataTranslatorTest {
         .optional()
         .build();
 
-    final AvroDataTranslator dataTranslator = new AvroDataTranslator(schema, KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME);
+    final AvroDataTranslator dataTranslator = new AvroDataTranslator(
+        schema,
+        KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME,
+        true);
     final GenericRow ksqlRow = new GenericRow(Collections.singletonList(null));
     final Struct struct = dataTranslator.toConnectRow(ksqlRow);
 
@@ -170,7 +179,10 @@ public class AvroDataTranslatorTest {
         .optional()
         .build();
 
-    final AvroDataTranslator dataTranslator = new AvroDataTranslator(schema, KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME);
+    final AvroDataTranslator dataTranslator = new AvroDataTranslator(
+        schema,
+        KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME,
+        true);
     final GenericRow ksqlRow = new GenericRow(Collections.singletonList(123L));
     final Struct struct = dataTranslator.toConnectRow(ksqlRow);
 
@@ -189,7 +201,7 @@ public class AvroDataTranslatorTest {
 
     String schemaFullName = "com.custom.schema";
 
-    final AvroDataTranslator dataTranslator = new AvroDataTranslator(schema, schemaFullName);
+    final AvroDataTranslator dataTranslator = new AvroDataTranslator(schema, schemaFullName, true);
     final GenericRow ksqlRow = new GenericRow(Collections.singletonList(123L));
     final Struct struct = dataTranslator.toConnectRow(ksqlRow);
 

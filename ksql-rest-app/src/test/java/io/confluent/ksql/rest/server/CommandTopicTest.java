@@ -20,7 +20,6 @@ import static org.hamcrest.Matchers.sameInstance;
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -51,7 +50,6 @@ import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
-import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -238,14 +236,21 @@ public class CommandTopicTest {
   }
 
   @Test
+  public void shouldWakeUp() {
+    // When:
+    commandTopic.wakeup();
+
+    //Then:
+    verify(commandConsumer).wakeup();
+  }
+
+  @Test
   public void shouldCloseAllResources() {
     // When:
     commandTopic.close();
 
     //Then:
-    final InOrder ordered = inOrder(commandConsumer);
-    ordered.verify(commandConsumer).wakeup();
-    ordered.verify(commandConsumer).close();
+    verify(commandConsumer).close();
     verify(commandProducer).close();
   }
 
@@ -286,11 +291,12 @@ public class CommandTopicTest {
     verify(commandConsumer).endOffsets(Collections.singletonList(TOPIC_PARTITION));
   }
 
-  @SuppressWarnings("unchecked")
+  @SuppressWarnings("varargs")
+  @SafeVarargs
   private static ConsumerRecords<CommandId, Command> someConsumerRecords(
-      final ConsumerRecord... consumerRecords) {
-    return new ConsumerRecords(
+      final ConsumerRecord<CommandId, Command>... consumerRecords
+  ) {
+    return new ConsumerRecords<>(
         ImmutableMap.of(TOPIC_PARTITION, ImmutableList.copyOf(consumerRecords)));
   }
-
 }

@@ -15,11 +15,12 @@
 
 package io.confluent.ksql.parser.tree;
 
+import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
 import java.util.Optional;
 
-public class ArithmeticBinaryExpression
-    extends Expression {
+@Immutable
+public class ArithmeticBinaryExpression extends Expression {
 
   public enum Type {
     ADD("+"),
@@ -45,27 +46,21 @@ public class ArithmeticBinaryExpression
   public ArithmeticBinaryExpression(
       final Type type,
       final Expression left,
-      final Expression right) {
+      final Expression right
+  ) {
     this(Optional.empty(), type, left, right);
   }
 
   public ArithmeticBinaryExpression(
-      final NodeLocation location,
-      final Type type,
-      final Expression left,
-      final Expression right) {
-    this(Optional.of(location), type, left, right);
-  }
-
-  private ArithmeticBinaryExpression(
       final Optional<NodeLocation> location,
       final Type type,
       final Expression left,
-      final Expression right) {
+      final Expression right
+  ) {
     super(location);
-    this.type = type;
-    this.left = left;
-    this.right = right;
+    this.type = Objects.requireNonNull(type, "type");
+    this.left = Objects.requireNonNull(left, "left");
+    this.right = Objects.requireNonNull(right, "right");
   }
 
   public Type getType() {

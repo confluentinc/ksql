@@ -15,39 +15,35 @@
 
 package io.confluent.ksql.parser.tree;
 
-import static com.google.common.base.Preconditions.checkArgument;
+import static java.util.Objects.requireNonNull;
 
+import com.google.errorprone.annotations.Immutable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
-public class DereferenceExpression
-    extends Expression {
+@Immutable
+public class DereferenceExpression extends Expression {
 
   private final Expression base;
   private final String fieldName;
 
-  public DereferenceExpression(final Expression base, final String fieldName) {
-    this(Optional.empty(), base, fieldName);
-  }
-
   public DereferenceExpression(
-      final NodeLocation location,
       final Expression base,
-      final String fieldName) {
-    this(Optional.of(location), base, fieldName);
+      final String fieldName
+  ) {
+    this(Optional.empty(), base, fieldName);
   }
 
   public DereferenceExpression(
       final Optional<NodeLocation> location,
       final Expression base,
-      final String fieldName) {
+      final String fieldName
+  ) {
     super(location);
-    checkArgument(base != null, "base is null");
-    checkArgument(fieldName != null, "fieldName is null");
-    this.base = base;
-    this.fieldName = fieldName;
+    this.base = requireNonNull(base, "base");
+    this.fieldName = requireNonNull(fieldName, "fieldName");
   }
 
   @Override

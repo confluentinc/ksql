@@ -18,25 +18,27 @@ package io.confluent.ksql.ddl.commands;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.SerdeFactory;
+import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
-import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchemas;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.StringUtil;
-import io.confluent.ksql.util.TypeUtil;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicyFactory;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
-import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.kstream.WindowedSerdes;
@@ -47,20 +49,20 @@ import org.apache.kafka.streams.kstream.WindowedSerdes;
  */
 abstract class AbstractCreateStreamCommand implements DdlCommand {
 
-  private static final Map<String, Serde<Windowed<String>>> WINDOW_TYPES = ImmutableMap.of(
-      "SESSION", WindowedSerdes.sessionWindowedSerdeFrom(String.class),
-      "TUMBLING", WindowedSerdes.timeWindowedSerdeFrom(String.class),
-      "HOPPING", WindowedSerdes.timeWindowedSerdeFrom(String.class)
+  private static final Map<String, SerdeFactory<Windowed<String>>> WINDOW_TYPES = ImmutableMap.of(
+      "SESSION", () -> WindowedSerdes.sessionWindowedSerdeFrom(String.class),
+      "TUMBLING", () -> WindowedSerdes.timeWindowedSerdeFrom(String.class),
+      "HOPPING", () -> WindowedSerdes.timeWindowedSerdeFrom(String.class)
   );
 
   final String sqlExpression;
   final String sourceName;
   final String topicName;
-  final Schema schema;
-  final String keyColumnName;
+  final KsqlSchema schema;
+  final KeyField keyField;
   final RegisterTopicCommand registerTopicCommand;
   private final KafkaTopicClient kafkaTopicClient;
-  final Serde<?> keySerde;
+  final SerdeFactory<?> keySerdeFactory;
   final TimestampExtractionPolicy timestampExtractionPolicy;
 
   AbstractCreateStreamCommand(
@@ -72,8 +74,7 @@ abstract class AbstractCreateStreamCommand implements DdlCommand {
     this.sourceName = statement.getName().getSuffix();
     this.kafkaTopicClient = kafkaTopicClient;
 
-    // TODO: get rid of toUpperCase in following code
-    final Map<String, Expression> properties = statement.getProperties();
+    final Map<String, Literal> properties = statement.getProperties();
     validateWithClause(properties.keySet());
 
     if (properties.containsKey(DdlConfig.TOPIC_NAME_PROPERTY)
@@ -93,16 +94,16 @@ abstract class AbstractCreateStreamCommand implements DdlCommand {
     if (properties.containsKey(DdlConfig.KEY_NAME_PROPERTY)) {
       final String name = properties.get(DdlConfig.KEY_NAME_PROPERTY).toString().toUpperCase();
 
-      this.keyColumnName = StringUtil.cleanQuotes(name);
-      if (!SchemaUtil.getFieldByName(this.schema, keyColumnName).isPresent()) {
-        throw new KsqlException(String.format(
-            "No column with the provided key column name in the WITH "
-            + "clause, %s, exists in the defined schema.",
-            keyColumnName
-        ));
-      }
+      final String keyFieldName = StringUtil.cleanQuotes(name);
+      final Field keyField = schema.findField(keyFieldName)
+          .orElseThrow(() -> new KsqlException(
+              "The KEY column set in the WITH clause does not exist in the schema: '"
+                  + keyFieldName + "'"
+          ));
+
+      this.keyField = KeyField.of(keyFieldName, keyField);
     } else {
-      this.keyColumnName = "";
+      this.keyField = KeyField.none();
     }
 
     final String timestampName = properties.containsKey(DdlConfig.TIMESTAMP_NAME_PROPERTY)
@@ -115,17 +116,16 @@ abstract class AbstractCreateStreamCommand implements DdlCommand {
         timestampName,
         timestampFormat);
 
-    this.keySerde = extractKeySerde(properties);
+    this.keySerdeFactory = extractKeySerde(properties);
   }
 
-  private static void checkTopicNameNotNull(final Map<String, Expression> properties) {
-    // TODO: move the check to grammar
+  private static void checkTopicNameNotNull(final Map<String, ?> properties) {
     if (properties.get(DdlConfig.TOPIC_NAME_PROPERTY) == null) {
       throw new KsqlException("Topic name should be set in WITH clause.");
     }
   }
 
-  private static SchemaBuilder getStreamTableSchema(final List<TableElement> tableElements) {
+  private static KsqlSchema getStreamTableSchema(final List<TableElement> tableElements) {
     if (tableElements.isEmpty()) {
       throw new KsqlException("The statement does not define any columns.");
     }
@@ -142,11 +142,11 @@ abstract class AbstractCreateStreamCommand implements DdlCommand {
       }
       tableSchema = tableSchema.field(
           tableElement.getName(),
-          TypeUtil.getTypeSchema(tableElement.getType())
+          LogicalSchemas.fromSqlTypeConverter().fromSqlType(tableElement.getType())
       );
     }
 
-    return tableSchema;
+    return KsqlSchema.of(tableSchema.build());
   }
 
   static void checkMetaData(
@@ -154,7 +154,6 @@ abstract class AbstractCreateStreamCommand implements DdlCommand {
       final String sourceName,
       final String topicName
   ) {
-    // TODO: move the check to the runtime since it accesses metaStore
     if (metaStore.getSource(sourceName) != null) {
       throw new KsqlException(String.format("Source already exists: %s", sourceName));
     }
@@ -166,9 +165,9 @@ abstract class AbstractCreateStreamCommand implements DdlCommand {
   }
 
   private RegisterTopicCommand registerTopicFirst(
-      final Map<String, Expression> properties
+      final Map<String, Literal> properties
   ) {
-    final Expression topicNameExp = properties.get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY);
+    final Literal topicNameExp = properties.get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY);
 
     if (topicNameExp == null) {
       throw new KsqlException("Corresponding Kafka topic ("
@@ -193,7 +192,6 @@ abstract class AbstractCreateStreamCommand implements DdlCommand {
     validSet.add(DdlConfig.KEY_NAME_PROPERTY.toUpperCase());
     validSet.add(DdlConfig.WINDOW_TYPE_PROPERTY.toUpperCase());
     validSet.add(DdlConfig.TIMESTAMP_NAME_PROPERTY.toUpperCase());
-    validSet.add(DdlConfig.STATE_STORE_NAME_PROPERTY.toUpperCase());
     validSet.add(DdlConfig.TOPIC_NAME_PROPERTY.toUpperCase());
     validSet.add(KsqlConstants.AVRO_SCHEMA_ID.toUpperCase());
     validSet.add(DdlConfig.TIMESTAMP_FORMAT_PROPERTY.toUpperCase());
@@ -206,8 +204,8 @@ abstract class AbstractCreateStreamCommand implements DdlCommand {
     }
   }
 
-  private static Serde<?> extractKeySerde(
-      final Map<String, Expression> properties
+  private static SerdeFactory<?> extractKeySerde(
+      final Map<String, Literal> properties
   ) {
     final String windowType = StringUtil.cleanQuotes(properties
         .getOrDefault(DdlConfig.WINDOW_TYPE_PROPERTY, new StringLiteral(""))
@@ -215,10 +213,10 @@ abstract class AbstractCreateStreamCommand implements DdlCommand {
         .toUpperCase());
 
     if (windowType.isEmpty()) {
-      return Serdes.String();
+      return (SerdeFactory) Serdes::String;
     }
 
-    final Serde<Windowed<String>> type = WINDOW_TYPES.get(windowType);
+    final SerdeFactory<Windowed<String>> type = WINDOW_TYPES.get(windowType);
     if (type != null) {
       return type;
     }

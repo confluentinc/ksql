@@ -11,10 +11,11 @@ $ mvn archetype:generate -X \
     -DarchetypeVersion=5.2.0-SNAPSHOT \
     -DgroupId=com.example.ksql.functions \
     -DartifactId=my-udf \
+    -Dauthor=Bob \
     -Dversion=0.1.0-SNAPSHOT
 ```
 
-This will copy an example UDF and UDAF into the `my-udf` directory. Be sure to update the `groupId`, `artifactId`, and `version` properties in the command above to the appropriate values for your project.
+This will copy an example UDF and UDAF into the `my-udf` directory. Be sure to update the `groupId`, `artifactId`, `author` and `version` properties in the command above to the appropriate values for your project.
 
 Once you're ready to deploy your custom functions, run the following command to build an uber JAR.
 

@@ -21,7 +21,7 @@ import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlException;
 
-public class CreateTableCommand extends AbstractCreateStreamCommand {
+public class CreateTableCommand extends CreateSourceCommand {
 
   CreateTableCommand(
       final String sqlExpression,

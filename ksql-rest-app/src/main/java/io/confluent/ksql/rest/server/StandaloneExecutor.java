@@ -22,7 +22,7 @@ import io.confluent.ksql.function.UdfLoader;
 import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
-import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
+import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
@@ -305,11 +305,11 @@ public class StandaloneExecutor implements Executable {
     }
 
     private static void throwOnMissingSchema(final ConfiguredStatement<?> statement) {
-      if (!(statement.getStatement() instanceof AbstractStreamCreateStatement)) {
+      if (!(statement.getStatement() instanceof CreateSource)) {
         return;
       }
 
-      if (!((AbstractStreamCreateStatement) statement.getStatement()).getElements().isEmpty()) {
+      if (!((CreateSource) statement.getStatement()).getElements().isEmpty()) {
         return;
       }
 

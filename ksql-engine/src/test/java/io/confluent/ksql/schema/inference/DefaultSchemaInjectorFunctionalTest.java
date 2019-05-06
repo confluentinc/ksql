@@ -26,7 +26,7 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.KsqlParserTestUtil;
-import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
+import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.schema.ksql.LogicalSchemas;
@@ -468,12 +468,12 @@ public class DefaultSchemaInjectorFunctionalTest {
         .buildSingleAst(inferred.getStatementText(), metaStore)
         .getStatement();
 
-    final Schema actual = getSchemaForDdlStatement((AbstractStreamCreateStatement) withSchema);
+    final Schema actual = getSchemaForDdlStatement((CreateSource) withSchema);
 
     Assert.assertThat(actual, equalTo(expectedKqlSchema));
   }
 
-  private static Schema getSchemaForDdlStatement(final AbstractStreamCreateStatement statement) {
+  private static Schema getSchemaForDdlStatement(final CreateSource statement) {
     final SchemaBuilder builder = SchemaBuilder.struct();
     for (final TableElement tableElement : statement.getElements()) {
       builder.field(

@@ -50,7 +50,7 @@ final class TopicValidationUtil {
       final int actualNumReplicas
   ) {
     if (actualNumPartitions != requiredNumPartition
-        || (requiredNumPartition != TopicProperties.DEFAULT_REPLICAS
+        || (requiredNumReplicas != TopicProperties.DEFAULT_REPLICAS
         && actualNumReplicas < requiredNumReplicas)) {
       throw new KafkaTopicExistsException(String.format(
           "A Kafka topic with the name '%s' already exists, with different partition/replica "

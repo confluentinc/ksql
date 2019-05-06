@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -19,6 +20,8 @@ import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasSize;
 
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.logging.processing.ProcessingLogContext;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.serde.json.KsqlJsonDeserializer;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import java.time.Duration;
@@ -32,7 +35,6 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.kafka.common.serialization.Deserializer;
-import org.apache.kafka.connect.data.Schema;
 import org.hamcrest.Matcher;
 
 public class TopicConsumer {
@@ -41,15 +43,18 @@ public class TopicConsumer {
   private static final Duration RESULTS_EXTRA_POLL_TIME = Duration.ofMillis(250);
 
   private final EmbeddedSingleNodeKafkaCluster cluster;
+  private final ProcessingLogContext processingLogContext = ProcessingLogContext.create();
 
   public TopicConsumer(final EmbeddedSingleNodeKafkaCluster cluster) {
     this.cluster = cluster;
   }
 
-  public <K, V> Map<K, V> readResults(final String topic,
-                                      final Matcher<Integer> expectedNumMessages,
-                                      final Deserializer<V> valueDeserializer,
-                                      final Deserializer<K> keyDeserializer) {
+  public <K, V> Map<K, V> readResults(
+      final String topic,
+      final Matcher<Integer> expectedNumMessages,
+      final Deserializer<V> valueDeserializer,
+      final Deserializer<K> keyDeserializer
+  ) {
     final Map<K, V> result = new HashMap<>();
 
     final Properties consumerConfig = new Properties();
@@ -81,28 +86,29 @@ public class TopicConsumer {
     return result;
   }
 
-  public <K> Map<K, GenericRow> readResults(final String topic,
-                                            final Schema schema,
-                                            final int expectedNumMessages,
-                                            final Deserializer<K> keyDeserializer) {
-    return readResults(topic, greaterThanOrEqualTo(expectedNumMessages),
-                       new KsqlJsonDeserializer(schema, false), keyDeserializer
+  public <K> Map<K, GenericRow> readResults(
+      final String topic,
+      final KsqlSchema schema,
+      final int expectedNumMessages,
+      final Deserializer<K> keyDeserializer
+  ) {
+    return readResults(
+        topic,
+        greaterThanOrEqualTo(expectedNumMessages),
+        new KsqlJsonDeserializer(
+            schema.getSchema(),
+            processingLogContext.getLoggerFactory().getLogger("consumer")),
+        keyDeserializer
     );
   }
 
   public void verifyRecordsReceived(final String topic,
                                     final Matcher<Integer> expectedNumMessages) {
-    verifyRecordsReceived(topic, expectedNumMessages,
-                          new ByteArrayDeserializer(),
-                          new ByteArrayDeserializer());
-  }
-
-  public <K> Map<K, GenericRow> verifyRecordsReceived(final String topic,
-                                                      final Schema schema,
-                                                      final Matcher<Integer> expectedNumMessages,
-                                                      final Deserializer<K> keyDeserializer) {
-    return verifyRecordsReceived(topic, expectedNumMessages,
-                                 new KsqlJsonDeserializer(schema, false), keyDeserializer);
+    verifyRecordsReceived(
+        topic,
+        expectedNumMessages,
+        new ByteArrayDeserializer(),
+        new ByteArrayDeserializer());
   }
 
   public <K, V> Map<K, V> verifyRecordsReceived(final String topic,

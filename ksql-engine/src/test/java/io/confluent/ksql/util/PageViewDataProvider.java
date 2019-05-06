@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -14,10 +15,10 @@
 package io.confluent.ksql.util;
 
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
-import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 
 public class PageViewDataProvider extends TestDataProvider {
@@ -29,10 +30,11 @@ public class PageViewDataProvider extends TestDataProvider {
 
   private static final String key = "PAGEID";
 
-  private static final Schema schema = SchemaBuilder.struct()
+  private static final KsqlSchema schema = KsqlSchema.of(SchemaBuilder.struct()
       .field("VIEWTIME", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
       .field("USERID", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
-      .field("PAGEID", SchemaBuilder.OPTIONAL_STRING_SCHEMA).build();
+      .field("PAGEID", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
+      .build());
 
   private static final Map<String, GenericRow> data = buildData();
 

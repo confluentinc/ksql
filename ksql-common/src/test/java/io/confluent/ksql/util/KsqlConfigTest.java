@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -22,9 +23,13 @@ import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.hasEntry;
+import static org.hamcrest.Matchers.hasKey;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler;
+import io.confluent.ksql.errors.ProductionExceptionHandlerUtil.LogAndContinueProductionExceptionHandler;
+import io.confluent.ksql.errors.ProductionExceptionHandlerUtil.LogAndFailProductionExceptionHandler;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -34,7 +39,6 @@ import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.common.config.SslConfigs;
 import org.apache.kafka.streams.StreamsConfig;
-import org.hamcrest.core.IsEqual;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -62,14 +66,14 @@ public class KsqlConfigTest {
   public void shouldSetLogAndContinueExceptionHandlerByDefault() {
     final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
     final Object result = ksqlConfig.getKsqlStreamConfigProps().get(StreamsConfig.DEFAULT_DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG);
-    assertThat(result, IsEqual.equalTo(LogMetricAndContinueExceptionHandler.class));
+    assertThat(result, equalTo(LogMetricAndContinueExceptionHandler.class));
   }
 
   @Test
   public void shouldSetLogAndContinueExceptionHandlerWhenFailOnDeserializationErrorFalse() {
     final KsqlConfig ksqlConfig = new KsqlConfig(Collections.singletonMap(KsqlConfig.FAIL_ON_DESERIALIZATION_ERROR_CONFIG, false));
     final Object result = ksqlConfig.getKsqlStreamConfigProps().get(StreamsConfig.DEFAULT_DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG);
-    assertThat(result, IsEqual.equalTo(LogMetricAndContinueExceptionHandler.class));
+    assertThat(result, equalTo(LogMetricAndContinueExceptionHandler.class));
   }
 
   @Test
@@ -77,6 +81,32 @@ public class KsqlConfigTest {
     final KsqlConfig ksqlConfig = new KsqlConfig(Collections.singletonMap(KsqlConfig.FAIL_ON_DESERIALIZATION_ERROR_CONFIG, true));
     final Object result = ksqlConfig.getKsqlStreamConfigProps().get(StreamsConfig.DEFAULT_DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG);
     assertThat(result, nullValue());
+  }
+
+  @Test
+  public void shouldSetLogAndContinueExceptionHandlerWhenFailOnProductionErrorFalse() {
+    final KsqlConfig ksqlConfig =
+        new KsqlConfig(Collections.singletonMap(KsqlConfig.FAIL_ON_PRODUCTION_ERROR_CONFIG, false));
+    final Object result = ksqlConfig.getKsqlStreamConfigProps()
+        .get(StreamsConfig.DEFAULT_PRODUCTION_EXCEPTION_HANDLER_CLASS_CONFIG);
+    assertThat(result, equalTo(LogAndContinueProductionExceptionHandler.class));
+  }
+
+  @Test
+  public void shouldNotSetDeserializationExceptionHandlerWhenFailOnProductionErrorTrue() {
+    final KsqlConfig ksqlConfig =
+        new KsqlConfig(Collections.singletonMap(KsqlConfig.FAIL_ON_PRODUCTION_ERROR_CONFIG, true));
+    final Object result = ksqlConfig.getKsqlStreamConfigProps()
+        .get(StreamsConfig.DEFAULT_PRODUCTION_EXCEPTION_HANDLER_CLASS_CONFIG);
+    assertThat(result, equalTo(LogAndFailProductionExceptionHandler.class));
+  }
+
+  @Test
+  public void shouldFailOnProductionErrorByDefault() {
+    final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
+    final Object result = ksqlConfig.getKsqlStreamConfigProps()
+        .get(StreamsConfig.DEFAULT_PRODUCTION_EXCEPTION_HANDLER_CLASS_CONFIG);
+    assertThat(result, equalTo(LogAndFailProductionExceptionHandler.class));
   }
 
   @Test
@@ -230,6 +260,72 @@ public class KsqlConfigTest {
             ConsumerConfig.FETCH_MIN_BYTES_CONFIG, "200"));
     final Object result = ksqlConfigClone.getKsqlStreamConfigProps().get(ConsumerConfig.FETCH_MIN_BYTES_CONFIG);
     assertThat(result, equalTo(200));
+  }
+
+  @Test
+  public void shouldHaveCorrectOriginalsAfterCloneWithOverwrite() {
+    // Given:
+    final KsqlConfig initial = new KsqlConfig(ImmutableMap.of(
+        KsqlConfig.KSQL_SERVICE_ID_CONFIG, "original-id",
+        KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS, "on"
+    ));
+
+    // When:
+    final KsqlConfig cloned = initial.cloneWithPropertyOverwrite(ImmutableMap.of(
+        KsqlConfig.KSQL_SERVICE_ID_CONFIG, "overridden-id",
+        KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG, "bob"
+    ));
+
+    // Then:
+    assertThat(cloned.originals(), is(ImmutableMap.of(
+        KsqlConfig.KSQL_SERVICE_ID_CONFIG, "overridden-id",
+        KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS, "on",
+        KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG, "bob"
+    )));
+  }
+
+  @Test
+  public void shouldCloneWithUdfProperty() {
+    // Given:
+    final String functionName = "bob";
+    final String settingPrefix = KsqlConfig.KSQL_FUNCTIONS_PROPERTY_PREFIX + functionName + ".";
+
+    final KsqlConfig config = new KsqlConfig(ImmutableMap.of(
+        settingPrefix + "one", "should-be-cloned",
+        settingPrefix + "two", "should-be-overwritten"
+    ));
+
+    // When:
+    final KsqlConfig cloned = config.cloneWithPropertyOverwrite(ImmutableMap.of(
+        settingPrefix + "two", "should-be-new-value"
+    ));
+
+    // Then:
+    assertThat(cloned.getKsqlFunctionsConfigProps(functionName), is(ImmutableMap.of(
+        settingPrefix + "one", "should-be-cloned",
+        settingPrefix + "two", "should-be-new-value"
+    )));
+  }
+
+  @Test
+  public void shouldCloneWithMultipleOverwrites() {
+    final KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of(
+        ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, "123",
+        ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest"
+    ));
+    final KsqlConfig clone = ksqlConfig.cloneWithPropertyOverwrite(ImmutableMap.of(
+        StreamsConfig.NUM_STREAM_THREADS_CONFIG, "2",
+        ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, "456"
+    ));
+    final KsqlConfig cloneClone = clone.cloneWithPropertyOverwrite(ImmutableMap.of(
+        ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest",
+        StreamsConfig.METADATA_MAX_AGE_CONFIG, "13"
+    ));
+    final Map<String, ?> props = cloneClone.getKsqlStreamConfigProps();
+    assertThat(props.get(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG), equalTo(456));
+    assertThat(props.get(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG), equalTo("earliest"));
+    assertThat(props.get(StreamsConfig.NUM_STREAM_THREADS_CONFIG), equalTo(2));
+    assertThat(props.get(StreamsConfig.METADATA_MAX_AGE_CONFIG), equalTo(13L));
   }
 
   @Test
@@ -479,6 +575,22 @@ public class KsqlConfigTest {
     assertThat(
         merged.getKsqlStreamConfigProps().get(StreamsConfig.TOPOLOGY_OPTIMIZATION),
         equalTo(StreamsConfig.NO_OPTIMIZATION));
+  }
+
+  @Test
+  public void shouldFilterProducerConfigs() {
+    // Given:
+    final Map<String, Object> configs = new HashMap<>();
+    configs.put(ProducerConfig.ACKS_CONFIG, "all");
+    configs.put(ProducerConfig.CLIENT_ID_CONFIG, null);
+    configs.put("not.a.config", "123");
+
+    final KsqlConfig ksqlConfig = new KsqlConfig(configs);
+
+    // When:
+    assertThat(ksqlConfig.getProducerClientConfigProps(), hasEntry(ProducerConfig.ACKS_CONFIG, "all"));
+    assertThat(ksqlConfig.getProducerClientConfigProps(), hasEntry(ProducerConfig.CLIENT_ID_CONFIG, null));
+    assertThat(ksqlConfig.getProducerClientConfigProps(), not(hasKey("not.a.config")));
   }
 
   @Test

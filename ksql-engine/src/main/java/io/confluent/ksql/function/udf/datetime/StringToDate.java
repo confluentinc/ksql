@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -41,9 +42,9 @@ public class StringToDate {
   @Udf(description = "Converts formattedDate, a string representation of a date into"
       + " an integer representing days since epoch using the given formatPattern.")
   public int stringToDate(
-      @UdfParameter(value = "formattedDate",
+      @UdfParameter(
           description = "The string representation of a date.") final String formattedDate,
-      @UdfParameter(value = "formatPattern",
+      @UdfParameter(
           description = "The format pattern should be in the format expected by"
               + " java.time.format.DateTimeFormatter.") final String formatPattern) {
     try {

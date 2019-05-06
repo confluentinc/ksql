@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -16,74 +17,43 @@ package io.confluent.ksql.parser.tree;
 
 import static com.google.common.base.MoreObjects.toStringHelper;
 
-import com.google.common.collect.ImmutableList;
-import java.util.List;
+import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
 import java.util.Optional;
 
-public class Explain
-    extends Statement {
+@Immutable
+public class Explain extends Statement {
 
-  private final Statement statement;
-  private final String queryId;
-  private final boolean analyze;
-  private final List<ExplainOption> options;
+  private final Optional<Statement> statement;
+  private final Optional<String> queryId;
 
   public Explain(
-      final String queryId,
-      final Statement statement,
-      final boolean analyze,
-      final List<ExplainOption> options
+      final Optional<String> queryId,
+      final Optional<Statement> statement
   ) {
-    this(Optional.empty(), analyze, queryId, statement, options);
+    this(Optional.empty(), queryId, statement);
   }
 
   public Explain(
-      final NodeLocation location,
-      final boolean analyze,
-      final String queryId,
-      final Statement statement,
-      final List<ExplainOption> options
-  ) {
-    this(Optional.of(location), analyze, queryId, statement, options);
-  }
-
-  private Explain(
       final Optional<NodeLocation> location,
-      final boolean analyze,
-      final String queryId,
-      final Statement statement,
-      final List<ExplainOption> options
+      final Optional<String> queryId,
+      final Optional<Statement> statement
   ) {
     super(location);
-    this.statement = statement;
-    this.analyze = analyze;
+    this.statement = Objects.requireNonNull(statement, "statement");
     this.queryId = queryId;
-    if (options == null) {
-      this.options = ImmutableList.of();
-    } else {
-      this.options = ImmutableList.copyOf(options);
-    }
 
-    if (statement == null && queryId == null) {
-      throw new NullPointerException("Must supply either queryId or statement");
+    if (statement.isPresent() == queryId.isPresent()) {
+      throw new IllegalArgumentException("Must supply either queryId or statement");
     }
   }
 
-  public Statement getStatement() {
+  public Optional<Statement> getStatement() {
     return statement;
   }
 
-  public String getQueryId() {
+  public Optional<String> getQueryId() {
     return queryId;
-  }
-
-  public boolean isAnalyze() {
-    return analyze;
-  }
-
-  public List<ExplainOption> getOptions() {
-    return options;
   }
 
   @Override
@@ -93,7 +63,7 @@ public class Explain
 
   @Override
   public int hashCode() {
-    return Objects.hash(statement, options, analyze);
+    return Objects.hash(statement, queryId);
   }
 
   @Override
@@ -106,16 +76,14 @@ public class Explain
     }
     final Explain o = (Explain) obj;
     return Objects.equals(statement, o.statement)
-           && Objects.equals(options, o.options)
-           && Objects.equals(analyze, o.analyze);
+           && Objects.equals(queryId, o.queryId);
   }
 
   @Override
   public String toString() {
     return toStringHelper(this)
         .add("statement", statement)
-        .add("options", options)
-        .add("analyze", analyze)
+        .add("queryId", queryId)
         .toString();
   }
 }

@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -16,26 +17,44 @@ package io.confluent.ksql.cli.console.cmd;
 
 import static javax.ws.rs.core.Response.Status.NOT_ACCEPTABLE;
 
+import io.confluent.ksql.links.DocumentationLinks;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.server.resources.Errors;
 import io.confluent.ksql.util.ErrorMessageUtil;
+import io.confluent.ksql.util.Event;
 import java.io.PrintWriter;
+import java.util.List;
 import java.util.Objects;
+import javax.net.ssl.SSLException;
 import javax.ws.rs.ProcessingException;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.text.WordUtils;
 
-public class RemoteServerSpecificCommand implements CliSpecificCommand {
+public final class RemoteServerSpecificCommand implements CliSpecificCommand {
+
+  private static final int CONSOLE_WIDTH = 80;
+  private static final String HELP = "server:" + System.lineSeparator()
+      + "\tShow the current server" + System.lineSeparator()
+      + "\nserver <server>:" + System.lineSeparator()
+      + "\tChange the current server to <server>" + System.lineSeparator()
+      + "\t example: \"server http://my.awesome.server.com:9098;\"";
 
   private final KsqlRestClient restClient;
-  private final PrintWriter writer;
+  private final Event resetCliForNewServer;
 
-  public RemoteServerSpecificCommand(
-      final KsqlRestClient restClient,
-      final PrintWriter writer) {
+  public static RemoteServerSpecificCommand create(
+      final KsqlRestClient restClient, final Event resetCliForNewServer) {
+    return new RemoteServerSpecificCommand(restClient, resetCliForNewServer);
+  }
+
+  private RemoteServerSpecificCommand(
+      final KsqlRestClient restClient, final Event resetCliForNewServer) {
     this.restClient = Objects.requireNonNull(restClient, "restClient");
-    this.writer = Objects.requireNonNull(writer, "writer");
+    this.resetCliForNewServer =
+        Objects.requireNonNull(resetCliForNewServer, "resetCliForNewServer");
   }
 
   @Override
@@ -44,25 +63,25 @@ public class RemoteServerSpecificCommand implements CliSpecificCommand {
   }
 
   @Override
-  public void printHelp() {
-    writer.println("server:");
-    writer.println("\tShow the current server");
-    writer.println("\nserver <server>:");
-    writer.println("\tChange the current server to <server>");
-    writer.println("\t example: \"server http://my.awesome.server.com:9098;\"");
+  public String getHelpMessage() {
+    return HELP;
   }
 
   @Override
-  public void execute(final String command) {
-    if (command.isEmpty()) {
-      writer.println(restClient.getServerAddress());
+  public void execute(final List<String> args, final PrintWriter terminal) {
+    CliCmdUtil.ensureArgCountBounds(args, 0, 1, HELP);
+
+    if (args.isEmpty()) {
+      terminal.println(restClient.getServerAddress());
+      return;
     } else {
-      final String serverAddress = command.trim();
+      final String serverAddress = args.get(0);
       restClient.setServerAddress(serverAddress);
-      writer.write("Server now: " + command);
+      terminal.println("Server now: " + serverAddress);
+      resetCliForNewServer.fire();
     }
 
-    validateClient(writer, restClient);
+    validateClient(terminal, restClient);
   }
 
   public static void validateClient(
@@ -70,7 +89,7 @@ public class RemoteServerSpecificCommand implements CliSpecificCommand {
       final KsqlRestClient restClient
   ) {
     try {
-      final RestResponse restResponse = restClient.makeRootRequest();
+      final RestResponse<?> restResponse = restClient.makeRootRequest();
       if (restResponse.isErroneous()) {
         final KsqlErrorMessage ksqlError = restResponse.getErrorMessage();
         if (Errors.toStatusCode(ksqlError.getErrorCode()) == NOT_ACCEPTABLE.getStatusCode()) {
@@ -83,17 +102,32 @@ public class RemoteServerSpecificCommand implements CliSpecificCommand {
     } catch (final IllegalArgumentException exception) {
       writer.println("Server URL must begin with protocol (e.g., http:// or https://)");
     } catch (final KsqlRestClientException exception) {
-      if (exception.getCause() instanceof ProcessingException) {
-        writer.println();
-        writer.println("**************** ERROR ********************");
-        writer.println("Remote server address may not be valid.");
-        writer.println("Address: " + restClient.getServerAddress());
-        writer.println(ErrorMessageUtil.buildErrorMessage(exception));
-        writer.println("*******************************************");
-        writer.println();
-      } else {
+      if (!(exception.getCause() instanceof ProcessingException)) {
         throw exception;
       }
+
+      writer.println();
+      writer.println(StringUtils.center("ERROR", CONSOLE_WIDTH, "*"));
+
+      final String errorMsg;
+
+      if (exception.getCause().getCause() instanceof SSLException) {
+        errorMsg = " looks to be configured to use HTTPS / SSL. "
+            + "Please refer to the KSQL documentation on how to configure the CLI for SSL: "
+            + DocumentationLinks.SECURITY_CLI_SSL_DOC_URL;
+      } else {
+        errorMsg = " does not appear to be a valid KSQL server."
+            + " Please ensure that the URL provided is for an active KSQL server.";
+      }
+
+      writer.println(WordUtils.wrap(
+          "Remote server at " + restClient.getServerAddress() + errorMsg, CONSOLE_WIDTH));
+
+      writer.println("");
+      writer.println("The server responded with the following error: ");
+      writer.println(ErrorMessageUtil.buildErrorMessage(exception));
+      writer.println(StringUtils.repeat('*', CONSOLE_WIDTH));
+      writer.println();
     } finally {
       writer.flush();
     }

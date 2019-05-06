@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -43,10 +44,10 @@ public class TimestampToString {
       + " The format pattern should be in the format expected"
       + " by java.time.format.DateTimeFormatter")
   public String timestampToString(
-      @UdfParameter(value = "epochMilli",
+      @UdfParameter(
           description = "Milliseconds since"
               + " January 1, 1970, 00:00:00 GMT.") final long epochMilli,
-      @UdfParameter(value = "formatPattern",
+      @UdfParameter(
           description = "The format pattern should be in the format expected by"
               + " java.time.format.DateTimeFormatter.") final String formatPattern) {
     try {
@@ -67,13 +68,13 @@ public class TimestampToString {
       + " string representation of the timestamp in the given format. Single quotes in the"
       + " timestamp format can be escaped with '', for example: 'yyyy-MM-dd''T''HH:mm:ssX'")
   public String timestampToString(
-      @UdfParameter(value = "epochMilli",
+      @UdfParameter(
           description = "Milliseconds since"
               + " January 1, 1970, 00:00:00 GMT.") final long epochMilli,
-      @UdfParameter(value = "formatPattern",
+      @UdfParameter(
           description = "The format pattern should be in the format expected by"
               + " java.time.format.DateTimeFormatter.") final String formatPattern,
-      @UdfParameter(value = "timeZone",
+      @UdfParameter(
           description =  " timeZone is a java.util.TimeZone ID format, for example: \"UTC\","
               + " \"America/Los_Angeles\", \"PDT\", \"Europe/London\"") final String timeZone) {
     try {

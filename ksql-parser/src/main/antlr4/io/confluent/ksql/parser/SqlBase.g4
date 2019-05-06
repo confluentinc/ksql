@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -35,17 +36,16 @@ statement
     | (LIST | SHOW) PROPERTIES                                              #listProperties
     | (LIST | SHOW) TOPICS                                                  #listTopics
     | (LIST | SHOW) REGISTERED TOPICS                                       #listRegisteredTopics
-    | (LIST | SHOW) STREAMS EXTENDED?                                   #listStreams
-    | (LIST | SHOW) TABLES EXTENDED?                                    #listTables
-    | (LIST | SHOW) FUNCTIONS                                            #listFunctions
+    | (LIST | SHOW) STREAMS EXTENDED?                                       #listStreams
+    | (LIST | SHOW) TABLES EXTENDED?                                        #listTables
+    | (LIST | SHOW) FUNCTIONS                                               #listFunctions
     | DESCRIBE EXTENDED? (qualifiedName | TOPIC qualifiedName)              #showColumns
     | DESCRIBE FUNCTION qualifiedName                                       #describeFunction
-    | PRINT (qualifiedName | STRING) (FROM BEGINNING)? ((INTERVAL | SAMPLE) number)?   #printTopic
-    | (LIST | SHOW) QUERIES EXTENDED?                                   #listQueries
+    | PRINT (qualifiedName | STRING) printClause                            #printTopic
+    | (LIST | SHOW) QUERIES EXTENDED?                                       #listQueries
     | TERMINATE QUERY? qualifiedName                                        #terminateQuery
     | SET STRING EQ STRING                                                  #setProperty
     | UNSET STRING                                                          #unsetProperty
-    | LOAD expression                                                       #loadProperties
     | REGISTER TOPIC (IF NOT EXISTS)? qualifiedName
             (WITH tableProperties)?                                         #registerTopic
     | CREATE STREAM (IF NOT EXISTS)? qualifiedName
@@ -60,17 +60,22 @@ statement
     | CREATE TABLE (IF NOT EXISTS)? qualifiedName
             (WITH tableProperties)? AS query                                #createTableAs
     | INSERT INTO qualifiedName query (PARTITION BY identifier)?            #insertInto
+    | INSERT INTO qualifiedName (columns)? VALUES values                    #insertValues
     | DROP TOPIC (IF EXISTS)? qualifiedName                                 #dropTopic
-    | DROP STREAM (IF EXISTS)? qualifiedName (DELETE TOPIC)?                  #dropStream
-    | DROP TABLE (IF EXISTS)? qualifiedName  (DELETE TOPIC)?                  #dropTable
-    | EXPLAIN ANALYZE?
-            (statement | qualifiedName)         #explain
-    | EXPORT CATALOG TO STRING                                              #exportCatalog
+    | DROP STREAM (IF EXISTS)? qualifiedName (DELETE TOPIC)?                #dropStream
+    | DROP TABLE (IF EXISTS)? qualifiedName  (DELETE TOPIC)?                #dropTable
+    | EXPLAIN  (statement | qualifiedName)                                  #explain
     | RUN SCRIPT STRING                                                     #runScript
     ;
 
 query
-    :  queryNoWith
+    : SELECT selectItem (',' selectItem)*
+      FROM from=relation
+      (WINDOW  windowExpression)?
+      (WHERE where=booleanExpression)?
+      (GROUP BY groupBy)?
+      (HAVING having=booleanExpression)?
+      limitClause?
     ;
 
 tableElement
@@ -82,33 +87,19 @@ tableProperties
     ;
 
 tableProperty
-    : identifier EQ expression
+    : identifier EQ literal
     ;
 
-queryNoWith:
-      queryTerm
-      (LIMIT limit=(INTEGER_VALUE | ALL))?
+printClause
+      : (FROM BEGINNING)? intervalClause? limitClause?
+      ;
+
+intervalClause
+    : (INTERVAL | SAMPLE) number
     ;
 
-queryTerm
-    : queryPrimary                                                             #queryTermDefault
-    ;
-
-queryPrimary
-    : querySpecification                   #queryPrimaryDefault
-    | TABLE qualifiedName                  #table
-    | VALUES expression (',' expression)*  #inlineTable
-    | '(' queryNoWith  ')'                 #subquery
-    ;
-
-querySpecification
-    : SELECT selectItem (',' selectItem)*
-      (INTO into=relationPrimary)?
-      FROM from=relation
-      (WINDOW  windowExpression)?
-      (WHERE where=booleanExpression)?
-      (GROUP BY groupBy)?
-      (HAVING having=booleanExpression)?
+limitClause
+    : LIMIT number
     ;
 
 windowExpression
@@ -154,9 +145,13 @@ groupingExpressions
     | expression
     ;
 
-namedQuery
-    : name=identifier (columnAliases)? AS '(' query ')'
+values
+    : '(' (literal (',' literal)*)? ')'
     ;
+
+/*
+ * Dropped `namedQuery` as we don't support them.
+ */
 
 selectItem
     : expression (AS? identifier)?  #selectSingle
@@ -165,9 +160,8 @@ selectItem
     ;
 
 relation
-    : left=aliasedRelation joinType JOIN right=aliasedRelation joinWindow? joinCriteria
-    #joinRelation
-    | aliasedRelation #relationDefault
+    : left=aliasedRelation joinType JOIN right=aliasedRelation joinWindow? joinCriteria #joinRelation
+    | aliasedRelation                                                                   #relationDefault
     ;
 
 joinType
@@ -177,7 +171,7 @@ joinType
     ;
 
 joinWindow
-    : (WITHIN withinExpression)?
+    : WITHIN withinExpression
     ;
 
 withinExpression
@@ -194,18 +188,15 @@ joinCriteria
     ;
 
 aliasedRelation
-    : relationPrimary (AS? identifier columnAliases?)?
+    : relationPrimary (AS? identifier)?
     ;
 
-columnAliases
+columns
     : '(' identifier (',' identifier)* ')'
     ;
 
 relationPrimary
-    :
-    qualifiedName (WITH tableProperties)?                             #tableName
-    | '(' query ')'                                                   #subqueryRelation
-    | '(' relation ')'                                                #parenthesizedRelation
+    : qualifiedName                                                   #tableName
     ;
 
 expression
@@ -230,8 +221,7 @@ predicate[ParserRuleContext value]
     : comparisonOperator right=valueExpression                            #comparison
     | NOT? BETWEEN lower=valueExpression AND upper=valueExpression        #between
     | NOT? IN '(' expression (',' expression)* ')'                        #inList
-    | NOT? IN '(' query ')'                                               #inSubquery
-    | NOT? LIKE pattern=valueExpression									  #like
+    | NOT? LIKE pattern=valueExpression									                  #like
     | IS NOT? NULL                                                        #nullPredicate
     | IS NOT? DISTINCT FROM right=valueExpression                         #distinctFrom
     ;
@@ -246,15 +236,10 @@ valueExpression
     ;
 
 primaryExpression
-    : NULL                                                                           #nullLiteral
+    : literal                                                                        #literalExpression
     | identifier STRING                                                              #typeConstructor
-    | number                                                                         #numericLiteral
-    | booleanValue                                                                   #booleanLiteral
-    | STRING                                                                         #stringLiteral
-    | BINARY_LITERAL                                                                 #binaryLiteral
-    | qualifiedName '(' ASTERISK ')'                              		             #functionCall
-    | qualifiedName '(' (expression (',' expression)*)? ')' 						 #functionCall
-    | '(' query ')'                                                                  #subqueryExpression
+    | qualifiedName '(' ASTERISK ')'                              		               #functionCall
+    | qualifiedName '(' (expression (',' expression)*)? ')' 						             #functionCall
     | CASE valueExpression whenClause+ (ELSE elseExpression=expression)? END         #simpleCase
     | CASE whenClause+ (ELSE elseExpression=expression)? END                         #searchedCase
     | CAST '(' expression AS type ')'                                                #cast
@@ -315,6 +300,13 @@ number
     | INTEGER_VALUE  #integerLiteral
     ;
 
+literal
+    : NULL                                                                           #nullLiteral
+    | number                                                                         #numericLiteral
+    | booleanValue                                                                   #booleanLiteral
+    | STRING                                                                         #stringLiteral
+    ;
+
 nonReserved
     : SHOW | TABLES | COLUMNS | COLUMN | PARTITIONS | FUNCTIONS | FUNCTION | SESSION
     | STRUCT | MAP | ARRAY | PARTITION
@@ -328,7 +320,6 @@ nonReserved
 SELECT: 'SELECT';
 FROM: 'FROM';
 AS: 'AS';
-ALL: 'ALL';
 DISTINCT: 'DISTINCT';
 WHERE: 'WHERE';
 WITHIN: 'WITHIN';
@@ -456,13 +447,6 @@ STRUCT_FIELD_REF: '->';
 
 STRING
     : '\'' ( ~'\'' | '\'\'' )* '\''
-    ;
-
-// Note: we allow any character inside the binary literal and validate
-// its a correct literal when the AST is being constructed. This
-// allows us to provide more meaningful error messages to the user
-BINARY_LITERAL
-    :  'X\'' (~'\'')* '\''
     ;
 
 INTEGER_VALUE

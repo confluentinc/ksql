@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -36,12 +37,15 @@ public final class CommandStoreUtil {
     try {
       waitForCommandSequenceNumber(commandQueue, request, timeout);
     } catch (final InterruptedException e) {
-      final String errorMsg = "Interrupted while waiting for command queue to reach "
-          + "specified command sequence number in request: " + request.getKsql();
+      final long seqNum = request.getCommandSequenceNumber().orElse(-1L);
+      final String errorMsg = "Interrupted while waiting for command with the supplied "
+          + "sequence number to execute. sequence number: " + seqNum
+          + ", request: " + request.getKsql();
       throw new KsqlRestException(
           Errors.serverErrorForStatement(e, errorMsg, new KsqlEntityList()));
     } catch (final TimeoutException e) {
-      throw new KsqlRestException(Errors.commandQueueCatchUpTimeout(e.getMessage()));
+      throw new KsqlRestException(Errors.commandQueueCatchUpTimeout(
+          request.getCommandSequenceNumber().orElse(-1L)));
     }
   }
 

@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -22,21 +23,22 @@ import static org.hamcrest.Matchers.is;
 
 import com.google.common.base.Charsets;
 import io.confluent.common.utils.IntegrationTest;
+import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.ServerInfo;
+import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
-import io.confluent.ksql.test.util.TestKsqlRestApp;
 import io.confluent.rest.RestConfig;
 import java.io.IOException;
 import java.net.URI;
-import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.ws.rs.core.HttpHeaders;
+import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.common.security.JaasUtils;
 import org.eclipse.jetty.http.HttpStatus;
 import org.eclipse.jetty.http.HttpStatus.Code;
@@ -46,7 +48,6 @@ import org.eclipse.jetty.websocket.api.UpgradeException;
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketConnect;
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketError;
 import org.eclipse.jetty.websocket.api.annotations.WebSocket;
-import org.eclipse.jetty.websocket.api.util.WSURI;
 import org.eclipse.jetty.websocket.client.ClientUpgradeRequest;
 import org.eclipse.jetty.websocket.client.WebSocketClient;
 import org.glassfish.jersey.internal.util.Base64;
@@ -91,7 +92,10 @@ public class BasicAuthFunctionalTest {
       .build();
 
   @ClassRule
-  public static final RuleChain CHAIN = RuleChain.outerRule(CLUSTER).around(REST_APP);
+  public static final RuleChain CHAIN = RuleChain
+      .outerRule(Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS))
+      .around(CLUSTER)
+      .around(REST_APP);
 
   @Test
   public void shouldNotBeAbleToUseWsWithNoCreds() throws Exception {
@@ -222,7 +226,6 @@ public class BasicAuthFunctionalTest {
 
     @OnWebSocketConnect
     public void onConnect(final Session session) {
-      session.close();
       latch.countDown();
     }
 

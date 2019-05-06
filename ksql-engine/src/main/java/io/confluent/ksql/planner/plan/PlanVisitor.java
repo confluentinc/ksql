@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -28,7 +29,7 @@ public class PlanVisitor<C, R> {
     return visitPlan(node, context);
   }
 
-  protected R visitStructuredDataSourceNode(final StructuredDataSourceNode node, final C context) {
+  protected R visitDataSourceNode(final DataSourceNode node, final C context) {
     return visitPlan(node, context);
   }
 

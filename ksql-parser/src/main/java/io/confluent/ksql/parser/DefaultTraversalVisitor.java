@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -22,11 +23,8 @@ import io.confluent.ksql.parser.tree.BetweenPredicate;
 import io.confluent.ksql.parser.tree.Cast;
 import io.confluent.ksql.parser.tree.ComparisonExpression;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
-import io.confluent.ksql.parser.tree.Delete;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.parser.tree.Extract;
-import io.confluent.ksql.parser.tree.FrameBound;
 import io.confluent.ksql.parser.tree.FunctionCall;
 import io.confluent.ksql.parser.tree.GroupBy;
 import io.confluent.ksql.parser.tree.GroupingElement;
@@ -40,30 +38,17 @@ import io.confluent.ksql.parser.tree.JoinOn;
 import io.confluent.ksql.parser.tree.LikePredicate;
 import io.confluent.ksql.parser.tree.LogicalBinaryExpression;
 import io.confluent.ksql.parser.tree.NotExpression;
-import io.confluent.ksql.parser.tree.NullIfExpression;
 import io.confluent.ksql.parser.tree.Query;
-import io.confluent.ksql.parser.tree.QuerySpecification;
-import io.confluent.ksql.parser.tree.Relation;
 import io.confluent.ksql.parser.tree.SearchedCaseExpression;
 import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SelectItem;
-import io.confluent.ksql.parser.tree.SetOperation;
 import io.confluent.ksql.parser.tree.SimpleCaseExpression;
 import io.confluent.ksql.parser.tree.SimpleGroupBy;
 import io.confluent.ksql.parser.tree.SingleColumn;
-import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.Statements;
 import io.confluent.ksql.parser.tree.Struct;
-import io.confluent.ksql.parser.tree.SubqueryExpression;
 import io.confluent.ksql.parser.tree.SubscriptExpression;
-import io.confluent.ksql.parser.tree.TableSubquery;
-import io.confluent.ksql.parser.tree.Type;
-import io.confluent.ksql.parser.tree.Values;
 import io.confluent.ksql.parser.tree.WhenClause;
-import io.confluent.ksql.parser.tree.Window;
-import io.confluent.ksql.parser.tree.WindowFrame;
-import io.confluent.ksql.parser.tree.WithQuery;
-import io.confluent.ksql.util.Pair;
 import java.util.Set;
 
 public abstract class DefaultTraversalVisitor<R, C>
@@ -71,15 +56,9 @@ public abstract class DefaultTraversalVisitor<R, C>
 
   @Override
   protected R visitStatements(final Statements node, final C context) {
-    for (final Statement statement : node.statementList) {
-      process(statement, context);
-    }
+    node.getStatements()
+        .forEach(stmt -> process(stmt, context));
     return visitNode(node, context);
-  }
-
-  @Override
-  protected R visitExtract(final Extract node, final C context) {
-    return process(node.getExpression(), context);
   }
 
   @Override
@@ -122,14 +101,19 @@ public abstract class DefaultTraversalVisitor<R, C>
 
   @Override
   protected R visitQuery(final Query node, final C context) {
+    process(node.getSelect(), context);
+    process(node.getFrom(), context);
 
-    process(node.getQueryBody(), context);
+    if (node.getWhere().isPresent()) {
+      process(node.getWhere().get(), context);
+    }
+    if (node.getGroupBy().isPresent()) {
+      process(node.getGroupBy().get(), context);
+    }
+    if (node.getHaving().isPresent()) {
+      process(node.getHaving().get(), context);
+    }
     return null;
-  }
-
-  @Override
-  protected R visitWithQuery(final WithQuery node, final C context) {
-    return process(node.getQuery(), context);
   }
 
   @Override
@@ -170,41 +154,12 @@ public abstract class DefaultTraversalVisitor<R, C>
       process(argument, context);
     }
 
-    if (node.getWindow().isPresent()) {
-      process(node.getWindow().get(), context);
-    }
-
     return null;
   }
 
   @Override
   protected R visitDereferenceExpression(final DereferenceExpression node, final C context) {
     process(node.getBase(), context);
-    return null;
-  }
-
-  @Override
-  public R visitWindow(final Window node, final C context) {
-    process(node.getWindowExpression(), context);
-    return null;
-  }
-
-  @Override
-  public R visitWindowFrame(final WindowFrame node, final C context) {
-    process(node.getStart(), context);
-    if (node.getEnd().isPresent()) {
-      process(node.getEnd().get(), context);
-    }
-
-    return null;
-  }
-
-  @Override
-  public R visitFrameBound(final FrameBound node, final C context) {
-    if (node.getValue().isPresent()) {
-      process(node.getValue().get(), context);
-    }
-
     return null;
   }
 
@@ -226,14 +181,6 @@ public abstract class DefaultTraversalVisitor<R, C>
     for (final Expression value : node.getValues()) {
       process(value, context);
     }
-
-    return null;
-  }
-
-  @Override
-  protected R visitNullIfExpression(final NullIfExpression node, final C context) {
-    process(node.getFirst(), context);
-    process(node.getSecond(), context);
 
     return null;
   }
@@ -263,10 +210,6 @@ public abstract class DefaultTraversalVisitor<R, C>
   protected R visitLikePredicate(final LikePredicate node, final C context) {
     process(node.getValue(), context);
     process(node.getPattern(), context);
-    if (node.getEscape() != null) {
-      process(node.getEscape(), context);
-    }
-
     return null;
   }
 
@@ -289,55 +232,11 @@ public abstract class DefaultTraversalVisitor<R, C>
   }
 
   @Override
-  protected R visitSubqueryExpression(final SubqueryExpression node, final C context) {
-    return process(node.getQuery(), context);
-  }
-
-
-  @Override
-  protected R visitQuerySpecification(final QuerySpecification node, final C context) {
-    process(node.getSelect(), context);
-    process(node.getFrom(), context);
-
-    if (node.getWhere().isPresent()) {
-      process(node.getWhere().get(), context);
-    }
-    if (node.getGroupBy().isPresent()) {
-      process(node.getGroupBy().get(), context);
-    }
-    if (node.getHaving().isPresent()) {
-      process(node.getHaving().get(), context);
-    }
-    return null;
-  }
-
-  @Override
-  protected R visitSetOperation(final SetOperation node, final C context) {
-    for (final Relation relation : node.getRelations()) {
-      process(relation, context);
-    }
-    return null;
-  }
-
-  @Override
-  protected R visitValues(final Values node, final C context) {
-    for (final Expression row : node.getRows()) {
-      process(row, context);
-    }
-    return null;
-  }
-
-  @Override
   protected R visitStruct(final Struct node, final C context) {
-    for (final Pair<String, Type> structItem : node.getItems()) {
-      process(structItem.getRight(), context);
+    for (final Struct.Field field : node.getFields()) {
+      process(field.getType(), context);
     }
     return null;
-  }
-
-  @Override
-  protected R visitTableSubquery(final TableSubquery node, final C context) {
-    return process(node.getQuery(), context);
   }
 
   @Override
@@ -350,9 +249,9 @@ public abstract class DefaultTraversalVisitor<R, C>
     process(node.getLeft(), context);
     process(node.getRight(), context);
 
-    node.getCriteria()
-        .filter(criteria -> criteria instanceof JoinOn)
-        .map(criteria -> process(((JoinOn) criteria).getExpression(), context));
+    if (node.getCriteria() instanceof JoinOn) {
+      process(((JoinOn) node.getCriteria()).getExpression(), context);
+    }
 
     return null;
   }
@@ -380,17 +279,9 @@ public abstract class DefaultTraversalVisitor<R, C>
   protected R visitSimpleGroupBy(final SimpleGroupBy node, final C context) {
     visitGroupingElement(node, context);
 
-    for (final Expression expression : node.getColumnExpressions()) {
+    for (final Expression expression : node.getColumns()) {
       process(expression, context);
     }
-
-    return null;
-  }
-
-  @Override
-  protected R visitDelete(final Delete node, final C context) {
-    process(node.getTable(), context);
-    node.getWhere().ifPresent(where -> process(where, context));
 
     return null;
   }

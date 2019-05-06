@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -48,7 +49,7 @@ public abstract class DataGenProducer {
 
     final AvroData avroData = new AvroData(1);
     final org.apache.kafka.connect.data.Schema ksqlSchema =
-        SchemaUtil.getOptionalSchema(avroData.toConnectSchema(avroSchema));
+        DataGenSchemaUtil.getOptionalSchema(avroData.toConnectSchema(avroSchema));
 
     final Serializer<GenericRow> serializer = getSerializer(avroSchema, ksqlSchema, kafkaTopicName);
 

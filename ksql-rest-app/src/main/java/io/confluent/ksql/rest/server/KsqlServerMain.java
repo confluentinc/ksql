@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -14,10 +15,13 @@
 
 package io.confluent.ksql.rest.server;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMap.Builder;
+import io.confluent.ksql.properties.PropertiesUtil;
 import io.confluent.ksql.version.metrics.KsqlVersionCheckerAgent;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Properties;
 import org.apache.kafka.streams.StreamsConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,8 +40,12 @@ public class KsqlServerMain {
         return;
       }
 
-      final Properties properties = serverOptions.loadProperties(System::getProperties);
-      final String installDir = properties.getProperty("ksql.server.install.dir");
+      final Map<String, String> properties = PropertiesUtil.applyOverrides(
+          PropertiesUtil.loadProperties(serverOptions.getPropertiesFile()),
+          System.getProperties()
+      );
+
+      final String installDir = properties.getOrDefault("ksql.server.install.dir", "");
       final Optional<String> queriesFile = serverOptions.getQueriesFile(properties);
       final Executable executable = createExecutable(properties, queriesFile, installDir);
       new KsqlServerMain(executable).tryStartApp();
@@ -65,7 +73,7 @@ public class KsqlServerMain {
 
   @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
   private static Executable createExecutable(
-      final Properties properties,
+      final Map<String, String> properties,
       final Optional<String> queriesFile,
       final String installDir
   ) {
@@ -73,14 +81,22 @@ public class KsqlServerMain {
       return StandaloneExecutorFactory.create(properties, queriesFile.get(), installDir);
     }
 
-    if (!properties.containsKey(StreamsConfig.APPLICATION_ID_CONFIG)) {
-      properties.put(StreamsConfig.APPLICATION_ID_CONFIG, KSQL_REST_SERVER_DEFAULT_APP_ID);
-    }
-    final KsqlRestConfig restConfig = new KsqlRestConfig(properties);
+    final KsqlRestConfig restConfig = new KsqlRestConfig(ensureValidProps(properties));
     return KsqlRestApplication.buildApplication(
         restConfig,
         KsqlVersionCheckerAgent::new,
         Integer.MAX_VALUE
     );
+  }
+
+  private static Map<?, ?> ensureValidProps(final Map<String, String> properties) {
+    if (properties.containsKey(StreamsConfig.APPLICATION_ID_CONFIG)) {
+      return properties;
+    }
+
+    final Builder<String, String> builder = ImmutableMap.builder();
+    builder.putAll(properties);
+    builder.put(StreamsConfig.APPLICATION_ID_CONFIG, KSQL_REST_SERVER_DEFAULT_APP_ID);
+    return builder.build();
   }
 }

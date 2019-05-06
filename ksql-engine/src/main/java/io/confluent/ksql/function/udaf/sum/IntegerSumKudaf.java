@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -34,15 +35,18 @@ public class IntegerSumKudaf
   }
 
   @Override
-  public Integer aggregate(final Integer currentValue, final Integer aggregateValue) {
-    if (currentValue == null) {
+  public Integer aggregate(final Integer valueToAdd, final Integer aggregateValue) {
+    if (valueToAdd == null) {
       return aggregateValue;
     }
-    return currentValue + aggregateValue;
+    return aggregateValue + valueToAdd;
   }
 
   @Override
   public Integer undo(final Integer valueToUndo, final Integer aggregateValue) {
+    if (valueToUndo == null) {
+      return aggregateValue;
+    }
     return aggregateValue - valueToUndo;
   }
 

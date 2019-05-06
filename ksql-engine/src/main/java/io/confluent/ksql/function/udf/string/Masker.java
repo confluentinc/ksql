@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -13,6 +14,8 @@
  */
 
 package io.confluent.ksql.function.udf.string;
+
+import io.confluent.ksql.function.KsqlFunctionException;
 
 class Masker {
 
@@ -73,5 +76,12 @@ class Masker {
 
   static int getMaskCharacter(final String stringMask) {
     return stringMask == null ? NO_MASK : stringMask.codePointAt(0);
+  }
+
+  static void validateParams(final String udfName, final int numChars) {
+    if (numChars < 0) {
+      throw new KsqlFunctionException(
+          "function " + udfName + " requires a non-negative number of characters to mask or skip");
+    }
   }
 }

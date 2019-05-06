@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -15,32 +16,15 @@
 package io.confluent.ksql.function.udaf.max;
 
 import io.confluent.ksql.function.AggregateFunctionArguments;
-import io.confluent.ksql.function.BaseAggregateFunction;
 import io.confluent.ksql.function.KsqlAggregateFunction;
-import java.util.Collections;
+import io.confluent.ksql.function.udaf.BaseNumberKudaf;
 import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.streams.kstream.Merger;
 
-public class LongMaxKudaf extends BaseAggregateFunction<Long, Long> {
+public class LongMaxKudaf extends BaseNumberKudaf<Long> {
 
   LongMaxKudaf(final String functionName, final int argIndexInValue) {
-    super(functionName, argIndexInValue, () -> Long.MIN_VALUE, Schema.OPTIONAL_INT64_SCHEMA,
-        Collections.singletonList(Schema.OPTIONAL_INT64_SCHEMA),
-        "Computes the maximum long value for a key."
-    );
-  }
-
-  @Override
-  public Long aggregate(final Long currentValue, final Long aggregateValue) {
-    if (currentValue == null) {
-      return aggregateValue;
-    }
-    return Math.max(currentValue, aggregateValue);
-  }
-
-  @Override
-  public Merger<String, Long> getMerger() {
-    return (aggKey, aggOne, aggTwo) -> Math.max(aggOne, aggTwo);
+    super(functionName, argIndexInValue, Schema.OPTIONAL_INT64_SCHEMA, Long::max,
+        "Computes the maximum long value for a key.");
   }
 
   @Override

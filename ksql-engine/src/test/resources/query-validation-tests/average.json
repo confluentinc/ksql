@@ -15,18 +15,18 @@
         "CREATE TABLE AVG AS select id, abs(sum(value)/count(id)) * 10 as avg from test GROUP BY id;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "value": "0,zero,-50", "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": "0,zero,-10", "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": "0,zero,-15", "timestamp": 0},
-        {"topic": "test_topic", "key": 1, "value": "1,one,100", "timestamp": 0},
-        {"topic": "test_topic", "key": 1, "value": "1,one,10", "timestamp": 0}
+        {"topic": "test_topic", "key": 0, "value": "0,zero,-50"},
+        {"topic": "test_topic", "key": 0, "value": "0,zero,-10"},
+        {"topic": "test_topic", "key": 0, "value": "0,zero,-15"},
+        {"topic": "test_topic", "key": 1, "value": "1,one,100"},
+        {"topic": "test_topic", "key": 1, "value": "1,one,10"}
       ],
       "outputs": [
-        {"topic": "AVG", "key": 0, "value": "0,500.0", "timestamp": 0},
-        {"topic": "AVG", "key": 0, "value": "0,300.0", "timestamp": 0},
-        {"topic": "AVG", "key": 0, "value": "0,250.0", "timestamp": 0},
-        {"topic": "AVG", "key": 1, "value": "1,1000.0", "timestamp": 0},
-        {"topic": "AVG", "key": 1, "value": "1,550.0", "timestamp": 0}
+        {"topic": "AVG", "key": 0, "value": "0,500.0"},
+        {"topic": "AVG", "key": 0, "value": "0,300.0"},
+        {"topic": "AVG", "key": 0, "value": "0,250.0"},
+        {"topic": "AVG", "key": 1, "value": "1,1000.0"},
+        {"topic": "AVG", "key": 1, "value": "1,550.0"}
       ]
     }
   ]

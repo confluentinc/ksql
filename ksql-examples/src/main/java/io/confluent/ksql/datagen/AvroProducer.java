@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -18,8 +19,10 @@ package io.confluent.ksql.datagen;
 import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import org.apache.avro.Schema;
 import org.apache.kafka.common.serialization.Serializer;
@@ -36,7 +39,8 @@ public class AvroProducer extends DataGenProducer {
     this.ksqlConfig = ksqlConfig;
     this.schemaRegistryClient = new CachedSchemaRegistryClient(
         ksqlConfig.getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY),
-        100
+        100,
+        ksqlConfig.originalsWithPrefix(KsqlConfig.KSQL_SCHEMA_REGISTRY_PREFIX)
     );
   }
 
@@ -46,8 +50,13 @@ public class AvroProducer extends DataGenProducer {
       final org.apache.kafka.connect.data.Schema kafkaSchema,
       final String topicName
   ) {
-    return new KsqlAvroTopicSerDe()
-        .getGenericRowSerde(kafkaSchema, ksqlConfig, false,
-            () -> schemaRegistryClient).serializer();
+    return new KsqlAvroTopicSerDe(KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME)
+        .getGenericRowSerde(
+            kafkaSchema,
+            ksqlConfig,
+            () -> schemaRegistryClient,
+            "producer",
+            ProcessingLogContext.create()
+        ).serializer();
   }
 }

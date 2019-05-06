@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -25,17 +26,13 @@ import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QueryContainer;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.StringLiteral;
-import io.confluent.ksql.util.DataSourceExtractor;
 import java.util.Objects;
 
 public class StatementRewriteForStruct {
 
   private final Statement statement;
 
-  public StatementRewriteForStruct(
-      final Statement statement,
-      final DataSourceExtractor dataSourceExtractor
-  ) {
+  public StatementRewriteForStruct(final Statement statement) {
     this.statement = Objects.requireNonNull(statement, "statement");
   }
 

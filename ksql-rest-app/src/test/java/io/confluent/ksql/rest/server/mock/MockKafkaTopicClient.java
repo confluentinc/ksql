@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -14,10 +15,9 @@
 
 package io.confluent.ksql.rest.server.mock;
 
-import io.confluent.ksql.util.KafkaTopicClient;
+import io.confluent.ksql.services.KafkaTopicClient;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.apache.kafka.clients.admin.TopicDescription;
@@ -33,7 +33,6 @@ public class MockKafkaTopicClient implements KafkaTopicClient {
                           final int numPartitions,
                           final short replicationFactor,
                           final Map<String, ?> configs) {
-
   }
 
   @Override
@@ -72,7 +71,7 @@ public class MockKafkaTopicClient implements KafkaTopicClient {
   }
 
   @Override
-  public void deleteTopics(final List<String> topicsToDelete) {
+  public void deleteTopics(final Collection<String> topicsToDelete) {
   }
 
   @Override

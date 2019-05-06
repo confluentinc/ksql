@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -17,17 +18,17 @@ package io.confluent.ksql.structured;
 import static org.junit.Assert.assertEquals;
 
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
 import java.util.Arrays;
 import java.util.List;
-import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Before;
 import org.junit.Test;
 
 public class KsqlValueJoinerTest {
 
-  private Schema leftSchema;
-  private Schema rightSchema;
+  private KsqlSchema leftSchema;
+  private KsqlSchema rightSchema;
   private GenericRow leftRow;
   private GenericRow rightRow;
 
@@ -37,8 +38,8 @@ public class KsqlValueJoinerTest {
         .field("col0", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
         .field("col1", SchemaBuilder.OPTIONAL_STRING_SCHEMA);
 
-    leftSchema = schemaBuilder.build();
-    rightSchema = schemaBuilder.build();
+    leftSchema = KsqlSchema.of(schemaBuilder.build());
+    rightSchema = KsqlSchema.of(schemaBuilder.build());
 
     leftRow = new GenericRow(Arrays.asList(12L, "foobar"));
     rightRow = new GenericRow(Arrays.asList(20L, "baz"));

@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -14,13 +15,12 @@
 
 package io.confluent.ksql.parser.tree;
 
-import static java.util.Objects.requireNonNull;
-
+import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
 import java.util.Optional;
 
-public class IntegerLiteral
-    extends Literal {
+@Immutable
+public class IntegerLiteral extends Literal {
 
   private final int value;
 
@@ -28,17 +28,13 @@ public class IntegerLiteral
     this (Optional.empty(), value);
   }
 
-  public IntegerLiteral(final NodeLocation location, final int value) {
-    this(Optional.of(location), value);
-  }
-
-  private IntegerLiteral(final Optional<NodeLocation> location, final int value) {
+  public IntegerLiteral(final Optional<NodeLocation> location, final int value) {
     super(location);
-    requireNonNull(value, "value is null");
     this.value = value;
   }
 
-  public int getValue() {
+  @Override
+  public Integer getValue() {
     return value;
   }
 

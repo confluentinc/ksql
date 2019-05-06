@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -14,9 +15,10 @@
 
 package io.confluent.ksql.rest.server.resources;
 
+import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import static io.confluent.ksql.rest.entity.KsqlErrorMessageMatchers.errorCode;
 import static io.confluent.ksql.rest.entity.KsqlErrorMessageMatchers.errorMessage;
-import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.exceptionKsqlErrorMessage;
+import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.exceptionErrorMessage;
 import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.exceptionStatusCode;
 import static org.easymock.EasyMock.anyLong;
 import static org.easymock.EasyMock.anyObject;
@@ -29,16 +31,18 @@ import static org.easymock.EasyMock.niceMock;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.reset;
 import static org.easymock.EasyMock.verify;
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
+import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.json.JsonMapper;
+import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.planner.PlanSourceExtractorVisitor;
@@ -49,11 +53,12 @@ import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
-import io.confluent.ksql.rest.util.JsonMapper;
-import io.confluent.ksql.serde.DataSource;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.util.KafkaTopicClient;
+import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.QueuedQueryMetadata;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import java.io.EOFException;
@@ -68,12 +73,14 @@ import java.util.Scanner;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.StreamingOutput;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KafkaStreams;
-import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.KeyValue;
+import org.apache.kafka.streams.Topology;
 import org.easymock.EasyMock;
 import org.easymock.EasyMockRunner;
 import org.easymock.Mock;
@@ -89,6 +96,10 @@ import org.junit.runner.RunWith;
 public class StreamedQueryResourceTest {
 
   private static final Duration DISCONNECT_CHECK_INTERVAL = Duration.ofMillis(1000);
+  private static final Duration COMMAND_QUEUE_CATCHUP_TIMOEUT = Duration.ofMillis(1000);
+  private static final KsqlSchema SOME_SCHEMA = KsqlSchema.of(SchemaBuilder.struct()
+      .field("f1", SchemaBuilder.OPTIONAL_INT32_SCHEMA)
+      .build());
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -107,26 +118,53 @@ public class StreamedQueryResourceTest {
   private CommandQueue commandQueue;
   @Mock(MockType.NICE)
   private ActivenessRegistrar activenessRegistrar;
+  @Mock
+  private Consumer<QueryMetadata> queryCloseCallback;
   private StreamedQueryResource testResource;
 
   private final static String queryString = "SELECT * FROM test_stream;";
+  private PreparedStatement<Statement> statement;
 
   @Before
   public void setup() {
+    expect(mockKsqlEngine.isAcceptingStatements()).andReturn(true);
     expect(serviceContext.getTopicClient()).andReturn(mockKafkaTopicClient);
     expect(mockKsqlEngine.hasActiveQueries()).andReturn(false);
+    statement = PreparedStatement.of("s", mock(Statement.class));
     expect(mockStatementParser.parseSingleStatement(queryString))
-        .andReturn(mock(Statement.class));
+        .andReturn(statement);
     replay(mockKsqlEngine, mockStatementParser);
 
     testResource = new StreamedQueryResource(
         ksqlConfig,
         mockKsqlEngine,
-        serviceContext,
         mockStatementParser,
         commandQueue,
         DISCONNECT_CHECK_INTERVAL,
+        COMMAND_QUEUE_CATCHUP_TIMOEUT,
         activenessRegistrar);
+  }
+
+  @Test
+  public void shouldFailIfIsNotAcceptingStatements() throws Exception {
+    // Given:
+    final String queryString = "SELECT * FROM test_stream;";
+    reset(mockKsqlEngine);
+    expect(mockKsqlEngine.isAcceptingStatements()).andReturn(false);
+    replay(mockKsqlEngine);
+
+    // When:
+    final Response response =
+        testResource.streamQuery(
+            serviceContext,
+            new KsqlRequest(queryString, Collections.emptyMap(), null)
+        );
+
+    // Then:
+    assertThat(response.getStatus(), equalTo(Status.INTERNAL_SERVER_ERROR.getStatusCode()));
+    final KsqlErrorMessage errorMessage = (KsqlErrorMessage)response.getEntity();
+    assertThat(errorMessage.getErrorCode(), equalTo(Errors.ERROR_CODE_SERVER_ERROR));
+    assertThat(errorMessage.getMessage(), containsString("Cluster has been terminated."));
   }
 
   @Test
@@ -138,17 +176,18 @@ public class StreamedQueryResourceTest {
 
     replay(mockStatementParser);
 
-    // When:
-    final Response response = testResource.
-        streamQuery(new KsqlRequest("query", Collections.emptyMap(), null));
+    // Expect
+    expectedException.expect(KsqlRestException.class);
+    expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
+    expectedException.expect(exceptionErrorMessage(errorMessage(is("some error message"))));
+    expectedException.expect(
+        exceptionErrorMessage(errorCode(is(Errors.ERROR_CODE_BAD_STATEMENT))));
 
-    // Then:
-    verify(mockStatementParser);
-    assertThat(response.getStatus(), equalTo(Response.Status.BAD_REQUEST.getStatusCode()));
-    assertThat(response.getEntity(), instanceOf(KsqlErrorMessage.class));
-    final KsqlErrorMessage errorMessage = (KsqlErrorMessage)response.getEntity();
-    assertThat(errorMessage.getErrorCode(), equalTo(Errors.ERROR_CODE_BAD_REQUEST));
-    assertThat(errorMessage.getMessage(), containsString("some error message"));
+    // When:
+    testResource.streamQuery(
+        serviceContext,
+        new KsqlRequest("query", Collections.emptyMap(), null)
+    );
   }
 
   @Test
@@ -157,7 +196,10 @@ public class StreamedQueryResourceTest {
     replay(commandQueue);
 
     // When:
-    testResource.streamQuery(new KsqlRequest(queryString, Collections.emptyMap(), null));
+    testResource.streamQuery(
+        serviceContext,
+        new KsqlRequest(queryString, Collections.emptyMap(), null)
+    );
 
     // Then:
     verify(commandQueue);
@@ -172,7 +214,10 @@ public class StreamedQueryResourceTest {
     replay(commandQueue);
 
     // When:
-    testResource.streamQuery(new KsqlRequest(queryString, Collections.emptyMap(), 3L));
+    testResource.streamQuery(
+        serviceContext,
+        new KsqlRequest(queryString, Collections.emptyMap(), 3L)
+    );
 
     // Then:
     verify(commandQueue);
@@ -190,12 +235,16 @@ public class StreamedQueryResourceTest {
     // Expect
     expectedException.expect(KsqlRestException.class);
     expectedException.expect(exceptionStatusCode(is(Code.SERVICE_UNAVAILABLE)));
-    expectedException.expect(exceptionKsqlErrorMessage(errorMessage(is("whoops"))));
+    expectedException.expect(exceptionErrorMessage(errorMessage(
+        containsString("Timed out while waiting for a previous command to execute"))));
     expectedException.expect(
-        exceptionKsqlErrorMessage(errorCode(is(Errors.ERROR_CODE_COMMAND_QUEUE_CATCHUP_TIMEOUT))));
+        exceptionErrorMessage(errorCode(is(Errors.ERROR_CODE_COMMAND_QUEUE_CATCHUP_TIMEOUT))));
 
     // When:
-    testResource.streamQuery(new KsqlRequest(queryString, Collections.emptyMap(), 3L));
+    testResource.streamQuery(
+        serviceContext,
+        new KsqlRequest(queryString, Collections.emptyMap(), 3L)
+    );
   }
 
   @SuppressWarnings("unchecked")
@@ -234,8 +283,8 @@ public class StreamedQueryResourceTest {
     expectLastCall();
     mockKafkaStreams.setUncaughtExceptionHandler(anyObject(Thread.UncaughtExceptionHandler.class));
     expectLastCall();
-    expect(mockKafkaStreams.state()).andReturn(State.RUNNING).once();
-    expect(mockKafkaStreams.state()).andReturn(KafkaStreams.State.NOT_RUNNING).once();
+    mockKafkaStreams.cleanUp();
+    expectLastCall();
     mockKafkaStreams.close();
     expectLastCall();
 
@@ -245,26 +294,40 @@ public class StreamedQueryResourceTest {
 
     final Map<String, Object> requestStreamsProperties = Collections.emptyMap();
 
+    reset(mockStatementParser);
+    statement = PreparedStatement.of("query", mock(Query.class));
+    expect(mockStatementParser.parseSingleStatement(queryString))
+        .andReturn(statement);
+
     reset(mockKsqlEngine);
 
     final QueuedQueryMetadata queuedQueryMetadata =
-        new QueuedQueryMetadata(queryString, mockKafkaStreams, mockOutputNode, "",
-            rowQueue, DataSource.DataSourceType.KSTREAM, "",
-            mockKafkaTopicClient, null, Collections.emptyMap());
+        new QueuedQueryMetadata(
+            queryString,
+            mockKafkaStreams,
+            SOME_SCHEMA,
+            Collections.emptySet(),
+            limitHandler -> {},
+            "",
+            rowQueue,
+            DataSourceType.KSTREAM,
+            "",
+            mock(Topology.class),
+            Collections.emptyMap(),
+            Collections.emptyMap(),
+            queryCloseCallback);
     reset(mockOutputNode);
-    expect(mockOutputNode.getSchema())
-        .andReturn(SchemaBuilder.struct().field("f1", SchemaBuilder.OPTIONAL_INT32_SCHEMA));
-    expect(mockKsqlEngine.execute(queryString, ksqlConfig, requestStreamsProperties))
-        .andReturn(Collections.singletonList(queuedQueryMetadata));
-    mockKsqlEngine.removeTemporaryQuery(queuedQueryMetadata);
-    expectLastCall();
+    expect(mockKsqlEngine.execute(ConfiguredStatement.of(statement, requestStreamsProperties, ksqlConfig)))
+        .andReturn(ExecuteResult.of(queuedQueryMetadata));
 
-    reset(mockStatementParser);
-    expect(mockStatementParser.parseSingleStatement(queryString)).andReturn(mock(Query.class));
+    expect(mockKsqlEngine.isAcceptingStatements()).andReturn(true);
     replay(mockKsqlEngine, mockStatementParser, mockKafkaStreams, mockOutputNode);
 
     final Response response =
-        testResource.streamQuery(new KsqlRequest(queryString, requestStreamsProperties, null));
+        testResource.streamQuery(
+            serviceContext,
+            new KsqlRequest(queryString, requestStreamsProperties, null)
+        );
     final PipedOutputStream responseOutputStream = new EOFPipedOutputStream();
     final PipedInputStream responseInputStream = new PipedInputStream(responseOutputStream, 1);
     final StreamingOutput responseStream = (StreamingOutput) response.getEntity();
@@ -386,7 +449,10 @@ public class StreamedQueryResourceTest {
     EasyMock.replay(activenessRegistrar);
 
     // When:
-    testResource.streamQuery(new KsqlRequest(queryString, Collections.emptyMap(), null));
+    testResource.streamQuery(
+        serviceContext,
+        new KsqlRequest(queryString, Collections.emptyMap(), null)
+    );
 
     // Then:
     EasyMock.verify(activenessRegistrar);

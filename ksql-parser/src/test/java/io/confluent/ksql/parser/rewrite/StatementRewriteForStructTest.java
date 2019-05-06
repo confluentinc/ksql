@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -17,10 +18,11 @@ package io.confluent.ksql.parser.rewrite;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
+import static org.mockito.Mockito.mock;
 
-import io.confluent.ksql.function.TestFunctionRegistry;
+import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.parser.KsqlParser;
+import io.confluent.ksql.parser.KsqlParserTestUtil;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
@@ -29,7 +31,6 @@ import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.FunctionCall;
 import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.Query;
-import io.confluent.ksql.parser.tree.QuerySpecification;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.util.MetaStoreFixture;
@@ -39,25 +40,24 @@ import org.junit.Test;
 
 public class StatementRewriteForStructTest {
 
-  private static final KsqlParser KSQL_PARSER = new KsqlParser();
-
   private MetaStore metaStore;
 
   @Before
   public void init() {
-    metaStore = MetaStoreFixture.getNewMetaStore(new TestFunctionRegistry());
+    metaStore = MetaStoreFixture.getNewMetaStore(mock(FunctionRegistry.class));
   }
 
   @Test
   public void shouldCreateCorrectFunctionCallExpression() {
     final String simpleQuery = "SELECT iteminfo->category->name, address->state FROM orders;";
-    final Statement statement = KSQL_PARSER.buildAst(simpleQuery, metaStore).get(0).getStatement();
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(simpleQuery, metaStore)
+        .getStatement();
 
-    final QuerySpecification querySpecification = getQuerySpecification(statement);
-    assertThat(querySpecification.getSelect().getSelectItems().size(), equalTo(2));
-    final Expression col0 = ((SingleColumn) querySpecification.getSelect().getSelectItems().get(0))
+    final Query query = getQuery(statement);
+    assertThat(query.getSelect().getSelectItems().size(), equalTo(2));
+    final Expression col0 = ((SingleColumn) query.getSelect().getSelectItems().get(0))
         .getExpression();
-    final Expression col1 = ((SingleColumn) querySpecification.getSelect().getSelectItems().get(1))
+    final Expression col1 = ((SingleColumn) query.getSelect().getSelectItems().get(1))
         .getExpression();
 
     assertThat(col0, instanceOf(FunctionCall.class));
@@ -72,11 +72,12 @@ public class StatementRewriteForStructTest {
   @Test
   public void shouldNotCreateFunctionCallIfNotNeeded() {
     final String simpleQuery = "SELECT orderid FROM orders;";
-    final Statement statement = KSQL_PARSER.buildAst(simpleQuery, metaStore).get(0).getStatement();
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(simpleQuery, metaStore)
+        .getStatement();
 
-    final QuerySpecification querySpecification = getQuerySpecification(statement);
-    assertThat(querySpecification.getSelect().getSelectItems().size(), equalTo(1));
-    final Expression col0 = ((SingleColumn) querySpecification.getSelect().getSelectItems().get(0))
+    final Query query = getQuery(statement);
+    assertThat(query.getSelect().getSelectItems().size(), equalTo(1));
+    final Expression col0 = ((SingleColumn) query.getSelect().getSelectItems().get(0))
         .getExpression();
 
     assertThat(col0, instanceOf(DereferenceExpression.class));
@@ -87,13 +88,14 @@ public class StatementRewriteForStructTest {
   @Test
   public void shouldCreateCorrectFunctionCallExpressionWithSubscript() {
     final String simpleQuery = "SELECT arraycol[0]->name as n0, mapcol['key']->name as n1 FROM nested_stream;";
-    final Statement statement = KSQL_PARSER.buildAst(simpleQuery, metaStore).get(0).getStatement();
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(simpleQuery, metaStore)
+        .getStatement();
 
-    final QuerySpecification querySpecification = getQuerySpecification(statement);
-    assertThat(querySpecification.getSelect().getSelectItems().size(), equalTo(2));
-    final Expression col0 = ((SingleColumn) querySpecification.getSelect().getSelectItems().get(0))
+    final Query query = getQuery(statement);
+    assertThat(query.getSelect().getSelectItems().size(), equalTo(2));
+    final Expression col0 = ((SingleColumn) query.getSelect().getSelectItems().get(0))
         .getExpression();
-    final Expression col1 = ((SingleColumn) querySpecification.getSelect().getSelectItems().get(1))
+    final Expression col1 = ((SingleColumn) query.getSelect().getSelectItems().get(1))
         .getExpression();
 
     assertThat(col0, instanceOf(FunctionCall.class));
@@ -108,13 +110,14 @@ public class StatementRewriteForStructTest {
   @Test
   public void shouldCreateCorrectFunctionCallExpressionWithSubscriptWithExpressionIndex() {
     final String simpleQuery = "SELECT arraycol[CAST (item->id AS INTEGER)]->name as n0, mapcol['key']->name as n1 FROM nested_stream;";
-    final Statement statement = KSQL_PARSER.buildAst(simpleQuery, metaStore).get(0).getStatement();
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(simpleQuery, metaStore)
+        .getStatement();
 
-    final QuerySpecification querySpecification = getQuerySpecification(statement);
-    assertThat(querySpecification.getSelect().getSelectItems().size(), equalTo(2));
-    final Expression col0 = ((SingleColumn) querySpecification.getSelect().getSelectItems().get(0))
+    final Query query = getQuery(statement);
+    assertThat(query.getSelect().getSelectItems().size(), equalTo(2));
+    final Expression col0 = ((SingleColumn) query.getSelect().getSelectItems().get(0))
         .getExpression();
-    final Expression col1 = ((SingleColumn) querySpecification.getSelect().getSelectItems().get(1))
+    final Expression col1 = ((SingleColumn) query.getSelect().getSelectItems().get(1))
         .getExpression();
 
     assertThat(col0, instanceOf(FunctionCall.class));
@@ -125,14 +128,6 @@ public class StatementRewriteForStructTest {
     assertThat(col1.toString(),
         equalTo("FETCH_FIELD_FROM_STRUCT(NESTED_STREAM.MAPCOL['key'], 'NAME')"));
   }
-
-  private QuerySpecification getQuerySpecification(final Statement statement) {
-    assertThat(statement, instanceOf(Query.class));
-    final Query query = (Query) statement;
-    assertThat(query.getQueryBody(), instanceOf(QuerySpecification.class));
-    return (QuerySpecification) query.getQueryBody();
-  }
-
 
   @Test
   public void shouldEnsureRewriteRequirementCorrectly() {
@@ -147,4 +142,8 @@ public class StatementRewriteForStructTest {
     assertThat("Incorrect rewrite requirement enforcement.", !StatementRewriteForStruct.requiresRewrite(EasyMock.mock(CreateTable.class)));
   }
 
+  private static Query getQuery(final Statement statement) {
+    assertThat(statement, instanceOf(Query.class));
+    return (Query) statement;
+  }
 }

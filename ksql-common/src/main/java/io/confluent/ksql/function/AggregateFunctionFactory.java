@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -39,7 +40,7 @@ public abstract class AggregateFunctionFactory {
         "aggregateFunctionList can't be null");
   }
 
-  public abstract KsqlAggregateFunction getProperAggregateFunction(List<Schema> argTypeList);
+  public abstract KsqlAggregateFunction<?, ?> getProperAggregateFunction(List<Schema> argTypeList);
 
   public String getName() {
     return metadata.getName();

@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -14,16 +15,23 @@
 
 package io.confluent.ksql.cli.console;
 
-import static org.easymock.EasyMock.niceMock;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.FakeException;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.TestTerminal;
 import io.confluent.ksql.cli.console.Console.NoOpRowCaptor;
+import io.confluent.ksql.cli.console.cmd.CliSpecificCommand;
+import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.rest.entity.ArgumentInfo;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
@@ -50,8 +58,9 @@ import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.entity.TopicDescription;
 import io.confluent.ksql.rest.server.computation.CommandId;
 import io.confluent.ksql.rest.util.EntityUtil;
-import io.confluent.ksql.serde.DataSource;
-import io.confluent.ksql.util.SchemaUtil;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchemas;
+import io.confluent.ksql.serde.Format;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -61,8 +70,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 import org.apache.kafka.connect.data.SchemaBuilder;
-import org.easymock.EasyMock;
-import org.jline.reader.EndOfFileException;
 import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -71,9 +78,13 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class ConsoleTest {
 
+  private static final String CLI_CMD_NAME = "some command";
+  private static final String WHITE_SPACE = " \t ";
+
   private final TestTerminal terminal;
   private final Console console;
   private final Supplier<String> lineSupplier;
+  private final CliSpecificCommand cliCommand;
 
   @Parameterized.Parameters(name = "{0}")
   public static Collection<OutputFormat> data() {
@@ -82,9 +93,13 @@ public class ConsoleTest {
 
   @SuppressWarnings("unchecked")
   public ConsoleTest(final OutputFormat outputFormat) {
-    this.lineSupplier = niceMock(Supplier.class);
+    this.lineSupplier = mock(Supplier.class);
+    this.cliCommand = mock(CliSpecificCommand.class);
     this.terminal = new TestTerminal(lineSupplier);
-    this.console = new Console(outputFormat, () -> "v1.1.2", terminal, new NoOpRowCaptor());
+    this.console = new Console(outputFormat, terminal, new NoOpRowCaptor());
+
+    when(cliCommand.getName()).thenReturn(CLI_CMD_NAME);
+    console.registerCliSpecificCommand(cliCommand);
   }
 
   @After
@@ -138,12 +153,12 @@ public class ConsoleTest {
               "e",
               new SourceDescription(
                   "TestSource", Collections.emptyList(), Collections.emptyList(), buildTestSchema(i),
-                  DataSource.DataSourceType.KTABLE.getKqlType(), "key", "2000-01-01", "stats",
+                  DataSourceType.KTABLE.getKsqlType(), "key", "2000-01-01", "stats",
                   "errors", false, "avro", "kadka-topic", 1, 1)),
           new TopicDescription("e", "TestTopic", "TestKafkaTopic", "AVRO", "schemaString"),
           new StreamsList("e", ImmutableList.of(new SourceInfo.Stream("TestStream", "TestTopic", "AVRO"))),
           new TablesList("e", ImmutableList.of(new SourceInfo.Table("TestTable", "TestTopic", "JSON", false))),
-          new KsqlTopicsList("e", ImmutableList.of(new KsqlTopicInfo("TestTopic", "TestKafkaTopic", DataSource.DataSourceSerDe.JSON))),
+          new KsqlTopicsList("e", ImmutableList.of(new KsqlTopicInfo("TestTopic", "TestKafkaTopic", Format.JSON))),
           new KafkaTopicsList("e", ImmutableList.of(new KafkaTopicInfo("TestKafkaTopic", true, ImmutableList.of(1),  1, 1))),
           new ExecutionPlan("Test Execution Plan")
       ));
@@ -158,7 +173,7 @@ public class ConsoleTest {
             "e",
             new SourceDescription(
                 "TestSource", Collections.emptyList(), Collections.emptyList(),
-                buildTestSchema(2), DataSource.DataSourceType.KTABLE.getKqlType(),
+                buildTestSchema(2), DataSourceType.KTABLE.getKsqlType(),
                 "key", "2000-01-01", "stats", "errors", true, "avro", "kadka-topic",
                 2, 1))));
 
@@ -196,8 +211,8 @@ public class ConsoleTest {
                             + " really, really, really, really, really, really, really, long\n"
                             + "description\n"
                             + "\tContaining Tabs\n"
-                            + "and stuff"
-                        )
+                            + "and stuff",
+                        true)
                 ),
                 "LONG",
                 "The function description, which too can be really, really, really, "
@@ -225,7 +240,7 @@ public class ConsoleTest {
           + "Jar         : some.jar\n"
           + "Variations  : \n"
           + "\n"
-          + "\tVariation   : FOO(arg1 INT)\n"
+          + "\tVariation   : FOO(arg1 INT[])\n"
           + "\tReturns     : LONG\n"
           + "\tDescription : The function description, which too can be really, really, really, really, really, \n"
           + "                really, really, really, really, really, really, really, really, really, really, \n"
@@ -243,24 +258,110 @@ public class ConsoleTest {
     }
   }
 
-  @Test(expected = EndOfFileException.class)
-  public void shouldHandleExitCommand() {
+  @Test
+  public void shouldExecuteCliCommands() {
     // Given:
-    EasyMock.expect(lineSupplier.get()).andReturn("eXiT");
-    EasyMock.replay(lineSupplier);
+    when(lineSupplier.get())
+        .thenReturn(CLI_CMD_NAME)
+        .thenReturn("not a CLI command;");
 
     // When:
     console.readLine();
+
+    // Then:
+    verify(cliCommand).execute(eq(ImmutableList.of()), any());
+  }
+
+  @Test
+  public void shouldExecuteCliCommandWithArgsTrimmingWhiteSpace() {
+    // Given:
+    when(lineSupplier.get())
+        .thenReturn(CLI_CMD_NAME + WHITE_SPACE + "Arg0" + WHITE_SPACE + "Arg1" + WHITE_SPACE)
+        .thenReturn("not a CLI command;");
+
+    // When:
+    console.readLine();
+
+    // Then:
+    verify(cliCommand).execute(eq(ImmutableList.of("Arg0", "Arg1")), any());
+  }
+
+  @Test
+  public void shouldExecuteCliCommandWithQuotedArgsContainingSpaces() {
+    // Given:
+    when(lineSupplier.get())
+        .thenReturn(CLI_CMD_NAME + WHITE_SPACE + "Arg0" + WHITE_SPACE + "'Arg 1'")
+        .thenReturn("not a CLI command;");
+
+    // When:
+    console.readLine();
+
+    // Then:
+    verify(cliCommand).execute(eq(ImmutableList.of("Arg0", "Arg 1")), any());
+  }
+
+  @Test
+  public void shouldSupportOtherWhitespaceBetweenCliCommandAndArgs() {
+    // Given:
+    when(lineSupplier.get())
+        .thenReturn(CLI_CMD_NAME + "\tArg0" + WHITE_SPACE + "'Arg 1'")
+        .thenReturn("not a CLI command;");
+
+    // When:
+    console.readLine();
+
+    // Then:
+    verify(cliCommand).execute(eq(ImmutableList.of("Arg0", "Arg 1")), any());
+  }
+
+  @Test
+  public void shouldSupportCmdBeingTerminatedWithSemiColon() {
+    // Given:
+    when(lineSupplier.get())
+        .thenReturn(CLI_CMD_NAME + WHITE_SPACE  + "Arg0;")
+        .thenReturn("not a CLI command;");
+
+    // When:
+    console.readLine();
+
+    // Then:
+    verify(cliCommand).execute(eq(ImmutableList.of("Arg0")), any());
+  }
+
+  @Test
+  public void shouldSupportCmdWithQuotedArgBeingTerminatedWithSemiColon() {
+    // Given:
+    when(lineSupplier.get())
+        .thenReturn(CLI_CMD_NAME + WHITE_SPACE  + "'Arg0';")
+        .thenReturn("not a CLI command;");
+
+    // When:
+    console.readLine();
+
+    // Then:
+    verify(cliCommand).execute(eq(ImmutableList.of("Arg0")), any());
+  }
+
+  @Test
+  public void shouldFailIfCommandNameIsQuoted() {
+    // Given:
+    when(lineSupplier.get())
+        .thenReturn("'some' 'command' " + "Arg0" + WHITE_SPACE + "'Arg 1'")
+        .thenReturn("not a CLI command;");
+
+    // When:
+    console.readLine();
+
+    // Then:
+    verify(cliCommand, never()).execute(any(), any());
   }
 
   @Test
   public void shouldSwallowCliCommandLines() {
     // Given:
-    EasyMock.expect(lineSupplier.get())
-        .andReturn("history")
-        .andReturn("not a CLI command;");
-
-    EasyMock.replay(lineSupplier);
+    when(lineSupplier.get())
+        .thenReturn(CLI_CMD_NAME)
+        .thenReturn("not a CLI command;");
 
     // When:
     final String result = console.readLine();
@@ -269,11 +370,25 @@ public class ConsoleTest {
     assertThat(result, is("not a CLI command;"));
   }
 
-  private List<FieldInfo> buildTestSchema(final int size) {
+  @Test
+  public void shouldSwallowCliCommandLinesEvenWithWhiteSpace() {
+    // Given:
+    when(lineSupplier.get())
+        .thenReturn("   \t   " + CLI_CMD_NAME + "   \t   ")
+        .thenReturn("not a CLI command;");
+
+    // When:
+    final String result = console.readLine();
+
+    // Then:
+    assertThat(result, is("not a CLI command;"));
+  }
+
+  private static List<FieldInfo> buildTestSchema(final int size) {
     final SchemaBuilder dataSourceBuilder = SchemaBuilder.struct().name("TestSchema");
     for (int i = 0; i < size; i++) {
-      dataSourceBuilder.field("f_" + i, SchemaUtil.getTypeSchema("STRING"));
+      dataSourceBuilder.field("f_" + i, LogicalSchemas.STRING);
     }
-    return EntityUtil.buildSourceSchemaEntity(dataSourceBuilder.build());
+    return EntityUtil.buildSourceSchemaEntity(KsqlSchema.of(dataSourceBuilder.build()));
   }
 }

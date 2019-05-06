@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -16,21 +17,14 @@ package io.confluent.ksql.datagen;
 
 import io.confluent.ksql.datagen.DataGen.Arguments.Format;
 import io.confluent.ksql.util.KsqlConfig;
-import java.util.Collections;
+import java.util.Properties;
 
 class ProducerFactory {
   DataGenProducer getProducer(final Format format,
-      final String schemaRegistryUrl) {
+      final Properties props) {
     switch (format) {
       case AVRO:
-        return new AvroProducer(
-            new KsqlConfig(
-                Collections.singletonMap(
-                    KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY,
-                    schemaRegistryUrl
-                )
-            )
-        );
+        return new AvroProducer(new KsqlConfig(props));
 
       case JSON:
         return new JsonProducer();

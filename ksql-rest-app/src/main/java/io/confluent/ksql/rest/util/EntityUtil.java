@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -14,18 +15,35 @@
 
 package io.confluent.ksql.rest.util;
 
+import avro.shaded.com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.rest.entity.FieldInfo;
 import io.confluent.ksql.rest.entity.SchemaInfo;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Schema;
 
 public final class EntityUtil {
+  private static final Map<Schema.Type, SchemaInfo.Type>
+      SCHEMA_TYPE_TO_SCHEMA_INFO_TYPE =
+      ImmutableMap.<Schema.Type, SchemaInfo.Type>builder()
+          .put(Schema.Type.INT32, SchemaInfo.Type.INTEGER)
+          .put(Schema.Type.INT64, SchemaInfo.Type.BIGINT)
+          .put(Schema.Type.FLOAT32, SchemaInfo.Type.DOUBLE)
+          .put(Schema.Type.FLOAT64, SchemaInfo.Type.DOUBLE)
+          .put(Schema.Type.BOOLEAN, SchemaInfo.Type.BOOLEAN)
+          .put(Schema.Type.STRING, SchemaInfo.Type.STRING)
+          .put(Schema.Type.ARRAY, SchemaInfo.Type.ARRAY)
+          .put(Schema.Type.MAP, SchemaInfo.Type.MAP)
+          .put(Schema.Type.STRUCT, SchemaInfo.Type.STRUCT)
+          .build();
+
   private EntityUtil() {
   }
 
-  public static List<FieldInfo> buildSourceSchemaEntity(final Schema schema) {
-    return buildSchemaEntity(schema).getFields()
+  public static List<FieldInfo> buildSourceSchemaEntity(final KsqlSchema schema) {
+    return buildSchemaEntity(schema.getSchema()).getFields()
         .orElseThrow(() -> new RuntimeException("Root schema should contain fields"));
   }
 
@@ -34,13 +52,13 @@ public final class EntityUtil {
       case ARRAY:
       case MAP:
         return new SchemaInfo(
-            getSchemaTypeString(schema.type()),
+            getSchemaTypeString(schema),
             null,
             buildSchemaEntity(schema.valueSchema())
         );
       case STRUCT:
         return new SchemaInfo(
-            getSchemaTypeString(schema.type()),
+            getSchemaTypeString(schema),
             schema.fields()
                 .stream()
                 .map(
@@ -49,31 +67,17 @@ public final class EntityUtil {
             null
         );
       default:
-        return new SchemaInfo(getSchemaTypeString(schema.type()), null, null);
+        return new SchemaInfo(getSchemaTypeString(schema), null, null);
     }
   }
 
-  private static SchemaInfo.Type getSchemaTypeString(final Schema.Type type) {
-    switch (type) {
-      case INT32:
-        return SchemaInfo.Type.INTEGER;
-      case INT64:
-        return SchemaInfo.Type.BIGINT;
-      case FLOAT32:
-      case FLOAT64:
-        return SchemaInfo.Type.DOUBLE;
-      case BOOLEAN:
-        return SchemaInfo.Type.BOOLEAN;
-      case STRING:
-        return SchemaInfo.Type.STRING;
-      case ARRAY:
-        return SchemaInfo.Type.ARRAY;
-      case MAP:
-        return SchemaInfo.Type.MAP;
-      case STRUCT:
-        return SchemaInfo.Type.STRUCT;
-      default:
-        throw new RuntimeException(String.format("Invalid type in schema: %s.", type.getName()));
+  private static SchemaInfo.Type getSchemaTypeString(final Schema schema) {
+    final SchemaInfo.Type type = SCHEMA_TYPE_TO_SCHEMA_INFO_TYPE.get(schema.type());
+    if (type == null) {
+      throw new RuntimeException(String.format("Invalid type in schema: %s.",
+          schema.type().getName()));
     }
+
+    return type;
   }
 }

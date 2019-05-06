@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -22,20 +23,12 @@ import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Serializer;
-import org.apache.kafka.connect.data.Schema;
 
 
 public class KsqlDelimitedSerializer implements Serializer<GenericRow> {
 
-  private final Schema schema;
-
-  public KsqlDelimitedSerializer(final Schema schema) {
-    this.schema = schema;
-  }
-
   @Override
   public void configure(final Map<String, ?> map, final boolean b) {
-
   }
 
   @Override
@@ -52,11 +45,9 @@ public class KsqlDelimitedSerializer implements Serializer<GenericRow> {
     } catch (final Exception e) {
       throw new SerializationException("Error serializing CSV message", e);
     }
-
   }
 
   @Override
   public void close() {
-
   }
 }

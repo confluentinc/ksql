@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -14,140 +15,141 @@
 
 package io.confluent.ksql.rest.entity;
 
-import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.mock;
-import static org.easymock.EasyMock.niceMock;
-import static org.easymock.EasyMock.replay;
+import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
+import static org.mockito.Mockito.when;
 
-import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.metastore.KsqlStream;
-import io.confluent.ksql.metastore.KsqlTopic;
-import io.confluent.ksql.planner.plan.OutputNode;
-import io.confluent.ksql.planner.plan.PlanNodeId;
-import io.confluent.ksql.planner.plan.StructuredDataSourceNode;
+import com.google.common.collect.ImmutableSet;
+import io.confluent.ksql.metastore.model.KeyField;
+import io.confluent.ksql.metastore.model.KsqlStream;
+import io.confluent.ksql.metastore.model.KsqlTopic;
+import io.confluent.ksql.physical.LimitHandler;
+import io.confluent.ksql.physical.QuerySchemas;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.serde.DataSource;
+import io.confluent.ksql.rest.entity.SchemaInfo.Type;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
-import io.confluent.ksql.structured.SchemaKStream;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.QueuedQueryMetadata;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.LinkedBlockingQueue;
-
+import java.util.function.Consumer;
 import org.apache.kafka.common.serialization.Serdes;
-import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KafkaStreams;
-import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.TopologyDescription;
+import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
+@RunWith(MockitoJUnitRunner.class)
 public class QueryDescriptionTest {
-  private static final Schema SCHEMA =
+
+  private static final KsqlSchema SCHEMA = KsqlSchema.of(
       SchemaBuilder.struct()
           .field("field1", SchemaBuilder.int32().build())
           .field("field2", SchemaBuilder.string().build())
-          .build();
+          .build());
+
+  private static final List<FieldInfo> EXPECTED_FIELDS = Arrays.asList(
+      new FieldInfo("field1", new SchemaInfo(Type.INTEGER, null, null)),
+      new FieldInfo("field2", new SchemaInfo(Type.STRING, null, null)));
+
   private static final String STATEMENT = "statement";
+  private static final Map<String, Object> STREAMS_PROPS = Collections.singletonMap("k1", "v1");
+  private static final Map<String, Object> PROP_OVERRIDES = Collections.singletonMap("k2", "v2");
 
-  private static class FakeSourceNode extends StructuredDataSourceNode {
-    FakeSourceNode(final String name) {
-      super(
-          new PlanNodeId("fake"),
-          new KsqlStream<>(
-              STATEMENT, name, SCHEMA, SCHEMA.fields().get(0),
-              new MetadataTimestampExtractionPolicy(),
-              new KsqlTopic(name, name, new KsqlJsonTopicSerDe(), false), Serdes.String()),
-          SCHEMA);
-    }
-  }
+  @Mock
+  private Consumer<QueryMetadata> queryCloseCallback;
+  @Mock
+  private KafkaStreams queryStreams;
+  @Mock
+  private Topology topology;
+  @Mock
+  private TopologyDescription topologyDescription;
+  @Mock
+  private Consumer<LimitHandler> limitHandler;
 
-  private static class FakeOutputNode extends OutputNode {
-    FakeOutputNode(final FakeSourceNode sourceNode) {
-      super(
-          new PlanNodeId("fake"), sourceNode, SCHEMA, Optional.of(1),
-          new MetadataTimestampExtractionPolicy());
-    }
-
-    @Override
-    public Field getKeyField() {
-      return null;
-    }
-
-    @Override
-    public SchemaKStream<?> buildStream(
-        final StreamsBuilder builder,
-        final KsqlConfig ksqlConfig,
-        final ServiceContext serviceContext,
-        final FunctionRegistry functionRegistry,
-        final Map<String, Object> props
-    ) {
-      return null;
-    }
+  @Before
+  public void setUp() {
+    when(topology.describe()).thenReturn(topologyDescription);
   }
 
   @Test
   public void shouldSetFieldsCorrectlyForQueryMetadata() {
-    final KafkaStreams queryStreams = niceMock(KafkaStreams.class);
-    final FakeSourceNode sourceNode = new FakeSourceNode("source");
-    final OutputNode outputNode = new FakeOutputNode(sourceNode);
-    final Topology topology = mock(Topology.class);
-    final TopologyDescription topologyDescription = mock(TopologyDescription.class);
-    expect(topology.describe()).andReturn(topologyDescription);
-    replay(queryStreams, topology, topologyDescription);
-    final Map<String, Object> streamsProperties = Collections.singletonMap("k", "v");
+    // Given:
     final QueryMetadata queryMetadata = new QueuedQueryMetadata(
-        "test statement", queryStreams, outputNode, "execution plan",
-        new LinkedBlockingQueue<>(), DataSource.DataSourceType.KSTREAM, "app id",
-        null, topology, streamsProperties);
+        "test statement",
+        queryStreams,
+        SCHEMA,
+        ImmutableSet.of("s1, s2"),
+        limitHandler,
+        "execution plan",
+        new LinkedBlockingQueue<>(),
+        DataSourceType.KSTREAM,
+        "app id",
+        topology,
+        STREAMS_PROPS,
+        PROP_OVERRIDES,
+        queryCloseCallback);
 
+    // When:
     final QueryDescription queryDescription = QueryDescription.forQueryMetadata(queryMetadata);
 
+    // Then:
     assertThat(queryDescription.getId().getId(), equalTo(""));
     assertThat(queryDescription.getExecutionPlan(), equalTo("execution plan"));
-    assertThat(queryDescription.getSources(), equalTo(Collections.singleton("source")));
+    assertThat(queryDescription.getSources(), equalTo(ImmutableSet.of("s1, s2")));
     assertThat(queryDescription.getStatementText(), equalTo("test statement"));
     assertThat(queryDescription.getTopology(), equalTo(topologyDescription.toString()));
-    assertThat(
-        queryDescription.getFields(),
-        equalTo(
-            Arrays.asList(
-                new FieldInfo("field1", new SchemaInfo(SchemaInfo.Type.INTEGER, null, null)),
-                new FieldInfo("field2", new SchemaInfo(SchemaInfo.Type.STRING, null, null)))));
+    assertThat(queryDescription.getFields(), equalTo(EXPECTED_FIELDS));
+    assertThat(queryDescription.getOverriddenProperties(), is(PROP_OVERRIDES));
   }
 
   @Test
   public void shouldSetFieldsCorrectlyForPersistentQueryMetadata() {
-    final KafkaStreams queryStreams = niceMock(KafkaStreams.class);
-    final FakeSourceNode sourceNode = new FakeSourceNode("source");
-    final OutputNode outputNode = new FakeOutputNode(sourceNode);
-    final Topology topology = mock(Topology.class);
-    final TopologyDescription topologyDescription = mock(TopologyDescription.class);
-    expect(topology.describe()).andReturn(topologyDescription);
-    replay(topology, topologyDescription);
+    // Given:
     final KsqlTopic sinkTopic = new KsqlTopic("fake_sink", "fake_sink", new KsqlJsonTopicSerDe(), true);
-    final KsqlStream fakeSink = new KsqlStream<>(
-        STATEMENT, "fake_sink", SCHEMA, SCHEMA.fields().get(0),
-        new MetadataTimestampExtractionPolicy(), sinkTopic, Serdes.String());
-    final Map<String, Object> streamsProperties = Collections.singletonMap("k", "v");
+    final KsqlStream<?> fakeSink = new KsqlStream<>(
+        STATEMENT, "fake_sink", SCHEMA,
+        KeyField.of(SCHEMA.fields().get(0).name(), SCHEMA.fields().get(0)),
+        new MetadataTimestampExtractionPolicy(), sinkTopic, Serdes::String);
 
     final PersistentQueryMetadata queryMetadata = new PersistentQueryMetadata(
-        "test statement", queryStreams, outputNode, fakeSink,"execution plan",
-        new QueryId("query_id"), DataSource.DataSourceType.KSTREAM, "app id", null,
-        sinkTopic, topology, streamsProperties);
+        "test statement",
+        queryStreams,
+        SCHEMA,
+        Collections.emptySet(),
+        fakeSink.getName(),
+        "execution plan",
+        new QueryId("query_id"),
+        DataSourceType.KSTREAM,
+        "app id",
+        sinkTopic,
+        topology,
+        QuerySchemas.of(new LinkedHashMap<>()),
+        STREAMS_PROPS,
+        PROP_OVERRIDES,
+        queryCloseCallback);
+
+    // When:
     final QueryDescription queryDescription = QueryDescription.forQueryMetadata(queryMetadata);
+
+    // Then:
     assertThat(queryDescription.getId().getId(), equalTo("query_id"));
     assertThat(queryDescription.getSinks(), equalTo(Collections.singleton("fake_sink")));
+    assertThat(queryDescription.getFields(), equalTo(EXPECTED_FIELDS));
+    assertThat(queryDescription.getOverriddenProperties(), is(PROP_OVERRIDES));
   }
 }

@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -18,11 +19,12 @@ import static java.util.Locale.ENGLISH;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.base.Preconditions;
+import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
 import java.util.Optional;
 
-public class BooleanLiteral
-    extends Literal {
+@Immutable
+public class BooleanLiteral extends Literal {
 
   private final boolean value;
 
@@ -30,20 +32,21 @@ public class BooleanLiteral
     this(Optional.empty(), value);
   }
 
-  public BooleanLiteral(final NodeLocation location, final String value) {
-    this(Optional.of(location), value);
-  }
-
-  private BooleanLiteral(final Optional<NodeLocation> location, final String value) {
+  public BooleanLiteral(
+      final Optional<NodeLocation> location,
+      final String value
+  ) {
     super(location);
-    requireNonNull(value, "value is null");
-    Preconditions.checkArgument(
-        value.toLowerCase(ENGLISH).equals("true") || value.toLowerCase(ENGLISH).equals("false"));
+    this.value = requireNonNull(value, "value")
+        .toLowerCase(ENGLISH)
+        .equals("true");
 
-    this.value = value.toLowerCase(ENGLISH).equals("true");
+    Preconditions.checkArgument(value.toLowerCase(ENGLISH).equals("true")
+        || value.toLowerCase(ENGLISH).equals("false"));
   }
 
-  public boolean getValue() {
+  @Override
+  public Boolean getValue() {
     return value;
   }
 

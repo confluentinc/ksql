@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -17,6 +18,9 @@ package io.confluent.ksql.integration;
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.VALID_USER1;
 import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.VALID_USER2;
+import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.ops;
+import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.prefixedResource;
+import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.resource;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_SERVICE_ID_CONFIG;
 import static org.apache.kafka.common.acl.AclOperation.ALL;
 import static org.apache.kafka.common.acl.AclOperation.CREATE;
@@ -32,38 +36,40 @@ import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
 
 import io.confluent.common.utils.IntegrationTest;
-import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.engine.KsqlEngineTestUtil;
+import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.services.DefaultServiceContext;
+import io.confluent.ksql.services.KafkaTopicClient;
+import io.confluent.ksql.services.KafkaTopicClientImpl;
+import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.test.util.secure.ClientTrustStore;
 import io.confluent.ksql.test.util.secure.Credentials;
 import io.confluent.ksql.test.util.secure.SecureKafkaHelper;
-import io.confluent.ksql.util.KafkaTopicClient;
-import io.confluent.ksql.util.KafkaTopicClientImpl;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.OrderDataProvider;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.TopicConsumer;
 import io.confluent.ksql.util.TopicProducer;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
 import kafka.security.auth.Acl;
+import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.common.acl.AclPermissionType;
-import org.apache.kafka.common.resource.PatternType;
 import org.apache.kafka.common.resource.ResourcePattern;
-import org.apache.kafka.common.resource.ResourceType;
 import org.apache.kafka.common.security.auth.SecurityProtocol;
 import org.apache.kafka.test.TestUtils;
 import org.junit.After;
@@ -71,6 +77,7 @@ import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.rules.RuleChain;
 
 /**
  * Tests covering integration with secured components, e.g. secure Kafka cluster.
@@ -85,14 +92,18 @@ public class SecureIntegrationTest {
   private static final Credentials NORMAL_USER = VALID_USER2;
   private static final AtomicInteger COUNTER = new AtomicInteger(0);
 
-  @ClassRule
-  public static final EmbeddedSingleNodeKafkaCluster SECURE_CLUSTER =
+  private static final EmbeddedSingleNodeKafkaCluster SECURE_CLUSTER =
       EmbeddedSingleNodeKafkaCluster.newBuilder()
           .withoutPlainListeners()
           .withSaslSslListeners()
           .withSslListeners()
-          .withAcls(SUPER_USER.username)
+          .withAclsEnabled(SUPER_USER.username)
           .build();
+
+  @ClassRule
+  public static final RuleChain CLUSTER_WITH_RETRY = RuleChain
+      .outerRule(Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS))
+      .around(SECURE_CLUSTER);
 
   private QueryId queryId;
   private KsqlConfig ksqlConfig;
@@ -119,7 +130,8 @@ public class SecureIntegrationTest {
   @After
   public void after() {
     if (queryId != null) {
-      ksqlEngine.terminateQuery(queryId, true);
+      ksqlEngine.getPersistentQuery(queryId)
+          .ifPresent(QueryMetadata::close);
     }
     if (ksqlEngine != null) {
       ksqlEngine.close();
@@ -249,24 +261,14 @@ public class SecureIntegrationTest {
     SECURE_CLUSTER.addUserAcl(credentials.username, AclPermissionType.ALLOW, resource, ops);
   }
 
-  private static Set<AclOperation> ops(final AclOperation... ops) {
-    return Arrays.stream(ops).collect(Collectors.toSet());
-  }
-
-  private static ResourcePattern resource(final ResourceType resourceType,
-                                          final String resourceName) {
-    return new ResourcePattern(resourceType, resourceName, PatternType.LITERAL);
-  }
-
-  private static ResourcePattern prefixedResource(final ResourceType resourceType,
-                                                  final String resourceName) {
-    return new ResourcePattern(resourceType, resourceName, PatternType.PREFIXED);
-  }
-
   private void givenTestSetupWithConfig(final Map<String, Object> ksqlConfigs) {
     ksqlConfig = new KsqlConfig(ksqlConfigs);
-    serviceContext = ServiceContext.create(ksqlConfig);
-    ksqlEngine = new KsqlEngine(serviceContext, ksqlConfig.getString(KSQL_SERVICE_ID_CONFIG));
+    serviceContext = DefaultServiceContext.create(ksqlConfig);
+    ksqlEngine = new KsqlEngine(
+        serviceContext,
+        ProcessingLogContext.create(),
+        new InternalFunctionRegistry(),
+        ksqlConfig.getString(KSQL_SERVICE_ID_CONFIG));
 
     execInitCreateStreamQueries();
   }
@@ -295,7 +297,7 @@ public class SecureIntegrationTest {
     consumer.verifyRecordsReceived(outputTopic, greaterThan(0));
   }
 
-  private Map<String, Object> getBaseKsqlConfig() {
+  private static Map<String, Object> getBaseKsqlConfig() {
     final Map<String, Object> configs = new HashMap<>();
     configs.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, SECURE_CLUSTER.bootstrapServers());
     configs.put("commit.interval.ms", 0);
@@ -308,7 +310,7 @@ public class SecureIntegrationTest {
     return configs;
   }
 
-  private Map<String, Object> getKsqlConfig(final Credentials user) {
+  private static Map<String, Object> getKsqlConfig(final Credentials user) {
     final Map<String, Object> configs = getBaseKsqlConfig();
     configs.putAll(SecureKafkaHelper.getSecureCredentialsConfig(user));
     return configs;
@@ -340,16 +342,15 @@ public class SecureIntegrationTest {
                                            + "kafka_topic='%s' , "
                                            + "key='ordertime');", INPUT_STREAM, INPUT_TOPIC);
 
-    ksqlEngine.execute(
-        ordersStreamStr, ksqlConfig, Collections.emptyMap());
+    KsqlEngineTestUtil.execute(ksqlEngine, ordersStreamStr, ksqlConfig, Collections.emptyMap());
   }
 
   private void executePersistentQuery(final String queryString,
                                       final Object... params) {
     final String query = String.format(queryString, params);
 
-    final QueryMetadata queryMetadata = ksqlEngine
-        .execute(query, ksqlConfig, Collections.emptyMap()).get(0);
+    final QueryMetadata queryMetadata = KsqlEngineTestUtil
+        .execute(ksqlEngine, query, ksqlConfig, Collections.emptyMap()).get(0);
 
     queryMetadata.start();
     queryId = ((PersistentQueryMetadata) queryMetadata).getQueryId();

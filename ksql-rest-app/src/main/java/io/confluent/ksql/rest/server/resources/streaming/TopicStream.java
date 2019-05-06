@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -19,7 +20,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
-import io.confluent.ksql.rest.util.JsonMapper;
+import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.util.SchemaUtil;
 import java.io.IOException;
 import java.io.StringWriter;
@@ -151,7 +152,13 @@ public final class TopicStream {
           final KafkaAvroDeserializer avroDeserializer,
           final DateFormat dateFormat) {
         try {
-          JsonMapper.INSTANCE.mapper.readTree(record.value().toString());
+          final JsonNode jsonNode = JsonMapper.INSTANCE.mapper.readTree(record.value().toString());
+
+          // If the JsonNode is not structured like 'key:value', then do not use JSON to print
+          // this value
+          if (!(jsonNode instanceof ObjectNode)) {
+            return Optional.empty();
+          }
 
           return Optional.of(createFormatter());
         } catch (final Throwable t) {

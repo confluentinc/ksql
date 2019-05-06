@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -14,6 +15,9 @@
 
 package io.confluent.ksql.planner.plan;
 
+import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
+import static java.util.Objects.requireNonNull;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
@@ -22,89 +26,107 @@ import io.confluent.ksql.function.AggregateFunctionArguments;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.udaf.KudafInitializer;
+import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.parser.tree.ExpressionRewriter;
+import io.confluent.ksql.parser.tree.ExpressionTreeRewriter;
 import io.confluent.ksql.parser.tree.FunctionCall;
 import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.parser.tree.WindowExpression;
-import io.confluent.ksql.serde.DataSource.DataSourceType;
+import io.confluent.ksql.physical.KsqlQueryBuilder;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
-import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.services.KafkaTopicClient;
+import io.confluent.ksql.structured.QueryContext;
 import io.confluent.ksql.structured.SchemaKGroupedStream;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.AggregateExpressionRewriter;
 import io.confluent.ksql.util.ExpressionTypeManager;
-import io.confluent.ksql.util.KafkaTopicClient;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.SelectExpression;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
-import org.apache.kafka.streams.StreamsBuilder;
 
 
 public class AggregateNode extends PlanNode {
 
   private static final String INTERNAL_COLUMN_NAME_PREFIX = "KSQL_INTERNAL_COL_";
 
+  private static final String PREPARE_OP_NAME = "prepare";
+  private static final String AGGREGATION_OP_NAME = "aggregate";
+  private static final String GROUP_BY_OP_NAME = "groupby";
+  private static final String FILTER_OP_NAME = "filter";
+  private static final String PROJECT_OP_NAME = "project";
+
   private final PlanNode source;
-  private final Schema schema;
+  private final KsqlSchema schema;
+  private final KeyField keyField;
   private final List<Expression> groupByExpressions;
   private final WindowExpression windowExpression;
   private final List<Expression> aggregateFunctionArguments;
   private final List<FunctionCall> functionList;
-  private final List<Expression> requiredColumnList;
+  private final List<DereferenceExpression> requiredColumns;
   private final List<Expression> finalSelectExpressions;
   private final Expression havingExpressions;
 
+  // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   @JsonCreator
   public AggregateNode(
       @JsonProperty("id") final PlanNodeId id,
       @JsonProperty("source") final PlanNode source,
-      @JsonProperty("schema") final Schema schema,
+      @JsonProperty("schema") final KsqlSchema schema,
+      @JsonProperty("keyField") final Optional<String> keyFieldName,
       @JsonProperty("groupby") final List<Expression> groupByExpressions,
       @JsonProperty("window") final WindowExpression windowExpression,
       @JsonProperty("aggregateFunctionArguments") final List<Expression> aggregateFunctionArguments,
       @JsonProperty("functionList") final List<FunctionCall> functionList,
-      @JsonProperty("requiredColumnList") final List<Expression> requiredColumnList,
+      @JsonProperty("requiredColumnList") final List<DereferenceExpression> requiredColumns,
       @JsonProperty("finalSelectExpressions") final List<Expression> finalSelectExpressions,
       @JsonProperty("havingExpressions") final Expression havingExpressions
   ) {
+    // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     super(id, DataSourceType.KTABLE);
 
-    this.source = source;
-    this.schema = schema;
-    this.groupByExpressions = groupByExpressions;
+    this.source = requireNonNull(source, "source");
+    this.schema = requireNonNull(schema, "schema");
+    this.groupByExpressions = requireNonNull(groupByExpressions, "groupByExpressions");
     this.windowExpression = windowExpression;
-    this.aggregateFunctionArguments = aggregateFunctionArguments;
-    this.functionList = functionList;
-    this.requiredColumnList = requiredColumnList;
-    this.finalSelectExpressions = finalSelectExpressions;
+    this.aggregateFunctionArguments =
+        requireNonNull(aggregateFunctionArguments, "aggregateFunctionArguments");
+    this.functionList = requireNonNull(functionList, "functionList");
+    this.requiredColumns =
+        ImmutableList.copyOf(requireNonNull(requiredColumns, "requiredColumns"));
+    this.finalSelectExpressions =
+        requireNonNull(finalSelectExpressions, "finalSelectExpressions");
     this.havingExpressions = havingExpressions;
+    this.keyField = KeyField.of(requireNonNull(keyFieldName, "keyFieldName"), Optional.empty())
+        .validateKeyExistsIn(schema);
   }
 
   @Override
-  public Schema getSchema() {
+  public KsqlSchema getSchema() {
     return this.schema;
   }
 
   @Override
-  public Field getKeyField() {
-    return null;
+  public KeyField getKeyField() {
+    return keyField;
   }
 
   @Override
@@ -128,20 +150,12 @@ public class AggregateNode extends PlanNode {
     return aggregateFunctionArguments;
   }
 
-  public List<FunctionCall> getFunctionList() {
+  public List<FunctionCall> getFunctionCalls() {
     return functionList;
   }
 
-  public List<Expression> getRequiredColumnList() {
-    return requiredColumnList;
-  }
-
-  private String groupByOpName() {
-    return getId().toString() + "-GROUP-BY";
-  }
-
-  private String aggregationOpName() {
-    return getId().toString() + "-AGGREGATION";
+  public List<DereferenceExpression> getRequiredColumns() {
+    return requiredColumns;
   }
 
   private List<SelectExpression> getFinalSelectExpressions() {
@@ -163,10 +177,6 @@ public class AggregateNode extends PlanNode {
     return finalSelectExpressionList;
   }
 
-  private Expression getHavingExpressions() {
-    return havingExpressions;
-  }
-
   @Override
   public <C, R> R accept(final PlanVisitor<C, R> visitor, final C context) {
     return visitor.visitAggregate(this, context);
@@ -174,37 +184,30 @@ public class AggregateNode extends PlanNode {
 
   @SuppressWarnings("unchecked") // needs investigating
   @Override
-  public SchemaKStream<?> buildStream(
-      final StreamsBuilder builder,
-      final KsqlConfig ksqlConfig,
-      final ServiceContext serviceContext,
-      final FunctionRegistry functionRegistry,
-      final Map<String, Object> props
-  ) {
-    final StructuredDataSourceNode streamSourceNode = getTheSourceNode();
-    final SchemaKStream sourceSchemaKStream = getSource().buildStream(
-        builder,
-        ksqlConfig,
-        serviceContext,
-        functionRegistry,
-        props
-    );
+  public SchemaKStream<?> buildStream(final KsqlQueryBuilder builder) {
+    final QueryContext.Stacker contextStacker = builder.buildNodeContext(getId());
+    final DataSourceNode streamSourceNode = getTheSourceNode();
+    final SchemaKStream sourceSchemaKStream = getSource().buildStream(builder);
 
     // Pre aggregate computations
-    final InternalSchema internalSchema = new InternalSchema(getRequiredColumnList(),
+    final InternalSchema internalSchema = new InternalSchema(getRequiredColumns(),
         getAggregateFunctionArguments());
 
     final SchemaKStream aggregateArgExpanded =
-        sourceSchemaKStream.select(internalSchema.getAggArgExpansionList());
+        sourceSchemaKStream.select(
+            internalSchema.getAggArgExpansionList(),
+            contextStacker.push(PREPARE_OP_NAME),
+            builder.getProcessingLogContext());
 
-    final KsqlTopicSerDe ksqlTopicSerDe = streamSourceNode.getStructuredDataSource()
-        .getKsqlTopic()
-        .getKsqlTopicSerDe();
-    final Serde<GenericRow> genericRowSerde = ksqlTopicSerDe.getGenericRowSerde(
-        aggregateArgExpanded.getSchema(),
-        ksqlConfig,
-        true,
-        serviceContext.getSchemaRegistryClientFactory()
+    final QueryContext.Stacker groupByContext = contextStacker.push(GROUP_BY_OP_NAME);
+
+    final KsqlTopicSerDe ksqlTopicSerDe = streamSourceNode.getDataSource()
+        .getKsqlTopicSerde();
+
+    final Serde<GenericRow> genericRowSerde = builder.buildGenericRowSerde(
+        ksqlTopicSerDe,
+        aggregateArgExpanded.getSchema().getSchema(),
+        groupByContext.getQueryContext()
     );
 
     final List<Expression> internalGroupByColumns = internalSchema.getInternalExpressionList(
@@ -213,59 +216,65 @@ public class AggregateNode extends PlanNode {
     final SchemaKGroupedStream schemaKGroupedStream =
         aggregateArgExpanded.groupBy(
             genericRowSerde, internalGroupByColumns,
-            groupByOpName());
+            groupByContext);
 
     // Aggregate computations
-    final SchemaBuilder aggregateSchema = SchemaBuilder.struct();
     final Map<Integer, Integer> aggValToValColumnMap = createAggregateValueToValueColumnMap(
         aggregateArgExpanded,
-        aggregateSchema,
         internalSchema
     );
 
-    final Schema aggStageSchema = buildAggregateSchema(
+    final KsqlSchema aggStageSchema = buildAggregateSchema(
         aggregateArgExpanded.getSchema(),
-        functionRegistry,
+        builder.getFunctionRegistry(),
         internalSchema
     );
 
-    final Serde<GenericRow> aggValueGenericRowSerde = ksqlTopicSerDe.getGenericRowSerde(
-        aggStageSchema,
-        ksqlConfig,
-        true,
-        serviceContext.getSchemaRegistryClientFactory()
+    final QueryContext.Stacker aggregationContext = contextStacker.push(AGGREGATION_OP_NAME);
+
+    final Serde<GenericRow> aggValueGenericRowSerde = builder.buildGenericRowSerde(
+        ksqlTopicSerDe,
+        aggStageSchema.getSchema(),
+        aggregationContext.getQueryContext()
     );
 
     final KudafInitializer initializer = new KudafInitializer(aggValToValColumnMap.size());
 
     final Map<Integer, KsqlAggregateFunction> aggValToFunctionMap = createAggValToFunctionMap(
-        aggregateArgExpanded, aggregateSchema, initializer, aggValToValColumnMap.size(),
-        functionRegistry, internalSchema);
+        aggregateArgExpanded, initializer, aggValToValColumnMap.size(),
+        builder.getFunctionRegistry(), internalSchema);
 
-    final SchemaKTable schemaKTable = schemaKGroupedStream.aggregate(
+    final SchemaKTable<?> schemaKTable = schemaKGroupedStream.aggregate(
         initializer,
         aggValToFunctionMap,
         aggValToValColumnMap,
         getWindowExpression(),
         aggValueGenericRowSerde,
-        aggregationOpName());
+        aggregationContext);
 
     SchemaKTable<?> result = new SchemaKTable<>(
         aggStageSchema,
         schemaKTable.getKtable(),
         schemaKTable.getKeyField(),
         schemaKTable.getSourceSchemaKStreams(),
-        schemaKTable.getKeySerde(),
+        schemaKTable.getKeySerdeFactory(),
         SchemaKStream.Type.AGGREGATE,
-        ksqlConfig,
-        functionRegistry
+        builder.getKsqlConfig(),
+        builder.getFunctionRegistry(),
+        aggregationContext.getQueryContext()
     );
 
-    if (getHavingExpressions() != null) {
-      result = result.filter(getHavingExpressions());
+    if (havingExpressions != null) {
+      result = result.filter(
+          internalSchema.resolveToInternal(havingExpressions),
+          contextStacker.push(FILTER_OP_NAME),
+          builder.getProcessingLogContext());
     }
 
-    return result.select(internalSchema.updateFinalSelectExpressions(getFinalSelectExpressions()));
+    return result.select(
+        internalSchema.updateFinalSelectExpressions(getFinalSelectExpressions()),
+        contextStacker.push(PROJECT_OP_NAME),
+        builder.getProcessingLogContext());
   }
 
   protected int getPartitions(final KafkaTopicClient kafkaTopicClient) {
@@ -274,19 +283,19 @@ public class AggregateNode extends PlanNode {
 
   private Map<Integer, Integer> createAggregateValueToValueColumnMap(
       final SchemaKStream aggregateArgExpanded,
-      final SchemaBuilder aggregateSchema,
       final InternalSchema internalSchema
   ) {
     final Map<Integer, Integer> aggValToValColumnMap = new HashMap<>();
     int nonAggColumnIndex = 0;
-    for (final Expression expression : getRequiredColumnList()) {
+    for (final Expression expression : getRequiredColumns()) {
       final String exprStr =
           internalSchema.getInternalColumnForExpression(expression);
-      final int index = SchemaUtil.getIndexInSchema(exprStr, aggregateArgExpanded.getSchema());
+
+      final int index = aggregateArgExpanded.getSchema().fieldIndex(exprStr)
+          .orElseThrow(IllegalStateException::new);
+
       aggValToValColumnMap.put(nonAggColumnIndex, index);
       nonAggColumnIndex++;
-      final Field field = aggregateArgExpanded.getSchema().fields().get(index);
-      aggregateSchema.field(field.name(), field.schema());
     }
     return aggValToValColumnMap;
   }
@@ -294,7 +303,6 @@ public class AggregateNode extends PlanNode {
 
   private Map<Integer, KsqlAggregateFunction> createAggValToFunctionMap(
       final SchemaKStream aggregateArgExpanded,
-      final SchemaBuilder aggregateSchema,
       final KudafInitializer initializer,
       final int initialUdafIndex,
       final FunctionRegistry functionRegistry,
@@ -303,7 +311,7 @@ public class AggregateNode extends PlanNode {
     try {
       int udafIndexInAggSchema = initialUdafIndex;
       final Map<Integer, KsqlAggregateFunction> aggValToAggFunctionMap = new HashMap<>();
-      for (final FunctionCall functionCall : getFunctionList()) {
+      for (final FunctionCall functionCall : getFunctionCalls()) {
         final KsqlAggregateFunction aggregateFunction = getAggregateFunction(
             functionRegistry,
             internalSchema,
@@ -311,9 +319,6 @@ public class AggregateNode extends PlanNode {
 
         aggValToAggFunctionMap.put(udafIndexInAggSchema++, aggregateFunction);
         initializer.addAggregateIntializer(aggregateFunction.getInitialValueSupplier());
-
-        aggregateSchema.field("AGG_COL_"
-            + udafIndexInAggSchema, aggregateFunction.getReturnType());
       }
       return aggValToAggFunctionMap;
     } catch (final Exception e) {
@@ -327,10 +332,12 @@ public class AggregateNode extends PlanNode {
     }
   }
 
-  private KsqlAggregateFunction getAggregateFunction(final FunctionRegistry functionRegistry,
+  private static KsqlAggregateFunction getAggregateFunction(
+      final FunctionRegistry functionRegistry,
       final InternalSchema internalSchema,
       final FunctionCall functionCall,
-      final Schema schema) {
+      final KsqlSchema schema
+  ) {
     final ExpressionTypeManager expressionTypeManager =
         new ExpressionTypeManager(schema, functionRegistry);
     final List<Expression> functionArgs = internalSchema.getInternalArgsExpressionList(
@@ -348,22 +355,22 @@ public class AggregateNode extends PlanNode {
     return aggregateFunctionInfo.getInstance(new AggregateFunctionArguments(udafIndex, args));
   }
 
-  private Schema buildAggregateSchema(
-      final Schema schema,
+  private KsqlSchema buildAggregateSchema(
+      final KsqlSchema schema,
       final FunctionRegistry functionRegistry,
       final InternalSchema internalSchema
   ) {
     final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
     final List<Field> fields = schema.fields();
-    for (int i = 0; i < getRequiredColumnList().size(); i++) {
+    for (int i = 0; i < getRequiredColumns().size(); i++) {
       schemaBuilder.field(fields.get(i).name(), fields.get(i).schema());
     }
     for (int aggFunctionVarSuffix = 0;
-        aggFunctionVarSuffix < getFunctionList().size(); aggFunctionVarSuffix++) {
+        aggFunctionVarSuffix < getFunctionCalls().size(); aggFunctionVarSuffix++) {
       final KsqlAggregateFunction aggregateFunction = getAggregateFunction(
           functionRegistry,
           internalSchema,
-          getFunctionList().get(aggFunctionVarSuffix),
+          getFunctionCalls().get(aggFunctionVarSuffix),
           schema);
       schemaBuilder.field(
           AggregateExpressionRewriter.AGGREGATE_FUNCTION_VARIABLE_PREFIX
@@ -372,7 +379,7 @@ public class AggregateNode extends PlanNode {
       );
     }
 
-    return schemaBuilder.build();
+    return KsqlSchema.of(schemaBuilder.build());
   }
 
   private static class InternalSchema {
@@ -381,15 +388,15 @@ public class AggregateNode extends PlanNode {
     private final Map<String, String> expressionToInternalColumnNameMap = new HashMap<>();
 
     InternalSchema(
-        final List<Expression> requiredColumnList,
+        final List<DereferenceExpression> requiredColumns,
         final List<Expression> aggregateFunctionArguments) {
       final Set<String> seen = new HashSet<>();
-      collectAggregateArgExpressions(requiredColumnList, seen);
+      collectAggregateArgExpressions(requiredColumns, seen);
       collectAggregateArgExpressions(aggregateFunctionArguments, seen);
     }
 
     private void collectAggregateArgExpressions(
-        final List<Expression> expressions,
+        final Collection<? extends Expression> expressions,
         final Set<String> seen
     ) {
       expressions.stream()
@@ -459,24 +466,29 @@ public class AggregateNode extends PlanNode {
 
 
     private Expression resolveToInternal(final Expression exp) {
-      if (exp instanceof FunctionCall) {
-        final FunctionCall funcCall = (FunctionCall) exp;
-        final List<Expression> internalArgs = getInternalExpressionList(funcCall.getArguments());
-        return new FunctionCall(
-            funcCall.getLocation(), funcCall.getName(), funcCall.getWindow(), funcCall.isDistinct(),
-            internalArgs);
-      }
-
       final String name = expressionToInternalColumnNameMap.get(exp.toString());
       if (name != null) {
-        return new QualifiedNameReference(QualifiedName.of(name));
+        return new QualifiedNameReference(exp.getLocation(), QualifiedName.of(name));
       }
 
-      if (exp instanceof DereferenceExpression) {
-        throw new KsqlException("GROUP BY expression must be part of SELECT: " + exp.toString());
-      }
+      return ExpressionTreeRewriter.rewriteWith(new ResolveToInternalRewriter(), exp);
+    }
 
-      return exp;
+    private class ResolveToInternalRewriter extends ExpressionRewriter<Void> {
+
+      @Override
+      public Expression rewriteDereferenceExpression(
+          final DereferenceExpression node,
+          final Void context,
+          final ExpressionTreeRewriter<Void> treeRewriter
+      ) {
+        final String name = expressionToInternalColumnNameMap.get(node.toString());
+        if (name != null) {
+          return new QualifiedNameReference(node.getLocation(), QualifiedName.of(name));
+        }
+
+        throw new KsqlException("Unknown source column: " + node.toString());
+      }
     }
   }
 }

@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -14,114 +15,134 @@
 
 package io.confluent.ksql.planner.plan;
 
-import static org.easymock.EasyMock.anyObject;
-import static org.easymock.EasyMock.eq;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.same;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
-import io.confluent.ksql.function.InternalFunctionRegistry;
+import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.logging.processing.ProcessingLogContext;
+import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
+import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.parser.tree.BooleanLiteral;
-import io.confluent.ksql.serde.DataSource.DataSourceType;
-import io.confluent.ksql.services.TestServiceContext;
-import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.physical.KsqlQueryBuilder;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.structured.QueryContext.Stacker;
 import io.confluent.ksql.structured.SchemaKStream;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SelectExpression;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
+import java.util.Optional;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
-import org.apache.kafka.streams.StreamsBuilder;
-import org.easymock.EasyMock;
-import org.easymock.EasyMockRunner;
-import org.easymock.Mock;
-import org.easymock.MockType;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
-@RunWith(EasyMockRunner.class)
+@RunWith(MockitoJUnitRunner.class)
 public class ProjectNodeTest {
+
+  private static final PlanNodeId NODE_ID = new PlanNodeId("1");
+  private static final BooleanLiteral TRUE_EXPRESSION = new BooleanLiteral("true");
+  private static final BooleanLiteral FALSE_EXPRESSION = new BooleanLiteral("false");
+  private static final String KEY_FIELD_NAME = "field1";
+  private static final KsqlSchema SCHEMA = KsqlSchema.of(SchemaBuilder.struct()
+      .field("field1", Schema.OPTIONAL_STRING_SCHEMA)
+      .field("field2", Schema.OPTIONAL_STRING_SCHEMA)
+      .build());
+  private static final KeyField SOURCE_KEY_FIELD = KeyField
+      .of("source-key", new Field("legacy-source-key", 1, Schema.STRING_SCHEMA));
 
   @Mock
   private PlanNode source;
-  @Mock(MockType.NICE)
-  private SchemaKStream<String> stream;
+  @Mock
+  private SchemaKStream<?> stream;
+  @Mock
+  private KsqlQueryBuilder ksqlStreamBuilder;
+  @Mock
+  private Stacker stacker;
+  @Mock
+  private ProcessingLogContext processingLogContext;
 
-  private final StreamsBuilder builder = new StreamsBuilder();
-  private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
-  private final ServiceContext serviceContext = TestServiceContext.create();
-  private final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
-  private final HashMap<String, Object> props = new HashMap<>();
+  private ProjectNode projectNode;
 
+  @SuppressWarnings("unchecked")
   @Before
   public void init() {
-    EasyMock.expect(source.getNodeOutputType()).andReturn(DataSourceType.KSTREAM);
-  }
+    when(source.getKeyField()).thenReturn(SOURCE_KEY_FIELD);
+    when(source.buildStream(any())).thenReturn((SchemaKStream) stream);
+    when(source.getNodeOutputType()).thenReturn(DataSourceType.KSTREAM);
+    when(ksqlStreamBuilder.getProcessingLogContext()).thenReturn(processingLogContext);
+    when(ksqlStreamBuilder.buildNodeContext(NODE_ID)).thenReturn(stacker);
+    when(stream.select(anyList(), any(), any())).thenReturn((SchemaKStream) stream);
 
-  @After
-  public void tearDown() {
-    serviceContext.close();
+    projectNode = new ProjectNode(
+        NODE_ID,
+        source,
+        SCHEMA,
+        Optional.of(KEY_FIELD_NAME),
+        ImmutableList.of(TRUE_EXPRESSION, FALSE_EXPRESSION));
   }
 
   @Test(expected = KsqlException.class)
-  public void shouldThrowKsqlExcptionIfSchemaSizeDoesntMatchProjection() {
-    mockSourceNode();
-
-    EasyMock.replay(source, stream);
-
-    final ProjectNode node = new ProjectNode(new PlanNodeId("1"),
+  public void shouldThrowIfSchemaSizeDoesntMatchProjection() {
+    new ProjectNode(
+        NODE_ID,
         source,
-        SchemaBuilder.struct()
-            .field("field1", Schema.OPTIONAL_STRING_SCHEMA)
-            .field("field2", Schema.OPTIONAL_STRING_SCHEMA)
-            .build(),
-        Collections.singletonList(new BooleanLiteral("true")));
+        SCHEMA,
+        Optional.of("field1"),
+        ImmutableList.of(TRUE_EXPRESSION)); // <-- not enough expressions
+  }
 
+  @Test
+  public void shouldBuildSourceOnceWhenBeingBuilt() {
+    // When:
+    projectNode.buildStream(ksqlStreamBuilder);
 
-    node.buildStream(builder,
-        ksqlConfig,
-        serviceContext,
-        functionRegistry,
-        props);
+    // Then:
+    verify(source, times(1)).buildStream(ksqlStreamBuilder);
   }
 
   @Test
   public void shouldCreateProjectionWithFieldNameExpressionPairs() {
-    mockSourceNode();
-    final BooleanLiteral trueExpression = new BooleanLiteral("true");
-    final BooleanLiteral falseExpression = new BooleanLiteral("false");
-    EasyMock.expect(stream.select(
-        Arrays.asList(SelectExpression.of("field1", trueExpression),
-            SelectExpression.of("field2", falseExpression))))
-        .andReturn(stream);
+    // When:
+    projectNode.buildStream(ksqlStreamBuilder);
 
-    EasyMock.replay(source, stream);
-
-    final ProjectNode node = new ProjectNode(new PlanNodeId("1"),
-        source,
-        SchemaBuilder.struct()
-            .field("field1", Schema.OPTIONAL_STRING_SCHEMA)
-            .field("field2", Schema.OPTIONAL_STRING_SCHEMA)
-            .build(),
-        Arrays.asList(trueExpression, falseExpression));
-
-    node.buildStream(builder, ksqlConfig, serviceContext, functionRegistry, props);
-
-    EasyMock.verify(stream);
+    // Then:
+    verify(stream).select(
+        eq(Arrays.asList(
+            SelectExpression.of("field1", TRUE_EXPRESSION),
+            SelectExpression.of("field2", FALSE_EXPRESSION))),
+        eq(stacker),
+        same(processingLogContext)
+    );
   }
 
-  @SuppressWarnings("unchecked")
-  private void mockSourceNode() {
-    EasyMock.expect(source.getKeyField()).andReturn(new Field("field1", 0, Schema.OPTIONAL_STRING_SCHEMA));
-    EasyMock.expect(source.buildStream(
-        anyObject(StreamsBuilder.class),
-        anyObject(KsqlConfig.class),
-        anyObject(ServiceContext.class),
-        anyObject(InternalFunctionRegistry.class),
-        eq(props)))
-        .andReturn((SchemaKStream)stream);
+  @Test(expected = IllegalArgumentException.class)
+  public void shouldThrowIfKeyFieldNameNotInSchema() {
+    new ProjectNode(
+        NODE_ID,
+        source,
+        SCHEMA,
+        Optional.of("Unknown Key Field"),
+        ImmutableList.of(TRUE_EXPRESSION, FALSE_EXPRESSION));
+  }
+
+  @Test
+  public void shouldReturnKeyField() {
+    // When:
+    final KeyField keyField = projectNode.getKeyField();
+
+    // Then:
+    assertThat(keyField.name(), is(Optional.of(KEY_FIELD_NAME)));
+    assertThat(keyField.legacy(), is(SOURCE_KEY_FIELD.legacy()));
   }
 }

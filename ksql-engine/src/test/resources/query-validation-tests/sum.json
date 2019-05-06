@@ -1,11 +1,6 @@
 {
   "comments": [
-    "You can specify multiple statements per test case, i.e., to set up the various streams needed",
-    "for joins etc, but currently only the final topology will be verified. This should be enough",
-    "for most tests as we can simulate the outputs from previous stages into the final stage. If we",
-    "take a modular approach to testing we can still verify that it all works correctly, i.e, if we",
-    "verify the output of a select or aggregate is correct, we can use simulated output to feed into",
-    "a join or another aggregate."
+    "Test cases covering the use of the aggregate SUM function"
   ],
   "tests": [
     {
@@ -15,16 +10,44 @@
         "CREATE TABLE S2 as SELECT id, sum(value) FROM test group by id;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "value": "0,zero,0", "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": "0,100,100", "timestamp": 0},
-        {"topic": "test_topic", "key": 100, "value": "100,100,500", "timestamp": 0},
-        {"topic": "test_topic", "key": 100, "value": "100,100,100", "timestamp": 0}
+        {"topic": "test_topic", "key": 0, "value": "0,zero,0"},
+        {"topic": "test_topic", "key": 0, "value": "0,100,100"},
+        {"topic": "test_topic", "key": 100, "value": "100,100,500"},
+        {"topic": "test_topic", "key": 100, "value": "100,100,100"}
       ],
       "outputs": [
-        {"topic": "S2", "key": 0, "value": "0,0", "timestamp": 0},
-        {"topic": "S2", "key": 0, "value": "0,100", "timestamp": 0},
-        {"topic": "S2", "key": 100, "value": "100,500", "timestamp": 0},
-        {"topic": "S2", "key": 100, "value": "100,600", "timestamp": 0}
+        {"topic": "S2", "key": 0, "value": "0,0"},
+        {"topic": "S2", "key": 0, "value": "0,100"},
+        {"topic": "S2", "key": 100, "value": "100,500"},
+        {"topic": "S2", "key": 100, "value": "100,600"}
+      ]
+    },
+    {
+      "name": "sum int left join of table",
+      "comment": "from https://github.com/confluentinc/ksql/issues/2490",
+      "statements": [
+        "CREATE TABLE t1 (ID bigint, TOTAL integer) WITH (kafka_topic='T1', value_format='DELIMITED', key='ID');",
+        "CREATE TABLE t2 (ID bigint, TOTAL integer) WITH (kafka_topic='T2', value_format='DELIMITED', key='ID');",
+        "CREATE TABLE OUTPUT AS SELECT t1.id, SUM(t2.total) FROM T1 LEFT JOIN T2 ON (t1.id = t2.id) GROUP BY t1.id;"
+      ],
+      "inputs": [
+        {"topic": "T1", "key": 0, "value": "0,100"},
+        {"topic": "T1", "key": 1, "value": "1,101"},
+        {"topic": "T2", "key": 0, "value": "0,5"},
+        {"topic": "T2", "key": 1, "value": "1,10"},
+        {"topic": "T2", "key": 0, "value": "0,20"},
+        {"topic": "T2", "key": 0, "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": "0,0"},
+        {"topic": "OUTPUT", "key": 1, "value": "1,0"},
+        {"topic": "OUTPUT", "key": 0, "value": "0,0"},
+        {"topic": "OUTPUT", "key": 0, "value": "0,5"},
+        {"topic": "OUTPUT", "key": 1, "value": "1,0"},
+        {"topic": "OUTPUT", "key": 1, "value": "1,10"},
+        {"topic": "OUTPUT", "key": 0, "value": "0,0"},
+        {"topic": "OUTPUT", "key": 0, "value": "0,20"},
+        {"topic": "OUTPUT", "key": 0, "value": "0,0"}
       ]
     },
     {
@@ -34,16 +57,16 @@
         "CREATE TABLE S2 as SELECT id, sum(value) FROM test group by id;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "value": "0,zero,2147483648", "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": "0,100,100", "timestamp": 0},
-        {"topic": "test_topic", "key": 100, "value": "100,100,500", "timestamp": 0},
-        {"topic": "test_topic", "key": 100, "value": "100,100,100", "timestamp": 0}
+        {"topic": "test_topic", "key": 0, "value": "0,zero,2147483648"},
+        {"topic": "test_topic", "key": 0, "value": "0,100,100"},
+        {"topic": "test_topic", "key": 100, "value": "100,100,500"},
+        {"topic": "test_topic", "key": 100, "value": "100,100,100"}
       ],
       "outputs": [
-        {"topic": "S2", "key": 0, "value": "0,2147483648", "timestamp": 0},
-        {"topic": "S2", "key": 0, "value": "0,2147483748", "timestamp": 0},
-        {"topic": "S2", "key": 100, "value": "100,500", "timestamp": 0},
-        {"topic": "S2", "key": 100, "value": "100,600", "timestamp": 0}
+        {"topic": "S2", "key": 0, "value": "0,2147483648"},
+        {"topic": "S2", "key": 0, "value": "0,2147483748"},
+        {"topic": "S2", "key": 100, "value": "100,500"},
+        {"topic": "S2", "key": 100, "value": "100,600"}
       ]
     },
     {
@@ -53,16 +76,16 @@
         "CREATE TABLE S2 as SELECT id, sum(value) FROM test group by id;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "value": "0,zero,5.4", "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": "0,100,100.1", "timestamp": 0},
-        {"topic": "test_topic", "key": 100, "value": "100,100,500.9", "timestamp": 0},
-        {"topic": "test_topic", "key": 100, "value": "100,100,300.8", "timestamp": 0}
+        {"topic": "test_topic", "key": 0, "value": "0,zero,5.4"},
+        {"topic": "test_topic", "key": 0, "value": "0,100,100.1"},
+        {"topic": "test_topic", "key": 100, "value": "100,100,500.9"},
+        {"topic": "test_topic", "key": 100, "value": "100,100,300.8"}
       ],
       "outputs": [
-        {"topic": "S2", "key": 0, "value": "0,5.4", "timestamp": 0},
-        {"topic": "S2", "key": 0, "value": "0,105.5", "timestamp": 0},
-        {"topic": "S2", "key": 100, "value": "100,500.9", "timestamp": 0},
-        {"topic": "S2", "key": 100, "value": "100,801.7", "timestamp": 0}
+        {"topic": "S2", "key": 0, "value": "0,5.4"},
+        {"topic": "S2", "key": 0, "value": "0,105.5"},
+        {"topic": "S2", "key": 100, "value": "100,500.9"},
+        {"topic": "S2", "key": 100, "value": "100,801.7"}
       ]
     },
     {
@@ -72,18 +95,18 @@
         "CREATE TABLE S2 as SELECT id, sum(value['key1']) AS sum_val FROM test group by id;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero","value":{"key1":10.0, "key2":1.0}}, "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}, "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}, "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}, "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}, "timestamp": 0}
+        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero","value":{"key1":10.0, "key2":1.0}}},
+        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}},
+        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}},
+        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}},
+        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}}
       ],
       "outputs": [
-        {"topic": "S2", "key": 0, "value": {"ID":0,"SUM_VAL":10.0}, "timestamp": 0},
-        {"topic": "S2", "key": 0, "value": {"ID":0,"SUM_VAL":20.0}, "timestamp": 0},
-        {"topic": "S2", "key": 0, "value": {"ID":0,"SUM_VAL":30.0}, "timestamp": 0},
-        {"topic": "S2", "key": 0, "value": {"ID":0,"SUM_VAL":40.0}, "timestamp": 0},
-        {"topic": "S2", "key": 0, "value": {"ID":0,"SUM_VAL":50.0}, "timestamp": 0}
+        {"topic": "S2", "key": 0, "value": {"ID":0,"SUM_VAL":10.0}},
+        {"topic": "S2", "key": 0, "value": {"ID":0,"SUM_VAL":20.0}},
+        {"topic": "S2", "key": 0, "value": {"ID":0,"SUM_VAL":30.0}},
+        {"topic": "S2", "key": 0, "value": {"ID":0,"SUM_VAL":40.0}},
+        {"topic": "S2", "key": 0, "value": {"ID":0,"SUM_VAL":50.0}}
       ]
     },
     {
@@ -93,18 +116,18 @@
         "CREATE TABLE S2 as SELECT id, sum(2) AS sum_val FROM test group by id;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero","value":{"key1":10.0, "key2":1.0}}, "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}, "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}, "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}, "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}, "timestamp": 0}
+        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero","value":{"key1":10.0, "key2":1.0}}},
+        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}},
+        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}},
+        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}},
+        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}}
       ],
       "outputs": [
-        {"topic": "S2", "key": 0, "value": {"ID":0,"SUM_VAL":2}, "timestamp": 0},
-        {"topic": "S2", "key": 0, "value": {"ID":0,"SUM_VAL":4}, "timestamp": 0},
-        {"topic": "S2", "key": 0, "value": {"ID":0,"SUM_VAL":6}, "timestamp": 0},
-        {"topic": "S2", "key": 0, "value": {"ID":0,"SUM_VAL":8}, "timestamp": 0},
-        {"topic": "S2", "key": 0, "value": {"ID":0,"SUM_VAL":10}, "timestamp": 0}
+        {"topic": "S2", "key": 0, "value": {"ID":0,"SUM_VAL":2}},
+        {"topic": "S2", "key": 0, "value": {"ID":0,"SUM_VAL":4}},
+        {"topic": "S2", "key": 0, "value": {"ID":0,"SUM_VAL":6}},
+        {"topic": "S2", "key": 0, "value": {"ID":0,"SUM_VAL":8}},
+        {"topic": "S2", "key": 0, "value": {"ID":0,"SUM_VAL":10}}
       ]
     },
     {
@@ -114,18 +137,18 @@
         "CREATE TABLE S2 as SELECT id, sum(cast (2 as BIGINT)) AS sum_val FROM test group by id;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero","value":{"key1":10.0, "key2":1.0}}, "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}, "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}, "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}, "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}, "timestamp": 0}
+        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero","value":{"key1":10.0, "key2":1.0}}},
+        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}},
+        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}},
+        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}},
+        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}}
       ],
       "outputs": [
-        {"topic": "S2", "key": 0, "value": {"ID":0,"SUM_VAL":2}, "timestamp": 0},
-        {"topic": "S2", "key": 0, "value": {"ID":0,"SUM_VAL":4}, "timestamp": 0},
-        {"topic": "S2", "key": 0, "value": {"ID":0,"SUM_VAL":6}, "timestamp": 0},
-        {"topic": "S2", "key": 0, "value": {"ID":0,"SUM_VAL":8}, "timestamp": 0},
-        {"topic": "S2", "key": 0, "value": {"ID":0,"SUM_VAL":10}, "timestamp": 0}
+        {"topic": "S2", "key": 0, "value": {"ID":0,"SUM_VAL":2}},
+        {"topic": "S2", "key": 0, "value": {"ID":0,"SUM_VAL":4}},
+        {"topic": "S2", "key": 0, "value": {"ID":0,"SUM_VAL":6}},
+        {"topic": "S2", "key": 0, "value": {"ID":0,"SUM_VAL":8}},
+        {"topic": "S2", "key": 0, "value": {"ID":0,"SUM_VAL":10}}
       ]
     },
     {
@@ -135,18 +158,18 @@
         "CREATE TABLE S2 as SELECT id, sum(1.0) AS sum_val FROM test group by id;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero","value":{"key1":10.0, "key2":1.0}}, "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}, "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}, "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}, "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}, "timestamp": 0}
+        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero","value":{"key1":10.0, "key2":1.0}}},
+        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}},
+        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}},
+        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}},
+        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero", "value": {"key1":10.0, "key2":1.0}}}
       ],
       "outputs": [
-        {"topic": "S2", "key": 0, "value": {"ID":0,"SUM_VAL":1.0}, "timestamp": 0},
-        {"topic": "S2", "key": 0, "value": {"ID":0,"SUM_VAL":2.0}, "timestamp": 0},
-        {"topic": "S2", "key": 0, "value": {"ID":0,"SUM_VAL":3.0}, "timestamp": 0},
-        {"topic": "S2", "key": 0, "value": {"ID":0,"SUM_VAL":4.0}, "timestamp": 0},
-        {"topic": "S2", "key": 0, "value": {"ID":0,"SUM_VAL":5.0}, "timestamp": 0}
+        {"topic": "S2", "key": 0, "value": {"ID":0,"SUM_VAL":1.0}},
+        {"topic": "S2", "key": 0, "value": {"ID":0,"SUM_VAL":2.0}},
+        {"topic": "S2", "key": 0, "value": {"ID":0,"SUM_VAL":3.0}},
+        {"topic": "S2", "key": 0, "value": {"ID":0,"SUM_VAL":4.0}},
+        {"topic": "S2", "key": 0, "value": {"ID":0,"SUM_VAL":5.0}}
       ]
     }
   ]

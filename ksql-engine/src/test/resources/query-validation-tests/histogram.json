@@ -16,18 +16,18 @@
         "CREATE TABLE S2 as SELECT id, histogram(value) as counts FROM test group by id;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "VALUE": "foo"}, "timestamp": 0},
-        {"topic": "test_topic", "key": 100, "value": {"ID": 100, "VALUE": "baz"}, "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "VALUE": "bar"}, "timestamp": 0},
-        {"topic": "test_topic", "key": 100, "value": {"ID": 100, "VALUE": "baz"}, "timestamp": 0},
-        {"topic": "test_topic", "key": 100, "value": {"ID": 100, "VALUE": "foo"}, "timestamp": 0}
+        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "VALUE": "foo"}},
+        {"topic": "test_topic", "key": 100, "value": {"ID": 100, "VALUE": "baz"}},
+        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "VALUE": "bar"}},
+        {"topic": "test_topic", "key": 100, "value": {"ID": 100, "VALUE": "baz"}},
+        {"topic": "test_topic", "key": 100, "value": {"ID": 100, "VALUE": "foo"}}
       ],
       "outputs": [
-        {"topic": "S2", "key": 0, "value": {"ID": 0, "COUNTS": {"foo": 1}}, "timestamp": 0},
-        {"topic": "S2", "key": 100, "value": {"ID": 100, "COUNTS": {"baz": 1}}, "timestamp": 0},
-        {"topic": "S2", "key": 0, "value": {"ID": 0, "COUNTS": {"foo": 1,"bar": 1}}, "timestamp": 0},
-        {"topic": "S2", "key": 100, "value": {"ID": 100, "COUNTS": {"baz": 2}}, "timestamp": 0},
-        {"topic": "S2", "key": 100, "value": {"ID": 100, "COUNTS": {"baz": 2,"foo": 1}}, "timestamp": 0}
+        {"topic": "S2", "key": 0, "value": {"ID": 0, "COUNTS": {"foo": 1}}},
+        {"topic": "S2", "key": 100, "value": {"ID": 100, "COUNTS": {"baz": 1}}},
+        {"topic": "S2", "key": 0, "value": {"ID": 0, "COUNTS": {"foo": 1,"bar": 1}}},
+        {"topic": "S2", "key": 100, "value": {"ID": 100, "COUNTS": {"baz": 2}}},
+        {"topic": "S2", "key": 100, "value": {"ID": 100, "COUNTS": {"baz": 2,"foo": 1}}}
       ]
     },
     {
@@ -38,20 +38,20 @@
         "CREATE TABLE COUNT_BY_REGION AS SELECT region, histogram(name) AS COUNTS FROM TEST GROUP BY region;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "alice", "REGION": "east"}, "timestamp": 0},
-        {"topic": "test_topic", "key": 1, "value": {"ID": 1, "NAME": "bob", "REGION": "east"}, "timestamp": 0},
-        {"topic": "test_topic", "key": 2, "value": {"ID": 2, "NAME": "carol", "REGION": "west"}, "timestamp": 0},
-        {"topic": "test_topic", "key": 3, "value": {"ID": 3, "NAME": "dave", "REGION": "west"}, "timestamp": 0},
-        {"topic": "test_topic", "key": 1, "value": {"ID": 1, "NAME": "bob", "REGION": "west"}, "timestamp": 0},
-        {"topic": "test_topic", "key": 1, "value": null, "timestamp": 0}
+        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "alice", "REGION": "east"}},
+        {"topic": "test_topic", "key": 1, "value": {"ID": 1, "NAME": "bob", "REGION": "east"}},
+        {"topic": "test_topic", "key": 2, "value": {"ID": 2, "NAME": "carol", "REGION": "west"}},
+        {"topic": "test_topic", "key": 3, "value": {"ID": 3, "NAME": "dave", "REGION": "west"}},
+        {"topic": "test_topic", "key": 1, "value": {"ID": 1, "NAME": "bob", "REGION": "west"}},
+        {"topic": "test_topic", "key": 1, "value": null}
       ],
       "outputs": [
-        {"topic": "COUNT_BY_REGION", "key": "east", "value": {"REGION": "east", "COUNTS": {"alice": 1}}, "timestamp": 0},
-        {"topic": "COUNT_BY_REGION", "key": "east", "value": {"REGION": "east", "COUNTS": {"alice": 1, "bob": 1}}, "timestamp": 0},
-        {"topic": "COUNT_BY_REGION", "key": "west", "value": {"REGION": "west", "COUNTS": {"carol": 1}}, "timestamp": 0},
-        {"topic": "COUNT_BY_REGION", "key": "west", "value": {"REGION": "west", "COUNTS": {"carol": 1, "dave": 1}}, "timestamp": 0},
-        {"topic": "COUNT_BY_REGION", "key": "east", "value": {"REGION": "east", "COUNTS": {"alice": 1}}, "timestamp": 0},
-        {"topic": "COUNT_BY_REGION", "key": "west", "value": {"REGION": "west", "COUNTS": {"carol": 1, "dave": 1, "bob": 1}}, "timestamp": 0}
+        {"topic": "COUNT_BY_REGION", "key": "east", "value": {"REGION": "east", "COUNTS": {"alice": 1}}},
+        {"topic": "COUNT_BY_REGION", "key": "east", "value": {"REGION": "east", "COUNTS": {"alice": 1, "bob": 1}}},
+        {"topic": "COUNT_BY_REGION", "key": "west", "value": {"REGION": "west", "COUNTS": {"carol": 1}}},
+        {"topic": "COUNT_BY_REGION", "key": "west", "value": {"REGION": "west", "COUNTS": {"carol": 1, "dave": 1}}},
+        {"topic": "COUNT_BY_REGION", "key": "east", "value": {"REGION": "east", "COUNTS": {"alice": 1}}},
+        {"topic": "COUNT_BY_REGION", "key": "west", "value": {"REGION": "west", "COUNTS": {"carol": 1, "dave": 1, "bob": 1}}}
       ]
     }
   ]

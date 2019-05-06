@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -14,27 +15,34 @@
 
 package io.confluent.ksql.parser.tree;
 
+import static java.util.Objects.requireNonNull;
+
+import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
+@Immutable
 public class WindowExpression extends Node {
 
   private final String windowName;
-  private  final KsqlWindowExpression ksqlWindowExpression;
+  private final KsqlWindowExpression ksqlWindowExpression;
 
   public WindowExpression(
-      final String windowName, final KsqlWindowExpression ksqlWindowExpression) {
+      final String windowName,
+      final KsqlWindowExpression ksqlWindowExpression
+  ) {
     this(Optional.empty(), windowName, ksqlWindowExpression);
   }
 
   public WindowExpression(
       final Optional<NodeLocation> location,
       final String windowName,
-      final KsqlWindowExpression ksqlWindowExpression) {
+      final KsqlWindowExpression ksqlWindowExpression
+  ) {
     super(location);
-    this.windowName = windowName;
-    this.ksqlWindowExpression = ksqlWindowExpression;
+    this.windowName = requireNonNull(windowName, "windowName");
+    this.ksqlWindowExpression = requireNonNull(ksqlWindowExpression, "ksqlWindowExpression");
   }
 
   public KsqlWindowExpression getKsqlWindowExpression() {
@@ -46,15 +54,16 @@ public class WindowExpression extends Node {
   }
 
   @Override
-  public boolean equals(final Object obj) {
-    if (this == obj) {
+  public boolean equals(final Object o) {
+    if (this == o) {
       return true;
     }
-    if ((obj == null) || (getClass() != obj.getClass())) {
+    if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    final WindowExpression o = (WindowExpression) obj;
-    return Objects.equals(ksqlWindowExpression, o.ksqlWindowExpression);
+    final WindowExpression that = (WindowExpression) o;
+    return Objects.equals(windowName, that.windowName)
+        && Objects.equals(ksqlWindowExpression, that.ksqlWindowExpression);
   }
 
   @Override
@@ -64,7 +73,7 @@ public class WindowExpression extends Node {
 
   @Override
   public String toString() {
-    return " WINDOW " + windowName + " " + ksqlWindowExpression.toString();
+    return " WINDOW " + windowName + " " + ksqlWindowExpression;
   }
 
   @Override
@@ -78,9 +87,8 @@ public class WindowExpression extends Node {
         return TimeUnit.valueOf(windowUnitString + "S");
       }
       return TimeUnit.valueOf(windowUnitString);
-    } catch (IllegalArgumentException | NullPointerException e) {
+    } catch (IllegalArgumentException e) {
       return null;
     }
   }
-
 }

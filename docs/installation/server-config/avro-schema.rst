@@ -10,7 +10,7 @@ manually define columns and data types in KSQL and from manual interaction with 
 Supported functionality
 ***********************
 
-KSQL currently supports Avro data in the Kafka message values. 
+KSQL currently supports Avro data in the |ak-tm| message values.
 
 Avro schemas with nested fields are supported. In KSQL 5.0 and higher, you can read nested data, in Avro and JSON
 formats, by using the STRUCT type. You can’t create new nested STRUCT data as the result of a query, but you can copy existing
@@ -36,6 +36,12 @@ Using Avro in KSQL
 Before using Avro in KSQL, make sure that |sr| is up and running and that ``ksql.schema.registry.url`` is set correctly
 in the KSQL properties file (defaults to ``http://localhost:8081``). |sr| is :ref:`included by default <quickstart>` with
 |cp|.
+
+.. important:: By default, KSQL registered avro schemas have the same name (``KsqlDataSourceSchema``) and the same namespace
+               (``io.confluent.ksql.avro_schemas``). You can override this behaviour by providing an ``VALUE_AVRO_SCHEMA_FULL_NAME``
+               property in the ``WITH`` clause where you set the ``VALUE_FORMAT`` to ``'AVRO'``. As the name suggests,
+               this property will override the default name/namespace with the provided one.
+               For Example, ``com.mycompany.MySchema`` registers a schema with the ``MySchema`` name and the ``com.mycompany`` namespace.
 
 Here's what you can do with Avro in KSQL:
 
@@ -111,7 +117,7 @@ generates an appropriate Avro schema for the new ``pageviews_avro`` stream, and 
 .. code:: sql
 
     CREATE STREAM pageviews_json (viewtime BIGINT, userid VARCHAR, pageid VARCHAR)
-      WITH (KAFKA_TOPIC='pageviews-json-topic', VALUE_FORMAT='JSON');
+      WITH (KAFKA_TOPIC='pageviews_kafka_topic_json', VALUE_FORMAT='JSON');
 
     CREATE STREAM pageviews_avro
       WITH (VALUE_FORMAT = 'AVRO') AS

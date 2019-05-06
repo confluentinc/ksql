@@ -8,7 +8,7 @@ Installing KSQL
 KSQL is a component of |cp| and the KSQL binaries are located at `https://www.confluent.io/download/ <https://www.confluent.io/download/>`_
 as a part of the |cp| bundle.
 
-KSQL must have access to a running Kafka cluster, which can be in your data center, in a public cloud, |ccloud|, etc.
+KSQL must have access to a running |ak-tm| cluster, which can be in your data center, in a public cloud, |ccloud|, etc.
 
 Docker support
     You can deploy KSQL by using Docker containers. Starting with |cp| 4.1.2,
@@ -72,7 +72,7 @@ Follow these instructions to start KSQL server using the ``ksql-server-start`` s
     ::
 
         bootstrap.servers=localhost:9092
-        listeners=http://localhost:8088
+        listeners=http://0.0.0.0:8088
 
     For more information, see :ref:`ksql-server-config`.
 

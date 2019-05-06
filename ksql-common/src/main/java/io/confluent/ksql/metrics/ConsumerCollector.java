@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -16,6 +17,7 @@ package io.confluent.ksql.metrics;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.common.utils.Time;
+import io.confluent.ksql.metrics.TopicSensors.SensorMetric;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -28,7 +30,9 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerInterceptor;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
+import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.MetricName;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.metrics.KafkaMetric;
 import org.apache.kafka.common.metrics.MeasurableStat;
 import org.apache.kafka.common.metrics.Metrics;
@@ -36,12 +40,13 @@ import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.common.metrics.stats.Rate;
 import org.apache.kafka.common.metrics.stats.Total;
 
-public class ConsumerCollector implements MetricCollector, ConsumerInterceptor {
+public class ConsumerCollector implements MetricCollector, ConsumerInterceptor<Object, Object> {
   public static final String CONSUMER_MESSAGES_PER_SEC = "consumer-messages-per-sec";
   public static final String CONSUMER_TOTAL_MESSAGES = "consumer-total-messages";
   public static final String CONSUMER_TOTAL_BYTES = "consumer-total-bytes";
 
-  private final Map<String, TopicSensors<ConsumerRecord>> topicSensors = new HashMap<>();
+  private final Map<String, TopicSensors<ConsumerRecord<Object, Object>>> topicSensors =
+      new HashMap<>();
   private Metrics metrics;
   private String id;
   private String groupId;
@@ -72,7 +77,7 @@ public class ConsumerCollector implements MetricCollector, ConsumerInterceptor {
   }
 
   @Override
-  public void onCommit(final Map map) {
+  public void onCommit(final Map<TopicPartition, OffsetAndMetadata> map) {
   }
 
   @Override
@@ -81,19 +86,22 @@ public class ConsumerCollector implements MetricCollector, ConsumerInterceptor {
   }
 
   @Override
-  public ConsumerRecords onConsume(final ConsumerRecords records) {
+  public ConsumerRecords<Object, Object> onConsume(final ConsumerRecords<Object, Object> records) {
     collect(records);
     return records;
   }
 
-  @SuppressWarnings("unchecked")
-  private void collect(final ConsumerRecords consumerRecords) {
-    final Stream<ConsumerRecord> stream =
+  private void collect(final ConsumerRecords<Object, Object> consumerRecords) {
+    final Stream<ConsumerRecord<Object, Object>> stream =
         StreamSupport.stream(consumerRecords.spliterator(), false);
     stream.forEach(record -> record(record.topic().toLowerCase(), false, record));
   }
 
-  private void record(final String topic, final boolean isError, final ConsumerRecord record) {
+  private void record(
+      final String topic,
+      final boolean isError,
+      final ConsumerRecord<Object, Object> record
+  ) {
     topicSensors.computeIfAbsent(getCounterKey(topic), k ->
         new TopicSensors<>(topic, buildSensors(k))
     ).increment(record, isError);
@@ -103,9 +111,10 @@ public class ConsumerCollector implements MetricCollector, ConsumerInterceptor {
     return topic;
   }
 
-  private List<TopicSensors.SensorMetric<ConsumerRecord>> buildSensors(final String key) {
-
-    final List<TopicSensors.SensorMetric<ConsumerRecord>> sensors = new ArrayList<>();
+  private List<SensorMetric<ConsumerRecord<Object, Object>>> buildSensors(
+      final String key
+  ) {
+    final List<SensorMetric<ConsumerRecord<Object, Object>>> sensors = new ArrayList<>();
 
     // Note: synchronized due to metrics registry not handling concurrent add/check-exists
     // activity in a reliable way
@@ -128,7 +137,7 @@ public class ConsumerCollector implements MetricCollector, ConsumerInterceptor {
       final String key,
       final String metricNameString,
       final MeasurableStat stat,
-      final List<TopicSensors.SensorMetric<ConsumerRecord>> sensors,
+      final List<SensorMetric<ConsumerRecord<Object, Object>>> sensors,
       final boolean isError
   ) {
     addSensor(key, metricNameString, stat, sensors, isError, (r) -> (double)1);
@@ -138,9 +147,9 @@ public class ConsumerCollector implements MetricCollector, ConsumerInterceptor {
       final String key,
       final String metricNameString,
       final MeasurableStat stat,
-      final List<TopicSensors.SensorMetric<ConsumerRecord>> sensors,
+      final List<SensorMetric<ConsumerRecord<Object, Object>>> sensors,
       final boolean isError,
-      final Function<ConsumerRecord, Double> recordValue
+      final Function<ConsumerRecord<Object, Object>, Double> recordValue
   ) {
     final String name = "cons-" + key + "-" + metricNameString + "-" + id;
 
@@ -160,8 +169,8 @@ public class ConsumerCollector implements MetricCollector, ConsumerInterceptor {
 
     final KafkaMetric metric = metrics.metrics().get(metricName);
 
-    sensors.add(new TopicSensors.SensorMetric<ConsumerRecord>(sensor, metric, time, isError) {
-      void record(final ConsumerRecord record) {
+    sensors.add(new SensorMetric<ConsumerRecord<Object, Object>>(sensor, metric, time, isError) {
+      void record(final ConsumerRecord<Object, Object> record) {
         sensor.record(recordValue.apply(record));
         super.record(record);
       }

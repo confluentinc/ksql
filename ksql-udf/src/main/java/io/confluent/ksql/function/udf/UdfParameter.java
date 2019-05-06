@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -25,19 +26,36 @@ import java.lang.annotation.Target;
  * Optionally, applied to @Udf function parameters.
  */
 public @interface UdfParameter {
+
   /**
    * The name of the parameter
    *
    * <p>This text is displayed when the user calls {@code DESCRIBE FUNCTION ...}.
+   *
+   * <p>If your Java class is compiled with the {@code -parameter} compiler flag, then name of the
+   * parameter will be inferred from the method declaration and this value can be left at the
+   * default. If compiling with out the {@code -parameter} compiler flag, use this property to
+   * provide the user with the name of the parameter.
+   *
    * @return parameter name.
    */
-  String value();
+  String value() default "";
 
   /**
    * The parameter description.
    *
    * <p>This text is displayed when the user calls {@code DESCRIBE FUNCTION ...}.
+   *
    * @return parameter description.
    */
   String description() default "";
+
+  /**
+   * The schema for this parameter.
+   *
+   * <p>For simple parameters, this is optional and can be determined from
+   * the Java value itself. For complex return types (e.g. {@code Struct} types),
+   * this is required and will fail if not supplied.
+   */
+  String schema() default "";
 }

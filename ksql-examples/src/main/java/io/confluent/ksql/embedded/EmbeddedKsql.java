@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -15,6 +16,7 @@
 package io.confluent.ksql.embedded;
 
 import io.confluent.ksql.KsqlContext;
+import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Collections;
 
@@ -23,9 +25,11 @@ public final class EmbeddedKsql {
   private EmbeddedKsql() {
   }
 
-  public static void main(final String[] args) throws Exception {
+  public static void main(final String[] args) {
 
-    final KsqlContext ksqlContext = KsqlContext.create(new KsqlConfig(Collections.emptyMap()));
+    final KsqlContext ksqlContext = KsqlContext.create(
+        new KsqlConfig(Collections.emptyMap()),
+        ProcessingLogContext.create());
 
     ksqlContext.sql("REGISTER TOPIC orders_topic WITH (format = 'json', "
                     + "kafka_topic='orders_topic_json');");

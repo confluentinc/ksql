@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -14,17 +15,19 @@
 
 package io.confluent.ksql.integration;
 
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.KsqlContext;
 import io.confluent.ksql.KsqlContextTestUtil;
+import io.confluent.ksql.function.TestFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import org.junit.rules.ExternalResource;
 
 public final class TestKsqlContext extends ExternalResource {
@@ -53,8 +56,8 @@ public final class TestKsqlContext extends ExternalResource {
     return delegate.sql(sql);
   }
 
-  Set<QueryMetadata> getRunningQueries() {
-    return delegate.getRunningQueries();
+  List<PersistentQueryMetadata> getPersistentQueries() {
+    return delegate.getPersistentQueries();
   }
 
   void terminateQuery(final QueryId queryId) {
@@ -68,7 +71,12 @@ public final class TestKsqlContext extends ExternalResource {
         additionalConfig
     );
 
-    delegate = KsqlContextTestUtil.create(ksqlConfig, testHarness.schemaRegistryClient());
+    final SchemaRegistryClient srClient = testHarness
+        .getServiceContext()
+        .getSchemaRegistryClient();
+
+    delegate = KsqlContextTestUtil
+        .create(ksqlConfig, srClient, TestFunctionRegistry.INSTANCE.get());
   }
 
   @Override

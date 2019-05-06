@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -29,7 +30,7 @@ import org.junit.Test;
 @SuppressWarnings("unchecked")
 public class StringTopkKudafTest {
   private final List<String> valueArray = ImmutableList.of("10", "ab", "cde", "efg", "aa", "32", "why", "How are you",
-      "Test", "123", "432");;
+      "Test", "123", "432");
   private TopKAggregateFunctionFactory topKFactory;
   private List<Schema> argumentType;
 

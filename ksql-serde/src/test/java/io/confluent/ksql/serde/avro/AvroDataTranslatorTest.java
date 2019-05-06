@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -23,6 +24,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
 import java.util.Collections;
+
+import io.confluent.ksql.util.KsqlConstants;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
@@ -36,7 +39,10 @@ public class AvroDataTranslatorTest {
         .optional()
         .build();
 
-    final AvroDataTranslator dataTranslator = new AvroDataTranslator(schema);
+    final AvroDataTranslator dataTranslator = new AvroDataTranslator(
+        schema,
+        KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME,
+        true);
     final GenericRow ksqlRow = new GenericRow(ImmutableList.of(123));
     final Struct struct = dataTranslator.toConnectRow(ksqlRow);
 
@@ -86,7 +92,10 @@ public class AvroDataTranslatorTest {
     final Struct structInnerStruct = new Struct(structInner)
         .put("STRUCT_INNER", "foo");
 
-    final AvroDataTranslator dataTranslator = new AvroDataTranslator(schema);
+    final AvroDataTranslator dataTranslator = new AvroDataTranslator(
+        schema,
+        KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME,
+        true);
     final GenericRow ksqlRow = new GenericRow(
         ImmutableList.of(arrayInnerStruct),
         ImmutableMap.of("bar", mapInnerStruct),
@@ -150,7 +159,10 @@ public class AvroDataTranslatorTest {
         .optional()
         .build();
 
-    final AvroDataTranslator dataTranslator = new AvroDataTranslator(schema);
+    final AvroDataTranslator dataTranslator = new AvroDataTranslator(
+        schema,
+        KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME,
+        true);
     final GenericRow ksqlRow = new GenericRow(Collections.singletonList(null));
     final Struct struct = dataTranslator.toConnectRow(ksqlRow);
 
@@ -167,7 +179,10 @@ public class AvroDataTranslatorTest {
         .optional()
         .build();
 
-    final AvroDataTranslator dataTranslator = new AvroDataTranslator(schema);
+    final AvroDataTranslator dataTranslator = new AvroDataTranslator(
+        schema,
+        KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME,
+        true);
     final GenericRow ksqlRow = new GenericRow(Collections.singletonList(123L));
     final Struct struct = dataTranslator.toConnectRow(ksqlRow);
 
@@ -175,5 +190,21 @@ public class AvroDataTranslatorTest {
 
     final GenericRow translatedRow = dataTranslator.toKsqlRow(struct.schema(), struct);
     assertThat(translatedRow, equalTo(ksqlRow));
+  }
+
+  @Test
+  public void shouldUseExplicitSchemaName() {
+    final Schema schema = SchemaBuilder.struct()
+            .field("COLUMN_NAME", Schema.OPTIONAL_INT64_SCHEMA)
+            .optional()
+            .build();
+
+    String schemaFullName = "com.custom.schema";
+
+    final AvroDataTranslator dataTranslator = new AvroDataTranslator(schema, schemaFullName, true);
+    final GenericRow ksqlRow = new GenericRow(Collections.singletonList(123L));
+    final Struct struct = dataTranslator.toConnectRow(ksqlRow);
+
+    assertThat(struct.schema().name(), equalTo(schemaFullName));
   }
 }

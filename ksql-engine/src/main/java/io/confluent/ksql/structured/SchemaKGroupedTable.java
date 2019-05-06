@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -20,8 +21,11 @@ import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.TableAggregationFunction;
 import io.confluent.ksql.function.udaf.KudafAggregator;
 import io.confluent.ksql.function.udaf.KudafUndoAggregator;
+import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.parser.tree.WindowExpression;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.streams.MaterializedFactory;
+import io.confluent.ksql.streams.StreamsUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
@@ -30,8 +34,6 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
-import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.kstream.Initializer;
 import org.apache.kafka.streams.kstream.KGroupedTable;
 import org.apache.kafka.streams.kstream.KTable;
@@ -41,9 +43,9 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
   private final KGroupedTable kgroupedTable;
 
   SchemaKGroupedTable(
-      final Schema schema,
+      final KsqlSchema schema,
       final KGroupedTable kgroupedTable,
-      final Field keyField,
+      final KeyField keyField,
       final List<SchemaKStream> sourceSchemaKStreams,
       final KsqlConfig ksqlConfig,
       final FunctionRegistry functionRegistry
@@ -59,9 +61,9 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
   }
 
   SchemaKGroupedTable(
-      final Schema schema,
+      final KsqlSchema schema,
       final KGroupedTable kgroupedTable,
-      final Field keyField,
+      final KeyField keyField,
       final List<SchemaKStream> sourceSchemaKStreams,
       final KsqlConfig ksqlConfig,
       final FunctionRegistry functionRegistry,
@@ -81,7 +83,7 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
       final Map<Integer, Integer> aggValToValColumnMap,
       final WindowExpression windowExpression,
       final Serde<GenericRow> topicValueSerDe,
-      final String opName) {
+      final QueryContext.Stacker contextStacker) {
     if (windowExpression != null) {
       throw new KsqlException("Windowing not supported for table aggregations.");
     }
@@ -110,7 +112,10 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
     final KudafUndoAggregator subtractor = new KudafUndoAggregator(
         aggValToUndoFunctionMap, aggValToValColumnMap);
     final Materialized<String, GenericRow, ?> materialized =
-        materializedFactory.create(Serdes.String(), topicValueSerDe, opName);
+        materializedFactory.create(
+            Serdes.String(),
+            topicValueSerDe,
+            StreamsUtil.buildOpName(contextStacker.getQueryContext()));
     final KTable<String, GenericRow> aggKtable = kgroupedTable.aggregate(
         initializer,
         aggregator,
@@ -121,10 +126,11 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
         aggKtable,
         keyField,
         sourceSchemaKStreams,
-        Serdes.String(),
+        Serdes::String,
         SchemaKStream.Type.AGGREGATE,
         ksqlConfig,
-        functionRegistry
+        functionRegistry,
+        contextStacker.getQueryContext()
     );
   }
 }

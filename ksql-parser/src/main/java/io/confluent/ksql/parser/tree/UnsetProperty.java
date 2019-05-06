@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -14,20 +15,20 @@
 
 package io.confluent.ksql.parser.tree;
 
-import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
+import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
 import java.util.Optional;
 
+@Immutable
 public class UnsetProperty extends Statement implements ExecutableDdlStatement {
 
   private final String propertyName;
 
   public UnsetProperty(final Optional<NodeLocation> location, final String propertyName) {
     super(location);
-    requireNonNull(propertyName, "propertyName is null");
-    this.propertyName = propertyName;
+    this.propertyName = requireNonNull(propertyName, "propertyName");
   }
 
   public String getPropertyName() {
@@ -43,16 +44,18 @@ public class UnsetProperty extends Statement implements ExecutableDdlStatement {
       return false;
     }
     final UnsetProperty that = (UnsetProperty) o;
-    return Objects.equals(getPropertyName(), that.getPropertyName());
+    return Objects.equals(propertyName, that.propertyName);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(getPropertyName());
+    return Objects.hash(propertyName);
   }
 
   @Override
   public String toString() {
-    return toStringHelper(this).toString();
+    return "UnsetProperty{"
+        + "propertyName='" + propertyName + '\''
+        + '}';
   }
 }

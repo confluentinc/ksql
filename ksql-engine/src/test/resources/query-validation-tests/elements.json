@@ -7,10 +7,8 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
-        "message": "The statement or topic schema does not define any columns."
-      },
-      "inputs": [],
-      "outputs": []
+        "message": "The statement does not define any columns."
+      }
     },
     {
       "name": "validate DELIMITED fails without elements",
@@ -19,16 +17,14 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
-        "message": "The statement or topic schema does not define any columns."
-      },
-      "inputs": [],
-      "outputs": []
+        "message": "The statement does not define any columns."
+      }
     },
     {
       "name": "validate AVRO ok without elements",
       "statements": [
         "CREATE STREAM TEST WITH (kafka_topic='input', value_format='AVRO');",
-        "CREATE STREAM S as SELECT * FROM test;"
+        "CREATE STREAM S WITH(PARTITIONS = 4) as SELECT * FROM test;"
       ],
       "topics": [
         {
@@ -38,17 +34,18 @@
         },
         {
           "name": "S",
-          "format": "AVRO"
+          "format": "AVRO",
+          "partitions": 4
         }
       ],
-      "inputs": [{"topic": "input", "key": 0, "value": {"c1": 4}, "timestamp": 0}],
-      "outputs": [{"topic": "S", "key": 0, "value": {"C1": 4}, "timestamp": 0}]
+      "inputs": [{"topic": "input", "value": {"c1": 4}}],
+      "outputs": [{"topic": "S", "value": {"C1": 4}}]
     },
     {
       "name": "validate AVRO ok with elements",
       "statements": [
         "CREATE STREAM TEST (c1 INT) WITH (kafka_topic='input', value_format='AVRO');",
-        "CREATE STREAM S as SELECT * FROM test;"
+        "CREATE STREAM S WITH(PARTITIONS = 4) as SELECT * FROM test;"
       ],
       "topics": [
         {
@@ -58,17 +55,18 @@
         },
         {
           "name": "S",
-          "format": "AVRO"
+          "format": "AVRO",
+          "partitions": 4
         }
       ],
-      "inputs": [{"topic": "input", "key": 0, "value": {"c1": 4}, "timestamp": 0}],
-      "outputs": [{"topic": "S", "key": 0, "value": {"C1": 4}, "timestamp": 0}]
+      "inputs": [{"topic": "input", "value": {"c1": 4}}],
+      "outputs": [{"topic": "S", "value": {"C1": 4}}]
     },
     {
       "name": "validate AVRO uses null for unknown element",
       "statements": [
         "CREATE STREAM TEST (c1 INT, unknown INT) WITH (kafka_topic='input', value_format='AVRO');",
-        "CREATE STREAM S as SELECT * FROM test;"
+        "CREATE STREAM S WITH(PARTITIONS = 4) as SELECT * FROM test;"
       ],
       "topics": [
         {
@@ -78,17 +76,18 @@
         },
         {
           "name": "S",
-          "format": "AVRO"
+          "format": "AVRO",
+          "partitions": 4
         }
       ],
-      "inputs": [{"topic": "input", "key": 0, "value": {"c1": 4}, "timestamp": 0}],
-      "outputs": [{"topic": "S", "key": 0, "value": {"UNKNOWN": null, "C1": 4}, "timestamp": 0}]
+      "inputs": [{"topic": "input", "value": {"c1": 4}}],
+      "outputs": [{"topic": "S", "value": {"UNKNOWN": null, "C1": 4}}]
     },
     {
       "name": "validate AVRO fails on incompatible schema evolution",
       "statements": [
         "CREATE STREAM TEST (c1 INT) WITH (kafka_topic='input', value_format='AVRO');",
-        "CREATE STREAM S as SELECT * FROM test;"
+        "CREATE STREAM S WITH(PARTITIONS = 4) as SELECT * FROM test;"
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
@@ -98,16 +97,16 @@
         {
           "name": "input",
           "schema": {"name": "blah", "type": "record", "fields": [{"name": "c1", "type": "int"}]},
-          "format": "AVRO"
+          "format": "AVRO",
+          "partitions": 4
         },
         {
           "name": "S",
           "schema": {"name": "blah", "type": "record", "fields": [{"name": "C1", "type": "double"}]},
-          "format": "AVRO"
+          "format": "AVRO",
+          "partitions": 4
         }
-      ],
-      "inputs": [{"topic": "input", "key": 0, "value": {"c1": 4}, "timestamp": 0}],
-      "outputs": [{"topic": "S", "key": 0, "value": {"C1": 4}, "timestamp": 0}]
+      ]
     }
   ]
 }

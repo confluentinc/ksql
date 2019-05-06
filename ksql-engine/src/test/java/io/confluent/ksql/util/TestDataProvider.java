@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -15,15 +16,15 @@
 package io.confluent.ksql.util;
 
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
 import java.util.Map;
 import java.util.Objects;
-import org.apache.kafka.connect.data.Schema;
 
 public abstract class TestDataProvider {
   private final String topicName;
   private final String ksqlSchemaString;
   private final String key;
-  private final Schema schema;
+  private final KsqlSchema schema;
   private final Map<String, GenericRow> data;
   private final String kstreamName;
 
@@ -31,7 +32,7 @@ public abstract class TestDataProvider {
       final String namePrefix,
       final String ksqlSchemaString,
       final String key,
-      final Schema schema,
+      final KsqlSchema schema,
       final Map<String, GenericRow> data
   ) {
     this.topicName = Objects.requireNonNull(namePrefix, "namePrefix") + "_TOPIC";
@@ -54,7 +55,7 @@ public abstract class TestDataProvider {
     return key;
   }
 
-  public Schema schema() {
+  public KsqlSchema schema() {
     return schema;
   }
 

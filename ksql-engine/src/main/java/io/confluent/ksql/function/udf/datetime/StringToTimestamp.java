@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -40,9 +41,9 @@ public class StringToTimestamp {
       + " Single quotes in the timestamp format can be escaped with '',"
       + " for example: 'yyyy-MM-dd''T''HH:mm:ssX'.")
   public long stringToTimestamp(
-      @UdfParameter(value = "formattedTimestamp",
+      @UdfParameter(
           description = "The string representation of a date.") final String formattedTimestamp,
-      @UdfParameter(value = "formatPattern",
+      @UdfParameter(
           description = "The format pattern should be in the format expected by"
               + " java.time.format.DateTimeFormatter.") final String formatPattern) {
     try {
@@ -60,12 +61,12 @@ public class StringToTimestamp {
       + " Single quotes in the timestamp format can be escaped with '',"
       + " for example: 'yyyy-MM-dd''T''HH:mm:ssX'.")
   public long stringToTimestamp(
-      @UdfParameter(value = "formattedTimestamp",
+      @UdfParameter(
           description = "The string representation of a date.") final String formattedTimestamp,
-      @UdfParameter(value = "formatPattern",
+      @UdfParameter(
           description = "The format pattern should be in the format expected by"
               + " java.time.format.DateTimeFormatter.") final String formatPattern,
-      @UdfParameter(value = "timeZone",
+      @UdfParameter(
           description =  " timeZone is a java.util.TimeZone ID format, for example: \"UTC\","
               + " \"America/Los_Angeles\", \"PDT\", \"Europe/London\"") final String timeZone) {
     try {

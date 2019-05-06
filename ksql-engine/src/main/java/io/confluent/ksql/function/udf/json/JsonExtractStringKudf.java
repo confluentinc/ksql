@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -15,20 +16,20 @@
 package io.confluent.ksql.function.udf.json;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.function.UdfUtil;
 import io.confluent.ksql.function.udf.Kudf;
+import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.json.JsonPathTokenizer;
 import java.io.IOException;
 import java.util.List;
 
 public class JsonExtractStringKudf implements Kudf {
-  private static final ObjectReader OBJECT_READER = new ObjectMapper().reader();
+  private static final ObjectReader OBJECT_READER = JsonMapper.INSTANCE.mapper.reader();
   public static final String NAME = "EXTRACTJSONFIELD";
 
   private List<String> tokens = null;

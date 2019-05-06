@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -25,15 +26,19 @@ public class ArgumentInfo {
   private final String name;
   private final String type;
   private final String description;
+  private final boolean isVariadic;
 
   @JsonCreator
-  public ArgumentInfo(@JsonProperty("name") final String name,
-                      @JsonProperty("type") final String type,
-                      @JsonProperty("description") final String description
+  public ArgumentInfo(
+      @JsonProperty("name") final String name,
+      @JsonProperty("type") final String type,
+      @JsonProperty("description") final String description,
+      @JsonProperty("isVariadic") final Boolean isVariadic
   ) {
     this.name = name == null ? "" : name;
     this.type = Objects.requireNonNull(type, "type");
     this.description = description == null ? "" : description;
+    this.isVariadic = isVariadic == null ? false : isVariadic;
   }
 
   public String getName() {
@@ -48,6 +53,10 @@ public class ArgumentInfo {
     return description;
   }
 
+  public Boolean getIsVariadic() {
+    return isVariadic;
+  }
+
   @Override
   public boolean equals(final Object o) {
     if (this == o) {
@@ -59,12 +68,13 @@ public class ArgumentInfo {
     final ArgumentInfo that = (ArgumentInfo) o;
     return Objects.equals(name, that.name)
            && Objects.equals(type, that.type)
-           && Objects.equals(description, that.description);
+           && Objects.equals(description, that.description)
+           && isVariadic == that.isVariadic;
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(name, type, description);
+    return Objects.hash(name, type, description, isVariadic);
   }
 
   @Override
@@ -73,6 +83,7 @@ public class ArgumentInfo {
            + "name='" + name + '\''
            + ", type='" + type + '\''
            + ", description='" + description + '\''
+           + ", isVariadic=" + isVariadic
            + '}';
   }
 }

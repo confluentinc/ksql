@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -19,7 +20,6 @@ import io.confluent.ksql.config.ConfigResolver;
 import io.confluent.ksql.config.KsqlConfigResolver;
 import io.confluent.ksql.config.PropertyParser;
 import io.confluent.ksql.config.PropertyValidator;
-import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import java.util.Objects;
 
@@ -39,9 +39,7 @@ public class LocalPropertyParser implements PropertyParser {
 
   @Override
   public Object parse(final String property, final Object value) {
-    if (property.equalsIgnoreCase(DdlConfig.AVRO_SCHEMA)
-        || property.equalsIgnoreCase(KsqlConstants.RUN_SCRIPT_STATEMENTS_CONTENT)) {
-
+    if (property.equalsIgnoreCase(KsqlConstants.LEGACY_RUN_SCRIPT_STATEMENTS_CONTENT)) {
       validator.validate(property, value);
       return value;
     }

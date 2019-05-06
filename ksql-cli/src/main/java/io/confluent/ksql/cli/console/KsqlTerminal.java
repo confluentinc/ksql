@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -55,8 +56,8 @@ public interface KsqlTerminal {
   void close();
 
   class HistoryEntry {
-    final long index;
-    final String line;
+    private final long index;
+    private final String line;
 
     private HistoryEntry(final long index, final String line) {
       this.index = index;
@@ -64,6 +65,14 @@ public interface KsqlTerminal {
       if (index < 1) {
         throw new IllegalArgumentException("index < 1. index=" + index);
       }
+    }
+
+    public long getIndex() {
+      return index;
+    }
+
+    public String getLine() {
+      return line;
     }
 
     static HistoryEntry of(final long index, final String line) {

@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -136,6 +137,20 @@ public class TopicStreamTest {
 
     // Then:
     assertThat(result.format, is(not(Format.JSON)));
+  }
+
+  @Test
+  public void shouldMatchStringFormatWithOneColumnValues() {
+    // Given:
+    replay(schemaRegistryClient);
+
+    final String stringValue = "v1";
+
+    // When:
+    final Result result = getFormatter(stringValue);
+
+    // Then:
+    assertThat(result.format, is(Format.STRING));
   }
 
   @Test

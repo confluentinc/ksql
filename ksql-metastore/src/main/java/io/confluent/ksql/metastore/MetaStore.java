@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -15,44 +16,27 @@
 package io.confluent.ksql.metastore;
 
 import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.metastore.model.KsqlTopic;
+import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 
 public interface MetaStore extends FunctionRegistry {
 
   KsqlTopic getTopic(String topicName);
 
-  void putTopic(KsqlTopic topic);
+  DataSource<?> getSource(String sourceName);
 
-  StructuredDataSource getSource(String sourceName);
+  List<DataSource<?>> getSourcesForKafkaTopic(String kafkaTopicName);
 
-  Optional<StructuredDataSource> getSourceForTopic(String ksqlTopicName);
-
-  void putSource(StructuredDataSource dataSource);
-
-  void deleteTopic(String topicName);
-
-  void deleteSource(String sourceName);
-
-  Map<String, StructuredDataSource> getAllStructuredDataSources();
-
-  Set<String> getAllStructuredDataSourceNames();
+  Map<String, DataSource<?>> getAllDataSources();
 
   Map<String, KsqlTopic> getAllKsqlTopics();
-
-  Set<String> getAllTopicNames();
-
-  void updateForPersistentQuery(String queryId,
-                                       Set<String> sourceNames,
-                                       Set<String> sinkNames);
-
-  void removePersistentQuery(String queryId);
 
   Set<String> getQueriesWithSource(String sourceName);
 
   Set<String> getQueriesWithSink(String sourceName);
 
-  MetaStore clone();
-
+  MetaStore copy();
 }

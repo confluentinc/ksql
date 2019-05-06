@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -14,12 +15,16 @@
 
 package io.confluent.ksql.parser.tree;
 
+import static java.util.Objects.requireNonNull;
+
+import com.google.errorprone.annotations.Immutable;
 import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import org.apache.kafka.streams.kstream.JoinWindows;
 
+@Immutable
 public class WithinExpression extends Node {
 
   private final long before;
@@ -32,25 +37,37 @@ public class WithinExpression extends Node {
     this(size, size, timeUnit, timeUnit);
   }
 
-  public WithinExpression(final long before, final long after, final TimeUnit beforeTimeUnit,
-                          final TimeUnit afterTimeUnit) {
+  public WithinExpression(
+      final long before,
+      final long after,
+      final TimeUnit beforeTimeUnit,
+      final TimeUnit afterTimeUnit
+  ) {
     this(Optional.empty(), before, after, beforeTimeUnit, afterTimeUnit);
   }
 
-
-  private WithinExpression(final Optional<NodeLocation> location, final long before,
-                           final long after, final TimeUnit beforeTimeUnit,
-                           final TimeUnit afterTimeUnit) {
+  public WithinExpression(
+      final Optional<NodeLocation> location,
+      final long before,
+      final long after,
+      final TimeUnit beforeTimeUnit,
+      final TimeUnit afterTimeUnit
+  ) {
     super(location);
     this.before = before;
     this.after = after;
-    this.beforeTimeUnit = beforeTimeUnit;
-    this.afterTimeUnit = afterTimeUnit;
+    this.beforeTimeUnit = requireNonNull(beforeTimeUnit, "beforeTimeUnit");
+    this.afterTimeUnit = requireNonNull(afterTimeUnit, "afterTimeUnit");
     this.joinWindows = createJoinWindows();
   }
 
   public JoinWindows joinWindow() {
     return joinWindows;
+  }
+
+  @Override
+  protected <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
+    return visitor.visitWithinExpression(this, context);
   }
 
   @Override
@@ -117,6 +134,4 @@ public class WithinExpression extends Node {
   public TimeUnit getAfterTimeUnit() {
     return afterTimeUnit;
   }
-
-
 }

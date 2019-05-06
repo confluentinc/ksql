@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -16,51 +17,54 @@ package io.confluent.ksql.parser.tree;
 
 import static java.util.Objects.requireNonNull;
 
+import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.Objects;
 import java.util.Optional;
 
-public class SingleColumn
-    extends SelectItem {
+@Immutable
+public class SingleColumn extends SelectItem {
 
+  private final Optional<AllColumns> source;
   private final Optional<String> alias;
   private final Expression expression;
 
-  public SingleColumn(final Expression expression) {
-    this(Optional.empty(), expression, Optional.empty());
-  }
-
-  public SingleColumn(final Expression expression, final Optional<String> alias) {
-    this(Optional.empty(), expression, alias);
-  }
-
-  public SingleColumn(final Expression expression, final String alias) {
-    this(Optional.empty(), expression, Optional.of(alias));
+  public SingleColumn(
+      final Expression expression,
+      final Optional<String> alias,
+      final Optional<AllColumns> source
+  ) {
+    this(Optional.empty(), expression, alias, source);
   }
 
   public SingleColumn(
-      final NodeLocation location, final Expression expression, final Optional<String> alias) {
-    this(Optional.of(location), expression, alias);
-  }
-
-  private SingleColumn(final Optional<NodeLocation> location, final Expression expression,
-                       final Optional<String> alias) {
+      final Optional<NodeLocation> location,
+      final Expression expression,
+      final Optional<String> alias,
+      final Optional<AllColumns> source
+  ) {
     super(location);
-    requireNonNull(expression, "expression is null");
-    requireNonNull(alias, "alias is null");
 
     alias.ifPresent(name -> {
       checkForReservedToken(expression, name, SchemaUtil.ROWTIME_NAME);
       checkForReservedToken(expression, name, SchemaUtil.ROWKEY_NAME);
     });
 
-    this.expression = expression;
-    this.alias = alias;
+    this.expression = requireNonNull(expression, "expression");
+    this.alias = requireNonNull(alias, "alias");
+    this.source = requireNonNull(source, "source");
   }
 
-  private void checkForReservedToken(
-      final Expression expression, final String alias, final String reservedToken) {
+  public SingleColumn copyWithExpression(final Expression expression) {
+    return new SingleColumn(getLocation(), expression, alias, source);
+  }
+
+  private static void checkForReservedToken(
+      final Expression expression,
+      final String alias,
+      final String reservedToken
+  ) {
     if (alias.equalsIgnoreCase(reservedToken)) {
       final String text = expression.toString();
       if (!text.substring(text.indexOf(".") + 1).equalsIgnoreCase(reservedToken)) {
@@ -78,6 +82,15 @@ public class SingleColumn
     return expression;
   }
 
+  /**
+   * @return a reference to an {@code AllColumns} if this single column
+   *         was expanded as part of a {@code SELECT *} Expression, otherwise
+   *         returns an empty optional
+   */
+  public Optional<AllColumns> getAllColumns() {
+    return source;
+  }
+
   @Override
   public boolean equals(final Object obj) {
     if (this == obj) {
@@ -87,22 +100,22 @@ public class SingleColumn
       return false;
     }
     final SingleColumn other = (SingleColumn) obj;
-    return Objects.equals(this.alias, other.alias) && Objects
-        .equals(this.expression, other.expression);
+    return Objects.equals(this.alias, other.alias)
+        && Objects.equals(this.expression, other.expression)
+        && Objects.equals(this.source, other.source);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(alias, expression);
+    return Objects.hash(source, alias, expression);
   }
 
   @Override
   public String toString() {
-    if (alias.isPresent()) {
-      return expression.toString() + " " + alias.get();
-    }
-
-    return expression.toString();
+    return "SingleColumn{" + "source=" + source
+        + ", alias=" + alias
+        + ", expression=" + expression
+        + '}';
   }
 
   @Override

@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -26,7 +27,7 @@ import org.junit.Test;
 public class StringTopkDistinctKudafTest {
 
   private final List<String> valuesArray = ImmutableList.of("10", "30", "45", "10", "50", "60", "20", "60", "80", "35",
-      "25", "60", "80");;
+      "25", "60", "80");
   private final TopkDistinctKudaf<String> stringTopkDistinctKudaf
       = TopKDistinctTestUtils.getTopKDistinctKudaf(3, Schema.OPTIONAL_STRING_SCHEMA);
 

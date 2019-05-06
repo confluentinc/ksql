@@ -1,0 +1,407 @@
+{
+  "comments": [
+    "You can specify multiple statements per test case, i.e., to set up the various streams needed",
+    "for joins etc, but currently only the final topology will be verified. This should be enough",
+    "for most tests as we can simulate the outputs from previous stages into the final stage. If we",
+    "take a modular approach to testing we can still verify that it all works correctly, i.e, if we",
+    "verify the output of a select or aggregate is correct, we can use simulated output to feed into",
+    "a join or another aggregate."
+  ],
+  "tests": [
+    {
+      "format": ["AVRO", "JSON"],
+      "statements": [
+        "CREATE STREAM orders (ORDERUNITS double) WITH (kafka_topic='test_topic', value_format='{FORMAT}');",
+        "CREATE STREAM S1 AS SELECT CASE WHEN orderunits < 2.0 THEN 'small' WHEN orderunits < 4.0 THEN 'medium' ELSE 'large' END AS case_resault FROM orders;"
+      ],
+      "name": "searched case expression",
+      "inputs": [
+        {
+          "topic": "test_topic",
+          "timestamp": 0,
+          "value": {
+            "ORDERUNITS": 2.0
+          },
+          "key": 0
+        },
+        {
+          "topic": "test_topic",
+          "timestamp": 0,
+          "value": {
+            "ORDERUNITS": 4.0
+          },
+          "key": 100
+        },
+        {
+          "topic": "test_topic",
+          "timestamp": 0,
+          "value": {
+            "ORDERUNITS": 6.0
+          },
+          "key": 101
+        },
+        {
+          "topic": "test_topic",
+          "timestamp": 0,
+          "value": {
+            "ORDERUNITS": 3.0
+          },
+          "key": 101
+        },
+        {
+          "topic": "test_topic",
+          "timestamp": 0,
+          "value": {
+            "ORDERUNITS": 1.0
+          },
+          "key": 101
+        }
+      ],
+      "outputs": [
+        {
+          "topic": "S1",
+          "timestamp": 0,
+          "value": {
+            "CASE_RESAULT": "medium"
+          },
+          "key": 0
+        },
+        {
+          "topic": "S1",
+          "timestamp": 0,
+          "value": {
+            "CASE_RESAULT": "large"
+          },
+          "key": 100
+        },
+        {
+          "topic": "S1",
+          "timestamp": 0,
+          "value": {
+            "CASE_RESAULT": "large"
+          },
+          "key": 101
+        },
+        {
+          "topic": "S1",
+          "timestamp": 0,
+          "value": {
+            "CASE_RESAULT": "medium"
+          },
+          "key": 101
+        },
+        {
+          "topic": "S1",
+          "timestamp": 0,
+          "value": {
+            "CASE_RESAULT": "small"
+          },
+          "key": 101
+        }
+      ]
+    },
+    {
+      "format": ["AVRO", "JSON"],
+      "statements": [
+        "CREATE STREAM orders (orderid bigint, ORDERUNITS double) WITH (kafka_topic='test_topic', key='orderid', value_format='{FORMAT}');",
+        "CREATE STREAM S1 AS SELECT CASE WHEN orderunits < 2.0 THEN orderid + 2 END AS case_resault FROM orders;"
+      ],
+      "name": "searched case with arithmetic expression in result",
+      "inputs": [
+        {
+          "topic": "test_topic",
+          "timestamp": 0,
+          "value": {
+            "ORDERID": 1
+          },
+          "key": 0
+        },
+        {
+          "topic": "test_topic",
+          "timestamp": 0,
+          "value": {
+            "ORDERID": 2,
+            "ORDERUNITS": 4.0
+          },
+          "key": 100
+        },
+        {
+          "topic": "test_topic",
+          "timestamp": 0,
+          "value": {
+            "ORDERID": 3,
+            "ORDERUNITS": 6.0
+          },
+          "key": 101
+        },
+        {
+          "topic": "test_topic",
+          "timestamp": 0,
+          "value": {
+            "ORDERID": 4,
+            "ORDERUNITS": 3.0
+          },
+          "key": 101
+        },
+        {
+          "topic": "test_topic",
+          "timestamp": 0,
+          "value": {
+            "ORDERID": 5,
+            "ORDERUNITS": 1.0
+          },
+          "key": 101
+        }
+      ],
+      "outputs": [
+        {
+          "topic": "S1",
+          "timestamp": 0,
+          "value": {
+            "CASE_RESAULT": null
+          },
+          "key": 0
+        },
+        {
+          "topic": "S1",
+          "timestamp": 0,
+          "value": {
+            "CASE_RESAULT": null
+          },
+          "key": 100
+        },
+        {
+          "topic": "S1",
+          "timestamp": 0,
+          "value": {
+            "CASE_RESAULT": null
+          },
+          "key": 101
+        },
+        {
+          "topic": "S1",
+          "timestamp": 0,
+          "value": {
+            "CASE_RESAULT": null
+          },
+          "key": 101
+        },
+        {
+          "topic": "S1",
+          "timestamp": 0,
+          "value": {
+            "CASE_RESAULT": 7
+          },
+          "key": 101
+        }
+      ]
+    },
+    {
+      "format": ["AVRO", "JSON"],
+      "statements": [
+        "CREATE STREAM orders (orderid bigint, ORDERUNITS double) WITH (kafka_topic='test_topic', key='orderid', value_format='{FORMAT}');",
+        "CREATE STREAM S1 AS SELECT CASE WHEN orderunits > 2.0 THEN 'foo' ELSE 'default' END AS case_resault FROM orders;"
+      ],
+      "name": "searched case with null in when ",
+      "inputs": [
+        {
+          "topic": "test_topic",
+          "timestamp": 0,
+          "value": {
+            "ORDERID": 1
+          },
+          "key": 0
+        },
+        {
+          "topic": "test_topic",
+          "timestamp": 0,
+          "value": {
+            "ORDERID": 2,
+            "ORDERUNITS": 4.0
+          },
+          "key": 100
+        }
+      ],
+      "outputs": [
+        {
+          "topic": "S1",
+          "timestamp": 0,
+          "value": {
+            "CASE_RESAULT": "default"
+          },
+          "key": 0
+        },
+        {
+          "topic": "S1",
+          "timestamp": 0,
+          "value": {
+            "CASE_RESAULT": "foo"
+          },
+          "key": 100
+        }
+      ]
+    },
+    {
+      "format": ["AVRO", "JSON"],
+      "statements": [
+        "CREATE STREAM orders (itemid STRUCT< ITEMID BIGINT, NAME VARCHAR, CATEGORY STRUCT< ID BIGINT, NAME VARCHAR>>, address STRUCT < number bigint, street varchar, city varchar, state varchar, zipcode bigint>) WITH (kafka_topic='test_topic', value_format='{FORMAT}');",
+        "CREATE STREAM S1 AS SELECT CASE WHEN ADDRESS -> STATE = 'STATE_1' THEN ITEMID -> CATEGORY -> NAME WHEN ADDRESS -> STATE = 'STATE_3' THEN ADDRESS -> CITY ELSE 'default' END AS case_resault FROM orders;"
+      ],
+      "name": "searched case expression with multiple expression and the same type",
+      "inputs": [
+        {
+          "topic": "test_topic",
+          "timestamp": 0,
+          "value": {
+            "ITEMID": {
+              "ITEMID": 6,
+              "CATEGORY": {
+                "ID": 2,
+                "NAME": "Food"
+              },
+              "NAME": "Item_6"
+            },
+            "ADDRESS": {
+              "CITY": "CITY_0",
+              "STATE": "STATE_1",
+              "STREET": "STREET_4",
+              "NUMBER": 376,
+              "ZIPCODE": 621
+            }
+          },
+          "key": 0
+        },
+        {
+          "topic": "test_topic",
+          "timestamp": 0,
+          "value": {
+            "ITEMID": {
+              "ITEMID": 6,
+              "CATEGORY": {
+                "ID": 2,
+                "NAME": "Produce"
+              },
+              "NAME": "Item_6"
+            },
+            "ADDRESS": {
+              "CITY": "CITY_3",
+              "STATE": "STATE_6",
+              "STREET": "STREET_5",
+              "NUMBER": 29,
+              "ZIPCODE": 46
+            }
+          },
+          "key": 100
+        },
+        {
+          "topic": "test_topic",
+          "timestamp": 0,
+          "value": {
+            "ITEMID": {
+              "ITEMID": 6,
+              "CATEGORY": {
+                "ID": 2,
+                "NAME": "Produce"
+              },
+              "NAME": "Item_6"
+            },
+            "ADDRESS": {
+              "CITY": "CITY_9",
+              "STATE": "STATE_9",
+              "STREET": "STREET_3",
+              "NUMBER": 219,
+              "ZIPCODE": 287
+            }
+          },
+          "key": 101
+        },
+        {
+          "topic": "test_topic",
+          "timestamp": 0,
+          "value": {
+            "ITEMID": {
+              "ITEMID": 2,
+              "CATEGORY": {
+                "ID": 1,
+                "NAME": "Food"
+              },
+              "NAME": "Item_2"
+            },
+            "ADDRESS": {
+              "CITY": "CITY_3",
+              "STATE": "STATE_5",
+              "STREET": "STREET_8",
+              "NUMBER": 380,
+              "ZIPCODE": 866
+            }
+          },
+          "key": 101
+        },
+        {
+          "topic": "test_topic",
+          "timestamp": 0,
+          "value": {
+            "ITEMID": {
+              "ITEMID": 5,
+              "CATEGORY": {
+                "ID": 1,
+                "NAME": "Produce"
+              },
+              "NAME": "Item_5"
+            },
+            "ADDRESS": {
+              "CITY": "CITY_6",
+              "STATE": "STATE_3",
+              "STREET": "STREET_8",
+              "NUMBER": 294,
+              "ZIPCODE": 724
+            }
+          },
+          "key": 101
+        }
+      ],
+      "outputs": [
+        {
+          "topic": "S1",
+          "timestamp": 0,
+          "value": {
+            "CASE_RESAULT": "Food"
+          },
+          "key": 0
+        },
+        {
+          "topic": "S1",
+          "timestamp": 0,
+          "value": {
+            "CASE_RESAULT": "default"
+          },
+          "key": 100
+        },
+        {
+          "topic": "S1",
+          "timestamp": 0,
+          "value": {
+            "CASE_RESAULT": "default"
+          },
+          "key": 101
+        },
+        {
+          "topic": "S1",
+          "timestamp": 0,
+          "value": {
+            "CASE_RESAULT": "default"
+          },
+          "key": 101
+        },
+        {
+          "topic": "S1",
+          "timestamp": 0,
+          "value": {
+            "CASE_RESAULT": "CITY_6"
+          },
+          "key": 101
+        }
+      ]
+    }
+  ]
+}

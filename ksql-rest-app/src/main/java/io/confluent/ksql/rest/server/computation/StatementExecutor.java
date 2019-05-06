@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -15,16 +16,16 @@
 package io.confluent.ksql.rest.server.computation;
 
 import com.google.common.collect.Lists;
-import io.confluent.ksql.KsqlEngine;
-import io.confluent.ksql.ddl.commands.DdlCommandResult;
+import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.exception.ExceptionUtil;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
+import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.ExecutableDdlStatement;
 import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.RunScript;
-import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.CommandStatus;
@@ -32,15 +33,18 @@ import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandId.Action;
 import io.confluent.ksql.rest.server.computation.CommandId.Type;
 import io.confluent.ksql.rest.util.QueryCapacityUtil;
+import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
@@ -51,6 +55,7 @@ import org.slf4j.LoggerFactory;
  * as tracking their statuses as things move along.
  */
 public class StatementExecutor {
+
   private static final Logger log = LoggerFactory.getLogger(StatementExecutor.class);
 
   private final KsqlConfig ksqlConfig;
@@ -68,10 +73,12 @@ public class StatementExecutor {
       final KsqlEngine ksqlEngine,
       final StatementParser statementParser
   ) {
+    Objects.requireNonNull(ksqlConfig, "ksqlConfig cannot be null.");
+    Objects.requireNonNull(ksqlEngine, "ksqlEngine cannot be null.");
+
     this.ksqlConfig = ksqlConfig;
     this.ksqlEngine = ksqlEngine;
     this.statementParser = statementParser;
-
     this.statusStore = new ConcurrentHashMap<>();
   }
 
@@ -119,14 +126,14 @@ public class StatementExecutor {
     return Optional.ofNullable(statusStore.get(statementId));
   }
 
-  public void putStatus(final CommandId commandId,
+  private void putStatus(final CommandId commandId,
                         final Optional<CommandStatusFuture> commandStatusFuture,
                         final CommandStatus status) {
     statusStore.put(commandId, status);
     commandStatusFuture.ifPresent(s -> s.setStatus(status));
   }
 
-  public void putFinalStatus(final CommandId commandId,
+  private void putFinalStatus(final CommandId commandId,
                              final Optional<CommandStatusFuture> commandStatusFuture,
                              final CommandStatus status) {
     statusStore.put(commandId, status);
@@ -140,7 +147,7 @@ public class StatementExecutor {
    * @param commandId The ID to be used to track the status of the command
    * @param mode was this table/stream subsequently dropped
    */
-  void handleStatementWithTerminatedQueries(
+  private void handleStatementWithTerminatedQueries(
       final Command command,
       final CommandId commandId,
       final Optional<CommandStatusFuture> commandStatusFuture,
@@ -153,7 +160,7 @@ public class StatementExecutor {
           commandId,
           commandStatusFuture,
           new CommandStatus(CommandStatus.Status.PARSING, "Parsing statement"));
-      final Statement statement = statementParser.parseSingleStatement(statementString);
+      final PreparedStatement<?> statement = statementParser.parseSingleStatement(statementString);
       putStatus(
           commandId,
           commandStatusFuture,
@@ -171,151 +178,142 @@ public class StatementExecutor {
     }
   }
 
+  @SuppressWarnings({"unchecked", "deprecation"})
   private void executeStatement(
-      final Statement statement,
+      final PreparedStatement<?> statement,
       final Command command,
       final CommandId commandId,
       final Optional<CommandStatusFuture> commandStatusFuture,
       final Mode mode
-  ) { 
-    final String statementStr = command.getStatement();
-
-    DdlCommandResult result = null;
+  ) {
     String successMessage = "";
-    if (statement instanceof ExecutableDdlStatement) {
-      result = ksqlEngine.executeDdlStatement(
-          statementStr,
-          (ExecutableDdlStatement) statement,
-          command.getOverwriteProperties());
-    } else if (statement instanceof CreateAsSelect) {
-      successMessage = handleCreateAsSelect(
-          (CreateAsSelect)
-              statement,
-          command,
-          statementStr,
-          mode);
-    } else if (statement instanceof InsertInto) {
-      successMessage = handleInsertInto(
-          command,
-          statementStr,
-          mode);
-    } else if (statement instanceof TerminateQuery) {
-      terminateQuery((TerminateQuery) statement, mode);
+    if (statement.getStatement() instanceof ExecutableDdlStatement) {
+      successMessage = executeDdlStatement(statement, command);
+    } else if (statement.getStatement() instanceof CreateAsSelect) {
+      startQuery(statement, command, mode);
+      successMessage = statement.getStatement() instanceof CreateTableAsSelect
+          ? "Table created and running" : "Stream created and running";
+    } else if (statement.getStatement() instanceof InsertInto) {
+      startQuery(statement, command, mode);
+      successMessage = "Insert Into query is running.";
+    } else if (statement.getStatement() instanceof TerminateQuery) {
+      terminateQuery((PreparedStatement<TerminateQuery>) statement);
       successMessage = "Query terminated.";
-    } else if (statement instanceof RunScript) {
-      handleRunScript(command, mode);
+    } else if (statement.getStatement() instanceof RunScript) {
+      handleLegacyRunScript(command, mode);
     } else {
       throw new KsqlException(String.format(
           "Unexpected statement type: %s",
           statement.getClass().getName()
       ));
     }
-    // TODO: change to unified return message
-    final CommandStatus successStatus = new CommandStatus(
-        CommandStatus.Status.SUCCESS,
-        result != null ? result.getMessage() : successMessage
-    );
+
+    final CommandStatus successStatus =
+        new CommandStatus(CommandStatus.Status.SUCCESS, successMessage);
+
     putFinalStatus(commandId, commandStatusFuture, successStatus);
   }
 
-  private void handleRunScript(final Command command, final Mode mode) {
+  private String executeDdlStatement(final PreparedStatement<?> statement, final Command command) {
+    final KsqlConfig mergedConfig = buildMergedConfig(command);
+    final ConfiguredStatement<?> configured =
+        ConfiguredStatement.of(statement, command.getOverwriteProperties(), mergedConfig);
 
-    if (command.getOverwriteProperties().containsKey(KsqlConstants.RUN_SCRIPT_STATEMENTS_CONTENT)) {
-      final String queries =
-          (String) command.getOverwriteProperties().get(
-              KsqlConstants.RUN_SCRIPT_STATEMENTS_CONTENT);
-      final Map<String, Object> overriddenProperties = new HashMap<>();
-      overriddenProperties.putAll(command.getOverwriteProperties());
+    return ksqlEngine
+        .execute(configured)
+        .getCommandResult()
+        .get();
+  }
 
-      final KsqlConfig mergedConfig =
-          ksqlConfig.overrideBreakingConfigsWithOriginalValues(command.getOriginalProperties());
+  /**
+   * @deprecated deprecate since 5.2. `RUN SCRIPT` will be removed from syntax in later release.
+   */
+  @SuppressWarnings("DeprecatedIsStillUsed")
+  @Deprecated
+  private void handleLegacyRunScript(final Command command, final Mode mode) {
 
-      final List<QueryMetadata> queryMetadataList = ksqlEngine.execute(
-          queries,
-          mergedConfig,
-          overriddenProperties
-      );
+    final String sql = (String) command.getOverwriteProperties()
+        .get(KsqlConstants.LEGACY_RUN_SCRIPT_STATEMENTS_CONTENT);
 
-      if (QueryCapacityUtil.exceedsPersistentQueryCapacity(ksqlEngine, mergedConfig, 0)) {
-        terminateQueries(queryMetadataList);
-        QueryCapacityUtil.throwTooManyActivePersistentQueriesException(
-            ksqlEngine, mergedConfig, command.getStatement());
-      }
-
-      if (mode == Mode.EXECUTE) {
-        for (final QueryMetadata queryMetadata : queryMetadataList) {
-          if (queryMetadata instanceof PersistentQueryMetadata) {
-            final PersistentQueryMetadata persistentQueryMd =
-                (PersistentQueryMetadata) queryMetadata;
-            persistentQueryMd.start();
-          }
-        }
-      }
-    } else {
+    if (sql == null) {
       throw new KsqlException("No statements received for LOAD FROM FILE.");
     }
 
-  }
+    final Map<String, Object> overriddenProperties = new HashMap<>(
+        command.getOverwriteProperties());
 
-  private String handleCreateAsSelect(
-      final CreateAsSelect statement,
-      final Command command,
-      final String statementStr,
-      final Mode mode
-  ) {
-    startQuery(statementStr, command, mode);
-    return statement instanceof CreateTableAsSelect
-        ? "Table created and running" : "Stream created and running";
-  }
+    final KsqlConfig mergedConfig = buildMergedConfig(command);
 
-  private String handleInsertInto(
-      final Command command,
-      final String statementStr,
-      final Mode mode) {
-    startQuery(statementStr, command, mode);
-    return "Insert Into query is running.";
+    final List<QueryMetadata> queries = new ArrayList<>();
+    for (final ParsedStatement parsed : ksqlEngine.parse(sql)) {
+      final PreparedStatement<?> prepared = ksqlEngine.prepare(parsed);
+      final ConfiguredStatement<?> configured =
+          ConfiguredStatement.of(prepared, overriddenProperties, ksqlConfig);
+      ksqlEngine.execute(configured)
+          .getQuery()
+          .ifPresent(queries::add);
+    }
+
+    if (QueryCapacityUtil.exceedsPersistentQueryCapacity(ksqlEngine, mergedConfig, 0)) {
+      queries.forEach(QueryMetadata::close);
+      QueryCapacityUtil.throwTooManyActivePersistentQueriesException(
+          ksqlEngine, mergedConfig, command.getStatement());
+    }
+
+    if (mode == Mode.EXECUTE) {
+      for (final QueryMetadata queryMetadata : queries) {
+        if (queryMetadata instanceof PersistentQueryMetadata) {
+          final PersistentQueryMetadata persistentQueryMd =
+              (PersistentQueryMetadata) queryMetadata;
+          persistentQueryMd.start();
+        }
+      }
+    }
   }
 
   private void startQuery(
-      final String queryString,
+      final PreparedStatement<?> statement,
       final Command command,
       final Mode mode
   ) {
-    final KsqlConfig mergedConfig =
-        ksqlConfig.overrideBreakingConfigsWithOriginalValues(command.getOriginalProperties());
+    final KsqlConfig mergedConfig = buildMergedConfig(command);
 
     if (QueryCapacityUtil.exceedsPersistentQueryCapacity(ksqlEngine, mergedConfig,1)) {
       QueryCapacityUtil.throwTooManyActivePersistentQueriesException(
-          ksqlEngine, mergedConfig, queryString);
+          ksqlEngine, mergedConfig, statement.getStatementText());
     }
 
-    final QueryMetadata queryMetadata = ksqlEngine.execute(
-        queryString,
-        mergedConfig,
-        command.getOverwriteProperties()
-    ).get(0);
+    final ConfiguredStatement<?> configured = ConfiguredStatement.of(
+        statement, command.getOverwriteProperties(), mergedConfig);
+    final QueryMetadata queryMetadata = ksqlEngine.execute(configured)
+        .getQuery()
+        .orElseThrow(() -> new IllegalStateException("Statement did not return a query"));
 
-    if (queryMetadata instanceof PersistentQueryMetadata) {
-      final PersistentQueryMetadata persistentQueryMd = (PersistentQueryMetadata) queryMetadata;
-      if (mode == Mode.EXECUTE) {
-        persistentQueryMd.start();
-      }
-    } else {
+    if (!(queryMetadata instanceof PersistentQueryMetadata)) {
       throw new KsqlException(String.format(
           "Unexpected query metadata type: %s; was expecting %s",
           queryMetadata.getClass().getCanonicalName(),
           PersistentQueryMetadata.class.getCanonicalName()
       ));
     }
+
+    final PersistentQueryMetadata persistentQueryMd = (PersistentQueryMetadata) queryMetadata;
+    if (mode == Mode.EXECUTE) {
+      persistentQueryMd.start();
+    }
   }
 
-  private void terminateQuery(
-      final TerminateQuery terminateQuery,
-      final Mode mode) { 
-    final QueryId queryId = terminateQuery.getQueryId();
-    if (!ksqlEngine.terminateQuery(queryId, mode == Mode.EXECUTE)) {
-      throw new KsqlException(String.format("No running query with id %s was found", queryId));
-    }
+  private KsqlConfig buildMergedConfig(final Command command) {
+    return ksqlConfig.overrideBreakingConfigsWithOriginalValues(command.getOriginalProperties());
+  }
+
+  private void terminateQuery(final PreparedStatement<TerminateQuery> terminateQuery) {
+    final QueryId queryId = terminateQuery.getStatement().getQueryId();
+
+    ksqlEngine.getPersistentQuery(queryId)
+        .orElseThrow(() ->
+            new KsqlException(String.format("No running query with id %s was found", queryId)))
+        .close();
   }
 
   private void maybeTerminateQueryForLegacyDropCommand(
@@ -334,14 +332,9 @@ public class StatementExecutor {
         = Lists.newArrayList(metaStore.getQueriesWithSink(commandId.getEntity()));
     queriesWithSink.stream()
         .map(QueryId::new)
-        .forEach(queryId -> ksqlEngine.terminateQuery(queryId, false));
-  }
-
-  private void terminateQueries(final List<QueryMetadata> queryMetadataList) {
-    queryMetadataList.stream()
-        .filter(q -> q instanceof PersistentQueryMetadata)
-        .map(PersistentQueryMetadata.class::cast)
-        .map(PersistentQueryMetadata::getQueryId)
-        .forEach(queryId -> ksqlEngine.terminateQuery(queryId, false));
+        .map(ksqlEngine::getPersistentQuery)
+        .filter(Optional::isPresent)
+        .map(Optional::get)
+        .forEach(QueryMetadata::close);
   }
 }

@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -14,110 +15,134 @@
 
 package io.confluent.ksql.ddl.commands;
 
-import static org.easymock.MockType.NICE;
+import static io.confluent.ksql.metastore.model.MetaStoreMatchers.KeyFieldMatchers.hasLegacyName;
+import static io.confluent.ksql.metastore.model.MetaStoreMatchers.KeyFieldMatchers.hasName;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.ddl.DdlConfig;
+import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.parser.tree.BooleanLiteral;
 import io.confluent.ksql.parser.tree.CreateStream;
-import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
-import io.confluent.ksql.parser.tree.Type.KsqlType;
-import io.confluent.ksql.util.KafkaTopicClient;
+import io.confluent.ksql.parser.tree.Type.SqlType;
+import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.MetaStoreFixture;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.kstream.WindowedSerdes;
-import org.easymock.EasyMock;
-import org.easymock.EasyMockRunner;
-import org.easymock.Mock;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
-@RunWith(EasyMockRunner.class)
+@RunWith(MockitoJUnitRunner.class)
 public class CreateStreamCommandTest {
+
+  private static final String STREAM_NAME = "s1";
+  private static final List<TableElement> SOME_ELEMENTS = ImmutableList.of(
+      new TableElement("ID", PrimitiveType.of(SqlType.BIGINT)),
+      new TableElement("bob", PrimitiveType.of(SqlType.STRING))
+  );
 
   @Mock
   private KafkaTopicClient topicClient;
-  @Mock(NICE)
+  @Mock
   private CreateStream createStreamStatement;
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
 
+  private final MutableMetaStore metaStore = MetaStoreFixture
+      .getNewMetaStore(new InternalFunctionRegistry());
+
+  @Before
+  public void setUp() {
+    givenPropertiesWith((Collections.emptyMap()));
+    when(createStreamStatement.getName()).thenReturn(QualifiedName.of(STREAM_NAME));
+    when(createStreamStatement.getElements()).thenReturn(SOME_ELEMENTS);
+    when(topicClient.isTopicExists(any())).thenReturn(true);
+  }
+
   @Test
   public void shouldDefaultToStringKeySerde() {
-    // Given:
-    givenProperties(propsWith(ImmutableMap.of()));
-
     // When:
     final CreateStreamCommand cmd = createCmd();
 
     // Then:
-    assertThat(cmd.keySerde, is(instanceOf(Serdes.String().getClass())));
+    assertThat(cmd.keySerdeFactory.create(), is(instanceOf(Serdes.String().getClass())));
   }
 
   @Test
   public void shouldExtractSessionWindowType() {
     // Given:
-    givenProperties(propsWith(ImmutableMap.of(
-        DdlConfig.WINDOW_TYPE_PROPERTY, new StringLiteral("SeSSion"))));
+    givenPropertiesWith(ImmutableMap.of(
+        DdlConfig.WINDOW_TYPE_PROPERTY, new StringLiteral("SeSSion")));
 
     // When:
     final CreateStreamCommand cmd = createCmd();
 
     // Then:
-    assertThat(cmd.keySerde,
+    assertThat(cmd.keySerdeFactory.create(),
         is(instanceOf(WindowedSerdes.sessionWindowedSerdeFrom(String.class).getClass())));
   }
 
   @Test
   public void shouldExtractHoppingWindowType() {
     // Given:
-    givenProperties(propsWith(ImmutableMap.of(
-        DdlConfig.WINDOW_TYPE_PROPERTY, new StringLiteral("HoPPing"))));
+    givenPropertiesWith(ImmutableMap.of(
+        DdlConfig.WINDOW_TYPE_PROPERTY, new StringLiteral("HoPPing")));
 
     // When:
     final CreateStreamCommand cmd = createCmd();
 
     // Then:
-    assertThat(cmd.keySerde,
+    assertThat(cmd.keySerdeFactory.create(),
         is(instanceOf(WindowedSerdes.timeWindowedSerdeFrom(String.class).getClass())));
   }
 
   @Test
   public void shouldExtractTumblingWindowType() {
     // Given:
-    givenProperties(propsWith(ImmutableMap.of(
-        DdlConfig.WINDOW_TYPE_PROPERTY, new StringLiteral("Tumbling"))));
+    givenPropertiesWith(ImmutableMap.of(
+        DdlConfig.WINDOW_TYPE_PROPERTY, new StringLiteral("Tumbling")));
 
     // When:
     final CreateStreamCommand cmd = createCmd();
 
     // Then:
-    assertThat(cmd.keySerde,
+    assertThat(cmd.keySerdeFactory.create(),
         is(instanceOf(WindowedSerdes.timeWindowedSerdeFrom(String.class).getClass())));
   }
 
   @Test
   public void shouldThrowOnUnknownWindowType() {
     // Given:
+    givenPropertiesWith(ImmutableMap.of(
+        DdlConfig.WINDOW_TYPE_PROPERTY, new StringLiteral("Unknown")));
+
+    // Then:
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage("WINDOW_TYPE property is not set correctly. "
         + "value: UNKNOWN, validValues: [SESSION, TUMBLING, HOPPING]");
-
-    givenProperties(propsWith(ImmutableMap.of(
-        DdlConfig.WINDOW_TYPE_PROPERTY, new StringLiteral("Unknown"))));
 
     // When:
     createCmd();
@@ -126,33 +151,82 @@ public class CreateStreamCommandTest {
   @Test
   public void shouldThrowOnOldWindowProperty() {
     // Given:
+    givenPropertiesWith(ImmutableMap.of(
+        "WINDOWED", new BooleanLiteral("true")));
+
+    // Then:
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage(
         "Invalid config variable in the WITH clause: WINDOWED");
-
-    givenProperties(propsWith(ImmutableMap.of(
-        "WINDOWED", new BooleanLiteral("true"))));
 
     // When:
     createCmd();
   }
 
+  @Test
+  public void shouldThrowIfTopicDoesNotExist() {
+    // Given:
+    when(topicClient.isTopicExists(any())).thenReturn(false);
+
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(
+        "Kafka topic does not exist: some-topic");
+
+    // When:
+    createCmd();
+  }
+
+  @Test
+  public void shouldThrowIfAlreadyRegistered() {
+    // Given:
+    final CreateStreamCommand cmd = createCmd();
+    cmd.run(metaStore);
+
+    // Then:
+    expectedException.expectMessage("Cannot create stream 's1': A stream " +
+            "with name 's1' already exists");
+
+    // When:
+    cmd.run(metaStore);
+  }
+
+  @Test
+  public void shouldAddSourceWithKeyField() {
+    // Given:
+    givenPropertiesWith(ImmutableMap.of(
+        "KEY", new StringLiteral("id")));
+    final CreateStreamCommand cmd = createCmd();
+
+    // When:
+    cmd.run(metaStore);
+
+    // Then:
+    assertThat(metaStore.getSource(STREAM_NAME).getKeyField(), hasName("ID"));
+    assertThat(metaStore.getSource(STREAM_NAME).getKeyField(), hasLegacyName("ID"));
+  }
+
+  @Test
+  public void shouldAddSourceWithNoKeyField() {
+    // Given:
+    final CreateStreamCommand cmd = createCmd();
+
+    // When:
+    cmd.run(metaStore);
+
+    // Then:
+    assertThat(metaStore.getSource(STREAM_NAME).getKeyField(), hasName(Optional.empty()));
+    assertThat(metaStore.getSource(STREAM_NAME).getKeyField(), hasLegacyName(Optional.empty()));
+  }
+
   private CreateStreamCommand createCmd() {
-    return new CreateStreamCommand("some sql", createStreamStatement,
-        topicClient, false);
+    return new CreateStreamCommand("some sql", createStreamStatement, topicClient);
   }
 
-  private Map<String, Expression> propsWith(final Map<String, Expression> props) {
-    Map<String, Expression> valid = new HashMap<>(props);
-    valid.putIfAbsent(DdlConfig.VALUE_FORMAT_PROPERTY, new StringLiteral("Json"));
-    valid.putIfAbsent(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral("some-topic"));
-    return valid;
-  }
-
-  private void givenProperties(final Map<String, Expression> props) {
-    EasyMock.expect(createStreamStatement.getProperties()).andReturn(props).anyTimes();
-    EasyMock.expect(createStreamStatement.getName()).andReturn(QualifiedName.of("name")).anyTimes();
-    EasyMock.expect(createStreamStatement.getElements()).andReturn(ImmutableList.of());
-    EasyMock.replay(createStreamStatement);
+  private void givenPropertiesWith(final Map<String, Literal> props) {
+    final Map<String, Literal> allProps = new HashMap<>(props);
+    allProps.putIfAbsent(DdlConfig.VALUE_FORMAT_PROPERTY, new StringLiteral("Json"));
+    allProps.putIfAbsent(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral("some-topic"));
+    when(createStreamStatement.getProperties()).thenReturn(allProps);
   }
 }

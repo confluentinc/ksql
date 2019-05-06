@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -14,180 +15,220 @@
 
 package io.confluent.ksql.rest.server.computation;
 
-import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.expectLastCall;
-import static org.easymock.EasyMock.mock;
-import static org.easymock.EasyMock.replay;
-import static org.easymock.EasyMock.same;
-import static org.easymock.EasyMock.verify;
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static org.hamcrest.Matchers.not;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 
-import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.KsqlEngine;
-import io.confluent.ksql.rest.server.utils.TestUtils;
-import io.confluent.ksql.util.Pair;
-
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
-
-import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.rest.util.ClusterTerminator;
+import io.confluent.ksql.rest.util.TerminateCluster;
+import java.time.Duration;
+import java.util.Arrays;
+import java.util.concurrent.ExecutorService;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.InOrder;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.stubbing.Answer;
 
+@RunWith(MockitoJUnitRunner.class)
 public class CommandRunnerTest {
-  final StatementExecutor statementExecutor = mock(StatementExecutor.class);
-  final KsqlEngine ksqlEngine = mock(KsqlEngine.class);
-  final CommandStore commandStore = mock(CommandStore.class);
 
-  private List<QueuedCommand> getQueuedCommands() {
-    final List<Pair<CommandId, Command>> commandList = new TestUtils().getAllPriorCommandRecords();
-    return commandList.stream()
-        .map(
-            c -> new QueuedCommand(
-                c.getLeft(), c.getRight(), Optional.empty()))
-        .collect(Collectors.toList());
-  }
-
-  private List<QueuedCommand> getRestoreCommands(final List<Pair<CommandId, Command>> commandList) {
-    return commandList.stream()
-        .map(p -> new QueuedCommand(p.getLeft(), p.getRight(), Optional.empty()))
-        .collect(Collectors.toList());
-  }
-
-  private List<QueuedCommand> getRestoreCommands() {
-    return getRestoreCommands(new TestUtils().getAllPriorCommandRecords());
-  }
+  @Mock
+  private StatementExecutor statementExecutor;
+  @Mock
+  private CommandStore commandStore;
+  @Mock
+  private KsqlEngine ksqlEngine;
+  @Mock
+  private ClusterTerminator clusterTerminator;
+  @Mock
+  private Command command;
+  @Mock
+  private Command clusterTerminate;
+  @Mock
+  private QueuedCommand queuedCommand1;
+  @Mock
+  private QueuedCommand queuedCommand2;
+  @Mock
+  private QueuedCommand queuedCommand3;
+  @Mock
+  private ExecutorService executor;
+  private CommandRunner commandRunner;
 
   @Before
-  public void setUp() {
-    expect(statementExecutor.getKsqlEngine()).andStubReturn(ksqlEngine);
+  public void setup() {
+    when(statementExecutor.getKsqlEngine()).thenReturn(ksqlEngine);
+
+    when(command.getStatement()).thenReturn("something that is not terminate");
+    when(clusterTerminate.getStatement())
+        .thenReturn(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT);
+
+    when(queuedCommand1.getCommand()).thenReturn(command);
+    when(queuedCommand2.getCommand()).thenReturn(command);
+    when(queuedCommand3.getCommand()).thenReturn(command);
+
+    givenQueuedCommands(queuedCommand1, queuedCommand2, queuedCommand3);
+
+    commandRunner = new CommandRunner(
+        statementExecutor,
+        commandStore,
+        ksqlEngine,
+        1,
+        clusterTerminator,
+        executor);
   }
 
   @Test
-  public void shouldFetchAndRunNewCommandsFromCommandTopic() {
+  public void shouldRunThePriorCommandsCorrectly() {
     // Given:
-    final StatementExecutor statementExecutor = mock(StatementExecutor.class);
-    final List<QueuedCommand> commands = getQueuedCommands();
-    commands.forEach(
-        c -> {
-          statementExecutor.handleStatement(same(c));
-          expectLastCall();
-        }
-    );
-    expect(commandStore.getNewCommands()).andReturn(commands);
-    replay(statementExecutor, commandStore);
-    final CommandRunner commandRunner = new CommandRunner(statementExecutor, commandStore, 1);
-
-    // When:
-    commandRunner.fetchAndRunCommands();
-
-    // Then:
-    verify(statementExecutor);
-  }
-
-  @Test
-  public void shouldRetryCommands() {
-    // Given:
-    final List<QueuedCommand> commands = Collections.singletonList(getQueuedCommands().get(0));
-    final QueuedCommand command = commands.get(0);
-    statementExecutor.handleStatement(command);
-    expectLastCall().andThrow(new RuntimeException("Something bad happened"));
-    statementExecutor.handleStatement(command);
-    expectLastCall();
-    expect(commandStore.getNewCommands()).andReturn(commands);
-    replay(statementExecutor, commandStore);
-    final CommandRunner commandRunner = new CommandRunner(statementExecutor, commandStore, 3);
-
-    // When:
-    commandRunner.fetchAndRunCommands();
-
-    // Then:
-    verify(statementExecutor);
-  }
-
-  @Test
-  public void shouldGiveUpAfterRetryLimit() {
-    // Given:
-    final List<QueuedCommand> commands = Collections.singletonList(getQueuedCommands().get(0));
-    final QueuedCommand command = commands.get(0);
-    statementExecutor.handleStatement(command);
-    final RuntimeException exception = new RuntimeException("something bad happened");
-    expectLastCall().andThrow(exception).times(4);
-    expect(commandStore.getNewCommands()).andReturn(commands);
-    replay(statementExecutor, commandStore);
-    final CommandRunner commandRunner = new CommandRunner(statementExecutor, commandStore, 3);
-
-    // When:
-    try {
-      commandRunner.fetchAndRunCommands();
-
-      // Then:
-      fail("Should have thrown exception");
-    } catch (final RuntimeException caught) {
-      assertThat(caught, equalTo(exception));
-    }
-    verify(statementExecutor);
-  }
-
-  @Test
-  public void shouldFetchAndRunPriorCommandsFromCommandTopic() {
-    // Given:
-    final List<QueuedCommand> restoreCommands = getRestoreCommands();
-    restoreCommands.forEach(
-        command -> {
-          statementExecutor.handleRestore(command);
-          expectLastCall();
-        }
-    );
-    expect(commandStore.getRestoreCommands()).andReturn(restoreCommands);
-    final Collection<PersistentQueryMetadata> persistentQueries
-        = ImmutableList.of(mock(PersistentQueryMetadata.class), mock(PersistentQueryMetadata.class));
-    expect(ksqlEngine.getPersistentQueries()).andReturn(persistentQueries);
-    persistentQueries.forEach(
-        q -> {
-          q.start();
-          expectLastCall();
-        }
-    );
-    replay(persistentQueries.toArray());
-    replay(statementExecutor, ksqlEngine, commandStore);
-    final CommandRunner commandRunner = new CommandRunner(statementExecutor, commandStore, 1);
+    givenQueuedCommands(queuedCommand1, queuedCommand2, queuedCommand3);
 
     // When:
     commandRunner.processPriorCommands();
 
     // Then:
-    verify(statementExecutor);
-    verify(persistentQueries.toArray());
+    final InOrder inOrder = inOrder(statementExecutor);
+    inOrder.verify(statementExecutor).handleRestore(eq(queuedCommand1));
+    inOrder.verify(statementExecutor).handleRestore(eq(queuedCommand2));
+    inOrder.verify(statementExecutor).handleRestore(eq(queuedCommand3));
   }
 
   @Test
-  public void shouldRetryCommandsWhenRestoring() {
+  public void shouldRunThePriorCommandsWithTerminateCorrectly() {
     // Given:
-    final List<QueuedCommand> restoreCommands = getRestoreCommands();
-    final QueuedCommand failedCommand = restoreCommands.get(0);
-    statementExecutor.handleRestore(failedCommand);
-    expectLastCall().andThrow(new RuntimeException("something bad happened"));
-    restoreCommands.forEach(
-        command -> {
-          statementExecutor.handleRestore(command);
-          expectLastCall();
-        }
-    );
-    expect(commandStore.getRestoreCommands()).andReturn(restoreCommands);
-    expect(ksqlEngine.getPersistentQueries()).andReturn(Collections.emptySet());
-    replay(statementExecutor, ksqlEngine, commandStore);
-    final CommandRunner commandRunner = new CommandRunner(statementExecutor, commandStore, 3);
+    givenQueuedCommands(queuedCommand1);
+    when(queuedCommand1.getCommand()).thenReturn(clusterTerminate);
 
     // When:
     commandRunner.processPriorCommands();
 
     // Then:
-    verify(statementExecutor);
+    verify(ksqlEngine).stopAcceptingStatements();
+    verify(commandStore).close();
+    verify(clusterTerminator).terminateCluster(anyList());
+    verify(statementExecutor, never()).handleRestore(any());
+  }
+
+  @Test
+  public void shouldEarlyOutIfRestoreContainsTerminate() {
+    // Given:
+    givenQueuedCommands(queuedCommand1, queuedCommand2, queuedCommand3);
+    when(queuedCommand2.getCommand()).thenReturn(clusterTerminate);
+
+    // When:
+    commandRunner.processPriorCommands();
+
+    // Then:
+    verify(ksqlEngine).stopAcceptingStatements();
+    verify(statementExecutor, never()).handleRestore(any());
+  }
+
+  @Test
+  public void shouldPullAndRunStatements() {
+    // Given:
+    givenQueuedCommands(queuedCommand1, queuedCommand2, queuedCommand3);
+
+    // When:
+    commandRunner.fetchAndRunCommands();
+
+    // Then:
+    final InOrder inOrder = inOrder(statementExecutor);
+    inOrder.verify(statementExecutor).handleStatement(queuedCommand1);
+    inOrder.verify(statementExecutor).handleStatement(queuedCommand2);
+    inOrder.verify(statementExecutor).handleStatement(queuedCommand3);
+  }
+
+  @Test
+  public void shouldEarlyOutIfNewCommandsContainsTerminate() {
+    // Given:
+    givenQueuedCommands(queuedCommand1, queuedCommand2, queuedCommand3);
+    when(queuedCommand2.getCommand()).thenReturn(clusterTerminate);
+
+    // When:
+    commandRunner.fetchAndRunCommands();
+
+    // Then:
+    verify(ksqlEngine).stopAcceptingStatements();
+    verify(statementExecutor, never()).handleRestore(queuedCommand1);
+    verify(statementExecutor, never()).handleRestore(queuedCommand2);
+    verify(statementExecutor, never()).handleRestore(queuedCommand3);
+  }
+
+  @Test
+  public void shouldEarlyOutOnShutdown() {
+    // Given:
+    givenQueuedCommands(queuedCommand1, queuedCommand2);
+    doAnswer(closeRunner()).when(statementExecutor).handleStatement(queuedCommand1);
+
+    // When:
+    commandRunner.fetchAndRunCommands();
+
+    // Then:
+    verify(statementExecutor, never()).handleRestore(queuedCommand2);
+  }
+
+  @Test
+  public void shouldNotBlockIndefinitelyPollingForNewCommands() {
+    // When:
+    commandRunner.fetchAndRunCommands();
+
+    // Then:
+    verify(commandStore).getNewCommands(argThat(not(Duration.ofMillis(Long.MAX_VALUE))));
+  }
+
+  @Test
+  public void shouldSubmitTaskOnStart() {
+    // When:
+    commandRunner.start();
+
+    // Then:
+    final InOrder inOrder = inOrder(executor);
+    inOrder.verify(executor).submit(any(Runnable.class));
+    inOrder.verify(executor).shutdown();
+  }
+
+  @Test
+  public void shouldCloseTheCommandRunnerCorrectly() throws Exception {
+    // When:
+    commandRunner.close();
+
+    // Then:
+    final InOrder inOrder = inOrder(executor, commandStore);
+    inOrder.verify(commandStore).wakeup();
+    inOrder.verify(executor).awaitTermination(anyLong(), any());
+    inOrder.verify(commandStore).close();
+  }
+
+  @Test(expected = RuntimeException.class)
+  public void shouldThrowExceptionIfCannotCloseCommandStore() {
+    // Given:
+    doThrow(RuntimeException.class).when(commandStore).close();
+
+    // When:
+    commandRunner.close();
+  }
+
+  private void givenQueuedCommands(final QueuedCommand... cmds) {
+    when(commandStore.getRestoreCommands()).thenReturn(Arrays.asList(cmds));
+    when(commandStore.getNewCommands(any())).thenReturn(Arrays.asList(cmds));
+  }
+
+  private Answer<?> closeRunner() {
+    return inv -> {
+      commandRunner.close();
+      return null;
+    };
   }
 }

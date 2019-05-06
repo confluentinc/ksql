@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -16,7 +17,6 @@ package io.confluent.ksql.cli;
 
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static javax.ws.rs.core.Response.Status.NOT_ACCEPTABLE;
-import static org.easymock.EasyMock.niceMock;
 import static org.hamcrest.CoreMatchers.any;
 import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.containsString;
@@ -25,6 +25,13 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.common.utils.IntegrationTest;
@@ -35,6 +42,8 @@ import io.confluent.ksql.cli.console.Console;
 import io.confluent.ksql.cli.console.Console.RowCaptor;
 import io.confluent.ksql.cli.console.OutputFormat;
 import io.confluent.ksql.cli.console.cmd.RemoteServerSpecificCommand;
+import io.confluent.ksql.cli.console.cmd.RequestPipeliningCommand;
+import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
@@ -46,17 +55,24 @@ import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.server.KsqlRestApplication;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
+import io.confluent.ksql.rest.server.TestKsqlRestApp;
+import io.confluent.ksql.rest.server.computation.CommandId;
 import io.confluent.ksql.rest.server.resources.Errors;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
-import io.confluent.ksql.test.util.TestKsqlRestApp;
+import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.OrderDataProvider;
 import io.confluent.ksql.util.TestDataProvider;
 import io.confluent.ksql.util.TopicConsumer;
 import io.confluent.ksql.util.TopicProducer;
+import java.io.File;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -64,12 +80,12 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
 import javax.ws.rs.ProcessingException;
+import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.StreamsConfig;
-import org.easymock.EasyMock;
 import org.hamcrest.BaseMatcher;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.Description;
@@ -85,11 +101,16 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
+import org.junit.rules.TemporaryFolder;
 import org.junit.rules.Timeout;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
 /**
  * Most tests in CliTest are end-to-end integration tests, so it may expect a long running time.
  */
+@RunWith(MockitoJUnitRunner.class)
 @Category({IntegrationTest.class})
 public class CliTest {
 
@@ -107,7 +128,13 @@ public class CliTest {
       .build();
 
   @ClassRule
-  public static final RuleChain CHAIN = RuleChain.outerRule(CLUSTER).around(REST_APP);
+  public static final TemporaryFolder TMP = new TemporaryFolder();
+
+  @ClassRule
+  public static final RuleChain CHAIN = RuleChain
+      .outerRule(Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS))
+      .around(CLUSTER)
+      .around(REST_APP);
 
   @Rule
   public final Timeout timeout = Timeout.builder()
@@ -128,13 +155,14 @@ public class CliTest {
   private static TopicConsumer topicConsumer;
   private static KsqlRestClient restClient;
   private static OrderDataProvider orderDataProvider;
-  private static int result_stream_no = 0;
 
   private Console console;
   private TestTerminal terminal;
   private TestRowCaptor rowCaptor;
+  @Mock
   private Supplier<String> lineSupplier;
   private Cli localCli;
+  private String streamName;
 
   @BeforeClass
   public static void classSetUp() throws Exception {
@@ -158,10 +186,10 @@ public class CliTest {
   @SuppressWarnings("unchecked")
   @Before
   public void setUp() {
-    lineSupplier = niceMock(Supplier.class);
+    streamName = KsqlIdentifierTestUtil.uniqueIdentifierName();
     terminal = new TestTerminal(lineSupplier);
     rowCaptor = new TestRowCaptor();
-    console = new Console(CLI_OUTPUT_FORMAT, () -> "v1.2.3", terminal, rowCaptor);
+    console = new Console(CLI_OUTPUT_FORMAT, terminal, rowCaptor);
 
     localCli = new Cli(
         STREAMED_QUERY_ROW_LIMIT,
@@ -169,6 +197,8 @@ public class CliTest {
         restClient,
         console
     );
+
+    maybeDropStream("SHOULDRUNSCRIPT");
   }
 
   @SuppressWarnings("unchecked")
@@ -280,25 +310,20 @@ public class CliTest {
         // SESSION OVERRIDES:
         ImmutableList.of(
             KsqlConfig.KSQL_STREAMS_PREFIX + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG,
-            SESSION_OVERRIDE, "latest"),
+            SESSION_OVERRIDE, "latest")
 
-        // DEFAULTS:
-        ImmutableList.of(
-            KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, "",
-            "" + KsqlConstants.defaultSinkNumberOfReplications)
-        ,
-        ImmutableList.of(
-            KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, "",
-            "" + KsqlConstants.defaultSinkNumberOfReplications)
     );
   }
 
-  private void testCreateStreamAsSelect(String selectQuery, final Schema resultSchema, final Map<String, GenericRow> expectedResults) {
+  private void testCreateStreamAsSelect(
+      String selectQuery,
+      final KsqlSchema resultSchema,
+      final Map<String, GenericRow> expectedResults
+  ) {
     if (!selectQuery.endsWith(";")) {
       selectQuery += ";";
     }
-    final String resultKStreamName = "RESULT_" + result_stream_no++;
-    final String queryString = "CREATE STREAM " + resultKStreamName + " AS " + selectQuery;
+    final String queryString = "CREATE STREAM " + streamName + " AS " + selectQuery;
 
     /* Start Stream Query */
     assertRunCommand(
@@ -309,15 +334,16 @@ public class CliTest {
             equalTo(new TestResult("Executing statement"))));
 
     /* Assert Results */
-    final Map<String, GenericRow> results = topicConsumer.readResults(resultKStreamName, resultSchema, expectedResults.size(), new StringDeserializer());
+    final Map<String, GenericRow> results = topicConsumer
+        .readResults(streamName, resultSchema, expectedResults.size(), new StringDeserializer());
 
-    dropStream(resultKStreamName);
+    dropStream(streamName);
 
     assertThat(results, equalTo(expectedResults));
   }
 
   private static void runStatement(final String statement, final KsqlRestClient restClient) {
-    final RestResponse response = restClient.makeKsqlRequest(statement);
+    final RestResponse<?> response = restClient.makeKsqlRequest(statement, null);
     Assert.assertThat(response.isSuccessful(), is(true));
     final KsqlEntityList entityList = ((KsqlEntityList) response.get());
     Assert.assertThat(entityList.size(), equalTo(1));
@@ -330,7 +356,7 @@ public class CliTest {
       assertThatEventually(
           "",
           () -> {
-            final RestResponse statusResponse = restClient
+            final RestResponse<?> statusResponse = restClient
                 .makeStatusRequest(entity.getCommandId().toString());
             Assert.assertThat(statusResponse.isSuccessful(), is(true));
             Assert.assertThat(statusResponse.get(), instanceOf(CommandStatus.class));
@@ -353,7 +379,7 @@ public class CliTest {
   private static void dropStream(final String name) {
     final String dropStatement = String.format("drop stream %s;", name);
 
-    final RestResponse response = restClient.makeKsqlRequest(dropStatement);
+    final RestResponse<?> response = restClient.makeKsqlRequest(dropStatement, null);
     if (response.isSuccessful()) {
       return;
     }
@@ -369,6 +395,18 @@ public class CliTest {
         .forEach(CliTest::terminateQuery);
 
     runStatement(dropStatement, restClient);
+  }
+
+  private static void maybeDropStream(final String name) {
+    final String dropStatement = String.format("drop stream %s;", name);
+
+    final RestResponse<?> response = restClient.makeKsqlRequest(dropStatement, null);
+    if (response.isSuccessful()
+        || response.getErrorMessage().toString().contains("does not exist")) {
+      return;
+    }
+
+    dropStream(name);
   }
 
   private void selectWithLimit(String selectQuery, final int limit, final TestResult expectedResults) {
@@ -389,7 +427,7 @@ public class CliTest {
                 any(String.class))));
     assertRunListCommand(
         "registered topics",
-        containsInAnyOrder(
+        hasItems(
             new TestResult.Builder()
                 .addRow(orderDataProvider.kstreamName(), orderDataProvider.topicName(), "JSON")
                 .addRow(COMMANDS_KSQL_TOPIC_NAME, commandTopicName, "JSON")
@@ -426,29 +464,7 @@ public class CliTest {
   @Test
   public void testPropertySetUnset() {
     assertRunCommand("set 'auto.offset.reset' = 'latest'", is(EMPTY_RESULT));
-    assertRunCommand("set 'application.id' = 'Test_App'", is(EMPTY_RESULT));
-    assertRunCommand("set 'producer.batch.size' = '16384'", is(EMPTY_RESULT));
-    assertRunCommand("set 'max.request.size' = '1048576'", is(EMPTY_RESULT));
-    assertRunCommand("set 'consumer.max.poll.records' = '500'", is(EMPTY_RESULT));
-    assertRunCommand("set 'enable.auto.commit' = 'true'", is(EMPTY_RESULT));
-    assertRunCommand("set 'ksql.streams.application.id' = 'Test_App'", is(EMPTY_RESULT));
-    assertRunCommand("set 'ksql.streams.producer.batch.size' = '16384'", is(EMPTY_RESULT));
-    assertRunCommand("set 'ksql.streams.max.request.size' = '1048576'", is(EMPTY_RESULT));
-    assertRunCommand("set 'ksql.streams.consumer.max.poll.records' = '500'", is(EMPTY_RESULT));
-    assertRunCommand("set 'ksql.streams.enable.auto.commit' = 'true'", is(EMPTY_RESULT));
-    assertRunCommand("set 'ksql.service.id' = 'assertPrint'", is(EMPTY_RESULT));
-
-    assertRunCommand("unset 'application.id'", is(EMPTY_RESULT));
-    assertRunCommand("unset 'producer.batch.size'", is(EMPTY_RESULT));
-    assertRunCommand("unset 'max.request.size'", is(EMPTY_RESULT));
-    assertRunCommand("unset 'consumer.max.poll.records'", is(EMPTY_RESULT));
-    assertRunCommand("unset 'enable.auto.commit'", is(EMPTY_RESULT));
-    assertRunCommand("unset 'ksql.streams.application.id'", is(EMPTY_RESULT));
-    assertRunCommand("unset 'ksql.streams.producer.batch.size'", is(EMPTY_RESULT));
-    assertRunCommand("unset 'ksql.streams.max.request.size'", is(EMPTY_RESULT));
-    assertRunCommand("unset 'ksql.streams.consumer.max.poll.records'", is(EMPTY_RESULT));
-    assertRunCommand("unset 'ksql.streams.enable.auto.commit'", is(EMPTY_RESULT));
-    assertRunCommand("unset 'ksql.service.id'", is(EMPTY_RESULT));
+    
 
     final TestResult.Builder builder = new TestResult.Builder();
     builder.addRows(startUpConfigs());
@@ -539,11 +555,11 @@ public class CliTest {
             80.0,
             new Double[]{1100.0, 1110.99, 970.0})));
 
-    final Schema resultSchema = SchemaBuilder.struct()
+    final KsqlSchema resultSchema = KsqlSchema.of(SchemaBuilder.struct()
         .field("ITEMID", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
         .field("ORDERUNITS", SchemaBuilder.OPTIONAL_FLOAT64_SCHEMA)
         .field("PRICEARRAY", SchemaBuilder.array(SchemaBuilder.OPTIONAL_FLOAT64_SCHEMA).optional().build())
-        .build();
+        .build());
 
     testCreateStreamAsSelect(
         "SELECT ITEMID, ORDERUNITS, PRICEARRAY FROM " + orderDataProvider.kstreamName(),
@@ -604,14 +620,14 @@ public class CliTest {
         orderDataProvider.kstreamName()
     );
 
-    final Schema sourceSchema = orderDataProvider.schema();
-    final Schema resultSchema = SchemaBuilder.struct()
+    final Schema sourceSchema = orderDataProvider.schema().getSchema();
+    final KsqlSchema resultSchema = KsqlSchema.of(SchemaBuilder.struct()
         .field("ITEMID", sourceSchema.field("ITEMID").schema())
         .field("COL1", sourceSchema.field("ORDERUNITS").schema())
         .field("COL2", sourceSchema.field("PRICEARRAY").schema().valueSchema())
         .field("COL3", sourceSchema.field("KEYVALUEMAP").schema().valueSchema())
         .field("COL4", SchemaBuilder.OPTIONAL_BOOLEAN_SCHEMA)
-        .build();
+        .build());
 
     final Map<String, GenericRow> expectedResults = new HashMap<>();
     expectedResults.put("8", new GenericRow(ImmutableList.of("ITEM_8", 800.0, 1110.0, 12.0, true)));
@@ -641,40 +657,39 @@ public class CliTest {
   public void shouldPrintErrorIfCantConnectToRestServer() throws Exception {
     givenRunInteractivelyWillExit();
 
-    final KsqlRestClient mockRestClient = EasyMock.mock(KsqlRestClient.class);
-    EasyMock.expect(mockRestClient.makeRootRequest()).andThrow(new KsqlRestClientException("Boom", new ProcessingException("")));
-    EasyMock.expect(mockRestClient.getServerInfo()).andReturn(
-        RestResponse.of(new ServerInfo("1.x", "testClusterId", "testServiceId")));
-    EasyMock.expect(mockRestClient.getServerAddress()).andReturn(new URI("http://someserver:8008")).anyTimes();
-    EasyMock.replay(mockRestClient);
+    final KsqlRestClient mockRestClient = givenMockRestClient();
+    when(mockRestClient.makeRootRequest())
+        .thenThrow(new KsqlRestClientException("Boom", new ProcessingException("")));
 
     new Cli(1L, 1L, mockRestClient, console)
         .runInteractively();
 
-    assertThat(terminal.getOutputString(), containsString("Remote server address may not be valid"));
+    assertThat(terminal.getOutputString(),
+               containsString("Please ensure that the URL provided is for an active KSQL server."));
   }
 
   @Test
   public void shouldRegisterRemoteCommand() {
-    new Cli(1L, 1L, restClient, console);
     assertThat(console.getCliSpecificCommands().get("server"),
         instanceOf(RemoteServerSpecificCommand.class));
+  }
+
+  @Test
+  public void shouldRegisterRequestPipeliningCommand() {
+    assertThat(console.getCliSpecificCommands().get(RequestPipeliningCommand.NAME),
+        instanceOf(RequestPipeliningCommand.class));
   }
 
   @Test
   public void shouldPrintErrorOnUnsupportedAPI() throws Exception {
     givenRunInteractivelyWillExit();
 
-    final KsqlRestClient mockRestClient = EasyMock.mock(KsqlRestClient.class);
-    EasyMock.expect(mockRestClient.makeRootRequest()).andReturn(
+    final KsqlRestClient mockRestClient = givenMockRestClient();
+    when(mockRestClient.makeRootRequest()).thenReturn(
         RestResponse.erroneous(
             new KsqlErrorMessage(
                 Errors.toErrorCode(NOT_ACCEPTABLE.getStatusCode()),
                 "Minimum supported client version: 1.0")));
-    EasyMock.expect(mockRestClient.getServerInfo()).andReturn(
-        RestResponse.of(new ServerInfo("1.x", "testClusterId", "testServiceId")));
-    EasyMock.expect(mockRestClient.getServerAddress()).andReturn(new URI("http://someserver:8008"));
-    EasyMock.replay(mockRestClient);
 
     new Cli(1L, 1L, mockRestClient, console)
         .runInteractively();
@@ -728,7 +743,7 @@ public class CliTest {
                 "\tepochMilli  : Milliseconds since January 1, 1970, 00:00:00 GMT.\n" +
                 "\tformatPattern: The format pattern should be in the format expected by \n" +
                 "                 java.time.format.DateTimeFormatter.";
-    
+
     assertThat(outputString, containsString(expectedVariation));
   }
 
@@ -788,13 +803,229 @@ public class CliTest {
   @Test
   public void shouldPrintErrorIfCantFindFunction() throws Exception {
     localCli.handleLine("describe function foobar;");
-    final String expectedOutput = "Can't find any functions with the name 'foobar'";
-    assertThat(terminal.getOutputString(), containsString(expectedOutput));
+
+    assertThat(terminal.getOutputString(),
+        containsString("Can't find any functions with the name 'foobar'"));
+  }
+
+  @Test
+  public void shouldHandleSetPropertyAsPartOfMultiStatementLine() throws Exception {
+    // Given:
+    final String csas =
+        "CREATE STREAM " + streamName + " "
+            + "AS SELECT * FROM " + orderDataProvider.kstreamName() + ";";
+
+    // When:
+    localCli
+        .handleLine("set 'auto.offset.reset'='earliest'; " + csas);
+
+    // Then:
+    dropStream(streamName);
+
+    assertThat(terminal.getOutputString(),
+        containsString("Successfully changed local property 'auto.offset.reset' to 'earliest'"));
+  }
+
+  @Test
+  public void shouldRunScript() throws Exception {
+    // Given:
+    final File scriptFile = TMP.newFile("script.sql");
+    Files.write(scriptFile.toPath(), (""
+        + "CREATE STREAM shouldRunScript AS SELECT * FROM " + orderDataProvider.kstreamName() + ";"
+        + "").getBytes(StandardCharsets.UTF_8));
+
+    when(lineSupplier.get())
+        .thenReturn("run script '" + scriptFile.getAbsolutePath() + "'")
+        .thenReturn("exit");
+
+    // When:
+    localCli.runInteractively();
+
+    // Then:
+    assertThat(terminal.getOutputString(), containsString("Stream created and running"));
+  }
+
+  @Test
+  public void shouldUpdateCommandSequenceNumber() throws Exception {
+    // Given:
+    final String statementText = "create stream foo;";
+    final KsqlRestClient mockRestClient = givenMockRestClient();
+    final CommandStatusEntity stubEntity = stubCommandStatusEntityWithSeqNum(12L);
+    when(mockRestClient.makeKsqlRequest(anyString(), anyLong()))
+        .thenReturn(RestResponse.successful(new KsqlEntityList(
+            Collections.singletonList(stubEntity))));
+
+    // When:
+    localCli.handleLine(statementText);
+
+    // Then:
+    assertLastCommandSequenceNumber(mockRestClient, 12L);
+  }
+
+  @Test
+  public void shouldUpdateCommandSequenceNumberOnMultipleCommandStatusEntities() throws Exception {
+    // Given:
+    final String statementText = "create stream foo;";
+    final KsqlRestClient mockRestClient = givenMockRestClient();
+    final CommandStatusEntity firstEntity = stubCommandStatusEntityWithSeqNum(12L);
+    final CommandStatusEntity secondEntity = stubCommandStatusEntityWithSeqNum(14L);
+    when(mockRestClient.makeKsqlRequest(anyString(), anyLong()))
+        .thenReturn(RestResponse.successful(new KsqlEntityList(
+            ImmutableList.of(firstEntity, secondEntity))));
+
+    // When:
+    localCli.handleLine(statementText);
+
+    // Then:
+    assertLastCommandSequenceNumber(mockRestClient, 14L);
+  }
+
+  @Test
+  public void shouldNotUpdateCommandSequenceNumberIfNoCommandStatusEntities() throws Exception {
+    // Given:
+    final String statementText = "create stream foo;";
+    final KsqlRestClient mockRestClient = givenMockRestClient();
+    when(mockRestClient.makeKsqlRequest(anyString(), anyLong()))
+        .thenReturn(RestResponse.successful(new KsqlEntityList()));
+
+    // When:
+    localCli.handleLine(statementText);
+
+    // Then:
+    assertLastCommandSequenceNumber(mockRestClient, -1L);
+  }
+
+  @Test
+  public void shouldIssueRequestWithoutCommandSequenceNumberIfRequestPipeliningOn() throws Exception {
+    // Given:
+    final String statementText = "create stream foo;";
+    final KsqlRestClient mockRestClient = givenMockRestClient();
+    when(mockRestClient.makeKsqlRequest(anyString(), eq(null)))
+        .thenReturn(RestResponse.successful(new KsqlEntityList()));
+
+    givenRequestPipelining("ON");
+
+    // When:
+    localCli.handleLine(statementText);
+
+    // Then:
+    verify(mockRestClient).makeKsqlRequest(statementText, null);
+  }
+
+  @Test
+  public void shouldUpdateCommandSequenceNumberEvenIfRequestPipeliningOn() throws Exception {
+    // Given:
+    final String statementText = "create stream foo;";
+    final KsqlRestClient mockRestClient = givenMockRestClient();
+    final CommandStatusEntity stubEntity = stubCommandStatusEntityWithSeqNum(12L);
+    when(mockRestClient.makeKsqlRequest(anyString(), eq(null)))
+        .thenReturn(RestResponse.successful(new KsqlEntityList(
+            Collections.singletonList(stubEntity))));
+
+    givenRequestPipelining("ON");
+
+    // When:
+    localCli.handleLine(statementText);
+
+    // Then:
+    givenRequestPipelining("OFF");
+    assertLastCommandSequenceNumber(mockRestClient, 12L);
+  }
+
+  @Test
+  public void shouldDefaultRequestPipeliningToOff() {
+    // When:
+    runCliSpecificCommand(RequestPipeliningCommand.NAME);
+
+    // Then:
+    assertThat(terminal.getOutputString(),
+        containsString(String.format("Current %s configuration: OFF", RequestPipeliningCommand.NAME)));
+  }
+
+  @Test
+  public void shouldUpdateRequestPipelining() {
+    // When:
+    runCliSpecificCommand(RequestPipeliningCommand.NAME + " ON");
+    runCliSpecificCommand(RequestPipeliningCommand.NAME);
+
+    // Then:
+    assertThat(terminal.getOutputString(),
+        containsString(String.format("Current %s configuration: ON", RequestPipeliningCommand.NAME)));
+  }
+
+  @Test
+  public void shouldResetStateWhenServerChanges() throws Exception {
+    // Given:
+    final KsqlRestClient mockRestClient = givenMockRestClient();
+    givenCommandSequenceNumber(mockRestClient, 5L);
+    givenRequestPipelining("ON");
+    when(mockRestClient.makeRootRequest()).thenReturn(
+        RestResponse.successful(new ServerInfo("version", "clusterId", "serviceId")));
+
+    // When:
+    runCliSpecificCommand("server foo");
+
+    // Then:
+    assertLastCommandSequenceNumber(mockRestClient, -1L);
+  }
+
+  private void givenRequestPipelining(final String setting) {
+    runCliSpecificCommand(RequestPipeliningCommand.NAME + " " + setting);
+  }
+
+  private void runCliSpecificCommand(final String command) {
+    when(lineSupplier.get()).thenReturn(command).thenReturn("");
+    console.readLine();
   }
 
   private void givenRunInteractivelyWillExit() {
-    EasyMock.expect(lineSupplier.get()).andReturn("eXiT");
-    EasyMock.replay(lineSupplier);
+    when(lineSupplier.get()).thenReturn("eXiT");
+  }
+
+  private KsqlRestClient givenMockRestClient() throws Exception {
+    final KsqlRestClient mockRestClient = mock(KsqlRestClient.class);
+
+    when(mockRestClient.getServerInfo()).thenReturn(
+        RestResponse.of(new ServerInfo("1.x", "testClusterId", "testServiceId")));
+    when(mockRestClient.getServerAddress()).thenReturn(new URI("http://someserver:8008"));
+
+    localCli = new Cli(
+        STREAMED_QUERY_ROW_LIMIT, STREAMED_QUERY_TIMEOUT_MS, mockRestClient, console);
+
+    return mockRestClient;
+  }
+
+  private static CommandStatusEntity stubCommandStatusEntityWithSeqNum(final long seqNum) {
+    return new CommandStatusEntity(
+        "stub",
+        new CommandId(CommandId.Type.STREAM, "stub", CommandId.Action.CREATE),
+        new CommandStatus(CommandStatus.Status.SUCCESS, "stub"),
+        seqNum
+    );
+  }
+
+  private void givenCommandSequenceNumber(
+      final KsqlRestClient mockRestClient, final long seqNum) throws Exception {
+    final CommandStatusEntity stubEntity = stubCommandStatusEntityWithSeqNum(seqNum);
+    when(mockRestClient.makeKsqlRequest(anyString(), anyLong()))
+        .thenReturn(RestResponse.successful(new KsqlEntityList(
+            Collections.singletonList(stubEntity))));
+    localCli.handleLine("create stream foo;");
+  }
+
+  private void assertLastCommandSequenceNumber(
+      final KsqlRestClient mockRestClient, final long seqNum) throws Exception {
+    // Given:
+    reset(mockRestClient);
+    final String statementText = "list streams;";
+    when(mockRestClient.makeKsqlRequest(anyString(), anyLong()))
+        .thenReturn(RestResponse.successful(new KsqlEntityList()));
+
+    // When:
+    localCli.handleLine(statementText);
+
+    // Then:
+    verify(mockRestClient).makeKsqlRequest(statementText, seqNum);
   }
 
   private static class TestRowCaptor implements RowCaptor {

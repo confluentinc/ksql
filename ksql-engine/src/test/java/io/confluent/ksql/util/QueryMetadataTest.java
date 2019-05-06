@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -14,23 +15,27 @@
 
 package io.confluent.ksql.util;
 
+import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.internal.QueryStateListener;
-import io.confluent.ksql.planner.plan.OutputNode;
-import io.confluent.ksql.serde.DataSource.DataSourceType;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
 import java.util.Collections;
-import org.apache.kafka.common.MetricName;
-import org.apache.kafka.common.metrics.Metrics;
+import java.util.Set;
+import java.util.function.Consumer;
+import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.Topology;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -38,17 +43,19 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class QueryMetadataTest {
 
   private static final String QUERY_APPLICATION_ID = "Query1";
+  private static final KsqlSchema SOME_SCHEMA = KsqlSchema.of(SchemaBuilder.struct()
+      .field("f0", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
+      .build());
+  private static final Set<String> SOME_SOURCES = ImmutableSet.of("s1", "s2");
 
-  @Mock
-  private OutputNode outputNode;
-  @Mock
-  private KafkaTopicClient kafkaTopicClient;
   @Mock
   private Topology topoplogy;
   @Mock
   private KafkaStreams kafkaStreams;
   @Mock
   private QueryStateListener listener;
+  @Mock
+  private Consumer<QueryMetadata> closeCallback;
   private QueryMetadata query;
 
   @Before
@@ -56,13 +63,15 @@ public class QueryMetadataTest {
     query = new QueryMetadata(
         "foo",
         kafkaStreams,
-        outputNode,
+        SOME_SCHEMA,
+        SOME_SOURCES,
         "bar",
         DataSourceType.KSTREAM,
         QUERY_APPLICATION_ID,
-        kafkaTopicClient,
         topoplogy,
-        Collections.emptyMap()
+        Collections.emptyMap(),
+        Collections.emptyMap(),
+        closeCallback
     );
   }
 
@@ -112,5 +121,37 @@ public class QueryMetadataTest {
 
     // Then:
     assertThat(state, is("PENDING_SHUTDOWN"));
+  }
+
+  @Test
+  public void shouldCloseKStreamsAppOnCloseThenCloseCallback() {
+    // When:
+    query.close();
+
+    // Then:
+    final InOrder inOrder = inOrder(kafkaStreams, closeCallback);
+    inOrder.verify(kafkaStreams).close();
+    inOrder.verify(closeCallback).accept(query);
+  }
+
+  @Test
+  public void shouldCleanUpKStreamsAppAfterCloseOnClose() {
+    // When:
+    query.close();
+
+    // Then:
+    final InOrder inOrder = inOrder(kafkaStreams);
+    inOrder.verify(kafkaStreams).close();
+    inOrder.verify(kafkaStreams).cleanUp();
+  }
+
+  @Test
+  public void shouldReturnSources() {
+    assertThat(query.getSourceNames(), is(SOME_SOURCES));
+  }
+
+  @Test
+  public void shouldReturnSchema() {
+    assertThat(query.getResultSchema(), is(SOME_SCHEMA));
   }
 }

@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -31,17 +32,19 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
+import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.parser.tree.KsqlWindowExpression;
 import io.confluent.ksql.parser.tree.WindowExpression;
+import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.streams.MaterializedFactory;
+import io.confluent.ksql.streams.StreamsUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
-import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.kstream.Initializer;
 import org.apache.kafka.streams.kstream.KGroupedStream;
 import org.apache.kafka.streams.kstream.KTable;
@@ -59,14 +62,12 @@ import org.mockito.junit.MockitoRule;
 
 @SuppressWarnings("unchecked")
 public class SchemaKGroupedStreamTest {
-  private static final String AGGREGATE_OP_NAME = "AGGREGATE";
-
   @Mock
-  private Schema schema;
+  private KsqlSchema schema;
   @Mock
   private KGroupedStream groupedStream;
   @Mock
-  private Field keyField;
+  private KeyField keyField;
   @Mock
   private List<SchemaKStream> sourceStreams;
   @Mock
@@ -97,6 +98,8 @@ public class SchemaKGroupedStreamTest {
   private MaterializedFactory materializedFactory;
   @Mock
   private Materialized materialized;
+  private final QueryContext.Stacker queryContext
+      = new QueryContext.Stacker(new QueryId("query")).push("node");
   private SchemaKGroupedStream schemaGroupedStream;
 
   @Rule
@@ -111,11 +114,10 @@ public class SchemaKGroupedStreamTest {
     when(windowEndFunc.getFunctionName()).thenReturn("WindowEnd");
     when(otherFunc.getFunctionName()).thenReturn("NotWindowStartFunc");
     when(windowExp.getKsqlWindowExpression()).thenReturn(ksqlWindowExp);
-    when(ksqlWindowExp.getKeySerde(String.class)).thenReturn(windowedKeySerde);
+    when(ksqlWindowExp.getKeySerdeFactory(String.class)).thenReturn(() -> windowedKeySerde);
     when(config.getBoolean(KsqlConfig.KSQL_WINDOWED_SESSION_KEY_LEGACY_CONFIG)).thenReturn(false);
     when(config.getKsqlStreamConfigProps()).thenReturn(Collections.emptyMap());
     when(materializedFactory.create(any(), any(), any())).thenReturn(materialized);
-
   }
 
   @Test
@@ -162,20 +164,20 @@ public class SchemaKGroupedStreamTest {
     // When:
     final SchemaKTable result = schemaGroupedStream
         .aggregate(
-            initializer,emptyMap(), emptyMap(), null, topicValueSerDe, "GROUP");
+            initializer,emptyMap(), emptyMap(), null, topicValueSerDe, queryContext);
 
     // Then:
-    assertThat(result.getKeySerde(), instanceOf(Serdes.String().getClass()));
+    assertThat(result.getKeySerdeFactory().create(), instanceOf(Serdes.String().getClass()));
   }
 
   @Test
   public void shouldUseWindowExpressionKeySerde() {
     // When:
     final SchemaKTable result = schemaGroupedStream
-        .aggregate(initializer, emptyMap(), emptyMap(), windowExp, topicValueSerDe, "AGG");
+        .aggregate(initializer, emptyMap(), emptyMap(), windowExp, topicValueSerDe, queryContext);
 
     // Then:
-    assertThat(result.getKeySerde(), is(sameInstance(windowedKeySerde)));
+    assertThat(result.getKeySerdeFactory().create(), is(sameInstance(windowedKeySerde)));
   }
 
   @Test
@@ -188,10 +190,10 @@ public class SchemaKGroupedStreamTest {
 
     // When:
     final SchemaKTable result = schemaGroupedStream
-        .aggregate(initializer, emptyMap(), emptyMap(), windowExp, topicValueSerDe, "GROUP");
+        .aggregate(initializer, emptyMap(), emptyMap(), windowExp, topicValueSerDe, queryContext);
 
     // Then:
-    assertThat(result.getKeySerde(),
+    assertThat(result.getKeySerdeFactory().create(),
         is(instanceOf(WindowedSerdes.timeWindowedSerdeFrom(String.class).getClass())));
   }
 
@@ -215,7 +217,7 @@ public class SchemaKGroupedStreamTest {
 
     // When:
     final SchemaKTable result = schemaGroupedStream
-        .aggregate(initializer, funcMap, emptyMap(), windowExp, topicValueSerDe, "AGG");
+        .aggregate(initializer, funcMap, emptyMap(), windowExp, topicValueSerDe, queryContext);
 
     // Then:
     assertThat(result.getKtable(), is(sameInstance(table)));
@@ -233,7 +235,7 @@ public class SchemaKGroupedStreamTest {
 
     // When:
     final SchemaKTable result = schemaGroupedStream
-        .aggregate(initializer, funcMap, emptyMap(), windowExp, topicValueSerDe, "AGG");
+        .aggregate(initializer, funcMap, emptyMap(), windowExp, topicValueSerDe, queryContext);
 
     // Then:
     assertThat(result.getKtable(), is(sameInstance(table2)));
@@ -267,7 +269,7 @@ public class SchemaKGroupedStreamTest {
         Collections.emptyMap(),
         null,
         topicValueSerDe,
-        AGGREGATE_OP_NAME
+        queryContext
     );
 
     // Then:
@@ -275,7 +277,7 @@ public class SchemaKGroupedStreamTest {
         .create(
             any(Serdes.String().getClass()),
             same(topicValueSerDe),
-            eq(AGGREGATE_OP_NAME));
+            eq(StreamsUtil.buildOpName(queryContext.getQueryContext())));
     verify(groupedStream, times(1)).aggregate(any(), any(), same(materialized));
   }
 
@@ -284,7 +286,7 @@ public class SchemaKGroupedStreamTest {
   public void shouldUseMaterializedFactoryWindowedStateStore() {
     // Given:
     final Materialized materialized = whenMaterializedFactoryCreates();
-    when(ksqlWindowExp.getKeySerde(String.class)).thenReturn(windowedKeySerde);
+    when(ksqlWindowExp.getKeySerdeFactory(String.class)).thenReturn(() -> windowedKeySerde);
     when(ksqlWindowExp.applyAggregate(any(), any(), any(), same(materialized)))
         .thenReturn(table);
 
@@ -295,14 +297,14 @@ public class SchemaKGroupedStreamTest {
         Collections.emptyMap(),
         windowExp,
         topicValueSerDe,
-        AGGREGATE_OP_NAME);
+        queryContext);
 
     // Then:
     verify(materializedFactory)
         .create(
             any(Serdes.String().getClass()),
             same(topicValueSerDe),
-            eq(AGGREGATE_OP_NAME));
+            eq(StreamsUtil.buildOpName(queryContext.getQueryContext())));
     verify(ksqlWindowExp, times(1)).applyAggregate(any(), any(), any(), same(materialized));
   }
 }

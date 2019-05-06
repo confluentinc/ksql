@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -16,23 +17,31 @@ package io.confluent.ksql.parser.tree;
 
 import static com.google.common.base.MoreObjects.toStringHelper;
 
+import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
 import java.util.Optional;
 
+@Immutable
 public class ListRegisteredTopics extends Statement {
 
-  public ListRegisteredTopics(final Optional<NodeLocation> location) {
+  public ListRegisteredTopics(
+      final Optional<NodeLocation> location
+  ) {
     super(location);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash("ListRegisteredTopics");
+    return Objects.hash(getClass());
   }
 
   @Override
   public boolean equals(final Object obj) {
-    return this == obj;
+    if (this == obj) {
+      return true;
+    }
+
+    return obj != null && obj.getClass().equals(getClass());
   }
 
   @Override

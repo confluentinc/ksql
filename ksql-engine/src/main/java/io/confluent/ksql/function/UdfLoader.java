@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -14,7 +15,6 @@
 
 package io.confluent.ksql.function;
 
-import io.confluent.common.Configurable;
 import io.confluent.ksql.function.udaf.UdafAggregateFunctionFactory;
 import io.confluent.ksql.function.udaf.UdafDescription;
 import io.confluent.ksql.function.udaf.UdafFactory;
@@ -25,6 +25,8 @@ import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfMetadata;
 import io.confluent.ksql.function.udf.UdfParameter;
 import io.confluent.ksql.metrics.MetricCollectors;
+import io.confluent.ksql.schema.ksql.LogicalSchemas;
+import io.confluent.ksql.schema.ksql.TypeContextUtil;
 import io.confluent.ksql.security.ExtensionSecurityManager;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -36,6 +38,7 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.lang.reflect.Parameter;
 import java.lang.reflect.Type;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -47,6 +50,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import org.apache.kafka.common.Configurable;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.common.metrics.stats.Avg;
@@ -65,7 +69,7 @@ public class UdfLoader {
   private static final Logger LOGGER = LoggerFactory.getLogger(UdfLoader.class);
   private static final String UDF_METRIC_GROUP = "ksql-udf";
 
-  private final FunctionRegistry functionRegistry;
+  private final MutableFunctionRegistry functionRegistry;
   private final File pluginDir;
   private final ClassLoader parentClassLoader;
   private final Predicate<String> blacklist;
@@ -76,13 +80,15 @@ public class UdfLoader {
 
 
   @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-  public UdfLoader(final FunctionRegistry functionRegistry,
-                   final File pluginDir,
-                   final ClassLoader parentClassLoader,
-                   final Predicate<String> blacklist,
-                   final UdfCompiler compiler,
-                   final Optional<Metrics> metrics,
-                   final boolean loadCustomerUdfs) {
+  UdfLoader(
+      final MutableFunctionRegistry functionRegistry,
+      final File pluginDir,
+      final ClassLoader parentClassLoader,
+      final Predicate<String> blacklist,
+      final UdfCompiler compiler,
+      final Optional<Metrics> metrics,
+      final boolean loadCustomerUdfs
+  ) {
     this.functionRegistry = Objects
         .requireNonNull(functionRegistry, "functionRegistry can't be null");
     this.pluginDir = Objects.requireNonNull(pluginDir, "pluginDir can't be null");
@@ -139,7 +145,6 @@ public class UdfLoader {
         .scan();
   }
 
-  @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
   private ClassAnnotationMatchProcessor handleUdafAnnotation(final ClassLoader loader,
                                                              final String path
   ) {
@@ -195,7 +200,6 @@ public class UdfLoader {
     };
   }
 
-  @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
   private MethodAnnotationMatchProcessor handleUdfAnnotation(final ClassLoader loader,
                                                              final String path) {
     return (theClass, executable) ->  {
@@ -224,14 +228,14 @@ public class UdfLoader {
     };
   }
 
-  private void addFunction(final UdfDescription classLevelAnnotaion,
+  private void addFunction(final UdfDescription classLevelAnnotation,
                            final Method method,
                            final UdfInvoker udf,
                            final String path) {
     // sanity check
-    instantiateUdfClass(method, classLevelAnnotaion);
+    instantiateUdfClass(method, classLevelAnnotation);
     final Udf udfAnnotation = method.getAnnotation(Udf.class);
-    final String functionName = classLevelAnnotaion.name();
+    final String functionName = classLevelAnnotation.name();
     final String sensorName = "ksql-udf-" + functionName;
 
     @SuppressWarnings("unchecked")
@@ -241,43 +245,66 @@ public class UdfLoader {
     addSensor(sensorName, functionName);
 
     LOGGER.info("Adding function " + functionName + " for method " + method);
-    functionRegistry.addFunctionFactory(new UdfFactory(udfClass,
+    functionRegistry.ensureFunctionFactory(new UdfFactory(udfClass,
         new UdfMetadata(functionName,
-            classLevelAnnotaion.description(),
-            classLevelAnnotaion.author(),
-            classLevelAnnotaion.version(),
+            classLevelAnnotation.description(),
+            classLevelAnnotation.author(),
+            classLevelAnnotation.version(),
             path,
             false)));
 
     final List<Schema> parameters = IntStream.range(0, method.getParameterCount()).mapToObj(idx -> {
       final Type type = method.getGenericParameterTypes()[idx];
       final Optional<UdfParameter> annotation = Arrays.stream(method.getParameterAnnotations()[idx])
-          .filter(t -> t instanceof UdfParameter)
+          .filter(UdfParameter.class::isInstance)
           .map(UdfParameter.class::cast)
           .findAny();
 
-      final String name = annotation.map(UdfParameter::value).orElse("");
+      final Parameter param = method.getParameters()[idx];
+      final String name = annotation.map(UdfParameter::value)
+          .filter(val -> !val.isEmpty())
+          .orElse(param.isNamePresent() ? param.getName() : "");
+
       final String doc = annotation.map(UdfParameter::description).orElse("");
+      if (annotation.isPresent() && !annotation.get().schema().isEmpty()) {
+        return LogicalSchemas.fromSqlTypeConverter()
+            .fromSqlType(
+                TypeContextUtil.getType(annotation.get().schema()),
+                name,
+                doc);
+      }
+
       return SchemaUtil.getSchemaFromType(type, name, doc);
     }).collect(Collectors.toList());
 
-    functionRegistry.addFunction(new KsqlFunction(
-        SchemaUtil.getSchemaFromType(method.getGenericReturnType()),
+    final Schema returnType;
+    try {
+      returnType = udfAnnotation.schema().isEmpty()
+          ? SchemaUtil.getSchemaFromType(method.getGenericReturnType())
+          : LogicalSchemas.fromSqlTypeConverter().fromSqlType(
+              TypeContextUtil.getType(udfAnnotation.schema()));
+    } catch (final KsqlException e) {
+      throw new KsqlException("Could not load UDF method with signature: " + method, e);
+    }
+
+    functionRegistry.addFunction(KsqlFunction.create(
+        returnType,
         parameters,
         functionName,
         udfClass,
         ksqlConfig -> {
-          final Object actualUdf = instantiateUdfClass(method, classLevelAnnotaion);
+          final Object actualUdf = instantiateUdfClass(method, classLevelAnnotation);
           if (actualUdf instanceof Configurable) {
             ((Configurable)actualUdf)
                 .configure(ksqlConfig.getKsqlFunctionsConfigProps(functionName));
           }
-          final PluggableUdf theUdf = new PluggableUdf(udf, actualUdf);
+          final PluggableUdf theUdf = new PluggableUdf(udf, actualUdf, method);
           return metrics.<Kudf>map(m -> new UdfMetricProducer(m.getSensor(sensorName),
               theUdf,
               Time.SYSTEM)).orElse(theUdf);
         }, udfAnnotation.description(),
-        path));
+        path,
+        method.isVarArgs()));
   }
 
   private static Object instantiateUdfClass(final Method method,
@@ -314,7 +341,7 @@ public class UdfLoader {
   }
 
   public static UdfLoader newInstance(final KsqlConfig config,
-                                      final FunctionRegistry metaStore,
+                                      final MutableFunctionRegistry metaStore,
                                       final String ksqlInstallDir
   ) {
     final Boolean loadCustomerUdfs = config.getBoolean(KsqlConfig.KSQL_ENABLE_UDFS);
@@ -340,5 +367,4 @@ public class UdfLoader {
         loadCustomerUdfs
     );
   }
-
 }

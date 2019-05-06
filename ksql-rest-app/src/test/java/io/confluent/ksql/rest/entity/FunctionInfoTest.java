@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -22,6 +23,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.json.JsonMapper;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -29,11 +31,11 @@ import org.junit.Test;
 
 @SuppressWarnings("SameParameterValue")
 public class FunctionInfoTest {
-  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+  private static final ObjectMapper OBJECT_MAPPER = JsonMapper.INSTANCE.mapper;
   private static final FunctionInfo FUNC_INFO = new FunctionInfo(
       ImmutableList.of(
-          new ArgumentInfo("arg0", "VARCHAR", "first arg"),
-          new ArgumentInfo("arg1", "INT", "last arg")
+          new ArgumentInfo("arg0", "VARCHAR", "first arg", false),
+          new ArgumentInfo("arg1", "INT", "last arg", false)
       ),
       "DOUBLE",
       "Test Func"

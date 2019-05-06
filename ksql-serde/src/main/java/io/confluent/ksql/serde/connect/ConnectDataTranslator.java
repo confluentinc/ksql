@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -16,7 +17,6 @@ package io.confluent.ksql.serde.connect;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.util.KsqlException;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -201,7 +201,7 @@ public class ConnectDataTranslator implements DataTranslator {
     }
   }
 
-  private List toKsqlArray(final Schema valueSchema, final Schema connectValueSchema,
+  private List<?> toKsqlArray(final Schema valueSchema, final Schema connectValueSchema,
                            final List<Object> connectArray, final String pathStr) {
     final List<Object> ksqlArray = new ArrayList<>(connectArray.size());
     // streams are expensive, so we don't use them from serdes.
@@ -213,7 +213,7 @@ public class ConnectDataTranslator implements DataTranslator {
     return ksqlArray;
   }
 
-  private Map toKsqlMap(final Schema keySchema, final Schema connectKeySchema,
+  private Map<?, ?> toKsqlMap(final Schema keySchema, final Schema connectKeySchema,
                         final Schema valueSchema, final Schema connectValueSchema,
                         final Map<Object, Object> connectMap, final String pathStr) {
     final Map<Object, Object> ksqlMap = new HashMap<>();

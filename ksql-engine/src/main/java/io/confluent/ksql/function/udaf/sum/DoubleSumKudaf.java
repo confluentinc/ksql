@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -34,11 +35,19 @@ public class DoubleSumKudaf
   }
 
   @Override
-  public Double aggregate(final Double currentValue, final Double aggregateValue) {
-    if (currentValue == null) {
+  public Double aggregate(final Double valueToAdd, final Double aggregateValue) {
+    if (valueToAdd == null) {
       return aggregateValue;
     }
-    return currentValue + aggregateValue;
+    return aggregateValue + valueToAdd;
+  }
+
+  @Override
+  public Double undo(final Double valueToUndo, final Double aggregateValue) {
+    if (valueToUndo == null) {
+      return aggregateValue;
+    }
+    return aggregateValue - valueToUndo;
   }
 
   @Override
@@ -47,15 +56,8 @@ public class DoubleSumKudaf
   }
 
   @Override
-  public Double undo(final Double valueToUndo, final Double aggregateValue) {
-    return aggregateValue - valueToUndo;
-  }
-
-  @Override
   public KsqlAggregateFunction<Double, Double> getInstance(
       final AggregateFunctionArguments aggregateFunctionArguments) {
     return new DoubleSumKudaf(functionName, aggregateFunctionArguments.udafIndex());
   }
-
-
 }

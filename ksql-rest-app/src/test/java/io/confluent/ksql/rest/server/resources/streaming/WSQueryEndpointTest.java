@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -21,23 +22,23 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.ksql.KsqlEngine;
-import io.confluent.ksql.parser.tree.NodeLocation;
-import io.confluent.ksql.parser.tree.PrintTopic;
-import io.confluent.ksql.parser.tree.QualifiedName;
+import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.json.JsonMapper;
+import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Query;
-import io.confluent.ksql.parser.tree.QueryBody;
+import io.confluent.ksql.parser.tree.Relation;
+import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.Versions;
@@ -45,8 +46,9 @@ import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint.PrintTopicPublisher;
 import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint.QueryPublisher;
+import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.util.KafkaTopicClient;
+import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import java.io.IOException;
@@ -55,13 +57,14 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 import javax.websocket.CloseReason;
 import javax.websocket.CloseReason.CloseCodes;
 import javax.websocket.Session;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
@@ -73,10 +76,10 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class WSQueryEndpointTest {
 
-  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+  private static final ObjectMapper OBJECT_MAPPER = JsonMapper.INSTANCE.mapper;
 
   private static final KsqlRequest VALID_REQUEST = new KsqlRequest("test-sql",
-      ImmutableMap.of(KsqlConfig.KSQL_SERVICE_ID_CONFIG, "test-id"), null);
+      ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"), null);
 
   private static final KsqlRequest ANOTHER_REQUEST = new KsqlRequest("other-sql",
       ImmutableMap.of(), null);
@@ -84,7 +87,7 @@ public class WSQueryEndpointTest {
   private static final long SEQUENCE_NUMBER = 2L;
   private static final KsqlRequest REQUEST_WITHOUT_SEQUENCE_NUMBER = VALID_REQUEST;
   private static final KsqlRequest REQUEST_WITH_SEQUENCE_NUMBER = new KsqlRequest("test-sql",
-      ImmutableMap.of(KsqlConfig.KSQL_SERVICE_ID_CONFIG, "test-id"), SEQUENCE_NUMBER);
+      ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"), SEQUENCE_NUMBER);
 
   private static final String VALID_VERSION = Versions.KSQL_V1_WS;
   private static final String[] NO_VERSION_PROPERTY = null;
@@ -108,8 +111,6 @@ public class WSQueryEndpointTest {
   @Mock
   private Session session;
   @Mock
-  private QueryBody queryBody;
-  @Mock
   private CommandQueue commandQueue;
   @Mock
   private QueryPublisher queryPublisher;
@@ -119,28 +120,38 @@ public class WSQueryEndpointTest {
   private ActivenessRegistrar activenessRegistrar;
   @Captor
   private ArgumentCaptor<CloseReason> closeReasonCaptor;
-
   private Query query;
   private WSQueryEndpoint wsQueryEndpoint;
 
-  @BeforeClass
-  public static void setUpClass() {
-    OBJECT_MAPPER.registerModule(new Jdk8Module());
-  }
-
   @Before
   public void setUp() {
-    query = new Query(queryBody, Optional.empty());
-
+    query = new Query(
+      mock(Select.class), mock(Relation.class),
+        Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), OptionalInt.empty()
+    );
     when(session.getId()).thenReturn("session-id");
-    when(statementParser.parseSingleStatement(anyString())).thenReturn(query);
+    when(statementParser.parseSingleStatement(anyString()))
+        .thenAnswer(invocation -> PreparedStatement.of(invocation.getArgument(0).toString(), query));
     when(serviceContext.getSchemaRegistryClient()).thenReturn(schemaRegistryClient);
     when(serviceContext.getTopicClient()).thenReturn(topicClient);
+    when(ksqlEngine.isAcceptingStatements()).thenReturn(true);
     givenRequest(VALID_REQUEST);
 
     wsQueryEndpoint = new WSQueryEndpoint(
         ksqlConfig, OBJECT_MAPPER, statementParser, ksqlEngine, serviceContext, commandQueue, exec,
         queryPublisher, topicPublisher, activenessRegistrar, COMMAND_QUEUE_CATCHUP_TIMEOUT);
+  }
+
+  @Test
+  public void shouldReturnErrorIfClusterWasTerminated() throws Exception {
+    // Given:
+    when(ksqlEngine.isAcceptingStatements()).thenReturn(false);
+
+    // When:
+    wsQueryEndpoint.onOpen(session, null);
+
+    // Then:
+    verifyClosedWithReason("The cluster has been terminated. No new request will be accepted.", CloseCodes.CANNOT_ACCEPT);
   }
 
   @Test
@@ -295,19 +306,22 @@ public class WSQueryEndpointTest {
     wsQueryEndpoint.onOpen(session, null);
 
     // Then:
+    final ConfiguredStatement<Query> configuredStatement = ConfiguredStatement.of(
+        PreparedStatement.of(VALID_REQUEST.getKsql(), query),
+        VALID_REQUEST.getStreamsProperties(),
+        ksqlConfig);
+
     verify(queryPublisher).start(
-        eq(ksqlConfig),
         eq(ksqlEngine),
         eq(exec),
-        eq(VALID_REQUEST.getKsql()),
-        eq(VALID_REQUEST.getStreamsProperties()),
+        eq(configuredStatement),
         any());
   }
 
   @Test
   public void shouldHandlePrintTopic() {
     // Given:
-    givenRequestIs(printTopic("bob", true));
+    givenRequestIs(StreamingTestUtils.printTopic("bob", true, null, null));
     when(topicClient.isTopicExists("bob")).thenReturn(true);
     when(ksqlConfig.getKsqlStreamConfigProps()).thenReturn(ImmutableMap.of("this", "that"));
 
@@ -319,22 +333,23 @@ public class WSQueryEndpointTest {
         eq(exec),
         eq(schemaRegistryClient),
         eq(ImmutableMap.of("this", "that")),
-        eq("bob"),
-        eq(true),
+        eq(StreamingTestUtils.printTopic("bob", true, null, null)),
         any());
   }
 
   @Test
   public void shouldReturnErrorIfTopicDoesNotExist() throws Exception {
     // Given:
-    givenRequestIs(printTopic("bob", true));
+    givenRequestIs(StreamingTestUtils.printTopic("bob", true, null, null));
     when(topicClient.isTopicExists("bob")).thenReturn(false);
 
     // When:
     wsQueryEndpoint.onOpen(session, null);
 
     // Then:
-    verifyClosedWithReason("topic does not exist: bob", CloseCodes.CANNOT_ACCEPT);
+    verifyClosedWithReason(
+        "Topic does not exist, or KSQL does not have permission to list the topic: bob",
+        CloseCodes.CANNOT_ACCEPT);
   }
 
   @Test
@@ -374,15 +389,6 @@ public class WSQueryEndpointTest {
     // Then:
     verifyClosedWithReason("yikes", CloseCodes.TRY_AGAIN_LATER);
     verify(statementParser, never()).parseSingleStatement(any());
-  }
-
-  private static PrintTopic printTopic(final String name, final boolean fromBeginning) {
-    return new PrintTopic(
-        new NodeLocation(0, 1),
-        QualifiedName.of(name),
-        fromBeginning,
-        Optional.empty()
-    );
   }
 
   private void givenVersions(final String... versions) {
@@ -427,7 +433,8 @@ public class WSQueryEndpointTest {
   }
 
   private void givenRequestIs(final Statement stmt) {
-    when(statementParser.parseSingleStatement(anyString())).thenReturn(stmt);
+    when(statementParser.parseSingleStatement(anyString()))
+        .thenReturn(PreparedStatement.of("statement", stmt));
   }
 
   private static String serialize(final KsqlRequest request) {

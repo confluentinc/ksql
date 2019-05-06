@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -17,8 +18,9 @@ package io.confluent.ksql.rest.server.resources.streaming;
 import com.google.common.base.Preconditions;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
-import org.apache.kafka.connect.data.Schema;
 
 public abstract class PollingSubscription<T> implements Flow.Subscription {
 
@@ -26,21 +28,21 @@ public abstract class PollingSubscription<T> implements Flow.Subscription {
 
   private final Flow.Subscriber<T> subscriber;
   private final ListeningScheduledExecutorService exec;
-  private final Schema schema;
+  private final KsqlSchema schema;
 
   private boolean needsSchema = true;
   private volatile boolean done = false;
   private Throwable exception = null;
   private boolean draining = false;
-  private volatile ListenableFuture future;
+  private volatile ListenableFuture<?> future;
 
   public PollingSubscription(
       final ListeningScheduledExecutorService exec,
       final Flow.Subscriber<T> subscriber,
-      final Schema schema
+      final KsqlSchema schema
   ) {
-    this.exec = exec;
-    this.subscriber = subscriber;
+    this.exec = Objects.requireNonNull(exec, "exec");
+    this.subscriber = Objects.requireNonNull(subscriber, "subscriber");
     this.schema = schema;
   }
 
@@ -91,7 +93,6 @@ public abstract class PollingSubscription<T> implements Flow.Subscription {
       });
     }
   }
-
 
   protected void setError(final Throwable e) {
     exception = e;

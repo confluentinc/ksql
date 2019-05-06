@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -41,10 +42,10 @@ public class DateToString {
       + " using the given format pattern. The format pattern should be in the format"
       + " expected by java.time.format.DateTimeFormatter")
   public String dateToString(
-      @UdfParameter(value = "epochDays",
+      @UdfParameter(
           description = "The Epoch Day to convert,"
               + " based on the epoch 1970-01-01") final int epochDays,
-      @UdfParameter(value = "formatPattern",
+      @UdfParameter(
           description = "The format pattern should be in the format expected by"
               + " java.time.format.DateTimeFormatter.") final String formatPattern) {
     try {

@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -16,54 +17,39 @@ package io.confluent.ksql.parser.tree;
 
 import static java.util.Objects.requireNonNull;
 
+import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
 import java.util.Optional;
 
-public class LogicalBinaryExpression
-    extends Expression {
+@Immutable
+public class LogicalBinaryExpression extends Expression {
 
   public enum Type {
-    AND, OR;
-
-    public Type flip() {
-      switch (this) {
-        case AND:
-          return LogicalBinaryExpression.Type.OR;
-        case OR:
-          return LogicalBinaryExpression.Type.AND;
-        default:
-          throw new IllegalArgumentException("Unsupported logical expression type: " + this);
-      }
-    }
+    AND, OR
   }
 
   private final Type type;
   private final Expression left;
   private final Expression right;
 
-  public LogicalBinaryExpression(final Type type, final Expression left, final Expression right) {
+  public LogicalBinaryExpression(
+      final Type type,
+      final Expression left,
+      final Expression right
+  ) {
     this(Optional.empty(), type, left, right);
   }
 
   public LogicalBinaryExpression(
-      final NodeLocation location,
+      final Optional<NodeLocation> location,
       final Type type,
       final Expression left,
-      final Expression right) {
-    this(Optional.of(location), type, left, right);
-  }
-
-  private LogicalBinaryExpression(
-      final Optional<NodeLocation> location, final Type type, final Expression left,
-                                  final Expression right) {
+      final Expression right
+  ) {
     super(location);
-    requireNonNull(type, "type is null");
-    requireNonNull(left, "left is null");
-    requireNonNull(right, "right is null");
-
-    this.type = type;
-    this.left = left;
-    this.right = right;
+    this.type = requireNonNull(type, "type");
+    this.left = requireNonNull(left, "left");
+    this.right = requireNonNull(right, "right");
   }
 
   public Type getType() {

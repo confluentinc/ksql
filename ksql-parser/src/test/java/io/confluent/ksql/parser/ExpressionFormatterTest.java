@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -22,29 +23,22 @@ import io.confluent.ksql.parser.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.parser.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.parser.tree.Array;
 import io.confluent.ksql.parser.tree.BetweenPredicate;
-import io.confluent.ksql.parser.tree.BinaryLiteral;
 import io.confluent.ksql.parser.tree.BooleanLiteral;
 import io.confluent.ksql.parser.tree.Cast;
 import io.confluent.ksql.parser.tree.ComparisonExpression;
 import io.confluent.ksql.parser.tree.DecimalLiteral;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.DoubleLiteral;
-import io.confluent.ksql.parser.tree.Extract;
-import io.confluent.ksql.parser.tree.FieldReference;
 import io.confluent.ksql.parser.tree.FunctionCall;
-import io.confluent.ksql.parser.tree.GenericLiteral;
 import io.confluent.ksql.parser.tree.InListExpression;
 import io.confluent.ksql.parser.tree.InPredicate;
-import io.confluent.ksql.parser.tree.IntervalLiteral;
 import io.confluent.ksql.parser.tree.IsNotNullPredicate;
 import io.confluent.ksql.parser.tree.IsNullPredicate;
 import io.confluent.ksql.parser.tree.LikePredicate;
 import io.confluent.ksql.parser.tree.LogicalBinaryExpression;
 import io.confluent.ksql.parser.tree.LongLiteral;
 import io.confluent.ksql.parser.tree.Map;
-import io.confluent.ksql.parser.tree.NodeLocation;
 import io.confluent.ksql.parser.tree.NotExpression;
-import io.confluent.ksql.parser.tree.NullIfExpression;
 import io.confluent.ksql.parser.tree.NullLiteral;
 import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.QualifiedName;
@@ -54,29 +48,15 @@ import io.confluent.ksql.parser.tree.SimpleCaseExpression;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.Struct;
 import io.confluent.ksql.parser.tree.SubscriptExpression;
-import io.confluent.ksql.parser.tree.SymbolReference;
 import io.confluent.ksql.parser.tree.TimeLiteral;
 import io.confluent.ksql.parser.tree.TimestampLiteral;
-import io.confluent.ksql.parser.tree.TumblingWindowExpression;
-import io.confluent.ksql.parser.tree.Type;
+import io.confluent.ksql.parser.tree.Type.SqlType;
 import io.confluent.ksql.parser.tree.WhenClause;
-import io.confluent.ksql.parser.tree.Window;
-import io.confluent.ksql.parser.tree.WindowExpression;
-import io.confluent.ksql.util.Pair;
 import java.util.Collections;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 import org.junit.Test;
 
 public class ExpressionFormatterTest {
-
-
-  @Test
-  public void shouldFormatExtract() {
-    final String result
-        = ExpressionFormatter.formatExpression(new Extract(new StringLiteral("17/12/2017"), Extract.Field.DAY));
-    assertThat(result, equalTo("EXTRACT(DAY FROM '17/12/2017')"));
-  }
 
   @Test
   public void shouldFormatBooleanLiteral() {
@@ -86,11 +66,6 @@ public class ExpressionFormatterTest {
   @Test
   public void shouldFormatStringLiteral() {
     assertThat(ExpressionFormatter.formatExpression(new StringLiteral("string")), equalTo("'string'"));
-  }
-
-  @Test
-  public void shouldFormatBinaryLiteral() {
-    assertThat(ExpressionFormatter.formatExpression(new BinaryLiteral("0F")), equalTo("X'0F'"));
   }
 
   @Test
@@ -117,11 +92,6 @@ public class ExpressionFormatterTest {
   }
 
   @Test
-  public void shouldFormatGenericLiteral() {
-    assertThat(ExpressionFormatter.formatExpression(new GenericLiteral("type", "value")), equalTo("type 'value'"));
-  }
-
-  @Test
   public void shouldFormatTimeLiteral() {
     assertThat(ExpressionFormatter.formatExpression(new TimeLiteral("17/9/2017")), equalTo("TIME '17/9/2017'"));
   }
@@ -137,42 +107,14 @@ public class ExpressionFormatterTest {
   }
 
   @Test
-  public void shouldFormatIntervalLiteralWithoutEnd() {
-    assertThat(ExpressionFormatter.formatExpression(
-        new IntervalLiteral("10/1/2012",
-            IntervalLiteral.Sign.POSITIVE,
-            IntervalLiteral.IntervalField.SECOND)), equalTo("INTERVAL  '10/1/2012' SECOND"));
-  }
-
-  @Test
-  public void shouldFormatIntervalLiteralWithEnd() {
-    assertThat(ExpressionFormatter.formatExpression(
-        new IntervalLiteral("10/1/2012",
-            IntervalLiteral.Sign.POSITIVE,
-            IntervalLiteral.IntervalField.SECOND,
-            Optional.of(IntervalLiteral.IntervalField.MONTH))), equalTo("INTERVAL  '10/1/2012' SECOND TO MONTH"));
-  }
-
-  @Test
   public void shouldFormatQualifiedNameReference() {
     assertThat(ExpressionFormatter.formatExpression(new QualifiedNameReference(QualifiedName.of("name"))), equalTo("name"));
-  }
-
-  @Test
-  public void shouldFormatSymbolReference() {
-    assertThat(ExpressionFormatter.formatExpression(new SymbolReference("symbol")), equalTo("symbol"));
   }
 
   @Test
   public void shouldFormatDereferenceExpression() {
     assertThat(ExpressionFormatter.formatExpression(new DereferenceExpression(new StringLiteral("foo"), "name")), equalTo("'foo'->name"));
   }
-
-  @Test
-  public void shouldFormatFieldReference() {
-    assertThat(ExpressionFormatter.formatExpression(new FieldReference(1)), equalTo(":input(1)"));
-  }
-
 
   @Test
   public void shouldFormatFunctionCallWithCount() {
@@ -190,24 +132,10 @@ public class ExpressionFormatterTest {
 
   @Test
   public void shouldFormatFunctionWithDistinct() {
-    final FunctionCall functionCall = new FunctionCall(new NodeLocation(1, 1),
+    final FunctionCall functionCall = new FunctionCall(
         QualifiedName.of("function", "COUNT"),
-        true,
         Collections.singletonList(new StringLiteral("name")));
-    assertThat(ExpressionFormatter.formatExpression(functionCall), equalTo("function.COUNT(DISTINCT 'name')"));
-  }
-
-  @Test
-  public void shouldFormatFunctionCallWithWindow() {
-    final FunctionCall functionCall = new FunctionCall(new NodeLocation(1, 1),
-        QualifiedName.of("function"),
-        Optional.of(new Window("window",
-            new WindowExpression("blah", new TumblingWindowExpression(1L, TimeUnit.SECONDS)))),
-        false,
-        Collections.singletonList(new StringLiteral("name")));
-
-    assertThat(ExpressionFormatter.formatExpression(functionCall),
-        equalTo("function('name') OVER  WINDOW  WINDOW blah  TUMBLING ( SIZE 1 SECONDS ) "));
+    assertThat(ExpressionFormatter.formatExpression(functionCall), equalTo("function.COUNT('name')"));
   }
 
   @Test
@@ -245,17 +173,9 @@ public class ExpressionFormatterTest {
   }
 
   @Test
-  public void shouldFormatNullIfExpression() {
-    assertThat(ExpressionFormatter.formatExpression(new NullIfExpression(
-            new StringLiteral("first"),
-            new StringLiteral("second"))),
-        equalTo("NULLIF('first', 'second')"));
-  }
-
-  @Test
   public void shouldFormatArithmeticUnary() {
-    assertThat(ExpressionFormatter.formatExpression(new ArithmeticUnaryExpression(ArithmeticUnaryExpression.Sign.MINUS,
-        new LongLiteral(1))),
+    assertThat(ExpressionFormatter.formatExpression(
+        ArithmeticUnaryExpression.negative(Optional.empty(), new LongLiteral(1))),
         equalTo("-1"));
   }
 
@@ -268,13 +188,22 @@ public class ExpressionFormatterTest {
 
   @Test
   public void shouldFormatLikePredicate() {
-    final LikePredicate predicate = new LikePredicate(new StringLiteral("string"), new StringLiteral("*"), new StringLiteral("\\"));
-    assertThat(ExpressionFormatter.formatExpression(predicate), equalTo("('string' LIKE '*' ESCAPE '\\')"));
+    final LikePredicate predicate = new LikePredicate(new StringLiteral("string"), new StringLiteral("*"));
+    assertThat(ExpressionFormatter.formatExpression(predicate), equalTo("('string' LIKE '*')"));
   }
 
   @Test
   public void shouldFormatCast() {
-    assertThat(ExpressionFormatter.formatExpression(new Cast(new LongLiteral(1), "Double", false)), equalTo("CAST(1 AS Double)"));
+    // Given:
+    final Cast cast = new Cast(
+        new LongLiteral(1),
+        PrimitiveType.of("DOUBLE"));
+
+    // When:
+    final String result = ExpressionFormatter.formatExpression(cast);
+
+    // Then:
+    assertThat(result, equalTo("CAST(1 AS DOUBLE)"));
   }
 
   @Test
@@ -332,8 +261,11 @@ public class ExpressionFormatterTest {
 
   @Test
   public void shouldFormatInPredicate() {
-    assertThat(ExpressionFormatter.formatExpression(new InPredicate(new StringLiteral("foo"), new StringLiteral("a"))),
-        equalTo("('foo' IN 'a')"));
+    final InPredicate predicate = new InPredicate(
+        new StringLiteral("foo"),
+        new InListExpression(ImmutableList.of(new StringLiteral("a"))));
+
+    assertThat(ExpressionFormatter.formatExpression(predicate), equalTo("('foo' IN ('a'))"));
   }
 
   @Test
@@ -343,12 +275,11 @@ public class ExpressionFormatterTest {
 
   @Test
   public void shouldFormatStruct() {
-    final Struct struct
-        = new Struct(
-            ImmutableList.of(
-                new Pair<>("field1", new PrimitiveType(Type.KsqlType.INTEGER)),
-                new Pair<>("field2", new PrimitiveType(Type.KsqlType.STRING))
-            ));
+    final Struct struct = Struct.builder()
+        .addField("field1", PrimitiveType.of(SqlType.INTEGER))
+        .addField("field2", PrimitiveType.of(SqlType.STRING))
+        .build();
+
     assertThat(
         ExpressionFormatter.formatExpression(struct),
         equalTo("STRUCT<field1 INTEGER, field2 STRING>"));
@@ -356,11 +287,10 @@ public class ExpressionFormatterTest {
 
   @Test
   public void shouldFormatStructWithColumnWithReservedWordName() {
-    final Struct struct
-        = new Struct(
-        ImmutableList.of(
-            new Pair<>("END", new PrimitiveType(Type.KsqlType.INTEGER))
-        ));
+    final Struct struct = Struct.builder()
+        .addField("END", PrimitiveType.of(SqlType.INTEGER))
+        .build();
+
     assertThat(
         ExpressionFormatter.formatExpression(struct),
         equalTo("STRUCT<`END` INTEGER>"));
@@ -368,13 +298,13 @@ public class ExpressionFormatterTest {
 
   @Test
   public void shouldFormatMap() {
-    final Map map = new Map(new PrimitiveType(Type.KsqlType.BIGINT));
+    final Map map = Map.of(PrimitiveType.of(SqlType.BIGINT));
     assertThat(ExpressionFormatter.formatExpression(map), equalTo("MAP<VARCHAR, BIGINT>"));
   }
 
   @Test
   public void shouldFormatArray() {
-    final Array array = new Array(new PrimitiveType(Type.KsqlType.BOOLEAN));
+    final Array array = Array.of(PrimitiveType.of(SqlType.BOOLEAN));
     assertThat(ExpressionFormatter.formatExpression(array), equalTo("ARRAY<BOOLEAN>"));
   }
 }

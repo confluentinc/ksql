@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -44,7 +45,7 @@ public class MaskLeftKudfTest {
   @Test
   public void shouldThrowIfLengthIsNegative() {
     expectedException.expect(KsqlFunctionException.class);
-    expectedException.expectMessage("mask_left requires a non-negative number");
+    expectedException.expectMessage("function mask_left requires a non-negative number");
     udf.mask("AbCd#$123xy Z", -1);
   }
 

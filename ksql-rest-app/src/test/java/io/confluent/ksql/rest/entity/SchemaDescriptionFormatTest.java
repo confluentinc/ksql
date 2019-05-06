@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -19,24 +20,18 @@ import static org.junit.Assert.assertThat;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-import io.confluent.ksql.rest.util.JsonMapper;
+import io.confluent.ksql.json.JsonMapper;
 import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 import org.junit.Test;
 
 public class SchemaDescriptionFormatTest {
-  private ObjectMapper newObjectMapper() {
-    final ObjectMapper objectMapper = JsonMapper.INSTANCE.mapper;
-    objectMapper.registerModule(new Jdk8Module());
-    return objectMapper;
-  }
 
   private void shouldSerializeCorrectly(final String descriptionString,
                                         final List<FieldInfo> deserialized) throws IOException {
     final ObjectMapper objectMapper = JsonMapper.INSTANCE.mapper;
-    final List deserializedGeneric = objectMapper.readValue(descriptionString, List.class);
+    final List<?> deserializedGeneric = objectMapper.readValue(descriptionString, List.class);
     final String serialized=  objectMapper.writeValueAsString(deserialized);
     assertThat(
         objectMapper.readValue(serialized, List.class),

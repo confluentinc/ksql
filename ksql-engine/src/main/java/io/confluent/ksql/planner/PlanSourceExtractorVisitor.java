@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -15,19 +16,19 @@
 package io.confluent.ksql.planner;
 
 import io.confluent.ksql.planner.plan.AggregateNode;
+import io.confluent.ksql.planner.plan.DataSourceNode;
 import io.confluent.ksql.planner.plan.FilterNode;
 import io.confluent.ksql.planner.plan.JoinNode;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.PlanVisitor;
 import io.confluent.ksql.planner.plan.ProjectNode;
-import io.confluent.ksql.planner.plan.StructuredDataSourceNode;
 import java.util.HashSet;
 import java.util.Set;
 
 public class PlanSourceExtractorVisitor<C, R> extends PlanVisitor<C, R> {
 
-  final Set<String> sourceNames;
+  private final Set<String> sourceNames;
 
   public PlanSourceExtractorVisitor() {
     sourceNames = new HashSet<>();
@@ -50,8 +51,8 @@ public class PlanSourceExtractorVisitor<C, R> extends PlanVisitor<C, R> {
     return process(node.getSources().get(0), context);
   }
 
-  protected R visitStructuredDataSourceNode(final StructuredDataSourceNode node, final C context) {
-    sourceNames.add(node.getStructuredDataSource().getName());
+  protected R visitDataSourceNode(final DataSourceNode node, final C context) {
+    sourceNames.add(node.getDataSource().getName());
     return null;
   }
 

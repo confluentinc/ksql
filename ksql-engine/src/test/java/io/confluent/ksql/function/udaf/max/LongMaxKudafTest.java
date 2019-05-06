@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -41,11 +42,11 @@ public class LongMaxKudafTest {
   public void shouldHandleNull() {
     final LongMaxKudaf longMaxKudaf = getLongMaxKudaf();
     final long[] values = new long[]{3L, 5L, 8L, 2L, 3L, 4L, 5L};
-    long currentMax = Long.MIN_VALUE;
+    Long currentMax = null;
 
     // null before any aggregation
     currentMax = longMaxKudaf.aggregate(null, currentMax);
-    assertThat(Long.MIN_VALUE, equalTo(currentMax));
+    assertThat(null, equalTo(currentMax));
 
     // now send each value to aggregation and verify
     for (final long i: values) {

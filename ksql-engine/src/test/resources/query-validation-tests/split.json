@@ -1,0 +1,89 @@
+{
+  "comments": [
+    "Tests covering the use of the SPLIT function."
+  ],
+  "tests": [
+    {
+      "name": "split a message by using the '.' delimiter",
+      "statements": [
+        "CREATE STREAM TEST (message VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT SPLIT(message, '.') as split_msg FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 1, "value": {"message": "a.b.c"}, "timestamp": 0},
+        {"topic": "test_topic", "key": 2, "value": {"message": ".abc."}, "timestamp": 0},
+        {"topic": "test_topic", "key": 3, "value": {"message": "..a.."}, "timestamp": 0},
+        {"topic": "test_topic", "key": 4, "value": {"message": "abc"}, "timestamp": 0},
+        {"topic": "test_topic", "key": 5, "value": {"message": ""}, "timestamp": 0}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1, "value": {"SPLIT_MSG":["a", "b", "c"]}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": 2, "value": {"SPLIT_MSG":["", "abc", ""]}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": 3, "value": {"SPLIT_MSG":["", "", "a", "", ""]}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": 4, "value": {"SPLIT_MSG":["abc"]}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": 5, "value": {"SPLIT_MSG":[""]}, "timestamp": 0}
+      ]
+    },
+    {
+      "name": "split a message by using the '$$' delimiter",
+      "statements": [
+        "CREATE STREAM TEST (message VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT SPLIT(message, '$$') as split_msg FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 1, "value": {"message": "a$$b.c"}, "timestamp": 0},
+        {"topic": "test_topic", "key": 2, "value": {"message": ".abc$$"}, "timestamp": 0},
+        {"topic": "test_topic", "key": 3, "value": {"message": ".$$a.."}, "timestamp": 0},
+        {"topic": "test_topic", "key": 4, "value": {"message": "abc"}, "timestamp": 0},
+        {"topic": "test_topic", "key": 5, "value": {"message": ""}, "timestamp": 0}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1, "value": {"SPLIT_MSG":["a", "b.c"]}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": 2, "value": {"SPLIT_MSG":[".abc", ""]}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": 3, "value": {"SPLIT_MSG":[".", "a.."]}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": 4, "value": {"SPLIT_MSG":["abc"]}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": 5, "value": {"SPLIT_MSG":[""]}, "timestamp": 0}
+      ]
+    },
+    {
+      "name": "split all characters by using the '' delimiter",
+      "statements": [
+        "CREATE STREAM TEST (message VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT SPLIT(message, '') as split_msg FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 1, "value": {"message": "a.b.c"}, "timestamp": 0},
+        {"topic": "test_topic", "key": 2, "value": {"message": ".abc."}, "timestamp": 0},
+        {"topic": "test_topic", "key": 3, "value": {"message": "..a.."}, "timestamp": 0},
+        {"topic": "test_topic", "key": 4, "value": {"message": "abc"}, "timestamp": 0},
+        {"topic": "test_topic", "key": 5, "value": {"message": ""}, "timestamp": 0}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1, "value": {"SPLIT_MSG":["a", "." ,"b", ".", "c"]}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": 2, "value": {"SPLIT_MSG":[".", "a", "b", "c", "."]}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": 3, "value": {"SPLIT_MSG":[".", ".", "a", ".", "."]}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": 4, "value": {"SPLIT_MSG":["a", "b", "c"]}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": 5, "value": {"SPLIT_MSG":[""]}, "timestamp": 0}
+      ]
+    },
+    {
+      "name": "split a message by commas and display pos 0 and 2 of the returned array",
+      "statements": [
+        "CREATE STREAM TEST (message VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT SPLIT(message, ',')[0] as s1, SPLIT(message, ',')[2] as s2 FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 1, "value": {"message": "a,b,c"}, "timestamp": 0},
+        {"topic": "test_topic", "key": 2, "value": {"message": ",A,"}, "timestamp": 0},
+        {"topic": "test_topic", "key": 3, "value": {"message": "A,,A"}, "timestamp": 0},
+        {"topic": "test_topic", "key": 4, "value": {"message": "1,2,3,4,5"}, "timestamp": 0}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1, "value": {"S1": "a", "S2": "c"}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": 2, "value": {"S1": "", "S2": ""}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": 3, "value": {"S1": "A", "S2": "A"}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": 4, "value": {"S1": "1", "S2": "3"}, "timestamp": 0}
+      ]
+    }
+  ]
+}

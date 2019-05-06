@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -17,9 +18,6 @@ package io.confluent.ksql.services;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.util.FakeKafkaClientSupplier;
-import io.confluent.ksql.util.FakeKafkaTopicClient;
-import io.confluent.ksql.util.KafkaTopicClient;
-import io.confluent.ksql.util.KafkaTopicClientImpl;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Collections;
 import java.util.function.Supplier;
@@ -90,6 +88,6 @@ public final class TestServiceContext {
       final KafkaTopicClient topicClient,
       final Supplier<SchemaRegistryClient> srClientFactory
   ) {
-    return new ServiceContext(kafkaClientSupplier, adminClient, topicClient, srClientFactory);
+    return new DefaultServiceContext(kafkaClientSupplier, adminClient, topicClient, srClientFactory);
   }
 }

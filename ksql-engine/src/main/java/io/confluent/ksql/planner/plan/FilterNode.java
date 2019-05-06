@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -17,27 +18,21 @@ package io.confluent.ksql.planner.plan;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.physical.KsqlQueryBuilder;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.SchemaKStream;
-import io.confluent.ksql.util.KafkaTopicClient;
-import io.confluent.ksql.util.KsqlConfig;
 import java.util.List;
-import java.util.Map;
+import java.util.Objects;
 import javax.annotation.concurrent.Immutable;
-import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.streams.StreamsBuilder;
 
 @Immutable
-public class FilterNode
-    extends PlanNode {
+public class FilterNode extends PlanNode {
 
   private final PlanNode source;
   private final Expression predicate;
-  private final Schema schema;
-  private final Field keyField;
 
   @JsonCreator
   public FilterNode(@JsonProperty("id") final PlanNodeId id,
@@ -45,10 +40,8 @@ public class FilterNode
                     @JsonProperty("predicate") final Expression predicate) {
     super(id, source.getNodeOutputType());
 
-    this.source = source;
-    this.schema = source.getSchema();
-    this.predicate = predicate;
-    this.keyField = source.getKeyField();
+    this.source = Objects.requireNonNull(source, "source");
+    this.predicate = Objects.requireNonNull(predicate, "predicate");
   }
 
   @JsonProperty("predicate")
@@ -57,13 +50,13 @@ public class FilterNode
   }
 
   @Override
-  public Schema getSchema() {
-    return this.schema;
+  public KsqlSchema getSchema() {
+    return source.getSchema();
   }
 
   @Override
-  public Field getKeyField() {
-    return keyField;
+  public KeyField getKeyField() {
+    return source.getKeyField();
   }
 
   @Override
@@ -87,14 +80,12 @@ public class FilterNode
   }
 
   @Override
-  public SchemaKStream<?> buildStream(
-      final StreamsBuilder builder,
-      final KsqlConfig ksqlConfig,
-      final ServiceContext serviceContext,
-      final FunctionRegistry functionRegistry,
-      final Map<String, Object> props) {
-    return getSource().buildStream(builder, ksqlConfig, serviceContext,
-        functionRegistry, props)
-        .filter(getPredicate());
+  public SchemaKStream<?> buildStream(final KsqlQueryBuilder builder) {
+    return getSource().buildStream(builder)
+        .filter(
+            getPredicate(),
+            builder.buildNodeContext(getId()),
+            builder.getProcessingLogContext()
+        );
   }
 }

@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -14,7 +15,7 @@
 
 package io.confluent.ksql.rest.server.resources.streaming;
 
-import org.apache.kafka.connect.data.Schema;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
 
 /**
  * Flow constructs borrowed from Java 9
@@ -37,7 +38,7 @@ public class Flow {
      * to describe the message format, in case the stream has a schema
      * @param schema schema for upcoming messages
      */
-    void onSchema(Schema schema);
+    void onSchema(KsqlSchema schema);
 
     void onSubscribe(Subscription subscription);
   }

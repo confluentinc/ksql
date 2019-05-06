@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -16,10 +17,10 @@ package io.confluent.ksql.util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.config.ConfigItem;
 import io.confluent.ksql.config.KsqlConfigResolver;
 import io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler;
+import io.confluent.ksql.errors.ProductionExceptionHandlerUtil;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -30,14 +31,17 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
+import org.apache.kafka.common.config.ConfigDef.Importance;
+import org.apache.kafka.common.config.ConfigDef.Type;
 import org.apache.kafka.common.config.ConfigDef.ValidString;
 import org.apache.kafka.common.config.ConfigDef.Validator;
 import org.apache.kafka.common.config.SslConfigs;
 import org.apache.kafka.streams.StreamsConfig;
 
-public class KsqlConfig extends AbstractConfig implements Cloneable {
+public class KsqlConfig extends AbstractConfig {
 
   public static final String KSQL_CONFIG_PROPERTY_PREFIX = "ksql.";
 
@@ -50,6 +54,8 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
   public static final String SINK_NUMBER_OF_PARTITIONS_PROPERTY = "ksql.sink.partitions";
 
   public static final String SINK_NUMBER_OF_REPLICAS_PROPERTY = "ksql.sink.replicas";
+
+  public static final String KSQL_INTERNAL_TOPIC_REPLICAS_PROPERTY = "ksql.internal.topic.replicas";
 
   public static final String KSQL_SCHEMA_REGISTRY_PREFIX = "ksql.schema.registry.";
 
@@ -65,6 +71,8 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
   public static final String
       FAIL_ON_DESERIALIZATION_ERROR_CONFIG = "ksql.fail.on.deserialization.error";
 
+  public static final String FAIL_ON_PRODUCTION_ERROR_CONFIG = "ksql.fail.on.production.error";
+
   public static final String
       KSQL_SERVICE_ID_CONFIG = "ksql.service.id";
   public static final String
@@ -79,11 +87,6 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
       KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG = "ksql.transient.prefix";
   public static final String
       KSQL_TRANSIENT_QUERY_NAME_PREFIX_DEFAULT = "transient_";
-
-  public static final String
-      KSQL_TABLE_STATESTORE_NAME_SUFFIX_CONFIG = "ksql.statestore.suffix";
-  public static final String
-      KSQL_TABLE_STATESTORE_NAME_SUFFIX_DEFAULT = "_ksql_statestore";
 
   public static final String
       KSQL_OUTPUT_TOPIC_NAME_PREFIX_CONFIG = "ksql.output.topic.name.prefix";
@@ -131,6 +134,11 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
       KSQL_USE_NAMED_INTERNAL_TOPICS_ON, KSQL_USE_NAMED_INTERNAL_TOPICS_OFF
   );
 
+  public static final String KSQL_USE_NAMED_AVRO_MAPS = "ksql.avro.maps.named";
+  private static final String KSQL_USE_NAMED_AVRO_MAPS_DOC = "";
+
+  public static final String KSQL_USE_LEGACY_KEY_FIELD = "ksql.query.fields.key.legacy";
+
   public static final String
       defaultSchemaRegistryUrl = "http://localhost:8081";
 
@@ -151,15 +159,6 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
               ConfigDef.Importance.MEDIUM,
               "Second part of the prefix for persistent queries. For instance if "
                   + "the prefix is query_ the query name will be ksql_query_1."),
-          new CompatibilityBreakingConfigDef(
-              KSQL_TABLE_STATESTORE_NAME_SUFFIX_CONFIG,
-              ConfigDef.Type.STRING,
-              KSQL_TABLE_STATESTORE_NAME_SUFFIX_DEFAULT,
-              KSQL_TABLE_STATESTORE_NAME_SUFFIX_DEFAULT,
-              ConfigDef.Importance.MEDIUM,
-              "Suffix for state store names in Tables. For instance if the suffix is "
-                  + "_ksql_statestore the state "
-                  + "store name would be ksql_query_1_ksql_statestore _ksql_statestore "),
           new CompatibilityBreakingConfigDef(
               KSQL_FUNCTIONS_SUBSTRING_LEGACY_ARGS_CONFIG,
               ConfigDef.Type.BOOLEAN,
@@ -188,7 +187,45 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
               KSQL_USE_NAMED_INTERNAL_TOPICS_ON,
               ConfigDef.Importance.LOW,
               KSQL_USE_NAMED_INTERNAL_TOPICS_DOC,
-              KSQL_USE_NAMED_INTERNAL_TOPICS_VALIDATOR)
+              KSQL_USE_NAMED_INTERNAL_TOPICS_VALIDATOR),
+          new CompatibilityBreakingConfigDef(
+              SINK_NUMBER_OF_PARTITIONS_PROPERTY,
+              Type.INT,
+              4,
+              null,
+              Importance.LOW,
+              "The legacy default number of partitions for the topics created by KSQL"
+                  + "in 5.2 and earlier versions."
+                  + "This property should not be set for 5.3 and later versions."),
+          new CompatibilityBreakingConfigDef(
+              SINK_NUMBER_OF_REPLICAS_PROPERTY,
+              ConfigDef.Type.SHORT,
+              (short) 1,
+              null,
+              ConfigDef.Importance.LOW,
+              "The default number of replicas for the topics created by KSQL "
+                  + "in 5.2 and earlier versions."
+                  + "This property should not be set for 5.3 and later versions."
+          ),
+          new CompatibilityBreakingConfigDef(
+              KSQL_USE_NAMED_AVRO_MAPS,
+              ConfigDef.Type.BOOLEAN,
+              false,
+              true,
+              ConfigDef.Importance.LOW,
+              KSQL_USE_NAMED_AVRO_MAPS_DOC
+          ),
+          new CompatibilityBreakingConfigDef(
+              KSQL_USE_LEGACY_KEY_FIELD,
+              ConfigDef.Type.BOOLEAN,
+              true,
+              false,
+              ConfigDef.Importance.LOW,
+              "Determines if the legacy key field is used when building queries. "
+                  + "This setting is automatically applied for persistent queries started by "
+                  + "older versions of KSQL. "
+                  + "This setting should not be set manually."
+          )
   );
 
   private enum ConfigGeneration {
@@ -311,18 +348,6 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
             ConfigDef.Importance.LOW,
             KSQL_OUTPUT_TOPIC_NAME_PREFIX_DOCS
         ).define(
-            SINK_NUMBER_OF_PARTITIONS_PROPERTY,
-            ConfigDef.Type.INT,
-            KsqlConstants.defaultSinkNumberOfPartitions,
-            ConfigDef.Importance.MEDIUM,
-            "The default number of partitions for the topics created by KSQL."
-        ).define(
-            SINK_NUMBER_OF_REPLICAS_PROPERTY,
-            ConfigDef.Type.SHORT,
-            KsqlConstants.defaultSinkNumberOfReplications,
-            ConfigDef.Importance.MEDIUM,
-            "The default number of replicas for the topics created by KSQL."
-        ).define(
             SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION_MS_PROPERTY,
             ConfigDef.Type.LONG,
             KsqlConstants.defaultSinkWindowChangeLogAdditionalRetention,
@@ -358,6 +383,12 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
             ConfigDef.Importance.LOW,
             "The path to look for and load extensions such as UDFs from."
         ).define(
+            KSQL_INTERNAL_TOPIC_REPLICAS_PROPERTY,
+            Type.SHORT,
+            (short) 1,
+            ConfigDef.Importance.LOW,
+            "The replication factor for the internal topics of KSQL server."
+        ).define(
             KSQL_UDF_SECURITY_MANAGER_ENABLED,
             ConfigDef.Type.BOOLEAN,
             true,
@@ -366,7 +397,6 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
                + " calling System.exit or executing processes"
         )
         .withClientSslSupport();
-
     for (final CompatibilityBreakingConfigDef compatibilityBreakingConfigDef
         : COMPATIBLY_BREAKING_CONFIG_DEFS) {
       if (generation == ConfigGeneration.CURRENT) {
@@ -452,13 +482,17 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
             .defaultCacheMaxBytesBufferingConfig);
     streamsConfigDefaults.put(StreamsConfig.NUM_STREAM_THREADS_CONFIG, KsqlConstants
         .defaultNumberOfStreamsThreads);
-    final Object fail = originals().get(FAIL_ON_DESERIALIZATION_ERROR_CONFIG);
-    if (fail == null || !Boolean.parseBoolean(fail.toString())) {
+    if (!getBooleanConfig(FAIL_ON_DESERIALIZATION_ERROR_CONFIG, false)) {
       streamsConfigDefaults.put(
           StreamsConfig.DEFAULT_DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG,
           LogMetricAndContinueExceptionHandler.class
       );
     }
+    streamsConfigDefaults.put(
+        StreamsConfig.DEFAULT_PRODUCTION_EXCEPTION_HANDLER_CLASS_CONFIG,
+        ProductionExceptionHandlerUtil.getHandler(
+            getBooleanConfig(FAIL_ON_PRODUCTION_ERROR_CONFIG, true))
+    );
     COMPATIBILITY_BREAKING_STREAMS_CONFIGS.forEach(
         config -> streamsConfigDefaults.put(
             config.name,
@@ -466,6 +500,14 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
                 ? config.defaultValueCurrent : config.defaultValueLegacy));
     this.ksqlStreamConfigProps = buildStreamingConfig(streamsConfigDefaults, originals());
     validate();
+  }
+
+  private boolean getBooleanConfig(final String config, final boolean defaultValue) {
+    final Object value = originals().get(config);
+    if (value == null) {
+      return defaultValue;
+    }
+    return Boolean.parseBoolean(value.toString());
   }
 
   private KsqlConfig(final ConfigGeneration generation,
@@ -495,11 +537,18 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
   }
 
   public Map<String, Object> getKsqlAdminClientConfigProps() {
+    return getConfigsFor(AdminClientConfig.configNames());
+  }
+
+  public Map<String, Object> getProducerClientConfigProps() {
+    return getConfigsFor(ProducerConfig.configNames());
+  }
+
+  private Map<String, Object> getConfigsFor(final Set<String> configs) {
     final Map<String, Object> props = new HashMap<>();
     ksqlStreamConfigProps.values().stream()
-        .filter(configValue -> AdminClientConfig.configNames().contains(configValue.key))
-        .forEach(
-            configValue -> props.put(configValue.key, configValue.value));
+        .filter(configValue -> configs.contains(configValue.key))
+        .forEach(configValue -> props.put(configValue.key, configValue.value));
     return Collections.unmodifiableMap(props);
   }
 
@@ -558,13 +607,8 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
     return Collections.unmodifiableMap(allPropsCleaned);
   }
 
-  @SuppressFBWarnings("CN_IDIOM_NO_SUPER_CALL")
-  public KsqlConfig clone() {
-    return new KsqlConfig(ConfigGeneration.CURRENT, values(), ksqlStreamConfigProps);
-  }
-
   public KsqlConfig cloneWithPropertyOverwrite(final Map<String, Object> props) {
-    final Map<String, Object> cloneProps = new HashMap<>(values());
+    final Map<String, Object> cloneProps = new HashMap<>(originals());
     cloneProps.putAll(props);
     final Map<String, ConfigValue> streamConfigProps =
         buildStreamingConfig(getKsqlStreamConfigProps(), props);

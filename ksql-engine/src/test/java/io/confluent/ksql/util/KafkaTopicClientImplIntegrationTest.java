@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -22,12 +23,19 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.exception.KafkaResponseGetFailedException;
+import io.confluent.ksql.integration.Retry;
+import io.confluent.ksql.services.KafkaTopicClient;
+import io.confluent.ksql.services.KafkaTopicClientImpl;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
+import io.confluent.ksql.topic.TopicProperties;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
+import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.admin.TopicDescription;
@@ -36,15 +44,25 @@ import org.apache.kafka.test.IntegrationTest;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.rules.ExpectedException;
+import org.junit.rules.RuleChain;
 
 @Category({IntegrationTest.class})
 public class KafkaTopicClientImplIntegrationTest {
 
+  private static final EmbeddedSingleNodeKafkaCluster KAFKA =
+      EmbeddedSingleNodeKafkaCluster.build();
+
   @ClassRule
-  public static final EmbeddedSingleNodeKafkaCluster KAFKA =
-      EmbeddedSingleNodeKafkaCluster.newBuilder().build();
+  public static final RuleChain CLUSTER_WITH_RETRY = RuleChain
+      .outerRule(Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS))
+      .around(KAFKA);
+
+  @Rule
+  public final ExpectedException expectedException = ExpectedException.none();
 
   private String testTopic;
   private KafkaTopicClient client;
@@ -186,6 +204,32 @@ public class KafkaTopicClientImplIntegrationTest {
     assertThat(configs.get(TopicConfig.COMPRESSION_TYPE_CONFIG), is("snappy"));
   }
 
+  @Test
+  public void shouldCreateTopicWithDefaultReplicationFactor() {
+    // Given:
+    final String topicName = UUID.randomUUID().toString();
+
+    // When:
+    client.createTopic(topicName, 2, TopicProperties.DEFAULT_REPLICAS);
+
+    // Then:
+    assertThatEventually(() -> topicExists(topicName), is(true));
+    final TopicDescription topicDescription = getTopicDescription(topicName);
+    assertThat(topicDescription.partitions(), hasSize(2));
+    assertThat(topicDescription.partitions().get(0).replicas(), hasSize(1));
+  }
+
+  @Test
+  public void shouldThrowOnDescribeIfTopicDoesNotExist() {
+    // Expect
+    expectedException.expect(KafkaResponseGetFailedException.class);
+    expectedException.expectMessage("Failed to Describe Kafka Topic(s):");
+    expectedException.expectMessage("i_do_not_exist");
+
+    // When:
+    client.describeTopic("i_do_not_exist");
+  }
+
   private String getTopicConfig(final String configName) {
     final Map<String, String> configs = client.getTopicConfig(testTopic);
     return configs.get(configName);
@@ -196,7 +240,7 @@ public class KafkaTopicClientImplIntegrationTest {
   }
 
   private TopicDescription getTopicDescription(final String topicName) {
-    return client.describeTopics(Collections.singletonList(topicName)).get(topicName);
+    return client.describeTopic(topicName);
   }
 
   private void allowForAsyncTopicCreation() {

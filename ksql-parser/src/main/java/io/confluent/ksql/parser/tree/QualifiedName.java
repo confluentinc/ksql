@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -22,12 +23,14 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.errorprone.annotations.Immutable;
 import java.util.List;
 import java.util.Optional;
 
+@Immutable
 public final class QualifiedName {
 
-  private final List<String> parts;
+  private final ImmutableList<String> parts;
 
   public static QualifiedName of(final String first, final String... rest) {
     requireNonNull(first, "first is null");
@@ -45,8 +48,8 @@ public final class QualifiedName {
     return new QualifiedName(ImmutableList.copyOf(parts));
   }
 
-  private QualifiedName(final List<String> parts) {
-    this.parts = parts;
+  private QualifiedName(final ImmutableList<String> parts) {
+    this.parts = requireNonNull(parts, "parts");
   }
 
   public List<String> getParts() {
@@ -67,18 +70,8 @@ public final class QualifiedName {
       return Optional.empty();
     }
 
-    final List<String> subList = parts.subList(0, parts.size() - 1);
+    final ImmutableList<String> subList = parts.subList(0, parts.size() - 1);
     return Optional.of(new QualifiedName(subList));
-  }
-
-  public boolean hasSuffix(final QualifiedName suffix) {
-    if (parts.size() < suffix.getParts().size()) {
-      return false;
-    }
-
-    final int start = parts.size() - suffix.getParts().size();
-
-    return parts.subList(start, parts.size()).equals(suffix.getParts());
   }
 
   public String getSuffix() {

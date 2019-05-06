@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -17,42 +18,36 @@ package io.confluent.ksql.parser.tree;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
+import com.google.errorprone.annotations.Immutable;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
-public class SimpleCaseExpression
-    extends Expression {
+@Immutable
+public class SimpleCaseExpression extends Expression {
 
   private final Expression operand;
-  private final List<WhenClause> whenClauses;
+  private final ImmutableList<WhenClause> whenClauses;
   private final Optional<Expression> defaultValue;
 
-  public SimpleCaseExpression(final Expression operand, final List<WhenClause> whenClauses,
-                              final Optional<Expression> defaultValue) {
+  public SimpleCaseExpression(
+      final Expression operand,
+      final List<WhenClause> whenClauses,
+      final Optional<Expression> defaultValue
+  ) {
     this(Optional.empty(), operand, whenClauses, defaultValue);
   }
 
   public SimpleCaseExpression(
-      final NodeLocation location,
-      final Expression operand,
-      final List<WhenClause> whenClauses,
-      final Optional<Expression> defaultValue) {
-    this(Optional.of(location), operand, whenClauses, defaultValue);
-  }
-
-  private SimpleCaseExpression(
       final Optional<NodeLocation> location,
       final Expression operand,
       final List<WhenClause> whenClauses,
-      final Optional<Expression> defaultValue) {
+      final Optional<Expression> defaultValue
+  ) {
     super(location);
-    requireNonNull(operand, "operand is null");
-    requireNonNull(whenClauses, "whenClauses is null");
-
-    this.operand = operand;
-    this.whenClauses = ImmutableList.copyOf(whenClauses);
-    this.defaultValue = defaultValue;
+    this.operand = requireNonNull(operand, "operand");
+    this.whenClauses = ImmutableList.copyOf(requireNonNull(whenClauses, "whenClauses"));
+    this.defaultValue = requireNonNull(defaultValue);
   }
 
   public Expression getOperand() {

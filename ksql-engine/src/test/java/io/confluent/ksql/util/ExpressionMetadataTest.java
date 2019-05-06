@@ -13,6 +13,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.udf.Kudf;
+import io.confluent.ksql.parser.tree.Expression;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Collections;
 import java.util.List;
@@ -42,6 +43,8 @@ public class ExpressionMetadataTest {
   private Object parameter1;
   @Mock
   private Object parameter2;
+  @Mock
+  private Expression expression;
   private ExpressionMetadata expressionMetadata;
 
   @Rule
@@ -64,7 +67,9 @@ public class ExpressionMetadataTest {
         ImmutableList.of(1, 0),
         Collections.emptyList(),
         expressionType,
-        typeEnforcer);
+        typeEnforcer,
+        expression
+    );
 
     // When:
     final Object result = expressionMetadata.evaluate(new GenericRow(123, 456));
@@ -84,7 +89,9 @@ public class ExpressionMetadataTest {
         ImmutableList.of(-1, 0),
         udfs,
         expressionType,
-        typeEnforcer);
+        typeEnforcer,
+        expression
+    );
 
     // When:
     final Object result = expressionMetadata.evaluate(new GenericRow(123));
@@ -124,7 +131,9 @@ public class ExpressionMetadataTest {
         ImmutableList.of(0, 1),
         Collections.emptyList(),
         expressionType,
-        typeEnforcer);
+        typeEnforcer,
+        expression
+    );
 
     // When:
     final Thread thread = new Thread(

@@ -104,7 +104,7 @@ populated. They hold information about the HTTP status codes, and users.
 
 #.  View the status codes data
 
-    .. code:: bash
+    .. codewithvars:: bash
 
     docker-compose exec kafkacat \
             kafkacat -b kafka:29092 -C -c 3 -K: \
@@ -123,7 +123,7 @@ populated. They hold information about the HTTP status codes, and users.
 
 #.  View the user data
 
-    .. code:: bash
+    .. codewithvars:: bash
 
         docker-compose exec kafkacat \
           kafkacat -b kafka:29092 -C -c 3 -K: \
@@ -144,7 +144,7 @@ populated. They hold information about the HTTP status codes, and users.
 Load the Streaming Data to KSQL
 -------------------------------
 
-#.  Launch the KSQL CLI
+#.  Launch the KSQL CLI:
 
     .. code:: bash
 

@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -15,10 +16,10 @@
 package io.confluent.ksql.util;
 
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
-import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 
 public class ItemDataProvider extends TestDataProvider {
@@ -31,9 +32,10 @@ public class ItemDataProvider extends TestDataProvider {
 
   private static final String key = "ID";
 
-  private static final Schema schema = SchemaBuilder.struct()
+  private static final KsqlSchema schema = KsqlSchema.of(SchemaBuilder.struct()
       .field("ID", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
-      .field("DESCRIPTION", SchemaBuilder.OPTIONAL_STRING_SCHEMA).build();
+      .field("DESCRIPTION", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
+      .build());
 
   private static final Map<String, GenericRow> data = buildData();
 

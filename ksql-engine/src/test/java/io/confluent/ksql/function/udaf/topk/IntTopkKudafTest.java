@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -104,10 +105,8 @@ public class IntTopkKudafTest {
     topkKudaf = new TopKAggregateFunctionFactory(topKSize)
         .getProperAggregateFunction(Collections.singletonList(Schema.OPTIONAL_INT32_SCHEMA));
     final List<Integer> initialAggregate = IntStream.range(0, topKSize)
-        .boxed()
-        .collect(Collectors.toList());
+            .boxed().sorted(Comparator.reverseOrder()).collect(Collectors.toList());
 
-    initialAggregate.sort(Comparator.reverseOrder());
     // When:
     final List<Integer> result = topkKudaf.aggregate(10, initialAggregate);
     final List<Integer> combined = topkKudaf.getMerger().apply("key", result, initialAggregate);

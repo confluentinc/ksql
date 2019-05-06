@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -92,7 +93,7 @@ public class SessionManager {
 
   public String getRandomActiveToken() {
     final int randomIndex = (int) (Math.random() * activeSessions.size());
-    return new ArrayList<String>(activeSessions.keySet()).get(randomIndex);
+    return new ArrayList<>(activeSessions.keySet()).get(randomIndex);
   }
 
   public String getActiveSessionThatHasExpired() {
@@ -114,7 +115,7 @@ public class SessionManager {
     // MaxedOut = then reuse active key
     if (activeSessions.size() == maxSessions) {
       final int randomIndex = (int) (Math.random() * activeSessions.size());
-      return new ArrayList<String>(activeSessions.keySet()).get(randomIndex);
+      return new ArrayList<>(activeSessions.keySet()).get(randomIndex);
     }
 
     // we have a new sessionId,  =- if it is expired then we will allow reuse
@@ -164,7 +165,7 @@ public class SessionManager {
     }
   }
 
-  Map<String, SessionObject> expiredSessions = new HashMap<String, SessionObject>();
-  Map<String, SessionObject> activeSessions = new HashMap<String, SessionObject>();
+  Map<String, SessionObject> expiredSessions = new HashMap<>();
+  Map<String, SessionObject> activeSessions = new HashMap<>();
 
 }

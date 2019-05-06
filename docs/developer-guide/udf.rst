@@ -48,6 +48,8 @@ Folow these steps to create your custom functions:
          KSQL server, including your custom UDF and UDAF functions. Use the
          DESCRIBE FUNCTION statement to display details about your custom functions.
 
+For a detailed walkthrough on creating a UDF, see :ref:`implement-a-udf`.
+
 ======================
 Creating UDF and UDAFs
 ======================
@@ -77,8 +79,9 @@ Each method in the class that represents a UDF must be public and annotated with
 you create represents a collection of UDFs all with the same name but may have different
 arguments and return types.
 
-Optional ``@UdfParameter`` annotations can be added to method parameters to provide users with
-richer information.
+``@UdfParameter`` annotations can be added to method parameters to provide users with richer
+information, including the parameter schema. This annotation is required if the KSQL type cannot
+be inferred from the Java type (e.g. ``STRUCT``).
 
 
 Null Handling
@@ -113,8 +116,12 @@ used to call the UDF. As can be seen this UDF can be invoked in different ways:
 - with two long (BIGINT) parameters returning a long (BIGINT) result.
 - with two nullable Long (BIGINT) parameters returning a nullable Long (BIGINT) result.
 - with two double parameters returning a double result.
+- with variadic double parameters returning a double result.
 
 .. code:: java
+
+    import io.confluent.ksql.function.udf.Udf;
+    import io.confluent.ksql.function.udf.UdfDescription;
 
     @UdfDescription(name = "multiply", description = "multiplies 2 numbers")
     public class Multiply {
@@ -139,10 +146,50 @@ used to call the UDF. As can be seen this UDF can be invoked in different ways:
       }
 
       @Udf(description = "multiply two non-nullable DOUBLEs.")
-      public double multiply(final double v1, double v2) {
+      public double multiply(final double v1, final double v2) {
         return v1 * v2;
       }
+
+      @Udf(description = "multiply N non-nullable DOUBLEs.")
+      public double multiply(final double... values) {
+        return Arrays.stream(values).reduce((a, b) -> a * b);
+      }
     }
+
+If you're using Gradle to build your UDF or UDAF, specify the ``ksql-udf``
+dependency: 
+
+.. codewithvars:: bash
+
+    compile 'io.confluent.ksql:ksql-udf:|release|'
+
+To compile with the latest version of ``ksql-udf``:
+
+.. codewithvars:: bash
+
+    compile 'io.confluent.ksql:ksql-udf:+'
+
+If you're using Maven to build your UDF or UDAF, specify the ``ksql-udf``
+dependency in your POM file:
+
+.. codewithvars:: xml
+
+    <!-- Specify the repository for Confluent dependencies -->
+        <repositories>
+            <repository>
+                <id>confluent</id>
+                <url>http://packages.confluent.io/maven/</url>
+            </repository>
+        </repositories>
+
+    <!-- Specify the ksql-udf dependency -->
+    <dependencies>
+        <dependency>
+            <groupId>io.confluent.ksql</groupId>
+            <artifactId>ksql-udf</artifactId>
+            <version>|release|</version>
+        </dependency>
+    </dependencies>
 
 
 UdfDescription Annotation
@@ -187,13 +234,27 @@ of the UDF does, for example:
 UdfParameter Annotation
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-The ``@UdfParameter`` annotation is optional and is applied to the parameters of methods annotated with
-``@Udf``. KSQL will use the additional information in the ``@UdfParameter`` annotation to provide
-users with richer information about the method when, for example, they execute
-``DESCRIBE FUNCTION`` on the method.
+The ``@UdfParameter`` annotation is applied to parameters of methods annotated with ``@Udf``. KSQL
+will use the additional information in the ``@UdfParameter`` annotation to specify the parameter
+schema (if it cannot be inferred from the Java type) or to provide users with richer information
+about the method when, for example, they execute ``DESCRIBE FUNCTION`` on the method.
 
-The annotation has two parameters: ``value`` is the name of the parameter and ``description`` which
-can be used to better describe what the parameter does, for example:
++------------+------------------------------+------------------------+
+| Field      | Description                  | Required               |
++============+==============================+========================+
+| value      | The case-insensitive name of | No                     |
+|            | the parameter                |                        |
++------------+------------------------------+------------------------+
+| description| A string describing generally| No                     |
+|            | what the parameter represents|                        |
++------------+------------------------------+------------------------+
+| schema     | The KSQL schema for the      | For complex types      |
+|            | parameter.                   | such as STRUCT         |
++------------+------------------------------+------------------------+
+
+.. note:: If ``schema`` is supplied in the ``@UdfParameter`` annotation for a ``STRUCT`` it is
+          considered "strict" - any inputs must match exactly, including order and names of the
+          fields.
 
 .. code:: java
 
@@ -202,11 +263,19 @@ can be used to better describe what the parameter does, for example:
        @UdfParameter("str") final String str,
        @UdfParameter(value = "pos", description = "Starting position of the substring") final int pos)
 
+    @Udf
+    public boolean livesInRegion(
+       @UdfParameter(value = "zipcode", description = "a US postal code") final String zipcode,
+       @UdfParameter(schema = "STRUCT<ZIP STRING, NAME STRING>") final Struct employee)
+
+If your Java8 class is compiled with the ``-parameter`` compiler flag, the name of the parameter
+will be inferred from the method declaration.
+
 Configurable UDF
 ~~~~~~~~~~~~~~~~
 
 If the UDF class needs access to the KSQL server configuration it can implement
-``io.confluent.common.Configurable``, e.g.
+``org.apache.kafka.common.Configurable``, e.g.
 
 .. code:: java
 
@@ -225,6 +294,8 @@ If the UDF class needs access to the KSQL server configuration it can implement
 For security reasons, only settings whose name is prefixed with
 ``ksql.functions.<lowercase-udfname>.`` or ``ksql.functions._global_.`` will be propagated to the
 Udf.
+
+.. _ksql-udafs:
 
 UDAFs
 -----
@@ -421,8 +492,10 @@ The types supported by UDFs are currently limited to:
 +--------------+------------------+
 | Map          | MAP              |
 +--------------+------------------+
+| Struct       | STRUCT           |
++--------------+------------------+
 
-Note: Complex types other than List and Map are not currently supported
+Note: Structs, Lists and Maps are not supported in UDAFs
 
 .. _deploying-udf:
 

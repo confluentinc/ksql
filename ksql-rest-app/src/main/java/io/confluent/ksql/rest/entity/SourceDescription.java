@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -19,19 +20,15 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeName;
-import io.confluent.ksql.metastore.StructuredDataSource;
+import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.rest.util.EntityUtil;
-import io.confluent.ksql.util.KafkaTopicClient;
+import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import org.apache.kafka.clients.admin.TopicDescription;
-import org.apache.kafka.connect.data.Field;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonTypeName("description")
@@ -89,7 +86,7 @@ public class SourceDescription {
   }
 
   public SourceDescription(
-      final StructuredDataSource dataSource,
+      final DataSource<?> dataSource,
       final boolean extended,
       final String format,
       final List<RunningQuery> readQueries,
@@ -101,8 +98,8 @@ public class SourceDescription {
         readQueries,
         writeQueries,
         EntityUtil.buildSourceSchemaEntity(dataSource.getSchema()),
-        dataSource.getDataSourceType().getKqlType(),
-        Optional.ofNullable(dataSource.getKeyField()).map(Field::name).orElse(""),
+        dataSource.getDataSourceType().getKsqlType(),
+        dataSource.getKeyField().name().orElse(""),
         Optional.ofNullable(dataSource.getTimestampExtractionPolicy())
             .map(TimestampExtractionPolicy::timestampField).orElse(""),
         (extended
@@ -130,11 +127,13 @@ public class SourceDescription {
   }
 
   private static int getPartitions(
-      final KafkaTopicClient topicClient, final String kafkaTopicName) {
-    final Map<String, TopicDescription> stringTopicDescriptionMap =
-        topicClient.describeTopics(Arrays.asList(kafkaTopicName));
-    final TopicDescription topicDescription = stringTopicDescriptionMap.values().iterator().next();
-    return topicDescription.partitions().size();
+      final KafkaTopicClient topicClient,
+      final String kafkaTopicName
+  ) {
+    return topicClient
+        .describeTopic(kafkaTopicName)
+        .partitions()
+        .size();
   }
 
   public int getPartitions() {
@@ -142,11 +141,14 @@ public class SourceDescription {
   }
 
   private static int getReplication(
-      final KafkaTopicClient topicClient, final String kafkaTopicName) {
-    final Map<String, TopicDescription> stringTopicDescriptionMap =
-        topicClient.describeTopics(Arrays.asList(kafkaTopicName));
-    final TopicDescription topicDescription = stringTopicDescriptionMap.values().iterator().next();
-    return topicDescription.partitions().iterator().next().replicas().size();
+      final KafkaTopicClient topicClient,
+      final String kafkaTopicName
+  ) {
+    return topicClient
+        .describeTopic(kafkaTopicName)
+        .partitions().iterator().next()
+        .replicas()
+        .size();
   }
 
   public int getReplication() {

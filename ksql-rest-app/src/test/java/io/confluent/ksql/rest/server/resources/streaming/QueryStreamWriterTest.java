@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -28,18 +29,16 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.KsqlEngine;
-import io.confluent.ksql.planner.plan.OutputNode;
-import io.confluent.ksql.rest.util.JsonMapper;
-import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.json.JsonMapper;
+import io.confluent.ksql.physical.LimitHandler;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.QueuedQueryMetadata;
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -55,20 +54,17 @@ import org.easymock.IAnswer;
 import org.easymock.Mock;
 import org.easymock.MockType;
 import org.junit.Before;
-import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.Timeout;
 import org.junit.runner.RunWith;
 
-/**
- * @author andy
- * created 19/04/2018
- */
 @SuppressWarnings({"unchecked", "ConstantConditions"})
 @RunWith(EasyMockRunner.class)
 public class QueryStreamWriterTest {
-  @ClassRule
-  public static final Timeout TIMEOUT = Timeout.builder()
+
+  @Rule
+  public final Timeout timeout = Timeout.builder()
       .withTimeout(30, TimeUnit.SECONDS)
       .withLookingForStuckThread(true)
       .build();
@@ -76,17 +72,15 @@ public class QueryStreamWriterTest {
   @Mock(MockType.NICE)
   private KsqlEngine ksqlEngine;
   @Mock(MockType.NICE)
-  private ServiceContext serviceContext;
-  @Mock(MockType.NICE)
   private QueuedQueryMetadata queryMetadata;
   @Mock(MockType.NICE)
   private BlockingQueue<KeyValue<String, GenericRow>> rowQueue;
   private Capture<Thread.UncaughtExceptionHandler> ehCapture;
   private Capture<Collection<KeyValue<String, GenericRow>>> drainCapture;
-  private Capture<OutputNode.LimitHandler> limitHandlerCapture;
+  private Capture<LimitHandler> limitHandlerCapture;
   private QueryStreamWriter writer;
   private ByteArrayOutputStream out;
-  private OutputNode.LimitHandler limitHandler;
+  private LimitHandler limitHandler;
   private ObjectMapper objectMapper;
 
   @Before
@@ -98,7 +92,9 @@ public class QueryStreamWriterTest {
     drainCapture = newCapture();
     limitHandlerCapture = newCapture();
 
-    final Schema schema = SchemaBuilder.struct().field("col1", Schema.OPTIONAL_STRING_SCHEMA).build();
+    final KsqlSchema schema = KsqlSchema.of(SchemaBuilder.struct()
+        .field("col1", Schema.OPTIONAL_STRING_SCHEMA)
+        .build());
 
     final KafkaStreams kStreams = niceMock(KafkaStreams.class);
 
@@ -108,9 +104,6 @@ public class QueryStreamWriterTest {
 
     expect(queryMetadata.getRowQueue()).andReturn(rowQueue).anyTimes();
     expect(queryMetadata.getResultSchema()).andReturn(schema).anyTimes();
-
-    expect(ksqlEngine.execute(anyObject(), anyObject(), anyObject()))
-        .andReturn(ImmutableList.of(queryMetadata));
 
     queryMetadata.setLimitHandler(capture(limitHandlerCapture));
     expectLastCall().once();
@@ -182,18 +175,10 @@ public class QueryStreamWriterTest {
         containsString("Row3")));
   }
 
-  private void createWriter() throws Exception {
+  private void createWriter() {
     replay(queryMetadata, ksqlEngine, rowQueue);
 
-    writer = new QueryStreamWriter(
-        new KsqlConfig(Collections.emptyMap()),
-        ksqlEngine,
-        serviceContext,
-        1000,
-        "a KSQL statement",
-        Collections.emptyMap(),
-        objectMapper
-        );
+    writer = new QueryStreamWriter(queryMetadata, 1000, objectMapper);
 
     out = new ByteArrayOutputStream();
     limitHandler = limitHandlerCapture.getValue();

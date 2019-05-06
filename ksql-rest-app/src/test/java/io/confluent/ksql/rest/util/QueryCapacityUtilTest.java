@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -16,11 +17,14 @@ package io.confluent.ksql.rest.util;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.PersistentQueryMetadata;
+import java.util.List;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -104,9 +108,12 @@ public class QueryCapacityUtilTest {
         ksqlEngine, ksqlConfig, statementStr);
   }
 
-  private void givenActivePersistentQueries(final long numQueries) {
-    when(ksqlEngine.numberOfPersistentQueries())
-        .thenReturn(numQueries);
+  @SuppressWarnings("unchecked")
+  private void givenActivePersistentQueries(final int numQueries) {
+    final List<PersistentQueryMetadata> queries = mock(List.class);
+    when(queries.size()).thenReturn(numQueries);
+    when(ksqlEngine.getPersistentQueries())
+        .thenReturn(queries);
   }
 
   private void givenQueryLimit(final int queryLimit) {

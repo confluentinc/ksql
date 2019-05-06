@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -18,7 +19,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
@@ -29,6 +31,7 @@ import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.util.CommandStoreUtil;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.HandlerMaps;
 import io.confluent.ksql.util.HandlerMaps.ClassHandlerMap2;
 import io.confluent.ksql.util.KsqlConfig;
@@ -136,7 +139,15 @@ public class WSQueryEndpoint {
   @OnOpen
   public void onOpen(final Session session, final EndpointConfig unused) {
     log.debug("Opening websocket session {}", session.getId());
-
+    if (!ksqlEngine.isAcceptingStatements()) {
+      log.info("The cluster has been terminated. No new request will be accepted.");
+      SessionUtil.closeSilently(
+          session,
+          CloseCodes.CANNOT_ACCEPT,
+          "The cluster has been terminated. No new request will be accepted."
+      );
+      return;
+    }
     try {
       validateVersion(session);
 
@@ -157,10 +168,13 @@ public class WSQueryEndpoint {
         return;
       }
 
-      final Statement statement = parseStatement(request);
+      final PreparedStatement<?> preparedStatement = parseStatement(request);
+
+      final Statement statement = preparedStatement.getStatement();
+      final Class<? extends Statement> type = statement.getClass();
 
       HANDLER_MAP
-          .getOrDefault(statement.getClass(), WSQueryEndpoint::handleUnsupportedStatement)
+          .getOrDefault(type, WSQueryEndpoint::handleUnsupportedStatement)
           .handle(this, new SessionAndRequest(session, request), statement);
     } catch (final Exception e) {
       log.debug("Error processing request", e);
@@ -181,6 +195,7 @@ public class WSQueryEndpoint {
     );
   }
 
+  @SuppressWarnings("MethodMayBeStatic")
   @OnError
   public void onError(final Session session, final Throwable t) {
     log.error("websocket error in session {}", session.getId(), t);
@@ -232,7 +247,7 @@ public class WSQueryEndpoint {
     }
   }
 
-  private Statement parseStatement(final KsqlRequest request) {
+  private PreparedStatement<?> parseStatement(final KsqlRequest request) {
     try {
       return statementParser.parseSingleStatement(request.getKsql());
     } catch (final Exception e) {
@@ -240,22 +255,28 @@ public class WSQueryEndpoint {
     }
   }
 
-  private void handleQuery(final SessionAndRequest info, final Query ignored) {
+  @SuppressWarnings({"unused"})
+  private void handleQuery(final SessionAndRequest info, final Query query) {
     final Map<String, Object> clientLocalProperties = info.request.getStreamsProperties();
 
     final WebSocketSubscriber<StreamedRow> streamSubscriber =
         new WebSocketSubscriber<>(info.session, mapper);
     this.subscriber = streamSubscriber;
 
-    queryPublisher.start(ksqlConfig, ksqlEngine, exec, info.request.getKsql(),
-        clientLocalProperties, streamSubscriber);
+    final PreparedStatement<Query> statement =
+        PreparedStatement.of(info.request.getKsql(), query);
+    final ConfiguredStatement<Query> configured =
+        ConfiguredStatement.of(statement, clientLocalProperties, ksqlConfig);
+
+    queryPublisher.start(ksqlEngine, exec, configured, streamSubscriber);
   }
 
   private void handlePrintTopic(final SessionAndRequest info, final PrintTopic printTopic) {
     final String topicName = printTopic.getTopic().toString();
 
     if (!serviceContext.getTopicClient().isTopicExists(topicName)) {
-      throw new IllegalArgumentException("topic does not exist: " + topicName);
+      throw new IllegalArgumentException(
+          "Topic does not exist, or KSQL does not have permission to list the topic: " + topicName);
     }
 
     final WebSocketSubscriber<String> topicSubscriber =
@@ -263,12 +284,12 @@ public class WSQueryEndpoint {
     this.subscriber = topicSubscriber;
 
     topicPublisher.start(exec, serviceContext.getSchemaRegistryClient(),
-        ksqlConfig.getKsqlStreamConfigProps(), topicName, printTopic.getFromBeginning(),
+        ksqlConfig.getKsqlStreamConfigProps(), printTopic,
         topicSubscriber
     );
   }
 
-  @SuppressWarnings("unused")
+  @SuppressWarnings({"unused", "MethodMayBeStatic"})
   private void handleUnsupportedStatement(
       final SessionAndRequest ignored,
       final Statement statement
@@ -280,14 +301,12 @@ public class WSQueryEndpoint {
   }
 
   private static void startQueryPublisher(
-      final KsqlConfig ksqlConfig,
       final KsqlEngine ksqlEngine,
       final ListeningScheduledExecutorService exec,
-      final String queryString,
-      final Map<String, Object> clientLocalProperties,
+      final ConfiguredStatement<Query> query,
       final WebSocketSubscriber<StreamedRow> streamSubscriber
   ) {
-    new StreamPublisher(ksqlConfig, ksqlEngine, exec, queryString, clientLocalProperties)
+    new StreamPublisher(ksqlEngine, exec, query)
         .subscribe(streamSubscriber);
   }
 
@@ -295,21 +314,18 @@ public class WSQueryEndpoint {
       final ListeningScheduledExecutorService exec,
       final SchemaRegistryClient schemaRegistryClient,
       final Map<String, Object> ksqlStreamConfigProps,
-      final String topicName,
-      final boolean fromBeginning,
+      final PrintTopic printTopic,
       final WebSocketSubscriber<String> topicSubscriber
   ) {
-    new PrintPublisher(exec, schemaRegistryClient, ksqlStreamConfigProps, topicName,fromBeginning)
+    new PrintPublisher(exec, schemaRegistryClient, ksqlStreamConfigProps, printTopic)
         .subscribe(topicSubscriber);
   }
 
   interface QueryPublisher {
     void start(
-        KsqlConfig ksqlConfig,
         KsqlEngine ksqlEngine,
         ListeningScheduledExecutorService exec,
-        String queryString,
-        Map<String, Object> clientLocalProperties,
+        ConfiguredStatement<Query> query,
         WebSocketSubscriber<StreamedRow> subscriber);
 
   }
@@ -320,8 +336,7 @@ public class WSQueryEndpoint {
         ListeningScheduledExecutorService exec,
         SchemaRegistryClient schemaRegistryClient,
         Map<String, Object> consumerProperties,
-        String topicName,
-        boolean fromBeginning,
+        PrintTopic printTopic,
         WebSocketSubscriber<String> subscriber);
   }
 

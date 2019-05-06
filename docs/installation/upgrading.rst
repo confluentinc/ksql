@@ -15,7 +15,7 @@ Notable changes in 5.3:
 
     * Avro schema compatibility
 
-        * This version of KSQL sees a bug fixes where the schemas returned by UDF and UDAFs might
+        * This version of KSQL fixes a bug where the schemas returned by UDF and UDAFs might
           not be marked as nullable. This can cause serialization issues in the presence of ``null``
           values, as might be encountered if the UDF fails.
 

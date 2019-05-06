@@ -332,10 +332,6 @@ public final class SchemaUtil {
   }
 
   public static Schema ensureOptional(final Schema schema) {
-    if (schema.isOptional()) {
-      return schema;
-    }
-
     final SchemaBuilder builder;
     switch (schema.type()) {
       case STRUCT:
@@ -358,6 +354,10 @@ public final class SchemaUtil {
         break;
 
       default:
+        if (schema.isOptional()) {
+          return schema;
+        }
+
         builder = new SchemaBuilder(schema.type());
         break;
     }

@@ -212,6 +212,50 @@ Your output should resemble:
 A persistent query that's created by the CREATE TABLE AS SELECT
 statement has the string ``CTAS`` in its ID, for example, ``CTAS_USERS_FEMALE_0``.
 
+Create a KSQL Table from a KSQL Stream
+**************************************
+
+Use the CREATE TABLE AS SELECT statement to create a table from a stream.
+Creating a table from a stream requires aggregation, so you need to include a
+function like COUNT(*) in the SELECT clause.
+
+.. code:: sql
+
+    CREATE TABLE pageviews_table AS                            \
+      SELECT viewtime, userid, pageid, COUNT(*) AS TOTAL       \
+      FROM pageviews_original WINDOW TUMBLING (SIZE 1 MINUTES) \
+      GROUP BY viewtime, userid, pageid;
+
+Your output should resemble:
+
+::
+
+     Message
+    ---------------------------
+     Table created and running
+    ---------------------------
+    ksql>
+
+Inspect the table by using a SELECT statement.
+
+.. code:: sql
+
+    SELECT * FROM pageviews_table;
+
+Your output should resemble:
+
+::
+
+    1557183929488 | 1557183929488|+|User_9|+|Page_39 : Window{start=1557183900000 end=-} | 1557183929488 | User_9 | Page_39 | 1
+    1557183930211 | 1557183930211|+|User_1|+|Page_79 : Window{start=1557183900000 end=-} | 1557183930211 | User_1 | Page_79 | 1
+    1557183930687 | 1557183930687|+|User_9|+|Page_34 : Window{start=1557183900000 end=-} | 1557183930687 | User_9 | Page_34 | 1
+    1557183929786 | 1557183929786|+|User_5|+|Page_12 : Window{start=1557183900000 end=-} | 1557183929786 | User_5 | Page_12 | 1
+    1557183931095 | 1557183931095|+|User_3|+|Page_43 : Window{start=1557183900000 end=-} | 1557183931095 | User_3 | Page_43 | 1
+    1557183930184 | 1557183930184|+|User_1|+|Page_29 : Window{start=1557183900000 end=-} | 1557183930184 | User_1 | Page_29 | 1
+    1557183930727 | 1557183930726|+|User_6|+|Page_93 : Window{start=1557183900000 end=-} | 1557183930726 | User_6 | Page_93 | 1
+    ^CQuery terminated
+    ksql>
+
 Delete a KSQL Table
 *******************
 

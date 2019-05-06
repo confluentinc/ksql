@@ -20,16 +20,12 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
-import io.confluent.ksql.schema.inference.DefaultSchemaInjector;
-import io.confluent.ksql.statement.InjectorChain;
-import io.confluent.ksql.topic.TopicCreateInjector;
-import io.confluent.ksql.schema.inference.SchemaRegistryTopicSchemaSupplier;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.KafkaTopicClientImpl;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
+import io.confluent.ksql.statement.Injectors;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
-import io.confluent.ksql.topic.TopicDeleteInjector;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Collections;
 import java.util.HashMap;
@@ -72,17 +68,11 @@ public final class KsqlContextTestUtil {
         ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)
     );
 
-    final DefaultSchemaInjector schemaInjector = new DefaultSchemaInjector(
-        new SchemaRegistryTopicSchemaSupplier(serviceContext.getSchemaRegistryClient()));
     return new KsqlContext(
         serviceContext,
         ksqlConfig,
         engine,
-        (ec, sc) -> InjectorChain.of(
-            schemaInjector,
-            new TopicCreateInjector(ec),
-            new TopicDeleteInjector(ec)
-        )
+        Injectors.DEFAULT
     );
   }
 

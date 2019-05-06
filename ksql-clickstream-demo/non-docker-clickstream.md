@@ -113,18 +113,20 @@ These steps will guide you through how to setup your environment and run the cli
     You should see the KSQL CLI welcome screen.
 
     ```bash
-                       ======================================
-                       =      _  __ _____  ____  _          =
-                       =     | |/ // ____|/ __ \| |         =
-                       =     | ' /| (___ | |  | | |         =
-                       =     |  <  \___ \| |  | | |         =
-                       =     | . \ ____) | |__| | |____     =
-                       =     |_|\_\_____/ \___\_\______|    =
-                       =                                    =
-                       =   Streaming SQL Engine for Kafka   =
-    Copyright 2017 Confluent Inc.                         
+                    ===========================================
+                    =        _  __ _____  ____  _             =
+                    =       | |/ // ____|/ __ \| |            =
+                    =       | ' /| (___ | |  | | |            =
+                    =       |  <  \___ \| |  | | |            =
+                    =       | . \ ____) | |__| | |____        =
+                    =       |_|\_\_____/ \___\_\______|       =
+                    =                                         =
+                    =  Streaming SQL Engine for Apache Kafka® =
+                    ===========================================
 
-    CLI v0.1, Server v0.1 located at http://localhost:9098
+    Copyright 2018 Confluent Inc.
+
+    CLI v5.2.1, Server v5.2.1 located at http://localhost:8088
 
     Having trouble? Type 'help' (case-insensitive) for a rundown of how things work!
 

@@ -26,13 +26,10 @@ import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.rest.server.computation.ConfigStore;
 import io.confluent.ksql.rest.server.computation.KafkaConfigStore;
 import io.confluent.ksql.rest.util.KsqlInternalTopicUtils;
-import io.confluent.ksql.schema.inference.DefaultSchemaInjector;
-import io.confluent.ksql.schema.inference.SchemaRegistryTopicSchemaSupplier;
 import io.confluent.ksql.services.DefaultServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.Injector;
-import io.confluent.ksql.statement.InjectorChain;
-import io.confluent.ksql.topic.TopicCreateInjector;
+import io.confluent.ksql.statement.Injectors;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.version.metrics.KsqlVersionCheckerAgent;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
@@ -131,11 +128,7 @@ public final class StandaloneExecutorFactory {
         udfLoader,
         true,
         versionChecker,
-        (ec, sc) -> InjectorChain.of(
-            new DefaultSchemaInjector(
-                new SchemaRegistryTopicSchemaSupplier(sc.getSchemaRegistryClient())),
-            new TopicCreateInjector(ec)
-        )
+        Injectors.NO_TOPIC_DELETE
     );
   }
 }

@@ -106,7 +106,7 @@ public class RegisterTopicCommand implements DdlCommand {
     if (properties.containsKey(DdlConfig.VALUE_DELIMITER_PROPERTY) && (
          !properties.containsKey(DdlConfig.VALUE_FORMAT_PROPERTY)
          || !cleanQuotesAndUpperCase(properties.get(DdlConfig.VALUE_FORMAT_PROPERTY).toString())
-           .equals(Format.DELIMITED))) {
+           .equals(Format.DELIMITED.toString()))) {
       throw new KsqlException(
           DdlConfig.VALUE_DELIMITER_PROPERTY + " can only be used with "
            + DdlConfig.VALUE_FORMAT_PROPERTY + "='" + Format.DELIMITED + "'"

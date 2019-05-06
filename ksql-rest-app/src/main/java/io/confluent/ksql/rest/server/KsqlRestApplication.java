@@ -96,6 +96,7 @@ import javax.ws.rs.core.Configurable;
 import org.apache.kafka.common.errors.UnsupportedVersionException;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.websocket.jsr356.server.ServerContainer;
+import org.glassfish.hk2.utilities.Binder;
 import org.glassfish.jersey.server.ServerProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -120,6 +121,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
   private final ServerInfo serverInfo;
   private final VersionCheckerAgent versionCheckerAgent;
   private final ServiceContext serviceContext;
+  private final Function<KsqlConfig, Binder> serviceContextBinder;
 
   public static String getCommandsStreamName() {
     return COMMANDS_STREAM_NAME;
@@ -138,8 +140,8 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
       final StatusResource statusResource,
       final StreamedQueryResource streamedQueryResource,
       final KsqlResource ksqlResource,
-      final VersionCheckerAgent versionCheckerAgent
-  ) {
+      final VersionCheckerAgent versionCheckerAgent,
+      final Function<KsqlConfig, Binder> serviceContextBinder) {
     super(config);
     this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
@@ -154,6 +156,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
 
     this.versionCheckerAgent =
         Objects.requireNonNull(versionCheckerAgent, "versionCheckerAgent");
+    this.serviceContextBinder = serviceContextBinder;
     this.serverInfo = new ServerInfo(
         Version.getVersion(),
         getKafkaClusterId(serviceContext),
@@ -242,7 +245,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         new JacksonMessageBodyProvider(JsonMapper.INSTANCE.mapper);
     config.register(jsonProvider);
     config.register(JsonParseExceptionMapper.class);
-    config.register(new KsqlRestServiceContextBinder(ksqlConfig));
+    config.register(serviceContextBinder.apply(ksqlConfig));
 
     // Don't want to buffer rows when streaming JSON in a request to the query resource
     config.property(ServerProperties.OUTBOUND_CONTENT_LENGTH_BUFFER, 0);
@@ -304,14 +307,20 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
     final KsqlConfig ksqlConfig = new KsqlConfig(restConfig.getKsqlConfigProperties());
     final ServiceContext serviceContext = DefaultServiceContext.create(ksqlConfig);
 
-    return buildApplication(restConfig, versionCheckerFactory, maxStatementRetries, serviceContext);
+    return buildApplication(
+        restConfig,
+        versionCheckerFactory,
+        maxStatementRetries,
+        serviceContext,
+        KsqlRestServiceContextBinder::new);
   }
 
   static KsqlRestApplication buildApplication(
       final KsqlRestConfig restConfig,
       final Function<Supplier<Boolean>, VersionCheckerAgent> versionCheckerFactory,
       final int maxStatementRetries,
-      final ServiceContext serviceContext
+      final ServiceContext serviceContext,
+      final Function<KsqlConfig, Binder> serviceContextBinder
   ) {
     final String ksqlInstallDir = restConfig.getString(KsqlRestConfig.INSTALL_DIR_CONFIG);
 
@@ -443,7 +452,8 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         statusResource,
         streamedQueryResource,
         ksqlResource,
-        versionChecker
+        versionChecker,
+        serviceContextBinder
     );
   }
 

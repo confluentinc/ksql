@@ -18,7 +18,6 @@ package io.confluent.ksql.rest.server;
 import static io.confluent.ksql.parser.ParserMatchers.configured;
 import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -32,6 +31,7 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.computation.CommandRunner;
 import io.confluent.ksql.rest.server.computation.QueuedCommandStatus;
+import io.confluent.ksql.rest.server.context.KsqlRestServiceContextBinder;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.rest.server.resources.RootDocument;
 import io.confluent.ksql.rest.server.resources.StatusResource;
@@ -115,7 +115,8 @@ public class KsqlRestApplicationTest {
         statusResource,
         streamedQueryResource,
         ksqlResource,
-        versionCheckerAgent
+        versionCheckerAgent,
+        KsqlRestServiceContextBinder::new
     );
   }
 

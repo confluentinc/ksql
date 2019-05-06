@@ -24,7 +24,10 @@ public final class KsqlConstants {
   public static final String CONFLUENT_INTERNAL_TOPIC_PREFIX = "__confluent";
 
   public static final String SINK_NUMBER_OF_PARTITIONS = "PARTITIONS";
+  public static final String SOURCE_NUMBER_OF_PARTITIONS = SINK_NUMBER_OF_PARTITIONS;
+
   public static final String SINK_NUMBER_OF_REPLICAS = "REPLICAS";
+  public static final String SOURCE_NUMBER_OF_REPLICAS = SINK_NUMBER_OF_REPLICAS;
 
   public static final String SINK_TIMESTAMP_COLUMN_NAME = "TIMESTAMP";
 

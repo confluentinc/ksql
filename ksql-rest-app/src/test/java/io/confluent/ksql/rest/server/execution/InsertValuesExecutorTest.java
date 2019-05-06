@@ -378,6 +378,108 @@ public class InsertValuesExecutorTest {
     new InsertValuesExecutor(() -> 1L).execute(statement, engine, serviceContext);
   }
 
+  @Test
+  public void shouldThrowIfNullForStrictSchema() {
+    // Given:
+    givenDataSourceWithSchema(STRICT_SCHEMA);
+
+    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
+        ImmutableList.of("ROWKEY"),
+        ImmutableList.of(
+            new NullLiteral()
+        )
+    );
+
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Got null value for nonnull field: ");
+
+    // When:
+    new InsertValuesExecutor(() -> 1L).execute(statement, engine, serviceContext);
+  }
+
+  @Test
+  public void shouldThrowIfNullForStrictSchemaForNonExplicitFields() {
+    // Given:
+    givenDataSourceWithSchema(STRICT_SCHEMA);
+
+    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
+        ImmutableList.of("ROWKEY"),
+        ImmutableList.of(
+            new LongLiteral(123)
+        )
+    );
+
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Got null value for nonnull field: ");
+
+    // When:
+    new InsertValuesExecutor(() -> 1L).execute(statement, engine, serviceContext);
+  }
+
+  @Test
+  public void shouldThrowIfNonLiteral() {
+    // Given:
+    givenDataSourceWithSchema(STRICT_SCHEMA);
+
+    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
+        ImmutableList.of("ROWKEY"),
+        ImmutableList.of(
+            Struct.builder().addField("foo", PrimitiveType.of(SqlType.BIGINT)).build()
+        )
+    );
+
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(
+        "Only Literals are supported for INSERT INTO. Got: STRUCT<foo BIGINT> for field ROWKEY");
+
+    // When:
+    new InsertValuesExecutor(() -> 1L).execute(statement, engine, serviceContext);
+  }
+
+  @Test
+  public void shouldThrowIfIncompatibleTypes() {
+    // Given:
+    givenDataSourceWithSchema(STRICT_SCHEMA);
+
+    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
+        ImmutableList.of("ROWKEY"),
+        ImmutableList.of(
+            new StringLiteral("1.1")
+        )
+    );
+
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Expected type INT64 for field");
+
+    // When:
+    new InsertValuesExecutor(() -> 1L).execute(statement, engine, serviceContext);
+  }
+
+  @Test
+  public void shouldThrowIfInsertValuesIsDisabled() {
+    // Given:
+    givenDataSourceWithSchema(STRICT_SCHEMA);
+
+    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
+        ImmutableList.of("ROWKEY"),
+        ImmutableList.of(
+            new StringLiteral("1.1")
+        )
+    ).withConfig(
+        new KsqlConfig(ImmutableMap.of(KsqlConfig.KSQL_INSERT_INTO_VALUES_ENABLED, false)));
+
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("The server has disabled INSERT INTO ... VALUES ");
+
+    // When:
+    new InsertValuesExecutor(() -> 1L).execute(statement, engine, serviceContext);
+  }
+
   private static ConfiguredStatement<InsertValues> givenInsertValues(
       final List<String> columns,
       final List<Expression> values

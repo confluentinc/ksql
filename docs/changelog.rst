@@ -19,6 +19,13 @@ KSQL 5.3.0 includes new features, including:
   This is required to avoid the potential for data loss should this step be dropped.
   See `Github issue #2636 <https://github.com/confluentinc/ksql/pull/2636>`_ for more info.
 
+* ``INSERT INTO ... VALUES`` is now supported, with standard SQL syntax to insert rows to existing
+  KSQL streams/tables. To disable this functionality, set ``ksql.insert.into.values.enabled`` to
+  ``false`` in the server properties.
+
+* ``CREATE STREAM`` and ``CREATE TABLE`` will now allow you to create the topic if it is missing.
+  To do this, specify the ``PARTITIONS`` and optionally ``REPLICAS`` in the ``WITH`` clause.
+
 KSQL 5.3.0 includes bug fixes, including:
 
 * The ``ROWTIME`` of the row generated when a ``JOIN`` encounters late data was previous the ``ROWTIME`` of the late event,

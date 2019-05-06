@@ -268,8 +268,12 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
       return config.get(resource)
           .entries()
           .stream()
-          .anyMatch(configEntry -> configEntry.name().equalsIgnoreCase("delete.topic.enable")
-              && configEntry.value().equalsIgnoreCase("true"));
+          .filter(configEntry -> configEntry.name().equalsIgnoreCase("delete.topic.enable"))
+          .findFirst()
+          .map(configEntry -> configEntry.value().equalsIgnoreCase("true"))
+          // if the broker does not provide the config value, default to true in an attempt
+          // to clean up topics
+          .orElse(true);
 
     } catch (final Exception e) {
       log.error("Failed to initialize TopicClient: {}", e.getMessage());

@@ -221,9 +221,9 @@ function like COUNT(*) in the SELECT clause.
 
 .. code:: sql
 
-    CREATE TABLE pageviews_table AS                            \
-      SELECT viewtime, userid, pageid, COUNT(*) AS TOTAL       \
-      FROM pageviews_original WINDOW TUMBLING (SIZE 1 MINUTES) \
+    CREATE TABLE pageviews_table AS
+      SELECT viewtime, userid, pageid, COUNT(*) AS TOTAL
+      FROM pageviews_original WINDOW TUMBLING (SIZE 1 MINUTES)
       GROUP BY viewtime, userid, pageid;
 
 Your output should resemble:

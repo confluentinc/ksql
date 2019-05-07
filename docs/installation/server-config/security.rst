@@ -183,6 +183,8 @@ Which results in an output similar to:
 Where each line of the output is the password encrypted using different mechanisms, starting with
 plain text.
 
+.. _basic-ksql-http:
+
 -------------------------------------------------
 Configuring the CLI for Basic HTTP Authentication
 -------------------------------------------------

@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2019 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -34,10 +34,12 @@ public class ConfiguredKafkaClientSupplier implements KafkaClientSupplier {
 
   public ConfiguredKafkaClientSupplier(
       final KafkaClientSupplier defaultSupplier,
-      final Map<String, Object> config
+      final Map<String, Object> supplierProperties
   ) {
     this.defaultSupplier = Objects.requireNonNull(defaultSupplier, "defaultSupplier");
-    this.supplierProperties = ImmutableMap.copyOf(Objects.requireNonNull(config, "config"));
+    this.supplierProperties = ImmutableMap.copyOf(
+        Objects.requireNonNull(supplierProperties, "supplierProperties")
+    );
   }
 
   private Map<String, Object> injectSupplierProperties(final Map<String, Object> config) {

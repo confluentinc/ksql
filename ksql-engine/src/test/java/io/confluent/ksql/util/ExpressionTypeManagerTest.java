@@ -23,6 +23,7 @@ import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.TestFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Assert;
@@ -31,6 +32,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+@SuppressWarnings("OptionalGetWithoutIsPresent")
 public class ExpressionTypeManagerTest {
 
   private static final FunctionRegistry FUNCTION_REGISTRY = TestFunctionRegistry.INSTANCE.get();
@@ -50,8 +52,10 @@ public class ExpressionTypeManagerTest {
         .field("TEST1.COL0", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
         .field("TEST1.COL1", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
         .field("TEST1.COL2", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
-        .field("TEST1.COL3", SchemaBuilder.OPTIONAL_FLOAT64_SCHEMA);
-    expressionTypeManager = new ExpressionTypeManager(schema, FUNCTION_REGISTRY);
+        .field("TEST1.COL3", SchemaBuilder.OPTIONAL_FLOAT64_SCHEMA)
+        .build();
+
+    expressionTypeManager = new ExpressionTypeManager(KsqlSchema.of(schema), FUNCTION_REGISTRY);
     ordersExpressionTypeManager = new ExpressionTypeManager(
         metaStore.getSource("ORDERS").getSchema(),
         FUNCTION_REGISTRY
@@ -272,7 +276,12 @@ public class ExpressionTypeManagerTest {
     final Schema caseSchema = ordersExpressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(0));
 
     // Then:
-    assertThat(caseSchema, equalTo(metaStore.getSource("ORDERS").getSchema().field("ADDRESS").schema()));
+    assertThat(caseSchema, equalTo(metaStore
+        .getSource("ORDERS")
+        .getSchema()
+        .findField("ADDRESS")
+        .get()
+        .schema()));
   }
 
   @Test

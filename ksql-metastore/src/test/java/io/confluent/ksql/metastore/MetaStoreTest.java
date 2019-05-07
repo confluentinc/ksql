@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.metastore;
 
+import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -24,12 +25,10 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.metastore.model.KsqlTopic;
-import io.confluent.ksql.metastore.model.StructuredDataSource;
-import io.confluent.ksql.serde.DataSource;
-import io.confluent.ksql.serde.DataSource.DataSourceType;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.List;
@@ -61,42 +60,42 @@ public class MetaStoreTest {
 
   @Test
   public void testStreamMap() {
-    final StructuredDataSource<?> structuredDataSource1 = metaStore.getSource("ORDERS");
-    Assert.assertNotNull(structuredDataSource1);
-    assertThat(structuredDataSource1.getDataSourceType(), is(DataSource.DataSourceType.KSTREAM));
+    final DataSource<?> dataSource1 = metaStore.getSource("ORDERS");
+    Assert.assertNotNull(dataSource1);
+    assertThat(dataSource1.getDataSourceType(), is(DataSourceType.KSTREAM));
 
     // Check non-existent stream
-    final StructuredDataSource<?> structuredDataSource2 = metaStore.getSource("nonExistentStream");
-    Assert.assertNull(structuredDataSource2);
+    final DataSource<?> dataSource2 = metaStore.getSource("nonExistentStream");
+    Assert.assertNull(dataSource2);
   }
 
   @Test
   public void testDelete() {
-    final StructuredDataSource<?> structuredDataSource1 = metaStore.getSource("ORDERS");
-    final StructuredDataSource<?> structuredDataSource2 = new KsqlStream<>(
+    final DataSource<?> dataSource1 = metaStore.getSource("ORDERS");
+    final DataSource<?> dataSource2 = new KsqlStream<>(
         "sqlexpression", "testStream",
-        structuredDataSource1.getSchema(),
-        structuredDataSource1.getKeyField(),
-        structuredDataSource1.getTimestampExtractionPolicy(),
-        structuredDataSource1.getKsqlTopic(),
+        dataSource1.getSchema(),
+        dataSource1.getKeyField(),
+        dataSource1.getTimestampExtractionPolicy(),
+        dataSource1.getKsqlTopic(),
         Serdes::String);
 
-    metaStore.putSource(structuredDataSource2);
-    final StructuredDataSource<?> structuredDataSource3 = metaStore.getSource("testStream");
-    Assert.assertNotNull(structuredDataSource3);
+    metaStore.putSource(dataSource2);
+    final DataSource<?> dataSource3 = metaStore.getSource("testStream");
+    Assert.assertNotNull(dataSource3);
     metaStore.deleteSource("testStream");
-    final StructuredDataSource<?> structuredDataSource4 = metaStore.getSource("testStream");
-    Assert.assertNull(structuredDataSource4);
+    final DataSource<?> dataSource4 = metaStore.getSource("testStream");
+    Assert.assertNull(dataSource4);
   }
 
   @Test
   public void shouldGetSourcesForKafkaTopicWithSingleSource() {
     // When:
-    final List<StructuredDataSource<?>> sources = metaStore.getSourcesForKafkaTopic("test2");
+    final List<DataSource<?>> sources = metaStore.getSourcesForKafkaTopic("test2");
 
     // Then:
     assertThat(sources, hasSize(1));
-    final StructuredDataSource<?> source = sources.get(0);
+    final DataSource<?> source = sources.get(0);
     assertThat(source, instanceOf(KsqlTable.class));
     assertThat(source.getDataSourceType(), equalTo(DataSourceType.KTABLE));
     assertThat(source.getKafkaTopicName(), equalTo("test2"));
@@ -105,13 +104,13 @@ public class MetaStoreTest {
   @Test
   public void shouldGetSourcesForKafkaTopicWithMultipleSources() {
     // Given:
-    final StructuredDataSource<?> mockSource = mock(StructuredDataSource.class);
+    final DataSource<?> mockSource = mock(DataSource.class);
     when(mockSource.getKafkaTopicName()).thenReturn("test1");
     when(mockSource.getName()).thenReturn("new source name");
     metaStore.putSource(mockSource);
 
     // When:
-    final List<StructuredDataSource<?>> sources = metaStore.getSourcesForKafkaTopic("test1");
+    final List<DataSource<?>> sources = metaStore.getSourcesForKafkaTopic("test1");
 
     // Then:
     assertThat(sources, hasSize(2));
@@ -122,7 +121,7 @@ public class MetaStoreTest {
   @Test
   public void shouldGetSourcesForKafkaTopicWithNoSources() {
     // When:
-    final List<StructuredDataSource<?>> sources = metaStore.getSourcesForKafkaTopic("not a topic name");
+    final List<DataSource<?>> sources = metaStore.getSourcesForKafkaTopic("not a topic name");
 
     // Then:
     assertThat(sources, hasSize(0));

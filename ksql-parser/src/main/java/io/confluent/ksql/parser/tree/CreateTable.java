@@ -29,7 +29,7 @@ public class CreateTable extends AbstractStreamCreateStatement implements Execut
       final QualifiedName name,
       final List<TableElement> elements,
       final boolean notExists,
-      final Map<String, Expression> properties
+      final Map<String, Literal> properties
   ) {
     this(Optional.empty(), name, elements, notExists, properties);
   }
@@ -39,7 +39,7 @@ public class CreateTable extends AbstractStreamCreateStatement implements Execut
       final QualifiedName name,
       final List<TableElement> elements,
       final boolean notExists,
-      final Map<String, Expression> properties
+      final Map<String, Literal> properties
   ) {
     super(location, name, elements, notExists, properties);
   }
@@ -47,7 +47,7 @@ public class CreateTable extends AbstractStreamCreateStatement implements Execut
   @Override
   public AbstractStreamCreateStatement copyWith(
       final List<TableElement> elements,
-      final Map<String, Expression> properties
+      final Map<String, Literal> properties
   ) {
     return new CreateTable(
         getLocation(),

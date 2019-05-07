@@ -20,8 +20,8 @@ import static java.lang.String.format;
 import io.confluent.ksql.analyzer.Analysis.Into;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KsqlTopic;
-import io.confluent.ksql.metastore.model.StructuredDataSource;
 import io.confluent.ksql.parser.DefaultTraversalVisitor;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AllColumns;
@@ -43,10 +43,11 @@ import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Sink;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.WindowExpression;
+import io.confluent.ksql.planner.plan.DataSourceNode;
 import io.confluent.ksql.planner.plan.JoinNode;
 import io.confluent.ksql.planner.plan.PlanNodeId;
-import io.confluent.ksql.planner.plan.StructuredDataSourceNode;
-import io.confluent.ksql.serde.DataSource;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
 import io.confluent.ksql.serde.delimited.KsqlDelimitedTopicSerDe;
@@ -66,7 +67,6 @@ import java.util.Optional;
 import java.util.Set;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 class Analyzer {
@@ -160,7 +160,7 @@ class Analyzer {
     setIntoProperties(sink);
 
     if (!sink.shouldCreateSink()) {
-      final StructuredDataSource<?> existing = metaStore.getSource(sink.getName());
+      final DataSource<?> existing = metaStore.getSource(sink.getName());
       if (existing == null) {
         throw new KsqlException("Unknown source: " + sink.getName());
       }
@@ -201,22 +201,22 @@ class Analyzer {
   }
 
   private KsqlTopicSerDe getIntoValueSerde() {
-    final List<Pair<StructuredDataSource, String>> fromDataSources = analysis
+    final List<Pair<DataSource<?>, String>> fromDataSources = analysis
         .getFromDataSources();
 
     if (analysis.getIntoFormat() != null) {
-      switch (analysis.getIntoFormat().toUpperCase()) {
-        case DataSource.AVRO_SERDE_NAME:
+      switch (analysis.getIntoFormat()) {
+        case AVRO:
           final String schemaFullName =
               StringUtil.cleanQuotes(
                   analysis.getIntoProperties().get(
                       DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME).toString());
           return new KsqlAvroTopicSerDe(schemaFullName);
 
-        case DataSource.JSON_SERDE_NAME:
+        case JSON:
           return new KsqlJsonTopicSerDe();
 
-        case DataSource.DELIMITED_SERDE_NAME:
+        case DELIMITED:
           return new KsqlDelimitedTopicSerDe();
 
         default:
@@ -253,27 +253,21 @@ class Analyzer {
   private void setIntoTopicFormat(final Sink sink) {
     final Object serdeProperty = sink.getProperties().get(DdlConfig.VALUE_FORMAT_PROPERTY);
 
-    String serde;
+    final Format format;
     if (serdeProperty != null) {
-      serde = serdeProperty.toString();
-
-      if (!serde.startsWith("'") && !serde.endsWith("'")) {
-        throw new KsqlException(
-            serde + " value is string and should be enclosed between " + "\"'\".");
-      }
-      serde = serde.substring(1, serde.length() - 1).toUpperCase();
+      format = Format.of(StringUtil.cleanQuotes(serdeProperty.toString()));
     } else {
-      final StructuredDataSource leftSource = analysis.getFromDataSource(0).left;
-      serde = leftSource.getKsqlTopic().getKsqlTopicSerDe().getSerDe().toString();
+      final DataSource<?> leftSource = analysis.getFromDataSource(0).left;
+      format = leftSource.getKsqlTopic().getKsqlTopicSerDe().getSerDe();
     }
 
-    analysis.setIntoFormat(serde);
-    analysis.getIntoProperties().put(DdlConfig.VALUE_FORMAT_PROPERTY, serde);
+    analysis.setIntoFormat(format);
+    analysis.getIntoProperties().put(DdlConfig.VALUE_FORMAT_PROPERTY, format);
 
     final Expression avroSchemaFullName =
         sink.getProperties().get(DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME);
 
-    if ("AVRO".equals(serde)) {
+    if (format == Format.AVRO) {
       analysis.getIntoProperties().put(
           DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME,
           avroSchemaFullName != null
@@ -354,7 +348,7 @@ class Analyzer {
     }
 
     private void analyzeExpressions() {
-      Schema schema = analysis.getFromDataSources().get(0).getLeft().getSchema();
+      KsqlSchema schema = analysis.getFromDataSources().get(0).getLeft().getSchema();
       boolean isJoinSchema = false;
       if (analysis.getJoin() != null) {
         schema = analysis.getJoin().getSchema();
@@ -382,13 +376,13 @@ class Analyzer {
       final AliasedRelation right = (AliasedRelation) process(node.getRight(), context);
 
       final String leftSideName = ((Table) left.getRelation()).getName().getSuffix();
-      final StructuredDataSource leftDataSource = metaStore.getSource(leftSideName);
+      final DataSource<?> leftDataSource = metaStore.getSource(leftSideName);
       if (leftDataSource == null) {
         throw new KsqlException(format("Resource %s does not exist.", leftSideName));
       }
 
       final String rightSideName = ((Table) right.getRelation()).getName().getSuffix();
-      final StructuredDataSource rightDataSource = metaStore.getSource(rightSideName);
+      final DataSource<?> rightDataSource = metaStore.getSource(rightSideName);
       if (rightDataSource == null) {
         throw new KsqlException(format("Resource %s does not exist.", rightSideName));
       }
@@ -402,38 +396,33 @@ class Analyzer {
       final ComparisonExpression comparisonExpression = (ComparisonExpression) joinOn
           .getExpression();
 
-      final Pair<String, String> leftSide = fetchKeyFieldName(
+      final Field leftJoinField = getJoinField(
           comparisonExpression,
           leftAlias,
           leftDataSource.getSchema()
       );
-      final Pair<String, String> rightSide = fetchKeyFieldName(
+
+      final Field rightJoinField = getJoinField(
           comparisonExpression,
           rightAlias,
           rightDataSource.getSchema()
       );
 
-      final String leftKeyFieldName = leftSide.getRight();
-      final String rightKeyFieldName = rightSide.getRight();
-
       if (comparisonExpression.getType() != ComparisonExpression.Type.EQUAL) {
         throw new KsqlException("Only equality join criteria is supported.");
       }
 
-      final StructuredDataSourceNode
-          leftSourceKafkaTopicNode =
-          new StructuredDataSourceNode(
-              new PlanNodeId("KafkaTopic_Left"),
-              leftDataSource,
-              leftAlias
-          );
-      final StructuredDataSourceNode
-          rightSourceKafkaTopicNode =
-          new StructuredDataSourceNode(
-              new PlanNodeId("KafkaTopic_Right"),
-              rightDataSource,
-              rightAlias
-          );
+      final DataSourceNode leftSourceKafkaTopicNode = new DataSourceNode(
+          new PlanNodeId("KafkaTopic_Left"),
+          leftDataSource,
+          leftAlias
+      );
+
+      final DataSourceNode rightSourceKafkaTopicNode = new DataSourceNode(
+          new PlanNodeId("KafkaTopic_Right"),
+          rightDataSource,
+          rightAlias
+      );
 
       final JoinNode joinNode =
           new JoinNode(
@@ -441,8 +430,8 @@ class Analyzer {
               joinType,
               leftSourceKafkaTopicNode,
               rightSourceKafkaTopicNode,
-              leftKeyFieldName,
-              rightKeyFieldName,
+              leftJoinField.name(),
+              rightJoinField.name(),
               leftAlias,
               rightAlias,
               node.getWithinExpression().orElse(null),
@@ -472,68 +461,69 @@ class Analyzer {
       return joinType;
     }
 
-    /**
-     * From the join criteria expression fetch the field corresponding to the given source alias.
-     */
-    private Pair<String, String> fetchKeyFieldName(
+    private Field getJoinField(
         final ComparisonExpression comparisonExpression,
         final String sourceAlias,
-        final Schema sourceSchema
+        final KsqlSchema sourceSchema
     ) {
-      Pair<String, String> keyInfo = fetchFieldNameFromExpr(
+      Optional<Field> joinField = getJoinFieldFromExpr(
           comparisonExpression.getLeft(),
           sourceAlias,
           sourceSchema
       );
-      if (keyInfo == null) {
-        keyInfo = fetchFieldNameFromExpr(
+
+      if (!joinField.isPresent()) {
+        joinField = getJoinFieldFromExpr(
             comparisonExpression.getRight(),
             sourceAlias,
             sourceSchema
         );
       }
-      if (keyInfo == null) {
-        throw new KsqlException(
-            String.format(
-                "%s : Invalid join criteria %s. Could not find a join criteria operand for %s. ",
-                comparisonExpression.getLocation().map(Objects::toString).orElse(""),
-                comparisonExpression, sourceAlias
-            )
-        );
-      }
-      return keyInfo;
+
+      return joinField
+          .orElseThrow(() -> new KsqlException(
+              String.format(
+                  "%s : Invalid join criteria %s. Could not find a join criteria operand for %s. ",
+                  comparisonExpression.getLocation().map(Objects::toString).orElse(""),
+                  comparisonExpression, sourceAlias
+              )
+          ));
     }
 
-    /**
-     * Given an expression and the source alias detects if the expression type is
-     * DereferenceExpression or QualifiedNameReference and if the variable prefix matches the source
-     * Alias.
-     */
-    private Pair<String, String> fetchFieldNameFromExpr(
-        final Expression expression, final String sourceAlias,
-        final Schema sourceSchema
+    private Optional<Field> getJoinFieldFromExpr(
+        final Expression expression,
+        final String sourceAlias,
+        final KsqlSchema sourceSchema
     ) {
       if (expression instanceof DereferenceExpression) {
-        final DereferenceExpression dereferenceExpression =
-            (DereferenceExpression) expression;
-        final String sourceAliasVal = dereferenceExpression.getBase().toString();
-        if (sourceAliasVal.equalsIgnoreCase(sourceAlias)) {
-          final String fieldName = dereferenceExpression.getFieldName();
-          if (SchemaUtil.getFieldByName(sourceSchema, fieldName).isPresent()) {
-            return new Pair<>(sourceAliasVal, fieldName);
-          }
+        final DereferenceExpression dereferenceExpr = (DereferenceExpression) expression;
+
+        final String sourceAliasVal = dereferenceExpr.getBase().toString();
+        if (!sourceAliasVal.equalsIgnoreCase(sourceAlias)) {
+          return Optional.empty();
         }
-      } else if (expression instanceof QualifiedNameReference) {
-        final QualifiedNameReference qualifiedNameReference =
-            (QualifiedNameReference) expression;
-        final String fieldName = qualifiedNameReference.getName().getSuffix();
-        if (SchemaUtil.getFieldByName(sourceSchema, fieldName).isPresent()) {
-          return new Pair<>(sourceAlias, fieldName);
-        }
+
+        final String fieldName = dereferenceExpr.getFieldName();
+        return getJoinFieldFromSource(fieldName, sourceAlias, sourceSchema);
       }
-      return null;
+
+      if (expression instanceof QualifiedNameReference) {
+        final QualifiedNameReference qualifiedNameRef = (QualifiedNameReference) expression;
+
+        final String fieldName = qualifiedNameRef.getName().getSuffix();
+        return getJoinFieldFromSource(fieldName, sourceAlias, sourceSchema);
+      }
+      return Optional.empty();
     }
 
+    private Optional<Field> getJoinFieldFromSource(
+        final String fieldName,
+        final String sourceAlias,
+        final KsqlSchema sourceSchema
+    ) {
+      return sourceSchema.findField(fieldName)
+          .map(field -> SchemaUtil.buildAliasedField(sourceAlias, field));
+    }
 
     @Override
     protected Node visitAliasedRelation(final AliasedRelation node, final Void context) {
@@ -542,7 +532,7 @@ class Analyzer {
         throw new KsqlException(structuredDataSourceName + " does not exist.");
       }
 
-      final Pair<StructuredDataSource, String> fromDataSource =
+      final Pair<DataSource<?>, String> fromDataSource =
           new Pair<>(
               metaStore.getSource(structuredDataSourceName),
               node.getAlias()

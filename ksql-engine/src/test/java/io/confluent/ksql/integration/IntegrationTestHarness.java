@@ -25,8 +25,8 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlContextTestUtil;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
-import io.confluent.ksql.serde.DataSource;
-import io.confluent.ksql.serde.DataSource.DataSourceSerDe;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
 import io.confluent.ksql.serde.delimited.KsqlDelimitedTopicSerDe;
@@ -180,7 +180,7 @@ public class IntegrationTestHarness extends ExternalResource {
   public Map<String, RecordMetadata> produceRows(
       final String topic,
       final TestDataProvider dataProvider,
-      final DataSourceSerDe valueFormat
+      final Format valueFormat
   ) {
     return produceRows(
         topic,
@@ -202,13 +202,13 @@ public class IntegrationTestHarness extends ExternalResource {
   public Map<String, RecordMetadata> produceRows(
       final String topic,
       final TestDataProvider dataProvider,
-      final DataSourceSerDe valueFormat,
+      final Format valueFormat,
       final Supplier<Long> timestampSupplier
   ) {
     return produceRows(
         topic,
         dataProvider.data(),
-        getSerializer(valueFormat, dataProvider.schema()),
+        getSerializer(valueFormat, dataProvider.schema().getSchema()),
         timestampSupplier
     );
   }
@@ -287,10 +287,11 @@ public class IntegrationTestHarness extends ExternalResource {
   public List<ConsumerRecord<String, GenericRow>> verifyAvailableRows(
       final String topic,
       final int expectedCount,
-      final DataSourceSerDe valueFormat,
-      final Schema schema
+      final Format valueFormat,
+      final KsqlSchema schema
   ) {
-    final Deserializer<GenericRow> valueDeserializer = getDeserializer(valueFormat, schema);
+    final Deserializer<GenericRow> valueDeserializer =
+        getDeserializer(valueFormat, schema.getSchema());
 
     try (final KafkaConsumer<String, GenericRow> consumer
         = new KafkaConsumer<>(consumerConfig(), new StringDeserializer(), valueDeserializer)) {
@@ -313,8 +314,8 @@ public class IntegrationTestHarness extends ExternalResource {
   public List<ConsumerRecord<String, GenericRow>> verifyAvailableRows(
       final String topic,
       final Matcher<? super List<ConsumerRecord<String, GenericRow>>> expected,
-      final DataSourceSerDe valueFormat,
-      final Schema schema
+      final Format valueFormat,
+      final KsqlSchema schema
   ) {
     return verifyAvailableRows(topic, expected, valueFormat, schema, new StringDeserializer());
   }
@@ -333,8 +334,8 @@ public class IntegrationTestHarness extends ExternalResource {
   public <K> List<ConsumerRecord<K, GenericRow>> verifyAvailableRows(
       final String topic,
       final Matcher<? super List<ConsumerRecord<K, GenericRow>>> expected,
-      final DataSourceSerDe valueFormat,
-      final Schema schema,
+      final Format valueFormat,
+      final KsqlSchema schema,
       final Deserializer<K> keyDeserializer
   ) {
     return verifyAvailableRows(
@@ -357,12 +358,13 @@ public class IntegrationTestHarness extends ExternalResource {
   public <K> List<ConsumerRecord<K, GenericRow>> verifyAvailableRows(
       final String topic,
       final Matcher<? super List<ConsumerRecord<K, GenericRow>>> expected,
-      final DataSourceSerDe valueFormat,
-      final Schema schema,
+      final Format valueFormat,
+      final KsqlSchema schema,
       final Deserializer<K> keyDeserializer,
       final Duration timeout
   ) {
-    final Deserializer<GenericRow> valueDeserializer = getDeserializer(valueFormat, schema);
+    final Deserializer<GenericRow> valueDeserializer =
+        getDeserializer(valueFormat, schema.getSchema());
 
     try (final KafkaConsumer<K, GenericRow> consumer
         = new KafkaConsumer<>(consumerConfig(), keyDeserializer, valueDeserializer)) {
@@ -385,8 +387,8 @@ public class IntegrationTestHarness extends ExternalResource {
   public Map<String, GenericRow> verifyAvailableUniqueRows(
       final String topic,
       final int expectedCount,
-      final DataSourceSerDe valueFormat,
-      final Schema schema
+      final Format valueFormat,
+      final KsqlSchema schema
   ) {
     return verifyAvailableUniqueRows(
         topic, expectedCount, valueFormat, schema, new StringDeserializer());
@@ -406,8 +408,8 @@ public class IntegrationTestHarness extends ExternalResource {
   public <K> Map<K, GenericRow> verifyAvailableUniqueRows(
       final String topic,
       final int expectedCount,
-      final DataSourceSerDe valueFormat,
-      final Schema schema,
+      final Format valueFormat,
+      final KsqlSchema schema,
       final Deserializer<K> keyDeserializer
   ) {
     return verifyAvailableUniqueRows(topic, is(expectedCount), valueFormat, schema,
@@ -428,11 +430,12 @@ public class IntegrationTestHarness extends ExternalResource {
   public <K> Map<K, GenericRow> verifyAvailableUniqueRows(
       final String topic,
       final Matcher<Integer> expectedCount,
-      final DataSourceSerDe valueFormat,
-      final Schema schema,
+      final Format valueFormat,
+      final KsqlSchema schema,
       final Deserializer<K> keyDeserializer
   ) {
-    final Deserializer<GenericRow> valueDeserializer = getDeserializer(valueFormat, schema);
+    final Deserializer<GenericRow> valueDeserializer =
+        getDeserializer(valueFormat, schema.getSchema());
 
     try (final KafkaConsumer<K, GenericRow> consumer
         = new KafkaConsumer<>(consumerConfig(), keyDeserializer, valueDeserializer)) {
@@ -554,7 +557,7 @@ public class IntegrationTestHarness extends ExternalResource {
   }
 
   private static KsqlTopicSerDe getSerde(
-      final DataSource.DataSourceSerDe dataSourceSerDe) {
+      final Format dataSourceSerDe) {
     switch (dataSourceSerDe) {
       case JSON:
         return new KsqlJsonTopicSerDe();
@@ -568,7 +571,7 @@ public class IntegrationTestHarness extends ExternalResource {
   }
 
   private Serializer getSerializer(
-      final DataSource.DataSourceSerDe dataSourceSerDe,
+      final Format dataSourceSerDe,
       final Schema schema) {
     return getSerde(dataSourceSerDe).getGenericRowSerde(
         schema,
@@ -580,7 +583,7 @@ public class IntegrationTestHarness extends ExternalResource {
   }
 
   private Deserializer<GenericRow> getDeserializer(
-      final DataSource.DataSourceSerDe dataSourceSerDe,
+      final Format dataSourceSerDe,
       final Schema schema) {
     return getSerde(dataSourceSerDe).getGenericRowSerde(
         schema,
@@ -591,11 +594,11 @@ public class IntegrationTestHarness extends ExternalResource {
     ).deserializer();
   }
 
-  public void ensureSchema(final String topicName, final Schema schema) {
+  public void ensureSchema(final String topicName, final KsqlSchema schema) {
     final SchemaRegistryClient srClient = serviceContext.get().getSchemaRegistryClient();
     try {
       final org.apache.avro.Schema avroSchema = SchemaUtil
-          .buildAvroSchema(schema, "test-" + topicName);
+          .buildAvroSchema(schema.getSchema(), "test-" + topicName);
 
       srClient.register(topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX, avroSchema);
     } catch (final Exception e) {

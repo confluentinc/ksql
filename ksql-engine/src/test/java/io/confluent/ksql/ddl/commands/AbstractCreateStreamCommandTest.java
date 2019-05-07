@@ -27,6 +27,7 @@ import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
 import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.StringLiteral;
@@ -146,18 +147,58 @@ public class AbstractCreateStreamCommandTest {
     verify(kafkaTopicClient).isTopicExists(TOPIC_NAME);
   }
 
-  private static Map<String, Expression> minValidProps() {
+  @Test
+  public void shouldThrowIfKeyFieldNotInSchema() {
+    // Given:
+    when(statement.getProperties()).thenReturn(minValidProps());
+    givenPropertiesWith(ImmutableMap.of(
+        DdlConfig.KEY_NAME_PROPERTY, new StringLiteral("will-not-find-me")));
+
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(
+        "The KEY column set in the WITH clause does not exist in the schema: "
+            + "'WILL-NOT-FIND-ME'");
+
+    // When:
+    new TestCmd("key not in schema!", statement, kafkaTopicClient);
+  }
+
+  @Test
+  public void shouldThrowIfTimestampColumnDoesNotExist() {
+    // Given:
+    when(statement.getProperties()).thenReturn(minValidProps());
+    givenPropertiesWith(ImmutableMap.of(
+        DdlConfig.TIMESTAMP_NAME_PROPERTY, new StringLiteral("will-not-find-me")));
+
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(
+        "The TIMESTAMP column set in the WITH clause does not exist in the schema: "
+            + "'WILL-NOT-FIND-ME'");
+
+    // When:
+    new TestCmd("key not in schema!", statement, kafkaTopicClient);
+  }
+
+  private static Map<String, Literal> minValidProps() {
     return ImmutableMap.of(
         DdlConfig.VALUE_FORMAT_PROPERTY, new StringLiteral("json"),
         DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral(TOPIC_NAME)
     );
   }
 
-  private static Map<String, Expression> propsWithout(final String name) {
-    final HashMap<String, Expression> props = new HashMap<>(minValidProps());
+  private static Map<String, Literal> propsWithout(final String name) {
+    final HashMap<String, Literal> props = new HashMap<>(minValidProps());
     final Expression removed = props.remove(name);
     assertThat("invalid test", removed, is(notNullValue()));
     return ImmutableMap.copyOf(props);
+  }
+
+  private void givenPropertiesWith(final Map<String, Literal> additionalProps) {
+    final Map<String, Literal> allProps = new HashMap<>(minValidProps());
+    allProps.putAll(additionalProps);
+    when(statement.getProperties()).thenReturn(allProps);
   }
 
   private static final class TestCmd extends AbstractCreateStreamCommand {

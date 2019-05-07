@@ -187,7 +187,9 @@ public class StandaloneExecutor implements Executable {
     final boolean hasQueries = executeStatements(statements, sandboxExecutor);
 
     if (failOnNoQueries && !hasQueries) {
-      throw new KsqlException("The SQL file did not contain any queries");
+      throw new KsqlException("The SQL file does not contain any persistent queries. "
+              + "i.e. it contains no 'INSERT INTO', 'CREATE TABLE x AS SELECT' or "
+              + "'CREATE STREAM x AS SELECT' style statements.");
     }
   }
 

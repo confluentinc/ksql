@@ -18,15 +18,12 @@ package io.confluent.ksql.util;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
-import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.notNullValue;
 
 import java.lang.reflect.Type;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -392,44 +389,25 @@ public class SchemaUtilTest {
   }
 
   @Test
-  public void shouldGetTheCorrectFieldName() {
-    final Optional<Field> field = SchemaUtil.getFieldByName(schema, "orderid".toUpperCase());
-    Assert.assertTrue(field.isPresent());
-    assertThat(field.get().schema(), sameInstance(Schema.OPTIONAL_INT64_SCHEMA));
-    assertThat("", field.get().name().toLowerCase(), equalTo("orderid"));
-
-    final Optional<Field> field1 = SchemaUtil.getFieldByName(schema, "orderid");
-    Assert.assertFalse(field1.isPresent());
+  public void shouldMatchFieldNameOnExactMatch() {
+    assertThat(SchemaUtil.isFieldName("bob", "bob"), is(true));
+    assertThat(SchemaUtil.isFieldName("aliased.bob", "aliased.bob"), is(true));
   }
 
   @Test
-  public void shouldGetTheCorrectFieldIndex() {
-    final int index1 = SchemaUtil.getFieldIndexByName(schema, "orderid".toUpperCase());
-    final int index2 = SchemaUtil.getFieldIndexByName(schema, "itemid".toUpperCase());
-    final int index3 = SchemaUtil.getFieldIndexByName(schema, "mapcol".toUpperCase());
-
-    assertThat("Incorrect index.", index1, equalTo(1));
-    assertThat("Incorrect index.", index2, equalTo(2));
-    assertThat("Incorrect index.", index3, equalTo(5));
-
+  public void shouldMatchFieldNameEvenIfActualAliased() {
+    assertThat(SchemaUtil.isFieldName("aliased.bob", "bob"), is(true));
   }
 
   @Test
-  public void shouldHandleInvalidFieldIndexCorrectly() {
-    final int index = SchemaUtil.getFieldIndexByName(schema, "mapcol1".toUpperCase());
-    assertThat("Incorrect index.", index, equalTo(-1));
+  public void shouldNotMatchFieldNamesOnMismatch() {
+    assertThat(SchemaUtil.isFieldName("different", "bob"), is(false));
+    assertThat(SchemaUtil.isFieldName("aliased.different", "bob"), is(false));
   }
 
   @Test
-  public void shouldBuildTheCorrectSchemaWithAlias() {
-    final String alias = "Hello";
-    final Schema schemaWithAlias = SchemaUtil.buildSchemaWithAlias(schema, alias);
-    assertThat(schemaWithAlias.fields(), hasSize(schema.fields().size()));
-    for (int i = 0; i < schemaWithAlias.fields().size(); i++) {
-      final Field fieldWithAlias = schemaWithAlias.fields().get(i);
-      final Field field = schema.fields().get(i);
-      assertThat(fieldWithAlias.name(), equalTo(alias + "." + field.name()));
-    }
+  public void shouldNotMatchFieldNamesIfRequiredIsAliased() {
+    assertThat(SchemaUtil.isFieldName("bob", "aliased.bob"), is(false));
   }
 
   @Test
@@ -446,44 +424,7 @@ public class SchemaUtilTest {
         equalTo("(String)"));
   }
 
-  @Test
-  public void shouldAddAndRemoveImplicitColumns() {
-    // Given:
-    final int initialFieldCount = schema.fields().size();
 
-    // When:
-    final Schema withImplicit = SchemaUtil.addImplicitRowTimeRowKeyToSchema(schema);
-
-    // Then:
-    assertThat("Invalid field count.", withImplicit.fields(), hasSize(initialFieldCount + 2));
-    assertThat("Field name should be ROWTIME.", withImplicit.fields().get(0).name(),
-        equalTo(SchemaUtil.ROWTIME_NAME));
-    assertThat("Field name should ne ROWKEY.", withImplicit.fields().get(1).name(),
-        equalTo(SchemaUtil.ROWKEY_NAME));
-
-    // When:
-    final Schema withoutImplicit = SchemaUtil.removeImplicitRowTimeRowKeyFromSchema(withImplicit);
-
-    // Then:
-    assertThat("Invalid field count.", withoutImplicit.fields(), hasSize(initialFieldCount));
-    assertThat("Invalid field name.", withoutImplicit.fields().get(0).name(), equalTo("ORDERTIME"));
-    assertThat("Invalid field name.", withoutImplicit.fields().get(1).name(), equalTo("ORDERID"));
-  }
-
-  @Test
-  public void shouldGetTheSchemaDefString() {
-    final String schemaDef = SchemaUtil.getSchemaDefinitionString(schema);
-    assertThat("Invalid schema def.", schemaDef, equalTo("[ORDERTIME : BIGINT, "
-        + "ORDERID : BIGINT, "
-        + "ITEMID : VARCHAR, "
-        + "ORDERUNITS : DOUBLE, "
-        + "ARRAYCOL : ARRAY<DOUBLE>, "
-        + "MAPCOL : MAP<VARCHAR,DOUBLE>, "
-        + "RAW_STRUCT : STRUCT<f0 BIGINT, f1 BOOLEAN>, "
-        + "ARRAY_OF_STRUCTS : ARRAY<STRUCT<f0 BIGINT, f1 BOOLEAN>>, "
-        + "MAP-OF-STRUCTS : MAP<VARCHAR,STRUCT<f0 BIGINT, f1 BOOLEAN>>, "
-        + "NESTED.STRUCTS : STRUCT<s0 STRUCT<f0 BIGINT, f1 BOOLEAN>, s1 STRUCT<ss0 STRUCT<f0 BIGINT, f1 BOOLEAN>>>]"));
-  }
 
   @Test
   public void shouldGetCorrectSqlType() {
@@ -522,17 +463,45 @@ public class SchemaUtilTest {
   }
 
   @Test
+  public void shouldStripAliasFromField() {
+    // Given:
+    final Field field = new Field("alias.some-field-name", 1, Schema.OPTIONAL_STRING_SCHEMA);
+
+    // When:
+    final String result = SchemaUtil.getFieldNameWithNoAlias(field);
+
+    // Then:
+    assertThat(result, is("some-field-name"));
+  }
+
+  @Test
+  public void shouldReturnFieldWithoutAliasAsIs() {
+    // Given:
+    final Field field = new Field("some-field-name", 1, Schema.OPTIONAL_STRING_SCHEMA);
+
+    // When:
+    final String result = SchemaUtil.getFieldNameWithNoAlias(field);
+
+    // Then:
+    assertThat(result, is("some-field-name"));
+  }
+
+  @Test
   public void shouldStripAliasFromFieldName() {
-    final Schema schemaWithAlias = SchemaUtil.buildSchemaWithAlias(schema, "alias");
-    assertThat("Invalid field name",
-        SchemaUtil.getFieldNameWithNoAlias(schemaWithAlias.fields().get(0)),
-        equalTo(schema.fields().get(0).name()));
+    // When:
+    final String result = SchemaUtil.getFieldNameWithNoAlias("some-alias.some-field-name");
+
+    // Then:
+    assertThat(result, is("some-field-name"));
   }
 
   @Test
   public void shouldReturnFieldNameWithoutAliasAsIs() {
-    assertThat("Invalid field name", SchemaUtil.getFieldNameWithNoAlias(schema.fields().get(0)),
-        equalTo(schema.fields().get(0).name()));
+    // When:
+    final String result = SchemaUtil.getFieldNameWithNoAlias("some-field-name");
+
+    // Then:
+    assertThat(result, is("some-field-name"));
   }
 
   @Test

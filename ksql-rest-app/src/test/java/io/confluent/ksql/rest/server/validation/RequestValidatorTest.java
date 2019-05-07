@@ -41,6 +41,7 @@ import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.Explain;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.services.SandboxedServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
@@ -67,8 +68,10 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class RequestValidatorTest {
 
-  private static final Schema SCHEMA =
-      SchemaBuilder.struct().field("val", Schema.OPTIONAL_STRING_SCHEMA).build();
+  private static final KsqlSchema SCHEMA = KsqlSchema.of(SchemaBuilder
+      .struct()
+      .field("val", Schema.OPTIONAL_STRING_SCHEMA)
+      .build());
 
   @Rule
   public ExpectedException expectedException = ExpectedException.none();
@@ -129,7 +132,7 @@ public class RequestValidatorTest {
         givenParsed("CREATE STREAM x WITH (kafka_topic='x');");
 
     // When:
-    validator.validate(statements, ImmutableMap.of(), "sql");
+    validator.validate(serviceContext, statements, ImmutableMap.of(), "sql");
 
     // Then:
     verify(statementValidator, times(1)).validate(
@@ -145,7 +148,7 @@ public class RequestValidatorTest {
     final List<ParsedStatement> statements = givenParsed("SET 'property'='value';");
 
     // When:
-    validator.validate(statements, ImmutableMap.of(), "sql");
+    validator.validate(serviceContext, statements, ImmutableMap.of(), "sql");
 
     // Then:
     verify(ksqlEngine, times(1)).execute(
@@ -170,7 +173,7 @@ public class RequestValidatorTest {
     expectedException.expectMessage("Fail");
 
     // When:
-    validator.validate(statements, ImmutableMap.of(), "sql");
+    validator.validate(serviceContext, statements, ImmutableMap.of(), "sql");
   }
 
   @Test
@@ -184,7 +187,7 @@ public class RequestValidatorTest {
     expectedException.expectMessage("Do not know how to validate statement");
 
     // When:
-    validator.validate(statements, ImmutableMap.of(), "sql");
+    validator.validate(serviceContext, statements, ImmutableMap.of(), "sql");
   }
 
   @Test
@@ -203,7 +206,7 @@ public class RequestValidatorTest {
     expectedException.expectMessage("persistent queries to exceed the configured limit");
 
     // When:
-    validator.validate(statements, ImmutableMap.of(), "sql");
+    validator.validate(serviceContext, statements, ImmutableMap.of(), "sql");
   }
 
   @Test
@@ -224,7 +227,7 @@ public class RequestValidatorTest {
 
     // Expect Nothing:
     // When:
-    validator.validate(statements, ImmutableMap.of(), "sql");
+    validator.validate(serviceContext, statements, ImmutableMap.of(), "sql");
   }
 
   @Test
@@ -241,7 +244,7 @@ public class RequestValidatorTest {
     final List<ParsedStatement> statements = givenParsed("RUN SCRIPT '/some/script.sql';");
 
     // When:
-    validator.validate(statements, props, "sql");
+    validator.validate(serviceContext, statements, props, "sql");
 
     // Then:
     verify(statementValidator, times(1)).validate(
@@ -270,7 +273,7 @@ public class RequestValidatorTest {
     expectedException.expectMessage("Invalid config property: invalid.property");
 
     // When:
-    validator.validate(statements, props, "sql");
+    validator.validate(serviceContext, statements, props, "sql");
   }
 
   @Test
@@ -287,7 +290,7 @@ public class RequestValidatorTest {
         );
 
     // When:
-    validator.validate(statements, props, "sql");
+    validator.validate(serviceContext, statements, props, "sql");
 
     // Then:
     verify(statementValidator, times(1)).validate(
@@ -302,13 +305,14 @@ public class RequestValidatorTest {
   public void shouldThrowIfServiceContextIsNotSandbox() {
     // Given:
     serviceContext = mock(ServiceContext.class);
+    givenRequestValidator(ImmutableMap.of());
 
     // Expect:
     expectedException.expect(IllegalArgumentException.class);
     expectedException.expectMessage("Expected sandbox");
 
     // When:
-    givenRequestValidator(ImmutableMap.of());
+    validator.validate(serviceContext, ImmutableList.of(), ImmutableMap.of(), "sql");
   }
 
   @Test
@@ -322,7 +326,7 @@ public class RequestValidatorTest {
     expectedException.expectMessage("Expected sandbox");
 
     // When:
-    validator.validate(ImmutableList.of(), ImmutableMap.of(), "sql");
+    validator.validate(serviceContext, ImmutableList.of(), ImmutableMap.of(), "sql");
   }
 
   private List<ParsedStatement> givenParsed(final String sql) {
@@ -336,7 +340,6 @@ public class RequestValidatorTest {
         customValidators,
         (ec, sc) -> InjectorChain.of(schemaInjector, topicInjector),
         () -> executionContext,
-        serviceContext,
         ksqlConfig
     );
   }

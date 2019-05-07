@@ -20,7 +20,7 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MutableMetaStore;
-import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.parser.tree.StringLiteral;
@@ -67,14 +67,14 @@ public class RegisterTopicCommandTest {
         return new RegisterTopicCommand(registerTopicStatement);
     }
 
-    private static Map<String, Expression> propsWith(final Map<String, Expression> props) {
-        Map<String, Expression> valid = new HashMap<>(props);
+    private static Map<String, Literal> propsWith(final Map<String, Literal> props) {
+        Map<String, Literal> valid = new HashMap<>(props);
         valid.putIfAbsent(DdlConfig.VALUE_FORMAT_PROPERTY, new StringLiteral("Json"));
         valid.putIfAbsent(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral("some-topic"));
         return valid;
     }
 
-    private void givenProperties(final Map<String, Expression> props) {
+    private void givenProperties(final Map<String, Literal> props) {
         EasyMock.expect(registerTopicStatement.getProperties()).andReturn(props).anyTimes();
         EasyMock.expect(registerTopicStatement.getName()).andReturn(QualifiedName.of("name")).anyTimes();
         EasyMock.replay(registerTopicStatement);

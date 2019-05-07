@@ -15,11 +15,14 @@
 
 package io.confluent.ksql.services;
 
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import io.confluent.ksql.exception.KafkaResponseGetFailedException;
+import io.confluent.ksql.topic.TopicProperties;
 import io.confluent.ksql.util.ExecutorUtil;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlServerException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -31,27 +34,34 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import javax.annotation.concurrent.ThreadSafe;
 import org.apache.kafka.clients.admin.AdminClient;
+import org.apache.kafka.clients.admin.AlterConfigOp;
 import org.apache.kafka.clients.admin.Config;
 import org.apache.kafka.clients.admin.ConfigEntry;
 import org.apache.kafka.clients.admin.DeleteTopicsResult;
-import org.apache.kafka.clients.admin.DescribeClusterResult;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.KafkaFuture;
 import org.apache.kafka.common.Node;
 import org.apache.kafka.common.config.ConfigResource;
+import org.apache.kafka.common.config.ConfigResource.Type;
 import org.apache.kafka.common.config.TopicConfig;
 import org.apache.kafka.common.errors.TopicExistsException;
+import org.apache.kafka.common.errors.UnsupportedVersionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * Note: all calls make cross machine calls and are synchronous.
  */
+// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 @ThreadSafe
 public class KafkaTopicClientImpl implements KafkaTopicClient {
+  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
-  private static final Logger log = LoggerFactory.getLogger(KafkaTopicClient.class);
+  private static final Logger LOG = LoggerFactory.getLogger(KafkaTopicClient.class);
+
+  private static final String DEFAULT_REPLICATION_PROP = "default.replication.factor";
+  private static final String DELETE_TOPIC_ENABLE = "delete.topic.enable";
 
   private final AdminClient adminClient;
   private final boolean isDeleteTopicEnabled;
@@ -63,7 +73,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
    */
   public KafkaTopicClientImpl(final AdminClient adminClient) {
     this.adminClient = Objects.requireNonNull(adminClient, "adminClient");
-    this.isDeleteTopicEnabled = isTopicDeleteEnabled(adminClient);
+    this.isDeleteTopicEnabled = isTopicDeleteEnabled();
   }
 
   @Override
@@ -73,20 +83,24 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
       final short replicationFactor,
       final Map<String, ?> configs
   ) {
+    final short replicas = replicationFactor == TopicProperties.DEFAULT_REPLICAS
+        ? getDefaultClusterReplication()
+        : replicationFactor;
     if (isTopicExists(topic)) {
-      validateTopicProperties(topic, numPartitions, replicationFactor);
+      validateTopicProperties(topic, numPartitions, replicas);
       return;
     }
 
-    final NewTopic newTopic = new NewTopic(topic, numPartitions, replicationFactor);
+    final NewTopic newTopic = new NewTopic(topic, numPartitions, replicas);
     newTopic.configs(toStringConfigs(configs));
 
     try {
-      log.info("Creating topic '{}'", topic);
+      LOG.info("Creating topic '{}'", topic);
       ExecutorUtil.executeWithRetries(
           () -> adminClient.createTopics(Collections.singleton(newTopic)).all().get(),
           ExecutorUtil.RetryBehaviour.ON_RETRYABLE);
     } catch (final InterruptedException e) {
+      Thread.currentThread().interrupt();
       throw new KafkaResponseGetFailedException(
           "Failed to guarantee existence of topic " + topic, e);
 
@@ -94,7 +108,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
       // if the topic already exists, it is most likely because another node just created it.
       // ensure that it matches the partition count and replication factor before returning
       // success
-      validateTopicProperties(topic, numPartitions, replicationFactor);
+      validateTopicProperties(topic, numPartitions, replicas);
 
     } catch (final Exception e) {
       throw new KafkaResponseGetFailedException(
@@ -103,9 +117,29 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
     }
   }
 
+  /**
+   * We need this method because {@link AdminClient#createTopics(Collection)} does not allow
+   * you to pass in only partitions. Instead, we determine the default number from the cluster
+   * config and then pass that value back.
+   *
+   * @return the default broker configuration
+   */
+  private short getDefaultClusterReplication() {
+    try {
+      final String defaultReplication = getConfig()
+          .get(DEFAULT_REPLICATION_PROP)
+          .value();
+      return Short.parseShort(defaultReplication);
+    } catch (final KsqlServerException e) {
+      throw e;
+    } catch (final Exception e) {
+      throw new KsqlServerException("Could not get default replication from Kafka cluster!", e);
+    }
+  }
+
   @Override
   public boolean isTopicExists(final String topic) {
-    log.trace("Checking for existence of topic '{}'", topic);
+    LOG.trace("Checking for existence of topic '{}'", topic);
     return listTopicNames().contains(topic);
   }
 
@@ -161,20 +195,21 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
         return false;
       }
 
-      existingConfig.putAll(toStringConfigs(overrides));
-
-      final Set<ConfigEntry> entries = existingConfig.entrySet().stream()
-          .map(e -> new ConfigEntry(e.getKey(), e.getValue()))
+      final Set<AlterConfigOp> entries = overrides.entrySet().stream()
+          .map(e -> new ConfigEntry(e.getKey(), e.getValue().toString()))
+          .map(ce -> new AlterConfigOp(ce, AlterConfigOp.OpType.SET))
           .collect(Collectors.toSet());
 
-      final Map<ConfigResource, Config> request =
-          Collections.singletonMap(resource, new Config(entries));
+      final Map<ConfigResource, Collection<AlterConfigOp>> request =
+          Collections.singletonMap(resource, entries);
 
       ExecutorUtil.executeWithRetries(
-          () -> adminClient.alterConfigs(request).all().get(),
+          () -> adminClient.incrementalAlterConfigs(request).all().get(),
           ExecutorUtil.RetryBehaviour.ON_RETRYABLE);
 
       return true;
+    } catch (final UnsupportedVersionException e) {
+      return addTopicConfigLegacy(topicName, overrides);
     } catch (final Exception e) {
       throw new KafkaResponseGetFailedException(
           "Failed to set config for Kafka Topic " + topicName, e);
@@ -204,7 +239,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
       return;
     }
     if (!isDeleteTopicEnabled) {
-      log.info("Cannot delete topics since 'delete.topic.enable' is false. ");
+      LOG.info("Cannot delete topics since '" + DELETE_TOPIC_ENABLE + "' is false. ");
       return;
     }
     final DeleteTopicsResult deleteTopicsResult = adminClient.deleteTopics(topicsToDelete);
@@ -219,15 +254,14 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
       }
     }
     if (!failList.isEmpty()) {
-      throw new KsqlException("Failed to clean up topics: " + failList.stream()
-          .collect(Collectors.joining(",")));
+      throw new KsqlException("Failed to clean up topics: " + String.join(",", failList));
     }
   }
 
   @Override
   public void deleteInternalTopics(final String applicationId) {
     if (!isDeleteTopicEnabled) {
-      log.warn("Cannot delete topics since 'delete.topic.enable' is false. ");
+      LOG.warn("Cannot delete topics since '" + DELETE_TOPIC_ENABLE + "' is false. ");
       return;
     }
     try {
@@ -242,43 +276,46 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
         deleteTopics(internalTopics);
       }
     } catch (final Exception e) {
-      log.error("Exception while trying to clean up internal topics for application id: {}.",
+      LOG.error("Exception while trying to clean up internal topics for application id: {}.",
           applicationId, e
       );
     }
   }
 
-  private static boolean isTopicDeleteEnabled(final AdminClient adminClient) {
+  private boolean isTopicDeleteEnabled() {
     try {
-      final DescribeClusterResult describeClusterResult = adminClient.describeCluster();
-      final Collection<Node> nodes = describeClusterResult.nodes().get();
-      if (nodes.isEmpty()) {
-        log.warn("No available broker found to fetch config info.");
-        throw new KsqlException("Could not fetch broker information. KSQL cannot initialize");
+      final ConfigEntry configEntry = getConfig().get(DELETE_TOPIC_ENABLE);
+      // default to true if there is no entry
+      return configEntry == null || Boolean.valueOf(configEntry.value());
+    } catch (final Exception e) {
+      LOG.error("Failed to initialize TopicClient: {}", e.getMessage());
+      throw new KafkaResponseGetFailedException(
+          "Could not fetch broker information. KSQL cannot initialize", e);
+    }
+  }
+
+  private Config getConfig() {
+    try {
+      final Collection<Node> brokers = adminClient.describeCluster().nodes().get();
+      final Node broker = Iterables.getFirst(brokers, null);
+      if (broker == null) {
+        LOG.warn("No available broker found to fetch config info.");
+        throw new KsqlServerException(
+            "AdminClient discovered an empty Kafka Cluster. "
+                + "Check that Kafka is deployed and KSQL is properly configured.");
       }
 
-      final ConfigResource resource = new ConfigResource(
-          ConfigResource.Type.BROKER,
-          String.valueOf(nodes.iterator().next().id())
-      );
+      final ConfigResource configResource = new ConfigResource(Type.BROKER, broker.idString());
 
-      final Map<ConfigResource, Config> config = ExecutorUtil.executeWithRetries(
-          () -> adminClient.describeConfigs(Collections.singleton(resource)).all().get(),
+      final Map<ConfigResource, Config> brokerConfig = ExecutorUtil.executeWithRetries(
+          () -> adminClient.describeConfigs(Collections.singleton(configResource)).all().get(),
           ExecutorUtil.RetryBehaviour.ON_RETRYABLE);
 
-      return config.get(resource)
-          .entries()
-          .stream()
-          .filter(configEntry -> configEntry.name().equalsIgnoreCase("delete.topic.enable"))
-          .findFirst()
-          .map(configEntry -> configEntry.value().equalsIgnoreCase("true"))
-          // if the broker does not provide the config value, default to true in an attempt
-          // to clean up topics
-          .orElse(true);
-
+      return brokerConfig.get(configResource);
+    } catch (final KsqlServerException e) {
+      throw e;
     } catch (final Exception e) {
-      log.error("Failed to initialize TopicClient: {}", e.getMessage());
-      throw new KsqlException("Could not fetch broker information. KSQL cannot initialize", e);
+      throw new KsqlServerException("Could not get Kafka cluster configuration!", e);
     }
   }
 
@@ -296,7 +333,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
     final TopicDescription existingTopic = describeTopic(topic);
     TopicValidationUtil
         .validateTopicProperties(requiredNumPartition, requiredNumReplicas, existingTopic);
-    log.debug(
+    LOG.debug(
         "Did not create topic {} with {} partitions and replication-factor {} since it exists",
         topic, requiredNumPartition, requiredNumReplicas);
   }
@@ -317,6 +354,34 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
     } catch (final Exception e) {
       throw new KafkaResponseGetFailedException(
           "Failed to get config for Kafka Topic " + topicName, e);
+    }
+  }
+
+  // 'alterConfigs' deprecated, but new `incrementalAlterConfigs` only available on Kafka v2.3+
+  // So we need to continue to support older brokers until our min requirements reaches v2.3
+  @SuppressWarnings({"deprecation", "RedundantSuppression"})
+  private boolean addTopicConfigLegacy(final String topicName, final Map<String, ?> overrides) {
+    final ConfigResource resource = new ConfigResource(ConfigResource.Type.TOPIC, topicName);
+
+    try {
+      final Map<String, String> existingConfig = topicConfig(topicName, false);
+      existingConfig.putAll(toStringConfigs(overrides));
+
+      final Set<ConfigEntry> entries = existingConfig.entrySet().stream()
+          .map(e -> new ConfigEntry(e.getKey(), e.getValue()))
+          .collect(Collectors.toSet());
+
+      final Map<ConfigResource, Config> request =
+          Collections.singletonMap(resource, new Config(entries));
+
+      ExecutorUtil.executeWithRetries(
+          () -> adminClient.alterConfigs(request).all().get(),
+          ExecutorUtil.RetryBehaviour.ON_RETRYABLE);
+
+      return true;
+    } catch (final Exception e) {
+      throw new KafkaResponseGetFailedException(
+          "Failed to set config for Kafka Topic " + topicName, e);
     }
   }
 

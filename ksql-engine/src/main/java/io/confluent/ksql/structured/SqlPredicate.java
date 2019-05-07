@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.structured;
 
+import static java.util.Objects.requireNonNull;
+
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.codegen.CodeGenRunner;
 import io.confluent.ksql.codegen.SqlToJavaVisitor;
@@ -22,24 +24,23 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.util.EngineProcessingLogMessageFactory;
 import io.confluent.ksql.util.ExpressionMetadata;
 import io.confluent.ksql.util.GenericRowValueTypeEnforcer;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
-import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.kstream.Predicate;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.codehaus.commons.compiler.CompilerFactoryFactory;
 import org.codehaus.commons.compiler.IExpressionEvaluator;
 
-public class SqlPredicate {
+class SqlPredicate {
+
   private final Expression filterExpression;
-  private final Schema schema;
+  private final KsqlSchema schema;
   private final IExpressionEvaluator ee;
   private final int[] columnIndexes;
   private final boolean isWindowedKey;
@@ -50,19 +51,19 @@ public class SqlPredicate {
 
   SqlPredicate(
       final Expression filterExpression,
-      final Schema schema,
+      final KsqlSchema schema,
       final boolean isWindowedKey,
       final KsqlConfig ksqlConfig,
       final FunctionRegistry functionRegistry,
       final ProcessingLogger processingLogger
   ) {
-    this.filterExpression = filterExpression;
-    this.schema = schema;
+    this.filterExpression = requireNonNull(filterExpression, "filterExpression");
+    this.schema = requireNonNull(schema, "schema");
     this.genericRowValueTypeEnforcer = new GenericRowValueTypeEnforcer(schema);
     this.isWindowedKey = isWindowedKey;
-    this.functionRegistry = functionRegistry;
-    this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
-    this.processingLogger = Objects.requireNonNull(processingLogger);
+    this.functionRegistry = requireNonNull(functionRegistry, "functionRegistry");
+    this.ksqlConfig = requireNonNull(ksqlConfig, "ksqlConfig");
+    this.processingLogger = requireNonNull(processingLogger);
 
     final CodeGenRunner codeGenRunner = new CodeGenRunner(schema, ksqlConfig, functionRegistry);
     final Set<CodeGenRunner.ParameterType> parameters
@@ -73,9 +74,9 @@ public class SqlPredicate {
     columnIndexes = new int[parameters.size()];
     int index = 0;
     for (final CodeGenRunner.ParameterType param : parameters) {
-      parameterNames[index] = param.getName();
+      parameterNames[index] = param.getParamName();
       parameterTypes[index] = param.getType();
-      columnIndexes[index] = SchemaUtil.getFieldIndexByName(schema, param.getName());
+      columnIndexes[index] = schema.fieldIndex(param.getFieldName()).orElse(-1);
       index++;
     }
 
@@ -188,12 +189,8 @@ public class SqlPredicate {
     );
   }
 
-  public Expression getFilterExpression() {
+  Expression getFilterExpression() {
     return filterExpression;
-  }
-
-  public Schema getSchema() {
-    return schema;
   }
 
   // visible for testing

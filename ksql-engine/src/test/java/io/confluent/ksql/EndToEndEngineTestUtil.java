@@ -47,7 +47,7 @@ import io.confluent.ksql.function.TestFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.MutableMetaStore;
-import io.confluent.ksql.metastore.model.StructuredDataSource;
+import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
@@ -73,6 +73,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.avro.generic.GenericData;
@@ -648,10 +650,14 @@ final class EndToEndEngineTestUtil {
 
     void verifyTopology() {
       expectedTopology.ifPresent(expected -> {
+
+        final String expectedTopology = standardizeTopology(expected.topology);
+        final String actualTopology = standardizeTopology(generatedTopology);
+
         assertThat("Generated topology differs from that built by previous versions of KSQL"
                 + " - this likely means there is a non-backwards compatible change.\n"
                 + "THIS IS BAD!",
-            generatedTopology, is(expected.topology));
+            actualTopology, is(expectedTopology));
 
         expected.schemas.ifPresent(schemas -> {
           assertThat("Schemas used by topology differ from those used by previous versions"
@@ -660,6 +666,49 @@ final class EndToEndEngineTestUtil {
               generatedSchemas, is(schemas));
         });
       });
+    }
+
+    /**
+     * Convert a string topology into a standard form.
+     *
+     * <p>The standardized form takes known compatible changes into account.
+     */
+    private static String standardizeTopology(final String topology) {
+      final String[] lines = topology.split(System.lineSeparator());
+      final Pattern aggGroupBy = Pattern.compile("(.*)(--> |<-- |Processor: )Aggregate-groupby(.*)");
+      final Pattern linePattern = Pattern.compile("(.*)((?:KSTREAM|KTABLE)-.+-)(\\d+)(.*)");
+
+      final StringBuilder result = new StringBuilder();
+      final AtomicInteger nodeCounter = new AtomicInteger();
+      final Map<String, String> nodeMappings = new HashMap<>();
+
+      for (String line : lines) {
+        final java.util.regex.Matcher aggGroupMatcher = aggGroupBy.matcher(line);
+        if (aggGroupMatcher.matches()) {
+          line = aggGroupMatcher.group(1)
+              + aggGroupMatcher.group(2)
+              + "KSTREAM-KEY-SELECT-99999"
+              + aggGroupMatcher.group(3);
+        }
+
+        final java.util.regex.Matcher mainMatcher = linePattern.matcher(line);
+        if (mainMatcher.matches()) {
+          final String originalNodeType = mainMatcher.group(2);
+          final Integer originalNodeNumber = Integer.valueOf(mainMatcher.group(3));
+
+          final String originalId = originalNodeType + originalNodeNumber;
+          final String standardizedId = nodeMappings
+              .computeIfAbsent(originalId, key -> originalNodeType + nodeCounter.getAndIncrement());
+
+          line = mainMatcher.group(1) + standardizedId + mainMatcher.group(4);
+        }
+
+        result
+            .append(line)
+            .append(System.lineSeparator());
+      }
+
+      return result.toString();
     }
 
     boolean isAnyExceptionExpected() {
@@ -686,17 +735,17 @@ final class EndToEndEngineTestUtil {
 
     static final PostConditions NONE = new PostConditions(hasItems(anything()));
 
-    final Matcher<Iterable<StructuredDataSource<?>>> sourcesMatcher;
+    final Matcher<Iterable<DataSource<?>>> sourcesMatcher;
 
     PostConditions(
-        final Matcher<Iterable<StructuredDataSource<?>>> sourcesMatcher
+        final Matcher<Iterable<DataSource<?>>> sourcesMatcher
     ) {
       this.sourcesMatcher = Objects.requireNonNull(sourcesMatcher, "sourcesMatcher");
     }
 
     public void verify(final MetaStore metaStore) {
-      final Collection<StructuredDataSource<?>> values = metaStore
-          .getAllStructuredDataSources()
+      final Collection<DataSource<?>> values = metaStore
+          .getAllDataSources()
           .values();
 
       final String text = values.stream()

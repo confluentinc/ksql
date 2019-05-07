@@ -29,11 +29,11 @@
   "ksql.query.persistent.active.limit" : "2147483647"
 }
 CONFIGS_END
-CTAS_DOWNSTREAM_2.KsqlTopic.source = struct<ALIASED optional<int32>,KSQL_COL_1 optional<int64>>
-CTAS_DOWNSTREAM_2.KsqlTopic.reduce = struct<OUTPUT.ROWTIME optional<int64>,OUTPUT.ROWKEY optional<string>,OUTPUT.ALIASED optional<int32>,OUTPUT.KSQL_COL_1 optional<int64>>
-CTAS_DOWNSTREAM_2.Aggregate.groupby = struct<KSQL_INTERNAL_COL_0 optional<int32>,KSQL_INTERNAL_COL_1 optional<int64>>
-CTAS_DOWNSTREAM_2.Aggregate.aggregate = struct<KSQL_INTERNAL_COL_0 optional<int32>,KSQL_INTERNAL_COL_1 optional<int64>,KSQL_AGG_VARIABLE_0 optional<int64>>
-CTAS_DOWNSTREAM_2.DOWNSTREAM = struct<ALIASED optional<int32>,KSQL_COL_1 optional<int64>>
+CTAS_DOWNSTREAM_1.KsqlTopic.source = struct<ALIASED optional<int32>,KSQL_COL_1 optional<int64>>
+CTAS_DOWNSTREAM_1.KsqlTopic.reduce = struct<OUTPUT.ROWTIME optional<int64>,OUTPUT.ROWKEY optional<string>,OUTPUT.ALIASED optional<int32>,OUTPUT.KSQL_COL_1 optional<int64>>
+CTAS_DOWNSTREAM_1.Aggregate.groupby = struct<KSQL_INTERNAL_COL_0 optional<int32>,KSQL_INTERNAL_COL_1 optional<int64>>
+CTAS_DOWNSTREAM_1.Aggregate.aggregate = struct<KSQL_INTERNAL_COL_0 optional<int32>,KSQL_INTERNAL_COL_1 optional<int64>,KSQL_AGG_VARIABLE_0 optional<int64>>
+CTAS_DOWNSTREAM_1.DOWNSTREAM = struct<ALIASED optional<int32>,KSQL_COL_1 optional<int64>>
 SCHEMAS_END
 Topologies:
    Sub-topology: 0

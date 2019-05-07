@@ -28,7 +28,8 @@ The ``ksql-datagen`` tool is installed with |cp| by default.
 .. note::
 
    KSQL Server doesn't need to be running for ``ksql-datagen`` to generate
-   records to a topic.
+   records to a topic. The ``ksql-datagen`` tool isn't just for KSQL. You can
+   use it to produce data to any Kafka topic that you have write access to.
 
 Usage
 =====
@@ -49,6 +50,8 @@ Name                                        Default  Description
 ``format=<record format>``                    json   Format of generated records: one of ``avro``, ``json``, or ``delimited``. Case-insensitive.
 ``topic=<kafka topic name>``                         Name of the topic that receives generated records.
 ``key=<name of key column>``                         Field to use as the key for generated records.
+``quickstart=<quickstart preset>``                   Generate records from a preset schema: ``orders``, ``users``, or ``pageviews``. Case-insensitive.
+                                                     If ``topic`` isn't specified, creates a topic named ``<preset>_kafka_topic_json``, for example, ``users_kafka_topic_json``.
 ==========================================  =======  ===========================================================================================
 
 Use the following command to generate records from one of the predefined
@@ -57,19 +60,6 @@ schemas:
 .. sourcecode:: bash
    
    <path-to-confluent>/bin/ksql-datagen quickstart=<quickstart preset> [options ...]
-
-
-Required Arguments
-------------------
-
-==========================================  =======  ===========================================================================================================================
-Name                                        Default  Description
-==========================================  =======  ===========================================================================================================================
-``quickstart=<quickstart preset>``                   Generate records from a preset schema: ``orders``, ``users``, ``users_``, or ``pageviews``. Case-insensitive.
-                                                     If ``topic`` isn't specified, creates a topic named ``<preset>_kafka_topic_json``, for example, ``users_kafka_topic_json``.
-==========================================  =======  ===========================================================================================================================
-
-
 
 Optional Arguments
 ------------------
@@ -86,6 +76,7 @@ Name                                          Default                           
 ``iterations=<number of records>``            1,000,000                                            The maximum number of records to generate.
 ``maxInterval=<max time between records>``    500                                                  Longest time to wait before generating a new record, in milliseconds. 
 ``propertiesFile=<path-to-properties-file>``  ``<path-to-confluent>/etc/ksql/datagen.properties``  Path to the ``ksql-datagen`` properties file. 
+``schemaRegistryUrl``                         http://localhost:8081                                URL of |sr| when ``format`` is ``avro``.
 ============================================  ===================================================  =========================================================================================
 
 Records are generated at random intervals, with the longest interval specified

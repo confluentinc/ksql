@@ -15,15 +15,11 @@
 
 package io.confluent.ksql.ddl.commands;
 
-import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.parser.tree.CreateTable;
-import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.SchemaUtil;
-import java.util.Map;
 
 public class CreateTableCommand extends AbstractCreateStreamCommand {
 
@@ -33,14 +29,6 @@ public class CreateTableCommand extends AbstractCreateStreamCommand {
       final KafkaTopicClient kafkaTopicClient
   ) {
     super(sqlExpression, createTable, kafkaTopicClient);
-
-    final Map<String, Expression> properties = createTable.getProperties();
-
-    if (!properties.containsKey(DdlConfig.KEY_NAME_PROPERTY)) {
-      throw new KsqlException(
-          "Cannot define a TABLE without providing the KEY column name in the WITH clause."
-      );
-    }
   }
 
   @Override
@@ -55,10 +43,11 @@ public class CreateTableCommand extends AbstractCreateStreamCommand {
       }
     }
     checkMetaData(metaStore, sourceName, topicName);
+
     final KsqlTable ksqlTable = new KsqlTable<>(
         sqlExpression,
         sourceName,
-        SchemaUtil.addImplicitRowTimeRowKeyToSchema(schema),
+        schema.withImplicitFields(),
         keyField,
         timestampExtractionPolicy,
         metaStore.getTopic(topicName),

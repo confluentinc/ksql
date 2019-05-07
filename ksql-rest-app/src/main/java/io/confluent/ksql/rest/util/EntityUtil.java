@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.util;
 import avro.shaded.com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.rest.entity.FieldInfo;
 import io.confluent.ksql.rest.entity.SchemaInfo;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -41,8 +42,8 @@ public final class EntityUtil {
   private EntityUtil() {
   }
 
-  public static List<FieldInfo> buildSourceSchemaEntity(final Schema schema) {
-    return buildSchemaEntity(schema).getFields()
+  public static List<FieldInfo> buildSourceSchemaEntity(final KsqlSchema schema) {
+    return buildSchemaEntity(schema.getSchema()).getFields()
         .orElseThrow(() -> new RuntimeException("Root schema should contain fields"));
   }
 

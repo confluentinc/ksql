@@ -53,6 +53,7 @@ import io.confluent.ksql.parser.tree.SearchedCaseExpression;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.SubscriptExpression;
 import io.confluent.ksql.parser.tree.Type;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.schema.ksql.LogicalSchemas;
 import io.confluent.ksql.util.ExpressionTypeManager;
 import io.confluent.ksql.util.KsqlException;
@@ -60,7 +61,7 @@ import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
+import java.util.Objects;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringEscapeUtils;
@@ -82,14 +83,14 @@ public class SqlToJavaVisitor {
       "com.google.common.collect.ImmutableList",
       "java.util.function.Supplier");
 
-  private final Schema schema;
+  private final KsqlSchema schema;
   private final FunctionRegistry functionRegistry;
 
   private final ExpressionTypeManager expressionTypeManager;
 
-  public SqlToJavaVisitor(final Schema schema, final FunctionRegistry functionRegistry) {
-    this.schema = schema;
-    this.functionRegistry = functionRegistry;
+  public SqlToJavaVisitor(final KsqlSchema schema, final FunctionRegistry functionRegistry) {
+    this.schema = Objects.requireNonNull(schema, "schema");
+    this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
     this.expressionTypeManager =
         new ExpressionTypeManager(schema, functionRegistry);
   }
@@ -169,11 +170,11 @@ public class SqlToJavaVisitor {
         final Void context
     ) {
       final String fieldName = formatQualifiedName(node.getName());
-      final Optional<Field> schemaField = SchemaUtil.getFieldByName(schema, fieldName);
-      if (!schemaField.isPresent()) {
-        throw new KsqlException("Field not found: " + fieldName);
-      }
-      final Schema schema = schemaField.get().schema();
+      final Field schemaField = schema.findField(fieldName)
+          .orElseThrow(() ->
+              new KsqlException("Field not found: " + fieldName));
+
+      final Schema schema = schemaField.schema();
       return new Pair<>(fieldName.replace(".", "_"), schema);
     }
 
@@ -183,11 +184,11 @@ public class SqlToJavaVisitor {
         final Void context
     ) {
       final String fieldName = node.toString();
-      final Optional<Field> schemaField = SchemaUtil.getFieldByName(schema, fieldName);
-      if (!schemaField.isPresent()) {
-        throw new KsqlException("Field not found: " + fieldName);
-      }
-      final Schema schema = schemaField.get().schema();
+      final Field schemaField = schema.findField(fieldName)
+          .orElseThrow(() ->
+              new KsqlException("Field not found: " + fieldName));
+
+      final Schema schema = schemaField.schema();
       return new Pair<>(fieldName.replace(".", "_"), schema);
     }
 

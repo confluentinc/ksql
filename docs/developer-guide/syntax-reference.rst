@@ -6,8 +6,8 @@ KSQL Syntax Reference
 KSQL has similar semantics to SQL:
 
 - Terminate KSQL statements with a semicolon ``;``.
-- Escape ``'`` characters inside string literals by using ``''``. For example,
-  to escape ``'T'``, write ``''T''``.
+- Escape single-quote characters (``'``) inside string literals by using two successive
+  single quotes (``''``). For example, to escape ``'T'``, write ``''T''``.
 
 ===========
 Terminology
@@ -97,6 +97,8 @@ WITHIN clauses.
 * MILLISECOND, MILLISECONDS
 
 For more information, see :ref:`windows_in_ksql_queries`.
+
+.. _ksql-timestamp-formats:
 
 KSQL Timestamp Formats
 ----------------------
@@ -377,13 +379,7 @@ KSQL adds the implicit columns ``ROWTIME`` and ``ROWKEY`` to every
 stream and table, which represent the corresponding Kafka message
 timestamp and message key, respectively. The timestamp has milliseconds accuracy.
 
-KSQL has currently the following requirements for creating a table from a Kafka topic:
-
-1. The Kafka message key must also be present as a field/column in the Kafka message value. The ``KEY`` property (see
-   below) must be defined to inform KSQL which field/column in the message value represents the key. If the message key
-   is not present in the message value, follow the instructions in :ref:`ksql_key_requirements`.
-2. The message key must be in ``VARCHAR`` aka ``STRING`` format. If the message key is not in this format, follow the
-   instructions in :ref:`ksql_key_requirements`.
+When creating a table from a Kafka topic, KSQL requries the message key to be a ``VARCHAR`` aka ``STRING``. If the message key is not of this type follow the instructions in :ref:`ksql_key_requirements`.
 
 The WITH clause supports the following properties:
 
@@ -395,13 +391,13 @@ The WITH clause supports the following properties:
 | VALUE_FORMAT (required) | Specifies the serialization format of message values in the topic. Supported formats:      |
 |                         | ``JSON``, ``DELIMITED`` (comma-separated value), and ``AVRO``.                             |
 +-------------------------+--------------------------------------------------------------------------------------------+
-| KEY (required)          | Associates a field/column within the Kafka message value with the implicit ``ROWKEY``      |
-|                         | column (message key) in the KSQL table.                                                    |
-|                         |                                                                                            |
-|                         | KSQL currently requires that the Kafka message key, which will be available as the         |
-|                         | implicit ``ROWKEY`` column in the table, must also be present as a field/column in the     |
-|                         | message value. You must set the KEY property to this corresponding field/column in the     |
-|                         | message value, and this column must be in ``VARCHAR`` aka ``STRING`` format.               |
+| KEY                     | Optimization hint: If the Kafka message key is also present as a field/column in the Kafka |
+|                         | message value, you may set this property to associate the corresponding field/column with  |
+|                         | the implicit ``ROWKEY`` column (message key).                                              |
+|                         | If set, KSQL uses it as an optimization hint to determine if repartitioning can be avoided |
+|                         | when performing aggregations and joins.                                                    |
+|                         | You can only use this if the key format in kafka is ``VARCHAR`` or ``STRING``. Do not use  |
+|                         | this hint if the message key format in kafka is AVRO or JSON.                              |
 |                         | See :ref:`ksql_key_requirements` for more information.                                     |
 +-------------------------+--------------------------------------------------------------------------------------------+
 | TIMESTAMP               | By default, the implicit ``ROWTIME`` column is the timestamp of the message in the Kafka   |
@@ -668,18 +664,32 @@ DESCRIBE
 * DESCRIBE EXTENDED: Display DESCRIBE information with additional runtime statistics, Kafka topic details, and the
   set of queries that populate the table or stream.
 
-Extended descriptions provide the following metrics for the topic backing the source being described:
+Extended descriptions provide the following metrics for the topic backing the source being described.
 
-* messages-per-sec: The number of messages produced per second into the topic by the server
-* total-messages: Total number of messages produced into the topic by the server
-* total-message-bytes: Total number of bytes produced into the topic by the server
-* consumer-messages-per-sec: The number of messages consumed per second from the topic by the server
-* consumer-total-messages: Total number of messages consumed from the topic by the server
-* consumer-total-message-bytes: Total number of bytes consumed from the topic by the server
-* last-message: The time that the last message was produced to or consumed from the topic by the server
-* failed-messages-per-sec: The number of failures during message consumption (for example, deserialization failures) per second on the server
-* consumer-failed-messages: The total number of failures during message consumption on the server
-* last-failed: The time that the last failure occured when a message was consumed from the topic by the server
++------------------------------+------------------------------------------------------------------------------------------------------+
+| KSQL Metric                  | Description                                                                                          |
++==============================+======================================================================================================+
+| consumer-failed-messages     | Total number of failures during message consumption on the server.                                   |
++------------------------------+------------------------------------------------------------------------------------------------------+
+| consumer-messages-per-sec    | The number of messages consumed per second from the topic by the server.                             |
++------------------------------+------------------------------------------------------------------------------------------------------+
+| consumer-total-message-bytes | Total number of bytes consumed from the topic by the server.                                         |
++------------------------------+------------------------------------------------------------------------------------------------------+
+| consumer-total-messages      | Total number of messages consumed from the topic by the server.                                      |
++------------------------------+------------------------------------------------------------------------------------------------------+
+| failed-messages-per-sec      | Number of failures during message consumption (for example, deserialization failures)                |
+|                              | per second on the server.                                                                            |
++------------------------------+------------------------------------------------------------------------------------------------------+
+| last-failed                  | Time that the last failure occured when a message was consumed from the topic by the server.         |
++------------------------------+------------------------------------------------------------------------------------------------------+
+| last-message                 | Time that the last message was produced to or consumed from the topic by the server.                 |
++------------------------------+------------------------------------------------------------------------------------------------------+
+| messages-per-sec             | Number of messages produced per second into the topic by the server.                                 |
++------------------------------+------------------------------------------------------------------------------------------------------+
+| total-messages               | Total number of messages produced into the topic by the server.                                      |
++------------------------------+------------------------------------------------------------------------------------------------------+
+| total-message-bytes          | Total number of bytes produced into the topic by the server.                                         |
++------------------------------+------------------------------------------------------------------------------------------------------+
 
 Example of describing a table:
 
@@ -825,6 +835,11 @@ for deletion, and if the topic format is AVRO, the corresponding Avro schema is
 deleted, too. Topic deletion is asynchronous, and actual removal from brokers
 may take some time to complete.
 
+.. note:: DELETE TOPIC will not necessarily work if your kafka cluster is configured
+  to create topics automatically with ``auto.create.topics.enable=true``. We
+  recommended checking after a few minutes to ensure that the topic was
+  deleted.
+
 If the IF EXISTS clause is present, the statement doesn't fail if the table
 doesn't exist.
 
@@ -844,9 +859,14 @@ DROP TABLE [IF EXISTS] [DELETE TOPIC];
 Drops an existing table.
 
 If the DELETE TOPIC clause is present, the corresponding Kafka topic is marked
-for deletion and if the topic format is AVRO, delete the corresponding Avro schema is
-deleted, too. Topic deletion is asynchronous, and actual removal from brokers
+for deletion and if the topic format is AVRO, the corresponding Avro schema is
+deleted in the schema registry. Topic deletion is asynchronous, and actual removal from brokers
 may take some time to complete.
+
+.. note:: DELETE TOPIC will not necessarily work if your kafka cluster is configured
+  to create topics automatically with ``auto.create.topics.enable=true``. We
+  recommended checking after a few minutes to ensure that the topic was
+  deleted.
 
 If the IF EXISTS clause is present, the statement doesn't fail if the table
 doesn't exist.
@@ -1649,7 +1669,8 @@ Key Requirements
 Message Keys
 ------------
 
-The ``CREATE STREAM`` and ``CREATE TABLE`` statements, which read data from a Kafka topic into a stream or table, allow you to specify a field/column in the Kafka message value that corresponds to the Kafka message key by setting the ``KEY`` property of the ``WITH`` clause.
+The ``CREATE STREAM`` and ``CREATE TABLE`` statements, which read data from a Kafka topic into a stream or table,
+allow you to specify a field/column in the Kafka message value that corresponds to the Kafka message key by setting the ``KEY`` property of the ``WITH`` clause.
 
 Example:
 
@@ -1659,10 +1680,7 @@ Example:
       WITH (KAFKA_TOPIC='users', VALUE_FORMAT='JSON', KEY = 'userid');
 
 
-The ``KEY`` property is:
-
-- Required for tables.
-- Optional for streams. Here, KSQL uses it as an optimization hint to determine if repartitioning can be avoided when performing aggregations and joins.
+The ``KEY`` property is optional. KSQL uses it as an optimization hint to determine if repartitioning can be avoided when performing aggregations and joins.
   
   .. important::
      Don't set the KEY property, unless you have validated that your stream doesn't need to be re-partitioned for future joins.

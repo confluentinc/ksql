@@ -29,13 +29,13 @@
   "ksql.query.persistent.active.limit" : "2147483647"
 }
 CONFIGS_END
-CTAS_OUTPUT_1.KsqlTopic.source = struct<BAR optional<int32>>
-CTAS_OUTPUT_1.KsqlTopic.reduce = struct<INTERMEDIATE.ROWTIME optional<int64>,INTERMEDIATE.ROWKEY optional<string>,INTERMEDIATE.BAR optional<int32>>
-CTAS_OUTPUT_1.OUTPUT = struct<BAR optional<int32>>
+CTAS_OUTPUT_0.KsqlTopic.source = struct<BAR optional<int32>>
+CTAS_OUTPUT_0.KsqlTopic.reduce = struct<INPUT.ROWTIME optional<int64>,INPUT.ROWKEY optional<string>,INPUT.BAR optional<int32>>
+CTAS_OUTPUT_0.OUTPUT = struct<BAR optional<int32>>
 SCHEMAS_END
 Topologies:
    Sub-topology: 0
-    Source: KSTREAM-SOURCE-0000000000 (topics: [INTERMEDIATE])
+    Source: KSTREAM-SOURCE-0000000000 (topics: [input_topic])
       --> KSTREAM-MAPVALUES-0000000001
     Processor: KSTREAM-MAPVALUES-0000000001 (stores: [])
       --> KSTREAM-TRANSFORMVALUES-0000000002

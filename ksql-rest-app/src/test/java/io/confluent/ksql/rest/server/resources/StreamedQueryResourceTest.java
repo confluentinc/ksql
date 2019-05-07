@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.server.resources;
 
+import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import static io.confluent.ksql.rest.entity.KsqlErrorMessageMatchers.errorCode;
 import static io.confluent.ksql.rest.entity.KsqlErrorMessageMatchers.errorMessage;
 import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.exceptionErrorMessage;
@@ -52,7 +53,7 @@ import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
-import io.confluent.ksql.serde.DataSource;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -76,7 +77,6 @@ import java.util.function.Consumer;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.StreamingOutput;
-import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KeyValue;
@@ -97,9 +97,9 @@ public class StreamedQueryResourceTest {
 
   private static final Duration DISCONNECT_CHECK_INTERVAL = Duration.ofMillis(1000);
   private static final Duration COMMAND_QUEUE_CATCHUP_TIMOEUT = Duration.ofMillis(1000);
-  private static final Schema SOME_SCHEMA = SchemaBuilder.struct()
+  private static final KsqlSchema SOME_SCHEMA = KsqlSchema.of(SchemaBuilder.struct()
       .field("f1", SchemaBuilder.OPTIONAL_INT32_SCHEMA)
-      .build();
+      .build());
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -138,7 +138,6 @@ public class StreamedQueryResourceTest {
     testResource = new StreamedQueryResource(
         ksqlConfig,
         mockKsqlEngine,
-        serviceContext,
         mockStatementParser,
         commandQueue,
         DISCONNECT_CHECK_INTERVAL,
@@ -156,7 +155,10 @@ public class StreamedQueryResourceTest {
 
     // When:
     final Response response =
-        testResource.streamQuery(new KsqlRequest(queryString, Collections.emptyMap(), null));
+        testResource.streamQuery(
+            serviceContext,
+            new KsqlRequest(queryString, Collections.emptyMap(), null)
+        );
 
     // Then:
     assertThat(response.getStatus(), equalTo(Status.INTERNAL_SERVER_ERROR.getStatusCode()));
@@ -182,7 +184,10 @@ public class StreamedQueryResourceTest {
         exceptionErrorMessage(errorCode(is(Errors.ERROR_CODE_BAD_STATEMENT))));
 
     // When:
-    testResource.streamQuery(new KsqlRequest("query", Collections.emptyMap(), null));
+    testResource.streamQuery(
+        serviceContext,
+        new KsqlRequest("query", Collections.emptyMap(), null)
+    );
   }
 
   @Test
@@ -191,7 +196,10 @@ public class StreamedQueryResourceTest {
     replay(commandQueue);
 
     // When:
-    testResource.streamQuery(new KsqlRequest(queryString, Collections.emptyMap(), null));
+    testResource.streamQuery(
+        serviceContext,
+        new KsqlRequest(queryString, Collections.emptyMap(), null)
+    );
 
     // Then:
     verify(commandQueue);
@@ -206,7 +214,10 @@ public class StreamedQueryResourceTest {
     replay(commandQueue);
 
     // When:
-    testResource.streamQuery(new KsqlRequest(queryString, Collections.emptyMap(), 3L));
+    testResource.streamQuery(
+        serviceContext,
+        new KsqlRequest(queryString, Collections.emptyMap(), 3L)
+    );
 
     // Then:
     verify(commandQueue);
@@ -230,7 +241,10 @@ public class StreamedQueryResourceTest {
         exceptionErrorMessage(errorCode(is(Errors.ERROR_CODE_COMMAND_QUEUE_CATCHUP_TIMEOUT))));
 
     // When:
-    testResource.streamQuery(new KsqlRequest(queryString, Collections.emptyMap(), 3L));
+    testResource.streamQuery(
+        serviceContext,
+        new KsqlRequest(queryString, Collections.emptyMap(), 3L)
+    );
   }
 
   @SuppressWarnings("unchecked")
@@ -296,7 +310,7 @@ public class StreamedQueryResourceTest {
             limitHandler -> {},
             "",
             rowQueue,
-            DataSource.DataSourceType.KSTREAM,
+            DataSourceType.KSTREAM,
             "",
             mock(Topology.class),
             Collections.emptyMap(),
@@ -310,7 +324,10 @@ public class StreamedQueryResourceTest {
     replay(mockKsqlEngine, mockStatementParser, mockKafkaStreams, mockOutputNode);
 
     final Response response =
-        testResource.streamQuery(new KsqlRequest(queryString, requestStreamsProperties, null));
+        testResource.streamQuery(
+            serviceContext,
+            new KsqlRequest(queryString, requestStreamsProperties, null)
+        );
     final PipedOutputStream responseOutputStream = new EOFPipedOutputStream();
     final PipedInputStream responseInputStream = new PipedInputStream(responseOutputStream, 1);
     final StreamingOutput responseStream = (StreamingOutput) response.getEntity();
@@ -432,7 +449,10 @@ public class StreamedQueryResourceTest {
     EasyMock.replay(activenessRegistrar);
 
     // When:
-    testResource.streamQuery(new KsqlRequest(queryString, Collections.emptyMap(), null));
+    testResource.streamQuery(
+        serviceContext,
+        new KsqlRequest(queryString, Collections.emptyMap(), null)
+    );
 
     // Then:
     EasyMock.verify(activenessRegistrar);

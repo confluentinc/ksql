@@ -21,13 +21,13 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.QueryIdGenerator;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import java.util.List;
 import java.util.Optional;
 import javax.annotation.concurrent.Immutable;
-import org.apache.kafka.connect.data.Schema;
 
 @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
 @Immutable
@@ -35,7 +35,7 @@ public abstract class OutputNode
     extends PlanNode {
 
   private final PlanNode source;
-  private final Schema schema;
+  private final KsqlSchema schema;
   private final Optional<Integer> limit;
   private final TimestampExtractionPolicy timestampExtractionPolicy;
 
@@ -43,7 +43,7 @@ public abstract class OutputNode
   protected OutputNode(
       @JsonProperty("id") final PlanNodeId id,
       @JsonProperty("source") final PlanNode source,
-      @JsonProperty("schema") final Schema schema,
+      @JsonProperty("schema") final KsqlSchema schema,
       @JsonProperty("limit") final Optional<Integer> limit,
       @JsonProperty("timestamp_policy") final TimestampExtractionPolicy timestampExtractionPolicy
   ) {
@@ -57,8 +57,8 @@ public abstract class OutputNode
   }
 
   @Override
-  public Schema getSchema() {
-    return this.schema;
+  public KsqlSchema getSchema() {
+    return schema;
   }
 
   @Override

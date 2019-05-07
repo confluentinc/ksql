@@ -44,6 +44,7 @@ import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import org.slf4j.Logger;
@@ -58,7 +59,6 @@ public class StreamedQueryResource {
 
   private final KsqlConfig ksqlConfig;
   private final KsqlEngine ksqlEngine;
-  private final ServiceContext serviceContext;
   private final StatementParser statementParser;
   private final CommandQueue commandQueue;
   private final Duration disconnectCheckInterval;
@@ -69,7 +69,6 @@ public class StreamedQueryResource {
   public StreamedQueryResource(
       final KsqlConfig ksqlConfig,
       final KsqlEngine ksqlEngine,
-      final ServiceContext serviceContext,
       final StatementParser statementParser,
       final CommandQueue commandQueue,
       final Duration disconnectCheckInterval,
@@ -78,7 +77,6 @@ public class StreamedQueryResource {
   ) {
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
-    this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
     this.statementParser = Objects.requireNonNull(statementParser, "statementParser");
     this.commandQueue = Objects.requireNonNull(commandQueue, "commandQueue");
     this.disconnectCheckInterval =
@@ -91,7 +89,10 @@ public class StreamedQueryResource {
   }
 
   @POST
-  public Response streamQuery(final KsqlRequest request) throws Exception {
+  public Response streamQuery(
+      @Context final ServiceContext serviceContext,
+      final KsqlRequest request
+  ) throws Exception {
     if (!ksqlEngine.isAcceptingStatements()) {
       return Errors.serverErrorForStatement(
           new KsqlException("Cluster has been terminated."),
@@ -106,7 +107,7 @@ public class StreamedQueryResource {
     CommandStoreUtil.httpWaitForCommandSequenceNumber(
         commandQueue, request, commandQueueCatchupTimeout);
 
-    return handleStatement(request, statement);
+    return handleStatement(serviceContext, request, statement);
   }
 
   private PreparedStatement<?> parseStatement(final KsqlRequest request) {
@@ -124,6 +125,7 @@ public class StreamedQueryResource {
 
   @SuppressWarnings("unchecked")
   private Response handleStatement(
+      final ServiceContext serviceContext,
       final KsqlRequest request,
       final PreparedStatement<?> statement
   ) throws Exception {
@@ -134,6 +136,7 @@ public class StreamedQueryResource {
 
       if (statement.getStatement() instanceof PrintTopic) {
         return handlePrintTopic(
+            serviceContext,
             request.getStreamsProperties(),
             (PreparedStatement<PrintTopic>) statement);
       }
@@ -173,6 +176,7 @@ public class StreamedQueryResource {
   }
 
   private Response handlePrintTopic(
+      final ServiceContext serviceContext,
       final Map<String, Object> streamProperties,
       final PreparedStatement<PrintTopic> statement
   ) {

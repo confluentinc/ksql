@@ -33,7 +33,7 @@ import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.CreateStream;
-import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.RegisterTopic;
@@ -45,6 +45,7 @@ import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.computation.CommandRunner;
 import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.StatementExecutor;
+import io.confluent.ksql.rest.server.context.KsqlRestServiceContextBinder;
 import io.confluent.ksql.rest.server.resources.KsqlExceptionMapper;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.rest.server.resources.RootDocument;
@@ -55,13 +56,10 @@ import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint;
 import io.confluent.ksql.rest.util.ClusterTerminator;
 import io.confluent.ksql.rest.util.KsqlInternalTopicUtils;
 import io.confluent.ksql.rest.util.ProcessingLogServerUtils;
-import io.confluent.ksql.schema.inference.DefaultSchemaInjector;
-import io.confluent.ksql.schema.inference.SchemaRegistryTopicSchemaSupplier;
 import io.confluent.ksql.services.DefaultServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
-import io.confluent.ksql.statement.InjectorChain;
-import io.confluent.ksql.topic.DefaultTopicInjector;
+import io.confluent.ksql.statement.Injectors;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Version;
@@ -244,6 +242,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         new JacksonMessageBodyProvider(JsonMapper.INSTANCE.mapper);
     config.register(jsonProvider);
     config.register(JsonParseExceptionMapper.class);
+    config.register(new KsqlRestServiceContextBinder(ksqlConfig));
 
     // Don't want to buffer rows when streaming JSON in a request to the query resource
     config.property(ServerProperties.OUTBOUND_CONTENT_LENGTH_BUFFER, 0);
@@ -337,7 +336,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         ksqlConfig, KsqlRestConfig.COMMAND_TOPIC_SUFFIX);
     KsqlInternalTopicUtils.ensureTopic(commandTopic, ksqlConfig, serviceContext.getTopicClient());
 
-    final Map<String, Expression> commandTopicProperties = new HashMap<>();
+    final Map<String, Literal> commandTopicProperties = new HashMap<>();
     commandTopicProperties.put(
         DdlConfig.VALUE_FORMAT_PROPERTY,
         new StringLiteral("json")
@@ -392,7 +391,6 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
     final StreamedQueryResource streamedQueryResource = new StreamedQueryResource(
         ksqlConfig,
         ksqlEngine,
-        serviceContext,
         statementParser,
         commandStore,
         Duration.ofMillis(
@@ -404,15 +402,10 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
     final KsqlResource ksqlResource = new KsqlResource(
         ksqlConfig,
         ksqlEngine,
-        serviceContext,
         commandStore,
         Duration.ofMillis(restConfig.getLong(DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG)),
         versionChecker::updateLastRequestTime,
-        (ec, sc) -> InjectorChain.of(
-            new DefaultSchemaInjector(
-                new SchemaRegistryTopicSchemaSupplier(sc.getSchemaRegistryClient())),
-            new DefaultTopicInjector(ec)
-        ));
+        Injectors.DEFAULT);
 
     final Optional<String> processingLogTopic =
         ProcessingLogServerUtils.maybeCreateProcessingLogTopic(

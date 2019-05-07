@@ -17,7 +17,6 @@ package io.confluent.ksql.ddl.commands;
 
 import static org.easymock.EasyMock.anyString;
 import static org.easymock.EasyMock.expect;
-import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 
@@ -30,7 +29,7 @@ import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.DropTopic;
 import io.confluent.ksql.parser.tree.ExecutableDdlStatement;
-import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.RegisterTopic;
@@ -57,7 +56,7 @@ public class CommandFactoriesTest {
   private final KafkaTopicClient topicClient = EasyMock.createNiceMock(KafkaTopicClient.class);
   private final ServiceContext serviceContext = EasyMock.createNiceMock(ServiceContext.class);
   private final CommandFactories commandFactories = new CommandFactories(serviceContext);
-  private final HashMap<String, Expression> properties = new HashMap<>();
+  private final HashMap<String, Literal> properties = new HashMap<>();
 
 
   @Before
@@ -97,71 +96,13 @@ public class CommandFactoriesTest {
 
   @Test
   public void shouldCreateCommandForCreateTable() {
-    final HashMap<String, Expression> tableProperties = validTableProps();
+    final HashMap<String, Literal> tableProperties = validTableProps();
 
     final DdlCommand result = commandFactories
         .create(sqlExpression, createTable(tableProperties),
             NO_PROPS);
 
     assertThat(result, instanceOf(CreateTableCommand.class));
-  }
-
-  @Test
-  public void shouldFailCreateTableIfKeyNameIsIncorrect() {
-    final HashMap<String, Expression> tableProperties = validTableProps();
-    tableProperties.put(DdlConfig.KEY_NAME_PROPERTY, new StringLiteral("COL3"));
-
-    try {
-      commandFactories
-          .create(sqlExpression, createTable(tableProperties), NO_PROPS);
-
-    } catch (final KsqlException e) {
-      assertThat(e.getMessage(), equalTo("No column with the provided key column name in the "
-                                         + "WITH clause, COL3, exists in the defined schema."));
-    }
-
-  }
-
-  @Test
-  public void shouldFailCreateTableIfTimestampColumnNameIsIncorrect() {
-    final HashMap<String, Expression> tableProperties = validTableProps();
-    tableProperties.put(DdlConfig.TIMESTAMP_NAME_PROPERTY, new StringLiteral("COL3"));
-
-    try {
-      commandFactories
-          .create(sqlExpression, createTable(tableProperties), NO_PROPS);
-
-    } catch (final KsqlException e) {
-      assertThat(e.getMessage(), equalTo("No column with the provided timestamp column name in the WITH clause, COL3, exists in the defined schema."));
-    }
-  }
-
-  @Test
-  public void shouldFailCreateTableIfKeyIsNotProvided() {
-    final HashMap<String, Expression> tableProperties = validTableProps();
-    tableProperties.remove(DdlConfig.KEY_NAME_PROPERTY);
-
-    try {
-      commandFactories.create(sqlExpression, createTable(properties), NO_PROPS);
-
-    } catch (final KsqlException e) {
-      assertThat(e.getMessage(), equalTo("Cannot define a TABLE without providing the KEY column name in the WITH clause."));
-    }
-  }
-
-  @Test
-  public void shouldFailCreateTableIfTopicNotExist() {
-    final HashMap<String, Expression> tableProperties = validTableProps();
-
-    givenTopicsDoNotExist();
-
-    try {
-      commandFactories.create(sqlExpression, createTable(tableProperties),
-          NO_PROPS);
-
-    } catch (final KsqlException e) {
-      assertThat(e.getMessage(), equalTo("Kafka topic does not exist: topic"));
-    }
   }
 
   @Test
@@ -197,13 +138,13 @@ public class CommandFactoriesTest {
         NO_PROPS);
   }
 
-  private HashMap<String, Expression> validTableProps() {
-    final HashMap<String, Expression> tableProperties = new HashMap<>(properties);
+  private HashMap<String, Literal> validTableProps() {
+    final HashMap<String, Literal> tableProperties = new HashMap<>(properties);
     tableProperties.put(DdlConfig.KEY_NAME_PROPERTY, new StringLiteral("COL1"));
     return tableProperties;
   }
 
-  private static CreateTable createTable(final HashMap<String, Expression> tableProperties) {
+  private static CreateTable createTable(final HashMap<String, Literal> tableProperties) {
     return new CreateTable(QualifiedName.of("foo"),
         ImmutableList.of(
             new TableElement("COL1", PrimitiveType.of(SqlType.BIGINT)),

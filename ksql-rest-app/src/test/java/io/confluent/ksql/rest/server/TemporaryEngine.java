@@ -24,14 +24,15 @@ import io.confluent.ksql.engine.KsqlEngineTestUtil;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.MutableMetaStore;
+import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.metastore.model.KsqlTopic;
-import io.confluent.ksql.metastore.model.StructuredDataSource;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.serde.DataSource;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
@@ -52,8 +53,9 @@ import org.junit.rules.ExternalResource;
 
 public class TemporaryEngine extends ExternalResource {
 
-  public static final Schema SCHEMA =
-      SchemaBuilder.struct().field("val", Schema.OPTIONAL_STRING_SCHEMA).build();
+  public static final KsqlSchema SCHEMA = KsqlSchema.of(SchemaBuilder.struct()
+      .field("val", Schema.OPTIONAL_STRING_SCHEMA)
+      .build());
 
   private MutableMetaStore metaStore;
 
@@ -84,29 +86,28 @@ public class TemporaryEngine extends ExternalResource {
   }
 
   @SuppressWarnings("unchecked")
-  public <T extends StructuredDataSource<?>> T givenSource(
-      final DataSource.DataSourceType type,
+  public <T extends DataSource<?>> T givenSource(
+      final DataSourceType type,
       final String name) {
     final KsqlTopic topic = givenKsqlTopic(name);
     givenKafkaTopic(name);
 
-    final StructuredDataSource<?> source;
+    final DataSource<?> source;
     switch (type) {
       case KSTREAM:
         source =
             new KsqlStream<>(
                 "statement", name, SCHEMA,
-                KeyField.of("val", SCHEMA.field("val")),
+                KeyField.of("val", SCHEMA.getSchema().field("val")),
                 new MetadataTimestampExtractionPolicy(), topic, Serdes::String);
         break;
       case KTABLE:
         source =
             new KsqlTable<>(
                 "statement", name, SCHEMA,
-                KeyField.of("val", SCHEMA.field("val")),
+                KeyField.of("val", SCHEMA.getSchema().field("val")),
                 new MetadataTimestampExtractionPolicy(), topic, Serdes::String);
         break;
-      case KTOPIC:
       default:
         throw new IllegalArgumentException(type.toString());
     }
@@ -135,7 +136,7 @@ public class TemporaryEngine extends ExternalResource {
   }
 
   @SuppressWarnings("SameParameterValue")
-  public PersistentQueryMetadata givenPersistentQuery(final String id) {
+  public static PersistentQueryMetadata givenPersistentQuery(final String id) {
     final PersistentQueryMetadata metadata = mock(PersistentQueryMetadata.class);
     when(metadata.getQueryId()).thenReturn(new QueryId(id));
     when(metadata.getSinkNames()).thenReturn(ImmutableSet.of(id));

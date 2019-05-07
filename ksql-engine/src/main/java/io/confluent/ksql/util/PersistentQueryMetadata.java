@@ -16,15 +16,16 @@
 package io.confluent.ksql.util;
 
 import com.google.common.collect.ImmutableSet;
+import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.physical.QuerySchemas;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.serde.DataSource;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.serde.Format;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
-import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.Topology;
 
@@ -42,12 +43,12 @@ public class PersistentQueryMetadata extends QueryMetadata {
   public PersistentQueryMetadata(
       final String statementString,
       final KafkaStreams kafkaStreams,
-      final Schema resultSchema,
+      final KsqlSchema resultSchema,
       final Set<String> sourceNames,
       final String sinkName,
       final String executionPlan,
       final QueryId id,
-      final DataSource.DataSourceType dataSourceType,
+      final DataSourceType dataSourceType,
       final String queryApplicationId,
       final KsqlTopic resultTopic,
       final Topology topology,
@@ -73,11 +74,6 @@ public class PersistentQueryMetadata extends QueryMetadata {
     this.resultTopic = Objects.requireNonNull(resultTopic, "resultTopic");
     this.sinkNames = ImmutableSet.of(sinkName);
     this.schemas = Objects.requireNonNull(schemas, "schemas");
-
-    if (resultTopic.getKsqlTopicSerDe() == null) {
-      throw new KsqlException(String.format("Invalid result topic: %s. Serde cannot be null.",
-          resultTopic.getName()));
-    }
   }
 
   private PersistentQueryMetadata(
@@ -107,7 +103,7 @@ public class PersistentQueryMetadata extends QueryMetadata {
     return sinkNames;
   }
 
-  public DataSource.DataSourceSerDe getResultTopicSerde() {
+  public Format getResultTopicSerde() {
     return resultTopic.getKsqlTopicSerDe().getSerDe();
   }
 

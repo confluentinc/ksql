@@ -17,13 +17,13 @@ package io.confluent.ksql.structured;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
+import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.util.SelectExpression;
 import java.util.List;
 import java.util.Set;
 import org.apache.kafka.common.serialization.Serde;
-import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
 
 public class QueuedSchemaKStream<K> extends SchemaKStream<K> {
 
@@ -72,8 +72,8 @@ public class QueuedSchemaKStream<K> extends SchemaKStream<K> {
   @Override
   public SchemaKStream<K> leftJoin(
       final SchemaKTable<K> schemaKTable,
-      final Schema joinSchema,
-      final Field joinKey,
+      final KsqlSchema joinSchema,
+      final KeyField keyField,
       final Serde<GenericRow> joinSerde,
       final QueryContext.Stacker contextStacker
   ) {
@@ -82,7 +82,7 @@ public class QueuedSchemaKStream<K> extends SchemaKStream<K> {
 
   @Override
   public SchemaKStream<K> selectKey(
-      final Field newKeyField,
+      final String fieldName,
       final boolean updateRowKey,
       final QueryContext.Stacker contextStacker) {
     throw new UnsupportedOperationException();

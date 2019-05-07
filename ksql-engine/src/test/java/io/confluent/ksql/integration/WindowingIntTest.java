@@ -15,7 +15,7 @@
 
 package io.confluent.ksql.integration;
 
-import static io.confluent.ksql.serde.DataSource.DataSourceSerDe.JSON;
+import static io.confluent.ksql.serde.Format.JSON;
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static io.confluent.ksql.test.util.ConsumerTestUtil.hasUniqueRecords;
 import static io.confluent.ksql.test.util.MapMatchers.mapHasItems;
@@ -27,6 +27,7 @@ import static org.hamcrest.Matchers.is;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.KafkaTopicClient.TopicCleanupPolicy;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
@@ -41,7 +42,6 @@ import java.util.concurrent.TimeUnit;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
-import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.kstream.SessionWindowedDeserializer;
 import org.apache.kafka.streams.kstream.TimeWindowedDeserializer;
 import org.apache.kafka.streams.kstream.Windowed;
@@ -87,7 +87,7 @@ public class WindowingIntTest {
   private String sourceTopicName;
   private String resultStream0;
   private String resultStream1;
-  private Schema resultSchema;
+  private KsqlSchema resultSchema;
   private Set<String> preExistingTopics;
   private KafkaTopicClient topicClient;
 

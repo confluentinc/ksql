@@ -19,6 +19,7 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.parser.tree.DescribeFunction;
 import io.confluent.ksql.parser.tree.Explain;
+import io.confluent.ksql.parser.tree.InsertValues;
 import io.confluent.ksql.parser.tree.ListFunctions;
 import io.confluent.ksql.parser.tree.ListProperties;
 import io.confluent.ksql.parser.tree.ListQueries;
@@ -35,6 +36,7 @@ import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.rest.server.execution.DescribeFunctionExecutor;
 import io.confluent.ksql.rest.server.execution.ExplainExecutor;
+import io.confluent.ksql.rest.server.execution.InsertValuesExecutor;
 import io.confluent.ksql.rest.server.execution.ListSourceExecutor;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -63,6 +65,7 @@ public enum CustomValidators {
   LIST_FUNCTIONS(ListFunctions.class, StatementValidator.NO_VALIDATION),
   LIST_QUERIES(ListQueries.class, StatementValidator.NO_VALIDATION),
   LIST_PROPERTIES(ListProperties.class, StatementValidator.NO_VALIDATION),
+  INSERT_VALUES(InsertValues.class, new InsertValuesExecutor()::execute),
 
   SHOW_COLUMNS(ShowColumns.class, ListSourceExecutor::columns),
   EXPLAIN(Explain.class, ExplainExecutor::execute),

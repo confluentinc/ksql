@@ -17,6 +17,9 @@ package io.confluent.ksql;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -24,6 +27,9 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.junit.Test;
+
+import java.util.LinkedList;
+import java.util.List;
 
 public class GenericRowTest {
 
@@ -120,6 +126,52 @@ public class GenericRowTest {
     assertThat(rowString, equalTo(
         "[ Struct{NUMBER=101,STREET=University Ave.,CITY=Palo Alto,STATE=CA,ZIPCODE=94301} ]"));
 
+  }
+
+  @Test
+  public void testEqualsReturningTrue() {
+      GenericRow genericRow = new GenericRow();
+      GenericRow genericRowTwo = new GenericRow();
+
+      assertTrue(genericRow.equals(genericRowTwo));
+      assertTrue(genericRowTwo.equals(genericRow));
+  }
+
+  @Test
+  public void testEqualsWithNull() {
+      List<Object> linkedList = new LinkedList<>();
+      GenericRow genericRow = new GenericRow(linkedList);
+
+      assertFalse(genericRow.equals(null));
+      assertEquals(0, linkedList.size());
+  }
+
+  @Test
+  public void testEqualsReturningFalse() {
+      List<Object> linkedList = new LinkedList<>();
+      GenericRow genericRow = new GenericRow(linkedList);
+
+      assertFalse(genericRow.equals(new Object()));
+      assertEquals(0, linkedList.size());
+  }
+
+  @Test
+  public void testToString() {
+      LinkedList<Object> linkedList = new LinkedList<>();
+      GenericRow genericRow = new GenericRow(linkedList);
+      linkedList.addLast( null);
+
+      assertEquals("[ null ]", genericRow.toString());
+      assertEquals(1, linkedList.size());
+  }
+
+  @Test
+  public void testGetColumnsWhenNoneAreSet() {
+      List<Object> linkedList = new LinkedList<>();
+      GenericRow genericRow = new GenericRow(linkedList);
+
+      assertEquals(0, linkedList.size());
+      assertEquals(0, genericRow.getColumns().size());
   }
 
 }

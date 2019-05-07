@@ -35,6 +35,7 @@ import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
 import org.hamcrest.core.IsInstanceOf;
 
+@SuppressWarnings("rawtypes")
 class SourceNode {
 
   private final String name;
@@ -83,7 +84,7 @@ class SourceNode {
         .map(MetaStoreMatchers::hasValueSchema)
         .orElse(null);
 
-    final Matcher[] matchers = Stream
+    final Matcher<DataSource<?>>[] matchers = Stream
         .of(nameMatcher, typeMatcher, keyFieldMatcher, valueSchemaMatcher)
         .filter(Objects::nonNull)
         .toArray(Matcher[]::new);

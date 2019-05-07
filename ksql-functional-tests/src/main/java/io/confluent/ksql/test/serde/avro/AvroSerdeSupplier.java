@@ -22,14 +22,14 @@ import io.confluent.ksql.test.serde.SerdeSupplier;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
 
-public class AvroSerdeSupplier implements SerdeSupplier {
+public class AvroSerdeSupplier implements SerdeSupplier<Object> {
   @Override
-  public Serializer getSerializer(final SchemaRegistryClient schemaRegistryClient) {
+  public Serializer<Object> getSerializer(final SchemaRegistryClient schemaRegistryClient) {
     return new KafkaAvroSerializer(schemaRegistryClient);
   }
 
   @Override
-  public Deserializer getDeserializer(final SchemaRegistryClient schemaRegistryClient) {
+  public Deserializer<Object> getDeserializer(final SchemaRegistryClient schemaRegistryClient) {
     return new KafkaAvroDeserializer(schemaRegistryClient);
   }
 } 

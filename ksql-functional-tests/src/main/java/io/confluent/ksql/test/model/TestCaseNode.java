@@ -151,6 +151,7 @@ public class TestCaseNode {
 
       final Map<String, Topic> topics = getTestCaseTopics(
           statements,
+          format,
           ee.isPresent(),
           functionRegistry);
 
@@ -193,8 +194,10 @@ public class TestCaseNode {
         .collect(Collectors.toList());
   }
 
+  @SuppressWarnings("rawtypes")
   private Map<String, Topic> getTestCaseTopics(
       final List<String> statements,
+      final String defaultFormat,
       final boolean expectsException,
       final FunctionRegistry functionRegistry
   ) {
@@ -202,7 +205,7 @@ public class TestCaseNode {
 
     // Add all topics from topic nodes to the map:
     topics.stream()
-        .map(TopicNode::build)
+        .map(node -> node.build(defaultFormat))
         .forEach(topic -> allTopics.put(topic.getName(), topic));
 
     // Infer topics if not added already:
@@ -232,7 +235,8 @@ public class TestCaseNode {
 
   private static Topic createTopicFromStatement(
       final FunctionRegistry functionRegistry,
-      final String sql) {
+      final String sql
+  ) {
     final KsqlParser parser = new DefaultKsqlParser();
     final MetaStoreImpl metaStore = new MetaStoreImpl(functionRegistry);
 
@@ -286,6 +290,8 @@ public class TestCaseNode {
       return topics.isEmpty() ? null : topics.get(0);
     } catch (final Exception e) {
       // Statement won't parse: this will be detected/handled later.
+      System.out.println("Error parsing statement (which may be expected): " + sql);
+      e.printStackTrace(System.out);
       return null;
     }
   }
@@ -318,6 +324,7 @@ public class TestCaseNode {
     return builder.build();
   }
 
+  @SuppressWarnings("rawtypes")
   private static SerdeSupplier getSerdeSupplier(final Format format) {
     switch (format) {
       case AVRO:

@@ -73,7 +73,7 @@ final class FieldNode {
         .map(OptionalMatchers::of)
         .orElse(null);
 
-    final Matcher[] matchers = Stream.of(nameMatcher, schemaMatcher)
+    final Matcher<Optional<Field>>[] matchers = Stream.of(nameMatcher, schemaMatcher)
         .filter(Objects::nonNull)
         .toArray(Matcher[]::new);
 

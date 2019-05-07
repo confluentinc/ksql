@@ -59,11 +59,13 @@ class TopicNode {
     }
   }
 
-  Topic build() {
+  Topic build(final String defaultFormat) {
+    final String formatToUse = format.replace("{FORMAT}", defaultFormat);
+
     return new Topic(
         name,
         schema,
-        getSerdeSupplier(Format.of(format)),
+        getSerdeSupplier(Format.of(formatToUse)),
         numPartitions,
         replicas
     );
@@ -83,6 +85,7 @@ class TopicNode {
     }
   }
 
+  @SuppressWarnings("rawtypes")
   private static SerdeSupplier getSerdeSupplier(final Format format) {
     switch (format) {
       case AVRO:

@@ -98,9 +98,11 @@ public class ValueSpecAvroSerdeSupplier implements SerdeSupplier<Object> {
         case BOOLEAN:
           return spec;
         case ARRAY:
-          return ((List) spec).stream()
+          final List<?> list = ((List<?>) spec).stream()
               .map(o -> valueSpecToAvro(o, schema.getElementType()))
               .collect(Collectors.toList());
+
+          return new GenericData.Array<>(schema, list);
         case MAP:
           return ((Map<Object, Object>) spec).entrySet().stream().collect(
               Collectors.toMap(

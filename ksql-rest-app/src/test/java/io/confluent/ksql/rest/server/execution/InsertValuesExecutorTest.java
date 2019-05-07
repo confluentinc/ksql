@@ -333,7 +333,10 @@ public class InsertValuesExecutorTest {
     new InsertValuesExecutor(() -> 1L).execute(statement, engine, serviceContext);
 
     // Then:
-    verify(rowSerializer).serialize(TOPIC_NAME, new GenericRow(1L, 1L, 1L, null));
+    verify(rowSerializer).serialize(TOPIC_NAME, expectedRow
+        .put("ROWKEY", 1L)
+        .put("COL0", 1L)
+        .put("COL1", null));
     verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
   }
 

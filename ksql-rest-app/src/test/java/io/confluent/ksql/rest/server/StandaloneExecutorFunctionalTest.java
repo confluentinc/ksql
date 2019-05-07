@@ -280,7 +280,11 @@ public class StandaloneExecutorFunctionalTest {
 
   private static void givenIncompatibleSchemaExists(final String topicName) {
     final KsqlSchema incompatible = KsqlSchema.of(SchemaBuilder.struct()
-        .field("ORDERID", Schema.INT64_SCHEMA)
+        .field("ORDERID", SchemaBuilder
+            .struct()
+            .field("fred", Schema.OPTIONAL_INT32_SCHEMA)
+            .optional()
+            .build())
         .build());
 
     TEST_HARNESS.ensureSchema(topicName, incompatible);

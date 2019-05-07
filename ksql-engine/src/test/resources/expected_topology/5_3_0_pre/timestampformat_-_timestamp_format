@@ -30,7 +30,7 @@
 }
 CONFIGS_END
 CSAS_TS_0.KsqlTopic.source = struct<ID optional<int64>,EVENT_TIMESTAMP optional<string>>
-CSAS_TS_0.TS = struct<ID optional<int64>,ETS int64>
+CSAS_TS_0.TS = struct<ID optional<int64>,ETS optional<int64>>
 SCHEMAS_END
 Topologies:
    Sub-topology: 0

@@ -30,7 +30,6 @@ import io.confluent.ksql.parser.SqlBaseParser.IntervalClauseContext;
 import io.confluent.ksql.parser.SqlBaseParser.LimitClauseContext;
 import io.confluent.ksql.parser.SqlBaseParser.NumberContext;
 import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
-import io.confluent.ksql.parser.SqlBaseParser.SpoolContext;
 import io.confluent.ksql.parser.SqlBaseParser.TablePropertiesContext;
 import io.confluent.ksql.parser.SqlBaseParser.TablePropertyContext;
 import io.confluent.ksql.parser.tree.AliasedRelation;
@@ -99,8 +98,6 @@ import io.confluent.ksql.parser.tree.ShowColumns;
 import io.confluent.ksql.parser.tree.SimpleCaseExpression;
 import io.confluent.ksql.parser.tree.SimpleGroupBy;
 import io.confluent.ksql.parser.tree.SingleColumn;
-import io.confluent.ksql.parser.tree.Spool;
-import io.confluent.ksql.parser.tree.SpoolOff;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.Statements;
 import io.confluent.ksql.parser.tree.StringLiteral;
@@ -733,16 +730,6 @@ public class AstBuilder {
     public Node visitUnsetProperty(final SqlBaseParser.UnsetPropertyContext context) {
       final String propertyName = ParserUtil.unquote(context.STRING().getText(), "'");
       return new UnsetProperty(getLocation(context), propertyName);
-    }
-
-    @Override
-    public Node visitSpool(final SpoolContext context) {
-      if (context.OFF() != null) {
-        return new SpoolOff(getLocation(context));
-      }
-
-      final String fileName = ParserUtil.unquote(context.STRING().getText(), "'");
-      return new Spool(getLocation(context), fileName);
     }
 
     @Override

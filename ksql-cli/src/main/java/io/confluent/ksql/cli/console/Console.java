@@ -72,9 +72,9 @@ import io.confluent.ksql.util.HandlerMaps.Handler1;
 import io.confluent.ksql.util.KsqlException;
 import java.io.Closeable;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
@@ -209,8 +209,8 @@ public class Console implements Closeable {
 
   public void setSpool(final File file) {
     try {
-      terminal.setSpool(new PrintWriter(file));
-    } catch (FileNotFoundException e) {
+      terminal.setSpool(new PrintWriter(file, Charset.defaultCharset().name()));
+    } catch (IOException e) {
       throw new KsqlException("Cannot SPOOL to file: " + file, e);
     }
   }

@@ -714,6 +714,47 @@ public class SchemaUtilTest {
     assertThat(result, is(field));
   }
 
+  @Test
+  public void shouldEnsureDeepOptional() {
+    // Given:
+    final Schema optionalSchema = SchemaBuilder
+        .struct()
+        .field("struct", SchemaBuilder
+            .struct()
+            .field("prim", Schema.FLOAT64_SCHEMA)
+            .field("array", SchemaBuilder
+                .array(Schema.STRING_SCHEMA)
+                .build())
+            .field("map", SchemaBuilder
+                .map(Schema.INT64_SCHEMA, Schema.BOOLEAN_SCHEMA)
+                .build())
+            .build())
+        .build();
+
+    // When:
+    final Schema result = SchemaUtil.ensureOptional(optionalSchema);
+
+    // Then:
+    assertThat(result, is(SchemaBuilder
+        .struct()
+        .field("struct", SchemaBuilder
+            .struct()
+            .field("prim", Schema.OPTIONAL_FLOAT64_SCHEMA)
+            .field("array", SchemaBuilder
+                .array(Schema.OPTIONAL_STRING_SCHEMA)
+                .optional()
+                .build())
+            .field("map", SchemaBuilder
+                .map(Schema.OPTIONAL_INT64_SCHEMA, Schema.OPTIONAL_BOOLEAN_SCHEMA)
+                .optional()
+                .build())
+            .optional()
+            .build())
+        .optional()
+        .build()
+    ));
+  }
+
   // Following methods not invoked but used to test conversion from Type -> Schema
   @SuppressWarnings("unused")
   private void mapType(final Map<String, Integer> map) {

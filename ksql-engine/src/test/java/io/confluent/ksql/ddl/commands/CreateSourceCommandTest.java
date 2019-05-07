@@ -25,7 +25,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.metastore.MutableMetaStore;
-import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
+import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.parser.tree.PrimitiveType;
@@ -48,7 +48,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class AbstractCreateStreamCommandTest {
+public class CreateSourceCommandTest {
 
   private static final String TOPIC_NAME = "some topic";
   private static final List<TableElement> SOME_ELEMENTS = ImmutableList.of(
@@ -57,7 +57,7 @@ public class AbstractCreateStreamCommandTest {
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
   @Mock
-  private AbstractStreamCreateStatement statement;
+  private CreateSource statement;
   @Mock
   private KafkaTopicClient kafkaTopicClient;
 
@@ -201,11 +201,11 @@ public class AbstractCreateStreamCommandTest {
     when(statement.getProperties()).thenReturn(allProps);
   }
 
-  private static final class TestCmd extends AbstractCreateStreamCommand {
+  private static final class TestCmd extends CreateSourceCommand {
 
     private TestCmd(
         final String sqlExpression,
-        final AbstractStreamCreateStatement statement,
+        final CreateSource statement,
         final KafkaTopicClient kafkaTopicClient
     ) {
       super(sqlExpression, statement, kafkaTopicClient);

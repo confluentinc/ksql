@@ -37,12 +37,8 @@ import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.InsertValues;
 import io.confluent.ksql.parser.tree.IntegerLiteral;
 import io.confluent.ksql.parser.tree.LongLiteral;
-import io.confluent.ksql.parser.tree.NullLiteral;
-import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.StringLiteral;
-import io.confluent.ksql.parser.tree.Struct;
-import io.confluent.ksql.parser.tree.Type.SqlType;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.services.ServiceContext;
@@ -78,13 +74,6 @@ public class InsertValuesExecutorTest {
       .field("ROWKEY", Schema.OPTIONAL_INT64_SCHEMA)
       .field("COL0", Schema.OPTIONAL_INT64_SCHEMA)
       .field("COL1", Schema.OPTIONAL_STRING_SCHEMA)
-      .build());
-
-  private static final KsqlSchema STRICT_SCHEMA = KsqlSchema.of(SchemaBuilder.struct()
-      .field("ROWTIME", Schema.INT64_SCHEMA)
-      .field("ROWKEY", Schema.INT64_SCHEMA)
-      .field("COL0", Schema.OPTIONAL_INT64_SCHEMA)
-      .field("COL1", Schema.STRING_SCHEMA)
       .build());
 
   private static final KsqlSchema BIG_SCHEMA = KsqlSchema.of(SchemaBuilder.struct()
@@ -389,88 +378,7 @@ public class InsertValuesExecutorTest {
     new InsertValuesExecutor(() -> 1L).execute(statement, engine, serviceContext);
   }
 
-  @Test
-  public void shouldThrowIfNullForStrictSchema() {
-    // Given:
-    givenDataSourceWithSchema(STRICT_SCHEMA);
-
-    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
-        ImmutableList.of("ROWKEY"),
-        ImmutableList.of(
-            new NullLiteral()
-        )
-    );
-
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Got null value for nonnull field: ");
-
-    // When:
-    new InsertValuesExecutor(() -> 1L).execute(statement, engine, serviceContext);
-  }
-
-  @Test
-  public void shouldThrowIfNullForStrictSchemaForNonExplicitFields() {
-    // Given:
-    givenDataSourceWithSchema(STRICT_SCHEMA);
-
-    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
-        ImmutableList.of("ROWKEY"),
-        ImmutableList.of(
-            new LongLiteral(123)
-        )
-    );
-
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Got null value for nonnull field: ");
-
-    // When:
-    new InsertValuesExecutor(() -> 1L).execute(statement, engine, serviceContext);
-  }
-
-  @Test
-  public void shouldThrowIfNonLiteral() {
-    // Given:
-    givenDataSourceWithSchema(STRICT_SCHEMA);
-
-    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
-        ImmutableList.of("ROWKEY"),
-        ImmutableList.of(
-            Struct.builder().addField("foo", PrimitiveType.of(SqlType.BIGINT)).build()
-        )
-    );
-
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "Only Literals are supported for INSERT INTO. Got: STRUCT<foo BIGINT> for field ROWKEY");
-
-    // When:
-    new InsertValuesExecutor(() -> 1L).execute(statement, engine, serviceContext);
-  }
-
-  @Test
-  public void shouldThrowIfIncompatibleTypes() {
-    // Given:
-    givenDataSourceWithSchema(STRICT_SCHEMA);
-
-    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
-        ImmutableList.of("ROWKEY"),
-        ImmutableList.of(
-            new StringLiteral("1.1")
-        )
-    );
-
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Expected type INT64 for field");
-
-    // When:
-    new InsertValuesExecutor(() -> 1L).execute(statement, engine, serviceContext);
-  }
-
-  private ConfiguredStatement<InsertValues> givenInsertValues(
+  private static ConfiguredStatement<InsertValues> givenInsertValues(
       final List<String> columns,
       final List<Expression> values
   ) {

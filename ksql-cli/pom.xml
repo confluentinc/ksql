@@ -66,11 +66,6 @@
             <artifactId>jline</artifactId>
         </dependency>
 
-        <dependency>
-            <groupId>commons-io</groupId>
-            <artifactId>commons-io</artifactId>
-        </dependency>
-
         <!-- Required for running tests -->
 
         <dependency>

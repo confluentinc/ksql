@@ -106,7 +106,6 @@
         <generext.version>1.0.2</generext.version>
         <avro.random.generator.version>0.2.2</avro.random.generator.version>
         <apache.curator.version>2.9.0</apache.curator.version>
-        <commons.io.version>2.6</commons.io.version>
     </properties>
 
     <dependencyManagement>
@@ -300,12 +299,6 @@
                 <groupId>org.jline</groupId>
                 <artifactId>jline</artifactId>
                 <version>${jline.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>commons-io</groupId>
-                <artifactId>commons-io</artifactId>
-                <version>${commons.io.version}</version>
             </dependency>
 
             <dependency>

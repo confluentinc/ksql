@@ -19,9 +19,30 @@ import com.google.common.collect.ImmutableMap;
 
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
+import javax.ws.rs.container.ContainerRequestContext;
 
+/**
+ * Wraps the REST context state that may be provided by external KSQL rest filters.
+ */
 public class KsqlRestContext {
+  public static final String KSQL_REST_CONTEXT_PROPERTY = "ksql.rest.context.property";
+
   private final ImmutableMap<String, Object> restContextProperties;
+
+  /**
+   * Returns the {@code KsqlRestContext} object found on the {@link ContainerRequestContext}
+   *
+   * @param requestContext The {@link ContainerRequestContext} where to find the KSQL rest context
+   * @return The {@code KsqlRestContext}
+   */
+  public static Optional<KsqlRestContext> fromRequestContext(
+      final ContainerRequestContext requestContext
+  ) {
+    return Optional.ofNullable(
+        (KsqlRestContext)requestContext.getProperty(KSQL_REST_CONTEXT_PROPERTY)
+    );
+  }
 
   public KsqlRestContext(final Map<String, Object> restContextProperties) {
     this.restContextProperties = ImmutableMap.copyOf(

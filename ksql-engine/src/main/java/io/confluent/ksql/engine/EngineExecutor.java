@@ -23,6 +23,7 @@ import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.ExecutableDdlStatement;
 import io.confluent.ksql.planner.LogicalPlanNode;
+import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.AvroUtil;
 import io.confluent.ksql.util.KsqlConfig;
@@ -63,11 +64,14 @@ final class EngineExecutor {
     return new EngineExecutor(engineContext, ksqlConfig, overriddenProperties);
   }
 
-  ExecuteResult execute(final ConfiguredStatement<?> statement) {
+  ExecuteResult execute(
+      final ServiceContext serviceContext,
+      final ConfiguredStatement<?> statement
+  ) {
     try {
       throwOnNonExecutableStatement(statement);
 
-      final QueryEngine queryEngine = engineContext.createQueryEngine();
+      final QueryEngine queryEngine = engineContext.createQueryEngine(serviceContext);
 
       final LogicalPlanNode logicalPlan = queryEngine.buildLogicalPlan(
           engineContext.getMetaStore(),
@@ -88,7 +92,6 @@ final class EngineExecutor {
           logicalPlan,
           ksqlConfig,
           overriddenProperties,
-          engineContext.getServiceContext().getKafkaClientSupplier(),
           engineContext.getMetaStore()
       );
 

@@ -145,7 +145,7 @@ final class EngineContext {
     }
   }
 
-  QueryEngine createQueryEngine() {
+  QueryEngine createQueryEngine(final ServiceContext serviceContext) {
     return new QueryEngine(
         serviceContext,
         processingLogContext,

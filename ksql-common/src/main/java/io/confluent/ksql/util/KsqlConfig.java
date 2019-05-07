@@ -147,6 +147,8 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_COLLECT_UDF_METRICS = "ksql.udf.collect.metrics";
   public static final String KSQL_UDF_SECURITY_MANAGER_ENABLED = "ksql.udf.enable.security.manager";
 
+  public static final String KSQL_INSERT_INTO_VALUES_ENABLED = "ksql.insert.into.values.enabled";
+
   public static final String DEFAULT_EXT_DIR = "ext";
 
   private static final Collection<CompatibilityBreakingConfigDef> COMPATIBLY_BREAKING_CONFIG_DEFS
@@ -395,6 +397,12 @@ public class KsqlConfig extends AbstractConfig {
             ConfigDef.Importance.LOW,
             "Enable the security manager for UDFs. Default is true and will stop UDFs from"
                + " calling System.exit or executing processes"
+        ).define(
+            KSQL_INSERT_INTO_VALUES_ENABLED,
+            Type.BOOLEAN,
+            true,
+            ConfigDef.Importance.LOW,
+            "Enable the INSERT INTO ... VALUES functionality."
         )
         .withClientSslSupport();
     for (final CompatibilityBreakingConfigDef compatibilityBreakingConfigDef

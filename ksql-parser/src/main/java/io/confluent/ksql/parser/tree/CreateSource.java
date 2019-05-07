@@ -26,14 +26,14 @@ import java.util.Objects;
 import java.util.Optional;
 
 @Immutable
-public abstract class AbstractStreamCreateStatement extends Statement {
+public abstract class CreateSource extends Statement {
 
   private final QualifiedName name;
   private final ImmutableList<TableElement> elements;
   private final boolean notExists;
   private final ImmutableMap<String, Literal> properties;
 
-  AbstractStreamCreateStatement(
+  CreateSource(
       final Optional<NodeLocation> location,
       final QualifiedName name,
       final List<TableElement> elements,
@@ -63,7 +63,7 @@ public abstract class AbstractStreamCreateStatement extends Statement {
     return notExists;
   }
 
-  public abstract AbstractStreamCreateStatement copyWith(
+  public abstract CreateSource copyWith(
       List<TableElement> elements,
       Map<String, Literal> properties);
 
@@ -77,10 +77,10 @@ public abstract class AbstractStreamCreateStatement extends Statement {
     if (this == o) {
       return true;
     }
-    if (!(o instanceof AbstractStreamCreateStatement)) {
+    if (!(o instanceof CreateSource)) {
       return false;
     }
-    final AbstractStreamCreateStatement that = (AbstractStreamCreateStatement) o;
+    final CreateSource that = (CreateSource) o;
     return notExists == that.notExists
         && Objects.equals(name, that.name)
         && Objects.equals(elements, that.elements)

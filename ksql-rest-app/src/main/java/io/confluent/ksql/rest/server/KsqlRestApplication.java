@@ -56,14 +56,10 @@ import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint;
 import io.confluent.ksql.rest.util.ClusterTerminator;
 import io.confluent.ksql.rest.util.KsqlInternalTopicUtils;
 import io.confluent.ksql.rest.util.ProcessingLogServerUtils;
-import io.confluent.ksql.schema.inference.DefaultSchemaInjector;
-import io.confluent.ksql.schema.inference.SchemaRegistryTopicSchemaSupplier;
 import io.confluent.ksql.services.DefaultServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
-import io.confluent.ksql.statement.InjectorChain;
-import io.confluent.ksql.topic.TopicCreateInjector;
-import io.confluent.ksql.topic.TopicDeleteInjector;
+import io.confluent.ksql.statement.Injectors;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Version;
@@ -409,12 +405,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         commandStore,
         Duration.ofMillis(restConfig.getLong(DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG)),
         versionChecker::updateLastRequestTime,
-        (ec, sc) -> InjectorChain.of(
-            new DefaultSchemaInjector(
-                new SchemaRegistryTopicSchemaSupplier(sc.getSchemaRegistryClient())),
-            new TopicCreateInjector(ec),
-            new TopicDeleteInjector(ec)
-        ));
+        Injectors.DEFAULT);
 
     final Optional<String> processingLogTopic =
         ProcessingLogServerUtils.maybeCreateProcessingLogTopic(

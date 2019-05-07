@@ -331,6 +331,42 @@ public final class SchemaUtil {
     return ARITHMETIC_TYPES.contains(type);
   }
 
+  public static Schema ensureOptional(final Schema schema) {
+    final SchemaBuilder builder;
+    switch (schema.type()) {
+      case STRUCT:
+        builder = SchemaBuilder.struct();
+        schema.fields()
+            .forEach(f -> builder.field(f.name(), ensureOptional(f.schema())));
+        break;
+
+      case MAP:
+        builder = SchemaBuilder.map(
+            ensureOptional(schema.keySchema()),
+            ensureOptional(schema.valueSchema())
+        );
+        break;
+
+      case ARRAY:
+        builder = SchemaBuilder.array(
+            ensureOptional(schema.valueSchema())
+        );
+        break;
+
+      default:
+        if (schema.isOptional()) {
+          return schema;
+        }
+
+        builder = new SchemaBuilder(schema.type());
+        break;
+    }
+
+    return builder
+        .optional()
+        .build();
+  }
+
   private static SchemaBuilder handleParametrizedType(final Type type) {
     if (type instanceof ParameterizedType) {
       final ParameterizedType parameterizedType = (ParameterizedType) type;

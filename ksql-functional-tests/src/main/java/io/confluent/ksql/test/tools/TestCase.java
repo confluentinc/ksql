@@ -309,7 +309,6 @@ public class TestCase implements Test {
     return result.toString();
   }
 
-
   public void createInputTopics(final FakeKafkaService fakeKafkaService) {
     topics.forEach(fakeKafkaService::createTopic);
   }

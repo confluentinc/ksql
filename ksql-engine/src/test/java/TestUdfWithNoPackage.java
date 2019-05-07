@@ -19,12 +19,9 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import io.confluent.ksql.function.UdfCompiler;
 import io.confluent.ksql.function.UdfInvoker;
-import java.util.Optional;
 import org.junit.Test;
 
 public class TestUdfWithNoPackage {
-
-  private final UdfCompiler udfCompiler = new UdfCompiler(Optional.empty());
 
   @Test
   public void shouldCompileMethodsWithNoPackage() throws Exception {
@@ -38,7 +35,7 @@ public class TestUdfWithNoPackage {
 
     // When:
     // motivated by https://github.com/square/javapoet/pull/723
-    final UdfInvoker udf = udfCompiler
+    final UdfInvoker udf = UdfCompiler
         .compile(getClass().getMethod("udf"), this.getClass().getClassLoader());
 
     // Then:

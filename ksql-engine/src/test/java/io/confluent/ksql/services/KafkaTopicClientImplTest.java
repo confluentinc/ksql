@@ -74,11 +74,16 @@ import org.easymock.EasyMockRunner;
 import org.easymock.IArgumentMatcher;
 import org.easymock.Mock;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 
 @RunWith(EasyMockRunner.class)
 public class KafkaTopicClientImplTest {
+
+  @Rule
+  public final ExpectedException expectedException = ExpectedException.none();
 
   private static final String topicName1 = "topic1";
   private static final String topicName2 = "topic2";
@@ -130,14 +135,27 @@ public class KafkaTopicClientImplTest {
     verify(adminClient);
   }
 
-  @Test(expected = KafkaTopicExistsException.class)
+  @Test
   public void shouldFailCreateExistingTopic() {
+    expectedException.expect(KafkaTopicExistsException.class);
+    expectedException.expectMessage("and 2 replication factor (topic has 1)");
+
     expect(adminClient.createTopics(anyObject())).andReturn(getCreateTopicsResult());
     expect(adminClient.listTopics()).andReturn(getListTopicsResult());
     expect(adminClient.describeTopics(anyObject())).andReturn(getDescribeTopicsResult());
     replay(adminClient);
     final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
     kafkaTopicClient.createTopic(topicName1, 1, (short) 2);
+    verify(adminClient);
+  }
+
+  @Test
+  public void shouldNotFailIfTopicAlreadyExistsButCreateUsesDefaultReplicas() {
+    expect(adminClient.listTopics()).andReturn(getListTopicsResult());
+    expect(adminClient.describeTopics(anyObject())).andReturn(getDescribeTopicsResult());
+    replay(adminClient);
+    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
+    kafkaTopicClient.createTopic(topicName1, 1, (short) -1);
     verify(adminClient);
   }
 

@@ -36,6 +36,7 @@ import io.confluent.ksql.test.serde.string.StringSerdeSupplier;
 import io.confluent.ksql.test.tools.conditions.PostConditions;
 import io.confluent.ksql.test.tools.exceptions.KsqlExpectedException;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.Optional;
 import org.apache.avro.Schema;
@@ -100,8 +101,8 @@ public class TestCaseTest {
     // Then:
     verify(topologyTestDriver).pipeInput(captor.capture());
     assertThat(captor.getValue().topic(), equalTo(record.topic.getName()));
-    assertThat(new String((byte[])captor.getValue().key()), equalTo("k1"));
-    assertThat(new String((byte[])captor.getValue().value()), equalTo("v1, v2"));
+    assertThat(new String((byte[])captor.getValue().key(), StandardCharsets.UTF_8), equalTo("k1"));
+    assertThat(new String((byte[])captor.getValue().value(), StandardCharsets.UTF_8), equalTo("v1, v2"));
     assertThat(captor.getValue().timestamp(), equalTo(record.timestamp));
 
   }

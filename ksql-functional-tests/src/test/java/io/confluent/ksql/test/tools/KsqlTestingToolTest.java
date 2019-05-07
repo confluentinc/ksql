@@ -1,0 +1,104 @@
+/*
+ * Copyright 2019 Confluent Inc.
+ *
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
+ *
+ * http://www.confluent.io/confluent-community-license
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
+package io.confluent.ksql.test.tools;
+
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.MatcherAssert.assertThat;
+
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
+import java.security.Permission;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+
+public class KsqlTestingToolTest {
+
+
+  private SecurityManager delegatedSecurityManager;
+  private Integer firstExitStatusCode;
+
+  private final ByteArrayOutputStream outContent = new ByteArrayOutputStream();
+  private final ByteArrayOutputStream errContent = new ByteArrayOutputStream();
+  private final PrintStream originalOut = System.out;
+  private final PrintStream originalErr = System.err;
+
+  @Before
+  public void setUpStreams() {
+    System.setOut(new PrintStream(outContent));
+    System.setErr(new PrintStream(errContent));
+  }
+
+  @After
+  public void restoreStreams() {
+    System.setOut(originalOut);
+    System.setErr(originalErr);
+  }
+
+  @Test
+  public void shouldRunCorrectTest() {
+    // When:
+    KsqlTestingTool.loadAndRunTests(new String[]{"src/test/resources/unit_test.json"});
+
+    // Then:
+    assertThat(outContent.toString(), equalTo(""));
+  }
+
+  @Test
+  public void shouldFailWithIncorrectArgs() {
+
+    // Given:
+    System.setSecurityManager(new TestSecurityManager());
+
+    // When:
+    try {
+      KsqlTestingTool.loadAndRunTests(new String[]{"foo"});
+    } catch (Exception e) {
+      assertThat(e, instanceOf(TestSecurityManager.ExitSecurityException.class));
+      final TestSecurityManager.ExitSecurityException exitSecurityException = (TestSecurityManager.ExitSecurityException) e;
+      assertThat(exitSecurityException.getStatus(), equalTo(-1));
+      assertThat(errContent.toString(), equalTo("Failed to start KSQL testing tool: foo (No such file or directory)\n"));
+    }
+  }
+
+
+  class TestSecurityManager extends SecurityManager {
+
+    public final class ExitSecurityException extends SecurityException {
+      private final int status;
+
+      public ExitSecurityException(final int status) {
+        this.status = status;
+      }
+
+      public int getStatus() {
+        return this.status;
+      }
+    }
+
+    @Override
+    public void checkExit(final int status) {
+      if (status != 0) {
+        throw new TestSecurityManager.ExitSecurityException(status);
+      }
+    }
+
+    @Override
+    public void checkPermission(final Permission perm) {}
+
+  }
+}

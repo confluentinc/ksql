@@ -45,6 +45,7 @@ import org.apache.kafka.streams.TopologyTestDriver;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
@@ -55,8 +56,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class TestCaseTest {
 
   @Rule
-  public final org.junit.rules.ExpectedException expectedException = org.junit.rules.ExpectedException
-      .none();
+  public final ExpectedException expectedException = ExpectedException.none();
 
   private final SerdeSupplier serdeSupplier = new StringSerdeSupplier();
   private final Topic topic = new Topic("foo_kafka", Optional.empty(), serdeSupplier, 4, 1);

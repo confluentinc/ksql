@@ -17,8 +17,12 @@ package io.confluent.ksql.util;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
+
+import java.util.LinkedList;
+import java.util.List;
 
 public class StringUtilTest {
 
@@ -65,4 +69,16 @@ public class StringUtilTest {
     final String result = StringUtil.cleanQuotes(input);
     assertThat(result, is(expected));
   }
+
+  @Test
+  public void testJoin() {
+      List<Object> linkedList = new LinkedList<>();
+      linkedList.add( "");
+      linkedList.add( " a");
+
+      assertEquals("g{qc?uPS)u a", StringUtil.join("g{qc?uPS)u", linkedList));
+      assertEquals(2, linkedList.size());
+  }
+
+
 }

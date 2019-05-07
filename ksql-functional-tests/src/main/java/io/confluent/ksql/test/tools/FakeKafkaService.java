@@ -26,7 +26,7 @@ import java.util.Objects;
 public final class FakeKafkaService {
 
   private final Map<String, Topic> topicMap;
-  private final Map<String, List<Record>> topicData;
+  private final Map<String, List<FakeKafkaRecord>> topicData;
 
   public static FakeKafkaService create() {
     return new FakeKafkaService();
@@ -46,26 +46,26 @@ public final class FakeKafkaService {
     this.topicData.put(topic.getName(), new ArrayList<>());
   }
 
-  public void writeSingleRecoredIntoTopic(final String topicName, final Record record) {
+  public void writeSingleRecoredIntoTopic(final String topicName, final FakeKafkaRecord record) {
     Objects.requireNonNull(topicName);
     Objects.requireNonNull(record);
     ensureTopicExists(topicName);
     this.topicData.get(topicName).add(record);
   }
 
-  public void writeRecoredsIntoTopic(final String topicName, final List<Record> record) {
+  public void writeRecoredsIntoTopic(final String topicName, final List<FakeKafkaRecord> record) {
     Objects.requireNonNull(topicName);
     Objects.requireNonNull(record);
     ensureTopicExists(topicName);
     this.topicData.get(topicName).addAll(record);
   }
 
-  public List<Record> readRecordsFromTopic(final Topic topic) {
+  public List<FakeKafkaRecord> readRecordsFromTopic(final Topic topic) {
     Objects.requireNonNull(topic);
     return readRecordsFromTopic(topic.getName());
   }
 
-  public List<Record> readRecordsFromTopic(final String topicName) {
+  public List<FakeKafkaRecord> readRecordsFromTopic(final String topicName) {
     Objects.requireNonNull(topicName);
     ensureTopicExists(topicName);
     return ImmutableList.copyOf(topicData.get(topicName));

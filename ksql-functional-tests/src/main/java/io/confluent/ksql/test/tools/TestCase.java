@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.test.tools;
 
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
@@ -318,7 +319,9 @@ public class TestCase implements Test {
       final SchemaRegistryClient schemaRegistryClient
   ) {
     inputRecords.forEach(
-        record -> fakeKafkaService.writeSingleRecoredIntoTopic(record.topic.getName(), record)
+        record -> fakeKafkaService.writeSingleRecoredIntoTopic(
+            record.topic.getName(),
+            new FakeKafkaRecord(record, null))
     );
   }
 
@@ -329,7 +332,7 @@ public class TestCase implements Test {
       final KafkaTopicClient kafkaTopicClient,
       final SchemaRegistryClient schemaRegistryClient
   ) {
-    final List<Record> inputRecordsFromKafka = new ArrayList<>();
+    final List<FakeKafkaRecord> inputRecordsFromKafka = new ArrayList<>();
     testDriver.getSourceKsqlTopics().forEach(
         ksqlTopic -> inputRecordsFromKafka.addAll(
             fakeKafkaService.readRecordsFromTopic(ksqlTopic.getKafkaTopicName())
@@ -338,9 +341,14 @@ public class TestCase implements Test {
     inputRecordsFromKafka.forEach(
         record -> testDriver.getTopologyTestDriver().pipeInput(
             new ConsumerRecordFactory<>(
-                record.keySerializer(),
-                record.topic.getSerializer(schemaRegistryClient)
-            ).create(record.topic.name, record.key(), record.value, record.timestamp)
+                record.getTestRecord().keySerializer(),
+                record.getTestRecord().topic.getSerializer(schemaRegistryClient)
+            ).create(
+                record.getTestRecord().topic.name,
+                record.getTestRecord().key(),
+                record.getTestRecord().value,
+                record.getTestRecord().timestamp
+            )
         )
     );
 
@@ -349,7 +357,7 @@ public class TestCase implements Test {
           try {
             fakeKafkaService.writeSingleRecoredIntoTopic(
                 ksqlTopic.getKafkaTopicName(),
-                getRecordFromProducerRecord(
+                getFakeKafkaRecordFromProducerRecord(
                     getTopic(
                         kafkaTopicClient,
                         ksqlTopic,
@@ -372,19 +380,18 @@ public class TestCase implements Test {
   }
 
   public void verifyOutputTopics(
-      final TopologyTestDriverContainer testDriver,
       final FakeKafkaService fakeKafkaService,
       final SchemaRegistryClient schemaRegistryClient) {
-    final Map<String, List<Record>> outputRecordsFromKafka = new HashMap<>();
-    testDriver.getSinkKsqlTopics().forEach(
-        ksqlTopic -> outputRecordsFromKafka.put(
-            ksqlTopic.getKafkaTopicName(),
-            fakeKafkaService.readRecordsFromTopic(ksqlTopic.getKafkaTopicName())
+    final Map<String, List<Record>> expectedOutput = getExpectedRecordsMap();
+    final Map<String, List<FakeKafkaRecord>> outputRecordsFromKafka = new HashMap<>();
+    expectedOutput.keySet().forEach(
+        kafkaTopicName -> outputRecordsFromKafka.put(
+            kafkaTopicName,
+            fakeKafkaService.readRecordsFromTopic(kafkaTopicName)
         )
     );
-
-    getExpectedRecordsMap();
-
+    assertThat(expectedOutput.size(), equalTo(outputRecordsFromKafka.size()));
+    System.out.println();
   }
 
   private Map<String, List<Record>> getExpectedRecordsMap() {
@@ -401,17 +408,18 @@ public class TestCase implements Test {
   }
 
 
-  private static Record getRecordFromProducerRecord(
+  private static FakeKafkaRecord getFakeKafkaRecordFromProducerRecord(
       final Topic topic,
       final ProducerRecord producerRecord) {
     Objects.requireNonNull(producerRecord);
-    return new Record(
+    final Record testRecord =  new Record(
         topic,
         producerRecord.key().toString(),
         producerRecord.value(),
         producerRecord.timestamp(),
         null
     );
+    return new FakeKafkaRecord(testRecord, producerRecord);
   }
 
   private static Topic getTopic(

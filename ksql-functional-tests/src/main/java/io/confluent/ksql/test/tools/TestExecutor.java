@@ -93,13 +93,13 @@ final class TestExecutor {
             serviceContext.getTopicClient(),
             serviceContext.getSchemaRegistryClient());
 
-        testCase.verifyOutputTopics(
-            topologyTestDriverContainer,
-            fakeKafkaService,
-            serviceContext.getSchemaRegistryClient()
-        );
-        testCase.verifyMetastore(ksqlEngine.getMetaStore());
       }
+
+      testCase.verifyOutputTopics(
+          fakeKafkaService,
+          serviceContext.getSchemaRegistryClient()
+      );
+      testCase.verifyMetastore(ksqlEngine.getMetaStore());
     } catch (final RuntimeException e) {
       testCase.handleException(e);
     }

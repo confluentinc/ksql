@@ -226,6 +226,7 @@ public class InsertValuesExecutor {
     private final Schema schema;
     private final String field;
 
+
     ExpressionResolver(final Schema schema, final String field) {
       this.schema = Objects.requireNonNull(schema, "schema");
       this.field = Objects.requireNonNull(field, "field");
@@ -249,9 +250,12 @@ public class InsertValuesExecutor {
         return value;
       }
 
-      throw new KsqlException(
-          "Expected type " + schema.type() + " for field " + field
-              + " but got " + value + "(" + valueType + ")");
+      return SchemaUtil.maybeUpCast(schema.type(), valueType, value)
+          .orElseThrow(
+              () -> new KsqlException(
+                  "Expected type " + schema.type() + " for field " + field
+                      + " but got " + value + "(" + valueType + ")")
+      );
     }
   }
 

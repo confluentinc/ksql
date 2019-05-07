@@ -1,29 +1,9 @@
-/*
- * Copyright 2018 Confluent Inc.
- *
- * Licensed under the Confluent Community License (the "License"); you may not use
- * this file except in compliance with the License.  You may obtain a copy of the
- * License at
- *
- * http://www.confluent.io/confluent-community-license
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations under the License.
- */
+package io.confluent.ksql.test;
 
-package io.confluent.ksql;
-
-import static io.confluent.ksql.EndToEndEngineTestUtil.AvroSerdeSupplier;
-import static io.confluent.ksql.EndToEndEngineTestUtil.Record;
-import static io.confluent.ksql.EndToEndEngineTestUtil.TestCase;
-import static io.confluent.ksql.EndToEndEngineTestUtil.Topic;
-import static io.confluent.ksql.EndToEndEngineTestUtil.ValueSpecAvroSerdeSupplier;
-import static io.confluent.ksql.EndToEndEngineTestUtil.avroToValueSpec;
-import static io.confluent.ksql.EndToEndEngineTestUtil.buildAvroSchema;
-import static io.confluent.ksql.EndToEndEngineTestUtil.buildTestName;
-import static io.confluent.ksql.EndToEndEngineTestUtil.findTestCases;
+import static io.confluent.ksql.test.EndToEndEngineTestUtil.avroToValueSpec;
+import static io.confluent.ksql.test.EndToEndEngineTestUtil.buildAvroSchema;
+import static io.confluent.ksql.test.EndToEndEngineTestUtil.buildTestName;
+import static io.confluent.ksql.test.EndToEndEngineTestUtil.findTestCases;
 import static java.util.Objects.requireNonNull;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -31,9 +11,15 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.ImmutableList;
 import io.confluent.avro.random.generator.Generator;
-import io.confluent.ksql.EndToEndEngineTestUtil.MissingFieldException;
-import io.confluent.ksql.EndToEndEngineTestUtil.PostConditions;
-import io.confluent.ksql.EndToEndEngineTestUtil.TestFile;
+import io.confluent.ksql.test.EndToEndEngineTestUtil.TestFile;
+import io.confluent.ksql.test.serde.avro.AvroSerdeSupplier;
+import io.confluent.ksql.test.serde.avro.ValueSpecAvroSerdeSupplier;
+import io.confluent.ksql.test.tools.Record;
+import io.confluent.ksql.test.tools.TestCase;
+import io.confluent.ksql.test.tools.Topic;
+import io.confluent.ksql.test.tools.conditions.PostConditions;
+import io.confluent.ksql.test.tools.exceptions.KsqlExpectedException;
+import io.confluent.ksql.test.tools.exceptions.MissingFieldException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
@@ -188,7 +174,7 @@ public class SchemaTranslationTest {
             inputRecords,
             outputRecords,
             ImmutableList.of(DDL_STATEMENT, csasStatement),
-            EndToEndEngineTestUtil.ExpectedException.none(),
+            KsqlExpectedException.none(),
             PostConditions.NONE
         ));
       } catch (final Exception e) {

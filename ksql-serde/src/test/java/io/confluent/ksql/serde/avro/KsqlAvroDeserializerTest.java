@@ -818,5 +818,3 @@ public class KsqlAvroDeserializerTest {
     return deserializer;
   }
 }
-
-// Todo(ac): Add JSON functional tests for deserializing top level map?

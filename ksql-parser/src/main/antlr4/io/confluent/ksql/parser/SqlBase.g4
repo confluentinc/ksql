@@ -66,6 +66,7 @@ statement
     | DROP TABLE (IF EXISTS)? qualifiedName  (DELETE TOPIC)?                #dropTable
     | EXPLAIN  (statement | qualifiedName)                                  #explain
     | RUN SCRIPT STRING                                                     #runScript
+    | SPOOL (STRING | OFF)                                                  #spool
     ;
 
 query
@@ -426,6 +427,8 @@ BEGINNING: 'BEGINNING';
 UNSET: 'UNSET';
 RUN: 'RUN';
 SCRIPT: 'SCRIPT';
+SPOOL: 'SPOOL';
+OFF: 'OFF';
 
 IF: 'IF';
 

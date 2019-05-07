@@ -42,6 +42,7 @@ import io.confluent.ksql.util.ParserUtil;
 import io.confluent.ksql.util.Version;
 import io.confluent.ksql.util.WelcomeMsgUtils;
 import java.io.Closeable;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
@@ -271,6 +272,10 @@ public class Cli implements KsqlRequestExecutor, Closeable {
 
       } else if (statementContext.statement() instanceof SqlBaseParser.UnsetPropertyContext) {
         consecutiveStatements = unsetProperty(consecutiveStatements, statementContext);
+
+      } else if (statementContext.statement() instanceof SqlBaseParser.SpoolContext) {
+        handleSpool((SqlBaseParser.SpoolContext) statementContext.statement());
+
       } else {
         consecutiveStatements.append(statementText);
       }
@@ -471,6 +476,15 @@ public class Cli implements KsqlRequestExecutor, Closeable {
     terminal.writer()
         .printf("Successfully unset local property '%s' (value was '%s').%n", property, oldValue);
     terminal.flush();
+  }
+
+  private void handleSpool(final SqlBaseParser.SpoolContext spoolContext) {
+    if (spoolContext.OFF() != null) {
+      terminal.unsetSpool();
+    } else {
+      final String fileName = ParserUtil.unquote(spoolContext.STRING().getText(), "'");
+      terminal.setSpool(new File(fileName));
+    }
   }
 
   private static boolean isSequenceNumberTimeout(final RestResponse<?> response) {

@@ -16,8 +16,10 @@
 package io.confluent.ksql;
 
 import io.confluent.ksql.cli.console.KsqlTerminal;
+import java.io.File;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.io.Writer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
@@ -76,6 +78,16 @@ public class TestTerminal implements KsqlTerminal {
 
   @Override
   public void handle(final Terminal.Signal signal, final Terminal.SignalHandler signalHandler) {
+    // Ignore
+  }
+
+  @Override
+  public void setSpool(final Writer writer) {
+    // Ignore
+  }
+
+  @Override
+  public void unsetSpool() {
     // Ignore
   }
 

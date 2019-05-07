@@ -29,6 +29,7 @@ import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.parser.tree.Node;
 import io.confluent.ksql.parser.tree.NullLiteral;
 import io.confluent.ksql.rest.entity.KsqlEntity;
+import io.confluent.ksql.serde.GenericRowSerDe;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
@@ -199,19 +200,20 @@ public class InsertValuesExecutor {
     }
   }
 
-  private byte[] serializeRow(
+  private static byte[] serializeRow(
       final GenericRow row,
       final DataSource<?> dataSource,
       final KsqlConfig config,
       final ServiceContext serviceContext
   ) {
-    final Serde<GenericRow> rowSerde = dataSource.getKsqlTopicSerde()
-        .getGenericRowSerde(
-            dataSource.getSchema().getSchema(),
-            config,
-            serviceContext.getSchemaRegistryClientFactory(),
-            "",
-            NoopProcessingLogContext.INSTANCE);
+    final Serde<GenericRow> rowSerde = GenericRowSerDe.from(
+        dataSource.getKsqlTopicSerde(),
+        dataSource.getSchema().getSchema(),
+        config,
+        serviceContext.getSchemaRegistryClientFactory(),
+        "",
+        NoopProcessingLogContext.INSTANCE);
+
     try {
       return rowSerde.serializer().serialize(dataSource.getKafkaTopicName(), row);
     } catch (final Exception e) {

@@ -287,6 +287,8 @@ public class QueryTranslationTest {
       return topics.isEmpty() ? null : topics.get(0);
     } catch (final Exception e) {
       // Statement won't parse: this will be detected/handled later.
+      System.out.println("Error parsing statement: " + sql);
+      e.printStackTrace(System.out);
       return null;
     }
   }
@@ -401,7 +403,7 @@ public class QueryTranslationTest {
 
         final Optional<ExpectedException> ee = buildExpectedException(statements);
 
-        final Map<String, Topic> topics = getTestCaseTopics(statements, ee.isPresent());
+        final Map<String, Topic> topics = getTestCaseTopics(statements, format, ee.isPresent());
 
         final List<Record> inputRecords = inputs.stream()
             .map(node -> node.build(topics))
@@ -444,13 +446,14 @@ public class QueryTranslationTest {
 
     private Map<String, Topic> getTestCaseTopics(
         final List<String> statements,
+        final String defaultFormat,
         final boolean expectsException
     ) {
       final Map<String, Topic> allTopics = new HashMap<>();
 
       // Add all topics from topic nodes to the map:
       topics.stream()
-          .map(TopicNode::build)
+          .map(node -> node.build(defaultFormat))
           .forEach(topic -> allTopics.put(topic.getName(), topic));
 
       // Infer topics if not added already:
@@ -556,11 +559,13 @@ public class QueryTranslationTest {
       }
     }
 
-    Topic build() {
+    Topic build(final String defaultFormat) {
+      final String formatToUse = format.replace("{FORMAT}", defaultFormat);
+
       return new Topic(
           name,
           schema,
-          getSerdeSupplier(Format.of(format)),
+          getSerdeSupplier(Format.of(formatToUse)),
           numPartitions,
           replicas
       );

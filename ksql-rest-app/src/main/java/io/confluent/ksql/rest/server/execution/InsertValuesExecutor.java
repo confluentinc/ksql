@@ -226,13 +226,6 @@ public class InsertValuesExecutor {
     private final Schema schema;
     private final String field;
 
-    private static final Map<Type, Function<Number, Object>> CASTER =
-        ImmutableMap.<Type, Function<Number, Object>>builder()
-            .put(Type.INT32, Number::intValue)
-            .put(Type.INT64, Number::longValue)
-            .put(Type.FLOAT32, Number::floatValue)
-            .put(Type.FLOAT64, Number::doubleValue)
-            .build();
 
     ExpressionResolver(final Schema schema, final String field) {
       this.schema = Objects.requireNonNull(schema, "schema");
@@ -255,13 +248,14 @@ public class InsertValuesExecutor {
       final Type valueType = SchemaUtil.getSchemaFromType(value.getClass()).type();
       if (valueType.equals(schema.type())) {
         return value;
-      } else if (SchemaUtil.isNumber(valueType) && SchemaUtil.canUpCast(schema.type(), valueType)) {
-        return CASTER.get(schema.type()).apply((Number) value);
       }
 
-      throw new KsqlException(
-          "Expected type " + schema.type() + " for field " + field
-              + " but got " + value + "(" + valueType + ")");
+      return SchemaUtil.maybeUpCast(schema.type(), valueType, value)
+          .orElseThrow(
+              () -> new KsqlException(
+                  "Expected type " + schema.type() + " for field " + field
+                      + " but got " + value + "(" + valueType + ")")
+      );
     }
   }
 

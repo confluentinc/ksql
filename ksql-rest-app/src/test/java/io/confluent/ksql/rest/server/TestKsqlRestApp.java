@@ -82,7 +82,7 @@ public class TestKsqlRestApp extends ExternalResource {
   private final Map<String, ?> baseConfig;
   private final Supplier<String> bootstrapServers;
   private final Supplier<ServiceContext> serviceContext;
-  private final Function<KsqlConfig, Binder> serviceContextBinder;
+  private final Function<KsqlConfig, Binder> serviceContextBinderFactory;
   private final List<URL> listeners = new ArrayList<>();
   private KsqlRestApplication restServer;
 
@@ -90,13 +90,13 @@ public class TestKsqlRestApp extends ExternalResource {
       final Supplier<String> bootstrapServers,
       final Map<String, Object> additionalProps,
       final Supplier<ServiceContext> serviceContext,
-      final Function<KsqlConfig, Binder> serviceContextBinder) {
+      final Function<KsqlConfig, Binder> serviceContextBinderFactory) {
 
     this.baseConfig = buildBaseConfig(additionalProps);
     this.bootstrapServers = Objects.requireNonNull(bootstrapServers, "bootstrapServers");
     this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
-    this.serviceContextBinder = Objects
-        .requireNonNull(serviceContextBinder, "serviceContextBinder");
+    this.serviceContextBinderFactory = Objects
+        .requireNonNull(serviceContextBinderFactory, "serviceContextBinderFactory");
   }
 
   public List<URL> getListeners() {
@@ -204,7 +204,7 @@ public class TestKsqlRestApp extends ExternalResource {
           (booleanSupplier) -> niceMock(VersionCheckerAgent.class),
           3,
           serviceContext.get(),
-          serviceContextBinder
+          serviceContextBinderFactory
       );
     } catch (final Exception e) {
       throw new RuntimeException("Failed to initialise", e);

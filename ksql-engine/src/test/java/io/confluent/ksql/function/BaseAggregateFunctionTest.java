@@ -34,7 +34,7 @@ public class BaseAggregateFunctionTest {
   private Supplier<Integer> initialValueSupplier;
 
   @Test
-  public void shouldThrowOnOptionalReturnType() {
+  public void shouldThrowOnNonOptionalReturnType() {
     // Then:
     expectedException.expect(IllegalArgumentException.class);
     expectedException.expectMessage("KSQL only supports optional field types");
@@ -44,7 +44,7 @@ public class BaseAggregateFunctionTest {
         "funcName",
         0,
         initialValueSupplier,
-        Schema.INT32_SCHEMA, // <-- none-optional return type.
+        Schema.INT32_SCHEMA, // <-- non-optional return type.
         Collections.emptyList(),
         "the description"
     );

@@ -89,7 +89,7 @@ public class UdfCompiler {
   }
 
   @VisibleForTesting
-  public UdfInvoker compile(final Method method, final ClassLoader loader) {
+  public static UdfInvoker compile(final Method method, final ClassLoader loader) {
     try {
       final IScriptEvaluator scriptEvaluator = createScriptEvaluator(method,
           loader,
@@ -105,10 +105,12 @@ public class UdfCompiler {
     }
   }
 
-  KsqlAggregateFunction<?, ?> compileAggregate(final Method method,
-                                               final ClassLoader loader,
-                                               final String functionName,
-                                               final String description) {
+  KsqlAggregateFunction<?, ?> compileAggregate(
+      final Method method,
+      final ClassLoader loader,
+      final String functionName,
+      final String description
+  ) {
     final Pair<Type, Type> valueAndAggregateTypes
         = getValueAndAggregateTypes(method, functionName);
     try {
@@ -147,9 +149,10 @@ public class UdfCompiler {
     }
   }
 
-  private Pair<Type, Type> getValueAndAggregateTypes(final Method method,
-                                                       final String functionName) {
-
+  private static Pair<Type, Type> getValueAndAggregateTypes(
+      final Method method,
+      final String functionName
+  ) {
     final String functionInfo = "method='" + method.getName()
         + "', functionName='" + functionName + "' UDFClass='" + method.getDeclaringClass() + "'";
     final String invalidClass = "class='%s'"
@@ -176,16 +179,18 @@ public class UdfCompiler {
     return new Pair<>(valueType, aggregateType);
   }
 
-  private Type getRawType(final Type type) {
+  private static Type getRawType(final Type type) {
     if (type instanceof ParameterizedType) {
       return ((ParameterizedType) type).getRawType();
     }
     return type;
   }
 
-  private JavaSourceClassLoader createJavaSourceClassLoader(final ClassLoader loader,
-                                                            final String generatedClassName,
-                                                            final String udafClass) {
+  private static JavaSourceClassLoader createJavaSourceClassLoader(
+      final ClassLoader loader,
+      final String generatedClassName,
+      final String udafClass
+  ) {
     final long lastMod = System.currentTimeMillis();
     return new JavaSourceClassLoader(loader, new ResourceFinder() {
       @Override
@@ -213,10 +218,12 @@ public class UdfCompiler {
     }, StandardCharsets.UTF_8.name());
   }
 
-  private String generateUdafClass(final String generatedClassName,
-                                   final Method method,
-                                   final String functionName,
-                                   final String description) {
+  private static String generateUdafClass(
+      final String generatedClassName,
+      final Method method,
+      final String functionName,
+      final String description
+  ) {
     validateMethodSignature(method);
     Arrays.stream(method.getParameterTypes())
         .filter(type -> !UdfCompiler.isTypeSupported(type, SUPPORTED_UDAF_TYPES))
@@ -282,9 +289,11 @@ public class UdfCompiler {
         || supportedTypes.stream().anyMatch(supported -> supported.isAssignableFrom(type));
   }
 
-  private static IScriptEvaluator createScriptEvaluator(final Method method,
-                                                        final ClassLoader loader,
-                                                        final String udfClass) throws Exception {
+  private static IScriptEvaluator createScriptEvaluator(
+      final Method method,
+      final ClassLoader loader,
+      final String udfClass
+  ) throws Exception {
     final IScriptEvaluator scriptEvaluator
         = CompilerFactoryFactory.getDefaultCompilerFactory().newScriptEvaluator();
     scriptEvaluator.setClassName(method.getDeclaringClass().getName() + "_" + method.getName());
@@ -296,5 +305,4 @@ public class UdfCompiler {
     scriptEvaluator.setParentClassLoader(loader);
     return scriptEvaluator;
   }
-
 }

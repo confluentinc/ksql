@@ -37,14 +37,14 @@ public class KsqlFunctionTest {
   private Function<KsqlConfig, Kudf> udfFactory;
 
   @Test
-  public void shouldThrowOnOptionalReturnType() {
+  public void shouldThrowOnNonOptionalReturnType() {
     // Then:
     expectedException.expect(IllegalArgumentException.class);
     expectedException.expectMessage("KSQL only supports optional field types");
 
     // When:
     KsqlFunction.create(
-        Schema.INT32_SCHEMA, // <-- none-optional return type.
+        Schema.INT32_SCHEMA, // <-- non-optional return type.
         Collections.emptyList(),
         "funcName",
         MyUdf.class,

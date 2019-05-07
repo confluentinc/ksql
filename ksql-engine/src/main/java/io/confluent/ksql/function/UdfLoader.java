@@ -213,7 +213,7 @@ public class UdfLoader {
       LOGGER.info("Adding UDF name='{}' from path={}", annotation.name(), path);
       final Method method = (Method) executable;
       try {
-        final UdfInvoker udf = compiler.compile(method, loader);
+        final UdfInvoker udf = UdfCompiler.compile(method, loader);
         addFunction(annotation, method, udf, path);
       } catch (final KsqlException e) {
         if (parentClassLoader == loader) {

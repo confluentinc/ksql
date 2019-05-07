@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.services;
 
+import static io.confluent.ksql.util.LimitedProxyBuilder.anyParams;
 import static io.confluent.ksql.util.LimitedProxyBuilder.methodParams;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
@@ -37,6 +38,7 @@ final class SandboxedSchemaRegistryClient {
     Objects.requireNonNull(delegate, "delegate");
 
     return LimitedProxyBuilder.forClass(SchemaRegistryClient.class)
+        .swallow("register", anyParams(), 123)
         .forward("getLatestSchemaMetadata", methodParams(String.class), delegate)
         .forward("testCompatibility",
             methodParams(String.class, Schema.class), delegate)

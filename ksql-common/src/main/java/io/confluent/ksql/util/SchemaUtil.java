@@ -31,6 +31,7 @@ import java.lang.reflect.Type;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -77,6 +78,14 @@ public final class SchemaUtil {
           Schema.Type.FLOAT32,
           Schema.Type.FLOAT64
       );
+
+  private static final Map<Schema.Type, Function<Number, Number>> UPCASTER =
+      ImmutableMap.<Schema.Type, Function<Number, Number>>builder()
+          .put(Schema.Type.INT32, Number::intValue)
+          .put(Schema.Type.INT64, Number::longValue)
+          .put(Schema.Type.FLOAT32, Number::floatValue)
+          .put(Schema.Type.FLOAT64, Number::doubleValue)
+          .build();
 
   private static final Set<Schema.Type> ARITHMETIC_TYPES =
       ImmutableSet.copyOf(ARITHMETIC_TYPES_LIST);
@@ -365,6 +374,20 @@ public final class SchemaUtil {
     return builder
         .optional()
         .build();
+  }
+
+  private static boolean canUpCast(final Schema.Type expected, final Schema.Type actual) {
+    return ARITHMETIC_TYPE_ORDERING.max(expected, actual) == expected;
+  }
+
+  public static Optional<Number> maybeUpCast(
+      final Schema.Type expected,
+      final Schema.Type actual,
+      final Object value
+  ) {
+    return value instanceof Number && isNumber(actual) && canUpCast(expected, actual)
+        ? Optional.of(UPCASTER.get(expected).apply((Number) value))
+        : Optional.empty();
   }
 
   private static SchemaBuilder handleParametrizedType(final Type type) {

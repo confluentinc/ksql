@@ -23,6 +23,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.cli.console.KsqlTerminal.StatusClosable;
+import io.confluent.ksql.util.KsqlException;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
@@ -36,13 +37,18 @@ import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStyle;
 import org.jline.utils.Status;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class JLineTerminalTest {
+
+  @Rule
+  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private Predicate<String> cliLinePredicate;
@@ -108,5 +114,19 @@ public class JLineTerminalTest {
 
     // Then:
     verify(spool).close();
+  }
+
+  @Test
+  public void shouldThrowOnTwoSpools() {
+    // Given:
+    final Writer spool = mock(Writer.class);
+    terminal.setSpool(spool);
+
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Cannot set two spools!");
+
+    // When:
+    terminal.setSpool(spool);
   }
 }

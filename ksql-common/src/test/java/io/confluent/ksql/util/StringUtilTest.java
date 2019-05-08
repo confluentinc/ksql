@@ -73,8 +73,8 @@ public class StringUtilTest {
   @Test
   public void testJoin() {
       List<Object> linkedList = new LinkedList<>();
-      linkedList.add( "");
-      linkedList.add( " a");
+      linkedList.add("");
+      linkedList.add(" a");
 
       assertEquals("g{qc?uPS)u a", StringUtil.join("g{qc?uPS)u", linkedList));
       assertEquals(2, linkedList.size());

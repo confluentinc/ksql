@@ -18,16 +18,16 @@ package io.confluent.ksql;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.testing.EqualsTester;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.junit.Test;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -129,33 +129,6 @@ public class GenericRowTest {
   }
 
   @Test
-  public void testEqualsReturningTrue() {
-      GenericRow genericRow = new GenericRow();
-      GenericRow genericRowTwo = new GenericRow();
-
-      assertTrue(genericRow.equals(genericRowTwo));
-      assertTrue(genericRowTwo.equals(genericRow));
-  }
-
-  @Test
-  public void testEqualsWithNull() {
-      List<Object> linkedList = new LinkedList<>();
-      GenericRow genericRow = new GenericRow(linkedList);
-
-      assertFalse(genericRow.equals(null));
-      assertEquals(0, linkedList.size());
-  }
-
-  @Test
-  public void testEqualsReturningFalse() {
-      List<Object> linkedList = new LinkedList<>();
-      GenericRow genericRow = new GenericRow(linkedList);
-
-      assertFalse(genericRow.equals(new Object()));
-      assertEquals(0, linkedList.size());
-  }
-
-  @Test
   public void testToString() {
       LinkedList<Object> linkedList = new LinkedList<>();
       GenericRow genericRow = new GenericRow(linkedList);
@@ -172,6 +145,34 @@ public class GenericRowTest {
 
       assertEquals(0, linkedList.size());
       assertEquals(0, genericRow.getColumns().size());
+  }
+
+  @Test
+  public void testEquals(){
+
+      List<Object> columnListWithEmptyObject = new ArrayList<>(1);
+      columnListWithEmptyObject.add(new Object());
+
+      List<Object> columnListWithString = new ArrayList<>(1);
+      columnListWithString.add("nr");
+
+      new EqualsTester().
+              addEqualityGroup(
+                      new GenericRow(),
+                      new GenericRow()
+              ).
+              addEqualityGroup(
+                      new GenericRow(new Object())
+              ).
+              addEqualityGroup(
+                      new GenericRow(columnListWithEmptyObject),
+                      new GenericRow(columnListWithEmptyObject)
+                      ).
+              addEqualityGroup(
+                      new GenericRow(columnListWithString),
+                      new GenericRow(columnListWithString)
+              ).
+              testEquals();
   }
 
 }

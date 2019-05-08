@@ -43,7 +43,7 @@ public class KsqlRestServiceContextFactory implements Factory<ServiceContext> {
 
   @Inject
   public KsqlRestServiceContextFactory(final ContainerRequestContext requestContext) {
-    this.ksqlRestContext = KsqlRestContext.fromRequestContext(requestContext);
+    this.ksqlRestContext = KsqlRestContext.from(requestContext);
   }
 
   @Override

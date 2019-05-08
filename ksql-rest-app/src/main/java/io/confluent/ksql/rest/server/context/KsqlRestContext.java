@@ -28,21 +28,19 @@ import javax.ws.rs.container.ContainerRequestContext;
 public class KsqlRestContext {
   public static final String KSQL_REST_CONTEXT_PROPERTY = "ksql.rest.context.property";
 
-  private final ImmutableMap<String, Object> restContextProperties;
-
   /**
    * Returns the {@code KsqlRestContext} object found on the {@link ContainerRequestContext}
    *
    * @param requestContext The {@link ContainerRequestContext} where to find the KSQL rest context
    * @return The {@code KsqlRestContext}
    */
-  public static Optional<KsqlRestContext> fromRequestContext(
-      final ContainerRequestContext requestContext
-  ) {
+  public static Optional<KsqlRestContext> from(final ContainerRequestContext requestContext) {
     return Optional.ofNullable(
         (KsqlRestContext)requestContext.getProperty(KSQL_REST_CONTEXT_PROPERTY)
     );
   }
+
+  private final ImmutableMap<String, Object> restContextProperties;
 
   public KsqlRestContext(final Map<String, Object> restContextProperties) {
     this.restContextProperties = ImmutableMap.copyOf(

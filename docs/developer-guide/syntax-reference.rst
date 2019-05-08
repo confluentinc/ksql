@@ -234,18 +234,89 @@ RUN SCRIPT can also be used from the command line, for instance when writing she
 For more information, see :ref:`running-ksql-command-line`.
 
 
+.. _data-types:
+
+===============
+KSQL data types
+===============
+
+KSQL supports the following data types:
+
+Primitive Types
+---------------
+
+KSQL supports the following primitive data types:
+
+-  ``BOOLEAN``
+-  ``INTEGER``
+-  ``BIGINT``
+-  ``DOUBLE``
+-  ``VARCHAR`` (or ``STRING``)
+
+
+Array
+-----
+
+``ARRAY<ElementType>``
+
+Note: the ``DELIMITED`` format does not support arrays.
+
+KSQL supports fields that are arrays of another type. The array must have homogeneous elements i.e.
+all the elements must be of the same type. The element type can be any valid KSQL type.
+
+Arrays can be defined within a ``CREATE TABLE`` or ``CREATE STREAM`` statement using the syntax
+``ARRAY<ElementType>``, for example ``ARRAY<INT>`` will define an array of integers.
+
+The elements of an array are zero-indexed and can be accessed using the ``[]`` operator passing in
+the index, for example ``SOME_ARRAY[0]`` will retrieve the first element from the array.
+See :ref:`operators` for more details.
+
+Map
+---
+
+``MAP<KeyType, ValueType>``
+
+Note: the ``DELIMITED`` format does not support maps.
+
+KSQL supports fields that are maps. A map has a key and value type. The map must have homogeneous
+key and values i.e. all the keys must be of the same type and all the values must be also be of the
+same type. Currently only ``STRING`` keys are supported. The value type can be any valid KSQL type.
+
+Maps can be defined within a ``CREATE TABLE`` or ``CREATE STREAM`` statement using the syntax
+``MAP<KeyType, ValueType>``, for example ``MAP<STRING, INT>`` will define a map of string keys to
+integer values.
+
+The values in a map can be accessed using the ``[]`` operator passing on the key, for example
+``SOME_MAP['cost']`` will return the value from the map for the entry with key ``cost``, or ``null``
+if no such entry exists. See :ref:`operators` for more details.
+
+Struct
+------
+
+``STRUCT<FieldName FieldType, ...>``
+
+Note: the ``DELIMITED`` format does not support structs.
+
+KSQL supports fields that are structs. A struct represents stongly typed structured data. A struct
+is an ordered collection of named fields that have a specific type. The field types can be any valid
+KSQL type.
+
+Maps can be defined within a ``CREATE TABLE`` or ``CREATE STREAM`` statement using the syntax
+``STRUCT<FieldName FieldType, ...>``, for example ``STRUCT<ID BIGINT, NAME STRING, AGE INT>`` will
+define a struct with three fields, with the supplied name and type.
+
+The fields of a struct can be accessed using the ``->`` operator, for example ``SOME_STRUCT->ID``
+will return the value of the structs ``ID`` field. See :ref:`operators` for more details.
+
+
 ===============
 KSQL statements
 ===============
 
 .. tip::
 
-    -  KSQL statements must be terminated with a semicolon (``;``).
-    -  Multi-line statements:
-
-       -  In the CLI you must use a backslash (``\``) to indicate
-          continuation of a statement on the next line.
-       -  Do not use ``\`` for multi-line statements in ``.sql`` files.
+    - KSQL statements must be terminated with a semicolon (``;``).
+    - Statements can be spread over multiple lines.
     - The hyphen character, ``-``, isn't supported in names for streams, tables,
       topics, and columns.
     - Don't use quotes around stream names or table names when you CREATE them.
@@ -264,21 +335,8 @@ CREATE STREAM
 
 **Description**
 
-Create a new stream with the specified columns and properties.
-
-The supported column data types are:
-
--  ``BOOLEAN``
--  ``INTEGER``
--  ``BIGINT``
--  ``DOUBLE``
--  ``VARCHAR`` (or ``STRING``)
--  ``ARRAY<ArrayType>`` (JSON and AVRO only. Index starts from 0)
--  ``MAP<VARCHAR, ValueType>`` (JSON and AVRO only)
--  ``STRUCT<FieldName FieldType, ...>`` (JSON and AVRO only) The STRUCT type requires you to specify a list of fields.
-   For each field you must specify the field name (FieldName) and field type (FieldType). The field type can be any of
-   the supported KSQL types, including the complex types ``MAP``, ``ARRAY``, and ``STRUCT``. ``STRUCT`` fields can be
-   accessed in expressions using the struct dereference (``->``) operator. See :ref:`operators` for more details.
+Create a new stream with the specified columns and properties. Columns can be any of KSQLs supported
+data types. See :ref:`data-types` for more details.
 
 KSQL adds the implicit columns ``ROWTIME`` and ``ROWKEY`` to every
 stream and table, which represent the corresponding Kafka message
@@ -295,6 +353,7 @@ The WITH clause supports the following properties:
 +-------------------------+--------------------------------------------------------------------------------------------+
 | VALUE_FORMAT (required) | Specifies the serialization format of the message value in the topic. Supported formats:   |
 |                         | ``JSON``, ``DELIMITED`` (comma-separated value), and ``AVRO``.                             |
+|                         | See :ref:`ksql_serialization` for more details.                                                 |
 +-------------------------+--------------------------------------------------------------------------------------------+
 | PARTITIONS              | The number of partitions in the backing topic. This property must be set if creating a     |
 |                         | STREAM without an existing topic (the command will fail if the topic does not exist).      |
@@ -368,21 +427,8 @@ CREATE TABLE
 
 **Description**
 
-Create a new table with the specified columns and properties.
-
-The supported column data types are:
-
--  ``BOOLEAN``
--  ``INTEGER``
--  ``BIGINT``
--  ``DOUBLE``
--  ``VARCHAR`` (or ``STRING``)
--  ``ARRAY<ArrayType>`` (JSON and AVRO only. Index starts from 0)
--  ``MAP<VARCHAR, ValueType>`` (JSON and AVRO only)
--  ``STRUCT<FieldName FieldType, ...>`` (JSON and AVRO only) The STRUCT type requires you to specify a list of fields.
-   For each field you must specify the field name (FieldName) and field type (FieldType). The field type can be any of
-   the supported KSQL types, including the complex types ``MAP``, ``ARRAY``, and ``STRUCT``. ``STRUCT`` fields can be
-   accessed in expressions using the struct dereference (``->``) operator. See :ref:`operators` for more details.
+Create a new table with the specified columns and properties.Columns can be any of KSQLs supported
+data types. See :ref:`data-types` for more details.
 
 KSQL adds the implicit columns ``ROWTIME`` and ``ROWKEY`` to every
 stream and table, which represent the corresponding Kafka message
@@ -402,6 +448,7 @@ The WITH clause supports the following properties:
 +-------------------------+--------------------------------------------------------------------------------------------+
 | VALUE_FORMAT (required) | Specifies the serialization format of message values in the topic. Supported formats:      |
 |                         | ``JSON``, ``DELIMITED`` (comma-separated value), and ``AVRO``.                             |
+|                         | See :ref:`ksql_serialization` for more details.                                                 |
 +-------------------------+--------------------------------------------------------------------------------------------+
 | PARTITIONS              | The number of partitions in the backing topic. This property must be set if creating a     |
 |                         | TABLE without an existing topic (the command will fail if the topic does not exist).       |

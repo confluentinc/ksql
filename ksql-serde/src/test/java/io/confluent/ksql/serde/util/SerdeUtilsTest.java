@@ -16,9 +16,14 @@
 package io.confluent.ksql.serde.util;
 
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.util.KsqlException;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Test;
 
 public class SerdeUtilsTest {
@@ -134,5 +139,224 @@ public class SerdeUtilsTest {
   @Test(expected = IllegalArgumentException.class)
   public void shouldFailWhenConvertingIncompatibleDouble() {
     SerdeUtils.toDouble(true);
+  }
+
+  @Test(expected = UnsupportedOperationException.class)
+  public void shouldThrowOnUnsupportedSchema() {
+    SerdeUtils.isCoercible(ImmutableList.of(1), Schema.OPTIONAL_INT8_SCHEMA);
+  }
+
+  @Test(expected = NullPointerException.class)
+  public void shouldThrowOnNullObject() {
+    SerdeUtils.isCoercible(null, Schema.OPTIONAL_FLOAT64_SCHEMA);
+  }
+
+  @Test
+  public void shouldBeCoercibleToInteger() {
+    assertThat(SerdeUtils.isCoercible(1, Schema.OPTIONAL_INT32_SCHEMA), is(true));
+    assertThat(SerdeUtils.isCoercible(1L, Schema.OPTIONAL_INT32_SCHEMA), is(true));
+    assertThat(SerdeUtils.isCoercible(0.4f, Schema.OPTIONAL_INT32_SCHEMA), is(true));
+    assertThat(SerdeUtils.isCoercible(0.4, Schema.OPTIONAL_INT32_SCHEMA), is(true));
+    assertThat(SerdeUtils.isCoercible("10", Schema.OPTIONAL_INT32_SCHEMA), is(true));
+  }
+
+  @Test
+  public void shouldNotBeCoercibleToInteger() {
+    assertThat(SerdeUtils.isCoercible(ImmutableList.of(1), Schema.OPTIONAL_INT32_SCHEMA),
+        is(false));
+  }
+
+  @Test
+  public void shouldBeCoercibleToLong() {
+    assertThat(SerdeUtils.isCoercible(1, Schema.OPTIONAL_INT64_SCHEMA), is(true));
+    assertThat(SerdeUtils.isCoercible(1L, Schema.OPTIONAL_INT64_SCHEMA), is(true));
+    assertThat(SerdeUtils.isCoercible(0.4f, Schema.OPTIONAL_INT64_SCHEMA), is(true));
+    assertThat(SerdeUtils.isCoercible(0.4, Schema.OPTIONAL_INT64_SCHEMA), is(true));
+    assertThat(SerdeUtils.isCoercible("10", Schema.OPTIONAL_INT64_SCHEMA), is(true));
+  }
+
+  @Test
+  public void shouldNotBeCoercibleToLong() {
+    assertThat(SerdeUtils.isCoercible(ImmutableList.of(1), Schema.OPTIONAL_INT64_SCHEMA),
+        is(false));
+  }
+
+  @Test
+  public void shouldBeCoercibleToDouble() {
+    assertThat(SerdeUtils.isCoercible(1, Schema.OPTIONAL_FLOAT64_SCHEMA), is(true));
+    assertThat(SerdeUtils.isCoercible(1L, Schema.OPTIONAL_FLOAT64_SCHEMA), is(true));
+    assertThat(SerdeUtils.isCoercible(0.4f, Schema.OPTIONAL_FLOAT64_SCHEMA), is(true));
+    assertThat(SerdeUtils.isCoercible(0.4, Schema.OPTIONAL_FLOAT64_SCHEMA), is(true));
+    assertThat(SerdeUtils.isCoercible("10", Schema.OPTIONAL_FLOAT64_SCHEMA), is(true));
+  }
+
+  @Test
+  public void shouldNotBeCoercibleToDouble() {
+    assertThat(SerdeUtils.isCoercible(ImmutableList.of(1), Schema.OPTIONAL_FLOAT64_SCHEMA),
+        is(false));
+  }
+
+  @Test
+  public void shouldBeCoercibleToString() {
+    assertThat(SerdeUtils.isCoercible(1, Schema.OPTIONAL_STRING_SCHEMA), is(true));
+    assertThat(SerdeUtils.isCoercible(1L, Schema.OPTIONAL_STRING_SCHEMA), is(true));
+    assertThat(SerdeUtils.isCoercible(0.4f, Schema.OPTIONAL_STRING_SCHEMA), is(true));
+    assertThat(SerdeUtils.isCoercible(0.4, Schema.OPTIONAL_STRING_SCHEMA), is(true));
+    assertThat(SerdeUtils.isCoercible("10", Schema.OPTIONAL_STRING_SCHEMA), is(true));
+    assertThat(SerdeUtils.isCoercible(ImmutableList.of(1), Schema.OPTIONAL_STRING_SCHEMA),
+        is(true));
+  }
+
+  @Test
+  public void shouldBeCoercibleToArray() {
+    // Given:
+    final Schema schema = SchemaBuilder
+        .array(Schema.INT32_SCHEMA)
+        .optional()
+        .build();
+
+    // Then:
+    assertThat(SerdeUtils.isCoercible(ImmutableList.of(1), schema), is(true));
+    assertThat(SerdeUtils.isCoercible(ImmutableList.of(1L), schema), is(true));
+    assertThat(SerdeUtils.isCoercible(ImmutableList.of(0.4f), schema), is(true));
+  }
+
+  @Test
+  public void shouldNotBeCoercibleToList() {
+    // Given:
+    final Schema schema = SchemaBuilder
+        .array(Schema.INT32_SCHEMA)
+        .optional()
+        .build();
+
+    // Then:
+    assertThat(SerdeUtils.isCoercible(1, schema), is(false));
+    assertThat(SerdeUtils.isCoercible(ImmutableMap.of(true, 1.0), schema), is(false));
+    assertThat(SerdeUtils.isCoercible(ImmutableList.of(true, ImmutableList.of(1)), schema),
+        is(false));
+  }
+
+  @Test
+  public void shouldBeCoercibleToMap() {
+    // Given:
+    final Schema schema = SchemaBuilder
+        .map(Schema.OPTIONAL_BOOLEAN_SCHEMA, Schema.OPTIONAL_FLOAT64_SCHEMA)
+        .optional()
+        .build();
+
+    // Then:
+    assertThat(SerdeUtils.isCoercible(ImmutableMap.of(true, 1.0), schema), is(true));
+    assertThat(SerdeUtils.isCoercible(ImmutableMap.of(false, 1), schema), is(true));
+    assertThat(SerdeUtils.isCoercible(ImmutableMap.of(true, "str"), schema), is(true));
+  }
+
+  @Test
+  public void shouldNotBeCoercibleToMap() {
+    // Given:
+    final Schema schema = SchemaBuilder
+        .map(Schema.OPTIONAL_BOOLEAN_SCHEMA, Schema.OPTIONAL_FLOAT64_SCHEMA)
+        .optional()
+        .build();
+
+    // Then:
+    assertThat(SerdeUtils.isCoercible(1, schema), is(false));
+    assertThat(SerdeUtils.isCoercible(ImmutableList.of(true, 1), schema), is(false));
+    assertThat(SerdeUtils.isCoercible(ImmutableMap.of("string", 1.0), schema), is(false));
+    assertThat(SerdeUtils.isCoercible(ImmutableMap.of(true, ImmutableList.of()), schema),
+        is(false));
+  }
+
+  @Test
+  public void shouldBeCoercibleToStruct() {
+    // Given:
+    final Schema schema = SchemaBuilder
+        .struct()
+        .field("f0", Schema.OPTIONAL_INT32_SCHEMA)
+        .optional()
+        .build();
+
+    // Then:
+    assertThat(SerdeUtils.isCoercible(ImmutableMap.of("f0", 1.0), schema), is(true));
+    assertThat(SerdeUtils.isCoercible(ImmutableMap.of("f0", 1), schema), is(true));
+    assertThat(SerdeUtils.isCoercible(ImmutableMap.of("f0", "str"), schema), is(true));
+  }
+
+  @Test
+  public void shouldNotBeCoercibleToStruct() {
+    // Given:
+    final Schema schema = SchemaBuilder
+        .struct()
+        .field("f0", Schema.OPTIONAL_INT32_SCHEMA)
+        .optional()
+        .build();
+
+    // Then:
+    assertThat(SerdeUtils.isCoercible(1, schema), is(false));
+    assertThat(SerdeUtils.isCoercible(ImmutableList.of(true, 1), schema), is(false));
+    assertThat(SerdeUtils.isCoercible(ImmutableMap.of("not f0", 1.0), schema), is(false));
+    assertThat(SerdeUtils.isCoercible(ImmutableMap.of(true, ImmutableList.of()), schema),
+        is(false));
+  }
+
+  @Test
+  public void shouldBeCoercibleAllTheWayDown() {
+    // Given:
+    final Schema schema = SchemaBuilder
+        .struct()
+        .field("F0", SchemaBuilder
+            .map(
+                SchemaBuilder
+                    .array(Schema.OPTIONAL_STRING_SCHEMA)
+                    .optional()
+                    .build(),
+                SchemaBuilder
+                    .struct()
+                    .field("f1", Schema.OPTIONAL_INT32_SCHEMA)
+                    .optional()
+                    .build()
+            ))
+        .optional()
+        .build();
+
+    final Object value = ImmutableMap.of(
+        "f0", ImmutableMap.of(
+            ImmutableList.of("s1", "s2"), ImmutableMap.of("f1", 1),
+            ImmutableList.of("s3", "s4"), ImmutableMap.of("f1", 2)
+        )
+    );
+
+    // Then:
+    assertThat(SerdeUtils.isCoercible(value, schema), is(true));
+  }
+
+  @Test
+  public void shouldNotBeCoercibleIfSomethingDeepIsNot() {
+    // Given:
+    final Schema schema = SchemaBuilder
+        .struct()
+        .field("F0", SchemaBuilder
+            .map(
+                SchemaBuilder
+                    .array(Schema.OPTIONAL_STRING_SCHEMA)
+                    .optional()
+                    .build(),
+                SchemaBuilder
+                    .struct()
+                    .field("f1", Schema.OPTIONAL_BOOLEAN_SCHEMA)
+                    .optional()
+                    .build()
+            ))
+        .optional()
+        .build();
+
+    final Object value = ImmutableMap.of(
+        "f0", ImmutableMap.of(
+            ImmutableList.of("s1", "s2"), ImmutableMap.of("f1", 1),
+            ImmutableList.of("s3", "s4"), ImmutableMap.of("f1", 2)
+        )
+    );
+
+    // Then:
+    assertThat(SerdeUtils.isCoercible(value, schema), is(false));
   }
 }

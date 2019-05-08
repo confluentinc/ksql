@@ -17,6 +17,7 @@ package io.confluent.ksql.serde.json;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
@@ -284,6 +285,207 @@ public class KsqlJsonDeserializerTest {
 
     // When:
     deserializer.deserialize("", bytes);
+  }
+
+  @Test
+  public void shouldDeserializeTopLevelMapIfSchemaHasOnlySingleField() {
+    // Given:
+    final Schema schema = SchemaBuilder.struct()
+        .field("ids", SchemaBuilder
+            .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.INT64_SCHEMA)
+            .optional()
+            .build())
+        .build();
+
+    final KsqlJsonDeserializer deserializer = new KsqlJsonDeserializer(schema, recordLogger);
+
+    final byte[] bytes = "{\"a\":1, \"b\": 2}".getBytes(StandardCharsets.UTF_8);
+
+    // When:
+    final Struct result = deserializer.deserialize("", bytes);
+
+    // Then:
+    assertThat(result.get("ids"), is(ImmutableMap.of("a", 1L, "b", 2L)));
+  }
+
+  @Test
+  public void shouldDeserializeSingleMapFieldAsRecordIfSchemaHasMultipleFields() {
+    // Given:
+    final Schema schema = SchemaBuilder.struct()
+        .field("ids", SchemaBuilder
+            .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.INT64_SCHEMA)
+            .optional()
+            .build())
+        .field("B", Schema.OPTIONAL_INT32_SCHEMA)
+        .build();
+
+    final KsqlJsonDeserializer deserializer = new KsqlJsonDeserializer(schema, recordLogger);
+
+    final byte[] bytes = "{\"a\":1, \"b\": 2}".getBytes(StandardCharsets.UTF_8);
+
+    // When:
+    final Struct result = deserializer.deserialize("", bytes);
+
+    // Then:
+    assertThat(result.get("ids"), is(nullValue()));
+    assertThat(result.get("B"), is(2));
+  }
+
+  @Test
+  public void shouldDeserializeSingleMapFieldAsRecordIfKeyNotString() {
+    // Given:
+    final Schema schema = SchemaBuilder.struct()
+        .field("A", SchemaBuilder
+            .map(Schema.INT64_SCHEMA, Schema.STRING_SCHEMA)
+            .optional()
+            .build())
+        .build();
+
+    final KsqlJsonDeserializer deserializer = new KsqlJsonDeserializer(schema, recordLogger);
+
+    final byte[] bytes = "{\"a\": null, \"b\": 2}".getBytes(StandardCharsets.UTF_8);
+
+    // When:
+    final Struct result = deserializer.deserialize("", bytes);
+
+    // Then:
+    assertThat(result.get("A"), is(nullValue()));
+  }
+
+  @Test
+  public void shouldDeserializeSingleMapFieldAsTopLevelMapIfFieldNameNotPresent() {
+    // Given:
+    final Schema schema = SchemaBuilder.struct()
+        .field("A", SchemaBuilder
+            .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_STRING_SCHEMA)
+            .optional()
+            .build())
+        .build();
+
+    final KsqlJsonDeserializer deserializer = new KsqlJsonDeserializer(schema, recordLogger);
+
+    final byte[] bytes = "{\"b\": 2}".getBytes(StandardCharsets.UTF_8);
+
+    // When:
+    final Struct result = deserializer.deserialize("", bytes);
+
+    // Then:
+    assertThat(result.get("A"), is(ImmutableMap.of("b", "2")));
+  }
+
+  @Test
+  public void shouldDeserializeSingleMapFieldAsTopLevelMapIfFieldNamePresentButNull() {
+    // Given:
+    final Schema schema = SchemaBuilder.struct()
+        .field("A", SchemaBuilder
+            .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_STRING_SCHEMA)
+            .optional()
+            .build())
+        .build();
+
+    final KsqlJsonDeserializer deserializer = new KsqlJsonDeserializer(schema, recordLogger);
+
+    final byte[] bytes = "{\"a\": null, \"b\": 2}".getBytes(StandardCharsets.UTF_8);
+
+    // When:
+    final Struct result = deserializer.deserialize("", bytes);
+
+    // Then:
+    assertThat((Map<?,?>)result.get("A"), hasEntry("a", null));
+    assertThat((Map<?,?>)result.get("A"), hasEntry("b", "2"));
+  }
+
+  @Test
+  public void shouldDeserializeSingleMapFieldAsTopLevelMapIfFieldNamePresentByNotMap() {
+    // Given:
+    final Schema schema = SchemaBuilder.struct()
+        .field("A", SchemaBuilder
+            .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_STRING_SCHEMA)
+            .optional()
+            .build())
+        .build();
+
+    final KsqlJsonDeserializer deserializer = new KsqlJsonDeserializer(schema, recordLogger);
+
+    final byte[] bytes = "{\"a\": 1, \"b\": 2}".getBytes(StandardCharsets.UTF_8);
+
+    // When:
+    final Struct result = deserializer.deserialize("", bytes);
+
+    // Then:
+    assertThat(result.get("A"), is(ImmutableMap.of("a", "1", "b", "2")));
+  }
+
+  @Test
+  public void shouldDeserializeSingleMapFieldAsRecordIfFieldNamePresentAndCorrectType() {
+    // Given:
+    final Schema schema = SchemaBuilder.struct()
+        .field("A", SchemaBuilder
+            .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_STRING_SCHEMA)
+            .optional()
+            .build())
+        .build();
+
+    final KsqlJsonDeserializer deserializer = new KsqlJsonDeserializer(schema, recordLogger);
+
+    final byte[] bytes = "{\"a\": {\"c\": 1}, \"b\": 2}".getBytes(StandardCharsets.UTF_8);
+
+    // When:
+    final Struct result = deserializer.deserialize("", bytes);
+
+    // Then:
+    assertThat(result.get("A"), is(ImmutableMap.of("c", "1")));
+  }
+
+  @Test
+  public void shouldDeserializeSingleMapFieldAsRecordIfFieldNamePresentAndCorrectNestedMap() {
+    // Given:
+    final Schema schema = SchemaBuilder.struct()
+        .field("A", SchemaBuilder
+            .map(Schema.OPTIONAL_STRING_SCHEMA, SchemaBuilder
+                .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_STRING_SCHEMA)
+                .optional()
+                .build()
+            )
+            .optional()
+            .build())
+        .build();
+
+    final KsqlJsonDeserializer deserializer = new KsqlJsonDeserializer(schema, recordLogger);
+
+    final byte[] bytes = "{\"a\": {\"c\": {\"d\": 1}}, \"b\": 2}".getBytes(StandardCharsets.UTF_8);
+
+    // When:
+    final Struct result = deserializer.deserialize("", bytes);
+
+    // Then:
+    assertThat(result.get("A"), is(ImmutableMap.of("c", ImmutableMap.of("d", "1"))));
+  }
+
+  @Test
+  public void shouldDeserializeSingleMapFieldAsRecordIfFieldNamePresentAndCorrectNestedStruct() {
+    // Given:
+    final Schema schema = SchemaBuilder.struct()
+        .field("A", SchemaBuilder
+            .map(Schema.OPTIONAL_STRING_SCHEMA, SchemaBuilder
+                .struct()
+                .field("D", Schema.OPTIONAL_STRING_SCHEMA)
+                .optional()
+                .build()
+            )
+            .optional()
+            .build())
+        .build();
+
+    final KsqlJsonDeserializer deserializer = new KsqlJsonDeserializer(schema, recordLogger);
+
+    final byte[] bytes = "{\"a\": {\"c\": {\"d\": 1}}, \"b\": 2}".getBytes(StandardCharsets.UTF_8);
+
+    // When:
+    final Struct result = deserializer.deserialize("", bytes);
+
+    // Then:
+    assertThat(result.get("A").toString(), is("{c=Struct{D=1}}"));
   }
 
   @Test

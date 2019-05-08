@@ -25,6 +25,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import org.apache.kafka.common.errors.SerializationException;
@@ -46,6 +47,7 @@ public class KsqlJsonDeserializer implements Deserializer<Struct> {
   private final Schema schema;
   private final JsonConverter jsonConverter;
   private final ProcessingLogger recordLogger;
+  private final boolean ambiguousMapSchema;
 
   public KsqlJsonDeserializer(
       final Schema schema,
@@ -60,6 +62,10 @@ public class KsqlJsonDeserializer implements Deserializer<Struct> {
     if (schema.type() != Type.STRUCT) {
       throw new IllegalArgumentException("KSQL expects all top level schemas to be STRUCTs");
     }
+
+    this.ambiguousMapSchema = schema.fields().size() == 1
+        && schema.fields().get(0).schema().type() == Type.MAP
+        && schema.fields().get(0).schema().keySchema().type() == Type.STRING;
   }
 
   @Override
@@ -94,7 +100,10 @@ public class KsqlJsonDeserializer implements Deserializer<Struct> {
     }
 
     if (value instanceof Map) {
-      return fromMap((Map<String, Object>)value);
+      final Map<String, Object> map = (Map<String, Object>) value;
+      if (treatAsRecord(map)) {
+        return fromRecord(map);
+      }
     }
 
     if (schema.fields().size() != 1) {
@@ -110,7 +119,58 @@ public class KsqlJsonDeserializer implements Deserializer<Struct> {
     return struct;
   }
 
-  private Struct fromMap(final Map<String, Object> valueMap) {
+  /**
+   * Should this value be treated as a record or a top level map?
+   *
+   * <p>The deserializer supports deserializing top-level unnamed primitives, arrays and maps if
+   * the target schema only contains a single field of the required type, e.g. the value '10' can be
+   * deserialized into a schema containing a single numeric field. Likewise, the value '[1,2]' can
+   * deserialized into a schema containing a single array field. The same is true of maps, but maps
+   * can be ambiguous.
+   *
+   * <p>There is ambiguity when handling top level maps due to the fact that JSON does not have a
+   * map type, so KSQL persists maps as JSON objects.  JSON objects are also used to represent KSQL
+   * structs. When the deserializer is presented with a JSON object and a target schema that
+   * contains a single MAP field, it is not immediately apparent if this should be deserialized as a
+   * struct or a top-level map.
+   *
+   * <p>Map fields are only ambiguous if:
+   * <ul>
+   *   <li>The target schema contains only a single field</li>
+   *   <li>and that field is a map</li>
+   *   <li>and that map has a string key</li>
+   * </ul>
+   *
+   * <p>This method determines which it should be treated as by comparing the target schema with
+   * the actual value.
+   *
+   * <p>Note: It is strongly recommended that users avoid the situation by ensuring that single
+   * map fields never have the same name as any of the keys in the map.
+   *
+   * @param map the map to check.
+   * @return true if it should be treated as a record.
+   */
+  private boolean treatAsRecord(final Map<String, Object> map) {
+    if (!ambiguousMapSchema) {
+      return true;
+    }
+
+    final Field onlyField = schema.fields().get(0);
+    final String fieldName = onlyField.name();
+    final Object entry = map.entrySet().stream()
+        .filter(e -> fieldName.equalsIgnoreCase(e.getKey()))
+        .findFirst()
+        .map(Entry::getValue)
+        .orElse(null);
+
+    if (entry == null) {
+      return false;
+    }
+
+    return SerdeUtils.isCoercible(entry, onlyField.schema());
+  }
+
+  private Struct fromRecord(final Map<String, Object> valueMap) {
     final Map<String, String> caseInsensitiveFieldNameMap =
         getCaseInsensitiveFieldNameMap(valueMap, true);
 

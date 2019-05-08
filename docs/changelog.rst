@@ -30,7 +30,7 @@ KSQL 5.3.0 includes new features, including:
 
   #. A primitive, e.g. a ``STRING``, ``INT``, ``DOUBLE`` etc, in Avro, Json and Delimited formats.
   #. An array, for both Avro and Json formats.
-  #. A map, for Avro formats.
+  #. A map, for both Avro and Json formats.
 
 
 KSQL 5.3.0 includes bug fixes, including:

@@ -4,6 +4,20 @@
   ],
   "tests": [
     {
+      "name": "top level primitive - value - DELIMITED",
+      "comments": "DELIMITED supports top level primitives by default",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT) WITH (kafka_topic='input_topic', value_format='DELIMITED');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": "10"}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": "10"}
+      ]
+    },
+    {
       "name": "top level primitive - value",
       "format": ["JSON", "AVRO"],
       "statements": [
@@ -44,6 +58,17 @@
       "outputs": [
         {"topic": "OUTPUT", "value": {"FOO": "10"}}
       ]
+    },
+    {
+      "name": "top level array - value - DELIMITED",
+      "statements": [
+        "CREATE STREAM INPUT (foo ARRAY<STRING>) WITH (kafka_topic='input_topic', value_format='DELIMITED');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "DELIMITED does not support complex type: ARRAY, field: FOO"
+      }
     },
     {
       "name": "top level array - value",
@@ -91,20 +116,23 @@
       ]
     },
     {
-      "name": "top level map - value - AVRO",
-      "comments": [
-        "Note: top level maps are not supported in JSON, as it has no map type,",
-        "and DELIMITED, as it does not support complex types",
-        "Note: Because JSON does not support maps and this test case is written in Json, the test",
-        "asserts the output schema is indeed a map, and not a record, by seeding the schema",
-        "registry with a map schema. The test would fail with a schema evolution error if the OUTPUT",
-        "schema had a record field as opposed to an map"
+      "name": "top level map - value - DELIMITED",
+      "statements": [
+        "CREATE STREAM INPUT (foo MAP<STRING, INT>) WITH (kafka_topic='input_topic', value_format='DELIMITED');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
       ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "DELIMITED does not support complex type: MAP, field: FOO"
+      }
+    },
+    {
+      "name": "top level map - value - AVRO",
       "statements": [
         "CREATE STREAM INPUT (foo MAP<STRING, INT>) WITH (kafka_topic='input_topic', value_format='AVRO');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
-      ],
-      "topics": [
+       ],
+       "topics": [
         {
           "name": "input_topic",
           "schema": {"type": "map", "values": "int"},
@@ -115,14 +143,14 @@
           "schema": {"name": "blah", "type": "record", "fields": [{"name": "FOO", "type": {"type": "map", "values": "int"}}]},
           "format": "AVRO"
         }
-      ],
-      "inputs": [
+       ],
+       "inputs": [
         {"topic": "input_topic", "value": {"a": 1, "b": 2, "c": 3}}
-      ],
-      "outputs": [
+       ],
+       "outputs": [
         {"topic": "OUTPUT", "value": {"FOO": {"a": 1, "b": 2, "c": 3}}}
-      ],
-      "post": {
+       ],
+       "post": {
         "sources": [
           {
             "name": "INPUT",
@@ -130,18 +158,32 @@
             "valueSchema": "STRUCT<ROWTIME BIGINT, ROWKEY STRING, FOO MAP<STRING, INT>>"
           }
         ]
-      }
+       }
+    },
+    {
+       "name": "top level map - value - JSON",
+       "statements": [
+          "CREATE STREAM INPUT (foo MAP<STRING, INT>) WITH (kafka_topic='input_topic', value_format='JSON');",
+          "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+        ],
+        "inputs": [
+          {"topic": "input_topic", "value": {"a": 1, "b": 2, "c": 3}}
+        ],
+        "outputs": [
+          {"topic": "OUTPUT", "value": {"FOO": {"a": 1, "b": 2, "c": 3}}}
+        ],
+        "post": {
+          "sources": [
+            {
+              "name": "INPUT",
+              "type": "stream",
+              "valueSchema": "STRUCT<ROWTIME BIGINT, ROWKEY STRING, FOO MAP<STRING, INT>>"
+            }
+          ]
+        }
     },
     {
       "name": "coerce top level map - value - AVRO",
-      "comments": [
-        "Note: top level maps are not supported in JSON, as it has no map type,",
-        "and DELIMITED, as it does not support complex types",
-        "Note: Because JSON does not support maps and this test case is written in Json, the test",
-        "asserts the output schema is indeed a map, and not a record, by seeding the schema",
-        "registry with a map schema. The test would fail with a schema evolution error if the OUTPUT",
-        "schema had a record field as opposed to an map"
-      ],
       "statements": [
         "CREATE STREAM INPUT (foo MAP<STRING, STRING>) WITH (kafka_topic='input_topic', value_format='AVRO');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"

@@ -39,7 +39,7 @@ public class TestUtils {
 
     final Command csCommand = new Command("CREATE STREAM pageview "
                                     + "(viewtime bigint, pageid varchar, userid varchar) "
-                                    + "WITH (registered_topic = 'pageview_topic');",
+                                    + "WITH (kafka_topic='pageview_topic_json', value_format='json', registered_topic = 'pageview_topic');",
                                     Collections.emptyMap(), Collections.emptyMap());
     final CommandId csCommandId =  new CommandId(CommandId.Type.STREAM, "_CSASStreamGen", CommandId.Action.CREATE);
     priorCommands.add(new Pair<>(csCommandId, csCommand));

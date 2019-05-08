@@ -41,13 +41,23 @@ public class CreateTable extends CreateSource implements ExecutableDdlStatement 
       final boolean notExists,
       final Map<String, Literal> properties
   ) {
+    this(location, name, elements, notExists, new CreateSourceProperties(properties));
+  }
+
+  private CreateTable(
+      final Optional<NodeLocation> location,
+      final QualifiedName name,
+      final List<TableElement> elements,
+      final boolean notExists,
+      final CreateSourceProperties properties
+  ) {
     super(location, name, elements, notExists, properties);
   }
 
   @Override
   public CreateSource copyWith(
       final List<TableElement> elements,
-      final Map<String, Literal> properties
+      final CreateSourceProperties properties
   ) {
     return new CreateTable(
         getLocation(),

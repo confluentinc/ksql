@@ -29,7 +29,6 @@ import static org.hamcrest.Matchers.is;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.exception.KafkaResponseGetFailedException;
 import io.confluent.ksql.exception.KafkaTopicExistsException;
 import io.confluent.ksql.util.KsqlConstants;
@@ -45,8 +44,6 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.admin.AdminClient;
-import org.apache.kafka.clients.admin.AlterConfigOp;
-import org.apache.kafka.clients.admin.AlterConfigOp.OpType;
 import org.apache.kafka.clients.admin.AlterConfigsResult;
 import org.apache.kafka.clients.admin.Config;
 import org.apache.kafka.clients.admin.ConfigEntry;
@@ -67,7 +64,6 @@ import org.apache.kafka.common.errors.DisconnectException;
 import org.apache.kafka.common.errors.NotControllerException;
 import org.apache.kafka.common.errors.TopicExistsException;
 import org.apache.kafka.common.errors.UnknownTopicOrPartitionException;
-import org.apache.kafka.common.errors.UnsupportedVersionException;
 import org.apache.kafka.common.utils.Utils;
 import org.easymock.EasyMock;
 import org.easymock.EasyMockRunner;
@@ -391,14 +387,14 @@ public class KafkaTopicClientImplTest {
             defaultConfigEntry(TopicConfig.COMPRESSION_TYPE_CONFIG, "snappy")
         ));
 
-    expect(adminClient.incrementalAlterConfigs(
-        ImmutableMap.of(
-            new ConfigResource(ConfigResource.Type.TOPIC, "peter"),
-            ImmutableSet.of(
-              new AlterConfigOp(new ConfigEntry(TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_COMPACT), OpType.SET)
-        ))))
-        .andReturn(alterTopicConfigResponse());
-    replay(adminClient);
+//    expect(adminClient.incrementalAlterConfigs(
+//        ImmutableMap.of(
+//            new ConfigResource(ConfigResource.Type.TOPIC, "peter"),
+//            ImmutableSet.of(
+//              new AlterConfigOp(new ConfigEntry(TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_COMPACT), OpType.SET)
+//        ))))
+//        .andReturn(alterTopicConfigResponse());
+//    replay(adminClient);
 
     final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
     kafkaTopicClient.addTopicConfig("peter", overrides);
@@ -421,8 +417,8 @@ public class KafkaTopicClientImplTest {
         ))
         .anyTimes();
 
-    expect(adminClient.incrementalAlterConfigs(anyObject()))
-        .andThrow(new UnsupportedVersionException(""));
+//    expect(adminClient.incrementalAlterConfigs(anyObject()))
+//        .andThrow(new UnsupportedVersionException(""));
 
     expect(adminClient.alterConfigs(
         withResourceConfig(
@@ -473,9 +469,9 @@ public class KafkaTopicClientImplTest {
             defaultConfigEntry(TopicConfig.COMPRESSION_TYPE_CONFIG, "snappy")
         ));
 
-    expect(adminClient.incrementalAlterConfigs(anyObject()))
-        .andReturn(alterTopicConfigResponse(new DisconnectException()))
-        .andReturn(alterTopicConfigResponse());
+//    expect(adminClient.incrementalAlterConfigs(anyObject()))
+//        .andReturn(alterTopicConfigResponse(new DisconnectException()))
+//        .andReturn(alterTopicConfigResponse());
     replay(adminClient);
 
     final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);

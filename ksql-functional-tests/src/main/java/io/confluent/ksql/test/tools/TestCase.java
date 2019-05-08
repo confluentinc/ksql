@@ -26,7 +26,9 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.KsqlTopic;
-import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
+import io.confluent.ksql.serde.delimited.KsqlDelimitedTopicSerDe;
+import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.test.serde.SerdeSupplier;
 import io.confluent.ksql.test.serde.avro.AvroSerdeSupplier;
@@ -37,6 +39,7 @@ import io.confluent.ksql.test.tools.exceptions.KsqlExpectedException;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -342,15 +345,15 @@ public class TestCase implements Test {
     inputRecordsFromKafka.forEach(
         record -> {
           testDriver.getTopologyTestDriver().pipeInput(
-            new ConsumerRecordFactory<>(
-                record.getTestRecord().keySerializer(),
-                record.getTestRecord().topic.getSerializer(schemaRegistryClient)
-            ).create(
-                record.getTestRecord().topic.name,
-                record.getTestRecord().key(),
-                record.getTestRecord().value,
-                record.getTestRecord().timestamp
-            )
+              new ConsumerRecordFactory<>(
+                  record.getTestRecord().keySerializer(),
+                  record.getTestRecord().topic.getSerializer(schemaRegistryClient)
+              ).create(
+              record.getTestRecord().topic.name,
+              record.getTestRecord().key(),
+              record.getTestRecord().value,
+              record.getTestRecord().timestamp
+              )
           );
 
           try {
@@ -410,8 +413,9 @@ public class TestCase implements Test {
       final ProducerRecord actualProducerRecord = actual.get(i).getProducerRecord();
       final ProducerRecord expectedProducerRecord = expected.get(i).getProducerRecord();
       final Object value;
-      if (expected.get(i).getTestRecord().topic.getSerdeSupplier() instanceof ValueSpecJsonSerdeSupplier) {
-        value = new String((byte[]) expectedProducerRecord.value());
+      if (expected.get(i).getTestRecord().topic.getSerdeSupplier()
+          instanceof ValueSpecJsonSerdeSupplier) {
+        value = new String((byte[]) expectedProducerRecord.value(), Charset.forName("UTF-8"));
       } else {
         final Deserializer deserializer = expected.get(i).getTestRecord().topic
             .getDeserializer(schemaRegistryClient);
@@ -423,21 +427,15 @@ public class TestCase implements Test {
           || !actualProducerRecord.key().equals(expectedProducerRecord.key())
           || !actualProducerRecord.value().equals(value)
           ) {
-        AssertionError error = new AssertionError(
+        final AssertionError error = new AssertionError(
             "Expected <" + expectedProducerRecord.key() + ", "
                 + expectedProducerRecord.value() + "> with timestamp="
                 + expectedProducerRecord.timestamp()
                 + " but was <" + actualProducerRecord.key() + ", "
                 + actualProducerRecord.value() + "> with timestamp="
                 + actualProducerRecord.timestamp());
-
+        error.printStackTrace();
       }
-//      OutputVerifier.compareKeyValueTimestamp(
-//          actual.get(i).getProducerRecord(),
-//          expected.get(i).getProducerRecord().key(),
-//          expected.get(i).getTestRecord().topic.getDeserializer(schemaRegistryClient).deserialize(
-//              expected.get(i).getTestRecord().topic.getName(), expected.get(i).getProducerRecord().value()),
-//          expected.get(i).getProducerRecord().timestamp());
     }
   }
 
@@ -500,22 +498,20 @@ public class TestCase implements Test {
 
   private static SerdeSupplier getSerdeSupplierForKsqlTopic(final KsqlTopic ksqlTopic) {
     Objects.requireNonNull(ksqlTopic);
-    switch (ksqlTopic.getKsqlTopicSerDe().getSerDe()) {
-      case JSON:
-      case DELIMITED:
-        return new StringSerdeSupplier();
-      case AVRO:
-        return new AvroSerdeSupplier();
-      default:
-        throw new KsqlException("Unsupported topic serde: "
-            + ksqlTopic.getKsqlTopicSerDe().getSerDe());
+    if (ksqlTopic.getKsqlTopicSerDe() instanceof KsqlJsonTopicSerDe
+        || ksqlTopic.getKsqlTopicSerDe() instanceof KsqlDelimitedTopicSerDe) {
+      return new StringSerdeSupplier();
+    } else if (ksqlTopic.getKsqlTopicSerDe() instanceof KsqlAvroTopicSerDe) {
+      return new AvroSerdeSupplier();
     }
+    throw new KsqlException("Unsupported topic serde: "
+        + ksqlTopic.getKsqlTopicSerDe().getClass().getSimpleName());
   }
 
   private static Optional<Schema> getSchema(
       final KsqlTopic ksqlTopic,
       final SchemaRegistryClient schemaRegistryClient) throws IOException, RestClientException {
-    if (ksqlTopic.getKsqlTopicSerDe().getSerDe() != Format.AVRO) {
+    if (!(ksqlTopic.getKsqlTopicSerDe() instanceof KsqlAvroTopicSerDe)) {
       return Optional.empty();
     }
     return Optional.of(new Schema.Parser().parse(

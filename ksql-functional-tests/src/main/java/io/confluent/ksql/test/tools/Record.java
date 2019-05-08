@@ -58,7 +58,7 @@ public class Record {
         : new TimeWindowedSerializer<>(stringDe);
   }
 
-  @SuppressWarnings("unchecked")
+  @SuppressWarnings("rawtypes")
   Deserializer keyDeserializer() {
     if (window == null) {
       return Serdes.String().deserializer();

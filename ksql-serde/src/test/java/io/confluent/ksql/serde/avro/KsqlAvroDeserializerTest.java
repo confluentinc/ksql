@@ -15,8 +15,12 @@
 
 package io.confluent.ksql.serde.avro;
 
-import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
+import static org.junit.internal.matchers.ThrowableMessageMatcher.hasMessage;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -25,34 +29,36 @@ import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.AbstractKafkaAvroSerDeConfig;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
-import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.util.KsqlException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
+import java.util.Iterator;
 import java.util.Map;
 import org.apache.avro.LogicalTypes;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
+import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
+import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
-import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class KsqlGenericRowAvroDeserializerTest {
+public class KsqlAvroDeserializerTest {
 
   private static final String AVRO_SCHEMA_STRING = "{"
       + "\"namespace\": \"kql\","
@@ -73,7 +79,7 @@ public class KsqlGenericRowAvroDeserializerTest {
   private static final org.apache.avro.Schema AVRO_SCHEMA = new org.apache.avro.Schema.Parser()
       .parse(AVRO_SCHEMA_STRING);
 
-  private static final Schema schema = SchemaBuilder.struct()
+  private static final Schema SCHEMA = SchemaBuilder.struct()
       .field("ORDERTIME", Schema.OPTIONAL_INT64_SCHEMA)
       .field("ORDERID", Schema.OPTIONAL_INT64_SCHEMA)
       .field("ITEMID", Schema.OPTIONAL_STRING_SCHEMA)
@@ -88,38 +94,60 @@ public class KsqlGenericRowAvroDeserializerTest {
   private static final KsqlConfig KSQL_CONFIG = new KsqlConfig(Collections.singletonMap(
           KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY, "fake-schema-registry-url"));
 
+  @Rule
+  public final ExpectedException expectedException = ExpectedException.none();
+
+
   private SchemaRegistryClient schemaRegistryClient;
+  private AvroConverter converter;
 
   @Before
   public void setUp() {
     schemaRegistryClient = new MockSchemaRegistryClient();
+    converter = new AvroConverter(schemaRegistryClient);
+    converter.configure(
+        ImmutableMap.of(
+            AbstractKafkaAvroSerDeConfig.AUTO_REGISTER_SCHEMAS, true,
+            AbstractKafkaAvroSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, ""
+        ),
+        false
+    );
+  }
+
+  @Test
+  public void shouldDeserializeNull() {
+    // Given:
+    final Deserializer<Struct> deserializer = deserializer(SCHEMA);
+
+    // When:
+    final Struct row = deserializer.deserialize("topic", null);
+
+    // Then:
+    assertThat(row, is(nullValue()));
   }
 
   @Test
   public void shouldDeserializeCorrectly() {
     // Given:
-    final GenericRow genericRow = new GenericRow(Arrays.asList(
-        1511897796092L,
-        1L,
-        "item_1",
-        10.0,
-        Collections.singletonList(100.0),
-        Collections.singletonMap("key1", 100.0)
-    ));
+    final Struct data = new Struct(SCHEMA)
+        .put("ORDERTIME", 1511897796092L)
+        .put("ORDERID", 1L)
+        .put("ITEMID", "item_1")
+        .put("ORDERUNITS", 10.0)
+        .put("ARRAYCOL", Collections.singletonList(100.0))
+        .put("MAPCOL", Collections.singletonMap("key1", 100.0));
 
     // When:
-    final GenericRow row = serializeDeserializeRow(
-        schema, AVRO_SCHEMA, genericRow);
+    final Struct row = serializeDeserializeRow(SCHEMA, AVRO_SCHEMA, data);
 
     // Then:
-    Assert.assertNotNull(row);
-    assertThat(row.getColumns().size(), equalTo(6));
-    assertThat(row.getColumns().get(0), equalTo(1511897796092L));
-    assertThat(row.getColumns().get(1), equalTo(1L));
-    assertThat(row.getColumns().get(2), equalTo( "item_1"));
-    assertThat(row.getColumns().get(3), equalTo( 10.0));
-    assertThat(row.getColumns().get(4), equalTo(ImmutableList.of(100.0)));
-    assertThat(row.getColumns().get(5), equalTo(ImmutableMap.of("key1", 100.0)));
+    assertThat(row.schema(), is(SCHEMA));
+    assertThat(row.get("ORDERTIME"), equalTo(1511897796092L));
+    assertThat(row.get("ORDERID"), equalTo(1L));
+    assertThat(row.get("ITEMID"), equalTo("item_1"));
+    assertThat(row.get("ORDERUNITS"), equalTo(10.0));
+    assertThat(row.get("ARRAYCOL"), equalTo(ImmutableList.of(100.0)));
+    assertThat(row.get("MAPCOL"), equalTo(ImmutableMap.of("key1", 100.0)));
   }
 
   @Test
@@ -132,24 +160,23 @@ public class KsqlGenericRowAvroDeserializerTest {
         .field("ORDERUNITS", Schema.OPTIONAL_FLOAT64_SCHEMA)
         .build();
 
-    final GenericRow genericRow = new GenericRow(Arrays.asList(
-        1511897796092L,
-        1L,
-        "item_1",
-        10.0,
-        Collections.emptyList(),
-        Collections.emptyMap()));
+    final Struct data = new Struct(SCHEMA)
+        .put("ORDERTIME", 1511897796092L)
+        .put("ORDERID", 1L)
+        .put("ITEMID", "item_1")
+        .put("ORDERUNITS", 10.0)
+        .put("ARRAYCOL", Collections.singletonList(100.0))
+        .put("MAPCOL", Collections.singletonMap("key1", 100.0));
 
     // When:
-    final GenericRow row = serializeDeserializeRow(
-        newSchema, AVRO_SCHEMA, genericRow);
+    final Struct row = serializeDeserializeRow(newSchema, AVRO_SCHEMA, data);
 
     // Then:
-    Assert.assertNotNull(row);
-    assertThat(row.getColumns().size(), equalTo(4));
-    assertThat(row.getColumns().get(0), equalTo(1511897796092L));
-    assertThat(row.getColumns().get(1), equalTo(1L));
-    assertThat(row.getColumns().get(2), equalTo( "item_1"));
+    assertThat(row.schema(), is(newSchema));
+    assertThat(row.get("ORDERTIME"), equalTo(1511897796092L));
+    assertThat(row.get("ORDERID"), equalTo(1L));
+    assertThat(row.get("ITEMID"), equalTo("item_1"));
+    assertThat(row.get("ORDERUNITS"), equalTo(10.0));
   }
 
   @Test
@@ -170,22 +197,26 @@ public class KsqlGenericRowAvroDeserializerTest {
     final org.apache.avro.Schema avroSchema1 = new org.apache.avro.Schema.Parser()
         .parse(schemaStr1);
 
-    final GenericRow genericRow = new GenericRow(Arrays.asList(1511897796092L, 1L, "item_1", 10.0));
+    final Struct data = new Struct(SCHEMA)
+        .put("ORDERTIME", 1511897796092L)
+        .put("ORDERID", 1L)
+        .put("ITEMID", "item_1")
+        .put("ORDERUNITS", 10.0);
 
-    // When"
-    final GenericRow row = serializeDeserializeRow(
-        schema, avroSchema1, genericRow);
+    // When:
+    final Struct row = serializeDeserializeRow(SCHEMA, avroSchema1, data);
 
     // Then:
-    assertThat(row.getColumns().size(), equalTo(6));
-    assertThat(row.getColumns().get(0), equalTo(1511897796092L));
-    assertThat(row.getColumns().get(1), equalTo(1L));
-    assertThat(row.getColumns().get(2), equalTo( "item_1"));
-    Assert.assertNull(row.getColumns().get(4));
-    Assert.assertNull(row.getColumns().get(5));
+    assertThat(row.schema(), is(SCHEMA));
+    assertThat(row.get("ORDERTIME"), equalTo(1511897796092L));
+    assertThat(row.get("ORDERID"), equalTo(1L));
+    assertThat(row.get("ITEMID"), equalTo("item_1"));
+    assertThat(row.get("ORDERUNITS"), equalTo(10.0));
+    assertThat(row.get("ARRAYCOL"), is(nullValue()));
+    assertThat(row.get("MAPCOL"), is(nullValue()));
   }
 
-  private static GenericRow serializeDeserializeAvroRecord(
+  private static Struct serializeDeserializeAvroRecord(
       final Schema schema,
       final String topicName,
       final SchemaRegistryClient schemaRegistryClient,
@@ -198,8 +229,8 @@ public class KsqlGenericRowAvroDeserializerTest {
 
     final byte[] bytes = kafkaAvroSerializer.serialize(topicName, avroRecord);
 
-    final Deserializer<GenericRow> deserializer =
-        new KsqlAvroTopicSerDe(KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME).getGenericRowSerde(
+    final Deserializer<Struct> deserializer =
+        new KsqlAvroTopicSerDe(KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME).getStructSerde(
             schema,
             KSQL_CONFIG,
             () -> schemaRegistryClient,
@@ -209,16 +240,20 @@ public class KsqlGenericRowAvroDeserializerTest {
     return deserializer.deserialize(topicName, bytes);
   }
 
-  private GenericRow serializeDeserializeRow(
+  private Struct serializeDeserializeRow(
       final Schema schema,
       final org.apache.avro.Schema rowAvroSchema,
-      final GenericRow genericRow
+      final Struct row
   ) {
     final GenericRecord avroRecord = new GenericData.Record(rowAvroSchema);
-    final List<org.apache.avro.Schema.Field> fields = rowAvroSchema.getFields();
-    for (int i = 0; i < genericRow.getColumns().size(); i++) {
-      avroRecord.put(fields.get(i).name(), genericRow.getColumns().get(i));
+
+    final Iterator<Field> ksqlIt = row.schema().fields().iterator();
+
+    for (final org.apache.avro.Schema.Field avroField : rowAvroSchema.getFields()) {
+      final Field ksqlField = ksqlIt.next();
+      avroRecord.put(avroField.name(), row.get(ksqlField));
     }
+
     return serializeDeserializeAvroRecord(schema, "t1", schemaRegistryClient, avroRecord);
   }
 
@@ -245,11 +280,11 @@ public class KsqlGenericRowAvroDeserializerTest {
     final GenericRecord avroRecord = new GenericData.Record(avroRecordSchema);
     avroRecord.put("field0", avroValue);
 
-    final GenericRow row = serializeDeserializeAvroRecord(
+    final Struct row = serializeDeserializeAvroRecord(
         ksqlRecordSchema, "test-topic", schemaRegistryClient, avroRecord);
 
-    assertThat(row.getColumns().size(), equalTo(1));
-    assertThat(row.getColumns().get(0), equalTo(ksqlValue));
+    assertThat(row.schema(), is(ksqlRecordSchema));
+    assertThat(row.get("field0"), equalTo(ksqlValue));
   }
 
   @Test
@@ -472,45 +507,31 @@ public class KsqlGenericRowAvroDeserializerTest {
     shouldDeserializeTypeCorrectly(avroSchema, "foobar", ksqlSchema, ksqlValue);
   }
 
-  private void shouldDeserializeConnectTypeCorrectly(final Schema connectSchema,
-                                                     final Object connectValue,
-                                                     final Schema ksqlSchema,
-                                                     final Object ksqlValue) {
-
+  private void shouldDeserializeConnectTypeCorrectly(
+      final Schema connectSchema,
+      final Object connectValue,
+      final Schema ksqlSchema,
+      final Object ksqlValue
+  ) {
     final Schema connectRecordSchema = SchemaBuilder.struct()
         .field("field0", connectSchema)
         .build();
     final Struct connectRecord = new Struct(connectRecordSchema);
     connectRecord.put("field0", connectValue);
 
-    final AvroConverter converter = new AvroConverter(schemaRegistryClient);
-    converter.configure(
-        ImmutableMap.of(
-            AbstractKafkaAvroSerDeConfig.AUTO_REGISTER_SCHEMAS, true,
-            AbstractKafkaAvroSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, ""
-        ),
-        false
-    );
-
-    final byte[] bytes = converter.fromConnectData("topic", connectRecordSchema, connectRecord);
+    final byte[] bytes = serializeAsBinaryAvro("topic", connectRecordSchema, connectRecord);
 
     final Schema ksqlRecordSchema = SchemaBuilder.struct()
         .field("field0", ksqlSchema)
         .optional()
         .build();
 
-    final Deserializer<GenericRow> deserializer =
-        new KsqlAvroTopicSerDe(KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME).getGenericRowSerde(
-            ksqlRecordSchema,
-            KSQL_CONFIG,
-            () -> schemaRegistryClient,
-            "loggerName",
-            ProcessingLogContext.create()).deserializer();
+    final Deserializer<Struct> deserializer = deserializer(ksqlRecordSchema);
 
-    final GenericRow row = deserializer.deserialize("topic", bytes);
+    final Struct row = deserializer.deserialize("topic", bytes);
 
-    assertThat(row.getColumns().size(), equalTo(1));
-    assertThat(row.getColumns().get(0), equalTo(ksqlValue));
+    assertThat(row.schema().field("field0").schema(), is(ksqlSchema));
+    assertThat(row.get("field0"), is(ksqlValue));
   }
 
   @Test
@@ -611,5 +632,189 @@ public class KsqlGenericRowAvroDeserializerTest {
         ).optional().build(),
         ImmutableMap.of("true", 10, "false", 20)
     );
+  }
+
+  @Test
+  public void shouldThrowIfTopLevelNotStruct() {
+    // Then:
+    expectedException.expect(IllegalArgumentException.class);
+    expectedException.expectMessage("KSQL expects all top level schemas to be STRUCTs");
+
+    // When:
+    deserializer(Schema.OPTIONAL_INT64_SCHEMA);
+  }
+
+  @Test
+  public void shouldDeserializedTopLevelPrimitiveTypeIfSchemaHasOnlySingleField() {
+    // Given:
+    final Schema ksqlSchema = SchemaBuilder.struct()
+        .field("id", Schema.OPTIONAL_INT32_SCHEMA)
+        .build();
+
+    final Deserializer<Struct> deserializer = deserializer(ksqlSchema);
+
+    final byte[] bytes = serializeAsBinaryAvro("topic", Schema.INT32_SCHEMA, 10);
+
+    // When:
+    final Struct row = deserializer.deserialize("topic", bytes);
+
+    // Then:
+    assertThat(row, is((Object) new Struct(ksqlSchema)
+        .put("id", 10)));
+  }
+
+  @Test
+  public void shouldThrowOnDeserializedTopLevelPrimitiveWhenSchemaHasMoreThanOneField() {
+    // Given:
+    final Schema schema = SchemaBuilder.struct()
+        .field("id", Schema.OPTIONAL_INT32_SCHEMA)
+        .field("id2", Schema.OPTIONAL_INT32_SCHEMA)
+        .build();
+
+    final Deserializer<Struct> deserializer = deserializer(schema);
+
+    final byte[] bytes = serializeAsBinaryAvro("foo", Schema.INT32_SCHEMA, 10);
+
+    // Then:
+    expectedException.expect(SerializationException.class);
+    expectedException.expectCause(instanceOf(KsqlException.class));
+    expectedException
+        .expectCause(hasMessage(is("Expected Avro record not primitive, array or map type")));
+
+    // When:
+    deserializer.deserialize("foo", bytes);
+  }
+
+  @Test
+  public void shouldDeserializeTopLevelArrayIfSchemaHasOnlySingleField() {
+    // Given:
+    final Schema ksqlSchema = SchemaBuilder.struct()
+        .field("ids", SchemaBuilder
+            .array(Schema.OPTIONAL_INT64_SCHEMA)
+            .optional()
+            .build())
+        .build();
+
+    final Deserializer<Struct> deserializer = deserializer(ksqlSchema);
+
+    final Schema serializerSchema = SchemaBuilder.array(Schema.INT32_SCHEMA).build();
+    final byte[] bytes =
+        serializeAsBinaryAvro("bar", serializerSchema, ImmutableList.of(1, 2, 3));
+
+    // When:
+    final Struct result = deserializer.deserialize("bar", bytes);
+
+    // Then:
+    assertThat(result, is(new Struct(ksqlSchema)
+        .put("ids", ImmutableList.of(1L, 2L, 3L))));
+  }
+
+  @Test
+  public void shouldThrowOnDeserializedTopLevelArrayWhenSchemaHasMoreThanOneField() {
+    // Given:
+    final Schema schema = SchemaBuilder.struct()
+        .field("ids", SchemaBuilder
+            .array(Schema.OPTIONAL_INT32_SCHEMA)
+            .optional()
+            .build())
+        .field("id2", Schema.OPTIONAL_INT32_SCHEMA)
+        .build();
+
+    final Deserializer<Struct> deserializer = deserializer(schema);
+
+    final Schema serializerSchema = SchemaBuilder.array(Schema.INT32_SCHEMA).build();
+    final byte[] bytes =
+        serializeAsBinaryAvro("bar", serializerSchema, ImmutableList.of(1, 2, 3));
+
+    // Then:
+    expectedException.expect(SerializationException.class);
+    expectedException.expectCause(instanceOf(KsqlException.class));
+    expectedException
+        .expectCause(hasMessage(is("Expected Avro record not primitive, array or map type")));
+
+    // When:
+    deserializer.deserialize("bar", bytes);
+  }
+
+  @Test
+  public void shouldDeserializeTopLevelMapIfSchemaHasOnlySingleField() {
+    // Given:
+    final Schema ksqlSchema = SchemaBuilder.struct()
+        .field("ids", SchemaBuilder
+            .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_INT32_SCHEMA)
+            .optional()
+            .build())
+        .build();
+
+    final Deserializer<Struct> deserializer = deserializer(ksqlSchema);
+
+    final Schema serializerSchema = SchemaBuilder
+        .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.INT32_SCHEMA)
+        .build();
+
+    final byte[] bytes =
+        serializeAsBinaryAvro("bar", serializerSchema, ImmutableMap.of("a", 1, "b", 2));
+
+    // When:
+    final Struct result = deserializer.deserialize("bar", bytes);
+
+    // Then:
+    assertThat(result, is(new Struct(ksqlSchema)
+        .put("ids", ImmutableMap.of("a", 1, "b", 2))));
+  }
+
+  @Test
+  public void shouldThrowOnDeserializedTopLevelMapWhenSchemaHasMoreThanOneField() {
+    // Given:
+    final Schema schema = SchemaBuilder.struct()
+        .field("ids", SchemaBuilder
+            .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_INT32_SCHEMA)
+            .optional()
+            .build())
+        .field("id2", Schema.OPTIONAL_INT32_SCHEMA)
+        .build();
+
+    final Deserializer<Struct> deserializer = deserializer(schema);
+
+    final Schema serializerSchema = SchemaBuilder
+        .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.INT32_SCHEMA)
+        .build();
+
+    final byte[] bytes =
+        serializeAsBinaryAvro("bar", serializerSchema, ImmutableMap.of("a", 1, "b", 2));
+
+    // Then:
+    expectedException.expect(SerializationException.class);
+    expectedException.expectCause(instanceOf(KsqlException.class));
+    expectedException
+        .expectCause(hasMessage(is("Expected Avro record not primitive, array or map type")));
+
+    // When:
+    deserializer.deserialize("bar", bytes);
+  }
+
+  private byte[] serializeAsBinaryAvro(
+      final String topicName,
+      final Schema schema,
+      final Object value
+  ) {
+    return converter.fromConnectData(topicName, schema, value);
+  }
+
+  private Deserializer<Struct> deserializer(final Schema schema) {
+    final Deserializer<Struct> deserializer =
+        new KsqlAvroTopicSerDe(KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME)
+            .getStructSerde(
+                schema,
+                KSQL_CONFIG,
+                () -> schemaRegistryClient,
+                "loggerName",
+                ProcessingLogContext.create())
+            .deserializer();
+
+    deserializer
+        .configure(Collections.emptyMap(), false);
+
+    return deserializer;
   }
 }

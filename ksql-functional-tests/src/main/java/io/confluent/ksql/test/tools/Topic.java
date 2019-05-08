@@ -24,6 +24,7 @@ import org.apache.avro.Schema;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
 
+@SuppressWarnings("rawtypes")
 public class Topic {
   final String name;
   private final Optional<Schema> schema;

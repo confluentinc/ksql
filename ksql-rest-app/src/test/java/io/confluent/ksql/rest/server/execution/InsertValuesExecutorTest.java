@@ -22,7 +22,6 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.function.TestFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStoreImpl;
@@ -57,6 +56,7 @@ import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.KafkaClientSupplier;
 import org.junit.Before;
 import org.junit.Rule;
@@ -103,17 +103,18 @@ public class InsertValuesExecutorTest {
   @Mock
   private Serializer<String> keySerializer;
   @Mock
-  private Serde<GenericRow> rowSerDe;
+  private Serde<Struct> rowSerDe;
   @Mock
-  private Serializer<GenericRow> rowSerializer;
+  private Serializer<Struct> rowSerializer;
   @Mock
   private ServiceContext serviceContext;
   @Mock
   private KafkaProducer<byte[], byte[]> producer;
+  private Struct expectedRow;
 
   @Before
   public void setup() {
-    when(topicSerDe.getGenericRowSerde(any(), any(), any(), any(), any())).thenReturn(rowSerDe);
+    when(topicSerDe.getStructSerde(any(), any(), any(), any(), any())).thenReturn(rowSerDe);
 
     when(keySerDe.serializer()).thenReturn(keySerializer);
     when(rowSerDe.serializer()).thenReturn(rowSerializer);
@@ -127,6 +128,12 @@ public class InsertValuesExecutorTest {
     when(serviceContext.getKafkaClientSupplier()).thenReturn(kafkaClientSupplier);
 
     givenDataSourceWithSchema(SCHEMA);
+
+    expectedRow = new Struct(SCHEMA.getSchema())
+        .put("ROWTIME", 1L)
+        .put("ROWKEY", 2L)
+        .put("COL0", 2L)
+        .put("COL1", "str");
   }
 
   @Test
@@ -145,7 +152,7 @@ public class InsertValuesExecutorTest {
     new InsertValuesExecutor(() -> -1L).execute(statement, engine, serviceContext);
 
     // Then:
-    verify(rowSerializer).serialize(TOPIC_NAME, new GenericRow(1L, 2L, 2L, "str"));
+    verify(rowSerializer).serialize(TOPIC_NAME, expectedRow);
     verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
   }
 
@@ -164,7 +171,7 @@ public class InsertValuesExecutorTest {
     new InsertValuesExecutor(() -> 1L).execute(statement, engine, serviceContext);
 
     // Then:
-    verify(rowSerializer).serialize(TOPIC_NAME, new GenericRow(1L, 2L, 2L, "str"));
+    verify(rowSerializer).serialize(TOPIC_NAME, expectedRow);
     verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
   }
 
@@ -182,7 +189,7 @@ public class InsertValuesExecutorTest {
     new InsertValuesExecutor(() -> 1L).execute(statement, engine, serviceContext);
 
     // Then:
-    verify(rowSerializer).serialize(TOPIC_NAME, new GenericRow(1L, 2L, 2L, "str"));
+    verify(rowSerializer).serialize(TOPIC_NAME, expectedRow);
     verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
   }
 
@@ -201,7 +208,7 @@ public class InsertValuesExecutorTest {
     new InsertValuesExecutor(() -> 1L).execute(statement, engine, serviceContext);
 
     // Then:
-    verify(rowSerializer).serialize(TOPIC_NAME, new GenericRow(1L, 2L, 2L, "str"));
+    verify(rowSerializer).serialize(TOPIC_NAME, expectedRow);
     verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
   }
 
@@ -219,7 +226,7 @@ public class InsertValuesExecutorTest {
     new InsertValuesExecutor(() -> 1L).execute(statement, engine, serviceContext);
 
     // Then:
-    verify(rowSerializer).serialize(TOPIC_NAME, new GenericRow(1L, 2L, 2L, null));
+    verify(rowSerializer).serialize(TOPIC_NAME, expectedRow.put("COL1", null));
     verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
   }
 
@@ -237,7 +244,7 @@ public class InsertValuesExecutorTest {
     new InsertValuesExecutor(() -> 1L).execute(statement, engine, serviceContext);
 
     // Then:
-    verify(rowSerializer).serialize(TOPIC_NAME, new GenericRow(1L, 2L, 2L, "str"));
+    verify(rowSerializer).serialize(TOPIC_NAME, expectedRow);
     verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
   }
 
@@ -255,7 +262,7 @@ public class InsertValuesExecutorTest {
     new InsertValuesExecutor(() -> 1L).execute(statement, engine, serviceContext);
 
     // Then:
-    verify(rowSerializer).serialize(TOPIC_NAME, new GenericRow(1L, 2L, 2L, "str"));
+    verify(rowSerializer).serialize(TOPIC_NAME, expectedRow);
     verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
   }
 
@@ -273,7 +280,7 @@ public class InsertValuesExecutorTest {
     new InsertValuesExecutor(() -> 1L).execute(statement, engine, serviceContext);
 
     // Then:
-    verify(rowSerializer).serialize(TOPIC_NAME, new GenericRow(1L, 2L, 2L, "str"));
+    verify(rowSerializer).serialize(TOPIC_NAME, expectedRow);
     verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
   }
 
@@ -297,7 +304,16 @@ public class InsertValuesExecutorTest {
     new InsertValuesExecutor(() -> 1L).execute(statement, engine, serviceContext);
 
     // Then:
-    verify(rowSerializer).serialize(TOPIC_NAME, new GenericRow(1L, 2L, 0, 2L, 3.0, true, "str"));
+    verify(rowSerializer).serialize(TOPIC_NAME, new Struct(BIG_SCHEMA.getSchema())
+        .put("ROWTIME", 1L)
+        .put("ROWKEY", 2L)
+        .put("INT", 0)
+        .put("COL0", 2L)
+        .put("DOUBLE", 3.0)
+        .put("BOOLEAN", true)
+        .put("VARCHAR", "str")
+    );
+
     verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
   }
 
@@ -317,7 +333,10 @@ public class InsertValuesExecutorTest {
     new InsertValuesExecutor(() -> 1L).execute(statement, engine, serviceContext);
 
     // Then:
-    verify(rowSerializer).serialize(TOPIC_NAME, new GenericRow(1L, 1L, 1L, null));
+    verify(rowSerializer).serialize(TOPIC_NAME, expectedRow
+        .put("ROWKEY", 1L)
+        .put("COL0", 1L)
+        .put("COL1", null));
     verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
   }
 

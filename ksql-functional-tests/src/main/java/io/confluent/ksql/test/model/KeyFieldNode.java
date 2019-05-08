@@ -66,7 +66,7 @@ public class KeyFieldNode {
         ? null
         : KeyFieldMatchers.hasLegacySchema(legacySchema);
 
-    final Matcher[] matchers = Stream
+    final Matcher<KeyField>[] matchers = Stream
         .of(nameMatcher, legacyNameMatcher, legacySchemaMatcher)
         .filter(Objects::nonNull)
         .toArray(Matcher[]::new);

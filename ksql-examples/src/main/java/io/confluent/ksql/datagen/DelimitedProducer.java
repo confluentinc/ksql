@@ -16,6 +16,7 @@
 package io.confluent.ksql.datagen;
 
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.serde.GenericRowSerDe.GenericRowSerializer;
 import io.confluent.ksql.serde.delimited.KsqlDelimitedSerializer;
 import org.apache.avro.Schema;
 import org.apache.kafka.common.serialization.Serializer;
@@ -28,6 +29,9 @@ public class DelimitedProducer extends DataGenProducer {
       final org.apache.kafka.connect.data.Schema kafkaSchema,
       final String topicName
   ) {
-    return new KsqlDelimitedSerializer();
+    return new GenericRowSerializer(
+        new KsqlDelimitedSerializer(),
+        kafkaSchema
+    );
   }
 }

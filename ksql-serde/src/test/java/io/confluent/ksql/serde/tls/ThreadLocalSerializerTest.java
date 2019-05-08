@@ -15,15 +15,6 @@
 
 package io.confluent.ksql.serde.tls;
 
-import io.confluent.ksql.GenericRow;
-import org.apache.kafka.common.serialization.Serializer;
-import org.easymock.EasyMock;
-import org.junit.Test;
-
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
-
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.anyString;
 import static org.easymock.EasyMock.expect;
@@ -32,13 +23,20 @@ import static org.easymock.EasyMock.replay;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 
+import io.confluent.ksql.GenericRow;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
+import org.apache.kafka.common.serialization.Serializer;
+import org.easymock.EasyMock;
+import org.junit.Test;
+
 public class ThreadLocalSerializerTest {
   @Test
-  @SuppressWarnings("unchecked")
   public void shouldUseAThreadLocalSerializer() throws InterruptedException {
     final List<Serializer<GenericRow>> serializers = new LinkedList<>();
 
-    final ThreadLocalSerializer serializer = new ThreadLocalSerializer(
+    final ThreadLocalSerializer<GenericRow> serializer = new ThreadLocalSerializer<>(
         () -> {
           final Serializer<GenericRow> local = mock(Serializer.class);
           serializers.add(local);

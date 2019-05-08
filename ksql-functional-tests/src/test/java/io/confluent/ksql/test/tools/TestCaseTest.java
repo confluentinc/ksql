@@ -52,6 +52,7 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+@SuppressWarnings("rawtypes")
 @RunWith(MockitoJUnitRunner.class)
 public class TestCaseTest {
 

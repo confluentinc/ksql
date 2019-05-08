@@ -15,15 +15,18 @@
 
 package io.confluent.ksql.serde.connect;
 
-import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.util.KsqlException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.connect.data.Date;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.Schema.Type;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.data.Time;
 import org.apache.kafka.connect.data.Timestamp;
@@ -35,30 +38,37 @@ public class ConnectDataTranslator implements DataTranslator {
   private final Schema schema;
 
   public ConnectDataTranslator(final Schema schema) {
-    this.schema = schema;
+    this.schema = Objects.requireNonNull(schema, "schema");
   }
 
   @Override
-  public GenericRow toKsqlRow(final Schema connectSchema,
-                              final Object connectData) {
-    if (!schema.type().equals(Schema.Type.STRUCT)) {
-      throw new KsqlException("Schema for a KSQL row should be a struct");
-    }
-
-    final Struct rowStruct = (Struct) toKsqlValue(schema, connectSchema, connectData, "");
-    if (rowStruct == null) {
+  public Struct toKsqlRow(final Schema connectSchema, final Object connectData) {
+    if (connectData == null) {
       return null;
     }
 
-    // streams are expensive, so we don't use them from serdes. build the row using forEach
-    final List<Object> fields = new ArrayList<>(schema.fields().size());
-    schema.fields().forEach(field -> fields.add(rowStruct.get(field)));
-    return new GenericRow(fields);
+    if (connectSchema.type() == Type.STRUCT) {
+      return (Struct) toKsqlValue(schema, connectSchema, connectData, "");
+    }
+
+    if (schema.fields().size() != 1) {
+      throw new KsqlException("Expected Avro record not primitive, array or map type");
+    }
+
+    final Struct struct = new Struct(schema);
+    final Field field = schema.fields().get(0);
+
+    final Object coerced = toKsqlValue(field.schema(), connectSchema, connectData, "");
+    struct.put(field, coerced);
+
+    return struct;
   }
 
-  private void throwTypeMismatchException(final String pathStr,
-                                          final Schema schema,
-                                          final Schema connectSchema) {
+  private static void throwTypeMismatchException(
+      final String pathStr,
+      final Schema schema,
+      final Schema connectSchema
+  ) {
     throw new DataException(
         String.format(
             "Cannot deserialize type %s as type %s for field %s",
@@ -67,10 +77,12 @@ public class ConnectDataTranslator implements DataTranslator {
             pathStr));
   }
 
-  private void validateType(final String pathStr,
-                            final Schema schema,
-                            final Schema connectSchema,
-                            final Schema.Type[] validTypes) {
+  private static void validateType(
+      final String pathStr,
+      final Schema schema,
+      final Schema connectSchema,
+      final Schema.Type[] validTypes
+  ) {
     // don't use stream here
     for (final Schema.Type type : validTypes) {
       if (connectSchema.type().equals(type)) {
@@ -80,9 +92,11 @@ public class ConnectDataTranslator implements DataTranslator {
     throwTypeMismatchException(pathStr, schema, connectSchema);
   }
 
-  private void validateType(final String pathStr,
-                            final Schema schema,
-                            final Schema connectSchema) {
+  private static void validateType(
+      final String pathStr,
+      final Schema schema,
+      final Schema connectSchema
+  ) {
     if (!connectSchema.type().equals(schema.type())) {
       throwTypeMismatchException(pathStr, schema, connectSchema);
     }
@@ -117,9 +131,11 @@ public class ConnectDataTranslator implements DataTranslator {
       Schema.Type.STRING
   };
 
-  private void validateSchema(final String pathStr,
-                              final Schema schema,
-                              final Schema connectSchema) {
+  private static void validateSchema(
+      final String pathStr,
+      final Schema schema,
+      final Schema connectSchema
+  ) {
     switch (schema.type()) {
       case BOOLEAN:
       case ARRAY:
@@ -145,7 +161,10 @@ public class ConnectDataTranslator implements DataTranslator {
     }
   }
 
-  private Object maybeConvertLogicalType(final Schema connectSchema, final Object connectValue) {
+  private static Object maybeConvertLogicalType(
+      final Schema connectSchema,
+      final Object connectValue
+  ) {
     if (connectSchema.name() == null) {
       return connectValue;
     }
@@ -162,10 +181,12 @@ public class ConnectDataTranslator implements DataTranslator {
   }
 
   @SuppressWarnings("unchecked")
-  private Object toKsqlValue(final Schema schema,
-                             final Schema connectSchema,
-                             final Object connectValue,
-                             final String pathStr) {
+  private Object toKsqlValue(
+      final Schema schema,
+      final Schema connectSchema,
+      final Object connectValue,
+      final String pathStr
+  ) {
     // Map a connect value+schema onto the schema expected by KSQL. For now this involves:
     // - handling case insensitivity for struct field names
     // - setting missing values to null
@@ -201,8 +222,12 @@ public class ConnectDataTranslator implements DataTranslator {
     }
   }
 
-  private List<?> toKsqlArray(final Schema valueSchema, final Schema connectValueSchema,
-                           final List<Object> connectArray, final String pathStr) {
+  private List<?> toKsqlArray(
+      final Schema valueSchema,
+      final Schema connectValueSchema,
+      final List<Object> connectArray,
+      final String pathStr
+  ) {
     final List<Object> ksqlArray = new ArrayList<>(connectArray.size());
     // streams are expensive, so we don't use them from serdes.
     // build the array using forEach instead.
@@ -213,9 +238,14 @@ public class ConnectDataTranslator implements DataTranslator {
     return ksqlArray;
   }
 
-  private Map<?, ?> toKsqlMap(final Schema keySchema, final Schema connectKeySchema,
-                        final Schema valueSchema, final Schema connectValueSchema,
-                        final Map<Object, Object> connectMap, final String pathStr) {
+  private Map<?, ?> toKsqlMap(
+      final Schema keySchema,
+      final Schema connectKeySchema,
+      final Schema valueSchema,
+      final Schema connectValueSchema,
+      final Map<Object, Object> connectMap,
+      final String pathStr
+  ) {
     final Map<Object, Object> ksqlMap = new HashMap<>();
     // streams are expensive, so we don't use them from serdes.
     // build the map using forEach instead.
@@ -236,10 +266,12 @@ public class ConnectDataTranslator implements DataTranslator {
     return ksqlMap;
   }
 
-  private Struct toKsqlStruct(final Schema schema,
-                              final Schema connectSchema,
-                              final Struct connectStruct,
-                              final String pathStr) {
+  private Struct toKsqlStruct(
+      final Schema schema,
+      final Schema connectSchema,
+      final Struct connectStruct,
+      final String pathStr
+  ) {
     // todo: check name here? e.g. what if the struct gets changed to a union?
     final Struct ksqlStruct = new Struct(schema);
     final Map<String, Field> caseInsensitiveFieldMap =
@@ -265,7 +297,7 @@ public class ConnectDataTranslator implements DataTranslator {
     return ksqlStruct;
   }
 
-  private Map<String, Field> getCaseInsensitiveFieldMap(final Schema schema) {
+  private static Map<String, Field> getCaseInsensitiveFieldMap(final Schema schema) {
     final Map<String, Field> fieldsByName = new HashMap<>();
     schema.fields().forEach(
         field -> fieldsByName.put(field.name().toUpperCase(), field)
@@ -273,11 +305,30 @@ public class ConnectDataTranslator implements DataTranslator {
     return fieldsByName;
   }
 
-  public Struct toConnectRow(final GenericRow row) {
+  public Object toConnectRow(final Struct struct) {
+    if (schema.type() == Type.STRUCT) {
+      return toConnectStruct(struct);
+    }
+
+    if (struct.schema().fields().size() != 1) {
+      throw new SerializationException("Expected to serialize primitive, map or array not record");
+    }
+
+    final Field field = struct.schema().fields().get(0);
+    return struct.get(field);
+  }
+
+  private Object toConnectStruct(final Struct row) {
     final Struct struct = new Struct(schema);
-    schema.fields().forEach(
-        field -> struct.put(field, row.getColumns().get(field.index()))
-    );
+
+    final Iterator<Field> ksqlIt = row.schema().fields().iterator();
+
+    for (final Field connectField : schema.fields()) {
+      final Field ksqlField = ksqlIt.next();
+      final Object value = row.get(ksqlField);
+      struct.put(connectField, value);
+    }
+
     return struct;
   }
 }

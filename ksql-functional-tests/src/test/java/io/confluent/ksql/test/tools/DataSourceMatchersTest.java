@@ -33,6 +33,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+@SuppressWarnings("rawtypes")
 @RunWith(MockitoJUnitRunner.class)
 public class DataSourceMatchersTest {
 

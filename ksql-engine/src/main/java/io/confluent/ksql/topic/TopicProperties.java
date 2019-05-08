@@ -18,6 +18,7 @@ package io.confluent.ksql.topic;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
 import io.confluent.ksql.ddl.DdlConfig;
+import io.confluent.ksql.parser.tree.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.util.KsqlConfig;
@@ -105,6 +106,15 @@ public final class TopicProperties {
 
     public Builder withName(final String name) {
       this.name = name;
+      return this;
+    }
+
+    public Builder withWithClause(final CreateSourceProperties properties) {
+      final String name = properties.getKafkaTopic();
+      final Integer partitions = properties.getPartitions().orElse(null);
+      final Short replicas = properties.getReplicas().orElse(null);
+
+      fromWithClause = new TopicProperties(name, partitions, replicas);
       return this;
     }
 

@@ -39,6 +39,7 @@ import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.Struct;
 import io.confluent.ksql.parser.tree.Type.SqlType;
+import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.util.MetaStoreFixture;
 import org.junit.Assert;
 import org.junit.Before;
@@ -306,7 +307,7 @@ public class StatementRewriterTest {
   public void testCreateStreamWithTopic() {
     final String queryStr =
         "CREATE STREAM orders (ordertime bigint, orderid varchar, itemid varchar, orderunits "
-            + "double) WITH (registered_topic = 'orders_topic' , key='ordertime');";
+            + "double) WITH (kafka_topic = 'foo', value_format = 'json', registered_topic = 'orders_topic' , key='ordertime');";
     final Statement statement = parse(queryStr);
 
     final StatementRewriter statementRewriter = new StatementRewriter();
@@ -317,7 +318,7 @@ public class StatementRewriterTest {
     assertThat(createStream.getName().toString(), equalTo("ORDERS"));
     assertThat(createStream.getElements().size(), equalTo(4));
     assertThat(createStream.getElements().get(0).getName(), equalTo("ORDERTIME"));
-    assertThat(createStream.getProperties().get(DdlConfig.TOPIC_NAME_PROPERTY).toString(), equalTo("'orders_topic'"));
+    assertThat(createStream.getProperties().getKsqlTopic().get(), equalTo("orders_topic"));
   }
 
   @Test
@@ -326,7 +327,7 @@ public class StatementRewriterTest {
         "CREATE STREAM orders (ordertime bigint, orderid varchar, itemid varchar, orderunits "
             + "double, arraycol array<double>, mapcol map<varchar, double>, "
             + "order_address STRUCT< number VARCHAR, street VARCHAR, zip INTEGER, city "
-            + "VARCHAR, state VARCHAR >) WITH (registered_topic = 'orders_topic' , key='ordertime');";
+            + "VARCHAR, state VARCHAR >) WITH (kafka_topic='foo', value_format='json', registered_topic = 'orders_topic' , key='ordertime');";
     final Statement statement = parse(queryStr);
     final StatementRewriter statementRewriter = new StatementRewriter();
     final Statement rewrittenStatement = (Statement) statementRewriter.process(statement, null);
@@ -340,8 +341,8 @@ public class StatementRewriterTest {
     final Struct struct = (Struct) createStream.getElements().get(6).getType();
     assertThat(struct.getFields(), hasSize(5));
     assertThat(struct.getFields().get(0).getType().getSqlType(), equalTo(SqlType.STRING));
-    assertThat(createStream.getProperties().get(DdlConfig.TOPIC_NAME_PROPERTY).toString().toLowerCase(),
-        equalTo("'orders_topic'"));
+    assertThat(createStream.getProperties().getKsqlTopic().get().toLowerCase(),
+        equalTo("orders_topic"));
   }
 
   @Test
@@ -360,15 +361,15 @@ public class StatementRewriterTest {
     assertThat(createStream.getName().toString(), equalTo("ORDERS"));
     assertThat(createStream.getElements().size(), equalTo(4));
     assertThat(createStream.getElements().get(0).getName(), equalTo("ORDERTIME"));
-    assertThat(createStream.getProperties().get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY).toString(), equalTo("'orders_topic'"));
-    assertThat(createStream.getProperties().get(DdlConfig
-        .VALUE_FORMAT_PROPERTY).toString(), equalTo("'avro'"));
+    assertThat(createStream.getProperties().getKafkaTopic(), equalTo("orders_topic"));
+    assertThat(createStream.getProperties().getValueFormat(), equalTo(Format.AVRO));
   }
 
   @Test
   public void testCreateTableWithTopic() {
     final String queryStr =
-        "CREATE TABLE users (usertime bigint, userid varchar, regionid varchar, gender varchar) WITH (registered_topic = 'users_topic', key='userid', statestore='user_statestore');";
+        "CREATE TABLE users (usertime bigint, userid varchar, regionid varchar, gender varchar) "
+            + "WITH (kafka_topic='foo', value_format='json', registered_topic = 'users_topic', key='userid');";
     final Statement statement = parse(queryStr);
     final StatementRewriter statementRewriter = new StatementRewriter();
     final Statement rewrittenStatement = (Statement) statementRewriter.process(statement, null);
@@ -377,7 +378,7 @@ public class StatementRewriterTest {
     assertThat(createTable.getName().toString(), equalTo("USERS"));
     assertThat(createTable.getElements().size(), equalTo(4));
     assertThat(createTable.getElements().get(0).getName(), equalTo("USERTIME"));
-    assertThat(createTable.getProperties().get(DdlConfig.TOPIC_NAME_PROPERTY).toString(), equalTo("'users_topic'"));
+    assertThat(createTable.getProperties().getKsqlTopic().get(), equalTo("users_topic"));
   }
 
   @Test
@@ -393,10 +394,8 @@ public class StatementRewriterTest {
     assertThat(createTable.getName().toString(), equalTo("USERS"));
     assertThat(createTable.getElements().size(), equalTo(4));
     assertThat(createTable.getElements().get(0).getName(), equalTo("USERTIME"));
-    assertThat(createTable.getProperties().get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY)
-        .toString(), equalTo("'users_topic'"));
-    assertThat(createTable.getProperties().get(DdlConfig.VALUE_FORMAT_PROPERTY)
-        .toString(), equalTo("'json'"));
+    assertThat(createTable.getProperties().getKafkaTopic(), equalTo("users_topic"));
+    assertThat(createTable.getProperties().getValueFormat(), equalTo(Format.JSON));
   }
 
   @Test

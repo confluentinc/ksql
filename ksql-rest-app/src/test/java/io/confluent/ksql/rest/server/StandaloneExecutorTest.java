@@ -111,11 +111,14 @@ public class StandaloneExecutorTest {
       new TableElement("bob", PrimitiveType.of(SqlType.STRING)));
 
   private static final QualifiedName SOME_NAME = QualifiedName.of("Bob");
+  private static final String SOME_TOPIC = "some-topic";
 
   private static final ImmutableMap<String, Literal> JSON_PROPS = ImmutableMap
-      .of("VALUE_FORMAT", new StringLiteral("json"));
+      .of(
+          "VALUE_FORMAT", new StringLiteral("json"),
+          "KAFKA_TOPIC", new StringLiteral(SOME_TOPIC)
+      );
 
-  private static final String SOME_TOPIC = "some-topic";
   private static final ImmutableMap<String, Literal> AVRO_PROPS = ImmutableMap.of(
       "VALUE_FORMAT", new StringLiteral("avro"),
       "KAFKA_TOPIC", new StringLiteral(SOME_TOPIC));
@@ -167,7 +170,7 @@ public class StandaloneExecutorTest {
           QualifiedName.of("CS 0"),
           SOME_ELEMENTS,
           true,
-          Collections.emptyMap()
+          JSON_PROPS
       ));
 
   private final static ConfiguredStatement<?> CFG_0_WITH_SCHEMA = ConfiguredStatement.of(
@@ -178,7 +181,7 @@ public class StandaloneExecutorTest {
           QualifiedName.of("CS 1"),
           SOME_ELEMENTS,
           true,
-          Collections.emptyMap()
+          JSON_PROPS
       ));
 
   private final static ConfiguredStatement<?> CFG_1_WITH_SCHEMA = ConfiguredStatement.of(

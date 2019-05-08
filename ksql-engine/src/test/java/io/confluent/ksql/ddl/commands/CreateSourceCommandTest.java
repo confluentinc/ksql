@@ -30,6 +30,7 @@ import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.QualifiedName;
+import io.confluent.ksql.parser.tree.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.Type.SqlType;
@@ -65,7 +66,7 @@ public class CreateSourceCommandTest {
   public void setUp() {
     when(statement.getElements()).thenReturn(SOME_ELEMENTS);
     when(statement.getName()).thenReturn(QualifiedName.of("bob"));
-    when(statement.getProperties()).thenReturn(minValidProps());
+    givenPropertiesWith(ImmutableMap.of());
     when(kafkaTopicClient.isTopicExists(any())).thenReturn(true);
   }
 
@@ -92,34 +93,6 @@ public class CreateSourceCommandTest {
     new TestCmd("look mum, columns", statement, kafkaTopicClient);
 
     // Then: not exception thrown
-  }
-
-  @Test
-  public void shouldThrowIfValueFormatNotSupplied() {
-    // Given:
-    when(statement.getProperties()).thenReturn(propsWithout(DdlConfig.VALUE_FORMAT_PROPERTY));
-
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "Topic format(VALUE_FORMAT) should be set in WITH clause.");
-
-    // When:
-    new TestCmd("what, no value format?", statement, kafkaTopicClient);
-  }
-
-  @Test
-  public void shouldThrowIfTopicNameNotSupplied() {
-    // Given:
-    when(statement.getProperties()).thenReturn(propsWithout(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY));
-
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "Corresponding Kafka topic (KAFKA_TOPIC) should be set in WITH clause.");
-
-    // When:
-    new TestCmd("what, no value topic?", statement, kafkaTopicClient);
   }
 
   @Test
@@ -150,7 +123,6 @@ public class CreateSourceCommandTest {
   @Test
   public void shouldThrowIfKeyFieldNotInSchema() {
     // Given:
-    when(statement.getProperties()).thenReturn(minValidProps());
     givenPropertiesWith(ImmutableMap.of(
         DdlConfig.KEY_NAME_PROPERTY, new StringLiteral("will-not-find-me")));
 
@@ -167,7 +139,7 @@ public class CreateSourceCommandTest {
   @Test
   public void shouldThrowIfTimestampColumnDoesNotExist() {
     // Given:
-    when(statement.getProperties()).thenReturn(minValidProps());
+    givenPropertiesWith(ImmutableMap.of());
     givenPropertiesWith(ImmutableMap.of(
         DdlConfig.TIMESTAMP_NAME_PROPERTY, new StringLiteral("will-not-find-me")));
 
@@ -188,17 +160,17 @@ public class CreateSourceCommandTest {
     );
   }
 
-  private static Map<String, Literal> propsWithout(final String name) {
+  private static CreateSourceProperties propsWithout(final String name) {
     final HashMap<String, Literal> props = new HashMap<>(minValidProps());
     final Expression removed = props.remove(name);
     assertThat("invalid test", removed, is(notNullValue()));
-    return ImmutableMap.copyOf(props);
+    return new CreateSourceProperties(ImmutableMap.copyOf(props));
   }
 
   private void givenPropertiesWith(final Map<String, Literal> additionalProps) {
     final Map<String, Literal> allProps = new HashMap<>(minValidProps());
     allProps.putAll(additionalProps);
-    when(statement.getProperties()).thenReturn(allProps);
+    when(statement.getProperties()).thenReturn(new CreateSourceProperties(allProps));
   }
 
   private static final class TestCmd extends CreateSourceCommand {

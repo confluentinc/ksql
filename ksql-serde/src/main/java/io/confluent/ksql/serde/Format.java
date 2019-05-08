@@ -16,6 +16,7 @@
 package io.confluent.ksql.serde;
 
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.StringUtil;
 
 public enum Format {
   JSON,
@@ -24,7 +25,7 @@ public enum Format {
 
   public static Format of(final String value) {
     try {
-      return valueOf(value.toUpperCase());
+      return valueOf(StringUtil.cleanQuotes(value.toUpperCase()));
     } catch (final IllegalArgumentException e) {
       throw new KsqlException("Unknown format: " + value);
     }

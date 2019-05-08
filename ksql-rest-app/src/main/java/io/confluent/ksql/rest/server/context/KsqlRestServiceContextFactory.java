@@ -18,6 +18,14 @@ package io.confluent.ksql.rest.server.context;
 import io.confluent.ksql.services.DefaultServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
+
+import java.util.Objects;
+import java.util.Optional;
+import javax.inject.Inject;
+import javax.ws.rs.container.ContainerRequestContext;
+
+import org.apache.kafka.streams.KafkaClientSupplier;
+import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
 import org.glassfish.hk2.api.Factory;
 
 /**
@@ -25,15 +33,33 @@ import org.glassfish.hk2.api.Factory;
  * a new {@link ServiceContext} during REST requests.
  */
 public class KsqlRestServiceContextFactory implements Factory<ServiceContext> {
-  private final KsqlConfig ksqlConfig;
+  private static KsqlConfig ksqlConfig;
 
-  public KsqlRestServiceContextFactory(final KsqlConfig ksqlConfig) {
-    this.ksqlConfig = ksqlConfig;
+  public static void configure(final KsqlConfig ksqlConfig) {
+    KsqlRestServiceContextFactory.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
+  }
+
+  private final Optional<KsqlRestContext> ksqlRestContext;
+
+  @Inject
+  public KsqlRestServiceContextFactory(final ContainerRequestContext requestContext) {
+    this.ksqlRestContext = KsqlRestContext.get(requestContext);
   }
 
   @Override
   public ServiceContext provide() {
-    return DefaultServiceContext.create(ksqlConfig);
+    return DefaultServiceContext.create(ksqlConfig, getKafkaClientSupplier());
+  }
+
+  private KafkaClientSupplier getKafkaClientSupplier() {
+    if (ksqlRestContext.isPresent()) {
+      return new ConfiguredKafkaClientSupplier(
+          new DefaultKafkaClientSupplier(),
+          ksqlRestContext.get().getRestContextProperties()
+      );
+    }
+
+    return new DefaultKafkaClientSupplier();
   }
 
   @Override

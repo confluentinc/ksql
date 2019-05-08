@@ -107,19 +107,14 @@ public class TopicCreateInjector implements Injector {
       final TopicProperties.Builder topicPropertiesBuilder
   ) {
     final CreateSource createSource = statement.getStatement();
-    final String topicName =
-        ((StringLiteral) createSource.getProperties()
-            .get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY))
-            .getValue();
+    final String topicName = createSource.getProperties().getKafkaTopic();
 
     if (topicClient.isTopicExists(topicName)) {
       topicPropertiesBuilder.withSource(() -> topicClient.describeTopic(topicName));
-    } else if (!createSource.getProperties()
-        .containsKey(KsqlConstants.SOURCE_NUMBER_OF_PARTITIONS)) {
-      final Map<String, Literal> exampleProps = new HashMap<>(createSource.getProperties());
-      exampleProps.put(KsqlConstants.SOURCE_NUMBER_OF_PARTITIONS, new IntegerLiteral(2));
-      exampleProps.putIfAbsent(KsqlConstants.SOURCE_NUMBER_OF_REPLICAS, new IntegerLiteral(1));
-      final CreateSource example = createSource.copyWith(createSource.getElements(), exampleProps);
+    } else if (!createSource.getProperties().getPartitions().isPresent()) {
+      final CreateSource example = createSource.copyWith(
+          createSource.getElements(),
+          createSource.getProperties().withPartitionsAndReplicas(2, (short) 1));
       throw new KsqlException(
           "Topic '" + topicName + "' does not exist. If you want to create a new topic for the "
               + "stream/table please re-run the statement providing the required '"

@@ -258,7 +258,7 @@ class Analyzer {
       format = Format.of(StringUtil.cleanQuotes(serdeProperty.toString()));
     } else {
       final DataSource<?> leftSource = analysis.getFromDataSource(0).left;
-      format = leftSource.getKsqlTopic().getKsqlTopicSerDe().getSerDe();
+      format = leftSource.getKsqlTopic().getKsqlTopicSerDe().getFormat();
     }
 
     analysis.setIntoFormat(format);

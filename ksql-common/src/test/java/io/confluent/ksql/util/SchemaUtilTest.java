@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.util;
 
+import static java.util.Optional.empty;
+import static java.util.Optional.of;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
@@ -712,6 +714,107 @@ public class SchemaUtilTest {
 
     // Then:
     assertThat(result, is(field));
+  }
+
+  @Test
+  public void shouldEnsureDeepOptional() {
+    // Given:
+    final Schema optionalSchema = SchemaBuilder
+        .struct()
+        .field("struct", SchemaBuilder
+            .struct()
+            .field("prim", Schema.FLOAT64_SCHEMA)
+            .field("array", SchemaBuilder
+                .array(Schema.STRING_SCHEMA)
+                .build())
+            .field("map", SchemaBuilder
+                .map(Schema.INT64_SCHEMA, Schema.BOOLEAN_SCHEMA)
+                .build())
+            .build())
+        .build();
+
+    // When:
+    final Schema result = SchemaUtil.ensureOptional(optionalSchema);
+
+    // Then:
+    assertThat(result, is(SchemaBuilder
+        .struct()
+        .field("struct", SchemaBuilder
+            .struct()
+            .field("prim", Schema.OPTIONAL_FLOAT64_SCHEMA)
+            .field("array", SchemaBuilder
+                .array(Schema.OPTIONAL_STRING_SCHEMA)
+                .optional()
+                .build())
+            .field("map", SchemaBuilder
+                .map(Schema.OPTIONAL_INT64_SCHEMA, Schema.OPTIONAL_BOOLEAN_SCHEMA)
+                .optional()
+                .build())
+            .optional()
+            .build())
+        .optional()
+        .build()
+    ));
+  }
+
+  @Test
+  public void shouldUpCastInt() {
+    // Given:
+    final int val = 1;
+
+    // Then:
+    assertThat(SchemaUtil.maybeUpCast(Schema.Type.INT64, Schema.Type.INT32, val), is(of(1L)));
+    assertThat(SchemaUtil.maybeUpCast(Schema.Type.FLOAT32, Schema.Type.INT32, val), is(of(1f)));
+    assertThat(SchemaUtil.maybeUpCast(Schema.Type.FLOAT64, Schema.Type.INT32, val), is(of(1d)));
+  }
+
+  @Test
+  public void shouldUpCastLong() {
+    // Given:
+    final long val = 1L;
+
+    // Then:
+    assertThat(SchemaUtil.maybeUpCast(Schema.Type.FLOAT32, Schema.Type.INT64, val), is(of(1f)));
+    assertThat(SchemaUtil.maybeUpCast(Schema.Type.FLOAT64, Schema.Type.INT64, val), is(of(1d)));
+  }
+
+  @Test
+  public void shouldUpCastFloat() {
+    // Given:
+    final float val = 1f;
+
+    // Then:
+    assertThat(SchemaUtil.maybeUpCast(Schema.Type.FLOAT64, Schema.Type.FLOAT32, val), is(of(1d)));
+  }
+
+  @Test
+  public void shouldNotDownCastLong() {
+    // Given:
+    final long val = 1L;
+
+    // Expect:
+    assertThat(SchemaUtil.maybeUpCast(Schema.Type.INT32, Schema.Type.INT64, val), is(empty()));
+  }
+
+  @Test
+  public void shouldNotDownCastFloat() {
+    // Given:
+    final float val = 1f;
+
+    // Expect:
+    assertThat(SchemaUtil.maybeUpCast(Schema.Type.INT64, Schema.Type.FLOAT32, val), is(empty()));
+    assertThat(SchemaUtil.maybeUpCast(Schema.Type.INT32, Schema.Type.FLOAT32, val), is(empty()));
+  }
+
+  @Test
+  public void shouldNotDownCastDouble() {
+    // Given:
+    final double val = 1d;
+
+    // Expect:
+    assertThat(SchemaUtil.maybeUpCast(Schema.Type.FLOAT32, Schema.Type.FLOAT64, val), is(empty()));
+    assertThat(SchemaUtil.maybeUpCast(Schema.Type.INT64, Schema.Type.FLOAT64, val), is(empty()));
+    assertThat(SchemaUtil.maybeUpCast(Schema.Type.INT32, Schema.Type.FLOAT64, val), is(empty()));
   }
 
   // Following methods not invoked but used to test conversion from Type -> Schema

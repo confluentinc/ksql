@@ -16,7 +16,6 @@
 package io.confluent.ksql.serde.json;
 
 import com.google.gson.Gson;
-import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.serde.util.SerdeProcessingLogMessageFactory;
 import io.confluent.ksql.serde.util.SerdeUtils;
@@ -32,13 +31,14 @@ import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.Schema.Type;
 import org.apache.kafka.connect.data.SchemaAndValue;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.json.JsonConverter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
+public class KsqlJsonDeserializer implements Deserializer<Struct> {
 
   private static final Logger LOG = LoggerFactory.getLogger(KsqlJsonDeserializer.class);
 
@@ -56,6 +56,10 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
     this.jsonConverter = new JsonConverter();
     this.jsonConverter.configure(Collections.singletonMap("schemas.enable", false), false);
     this.recordLogger = Objects.requireNonNull(recordLogger, "recordLogger");
+
+    if (schema.type() != Type.STRUCT) {
+      throw new IllegalArgumentException("KSQL expects all top level schemas to be STRUCTs");
+    }
   }
 
   @Override
@@ -63,9 +67,9 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
   }
 
   @Override
-  public GenericRow deserialize(final String topic, final byte[] bytes) {
+  public Struct deserialize(final String topic, final byte[] bytes) {
     try {
-      final GenericRow row = getGenericRow(bytes);
+      final Struct row = toStruct(bytes);
       if (LOG.isTraceEnabled()) {
         LOG.trace("Deserialized row. topic:{}, row:{}", topic, row);
       }
@@ -82,22 +86,41 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
   }
 
   @SuppressWarnings("unchecked")
-  private GenericRow getGenericRow(final byte[] rowJsonBytes) {
+  private Struct toStruct(final byte[] rowJsonBytes) {
     final SchemaAndValue schemaAndValue = jsonConverter.toConnectData("topic", rowJsonBytes);
-    final Map<String, Object> valueMap = (Map) schemaAndValue.value();
-    if (valueMap == null) {
+    final Object value = schemaAndValue.value();
+    if (value == null) {
       return null;
     }
 
+    if (value instanceof Map) {
+      return fromMap((Map<String, Object>)value);
+    }
+
+    if (schema.fields().size() != 1) {
+      throw new KsqlException("Expected JSON object not JSON value or array");
+    }
+
+    final Struct struct = new Struct(schema);
+    final Field field = schema.fields().get(0);
+
+    final Object coerced = enforceFieldType(field.schema(), value);
+    struct.put(field, coerced);
+
+    return struct;
+  }
+
+  private Struct fromMap(final Map<String, Object> valueMap) {
     final Map<String, String> caseInsensitiveFieldNameMap =
         getCaseInsensitiveFieldNameMap(valueMap, true);
 
-    final List<Object> columns = new ArrayList<>(schema.fields().size());
+    final Struct struct = new Struct(schema);
     for (final Field field : schema.fields()) {
       final Object columnVal = valueMap.get(caseInsensitiveFieldNameMap.get(field.name()));
-      columns.add(enforceFieldType(field.schema(), columnVal));
+      final Object coerced = enforceFieldType(field.schema(), columnVal);
+      struct.put(field, coerced);
     }
-    return new GenericRow(columns);
+    return struct;
   }
 
   // This is a temporary requirement until we can ensure that the types that Connect JSON

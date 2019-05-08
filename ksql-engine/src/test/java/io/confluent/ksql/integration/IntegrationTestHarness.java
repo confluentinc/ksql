@@ -27,6 +27,7 @@ import io.confluent.ksql.KsqlContextTestUtil;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.GenericRowSerDe;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
 import io.confluent.ksql.serde.delimited.KsqlDelimitedTopicSerDe;
@@ -570,10 +571,11 @@ public class IntegrationTestHarness extends ExternalResource {
     }
   }
 
-  private Serializer getSerializer(
+  private Serializer<GenericRow> getSerializer(
       final Format dataSourceSerDe,
       final Schema schema) {
-    return getSerde(dataSourceSerDe).getGenericRowSerde(
+    return GenericRowSerDe.from(
+        getSerde(dataSourceSerDe),
         schema,
         new KsqlConfig(Collections.emptyMap()),
         serviceContext.get().getSchemaRegistryClientFactory(),
@@ -585,7 +587,8 @@ public class IntegrationTestHarness extends ExternalResource {
   private Deserializer<GenericRow> getDeserializer(
       final Format dataSourceSerDe,
       final Schema schema) {
-    return getSerde(dataSourceSerDe).getGenericRowSerde(
+    return GenericRowSerDe.from(
+        getSerde(dataSourceSerDe),
         schema,
         new KsqlConfig(Collections.emptyMap()),
         serviceContext.get().getSchemaRegistryClientFactory(),

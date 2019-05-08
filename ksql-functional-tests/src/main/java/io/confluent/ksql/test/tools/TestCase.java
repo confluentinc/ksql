@@ -429,7 +429,7 @@ public class TestCase implements Test {
           ) {
         final AssertionError error = new AssertionError(
             "Expected <" + expectedProducerRecord.key() + ", "
-                + expectedProducerRecord.value() + "> with timestamp="
+                + value + "> with timestamp="
                 + expectedProducerRecord.timestamp()
                 + " but was <" + actualProducerRecord.key() + ", "
                 + actualProducerRecord.value() + "> with timestamp="

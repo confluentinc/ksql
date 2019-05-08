@@ -33,8 +33,6 @@ import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -81,8 +79,6 @@ import java.util.stream.Collectors;
 import org.apache.avro.Schema;
 import org.apache.avro.Schema.Type;
 import org.apache.avro.SchemaBuilder;
-import org.apache.kafka.clients.admin.TopicDescription;
-import org.apache.kafka.common.TopicPartitionInfo;
 import org.apache.kafka.common.utils.Utils;
 import org.apache.kafka.streams.StreamsConfig;
 import org.junit.After;
@@ -533,7 +529,7 @@ public class KsqlEngineTest {
         "create table bar as select * from test2;", KSQL_CONFIG, Collections.emptyMap());
 
     // Then:
-    verify(jsonKsqlSerde, atLeastOnce()).getGenericRowSerde(
+    verify(jsonKsqlSerde, atLeastOnce()).getStructSerde(
         any(), any(), eq(schemaRegistryClientFactory), any(), any()
     );
   }

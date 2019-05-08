@@ -369,7 +369,7 @@ public class PhysicalPlanBuilderTest {
     assertThat(queryMetadataList.get(1), instanceOf(PersistentQueryMetadata.class));
     final PersistentQueryMetadata persistentQuery = (PersistentQueryMetadata)
         queryMetadataList.get(1);
-    assertThat(persistentQuery.getResultTopic().getKsqlTopicSerDe().getSerDe(),
+    assertThat(persistentQuery.getResultTopic().getKsqlTopicSerDe().getFormat(),
         equalTo(Format.DELIMITED));
   }
 

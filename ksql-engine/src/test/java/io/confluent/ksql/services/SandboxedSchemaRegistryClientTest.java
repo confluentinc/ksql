@@ -48,6 +48,8 @@ public final class SandboxedSchemaRegistryClientTest {
     @Parameterized.Parameters(name = "{0}")
     public static Collection<TestCase<SchemaRegistryClient>> getMethodsToTest() {
       return TestMethods.builder(SchemaRegistryClient.class)
+          .ignore("register", String.class, Schema.class)
+          .ignore("register", String.class, Schema.class, int.class, int.class)
           .ignore("getLatestSchemaMetadata", String.class)
           .ignore("testCompatibility", String.class, Schema.class)
           .ignore("deleteSubject", String.class)

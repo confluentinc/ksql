@@ -43,6 +43,7 @@ import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.serde.GenericRowSerDe;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.streams.MaterializedFactory;
@@ -97,7 +98,7 @@ public class SchemaKGroupedTableTest {
     final StreamsBuilder builder = new StreamsBuilder();
     kTable = builder
         .table(ksqlTable.getKsqlTopic().getKafkaTopicName(), Consumed.with(Serdes.String()
-            , ksqlTable.getKsqlTopic().getKsqlTopicSerDe().getGenericRowSerde(
+            , ksqlTable.getKsqlTopic().getKsqlTopicSerDe().getStructSerde(
                 ksqlTable.getSchema().getSchema(),
                 new KsqlConfig(Collections.emptyMap()),
                 MockSchemaRegistryClient::new,
@@ -126,7 +127,8 @@ public class SchemaKGroupedTableTest {
             .map(c -> new DereferenceExpression(new QualifiedNameReference(QualifiedName.of("TEST1")), c))
             .collect(Collectors.toList());
     final KsqlTopicSerDe ksqlTopicSerDe = new KsqlJsonTopicSerDe();
-    final Serde<GenericRow> rowSerde = ksqlTopicSerDe.getGenericRowSerde(
+    final Serde<GenericRow> rowSerde = GenericRowSerDe.from(
+        ksqlTopicSerDe,
         SchemaTestUtil.getSchemaWithNoAlias(initialSchemaKTable.getSchema().getSchema()),
         null,
         () -> null,
@@ -153,7 +155,8 @@ public class SchemaKGroupedTableTest {
               functionRegistry.getAggregate("SUM", Schema.OPTIONAL_INT64_SCHEMA)),
           Collections.singletonMap(0, 0),
           windowExpression,
-          new KsqlJsonTopicSerDe().getGenericRowSerde(
+          GenericRowSerDe.from(
+              new KsqlJsonTopicSerDe(),
               ksqlTable.getSchema().getSchema(),
               ksqlConfig,
               () -> null,
@@ -183,7 +186,8 @@ public class SchemaKGroupedTableTest {
           aggValToFunctionMap,
           Collections.singletonMap(0, 0),
           null,
-          new KsqlJsonTopicSerDe().getGenericRowSerde(
+          GenericRowSerDe.from(
+              new KsqlJsonTopicSerDe(),
               ksqlTable.getSchema().getSchema(),
               ksqlConfig,
               () -> null,

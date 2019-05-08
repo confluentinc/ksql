@@ -17,18 +17,18 @@ package io.confluent.ksql.serde.avro;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.serde.connect.ConnectDataTranslator;
 import io.confluent.ksql.serde.connect.DataTranslator;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-
+import java.util.Objects;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.Schema.Type;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 
@@ -38,11 +38,12 @@ public class AvroDataTranslator implements DataTranslator {
   private final Schema ksqlSchema;
   private final Schema avroCompatibleSchema;
 
-  public AvroDataTranslator(
+  AvroDataTranslator(
       final Schema ksqlSchema,
       final String schemaFullName,
-      final boolean useNamedMaps) {
-    this.ksqlSchema = ksqlSchema;
+      final boolean useNamedMaps
+  ) {
+    this.ksqlSchema = Objects.requireNonNull(ksqlSchema, "ksqlSchema");
     this.avroCompatibleSchema = buildAvroCompatibleSchema(
         ksqlSchema,
         useNamedMaps,
@@ -50,32 +51,46 @@ public class AvroDataTranslator implements DataTranslator {
     this.innerTranslator = new ConnectDataTranslator(avroCompatibleSchema);
   }
 
-  @Override
-  public GenericRow toKsqlRow(final Schema connectSchema, final Object connectObject) {
-    final GenericRow avroCompatibleRow = innerTranslator.toKsqlRow(connectSchema, connectObject);
-    if (avroCompatibleRow == null) {
-      return null;
-    }
-    final List<Object> columns = new ArrayList<>(avroCompatibleRow.getColumns().size());
-    for (int i = 0; i < avroCompatibleRow.getColumns().size(); i++) {
-      columns.add(
-          replaceSchema(
-              ksqlSchema.fields().get(i).schema(),
-              avroCompatibleRow.getColumns().get(i)));
-    }
-    return new GenericRow(columns);
+  Schema getConnectSchema() {
+    return avroCompatibleSchema;
   }
 
   @Override
-  public Struct toConnectRow(final GenericRow genericRow) {
-    final List<Object> columns = new ArrayList<>(genericRow.getColumns().size());
-    for (int i = 0; i < genericRow.getColumns().size(); i++) {
-      columns.add(
-          replaceSchema(
-              avroCompatibleSchema.fields().get(i).schema(),
-              genericRow.getColumns().get(i)));
+  public Struct toKsqlRow(final Schema connectSchema, final Object connectObject) {
+    final Struct avroCompatibleRow = innerTranslator.toKsqlRow(connectSchema, connectObject);
+    if (avroCompatibleRow == null) {
+      return null;
     }
-    return innerTranslator.toConnectRow(new GenericRow(columns));
+
+    return convert(avroCompatibleRow, ksqlSchema);
+  }
+
+  @Override
+  public Object toConnectRow(final Struct struct) {
+    if (ksqlSchema.schema().type() == Type.STRUCT) {
+      final Struct compatibleStruct = convert(struct, avroCompatibleSchema);
+      return innerTranslator.toConnectRow(compatibleStruct);
+    }
+
+    return innerTranslator.toConnectRow(struct);
+  }
+
+  private static Struct convert(
+      final Struct source,
+      final Schema targetSchema
+  ) {
+    final Struct struct = new Struct(targetSchema);
+
+    final Iterator<Field> sourceIt = source.schema().fields().iterator();
+
+    for (final Field targetField : targetSchema.fields()) {
+      final Field sourceField = sourceIt.next();
+      final Object value = source.get(sourceField);
+      final Object adjusted = replaceSchema(targetField.schema(), value);
+      struct.put(targetField, adjusted);
+    }
+
+    return struct;
   }
 
   private static final class TypeNameGenerator {
@@ -84,7 +99,7 @@ public class AvroDataTranslator implements DataTranslator {
     static final String MAP_KEY_NAME = "MapKey";
     static final String MAP_VALUE_NAME = "MapValue";
 
-    private Iterable<String> names;
+    private final Iterable<String> names;
 
     private TypeNameGenerator(final Iterable<String> names) {
       this.names = names;
@@ -151,7 +166,7 @@ public class AvroDataTranslator implements DataTranslator {
   }
 
   @SuppressWarnings("unchecked")
-  private Object replaceSchema(final Schema schema, final Object object) {
+  private static Object replaceSchema(final Schema schema, final Object object) {
     if (object == null) {
       return null;
     }

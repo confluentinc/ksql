@@ -104,7 +104,7 @@ public class PersistentQueryMetadata extends QueryMetadata {
   }
 
   public Format getResultTopicSerde() {
-    return resultTopic.getKsqlTopicSerDe().getSerDe();
+    return resultTopic.getKsqlTopicSerDe().getFormat();
   }
 
   public String getSchemasDescription() {

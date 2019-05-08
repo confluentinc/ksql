@@ -29,6 +29,7 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.planner.plan.PlanNodeId;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.serde.GenericRowSerDe;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.structured.QueryContext;
@@ -38,6 +39,7 @@ import io.confluent.ksql.util.QueryLoggerUtil;
 import java.util.function.Supplier;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.junit.Before;
 import org.junit.Test;
@@ -65,7 +67,7 @@ public class KsqlQueryBuilderTest {
   @Mock
   private KsqlTopicSerDe topicSerDe;
   @Mock
-  private Serde<GenericRow> rowSerde;
+  private Serde<Struct> rowSerde;
   @Mock
   private Supplier<SchemaRegistryClient> srClientFactory;
   private QueryContext queryContext;
@@ -73,7 +75,7 @@ public class KsqlQueryBuilderTest {
 
   @Before
   public void setUp() {
-    when(topicSerDe.getGenericRowSerde(any(), any(), any(), any(), any())).thenReturn(rowSerde);
+    when(topicSerDe.getStructSerde(any(), any(), any(), any(), any())).thenReturn(rowSerde);
     when(serviceContext.getSchemaRegistryClientFactory()).thenReturn(srClientFactory);
 
     queryContext = new QueryContext.Stacker(QUERY_ID).push("context").getQueryContext();
@@ -135,13 +137,21 @@ public class KsqlQueryBuilderTest {
     );
 
     // Then:
-    assertThat(result, is(rowSerde));
-    verify(topicSerDe).getGenericRowSerde(
+    verify(topicSerDe).getStructSerde(
         SOME_SCHEMA,
         ksqlConfig,
         srClientFactory,
         QueryLoggerUtil.queryLoggerName(queryContext),
         processingLogContext);
+
+    assertThat(result, is(GenericRowSerDe.from(
+        topicSerDe,
+        SOME_SCHEMA,
+        ksqlConfig,
+        srClientFactory,
+        QueryLoggerUtil.queryLoggerName(queryContext),
+        processingLogContext
+        )));
   }
 
   @Test

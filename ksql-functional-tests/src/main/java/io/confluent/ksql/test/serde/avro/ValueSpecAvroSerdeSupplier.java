@@ -23,11 +23,17 @@ import io.confluent.kafka.serializers.KafkaAvroSerializer;
 import io.confluent.ksql.test.serde.SerdeSupplier;
 import io.confluent.ksql.test.serde.ValueSpec;
 import io.confluent.ksql.util.KsqlConstants;
+import java.util.AbstractMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
+import javax.annotation.Nonnull;
+import org.apache.avro.Schema;
+import org.apache.avro.generic.GenericContainer;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.kafka.common.serialization.Deserializer;
@@ -46,6 +52,7 @@ public class ValueSpecAvroSerdeSupplier implements SerdeSupplier<Object> {
 
 
   private static final class ValueSpecAvroSerializer implements Serializer<Object> {
+
     private final SchemaRegistryClient schemaRegistryClient;
     private final KafkaAvroSerializer avroSerializer;
 
@@ -98,16 +105,20 @@ public class ValueSpecAvroSerdeSupplier implements SerdeSupplier<Object> {
         case BOOLEAN:
           return spec;
         case ARRAY:
-          return ((List) spec).stream()
+          final List<?> list = ((List<?>) spec).stream()
               .map(o -> valueSpecToAvro(o, schema.getElementType()))
               .collect(Collectors.toList());
+
+          return new GenericData.Array<>(schema, list);
         case MAP:
-          return ((Map<Object, Object>) spec).entrySet().stream().collect(
-              Collectors.toMap(
-                  Map.Entry::getKey,
-                  e -> valueSpecToAvro(e.getValue(), schema.getValueType())
-              )
-          );
+          final Map<Object, Object> map = ((Map<Object, Object>) spec).entrySet().stream()
+              .collect(
+                  Collectors.toMap(
+                      Entry::getKey,
+                      e -> valueSpecToAvro(e.getValue(), schema.getValueType())
+                  )
+              );
+          return new GenericMap(schema, map);
         case RECORD:
           final GenericRecord record = new GenericData.Record(schema);
           for (final org.apache.avro.Schema.Field field : schema.getFields()) {
@@ -129,6 +140,30 @@ public class ValueSpecAvroSerdeSupplier implements SerdeSupplier<Object> {
         default:
           throw new RuntimeException(
               "This test does not support the data type yet: " + schema.getType().getName());
+      }
+    }
+
+    private static class GenericMap
+        extends AbstractMap<Object, Object>
+        implements GenericContainer {
+
+      private final Schema schema;
+      private final Map<Object, Object> map;
+
+      GenericMap(final Schema schema, final Map<Object, Object> map) {
+        this.schema = Objects.requireNonNull(schema, "schema");
+        this.map = Objects.requireNonNull(map, "map");
+      }
+
+      @Override
+      public Schema getSchema() {
+        return schema;
+      }
+
+      @Nonnull
+      @Override
+      public Set<Entry<Object, Object>> entrySet() {
+        return map.entrySet();
       }
     }
   }

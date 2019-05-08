@@ -22,6 +22,7 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.planner.plan.PlanNodeId;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.serde.GenericRowSerDe;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.structured.QueryContext;
@@ -125,7 +126,8 @@ public final class KsqlQueryBuilder {
 
     track(loggerNamePrefix, schema);
 
-    return topicSerDe.getGenericRowSerde(
+    return GenericRowSerDe.from(
+        topicSerDe,
         schema,
         ksqlConfig,
         serviceContext.getSchemaRegistryClientFactory(),

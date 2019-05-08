@@ -39,7 +39,9 @@ import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateSource;
+import io.confluent.ksql.parser.tree.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.IntegerLiteral;
+import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
@@ -92,6 +94,7 @@ public class TopicCreateInjectorTest {
   private ConfiguredStatement<?> statement;
   private KsqlConfig config;
 
+  @SuppressWarnings("unchecked")
   @Before
   public void setUp() {
     parser = new DefaultKsqlParser();
@@ -128,7 +131,8 @@ public class TopicCreateInjectorTest {
     when(topicClient.describeTopic("source")).thenReturn(sourceDescription);
     when(topicClient.isTopicExists("source")).thenReturn(true);
     when(builder.withName(any())).thenReturn(builder);
-    when(builder.withWithClause(any())).thenReturn(builder);
+    when(builder.withWithClause((CreateSourceProperties) any())).thenReturn(builder);
+    when(builder.withWithClause((Map<String, Literal>) any())).thenReturn(builder);
     when(builder.withOverrides(any())).thenReturn(builder);
     when(builder.withKsqlConfig(any())).thenReturn(builder);
     when(builder.withSource(any())).thenReturn(builder);
@@ -162,7 +166,7 @@ public class TopicCreateInjectorTest {
   @Test
   public void shouldUseNameFromCreate() {
     // Given:
-    givenStatement("CREATE STREAM x (FOO VARCHAR) WITH (kafka_topic='foo', partitions=1);");
+    givenStatement("CREATE STREAM x (FOO VARCHAR) WITH (value_format='avro', kafka_topic='foo', partitions=1);");
 
     // When:
     injector.inject(statement, builder);
@@ -217,7 +221,7 @@ public class TopicCreateInjectorTest {
   @Test
   public void shouldPassThroughWithClauseToBuilderForCreate() {
     // Given:
-    givenStatement("CREATE STREAM x (FOO VARCHAR) WITH(kafka_topic='topic', partitions=2);");
+    givenStatement("CREATE STREAM x (FOO VARCHAR) WITH(value_format='avro', kafka_topic='topic', partitions=2);");
 
     // When:
     injector.inject(statement, builder);
@@ -241,7 +245,7 @@ public class TopicCreateInjectorTest {
   @Test
   public void shouldPassThroughOverridesToBuilderForCreate() {
     // Given:
-    givenStatement("CREATE STREAM x (FOO VARCHAR) WITH(kafka_topic='topic', partitions=2);");
+    givenStatement("CREATE STREAM x (FOO VARCHAR) WITH(value_format='avro', kafka_topic='topic', partitions=2);");
 
     // When:
     injector.inject(statement, builder);
@@ -265,7 +269,7 @@ public class TopicCreateInjectorTest {
   @Test
   public void shouldPassThroughConfigToBuilderForCreate() {
     // Given:
-    givenStatement("CREATE STREAM x (FOO VARCHAR) WITH(kafka_topic='topic', partitions=2);");
+    givenStatement("CREATE STREAM x (FOO VARCHAR) WITH(value_format='avro', kafka_topic='topic', partitions=2);");
 
     // When:
     injector.inject(statement, builder);
@@ -277,7 +281,7 @@ public class TopicCreateInjectorTest {
   @Test
   public void shouldNotUseSourceTopicForCreateMissingTopic() {
     // Given:
-    givenStatement("CREATE STREAM x (FOO VARCHAR) WITH(kafka_topic='topic', partitions=2);");
+    givenStatement("CREATE STREAM x (FOO VARCHAR) WITH(value_format='avro', kafka_topic='topic', partitions=2);");
 
     // When:
     injector.inject(statement, builder);
@@ -289,7 +293,7 @@ public class TopicCreateInjectorTest {
   @Test
   public void shouldUseSourceTopicForCreateExistingTopic() {
     // Given:
-    givenStatement("CREATE STREAM x (FOO VARCHAR) WITH(kafka_topic='source', partitions=2);");
+    givenStatement("CREATE STREAM x (FOO VARCHAR) WITH(value_format='avro', kafka_topic='source', partitions=2);");
 
     // When:
     injector.inject(statement, builder);
@@ -413,7 +417,7 @@ public class TopicCreateInjectorTest {
   @Test
   public void shouldCreateMissingTopicWithCompactCleanupPolicyForCreateTable() {
     // Given:
-    givenStatement("CREATE TABLE foo (FOO VARCHAR) WITH (kafka_topic='topic', partitions=1);");
+    givenStatement("CREATE TABLE foo (FOO VARCHAR) WITH (value_format='avro', kafka_topic='topic', partitions=1);");
     when(builder.build()).thenReturn(new TopicProperties("topic", 10, (short) 10));
 
     // When:
@@ -448,7 +452,7 @@ public class TopicCreateInjectorTest {
   @Test
   public void shouldHaveSuperUsefulErrorMessageIfCreateWithNoPartitions() {
     // Given:
-    givenStatement("CREATE STREAM foo (FOO STRING) WITH (kafka_topic='doesntexist');");
+    givenStatement("CREATE STREAM foo (FOO STRING) WITH (value_format='avro', kafka_topic='doesntexist');");
 
     // Expect:
     expectedException.expect(KsqlException.class);
@@ -456,8 +460,8 @@ public class TopicCreateInjectorTest {
         "Topic 'doesntexist' does not exist. If you want to create a new topic for the "
             + "stream/table please re-run the statement providing the required 'PARTITIONS' "
             + "configuration in the WITH clause (and optionally 'REPLICAS'). For example: "
-            + "CREATE STREAM FOO (FOO STRING) WITH (KAFKA_TOPIC='doesntexist', REPLICAS=1"
-            + ", PARTITIONS=2);");
+            + "CREATE STREAM FOO (FOO STRING) "
+            + "WITH (VALUE_FORMAT='avro', KAFKA_TOPIC='doesntexist', PARTITIONS=2, REPLICAS=1);");
 
     // When:
     injector.inject(statement, builder);

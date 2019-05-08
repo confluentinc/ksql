@@ -17,19 +17,20 @@ package io.confluent.ksql.serde.json;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
-import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
+import static org.junit.internal.matchers.ThrowableMessageMatcher.hasMessage;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.serde.SerdeTestUtils;
 import io.confluent.ksql.serde.util.SerdeProcessingLogMessageFactory;
+import io.confluent.ksql.util.KsqlException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
@@ -39,8 +40,11 @@ import java.util.Optional;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.connect.data.Struct;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -73,8 +77,11 @@ public class KsqlJsonDeserializerTest {
   private final ProcessingLogConfig processingLogConfig
       = new ProcessingLogConfig(Collections.emptyMap());
 
+  @Rule
+  public final ExpectedException expectedException = ExpectedException.none();
+
   @Mock
-  ProcessingLogger recordLogger;
+  private ProcessingLogger recordLogger;
 
   @Before
   public void before() {
@@ -87,16 +94,16 @@ public class KsqlJsonDeserializerTest {
     final byte[] jsonBytes = objectMapper.writeValueAsBytes(AN_ORDER);
 
     // When:
-    final GenericRow genericRow = deserializer.deserialize("", jsonBytes);
+    final Struct result = deserializer.deserialize("", jsonBytes);
 
     // Then:
-    assertThat(genericRow.getColumns(), hasSize(6));
-    assertThat(genericRow.getColumns().get(0), is(1511897796092L));
-    assertThat(genericRow.getColumns().get(1), is(1L));
-    assertThat(genericRow.getColumns().get(2), is("Item_1"));
-    assertThat(genericRow.getColumns().get(3), is(10.0));
-    assertThat(genericRow.getColumns().get(4), is(ImmutableList.of(10.0, 20.0)));
-    assertThat(genericRow.getColumns().get(5), is(ImmutableMap.of("key1", 10.0)));
+    assertThat(result.schema(), is(orderSchema));
+    assertThat(result.get(orderSchema.fields().get(0)), is(1511897796092L));
+    assertThat(result.get(orderSchema.fields().get(1)), is(1L));
+    assertThat(result.get(orderSchema.fields().get(2)), is("Item_1"));
+    assertThat(result.get(orderSchema.fields().get(3)), is(10.0));
+    assertThat(result.get(orderSchema.fields().get(4)), is(ImmutableList.of(10.0, 20.0)));
+    assertThat(result.get(orderSchema.fields().get(5)), is(ImmutableMap.of("key1", 10.0)));
   }
 
   @Test
@@ -108,16 +115,15 @@ public class KsqlJsonDeserializerTest {
     final byte[] jsonBytes = objectMapper.writeValueAsBytes(orderRow);
 
     // When:
-    final GenericRow genericRow = deserializer.deserialize("", jsonBytes);
+    final Struct result = deserializer.deserialize("", jsonBytes);
 
     // Then:
-    assertThat(genericRow.getColumns(), hasSize(6));
-    assertThat(genericRow.getColumns().get(0), is(1511897796092L));
-    assertThat(genericRow.getColumns().get(1), is(1L));
-    assertThat(genericRow.getColumns().get(2), is("Item_1"));
-    assertThat(genericRow.getColumns().get(3), is(10.0));
-    assertThat(genericRow.getColumns().get(4), is(ImmutableList.of(10.0, 20.0)));
-    assertThat(genericRow.getColumns().get(5), is(ImmutableMap.of("key1", 10.0)));
+    assertThat(result.get(orderSchema.fields().get(0)), is(1511897796092L));
+    assertThat(result.get(orderSchema.fields().get(1)), is(1L));
+    assertThat(result.get(orderSchema.fields().get(2)), is("Item_1"));
+    assertThat(result.get(orderSchema.fields().get(3)), is(10.0));
+    assertThat(result.get(orderSchema.fields().get(4)), is(ImmutableList.of(10.0, 20.0)));
+    assertThat(result.get(orderSchema.fields().get(5)), is(ImmutableMap.of("key1", 10.0)));
   }
 
   @Test
@@ -129,16 +135,15 @@ public class KsqlJsonDeserializerTest {
     final byte[] jsonBytes = objectMapper.writeValueAsBytes(orderRow);
 
     // When:
-    final GenericRow genericRow = deserializer.deserialize("", jsonBytes);
+    final Struct result = deserializer.deserialize("", jsonBytes);
     
     // Then:
-    assertThat(genericRow.getColumns(), hasSize(6));
-    assertThat(genericRow.getColumns().get(0), is(nullValue()));
-    assertThat(genericRow.getColumns().get(1), is(1L));
-    assertThat(genericRow.getColumns().get(2), is("Item_1"));
-    assertThat(genericRow.getColumns().get(3), is(10.0));
-    assertThat(genericRow.getColumns().get(4), is(ImmutableList.of(10.0, 20.0)));
-    assertThat(genericRow.getColumns().get(5), is(ImmutableMap.of("key1", 10.0)));
+    assertThat(result.get(orderSchema.fields().get(0)), is(nullValue()));
+    assertThat(result.get(orderSchema.fields().get(1)), is(1L));
+    assertThat(result.get(orderSchema.fields().get(2)), is("Item_1"));
+    assertThat(result.get(orderSchema.fields().get(3)), is(10.0));
+    assertThat(result.get(orderSchema.fields().get(4)), is(ImmutableList.of(10.0, 20.0)));
+    assertThat(result.get(orderSchema.fields().get(5)), is(ImmutableMap.of("key1", 10.0)));
   }
 
   @Test
@@ -155,13 +160,15 @@ public class KsqlJsonDeserializerTest {
     final byte[] bytes = objectMapper.writeValueAsBytes(row);
 
     // When:
-    final GenericRow genericRow = deserializer.deserialize("", bytes);
+    final Struct result = deserializer.deserialize("", bytes);
 
     // Then:
-    final GenericRow expected = new GenericRow(
-        Arrays.asList(null, null, null, null, new Double[]{0.0, null}, null));
-
-    assertThat(genericRow, is(expected));
+    assertThat(result.get(orderSchema.fields().get(0)), is(nullValue()));
+    assertThat(result.get(orderSchema.fields().get(1)), is(nullValue()));
+    assertThat(result.get(orderSchema.fields().get(2)), is(nullValue()));
+    assertThat(result.get(orderSchema.fields().get(3)), is(nullValue()));
+    assertThat(result.get(orderSchema.fields().get(4)), is(Arrays.asList(0.0, null)));
+    assertThat(result.get(orderSchema.fields().get(5)), is(nullValue()));
   }
 
   @Test
@@ -177,12 +184,106 @@ public class KsqlJsonDeserializerTest {
         .getBytes(StandardCharsets.UTF_8);
 
     // When:
-    final GenericRow genericRow = deserializer.deserialize("", bytes);
+    final Struct result = deserializer.deserialize("", bytes);
 
     // Then:
-    final GenericRow expected = new GenericRow(Collections.singletonList(
-        "{\"CATEGORY\":{\"ID\":2,\"NAME\":\"Food\"},\"ITEMID\":6,\"NAME\":\"Item_6\"}"));
-    assertThat(genericRow, is(expected));
+    assertThat(result.schema(), is(schema));
+    assertThat(result.get("ITEMID"),
+        is("{\"CATEGORY\":{\"ID\":2,\"NAME\":\"Food\"},\"ITEMID\":6,\"NAME\":\"Item_6\"}"));
+  }
+
+  @Test
+  public void shouldThrowIfTopLevelNotStruct() {
+    // Then:
+    expectedException.expect(IllegalArgumentException.class);
+    expectedException.expectMessage("KSQL expects all top level schemas to be STRUCTs");
+
+    // When:
+    new KsqlJsonDeserializer(Schema.OPTIONAL_INT64_SCHEMA, recordLogger);
+  }
+
+  @Test
+  public void shouldDeserializedTopLevelPrimitiveTypeIfSchemaHasOnlySingleField() {
+    // Given:
+    final Schema schema = SchemaBuilder.struct()
+        .field("id", Schema.OPTIONAL_INT32_SCHEMA)
+        .build();
+
+    final KsqlJsonDeserializer deserializer = new KsqlJsonDeserializer(schema, recordLogger);
+
+    final byte[] bytes = "10".getBytes(StandardCharsets.UTF_8);
+
+    // When:
+    final Struct result = deserializer.deserialize("", bytes);
+
+    // Then:
+    assertThat(result.get("id"), is(10));
+  }
+
+  @Test
+  public void shouldThrowOnDeserializedTopLevelPrimitiveWhenSchemaHasMoreThanOneField() {
+    // Given:
+    final Schema schema = SchemaBuilder.struct()
+        .field("id", Schema.OPTIONAL_INT32_SCHEMA)
+        .field("id2", Schema.OPTIONAL_INT32_SCHEMA)
+        .build();
+
+    final KsqlJsonDeserializer deserializer = new KsqlJsonDeserializer(schema, recordLogger);
+
+    final byte[] bytes = "10".getBytes(StandardCharsets.UTF_8);
+
+    // Then:
+    expectedException.expect(SerializationException.class);
+    expectedException.expectCause(instanceOf(KsqlException.class));
+    expectedException.expectCause(hasMessage(is("Expected JSON object not JSON value or array")));
+
+    // When:
+    deserializer.deserialize("", bytes);
+  }
+
+  @Test
+  public void shouldDeserializeTopLevelArrayIfSchemaHasOnlySingleField() {
+    // Given:
+    final Schema schema = SchemaBuilder.struct()
+        .field("ids", SchemaBuilder
+            .array(Schema.OPTIONAL_INT32_SCHEMA)
+            .optional()
+            .build())
+        .build();
+
+    final KsqlJsonDeserializer deserializer = new KsqlJsonDeserializer(schema, recordLogger);
+
+    final byte[] bytes = "[1,2,3]".getBytes(StandardCharsets.UTF_8);
+
+    // When:
+    final Struct result = deserializer.deserialize("", bytes);
+
+    // Then:
+    assertThat(result.get("ids"), is(ImmutableList.of(1, 2, 3)));
+  }
+
+  @Test
+  public void shouldThrowOnDeserializedTopLevelArrayWhenSchemaHasMoreThanOneField() {
+    // Given:
+    final Schema schema = SchemaBuilder.struct()
+        .field("ids", SchemaBuilder
+            .array(Schema.OPTIONAL_INT32_SCHEMA)
+            .optional()
+            .build())
+        .field("id2", Schema.OPTIONAL_INT32_SCHEMA)
+        .build();
+
+    final KsqlJsonDeserializer deserializer = new KsqlJsonDeserializer(schema, recordLogger);
+
+    final byte[] bytes = "[1,2,3]".getBytes(StandardCharsets.UTF_8);
+
+    // Then:
+    expectedException.expect(SerializationException.class);
+    expectedException.expectCause(instanceOf(KsqlException.class));
+    expectedException.expectCause(hasMessage(is("Expected JSON object not JSON value or array")));
+
+    // When:
+    deserializer.deserialize("", bytes);
   }
 
   @Test

@@ -17,29 +17,29 @@ package io.confluent.ksql.serde;
 
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Objects;
 import java.util.function.Supplier;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.Struct;
 
 @Immutable
 public abstract class KsqlTopicSerDe {
 
-  private final Format serDe;
+  private final Format format;
 
-  protected KsqlTopicSerDe(final Format serDe) {
-    this.serDe = serDe;
+  protected KsqlTopicSerDe(final Format format) {
+    this.format = format;
   }
 
-  public Format getSerDe() {
-    return serDe;
+  public Format getFormat() {
+    return format;
   }
 
-  public abstract Serde<GenericRow> getGenericRowSerde(
-      Schema schemaMaybeWithSource,
+  public abstract Serde<Struct> getStructSerde(
+      Schema schema,
       KsqlConfig ksqlConfig,
       Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
       String loggerNamePrefix,
@@ -54,11 +54,11 @@ public abstract class KsqlTopicSerDe {
       return false;
     }
     final KsqlTopicSerDe that = (KsqlTopicSerDe) o;
-    return serDe == that.serDe;
+    return format == that.format;
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(serDe);
+    return Objects.hash(format);
   }
 }

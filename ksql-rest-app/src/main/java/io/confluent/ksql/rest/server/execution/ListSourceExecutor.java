@@ -116,7 +116,7 @@ public final class ListSourceExecutor {
           statement.getStatementText(),
           name,
           ksqlTopic.getKafkaTopicName(),
-          ksqlTopic.getKsqlTopicSerDe().getSerDe().toString(),
+          ksqlTopic.getKsqlTopicSerDe().getFormat().toString(),
           null
       ));
     }
@@ -171,7 +171,7 @@ public final class ListSourceExecutor {
     return new SourceDescription(
         dataSource,
         extended,
-        dataSource.getKsqlTopic().getKsqlTopicSerDe().getSerDe().name(),
+        dataSource.getKsqlTopic().getKsqlTopicSerDe().getFormat().name(),
         getQueries(ksqlEngine, q -> q.getSourceNames().contains(dataSource.getName())),
         getQueries(ksqlEngine, q -> q.getSinkNames().contains(dataSource.getName())),
         serviceContext.getTopicClient()

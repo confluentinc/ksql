@@ -48,6 +48,7 @@ import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.serde.GenericRowSerDe;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.streams.GroupedFactory;
@@ -192,7 +193,8 @@ public class SchemaKTableTest {
   }
 
   private Serde<GenericRow> getRowSerde(final KsqlTopic topic, final Schema schema) {
-    return topic.getKsqlTopicSerDe().getGenericRowSerde(
+    return GenericRowSerDe.from(
+        topic.getKsqlTopicSerDe(),
         schema,
         new KsqlConfig(Collections.emptyMap()),
         MockSchemaRegistryClient::new,
@@ -325,7 +327,8 @@ public class SchemaKTableTest {
         parentContext);
 
     final KsqlTopicSerDe ksqlTopicSerDe = new KsqlJsonTopicSerDe();
-    final Serde<GenericRow> rowSerde = ksqlTopicSerDe.getGenericRowSerde(
+    final Serde<GenericRow> rowSerde = GenericRowSerDe.from(
+        ksqlTopicSerDe,
         SchemaTestUtil.getSchemaWithNoAlias(initialSchemaKTable.getSchema().getSchema()),
         null,
         () -> null,
@@ -400,7 +403,8 @@ public class SchemaKTableTest {
         parentContext);
 
     final List<Expression> groupByExpressions = Arrays.asList(TEST_2_COL_2, TEST_2_COL_1);
-    final Serde<GenericRow> rowSerde = new KsqlJsonTopicSerDe().getGenericRowSerde(
+    final Serde<GenericRow> rowSerde = GenericRowSerDe.from(
+        new KsqlJsonTopicSerDe(),
         SchemaTestUtil.getSchemaWithNoAlias(initialSchemaKTable.getSchema().getSchema()),
         null,
         () -> null,
@@ -642,7 +646,8 @@ public class SchemaKTableTest {
         functionRegistry,
         parentContext);
 
-    rowSerde = new KsqlJsonTopicSerDe().getGenericRowSerde(
+    rowSerde = GenericRowSerDe.from(
+        new KsqlJsonTopicSerDe(),
         SchemaTestUtil.getSchemaWithNoAlias(initialSchemaKTable.getSchema().getSchema()),
         null,
         () -> null,

@@ -427,7 +427,7 @@ public class ClusterTerminatorTest {
       final KsqlTopicSerDe ksqlTopicSerDe = mock(KsqlTopicSerDe.class);
 
       when(dataSource.getKsqlTopicSerde()).thenReturn(ksqlTopicSerDe);
-      when(ksqlTopicSerDe.getSerDe()).thenReturn(Format.AVRO);
+      when(ksqlTopicSerDe.getFormat()).thenReturn(Format.AVRO);
 
       when(metaStore.getSourcesForKafkaTopic(topicName)).thenReturn(ImmutableList.of(dataSource));
     }

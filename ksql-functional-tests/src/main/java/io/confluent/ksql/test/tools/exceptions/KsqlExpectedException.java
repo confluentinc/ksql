@@ -51,6 +51,6 @@ public class KsqlExpectedException {
 
   @SuppressWarnings("unchecked")
   public Matcher<Throwable> build() {
-    return allOf(new ArrayList(matchers));
+    return allOf((List)new ArrayList<>(matchers));
   }
 }

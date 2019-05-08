@@ -352,8 +352,6 @@ public class InternalFunctionRegistryTest {
         "LCASE", "UCASE", "CONCAT", "TRIM", "IFNULL", "LEN",
         // Math UDF
         "ABS", "CEIL", "FLOOR", "ROUND", "RANDOM",
-        // Geo UDF
-        "GEO_DISTANCE",
         // JSON UDF
         "EXTRACTJSONFIELD", "ARRAYCONTAINS",
         // Struct UDF

@@ -23,7 +23,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Streams;
 import io.confluent.connect.avro.AvroData;
-import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.parser.DefaultKsqlParser;
@@ -32,7 +31,7 @@ import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.parser.tree.CreateSource;
-import io.confluent.ksql.parser.tree.Literal;
+import io.confluent.ksql.parser.tree.CreateSourceProperties;
 import io.confluent.ksql.schema.ksql.LogicalSchemas;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.test.serde.SerdeSupplier;
@@ -47,7 +46,6 @@ import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;
 import io.confluent.ksql.test.tools.exceptions.KsqlExpectedException;
 import io.confluent.ksql.test.tools.exceptions.MissingFieldException;
 import io.confluent.ksql.util.KsqlConstants;
-import io.confluent.ksql.util.StringUtil;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
@@ -151,6 +149,7 @@ public class TestCaseNode {
 
       final Map<String, Topic> topics = getTestCaseTopics(
           statements,
+          format,
           ee.isPresent(),
           functionRegistry);
 
@@ -193,8 +192,10 @@ public class TestCaseNode {
         .collect(Collectors.toList());
   }
 
+  @SuppressWarnings("rawtypes")
   private Map<String, Topic> getTestCaseTopics(
       final List<String> statements,
+      final String defaultFormat,
       final boolean expectsException,
       final FunctionRegistry functionRegistry
   ) {
@@ -202,7 +203,7 @@ public class TestCaseNode {
 
     // Add all topics from topic nodes to the map:
     topics.stream()
-        .map(TopicNode::build)
+        .map(node -> node.build(defaultFormat))
         .forEach(topic -> allTopics.put(topic.getName(), topic));
 
     // Infer topics if not added already:
@@ -232,7 +233,8 @@ public class TestCaseNode {
 
   private static Topic createTopicFromStatement(
       final FunctionRegistry functionRegistry,
-      final String sql) {
+      final String sql
+  ) {
     final KsqlParser parser = new DefaultKsqlParser();
     final MetaStoreImpl metaStore = new MetaStoreImpl(functionRegistry);
 
@@ -244,11 +246,9 @@ public class TestCaseNode {
       final CreateSource statement = (CreateSource) stmt
           .getStatement();
 
-      final Map<String, Literal> properties = statement.getProperties();
-      final String topicName
-          = StringUtil.cleanQuotes(properties.get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY).toString());
-      final Format format = Format.of(
-          StringUtil.cleanQuotes(properties.get(DdlConfig.VALUE_FORMAT_PROPERTY).toString()));
+      final CreateSourceProperties properties = statement.getProperties();
+      final String topicName = properties.getKafkaTopic();
+      final Format format = properties.getValueFormat();
 
       final Optional<org.apache.avro.Schema> avroSchema;
       if (format == Format.AVRO) {
@@ -286,6 +286,8 @@ public class TestCaseNode {
       return topics.isEmpty() ? null : topics.get(0);
     } catch (final Exception e) {
       // Statement won't parse: this will be detected/handled later.
+      System.out.println("Error parsing statement (which may be expected): " + sql);
+      e.printStackTrace(System.out);
       return null;
     }
   }
@@ -318,6 +320,7 @@ public class TestCaseNode {
     return builder.build();
   }
 
+  @SuppressWarnings("rawtypes")
   private static SerdeSupplier getSerdeSupplier(final Format format) {
     switch (format) {
       case AVRO:

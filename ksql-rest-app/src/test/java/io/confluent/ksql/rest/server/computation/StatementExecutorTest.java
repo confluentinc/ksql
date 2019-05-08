@@ -284,7 +284,7 @@ public class StatementExecutorTest extends EasyMockSupport {
 
     final Command csCommand = new Command("CREATE STREAM pageview "
         + "(viewtime bigint, pageid varchar, userid varchar) "
-        + "WITH (registered_topic = 'pageview_topic');",
+        + "WITH (kafka_topic='pageview_topic_json', value_format='json', registered_topic = 'pageview_topic');",
         emptyMap(),
         ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
     final CommandId csCommandId =  new CommandId(CommandId.Type.STREAM,

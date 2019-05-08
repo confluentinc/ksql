@@ -168,7 +168,7 @@ public class TestCase implements Test {
             ));
   }
 
-  @SuppressWarnings("unchecked")
+  @SuppressWarnings({"unchecked", "rawtypes"})
   public void verifyOutput(final TopologyTestDriverContainer topologyTestDriverContainer,
       final SchemaRegistryClient schemaRegistryClient) {
     if (isAnyExceptionExpected()) {

@@ -22,7 +22,9 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertThat;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.common.utils.IntegrationTest;
+import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.rest.client.KsqlRestClient;
@@ -31,11 +33,26 @@ import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
+import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.util.SchemaUtil;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import kafka.zookeeper.ZooKeeperClientException;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.Schema.Type;
+import org.apache.kafka.connect.data.SchemaBuilder;
+import org.glassfish.hk2.api.Factory;
+import org.glassfish.hk2.utilities.binding.AbstractBinder;
+import org.glassfish.jersey.process.internal.RequestScoped;
+import org.hamcrest.Description;
+import org.hamcrest.Matcher;
+import org.hamcrest.TypeSafeMatcher;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -56,6 +73,25 @@ public class KsqlResourceFunctionalTest {
 
   private static final TestKsqlRestApp REST_APP = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
+      .withServiceContextBinder(config -> new AbstractBinder() {
+        @Override
+        protected void configure() {
+          bindFactory(new Factory<ServiceContext>() {
+            @Override
+            public ServiceContext provide() {
+              return TEST_HARNESS.getServiceContext();
+            }
+
+            @Override
+            public void dispose(final ServiceContext serviceContext) {
+              // do nothing because TEST_HARNESS#getServiceContext always
+              // returns the same instance
+            }
+          })
+              .to(ServiceContext.class)
+              .in(RequestScoped.class);
+        }
+      })
       .build();
 
   @ClassRule
@@ -145,6 +181,76 @@ public class KsqlResourceFunctionalTest {
     ));
 
     assertSuccessful(results);
+  }
+
+  @Test
+  public void shouldInsertIntoValuesForAvroTopic() throws Exception {
+    // Given:
+    final Schema schema = new SchemaBuilder(Type.STRUCT)
+        .field("ROWTIME", Schema.OPTIONAL_INT64_SCHEMA)
+        .field("ROWKEY", Schema.OPTIONAL_STRING_SCHEMA)
+        .field("AUTHOR", Schema.OPTIONAL_STRING_SCHEMA)
+        .field("TITLE", Schema.OPTIONAL_STRING_SCHEMA)
+        .build();
+
+    TEST_HARNESS.ensureTopics("books");
+    TEST_HARNESS.getSchemaRegistryClient()
+        .register(
+            "books" + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX,
+            SchemaUtil.buildAvroSchema(schema, "books" + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX));
+
+    // When:
+    final List<KsqlEntity> results = makeKsqlRequest(""
+        + "CREATE STREAM books (author VARCHAR, title VARCHAR) "
+        + "WITH (kafka_topic='books', key='author', value_format='avro');"
+        + " "
+        + "INSERT INTO BOOKS (ROWTIME, author, title) VALUES (123, 'Metamorphosis', 'Franz Kafka');"
+    );
+
+    // Then:
+    assertSuccessful(results);
+
+    TEST_HARNESS.verifyAvailableRows(
+        "books",
+        contains(matches(
+            "Metamorphosis",
+            new GenericRow(ImmutableList.of(123L, "Metamorphosis", "Metamorphosis", "Franz Kafka")),
+            0,
+            0L,
+            123L)),
+        Format.AVRO,
+        KsqlSchema.of(schema));
+  }
+
+  @SuppressWarnings("SameParameterValue")
+  private static Matcher<ConsumerRecord<String, GenericRow>> matches(
+      final String key,
+      final GenericRow value,
+      final int partition,
+      final long offset,
+      final long timestamp
+  ) {
+    return new TypeSafeMatcher<ConsumerRecord<String, GenericRow>>() {
+      @Override
+      protected boolean matchesSafely(final ConsumerRecord<String, GenericRow> item) {
+        return item.key().equalsIgnoreCase(key)
+            && item.value().equals(value)
+            && item.offset() == offset
+            && item.partition() == partition
+            && item.timestamp() == timestamp;
+      }
+
+      @Override
+      public void describeTo(final Description description) {
+        description.appendText(
+            String.format("Expected key: %s value: %s partition: %d offset: %d timestamp: %d",
+                key,
+                value,
+                partition,
+                offset,
+                timestamp));
+      }
+    };
   }
 
   private static void assertSuccessful(final List<KsqlEntity> results) {

@@ -72,6 +72,7 @@ public class RequestValidatorTest {
       .struct()
       .field("val", Schema.OPTIONAL_STRING_SCHEMA)
       .build());
+  private static final String SOME_STREAM_SQL = "CREATE STREAM x WITH (value_format='json', kafka_topic='x');";
 
   @Rule
   public ExpectedException expectedException = ExpectedException.none();
@@ -129,7 +130,7 @@ public class RequestValidatorTest {
     );
 
     final List<ParsedStatement> statements =
-        givenParsed("CREATE STREAM x WITH (kafka_topic='x');");
+        givenParsed(SOME_STREAM_SQL);
 
     // When:
     validator.validate(serviceContext, statements, ImmutableMap.of(), "sql");
@@ -166,7 +167,7 @@ public class RequestValidatorTest {
         .when(statementValidator).validate(any(), any(), any());
 
     final List<ParsedStatement> statements =
-        givenParsed("CREATE STREAM x WITH (kafka_topic='x');");
+        givenParsed(SOME_STREAM_SQL);
 
     // Expect:
     expectedException.expect(KsqlException.class);
@@ -235,7 +236,7 @@ public class RequestValidatorTest {
     // Given:
     final Map<String, Object> props = ImmutableMap.of(
         KsqlConstants.LEGACY_RUN_SCRIPT_STATEMENTS_CONTENT,
-        "CREATE STREAM x WITH (kafka_topic='x');");
+        SOME_STREAM_SQL);
 
     givenRequestValidator(
         ImmutableMap.of(CreateStream.class, statementValidator)

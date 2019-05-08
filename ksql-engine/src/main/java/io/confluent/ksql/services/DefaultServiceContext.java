@@ -36,9 +36,16 @@ public class DefaultServiceContext implements ServiceContext {
   private final SchemaRegistryClient srClient;
 
   public static DefaultServiceContext create(final KsqlConfig ksqlConfig) {
-    final DefaultKafkaClientSupplier kafkaClientSupplier = new DefaultKafkaClientSupplier();
-    final AdminClient adminClient = kafkaClientSupplier
-        .getAdminClient(ksqlConfig.getKsqlAdminClientConfigProps());
+    return create(ksqlConfig, new DefaultKafkaClientSupplier());
+  }
+
+  public static DefaultServiceContext create(
+      final KsqlConfig ksqlConfig,
+      final KafkaClientSupplier kafkaClientSupplier
+  ) {
+    final AdminClient adminClient = kafkaClientSupplier.getAdminClient(
+        ksqlConfig.getKsqlAdminClientConfigProps()
+    );
 
     return new DefaultServiceContext(
         kafkaClientSupplier,

@@ -123,7 +123,7 @@ Each test case can have the following attributes:
 
 ### Formats
 A test case can optionally supply an array of formats to run the test case as.
-The current format will be injected into the statements of the test case as the `{FORMAT}` variable.
+The current format will be injected into the statements of the test case and any topics as the `{FORMAT}` variable.
 
 For example:
 ```json
@@ -132,6 +132,13 @@ For example:
   "format": ["AVRO", "JSON"],
   "statements": [
     "CREATE TABLE TEST (ID bigint) WITH (kafka_topic='test_topic', value_format='{FORMAT}');"
+  ],
+  "topics": [
+    {
+      "name": "bar",
+      "schema": {"type": "array", "items": {"type": "string"}},
+      "format": "{FORMAT}"
+    }
   ]
 }
 ```
@@ -148,6 +155,9 @@ take a modular approach to testing we can still verify that it all works correct
 verify the output of a select or aggregate is correct, then we can use simulated output to feed
 into a join or another aggregate.
 
+If the test case has set the `format` property, then any occurrences of the string `{FORMAT}` 
+within the statement text will be replaced with the appropriate format.
+
 ### Topics
 A test case can optionally supply an array of topics that should exist and additional information about those topics.
 It is not necessary to add entries for topics required by the test case unless any of the following attributes need to be controlled:
@@ -156,7 +166,7 @@ It is not necessary to add entries for topics required by the test case unless a
 | Attribute | Description |
 |-----------|:------------|
 | name      | (Required) the name of the topic |
-| format    | (Required) the serialization format of records within the topic, e.g. `AVRO` |
+| format    | (Required) the serialization format of records within the topic, e.g. `AVRO`, or `{FORMAT}` if using `format` property. |
 | schema    | (Optional) the schema, registered in the schema store, of the topic. If not supplied, no schema is registered |
 
 ### Inputs & Outputs

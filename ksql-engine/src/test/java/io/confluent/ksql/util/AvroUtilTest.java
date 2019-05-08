@@ -76,7 +76,7 @@ public class AvroUtilTest {
     when(persistentQuery.getResultSchema()).thenReturn(RESULT_SCHEMA);
     when(persistentQuery.getResultTopic()).thenReturn(RESULT_TOPIC);
     when(persistentQuery.getResultTopicSerde())
-        .thenReturn(RESULT_TOPIC.getKsqlTopicSerDe().getSerDe());
+        .thenReturn(RESULT_TOPIC.getKsqlTopicSerDe().getFormat());
   }
 
   @Test

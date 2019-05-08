@@ -40,7 +40,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 
 /**
  * Holds the mutable state and services of the engine.
@@ -54,7 +54,7 @@ final class EngineContext {
   private final QueryIdGenerator queryIdGenerator;
   private final ProcessingLogContext processingLogContext;
   private final KsqlParser parser = new DefaultKsqlParser();
-  private final Consumer<QueryMetadata> outerOnQueryCloseCallback;
+  private final BiConsumer<ServiceContext, QueryMetadata> outerOnQueryCloseCallback;
   private final Map<QueryId, PersistentQueryMetadata> persistentQueries;
 
   private EngineContext(
@@ -62,7 +62,7 @@ final class EngineContext {
       final ProcessingLogContext processingLogContext,
       final MutableMetaStore metaStore,
       final QueryIdGenerator queryIdGenerator,
-      final Consumer<QueryMetadata> onQueryCloseCallback
+      final BiConsumer<ServiceContext, QueryMetadata> onQueryCloseCallback
   ) {
     this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
     this.metaStore = Objects.requireNonNull(metaStore, "metaStore");
@@ -81,7 +81,7 @@ final class EngineContext {
       final ProcessingLogContext processingLogContext,
       final MutableMetaStore metaStore,
       final QueryIdGenerator queryIdGenerator,
-      final Consumer<QueryMetadata> onQueryCloseCallback
+      final BiConsumer<ServiceContext, QueryMetadata> onQueryCloseCallback
   ) {
     return new EngineContext(
         serviceContext,
@@ -97,7 +97,7 @@ final class EngineContext {
         processingLogContext,
         metaStore.copy(),
         queryIdGenerator.copy(),
-        query -> {
+        (serviceContext, query) -> {
           // No-op
         }
     );
@@ -198,6 +198,6 @@ final class EngineContext {
       metaStore.removePersistentQuery(persistentQuery.getQueryId().getId());
     }
 
-    outerOnQueryCloseCallback.accept(query);
+    outerOnQueryCloseCallback.accept(serviceContext, query);
   }
 }

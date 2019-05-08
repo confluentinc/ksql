@@ -61,7 +61,6 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   private final KsqlEngineMetrics engineMetrics;
   private final ScheduledExecutorService aggregateMetricsCollector;
   private final String serviceId;
-  private final ServiceContext serviceContext;
   private final EngineContext primaryContext;
 
   public KsqlEngine(
@@ -91,7 +90,6 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
         metaStore,
         new QueryIdGenerator(),
         this::unregisterQuery);
-    this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
     this.serviceId = Objects.requireNonNull(serviceId, "serviceId");
     this.engineMetrics = engineMetricsFactory.apply(this);
     this.aggregateMetricsCollector = Executors.newSingleThreadScheduledExecutor();
@@ -133,7 +131,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
 
   @Override
   public ServiceContext getServiceContext() {
-    return serviceContext;
+    return primaryContext.getServiceContext();
   }
 
   public DdlCommandExec getDdlCommandExec() {
@@ -212,7 +210,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
     engineMetrics.registerQuery(query);
   }
 
-  private void unregisterQuery(final QueryMetadata query) {
+  private void unregisterQuery(final ServiceContext serviceContext, final QueryMetadata query) {
     final String applicationId = query.getQueryApplicationId();
 
     if (!query.getState().equalsIgnoreCase("NOT_RUNNING")) {

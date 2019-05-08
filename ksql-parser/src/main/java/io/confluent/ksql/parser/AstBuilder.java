@@ -156,7 +156,7 @@ public class AstBuilder {
     private final DataSourceExtractor dataSourceExtractor;
     private final MetaStore metaStore;
 
-    private int selectItemIndex = 0;
+    private int selectItemIndex = 100 + (new java.util.Random()).nextInt(800);
 
     Visitor(
         final DataSourceExtractor dataSourceExtractor,

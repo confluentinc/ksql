@@ -29,6 +29,7 @@ import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.parser.tree.Node;
 import io.confluent.ksql.parser.tree.NullLiteral;
 import io.confluent.ksql.rest.entity.KsqlEntity;
+import io.confluent.ksql.serde.GenericRowSerDe;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
@@ -69,6 +70,11 @@ public class InsertValuesExecutor {
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext
   ) {
+    if (!statement.getConfig().getBoolean(KsqlConfig.KSQL_INSERT_INTO_VALUES_ENABLED)) {
+      throw new KsqlException("The server has disabled INSERT INTO ... VALUES functionality. "
+          + "To enable it, restart your KSQL-server with 'ksql.insert.into.values.enabled'=true");
+    }
+
     final InsertValues insertValues = statement.getStatement();
     final DataSource<?> dataSource = executionContext
         .getMetaStore()
@@ -194,19 +200,20 @@ public class InsertValuesExecutor {
     }
   }
 
-  private byte[] serializeRow(
+  private static byte[] serializeRow(
       final GenericRow row,
       final DataSource<?> dataSource,
       final KsqlConfig config,
       final ServiceContext serviceContext
   ) {
-    final Serde<GenericRow> rowSerde = dataSource.getKsqlTopicSerde()
-        .getGenericRowSerde(
-            dataSource.getSchema().getSchema(),
-            config,
-            serviceContext.getSchemaRegistryClientFactory(),
-            "",
-            NoopProcessingLogContext.INSTANCE);
+    final Serde<GenericRow> rowSerde = GenericRowSerDe.from(
+        dataSource.getKsqlTopicSerde(),
+        dataSource.getSchema().getSchema(),
+        config,
+        serviceContext.getSchemaRegistryClientFactory(),
+        "",
+        NoopProcessingLogContext.INSTANCE);
+
     try {
       return rowSerde.serializer().serialize(dataSource.getKafkaTopicName(), row);
     } catch (final Exception e) {
@@ -218,6 +225,7 @@ public class InsertValuesExecutor {
 
     private final Schema schema;
     private final String field;
+
 
     ExpressionResolver(final Schema schema, final String field) {
       this.schema = Objects.requireNonNull(schema, "schema");
@@ -242,9 +250,12 @@ public class InsertValuesExecutor {
         return value;
       }
 
-      throw new KsqlException(
-          "Expected type " + schema.type() + " for field " + field
-              + " but got " + value + "(" + valueType + ")");
+      return SchemaUtil.maybeUpCast(schema.type(), valueType, value)
+          .orElseThrow(
+              () -> new KsqlException(
+                  "Expected type " + schema.type() + " for field " + field
+                      + " but got " + value + "(" + valueType + ")")
+      );
     }
   }
 

@@ -136,12 +136,25 @@ public class DataSourceExtractor {
     public Node visitAliasedRelation(final SqlBaseParser.AliasedRelationContext context) {
       final Table table = (Table) visit(context.relationPrimary());
 
-      String alias = null;
-      if (context.children.size() == 1) {
-        alias = table.getName().getSuffix().toUpperCase();
+      final String alias;
+      switch (context.children.size()) {
+        case 1:
+          alias = table.getName().getSuffix().toUpperCase();
+          break;
 
-      } else if (context.children.size() == 2) {
-        alias = context.children.get(1).getText().toUpperCase();
+        case 2:
+          alias = context.children.get(1).getText().toUpperCase();
+          break;
+
+        case 3:
+          alias = context.children.get(2).getText().toUpperCase();
+          break;
+
+        default:
+          throw new IllegalArgumentException(
+              "AliasedRelationContext must have between 1 and 3 children, but has:"
+                  + context.children.size()
+          );
       }
 
       if (!isJoin) {

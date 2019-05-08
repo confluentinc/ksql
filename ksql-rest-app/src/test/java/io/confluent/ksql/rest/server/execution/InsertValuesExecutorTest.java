@@ -22,7 +22,6 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.function.TestFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStoreImpl;
@@ -37,12 +36,8 @@ import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.InsertValues;
 import io.confluent.ksql.parser.tree.IntegerLiteral;
 import io.confluent.ksql.parser.tree.LongLiteral;
-import io.confluent.ksql.parser.tree.NullLiteral;
-import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.StringLiteral;
-import io.confluent.ksql.parser.tree.Struct;
-import io.confluent.ksql.parser.tree.Type.SqlType;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.services.ServiceContext;
@@ -61,6 +56,7 @@ import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.KafkaClientSupplier;
 import org.junit.Before;
 import org.junit.Rule;
@@ -78,13 +74,6 @@ public class InsertValuesExecutorTest {
       .field("ROWKEY", Schema.OPTIONAL_INT64_SCHEMA)
       .field("COL0", Schema.OPTIONAL_INT64_SCHEMA)
       .field("COL1", Schema.OPTIONAL_STRING_SCHEMA)
-      .build());
-
-  private static final KsqlSchema STRICT_SCHEMA = KsqlSchema.of(SchemaBuilder.struct()
-      .field("ROWTIME", Schema.INT64_SCHEMA)
-      .field("ROWKEY", Schema.INT64_SCHEMA)
-      .field("COL0", Schema.OPTIONAL_INT64_SCHEMA)
-      .field("COL1", Schema.STRING_SCHEMA)
       .build());
 
   private static final KsqlSchema BIG_SCHEMA = KsqlSchema.of(SchemaBuilder.struct()
@@ -114,17 +103,18 @@ public class InsertValuesExecutorTest {
   @Mock
   private Serializer<String> keySerializer;
   @Mock
-  private Serde<GenericRow> rowSerDe;
+  private Serde<Struct> rowSerDe;
   @Mock
-  private Serializer<GenericRow> rowSerializer;
+  private Serializer<Struct> rowSerializer;
   @Mock
   private ServiceContext serviceContext;
   @Mock
   private KafkaProducer<byte[], byte[]> producer;
+  private Struct expectedRow;
 
   @Before
   public void setup() {
-    when(topicSerDe.getGenericRowSerde(any(), any(), any(), any(), any())).thenReturn(rowSerDe);
+    when(topicSerDe.getStructSerde(any(), any(), any(), any(), any())).thenReturn(rowSerDe);
 
     when(keySerDe.serializer()).thenReturn(keySerializer);
     when(rowSerDe.serializer()).thenReturn(rowSerializer);
@@ -138,6 +128,12 @@ public class InsertValuesExecutorTest {
     when(serviceContext.getKafkaClientSupplier()).thenReturn(kafkaClientSupplier);
 
     givenDataSourceWithSchema(SCHEMA);
+
+    expectedRow = new Struct(SCHEMA.getSchema())
+        .put("ROWTIME", 1L)
+        .put("ROWKEY", 2L)
+        .put("COL0", 2L)
+        .put("COL1", "str");
   }
 
   @Test
@@ -156,7 +152,7 @@ public class InsertValuesExecutorTest {
     new InsertValuesExecutor(() -> -1L).execute(statement, engine, serviceContext);
 
     // Then:
-    verify(rowSerializer).serialize(TOPIC_NAME, new GenericRow(1L, 2L, 2L, "str"));
+    verify(rowSerializer).serialize(TOPIC_NAME, expectedRow);
     verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
   }
 
@@ -175,7 +171,7 @@ public class InsertValuesExecutorTest {
     new InsertValuesExecutor(() -> 1L).execute(statement, engine, serviceContext);
 
     // Then:
-    verify(rowSerializer).serialize(TOPIC_NAME, new GenericRow(1L, 2L, 2L, "str"));
+    verify(rowSerializer).serialize(TOPIC_NAME, expectedRow);
     verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
   }
 
@@ -193,7 +189,7 @@ public class InsertValuesExecutorTest {
     new InsertValuesExecutor(() -> 1L).execute(statement, engine, serviceContext);
 
     // Then:
-    verify(rowSerializer).serialize(TOPIC_NAME, new GenericRow(1L, 2L, 2L, "str"));
+    verify(rowSerializer).serialize(TOPIC_NAME, expectedRow);
     verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
   }
 
@@ -212,7 +208,7 @@ public class InsertValuesExecutorTest {
     new InsertValuesExecutor(() -> 1L).execute(statement, engine, serviceContext);
 
     // Then:
-    verify(rowSerializer).serialize(TOPIC_NAME, new GenericRow(1L, 2L, 2L, "str"));
+    verify(rowSerializer).serialize(TOPIC_NAME, expectedRow);
     verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
   }
 
@@ -230,7 +226,7 @@ public class InsertValuesExecutorTest {
     new InsertValuesExecutor(() -> 1L).execute(statement, engine, serviceContext);
 
     // Then:
-    verify(rowSerializer).serialize(TOPIC_NAME, new GenericRow(1L, 2L, 2L, null));
+    verify(rowSerializer).serialize(TOPIC_NAME, expectedRow.put("COL1", null));
     verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
   }
 
@@ -248,7 +244,7 @@ public class InsertValuesExecutorTest {
     new InsertValuesExecutor(() -> 1L).execute(statement, engine, serviceContext);
 
     // Then:
-    verify(rowSerializer).serialize(TOPIC_NAME, new GenericRow(1L, 2L, 2L, "str"));
+    verify(rowSerializer).serialize(TOPIC_NAME, expectedRow);
     verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
   }
 
@@ -266,7 +262,7 @@ public class InsertValuesExecutorTest {
     new InsertValuesExecutor(() -> 1L).execute(statement, engine, serviceContext);
 
     // Then:
-    verify(rowSerializer).serialize(TOPIC_NAME, new GenericRow(1L, 2L, 2L, "str"));
+    verify(rowSerializer).serialize(TOPIC_NAME, expectedRow);
     verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
   }
 
@@ -284,7 +280,7 @@ public class InsertValuesExecutorTest {
     new InsertValuesExecutor(() -> 1L).execute(statement, engine, serviceContext);
 
     // Then:
-    verify(rowSerializer).serialize(TOPIC_NAME, new GenericRow(1L, 2L, 2L, "str"));
+    verify(rowSerializer).serialize(TOPIC_NAME, expectedRow);
     verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
   }
 
@@ -308,7 +304,39 @@ public class InsertValuesExecutorTest {
     new InsertValuesExecutor(() -> 1L).execute(statement, engine, serviceContext);
 
     // Then:
-    verify(rowSerializer).serialize(TOPIC_NAME, new GenericRow(1L, 2L, 0, 2L, 3.0, true, "str"));
+    verify(rowSerializer).serialize(TOPIC_NAME, new Struct(BIG_SCHEMA.getSchema())
+        .put("ROWTIME", 1L)
+        .put("ROWKEY", 2L)
+        .put("INT", 0)
+        .put("COL0", 2L)
+        .put("DOUBLE", 3.0)
+        .put("BOOLEAN", true)
+        .put("VARCHAR", "str")
+    );
+
+    verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
+  }
+
+  @Test
+  public void shouldAllowUpcast() {
+    // Given:
+    givenDataSourceWithSchema(SCHEMA);
+
+    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
+        ImmutableList.of("COL0"),
+        ImmutableList.of(
+            new IntegerLiteral(1)
+        )
+    );
+
+    // When:
+    new InsertValuesExecutor(() -> 1L).execute(statement, engine, serviceContext);
+
+    // Then:
+    verify(rowSerializer).serialize(TOPIC_NAME, expectedRow
+        .put("ROWKEY", 1L)
+        .put("COL0", 1L)
+        .put("COL1", null));
     verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
   }
 
@@ -390,81 +418,20 @@ public class InsertValuesExecutorTest {
   }
 
   @Test
-  public void shouldThrowIfNullForStrictSchema() {
+  public void shouldFailOnDowncast() {
     // Given:
-    givenDataSourceWithSchema(STRICT_SCHEMA);
+    givenDataSourceWithSchema(BIG_SCHEMA);
 
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
-        ImmutableList.of("ROWKEY"),
+        ImmutableList.of("INT"),
         ImmutableList.of(
-            new NullLiteral()
+            new DoubleLiteral("1.1")
         )
     );
 
     // Expect:
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Got null value for nonnull field: ");
-
-    // When:
-    new InsertValuesExecutor(() -> 1L).execute(statement, engine, serviceContext);
-  }
-
-  @Test
-  public void shouldThrowIfNullForStrictSchemaForNonExplicitFields() {
-    // Given:
-    givenDataSourceWithSchema(STRICT_SCHEMA);
-
-    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
-        ImmutableList.of("ROWKEY"),
-        ImmutableList.of(
-            new LongLiteral(123)
-        )
-    );
-
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Got null value for nonnull field: ");
-
-    // When:
-    new InsertValuesExecutor(() -> 1L).execute(statement, engine, serviceContext);
-  }
-
-  @Test
-  public void shouldThrowIfNonLiteral() {
-    // Given:
-    givenDataSourceWithSchema(STRICT_SCHEMA);
-
-    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
-        ImmutableList.of("ROWKEY"),
-        ImmutableList.of(
-            Struct.builder().addField("foo", PrimitiveType.of(SqlType.BIGINT)).build()
-        )
-    );
-
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "Only Literals are supported for INSERT INTO. Got: STRUCT<foo BIGINT> for field ROWKEY");
-
-    // When:
-    new InsertValuesExecutor(() -> 1L).execute(statement, engine, serviceContext);
-  }
-
-  @Test
-  public void shouldThrowIfIncompatibleTypes() {
-    // Given:
-    givenDataSourceWithSchema(STRICT_SCHEMA);
-
-    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
-        ImmutableList.of("ROWKEY"),
-        ImmutableList.of(
-            new StringLiteral("1.1")
-        )
-    );
-
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Expected type INT64 for field");
+    expectedException.expectMessage("Expected type INT32 for field");
 
     // When:
     new InsertValuesExecutor(() -> 1L).execute(statement, engine, serviceContext);

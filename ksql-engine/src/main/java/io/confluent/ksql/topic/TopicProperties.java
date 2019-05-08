@@ -187,7 +187,9 @@ public final class TopicProperties {
           .filter(Objects::nonNull)
           .findFirst()
           .orElseGet(() -> fromSource.get().partitions);
-      Objects.requireNonNull(partitions, "Was not supplied with any valid source for partitions!");
+      if (partitions == null) {
+        throw new KsqlException("Cannot determine partitions for creating topic " + name);
+      }
 
       final Short replicas = Stream.of(
           fromWithClause.replicas,

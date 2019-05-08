@@ -22,8 +22,8 @@ import io.confluent.connect.avro.AvroConverter;
 import io.confluent.connect.avro.AvroDataConfig;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.AbstractKafkaAvroSerDeConfig;
-import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
+import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.connect.KsqlConnectDeserializer;
@@ -40,6 +40,8 @@ import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.Schema.Type;
+import org.apache.kafka.connect.data.Struct;
 
 @Immutable
 public class KsqlAvroTopicSerDe extends KsqlTopicSerDe {
@@ -54,47 +56,29 @@ public class KsqlAvroTopicSerDe extends KsqlTopicSerDe {
     }
   }
 
-  private static AvroConverter getAvroConverter(
-      final SchemaRegistryClient schemaRegistryClient, final KsqlConfig ksqlConfig) {
-    final AvroConverter avroConverter = new AvroConverter(schemaRegistryClient);
-    final Map<String, Object> avroConfig =
-        ksqlConfig.originalsWithPrefix(KsqlConfig.KSQL_SCHEMA_REGISTRY_PREFIX);
-    avroConfig.put(AbstractKafkaAvroSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG,
-        ksqlConfig.getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY));
-    avroConfig.put(AvroDataConfig.CONNECT_META_DATA_CONFIG, false);
-    avroConverter.configure(avroConfig, false);
-    return avroConverter;
-  }
-
   @Override
-  public Serde<GenericRow> getGenericRowSerde(
+  public Serde<Struct> getStructSerde(
       final Schema schema,
       final KsqlConfig ksqlConfig,
       final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
       final String loggerNamePrefix,
       final ProcessingLogContext processingLogContext
   ) {
-    final Serializer<GenericRow> genericRowSerializer = new ThreadLocalSerializer(
-        () -> new KsqlConnectSerializer(
-            new AvroDataTranslator(
-                schema,
-                fullSchemaName,
-                ksqlConfig.getBoolean(KsqlConfig.KSQL_USE_NAMED_AVRO_MAPS)
-            ),
-            getAvroConverter(schemaRegistryClientFactory.get(), ksqlConfig))
+    final Serializer<Struct> genericRowSerializer = new ThreadLocalSerializer<>(
+        () -> createSerializer(
+            schema,
+            ksqlConfig,
+            schemaRegistryClientFactory
+        )
     );
 
-    final Deserializer<GenericRow> genericRowDeserializer = new ThreadLocalDeserializer(
-        () -> new KsqlConnectDeserializer(
-            getAvroConverter(schemaRegistryClientFactory.get(), ksqlConfig),
-            new AvroDataTranslator(
-                schema,
-                fullSchemaName,
-                ksqlConfig.getBoolean(KsqlConfig.KSQL_USE_NAMED_AVRO_MAPS)
-            ),
-            processingLogContext.getLoggerFactory().getLogger(
-                join(loggerNamePrefix, SerdeUtils.DESERIALIZER_LOGGER_NAME))
-        )
+    final Deserializer<Struct> genericRowDeserializer = new ThreadLocalDeserializer<>(
+        () -> createDeserializer(
+            schema,
+            ksqlConfig,
+            schemaRegistryClientFactory,
+            loggerNamePrefix,
+            processingLogContext)
     );
 
     return Serdes.serdeFrom(genericRowSerializer, genericRowDeserializer);
@@ -118,5 +102,67 @@ public class KsqlAvroTopicSerDe extends KsqlTopicSerDe {
   @Override
   public int hashCode() {
     return Objects.hash(super.hashCode(), fullSchemaName);
+  }
+
+  private KsqlConnectSerializer createSerializer(
+      final Schema schema,
+      final KsqlConfig ksqlConfig,
+      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
+  ) {
+    final AvroDataTranslator translator = createAvroTranslator(schema, ksqlConfig);
+
+    final AvroConverter avroConverter =
+        getAvroConverter(schemaRegistryClientFactory.get(), ksqlConfig);
+
+    return new KsqlConnectSerializer(translator.getConnectSchema(), translator, avroConverter);
+  }
+
+  private KsqlConnectDeserializer createDeserializer(
+      final Schema schema,
+      final KsqlConfig ksqlConfig,
+      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
+      final String loggerNamePrefix,
+      final ProcessingLogContext processingLogContext
+  ) {
+    if (schema.type() != Type.STRUCT) {
+      throw new IllegalArgumentException("KSQL expects all top level schemas to be STRUCTs");
+    }
+
+    final AvroDataTranslator translator = createAvroTranslator(schema, ksqlConfig);
+
+    final AvroConverter avroConverter =
+        getAvroConverter(schemaRegistryClientFactory.get(), ksqlConfig);
+
+    final ProcessingLogger logger = processingLogContext.getLoggerFactory().getLogger(
+        join(loggerNamePrefix, SerdeUtils.DESERIALIZER_LOGGER_NAME));
+
+    return new KsqlConnectDeserializer(avroConverter, translator, logger);
+  }
+
+  private AvroDataTranslator createAvroTranslator(
+      final Schema schema,
+      final KsqlConfig ksqlConfig
+  ) {
+    final boolean useNamedMaps = ksqlConfig.getBoolean(KsqlConfig.KSQL_USE_NAMED_AVRO_MAPS);
+
+    return new AvroDataTranslator(schema, fullSchemaName, useNamedMaps);
+  }
+
+  private static AvroConverter getAvroConverter(
+      final SchemaRegistryClient schemaRegistryClient,
+      final KsqlConfig ksqlConfig
+  ) {
+    final AvroConverter avroConverter = new AvroConverter(schemaRegistryClient);
+
+    final Map<String, Object> avroConfig = ksqlConfig
+        .originalsWithPrefix(KsqlConfig.KSQL_SCHEMA_REGISTRY_PREFIX);
+
+    avroConfig.put(AbstractKafkaAvroSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG,
+        ksqlConfig.getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY));
+
+    avroConfig.put(AvroDataConfig.CONNECT_META_DATA_CONFIG, false);
+
+    avroConverter.configure(avroConfig, false);
+    return avroConverter;
   }
 }

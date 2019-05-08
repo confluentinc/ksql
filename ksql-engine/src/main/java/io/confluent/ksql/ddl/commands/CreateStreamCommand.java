@@ -21,7 +21,7 @@ import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlException;
 
-public class CreateStreamCommand extends AbstractCreateStreamCommand {
+public class CreateStreamCommand extends CreateSourceCommand {
 
   public CreateStreamCommand(
       final String sqlExpression,

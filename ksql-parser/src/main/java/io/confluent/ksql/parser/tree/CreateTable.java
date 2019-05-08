@@ -23,7 +23,7 @@ import java.util.Map;
 import java.util.Optional;
 
 @Immutable
-public class CreateTable extends AbstractStreamCreateStatement implements ExecutableDdlStatement {
+public class CreateTable extends CreateSource implements ExecutableDdlStatement {
 
   public CreateTable(
       final QualifiedName name,
@@ -45,7 +45,7 @@ public class CreateTable extends AbstractStreamCreateStatement implements Execut
   }
 
   @Override
-  public AbstractStreamCreateStatement copyWith(
+  public CreateSource copyWith(
       final List<TableElement> elements,
       final Map<String, Literal> properties
   ) {

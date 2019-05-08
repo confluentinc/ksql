@@ -16,36 +16,44 @@
 package io.confluent.ksql.serde.json;
 
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.confluent.ksql.GenericRow;
+import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 public class KsqlJsonSerializerTest {
 
+  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
   private static final Schema ORDER_SCHEMA = SchemaBuilder.struct()
-      .field("ordertime".toUpperCase(), Schema.OPTIONAL_INT64_SCHEMA)
-      .field("orderid".toUpperCase(), Schema.OPTIONAL_INT64_SCHEMA)
-      .field("itemid".toUpperCase(), Schema.OPTIONAL_STRING_SCHEMA)
-      .field("orderunits".toUpperCase(), Schema.OPTIONAL_FLOAT64_SCHEMA)
-      .field("arraycol".toUpperCase(),
-          SchemaBuilder.array(Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build())
-      .field("mapcol".toUpperCase(), SchemaBuilder
-          .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build())
+      .field("ORDERTIME", Schema.OPTIONAL_INT64_SCHEMA)
+      .field("ORDERID", Schema.OPTIONAL_INT64_SCHEMA)
+      .field("ITEMID", Schema.OPTIONAL_STRING_SCHEMA)
+      .field("ORDERUNITS", Schema.OPTIONAL_FLOAT64_SCHEMA)
+      .field("ARRAYCOL", SchemaBuilder
+          .array(Schema.OPTIONAL_FLOAT64_SCHEMA)
+          .optional()
+          .build())
+      .field("MAPCOL", SchemaBuilder
+          .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_FLOAT64_SCHEMA)
+          .optional()
+          .build())
       .build();
 
   private static final Schema ADDRESS_SCHEMA = SchemaBuilder.struct()
@@ -79,6 +87,9 @@ public class KsqlJsonSerializerTest {
       .field("address", ADDRESS_SCHEMA)
       .build();
 
+  @Rule
+  public final ExpectedException expectedException = ExpectedException.none();
+
   private KsqlJsonSerializer serializer;
 
   @Before
@@ -89,17 +100,16 @@ public class KsqlJsonSerializerTest {
   @Test
   public void shouldSerializeRowCorrectly() {
     // Given:
-    final GenericRow genericRow = new GenericRow(Arrays.asList(
-        1511897796092L,
-        1L,
-        "item_1",
-        10.0,
-        Collections.singletonList(100.0),
-        Collections.singletonMap("key1", 100.0)
-    ));
+    final Struct struct = new Struct(ORDER_SCHEMA)
+        .put("ORDERTIME", 1511897796092L)
+        .put("ORDERID", 1L)
+        .put("ITEMID", "item_1")
+        .put("ORDERUNITS", 10.0)
+        .put("ARRAYCOL", Collections.singletonList(100.0))
+        .put("MAPCOL", Collections.singletonMap("key1", 100.0));
 
     // When:
-    final byte[] bytes = serializer.serialize("t1", genericRow);
+    final byte[] bytes = serializer.serialize("t1", struct);
 
     // Then:
     final String jsonString = new String(bytes, StandardCharsets.UTF_8);
@@ -117,17 +127,16 @@ public class KsqlJsonSerializerTest {
   @Test
   public void shouldSerializeRowWithNull() {
     // Given:
-    final GenericRow genericRow = new GenericRow(Arrays.asList(
-        1511897796092L,
-        1L,
-        "item_1",
-        10.0,
-        null,
-        null
-    ));
+    final Struct struct = new Struct(ORDER_SCHEMA)
+        .put("ORDERTIME", 1511897796092L)
+        .put("ORDERID", 1L)
+        .put("ITEMID", "item_1")
+        .put("ORDERUNITS", 10.0)
+        .put("ARRAYCOL", null)
+        .put("MAPCOL", null);
 
     // When:
-    final byte[] bytes = serializer.serialize("t1", genericRow);
+    final byte[] bytes = serializer.serialize("t1", struct);
 
     // Then:
     final String jsonString = new String(bytes, StandardCharsets.UTF_8);
@@ -145,27 +154,115 @@ public class KsqlJsonSerializerTest {
   @Test
   public void shouldHandleStruct() throws IOException {
     // Given:
-    final GenericRow genericRow = buildStructGenericRow();
+    final Struct struct = buildWithNestedStruct();
     serializer = new KsqlJsonSerializer(SCHEMA_WITH_STRUCT);
 
     // When:
-    final byte[] bytes = serializer.serialize("", genericRow);
+    final byte[] bytes = serializer.serialize("", struct);
 
     // Then:
-    final ObjectMapper objectMapper = new ObjectMapper();
-    final JsonNode jsonNode = objectMapper.readTree(bytes);
+    final JsonNode jsonNode = OBJECT_MAPPER.readTree(bytes);
     assertThat(jsonNode.size(), equalTo(7));
-    assertThat(jsonNode.get("ordertime").asLong(), equalTo(genericRow.getColumns().get(0)));
-    assertThat(jsonNode.get("itemid").get("NAME").asText(), equalTo("Item_10"));
+    assertThat(jsonNode.get("ordertime").asLong(), is(1234567L));
+    assertThat(jsonNode.get("itemid").get("NAME").asText(), is("Item_10"));
   }
 
-  private static GenericRow buildStructGenericRow() {
-    final List<Object> columns = new ArrayList<>();
-    // ordertime
-    columns.add(1234567L);
-    //orderid
-    columns.add(10L);
-    //itemid
+  @Test
+  public void shouldSerializedTopLevelPrimitiveIfValueHasOneField() {
+    // Given:
+    final Schema schema = SchemaBuilder.struct()
+        .field("id", Schema.OPTIONAL_INT64_SCHEMA)
+        .build();
+
+    final KsqlJsonSerializer serializer = new KsqlJsonSerializer(Schema.OPTIONAL_INT64_SCHEMA);
+
+    final Struct value = new Struct(schema)
+        .put("id", 10L);
+
+    // When:
+    final byte[] bytes = serializer.serialize("", value);
+
+    // Then:
+    assertThat(new String(bytes, StandardCharsets.UTF_8), is("10"));
+  }
+
+  @Test
+  public void shouldThrowOnSerializedTopLevelPrimitiveWhenSchemaHasMoreThanOneField() {
+    // Given:
+    final Schema schema = SchemaBuilder.struct()
+        .field("id", Schema.OPTIONAL_INT32_SCHEMA)
+        .field("id2", Schema.OPTIONAL_INT32_SCHEMA)
+        .build();
+
+    final Struct value = new Struct(schema)
+        .put("id", 10);
+
+    final KsqlJsonSerializer serializer = new KsqlJsonSerializer(Schema.OPTIONAL_INT64_SCHEMA);
+
+    // Then:
+    expectedException.expect(SerializationException.class);
+    expectedException.expectMessage("Expected to serialize JSON value or array not JSON object");
+
+    // When:
+    serializer.serialize("", value);
+  }
+
+  @Test
+  public void shouldSerializeTopLevelArrayIfValueHasOnlySingleField() {
+    // Given:
+    final Schema schema = SchemaBuilder.struct()
+        .field("ids", SchemaBuilder
+            .array(Schema.OPTIONAL_INT64_SCHEMA)
+            .optional()
+            .build())
+        .build();
+
+    final Struct value = new Struct(schema)
+        .put("ids", ImmutableList.of(1L, 2L, 3L));
+
+    final KsqlJsonSerializer serializer = new KsqlJsonSerializer(SchemaBuilder
+        .array(Schema.OPTIONAL_INT64_SCHEMA)
+        .build());
+
+    // When:
+    final byte[] bytes = serializer.serialize("", value);
+
+    // Then:
+    assertThat(new String(bytes, StandardCharsets.UTF_8), is("[1,2,3]"));
+  }
+
+  @Test
+  public void shouldThrowOnSerializedTopLevelArrayWhenSchemaHasMoreThanOneField() {
+    // Given:
+    final Schema schema = SchemaBuilder.struct()
+        .field("ids", SchemaBuilder
+            .array(Schema.OPTIONAL_INT32_SCHEMA)
+            .optional()
+            .build())
+        .field("id2", Schema.OPTIONAL_INT32_SCHEMA)
+        .build();
+
+    final Struct value = new Struct(schema)
+        .put("ids", ImmutableList.of(1, 2, 3));
+
+    final KsqlJsonSerializer serializer = new KsqlJsonSerializer(SchemaBuilder
+        .array(Schema.OPTIONAL_INT64_SCHEMA)
+        .build());
+
+    // Then:
+    expectedException.expect(SerializationException.class);
+    expectedException.expectMessage("Expected to serialize JSON value or array not JSON object");
+
+    // When:
+    serializer.serialize("", value);
+  }
+
+  private static Struct buildWithNestedStruct() {
+    final Struct topLevel = new Struct(SCHEMA_WITH_STRUCT);
+
+    topLevel.put("ordertime", 1234567L);
+    topLevel.put("orderid", 10L);
+
     final Struct category = new Struct(CATEGORY_SCHEMA);
     category.put("ID", Math.random() > 0.5 ? 1L : 2L);
     category.put("NAME", Math.random() > 0.5 ? "Produce" : "Food");
@@ -175,18 +272,15 @@ public class KsqlJsonSerializerTest {
     item.put("NAME", "Item_10");
     item.put("CATEGORIES", Collections.singletonList(category));
 
-    columns.add(item);
-
-    //units
-    columns.add(10);
-
-    columns.add(Arrays.asList(10.0, 20.0, 30.0, 40.0, 50.0));
+    topLevel.put("itemid", item);
+    topLevel.put("orderunits", 10);
+    topLevel.put("arraycol", Arrays.asList(10.0, 20.0, 30.0, 40.0, 50.0));
 
     final Map<String, Double> map = new HashMap<>();
     map.put("key1", 10.0);
     map.put("key2", 20.0);
     map.put("key3", 30.0);
-    columns.add(map);
+    topLevel.put("mapcol", map);
 
     final Struct address = new Struct(ADDRESS_SCHEMA);
     address.put("NUMBER", 101L);
@@ -195,8 +289,8 @@ public class KsqlJsonSerializerTest {
     address.put("STATE", "CA");
     address.put("ZIPCODE", 94301L);
 
-    columns.add(address);
+    topLevel.put("address", address);
 
-    return new GenericRow(columns);
+    return topLevel;
   }
 }

@@ -15,17 +15,15 @@
 
 package io.confluent.ksql.serde.tls;
 
-import io.confluent.ksql.GenericRow;
-
 import java.util.Map;
 import java.util.function.Supplier;
-
 import org.apache.kafka.common.serialization.Deserializer;
 
-public class ThreadLocalDeserializer implements Deserializer<GenericRow> {
-  private final ThreadLocalCloseable<Deserializer<GenericRow>> deserializer;
+public class ThreadLocalDeserializer<T> implements Deserializer<T> {
 
-  public ThreadLocalDeserializer(final Supplier<Deserializer<GenericRow>> initialValueSupplier) {
+  private final ThreadLocalCloseable<Deserializer<T>> deserializer;
+
+  public ThreadLocalDeserializer(final Supplier<Deserializer<T>> initialValueSupplier) {
     deserializer = new ThreadLocalCloseable<>(initialValueSupplier);
   }
 
@@ -35,7 +33,7 @@ public class ThreadLocalDeserializer implements Deserializer<GenericRow> {
   }
 
   @Override
-  public GenericRow deserialize(final String topicName, final byte[] record) {
+  public T deserialize(final String topicName, final byte[] record) {
     return deserializer.get().deserialize(topicName, record);
   }
 

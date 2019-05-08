@@ -45,7 +45,7 @@ public class KsqlTopicInfo {
     this(
         ksqlTopic.getKsqlTopicName(),
         ksqlTopic.getKafkaTopicName(),
-        ksqlTopic.getKsqlTopicSerDe().getSerDe()
+        ksqlTopic.getKsqlTopicSerDe().getFormat()
     );
   }
 

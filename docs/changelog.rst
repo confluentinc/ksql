@@ -19,11 +19,42 @@ KSQL 5.3.0 includes new features, including:
   This is required to avoid the potential for data loss should this step be dropped.
   See `Github issue #2636 <https://github.com/confluentinc/ksql/pull/2636>`_ for more info.
 
+* ``INSERT INTO ... VALUES`` is now supported, with standard SQL syntax to insert rows to existing
+  KSQL streams/tables. To disable this functionality, set ``ksql.insert.into.values.enabled`` to
+  ``false`` in the server properties.
+
+* ``CREATE STREAM`` and ``CREATE TABLE`` will now allow you to create the topic if it is missing.
+  To do this, specify the ``PARTITIONS`` and optionally ``REPLICAS`` in the ``WITH`` clause.
+
+* KSQL now supports deserializing records where the value is:
+
+  #. A primitive, e.g. a ``STRING``, ``INT``, ``DOUBLE`` etc, in Avro, Json and Delimited formats.
+  #. An array, for both Avro and Json formats.
+  #. A map, for Avro formats.
+
 
 KSQL 5.3.0 includes bug fixes, including:
 
 * The ``ROWTIME`` of the row generated when a ``JOIN`` encounters late data was previous the ``ROWTIME`` of the late event,
   where as now it is the max of ``ROWTIME`` of the rows involved in the join.  This provides more deterministic join semantics.
+
+* Return values of UDF and UDAFs are now correctly marked as optional, where previously there was
+  potential for non-optional fields, which would result in serialization issues in the presence
+  of ``null`` values.
+
+  This is a forward compatible change in Avro, i.e. after upgrading, KSQL will be able to
+  read old values using the new schema. However, it is important to ensure downstream
+  consumers of the data are using the updated schema before upgrading KSQL, as otherwise
+  deserialization may fail. The updated schema is best obtained from running the query in
+  another KSQL cluster, running version 5.3.
+
+  See `Github issue #2769 <https://github.com/confluentinc/ksql/pull/2769>`_ for more info.
+
+
+KSQL 5.3 includes bug fixes, including:
+
+* Fixed issues with using ``AS`` keyword when aliasing sources.
+  See `#2732 <https://github.com/confluentinc/ksql/issues/2732>`_ for more info.
 
 
 Version 5.2.0

@@ -17,6 +17,7 @@ package io.confluent.ksql.util;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.serde.GenericRowSerDe.GenericRowSerializer;
 import io.confluent.ksql.serde.json.KsqlJsonSerializer;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import java.util.HashMap;
@@ -30,6 +31,7 @@ import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
+import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 
 public class TopicProducer {
@@ -64,8 +66,12 @@ public class TopicProducer {
       final KsqlSchema schema
   ) throws InterruptedException, TimeoutException, ExecutionException {
 
+    final Serializer<GenericRow> serializer = new GenericRowSerializer(
+        new KsqlJsonSerializer(schema.getSchema()),
+        schema.getSchema());
+
     final KafkaProducer<String, GenericRow> producer =
-        new KafkaProducer<>(producerConfig, new StringSerializer(), new KsqlJsonSerializer(schema.getSchema()));
+        new KafkaProducer<>(producerConfig, new StringSerializer(), serializer);
 
     final Map<String, RecordMetadata> result = new HashMap<>();
     for (final Map.Entry<String, GenericRow> recordEntry : recordsToPublish.entrySet()) {

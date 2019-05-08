@@ -22,8 +22,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-public class GeoDistanceKudfTest {
-  private GeoDistanceKudf distanceUdf = new GeoDistanceKudf();
+public class GeoDistanceTest {
+  private GeoDistance distanceUdf = new GeoDistance();
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -73,14 +73,14 @@ public class GeoDistanceKudfTest {
   @Test
   public void shouldFailOutOfBoundsCoordinates() {
     expectedException.expect(KsqlFunctionException.class);
-    expectedException.expectMessage("valid latitude values for GeoDistance function");
+    expectedException.expectMessage("valid latitude values for GeoDistance function are");
     distanceUdf.geoDistance(90.1, -122.1663, -91.5257, -0.1122);
   }
 
   @Test
   public void shouldFailInvalidUnitOfMeasure() {
     expectedException.expect(KsqlFunctionException.class);
-    expectedException.expectMessage("GeoDistance function radius parameter must be one of");
-    distanceUdf.geoDistance(37.4439, -122.1663, 51.5257, -0.1122, "Widget");
+    expectedException.expectMessage("GeoDistance function units parameter must be one of");
+    distanceUdf.geoDistance(37.4439, -122.1663, 51.5257, -0.1122, "Parsecs");
   }
 }

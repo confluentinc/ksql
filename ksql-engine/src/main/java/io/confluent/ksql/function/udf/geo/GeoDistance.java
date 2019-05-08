@@ -34,7 +34,7 @@ import java.util.List;
 @UdfDescription(name = "geo_distance", author = "Confluent",
     description = "Compute the distance between two points on the surface of the earth,"
         + " according to the Haversine formula for \"great circle distance\".")
-public class GeoDistanceKudf {
+public class GeoDistance {
 
   // effective value of Earth radius (note we technically live on a slightly squashed sphere, not
   // a truly round one, so different authorities will quote slightly different values for the 'best'
@@ -55,17 +55,17 @@ public class GeoDistanceKudf {
   public Double geoDistance(
       @UdfParameter(description = "The latitude of the first point in decimal degrees.")
         final double lat1,
-      @UdfParameter(description = "The longitude of the second point in decimal degrees.")
+      @UdfParameter(description = "The longitude of the first point in decimal degrees.")
         final double lon1,
-      @UdfParameter(description = "The latitude of the first point in decimal degrees.")
+      @UdfParameter(description = "The latitude of the second point in decimal degrees.")
         final double lat2,
       @UdfParameter(description = "The longitude of the second point in decimal degrees.")
         final double lon2,
       @UdfParameter(description = "The units for the return value.")
-        final String radius) {
+        final String units) {
 
     validateLatLonValues(lat1, lon1, lat2, lon2);
-    final double chosenRadius = selectEarthRadiusToUse(radius);
+    final double chosenRadius = selectEarthRadiusToUse(units);
 
     final double deltaLat = Math.toRadians(lat2 - lat1);
     final double deltaLon = Math.toRadians(lon2 - lon1);
@@ -84,9 +84,9 @@ public class GeoDistanceKudf {
   public Double geoDistance(
       @UdfParameter(description = "The latitude of the first point in decimal degrees.")
       final double lat1,
-      @UdfParameter(description = "The longitude of the second point in decimal degrees.")
+      @UdfParameter(description = "The longitude of the first point in decimal degrees.")
       final double lon1,
-      @UdfParameter(description = "The latitude of the first point in decimal degrees.")
+      @UdfParameter(description = "The latitude of the second point in decimal degrees.")
       final double lat2,
       @UdfParameter(description = "The longitude of the second point in decimal degrees.")
       final double lon2) {
@@ -108,17 +108,17 @@ public class GeoDistanceKudf {
     }
   }
 
-  private double selectEarthRadiusToUse(final String radius) {
+  private double selectEarthRadiusToUse(final String units) {
     double chosenRadius = EARTH_RADIUS_KM;
-    if (radius != null && radius.trim().length() > 0) {
-      final String outputUnit = radius.toLowerCase();
+    if (units != null && units.trim().length() > 0) {
+      final String outputUnit = units.toLowerCase();
       if (VALID_RADIUS_NAMES_MILES.contains(outputUnit)) {
         chosenRadius = EARTH_RADIUS_MILES;
       } else if (VALID_RADIUS_NAMES_KMS.contains(outputUnit)) {
         chosenRadius = EARTH_RADIUS_KM;
       } else {
         throw new KsqlFunctionException(
-            "GeoDistance function radius parameter must be one of " + VALID_RADIUS_NAMES_MILES
+            "GeoDistance function units parameter must be one of " + VALID_RADIUS_NAMES_MILES
             + " or " + VALID_RADIUS_NAMES_KMS + ". Values are case-insensitive.");
       }
     }

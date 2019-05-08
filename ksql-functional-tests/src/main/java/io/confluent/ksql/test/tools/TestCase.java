@@ -30,6 +30,7 @@ import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.test.serde.SerdeSupplier;
 import io.confluent.ksql.test.serde.avro.AvroSerdeSupplier;
+import io.confluent.ksql.test.serde.json.ValueSpecJsonSerdeSupplier;
 import io.confluent.ksql.test.serde.string.StringSerdeSupplier;
 import io.confluent.ksql.test.tools.conditions.PostConditions;
 import io.confluent.ksql.test.tools.exceptions.KsqlExpectedException;
@@ -51,6 +52,7 @@ import java.util.stream.Collectors;
 import org.apache.avro.Schema;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.streams.test.ConsumerRecordFactory;
 import org.apache.kafka.streams.test.OutputVerifier;
@@ -338,7 +340,8 @@ public class TestCase implements Test {
         )
     );
     inputRecordsFromKafka.forEach(
-        record -> testDriver.getTopologyTestDriver().pipeInput(
+        record -> {
+          testDriver.getTopologyTestDriver().pipeInput(
             new ConsumerRecordFactory<>(
                 record.getTestRecord().keySerializer(),
                 record.getTestRecord().topic.getSerializer(schemaRegistryClient)
@@ -348,30 +351,30 @@ public class TestCase implements Test {
                 record.getTestRecord().value,
                 record.getTestRecord().timestamp
             )
-        )
-    );
+          );
 
-    testDriver.getSinkKsqlTopics().forEach(
-        ksqlTopic -> {
           try {
-            fakeKafkaService.writeSingleRecoredIntoTopic(
-                ksqlTopic.getKafkaTopicName(),
-                getFakeKafkaRecordFromProducerRecord(
-                    getTopic(
-                        kafkaTopicClient,
-                        ksqlTopic,
-                        schemaRegistryClient
-                    ),
-                    testDriver.getTopologyTestDriver().readOutput(
-                        ksqlTopic.getKafkaTopicName(),
-                        new StringDeserializer(),
-                        getSerdeSupplierForKsqlTopic(ksqlTopic)
-                            .getDeserializer(schemaRegistryClient))
-                )
+            final Topic sinkTopic = getTopic(
+                kafkaTopicClient,
+                testDriver.getSinkKsqlTopic(),
+                schemaRegistryClient);
+            final ProducerRecord producerRecord = testDriver.getTopologyTestDriver().readOutput(
+                testDriver.getSinkKsqlTopic().getKafkaTopicName(),
+                new StringDeserializer(),
+                sinkTopic.getDeserializer(schemaRegistryClient)
             );
-          } catch (final IOException e) {
-            e.printStackTrace();
-          } catch (final RestClientException e) {
+            if (producerRecord != null) {
+              fakeKafkaService.writeSingleRecoredIntoTopic(
+                  producerRecord.topic(),
+                  getFakeKafkaRecordFromProducerRecord(
+                      getTopic(
+                          kafkaTopicClient,
+                          testDriver.getSinkKsqlTopic(),
+                          schemaRegistryClient),
+                      producerRecord)
+              );
+            }
+          } catch (final IOException | RestClientException e) {
             e.printStackTrace();
           }
         }
@@ -381,7 +384,8 @@ public class TestCase implements Test {
   public void verifyOutputTopics(
       final FakeKafkaService fakeKafkaService,
       final SchemaRegistryClient schemaRegistryClient) {
-    final Map<String, List<Record>> expectedOutput = getExpectedRecordsMap();
+    final Map<String, List<FakeKafkaRecord>> expectedOutput = getExpectedRecordsMap(
+        schemaRegistryClient);
     final Map<String, List<FakeKafkaRecord>> outputRecordsFromKafka = new HashMap<>();
     expectedOutput.keySet().forEach(
         kafkaTopicName -> outputRecordsFromKafka.put(
@@ -389,18 +393,74 @@ public class TestCase implements Test {
             fakeKafkaService.readRecordsFromTopic(kafkaTopicName)
         )
     );
-    assertThat(expectedOutput.size(), equalTo(outputRecordsFromKafka.size()));
-    System.out.println();
+    expectedOutput.keySet().forEach(kafkaTopic -> validateTopicData(
+        expectedOutput.get(kafkaTopic),
+        outputRecordsFromKafka.get(kafkaTopic),
+        schemaRegistryClient
+    ));
   }
 
-  private Map<String, List<Record>> getExpectedRecordsMap() {
-    final Map<String, List<Record>> outputRecordsFromTest = new HashMap<>();
+  @SuppressWarnings("unchecked")
+  private static void validateTopicData(
+      final List<FakeKafkaRecord> expected,
+      final List<FakeKafkaRecord> actual,
+      final SchemaRegistryClient schemaRegistryClient) {
+    assertThat(expected.size(), equalTo(actual.size()));
+    for (int i = 0; i < expected.size(); i++) {
+      final ProducerRecord actualProducerRecord = actual.get(i).getProducerRecord();
+      final ProducerRecord expectedProducerRecord = expected.get(i).getProducerRecord();
+      final Object value;
+      if (expected.get(i).getTestRecord().topic.getSerdeSupplier() instanceof ValueSpecJsonSerdeSupplier) {
+        value = new String((byte[]) expectedProducerRecord.value());
+      } else {
+        final Deserializer deserializer = expected.get(i).getTestRecord().topic
+            .getDeserializer(schemaRegistryClient);
+        value = deserializer.deserialize("", (byte[]) expectedProducerRecord.value());
+      }
+
+      if (
+          !actualProducerRecord.timestamp().equals(expectedProducerRecord.timestamp())
+          || !actualProducerRecord.key().equals(expectedProducerRecord.key())
+          || !actualProducerRecord.value().equals(value)
+          ) {
+        AssertionError error = new AssertionError(
+            "Expected <" + expectedProducerRecord.key() + ", "
+                + expectedProducerRecord.value() + "> with timestamp="
+                + expectedProducerRecord.timestamp()
+                + " but was <" + actualProducerRecord.key() + ", "
+                + actualProducerRecord.value() + "> with timestamp="
+                + actualProducerRecord.timestamp());
+
+      }
+//      OutputVerifier.compareKeyValueTimestamp(
+//          actual.get(i).getProducerRecord(),
+//          expected.get(i).getProducerRecord().key(),
+//          expected.get(i).getTestRecord().topic.getDeserializer(schemaRegistryClient).deserialize(
+//              expected.get(i).getTestRecord().topic.getName(), expected.get(i).getProducerRecord().value()),
+//          expected.get(i).getProducerRecord().timestamp());
+    }
+  }
+
+  @SuppressWarnings("unchecked")
+  private Map<String, List<FakeKafkaRecord>> getExpectedRecordsMap(
+      final SchemaRegistryClient schemaRegistryClient) {
+    final Map<String, List<FakeKafkaRecord>> outputRecordsFromTest = new HashMap<>();
     outputRecords.forEach(
         record ->  {
           if (!outputRecordsFromTest.containsKey(record.topic.getName())) {
             outputRecordsFromTest.put(record.topic.getName(), new ArrayList<>());
           }
-          outputRecordsFromTest.get(record.topic.getName()).add(record);
+          outputRecordsFromTest.get(record.topic.getName()).add(
+              new FakeKafkaRecord(record, new ProducerRecord(
+                  record.topic.getName(),
+                  null,
+                  record.timestamp(),
+                  record.key(),
+                  record.topic.getSerializer(schemaRegistryClient).serialize(
+                      record.topic.getName(),
+                      record.value()
+                  )
+              )));
         }
     );
     return outputRecordsFromTest;

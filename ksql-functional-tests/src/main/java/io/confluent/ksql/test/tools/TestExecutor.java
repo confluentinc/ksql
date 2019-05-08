@@ -51,17 +51,13 @@ import org.apache.kafka.streams.TopologyTestDriver;
 
 final class TestExecutor {
 
-  private static final ServiceContext serviceContext = getServiceContext();
-  private static final KsqlEngine ksqlEngine = getKsqlEngine(serviceContext);
-  private static final Map<String, Object> config = getConfigs(new HashMap<>());
+  private final ServiceContext serviceContext = getServiceContext();
+  private final KsqlEngine ksqlEngine = getKsqlEngine(serviceContext);
+  private final Map<String, Object> config = getConfigs(new HashMap<>());
 
-  private static final FakeKafkaService fakeKafkaService = FakeKafkaService.create();
+  private final FakeKafkaService fakeKafkaService = FakeKafkaService.create();
 
-  private TestExecutor() {
-
-  }
-
-  static void buildAndExecuteQuery(final TestCase testCase) {
+  void buildAndExecuteQuery(final TestCase testCase) {
 
     final KsqlConfig currentConfigs = new KsqlConfig(config);
 
@@ -105,7 +101,7 @@ final class TestExecutor {
     }
   }
 
-  static void close() {
+  void close() {
     serviceContext.close();
     ksqlEngine.close();
   }
@@ -135,12 +131,9 @@ final class TestExecutor {
               .stream()
               .map(s -> ksqlEngine.getMetaStore().getSource(s).getKsqlTopic())
               .collect(Collectors.toSet()),
-          persistentQueryMetadata.getSinkNames()
-              .stream()
-              .map(s -> ksqlEngine.getMetaStore().getSource(s).getKsqlTopic())
-              .collect(Collectors.toSet())
+          ksqlEngine.getMetaStore().getSource(persistentQueryMetadata.getSinkNames()
+              .iterator().next()).getKsqlTopic()
       ));
-
     }
     return topologyTestDrivers;
   }

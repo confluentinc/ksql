@@ -23,22 +23,22 @@ public final class TopologyTestDriverContainer {
 
   private final TopologyTestDriver topologyTestDriver;
   private final Set<KsqlTopic> sourceKsqlTopics;
-  private final Set<KsqlTopic> sinkKsqlTopics;
+  private final KsqlTopic sinkKsqlTopic;
 
   private TopologyTestDriverContainer(
       final TopologyTestDriver topologyTestDriver,
       final Set<KsqlTopic> sourceKsqlTopics,
-      final Set<KsqlTopic> sinkKsqlTopics) {
+      final KsqlTopic sinkKsqlTopic) {
     this.topologyTestDriver = topologyTestDriver;
     this.sourceKsqlTopics = sourceKsqlTopics;
-    this.sinkKsqlTopics = sinkKsqlTopics;
+    this.sinkKsqlTopic = sinkKsqlTopic;
   }
 
   public static TopologyTestDriverContainer of(
       final TopologyTestDriver topologyTestDriver,
       final Set<KsqlTopic> sourceKsqlTopics,
-      final Set<KsqlTopic> sinkKsqlTopics) {
-    return new TopologyTestDriverContainer(topologyTestDriver, sourceKsqlTopics, sinkKsqlTopics);
+      final KsqlTopic sinkKsqlTopic) {
+    return new TopologyTestDriverContainer(topologyTestDriver, sourceKsqlTopics, sinkKsqlTopic);
   }
 
   TopologyTestDriver getTopologyTestDriver() {
@@ -49,7 +49,7 @@ public final class TopologyTestDriverContainer {
     return sourceKsqlTopics;
   }
 
-  public Set<KsqlTopic> getSinkKsqlTopics() {
-    return sinkKsqlTopics;
+  public KsqlTopic getSinkKsqlTopic() {
+    return sinkKsqlTopic;
   }
 }

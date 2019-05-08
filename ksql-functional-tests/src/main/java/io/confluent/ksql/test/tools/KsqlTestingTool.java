@@ -48,19 +48,29 @@ public final class KsqlTestingTool {
       final QttTestFile qttTestFile = OBJECT_MAPPER.readValue(
           new File(testOptions.getTestFile()), QttTestFile.class);
 
-      final TestCaseNode testCaseNode = qttTestFile.tests.get(0);
-
-      final List<TestCase> testCases = testCaseNode.buildTests(
-          new File(testOptions.getTestFile()).toPath(),
-          TestFunctionRegistry.INSTANCE.get());
-      TestExecutor.buildAndExecuteQuery(testCases.get(0));
+      for (final TestCaseNode testCaseNode: qttTestFile.tests) {
+        final List<TestCase> testCases = testCaseNode.buildTests(
+            new File(testOptions.getTestFile()).toPath(),
+            TestFunctionRegistry.INSTANCE.get());
+        for (final TestCase testCase: testCases) {
+          final TestExecutor testExecutor = new TestExecutor();
+          try {
+            System.out.println(" >>> Running test: " + testCase.getName());
+            testExecutor.buildAndExecuteQuery(testCase);
+            System.out.println(" >>> Test " + testCase.getName() + " passed!");
+          } catch (final Exception e) {
+            e.printStackTrace();
+            System.err.println("\t>>>>> Test " + testCase.getName() + " failed: " + e.getMessage());
+          } finally {
+            testExecutor.close();
+          }
+        }
+      }
 
       System.out.println("All tests passed!");
 
     } catch (final Exception e) {
       System.err.println("Failed to start KSQL testing tool: " + e.getMessage());
-    } finally {
-      TestExecutor.close();
     }
   }
 }

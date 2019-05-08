@@ -114,7 +114,7 @@ public class TestCaseTest {
     final TopologyTestDriverContainer topologyTestDriverContainer = TopologyTestDriverContainer.of(
         topologyTestDriver,
         ImmutableSet.of(new KsqlTopic("FOO", "foo_kafka_different_input", new KsqlJsonTopicSerDe(), false)),
-        ImmutableSet.of(new KsqlTopic("BAR", "bar_kafka", new KsqlJsonTopicSerDe(), false))
+        new KsqlTopic("BAR", "bar_kafka", new KsqlJsonTopicSerDe(), false)
     );
 
 
@@ -230,7 +230,7 @@ public class TestCaseTest {
     return TopologyTestDriverContainer.of(
         topologyTestDriver,
         ImmutableSet.of(new KsqlTopic("FOO", "foo_kafka", new KsqlJsonTopicSerDe(), false)),
-        ImmutableSet.of(new KsqlTopic("BAR", "bar_kafka", new KsqlJsonTopicSerDe(), false))
+        new KsqlTopic("BAR", "bar_kafka", new KsqlJsonTopicSerDe(), false)
     );
   }
 

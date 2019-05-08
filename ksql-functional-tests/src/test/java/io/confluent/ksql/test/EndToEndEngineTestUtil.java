@@ -178,10 +178,8 @@ final class EndToEndEngineTestUtil {
             .stream()
             .map(s -> ksqlEngine.getMetaStore().getSource(s).getKsqlTopic())
             .collect(Collectors.toSet()),
-        persistentQueryMetadata.getSinkNames()
-            .stream()
-            .map(s -> ksqlEngine.getMetaStore().getSource(s).getKsqlTopic())
-            .collect(Collectors.toSet())
+        ksqlEngine.getMetaStore().getSource(persistentQueryMetadata.getSinkNames()
+            .iterator().next()).getKsqlTopic()
     );
   }
 

@@ -92,8 +92,8 @@ public class KsqlJsonDeserializer implements Deserializer<Struct> {
   }
 
   @SuppressWarnings("unchecked")
-  private Struct deserialize(final byte[] rowJsonBytes) {
-    final SchemaAndValue schemaAndValue = jsonConverter.toConnectData("topic", rowJsonBytes);
+  private Struct deserialize(final byte[] bytes) {
+    final SchemaAndValue schemaAndValue = jsonConverter.toConnectData("topic", bytes);
     final Object value = schemaAndValue.value();
     if (value == null) {
       return null;

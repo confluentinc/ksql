@@ -101,6 +101,23 @@ public interface KsqlExecutionContext {
   ExecuteResult execute(ConfiguredStatement<?> statement);
 
   /**
+   * Execute the supplied statement, updating the meta store and registering any query.
+   *
+   * <p>The statement must be executable. See {@link KsqlEngine#isExecutableStatement}.
+   *
+   * <p>If the statement contains a query, then it will be tracked, but not started.
+   *
+   * <p>The statement is executed on the context of the passed ServiceContext to make sure
+   * the caller has permissions rights on the data sources.
+   *
+   * @param serviceContext The ServiceContext of the user executing the statement.
+   * @param statement The SQL to execute.
+   * @return The execution result.
+   */
+  ExecuteResult execute(ServiceContext serviceContext, ConfiguredStatement<?> statement);
+
+
+  /**
    * Holds the union of possible results from an {@link #execute} call.
    *
    * <p>Only one field will be populated.

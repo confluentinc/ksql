@@ -317,7 +317,8 @@ public class StreamedQueryResourceTest {
             Collections.emptyMap(),
             queryCloseCallback);
     reset(mockOutputNode);
-    expect(mockKsqlEngine.execute(ConfiguredStatement.of(statement, requestStreamsProperties, ksqlConfig)))
+    expect(mockKsqlEngine.execute(serviceContext,
+        ConfiguredStatement.of(statement, requestStreamsProperties, ksqlConfig)))
         .andReturn(ExecuteResult.of(queuedQueryMetadata));
 
     expect(mockKsqlEngine.isAcceptingStatements()).andReturn(true);

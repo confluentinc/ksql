@@ -131,7 +131,11 @@ public class StreamedQueryResource {
   ) throws Exception {
     try {
       if (statement.getStatement() instanceof Query) {
-        return handleQuery((PreparedStatement<Query>) statement, request.getStreamsProperties());
+        return handleQuery(
+            serviceContext,
+            (PreparedStatement<Query>) statement,
+            request.getStreamsProperties()
+        );
       }
 
       if (statement.getStatement() instanceof PrintTopic) {
@@ -150,12 +154,13 @@ public class StreamedQueryResource {
   }
 
   private Response handleQuery(
+      final ServiceContext serviceContext,
       final PreparedStatement<Query> statement,
       final Map<String, Object> streamsProperties
   ) throws Exception {
     final ConfiguredStatement<Query> configured =
         ConfiguredStatement.of(statement, streamsProperties, ksqlConfig);
-    final QueryMetadata query = ksqlEngine.execute(configured)
+    final QueryMetadata query = ksqlEngine.execute(serviceContext, configured)
         .getQuery()
         .get();
 

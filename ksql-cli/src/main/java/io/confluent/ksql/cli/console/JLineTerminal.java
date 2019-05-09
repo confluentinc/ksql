@@ -66,6 +66,16 @@ class JLineTerminal implements KsqlTerminal {
     this.statusFactory = Objects.requireNonNull(statusFactory, "statusFactory");
   }
 
+  JLineTerminal(
+      final Terminal terminal,
+      final JLineReader lineReader,
+      final Function<Terminal, Status> statusFactory
+  ) {
+    this.terminal = terminal;
+    this.lineReader = lineReader;
+    this.statusFactory = Objects.requireNonNull(statusFactory, "statusFactory");
+  }
+
   @Override
   public PrintWriter writer() {
     return spool.map(Spool::getMultiplexed).orElse(terminal.writer());

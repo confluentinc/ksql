@@ -1305,7 +1305,7 @@ _____
 
 .. code:: sql
 
-    SPOOL [file_name|OFF]
+    SPOOL <file_name|OFF>
 
 **Description**
 

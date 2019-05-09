@@ -24,10 +24,9 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.cli.console.KsqlTerminal.StatusClosable;
 import io.confluent.ksql.util.KsqlException;
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
+import java.io.PrintWriter;
 import java.io.Writer;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -101,6 +100,24 @@ public class JLineTerminalTest {
 
     // Then:
     verify(spool).write(new char[]{'a'}, 0, 1);
+  }
+
+  @Test
+  public void shouldWriteToSpoolOnRead() throws IOException {
+    // Given:
+    final Writer spool = mock(Writer.class);
+    final Terminal mockTerminal = mock(Terminal.class);
+    when(mockTerminal.writer()).thenReturn(mock(PrintWriter.class));
+    final JLineReader mockReader = mock(JLineReader.class);
+    when(mockReader.readLine()).thenReturn("line");
+
+    // When:
+    final JLineTerminal terminal = new JLineTerminal(mockTerminal, mockReader, foo -> null);
+    terminal.setSpool(spool);
+    terminal.readLine();
+
+    // Then:
+    verify(spool).write("\nksql> line\n", 0, 12);
   }
 
   @Test

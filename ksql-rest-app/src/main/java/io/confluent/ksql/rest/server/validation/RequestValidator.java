@@ -140,7 +140,7 @@ public class RequestValidator {
     if (customValidator != null) {
       customValidator.validate(configured, executionContext, serviceContext);
     } else if (KsqlEngine.isExecutableStatement(configured.getStatement())) {
-      executionContext.execute(injector.inject(configured));
+      executionContext.execute(serviceContext, injector.inject(configured));
     } else {
       throw new KsqlStatementException(
           "Do not know how to validate statement of type: " + statementClass

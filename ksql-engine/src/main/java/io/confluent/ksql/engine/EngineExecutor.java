@@ -85,6 +85,7 @@ final class EngineExecutor {
           statement.withConfig(ksqlConfig.cloneWithPropertyOverwrite(overriddenProperties))
       );
 
+      // DDL statement permissions are verified during the RequestHandler execution
       if (!logicalPlan.getNode().isPresent()) {
         final String msg = engineContext.executeDdlStatement(
             statement.getStatementText(),
@@ -94,6 +95,10 @@ final class EngineExecutor {
 
         return ExecuteResult.of(msg);
       }
+
+      // Check if the ServiceContext has permissions to access the query data sources
+      TopicAccessValidator.as(serviceContext)
+          .verifyQuerySourcesPermissions(logicalPlan.getNode().get());
 
       final QueryMetadata query = queryEngine.buildPhysicalPlan(
           logicalPlan,

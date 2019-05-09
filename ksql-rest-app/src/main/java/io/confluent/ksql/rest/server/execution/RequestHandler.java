@@ -17,6 +17,7 @@ package io.confluent.ksql.rest.server.execution;
 
 import com.google.common.collect.Iterables;
 import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.engine.TopicAccessValidator;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.RunScript;
@@ -107,6 +108,10 @@ public class RequestHandler {
 
     final StatementExecutor<T> executor = (StatementExecutor<T>)
         customExecutors.getOrDefault(statementClass, distributor);
+
+    // Check if the ServiceContext has permissions to access Kafka resources
+    TopicAccessValidator.as(serviceContext).verifyStatementPermissions(configured.getStatement());
+
     return executor.execute(
         configured,
         ksqlEngine,

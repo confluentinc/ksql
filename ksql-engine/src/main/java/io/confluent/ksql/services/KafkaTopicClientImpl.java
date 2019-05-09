@@ -38,6 +38,7 @@ import org.apache.kafka.clients.admin.AlterConfigOp;
 import org.apache.kafka.clients.admin.Config;
 import org.apache.kafka.clients.admin.ConfigEntry;
 import org.apache.kafka.clients.admin.DeleteTopicsResult;
+import org.apache.kafka.clients.admin.DescribeTopicsOptions;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.KafkaFuture;
@@ -165,7 +166,10 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   public Map<String, TopicDescription> describeTopics(final Collection<String> topicNames) {
     try {
       return ExecutorUtil.executeWithRetries(
-          () -> adminClient.describeTopics(topicNames).all().get(),
+          () -> adminClient.describeTopics(
+              topicNames,
+              new DescribeTopicsOptions().includeAuthorizedOperations(true)
+          ).all().get(),
           ExecutorUtil.RetryBehaviour.ON_RETRYABLE);
     } catch (final ExecutionException e) {
       throw new KafkaResponseGetFailedException(

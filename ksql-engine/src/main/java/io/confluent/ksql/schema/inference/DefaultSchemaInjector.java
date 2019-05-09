@@ -15,25 +15,19 @@
 
 package io.confluent.ksql.schema.inference;
 
-import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.SqlFormatter;
 import io.confluent.ksql.parser.tree.CreateSource;
-import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.parser.tree.Literal;
+import io.confluent.ksql.parser.tree.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.Statement;
-import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.schema.inference.TopicSchemaSupplier.SchemaAndId;
 import io.confluent.ksql.schema.inference.TopicSchemaSupplier.SchemaResult;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
-import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlStatementException;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import org.apache.kafka.connect.data.Schema;
@@ -77,7 +71,8 @@ public class DefaultSchemaInjector implements Injector {
   private Optional<ConfiguredStatement<CreateSource>> forCreateStatement(
       final ConfiguredStatement<CreateSource> statement
   ) {
-    if (hasElements(statement) || isUnsupportedFormat(statement)) {
+    if (hasElements(statement)
+        || statement.getStatement().getProperties().getValueFormat() != Format.AVRO) {
       return Optional.empty();
     }
 
@@ -92,9 +87,9 @@ public class DefaultSchemaInjector implements Injector {
   private SchemaAndId getValueSchema(
       final ConfiguredStatement<CreateSource> statement
   ) {
-    final String topicName = getKafkaTopicName(statement);
+    final String topicName = statement.getStatement().getProperties().getKafkaTopic();
 
-    final SchemaResult result = getSchemaId(statement)
+    final SchemaResult result = statement.getStatement().getProperties().getAvroSchemaId()
         .map(id -> schemaSupplier.getValueSchema(topicName, Optional.of(id)))
         .orElseGet(() -> schemaSupplier.getValueSchema(topicName, Optional.empty()));
 
@@ -115,67 +110,6 @@ public class DefaultSchemaInjector implements Injector {
     return !statement.getStatement().getElements().isEmpty();
   }
 
-  private static boolean isUnsupportedFormat(
-      final ConfiguredStatement<CreateSource> statement
-  ) {
-    final String valueFormat =
-        getRequiredProperty(statement, DdlConfig.VALUE_FORMAT_PROPERTY);
-
-    return !valueFormat.equalsIgnoreCase(Format.AVRO.toString());
-  }
-
-  private static String getKafkaTopicName(
-      final ConfiguredStatement<CreateSource> statement
-  ) {
-    return getRequiredProperty(statement, DdlConfig.KAFKA_TOPIC_NAME_PROPERTY);
-  }
-
-  private static Optional<Integer> getSchemaId(
-      final ConfiguredStatement<CreateSource> statement
-  ) {
-    try {
-      return getOptionalProperty(statement, KsqlConstants.AVRO_SCHEMA_ID)
-          .map(Integer::parseInt);
-    } catch (final NumberFormatException e) {
-      throw new KsqlStatementException(
-          KsqlConstants.AVRO_SCHEMA_ID + " should be numeric",
-          statement.getStatementText(),
-          e);
-    }
-  }
-
-  private static String getRequiredProperty(
-      final ConfiguredStatement<CreateSource> statement,
-      final String property
-  ) {
-    return getOptionalProperty(statement, property)
-        .orElseThrow(() -> new KsqlStatementException(
-            property + " should be set in WITH clause of CREATE STREAM/TABLE statement.",
-            statement.getStatementText()));
-  }
-
-  private static Optional<String> getOptionalProperty(
-      final ConfiguredStatement<CreateSource> statement,
-      final String property
-  ) {
-    final Expression valueFormat = statement
-        .getStatement()
-        .getProperties()
-        .get(property);
-
-    if (valueFormat == null) {
-      return Optional.empty();
-    }
-
-    if (!(valueFormat instanceof Literal)) {
-      throw new KsqlStatementException(
-          property + " should be set to a literal value in WITH clause.",
-          statement.getStatementText());
-    }
-
-    return Optional.of(String.valueOf(((Literal) valueFormat).getValue()));
-  }
-
   private static CreateSource addSchemaFields(
       final ConfiguredStatement<CreateSource> preparedStatement,
       final SchemaAndId schema
@@ -183,11 +117,12 @@ public class DefaultSchemaInjector implements Injector {
     final List<TableElement> elements = buildElements(schema.schema, preparedStatement);
 
     final CreateSource statement = preparedStatement.getStatement();
-    final Map<String, Literal> properties = new HashMap<>(statement.getProperties());
-    properties
-        .putIfAbsent(KsqlConstants.AVRO_SCHEMA_ID, new StringLiteral(String.valueOf(schema.id)));
+    final CreateSourceProperties properties = statement.getProperties();
 
-    return statement.copyWith(elements, properties);
+    if (properties.getAvroSchemaId().isPresent()) {
+      return statement.copyWith(elements, properties);
+    }
+    return statement.copyWith(elements, properties.withSchemaId(schema.id));
   }
 
   private static List<TableElement> buildElements(

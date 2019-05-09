@@ -781,10 +781,9 @@ public class KsqlEngineTest {
     );
 
     for (final ParsedStatement statement : parsed) {
-      final PreparedStatement<?> prepared = ksqlEngine.prepare(statement);
 
       try {
-        ksqlEngine.execute(ConfiguredStatement.of(prepared, new HashMap<>(), KSQL_CONFIG));
+        ksqlEngine.prepare(statement);
         Assert.fail();
       } catch (final KsqlStatementException e) {
         assertThat(e.getMessage(), containsString(
@@ -804,11 +803,10 @@ public class KsqlEngineTest {
     );
 
     for (final ParsedStatement statement : parsed) {
-      final PreparedStatement<?> prepared = ksqlEngine.prepare(statement);
 
       try {
         // When:
-        ksqlEngine.execute(ConfiguredStatement.of(prepared, new HashMap<>(), KSQL_CONFIG));
+        ksqlEngine.prepare(statement);
 
         // Then:
         Assert.fail();

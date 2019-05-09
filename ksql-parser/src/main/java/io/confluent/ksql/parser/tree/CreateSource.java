@@ -18,10 +18,8 @@ package io.confluent.ksql.parser.tree;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.Immutable;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -31,23 +29,23 @@ public abstract class CreateSource extends Statement {
   private final QualifiedName name;
   private final ImmutableList<TableElement> elements;
   private final boolean notExists;
-  private final ImmutableMap<String, Literal> properties;
+  private final CreateSourceProperties properties;
 
   CreateSource(
       final Optional<NodeLocation> location,
       final QualifiedName name,
       final List<TableElement> elements,
       final boolean notExists,
-      final Map<String, Literal> properties
+      final CreateSourceProperties properties
   ) {
     super(location);
     this.name = requireNonNull(name, "name");
     this.elements = ImmutableList.copyOf(requireNonNull(elements, "elements"));
     this.notExists = notExists;
-    this.properties = ImmutableMap.copyOf(requireNonNull(properties, "properties"));
+    this.properties = requireNonNull(properties, "properties");
   }
 
-  public Map<String, Literal> getProperties() {
+  public CreateSourceProperties getProperties() {
     return properties;
   }
 
@@ -65,7 +63,7 @@ public abstract class CreateSource extends Statement {
 
   public abstract CreateSource copyWith(
       List<TableElement> elements,
-      Map<String, Literal> properties);
+      CreateSourceProperties properties);
 
   @Override
   public int hashCode() {
@@ -86,4 +84,5 @@ public abstract class CreateSource extends Statement {
         && Objects.equals(elements, that.elements)
         && Objects.equals(properties, that.properties);
   }
+
 }

@@ -39,6 +39,7 @@ import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.parser.tree.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.Type.SqlType;
@@ -67,10 +68,11 @@ public class DefaultSchemaInjectorTest {
 
   private static final List<TableElement> SOME_ELEMENTS = ImmutableList.of(
       new TableElement("bob", PrimitiveType.of(SqlType.STRING)));
-  private static final Map<String, Literal> UNSUPPORTED_PROPS = ImmutableMap.of(
-      "VALUE_FORMAT", new StringLiteral("json")
-  );
   private static final String KAFKA_TOPIC = "some-topic";
+  private static final Map<String, Literal> UNSUPPORTED_PROPS = ImmutableMap.of(
+      "VALUE_FORMAT", new StringLiteral("json"),
+      "KAFKA_TOPIC", new StringLiteral(KAFKA_TOPIC)
+  );
   private static final Map<String, Literal> SUPPORTED_PROPS = ImmutableMap.of(
       "VALUE_FORMAT", new StringLiteral("avro"),
       "KAFKA_TOPIC", new StringLiteral(KAFKA_TOPIC)
@@ -139,8 +141,8 @@ public class DefaultSchemaInjectorTest {
     when(cs.getName()).thenReturn(QualifiedName.of("cs"));
     when(ct.getName()).thenReturn(QualifiedName.of("ct"));
 
-    when(cs.getProperties()).thenReturn(SUPPORTED_PROPS);
-    when(ct.getProperties()).thenReturn(SUPPORTED_PROPS);
+    when(cs.getProperties()).thenReturn(new CreateSourceProperties(SUPPORTED_PROPS));
+    when(ct.getProperties()).thenReturn(new CreateSourceProperties(SUPPORTED_PROPS));
 
     when(cs.copyWith(any(), any())).thenAnswer(inv -> setupCopy(inv, cs, mock(CreateStream.class)));
     when(ct.copyWith(any(), any())).thenAnswer(inv -> setupCopy(inv, ct, mock(CreateTable.class)));
@@ -197,7 +199,7 @@ public class DefaultSchemaInjectorTest {
   @Test
   public void shouldReturnStatementUnchangedIfCsFormatDoesNotSupportInference() {
     // Given:
-    when(cs.getProperties()).thenReturn(UNSUPPORTED_PROPS);
+    when(cs.getProperties()).thenReturn(new CreateSourceProperties(UNSUPPORTED_PROPS));
 
     // When:
     final ConfiguredStatement<?> result = injector.inject(csStatement);
@@ -209,43 +211,13 @@ public class DefaultSchemaInjectorTest {
   @Test
   public void shouldReturnStatementUnchangedIfCtFormatDoesNotSupportInference() {
     // Given:
-    when(ct.getProperties()).thenReturn(UNSUPPORTED_PROPS);
+    when(ct.getProperties()).thenReturn(new CreateSourceProperties(UNSUPPORTED_PROPS));
 
     // When:
     final ConfiguredStatement<?> result = injector.inject(ctStatement);
 
     // Then:
     assertThat(result, is(sameInstance(ctStatement)));
-  }
-
-  @Test
-  public void shouldThrowIfMissingValueFormat() {
-    // Given:
-    when(cs.getProperties()).thenReturn(supportedPropsWithout("VALUE_FORMAT"));
-
-    // Then:
-    expectedException.expect(KsqlStatementException.class);
-    expectedException.expectMessage(
-        "VALUE_FORMAT should be set in WITH clause of CREATE STREAM/TABLE statement.");
-    expectedException.expectMessage(SQL_TEXT);
-
-    // When:
-    injector.inject(csStatement);
-  }
-
-  @Test
-  public void shouldThrowIfMissingKafkaTopicProperty() {
-    // Given:
-    when(ct.getProperties()).thenReturn(supportedPropsWithout("KAFKA_TOPIC"));
-
-    // Then:
-    expectedException.expect(KsqlStatementException.class);
-    expectedException.expectMessage(
-        "KAFKA_TOPIC should be set in WITH clause of CREATE STREAM/TABLE statement.");
-    expectedException.expectMessage(SQL_TEXT);
-
-    // When:
-    injector.inject(ctStatement);
   }
 
   @Test
@@ -402,8 +374,7 @@ public class DefaultSchemaInjectorTest {
     final ConfiguredStatement<CreateStream> result = injector.inject(csStatement);
 
     // Then:
-    assertThat(result.getStatement().getProperties().get("AVRO_SCHEMA_ID"),
-        is(new StringLiteral(String.valueOf(SCHEMA_ID))));
+    assertThat(result.getStatement().getProperties().getAvroSchemaId().get(), is(SCHEMA_ID));
 
     assertThat(result.getStatementText(), containsString("AVRO_SCHEMA_ID='5'"));
   }
@@ -417,8 +388,8 @@ public class DefaultSchemaInjectorTest {
     final ConfiguredStatement<CreateStream> result = injector.inject(csStatement);
 
     // Then:
-    assertThat(result.getStatement().getProperties().get("AVRO_SCHEMA_ID"),
-        is(new StringLiteral("42")));
+    assertThat(result.getStatement().getProperties().getAvroSchemaId().get(),
+        is(42));
 
     assertThat(result.getStatementText(), containsString("AVRO_SCHEMA_ID='42'"));
   }
@@ -461,19 +432,19 @@ public class DefaultSchemaInjectorTest {
   }
 
   @SuppressWarnings("SameParameterValue")
-  private static Map<String, Literal> supportedPropsWith(
+  private static CreateSourceProperties supportedPropsWith(
       final String property,
       final String value
   ) {
     final HashMap<String, Literal> props = new HashMap<>(SUPPORTED_PROPS);
     props.put(property, new StringLiteral(value));
-    return props;
+    return new CreateSourceProperties(props);
   }
 
-  private static Map<String, Literal> supportedPropsWithout(final String property) {
+  private static CreateSourceProperties supportedPropsWithout(final String property) {
     final HashMap<String, Literal> props = new HashMap<>(SUPPORTED_PROPS);
     assertThat("Invalid test", props.remove(property), is(notNullValue()));
-    return props;
+    return new CreateSourceProperties(props);
   }
 
   private static Object setupCopy(

@@ -28,15 +28,13 @@ import org.glassfish.jersey.process.internal.RequestScoped;
  * i.e. myMethod(@Context ServiceContext serviceContext)
  */
 public class KsqlRestServiceContextBinder extends AbstractBinder {
-  private final KsqlConfig ksqlConfig;
-
   public KsqlRestServiceContextBinder(final KsqlConfig ksqlConfig) {
-    this.ksqlConfig = ksqlConfig;
+    KsqlRestServiceContextFactory.configure(ksqlConfig);
   }
 
   @Override
   protected void configure() {
-    bindFactory(new KsqlRestServiceContextFactory(ksqlConfig))
+    bindFactory(KsqlRestServiceContextFactory.class)
         .to(ServiceContext.class)
         .in(RequestScoped.class);
   }

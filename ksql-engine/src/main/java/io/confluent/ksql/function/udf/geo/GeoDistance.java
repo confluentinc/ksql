@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2019 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -17,19 +17,24 @@ package io.confluent.ksql.function.udf.geo;
 
 import com.google.common.collect.Lists;
 import io.confluent.ksql.function.KsqlFunctionException;
-import io.confluent.ksql.function.udf.Kudf;
+import io.confluent.ksql.function.udf.Udf;
+import io.confluent.ksql.function.udf.UdfDescription;
+import io.confluent.ksql.function.udf.UdfParameter;
+
 import java.util.List;
 
 /**
  * Compute the distance between two points on the surface of the earth, according to the Haversine
  * formula for "great circle distance". The 2 input points should be specified as (lat, lon) pairs,
  * measured in decimal degrees.
- * 
+ *
  * <p>An optional fifth parameter allows to specify either "MI" (miles) or "KM" (kilometers) as the
  * desired unit for the output measurement. Default is KM.
- *
  */
-public class GeoDistanceKudf implements Kudf {
+@UdfDescription(name = "geo_distance", author = "Confluent",
+    description = "Compute the distance between two points on the surface of the earth,"
+        + " according to the Haversine formula for \"great circle distance\".")
+public class GeoDistance {
 
   // effective value of Earth radius (note we technically live on a slightly squashed sphere, not
   // a truly round one, so different authorities will quote slightly different values for the 'best'
@@ -44,20 +49,23 @@ public class GeoDistanceKudf implements Kudf {
   private static final List<String> VALID_RADIUS_NAMES_KMS =
       Lists.newArrayList("km", "kilometer", "kilometers", "kilometre", "kilometres");
 
+  @Udf(description = "The 2 input points should be specified as (lat, lon) pairs, measured"
+      + " in decimal degrees. An optional fifth parameter allows to specify either \"MI\" (miles)"
+      + " or \"KM\" (kilometers) as the desired unit for the output measurement. Default is KM.")
+  public Double geoDistance(
+      @UdfParameter(description = "The latitude of the first point in decimal degrees.")
+        final double lat1,
+      @UdfParameter(description = "The longitude of the first point in decimal degrees.")
+        final double lon1,
+      @UdfParameter(description = "The latitude of the second point in decimal degrees.")
+        final double lat2,
+      @UdfParameter(description = "The longitude of the second point in decimal degrees.")
+        final double lon2,
+      @UdfParameter(description = "The units for the return value.")
+        final String units) {
 
-  @Override
-  public Object evaluate(final Object... args) {
-    if ((args.length < 4) || (args.length > 5)) {
-      throw new KsqlFunctionException(
-          "GeoDistance function expects either 4 or 5 arguments: lat1, lon1, lat2, lon2, (MI/KM)");
-    }
-
-    final double lat1 = ((Number) args[0]).doubleValue();
-    final double lon1 = ((Number) args[1]).doubleValue();
-    final double lat2 = ((Number) args[2]).doubleValue();
-    final double lon2 = ((Number) args[3]).doubleValue();
     validateLatLonValues(lat1, lon1, lat2, lon2);
-    final double chosenRadius = selectEarthRadiusToUse(args);
+    final double chosenRadius = selectEarthRadiusToUse(units);
 
     final double deltaLat = Math.toRadians(lat2 - lat1);
     final double deltaLon = Math.toRadians(lon2 - lon1);
@@ -69,6 +77,21 @@ public class GeoDistanceKudf implements Kudf {
         haversin(deltaLat) + haversin(deltaLon) * Math.cos(lat1Radians) * Math.cos(lat2Radians);
     final double distanceInRadians = 2 * Math.asin(Math.sqrt(a));
     return distanceInRadians * chosenRadius;
+  }
+
+  @Udf(description = "The 2 input points should be specified as (lat, lon) pairs, measured"
+      + " in decimal degrees. The distance returned is in kilometers.")
+  public Double geoDistance(
+      @UdfParameter(description = "The latitude of the first point in decimal degrees.")
+      final double lat1,
+      @UdfParameter(description = "The longitude of the first point in decimal degrees.")
+      final double lon1,
+      @UdfParameter(description = "The latitude of the second point in decimal degrees.")
+      final double lat2,
+      @UdfParameter(description = "The longitude of the second point in decimal degrees.")
+      final double lon2) {
+
+    return geoDistance(lat1, lon1, lat2, lon2, VALID_RADIUS_NAMES_KMS.get(0));
   }
 
   private void validateLatLonValues(
@@ -85,19 +108,18 @@ public class GeoDistanceKudf implements Kudf {
     }
   }
 
-  private double selectEarthRadiusToUse(final Object... args) {
+  private double selectEarthRadiusToUse(final String units) {
     double chosenRadius = EARTH_RADIUS_KM;
-    if (args.length == 5) {
-      final String outputUnit = args[4].toString().toLowerCase();
+    if (units != null && units.trim().length() > 0) {
+      final String outputUnit = units.toLowerCase();
       if (VALID_RADIUS_NAMES_MILES.contains(outputUnit)) {
         chosenRadius = EARTH_RADIUS_MILES;
       } else if (VALID_RADIUS_NAMES_KMS.contains(outputUnit)) {
         chosenRadius = EARTH_RADIUS_KM;
       } else {
         throw new KsqlFunctionException(
-            "GeoDistance function fifth parameter must be ('MI' or 'miles')"
-            + " or ('KM' or 'kilometers')."
-            + " Values are case-insensitive.");
+            "GeoDistance function units parameter must be one of " + VALID_RADIUS_NAMES_MILES
+            + " or " + VALID_RADIUS_NAMES_KMS + ". Values are case-insensitive.");
       }
     }
     return chosenRadius;

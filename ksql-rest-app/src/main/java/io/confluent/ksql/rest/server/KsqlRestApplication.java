@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.server;
 import static io.confluent.ksql.rest.server.KsqlRestConfig.DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG;
 
 import com.fasterxml.jackson.jaxrs.base.JsonParseExceptionMapper;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
@@ -371,10 +372,10 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
                 PrimitiveType.of(SqlType.STRING)
             )),
             false,
-            Collections.singletonMap(
-                DdlConfig.TOPIC_NAME_PROPERTY,
-                new StringLiteral(COMMANDS_KSQL_TOPIC_NAME)
-            )
+            ImmutableMap.<String, Literal>builder()
+                .putAll(commandTopicProperties)
+                .put(DdlConfig.TOPIC_NAME_PROPERTY, new StringLiteral(COMMANDS_KSQL_TOPIC_NAME))
+            .build()
         ),
         serviceContext.getTopicClient()
     ));

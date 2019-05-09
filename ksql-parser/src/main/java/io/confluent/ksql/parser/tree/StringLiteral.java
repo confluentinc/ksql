@@ -16,6 +16,7 @@
 package io.confluent.ksql.parser.tree;
 
 import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.util.StringUtil;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -30,7 +31,7 @@ public class StringLiteral extends Literal {
 
   public StringLiteral(final Optional<NodeLocation> location, final String value) {
     super(location);
-    this.value = Objects.requireNonNull(value, "value");
+    this.value = StringUtil.cleanQuotes(Objects.requireNonNull(value, "value"));
   }
 
   @Override

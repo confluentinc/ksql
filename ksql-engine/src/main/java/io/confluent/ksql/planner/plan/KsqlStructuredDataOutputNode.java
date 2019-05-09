@@ -163,10 +163,10 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
       return result;
     }
 
-    final Field keyField = this.keyField.resolve(getSchema(), ksqlConfig)
+    final Field newKey = keyField.resolveLatest(getSchema())
         .orElseThrow(IllegalStateException::new);
 
-    return result.selectKey(keyField.name(), false, contextStacker);
+    return result.selectKey(newKey.name(), false, contextStacker);
   }
 
   public KsqlTopic getKsqlTopic() {

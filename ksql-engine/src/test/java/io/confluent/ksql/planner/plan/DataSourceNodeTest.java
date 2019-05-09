@@ -40,8 +40,8 @@ import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.physical.KsqlQueryBuilder;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
-import io.confluent.ksql.serde.KsqlTopicSerDe;
-import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
+import io.confluent.ksql.serde.KsqlSerdeFactory;
+import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
 import io.confluent.ksql.streams.MaterializedFactory;
 import io.confluent.ksql.structured.QueryContext;
 import io.confluent.ksql.structured.SchemaKStream;
@@ -106,7 +106,7 @@ public class DataSourceNodeTest {
       KeyField.of("key", realSchema.getSchema().field("key")),
       new LongColumnTimestampExtractionPolicy("timestamp"),
       new KsqlTopic("topic", "topic",
-          new KsqlJsonTopicSerDe(), false), Serdes::String);
+          new KsqlJsonSerdeFactory(), false), Serdes::String);
 
   private final DataSourceNode node = new DataSourceNode(
       PLAN_NODE_ID,
@@ -125,7 +125,7 @@ public class DataSourceNodeTest {
   @Mock
   private KsqlTopic ksqlTopic;
   @Mock
-  private KsqlTopicSerDe topicSerDe;
+  private KsqlSerdeFactory valueSerDeFactory;
   @Mock
   private Serde<GenericRow> rowSerde;
   @Mock
@@ -172,7 +172,7 @@ public class DataSourceNodeTest {
     when(tableSource.getKeySerdeFactory()).thenReturn(() -> keySerde);
     when(tableSource.getTimestampExtractionPolicy()).thenReturn(timestampExtractionPolicy);
     when(ksqlTopic.getKafkaTopicName()).thenReturn("topic");
-    when(ksqlTopic.getKsqlTopicSerDe()).thenReturn(topicSerDe);
+    when(ksqlTopic.getValueSerdeFactory()).thenReturn(valueSerDeFactory);
     when(timestampExtractionPolicy.timestampField()).thenReturn(TIMESTAMP_FIELD);
     when(timestampExtractionPolicy.create(anyInt())).thenReturn(timestampExtractor);
     when(kStream.transformValues(any(ValueTransformerSupplier.class))).thenReturn(kStream);
@@ -265,7 +265,7 @@ public class DataSourceNodeTest {
         KeyField.of("field1", realSchema.getSchema().field("field1")),
         new LongColumnTimestampExtractionPolicy("timestamp"),
         new KsqlTopic("topic2", "topic2",
-            new KsqlJsonTopicSerDe(), false),
+            new KsqlJsonSerdeFactory(), false),
         Serdes::String);
 
     final DataSourceNode node = new DataSourceNode(
@@ -284,7 +284,7 @@ public class DataSourceNodeTest {
         KeyField.of("field1", realSchema.getSchema().field("field1")),
         new LongColumnTimestampExtractionPolicy("timestamp"),
         new KsqlTopic("topic2", "topic2",
-            new KsqlJsonTopicSerDe(), false),
+            new KsqlJsonSerdeFactory(), false),
         Serdes::String);
 
     final DataSourceNode node = new DataSourceNode(

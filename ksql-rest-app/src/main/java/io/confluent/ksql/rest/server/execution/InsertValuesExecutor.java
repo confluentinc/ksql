@@ -207,7 +207,7 @@ public class InsertValuesExecutor {
       final ServiceContext serviceContext
   ) {
     final Serde<GenericRow> rowSerde = GenericRowSerDe.from(
-        dataSource.getKsqlTopicSerde(),
+        dataSource.getValueSerdeFactory(),
         dataSource.getSchema().getSchema(),
         config,
         serviceContext.getSchemaRegistryClientFactory(),

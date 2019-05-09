@@ -37,14 +37,14 @@ public final class GenericRowSerDe implements Serde<GenericRow> {
   private final Schema schema;
 
   public static Serde<GenericRow> from(
-      final KsqlTopicSerDe ksqlTopicSerde,
+      final KsqlSerdeFactory serdeFactory,
       final Schema schema,
       final KsqlConfig ksqlConfig,
       final Supplier<SchemaRegistryClient> srClientFactory,
       final String loggerNamePrefix,
       final ProcessingLogContext processingLogContext
   ) {
-    final Serde<Struct> structSerde = ksqlTopicSerde.getStructSerde(
+    final Serde<Struct> structSerde = serdeFactory.createSerde(
         schema,
         ksqlConfig,
         srClientFactory,

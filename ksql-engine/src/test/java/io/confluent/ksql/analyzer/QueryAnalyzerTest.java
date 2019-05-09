@@ -493,7 +493,7 @@ public class QueryAnalyzerTest {
     final Analysis analysis = queryAnalyzer.analyze("sqlExpression", query, sink);
 
     // Then:
-    assertThat(analysis.getInto().get().getKsqlTopic().getKsqlTopicSerDe().getFormat(),
+    assertThat(analysis.getInto().get().getKsqlTopic().getValueSerdeFactory().getFormat(),
         is(Format.DELIMITED));
   }
 

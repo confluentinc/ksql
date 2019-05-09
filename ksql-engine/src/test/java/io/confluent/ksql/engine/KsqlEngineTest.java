@@ -54,8 +54,8 @@ import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.serde.KsqlTopicSerDe;
-import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
+import io.confluent.ksql.serde.KsqlSerdeFactory;
+import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
@@ -103,7 +103,7 @@ public class KsqlEngineTest {
 
   private MutableMetaStore metaStore;
   @Spy
-  private final KsqlTopicSerDe jsonKsqlSerde = new KsqlJsonTopicSerDe();
+  private final KsqlSerdeFactory jsonKsqlSerde = new KsqlJsonSerdeFactory();
   @Spy
   private final SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
   private final Supplier<SchemaRegistryClient> schemaRegistryClientFactory =
@@ -118,7 +118,7 @@ public class KsqlEngineTest {
   @Before
   public void setUp() {
     metaStore = MetaStoreFixture
-        .getNewMetaStore(new InternalFunctionRegistry(), () -> jsonKsqlSerde);
+        .getNewMetaStore(new InternalFunctionRegistry(), jsonKsqlSerde);
 
     serviceContext = TestServiceContext.create(
         topicClient,
@@ -529,7 +529,7 @@ public class KsqlEngineTest {
         "create table bar as select * from test2;", KSQL_CONFIG, Collections.emptyMap());
 
     // Then:
-    verify(jsonKsqlSerde, atLeastOnce()).getStructSerde(
+    verify(jsonKsqlSerde, atLeastOnce()).createSerde(
         any(), any(), eq(schemaRegistryClientFactory), any(), any()
     );
   }

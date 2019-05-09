@@ -23,7 +23,7 @@ import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.planner.plan.PlanNodeId;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.GenericRowSerDe;
-import io.confluent.ksql.serde.KsqlTopicSerDe;
+import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.structured.QueryContext;
 import io.confluent.ksql.util.KsqlConfig;
@@ -118,7 +118,7 @@ public final class KsqlQueryBuilder {
   }
 
   public Serde<GenericRow> buildGenericRowSerde(
-      final KsqlTopicSerDe topicSerDe,
+      final KsqlSerdeFactory valueSerdeFactory,
       final Schema schema,
       final QueryContext queryContext
   ) {
@@ -127,7 +127,7 @@ public final class KsqlQueryBuilder {
     track(loggerNamePrefix, schema);
 
     return GenericRowSerDe.from(
-        topicSerDe,
+        valueSerdeFactory,
         schema,
         ksqlConfig,
         serviceContext.getSchemaRegistryClientFactory(),

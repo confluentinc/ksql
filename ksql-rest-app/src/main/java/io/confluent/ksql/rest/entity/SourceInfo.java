@@ -58,7 +58,7 @@ public class SourceInfo {
       this(
           ksqlStream.getName(),
           ksqlStream.getKsqlTopic().getKafkaTopicName(),
-          ksqlStream.getKsqlTopic().getKsqlTopicSerDe().getFormat().name()
+          ksqlStream.getKsqlTopic().getValueSerdeFactory().getFormat().name()
       );
     }
   }
@@ -82,7 +82,7 @@ public class SourceInfo {
       this(
           ksqlTable.getName(),
           ksqlTable.getKsqlTopic().getKafkaTopicName(),
-          ksqlTable.getKsqlTopic().getKsqlTopicSerDe().getFormat().name(),
+          ksqlTable.getKsqlTopic().getValueSerdeFactory().getFormat().name(),
           ksqlTable.isWindowed()
       );
     }

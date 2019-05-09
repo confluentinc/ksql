@@ -18,7 +18,7 @@ package io.confluent.ksql.util.timestamp;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.StringUtil;
+import java.util.Optional;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 
@@ -29,13 +29,15 @@ public final class TimestampExtractionPolicyFactory {
 
   public static TimestampExtractionPolicy create(
       final KsqlSchema schema,
-      final String timestampColumnName,
-      final String timestampFormat) {
-    if (timestampColumnName == null) {
+      final Optional<String> timestampColumnName,
+      final Optional<String> timestampFormat
+  ) {
+    if (!timestampColumnName.isPresent()) {
       return new MetadataTimestampExtractionPolicy();
     }
 
-    final String fieldName = StringUtil.cleanQuotes(timestampColumnName.toUpperCase());
+    final String fieldName = timestampColumnName.get().toUpperCase();
+
     final Field timestampField = schema.findField(fieldName)
         .orElseThrow(() -> new KsqlException(
             "The TIMESTAMP column set in the WITH clause does not exist in the schema: '"
@@ -43,14 +45,19 @@ public final class TimestampExtractionPolicyFactory {
 
     final Schema.Type timestampFieldType = timestampField.schema().type();
     if (timestampFieldType == Schema.Type.STRING) {
-      if (timestampFormat == null) {
-        throw new KsqlException("A String timestamp field has been specified without"
-            + " also specifying the "
-            + DdlConfig.TIMESTAMP_FORMAT_PROPERTY.toLowerCase());
-      }
-      return new StringTimestampExtractionPolicy(
-          fieldName,
-          StringUtil.cleanQuotes(timestampFormat));
+
+      final String format = timestampFormat.orElseThrow(() -> new KsqlException(
+          "A String timestamp field has been specified without"
+              + " also specifying the "
+              + DdlConfig.TIMESTAMP_FORMAT_PROPERTY.toLowerCase()));
+
+      return new StringTimestampExtractionPolicy(fieldName, format);
+    }
+
+    if (timestampFormat.isPresent()) {
+      throw new KsqlException("'" + DdlConfig.TIMESTAMP_FORMAT_PROPERTY
+          + "' set in the WITH clause can only be used "
+          + "when the timestamp column in of type STRING.");
     }
 
     if (timestampFieldType == Schema.Type.INT64) {

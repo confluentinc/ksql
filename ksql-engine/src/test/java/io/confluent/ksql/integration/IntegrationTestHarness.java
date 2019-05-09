@@ -28,10 +28,8 @@ import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.GenericRowSerDe;
-import io.confluent.ksql.serde.KsqlTopicSerDe;
-import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
-import io.confluent.ksql.serde.delimited.KsqlDelimitedTopicSerDe;
-import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
+import io.confluent.ksql.serde.KsqlSerdeFactories;
+import io.confluent.ksql.serde.SerdeFactories;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
@@ -83,6 +81,7 @@ public class IntegrationTestHarness extends ExternalResource {
 
   private final LazyServiceContext serviceContext;
   private final EmbeddedSingleNodeKafkaCluster kafkaCluster;
+  private final SerdeFactories serdeFactories = new KsqlSerdeFactories();
 
   public static Builder builder() {
     return new Builder();
@@ -557,25 +556,11 @@ public class IntegrationTestHarness extends ExternalResource {
     return config;
   }
 
-  private static KsqlTopicSerDe getSerde(
-      final Format dataSourceSerDe) {
-    switch (dataSourceSerDe) {
-      case JSON:
-        return new KsqlJsonTopicSerDe();
-      case AVRO:
-        return new KsqlAvroTopicSerDe(KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME);
-      case DELIMITED:
-        return new KsqlDelimitedTopicSerDe();
-      default:
-        throw new RuntimeException("Format not supported: " + dataSourceSerDe);
-    }
-  }
-
   private Serializer<GenericRow> getSerializer(
-      final Format dataSourceSerDe,
+      final Format format,
       final Schema schema) {
     return GenericRowSerDe.from(
-        getSerde(dataSourceSerDe),
+        serdeFactories.create(format, Collections.emptyMap()),
         schema,
         new KsqlConfig(Collections.emptyMap()),
         serviceContext.get().getSchemaRegistryClientFactory(),
@@ -585,10 +570,10 @@ public class IntegrationTestHarness extends ExternalResource {
   }
 
   private Deserializer<GenericRow> getDeserializer(
-      final Format dataSourceSerDe,
+      final Format format,
       final Schema schema) {
     return GenericRowSerDe.from(
-        getSerde(dataSourceSerDe),
+        serdeFactories.create(format, Collections.emptyMap()),
         schema,
         new KsqlConfig(Collections.emptyMap()),
         serviceContext.get().getSchemaRegistryClientFactory(),

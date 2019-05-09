@@ -33,7 +33,7 @@ import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
-import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
+import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
@@ -117,7 +117,7 @@ public class TemporaryEngine extends ExternalResource {
   }
 
   public KsqlTopic givenKsqlTopic(String name) {
-    final KsqlTopic topic = new KsqlTopic(name, name, new KsqlJsonTopicSerDe(), false);
+    final KsqlTopic topic = new KsqlTopic(name, name, new KsqlJsonSerdeFactory(), false);
     givenKafkaTopic(name);
     metaStore.putTopic(topic);
     return topic;

@@ -230,7 +230,7 @@ public class KsqlAvroDeserializerTest {
     final byte[] bytes = kafkaAvroSerializer.serialize(topicName, avroRecord);
 
     final Deserializer<Struct> deserializer =
-        new KsqlAvroTopicSerDe(KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME).getStructSerde(
+        new KsqlAvroSerdeFactory(KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME).createSerde(
             schema,
             KSQL_CONFIG,
             () -> schemaRegistryClient,
@@ -803,8 +803,8 @@ public class KsqlAvroDeserializerTest {
 
   private Deserializer<Struct> deserializer(final Schema schema) {
     final Deserializer<Struct> deserializer =
-        new KsqlAvroTopicSerDe(KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME)
-            .getStructSerde(
+        new KsqlAvroSerdeFactory(KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME)
+            .createSerde(
                 schema,
                 KSQL_CONFIG,
                 () -> schemaRegistryClient,

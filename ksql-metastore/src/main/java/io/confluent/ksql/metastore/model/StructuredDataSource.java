@@ -20,7 +20,7 @@ import static java.util.Objects.requireNonNull;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.metastore.SerdeFactory;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
-import io.confluent.ksql.serde.KsqlTopicSerDe;
+import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 
 @Immutable
@@ -87,8 +87,8 @@ abstract class StructuredDataSource<K> implements DataSource<K> {
   }
 
   @Override
-  public KsqlTopicSerDe getKsqlTopicSerde() {
-    return ksqlTopic.getKsqlTopicSerDe();
+  public KsqlSerdeFactory getValueSerdeFactory() {
+    return ksqlTopic.getValueSerdeFactory();
   }
 
   @Override

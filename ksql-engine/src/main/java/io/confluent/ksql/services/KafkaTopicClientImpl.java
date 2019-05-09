@@ -64,7 +64,6 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   private static final String DELETE_TOPIC_ENABLE = "delete.topic.enable";
 
   private final AdminClient adminClient;
-  private final boolean isDeleteTopicEnabled;
 
   /**
    * Construct a topic client from an existing admin client.
@@ -73,7 +72,6 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
    */
   public KafkaTopicClientImpl(final AdminClient adminClient) {
     this.adminClient = Objects.requireNonNull(adminClient, "adminClient");
-    this.isDeleteTopicEnabled = isTopicDeleteEnabled();
   }
 
   @Override
@@ -239,7 +237,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
     if (topicsToDelete.isEmpty()) {
       return;
     }
-    if (!isDeleteTopicEnabled) {
+    if (!isTopicDeleteEnabled()) {
       LOG.info("Cannot delete topics since '" + DELETE_TOPIC_ENABLE + "' is false. ");
       return;
     }
@@ -261,7 +259,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
 
   @Override
   public void deleteInternalTopics(final String applicationId) {
-    if (!isDeleteTopicEnabled) {
+    if (!isTopicDeleteEnabled()) {
       LOG.warn("Cannot delete topics since '" + DELETE_TOPIC_ENABLE + "' is false. ");
       return;
     }

@@ -52,7 +52,7 @@ import org.eclipse.jetty.client.HttpClient;
 import org.eclipse.jetty.http.HttpStatus;
 import org.eclipse.jetty.http.HttpStatus.Code;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
-import org.eclipse.jetty.util.ssl.SslContextFactory.Client;
+import org.eclipse.jetty.util.ssl.SslContextFactory.Server;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketConnect;
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketError;
@@ -111,7 +111,7 @@ public class SslFunctionalTest {
   @Before
   public void setUp() {
     clientProps = Collections.emptyMap();
-    sslContextFactory = new Client();
+    sslContextFactory = new Server();
   }
 
   @Test

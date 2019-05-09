@@ -15,9 +15,9 @@
 
 package io.confluent.ksql.serde.json;
 
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
-import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
@@ -374,7 +374,7 @@ public class KsqlJsonDeserializerTest {
   }
 
   @Test
-  public void shouldDeserializeSingleMapFieldAsTopLevelMapIfFieldNamePresentButNull() {
+  public void shouldDeserializeSingleMapFieldRecordIfFieldNamePresentButNull() {
     // Given:
     final Schema schema = SchemaBuilder.struct()
         .field("A", SchemaBuilder
@@ -391,8 +391,7 @@ public class KsqlJsonDeserializerTest {
     final Struct result = deserializer.deserialize("", bytes);
 
     // Then:
-    assertThat((Map<?,?>)result.get("A"), hasEntry("a", null));
-    assertThat((Map<?,?>)result.get("A"), hasEntry("b", "2"));
+    assertThat((Map<?, ?>) result.get("A"), is(nullValue()));
   }
 
   @Test
@@ -489,6 +488,113 @@ public class KsqlJsonDeserializerTest {
   }
 
   @Test
+  public void shouldDeserializeSingleMapFieldAsRecordIfSecondFieldMatchesSchema() {
+    // Given:
+    final Schema schema = SchemaBuilder.struct()
+        .field("A", SchemaBuilder
+            .map(Schema.OPTIONAL_STRING_SCHEMA, SchemaBuilder
+                .struct()
+                .field("D", Schema.OPTIONAL_STRING_SCHEMA)
+                .optional()
+                .build()
+            )
+            .optional()
+            .build())
+        .build();
+
+    final KsqlJsonDeserializer deserializer = new KsqlJsonDeserializer(schema, recordLogger);
+
+    final byte[] bytes = ("{"
+        + "  \"A\": 1,"                    // <-- will not match A's schema
+        + "  \"a\": {\"c\": {\"d\": 1}},"  // <-- will match A's schema
+        + "  \"b\": 2"
+        + "}").getBytes(StandardCharsets.UTF_8);
+
+    // When:
+    final Struct result = deserializer.deserialize("", bytes);
+
+    // Then:
+    assertThat(result.get("A").toString(), is("{c=Struct{D=1}}"));
+  }
+
+  @Test
+  public void shouldDefaultToDeserializeSingleMapFieldAsRecordValueNotCoercibleToMapOrRecordType() {
+    // Given:
+    final Schema schema = SchemaBuilder.struct()
+        .field("A", SchemaBuilder
+            .map(Schema.OPTIONAL_STRING_SCHEMA, SchemaBuilder
+                .struct()
+                .field("D", Schema.OPTIONAL_STRING_SCHEMA)
+                .optional()
+                .build()
+            )
+            .optional()
+            .build())
+        .build();
+
+    final KsqlJsonDeserializer deserializer = new KsqlJsonDeserializer(schema, recordLogger);
+
+    final byte[] bytes = ("{\"a\": 1,\"b\": 2}").getBytes(StandardCharsets.UTF_8);
+
+    // Then:
+    expectedException.expectCause(hasMessage(containsString("value is not a map")));
+
+    // When:
+    deserializer.deserialize("", bytes);
+  }
+
+  @Test
+  public void shouldHandleNullValues() {
+    // Given:
+    final Schema schema = SchemaBuilder.struct()
+        .field("boolean", SchemaBuilder.OPTIONAL_BOOLEAN_SCHEMA)
+        .field("int", SchemaBuilder.OPTIONAL_INT32_SCHEMA)
+        .field("bigint", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
+        .field("double", SchemaBuilder.OPTIONAL_FLOAT64_SCHEMA)
+        .field("string", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
+        .field("array", SchemaBuilder
+            .array(Schema.OPTIONAL_STRING_SCHEMA)
+            .optional()
+            .build())
+        .field("map", SchemaBuilder
+            .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_STRING_SCHEMA)
+            .optional()
+            .build())
+        .field("struct", SchemaBuilder
+            .struct()
+            .field("f0", Schema.OPTIONAL_BOOLEAN_SCHEMA)
+            .optional()
+            .build())
+        .build();
+
+    final KsqlJsonDeserializer deserializer = new KsqlJsonDeserializer(schema, recordLogger);
+
+    final byte[] bytes = ("{"
+        + "\"boolean\": null,"
+        + "\"int\": null,"
+        + "\"bigint\": null,"
+        + "\"double\": null,"
+        + "\"string\": null,"
+        + "\"array\": null,"
+        + "\"map\": null,"
+        + "\"struct\": null"
+        + "}").getBytes(StandardCharsets.UTF_8);
+
+    // When:
+    final Struct result = deserializer.deserialize("", bytes);
+
+    // Then:
+    assertThat(result.get("boolean"), is(nullValue()));
+    assertThat(result.get("int"), is(nullValue()));
+    assertThat(result.get("bigint"), is(nullValue()));
+    assertThat(result.get("double"), is(nullValue()));
+    assertThat(result.get("string"), is(nullValue()));
+    assertThat(result.get("array"), is(nullValue()));
+    assertThat(result.get("map"), is(nullValue()));
+    assertThat(result.get("struct"), is(nullValue()));
+  }
+
+  @Test
   public void shouldLogDeserializationErrors() {
     // Given:
     final byte[] data = "{foo".getBytes(StandardCharsets.UTF_8);
@@ -505,5 +611,7 @@ public class KsqlJsonDeserializerTest {
               Optional.ofNullable(data)).apply(processingLogConfig),
           processingLogConfig);
     }
+
+
   }
 }

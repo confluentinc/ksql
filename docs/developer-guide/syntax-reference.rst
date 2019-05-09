@@ -248,7 +248,7 @@ Primitive Types
 KSQL supports the following primitive data types:
 
 -  ``BOOLEAN``
--  ``INTEGER``
+-  ``INTEGER`` or [``INT``]
 -  ``BIGINT``
 -  ``DOUBLE``
 -  ``VARCHAR`` (or ``STRING``)

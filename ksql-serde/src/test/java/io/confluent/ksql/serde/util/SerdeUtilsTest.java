@@ -146,9 +146,9 @@ public class SerdeUtilsTest {
     SerdeUtils.isCoercible(ImmutableList.of(1), Schema.OPTIONAL_INT8_SCHEMA);
   }
 
-  @Test(expected = NullPointerException.class)
-  public void shouldThrowOnNullObject() {
-    SerdeUtils.isCoercible(null, Schema.OPTIONAL_FLOAT64_SCHEMA);
+  @Test
+  public void shouldAssumeNullsAreAlwaysCoercible() {
+    assertThat(SerdeUtils.isCoercible(null, Schema.OPTIONAL_FLOAT64_SCHEMA), is(true));
   }
 
   @Test

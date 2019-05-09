@@ -248,7 +248,7 @@ Primitive Types
 KSQL supports the following primitive data types:
 
 -  ``BOOLEAN``
--  ``INTEGER``
+-  ``INTEGER`` or [``INT``]
 -  ``BIGINT``
 -  ``DOUBLE``
 -  ``VARCHAR`` (or ``STRING``)
@@ -1344,6 +1344,20 @@ The following are the properties that you can configure with SET/UNSET commands,
 |                                                   | This can be set for PRINT TOPIC command when ACLs are enabled in Kafka.                    |
 |                                                   | The default in KSQL is ````.                                                               |
 +---------------------------------------------------+--------------------------------------------------------------------------------------------+
+
+SPOOL
+_____
+**Synopsis**
+
+.. code:: sql
+
+    SPOOL <file_name|OFF>
+
+**Description**
+
+Stores issued commands and their results into a file. Only one spool may be active at a time and can
+be closed by issuing ``SPOOL OFF``. Commands are prefixed with ``ksql> `` to differentiate from
+output.
 
 
 .. _ksql-terminate:

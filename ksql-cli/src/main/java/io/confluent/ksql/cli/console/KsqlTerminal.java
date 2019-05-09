@@ -17,6 +17,7 @@ package io.confluent.ksql.cli.console;
 
 import java.io.Closeable;
 import java.io.PrintWriter;
+import java.io.Writer;
 import java.util.List;
 import java.util.Objects;
 import org.jline.terminal.Terminal;
@@ -36,6 +37,10 @@ public interface KsqlTerminal {
   List<HistoryEntry> getHistory();
 
   void handle(Terminal.Signal signal, Terminal.SignalHandler signalHandler);
+
+  void setSpool(Writer writer);
+
+  void unsetSpool();
 
   @FunctionalInterface
   interface StatusClosable extends Closeable {

@@ -139,6 +139,9 @@ public class KsqlConfig extends AbstractConfig {
 
   public static final String KSQL_USE_LEGACY_KEY_FIELD = "ksql.query.fields.key.legacy";
 
+  public static final String KSQL_PERSIST_SINGLE_FIELD_IN_STRUCT =
+      "ksql.persistence.ensure.value.is.struct";
+
   public static final String
       defaultSchemaRegistryUrl = "http://localhost:8081";
 
@@ -403,6 +406,22 @@ public class KsqlConfig extends AbstractConfig {
             true,
             ConfigDef.Importance.LOW,
             "Enable the INSERT INTO ... VALUES functionality."
+        ).define(
+            KSQL_PERSIST_SINGLE_FIELD_IN_STRUCT,
+            ConfigDef.Type.BOOLEAN,
+            true,
+            ConfigDef.Importance.LOW,
+            "Controls how KSQL will serialize a value whose schema contains only a "
+                + "single column. When set to true KSQL will persist the column nested with a "
+                + "STRUCT, for formats that support them. When set to false KSQL will persist "
+                + "the column as the top level object." + System.lineSeparator()
+                + "For example, if the value contains only a single column 'FOO INT' and the "
+                + "format is JSON,  and this setting is false, then KSQL will persist the value "
+                + "as an unnamed number, e.g. '10'. Where as if this setting is true, then KSQL "
+                + "will persist the value as a JSON document with a single numeric property, "
+                + "e.g. '{\"FOO\": 10}." + System.lineSeparator()
+                + "Note: the DELIMITED format ignores this setting as it does not support the "
+                + "concept of a STRUCT, record or document."
         )
         .withClientSslSupport();
     for (final CompatibilityBreakingConfigDef compatibilityBreakingConfigDef

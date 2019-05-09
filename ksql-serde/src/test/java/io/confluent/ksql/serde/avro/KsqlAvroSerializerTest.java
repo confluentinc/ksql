@@ -37,7 +37,6 @@ import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.generic.GenericRecordBuilder;
 import org.apache.avro.util.Utf8;
-import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serializer;
@@ -72,7 +71,9 @@ public class KsqlAvroSerializerTest {
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
 
-  private KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
+  private KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of(
+      KsqlConfig.KSQL_PERSIST_SINGLE_FIELD_IN_STRUCT, true
+  ));
   private Serializer<Struct> serializer;
   private Deserializer<Struct> deserializer;
 
@@ -346,8 +347,11 @@ public class KsqlAvroSerializerTest {
 
   @Test
   public void shouldSerializeMapWithoutNameIfDisabled() {
-    ksqlConfig = new KsqlConfig(
-        Collections.singletonMap(KsqlConfig.KSQL_USE_NAMED_AVRO_MAPS, false));
+    ksqlConfig = new KsqlConfig(ImmutableMap.of(
+        KsqlConfig.KSQL_USE_NAMED_AVRO_MAPS, false,
+        KsqlConfig.KSQL_PERSIST_SINGLE_FIELD_IN_STRUCT, true
+    ));
+
     final org.apache.avro.Schema avroSchema = mapSchema(legacyMapEntrySchema());
     shouldSerializeMap(avroSchema);
   }
@@ -472,7 +476,7 @@ public class KsqlAvroSerializerTest {
         new KsqlAvroSerdeFactory(schemaNamespace + "." + schemaName)
             .createSerde(
                 ksqlRecordSchema,
-                new KsqlConfig(Collections.emptyMap()),
+                ksqlConfig,
                 () -> schemaRegistryClient,
                 "logger.name.prefix",
                 ProcessingLogContext.create()
@@ -491,11 +495,13 @@ public class KsqlAvroSerializerTest {
   @Test
   public void shouldSerializedTopLevelPrimitiveIfValueHasOneField() {
     // Given:
+    givenConfiguredToSerializeSingleFieldWithoutStruct();
+
     final Schema schema = SchemaBuilder.struct()
         .field("id", Schema.OPTIONAL_INT64_SCHEMA)
         .build();
 
-    resetSerde(Schema.OPTIONAL_INT64_SCHEMA);
+    resetSerde(schema);
 
     final Struct value = new Struct(schema)
         .put("id", 10L);
@@ -508,29 +514,10 @@ public class KsqlAvroSerializerTest {
   }
 
   @Test
-  public void shouldThrowOnSerializedTopLevelPrimitiveWhenSchemaHasMoreThanOneField() {
-    // Given:
-    final Schema schema = SchemaBuilder.struct()
-        .field("id", Schema.OPTIONAL_INT32_SCHEMA)
-        .field("id2", Schema.OPTIONAL_INT32_SCHEMA)
-        .build();
-
-    final Struct value = new Struct(schema)
-        .put("id", 10);
-
-    resetSerde(Schema.OPTIONAL_INT64_SCHEMA);
-
-    // Then:
-    expectedException.expect(SerializationException.class);
-    expectedException.expectMessage("Expected to serialize primitive, map or array not record");
-
-    // When:
-    serializer.serialize("", value);
-  }
-
-  @Test
   public void shouldSerializeTopLevelArrayIfValueHasOnlySingleField() {
     // Given:
+    givenConfiguredToSerializeSingleFieldWithoutStruct();
+
     final Schema schema = SchemaBuilder.struct()
         .field("ids", SchemaBuilder
             .array(Schema.OPTIONAL_INT64_SCHEMA)
@@ -541,7 +528,7 @@ public class KsqlAvroSerializerTest {
     final Struct value = new Struct(schema)
         .put("ids", ImmutableList.of(1L, 2L, 3L));
 
-    resetSerde(SchemaBuilder.array(Schema.OPTIONAL_INT64_SCHEMA).optional().build());
+    resetSerde(schema);
 
     // When:
     final byte[] bytes = serializer.serialize("t", value);
@@ -551,32 +538,10 @@ public class KsqlAvroSerializerTest {
   }
 
   @Test
-  public void shouldThrowOnSerializedTopLevelArrayWhenSchemaHasMoreThanOneField() {
-    // Given:
-    final Schema schema = SchemaBuilder.struct()
-        .field("ids", SchemaBuilder
-            .array(Schema.OPTIONAL_INT32_SCHEMA)
-            .optional()
-            .build())
-        .field("id2", Schema.OPTIONAL_INT32_SCHEMA)
-        .build();
-
-    final Struct value = new Struct(schema)
-        .put("ids", ImmutableList.of(1, 2, 3));
-
-    resetSerde(SchemaBuilder.array(Schema.OPTIONAL_INT64_SCHEMA).optional().build());
-
-    // Then:
-    expectedException.expect(SerializationException.class);
-    expectedException.expectMessage("Expected to serialize primitive, map or array not record");
-
-    // When:
-    serializer.serialize("", value);
-  }
-
-  @Test
   public void shouldSerializeTopLevelMapIfValueHasOnlySingleField() {
     // Given:
+    givenConfiguredToSerializeSingleFieldWithoutStruct();
+
     final Schema schema = SchemaBuilder.struct()
         .field("ids", SchemaBuilder
             .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_INT64_SCHEMA)
@@ -587,10 +552,7 @@ public class KsqlAvroSerializerTest {
     final Struct value = new Struct(schema)
         .put("ids", ImmutableMap.of("a", 1L, "b", 2L));
 
-    resetSerde(SchemaBuilder
-        .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_INT64_SCHEMA)
-        .optional()
-        .build());
+    resetSerde(schema);
 
     // When:
     final byte[] bytes = serializer.serialize("t", value);
@@ -600,38 +562,17 @@ public class KsqlAvroSerializerTest {
     assertThat(array.toString(), is("[{\"key\": \"a\", \"value\": 1}, {\"key\": \"b\", \"value\": 2}]"));
   }
 
-  @Test
-  public void shouldThrowOnSerializedTopLevelMapWhenSchemaHasMoreThanOneField() {
-    // Given:
-    final Schema schema = SchemaBuilder.struct()
-        .field("ids", SchemaBuilder
-            .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_INT64_SCHEMA)
-            .optional()
-            .build())
-        .field("id2", Schema.OPTIONAL_INT32_SCHEMA)
-        .build();
-
-    final Struct value = new Struct(schema)
-        .put("ids", ImmutableMap.of("a", 1L, "b", 2L));
-
-    resetSerde(SchemaBuilder
-        .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_INT64_SCHEMA)
-        .optional()
-        .build());
-
-    // Then:
-    expectedException.expect(SerializationException.class);
-    expectedException.expectMessage("Expected to serialize primitive, map or array not record");
-
-    // When:
-    serializer.serialize("", value);
-  }
-
   @SuppressWarnings("unchecked")
   private <T> T deserialize(final byte[] serializedRow) {
     final KafkaAvroDeserializer kafkaAvroDeserializer =
         new KafkaAvroDeserializer(schemaRegistryClient);
 
     return (T) kafkaAvroDeserializer.deserialize("t", serializedRow);
+  }
+
+  private void givenConfiguredToSerializeSingleFieldWithoutStruct() {
+    ksqlConfig = new KsqlConfig(ImmutableMap.of(
+        KsqlConfig.KSQL_PERSIST_SINGLE_FIELD_IN_STRUCT, false
+    ));
   }
 }

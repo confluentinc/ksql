@@ -3,6 +3,68 @@
 KSQL Serialization
 ==================
 
+=========================
+Controlling serialization
+=========================
+
+KSQL offers several mechanisms for controlling serialization and deserialization.
+
+The primary mechanism is through the choice of serialization format. This is done when creating
+a stream or table by specifying the ``VALUE_FORMAT`` in the ``WITH`` clause. For example,
+
+.. code:: sql
+
+    CREATE TABLE x (F0 INT, F1 STRING) WITH (VALUE_FORMAT='JSON', ...);
+
+For more information on the formats KSQL supports, see :ref:`ksql_formats` below.
+
+KSQL provides some additional configuration that allows serialization to be controlled:
+
+-------------------------
+Single field (un)wrapping
+-------------------------
+
+When KSQL serializes a row into a Kafka record the key fields are serialised into the key of the
+Kafka record and any value fields are serialized into the value. When the value only has a
+single field KSQL will, by default, serialize the single field within an outer JSON object or Avro
+record. For example, consider the statement:
+
+.. code:: sql
+
+    CREATE STREAM x (f0 INT, f1 STRING) WITH (VALUE_FORMAT='JSON', ...);
+    CREATE STREAM y AS SELECT f0 FROM x;
+
+The second statement defines a stream with only a single field in the value: ``f0`` and uses the
+JSON format.  When writing out result to Kafka KSQL would persist a row where ``f0`` had the value
+``10`` as a JSON object:
+
+.. code:: json
+
+   {
+      "F0": 10
+   }
+
+If you would prefer the value to be serialized without the outer JSON object, or Avro record, set
+:ref:`ksql_persistence_ensure_value_is_struct` to ``false`` before running the statement.
+
+.. code:: sql
+
+    SET 'ksql.persistence.ensure.value.is.struct'='false';
+    CREATE STREAM y AS SELECT f0 FROM x;
+
+With this setting turned off, the output will not be nested. In this example it would be an JSON
+number:
+
+... code json
+
+    10
+
+.. _ksql_formats
+
+=======
+Formats
+=======
+
 KSQL currently supports three serialization formats:
 
 *. ``DELIMITED`` supports comma separated values. See :ref:`delimited_format` below.
@@ -44,7 +106,7 @@ The JSON format supports all of KSQL's ref:`data types <data-types>`. As JSON do
 support a map type, KSQL serializes ``MAP``s as JSON objects.  Because of this the JSON format can
 only support ``MAP`` objects that have ``STRING`` keys.
 
-The serialized object should be a Kafka-serialized string containing a valid JSON value. The foramt
+The serialized object should be a Kafka-serialized string containing a valid JSON value. The format
 supports JSON objects and top-level primitives, arrays and maps. See below for more info.
 
 JSON Objects

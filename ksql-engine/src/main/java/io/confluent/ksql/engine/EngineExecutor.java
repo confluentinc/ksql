@@ -85,7 +85,9 @@ final class EngineExecutor {
           statement.withConfig(ksqlConfig.cloneWithPropertyOverwrite(overriddenProperties))
       );
 
-      // DDL statement permissions are verified during the RequestHandler execution
+      // DDL statements permissions are always denied at this point. Perhaps because the use of
+      // the SandboxedServiceContext.
+      // Instead, DDL statement permissions are verified during the RequestHandler execution.
       if (!logicalPlan.getNode().isPresent()) {
         final String msg = engineContext.executeDdlStatement(
             statement.getStatementText(),

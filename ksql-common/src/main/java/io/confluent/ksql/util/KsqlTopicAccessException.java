@@ -28,6 +28,10 @@ public class KsqlTopicAccessException extends KsqlException {
     super(String.format(TOPIC_ACCESS_ERROR_MESSAGE, topicName));
   }
 
+  public KsqlTopicAccessException(final String topicName, final Throwable cause) {
+    super(String.format(TOPIC_ACCESS_ERROR_MESSAGE, topicName), cause);
+  }
+
   public KsqlTopicAccessException(final Throwable cause) {
     super(cause);
   }

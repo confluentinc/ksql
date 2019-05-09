@@ -36,7 +36,6 @@ import java.util.List;
 import java.util.Set;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.acl.AclOperation;
-import org.apache.kafka.common.errors.TopicAuthorizationException;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -194,26 +193,13 @@ public class TopicAccessValidatorTest {
   }
 
   @Test
-  public void shouldDenyStatementWhenTopicAuthorizationException() {
-    // Given:
-    final Statement statement = insertValues("topic1");
-    givenTopicAccessDenied("topic1");
-
-    // Then:
-    expectedException.expect(KsqlTopicAccessException.class);
-
-    // When:
-    accessValidator.verifyStatementPermissions(statement);
-  }
-
-  @Test
   public void shouldDenyStatementWhenKafkaErrorException() {
     // Given:
     final Statement statement = insertValues("topic1");
     givenTopicClientError("topic1");
 
     // Then:
-    expectedException.expect(KafkaResponseGetFailedException.class);
+    expectedException.expect(KsqlTopicAccessException.class);
 
     // When:
     accessValidator.verifyStatementPermissions(statement);
@@ -306,13 +292,7 @@ public class TopicAccessValidatorTest {
     when(topicDescription.authorizedOperations()).thenReturn(operations);
   }
 
-  private void givenTopicAccessDenied(final String topic) {
-    doThrow(new KafkaResponseGetFailedException(topic, new TopicAuthorizationException(topic)))
-        .when(kafkaTopicClient).describeTopic(topic);
-  }
-
   private void givenTopicClientError(final String topic) {
-    doThrow(KafkaResponseGetFailedException.class)
-        .when(kafkaTopicClient).describeTopic(topic);
+    doThrow(KafkaResponseGetFailedException.class).when(kafkaTopicClient).describeTopic(topic);
   }
 }

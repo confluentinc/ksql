@@ -16,7 +16,6 @@
 package io.confluent.ksql.engine;
 
 import avro.shaded.com.google.common.collect.Sets;
-import io.confluent.ksql.exception.KafkaResponseGetFailedException;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.InsertInto;
@@ -32,7 +31,6 @@ import java.util.Set;
 
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.acl.AclOperation;
-import org.apache.kafka.common.errors.TopicAuthorizationException;
 
 /**
  * Wraps a {@link ServiceContext} to validate access to Kafka topics.
@@ -164,15 +162,8 @@ public final class TopicAccessValidator {
       if (!operations.stream().allMatch(topicDescription.authorizedOperations()::contains)) {
         throw new KsqlTopicAccessException(topicName);
       }
-    } catch (final KafkaResponseGetFailedException e) {
-      if (e.getCause() instanceof TopicAuthorizationException) {
-        // Do not wrap the exception so the KSQL user does not know correct authorization error.
-        // Admins will know it by looking at the kafka-authorizer logs
-        throw new KsqlTopicAccessException(topicName);
-      }
-
-      // Do not throw an access exception. We should show the correct error to the KSQL user.
-      throw e;
+    } catch (final Exception e) {
+      throw new KsqlTopicAccessException(topicName, e);
     }
   }
 }

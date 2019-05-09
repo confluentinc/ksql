@@ -28,9 +28,9 @@ KSQL 5.3.0 includes new features, including:
 
 * KSQL now supports deserializing records where the value is:
 
-  #. A primitive, e.g. a ``STRING``, ``INT``, ``DOUBLE`` etc, in Avro, Json and Delimited formats.
-  #. An array, for both Avro and Json formats.
-  #. A map, for both Avro and Json formats.
+  #. A primitive, e.g. a ``STRING``, ``INT``, ``DOUBLE`` etc, in Avro, JSON and Delimited formats.
+  #. An array, for both Avro and JSON formats.
+  #. A map, for both Avro and JSON formats.
 
 
 KSQL 5.3.0 includes bug fixes, including:

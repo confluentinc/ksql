@@ -18,7 +18,7 @@ DELIMITED
 
 The ``DELIMITED`` format supports comma separated values.
 
-The serialized object should be a Kafka serialized string, which will be split into columns.
+The serialized object should be a Kafka-serialized string, which will be split into columns.
 
 For example, given a KSQL statement such as:
 
@@ -26,11 +26,11 @@ For example, given a KSQL statement such as:
 
     CREATE STREAM x (ID BIGINT, NAME STRING, AGE INT) WITH (VALUE_FORMAT='DELIMITED', ...);
 
-Then KSQL would split a value of ``120, bob, 49`` into the three fields with ``ID`` of ``120``,
+KSQL splits a value of ``120, bob, 49`` into the three fields with ``ID`` of ``120``,
 ``NAME`` of ``bob`` and ``AGE`` of ``49``.
 
-This data format supports all KSQL data types except ``ARRAY``, ``MAP`` and ``STRUCT``. See
-:ref:`data-types` for more details.
+This data format supports all KSQL :ref:`data types <data-types>` except ``ARRAY``, ``MAP`` and
+``STRUCT``.
 
 .. _json_format
 
@@ -40,11 +40,11 @@ JSON
 
 The ``JSON`` format supports JSON values.
 
-The JSON format supports all of KSQL's data types. (See :ref:`data-types` for details). Though,
-as JSON itself does not support a map type, KSQL serializes ``MAP``s as JSON objects.  Because of
-this the JSON format can only support ``MAP``s with ``STRING`` keys.
+The JSON format supports all of KSQL's ref:`data types <data-types>`. As JSON does not itself
+support a map type, KSQL serializes ``MAP``s as JSON objects.  Because of this the JSON format can
+only support ``MAP`` objects that have ``STRING`` keys.
 
-The serialized object should be a Kafka serialized string containing a valid JSON value. The foramt
+The serialized object should be a Kafka-serialized string containing a valid JSON value. The foramt
 supports JSON objects and top-level primitives, arrays and maps. See below for more info.
 
 JSON Objects
@@ -68,13 +68,13 @@ And a JSON value of:
          "age": "49"
        }
 
-KSQL would deserialize the JSON object's fields into the corresponding field of the stream.
+KSQL deserializes the JSON object's fields into the corresponding fields of the stream.
 
 Top-level Primitives
 --------------------
 
-The JSON format supports reading top-level JSON primitives. KSQL can only do so if the target
-schema contains only a single field of a compatible type.
+The JSON format supports reading top-level JSON primitives, but can if the target schema contains
+a single field of a compatible type.
 
 For example, given a KSQL statement with only a single field in the value schema:
 
@@ -88,22 +88,22 @@ And a JSON value of:
 
        10
 
-KSQL would deserialize the JSON primitive ``10`` into the ``ID`` field of the stream.
+KSQL deserializes the JSON primitive ``10`` into the ``ID`` field of the stream.
 
-However, if the value schema contained multiple fields, for example:
+However, if the value schema contains multiple fields, for example:
 
 .. code:: sql
 
     CREATE STREAM x (ID BIGINT, NAME STRING) WITH (VALUE_FORMAT='JSON', ...);
 
-Deserialization would fail as it is ambiguous as to which field the primitive value should be
+Deserialization fails, because it's ambiguous as to which field the primitive value should be
 deserialized into.
 
 Top-level Arrays
 ----------------
 
-The JSON format supports reading top-level JSON arrays. KSQL can only do so if the target schema
-contains only a single field of a compatible type.
+The JSON format supports reading top-level JSON arrays, but only if the target schema contains a
+single field of a compatible type.
 
 For example, given a KSQL statement with only a single array field in the value schema:
 
@@ -120,27 +120,27 @@ And a JSON value of:
           "EMEA"
        ]
 
-KSQL would deserialize the JSON array into the ``REGIONS`` field of the stream.
+KSQL deserializes the JSON array into the ``REGIONS`` field of the stream.
 
-However, if the value schema contained multiple fields, for example:
+However, if the value schema contains multiple fields, for example:
 
 .. code:: sql
 
     CREATE STREAM x (REGIONS ARRAY<STRING>, NAME STRING) WITH (VALUE_FORMAT='JSON', ...);
 
-Deserialization would fail as it is ambiguous as to which field the primitive value should be
+Deserialization fails, because it's ambiguous as to which field the primitive value should be
 deserialized into.
 
 Top-level Maps
 --------------
 
-.. tip:: Care must be take when deserializing JSON objects into a single ``MAP`` field to ensure
-         the name of the field within the KSQL statement never clashes with any of the keys within
-         the map.  Any clash can lead to undesirable deserialization artifacts as KSQL will
-         treat the value as a normal JSON object, not as a map.
+.. tip:: When you deserialize JSON objects into a single ``MAP`` field, ensure the name of the
+         field within the KSQL statement doesn't conflict with any of the keys in the map.
+         Any conflict can lead to undesirable deserialization artifacts because KSQL treats the
+         value as a normal JSON object, not as a map.
 
-The JSON format supports reading a JSON object as a ``MAP``. KSQL can only do so if the target
-schema contains only a single field of a compatible type.
+The JSON format supports reading a JSON object as a ``MAP``, but only if the target schema contains
+a single field of a compatible type.
 
 For example, given a KSQL statement with only a single map field in the value schema:
 
@@ -158,18 +158,18 @@ And a JSON value of:
           "userId": "peter"
        }
 
-KSQL would deserialize the JSON map into the ``PROPS`` field of the stream.
+KSQL deserializes the JSON map into the ``PROPS`` field of the stream.
 
-However, if the value schema contained multiple fields, for example:
+However, if the value schema contains multiple fields, for example:
 
 .. code:: sql
 
     CREATE STREAM x (PROPS MAP<STRING, STRING>, NAME STRING) WITH (VALUE_FORMAT='JSON', ...);
 
-Deserialization would fail as it is ambiguous as to which field the primitive value should be
+Deserialization fails, because it's ambiguous as to which field the primitive value should be
 deserialized into.
 
-A further potential ambiguity exists when working with top-level maps should any of the keys of the
+A further potential ambiguity exists when working with top-level maps, when any of the keys of the
 value match the name of the singular field in the target schema.
 
 For example, given:
@@ -190,10 +190,11 @@ And a JSON value of:
           "userId": "peter"
        }
 
-It is now ambiguous to KSQL as to how to deserialize the value: top level map or object? KSQL will
-deserialize the value as JSON object, meaning ``PROPS`` will be populated with an entry ``x -> y``
-only.  Such ambiguity can be avoided by ensuring the name of the field using in the KSQL statement
-never clashes with a property name within the json object.
+Deserializing the value is ambiguous: does KSQL deserialize to a top-level map or object? KSQL
+deserializes the value as a JSON object, meaning ``PROPS`` is populated with an entry ``x -> y``
+only.  Avoid this kind of ambiguity by ensuring the name of the field using in the KSQL statement
+never clashes with a property name within the json object, or that the target schema contains more
+than a single field.
 
 .. _avro_format
 
@@ -201,11 +202,11 @@ never clashes with a property name within the json object.
 Avro
 ----
 
-The ``AVRO`` format supports Avro binary serialized records and top-level primitives, arrays and
-maps.
+The ``AVRO`` format supports Avro binary serialized of all of KSQL's ref:`data types <data-types>`
+including records and top-level primitives, arrays and maps.
 
 The format requires KSQL to be configured to store and retrieve the Avro schemas from the |sr-long|.
-See :ref:`install_ksql-avro-schema` for more info.
+For more information, see :ref:`install_ksql-avro-schema`.
 
 ------------
 Avro Records
@@ -219,7 +220,7 @@ For example, given a KSQL statement such as:
 
     CREATE STREAM x (ID BIGINT, NAME STRING, AGE INT) WITH (VALUE_FORMAT='JSON', ...);
 
-And a Avro record serialized with the schema:
+And an Avro record serialized with the schema:
 
 .. code:: json
 
@@ -234,14 +235,14 @@ And a Avro record serialized with the schema:
          ]
        }
 
-KSQL would deserialize the Avro record's fields into the corresponding field of the stream.
+KSQL deserializes the Avro record's fields into the corresponding fields of the stream.
 
 -------------------------------------
 Top-level primitives, arrays and maps
 -------------------------------------
 
-The Avro format supports reading top-level primitives, arrays and maps. KSQL can only do so if the
-target schema contains only a single field of a compatible type.
+The Avro format supports reading top-level primitives, arrays and maps, but only if the target
+schema contains a single field of a compatible type.
 
 For example, given a KSQL statement with only a single field in the value schema:
 
@@ -249,7 +250,7 @@ For example, given a KSQL statement with only a single field in the value schema
 
     CREATE STREAM x (ID BIGINT) WITH (VALUE_FORMAT='JSON', ...);
 
-And a Avro value serialized with the schema:
+And an Avro value serialized with the schema:
 
 .. code:: json
 
@@ -259,11 +260,11 @@ And a Avro value serialized with the schema:
 
 KSQL can deserialize the values into the ``ID`` field of the stream.
 
-However, if the value schema contained multiple fields, for example:
+However, if the value schema contains multiple fields, for example:
 
 .. code:: sql
 
     CREATE STREAM x (ID BIGINT, NAME STRING) WITH (VALUE_FORMAT='JSON', ...);
 
-Deserialization would fail as it is ambiguous as to which field the primitive value should be
+Deserialization fails, because it's ambiguous as to which field the primitive value should be
 deserialized into.

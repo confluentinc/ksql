@@ -125,8 +125,8 @@ public class KsqlJsonDeserializer implements Deserializer<Struct> {
    * <p>The deserializer supports deserializing top-level unnamed primitives, arrays and maps if
    * the target schema only contains a single field of the required type, e.g. the value '10' can be
    * deserialized into a schema containing a single numeric field. Likewise, the value '[1,2]' can
-   * deserialized into a schema containing a single array field. The same is true of maps, but maps
-   * can be ambiguous.
+   * be deserialized into a schema containing a single array field. The same is true of maps, but
+   * maps can be ambiguous.
    *
    * <p>There is ambiguity when handling top level maps due to the fact that JSON does not have a
    * map type, so KSQL persists maps as JSON objects.  JSON objects are also used to represent KSQL

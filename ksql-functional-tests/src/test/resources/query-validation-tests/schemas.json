@@ -39,30 +39,6 @@
       ]
     },
     {
-      "name": "serialize top level primitive - value",
-      "format": ["JSON", "AVRO"],
-      "statements": [
-        "CREATE STREAM INPUT (foo INT) WITH (kafka_topic='input_topic', value_format='{FORMAT}');",
-        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
-      ],
-      "properties": {
-        "ksql.persistence.ensure.value.is.struct": "false"
-      },
-      "topics": [
-        {
-          "name": "OUTPUT",
-          "schema": {"type": "int"},
-          "format": "{FORMAT}"
-        }
-      ],
-      "inputs": [
-        {"topic": "input_topic", "value": {"FOO": 10}}
-      ],
-      "outputs": [
-        {"topic": "OUTPUT", "value": 10}
-      ]
-    },
-    {
       "name": "deserialize top level primitive - value - with coercion",
       "format": ["JSON", "AVRO"],
       "statements": [

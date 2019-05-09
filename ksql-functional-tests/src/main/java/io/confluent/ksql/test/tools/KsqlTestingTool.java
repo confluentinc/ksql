@@ -53,17 +53,7 @@ public final class KsqlTestingTool {
             new File(testOptions.getTestFile()).toPath(),
             TestFunctionRegistry.INSTANCE.get());
         for (final TestCase testCase: testCases) {
-          final TestExecutor testExecutor = new TestExecutor();
-          try {
-            System.out.println(" >>> Running test: " + testCase.getName());
-            testExecutor.buildAndExecuteQuery(testCase);
-            System.out.println(" >>> Test " + testCase.getName() + " passed!");
-          } catch (final Exception e) {
-            e.printStackTrace();
-            System.err.println("\t>>>>> Test " + testCase.getName() + " failed: " + e.getMessage());
-          } finally {
-            testExecutor.close();
-          }
+          executeTestCase(testCase, new TestExecutor());
         }
       }
 
@@ -71,6 +61,19 @@ public final class KsqlTestingTool {
 
     } catch (final Exception e) {
       System.err.println("Failed to start KSQL testing tool: " + e.getMessage());
+    }
+  }
+
+  static void executeTestCase(final TestCase testCase, final TestExecutor testExecutor) {
+    try {
+      System.out.println(" >>> Running test: " + testCase.getName());
+      testExecutor.buildAndExecuteQuery(testCase);
+      System.out.println(" >>> Test " + testCase.getName() + " passed!");
+    } catch (final Exception e) {
+      e.printStackTrace();
+      System.err.println("\t>>>>> Test " + testCase.getName() + " failed: " + e.getMessage());
+    } finally {
+      testExecutor.close();
     }
   }
 }

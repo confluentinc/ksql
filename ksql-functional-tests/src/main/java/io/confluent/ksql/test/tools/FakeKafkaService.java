@@ -53,18 +53,6 @@ public final class FakeKafkaService {
     this.topicData.get(topicName).add(record);
   }
 
-  public void writeRecoredsIntoTopic(final String topicName, final List<FakeKafkaRecord> record) {
-    Objects.requireNonNull(topicName);
-    Objects.requireNonNull(record);
-    ensureTopicExists(topicName);
-    this.topicData.get(topicName).addAll(record);
-  }
-
-  public List<FakeKafkaRecord> readRecordsFromTopic(final Topic topic) {
-    Objects.requireNonNull(topic);
-    return readRecordsFromTopic(topic.getName());
-  }
-
   public List<FakeKafkaRecord> readRecordsFromTopic(final String topicName) {
     Objects.requireNonNull(topicName);
     ensureTopicExists(topicName);
@@ -75,5 +63,13 @@ public final class FakeKafkaService {
     if (!this.topicMap.containsKey(topicName)) {
       throw new KsqlException("Topic does not exist: " +  topicName);
     }
+  }
+
+  Map<String, Topic> getTopicMap() {
+    return topicMap;
+  }
+
+  Map<String, List<FakeKafkaRecord>> getTopicData() {
+    return topicData;
   }
 }

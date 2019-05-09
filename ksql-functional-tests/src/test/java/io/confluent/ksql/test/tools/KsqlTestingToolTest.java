@@ -15,9 +15,12 @@
 
 package io.confluent.ksql.test.tools;
 
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
@@ -55,7 +58,23 @@ public class KsqlTestingToolTest {
     KsqlTestingTool.loadAndRunTests(new String[]{"src/test/resources/unit_test.json"});
 
     // Then:
-    assertThat(outContent.toString(), equalTo(""));
+    assertThat(outContent.toString(), containsString("All tests passed!"));
+  }
+
+  @Test
+  public void shouldUseAndCloseTestExecutor() {
+    // Given:
+    final TestCase testCase = mock(TestCase.class);
+    final TestExecutor testExecutor = mock(TestExecutor.class);
+
+
+    // When:
+    KsqlTestingTool.executeTestCase(testCase, testExecutor);
+
+    // Then:
+    verify(testExecutor).buildAndExecuteQuery(testCase);
+    verify(testExecutor).close();
+
   }
 
   @Test
@@ -67,7 +86,7 @@ public class KsqlTestingToolTest {
     // When:
     try {
       KsqlTestingTool.loadAndRunTests(new String[]{"foo"});
-    } catch (Exception e) {
+    } catch (final Exception e) {
       assertThat(e, instanceOf(TestSecurityManager.ExitSecurityException.class));
       final TestSecurityManager.ExitSecurityException exitSecurityException = (TestSecurityManager.ExitSecurityException) e;
       assertThat(exitSecurityException.getStatus(), equalTo(-1));

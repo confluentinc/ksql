@@ -39,7 +39,7 @@ public class FakeKafkaServiceTest {
   private ProducerRecord producerRecord;
   @Mock
   private Record record;
-  private final FakeKafkaRecord fakeKafkaRecord = new FakeKafkaRecord(record, producerRecord);
+  private final FakeKafkaRecord fakeKafkaRecord = FakeKafkaRecord.of(record, producerRecord);
 
 
   @Test

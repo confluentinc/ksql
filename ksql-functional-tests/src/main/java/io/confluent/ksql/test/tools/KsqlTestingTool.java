@@ -82,7 +82,7 @@ public final class KsqlTestingTool {
       final TestExecutor testExecutor,
       final List<String> passedTests,
       final List<Pair<String, String>> failedTests
-      ) {
+  ) {
     try {
       System.out.println(" >>> Running test: " + testCase.getName());
       testExecutor.buildAndExecuteQuery(testCase);

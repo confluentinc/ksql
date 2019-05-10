@@ -18,7 +18,7 @@ package io.confluent.ksql.test.tools;
 import java.util.Objects;
 import org.apache.kafka.clients.producer.ProducerRecord;
 
-public class FakeKafkaRecord {
+public final class FakeKafkaRecord {
 
   private final Record testRecord;
   private final ProducerRecord producerRecord;

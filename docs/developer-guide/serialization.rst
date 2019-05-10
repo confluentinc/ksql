@@ -9,14 +9,14 @@ Controlling serialization
 
 KSQL offers several mechanisms for controlling serialization and deserialization.
 
-The primary mechanism is through the choice of serialization format. This is done when creating
-a stream or table by specifying the ``VALUE_FORMAT`` in the ``WITH`` clause. For example,
+The primary mechanism is by choosing the serialization format when you create
+a stream or table and specify the ``VALUE_FORMAT`` in the ``WITH`` clause.
 
 .. code:: sql
 
     CREATE TABLE x (F0 INT, F1 STRING) WITH (VALUE_FORMAT='JSON', ...);
 
-For more information on the formats KSQL supports, see :ref:`ksql_formats` below.
+For more information on the formats that KSQL supports, see :ref:`ksql_formats`.
 
 KSQL provides some additional configuration that allows serialization to be controlled:
 
@@ -24,9 +24,9 @@ KSQL provides some additional configuration that allows serialization to be cont
 Single field (un)wrapping
 -------------------------
 
-When KSQL serializes a row into a Kafka record the key fields are serialised into the key of the
-Kafka record and any value fields are serialized into the value. When the value only has a
-single field KSQL will, by default, serialize the single field within an outer JSON object or Avro
+When KSQL serializes a row into a Kafka record, the key fields are serialized into the key of the
+Kafka record, and any value fields are serialized into the value. By default, when the value has only a
+single field, KSQL serializes the single field within an outer JSON object or Avro
 record. For example, consider the statement:
 
 .. code:: sql
@@ -34,8 +34,8 @@ record. For example, consider the statement:
     CREATE STREAM x (f0 INT, f1 STRING) WITH (VALUE_FORMAT='JSON', ...);
     CREATE STREAM y AS SELECT f0 FROM x;
 
-The second statement defines a stream with only a single field in the value: ``f0`` and uses the
-JSON format.  When writing out result to Kafka KSQL would persist a row where ``f0`` had the value
+The second statement defines a stream with only a single field in the value, named ``f0``, and uses the
+JSON format. When KSQL writes out the result to Kafka, it persists a row with field ``f0`` set to the value
 ``10`` as a JSON object:
 
 .. code:: json
@@ -44,7 +44,7 @@ JSON format.  When writing out result to Kafka KSQL would persist a row where ``
       "F0": 10
    }
 
-If you would prefer the value to be serialized without the outer JSON object, or Avro record, set
+If you want the value to be serialized without the outer JSON object or Avro record, set
 :ref:`ksql_persistence_ensure_value_is_struct` to ``false`` before running the statement.
 
 .. code:: sql
@@ -52,7 +52,7 @@ If you would prefer the value to be serialized without the outer JSON object, or
     SET 'ksql.persistence.wrap.single.values'='false';
     CREATE STREAM y AS SELECT f0 FROM x;
 
-With this setting turned off, the output will not be nested. In this example it would be an JSON
+When this setting is turned off, the output isn't nested. In this example, it's a JSON
 number:
 
 ... code json

@@ -45,7 +45,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
   private final KsqlTopic ksqlTopic;
   private final KeyField keyField;
   private final boolean doCreateInto;
-  private final boolean partitionBy;
+  private final boolean selectKeyRequired;
 
   @JsonCreator
   public KsqlStructuredDataOutputNode(
@@ -56,7 +56,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
       @JsonProperty("key") final KeyField keyField,
       @JsonProperty("ksqlTopic") final KsqlTopic ksqlTopic,
       @JsonProperty("topicName") final String kafkaTopicName,
-      @JsonProperty("partitionBy") final boolean partitionBy,
+      @JsonProperty("selectKeyRequired") final boolean selectKeyRequired,
       @JsonProperty("limit") final Optional<Integer> limit,
       @JsonProperty("doCreateInto") final boolean doCreateInto
   ) {
@@ -65,10 +65,10 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     this.keyField = Objects.requireNonNull(keyField, "keyField")
         .validateKeyExistsIn(schema);
     this.ksqlTopic = Objects.requireNonNull(ksqlTopic, "ksqlTopic");
-    this.partitionBy = partitionBy;
+    this.selectKeyRequired = selectKeyRequired;
     this.doCreateInto = doCreateInto;
 
-    if (partitionBy && !keyField.name().isPresent()) {
+    if (selectKeyRequired && !keyField.name().isPresent()) {
       throw new IllegalArgumentException("keyField must be provided when performing partition by");
     }
   }
@@ -159,7 +159,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
         contextStacker.getQueryContext()
     );
 
-    if (!partitionBy) {
+    if (!selectKeyRequired) {
       return result;
     }
 

@@ -258,7 +258,7 @@ The corresponding environment variable in the
 ksql.persistence.ensure.value.is.struct
 ---------------------------------------
 
-Controls how KSQL will serialize a value whose schema contains only a single column.
+Controls how KSQL serializes a value whose schema contains only a single column.
 
 When set to the default ``true`` KSQL will serialize the column value nested with a JSON object or
 Avro record, depending on the format in use. When set to ``false`` KSQL will persist the column

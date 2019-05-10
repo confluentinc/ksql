@@ -261,7 +261,7 @@ ksql.persistence.ensure.value.is.struct
 Controls how KSQL serializes a value whose schema contains only a single column.
 
 When set to the default value, ``true``, KSQL serializes the column value nested with a JSON object or
-Avro record, depending on the format in use. When set to ``false`` KSQL will persist the column
+Avro record, depending on the format in use. When set to ``false``, KSQL persists the column
 value without any nesting.
 
 For example, consider the statement:

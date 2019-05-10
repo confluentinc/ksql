@@ -16,7 +16,7 @@ a stream or table and specify the ``VALUE_FORMAT`` in the ``WITH`` clause.
 
     CREATE TABLE x (F0 INT, F1 STRING) WITH (VALUE_FORMAT='JSON', ...);
 
-For more information on the formats KSQL supports, see :ref:`ksql_formats` below.
+For more information on the formats that KSQL supports, see :ref:`ksql_formats`.
 
 KSQL provides some additional configuration that allows serialization to be controlled:
 

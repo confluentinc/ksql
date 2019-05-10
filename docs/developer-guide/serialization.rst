@@ -52,7 +52,7 @@ If you want the value to be serialized without the outer JSON object or Avro rec
     SET 'ksql.persistence.ensure.value.is.struct'='false';
     CREATE STREAM y AS SELECT f0 FROM x;
 
-With this setting turned off, the output will not be nested. In this example it would be an JSON
+When this setting is turned off, the output isn't nested. In this example, it's a JSON
 number:
 
 ... code json

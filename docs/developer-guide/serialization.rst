@@ -25,7 +25,7 @@ Single field (un)wrapping
 -------------------------
 
 When KSQL serializes a row into a Kafka record, the key fields are serialized into the key of the
-Kafka record and any value fields are serialized into the value. When the value only has a
+Kafka record, and any value fields are serialized into the value. By default, when the value has only a
 single field KSQL will, by default, serialize the single field within an outer JSON object or Avro
 record. For example, consider the statement:
 

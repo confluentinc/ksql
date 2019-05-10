@@ -272,7 +272,7 @@ For example, consider the statement:
 
 The statement selects a single field as the value of stream ``y``. If ``f0`` has the
 integer value ``10``,
-With ``ksql.persistence.ensure.value.is.struct`` set to ``true`` the JSON format would persist the
+with ``ksql.persistence.ensure.value.is.struct`` set to ``true``, the JSON format persists the
 value within a JSON object as it would if the value was to have more fields:
 
 .. code:: json

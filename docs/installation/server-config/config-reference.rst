@@ -270,7 +270,7 @@ For example, consider the statement:
 
     CREATE STREAM y AS SELECT f0 FROM x;
 
-The statement selects a single field as the value of stream ``y``. Let us assume that ``f0`` has the
+The statement selects a single field as the value of stream ``y``. If ``f0`` has the
 integer value ``10``,
 
 With ``ksql.persistence.ensure.value.is.struct`` set to ``true`` the JSON format would persist the

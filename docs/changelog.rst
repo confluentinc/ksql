@@ -35,7 +35,7 @@ KSQL 5.3.0 includes new features, including:
 * It is now possible to configure KSQL to persist rows with only a single field as JSON primitives
   or arrays, or Avro primitives, arrays and maps. Previously, the single field would of been
   persisted nested within a JSON object or Avro record.  For more information, see the documentation
-  for ``ksql.persistence.ensure.value.is.struct``.
+  for the ``ksql.persistence.wrap.single.values`` configuration.
 
 KSQL 5.3.0 includes bug fixes, including:
 

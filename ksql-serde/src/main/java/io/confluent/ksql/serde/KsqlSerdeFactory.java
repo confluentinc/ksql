@@ -21,7 +21,6 @@ import com.google.errorprone.annotations.Immutable;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
-import io.confluent.ksql.serde.util.SerdeUtils;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Objects;
 import java.util.function.Supplier;
@@ -36,6 +35,8 @@ import org.apache.kafka.connect.data.Struct;
 
 @Immutable
 public abstract class KsqlSerdeFactory {
+
+  private static final String DESERIALIZER_LOGGER_NAME = "deserializer";
 
   private final Format format;
 
@@ -59,7 +60,7 @@ public abstract class KsqlSerdeFactory {
     }
 
     final ProcessingLogger processingLogger = processingLogContext.getLoggerFactory()
-        .getLogger(join(loggerNamePrefix, SerdeUtils.DESERIALIZER_LOGGER_NAME));
+        .getLogger(join(loggerNamePrefix, DESERIALIZER_LOGGER_NAME));
 
     final Serializer<Struct> serializer = createSerializer(
         getSerializerSchema(schema, ksqlConfig),
@@ -112,7 +113,7 @@ public abstract class KsqlSerdeFactory {
       return schema;
     }
 
-    if (ksqlConfig.getBoolean(KsqlConfig.KSQL_PERSIST_SINGLE_FIELD_IN_STRUCT)) {
+    if (ksqlConfig.getBoolean(KsqlConfig.KSQL_WRAP_SINGLE_VALUES)) {
       return schema;
     }
 

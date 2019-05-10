@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2019 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.serde.util;
+package io.confluent.ksql.serde.json;
 
 import io.confluent.ksql.util.KsqlException;
 import java.util.Collection;
@@ -23,14 +23,12 @@ import java.util.Objects;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 
-public final class SerdeUtils {
+final class JsonSerdeUtils {
 
-  public static final String DESERIALIZER_LOGGER_NAME = "deserializer";
-
-  private SerdeUtils() {
+  private JsonSerdeUtils() {
   }
 
-  public static boolean toBoolean(final Object object) {
+  static boolean toBoolean(final Object object) {
     Objects.requireNonNull(object, "Object cannot be null");
     if (object instanceof Boolean) {
       return (Boolean) object;
@@ -38,7 +36,7 @@ public final class SerdeUtils {
     throw new IllegalArgumentException("This Object doesn't represent a boolean");
   }
 
-  public static int toInteger(final Object object) {
+  static int toInteger(final Object object) {
     Objects.requireNonNull(object, "Object cannot be null");
     if (object instanceof Integer) {
       return (Integer) object;
@@ -57,7 +55,7 @@ public final class SerdeUtils {
     throw new IllegalArgumentException("This Object doesn't represent an int");
   }
 
-  public static long toLong(final Object object) {
+  static long toLong(final Object object) {
     Objects.requireNonNull(object, "Object cannot be null");
     if (object instanceof Long) {
       return (Long) object;
@@ -76,7 +74,7 @@ public final class SerdeUtils {
     throw new IllegalArgumentException("This Object doesn't represent a long");
   }
 
-  public static double toDouble(final Object object) {
+  static double toDouble(final Object object) {
     Objects.requireNonNull(object, "Object cannot be null");
     if (object instanceof Double) {
       return (Double) object;
@@ -94,7 +92,7 @@ public final class SerdeUtils {
     throw new IllegalArgumentException("This Object doesn't represent a double");
   }
 
-  public static boolean isCoercible(final Object object, final Schema targetSchema) {
+  static boolean isCoercible(final Object object, final Schema targetSchema) {
     if (object == null) {
       return true;
     }

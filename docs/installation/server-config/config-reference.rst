@@ -254,9 +254,9 @@ The corresponding environment variable in the
 
 .. _ksql_persistence_ensure_value_is_struct:
 
----------------------------------------
-ksql.persistence.ensure.value.is.struct
----------------------------------------
+-----------------------------------
+ksql.persistence.wrap.single.values
+-----------------------------------
 
 Controls how KSQL will serialize a value whose schema contains only a single column.
 
@@ -273,7 +273,7 @@ For example, consider the statement:
 The statement selects a single field as the value of stream ``y``. Let us assume that ``f0`` has the
 integer value ``10``.
 
-With ``ksql.persistence.ensure.value.is.struct`` set to ``true`` the JSON format would persist the
+With ``ksql.persistence.wrap.single.values`` set to ``true`` the JSON format would persist the
 value within a JSON object as it would if the value was to have more fields:
 
 .. code:: json
@@ -282,10 +282,10 @@ value within a JSON object as it would if the value was to have more fields:
        "F0": 10
     }
 
-With ``ksql.persistence.ensure.value.is.struct`` set to ``false`` the JSON format would persist the
+With ``ksql.persistence.wrap.single.values`` set to ``false`` the JSON format would persist the
 single field's value as a JSON number: ``10``.
 
-The ``AVRO`` format can also be controlled by setting ``ksql.persistence.ensure.value.is.struct``.
+The ``AVRO`` format can also be controlled by setting ``ksql.persistence.wrap.single.values``.
 In this case the setting controls whether the fields value is written nested within an Avro record,
 or not.
 

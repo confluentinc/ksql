@@ -130,7 +130,7 @@ final class EndToEndEngineTestUtil {
         ksqlEngine,
         sql,
         ksqlConfig,
-        Collections.emptyMap(),
+        new HashMap<>(),
         Optional.of(serviceContext.getSchemaRegistryClient())
     );
 

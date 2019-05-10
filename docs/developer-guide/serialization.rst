@@ -49,7 +49,7 @@ If you would prefer the value to be serialized without the outer JSON object, or
 
 .. code:: sql
 
-    SET 'ksql.persistence.ensure.value.is.struct'='false';
+    SET 'ksql.persistence.wrap.single.values'='false';
     CREATE STREAM y AS SELECT f0 FROM x;
 
 With this setting turned off, the output will not be nested. In this example it would be an JSON

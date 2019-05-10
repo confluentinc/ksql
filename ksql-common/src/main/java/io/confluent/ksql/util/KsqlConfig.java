@@ -139,8 +139,7 @@ public class KsqlConfig extends AbstractConfig {
 
   public static final String KSQL_USE_LEGACY_KEY_FIELD = "ksql.query.fields.key.legacy";
 
-  public static final String KSQL_PERSIST_SINGLE_FIELD_IN_STRUCT =
-      "ksql.persistence.ensure.value.is.struct";
+  public static final String KSQL_WRAP_SINGLE_VALUES = "ksql.persistence.wrap.single.values";
 
   public static final String
       defaultSchemaRegistryUrl = "http://localhost:8081";
@@ -407,7 +406,7 @@ public class KsqlConfig extends AbstractConfig {
             ConfigDef.Importance.LOW,
             "Enable the INSERT INTO ... VALUES functionality."
         ).define(
-            KSQL_PERSIST_SINGLE_FIELD_IN_STRUCT,
+            KSQL_WRAP_SINGLE_VALUES,
             ConfigDef.Type.BOOLEAN,
             true,
             ConfigDef.Importance.LOW,

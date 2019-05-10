@@ -17,6 +17,7 @@ package io.confluent.ksql.function;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
+import io.confluent.ksql.schema.connect.SqlSchemaFormatter;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.ArrayList;
@@ -315,7 +316,7 @@ public class UdfIndex {
 
     @Override
     public String toString() {
-      return SchemaUtil.getSqlTypeName(schema) + (isVararg ? "(VARARG)" : "");
+      return SqlSchemaFormatter.DEFAULT.format(schema) + (isVararg ? "(VARARG)" : "");
     }
   }
 

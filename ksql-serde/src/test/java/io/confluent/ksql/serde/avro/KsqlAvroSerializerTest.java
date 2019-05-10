@@ -72,7 +72,7 @@ public class KsqlAvroSerializerTest {
   public final ExpectedException expectedException = ExpectedException.none();
 
   private KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of(
-      KsqlConfig.KSQL_PERSIST_SINGLE_FIELD_IN_STRUCT, true
+      KsqlConfig.KSQL_WRAP_SINGLE_VALUES, true
   ));
   private Serializer<Struct> serializer;
   private Deserializer<Struct> deserializer;
@@ -349,7 +349,7 @@ public class KsqlAvroSerializerTest {
   public void shouldSerializeMapWithoutNameIfDisabled() {
     ksqlConfig = new KsqlConfig(ImmutableMap.of(
         KsqlConfig.KSQL_USE_NAMED_AVRO_MAPS, false,
-        KsqlConfig.KSQL_PERSIST_SINGLE_FIELD_IN_STRUCT, true
+        KsqlConfig.KSQL_WRAP_SINGLE_VALUES, true
     ));
 
     final org.apache.avro.Schema avroSchema = mapSchema(legacyMapEntrySchema());
@@ -572,7 +572,7 @@ public class KsqlAvroSerializerTest {
 
   private void givenConfiguredToSerializeSingleFieldWithoutStruct() {
     ksqlConfig = new KsqlConfig(ImmutableMap.of(
-        KsqlConfig.KSQL_PERSIST_SINGLE_FIELD_IN_STRUCT, false
+        KsqlConfig.KSQL_WRAP_SINGLE_VALUES, false
     ));
   }
 }

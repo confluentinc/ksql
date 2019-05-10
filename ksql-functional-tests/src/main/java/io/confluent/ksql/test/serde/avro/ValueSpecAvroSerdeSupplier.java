@@ -27,7 +27,6 @@ import java.util.AbstractMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -71,6 +70,10 @@ public class ValueSpecAvroSerdeSupplier implements SerdeSupplier<Object> {
 
     @Override
     public byte[] serialize(final String topicName, final Object spec) {
+      if (spec == null) {
+        return null;
+      }
+
       final String schemaString;
       try {
         schemaString = schemaRegistryClient.getLatestSchemaMetadata(
@@ -111,13 +114,10 @@ public class ValueSpecAvroSerdeSupplier implements SerdeSupplier<Object> {
 
           return new GenericData.Array<>(schema, list);
         case MAP:
-          final Map<Object, Object> map = ((Map<Object, Object>) spec).entrySet().stream()
-              .collect(
-                  Collectors.toMap(
-                      Entry::getKey,
-                      e -> valueSpecToAvro(e.getValue(), schema.getValueType())
-                  )
-              );
+          final Map<Object, Object> map = new HashMap<>();
+          ((Map<Object, Object>) spec)
+              .forEach((k, v) -> map.put(k, valueSpecToAvro(v, schema.getValueType())));
+
           return new GenericMap(schema, map);
         case RECORD:
           final GenericRecord record = new GenericData.Record(schema);
@@ -188,6 +188,10 @@ public class ValueSpecAvroSerdeSupplier implements SerdeSupplier<Object> {
 
     @Override
     public Object deserialize(final String topicName, final byte[] data) {
+      if (data == null) {
+        return null;
+      }
+
       final Object avroObject = avroDeserializer.deserialize(topicName, data);
       final String schemaString;
       try {
@@ -237,14 +241,13 @@ public class ValueSpecAvroSerdeSupplier implements SerdeSupplier<Object> {
               ) {
             final org.apache.avro.Schema valueSchema
                 = schema.getElementType().getField("value").schema();
-            return ((List) avro).stream().collect(
-                Collectors.toMap(
-                    m -> ((GenericData.Record) m).get("key").toString(),
-                    m -> (avroToValueSpec(((GenericData.Record) m).get("value"),
-                        valueSchema,
-                        toUpper))
-                )
-            );
+
+            final Map<String, Object> map = new HashMap<>();
+            ((List<GenericData.Record>) avro).forEach(e -> map.put(
+                e.get("key").toString(),
+                avroToValueSpec(e.get("value"), valueSchema, toUpper)
+            ));
+            return map;
           }
           return ((List) avro).stream()
               .map(o -> avroToValueSpec(o, schema.getElementType(), toUpper))

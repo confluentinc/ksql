@@ -34,7 +34,7 @@ record. For example, consider the statement:
     CREATE STREAM x (f0 INT, f1 STRING) WITH (VALUE_FORMAT='JSON', ...);
     CREATE STREAM y AS SELECT f0 FROM x;
 
-The second statement defines a stream with only a single field in the value: ``f0`` and uses the
+The second statement defines a stream with only a single field in the value, named ``f0``, and uses the
 JSON format.  When writing out result to Kafka KSQL would persist a row where ``f0`` had the value
 ``10`` as a JSON object:
 

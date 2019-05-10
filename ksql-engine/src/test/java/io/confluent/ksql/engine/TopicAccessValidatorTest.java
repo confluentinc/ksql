@@ -17,22 +17,15 @@ package io.confluent.ksql.engine;
 
 import com.google.common.collect.Sets;
 import io.confluent.ksql.exception.KafkaResponseGetFailedException;
-import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
-import io.confluent.ksql.parser.tree.CreateSource;
-import io.confluent.ksql.parser.tree.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.InsertInto;
-import io.confluent.ksql.parser.tree.InsertValues;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.Statement;
-import io.confluent.ksql.planner.plan.DataSourceNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlTopicAccessException;
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
 import java.util.Set;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.acl.AclOperation;
@@ -44,7 +37,6 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -63,36 +55,8 @@ public class TopicAccessValidatorTest {
 
   @Before
   public void setUp() {
-    accessValidator = TopicAccessValidator.as(serviceContext);
+    accessValidator = TopicAccessValidator.from(serviceContext);
     when(serviceContext.getTopicClient()).thenReturn(kafkaTopicClient);
-  }
-
-  @Test
-  public void shouldAllowCreateSourceWithReadOperations() {
-    // Given:
-    final Statement statement = createSource("topic1");
-    givenTopicPermissions("topic1", Collections.singleton(AclOperation.READ));
-
-    // When:
-    accessValidator.verifyStatementPermissions(statement);
-
-    // Then:
-    // Above command should not throw any exception
-  }
-
-  @Test
-  public void shouldDenyCreateSourceWithNonReadOperations() {
-    // Given:
-    final Statement statement = createSource("topic1");
-    givenTopicPermissions("topic1", Sets.newHashSet(
-        AclOperation.CREATE, AclOperation.WRITE, AclOperation.DELETE
-    ));
-
-    // Then:
-    expectedException.expect(KsqlTopicAccessException.class);
-
-    // When:
-    accessValidator.verifyStatementPermissions(statement);
   }
 
   @Test
@@ -102,7 +66,7 @@ public class TopicAccessValidatorTest {
     givenTopicPermissions("topic1", Collections.singleton(AclOperation.WRITE));
 
     // When:
-    accessValidator.verifyStatementPermissions(statement);
+    accessValidator.checkTargetTopicsPermissions(statement);
 
     // Then:
     // Above command should not throw any exception
@@ -120,35 +84,7 @@ public class TopicAccessValidatorTest {
     expectedException.expect(KsqlTopicAccessException.class);
 
     // When:
-    accessValidator.verifyStatementPermissions(statement);
-  }
-
-  @Test
-  public void shouldAllowInsertValuesWithWriteOperations() {
-    // Given:
-    final Statement statement = insertValues("topic1");
-    givenTopicPermissions("topic1", Collections.singleton(AclOperation.WRITE));
-
-    // When:
-    accessValidator.verifyStatementPermissions(statement);
-
-    // Then:
-    // Above command should not throw any exception
-  }
-
-  @Test
-  public void shouldDenyInsertValuesWithNonWriteOperations() {
-    // Given:
-    final Statement statement = insertValues("topic1");
-    givenTopicPermissions("topic1", Sets.newHashSet(
-        AclOperation.CREATE, AclOperation.READ, AclOperation.DELETE
-    ));
-
-    // Then:
-    expectedException.expect(KsqlTopicAccessException.class);
-
-    // When:
-    accessValidator.verifyStatementPermissions(statement);
+    accessValidator.checkTargetTopicsPermissions(statement);
   }
 
   @Test
@@ -160,60 +96,34 @@ public class TopicAccessValidatorTest {
     ));
 
     // When:
-    accessValidator.verifyStatementPermissions(statement);
+    accessValidator.checkTargetTopicsPermissions(statement);
 
     // Then:
     // Above command should not throw any exception
   }
 
   @Test
-  public void shouldDenyCreateAsSelectWithOnlyCreateOperations() {
+  public void shouldThrowExceptionWhenTopicClientFails() {
     // Given:
-    final Statement statement = createAsSelect("topic1");
-    givenTopicPermissions("topic1", Sets.newHashSet(AclOperation.CREATE));
-
-    // Then:
-    expectedException.expect(KsqlTopicAccessException.class);
-
-    // When:
-    accessValidator.verifyStatementPermissions(statement);
-  }
-
-  @Test
-  public void shouldDenyCreateAsSelectWithOnlyWriteOperations() {
-    // Given:
-    final Statement statement = createAsSelect("topic1");
-    givenTopicPermissions("topic1", Sets.newHashSet(AclOperation.WRITE));
-
-    // Then:
-    expectedException.expect(KsqlTopicAccessException.class);
-
-    // When:
-    accessValidator.verifyStatementPermissions(statement);
-  }
-
-  @Test
-  public void shouldDenyStatementWhenKafkaErrorException() {
-    // Given:
-    final Statement statement = insertValues("topic1");
+    final Statement statement = insertInto("topic1");
     givenTopicClientError("topic1");
 
     // Then:
-    expectedException.expect(KsqlTopicAccessException.class);
+    expectedException.expect(KafkaResponseGetFailedException.class);
 
     // When:
-    accessValidator.verifyStatementPermissions(statement);
+    accessValidator.checkTargetTopicsPermissions(statement);
   }
 
   @Test
   public void shouldAllowQuerySourcesWithReadOperations() {
     // Given:
-    final PlanNode planNode = createPlan("topic1", "topic2");
+    final PlanNode planNode = createPlan(Sets.newHashSet("topic1", "topic2"));
     givenTopicPermissions("topic1", Sets.newHashSet(AclOperation.READ));
     givenTopicPermissions("topic2", Sets.newHashSet(AclOperation.READ));
 
     // When:
-    accessValidator.verifyQuerySourcesPermissions(planNode);
+    accessValidator.checkSourceTopicsPermissions(planNode);
 
     // Then:
     // Above command should not throw any exception
@@ -222,7 +132,7 @@ public class TopicAccessValidatorTest {
   @Test
   public void shouldDenyQuerySourcesWithNonReadOperations() {
     // Given:
-    final PlanNode planNode = createPlan("topic1", "topic2");
+    final PlanNode planNode = createPlan(Sets.newHashSet("topic1", "topic2"));
     givenTopicPermissions("topic1", Sets.newHashSet(AclOperation.READ));
     givenTopicPermissions("topic2", Sets.newHashSet(AclOperation.WRITE));
 
@@ -230,23 +140,13 @@ public class TopicAccessValidatorTest {
     expectedException.expect(KsqlTopicAccessException.class);
 
     // When:
-    accessValidator.verifyQuerySourcesPermissions(planNode);
+    accessValidator.checkSourceTopicsPermissions(planNode);
   }
 
-  private PlanNode createPlan(final String ... sourceTopics) {
-    final List<PlanNode> dataSources = new ArrayList<>();
-    for (String topic : sourceTopics) {
-      final DataSourceNode dataSourceNode = mock(DataSourceNode.class);
-      final DataSource dataSource = mock(DataSource.class);
-
-      doReturn(dataSource).when(dataSourceNode).getDataSource();
-      when(dataSource.getKafkaTopicName()).thenReturn(topic);
-
-      dataSources.add(dataSourceNode);
-    }
-
+  private PlanNode createPlan(final Set<String> sourceTopics) {
     final PlanNode planNode = mock(PlanNode.class);
-    when(planNode.getSources()).thenReturn(dataSources);
+
+    when(planNode.getAllSourceKafkaTopics()).thenReturn(sourceTopics);
 
     return planNode;
   }
@@ -259,26 +159,8 @@ public class TopicAccessValidatorTest {
     return createAsSelect;
   }
 
-  private Statement createSource(final String withTopic) {
-    final CreateSource createSource = mock(CreateSource.class);
-    final CreateSourceProperties sourceProperties = mock(CreateSourceProperties.class);
-
-    when(createSource.getProperties()).thenReturn(sourceProperties);
-    when(sourceProperties.getKafkaTopic()).thenReturn(withTopic);
-
-    return createSource;
-  }
-
   private Statement insertInto(final String targetTopic) {
     final InsertInto insertInto = mock(InsertInto.class);
-
-    when(insertInto.getTarget()).thenReturn(QualifiedName.of(targetTopic));
-
-    return insertInto;
-  }
-
-  private Statement insertValues(final String targetTopic) {
-    final InsertValues insertInto = mock(InsertValues.class);
 
     when(insertInto.getTarget()).thenReturn(QualifiedName.of(targetTopic));
 

@@ -1908,7 +1908,7 @@ public class KsqlResourceTest {
         (ec, sc) -> InjectorChain.of(
             schemaInjectorFactory.apply(sc),
             topicInjectorFactory.apply(ec),
-            new TopicDeleteInjector(ec))
+            new TopicDeleteInjector(ec, sc))
     );
   }
 

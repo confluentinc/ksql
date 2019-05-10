@@ -21,15 +21,15 @@ package io.confluent.ksql.util;
  * with a topic.
  */
 public class KsqlTopicAccessException extends KsqlException {
-  private static final String TOPIC_ACCESS_ERROR_MESSAGE = "Topic '%s' does not exist, or "
+  private static final String TOPIC_ACCESS_ERROR_FORMAT = "Topic '%s' does not exist, or "
       + "the KSQL user does not have access to the topic.";
 
   public KsqlTopicAccessException(final String topicName) {
-    super(String.format(TOPIC_ACCESS_ERROR_MESSAGE, topicName));
+    super(String.format(TOPIC_ACCESS_ERROR_FORMAT, topicName));
   }
 
   public KsqlTopicAccessException(final String topicName, final Throwable cause) {
-    super(String.format(TOPIC_ACCESS_ERROR_MESSAGE, topicName), cause);
+    super(String.format(TOPIC_ACCESS_ERROR_FORMAT, topicName), cause);
   }
 
   public KsqlTopicAccessException(final Throwable cause) {

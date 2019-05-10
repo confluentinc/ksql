@@ -35,6 +35,7 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.services.KafkaTopicClient;
+import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.topic.TopicProperties.Builder;
@@ -62,9 +63,10 @@ public class TopicCreateInjector implements Injector {
   private final MetaStore metaStore;
 
   public TopicCreateInjector(
-      final KsqlExecutionContext executionContext
+      final KsqlExecutionContext executionContext,
+      final ServiceContext serviceContext
   ) {
-    this(executionContext.getServiceContext().getTopicClient(), executionContext.getMetaStore());
+    this(serviceContext.getTopicClient(), executionContext.getMetaStore());
   }
 
   TopicCreateInjector(

@@ -44,7 +44,7 @@ JSON format. When KSQL writes out the result to Kafka, it persists a row with fi
       "F0": 10
    }
 
-If you would prefer the value to be serialized without the outer JSON object, or Avro record, set
+If you want the value to be serialized without the outer JSON object or Avro record, set
 :ref:`ksql_persistence_ensure_value_is_struct` to ``false`` before running the statement.
 
 .. code:: sql

@@ -17,12 +17,17 @@ package io.confluent.ksql.cli.console;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.clearInvocations;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.cli.console.KsqlTerminal.StatusClosable;
+import io.confluent.ksql.util.KsqlException;
 import java.io.File;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.Writer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import org.apache.kafka.test.TestUtils;
@@ -31,13 +36,18 @@ import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStyle;
 import org.jline.utils.Status;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class JLineTerminalTest {
+
+  @Rule
+  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private Predicate<String> cliLinePredicate;
@@ -77,5 +87,63 @@ public class JLineTerminalTest {
     // Then:
     verify(statusBar)
         .update(ImmutableList.of(new AttributedString("", AttributedStyle.DEFAULT)));
+  }
+
+  @Test
+  public void shouldWriteToSpool() throws IOException {
+    // Given:
+    final Writer spool = mock(Writer.class);
+    terminal.setSpool(spool);
+
+    // When:
+    terminal.writer().write(new char[]{'a'}, 0, 1);
+
+    // Then:
+    verify(spool).write(new char[]{'a'}, 0, 1);
+  }
+
+  @Test
+  public void shouldWriteToSpoolOnRead() throws IOException {
+    // Given:
+    final Writer spool = mock(Writer.class);
+    final Terminal mockTerminal = mock(Terminal.class);
+    when(mockTerminal.writer()).thenReturn(mock(PrintWriter.class));
+    final JLineReader mockReader = mock(JLineReader.class);
+    when(mockReader.readLine()).thenReturn("line");
+
+    // When:
+    final JLineTerminal terminal = new JLineTerminal(mockTerminal, mockReader, foo -> null);
+    terminal.setSpool(spool);
+    terminal.readLine();
+
+    // Then:
+    verify(spool).write("\nksql> line\n", 0, 12);
+  }
+
+  @Test
+  public void shouldCloseSpoolOnUnset() throws IOException {
+    // Given:
+    final Writer spool = mock(Writer.class);
+    terminal.setSpool(spool);
+
+    // When:
+    terminal.unsetSpool();
+
+    // Then:
+    verify(spool).close();
+  }
+
+  @Test
+  public void shouldThrowOnTwoSpools() {
+    // Given:
+    final Writer spool = mock(Writer.class);
+    terminal.setSpool(spool);
+
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Cannot set two spools!");
+
+    // When:
+    terminal.setSpool(spool);
   }
 }

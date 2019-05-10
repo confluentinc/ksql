@@ -115,7 +115,7 @@ import io.confluent.ksql.rest.server.computation.QueuedCommandStatus;
 import io.confluent.ksql.rest.util.EntityUtil;
 import io.confluent.ksql.rest.util.TerminateCluster;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
-import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
+import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.services.SandboxedServiceContext;
 import io.confluent.ksql.services.ServiceContext;
@@ -1953,7 +1953,7 @@ public class KsqlResourceTest {
     final KsqlTopic ksqlTopic = new KsqlTopic(
         ksqlTopicName,
         topicName,
-        new KsqlJsonTopicSerDe(),
+        new KsqlJsonSerdeFactory(),
         false);
     givenKafkaTopicExists(topicName);
     metaStore.putTopic(ksqlTopic);
@@ -2025,7 +2025,7 @@ public class KsqlResourceTest {
   }
 
   private void givenKsqlTopicRegistered(final String name) {
-    metaStore.putTopic(new KsqlTopic(name.toUpperCase(), name, new KsqlJsonTopicSerDe(), true));
+    metaStore.putTopic(new KsqlTopic(name.toUpperCase(), name, new KsqlJsonSerdeFactory(), true));
   }
 
   private void givenPersistentQueryCount(final int value) {

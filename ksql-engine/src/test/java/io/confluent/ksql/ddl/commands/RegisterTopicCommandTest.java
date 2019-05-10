@@ -14,69 +14,80 @@
  */
 package io.confluent.ksql.ddl.commands;
 
-import static org.easymock.MockType.NICE;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.sameInstance;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
-import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.ddl.DdlConfig;
-import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MutableMetaStore;
-import io.confluent.ksql.parser.tree.Literal;
-import io.confluent.ksql.parser.tree.QualifiedName;
-import io.confluent.ksql.parser.tree.RegisterTopic;
-import io.confluent.ksql.parser.tree.StringLiteral;
-import io.confluent.ksql.util.MetaStoreFixture;
-import java.util.HashMap;
-import java.util.Map;
-import org.easymock.EasyMock;
-import org.easymock.EasyMockRunner;
-import org.easymock.Mock;
+import io.confluent.ksql.metastore.model.KsqlTopic;
+import io.confluent.ksql.parser.tree.CreateSourceProperties;
+import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.KsqlSerdeFactory;
+import io.confluent.ksql.serde.SerdeFactories;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
-@RunWith(EasyMockRunner.class)
+@RunWith(MockitoJUnitRunner.class)
 public class RegisterTopicCommandTest {
 
-    @Mock(NICE)
-    private RegisterTopic registerTopicStatement;
+  private static final String KSQL_TOPIC_NAME = "bob";
+  private static final String KAFKA_TOPIC_NAME = "fred";
 
-    @Rule
-    public final ExpectedException expectedException = ExpectedException.none();
+  @Rule
+  public final ExpectedException expectedException = ExpectedException.none();
 
-  private final MutableMetaStore metaStore = MetaStoreFixture
-      .getNewMetaStore(new InternalFunctionRegistry());
+  @Mock
+  private MutableMetaStore metaStore;
+  @Mock
+  private CreateSourceProperties properties;
+  @Mock
+  private KsqlTopic topic;
+  @Mock
+  private SerdeFactories serdeFactories;
+  @Mock
+  private KsqlSerdeFactory serdeFactory;
+  @Captor
+  private ArgumentCaptor<KsqlTopic> topicCaptor;
 
-    @Test
-    public void testRegisterAlreadyRegisteredTopicThrowsException() {
-        final RegisterTopicCommand cmd;
+  private RegisterTopicCommand cmd;
 
-        // Given:
-        givenProperties(propsWith(ImmutableMap.of()));
-        cmd = createCmd();
-        cmd.run(metaStore);
+  @Before
+  public void setUp() {
+    when(properties.getValueFormat()).thenReturn(Format.JSON);
+    when(properties.getKafkaTopic()).thenReturn(KAFKA_TOPIC_NAME);
+    when(serdeFactories.create(Format.JSON, properties)).thenReturn(serdeFactory);
 
-        // Then:
-        expectedException.expectMessage("A topic with name 'name' already exists");
+    cmd = new RegisterTopicCommand(KSQL_TOPIC_NAME, false, properties, serdeFactories);
+  }
 
-        // When:
-        cmd.run(metaStore);
-    }
+  @Test
+  public void shouldThrowIfAlreadyRegistered() {
+    // Given:
+    when(metaStore.getTopic(KSQL_TOPIC_NAME)).thenReturn(topic);
 
-    private RegisterTopicCommand createCmd() {
-        return new RegisterTopicCommand(registerTopicStatement);
-    }
+    // Then:
+    expectedException.expectMessage("A topic with name 'bob' already exists");
 
-    private static Map<String, Literal> propsWith(final Map<String, Literal> props) {
-        Map<String, Literal> valid = new HashMap<>(props);
-        valid.putIfAbsent(DdlConfig.VALUE_FORMAT_PROPERTY, new StringLiteral("Json"));
-        valid.putIfAbsent(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral("some-topic"));
-        return valid;
-    }
+    // When:
+    cmd.run(metaStore);
+  }
 
-    private void givenProperties(final Map<String, Literal> props) {
-        EasyMock.expect(registerTopicStatement.getProperties()).andReturn(props).anyTimes();
-        EasyMock.expect(registerTopicStatement.getName()).andReturn(QualifiedName.of("name")).anyTimes();
-        EasyMock.replay(registerTopicStatement);
-    }
+  @Test
+  public void shouldSetCorrectValueSerdeOnTopic() {
+    // When:
+    cmd.run(metaStore);
+
+    // Then:
+    verify(metaStore).putTopic(topicCaptor.capture());
+    assertThat(topicCaptor.getValue().getValueSerdeFactory(), is(sameInstance(serdeFactory)));
+  }
 }

@@ -44,7 +44,7 @@ import io.confluent.ksql.parser.tree.IntegerLiteral;
 import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
-import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
+import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
@@ -105,7 +105,7 @@ public class TopicCreateInjectorTest {
     injector = new TopicCreateInjector(topicClient, metaStore);
 
     final KsqlTopic sourceTopic =
-        new KsqlTopic("SOURCE", "source", new KsqlJsonTopicSerDe(), false);
+        new KsqlTopic("SOURCE", "source", new KsqlJsonSerdeFactory(), false);
     final KsqlStream source = new KsqlStream<>(
         "",
         "SOURCE",
@@ -117,7 +117,7 @@ public class TopicCreateInjectorTest {
     metaStore.putSource(source);
 
     final KsqlTopic joinTopic =
-        new KsqlTopic("J_SOURCE", "jSource", new KsqlJsonTopicSerDe(), false);
+        new KsqlTopic("J_SOURCE", "jSource", new KsqlJsonSerdeFactory(), false);
     final KsqlStream joinSource = new KsqlStream<>(
         "",
         "J_SOURCE",

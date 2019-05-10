@@ -65,5 +65,8 @@ public final class CliCommandRegisterUtil {
 
     console.registerCliSpecificCommand(
         RequestPipeliningCommand.create(requestPipeliningSupplier, requestPipeliningConsumer));
+
+    console.registerCliSpecificCommand(
+        Spool.create(console::setSpool, console::unsetSpool));
   }
 }

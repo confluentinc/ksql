@@ -69,9 +69,12 @@ import io.confluent.ksql.util.CmdLineUtil;
 import io.confluent.ksql.util.HandlerMaps;
 import io.confluent.ksql.util.HandlerMaps.ClassHandlerMap1;
 import io.confluent.ksql.util.HandlerMaps.Handler1;
+import io.confluent.ksql.util.KsqlException;
 import java.io.Closeable;
+import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
@@ -93,7 +96,9 @@ import org.jline.terminal.Terminal.SignalHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class Console implements Closeable {
+  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private static final Logger log = LoggerFactory.getLogger(Console.class);
 
@@ -153,6 +158,7 @@ public class Console implements Closeable {
   private final RowCaptor rowCaptor;
   private OutputFormat outputFormat;
 
+
   public interface RowCaptor {
     void addRow(GenericRow row);
 
@@ -199,6 +205,18 @@ public class Console implements Closeable {
 
   public void flush() {
     terminal.flush();
+  }
+
+  public void setSpool(final File file) {
+    try {
+      terminal.setSpool(new PrintWriter(file, Charset.defaultCharset().name()));
+    } catch (IOException e) {
+      throw new KsqlException("Cannot SPOOL to file: " + file, e);
+    }
+  }
+
+  public void unsetSpool() {
+    terminal.unsetSpool();
   }
 
   public int getWidth() {

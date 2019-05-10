@@ -15,25 +15,23 @@
 
 package io.confluent.ksql.ddl.commands;
 
-import io.confluent.ksql.ddl.DdlConfig;
+import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.parser.tree.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.RegisterTopic;
-import io.confluent.ksql.serde.Format;
-import io.confluent.ksql.serde.KsqlTopicSerDe;
-import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
-import io.confluent.ksql.serde.delimited.KsqlDelimitedTopicSerDe;
-import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
-import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.serde.KsqlSerdeFactories;
+import io.confluent.ksql.serde.KsqlSerdeFactory;
+import io.confluent.ksql.serde.SerdeFactories;
 import io.confluent.ksql.util.KsqlException;
 
 public class RegisterTopicCommand implements DdlCommand {
+
   private final String topicName;
   private final String kafkaTopicName;
-  private final KsqlTopicSerDe topicSerDe;
+  private final KsqlSerdeFactory valueSerdeFactory;
   private final boolean notExists;
 
   public RegisterTopicCommand(final RegisterTopic registerTopic) {
@@ -48,36 +46,20 @@ public class RegisterTopicCommand implements DdlCommand {
       final boolean notExist,
       final CreateSourceProperties properties
   ) {
-    this.topicName = topicName;
-    this.kafkaTopicName = properties.getKafkaTopic();
-    final Format format = properties.getValueFormat();
-    this.topicSerDe = extractTopicSerDe(format, properties);
-    this.notExists = notExist;
+    this(topicName, notExist, properties, new KsqlSerdeFactories());
   }
 
-  private static KsqlTopicSerDe extractTopicSerDe(
-      final Format format,
-      final CreateSourceProperties properties
+  @VisibleForTesting
+  RegisterTopicCommand(
+      final String topicName,
+      final boolean notExist,
+      final CreateSourceProperties properties,
+      final SerdeFactories serdeFactories
   ) {
-    if (properties.getAvroSchemaName().isPresent() && format != Format.AVRO) {
-      throw new KsqlException(
-              DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME + " is only valid for AVRO topics.");
-    }
-
-    switch (format) {
-      case AVRO:
-        final String schemaFullName = properties.getAvroSchemaName()
-            .orElse(KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME);
-        return new KsqlAvroTopicSerDe(schemaFullName);
-      case JSON:
-        return new KsqlJsonTopicSerDe();
-
-      case DELIMITED:
-        return new KsqlDelimitedTopicSerDe();
-
-      default:
-        throw new KsqlException("The specified topic serde is not supported.");
-    }
+    this.topicName = topicName;
+    this.kafkaTopicName = properties.getKafkaTopic();
+    this.valueSerdeFactory = serdeFactories.create(properties.getValueFormat(), properties);
+    this.notExists = notExist;
   }
 
   @Override
@@ -94,7 +76,7 @@ public class RegisterTopicCommand implements DdlCommand {
       }
     }
 
-    final KsqlTopic ksqlTopic = new KsqlTopic(topicName, kafkaTopicName, topicSerDe, false);
+    final KsqlTopic ksqlTopic = new KsqlTopic(topicName, kafkaTopicName, valueSerdeFactory, false);
 
     metaStore.putTopic(ksqlTopic);
 

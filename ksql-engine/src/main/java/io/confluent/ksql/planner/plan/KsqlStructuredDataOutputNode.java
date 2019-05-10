@@ -20,23 +20,19 @@ import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.physical.KsqlQueryBuilder;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
-import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.structured.QueryContext;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.QueryIdGenerator;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import java.util.Collections;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -49,7 +45,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
   private final KsqlTopic ksqlTopic;
   private final KeyField keyField;
   private final boolean doCreateInto;
-  private final Map<String, Object> outputProperties;
+  private final boolean selectKeyRequired;
 
   @JsonCreator
   public KsqlStructuredDataOutputNode(
@@ -60,7 +56,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
       @JsonProperty("key") final KeyField keyField,
       @JsonProperty("ksqlTopic") final KsqlTopic ksqlTopic,
       @JsonProperty("topicName") final String kafkaTopicName,
-      @JsonProperty("outputProperties") final Map<String, Object> outputProperties,
+      @JsonProperty("selectKeyRequired") final boolean selectKeyRequired,
       @JsonProperty("limit") final Optional<Integer> limit,
       @JsonProperty("doCreateInto") final boolean doCreateInto
   ) {
@@ -69,16 +65,11 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     this.keyField = Objects.requireNonNull(keyField, "keyField")
         .validateKeyExistsIn(schema);
     this.ksqlTopic = Objects.requireNonNull(ksqlTopic, "ksqlTopic");
-    this.outputProperties = Objects.requireNonNull(outputProperties, "outputProperties");
+    this.selectKeyRequired = selectKeyRequired;
     this.doCreateInto = doCreateInto;
 
-    final Optional<Field> partitionBy = getPartitionByField(schema);
-    if (partitionBy.isPresent()
-        && !partitionBy.get().name().equals(keyField.name().orElse(null))) {
-      throw new IllegalArgumentException(
-          "keyField does not match partition by field. "
-              + "keyField: " + keyField.name() + ", "
-              + "partitionByField:" + partitionBy.get());
+    if (selectKeyRequired && !keyField.name().isPresent()) {
+      throw new IllegalArgumentException("keyField must be provided when performing partition by");
     }
   }
 
@@ -124,11 +115,8 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
         contextStacker
     );
 
-    final KsqlTopicSerDe ksqlTopicSerDe = getKsqlTopic()
-        .getKsqlTopicSerDe();
-
     final Serde<GenericRow> outputRowSerde = builder.buildGenericRowSerde(
-        ksqlTopicSerDe,
+        getKsqlTopic().getValueSerdeFactory(),
         schema.getSchema(),
         contextStacker.getQueryContext());
 
@@ -171,23 +159,14 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
         contextStacker.getQueryContext()
     );
 
-    final Optional<Field> partitionByField = getPartitionByField(result.getSchema());
-    if (!partitionByField.isPresent()) {
+    if (!selectKeyRequired) {
       return result;
     }
 
-    final Field field = partitionByField.get();
-    return result.selectKey(field.name(), false, contextStacker);
-  }
+    final Field newKey = keyField.resolveLatest(getSchema())
+        .orElseThrow(IllegalStateException::new);
 
-  private Optional<Field> getPartitionByField(final KsqlSchema schema) {
-    return Optional.ofNullable(outputProperties.get(DdlConfig.PARTITION_BY_PROPERTY))
-        .map(Object::toString)
-        .map(keyName -> schema.findField(keyName)
-            .orElseThrow(() -> new KsqlException(
-                "Column " + keyName + " does not exist in the result schema. "
-                    + "Error in Partition By clause.")
-            ));
+    return result.selectKey(newKey.name(), false, contextStacker);
   }
 
   public KsqlTopic getKsqlTopic() {

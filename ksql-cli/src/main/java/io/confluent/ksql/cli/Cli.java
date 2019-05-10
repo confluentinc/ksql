@@ -271,6 +271,7 @@ public class Cli implements KsqlRequestExecutor, Closeable {
 
       } else if (statementContext.statement() instanceof SqlBaseParser.UnsetPropertyContext) {
         consecutiveStatements = unsetProperty(consecutiveStatements, statementContext);
+
       } else {
         consecutiveStatements.append(statementText);
       }

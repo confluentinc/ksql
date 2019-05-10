@@ -25,6 +25,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import org.apache.kafka.common.errors.SerializationException;
@@ -46,6 +47,7 @@ public class KsqlJsonDeserializer implements Deserializer<Struct> {
   private final Schema schema;
   private final JsonConverter jsonConverter;
   private final ProcessingLogger recordLogger;
+  private final boolean ambiguousMapSchema;
 
   public KsqlJsonDeserializer(
       final Schema schema,
@@ -60,6 +62,10 @@ public class KsqlJsonDeserializer implements Deserializer<Struct> {
     if (schema.type() != Type.STRUCT) {
       throw new IllegalArgumentException("KSQL expects all top level schemas to be STRUCTs");
     }
+
+    this.ambiguousMapSchema = schema.fields().size() == 1
+        && schema.fields().get(0).schema().type() == Type.MAP
+        && schema.fields().get(0).schema().keySchema().type() == Type.STRING;
   }
 
   @Override
@@ -69,7 +75,7 @@ public class KsqlJsonDeserializer implements Deserializer<Struct> {
   @Override
   public Struct deserialize(final String topic, final byte[] bytes) {
     try {
-      final Struct row = toStruct(bytes);
+      final Struct row = deserialize(bytes);
       if (LOG.isTraceEnabled()) {
         LOG.trace("Deserialized row. topic:{}, row:{}", topic, row);
       }
@@ -86,15 +92,18 @@ public class KsqlJsonDeserializer implements Deserializer<Struct> {
   }
 
   @SuppressWarnings("unchecked")
-  private Struct toStruct(final byte[] rowJsonBytes) {
-    final SchemaAndValue schemaAndValue = jsonConverter.toConnectData("topic", rowJsonBytes);
+  private Struct deserialize(final byte[] bytes) {
+    final SchemaAndValue schemaAndValue = jsonConverter.toConnectData("topic", bytes);
     final Object value = schemaAndValue.value();
     if (value == null) {
       return null;
     }
 
     if (value instanceof Map) {
-      return fromMap((Map<String, Object>)value);
+      final Map<String, Object> map = (Map<String, Object>) value;
+      if (treatAsStruct(map)) {
+        return asStruct(map);
+      }
     }
 
     if (schema.fields().size() != 1) {
@@ -110,7 +119,61 @@ public class KsqlJsonDeserializer implements Deserializer<Struct> {
     return struct;
   }
 
-  private Struct fromMap(final Map<String, Object> valueMap) {
+  /**
+   * Should this value be treated as a record or a top level map?
+   *
+   * <p>The deserializer supports deserializing top-level unnamed primitives, arrays and maps if
+   * the target schema only contains a single field of the required type, e.g. the value '10' can be
+   * deserialized into a schema containing a single numeric field. Likewise, the value '[1,2]' can
+   * be deserialized into a schema containing a single array field. The same is true of maps, but
+   * maps can be ambiguous.
+   *
+   * <p>There is ambiguity when handling top level maps due to the fact that JSON does not have a
+   * map type, so KSQL persists maps as JSON objects.  JSON objects are also used to represent KSQL
+   * structs. When the deserializer is presented with a JSON object and a target schema that
+   * contains a single MAP field, it is not immediately apparent if this should be deserialized as a
+   * struct or a top-level map.
+   *
+   * <p>Map fields are only ambiguous if:
+   * <ul>
+   *   <li>The target schema contains only a single field</li>
+   *   <li>and that field is a map</li>
+   *   <li>and that map has a string key</li>
+   *   <li>and that map has a key with the same name as the field</li>
+   * </ul>
+   *
+   * <p>This method determines which it should be treated as by comparing the target schema with
+   * the actual value. If the value is coercible into the target schema then it will be treated
+   * as a record, not a top level map.
+   *
+   * <p>Note: It is strongly recommended that users avoid the situation by ensuring that single
+   * map fields never have the same name as any of the keys in the map.
+   *
+   * @param map the map to check.
+   * @return true if it should be treated as a record.
+   */
+  private boolean treatAsStruct(final Map<String, Object> map) {
+    if (!ambiguousMapSchema) {
+      return true;
+    }
+
+    final Field onlyField = schema.fields().get(0);
+    final String fieldName = onlyField.name();
+
+    final boolean coercibleToStruct = map.entrySet().stream()
+        .filter(e -> fieldName.equalsIgnoreCase(e.getKey()))
+        .map(Entry::getValue)
+        .filter(v -> SerdeUtils.isCoercible(v, onlyField.schema()))
+        .map(v -> true)
+        .findFirst()
+        .orElse(false);
+
+    final boolean coercibleToMap = SerdeUtils.isCoercible(map, onlyField.schema());
+
+    return coercibleToStruct || !coercibleToMap;
+  }
+
+  private Struct asStruct(final Map<String, Object> valueMap) {
     final Map<String, String> caseInsensitiveFieldNameMap =
         getCaseInsensitiveFieldNameMap(valueMap, true);
 
@@ -125,7 +188,6 @@ public class KsqlJsonDeserializer implements Deserializer<Struct> {
 
   // This is a temporary requirement until we can ensure that the types that Connect JSON
   // convertor creates are supported in KSQL.
-  @SuppressWarnings("unchecked")
   private Object enforceFieldType(final Schema fieldSchema, final Object columnVal) {
     if (columnVal == null) {
       return null;
@@ -142,11 +204,11 @@ public class KsqlJsonDeserializer implements Deserializer<Struct> {
       case STRING:
         return processString(columnVal);
       case ARRAY:
-        return enforceFieldTypeForArray(fieldSchema, (List<?>) columnVal);
+        return enforceFieldTypeForArray(fieldSchema, columnVal);
       case MAP:
-        return enforceFieldTypeForMap(fieldSchema, (Map<String, Object>) columnVal);
+        return enforceFieldTypeForMap(fieldSchema, columnVal);
       case STRUCT:
-        return enforceFieldTypeForStruct(fieldSchema, (Map<String, Object>) columnVal);
+        return enforceFieldTypeForStruct(fieldSchema, columnVal);
       default:
         throw new KsqlException("Type is not supported: " + fieldSchema.type());
     }
@@ -159,19 +221,31 @@ public class KsqlJsonDeserializer implements Deserializer<Struct> {
     return columnVal.toString();
   }
 
-  private List<?> enforceFieldTypeForArray(final Schema fieldSchema, final List<?> arrayList) {
-    final List<Object> array = new ArrayList<>(arrayList.size());
-    for (final Object item : arrayList) {
+  private List<?> enforceFieldTypeForArray(final Schema fieldSchema, final Object value) {
+    if (!(value instanceof List)) {
+      throw new IllegalArgumentException("value is not a list. "
+          + "type: " + value.getClass()
+          + ", fieldSchema: " + fieldSchema);
+    }
+
+    final List<?> list = (List<?>) value;
+    final List<Object> array = new ArrayList<>(list.size());
+    for (final Object item : list) {
       array.add(enforceFieldType(fieldSchema.valueSchema(), item));
     }
     return array;
   }
 
-  private Map<String, Object> enforceFieldTypeForMap(
-      final Schema fieldSchema,
-      final Map<String, ?> columnMap) {
-    final Map<String, Object> ksqlMap = new HashMap<>();
-    for (final Map.Entry<String, ?> e : columnMap.entrySet()) {
+  private Map<String, Object> enforceFieldTypeForMap(final Schema fieldSchema, final Object value) {
+    if (!(value instanceof Map)) {
+      throw new IllegalArgumentException("value is not a map. "
+          + "type: " + value.getClass()
+          + ", fieldSchema: " + fieldSchema);
+    }
+
+    final Map<?, ?> map = (Map<?, ?>) value;
+    final Map<String, Object> ksqlMap = new HashMap<>(map.size());
+    for (final Map.Entry<?, ?> e : map.entrySet()) {
       ksqlMap.put(
           enforceFieldType(Schema.OPTIONAL_STRING_SCHEMA, e.getKey()).toString(),
           enforceFieldType(fieldSchema.valueSchema(), e.getValue())
@@ -180,17 +254,23 @@ public class KsqlJsonDeserializer implements Deserializer<Struct> {
     return ksqlMap;
   }
 
-  private Struct enforceFieldTypeForStruct(
-      final Schema fieldSchema,
-      final Map<String, ?> structMap) {
+  @SuppressWarnings("unchecked")
+  private Struct enforceFieldTypeForStruct(final Schema fieldSchema, final Object value) {
+    if (!(value instanceof Map)) {
+      throw new IllegalArgumentException("value is not a struct. "
+          + "type: " + value.getClass()
+          + ", fieldSchema: " + fieldSchema);
+    }
+
+    final Map<String, ?> map = (Map<String, ?>) value;
     final Struct columnStruct = new Struct(fieldSchema);
     final Map<String, String> caseInsensitiveStructFieldNameMap =
-        getCaseInsensitiveFieldNameMap(structMap, false);
+        getCaseInsensitiveFieldNameMap(map, false);
     fieldSchema.fields()
         .forEach(
             field -> columnStruct.put(field.name(),
                 enforceFieldType(
-                    field.schema(), structMap.get(
+                    field.schema(), map.get(
                         caseInsensitiveStructFieldNameMap.get(field.name().toUpperCase())
                     ))));
     return columnStruct;

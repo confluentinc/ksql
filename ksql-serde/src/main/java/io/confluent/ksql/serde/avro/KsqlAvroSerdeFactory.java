@@ -25,7 +25,7 @@ import io.confluent.kafka.serializers.AbstractKafkaAvroSerDeConfig;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.serde.Format;
-import io.confluent.ksql.serde.KsqlTopicSerDe;
+import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.serde.connect.KsqlConnectDeserializer;
 import io.confluent.ksql.serde.connect.KsqlConnectSerializer;
 import io.confluent.ksql.serde.tls.ThreadLocalDeserializer;
@@ -44,11 +44,11 @@ import org.apache.kafka.connect.data.Schema.Type;
 import org.apache.kafka.connect.data.Struct;
 
 @Immutable
-public class KsqlAvroTopicSerDe extends KsqlTopicSerDe {
+public class KsqlAvroSerdeFactory extends KsqlSerdeFactory {
 
   private final String fullSchemaName;
 
-  public KsqlAvroTopicSerDe(final String fullSchemaName) {
+  public KsqlAvroSerdeFactory(final String fullSchemaName) {
     super(Format.AVRO);
     this.fullSchemaName = Objects.requireNonNull(fullSchemaName, "fullSchemaName").trim();
     if (this.fullSchemaName.isEmpty()) {
@@ -57,7 +57,7 @@ public class KsqlAvroTopicSerDe extends KsqlTopicSerDe {
   }
 
   @Override
-  public Serde<Struct> getStructSerde(
+  public Serde<Struct> createSerde(
       final Schema schema,
       final KsqlConfig ksqlConfig,
       final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
@@ -95,7 +95,7 @@ public class KsqlAvroTopicSerDe extends KsqlTopicSerDe {
     if (!super.equals(o)) {
       return false;
     }
-    final KsqlAvroTopicSerDe that = (KsqlAvroTopicSerDe) o;
+    final KsqlAvroSerdeFactory that = (KsqlAvroSerdeFactory) o;
     return Objects.equals(fullSchemaName, that.fullSchemaName);
   }
 

@@ -108,8 +108,14 @@ public final class CreateSourceProperties {
 
     key = Property.from(DdlConfig.KEY_NAME_PROPERTY, properties);
     ksqlTopic = Property.from(DdlConfig.TOPIC_NAME_PROPERTY, properties);
-    timestampName = Property.from(DdlConfig.TIMESTAMP_NAME_PROPERTY, properties);
-    timestampFormat = Property.from(DdlConfig.TIMESTAMP_FORMAT_PROPERTY, properties);
+    timestampName = Property.from(
+        DdlConfig.TIMESTAMP_NAME_PROPERTY,
+        properties,
+        ((Function<Object, String>) Object::toString).andThen(StringUtil::cleanQuotes));
+    timestampFormat = Property.from(
+        DdlConfig.TIMESTAMP_FORMAT_PROPERTY,
+        properties,
+        ((Function<Object, String>) Object::toString).andThen(StringUtil::cleanQuotes));
 
     windowType = Property.from(
         DdlConfig.WINDOW_TYPE_PROPERTY,
@@ -218,7 +224,7 @@ public final class CreateSourceProperties {
     return Optional.ofNullable(timestampFormat.value);
   }
 
-  public Optional<String> getAvroSchemaName() {
+  public Optional<String> getValueAvroSchemaName() {
     return Optional.ofNullable(avroSchemaName.value);
   }
 

@@ -83,8 +83,8 @@ public class KsqlAvroSerializerTest {
 
   private void resetSerde(final Schema schema) {
     final Serde<Struct> serde =
-        new KsqlAvroTopicSerDe(KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME)
-            .getStructSerde(
+        new KsqlAvroSerdeFactory(KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME)
+            .createSerde(
             schema,
             ksqlConfig,
             () -> schemaRegistryClient,
@@ -469,8 +469,8 @@ public class KsqlAvroSerializerTest {
         .put("field0", ksqlValue);
 
     final Serializer<Struct> serializer =
-        new KsqlAvroTopicSerDe(schemaNamespace + "." + schemaName)
-            .getStructSerde(
+        new KsqlAvroSerdeFactory(schemaNamespace + "." + schemaName)
+            .createSerde(
                 ksqlRecordSchema,
                 new KsqlConfig(Collections.emptyMap()),
                 () -> schemaRegistryClient,

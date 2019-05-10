@@ -30,7 +30,7 @@ import io.confluent.ksql.physical.QuerySchemas;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.SchemaInfo.Type;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
-import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
+import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.QueuedQueryMetadata;
@@ -121,7 +121,7 @@ public class QueryDescriptionTest {
   @Test
   public void shouldSetFieldsCorrectlyForPersistentQueryMetadata() {
     // Given:
-    final KsqlTopic sinkTopic = new KsqlTopic("fake_sink", "fake_sink", new KsqlJsonTopicSerDe(), true);
+    final KsqlTopic sinkTopic = new KsqlTopic("fake_sink", "fake_sink", new KsqlJsonSerdeFactory(), true);
     final KsqlStream<?> fakeSink = new KsqlStream<>(
         STATEMENT, "fake_sink", SCHEMA,
         KeyField.of(SCHEMA.fields().get(0).name(), SCHEMA.fields().get(0)),

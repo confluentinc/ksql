@@ -22,7 +22,7 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.serde.Format;
-import io.confluent.ksql.serde.KsqlTopicSerDe;
+import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.serde.util.SerdeUtils;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Collections;
@@ -35,14 +35,14 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
 
 @Immutable
-public class KsqlJsonTopicSerDe extends KsqlTopicSerDe {
+public class KsqlJsonSerdeFactory extends KsqlSerdeFactory {
 
-  public KsqlJsonTopicSerDe() {
+  public KsqlJsonSerdeFactory() {
     super(Format.JSON);
   }
 
   @Override
-  public Serde<Struct> getStructSerde(
+  public Serde<Struct> createSerde(
       final Schema schema,
       final KsqlConfig ksqlConfig,
       final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,

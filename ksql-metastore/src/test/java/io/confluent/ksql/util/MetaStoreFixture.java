@@ -23,11 +23,10 @@ import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
-import io.confluent.ksql.serde.KsqlTopicSerDe;
-import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
+import io.confluent.ksql.serde.KsqlSerdeFactory;
+import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
 import java.util.Optional;
-import java.util.function.Supplier;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -38,14 +37,16 @@ public final class MetaStoreFixture {
   }
 
   public static MutableMetaStore getNewMetaStore(final FunctionRegistry functionRegistry) {
-    return getNewMetaStore(functionRegistry, KsqlJsonTopicSerDe::new);
+    return getNewMetaStore(functionRegistry, new KsqlJsonSerdeFactory());
   }
 
-  public static MutableMetaStore getNewMetaStore(final FunctionRegistry functionRegistry,
-                                          final Supplier<KsqlTopicSerDe> serde) {
-
+  public static MutableMetaStore getNewMetaStore(
+      final FunctionRegistry functionRegistry,
+      final KsqlSerdeFactory valueSerdeFactory
+  ) {
     final MetadataTimestampExtractionPolicy timestampExtractionPolicy
         = new MetadataTimestampExtractionPolicy();
+
     final MutableMetaStore metaStore = new MetaStoreImpl(functionRegistry);
 
     final Schema test1Schema = SchemaBuilder.struct()
@@ -61,7 +62,7 @@ public final class MetaStoreFixture {
 
     final KsqlTopic
         ksqlTopic0 =
-        new KsqlTopic("TEST0", "test0", serde.get(), false);
+        new KsqlTopic("TEST0", "test0", valueSerdeFactory, false);
 
     final KsqlStream<?> ksqlStream0 = new KsqlStream<>(
         "sqlexpression",
@@ -77,7 +78,7 @@ public final class MetaStoreFixture {
 
     final KsqlTopic
         ksqlTopic1 =
-        new KsqlTopic("TEST1", "test1", serde.get(), false);
+        new KsqlTopic("TEST1", "test1", valueSerdeFactory, false);
 
     final KsqlStream<?> ksqlStream1 = new KsqlStream<>("sqlexpression",
         "TEST1",
@@ -102,7 +103,7 @@ public final class MetaStoreFixture {
 
     final KsqlTopic
         ksqlTopic2 =
-        new KsqlTopic("TEST2", "test2", serde.get(), false);
+        new KsqlTopic("TEST2", "test2", valueSerdeFactory, false);
     final KsqlTable<String> ksqlTable = new KsqlTable<>(
         "sqlexpression",
         "TEST2",
@@ -147,7 +148,7 @@ public final class MetaStoreFixture {
 
     final KsqlTopic
         ksqlTopicOrders =
-        new KsqlTopic("ORDERS_TOPIC", "orders_topic", serde.get(), false);
+        new KsqlTopic("ORDERS_TOPIC", "orders_topic", valueSerdeFactory, false);
 
     final KsqlStream<?> ksqlStreamOrders = new KsqlStream<>(
         "sqlexpression",
@@ -173,7 +174,7 @@ public final class MetaStoreFixture {
 
     final KsqlTopic
         ksqlTopic3 =
-        new KsqlTopic("TEST3", "test3", serde.get(), false);
+        new KsqlTopic("TEST3", "test3", valueSerdeFactory, false);
     final KsqlTable<String> ksqlTable3 = new KsqlTable<>(
         "sqlexpression",
         "TEST3",
@@ -195,7 +196,8 @@ public final class MetaStoreFixture {
 
     final KsqlTopic
         nestedArrayStructMapTopic =
-        new KsqlTopic("NestedArrayStructMap", "NestedArrayStructMap_topic", serde.get(), false);
+        new KsqlTopic("NestedArrayStructMap", "NestedArrayStructMap_topic", valueSerdeFactory,
+            false);
 
     final KsqlStream<?> nestedArrayStructMapOrders = new KsqlStream<>(
         "sqlexpression",
@@ -210,7 +212,7 @@ public final class MetaStoreFixture {
     metaStore.putSource(nestedArrayStructMapOrders);
 
     final KsqlTopic ksqlTopic4 =
-        new KsqlTopic("TEST4", "test4", serde.get(), false);
+        new KsqlTopic("TEST4", "test4", valueSerdeFactory, false);
 
     final KsqlStream<?> ksqlStream4 = new KsqlStream<>(
         "sqlexpression4",

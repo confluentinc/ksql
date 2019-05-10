@@ -30,7 +30,7 @@ public final class AvroUtil {
       final PersistentQueryMetadata persistentQueryMetadata,
       final SchemaRegistryClient schemaRegistryClient
   ) {
-    if (persistentQueryMetadata.getResultTopicSerde() != Format.AVRO) {
+    if (persistentQueryMetadata.getResultTopicFormat() != Format.AVRO) {
       return true;
     }
 

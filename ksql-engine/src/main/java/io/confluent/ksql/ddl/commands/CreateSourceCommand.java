@@ -89,11 +89,10 @@ abstract class CreateSourceCommand implements DdlCommand {
       this.keyField = KeyField.none();
     }
 
-    final String timestampName = properties.getTimestampName().orElse(null);
-    final String timestampFormat = properties.getTimestampFormat().orElse(null);
-    this.timestampExtractionPolicy = TimestampExtractionPolicyFactory.create(schema,
-        timestampName,
-        timestampFormat);
+    final Optional<String> timestampName = properties.getTimestampName();
+    final Optional<String> timestampFormat = properties.getTimestampFormat();
+    this.timestampExtractionPolicy = TimestampExtractionPolicyFactory
+        .create(schema, timestampName, timestampFormat);
 
     this.keySerdeFactory = extractKeySerde(properties);
   }

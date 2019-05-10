@@ -16,7 +16,6 @@
 package io.confluent.ksql.test.tools;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.common.utils.TestUtils;
@@ -159,7 +158,7 @@ final class TestExecutor {
         Optional.of(serviceContext.getSchemaRegistryClient())
     );
 
-    assertThat("test did not generate any queries.", queries.isEmpty(), is(false));
+    assertThat("test did not generate any queries.", !queries.isEmpty());
     return queries;
   }
 

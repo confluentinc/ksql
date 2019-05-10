@@ -63,7 +63,7 @@ public class FakeKafkaServiceTest {
     fakeKafkaService.createTopic(topic);
 
     // When:
-    fakeKafkaService.writeSingleRecoredIntoTopic("foo", fakeKafkaRecord);
+    fakeKafkaService.writeRecord("foo", fakeKafkaRecord);
 
     // Then:
     assertThat(fakeKafkaService.getTopicData().get("foo").get(0), is(fakeKafkaRecord));
@@ -75,10 +75,10 @@ public class FakeKafkaServiceTest {
     final FakeKafkaService fakeKafkaService = FakeKafkaService.create();
     final Topic topic = new Topic("foo", Optional.of(avroSchema), new StringSerdeSupplier(), 1, 1);
     fakeKafkaService.createTopic(topic);
-    fakeKafkaService.writeSingleRecoredIntoTopic("foo", fakeKafkaRecord);
+    fakeKafkaService.writeRecord("foo", fakeKafkaRecord);
 
     // When:
-    final List<FakeKafkaRecord> records = fakeKafkaService.readRecordsFromTopic(topic.getName());
+    final List<FakeKafkaRecord> records = fakeKafkaService.readRecords(topic.getName());
 
     // Then:
     assertThat(records.size(), CoreMatchers.equalTo(1));

@@ -17,11 +17,14 @@ package io.confluent.ksql.test.tools;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.function.TestFunctionRegistry;
+import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.test.model.QttTestFile;
 import io.confluent.ksql.test.model.TestCaseNode;
 import io.confluent.ksql.test.tools.command.TestOptions;
+import io.confluent.ksql.util.Pair;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 public final class KsqlTestingTool {
@@ -30,50 +33,87 @@ public final class KsqlTestingTool {
 
   }
 
-  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+  private static final ObjectMapper OBJECT_MAPPER = JsonMapper.INSTANCE.mapper;
 
   public static void main(final String[] args) throws IOException {
     loadAndRunTests(args);
   }
 
   static void loadAndRunTests(final String[] args) {
+    final List<String> passedTests = new ArrayList<>();
+    final List<Pair<String, String>> failedTests = new ArrayList<>();
     try {
 
       final TestOptions testOptions = TestOptions.parse(args);
 
       if (testOptions == null) {
+        System.err.println("Invalid parameter.");
+        System.err.println("Usage: ksql-testing-tool /path/to/the/test/file.json");
         return;
       }
 
       final QttTestFile qttTestFile = OBJECT_MAPPER.readValue(
           new File(testOptions.getTestFile()), QttTestFile.class);
-
+      if (qttTestFile.tests.isEmpty()) {
+        System.err.println("No tests in the file: " + args[0]);
+        return;
+      }
+      // Currently we only run one TestCaseNode.
       for (final TestCaseNode testCaseNode: qttTestFile.tests) {
         final List<TestCase> testCases = testCaseNode.buildTests(
             new File(testOptions.getTestFile()).toPath(),
             TestFunctionRegistry.INSTANCE.get());
         for (final TestCase testCase: testCases) {
-          executeTestCase(testCase, new TestExecutor());
+          executeTestCase(
+              testCase,
+              new TestExecutor(),
+              passedTests,
+              failedTests);
         }
       }
-
-      System.out.println("All tests passed!");
-
+      printResults(qttTestFile.tests.size(), passedTests, failedTests);
     } catch (final Exception e) {
       System.err.println("Failed to start KSQL testing tool: " + e.getMessage());
     }
   }
 
-  static void executeTestCase(final TestCase testCase, final TestExecutor testExecutor) {
+  static void executeTestCase(
+      final TestCase testCase,
+      final TestExecutor testExecutor,
+      final List<String> passedTests,
+      final List<Pair<String, String>> failedTests
+      ) {
     try {
       System.out.println(" >>> Running test: " + testCase.getName());
       testExecutor.buildAndExecuteQuery(testCase);
       System.out.println("\t >>> Test " + testCase.getName() + " passed!");
+      passedTests.add(testCase.getName());
     } catch (final Exception e) {
       e.printStackTrace();
       System.err.println("\t>>>>> Test " + testCase.getName() + " failed: " + e.getMessage());
+      failedTests.add(new Pair<>(testCase.getName(), e.getMessage()));
     } finally {
       testExecutor.close();
+    }
+  }
+
+  static void printResults(
+      final int totalNumberOfTests,
+      final List<String> passedTests,
+      final List<Pair<String, String>> failedTests) {
+    System.out.println("Number of tests: " + totalNumberOfTests);
+    if (passedTests.size() == totalNumberOfTests) {
+      System.out.println("All tests passed!");
+      return;
+    }
+    System.out.println(passedTests.size() + " out of " + totalNumberOfTests + " tests passed!");
+    if (!failedTests.isEmpty()) {
+      System.out.println(failedTests.size() + " tests failed: ");
+      System.out.println("Failing tests: ");
+      for (final Pair pair: failedTests) {
+        System.out.println("\t\t Test name: " + pair.getLeft()
+            + " , Failure reason: " + pair.getRight());
+      }
     }
   }
 }

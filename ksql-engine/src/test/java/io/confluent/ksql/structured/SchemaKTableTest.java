@@ -49,8 +49,8 @@ import io.confluent.ksql.planner.plan.ProjectNode;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.serde.GenericRowSerDe;
-import io.confluent.ksql.serde.KsqlTopicSerDe;
-import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
+import io.confluent.ksql.serde.KsqlSerdeFactory;
+import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
 import io.confluent.ksql.streams.GroupedFactory;
 import io.confluent.ksql.streams.JoinedFactory;
 import io.confluent.ksql.streams.MaterializedFactory;
@@ -194,7 +194,7 @@ public class SchemaKTableTest {
 
   private Serde<GenericRow> getRowSerde(final KsqlTopic topic, final Schema schema) {
     return GenericRowSerDe.from(
-        topic.getKsqlTopicSerDe(),
+        topic.getValueSerdeFactory(),
         schema,
         new KsqlConfig(Collections.emptyMap()),
         MockSchemaRegistryClient::new,
@@ -326,9 +326,9 @@ public class SchemaKTableTest {
         functionRegistry,
         parentContext);
 
-    final KsqlTopicSerDe ksqlTopicSerDe = new KsqlJsonTopicSerDe();
+    final KsqlSerdeFactory ksqlSerdeFactory = new KsqlJsonSerdeFactory();
     final Serde<GenericRow> rowSerde = GenericRowSerDe.from(
-        ksqlTopicSerDe,
+        ksqlSerdeFactory,
         SchemaTestUtil.getSchemaWithNoAlias(initialSchemaKTable.getSchema().getSchema()),
         null,
         () -> null,
@@ -404,7 +404,7 @@ public class SchemaKTableTest {
 
     final List<Expression> groupByExpressions = Arrays.asList(TEST_2_COL_2, TEST_2_COL_1);
     final Serde<GenericRow> rowSerde = GenericRowSerDe.from(
-        new KsqlJsonTopicSerDe(),
+        new KsqlJsonSerdeFactory(),
         SchemaTestUtil.getSchemaWithNoAlias(initialSchemaKTable.getSchema().getSchema()),
         null,
         () -> null,
@@ -647,7 +647,7 @@ public class SchemaKTableTest {
         parentContext);
 
     rowSerde = GenericRowSerDe.from(
-        new KsqlJsonTopicSerDe(),
+        new KsqlJsonSerdeFactory(),
         SchemaTestUtil.getSchemaWithNoAlias(initialSchemaKTable.getSchema().getSchema()),
         null,
         () -> null,

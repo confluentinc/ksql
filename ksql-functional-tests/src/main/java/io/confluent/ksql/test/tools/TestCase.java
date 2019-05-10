@@ -26,9 +26,9 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.KsqlTopic;
-import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
-import io.confluent.ksql.serde.delimited.KsqlDelimitedTopicSerDe;
-import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
+import io.confluent.ksql.serde.avro.KsqlAvroSerdeFactory;
+import io.confluent.ksql.serde.delimited.KsqlDelimitedSerdeFactory;
+import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.test.serde.SerdeSupplier;
 import io.confluent.ksql.test.serde.avro.AvroSerdeSupplier;
@@ -323,9 +323,9 @@ public class TestCase implements Test {
       final SchemaRegistryClient schemaRegistryClient
   ) {
     inputRecords.forEach(
-        record -> fakeKafkaService.writeSingleRecoredIntoTopic(
+        record -> fakeKafkaService.writeRecord(
             record.topic.getName(),
-            new FakeKafkaRecord(record, null))
+            FakeKafkaRecord.of(record, null))
     );
   }
 
@@ -336,52 +336,65 @@ public class TestCase implements Test {
       final KafkaTopicClient kafkaTopicClient,
       final SchemaRegistryClient schemaRegistryClient
   ) {
-    final List<FakeKafkaRecord> inputRecordsFromKafka = new ArrayList<>();
-    testDriver.getSourceKsqlTopics().forEach(
-        ksqlTopic -> inputRecordsFromKafka.addAll(
-            fakeKafkaService.readRecordsFromTopic(ksqlTopic.getKafkaTopicName())
+    Objects.requireNonNull(testDriver, "TopologyTestDriverContainer");
+    Objects.requireNonNull(fakeKafkaService, "fakeKafkaService");
+    Objects.requireNonNull(kafkaTopicClient, "kafkaTopicClient");
+    Objects.requireNonNull(schemaRegistryClient, "schemaRegistryClient");
+    for (final KsqlTopic ksqlTopic : testDriver.getSourceKsqlTopics()) {
+      for (final FakeKafkaRecord fakeKafkaRecord: fakeKafkaService
+          .readRecords(ksqlTopic.getKafkaTopicName())) {
+        try {
+          processSingleRecord(
+              fakeKafkaRecord,
+              fakeKafkaService,
+              testDriver,
+              kafkaTopicClient,
+              schemaRegistryClient);
+        } catch (IOException | RestClientException e) {
+          e.printStackTrace();
+        }
+      }
+    }
+  }
+
+  @SuppressWarnings("unchecked")
+  private static void processSingleRecord(
+      final FakeKafkaRecord fakeKafkaRecord,
+      final FakeKafkaService fakeKafkaService,
+      final TopologyTestDriverContainer testDriver,
+      final KafkaTopicClient kafkaTopicClient,
+      final SchemaRegistryClient schemaRegistryClient) throws IOException, RestClientException {
+    testDriver.getTopologyTestDriver().pipeInput(
+        new ConsumerRecordFactory<>(
+            fakeKafkaRecord.getTestRecord().keySerializer(),
+            fakeKafkaRecord.getTestRecord().topic.getSerializer(schemaRegistryClient)
+        ).create(
+            fakeKafkaRecord.getTestRecord().topic.name,
+            fakeKafkaRecord.getTestRecord().key(),
+            fakeKafkaRecord.getTestRecord().value,
+            fakeKafkaRecord.getTestRecord().timestamp
         )
     );
-    inputRecordsFromKafka.forEach(
-        record -> {
-          testDriver.getTopologyTestDriver().pipeInput(
-              new ConsumerRecordFactory<>(
-                  record.getTestRecord().keySerializer(),
-                  record.getTestRecord().topic.getSerializer(schemaRegistryClient)
-              ).create(
-              record.getTestRecord().topic.name,
-              record.getTestRecord().key(),
-              record.getTestRecord().value,
-              record.getTestRecord().timestamp
-              )
-          );
-
-          try {
-            final Topic sinkTopic = getTopic(
-                kafkaTopicClient,
-                testDriver.getSinkKsqlTopic(),
-                schemaRegistryClient);
-            final ProducerRecord producerRecord = testDriver.getTopologyTestDriver().readOutput(
-                testDriver.getSinkKsqlTopic().getKafkaTopicName(),
-                new StringDeserializer(),
-                sinkTopic.getDeserializer(schemaRegistryClient)
-            );
-            if (producerRecord != null) {
-              fakeKafkaService.writeSingleRecoredIntoTopic(
-                  producerRecord.topic(),
-                  getFakeKafkaRecordFromProducerRecord(
-                      getTopic(
-                          kafkaTopicClient,
-                          testDriver.getSinkKsqlTopic(),
-                          schemaRegistryClient),
-                      producerRecord)
-              );
-            }
-          } catch (final IOException | RestClientException e) {
-            e.printStackTrace();
-          }
-        }
+    final Topic sinkTopic = getTopic(
+        kafkaTopicClient,
+        testDriver.getSinkKsqlTopic(),
+        schemaRegistryClient);
+    final ProducerRecord producerRecord = testDriver.getTopologyTestDriver().readOutput(
+        testDriver.getSinkKsqlTopic().getKafkaTopicName(),
+        new StringDeserializer(),
+        sinkTopic.getDeserializer(schemaRegistryClient)
     );
+    if (producerRecord != null) {
+      fakeKafkaService.writeRecord(
+          producerRecord.topic(),
+          FakeKafkaRecord.of(
+              getTopic(
+                  kafkaTopicClient,
+                  testDriver.getSinkKsqlTopic(),
+                  schemaRegistryClient),
+              producerRecord)
+      );
+    }
   }
 
   public void verifyOutputTopics(
@@ -393,7 +406,7 @@ public class TestCase implements Test {
     expectedOutput.keySet().forEach(
         kafkaTopicName -> outputRecordsFromKafka.put(
             kafkaTopicName,
-            fakeKafkaService.readRecordsFromTopic(kafkaTopicName)
+            fakeKafkaService.readRecords(kafkaTopicName)
         )
     );
     expectedOutput.keySet().forEach(kafkaTopic -> validateTopicData(
@@ -403,7 +416,6 @@ public class TestCase implements Test {
     ));
   }
 
-  @SuppressWarnings("unchecked")
   private static void validateTopicData(
       final List<FakeKafkaRecord> expected,
       final List<FakeKafkaRecord> actual,
@@ -434,7 +446,7 @@ public class TestCase implements Test {
                 + " but was <" + actualProducerRecord.key() + ", "
                 + actualProducerRecord.value() + "> with timestamp="
                 + actualProducerRecord.timestamp());
-        error.printStackTrace();
+        throw new KsqlException(error.getMessage());
       }
     }
   }
@@ -449,7 +461,7 @@ public class TestCase implements Test {
             outputRecordsFromTest.put(record.topic.getName(), new ArrayList<>());
           }
           outputRecordsFromTest.get(record.topic.getName()).add(
-              new FakeKafkaRecord(record, new ProducerRecord(
+              FakeKafkaRecord.of(record, new ProducerRecord(
                   record.topic.getName(),
                   null,
                   record.timestamp(),
@@ -464,27 +476,10 @@ public class TestCase implements Test {
     return outputRecordsFromTest;
   }
 
-
-  private static FakeKafkaRecord getFakeKafkaRecordFromProducerRecord(
-      final Topic topic,
-      final ProducerRecord producerRecord) {
-    Objects.requireNonNull(producerRecord);
-    final Record testRecord =  new Record(
-        topic,
-        producerRecord.key().toString(),
-        producerRecord.value(),
-        producerRecord.timestamp(),
-        null
-    );
-    return new FakeKafkaRecord(testRecord, producerRecord);
-  }
-
   private static Topic getTopic(
       final KafkaTopicClient kafkaTopicClient,
       final KsqlTopic ksqlTopic,
       final SchemaRegistryClient schemaRegistryClient) throws IOException, RestClientException {
-    Objects.requireNonNull(kafkaTopicClient);
-    Objects.requireNonNull(ksqlTopic);
     final TopicDescription topicDescription = kafkaTopicClient
         .describeTopic(ksqlTopic.getKafkaTopicName());
     return new Topic(
@@ -498,20 +493,20 @@ public class TestCase implements Test {
 
   private static SerdeSupplier getSerdeSupplierForKsqlTopic(final KsqlTopic ksqlTopic) {
     Objects.requireNonNull(ksqlTopic);
-    if (ksqlTopic.getKsqlTopicSerDe() instanceof KsqlJsonTopicSerDe
-        || ksqlTopic.getKsqlTopicSerDe() instanceof KsqlDelimitedTopicSerDe) {
+    if (ksqlTopic.getValueSerdeFactory() instanceof KsqlJsonSerdeFactory
+        || ksqlTopic.getValueSerdeFactory() instanceof KsqlDelimitedSerdeFactory) {
       return new StringSerdeSupplier();
-    } else if (ksqlTopic.getKsqlTopicSerDe() instanceof KsqlAvroTopicSerDe) {
+    } else if (ksqlTopic.getValueSerdeFactory() instanceof KsqlAvroSerdeFactory) {
       return new AvroSerdeSupplier();
     }
     throw new KsqlException("Unsupported topic serde: "
-        + ksqlTopic.getKsqlTopicSerDe().getClass().getSimpleName());
+        + ksqlTopic.getValueSerdeFactory().getClass().getSimpleName());
   }
 
   private static Optional<Schema> getSchema(
       final KsqlTopic ksqlTopic,
       final SchemaRegistryClient schemaRegistryClient) throws IOException, RestClientException {
-    if (!(ksqlTopic.getKsqlTopicSerDe() instanceof KsqlAvroTopicSerDe)) {
+    if (!(ksqlTopic.getValueSerdeFactory() instanceof KsqlAvroSerdeFactory)) {
       return Optional.empty();
     }
     return Optional.of(new Schema.Parser().parse(

@@ -39,8 +39,8 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.serde.Format;
-import io.confluent.ksql.serde.KsqlTopicSerDe;
-import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
+import io.confluent.ksql.serde.KsqlSerdeFactory;
+import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
@@ -404,7 +404,7 @@ public class ClusterTerminatorTest {
 
   private static KsqlTopic getKsqlTopic(final String topicName, final String kafkaTopicName,
       final boolean isSink) {
-    return new KsqlTopic(topicName, kafkaTopicName, new KsqlJsonTopicSerDe(), isSink);
+    return new KsqlTopic(topicName, kafkaTopicName, new KsqlJsonSerdeFactory(), isSink);
   }
 
   private void givenSinkTopicsExistInMetastore(final String... kafkaTopicNames) {
@@ -424,10 +424,10 @@ public class ClusterTerminatorTest {
   private void givenTopicsUseAvroSerdes(final String... topicNames) {
     for (final String topicName : topicNames) {
       final DataSource<?> dataSource = mock(DataSource.class);
-      final KsqlTopicSerDe ksqlTopicSerDe = mock(KsqlTopicSerDe.class);
+      final KsqlSerdeFactory ksqlSerdeFactory = mock(KsqlSerdeFactory.class);
 
-      when(dataSource.getKsqlTopicSerde()).thenReturn(ksqlTopicSerDe);
-      when(ksqlTopicSerDe.getFormat()).thenReturn(Format.AVRO);
+      when(dataSource.getValueSerdeFactory()).thenReturn(ksqlSerdeFactory);
+      when(ksqlSerdeFactory.getFormat()).thenReturn(Format.AVRO);
 
       when(metaStore.getSourcesForKafkaTopic(topicName)).thenReturn(ImmutableList.of(dataSource));
     }

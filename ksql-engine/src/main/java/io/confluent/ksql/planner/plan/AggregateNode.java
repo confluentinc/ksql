@@ -38,7 +38,7 @@ import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.physical.KsqlQueryBuilder;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
-import io.confluent.ksql.serde.KsqlTopicSerDe;
+import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.QueryContext;
 import io.confluent.ksql.structured.SchemaKGroupedStream;
@@ -201,11 +201,11 @@ public class AggregateNode extends PlanNode {
 
     final QueryContext.Stacker groupByContext = contextStacker.push(GROUP_BY_OP_NAME);
 
-    final KsqlTopicSerDe ksqlTopicSerDe = streamSourceNode.getDataSource()
-        .getKsqlTopicSerde();
+    final KsqlSerdeFactory valueSerdeFactory = streamSourceNode.getDataSource()
+        .getValueSerdeFactory();
 
     final Serde<GenericRow> genericRowSerde = builder.buildGenericRowSerde(
-        ksqlTopicSerDe,
+        valueSerdeFactory,
         aggregateArgExpanded.getSchema().getSchema(),
         groupByContext.getQueryContext()
     );
@@ -233,7 +233,7 @@ public class AggregateNode extends PlanNode {
     final QueryContext.Stacker aggregationContext = contextStacker.push(AGGREGATION_OP_NAME);
 
     final Serde<GenericRow> aggValueGenericRowSerde = builder.buildGenericRowSerde(
-        ksqlTopicSerDe,
+        valueSerdeFactory,
         aggStageSchema.getSchema(),
         aggregationContext.getQueryContext()
     );

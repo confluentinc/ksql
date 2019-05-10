@@ -30,7 +30,7 @@ import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.planner.plan.PlanNodeId;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.GenericRowSerDe;
-import io.confluent.ksql.serde.KsqlTopicSerDe;
+import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.structured.QueryContext;
 import io.confluent.ksql.structured.QueryContext.Stacker;
@@ -65,7 +65,7 @@ public class KsqlQueryBuilderTest {
   @Mock
   private FunctionRegistry functionRegistry;
   @Mock
-  private KsqlTopicSerDe topicSerDe;
+  private KsqlSerdeFactory valueSerdeFactory;
   @Mock
   private Serde<Struct> rowSerde;
   @Mock
@@ -75,7 +75,7 @@ public class KsqlQueryBuilderTest {
 
   @Before
   public void setUp() {
-    when(topicSerDe.getStructSerde(any(), any(), any(), any(), any())).thenReturn(rowSerde);
+    when(valueSerdeFactory.createSerde(any(), any(), any(), any(), any())).thenReturn(rowSerde);
     when(serviceContext.getSchemaRegistryClientFactory()).thenReturn(srClientFactory);
 
     queryContext = new QueryContext.Stacker(QUERY_ID).push("context").getQueryContext();
@@ -131,13 +131,13 @@ public class KsqlQueryBuilderTest {
   public void shouldBuildGenericRowSerde() {
     // When:
     final Serde<GenericRow> result = ksqlQueryBuilder.buildGenericRowSerde(
-        topicSerDe,
+        valueSerdeFactory,
         SOME_SCHEMA,
         queryContext
     );
 
     // Then:
-    verify(topicSerDe).getStructSerde(
+    verify(valueSerdeFactory).createSerde(
         SOME_SCHEMA,
         ksqlConfig,
         srClientFactory,
@@ -145,7 +145,7 @@ public class KsqlQueryBuilderTest {
         processingLogContext);
 
     assertThat(result, is(GenericRowSerDe.from(
-        topicSerDe,
+        valueSerdeFactory,
         SOME_SCHEMA,
         ksqlConfig,
         srClientFactory,
@@ -158,7 +158,7 @@ public class KsqlQueryBuilderTest {
   public void shouldTrackSchemasUsed() {
     // When:
     ksqlQueryBuilder.buildGenericRowSerde(
-        topicSerDe,
+        valueSerdeFactory,
         SOME_SCHEMA,
         queryContext
     );

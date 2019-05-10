@@ -16,6 +16,7 @@
 package io.confluent.ksql.test.tools;
 
 import io.confluent.ksql.metastore.model.KsqlTopic;
+import java.util.Objects;
 import java.util.Set;
 import org.apache.kafka.streams.TopologyTestDriver;
 
@@ -38,6 +39,9 @@ public final class TopologyTestDriverContainer {
       final TopologyTestDriver topologyTestDriver,
       final Set<KsqlTopic> sourceKsqlTopics,
       final KsqlTopic sinkKsqlTopic) {
+    Objects.requireNonNull(topologyTestDriver, "topologyTestDriver");
+    Objects.requireNonNull(sourceKsqlTopics, "sourceKsqlTopics");
+    Objects.requireNonNull(sinkKsqlTopic, "sinkKsqlTopic");
     return new TopologyTestDriverContainer(topologyTestDriver, sourceKsqlTopics, sinkKsqlTopic);
   }
 

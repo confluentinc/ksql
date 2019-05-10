@@ -3,10 +3,12 @@
 KSQL Testing Tool
 ###########################
 
-This describes a command line tool, the KSQL testing tool, that can be used to test a set of KSQL statements without requiring any infrastructure such as Kafka or KSQL clusters.
-KSQL testing tool is a great way to design your KSQL pipeline and ensure the expected results are generated. You can colaborate on designing your KSQL statements by sharing the test files.
-The input for the tool is a JSON file that describes a set of KSQL statements along with the input data in Kafka topic(s) and the expected output data that will also be written in Kafka topic(s) when you run the statements in a real environment.
-You can use the testing tool from terminal by callink the testing took command and passing the test file as a parameter.
+Use the KSQL testing tool to test a set of KSQL statements. The KSQL testing tool
+is a command line utility that enables testing KSQL statements without requiring any infrastructure, like |ak-tm| and KSQL clusters.
+The KSQL testing tool is a great way to design your KSQL pipeline and ensure the expected results are generated.
+You can collaborate on designing your KSQL statements by sharing the test files.
+You provide a JSON file that describes a set of KSQL statements, along with the input data and expected output data.
+Run the testing tool from a terminal and pass the test file as a parameter.
 
 .. code:: bash
 
@@ -15,13 +17,13 @@ You can use the testing tool from terminal by callink the testing took command a
 
 Test File Structure
 *******************
-The test file is a JSON file containing the KSQL statements, input data, desired configurations and the expected results or expected errors.
-The following is a simple test file:
+The test file is a JSON file containing the KSQL statements, input data, desired configurations, and the expected results or expected errors.
+The following is a sample test file:
 
 .. code:: json
     {
       "comments": [
-        "Add a description of _what_ are of functionality this file is testing"
+        "Add a description of the functionality that this file tests"
       ],
       "tests": [
         {
@@ -57,25 +59,33 @@ The following is a simple test file:
     }
 
 
-As you can see, you can have multiple tests in one test files. In addition to name, description and statements, each test includes input topics and their data along with the expected output topics and their data.
-The test file format is the same as the files KSQL code uses for query translation tests. For more details on the structure of the test file and all possible settings refer to the `README.md <https://github.com/confluentinc/ksql/tree/master/ksql-functional-tests>` in the KSQL repository.
+You can have multiple tests in one test file. In addition to name, description, and statements, each test includes
+input topics and their data along with the expected output topics and their data.
+The test file format is the same as the files KSQL code uses for integration tests. For more details on the
+structure of the test file and all possible settings, see the `README.md <https://github.com/confluentinc/ksql/tree/master/ksql-functional-tests>` in the KSQL repository.
 
 Running Tests
 *************
 
-As mentioned above, you can run the tests by passing the test file to the testing tool command in terminal. Let's assume we run the above test file which is stored in test.json file in the home directory.
-The following shows how to run the test from the terminal:
+Assume we run the previous test file, which is stored in test.json in the home directory.
+The following command shows how to run the test from the terminal:
 
 .. code:: bash
 
-    $ ksql-testing-tool ~/test.json
+    ksql-testing-tool ~/test.json
+
+
+Your output should resemble:
+
+.. code:: bash
+
      >>> Running test: ksql-test - my first positive test
     	 >>> Test ksql-test - my first positive test passed!
      >>> Running test: ksql-test - my first negative test
     	 >>> Test ksql-test - my first negative test passed!
     All tests passed!
-    $
 
-For each test case, the testing tool first creates and populates the input topics in it's internal simulated kafka cluster.
-It then compiles and runs the KSQL statements and finally compares the generated results with the expected ones. If the expected results are generated, the test passes, otherwise it fails.
+
+For each test case, the testing tool first creates and populates the input topics in its internal simulated Kafka cluster.
+It compiles the KSQL statements, runs them, and compares the generated results with the expected results. If the expected results are generated, the test passes, otherwise it fails.
 The status of each test is printed out into the terminal.

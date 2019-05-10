@@ -59,7 +59,7 @@ public class GenericRowSerDeTest {
   private static final Map<String, ?> SOME_CONFIG = ImmutableMap.of("some", "thing");
 
   @Mock
-  private KsqlTopicSerDe ksqlTopicSerde;
+  private KsqlSerdeFactory valueSerdeFactory;
   @Mock
   private KsqlConfig ksqlConfig;
   @Mock
@@ -76,12 +76,12 @@ public class GenericRowSerDeTest {
 
   @Before
   public void setUp() {
-    when(ksqlTopicSerde.getStructSerde(any(), any(), any(), any(), any())).thenReturn(structSerde);
+    when(valueSerdeFactory.createSerde(any(), any(), any(), any(), any())).thenReturn(structSerde);
     when(structSerde.serializer()).thenReturn(structSerializer);
     when(structSerde.deserializer()).thenReturn(structDeserializer);
 
     rowSerde = GenericRowSerDe.from(
-        ksqlTopicSerde,
+        valueSerdeFactory,
         ROW_SCHEMA,
         ksqlConfig,
         srClientFactory,
@@ -93,11 +93,11 @@ public class GenericRowSerDeTest {
   @Test
   public void shouldGetStructSerdeOnConstruction() {
     // Given:
-    clearInvocations(ksqlTopicSerde);
+    clearInvocations(valueSerdeFactory);
 
     // When:
     GenericRowSerDe.from(
-        ksqlTopicSerde,
+        valueSerdeFactory,
         ROW_SCHEMA,
         ksqlConfig,
         srClientFactory,
@@ -106,7 +106,7 @@ public class GenericRowSerDeTest {
     );
 
     // Then:
-    verify(ksqlTopicSerde).getStructSerde(
+    verify(valueSerdeFactory).createSerde(
         ROW_SCHEMA,
         ksqlConfig,
         srClientFactory,
@@ -118,11 +118,11 @@ public class GenericRowSerDeTest {
   @Test(expected = NullPointerException.class)
   public void shouldThrowOnNullStructSerde() {
     // Given:
-    when(ksqlTopicSerde.getStructSerde(any(), any(), any(), any(), any())).thenReturn(null);
+    when(valueSerdeFactory.createSerde(any(), any(), any(), any(), any())).thenReturn(null);
 
     // When:
     GenericRowSerDe.from(
-        ksqlTopicSerde,
+        valueSerdeFactory,
         ROW_SCHEMA,
         ksqlConfig,
         srClientFactory,
@@ -134,11 +134,11 @@ public class GenericRowSerDeTest {
   @Test(expected = NullPointerException.class)
   public void shouldThrowOnNullSchema() {
     // Given:
-    when(ksqlTopicSerde.getStructSerde(any(), any(), any(), any(), any())).thenReturn(null);
+    when(valueSerdeFactory.createSerde(any(), any(), any(), any(), any())).thenReturn(null);
 
     // When:
     GenericRowSerDe.from(
-        ksqlTopicSerde,
+        valueSerdeFactory,
         null,
         ksqlConfig,
         srClientFactory,

@@ -25,6 +25,7 @@ import static org.mockito.Mockito.verify;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.security.Permission;
+import java.util.ArrayList;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -69,7 +70,11 @@ public class KsqlTestingToolTest {
 
 
     // When:
-    KsqlTestingTool.executeTestCase(testCase, testExecutor);
+    KsqlTestingTool.executeTestCase(
+        testCase,
+        testExecutor,
+        new ArrayList<>(),
+        new ArrayList<>());
 
     // Then:
     verify(testExecutor).buildAndExecuteQuery(testCase);

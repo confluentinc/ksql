@@ -25,6 +25,7 @@ import java.util.Optional;
 import org.apache.avro.Schema;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.hamcrest.CoreMatchers;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -39,7 +40,12 @@ public class FakeKafkaServiceTest {
   private ProducerRecord producerRecord;
   @Mock
   private Record record;
-  private final FakeKafkaRecord fakeKafkaRecord = FakeKafkaRecord.of(record, producerRecord);
+  private FakeKafkaRecord fakeKafkaRecord;
+
+  @Before
+  public void setUp() {
+    fakeKafkaRecord = FakeKafkaRecord.of(record, producerRecord);
+  }
 
 
   @Test

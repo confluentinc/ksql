@@ -18,9 +18,12 @@ package io.confluent.ksql.rest.client.properties;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.config.PropertyValidator;
+import io.confluent.ksql.engine.KsqlEngineProps;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
+import java.util.Collection;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -41,6 +44,8 @@ public class LocalPropertyValidator implements PropertyValidator {
       .add(ConsumerConfig.GROUP_ID_CONFIG)
       .build();
 
+  private final Set<String> immutableProps;
+
   private static final Map<String, Consumer<Object>> HANDLERS =
       ImmutableMap.<String, Consumer<Object>>builder()
       .put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG,
@@ -48,11 +53,18 @@ public class LocalPropertyValidator implements PropertyValidator {
       .build();
 
   LocalPropertyValidator() {
+    this(KsqlEngineProps.getImmutableProperties());
   }
+
+  LocalPropertyValidator(final Collection<String> immutableProps) {
+    this.immutableProps = ImmutableSet.copyOf(
+        Objects.requireNonNull(immutableProps, "immutableProps"));
+  }
+
 
   @Override
   public void validate(final String name, final Object value) {
-    if (!CONFIG_PROPERTY_WHITELIST.contains(name)) {
+    if (immutableProps.contains(name)) {
       throw new IllegalArgumentException(String.format("Cannot override property '%s'", name));
     }
 

@@ -35,8 +35,8 @@ import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.ListProperties;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.Statement;
-import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
-import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
+import io.confluent.ksql.serde.avro.KsqlAvroSerdeFactory;
+import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
@@ -82,7 +82,7 @@ public class TopicDeleteInjectorTest {
 
     when(metaStore.getSource("SOMETHING")).thenAnswer(inv -> source);
     when(source.getKafkaTopicName()).thenReturn("something");
-    when(source.getKsqlTopicSerde()).thenReturn(new KsqlJsonTopicSerDe());
+    when(source.getValueSerdeFactory()).thenReturn(new KsqlJsonSerdeFactory());
   }
 
   @Test
@@ -130,7 +130,7 @@ public class TopicDeleteInjectorTest {
   @Test
   public void shouldDeleteSchemaInSR() throws IOException, RestClientException {
     // Given:
-    when(source.getKsqlTopicSerde()).thenReturn(new KsqlAvroTopicSerDe("foo"));
+    when(source.getValueSerdeFactory()).thenReturn(new KsqlAvroSerdeFactory("foo"));
 
     // When:
     deleteInjector.inject(DROP_WITH_DELETE_TOPIC);

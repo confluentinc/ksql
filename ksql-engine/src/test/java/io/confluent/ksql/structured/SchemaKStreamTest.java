@@ -53,7 +53,7 @@ import io.confluent.ksql.planner.plan.ProjectNode;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.serde.GenericRowSerDe;
-import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
+import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
 import io.confluent.ksql.streams.GroupedFactory;
 import io.confluent.ksql.streams.JoinedFactory;
 import io.confluent.ksql.streams.MaterializedFactory;
@@ -202,7 +202,7 @@ public class SchemaKStreamTest {
 
   private static Serde<GenericRow> getRowSerde(final KsqlTopic topic, final Schema schema) {
     return GenericRowSerDe.from(
-        topic.getKsqlTopicSerDe(),
+        topic.getValueSerdeFactory(),
         schema,
         new KsqlConfig(Collections.emptyMap()),
         MockSchemaRegistryClient::new,
@@ -936,7 +936,7 @@ public class SchemaKStreamTest {
         queryContext.push("source").getQueryContext());
 
     rowSerde = GenericRowSerDe.from(
-        new KsqlJsonTopicSerDe(),
+        new KsqlJsonSerdeFactory(),
         SchemaTestUtil.getSchemaWithNoAlias(initialSchemaKStream.getSchema().getSchema()),
         null,
         () -> null,

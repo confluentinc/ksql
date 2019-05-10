@@ -122,7 +122,7 @@ public class ClusterTerminator {
 
   private boolean hasAvroSource(final String topicName) {
     return ksqlEngine.getMetaStore().getSourcesForKafkaTopic(topicName).stream()
-        .anyMatch(dataSource -> dataSource.getKsqlTopicSerde().getFormat() == Format.AVRO);
+        .anyMatch(dataSource -> dataSource.getValueSerdeFactory().getFormat() == Format.AVRO);
   }
 
   private Stream<String> filterNonExistingSubjects(final Stream<String> subjects) {

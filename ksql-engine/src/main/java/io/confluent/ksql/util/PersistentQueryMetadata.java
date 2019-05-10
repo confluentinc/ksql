@@ -103,8 +103,8 @@ public class PersistentQueryMetadata extends QueryMetadata {
     return sinkNames;
   }
 
-  public Format getResultTopicSerde() {
-    return resultTopic.getKsqlTopicSerDe().getFormat();
+  public Format getResultTopicFormat() {
+    return resultTopic.getValueSerdeFactory().getFormat();
   }
 
   public String getSchemasDescription() {

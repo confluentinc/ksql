@@ -43,7 +43,7 @@ import io.confluent.ksql.physical.KsqlQueryBuilder;
 import io.confluent.ksql.planner.plan.JoinNode.JoinType;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
-import io.confluent.ksql.serde.KsqlTopicSerDe;
+import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.structured.QueryContext;
@@ -1136,8 +1136,8 @@ public class JoinNodeTest {
     final KsqlTopic ksqlTopic = mock(KsqlTopic.class);
     when(dataSource.getKsqlTopic()).thenReturn(ksqlTopic);
 
-    final KsqlTopicSerDe ksqlTopicSerde = mock(KsqlTopicSerDe.class);
-    when(ksqlTopic.getKsqlTopicSerDe()).thenReturn(ksqlTopicSerde);
+    final KsqlSerdeFactory valueSerdeFactory = mock(KsqlSerdeFactory.class);
+    when(ksqlTopic.getValueSerdeFactory()).thenReturn(valueSerdeFactory);
   }
 
   private static KsqlSchema createSchema(final String alias) {

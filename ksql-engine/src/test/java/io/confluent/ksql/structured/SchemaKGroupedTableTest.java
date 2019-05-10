@@ -44,8 +44,8 @@ import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.serde.GenericRowSerDe;
-import io.confluent.ksql.serde.KsqlTopicSerDe;
-import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
+import io.confluent.ksql.serde.KsqlSerdeFactory;
+import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
 import io.confluent.ksql.streams.MaterializedFactory;
 import io.confluent.ksql.streams.StreamsUtil;
 import io.confluent.ksql.testutils.AnalysisTestUtil;
@@ -98,7 +98,7 @@ public class SchemaKGroupedTableTest {
     final StreamsBuilder builder = new StreamsBuilder();
     kTable = builder
         .table(ksqlTable.getKsqlTopic().getKafkaTopicName(), Consumed.with(Serdes.String()
-            , ksqlTable.getKsqlTopic().getKsqlTopicSerDe().getStructSerde(
+            , ksqlTable.getKsqlTopic().getValueSerdeFactory().createSerde(
                 ksqlTable.getSchema().getSchema(),
                 new KsqlConfig(Collections.emptyMap()),
                 MockSchemaRegistryClient::new,
@@ -126,9 +126,9 @@ public class SchemaKGroupedTableTest {
         Arrays.stream(groupByColumns)
             .map(c -> new DereferenceExpression(new QualifiedNameReference(QualifiedName.of("TEST1")), c))
             .collect(Collectors.toList());
-    final KsqlTopicSerDe ksqlTopicSerDe = new KsqlJsonTopicSerDe();
+    final KsqlSerdeFactory ksqlSerdeFactory = new KsqlJsonSerdeFactory();
     final Serde<GenericRow> rowSerde = GenericRowSerDe.from(
-        ksqlTopicSerDe,
+        ksqlSerdeFactory,
         SchemaTestUtil.getSchemaWithNoAlias(initialSchemaKTable.getSchema().getSchema()),
         null,
         () -> null,
@@ -156,7 +156,7 @@ public class SchemaKGroupedTableTest {
           Collections.singletonMap(0, 0),
           windowExpression,
           GenericRowSerDe.from(
-              new KsqlJsonTopicSerDe(),
+              new KsqlJsonSerdeFactory(),
               ksqlTable.getSchema().getSchema(),
               ksqlConfig,
               () -> null,
@@ -187,7 +187,7 @@ public class SchemaKGroupedTableTest {
           Collections.singletonMap(0, 0),
           null,
           GenericRowSerDe.from(
-              new KsqlJsonTopicSerDe(),
+              new KsqlJsonSerdeFactory(),
               ksqlTable.getSchema().getSchema(),
               ksqlConfig,
               () -> null,

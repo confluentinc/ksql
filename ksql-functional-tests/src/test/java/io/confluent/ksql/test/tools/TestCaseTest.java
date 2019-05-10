@@ -28,7 +28,7 @@ import com.google.common.collect.ImmutableSet;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.metastore.model.KsqlTopic;
-import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
+import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.test.serde.SerdeSupplier;
 import io.confluent.ksql.test.serde.avro.AvroSerdeSupplier;
@@ -114,8 +114,8 @@ public class TestCaseTest {
     // Given:
     final TopologyTestDriverContainer topologyTestDriverContainer = TopologyTestDriverContainer.of(
         topologyTestDriver,
-        ImmutableSet.of(new KsqlTopic("FOO", "foo_kafka_different_input", new KsqlJsonTopicSerDe(), false)),
-        ImmutableSet.of(new KsqlTopic("BAR", "bar_kafka", new KsqlJsonTopicSerDe(), false))
+        ImmutableSet.of(new KsqlTopic("FOO", "foo_kafka_different_input", new KsqlJsonSerdeFactory(), false)),
+        ImmutableSet.of(new KsqlTopic("BAR", "bar_kafka", new KsqlJsonSerdeFactory(), false))
     );
 
 
@@ -230,8 +230,8 @@ public class TestCaseTest {
   private TopologyTestDriverContainer getSampleTopologyTestDriverContainer() {
     return TopologyTestDriverContainer.of(
         topologyTestDriver,
-        ImmutableSet.of(new KsqlTopic("FOO", "foo_kafka", new KsqlJsonTopicSerDe(), false)),
-        ImmutableSet.of(new KsqlTopic("BAR", "bar_kafka", new KsqlJsonTopicSerDe(), false))
+        ImmutableSet.of(new KsqlTopic("FOO", "foo_kafka", new KsqlJsonSerdeFactory(), false)),
+        ImmutableSet.of(new KsqlTopic("BAR", "bar_kafka", new KsqlJsonSerdeFactory(), false))
     );
   }
 

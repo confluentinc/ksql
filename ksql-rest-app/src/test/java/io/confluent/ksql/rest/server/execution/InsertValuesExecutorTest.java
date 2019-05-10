@@ -39,7 +39,7 @@ import io.confluent.ksql.parser.tree.LongLiteral;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
-import io.confluent.ksql.serde.KsqlTopicSerDe;
+import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
@@ -97,7 +97,7 @@ public class InsertValuesExecutorTest {
   @Mock
   private KsqlEngine engine;
   @Mock
-  private KsqlTopicSerDe topicSerDe;
+  private KsqlSerdeFactory valueSerde;
   @Mock
   private Serde<String> keySerDe;
   @Mock
@@ -114,7 +114,7 @@ public class InsertValuesExecutorTest {
 
   @Before
   public void setup() {
-    when(topicSerDe.getStructSerde(any(), any(), any(), any(), any())).thenReturn(rowSerDe);
+    when(valueSerde.createSerde(any(), any(), any(), any(), any())).thenReturn(rowSerDe);
 
     when(keySerDe.serializer()).thenReturn(keySerializer);
     when(rowSerDe.serializer()).thenReturn(rowSerializer);
@@ -451,7 +451,7 @@ public class InsertValuesExecutorTest {
   }
 
   private void givenDataSourceWithSchema(final KsqlSchema schema) {
-    final KsqlTopic topic = new KsqlTopic("TOPIC", TOPIC_NAME, topicSerDe, false);
+    final KsqlTopic topic = new KsqlTopic("TOPIC", TOPIC_NAME, valueSerde, false);
     final DataSource<?> dataSource = new KsqlStream<>(
         "",
         "TOPIC",

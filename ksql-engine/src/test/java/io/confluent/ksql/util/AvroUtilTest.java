@@ -29,7 +29,7 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
-import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
+import io.confluent.ksql.serde.avro.KsqlAvroSerdeFactory;
 import io.confluent.ksql.serde.connect.ConnectSchemaTranslator;
 import java.io.IOException;
 import java.util.Collections;
@@ -61,7 +61,7 @@ public class AvroUtilTest {
   private static final KsqlSchema RESULT_SCHEMA = toKsqlSchema(AVRO_SCHEMA_STRING);
 
   private static final KsqlTopic RESULT_TOPIC =
-      new KsqlTopic("registered-name", "actual-name", new KsqlAvroTopicSerDe(KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME), false);
+      new KsqlTopic("registered-name", "actual-name", new KsqlAvroSerdeFactory(KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME), false);
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -75,8 +75,8 @@ public class AvroUtilTest {
   public void setUp() {
     when(persistentQuery.getResultSchema()).thenReturn(RESULT_SCHEMA);
     when(persistentQuery.getResultTopic()).thenReturn(RESULT_TOPIC);
-    when(persistentQuery.getResultTopicSerde())
-        .thenReturn(RESULT_TOPIC.getKsqlTopicSerDe().getFormat());
+    when(persistentQuery.getResultTopicFormat())
+        .thenReturn(RESULT_TOPIC.getValueSerdeFactory().getFormat());
   }
 
   @Test

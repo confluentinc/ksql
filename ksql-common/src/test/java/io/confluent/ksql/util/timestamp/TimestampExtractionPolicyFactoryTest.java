@@ -21,6 +21,7 @@ import static org.hamcrest.core.IsInstanceOf.instanceOf;
 
 import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.util.KsqlException;
+import java.util.Optional;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Test;
@@ -35,7 +36,7 @@ public class TimestampExtractionPolicyFactoryTest {
   public void shouldCreateMetadataPolicyWhenTimestampFieldNotProvided() {
     // When:
     final TimestampExtractionPolicy result = TimestampExtractionPolicyFactory
-        .create(KsqlSchema.of(schemaBuilder.build()), null, null);
+        .create(KsqlSchema.of(schemaBuilder.build()), Optional.empty(), Optional.empty());
 
     // Then:
     assertThat(result, instanceOf(MetadataTimestampExtractionPolicy.class));
@@ -51,7 +52,7 @@ public class TimestampExtractionPolicyFactoryTest {
 
     // When:
     final TimestampExtractionPolicy result = TimestampExtractionPolicyFactory
-        .create(KsqlSchema.of(schema), timestamp, null);
+        .create(KsqlSchema.of(schema), Optional.of(timestamp), Optional.empty());
 
     // Then:
     assertThat(result, instanceOf(LongColumnTimestampExtractionPolicy.class));
@@ -61,7 +62,7 @@ public class TimestampExtractionPolicyFactoryTest {
   @Test(expected = KsqlException.class)
   public void shouldFailIfCantFindTimestampField() {
     TimestampExtractionPolicyFactory
-        .create(KsqlSchema.of(schemaBuilder.build()), "whateva", null);
+        .create(KsqlSchema.of(schemaBuilder.build()), Optional.of("whateva"), Optional.empty());
   }
 
   @Test
@@ -74,7 +75,7 @@ public class TimestampExtractionPolicyFactoryTest {
 
     // When:
     final TimestampExtractionPolicy result = TimestampExtractionPolicyFactory
-        .create(KsqlSchema.of(schema), field, "yyyy-MM-DD");
+        .create(KsqlSchema.of(schema), Optional.of(field), Optional.of("yyyy-MM-DD"));
 
     // Then:
     assertThat(result, instanceOf(StringTimestampExtractionPolicy.class));
@@ -91,24 +92,20 @@ public class TimestampExtractionPolicyFactoryTest {
 
     // When:
     TimestampExtractionPolicyFactory
-        .create(KsqlSchema.of(schema), field, null);
+        .create(KsqlSchema.of(schema), Optional.of(field), Optional.empty());
   }
 
-  @Test
-  public void shouldSupportFieldsWithQuotedStrings() {
+  @Test(expected = KsqlException.class)
+  public void shouldThorwIfLongTimestampTypeAndFormatIsSupplied() {
     // Given:
-    final String field = "my_string_field";
+    final String timestamp = "timestamp";
     final Schema schema = schemaBuilder
-        .field(field.toUpperCase(), Schema.OPTIONAL_STRING_SCHEMA)
+        .field(timestamp.toUpperCase(), Schema.OPTIONAL_INT64_SCHEMA)
         .build();
 
     // When:
-    final TimestampExtractionPolicy result = TimestampExtractionPolicyFactory
-        .create(KsqlSchema.of(schema), "'" + field + "'", "'yyyy-MM-DD'");
-
-    // Then:
-    assertThat(result, instanceOf(StringTimestampExtractionPolicy.class));
-    assertThat(result.timestampField(), equalTo(field.toUpperCase()));
+    TimestampExtractionPolicyFactory
+        .create(KsqlSchema.of(schema), Optional.of(timestamp), Optional.of("b"));
   }
 
   @Test(expected = KsqlException.class)
@@ -121,7 +118,6 @@ public class TimestampExtractionPolicyFactoryTest {
 
     // When:
     TimestampExtractionPolicyFactory
-        .create(KsqlSchema.of(schema), "'" + field + "'", null);
+        .create(KsqlSchema.of(schema), Optional.of(field), Optional.empty());
   }
-
 }

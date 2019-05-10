@@ -41,7 +41,7 @@ import io.confluent.ksql.rest.server.computation.CommandId.Type;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.rest.util.ClusterTerminator;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
-import io.confluent.ksql.serde.KsqlTopicSerDe;
+import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
@@ -223,12 +223,12 @@ public class RecoveryTest {
   private static class TopicMatcher extends TypeSafeDiagnosingMatcher<KsqlTopic> {
     final Matcher<String> nameMatcher;
     final Matcher<String> kafkaNameMatcher;
-    final Matcher<KsqlTopicSerDe> serDeMatcher;
+    final Matcher<KsqlSerdeFactory> serDeMatcher;
 
     TopicMatcher(final KsqlTopic topic) {
       this.nameMatcher = equalTo(topic.getKsqlTopicName());
       this.kafkaNameMatcher = equalTo(topic.getKafkaTopicName());
-      this.serDeMatcher = instanceOf(topic.getKsqlTopicSerDe().getClass());
+      this.serDeMatcher = instanceOf(topic.getValueSerdeFactory().getClass());
     }
 
     @Override
@@ -252,7 +252,7 @@ public class RecoveryTest {
       }
       return test(
           serDeMatcher,
-          other.getKsqlTopicSerDe(),
+          other.getValueSerdeFactory(),
           description,
           "serde mismatch: ");
     }

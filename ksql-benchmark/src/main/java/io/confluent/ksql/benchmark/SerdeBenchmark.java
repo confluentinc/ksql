@@ -26,8 +26,8 @@ import io.confluent.ksql.datagen.RowGenerator;
 import io.confluent.ksql.datagen.SessionManager;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.serde.GenericRowSerDe;
-import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
-import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
+import io.confluent.ksql.serde.avro.KsqlAvroSerdeFactory;
+import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.Pair;
 import java.io.InputStream;
@@ -163,7 +163,7 @@ public class SerdeBenchmark {
         final org.apache.kafka.connect.data.Schema schema
     ) {
       return GenericRowSerDe.from(
-          new KsqlJsonTopicSerDe(),
+          new KsqlJsonSerdeFactory(),
           schema,
           new KsqlConfig(Collections.emptyMap()),
           () -> null,
@@ -176,7 +176,7 @@ public class SerdeBenchmark {
     ) {
       final SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
       return GenericRowSerDe.from(
-          new KsqlAvroTopicSerDe("benchmarkSchema"),
+          new KsqlAvroSerdeFactory("benchmarkSchema"),
           schema,
           new KsqlConfig(Collections.emptyMap()),
           () -> schemaRegistryClient,

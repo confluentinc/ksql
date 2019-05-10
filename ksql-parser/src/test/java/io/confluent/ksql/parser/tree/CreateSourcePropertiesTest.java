@@ -16,7 +16,8 @@
 package io.confluent.ksql.parser.tree;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.testing.EqualsTester;
@@ -62,7 +63,7 @@ public class CreateSourcePropertiesTest {
     assertThat(properties.getTimestampFormat(), is(Optional.empty()));
     assertThat(properties.getWindowType(), is(Optional.empty()));
     assertThat(properties.getAvroSchemaId(), is(Optional.empty()));
-    assertThat(properties.getAvroSchemaName(), is(Optional.empty()));
+    assertThat(properties.getValueAvroSchemaName(), is(Optional.empty()));
   }
 
   @Test
@@ -156,7 +157,7 @@ public class CreateSourcePropertiesTest {
             .build());
 
     // Then:
-    assertThat(properties.getAvroSchemaName(), is(Optional.of("schema")));
+    assertThat(properties.getValueAvroSchemaName(), is(Optional.of("schema")));
   }
 
   @Test
@@ -169,7 +170,7 @@ public class CreateSourcePropertiesTest {
             .build());
 
     // Then:
-    assertThat(properties.getAvroSchemaName(), is(Optional.of("schema")));
+    assertThat(properties.getValueAvroSchemaName(), is(Optional.of("schema")));
   }
 
   @Test

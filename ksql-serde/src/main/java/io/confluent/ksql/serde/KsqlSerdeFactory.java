@@ -26,11 +26,11 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
 
 @Immutable
-public abstract class KsqlTopicSerDe {
+public abstract class KsqlSerdeFactory {
 
   private final Format format;
 
-  protected KsqlTopicSerDe(final Format format) {
+  protected KsqlSerdeFactory(final Format format) {
     this.format = format;
   }
 
@@ -38,7 +38,7 @@ public abstract class KsqlTopicSerDe {
     return format;
   }
 
-  public abstract Serde<Struct> getStructSerde(
+  public abstract Serde<Struct> createSerde(
       Schema schema,
       KsqlConfig ksqlConfig,
       Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
@@ -50,10 +50,10 @@ public abstract class KsqlTopicSerDe {
     if (this == o) {
       return true;
     }
-    if (!(o instanceof KsqlTopicSerDe)) {
+    if (!(o instanceof KsqlSerdeFactory)) {
       return false;
     }
-    final KsqlTopicSerDe that = (KsqlTopicSerDe) o;
+    final KsqlSerdeFactory that = (KsqlSerdeFactory) o;
     return format == that.format;
   }
 

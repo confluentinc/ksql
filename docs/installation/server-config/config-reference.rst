@@ -273,7 +273,7 @@ For example, consider the statement:
 The statement selects a single field as the value of stream ``y``. If ``f0`` has the
 integer value ``10``,
 with ``ksql.persistence.ensure.value.is.struct`` set to ``true``, the JSON format persists the
-value within a JSON object as it would if the value was to have more fields:
+value within a JSON object, as it would if the value had more fields:
 
 .. code:: json
 
@@ -281,15 +281,14 @@ value within a JSON object as it would if the value was to have more fields:
        "F0": 10
     }
 
-With ``ksql.persistence.ensure.value.is.struct`` set to ``false`` the JSON format would persist the
+With ``ksql.persistence.ensure.value.is.struct`` set to ``false``, the JSON format persists the
 single field's value as a JSON number: ``10``.
 
-The ``AVRO`` format can also be controlled by setting ``ksql.persistence.ensure.value.is.struct``.
-In this case the setting controls whether the fields value is written nested within an Avro record,
-or not.
+The ``AVRO`` format can also be controlled by setting ``ksql.persistence.ensure.value.is.struct``,
+which controls whether or not the field's value is written as nested within an Avro record.
 
-.. note:: The ``DELIMITED`` format is unaffected by the setting as it has no concept of an outer
-          record or structure.
+.. note:: The ``DELIMITED`` format is  not affected by the `ksql.persistence.ensure.value.is.struct`` setting,
+          because it has no concept of an outer record or structure.
 
 KSQL Server Settings
 --------------------

@@ -91,10 +91,6 @@ public final class KsqlEngineTestUtil {
         .map(SchemaRegistryTopicSchemaSupplier::new)
         .map(DefaultSchemaInjector::new);
 
-    final KsqlExecutionContext sandbox = engine.createSandbox();
-    statements
-        .forEach(stmt -> execute(sandbox, stmt, ksqlConfig, overriddenProperties, schemaInjector));
-
     return statements.stream()
         .map(stmt -> execute(engine, stmt, ksqlConfig, overriddenProperties, schemaInjector))
         .map(ExecuteResult::getQuery)

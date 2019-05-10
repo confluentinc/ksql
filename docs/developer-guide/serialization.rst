@@ -10,7 +10,7 @@ Controlling serialization
 KSQL offers several mechanisms for controlling serialization and deserialization.
 
 The primary mechanism is by choosing the serialization format when you create
-a stream or table by specifying the ``VALUE_FORMAT`` in the ``WITH`` clause. For example,
+a stream or table and specify the ``VALUE_FORMAT`` in the ``WITH`` clause.
 
 .. code:: sql
 

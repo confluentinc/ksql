@@ -41,10 +41,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.Future;
 import java.util.function.LongSupplier;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -104,7 +106,7 @@ public class InsertValuesExecutor {
         .getKafkaClientSupplier()
         .getProducer(config.getProducerClientConfigProps());
 
-    producer.send(
+    final Future<RecordMetadata> producerCallResult = producer.send(
         new ProducerRecord<>(
             topicName,
             null,
@@ -115,6 +117,15 @@ public class InsertValuesExecutor {
     );
 
     producer.close(Duration.ofSeconds(MAX_SEND_TIMEOUT_SECONDS));
+
+    try {
+      // Check if the producer failed to write to the topic. This can happen if the
+      // ServiceContext does not have write permissions.
+      producerCallResult.get();
+    } catch (final Exception e) {
+      throw new KsqlException("Failed to insert values into stream/table: "
+          + insertValues.getTarget().getSuffix(), e);
+    }
 
     return Optional.empty();
   }

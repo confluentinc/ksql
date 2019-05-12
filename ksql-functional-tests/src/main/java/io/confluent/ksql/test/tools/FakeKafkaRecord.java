@@ -48,11 +48,11 @@ public final class FakeKafkaRecord {
     return new FakeKafkaRecord(testRecord, producerRecord);
   }
 
-  public Record getTestRecord() {
+  Record getTestRecord() {
     return testRecord;
   }
 
-  public ProducerRecord getProducerRecord() {
+  ProducerRecord getProducerRecord() {
     return producerRecord;
   }
 }

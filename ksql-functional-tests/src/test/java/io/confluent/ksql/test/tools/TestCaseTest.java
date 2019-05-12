@@ -24,7 +24,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.metastore.model.KsqlTopic;
@@ -114,7 +113,7 @@ public class TestCaseTest {
     // Given:
     final TopologyTestDriverContainer topologyTestDriverContainer = TopologyTestDriverContainer.of(
         topologyTestDriver,
-        ImmutableSet.of(new KsqlTopic("FOO", "foo_kafka_different_input", new KsqlJsonSerdeFactory(), false)),
+        ImmutableList.of(new KsqlTopic("FOO", "foo_kafka_different_input", new KsqlJsonSerdeFactory(), false)),
         new KsqlTopic("BAR", "bar_kafka", new KsqlJsonSerdeFactory(), false)
     );
 
@@ -230,7 +229,7 @@ public class TestCaseTest {
   private TopologyTestDriverContainer getSampleTopologyTestDriverContainer() {
     return TopologyTestDriverContainer.of(
         topologyTestDriver,
-        ImmutableSet.of(new KsqlTopic("FOO", "foo_kafka", new KsqlJsonSerdeFactory(), false)),
+        ImmutableList.of(new KsqlTopic("FOO", "foo_kafka", new KsqlJsonSerdeFactory(), false)),
         new KsqlTopic("BAR", "bar_kafka", new KsqlJsonSerdeFactory(), false)
     );
   }

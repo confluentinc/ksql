@@ -58,7 +58,6 @@ public final class KsqlTestingTool {
         System.err.println("No tests in the file: " + args[0]);
         return;
       }
-      // Currently we only run one TestCaseNode.
       for (final TestCaseNode testCaseNode: qttTestFile.tests) {
         final List<TestCase> testCases = testCaseNode.buildTests(
             new File(testOptions.getTestFile()).toPath(),
@@ -97,7 +96,7 @@ public final class KsqlTestingTool {
     }
   }
 
-  static void printResults(
+  private static void printResults(
       final int totalNumberOfTests,
       final List<String> passedTests,
       final List<Pair<String, String>> failedTests) {

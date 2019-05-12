@@ -177,7 +177,7 @@ final class EndToEndEngineTestUtil {
         persistentQueryMetadata.getSourceNames()
             .stream()
             .map(s -> ksqlEngine.getMetaStore().getSource(s).getKsqlTopic())
-            .collect(Collectors.toSet()),
+            .collect(Collectors.toList()),
         ksqlEngine.getMetaStore().getSource(persistentQueryMetadata.getSinkNames()
             .iterator().next()).getKsqlTopic()
     );

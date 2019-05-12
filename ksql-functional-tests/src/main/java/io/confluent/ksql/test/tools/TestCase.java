@@ -83,6 +83,10 @@ public class TestCase implements Test {
     return name;
   }
 
+  List<Record> getInputRecords() {
+    return inputRecords;
+  }
+
   @Override
   public String getTestFile() {
     return testPath.toString();
@@ -314,11 +318,11 @@ public class TestCase implements Test {
     return result.toString();
   }
 
-  public void createInputTopics(final FakeKafkaService fakeKafkaService) {
+  void createInputTopics(final FakeKafkaService fakeKafkaService) {
     topics.forEach(fakeKafkaService::createTopic);
   }
 
-  public void writeInputIntoTopics(
+  void writeInputIntoTopics(
       final FakeKafkaService fakeKafkaService,
       final SchemaRegistryClient schemaRegistryClient
   ) {
@@ -330,35 +334,7 @@ public class TestCase implements Test {
   }
 
   @SuppressWarnings("unchecked")
-  public static void processInputFromTopic(
-      final TopologyTestDriverContainer testDriver,
-      final FakeKafkaService fakeKafkaService,
-      final KafkaTopicClient kafkaTopicClient,
-      final SchemaRegistryClient schemaRegistryClient
-  ) {
-    Objects.requireNonNull(testDriver, "TopologyTestDriverContainer");
-    Objects.requireNonNull(fakeKafkaService, "fakeKafkaService");
-    Objects.requireNonNull(kafkaTopicClient, "kafkaTopicClient");
-    Objects.requireNonNull(schemaRegistryClient, "schemaRegistryClient");
-    for (final KsqlTopic ksqlTopic : testDriver.getSourceKsqlTopics()) {
-      for (final FakeKafkaRecord fakeKafkaRecord: fakeKafkaService
-          .readRecords(ksqlTopic.getKafkaTopicName())) {
-        try {
-          processSingleRecord(
-              fakeKafkaRecord,
-              fakeKafkaService,
-              testDriver,
-              kafkaTopicClient,
-              schemaRegistryClient);
-        } catch (IOException | RestClientException e) {
-          e.printStackTrace();
-        }
-      }
-    }
-  }
-
-  @SuppressWarnings("unchecked")
-  private static void processSingleRecord(
+  static void processSingleRecord(
       final FakeKafkaRecord fakeKafkaRecord,
       final FakeKafkaService fakeKafkaService,
       final TopologyTestDriverContainer testDriver,
@@ -397,7 +373,7 @@ public class TestCase implements Test {
     }
   }
 
-  public void verifyOutputTopics(
+  void verifyOutputTopics(
       final FakeKafkaService fakeKafkaService,
       final SchemaRegistryClient schemaRegistryClient) {
     final Map<String, List<FakeKafkaRecord>> expectedOutput = getExpectedRecordsMap(
@@ -431,7 +407,9 @@ public class TestCase implements Test {
       } else {
         final Deserializer deserializer = expected.get(i).getTestRecord().topic
             .getDeserializer(schemaRegistryClient);
-        value = deserializer.deserialize("", (byte[]) expectedProducerRecord.value());
+        value = deserializer.deserialize(
+            expectedProducerRecord.topic(),
+            (byte[]) expectedProducerRecord.value());
       }
 
       if (
@@ -510,7 +488,8 @@ public class TestCase implements Test {
       return Optional.empty();
     }
     return Optional.of(new Schema.Parser().parse(
-        schemaRegistryClient.getLatestSchemaMetadata(ksqlTopic.getKafkaTopicName()).getSchema()
+        schemaRegistryClient.getLatestSchemaMetadata(ksqlTopic.getKafkaTopicName()
+            + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX).getSchema()
     ));
   }
 }

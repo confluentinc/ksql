@@ -100,7 +100,7 @@ public class KsqlResource {
       final Duration distributedCmdResponseTimeout,
       final ActivenessRegistrar activenessRegistrar,
       final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory,
-      final BiFunction<ServiceContext, MetaStore, TopicAccessValidator> topicAccessValidator
+      final BiFunction<ServiceContext, MetaStore, TopicAccessValidator> topicAccessValidatorFactory
   ) {
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
     this.commandQueue = Objects.requireNonNull(commandQueue, "commandQueue");
@@ -114,7 +114,7 @@ public class KsqlResource {
         injectorFactory,
         ksqlEngine::createSandbox,
         ksqlConfig,
-        topicAccessValidator);
+        topicAccessValidatorFactory);
     this.handler = new RequestHandler(
         CustomExecutors.EXECUTOR_MAP,
         new DistributingExecutor(

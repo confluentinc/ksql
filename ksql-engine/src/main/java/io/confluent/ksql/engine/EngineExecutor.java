@@ -85,7 +85,6 @@ final class EngineExecutor {
           statement.withConfig(ksqlConfig.cloneWithPropertyOverwrite(overriddenProperties))
       );
 
-      // Instead, DDL statement permissions are verified during the RequestHandler execution.
       if (!logicalPlan.getNode().isPresent()) {
         final String msg = engineContext.executeDdlStatement(
             statement.getStatementText(),

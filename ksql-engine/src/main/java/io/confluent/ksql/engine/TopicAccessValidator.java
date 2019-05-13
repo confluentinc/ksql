@@ -17,19 +17,14 @@ package io.confluent.ksql.engine;
 
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
-import io.confluent.ksql.parser.DefaultTraversalVisitor;
-import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.InsertInto;
-import io.confluent.ksql.parser.tree.Join;
-import io.confluent.ksql.parser.tree.Node;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
-import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.topic.SourceTopicsExtractor;
 import io.confluent.ksql.util.KsqlException;
 
-import java.util.HashSet;
 import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
@@ -42,10 +37,12 @@ import org.apache.kafka.common.acl.AclOperation;
 public class TopicAccessValidator {
   private final ServiceContext serviceContext;
   private final MetaStore metaStore;
+  private final SourceTopicsExtractor sourceTopicsExtractor;
 
   public TopicAccessValidator(final ServiceContext serviceContext, final MetaStore metaStore) {
     this.serviceContext = serviceContext;
     this.metaStore = metaStore;
+    this.sourceTopicsExtractor = new SourceTopicsExtractor(metaStore);
   }
 
   /**
@@ -71,9 +68,8 @@ public class TopicAccessValidator {
   }
 
   private void validateQueryTopicSources(final Query query) {
-    final QuerySourceTopicExtractor extractor = new QuerySourceTopicExtractor();
-    extractor.process(query, null);
-    for (String kafkaTopic : extractor.sourceTopics) {
+    sourceTopicsExtractor.process(query, null);
+    for (String kafkaTopic : sourceTopicsExtractor.getSourceTopics()) {
       checkAccess(kafkaTopic, AclOperation.READ);
     }
   }
@@ -98,9 +94,8 @@ public class TopicAccessValidator {
       kafkaTopic = createAsSelect.getName().getSuffix();
     }
 
-    if (serviceContext.getTopicClient().isTopicExists(kafkaTopic)) {
-      checkAccess(kafkaTopic, AclOperation.WRITE);
-    }
+    // At this point, the topic should have been created by the TopicCreateInjector
+    checkAccess(kafkaTopic, AclOperation.WRITE);
   }
 
   private void validateInsertInto(final InsertInto insertInto) {
@@ -141,27 +136,6 @@ public class TopicAccessValidator {
                   + "Caused by: Not authorized to access topic",
               StringUtils.capitalize(operation.toString().toLowerCase()), topicName)
       );
-    }
-  }
-
-  /**
-   * Helper class that extracts all source topics from a Query node
-   */
-  private final class QuerySourceTopicExtractor extends DefaultTraversalVisitor<Node, Void> {
-    private Set<String> sourceTopics = new HashSet<>();
-
-    @Override
-    protected Node visitJoin(final Join node, final Void context) {
-      process(node.getLeft(), context);
-      process(node.getRight(), context);
-      return null;
-    }
-
-    @Override
-    protected Node visitAliasedRelation(final AliasedRelation node, final Void context) {
-      final String structuredDataSourceName = ((Table) node.getRelation()).getName().getSuffix();
-      sourceTopics.add(getSourceTopicName(structuredDataSourceName));
-      return node;
     }
   }
 }

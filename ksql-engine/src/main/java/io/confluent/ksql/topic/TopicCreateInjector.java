@@ -19,21 +19,15 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.metastore.model.DataSource;
-import io.confluent.ksql.parser.DefaultTraversalVisitor;
 import io.confluent.ksql.parser.SqlFormatter;
-import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.IntegerLiteral;
-import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.Literal;
-import io.confluent.ksql.parser.tree.Node;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.StringLiteral;
-import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -147,9 +141,9 @@ public class TopicCreateInjector implements Injector {
 
     final T createAsSelect = statement.getStatement();
 
-    final SourceTopicExtractor extractor = new SourceTopicExtractor();
+    final SourceTopicsExtractor extractor = new SourceTopicsExtractor(metaStore);
     extractor.process(statement.getStatement().getQuery(), null);
-    final String sourceTopicName = extractor.primaryKafkaTopicName;
+    final String sourceTopicName = extractor.getPrimaryKafkaTopicName();
 
     topicPropertiesBuilder
         .withName(prefix + createAsSelect.getName().getSuffix())
@@ -189,28 +183,5 @@ public class TopicCreateInjector implements Injector {
     topicClient.createTopic(info.getTopicName(), info.getPartitions(), info.getReplicas(), config);
 
     return info;
-  }
-
-  private final class SourceTopicExtractor extends DefaultTraversalVisitor<Node, Void> {
-
-    private String primaryKafkaTopicName = null;
-
-    @Override
-    protected Node visitJoin(final Join node, final Void context) {
-      process(node.getLeft(), context);
-      return null;
-    }
-
-    @Override
-    protected Node visitAliasedRelation(final AliasedRelation node, final Void context) {
-      final String structuredDataSourceName = ((Table) node.getRelation()).getName().getSuffix();
-      final DataSource<?> source = metaStore.getSource(structuredDataSourceName);
-      if (source == null) {
-        throw new KsqlException(structuredDataSourceName + " does not exist.");
-      }
-
-      primaryKafkaTopicName = source.getKsqlTopic().getKafkaTopicName();
-      return node;
-    }
   }
 }

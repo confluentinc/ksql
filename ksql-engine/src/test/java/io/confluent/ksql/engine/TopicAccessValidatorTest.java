@@ -164,7 +164,7 @@ public class TopicAccessValidatorTest {
   }
 
   @Test
-  public void shouldJoinSelectWitOneTopicWithReadPermissionsDenied() {
+  public void shouldJoinWitOneRightTopicWithReadPermissionsDenied() {
     // Given:
     givenTopicPermissions(TOPIC_1, Collections.singleton(AclOperation.READ));
     givenTopicPermissions(TOPIC_2, Collections.singleton(AclOperation.WRITE));
@@ -176,6 +176,25 @@ public class TopicAccessValidatorTest {
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage(String.format(
         "Failed to Read Kafka topic: [%s]", TOPIC_2.name()
+    ));
+
+    // When:
+    accessValidator.validate(statement);
+  }
+
+  @Test
+  public void shouldJoinWitOneLeftTopicWithReadPermissionsDenied() {
+    // Given:
+    givenTopicPermissions(TOPIC_1, Collections.singleton(AclOperation.WRITE));
+    givenTopicPermissions(TOPIC_2, Collections.singleton(AclOperation.READ));
+    final Statement statement = givenStatement(String.format(
+        "SELECT * FROM %s A JOIN %s B ON A.F1 = B.F1;", STREAM_TOPIC_1, STREAM_TOPIC_2)
+    );
+
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(String.format(
+        "Failed to Read Kafka topic: [%s]", TOPIC_1.name()
     ));
 
     // When:
@@ -234,21 +253,6 @@ public class TopicAccessValidatorTest {
 
     // When:
     accessValidator.validate(statement);
-  }
-
-  @Test
-  public void createAsSelectWithReadPermissionsAllowed() {
-    // Given:
-    givenTopicPermissions(TOPIC_1, Collections.singleton(AclOperation.READ));
-    final Statement statement = givenStatement(String.format(
-        "CREATE STREAM newStream AS SELECT * FROM %s;", STREAM_TOPIC_1)
-    );
-
-    // When:
-    accessValidator.validate(statement);
-
-    // Then:
-    // Above command should not throw any exception
   }
 
   @Test
@@ -322,7 +326,6 @@ public class TopicAccessValidatorTest {
   private void givenTopic(final String topicName, final TopicDescription topicDescription) {
     when(topicDescription.name()).thenReturn(topicName);
     when(kafkaTopicClient.describeTopic(topicDescription.name())).thenReturn(topicDescription);
-    when(kafkaTopicClient.isTopicExists(topicName)).thenReturn(true);
   }
 
   private void givenTopicPermissions(

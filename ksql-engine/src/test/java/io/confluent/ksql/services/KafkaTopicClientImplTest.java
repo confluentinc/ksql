@@ -265,9 +265,6 @@ public class KafkaTopicClientImplTest {
   @Test
   public void shouldDeleteInternalTopics() {
     expect(adminClient.describeCluster()).andReturn(describeClusterResult());
-    expect(adminClient.describeCluster()).andReturn(describeClusterResult());
-    expect(adminClient.describeConfigs(describeBrokerRequest()))
-        .andReturn(describeBrokerResult(Collections.emptyList()));
     expect(adminClient.describeConfigs(describeBrokerRequest()))
         .andReturn(describeBrokerResult(Collections.emptyList()));
     expect(adminClient.listTopics()).andReturn(getListTopicsResultWithInternalTopics());

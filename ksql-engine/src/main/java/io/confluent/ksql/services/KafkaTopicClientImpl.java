@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.services;
 
+import com.google.common.base.Suppliers;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import io.confluent.ksql.exception.KafkaResponseGetFailedException;
@@ -31,6 +32,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import javax.annotation.concurrent.ThreadSafe;
 import org.apache.kafka.clients.admin.AdminClient;
@@ -66,6 +68,14 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
 
   private final AdminClient adminClient;
 
+  // This supplier solves two issues:
+  // 1. Avoids the constructor to check for the topic.delete.enable unnecessary. The AdminClient
+  //    might not have access to this config, and it would fail for every Ksql command if it does
+  //    the check initially.
+  // 2. It is a memoize supplier. Once this is call, the subsequent calls will return the cached
+  //    value.
+  private final Supplier<Boolean> isTopicDeleteEnabledSupplier;
+
   /**
    * Construct a topic client from an existing admin client.
    *
@@ -73,6 +83,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
    */
   public KafkaTopicClientImpl(final AdminClient adminClient) {
     this.adminClient = Objects.requireNonNull(adminClient, "adminClient");
+    this.isTopicDeleteEnabledSupplier = Suppliers.memoize(this::isTopicDeleteEnabled);
   }
 
   @Override
@@ -241,7 +252,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
     if (topicsToDelete.isEmpty()) {
       return;
     }
-    if (!isTopicDeleteEnabled()) {
+    if (!isTopicDeleteEnabledSupplier.get()) {
       LOG.info("Cannot delete topics since '" + DELETE_TOPIC_ENABLE + "' is false. ");
       return;
     }
@@ -263,7 +274,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
 
   @Override
   public void deleteInternalTopics(final String applicationId) {
-    if (!isTopicDeleteEnabled()) {
+    if (!isTopicDeleteEnabledSupplier.get()) {
       LOG.warn("Cannot delete topics since '" + DELETE_TOPIC_ENABLE + "' is false. ");
       return;
     }

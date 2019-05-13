@@ -14,9 +14,6 @@
         "CREATE STREAM orders (ORDERUNITS double) WITH (kafka_topic='test_topic', value_format='{FORMAT}');",
         "CREATE STREAM S1 AS SELECT CASE WHEN orderunits < 2.0 THEN 'small' WHEN orderunits < 4.0 THEN 'medium' ELSE 'large' END AS case_resault FROM orders;"
       ],
-      "properties": {
-        "ksql.persistence.serialization.wrap.single.values": "true"
-      },
       "name": "searched case expression",
       "inputs": [
         {
@@ -64,41 +61,31 @@
         {
           "topic": "S1",
           "timestamp": 0,
-          "value": {
-            "CASE_RESAULT": "medium"
-          },
+          "value": "medium",
           "key": 0
         },
         {
           "topic": "S1",
           "timestamp": 0,
-          "value": {
-            "CASE_RESAULT": "large"
-          },
+          "value": "large",
           "key": 100
         },
         {
           "topic": "S1",
           "timestamp": 0,
-          "value": {
-            "CASE_RESAULT": "large"
-          },
+          "value": "large",
           "key": 101
         },
         {
           "topic": "S1",
           "timestamp": 0,
-          "value": {
-            "CASE_RESAULT": "medium"
-          },
+          "value": "medium",
           "key": 101
         },
         {
           "topic": "S1",
           "timestamp": 0,
-          "value": {
-            "CASE_RESAULT": "small"
-          },
+          "value": "small",
           "key": 101
         }
       ]
@@ -109,9 +96,6 @@
         "CREATE STREAM orders (orderid bigint, ORDERUNITS double) WITH (kafka_topic='test_topic', key='orderid', value_format='{FORMAT}');",
         "CREATE STREAM S1 AS SELECT CASE WHEN orderunits < 2.0 THEN orderid + 2 END AS case_resault FROM orders;"
       ],
-      "properties": {
-        "ksql.persistence.serialization.wrap.single.values": "true"
-      },
       "name": "searched case with arithmetic expression in result",
       "inputs": [
         {
@@ -163,41 +147,31 @@
         {
           "topic": "S1",
           "timestamp": 0,
-          "value": {
-            "CASE_RESAULT": null
-          },
+          "value": null,
           "key": 0
         },
         {
           "topic": "S1",
           "timestamp": 0,
-          "value": {
-            "CASE_RESAULT": null
-          },
+          "value": null,
           "key": 100
         },
         {
           "topic": "S1",
           "timestamp": 0,
-          "value": {
-            "CASE_RESAULT": null
-          },
+          "value": null,
           "key": 101
         },
         {
           "topic": "S1",
           "timestamp": 0,
-          "value": {
-            "CASE_RESAULT": null
-          },
+          "value": null,
           "key": 101
         },
         {
           "topic": "S1",
           "timestamp": 0,
-          "value": {
-            "CASE_RESAULT": 7
-          },
+          "value": 7,
           "key": 101
         }
       ]
@@ -208,9 +182,6 @@
         "CREATE STREAM orders (orderid bigint, ORDERUNITS double) WITH (kafka_topic='test_topic', key='orderid', value_format='{FORMAT}');",
         "CREATE STREAM S1 AS SELECT CASE WHEN orderunits > 2.0 THEN 'foo' ELSE 'default' END AS case_resault FROM orders;"
       ],
-      "properties": {
-        "ksql.persistence.serialization.wrap.single.values": "true"
-      },
       "name": "searched case with null in when ",
       "inputs": [
         {
@@ -235,17 +206,13 @@
         {
           "topic": "S1",
           "timestamp": 0,
-          "value": {
-            "CASE_RESAULT": "default"
-          },
+          "value": "default",
           "key": 0
         },
         {
           "topic": "S1",
           "timestamp": 0,
-          "value": {
-            "CASE_RESAULT": "foo"
-          },
+          "value": "foo",
           "key": 100
         }
       ]
@@ -256,9 +223,6 @@
         "CREATE STREAM orders (itemid STRUCT< ITEMID BIGINT, NAME VARCHAR, CATEGORY STRUCT< ID BIGINT, NAME VARCHAR>>, address STRUCT < number bigint, street varchar, city varchar, state varchar, zipcode bigint>) WITH (kafka_topic='test_topic', value_format='{FORMAT}');",
         "CREATE STREAM S1 AS SELECT CASE WHEN ADDRESS -> STATE = 'STATE_1' THEN ITEMID -> CATEGORY -> NAME WHEN ADDRESS -> STATE = 'STATE_3' THEN ADDRESS -> CITY ELSE 'default' END AS case_resault FROM orders;"
       ],
-      "properties": {
-        "ksql.persistence.serialization.wrap.single.values": "true"
-      },
       "name": "searched case expression with multiple expression and the same type",
       "inputs": [
         {
@@ -376,41 +340,31 @@
         {
           "topic": "S1",
           "timestamp": 0,
-          "value": {
-            "CASE_RESAULT": "Food"
-          },
+          "value": "Food",
           "key": 0
         },
         {
           "topic": "S1",
           "timestamp": 0,
-          "value": {
-            "CASE_RESAULT": "default"
-          },
+          "value": "default",
           "key": 100
         },
         {
           "topic": "S1",
           "timestamp": 0,
-          "value": {
-            "CASE_RESAULT": "default"
-          },
+          "value": "default",
           "key": 101
         },
         {
           "topic": "S1",
           "timestamp": 0,
-          "value": {
-            "CASE_RESAULT": "default"
-          },
+          "value": "default",
           "key": 101
         },
         {
           "topic": "S1",
           "timestamp": 0,
-          "value": {
-            "CASE_RESAULT": "CITY_6"
-          },
+          "value": "CITY_6",
           "key": 101
         }
       ]

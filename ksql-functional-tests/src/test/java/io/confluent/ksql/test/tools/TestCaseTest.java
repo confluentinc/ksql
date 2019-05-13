@@ -66,6 +66,7 @@ public class TestCaseTest {
   private final TestCase testCase = new TestCase(
       null,
       "test",
+      Optional.empty(),
       Collections.emptyMap(),
       ImmutableList.of(topic),
       ImmutableList.of(record),
@@ -181,6 +182,7 @@ public class TestCaseTest {
     final TestCase testCase = new TestCase(
         null,
         "test",
+        Optional.empty(),
         Collections.emptyMap(),
         ImmutableList.of(topic),
         ImmutableList.of(record),

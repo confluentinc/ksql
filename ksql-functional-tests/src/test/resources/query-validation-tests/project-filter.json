@@ -42,9 +42,6 @@
         "CREATE STREAM TEST (ID bigint, THING MAP<VARCHAR, VARCHAR>) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM S1 as SELECT ID FROM TEST WHERE THING['status']='false';"
       ],
-      "properties": {
-        "ksql.persistence.serialization.wrap.single.values": "true"
-      },
       "inputs": [
         {"topic": "test_topic", "key": 0, "value": {"id": 1, "thing": {"other": 11, "status": false}}},
         {"topic": "test_topic", "key": 0, "value": {"id": 2, "thing": {"other": 12, "status": true}}},
@@ -52,8 +49,8 @@
         {"topic": "test_topic", "key": 0, "value": {"id": 4, "thing": {"other": 13, "status": false}}}
       ],
       "outputs": [
-        {"topic": "S1", "key": 0, "value": {"ID":1}},
-        {"topic": "S1", "key": 0, "value": {"ID":4}}
+        {"topic": "S1", "key": 0, "value": 1},
+        {"topic": "S1", "key": 0, "value": 4}
       ]
     },
     {
@@ -307,15 +304,12 @@
         "CREATE STREAM TEST (ID bigint, THING MAP<VARCHAR, VARCHAR>) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM S3 as SELECT ID FROM TEST WHERE THING['status']='false';"
       ],
-      "properties": {
-        "ksql.persistence.serialization.wrap.single.values": "true"
-      },
       "inputs": [
         {"topic": "test_topic", "key": 0, "value": {"id": 1, "thing": {"other": 11, "status": false}}},
         {"topic": "test_topic", "key": 0, "value": null}
       ],
       "outputs": [
-        {"topic": "S3", "key": 0, "value": {"ID":1}}
+        {"topic": "S3", "key": 0, "value": 1}
       ]
     },
     {

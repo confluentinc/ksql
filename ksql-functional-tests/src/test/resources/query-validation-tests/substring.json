@@ -96,14 +96,11 @@
         "CREATE STREAM TEST (source VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT SUBSTRING(source, 6) AS SUBSTRING FROM TEST;"
       ],
-      "properties": {
-        "ksql.persistence.serialization.wrap.single.values": "true"
-      },
       "inputs": [
         {"topic": "test_topic", "value": {"source": "some_string"}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "value": {"SUBSTRING":"string"}}
+        {"topic": "OUTPUT", "value": "string"}
       ]
     },
     {

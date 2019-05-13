@@ -26,6 +26,8 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Ordering;
+import io.confluent.ksql.schema.connect.SqlSchemaFormatter;
+import io.confluent.ksql.schema.persistence.PersistenceSchema;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.List;
@@ -35,7 +37,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 import org.apache.avro.SchemaBuilder.FieldAssembler;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -128,21 +129,6 @@ public final class SchemaUtil {
 
   private static final char FIELD_NAME_DELIMITER = '.';
 
-  private static final Map<Schema.Type, Function<Schema, String>> SCHEMA_TYPE_TO_SQL_TYPE =
-      ImmutableMap.<Schema.Type, Function<Schema, String>>builder()
-          .put(Schema.Type.INT32, s -> "INT")
-          .put(Schema.Type.INT64, s -> "BIGINT")
-          .put(Schema.Type.FLOAT32, s -> "DOUBLE")
-          .put(Schema.Type.FLOAT64, s -> "DOUBLE")
-          .put(Schema.Type.BOOLEAN, s -> "BOOLEAN")
-          .put(Schema.Type.STRING, s -> "VARCHAR")
-          .put(Schema.Type.ARRAY, s ->
-              "ARRAY<" + getSqlTypeName(s.valueSchema()) + ">")
-          .put(Schema.Type.MAP, s ->
-              "MAP<" + getSqlTypeName(s.keySchema()) + "," + getSqlTypeName(s.valueSchema()) + ">")
-          .put(Schema.Type.STRUCT, s -> getStructString(s))
-          .build();
-
   private static final ImmutableMap<Schema.Type, String> SCHEMA_TYPE_TO_CAST_STRING =
       new ImmutableMap.Builder<Schema.Type, String>()
           .put(Schema.Type.INT32, "(Integer)")
@@ -151,7 +137,6 @@ public final class SchemaUtil {
           .put(Schema.Type.STRING, "(String)")
           .put(Schema.Type.BOOLEAN, "(Boolean)")
           .build();
-
 
   private SchemaUtil() {
   }
@@ -221,30 +206,22 @@ public final class SchemaUtil {
   public static String getJavaCastString(final Schema schema) {
     final String castString = SCHEMA_TYPE_TO_CAST_STRING.get(schema.type());
     if (castString == null) {
-      //TODO: Add complex or other types later!
       return "";
     }
 
     return castString;
   }
 
+  // Todo(ac): Will be removed before merge. Just left to show the tests still pass
   public static String getSqlTypeName(final Schema schema) {
-    final Function<Schema, String> handler = SCHEMA_TYPE_TO_SQL_TYPE.get(schema.type());
-    if (handler == null) {
-      throw new KsqlException(String.format("Invalid type in schema: %s.", schema.toString()));
-    }
-
-    return handler.apply(schema);
+    return SqlSchemaFormatter.DEFAULT.format(schema);
   }
 
-  private static String getStructString(final Schema schema) {
-    return schema.fields().stream()
-        .map(field -> field.name() + " " + getSqlTypeName(field.schema()))
-        .collect(Collectors.joining(", ", "STRUCT<", ">"));
-  }
-
-  public static org.apache.avro.Schema buildAvroSchema(final Schema schema, final String name) {
-    return buildAvroSchema(DEFAULT_NAMESPACE, name, schema);
+  public static org.apache.avro.Schema buildAvroSchema(
+      final PersistenceSchema schema,
+      final String name
+  ) {
+    return buildAvroSchema(DEFAULT_NAMESPACE, name, schema.getConnectSchema());
   }
 
   private static org.apache.avro.Schema buildAvroSchema(
@@ -252,9 +229,37 @@ public final class SchemaUtil {
       final String name,
       final Schema schema
   ) {
+    switch (schema.type()) {
+      case STRING:
+        return create(org.apache.avro.Schema.Type.STRING);
+      case BOOLEAN:
+        return create(org.apache.avro.Schema.Type.BOOLEAN);
+      case INT32:
+        return create(org.apache.avro.Schema.Type.INT);
+      case INT64:
+        return create(org.apache.avro.Schema.Type.LONG);
+      case FLOAT64:
+        return create(org.apache.avro.Schema.Type.DOUBLE);
+      case ARRAY:
+        return createArray(unionWithNull(buildAvroSchema(namespace, name, schema.valueSchema())));
+      case MAP:
+        return createMap(unionWithNull(buildAvroSchema(namespace, name, schema.valueSchema())));
+      case STRUCT:
+        return buildAvroSchemaFromStruct(namespace, name, schema);
+      default:
+        throw new KsqlException("Unsupported AVRO type: " + schema.type().name());
+    }
+  }
+
+  private static org.apache.avro.Schema buildAvroSchemaFromStruct(
+      final String namespace,
+      final String name,
+      final Schema schema
+  ) {
     final String avroName = avroify(name);
     final FieldAssembler<org.apache.avro.Schema> fieldAssembler = org.apache.avro.SchemaBuilder
-        .record(avroName).namespace(namespace)
+        .record(avroName)
+        .namespace(namespace)
         .fields();
 
     for (final Field field : schema.fields()) {
@@ -263,7 +268,7 @@ public final class SchemaUtil {
 
       fieldAssembler
           .name(fieldName)
-          .type(getAvroSchemaForField(fieldNamespace, fieldName, field.schema()))
+          .type(unionWithNull(buildAvroSchema(fieldNamespace, fieldName, field.schema())))
           .withDefault(null);
     }
 
@@ -274,35 +279,6 @@ public final class SchemaUtil {
     return name
         .replace(".", "_")
         .replace("-", "_");
-  }
-
-  private static org.apache.avro.Schema getAvroSchemaForField(
-      final String namespace,
-      final String fieldName,
-      final Schema fieldSchema
-  ) {
-    switch (fieldSchema.type()) {
-      case STRING:
-        return unionWithNull(create(org.apache.avro.Schema.Type.STRING));
-      case BOOLEAN:
-        return unionWithNull(create(org.apache.avro.Schema.Type.BOOLEAN));
-      case INT32:
-        return unionWithNull(create(org.apache.avro.Schema.Type.INT));
-      case INT64:
-        return unionWithNull(create(org.apache.avro.Schema.Type.LONG));
-      case FLOAT64:
-        return unionWithNull(create(org.apache.avro.Schema.Type.DOUBLE));
-      case ARRAY:
-        return unionWithNull(createArray(
-            getAvroSchemaForField(namespace, fieldName, fieldSchema.valueSchema())));
-      case MAP:
-        return unionWithNull(createMap(
-            getAvroSchemaForField(namespace, fieldName, fieldSchema.valueSchema())));
-      case STRUCT:
-        return unionWithNull(buildAvroSchema(namespace, fieldName, fieldSchema));
-      default:
-        throw new KsqlException("Unsupported AVRO type: " + fieldSchema.type().name());
-    }
   }
 
   private static org.apache.avro.Schema unionWithNull(final org.apache.avro.Schema schema) {

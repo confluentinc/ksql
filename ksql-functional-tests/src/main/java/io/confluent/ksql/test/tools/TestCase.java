@@ -174,7 +174,6 @@ public class TestCase implements Test {
           throw new AssertionError("No record received");
         }
 
-
         OutputVerifier.compareKeyValueTimestamp(
             record,
             expectedOutput.key(),

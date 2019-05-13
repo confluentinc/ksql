@@ -4,21 +4,23 @@
   ],
   "tests": [
     {
-      "name": "top level primitive - value - DELIMITED",
+      "name": "deserialize top level primitive - value - DELIMITED",
       "comments": "DELIMITED supports top level primitives by default",
       "statements": [
         "CREATE STREAM INPUT (foo INT) WITH (kafka_topic='input_topic', value_format='DELIMITED');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
       ],
       "inputs": [
-        {"topic": "input_topic", "value": "10"}
+        {"topic": "input_topic", "value": "10"},
+        {"topic": "input_topic", "value": null}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "value": "10"}
+        {"topic": "OUTPUT", "value": "10"},
+        {"topic": "OUTPUT", "value": null}
       ]
     },
     {
-      "name": "top level primitive - value",
+      "name": "deserialize top level primitive - value",
       "format": ["JSON", "AVRO"],
       "statements": [
         "CREATE STREAM INPUT (foo INT) WITH (kafka_topic='input_topic', value_format='{FORMAT}');",
@@ -27,19 +29,21 @@
       "topics": [
         {
           "name": "input_topic",
-          "schema": {"type": "int"},
+          "schema": "int",
           "format": "{FORMAT}"
         }
       ],
       "inputs": [
-        {"topic": "input_topic", "value": 10}
+        {"topic": "input_topic", "value": 10},
+        {"topic": "input_topic", "value": null}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "value": {"FOO": 10}}
+        {"topic": "OUTPUT", "value": {"FOO": 10}},
+        {"topic": "OUTPUT", "value": null}
       ]
     },
     {
-      "name": "coerce top level primitive - value",
+      "name": "deserialize top level primitive - value - with coercion",
       "format": ["JSON", "AVRO"],
       "statements": [
         "CREATE STREAM INPUT (foo STRING) WITH (kafka_topic='input_topic', value_format='{FORMAT}');",
@@ -48,7 +52,7 @@
       "topics": [
         {
           "name": "input_topic",
-          "schema": {"type": "int"},
+          "schema": "int",
           "format": "{FORMAT}"
         }
       ],
@@ -60,7 +64,7 @@
       ]
     },
     {
-      "name": "top level array - value - DELIMITED",
+      "name": "deserialize top level array - value - DELIMITED",
       "statements": [
         "CREATE STREAM INPUT (foo ARRAY<STRING>) WITH (kafka_topic='input_topic', value_format='DELIMITED');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
@@ -71,7 +75,7 @@
       }
     },
     {
-      "name": "top level array - value",
+      "name": "deserialize top level array - value",
       "comments": [
         "see github issue https://github.com/confluentinc/ksql/issues/1351"
       ],
@@ -83,19 +87,23 @@
       "topics": [
         {
           "name": "input_topic",
-          "schema": {"type": "array", "items": {"type": "string"}},
+          "schema": {"type": "array", "items": ["null", "string"]},
           "format": "{FORMAT}"
         }
       ],
       "inputs": [
-        {"topic": "input_topic", "value": ["a", "b", "c"]}
+        {"topic": "input_topic", "value": ["a", "b", "c"]},
+        {"topic": "input_topic", "value": ["a", "b", null]},
+        {"topic": "input_topic", "value": null}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "value": {"FOO": ["a", "b", "c"]}}
+        {"topic": "OUTPUT", "value": {"FOO": ["a", "b", "c"]}},
+        {"topic": "OUTPUT", "value": {"FOO": ["a", "b", null]}},
+        {"topic": "OUTPUT", "value": null}
       ]
     },
     {
-      "name": "coerce top level array - value",
+      "name": "deserialize top level array - value - with coercion",
       "format": ["JSON", "AVRO"],
       "statements": [
         "CREATE STREAM INPUT (foo ARRAY<STRING>) WITH (kafka_topic='input_topic', value_format='{FORMAT}');",
@@ -104,7 +112,7 @@
       "topics": [
         {
           "name": "input_topic",
-          "schema": {"type": "array", "items": {"type": "string"}},
+          "schema": {"type": "array", "items": ["null", "string"]},
           "format": "{FORMAT}"
         }
       ],
@@ -116,7 +124,27 @@
       ]
     },
     {
-      "name": "top level map - value - DELIMITED",
+      "name": "deserialize top level array - value - non-nullable - AVRO",
+      "statements": [
+        "CREATE STREAM INPUT (foo ARRAY<STRING>) WITH (kafka_topic='input_topic', value_format='AVRO');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "topics": [
+        {
+          "name": "input_topic",
+          "schema": {"type": "array", "items": "string"},
+          "format": "AVRO"
+        }
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": ["a", "b", "c"]}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"FOO": ["a", "b", "c"]}}
+      ]
+    },
+    {
+      "name": "deserialize top level map - value - DELIMITED",
       "statements": [
         "CREATE STREAM INPUT (foo MAP<STRING, INT>) WITH (kafka_topic='input_topic', value_format='DELIMITED');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
@@ -127,28 +155,33 @@
       }
     },
     {
-      "name": "top level map - value - AVRO",
+      "name": "deserialize top level map - value",
       "statements": [
-        "CREATE STREAM INPUT (foo MAP<STRING, INT>) WITH (kafka_topic='input_topic', value_format='AVRO');",
+        "CREATE STREAM INPUT (foo MAP<STRING, INT>) WITH (kafka_topic='input_topic', value_format='{FORMAT}');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
        ],
+       "format": ["AVRO", "JSON"],
        "topics": [
         {
           "name": "input_topic",
-          "schema": {"type": "map", "values": "int"},
-          "format": "AVRO"
+          "schema": {"type": "map", "values": ["null", "int"]},
+          "format": "{FORMAT}"
         },
         {
           "name": "OUTPUT",
-          "schema": {"name": "blah", "type": "record", "fields": [{"name": "FOO", "type": {"type": "map", "values": "int"}}]},
-          "format": "AVRO"
+          "schema": {"name": "blah", "type": "record", "fields": [{"name": "FOO", "type": {"type": "map", "values": ["null", "int"]}}]},
+          "format": "{FORMAT}"
         }
        ],
        "inputs": [
-        {"topic": "input_topic", "value": {"a": 1, "b": 2, "c": 3}}
+        {"topic": "input_topic", "value": {"a": 1, "b": 2, "c": 3}},
+        {"topic": "input_topic", "value": {"a": 1, "b": 2, "c": null}},
+        {"topic": "input_topic", "value": null}
        ],
        "outputs": [
-        {"topic": "OUTPUT", "value": {"FOO": {"a": 1, "b": 2, "c": 3}}}
+        {"topic": "OUTPUT", "value": {"FOO": {"a": 1, "b": 2, "c": 3}}},
+        {"topic": "OUTPUT", "value": {"FOO": {"a": 1, "b": 2, "c": null}}},
+        {"topic": "OUTPUT", "value": null}
        ],
        "post": {
         "sources": [
@@ -161,29 +194,7 @@
        }
     },
     {
-       "name": "top level map - value - JSON",
-       "statements": [
-          "CREATE STREAM INPUT (foo MAP<STRING, INT>) WITH (kafka_topic='input_topic', value_format='JSON');",
-          "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
-        ],
-        "inputs": [
-          {"topic": "input_topic", "value": {"a": 1, "b": 2, "c": 3}}
-        ],
-        "outputs": [
-          {"topic": "OUTPUT", "value": {"FOO": {"a": 1, "b": 2, "c": 3}}}
-        ],
-        "post": {
-          "sources": [
-            {
-              "name": "INPUT",
-              "type": "stream",
-              "valueSchema": "STRUCT<ROWTIME BIGINT, ROWKEY STRING, FOO MAP<STRING, INT>>"
-            }
-          ]
-        }
-    },
-    {
-      "name": "coerce top level map - value - AVRO",
+      "name": "deserialize top level map - value - with coercion - AVRO",
       "statements": [
         "CREATE STREAM INPUT (foo MAP<STRING, STRING>) WITH (kafka_topic='input_topic', value_format='AVRO');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
@@ -191,12 +202,12 @@
       "topics": [
         {
           "name": "input_topic",
-          "schema": {"type": "map", "values": "int"},
+          "schema": {"type": "map", "values": ["null", "int"]},
           "format": "AVRO"
         },
         {
           "name": "OUTPUT",
-          "schema": {"name": "blah", "type": "record", "fields": [{"name": "FOO", "type": {"type": "map", "values": "int"}}]},
+          "schema": {"name": "blah", "type": "record", "fields": [{"name": "FOO", "type": {"type": "map", "values": ["null", "int"]}}]},
           "format": "AVRO"
         }
       ],
@@ -215,6 +226,189 @@
           }
         ]
       }
+    },
+    {
+      "name": "deserialize top level map - value - non-nullable - AVRO",
+      "statements": [
+        "CREATE STREAM INPUT (foo MAP<STRING, INT>) WITH (kafka_topic='input_topic', value_format='AVRO');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "topics": [
+        {
+          "name": "input_topic",
+          "schema": {"type": "map", "values": "int"},
+          "format": "AVRO"
+        }
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"a": 1, "b": 2, "c": 3}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"FOO": {"a": 1, "b": 2, "c": 3}}}
+      ],
+      "post": {
+        "sources": [
+          {
+            "name": "INPUT",
+            "type": "stream",
+            "valueSchema": "STRUCT<ROWTIME BIGINT, ROWKEY STRING, FOO MAP<STRING, INT>>"
+          }
+        ]
+      }
+    },
+    {
+      "name": "deserialize to row not map field if data matches row schema - JSON",
+      "comments": [
+        "As the input record has a field called 'foo' that can be coerced to the field's schema",
+        "the value should be deserialized as a JSON object."
+      ],
+      "statements": [
+        "CREATE STREAM INPUT (foo MAP<STRING, STRING>) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"foo": 1, "FOO": {"a":  1}}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"FOO": {"a": "1"}}}
+      ],
+      "post": {
+        "sources": [
+          {
+            "name": "INPUT",
+            "type": "stream",
+            "valueSchema": "STRUCT<ROWTIME BIGINT, ROWKEY STRING, FOO MAP<STRING, STRING>>"
+          }
+        ]
+      }
+    },
+    {
+      "name": "deserialize to map field not row if data does not match row schema - JSON",
+      "comments": [
+        "Though the input record has a field called 'foo', it can't be coerced to the field's",
+        "schema, where as the value as a whole can be. So KSQL should deserialize as single field"
+      ],
+      "statements": [
+        "CREATE STREAM INPUT (foo MAP<STRING, STRING>) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"a":  1, "FoO": 2, "c": 3}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"FOO": {"a":  "1", "FoO": "2", "c": "3"}}}
+      ],
+      "post": {
+        "sources": [
+          {
+            "name": "INPUT",
+            "type": "stream",
+            "valueSchema": "STRUCT<ROWTIME BIGINT, ROWKEY STRING, FOO MAP<STRING, STRING>>"
+          }
+        ]
+      }
+    },
+    {
+      "name": "serialize top level primitive - value",
+      "format": ["JSON", "AVRO"],
+      "statements": [
+        "CREATE STREAM INPUT (foo BOOLEAN) WITH (kafka_topic='input_topic', value_format='{FORMAT}');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "properties": {
+        "ksql.persistence.wrap.single.values": "false"
+      },
+      "topics": [
+        {
+          "name": "OUTPUT",
+          "schema": "boolean",
+          "format": "{FORMAT}"
+        }
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"FOO": true}},
+        {"topic": "input_topic", "value": {"FOO": null}},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": true},
+        {"topic": "OUTPUT", "value": null},
+        {"topic": "OUTPUT", "value": null}
+      ]
+    },
+    {
+      "name": "serialize top level array - value",
+      "format": ["JSON", "AVRO"],
+      "statements": [
+        "CREATE STREAM INPUT (foo ARRAY<BIGINT>) WITH (kafka_topic='input_topic', value_format='{FORMAT}');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "properties": {
+        "ksql.persistence.wrap.single.values": "false"
+      },
+      "topics": [
+        {
+          "name": "OUTPUT",
+          "schema": {"type": "array", "items": ["null", "long"]},
+          "format": "{FORMAT}"
+        }
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"FOO": [12, 34, 999]}},
+        {"topic": "input_topic", "value": {"FOO": [12, 34, null]}},
+        {"topic": "input_topic", "value": {"FOO": null}},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": [12, 34, 999]},
+        {"topic": "OUTPUT", "value": [12, 34, null]},
+        {"topic": "OUTPUT", "value": null},
+        {"topic": "OUTPUT", "value": null}
+      ]
+    },
+    {
+      "name": "serialize top level map - value",
+      "format": ["JSON", "AVRO"],
+      "statements": [
+        "CREATE STREAM INPUT (foo MAP<STRING, DOUBLE>) WITH (kafka_topic='input_topic', value_format='{FORMAT}');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "properties": {
+        "ksql.persistence.wrap.single.values": "false"
+      },
+      "topics": [
+        {
+          "name": "OUTPUT",
+          "schema": {"type": "map", "values": ["null", "double"]},
+          "format": "{FORMAT}"
+        }
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"FOO": {"a": 1.1, "b": 2.2, "c": 3.456}}},
+        {"topic": "input_topic", "value": {"FOO": {"a": 1.1, "b": 2.2, "c": null}}},
+        {"topic": "input_topic", "value": {"FOO": null}},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"a": 1.1, "b": 2.2, "c": 3.456}},
+        {"topic": "OUTPUT", "value": {"a": 1.1, "b": 2.2, "c": null}},
+        {"topic": "OUTPUT", "value": null},
+        {"topic": "OUTPUT", "value": null}
+      ]
+    },
+    {
+      "name": "serialize top level - value - via SET",
+      "statements": [
+        "SET 'ksql.persistence.wrap.single.values'='false';",
+        "CREATE STREAM INPUT (foo STRING) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"FOO": "bar"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": "bar"}
+      ]
     }
   ]
 }

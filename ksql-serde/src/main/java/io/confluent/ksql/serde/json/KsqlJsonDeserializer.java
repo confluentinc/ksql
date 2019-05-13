@@ -18,7 +18,6 @@ package io.confluent.ksql.serde.json;
 import com.google.gson.Gson;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.serde.util.SerdeProcessingLogMessageFactory;
-import io.confluent.ksql.serde.util.SerdeUtils;
 import io.confluent.ksql.util.KsqlException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -163,12 +162,12 @@ public class KsqlJsonDeserializer implements Deserializer<Struct> {
     final boolean coercibleToStruct = map.entrySet().stream()
         .filter(e -> fieldName.equalsIgnoreCase(e.getKey()))
         .map(Entry::getValue)
-        .filter(v -> SerdeUtils.isCoercible(v, onlyField.schema()))
+        .filter(v -> JsonSerdeUtils.isCoercible(v, onlyField.schema()))
         .map(v -> true)
         .findFirst()
         .orElse(false);
 
-    final boolean coercibleToMap = SerdeUtils.isCoercible(map, onlyField.schema());
+    final boolean coercibleToMap = JsonSerdeUtils.isCoercible(map, onlyField.schema());
 
     return coercibleToStruct || !coercibleToMap;
   }
@@ -194,13 +193,13 @@ public class KsqlJsonDeserializer implements Deserializer<Struct> {
     }
     switch (fieldSchema.type()) {
       case BOOLEAN:
-        return SerdeUtils.toBoolean(columnVal);
+        return JsonSerdeUtils.toBoolean(columnVal);
       case INT32:
-        return SerdeUtils.toInteger(columnVal);
+        return JsonSerdeUtils.toInteger(columnVal);
       case INT64:
-        return SerdeUtils.toLong(columnVal);
+        return JsonSerdeUtils.toLong(columnVal);
       case FLOAT64:
-        return SerdeUtils.toDouble(columnVal);
+        return JsonSerdeUtils.toDouble(columnVal);
       case STRING:
         return processString(columnVal);
       case ARRAY:
@@ -276,8 +275,10 @@ public class KsqlJsonDeserializer implements Deserializer<Struct> {
     return columnStruct;
   }
 
-  private Map<String, String> getCaseInsensitiveFieldNameMap(final Map<String, ?> map,
-                                                             final boolean omitAt) {
+  private static Map<String, String> getCaseInsensitiveFieldNameMap(
+      final Map<String, ?> map,
+      final boolean omitAt
+  ) {
     final Map<String, String> keyMap = new HashMap<>();
     for (final Map.Entry<String, ?> entry : map.entrySet()) {
       if (omitAt && entry.getKey().startsWith("@")) {

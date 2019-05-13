@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2019 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.serde.util;
+package io.confluent.ksql.serde.json;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.Matchers.is;
@@ -26,184 +26,184 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Test;
 
-public class SerdeUtilsTest {
+public class JsonSerdeUtilsTest {
 
   @Test
   public void shouldConvertToBooleanCorrectly() {
-    final Boolean b = SerdeUtils.toBoolean(true);
+    final Boolean b = JsonSerdeUtils.toBoolean(true);
     assertThat(b, equalTo(true));
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void shouldFailWhenConvertingNonBooleanToBoolean() {
-    SerdeUtils.toBoolean(1);
+    JsonSerdeUtils.toBoolean(1);
   }
 
   @Test
   public void shouldConvertToIntCorrectly() {
-    final Integer i = SerdeUtils.toInteger(1);
+    final Integer i = JsonSerdeUtils.toInteger(1);
     assertThat(i, equalTo(1));
   }
 
   @Test
   public void shouldConvertLongToIntCorrectly() {
-    final Integer i = SerdeUtils.toInteger(1L);
+    final Integer i = JsonSerdeUtils.toInteger(1L);
     assertThat(i, equalTo(1));
   }
 
   @Test
   public void shouldConvertDoubleToIntCorrectly() {
-    final Integer i = SerdeUtils.toInteger(1.0);
+    final Integer i = JsonSerdeUtils.toInteger(1.0);
     assertThat(i, equalTo(1));
   }
 
   @Test
   public void shouldConvertStringToIntCorrectly() {
-    final Integer i = SerdeUtils.toInteger("1");
+    final Integer i = JsonSerdeUtils.toInteger("1");
     assertThat(i, equalTo(1));
   }
 
   @Test(expected = KsqlException.class)
   public void shouldNotConvertIncorrectStringToInt() {
-    SerdeUtils.toInteger("1!:)");
+    JsonSerdeUtils.toInteger("1!:)");
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void shouldFailWhenConvertingNonIntegerToIntegr() {
-    SerdeUtils.toInteger(true);
+    JsonSerdeUtils.toInteger(true);
   }
 
   @Test
   public void shouldConvertToLongCorrectly() {
-    final Long l = SerdeUtils.toLong(1L);
+    final Long l = JsonSerdeUtils.toLong(1L);
     assertThat(l, equalTo(1L));
   }
 
   @Test
   public void shouldConvertIntToLongCorrectly() {
-    final Long l = SerdeUtils.toLong(1);
+    final Long l = JsonSerdeUtils.toLong(1);
     assertThat(l, equalTo(1L));
   }
 
   @Test
   public void shouldConvertDoubleToLongCorrectly() {
-    final Long l = SerdeUtils.toLong(1.0);
+    final Long l = JsonSerdeUtils.toLong(1.0);
     assertThat(l, equalTo(1L));
   }
 
   @Test
   public void shouldConvertStringToLongCorrectly() {
-    final Long l = SerdeUtils.toLong("1");
+    final Long l = JsonSerdeUtils.toLong("1");
     assertThat(l, equalTo(1L));
   }
 
   @Test(expected = KsqlException.class)
   public void shouldNotConvertIncorrectStringToLong() {
-    SerdeUtils.toLong("1!:)");
+    JsonSerdeUtils.toLong("1!:)");
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void shouldFailWhenConvertingIncompatibleLong() {
-    SerdeUtils.toInteger(true);
+    JsonSerdeUtils.toInteger(true);
   }
 
   @Test
   public void shouldConvertToDoubleCorrectly() {
-    final Double d = SerdeUtils.toDouble(1.0);
+    final Double d = JsonSerdeUtils.toDouble(1.0);
     assertThat(d, equalTo(1.0));
   }
 
   @Test
   public void shouldConvertIntToDoubleCorrectly() {
-    final Double d = SerdeUtils.toDouble(1);
+    final Double d = JsonSerdeUtils.toDouble(1);
     assertThat(d, equalTo(1.0));
   }
 
   @Test
   public void shouldConvertLongToDoubleCorrectly() {
-    final Double d = SerdeUtils.toDouble(1L);
+    final Double d = JsonSerdeUtils.toDouble(1L);
     assertThat(d, equalTo(1.0));
   }
 
   @Test
   public void shouldConvertStringToDoubleCorrectly() {
-    final Double d = SerdeUtils.toDouble("1.0");
+    final Double d = JsonSerdeUtils.toDouble("1.0");
     assertThat(d, equalTo(1.0));
   }
 
   @Test(expected = KsqlException.class)
   public void shouldNotConvertIncorrectStringToDouble() {
-    SerdeUtils.toDouble("1!:)");
+    JsonSerdeUtils.toDouble("1!:)");
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void shouldFailWhenConvertingIncompatibleDouble() {
-    SerdeUtils.toDouble(true);
+    JsonSerdeUtils.toDouble(true);
   }
 
   @Test(expected = UnsupportedOperationException.class)
   public void shouldThrowOnUnsupportedSchema() {
-    SerdeUtils.isCoercible(ImmutableList.of(1), Schema.OPTIONAL_INT8_SCHEMA);
+    JsonSerdeUtils.isCoercible(ImmutableList.of(1), Schema.OPTIONAL_INT8_SCHEMA);
   }
 
   @Test
   public void shouldAssumeNullsAreAlwaysCoercible() {
-    assertThat(SerdeUtils.isCoercible(null, Schema.OPTIONAL_FLOAT64_SCHEMA), is(true));
+    assertThat(JsonSerdeUtils.isCoercible(null, Schema.OPTIONAL_FLOAT64_SCHEMA), is(true));
   }
 
   @Test
   public void shouldBeCoercibleToInteger() {
-    assertThat(SerdeUtils.isCoercible(1, Schema.OPTIONAL_INT32_SCHEMA), is(true));
-    assertThat(SerdeUtils.isCoercible(1L, Schema.OPTIONAL_INT32_SCHEMA), is(true));
-    assertThat(SerdeUtils.isCoercible(0.4f, Schema.OPTIONAL_INT32_SCHEMA), is(true));
-    assertThat(SerdeUtils.isCoercible(0.4, Schema.OPTIONAL_INT32_SCHEMA), is(true));
-    assertThat(SerdeUtils.isCoercible("10", Schema.OPTIONAL_INT32_SCHEMA), is(true));
+    assertThat(JsonSerdeUtils.isCoercible(1, Schema.OPTIONAL_INT32_SCHEMA), is(true));
+    assertThat(JsonSerdeUtils.isCoercible(1L, Schema.OPTIONAL_INT32_SCHEMA), is(true));
+    assertThat(JsonSerdeUtils.isCoercible(0.4f, Schema.OPTIONAL_INT32_SCHEMA), is(true));
+    assertThat(JsonSerdeUtils.isCoercible(0.4, Schema.OPTIONAL_INT32_SCHEMA), is(true));
+    assertThat(JsonSerdeUtils.isCoercible("10", Schema.OPTIONAL_INT32_SCHEMA), is(true));
   }
 
   @Test
   public void shouldNotBeCoercibleToInteger() {
-    assertThat(SerdeUtils.isCoercible(ImmutableList.of(1), Schema.OPTIONAL_INT32_SCHEMA),
+    assertThat(JsonSerdeUtils.isCoercible(ImmutableList.of(1), Schema.OPTIONAL_INT32_SCHEMA),
         is(false));
   }
 
   @Test
   public void shouldBeCoercibleToLong() {
-    assertThat(SerdeUtils.isCoercible(1, Schema.OPTIONAL_INT64_SCHEMA), is(true));
-    assertThat(SerdeUtils.isCoercible(1L, Schema.OPTIONAL_INT64_SCHEMA), is(true));
-    assertThat(SerdeUtils.isCoercible(0.4f, Schema.OPTIONAL_INT64_SCHEMA), is(true));
-    assertThat(SerdeUtils.isCoercible(0.4, Schema.OPTIONAL_INT64_SCHEMA), is(true));
-    assertThat(SerdeUtils.isCoercible("10", Schema.OPTIONAL_INT64_SCHEMA), is(true));
+    assertThat(JsonSerdeUtils.isCoercible(1, Schema.OPTIONAL_INT64_SCHEMA), is(true));
+    assertThat(JsonSerdeUtils.isCoercible(1L, Schema.OPTIONAL_INT64_SCHEMA), is(true));
+    assertThat(JsonSerdeUtils.isCoercible(0.4f, Schema.OPTIONAL_INT64_SCHEMA), is(true));
+    assertThat(JsonSerdeUtils.isCoercible(0.4, Schema.OPTIONAL_INT64_SCHEMA), is(true));
+    assertThat(JsonSerdeUtils.isCoercible("10", Schema.OPTIONAL_INT64_SCHEMA), is(true));
   }
 
   @Test
   public void shouldNotBeCoercibleToLong() {
-    assertThat(SerdeUtils.isCoercible(ImmutableList.of(1), Schema.OPTIONAL_INT64_SCHEMA),
+    assertThat(JsonSerdeUtils.isCoercible(ImmutableList.of(1), Schema.OPTIONAL_INT64_SCHEMA),
         is(false));
   }
 
   @Test
   public void shouldBeCoercibleToDouble() {
-    assertThat(SerdeUtils.isCoercible(1, Schema.OPTIONAL_FLOAT64_SCHEMA), is(true));
-    assertThat(SerdeUtils.isCoercible(1L, Schema.OPTIONAL_FLOAT64_SCHEMA), is(true));
-    assertThat(SerdeUtils.isCoercible(0.4f, Schema.OPTIONAL_FLOAT64_SCHEMA), is(true));
-    assertThat(SerdeUtils.isCoercible(0.4, Schema.OPTIONAL_FLOAT64_SCHEMA), is(true));
-    assertThat(SerdeUtils.isCoercible("10", Schema.OPTIONAL_FLOAT64_SCHEMA), is(true));
+    assertThat(JsonSerdeUtils.isCoercible(1, Schema.OPTIONAL_FLOAT64_SCHEMA), is(true));
+    assertThat(JsonSerdeUtils.isCoercible(1L, Schema.OPTIONAL_FLOAT64_SCHEMA), is(true));
+    assertThat(JsonSerdeUtils.isCoercible(0.4f, Schema.OPTIONAL_FLOAT64_SCHEMA), is(true));
+    assertThat(JsonSerdeUtils.isCoercible(0.4, Schema.OPTIONAL_FLOAT64_SCHEMA), is(true));
+    assertThat(JsonSerdeUtils.isCoercible("10", Schema.OPTIONAL_FLOAT64_SCHEMA), is(true));
   }
 
   @Test
   public void shouldNotBeCoercibleToDouble() {
-    assertThat(SerdeUtils.isCoercible(ImmutableList.of(1), Schema.OPTIONAL_FLOAT64_SCHEMA),
+    assertThat(JsonSerdeUtils.isCoercible(ImmutableList.of(1), Schema.OPTIONAL_FLOAT64_SCHEMA),
         is(false));
   }
 
   @Test
   public void shouldBeCoercibleToString() {
-    assertThat(SerdeUtils.isCoercible(1, Schema.OPTIONAL_STRING_SCHEMA), is(true));
-    assertThat(SerdeUtils.isCoercible(1L, Schema.OPTIONAL_STRING_SCHEMA), is(true));
-    assertThat(SerdeUtils.isCoercible(0.4f, Schema.OPTIONAL_STRING_SCHEMA), is(true));
-    assertThat(SerdeUtils.isCoercible(0.4, Schema.OPTIONAL_STRING_SCHEMA), is(true));
-    assertThat(SerdeUtils.isCoercible("10", Schema.OPTIONAL_STRING_SCHEMA), is(true));
-    assertThat(SerdeUtils.isCoercible(ImmutableList.of(1), Schema.OPTIONAL_STRING_SCHEMA),
+    assertThat(JsonSerdeUtils.isCoercible(1, Schema.OPTIONAL_STRING_SCHEMA), is(true));
+    assertThat(JsonSerdeUtils.isCoercible(1L, Schema.OPTIONAL_STRING_SCHEMA), is(true));
+    assertThat(JsonSerdeUtils.isCoercible(0.4f, Schema.OPTIONAL_STRING_SCHEMA), is(true));
+    assertThat(JsonSerdeUtils.isCoercible(0.4, Schema.OPTIONAL_STRING_SCHEMA), is(true));
+    assertThat(JsonSerdeUtils.isCoercible("10", Schema.OPTIONAL_STRING_SCHEMA), is(true));
+    assertThat(JsonSerdeUtils.isCoercible(ImmutableList.of(1), Schema.OPTIONAL_STRING_SCHEMA),
         is(true));
   }
 
@@ -216,9 +216,9 @@ public class SerdeUtilsTest {
         .build();
 
     // Then:
-    assertThat(SerdeUtils.isCoercible(ImmutableList.of(1), schema), is(true));
-    assertThat(SerdeUtils.isCoercible(ImmutableList.of(1L), schema), is(true));
-    assertThat(SerdeUtils.isCoercible(ImmutableList.of(0.4f), schema), is(true));
+    assertThat(JsonSerdeUtils.isCoercible(ImmutableList.of(1), schema), is(true));
+    assertThat(JsonSerdeUtils.isCoercible(ImmutableList.of(1L), schema), is(true));
+    assertThat(JsonSerdeUtils.isCoercible(ImmutableList.of(0.4f), schema), is(true));
   }
 
   @Test
@@ -230,9 +230,9 @@ public class SerdeUtilsTest {
         .build();
 
     // Then:
-    assertThat(SerdeUtils.isCoercible(1, schema), is(false));
-    assertThat(SerdeUtils.isCoercible(ImmutableMap.of(true, 1.0), schema), is(false));
-    assertThat(SerdeUtils.isCoercible(ImmutableList.of(true, ImmutableList.of(1)), schema),
+    assertThat(JsonSerdeUtils.isCoercible(1, schema), is(false));
+    assertThat(JsonSerdeUtils.isCoercible(ImmutableMap.of(true, 1.0), schema), is(false));
+    assertThat(JsonSerdeUtils.isCoercible(ImmutableList.of(true, ImmutableList.of(1)), schema),
         is(false));
   }
 
@@ -245,9 +245,9 @@ public class SerdeUtilsTest {
         .build();
 
     // Then:
-    assertThat(SerdeUtils.isCoercible(ImmutableMap.of(true, 1.0), schema), is(true));
-    assertThat(SerdeUtils.isCoercible(ImmutableMap.of(false, 1), schema), is(true));
-    assertThat(SerdeUtils.isCoercible(ImmutableMap.of(true, "str"), schema), is(true));
+    assertThat(JsonSerdeUtils.isCoercible(ImmutableMap.of(true, 1.0), schema), is(true));
+    assertThat(JsonSerdeUtils.isCoercible(ImmutableMap.of(false, 1), schema), is(true));
+    assertThat(JsonSerdeUtils.isCoercible(ImmutableMap.of(true, "str"), schema), is(true));
   }
 
   @Test
@@ -259,10 +259,10 @@ public class SerdeUtilsTest {
         .build();
 
     // Then:
-    assertThat(SerdeUtils.isCoercible(1, schema), is(false));
-    assertThat(SerdeUtils.isCoercible(ImmutableList.of(true, 1), schema), is(false));
-    assertThat(SerdeUtils.isCoercible(ImmutableMap.of("string", 1.0), schema), is(false));
-    assertThat(SerdeUtils.isCoercible(ImmutableMap.of(true, ImmutableList.of()), schema),
+    assertThat(JsonSerdeUtils.isCoercible(1, schema), is(false));
+    assertThat(JsonSerdeUtils.isCoercible(ImmutableList.of(true, 1), schema), is(false));
+    assertThat(JsonSerdeUtils.isCoercible(ImmutableMap.of("string", 1.0), schema), is(false));
+    assertThat(JsonSerdeUtils.isCoercible(ImmutableMap.of(true, ImmutableList.of()), schema),
         is(false));
   }
 
@@ -276,9 +276,9 @@ public class SerdeUtilsTest {
         .build();
 
     // Then:
-    assertThat(SerdeUtils.isCoercible(ImmutableMap.of("f0", 1.0), schema), is(true));
-    assertThat(SerdeUtils.isCoercible(ImmutableMap.of("f0", 1), schema), is(true));
-    assertThat(SerdeUtils.isCoercible(ImmutableMap.of("f0", "str"), schema), is(true));
+    assertThat(JsonSerdeUtils.isCoercible(ImmutableMap.of("f0", 1.0), schema), is(true));
+    assertThat(JsonSerdeUtils.isCoercible(ImmutableMap.of("f0", 1), schema), is(true));
+    assertThat(JsonSerdeUtils.isCoercible(ImmutableMap.of("f0", "str"), schema), is(true));
   }
 
   @Test
@@ -291,10 +291,10 @@ public class SerdeUtilsTest {
         .build();
 
     // Then:
-    assertThat(SerdeUtils.isCoercible(1, schema), is(false));
-    assertThat(SerdeUtils.isCoercible(ImmutableList.of(true, 1), schema), is(false));
-    assertThat(SerdeUtils.isCoercible(ImmutableMap.of("not f0", 1.0), schema), is(false));
-    assertThat(SerdeUtils.isCoercible(ImmutableMap.of(true, ImmutableList.of()), schema),
+    assertThat(JsonSerdeUtils.isCoercible(1, schema), is(false));
+    assertThat(JsonSerdeUtils.isCoercible(ImmutableList.of(true, 1), schema), is(false));
+    assertThat(JsonSerdeUtils.isCoercible(ImmutableMap.of("not f0", 1.0), schema), is(false));
+    assertThat(JsonSerdeUtils.isCoercible(ImmutableMap.of(true, ImmutableList.of()), schema),
         is(false));
   }
 
@@ -326,7 +326,7 @@ public class SerdeUtilsTest {
     );
 
     // Then:
-    assertThat(SerdeUtils.isCoercible(value, schema), is(true));
+    assertThat(JsonSerdeUtils.isCoercible(value, schema), is(true));
   }
 
   @Test
@@ -357,6 +357,6 @@ public class SerdeUtilsTest {
     );
 
     // Then:
-    assertThat(SerdeUtils.isCoercible(value, schema), is(false));
+    assertThat(JsonSerdeUtils.isCoercible(value, schema), is(false));
   }
 }

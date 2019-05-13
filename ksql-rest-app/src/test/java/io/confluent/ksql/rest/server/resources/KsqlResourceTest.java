@@ -64,6 +64,7 @@ import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientExcept
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlEngineTestUtil;
+import io.confluent.ksql.engine.TopicAccessValidator;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
@@ -249,6 +250,8 @@ public class KsqlResourceTest {
   private Injector topicInjector;
   @Mock
   private Injector sandboxTopicInjector;
+  @Mock
+  private TopicAccessValidator topicAccessValidator;
 
   private KsqlResource ksqlResource;
   private SchemaRegistryClient schemaRegistryClient;
@@ -285,7 +288,6 @@ public class KsqlResourceTest {
     );
 
     ksqlEngine = realEngine;
-    when(sandbox.getServiceContext()).thenAnswer(inv -> SandboxedServiceContext.create(serviceContext));
     when(sandbox.getMetaStore()).thenAnswer(inv -> metaStore.copy());
 
     addTestTopicAndSources();
@@ -712,7 +714,7 @@ public class KsqlResourceTest {
     makeRequest(sql);
 
     // Then:
-    verify(sandbox).execute(eq(configuredStatement));
+    verify(sandbox).execute(any(SandboxedServiceContext.class), eq(configuredStatement));
     verify(commandStore).enqueueCommand(argThat(configured(preparedStatementText(sql))));
   }
 
@@ -794,7 +796,7 @@ public class KsqlResourceTest {
     makeRequest(sql);
 
     // Then:
-    verify(sandbox).execute(eq(CFG_0_WITH_SCHEMA));
+    verify(sandbox).execute(any(SandboxedServiceContext.class), eq(CFG_0_WITH_SCHEMA));
     verify(commandStore).enqueueCommand(eq(CFG_1_WITH_SCHEMA));
   }
 
@@ -1149,7 +1151,7 @@ public class KsqlResourceTest {
     final String ksqlString = "CREATE STREAM test_explain AS SELECT * FROM test_stream;";
     givenMockEngine();
 
-    when(sandbox.execute(any()))
+    when(sandbox.execute(any(), any()))
         .thenThrow(new RuntimeException("internal error"));
 
     // When:
@@ -1752,7 +1754,6 @@ public class KsqlResourceTest {
     when(sandbox.prepare(any()))
         .thenAnswer(invocation -> realEngine.createSandbox().prepare(invocation.getArgument(0)));
     when(ksqlEngine.createSandbox()).thenReturn(sandbox);
-    when(ksqlEngine.getServiceContext()).thenReturn(serviceContext);
     when(ksqlEngine.getMetaStore()).thenReturn(metaStore);
     when(topicInjectorFactory.apply(ksqlEngine)).thenReturn(topicInjector);
     setUpKsqlResource();
@@ -1908,7 +1909,8 @@ public class KsqlResourceTest {
         (ec, sc) -> InjectorChain.of(
             schemaInjectorFactory.apply(sc),
             topicInjectorFactory.apply(ec),
-            new TopicDeleteInjector(ec, sc))
+            new TopicDeleteInjector(ec, sc)),
+        (sc, metaStore) -> topicAccessValidator
     );
   }
 

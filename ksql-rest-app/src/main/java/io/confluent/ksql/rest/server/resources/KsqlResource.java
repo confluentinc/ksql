@@ -20,6 +20,8 @@ import static java.util.regex.Pattern.compile;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.engine.TopicAccessValidator;
+import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.tree.DescribeFunction;
@@ -97,7 +99,8 @@ public class KsqlResource {
       final CommandQueue commandQueue,
       final Duration distributedCmdResponseTimeout,
       final ActivenessRegistrar activenessRegistrar,
-      final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory
+      final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory,
+      final BiFunction<ServiceContext, MetaStore, TopicAccessValidator> topicAccessValidator
   ) {
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
     this.commandQueue = Objects.requireNonNull(commandQueue, "commandQueue");
@@ -110,7 +113,8 @@ public class KsqlResource {
         CustomValidators.VALIDATOR_MAP,
         injectorFactory,
         ksqlEngine::createSandbox,
-        ksqlConfig);
+        ksqlConfig,
+        topicAccessValidator);
     this.handler = new RequestHandler(
         CustomExecutors.EXECUTOR_MAP,
         new DistributingExecutor(

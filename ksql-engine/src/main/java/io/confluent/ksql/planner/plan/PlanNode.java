@@ -24,10 +24,7 @@ import io.confluent.ksql.physical.KsqlQueryBuilder;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.SchemaKStream;
-
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 
 public abstract class PlanNode {
@@ -73,28 +70,4 @@ public abstract class PlanNode {
   protected abstract int getPartitions(KafkaTopicClient kafkaTopicClient);
 
   public abstract SchemaKStream<?> buildStream(KsqlQueryBuilder builder);
-
-  public Set<String> getAllSourceKafkaTopics() {
-    final Set<String> kafkaTopics = new HashSet<>();
-    collectKafkaTopics(kafkaTopics, this);
-    return kafkaTopics;
-  }
-
-  /**
-   * Walks through the PlanNode to collect all the data sources of the node.
-   */
-  private void collectKafkaTopics(final Set<String> kafkaTopics, final PlanNode node) {
-    if (node == null) {
-      return;
-    }
-
-    if (node instanceof DataSourceNode) {
-      kafkaTopics.add(((DataSourceNode) node).getDataSource().getKafkaTopicName());
-      return;
-    }
-
-    for (PlanNode nodeSource : node.getSources()) {
-      collectKafkaTopics(kafkaTopics, nodeSource);
-    }
-  }
 }

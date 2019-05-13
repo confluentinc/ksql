@@ -26,6 +26,7 @@ import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.ddl.commands.CreateStreamCommand;
 import io.confluent.ksql.ddl.commands.RegisterTopicCommand;
 import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.engine.TopicAccessValidator;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.MutableFunctionRegistry;
 import io.confluent.ksql.function.UdfLoader;
@@ -407,7 +408,8 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         Duration.ofMillis(
             restConfig.getLong(KsqlRestConfig.STREAMED_QUERY_DISCONNECT_CHECK_MS_CONFIG)),
         Duration.ofMillis(restConfig.getLong(DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG)),
-        versionChecker::updateLastRequestTime
+        versionChecker::updateLastRequestTime,
+        TopicAccessValidator::new
     );
 
     final KsqlResource ksqlResource = new KsqlResource(
@@ -416,7 +418,8 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         commandStore,
         Duration.ofMillis(restConfig.getLong(DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG)),
         versionChecker::updateLastRequestTime,
-        Injectors.DEFAULT);
+        Injectors.DEFAULT,
+        TopicAccessValidator::new);
 
     final Optional<String> processingLogTopic =
         ProcessingLogServerUtils.maybeCreateProcessingLogTopic(

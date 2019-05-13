@@ -87,10 +87,6 @@ final class EngineExecutor {
 
       // Instead, DDL statement permissions are verified during the RequestHandler execution.
       if (!logicalPlan.getNode().isPresent()) {
-        // Check if the ServiceContext has permissions to access the target topics
-        TopicAccessValidator.from(serviceContext)
-            .checkTargetTopicsPermissions(statement.getStatement());
-
         final String msg = engineContext.executeDdlStatement(
             statement.getStatementText(),
             (ExecutableDdlStatement) statement.getStatement(),
@@ -99,10 +95,6 @@ final class EngineExecutor {
 
         return ExecuteResult.of(msg);
       }
-
-      // Check if the ServiceContext has permissions to access the source topics
-      TopicAccessValidator.from(serviceContext)
-          .checkSourceTopicsPermissions(logicalPlan.getNode().get());
 
       final QueryMetadata query = queryEngine.buildPhysicalPlan(
           logicalPlan,

@@ -31,6 +31,7 @@ import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext;
+import io.confluent.ksql.engine.TopicAccessValidator;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.MutableMetaStore;
@@ -87,6 +88,8 @@ public class RequestValidatorTest {
   Injector schemaInjector;
   @Mock
   Injector topicInjector;
+  @Mock
+  TopicAccessValidator topicAccessValidator;
 
   private ServiceContext serviceContext;
   private MutableMetaStore metaStore;
@@ -153,6 +156,7 @@ public class RequestValidatorTest {
 
     // Then:
     verify(ksqlEngine, times(1)).execute(
+        eq(serviceContext),
         argThat(configured(preparedStatement(instanceOf(SetProperty.class))))
     );
   }
@@ -330,6 +334,23 @@ public class RequestValidatorTest {
     validator.validate(serviceContext, ImmutableList.of(), ImmutableMap.of(), "sql");
   }
 
+  @Test
+  public void shouldExecuteWithSpecifiedServiceContext() {
+    // Given:
+    final List<ParsedStatement> statements = givenParsed(SOME_STREAM_SQL);
+    final ServiceContext otherServiceContext =
+        SandboxedServiceContext.create(TestServiceContext.create());
+
+    // When:
+    validator.validate(otherServiceContext, statements, ImmutableMap.of(), "sql");
+
+    // Then:
+    verify(executionContext, times(1)).execute(
+        argThat(is(otherServiceContext)),
+        argThat(configured(preparedStatement(instanceOf(CreateStream.class))))
+    );
+  }
+
   private List<ParsedStatement> givenParsed(final String sql) {
     return new DefaultKsqlParser().parse(sql);
   }
@@ -341,7 +362,8 @@ public class RequestValidatorTest {
         customValidators,
         (ec, sc) -> InjectorChain.of(schemaInjector, topicInjector),
         () -> executionContext,
-        ksqlConfig
+        ksqlConfig,
+        (sc, metaStore) -> topicAccessValidator
     );
   }
 

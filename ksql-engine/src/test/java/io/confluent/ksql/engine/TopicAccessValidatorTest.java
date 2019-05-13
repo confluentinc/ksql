@@ -15,20 +15,28 @@
 
 package io.confluent.ksql.engine;
 
-import com.google.common.collect.Sets;
 import io.confluent.ksql.exception.KafkaResponseGetFailedException;
-import io.confluent.ksql.parser.tree.CreateAsSelect;
-import io.confluent.ksql.parser.tree.InsertInto;
-import io.confluent.ksql.parser.tree.QualifiedName;
+import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.metastore.MetaStoreImpl;
+import io.confluent.ksql.metastore.MutableMetaStore;
+import io.confluent.ksql.metastore.model.KeyField;
+import io.confluent.ksql.metastore.model.KsqlStream;
+import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.parser.tree.Statement;
-import io.confluent.ksql.planner.plan.PlanNode;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.util.KsqlTopicAccessException;
+import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
 import java.util.Collections;
 import java.util.Set;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.acl.AclOperation;
+import org.apache.kafka.common.serialization.Serdes;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -37,144 +45,320 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class TopicAccessValidatorTest {
+  private static final KsqlSchema SCHEMA = KsqlSchema.of(SchemaBuilder
+      .struct()
+      .field("F1", Schema.OPTIONAL_STRING_SCHEMA)
+      .build());
+
+  private static final String STREAM_TOPIC_1 = "s1";
+  private static final String STREAM_TOPIC_2 = "s2";
+
   @Mock
   private ServiceContext serviceContext;
   @Mock
   private KafkaTopicClient kafkaTopicClient;
+  @Mock
+  private TopicDescription TOPIC_1;
+  @Mock
+  private TopicDescription TOPIC_2;
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
 
   private TopicAccessValidator accessValidator;
+  private KsqlEngine ksqlEngine;
+  private MutableMetaStore metaStore;
 
   @Before
   public void setUp() {
-    accessValidator = TopicAccessValidator.from(serviceContext);
+    metaStore = new MetaStoreImpl(new InternalFunctionRegistry());
+    ksqlEngine = KsqlEngineTestUtil.createKsqlEngine(serviceContext, metaStore);
+
+    accessValidator = new TopicAccessValidator(serviceContext, metaStore);
     when(serviceContext.getTopicClient()).thenReturn(kafkaTopicClient);
+
+    givenTopic("topic1", TOPIC_1);
+    givenStreamWithTopic(STREAM_TOPIC_1, TOPIC_1);
+
+    givenTopic("topic2", TOPIC_2);
+    givenStreamWithTopic(STREAM_TOPIC_2, TOPIC_2);
+  }
+
+  @After
+  public void closeEngine() {
+    ksqlEngine.close();
+  }
+
+  private Statement givenStatement(final String sql) {
+    return ksqlEngine.prepare(ksqlEngine.parse(sql).get(0)).getStatement();
   }
 
   @Test
-  public void shouldAllowInsertIntoWithWriteOperations() {
+  public void shouldSingleSelectWithReadPermissionsAllowed() {
     // Given:
-    final Statement statement = insertInto("topic1");
-    givenTopicPermissions("topic1", Collections.singleton(AclOperation.WRITE));
+    givenTopicPermissions(TOPIC_1, Collections.singleton(AclOperation.READ));
+    final Statement statement = givenStatement("SELECT * FROM " + STREAM_TOPIC_1 + ";");
 
     // When:
-    accessValidator.checkTargetTopicsPermissions(statement);
+    accessValidator.validate(statement);
 
     // Then:
     // Above command should not throw any exception
   }
 
   @Test
-  public void shouldDenyInsertIntoWithNonWriteOperations() {
+  public void shouldSingleSelectWithoutReadPermissionsDenied() {
     // Given:
-    final Statement statement = insertInto("topic1");
-    givenTopicPermissions("topic1", Sets.newHashSet(
-        AclOperation.CREATE, AclOperation.READ, AclOperation.DELETE
-    ));
+    givenTopicPermissions(TOPIC_1, Collections.emptySet());
+    final Statement statement = givenStatement(String.format(
+        "SELECT * FROM %s;", STREAM_TOPIC_1)
+    );
 
     // Then:
-    expectedException.expect(KsqlTopicAccessException.class);
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(String.format(
+        "Failed to Read Kafka topic: [%s]", TOPIC_1.name()
+    ));
 
     // When:
-    accessValidator.checkTargetTopicsPermissions(statement);
+    accessValidator.validate(statement);
   }
 
   @Test
-  public void shouldAllowCreateAsSelectWithCreateWriteOperations() {
+  public void shouldJoinSelectWithReadPermissionsAllowed() {
     // Given:
-    final Statement statement = createAsSelect("topic1");
-    givenTopicPermissions("topic1", Sets.newHashSet(
-        AclOperation.CREATE, AclOperation.WRITE
-    ));
+    givenTopicPermissions(TOPIC_1, Collections.singleton(AclOperation.READ));
+    givenTopicPermissions(TOPIC_2, Collections.singleton(AclOperation.READ));
+    final Statement statement = givenStatement(String.format(
+        "SELECT * FROM %s A JOIN %s B ON A.F1 = B.F1;", STREAM_TOPIC_1, STREAM_TOPIC_2)
+    );
 
     // When:
-    accessValidator.checkTargetTopicsPermissions(statement);
+    accessValidator.validate(statement);
 
     // Then:
     // Above command should not throw any exception
+  }
+
+  @Test
+  public void shouldJoinSelectWithoutReadPermissionsDenied() {
+    // Given:
+    givenTopicPermissions(TOPIC_1, Collections.singleton(AclOperation.WRITE));
+    givenTopicPermissions(TOPIC_2, Collections.singleton(AclOperation.WRITE));
+    final Statement statement = givenStatement(String.format(
+        "SELECT * FROM %s A JOIN %s B ON A.F1 = B.F1;", STREAM_TOPIC_1, STREAM_TOPIC_2)
+    );
+
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(String.format(
+        "Failed to Read Kafka topic: [%s]", TOPIC_1.name()
+    ));
+
+    // When:
+    accessValidator.validate(statement);
+  }
+
+  @Test
+  public void shouldJoinSelectWitOneTopicWithReadPermissionsDenied() {
+    // Given:
+    givenTopicPermissions(TOPIC_1, Collections.singleton(AclOperation.READ));
+    givenTopicPermissions(TOPIC_2, Collections.singleton(AclOperation.WRITE));
+    final Statement statement = givenStatement(String.format(
+        "SELECT * FROM %s A JOIN %s B ON A.F1 = B.F1;", STREAM_TOPIC_1, STREAM_TOPIC_2)
+    );
+
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(String.format(
+        "Failed to Read Kafka topic: [%s]", TOPIC_2.name()
+    ));
+
+    // When:
+    accessValidator.validate(statement);
+  }
+
+  @Test
+  public void insertIntoWithAllPermissionsAllowed() {
+    // Given:
+    givenTopicPermissions(TOPIC_1, Collections.singleton(AclOperation.READ));
+    givenTopicPermissions(TOPIC_2, Collections.singleton(AclOperation.WRITE));
+    final Statement statement = givenStatement(String.format(
+        "INSERT INTO %s SELECT * FROM %s;", STREAM_TOPIC_2, STREAM_TOPIC_1)
+    );
+
+    // When:
+    accessValidator.validate(statement);
+
+    // Then:
+    // Above command should not throw any exception
+  }
+
+  @Test
+  public void insertIntoWithOnlyReadPermissionsDenied() {
+    // Given:
+    givenTopicPermissions(TOPIC_1, Collections.singleton(AclOperation.READ));
+    givenTopicPermissions(TOPIC_2, Collections.singleton(AclOperation.READ));
+    final Statement statement = givenStatement(String.format(
+        "INSERT INTO %s SELECT * FROM %s;", STREAM_TOPIC_2, STREAM_TOPIC_1)
+    );
+
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(String.format(
+        "Failed to Write Kafka topic: [%s]", TOPIC_2.name()
+    ));
+
+    // When:
+    accessValidator.validate(statement);
+  }
+
+  @Test
+  public void insertIntoWithOnlyWritePermissionsDenied() {
+    // Given:
+    givenTopicPermissions(TOPIC_1, Collections.singleton(AclOperation.WRITE));
+    givenTopicPermissions(TOPIC_2, Collections.singleton(AclOperation.WRITE));
+    final Statement statement = givenStatement(String.format(
+        "INSERT INTO %s SELECT * FROM %s;", STREAM_TOPIC_2, STREAM_TOPIC_1)
+    );
+
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(String.format(
+        "Failed to Read Kafka topic: [%s]", TOPIC_1.name()
+    ));
+
+    // When:
+    accessValidator.validate(statement);
+  }
+
+  @Test
+  public void createAsSelectWithReadPermissionsAllowed() {
+    // Given:
+    givenTopicPermissions(TOPIC_1, Collections.singleton(AclOperation.READ));
+    final Statement statement = givenStatement(String.format(
+        "CREATE STREAM newStream AS SELECT * FROM %s;", STREAM_TOPIC_1)
+    );
+
+    // When:
+    accessValidator.validate(statement);
+
+    // Then:
+    // Above command should not throw any exception
+  }
+
+  @Test
+  public void createAsSelectWithoutReadPermissionsDenied() {
+    // Given:
+    givenTopicPermissions(TOPIC_1, Collections.emptySet());
+    final Statement statement = givenStatement(String.format(
+        "CREATE STREAM newStream AS SELECT * FROM %s;", STREAM_TOPIC_1)
+    );
+
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(String.format(
+        "Failed to Read Kafka topic: [%s]", TOPIC_1.name()
+    ));
+
+    // When:
+    accessValidator.validate(statement);
+  }
+
+  @Test
+  public void createAsSelectExistingTopicWithWritePermissionsAllowed() {
+    // Given:
+    givenTopicPermissions(TOPIC_1, Collections.singleton(AclOperation.READ));
+    givenTopicPermissions(TOPIC_2, Collections.singleton(AclOperation.WRITE));
+    final Statement statement = givenStatement(String.format(
+        "CREATE STREAM %s AS SELECT * FROM %s;", STREAM_TOPIC_2, STREAM_TOPIC_1)
+    );
+
+    // When:
+    accessValidator.validate(statement);
+
+    // Then:
+    // Above command should not throw any exception
+  }
+
+  @Test
+  public void createAsSelectExistingStreamWithoutWritePermissionsDenied() {
+    // Given:
+    givenTopicPermissions(TOPIC_1, Collections.singleton(AclOperation.READ));
+    givenTopicPermissions(TOPIC_2, Collections.singleton(AclOperation.READ));
+    final Statement statement = givenStatement(String.format(
+        "CREATE STREAM %s AS SELECT * FROM %s;", STREAM_TOPIC_2, STREAM_TOPIC_1)
+    );
+
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(String.format(
+        "Failed to Write Kafka topic: [%s]", TOPIC_2.name()
+    ));
+
+
+    // When:
+    accessValidator.validate(statement);
   }
 
   @Test
   public void shouldThrowExceptionWhenTopicClientFails() {
     // Given:
-    final Statement statement = insertInto("topic1");
-    givenTopicClientError("topic1");
+    givenTopicPermissions(TOPIC_1, Collections.singleton(AclOperation.READ));
+    final Statement statement = givenStatement("SELECT * FROM " + STREAM_TOPIC_1 + ";");
+    givenTopicClientError(TOPIC_1);
 
     // Then:
     expectedException.expect(KafkaResponseGetFailedException.class);
 
     // When:
-    accessValidator.checkTargetTopicsPermissions(statement);
+    accessValidator.validate(statement);
   }
 
-  @Test
-  public void shouldAllowQuerySourcesWithReadOperations() {
-    // Given:
-    final PlanNode planNode = createPlan(Sets.newHashSet("topic1", "topic2"));
-    givenTopicPermissions("topic1", Sets.newHashSet(AclOperation.READ));
-    givenTopicPermissions("topic2", Sets.newHashSet(AclOperation.READ));
-
-    // When:
-    accessValidator.checkSourceTopicsPermissions(planNode);
-
-    // Then:
-    // Above command should not throw any exception
+  private void givenTopic(final String topicName, final TopicDescription topicDescription) {
+    when(topicDescription.name()).thenReturn(topicName);
+    when(kafkaTopicClient.describeTopic(topicDescription.name())).thenReturn(topicDescription);
+    when(kafkaTopicClient.isTopicExists(topicName)).thenReturn(true);
   }
 
-  @Test
-  public void shouldDenyQuerySourcesWithNonReadOperations() {
-    // Given:
-    final PlanNode planNode = createPlan(Sets.newHashSet("topic1", "topic2"));
-    givenTopicPermissions("topic1", Sets.newHashSet(AclOperation.READ));
-    givenTopicPermissions("topic2", Sets.newHashSet(AclOperation.WRITE));
-
-    // Then:
-    expectedException.expect(KsqlTopicAccessException.class);
-
-    // When:
-    accessValidator.checkSourceTopicsPermissions(planNode);
-  }
-
-  private PlanNode createPlan(final Set<String> sourceTopics) {
-    final PlanNode planNode = mock(PlanNode.class);
-
-    when(planNode.getAllSourceKafkaTopics()).thenReturn(sourceTopics);
-
-    return planNode;
-  }
-
-  private Statement createAsSelect(final String targetTopic) {
-    final CreateAsSelect createAsSelect = mock(CreateAsSelect.class);
-
-    when(createAsSelect.getName()).thenReturn(QualifiedName.of(targetTopic));
-
-    return createAsSelect;
-  }
-
-  private Statement insertInto(final String targetTopic) {
-    final InsertInto insertInto = mock(InsertInto.class);
-
-    when(insertInto.getTarget()).thenReturn(QualifiedName.of(targetTopic));
-
-    return insertInto;
-  }
-
-  private void givenTopicPermissions(final String topic, final Set<AclOperation> operations) {
-    final TopicDescription topicDescription = mock(TopicDescription.class);
-
-    when(kafkaTopicClient.describeTopic(topic)).thenReturn(topicDescription);
+  private void givenTopicPermissions(
+      final TopicDescription topicDescription,
+      final Set<AclOperation> operations
+  ) {
     when(topicDescription.authorizedOperations()).thenReturn(operations);
   }
 
-  private void givenTopicClientError(final String topic) {
-    doThrow(KafkaResponseGetFailedException.class).when(kafkaTopicClient).describeTopic(topic);
+  private void givenStreamWithTopic(
+      final String streamName,
+      final TopicDescription topicDescription
+  ) {
+    final KsqlTopic sourceTopic =
+        new KsqlTopic(
+            streamName.toUpperCase(),
+            topicDescription.name(),
+            new KsqlJsonSerdeFactory(),
+            false
+        );
+
+    final KsqlStream streamSource = new KsqlStream<>(
+        "",
+        streamName.toUpperCase(),
+        SCHEMA,
+        KeyField.none(),
+        new MetadataTimestampExtractionPolicy(),
+        sourceTopic,
+        Serdes::String
+    );
+
+    metaStore.putSource(streamSource);
+  }
+
+  private void givenTopicClientError(final TopicDescription topic) {
+    when(kafkaTopicClient.describeTopic(topic.name()))
+        .thenThrow(KafkaResponseGetFailedException.class);
   }
 }

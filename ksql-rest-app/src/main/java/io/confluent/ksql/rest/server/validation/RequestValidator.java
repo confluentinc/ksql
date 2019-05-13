@@ -20,6 +20,8 @@ import static java.util.Objects.requireNonNull;
 
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.engine.TopicAccessValidator;
+import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
@@ -55,6 +57,7 @@ public class RequestValidator {
   private final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory;
   private final Supplier<KsqlExecutionContext> snapshotSupplier;
   private final KsqlConfig ksqlConfig;
+  private final BiFunction<ServiceContext, MetaStore, TopicAccessValidator> topicAccessValidator;
 
   /**
    * @param customValidators        a map describing how to validate each statement of type
@@ -68,12 +71,14 @@ public class RequestValidator {
       final Map<Class<? extends Statement>, StatementValidator<?>> customValidators,
       final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory,
       final Supplier<KsqlExecutionContext> snapshotSupplier,
-      final KsqlConfig ksqlConfig
+      final KsqlConfig ksqlConfig,
+      final BiFunction<ServiceContext, MetaStore, TopicAccessValidator> topicAccessValidator
   ) {
     this.customValidators = requireNonNull(customValidators, "customValidators");
     this.injectorFactory = requireNonNull(injectorFactory, "injectorFactory");
     this.snapshotSupplier = requireNonNull(snapshotSupplier, "snapshotSupplier");
     this.ksqlConfig = requireNonNull(ksqlConfig, "ksqlConfig");
+    this.topicAccessValidator = topicAccessValidator;
   }
 
   /**
@@ -140,7 +145,12 @@ public class RequestValidator {
     if (customValidator != null) {
       customValidator.validate(configured, executionContext, serviceContext);
     } else if (KsqlEngine.isExecutableStatement(configured.getStatement())) {
-      executionContext.execute(serviceContext, injector.inject(configured));
+      final ConfiguredStatement<?> statementInjected = injector.inject(configured);
+
+      topicAccessValidator.apply(serviceContext, executionContext.getMetaStore())
+          .validate(statementInjected.getStatement());
+
+      executionContext.execute(serviceContext, statementInjected);
     } else {
       throw new KsqlStatementException(
           "Do not know how to validate statement of type: " + statementClass

@@ -63,7 +63,7 @@ public class KsqlParserErrorStrategy extends DefaultErrorStrategy {
 
   protected void reportInputMismatch(final Parser recognizer, final InputMismatchException e) {
     final String msg =
-        "Syntax error. There is a mismatch between the expected term and te term in the query. "
+        "Syntax error. There is a mismatch between the expected term and the term in the query. "
         + "Please check the line and column in the query.";
     recognizer.notifyErrorListeners(e.getOffendingToken(), msg, e);
   }

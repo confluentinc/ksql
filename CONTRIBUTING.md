@@ -57,10 +57,10 @@ When submitting a pull request (PR), use the following guidelines:
 
 #### Code Style
 
-The project uses [GoogeStyle][https://google.github.io/styleguide/javaguide.html] code formating.
+The project uses [GoogleStyle](https://google.github.io/styleguide/javaguide.html) code formating.
 You can install this code style into your IDE to make things more automatic:
- * [Intellij code style xml file][https://github.com/google/styleguide/blob/gh-pages/intellij-java-google-style.xml]
- * [Eclipse code style xml file][https://github.com/google/styleguide/blob/gh-pages/eclipse-java-google-style.xml]
+ * [IntelliJ code style xml file](https://github.com/google/styleguide/blob/gh-pages/intellij-java-google-style.xml)
+ * [Eclipse code style xml file](https://github.com/google/styleguide/blob/gh-pages/eclipse-java-google-style.xml)
 
 In addition, the project also uses `final` fields, parameters and local variables for new code submissions.
 IntelliJ's code generation can be configured to do this automatically:

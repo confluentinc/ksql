@@ -351,6 +351,22 @@ public class RequestValidatorTest {
     );
   }
 
+  @Test
+  public void shouldCallTopicAccessValidator() {
+    // Given:
+    final List<ParsedStatement> statements = givenParsed(SOME_STREAM_SQL);
+    final ServiceContext otherServiceContext =
+        SandboxedServiceContext.create(TestServiceContext.create());
+
+    // When:
+    validator.validate(otherServiceContext, statements, ImmutableMap.of(), "sql");
+
+    // Then:
+    verify(topicAccessValidator, times(1)).validate(
+        ksqlEngine.prepare(statements.get(0)).getStatement()
+    );
+  }
+
   private List<ParsedStatement> givenParsed(final String sql) {
     return new DefaultKsqlParser().parse(sql);
   }

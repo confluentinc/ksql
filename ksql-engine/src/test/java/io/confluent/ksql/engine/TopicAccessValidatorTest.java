@@ -202,7 +202,7 @@ public class TopicAccessValidatorTest {
   }
 
   @Test
-  public void insertIntoWithAllPermissionsAllowed() {
+  public void shouldInsertIntoWithAllPermissionsAllowed() {
     // Given:
     givenTopicPermissions(TOPIC_1, Collections.singleton(AclOperation.READ));
     givenTopicPermissions(TOPIC_2, Collections.singleton(AclOperation.WRITE));
@@ -218,7 +218,7 @@ public class TopicAccessValidatorTest {
   }
 
   @Test
-  public void insertIntoWithOnlyReadPermissionsDenied() {
+  public void shouldInsertIntoWithOnlyReadPermissionsDenied() {
     // Given:
     givenTopicPermissions(TOPIC_1, Collections.singleton(AclOperation.READ));
     givenTopicPermissions(TOPIC_2, Collections.singleton(AclOperation.READ));
@@ -237,7 +237,7 @@ public class TopicAccessValidatorTest {
   }
 
   @Test
-  public void insertIntoWithOnlyWritePermissionsDenied() {
+  public void shouldInsertIntoWithOnlyWritePermissionsDenied() {
     // Given:
     givenTopicPermissions(TOPIC_1, Collections.singleton(AclOperation.WRITE));
     givenTopicPermissions(TOPIC_2, Collections.singleton(AclOperation.WRITE));
@@ -256,7 +256,7 @@ public class TopicAccessValidatorTest {
   }
 
   @Test
-  public void createAsSelectWithoutReadPermissionsDenied() {
+  public void shouldCreateAsSelectWithoutReadPermissionsDenied() {
     // Given:
     givenTopicPermissions(TOPIC_1, Collections.emptySet());
     final Statement statement = givenStatement(String.format(
@@ -274,7 +274,7 @@ public class TopicAccessValidatorTest {
   }
 
   @Test
-  public void createAsSelectExistingTopicWithWritePermissionsAllowed() {
+  public void shouldCreateAsSelectExistingTopicWithWritePermissionsAllowed() {
     // Given:
     givenTopicPermissions(TOPIC_1, Collections.singleton(AclOperation.READ));
     givenTopicPermissions(TOPIC_2, Collections.singleton(AclOperation.WRITE));
@@ -290,7 +290,7 @@ public class TopicAccessValidatorTest {
   }
 
   @Test
-  public void createAsSelectExistingStreamWithoutWritePermissionsDenied() {
+  public void shouldCreateAsSelectExistingStreamWithoutWritePermissionsDenied() {
     // Given:
     givenTopicPermissions(TOPIC_1, Collections.singleton(AclOperation.READ));
     givenTopicPermissions(TOPIC_2, Collections.singleton(AclOperation.READ));
@@ -307,6 +307,23 @@ public class TopicAccessValidatorTest {
 
     // When:
     accessValidator.validate(statement);
+  }
+
+  @Test
+  public void shouldCreateAsSelectWithTopicAndWritePermissionsAllowed() {
+    // Given:
+    givenTopicPermissions(TOPIC_1, Collections.singleton(AclOperation.READ));
+    givenTopicPermissions(TOPIC_2, Collections.singleton(AclOperation.WRITE));
+    final Statement statement = givenStatement(String.format(
+        "CREATE STREAM newStream WITH (kafka_topic='%s') AS SELECT * FROM %s;",
+        TOPIC_2.name(), STREAM_TOPIC_1)
+    );
+
+    // When:
+    accessValidator.validate(statement);
+
+    // Then:
+    // Above command should not throw any exception
   }
 
   @Test

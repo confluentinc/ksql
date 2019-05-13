@@ -15,9 +15,11 @@
 
 package io.confluent.ksql.engine;
 
+import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
+import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
@@ -89,9 +91,16 @@ public class TopicAccessValidator {
     String kafkaTopic;
 
     try {
+      // Get the topic from the Metastore if a different name is used
       kafkaTopic = getSourceTopicName(createAsSelect.getName().getSuffix());
     } catch (final KsqlException e) {
-      kafkaTopic = createAsSelect.getName().getSuffix();
+      // Get the topic if WITH(kafka_topic='') clause is used
+      final Expression nameExpression = createAsSelect.getProperties()
+          .get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY);
+
+      kafkaTopic = (nameExpression != null)
+          ? StringUtils.strip(nameExpression.toString(), "'")
+          : createAsSelect.getName().getSuffix();
     }
 
     // At this point, the topic should have been created by the TopicCreateInjector

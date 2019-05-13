@@ -26,6 +26,9 @@
         "CREATE STREAM TEST WITH (kafka_topic='input', value_format='AVRO');",
         "CREATE STREAM S WITH(PARTITIONS = 4) as SELECT * FROM test;"
       ],
+      "properties": {
+        "ksql.persistence.serialization.wrap.single.values": "true"
+      },
       "topics": [
         {
           "name": "input",
@@ -47,6 +50,9 @@
         "CREATE STREAM TEST (c1 INT) WITH (kafka_topic='input', value_format='AVRO');",
         "CREATE STREAM S WITH(PARTITIONS = 4) as SELECT * FROM test;"
       ],
+      "properties": {
+        "ksql.persistence.serialization.wrap.single.values": "true"
+      },
       "topics": [
         {
           "name": "input",

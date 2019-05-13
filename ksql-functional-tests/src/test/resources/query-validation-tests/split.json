@@ -9,6 +9,9 @@
         "CREATE STREAM TEST (message VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT SPLIT(message, '.') as split_msg FROM TEST;"
       ],
+      "properties": {
+        "ksql.persistence.serialization.wrap.single.values": "true"
+      },
       "inputs": [
         {"topic": "test_topic", "key": 1, "value": {"message": "a.b.c"}, "timestamp": 0},
         {"topic": "test_topic", "key": 2, "value": {"message": ".abc."}, "timestamp": 0},
@@ -30,6 +33,9 @@
         "CREATE STREAM TEST (message VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT SPLIT(message, '$$') as split_msg FROM TEST;"
       ],
+      "properties": {
+        "ksql.persistence.serialization.wrap.single.values": "true"
+      },
       "inputs": [
         {"topic": "test_topic", "key": 1, "value": {"message": "a$$b.c"}, "timestamp": 0},
         {"topic": "test_topic", "key": 2, "value": {"message": ".abc$$"}, "timestamp": 0},
@@ -51,6 +57,9 @@
         "CREATE STREAM TEST (message VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT SPLIT(message, '') as split_msg FROM TEST;"
       ],
+      "properties": {
+        "ksql.persistence.serialization.wrap.single.values": "true"
+      },
       "inputs": [
         {"topic": "test_topic", "key": 1, "value": {"message": "a.b.c"}, "timestamp": 0},
         {"topic": "test_topic", "key": 2, "value": {"message": ".abc."}, "timestamp": 0},
@@ -72,6 +81,9 @@
         "CREATE STREAM TEST (message VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT SPLIT(message, ',')[0] as s1, SPLIT(message, ',')[2] as s2 FROM TEST;"
       ],
+      "properties": {
+        "ksql.persistence.serialization.wrap.single.values": "true"
+      },
       "inputs": [
         {"topic": "test_topic", "key": 1, "value": {"message": "a,b,c"}, "timestamp": 0},
         {"topic": "test_topic", "key": 2, "value": {"message": ",A,"}, "timestamp": 0},

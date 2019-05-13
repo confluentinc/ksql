@@ -11,6 +11,9 @@
         "CREATE STREAM TEST (url VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT URL_ENCODE_PARAM(url) as ENCODED FROM TEST;"
       ],
+      "properties": {
+        "ksql.persistence.serialization.wrap.single.values": "true"
+      },
       "inputs": [
         {"topic":  "test_topic", "key":  1, "value": {"url": "?foo $bar"}, "timestamp":  0},
         {"topic":  "test_topic", "key":  2, "value": {"url": "hello&world"}, "timestamp":  1},
@@ -29,6 +32,9 @@
         "CREATE STREAM TEST (url VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT URL_DECODE_PARAM(url) as DECODED FROM TEST;"
       ],
+      "properties": {
+        "ksql.persistence.serialization.wrap.single.values": "true"
+      },
       "inputs": [
         {"topic":  "test_topic", "key":  1, "value": {"url": "%3Ffoo+%24bar"}, "timestamp":  0},
         {"topic":  "test_topic", "key":  2, "value": {"url": "hello%26world"}, "timestamp":  1},
@@ -47,6 +53,9 @@
         "CREATE STREAM TEST (url VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT URL_EXTRACT_FRAGMENT(url) as FRAGMENT FROM TEST;"
       ],
+      "properties": {
+        "ksql.persistence.serialization.wrap.single.values": "true"
+      },
       "inputs": [
         {"topic":  "test_topic", "key":  1, "value": {"url": "http://www.test.com/?query#fragment"}, "timestamp":  0},
         {"topic":  "test_topic", "key":  2, "value": {"url": "http://www.nofragment.com"}, "timestamp":  1}
@@ -63,6 +72,9 @@
         "CREATE STREAM TEST (url VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT URL_EXTRACT_HOST(url) as HOST FROM TEST;"
       ],
+      "properties": {
+        "ksql.persistence.serialization.wrap.single.values": "true"
+      },
       "inputs": [
         {"topic":  "test_topic", "key":  1, "value": {"url": "http://www.test.com/?query#fragment"}, "timestamp":  0},
         {"topic":  "test_topic", "key":  2, "value": {"url": "http://test@confluent.io:8080"}, "timestamp":  1}
@@ -93,6 +105,9 @@
         "CREATE STREAM TEST (url VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT URL_DECODE_PARAM(URL_EXTRACT_PARAMETER(url,'two')) as PARAM FROM TEST;"
       ],
+      "properties": {
+        "ksql.persistence.serialization.wrap.single.values": "true"
+      },
       "inputs": [
         {"topic":  "test_topic", "key":  1, "value": {"url": "http://www.test.com/?one=a&two=url%20encoded"}, "timestamp":  0}
       ],
@@ -107,6 +122,9 @@
         "CREATE STREAM TEST (url VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT URL_EXTRACT_PATH(url) as PATH FROM TEST;"
       ],
+      "properties": {
+        "ksql.persistence.serialization.wrap.single.values": "true"
+      },
       "inputs": [
         {"topic":  "test_topic", "key":  1, "value": {"url": "http://www.test.com?query#fragment"}, "timestamp":  0},
         {"topic":  "test_topic", "key":  2, "value": {"url": "http://www.test.com/path?query"}, "timestamp":  1},
@@ -125,6 +143,9 @@
         "CREATE STREAM TEST (url VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT URL_EXTRACT_PORT(url) as PORT FROM TEST;"
       ],
+      "properties": {
+        "ksql.persistence.serialization.wrap.single.values": "true"
+      },
       "inputs": [
         {"topic":  "test_topic", "key":  1, "value": {"url": "http://test@confluent.io"}, "timestamp":  0},
         {"topic":  "test_topic", "key":  2, "value": {"url": "http://test@confluent.io:8080/nested/path?query&jobs"}, "timestamp":  1}
@@ -141,6 +162,9 @@
         "CREATE STREAM TEST (url VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT URL_EXTRACT_PROTOCOL(url) as PROTOCOL FROM TEST;"
       ],
+      "properties": {
+        "ksql.persistence.serialization.wrap.single.values": "true"
+      },
       "inputs": [
         {"topic":  "test_topic", "key":  1, "value": {"url": "http://test@confluent.io"}, "timestamp":  0},
         {"topic":  "test_topic", "key":  2, "value": {"url": "https://test@confluent.io:8080/nested/path?query&jobs"}, "timestamp":  1},
@@ -159,6 +183,9 @@
         "CREATE STREAM TEST (url VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT URL_EXTRACT_QUERY(url) as Q FROM TEST;"
       ],
+      "properties": {
+        "ksql.persistence.serialization.wrap.single.values": "true"
+      },
       "inputs": [
         {"topic":  "test_topic", "key":  1, "value": {"url": "http://www.test.com?query#fragment"}, "timestamp":  0},
         {"topic":  "test_topic", "key":  2, "value": {"url": "http://www.test.com/path?q1&q2"}, "timestamp":  1},

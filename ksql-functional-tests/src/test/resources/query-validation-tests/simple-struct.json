@@ -640,6 +640,9 @@
         "CREATE STREAM orders (ordertime bigint, orderid bigint, itemid STRUCT< ITEMID BIGINT, NAME VARCHAR, CATEGORY STRUCT< ID BIGINT, NAME VARCHAR>>, ORDERUNITS double, ARRAYCOL array<double>, MAPCOL map<varchar, double>, address STRUCT < number bigint, street varchar, city varchar, state varchar, zipcode bigint>) WITH (kafka_topic='test_topic', key='orderid', value_format='{FORMAT}');",
         "CREATE STREAM S2 AS SELECT itemid->name FROM orders where itemid->name = 'Item_6';"
       ],
+      "properties": {
+        "ksql.persistence.serialization.wrap.single.values": "true"
+      },
       "inputs": [
         {
           "topic": "test_topic",

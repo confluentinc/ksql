@@ -9,6 +9,9 @@
         "CREATE STREAM TEST (source int) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT source AS THING FROM TEST WHERE source BETWEEN 2 AND 4;"
       ],
+      "properties": {
+        "ksql.persistence.serialization.wrap.single.values": "true"
+      },
       "inputs": [
         {"topic": "test_topic", "key": 0, "value": {"source": null}, "timestamp": 0},
         {"topic": "test_topic", "key": 1, "value": {"source": 1}, "timestamp": 0},
@@ -29,6 +32,9 @@
         "CREATE STREAM TEST (source bigint) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT source AS THING FROM TEST WHERE source BETWEEN 2 AND 4;"
       ],
+      "properties": {
+        "ksql.persistence.serialization.wrap.single.values": "true"
+      },
       "inputs": [
         {"topic": "test_topic", "key": 0, "value": {"source": null}, "timestamp": 0},
         {"topic": "test_topic", "key": 1, "value": {"source": 1}, "timestamp": 0},
@@ -49,6 +55,9 @@
         "CREATE STREAM TEST (source double) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT source AS THING FROM TEST WHERE source BETWEEN 2 AND 3.9;"
       ],
+      "properties": {
+        "ksql.persistence.serialization.wrap.single.values": "true"
+      },
       "inputs": [
         {"topic": "test_topic", "key": 0, "value": {"source": null}, "timestamp": 0},
         {"topic": "test_topic", "key": 1, "value": {"source": 1.9}, "timestamp": 0},
@@ -69,6 +78,9 @@
         "CREATE STREAM TEST (source string) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT source AS THING FROM TEST WHERE source BETWEEN 'b' AND 'c';"
       ],
+      "properties": {
+        "ksql.persistence.serialization.wrap.single.values": "true"
+      },
       "inputs": [
         {"topic": "test_topic", "key": 0, "value": {"source": null}, "timestamp": 0},
         {"topic": "test_topic", "key": 1, "value": {"source": "a"}, "timestamp": 0},
@@ -89,6 +101,9 @@
         "CREATE STREAM TEST (source int, min int, max int) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT source AS THING FROM TEST WHERE source BETWEEN min AND max;"
       ],
+      "properties": {
+        "ksql.persistence.serialization.wrap.single.values": "true"
+      },
       "inputs": [
         {"topic": "test_topic", "key": 0, "value": {"source": null, "min":  0, "max": 2}, "timestamp": 0},
         {"topic": "test_topic", "key": 1, "value": {"source": 1, "min":  0, "max": 2}, "timestamp": 0},
@@ -106,6 +121,9 @@
         "CREATE STREAM TEST (source int, avg int) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT source AS THING FROM TEST WHERE source + 2 BETWEEN avg / 2 AND avg * 2;"
       ],
+      "properties": {
+        "ksql.persistence.serialization.wrap.single.values": "true"
+      },
       "inputs": [
         {"topic": "test_topic", "key": 1, "value": {"source": null, "avg":  10}, "timestamp": 0},
         {"topic": "test_topic", "key": 2, "value": {"source": 1, "avg":  10}, "timestamp": 0},
@@ -123,6 +141,9 @@
         "CREATE STREAM TEST (source int) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT source AS THING FROM TEST WHERE source NOT BETWEEN 2 AND 4;"
       ],
+      "properties": {
+        "ksql.persistence.serialization.wrap.single.values": "true"
+      },
       "inputs": [
         {"topic": "test_topic", "key": 1, "value": {"source": 1}, "timestamp": 0},
         {"topic": "test_topic", "key": 2, "value": {"source": 2}, "timestamp": 0},
@@ -141,6 +162,9 @@
         "CREATE STREAM TEST (source array<int>) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT source[1] AS THING FROM TEST WHERE source[1] BETWEEN 2 AND 4;"
       ],
+      "properties": {
+        "ksql.persistence.serialization.wrap.single.values": "true"
+      },
       "inputs": [
         {"topic": "test_topic", "key": 1, "value": {"source": [10,1]}, "timestamp": 0},
         {"topic": "test_topic", "key": 2, "value": {"source": [10,2]}, "timestamp": 0},
@@ -160,6 +184,9 @@
         "CREATE STREAM TEST (source string) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT source AS THING FROM TEST WHERE source BETWEEN SUBSTRING('zb',2) AND 'c';"
       ],
+      "properties": {
+        "ksql.persistence.serialization.wrap.single.values": "true"
+      },
       "inputs": [
         {"topic": "test_topic", "key": 0, "value": {"source": null}, "timestamp": 0},
         {"topic": "test_topic", "key": 1, "value": {"source": "a"}, "timestamp": 0},

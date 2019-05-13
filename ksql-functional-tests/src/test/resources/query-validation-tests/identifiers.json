@@ -7,26 +7,26 @@
       "name": "aliased source",
       "statements": [
         "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT I.FOO FROM INPUT I;"
+        "CREATE STREAM OUTPUT AS SELECT I.FOO, I.BAR FROM INPUT I;"
       ],
       "inputs": [
         {"topic": "input_topic", "value": {"foo": 1, "bar": 2}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "value": {"FOO": 1}}
+        {"topic": "OUTPUT", "value": {"FOO": 1, "BAR": 2}}
       ]
     },
     {
       "name": "aliased source with AS",
       "statements": [
         "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT I.FOO FROM INPUT AS I;"
+        "CREATE STREAM OUTPUT AS SELECT I.FOO, I.BAR FROM INPUT AS I;"
       ],
       "inputs": [
         {"topic": "input_topic", "value": {"foo": 1, "bar": 2}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "value": {"FOO": 1}}
+        {"topic": "OUTPUT", "value": {"FOO": 1, "BAR": 2}}
       ]
     },
     {

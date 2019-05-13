@@ -7,6 +7,9 @@
         "CREATE STREAM TEST WITH (kafka_topic='input', value_format='AVRO');",
         "CREATE STREAM S as SELECT * FROM test;"
       ],
+      "properties": {
+        "ksql.persistence.serialization.wrap.single.values": "true"
+      },
       "topics": [
         {
           "name": "input",
@@ -31,6 +34,11 @@
         "CREATE STREAM TEST WITH (kafka_topic='input', value_format='AVRO');",
         "CREATE STREAM S as SELECT * FROM test;"
       ],
+      "properties": {
+        "ksql.persistence.serialization.wrap.single.values": "true",
+        "ksql.sink.partitions": "4",
+        "ksql.sink.replicas": "1"
+      },
       "topics": [
         {
           "name": "input",
@@ -46,10 +54,6 @@
           "replicas" : 1
         }
       ],
-      "properties": {
-        "ksql.sink.partitions": "4",
-        "ksql.sink.replicas": "1"
-      },
       "inputs": [{"topic": "input", "value": {"c1": 4}}],
       "outputs": [{"topic": "S", "value": {"C1": 4}}]
     }

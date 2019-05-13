@@ -139,7 +139,8 @@ public class KsqlConfig extends AbstractConfig {
 
   public static final String KSQL_USE_LEGACY_KEY_FIELD = "ksql.query.fields.key.legacy";
 
-  public static final String KSQL_WRAP_SINGLE_VALUES = "ksql.persistence.wrap.single.values";
+  public static final String KSQL_WRAP_SINGLE_VALUES =
+      "ksql.persistence.serialization.wrap.single.values";
 
   public static final String
       defaultSchemaRegistryUrl = "http://localhost:8081";
@@ -229,6 +230,29 @@ public class KsqlConfig extends AbstractConfig {
                   + "This setting is automatically applied for persistent queries started by "
                   + "older versions of KSQL. "
                   + "This setting should not be set manually."
+          ),
+          new CompatibilityBreakingConfigDef(
+              KSQL_WRAP_SINGLE_VALUES,
+              ConfigDef.Type.BOOLEAN,
+              true,
+              false,
+              ConfigDef.Importance.LOW,
+              "Controls how KSQL will serialize a value whose schema contains only a "
+                  + "single column. The setting only effects `CREATE STREAM` and `CREATE TABLE` "
+                  + "statements. Other statements, such as `CREATE STREAM AS SELECT`, `CREATE "
+                  + "TABLE AS SELECT` and `INSERT INTO` inherit this setting from their source."
+                  + "Where there are multiple source, i.e. in JOINs, the setting is inherited from "
+                  + "the first source."  + System.lineSeparator()
+                  + "When set to true, KSQL will persist the single column nested with a STRUCT, "
+                  + "for formats that support them. When set to false KSQL will persist "
+                  + "the column as the top level object." + System.lineSeparator()
+                  + "For example, if the value contains only a single column 'FOO INT' and the "
+                  + "format is JSON,  and this setting is false, then KSQL will persist the value "
+                  + "as an unnamed number, e.g. '10'. Where as if this setting is true, then KSQL "
+                  + "will persist the value as a JSON document with a single numeric property, "
+                  + "e.g. '{\"FOO\": 10}." + System.lineSeparator()
+                  + "Note: the DELIMITED format ignores this setting as it does not support the "
+                  + "concept of a STRUCT, record or document."
           )
   );
 
@@ -405,22 +429,6 @@ public class KsqlConfig extends AbstractConfig {
             true,
             ConfigDef.Importance.LOW,
             "Enable the INSERT INTO ... VALUES functionality."
-        ).define(
-            KSQL_WRAP_SINGLE_VALUES,
-            ConfigDef.Type.BOOLEAN,
-            true,
-            ConfigDef.Importance.LOW,
-            "Controls how KSQL will serialize a value whose schema contains only a "
-                + "single column. When set to true KSQL will persist the column nested with a "
-                + "STRUCT, for formats that support them. When set to false KSQL will persist "
-                + "the column as the top level object." + System.lineSeparator()
-                + "For example, if the value contains only a single column 'FOO INT' and the "
-                + "format is JSON,  and this setting is false, then KSQL will persist the value "
-                + "as an unnamed number, e.g. '10'. Where as if this setting is true, then KSQL "
-                + "will persist the value as a JSON document with a single numeric property, "
-                + "e.g. '{\"FOO\": 10}." + System.lineSeparator()
-                + "Note: the DELIMITED format ignores this setting as it does not support the "
-                + "concept of a STRUCT, record or document."
         )
         .withClientSslSupport();
     for (final CompatibilityBreakingConfigDef compatibilityBreakingConfigDef

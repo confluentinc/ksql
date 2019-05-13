@@ -9,6 +9,9 @@
         "CREATE STREAM TEST (message VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT ELT(2, 'ignored', message) as elem FROM TEST;"
       ],
+      "properties": {
+        "ksql.persistence.serialization.wrap.single.values": "true"
+      },
       "inputs": [
         {"topic": "test_topic", "key": 1, "value": {"message": "something"}, "timestamp": 0},
         {"topic": "test_topic", "key": 2, "value": {"message": null}, "timestamp": 0}
@@ -24,6 +27,9 @@
         "CREATE STREAM TEST (a VARCHAR, b VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT FIELD('hello', a, b) as pos FROM TEST;"
       ],
+      "properties": {
+        "ksql.persistence.serialization.wrap.single.values": "true"
+      },
       "inputs": [
         {"topic": "test_topic", "key": 1, "value": {"a": "hello", "b":  "world"}, "timestamp": 0},
         {"topic": "test_topic", "key": 2, "value": {"a": null, "b":  "world"}, "timestamp": 0},
@@ -43,6 +49,9 @@
         "CREATE STREAM TEST (a VARCHAR, b VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT ELT(FIELD('hello', a, b), a, b) as hello FROM TEST;"
       ],
+      "properties": {
+        "ksql.persistence.serialization.wrap.single.values": "true"
+      },
       "inputs": [
         {"topic": "test_topic", "key": 1, "value": {"a": "hello", "b":  "world"}, "timestamp": 0},
         {"topic": "test_topic", "key": 2, "value": {"a": null, "b":  "world"}, "timestamp": 0},

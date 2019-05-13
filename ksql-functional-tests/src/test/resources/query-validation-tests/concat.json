@@ -10,6 +10,9 @@
         "CREATE STREAM TEST (source VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT CONCAT('prefix-', CONCAT(source, '-postfix')) AS THING FROM TEST;"
       ],
+      "properties": {
+        "ksql.persistence.serialization.wrap.single.values": "true"
+      },
       "inputs": [
         {"topic": "test_topic", "value": {"source": "s1"}},
         {"topic": "test_topic", "value": {"source": "s2"}}
@@ -26,6 +29,9 @@
         "CREATE STREAM TEST (source VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT 'prefix-' + source + '-postfix' AS THING FROM TEST;"
       ],
+      "properties": {
+        "ksql.persistence.serialization.wrap.single.values": "true"
+      },
       "inputs": [
         {"topic": "test_topic", "value": {"source": "s1"}},
         {"topic": "test_topic", "value": {"source": "s2"}}

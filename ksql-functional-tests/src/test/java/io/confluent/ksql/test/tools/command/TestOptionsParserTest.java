@@ -45,13 +45,13 @@ public class TestOptionsParserTest {
     // Given:
     final ByteArrayOutputStream errContent = new ByteArrayOutputStream();
     final PrintStream originalErr = System.err;
-    System.setErr(new PrintStream(errContent));
+    System.setErr(new PrintStream(errContent, true, "UTF-8"));
 
     // When:
-    final TestOptions testOptions = TestOptionsParser.parse(new String[]{}, TestOptions.class);
+    TestOptionsParser.parse(new String[]{}, TestOptions.class);
 
     // Then:
-    assertTrue(errContent.toString().startsWith("Required arguments are missing: 'test-file'"));
+    assertTrue(errContent.toString("UTF-8").startsWith("Required arguments are missing: 'test-file'"));
     System.setErr(originalErr);
   }
 

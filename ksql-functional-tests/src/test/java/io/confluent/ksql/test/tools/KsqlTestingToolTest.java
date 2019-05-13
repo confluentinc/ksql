@@ -24,6 +24,7 @@ import static org.mockito.Mockito.verify;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
+import java.io.UnsupportedEncodingException;
 import java.security.Permission;
 import java.util.ArrayList;
 import org.junit.After;
@@ -32,19 +33,15 @@ import org.junit.Test;
 
 public class KsqlTestingToolTest {
 
-
-  private SecurityManager delegatedSecurityManager;
-  private Integer firstExitStatusCode;
-
   private final ByteArrayOutputStream outContent = new ByteArrayOutputStream();
   private final ByteArrayOutputStream errContent = new ByteArrayOutputStream();
   private final PrintStream originalOut = System.out;
   private final PrintStream originalErr = System.err;
 
   @Before
-  public void setUpStreams() {
-    System.setOut(new PrintStream(outContent));
-    System.setErr(new PrintStream(errContent));
+  public void setUpStreams() throws UnsupportedEncodingException {
+    System.setOut(new PrintStream(outContent, true, "UTF-8"));
+    System.setErr(new PrintStream(errContent, true, "UTF-8"));
   }
 
   @After
@@ -54,12 +51,12 @@ public class KsqlTestingToolTest {
   }
 
   @Test
-  public void shouldRunCorrectTest() {
+  public void shouldRunCorrectTest() throws UnsupportedEncodingException {
     // When:
     KsqlTestingTool.loadAndRunTests(new String[]{"src/test/resources/unit_test.json"});
 
     // Then:
-    assertThat(outContent.toString(), containsString("All tests passed!"));
+    assertThat(outContent.toString("UTF-8"), containsString("All tests passed!"));
   }
 
   @Test
@@ -83,7 +80,7 @@ public class KsqlTestingToolTest {
   }
 
   @Test
-  public void shouldFailWithIncorrectArgs() {
+  public void shouldFailWithIncorrectArgs() throws UnsupportedEncodingException {
 
     // Given:
     System.setSecurityManager(new TestSecurityManager());
@@ -95,21 +92,21 @@ public class KsqlTestingToolTest {
       assertThat(e, instanceOf(TestSecurityManager.ExitSecurityException.class));
       final TestSecurityManager.ExitSecurityException exitSecurityException = (TestSecurityManager.ExitSecurityException) e;
       assertThat(exitSecurityException.getStatus(), equalTo(-1));
-      assertThat(errContent.toString(), equalTo("Failed to start KSQL testing tool: foo (No such file or directory)\n"));
+      assertThat(errContent.toString("UTF-8"), equalTo("Failed to start KSQL testing tool: foo (No such file or directory)\n"));
     }
   }
 
 
-  class TestSecurityManager extends SecurityManager {
+  static class TestSecurityManager extends SecurityManager {
 
-    public final class ExitSecurityException extends SecurityException {
+    final class ExitSecurityException extends SecurityException {
       private final int status;
 
-      public ExitSecurityException(final int status) {
+      ExitSecurityException(final int status) {
         this.status = status;
       }
 
-      public int getStatus() {
+      int getStatus() {
         return this.status;
       }
     }

@@ -30,6 +30,8 @@ import io.confluent.ksql.physical.QuerySchemas;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.SchemaInfo.Type;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.persistence.PersistenceSchema;
+import io.confluent.ksql.schema.persistence.PersistenceSchemas;
 import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
@@ -62,6 +64,10 @@ public class QueryDescriptionTest {
           .field("field1", Schema.OPTIONAL_INT32_SCHEMA)
           .field("field2", Schema.OPTIONAL_STRING_SCHEMA)
           .build());
+
+  private static final PersistenceSchemas PERSISTED_SCHEMAS = PersistenceSchemas.of(
+      PersistenceSchema.of(SCHEMA.getSchema())
+  );
 
   private static final List<FieldInfo> EXPECTED_FIELDS = Arrays.asList(
       new FieldInfo("field1", new SchemaInfo(Type.INTEGER, null, null)),
@@ -131,6 +137,7 @@ public class QueryDescriptionTest {
         "test statement",
         queryStreams,
         SCHEMA,
+        PERSISTED_SCHEMAS,
         Collections.emptySet(),
         fakeSink.getName(),
         "execution plan",

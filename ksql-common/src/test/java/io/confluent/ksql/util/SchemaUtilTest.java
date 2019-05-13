@@ -23,46 +23,54 @@ import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.notNullValue;
 
+import io.confluent.ksql.schema.persistence.PersistenceSchema;
 import java.lang.reflect.Type;
 import java.util.List;
 import java.util.Map;
+import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.Test;
 
 public class SchemaUtilTest {
 
-  private Schema schema;
+  private static final ConnectSchema STRUCT_SCHEMA = (ConnectSchema) SchemaBuilder.struct()
+      .field("f0", Schema.OPTIONAL_INT64_SCHEMA)
+      .field("f1", Schema.OPTIONAL_BOOLEAN_SCHEMA)
+      .build();
 
-  @Before
-  public void init() {
-    final Schema structSchema = SchemaBuilder.struct()
-        .field("f0", Schema.OPTIONAL_INT64_SCHEMA)
-        .field("f1", Schema.OPTIONAL_BOOLEAN_SCHEMA)
-        .build();
-
-    schema = SchemaBuilder.struct()
-        .field("ORDERTIME", Schema.OPTIONAL_INT64_SCHEMA)
-        .field("ORDERID", Schema.OPTIONAL_INT64_SCHEMA)
-        .field("ITEMID", Schema.OPTIONAL_STRING_SCHEMA)
-        .field("ORDERUNITS", Schema.OPTIONAL_FLOAT64_SCHEMA)
-        .field("ARRAYCOL", SchemaBuilder.array(Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build())
-        .field("MAPCOL",
-            SchemaBuilder.map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_FLOAT64_SCHEMA)
-                .optional().build())
-        .field("RAW_STRUCT", structSchema)
-        .field("ARRAY_OF_STRUCTS", SchemaBuilder.array(structSchema).optional().build())
-        .field("MAP-OF-STRUCTS",
-            SchemaBuilder.map(Schema.OPTIONAL_STRING_SCHEMA, structSchema).optional().build())
-        .field("NESTED.STRUCTS", SchemaBuilder.struct()
-            .field("s0", structSchema)
-            .field("s1", SchemaBuilder.struct().field("ss0", structSchema))
-            .build())
-        .build();
-  }
+  private static final ConnectSchema SCHEMA = (ConnectSchema) SchemaBuilder.struct()
+      .field("ORDERTIME", Schema.OPTIONAL_INT64_SCHEMA)
+      .field("ORDERID", Schema.OPTIONAL_INT64_SCHEMA)
+      .field("ITEMID", Schema.OPTIONAL_STRING_SCHEMA)
+      .field("ORDERUNITS", Schema.OPTIONAL_FLOAT64_SCHEMA)
+      .field("ARRAYCOL", SchemaBuilder
+          .array(Schema.OPTIONAL_FLOAT64_SCHEMA)
+          .optional()
+          .build())
+      .field("MAPCOL", SchemaBuilder
+          .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_FLOAT64_SCHEMA)
+          .optional()
+          .build())
+      .field("RAW_STRUCT", STRUCT_SCHEMA)
+      .field("ARRAY_OF_STRUCTS", SchemaBuilder
+          .array(STRUCT_SCHEMA)
+          .optional()
+          .build())
+      .field("MAP-OF-STRUCTS", SchemaBuilder
+          .map(Schema.OPTIONAL_STRING_SCHEMA, STRUCT_SCHEMA)
+          .optional()
+          .build())
+      .field("NESTED.STRUCTS", SchemaBuilder
+          .struct()
+          .field("s0", STRUCT_SCHEMA)
+          .field("s1", SchemaBuilder
+              .struct()
+              .field("ss0", STRUCT_SCHEMA))
+          .build())
+      .build();
 
   @Test
   public void shouldGetCorrectJavaClassForBoolean() {
@@ -109,26 +117,31 @@ public class SchemaUtilTest {
     assertThat(mapClazz, equalTo(Map.class));
   }
 
+  // Todo(ac): Will be removed before merge. Just left to show the tests still pass
   @Test
   public void shouldGetCorrectSqlTypeNameForBoolean() {
     assertThat(SchemaUtil.getSqlTypeName(Schema.OPTIONAL_BOOLEAN_SCHEMA), equalTo("BOOLEAN"));
   }
 
+  // Todo(ac): Will be removed before merge. Just left to show the tests still pass
   @Test
   public void shouldGetCorrectSqlTypeNameForInt() {
     assertThat(SchemaUtil.getSqlTypeName(Schema.OPTIONAL_INT32_SCHEMA), equalTo("INT"));
   }
 
+  // Todo(ac): Will be removed before merge. Just left to show the tests still pass
   @Test
   public void shouldGetCorrectSqlTypeNameForBigint() {
     assertThat(SchemaUtil.getSqlTypeName(Schema.OPTIONAL_INT64_SCHEMA), equalTo("BIGINT"));
   }
 
+  // Todo(ac): Will be removed before merge. Just left to show the tests still pass
   @Test
   public void shouldGetCorrectSqlTypeNameForDouble() {
     assertThat(SchemaUtil.getSqlTypeName(Schema.OPTIONAL_FLOAT64_SCHEMA), equalTo("DOUBLE"));
   }
 
+  // Todo(ac): Will be removed before merge. Just left to show the tests still pass
   @Test
   public void shouldGetCorrectSqlTypeNameForArray() {
     assertThat(SchemaUtil
@@ -141,9 +154,10 @@ public class SchemaUtilTest {
     assertThat(SchemaUtil.getSqlTypeName(
         SchemaBuilder.map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_FLOAT64_SCHEMA).optional()
             .build()),
-        equalTo("MAP<VARCHAR,DOUBLE>"));
+        equalTo("MAP<VARCHAR, DOUBLE>"));
   }
 
+  // Todo(ac): Will be removed before merge. Just left to show the tests still pass
   @Test
   public void shouldGetCorrectSqlTypeNameForStruct() {
     final Schema structSchema = SchemaBuilder.struct()
@@ -157,13 +171,13 @@ public class SchemaUtilTest {
         .build();
     assertThat(SchemaUtil.getSqlTypeName(structSchema),
         equalTo(
-            "STRUCT<COL1 VARCHAR, COL2 INT, COL3 DOUBLE, COL4 ARRAY<DOUBLE>, COL5 MAP<VARCHAR,DOUBLE>>"));
+            "STRUCT<COL1 VARCHAR, COL2 INT, COL3 DOUBLE, COL4 ARRAY<DOUBLE>, COL5 MAP<VARCHAR, DOUBLE>>"));
   }
-
 
   @Test
   public void shouldCreateCorrectAvroSchemaWithNullableFields() {
-    final Schema schema = SchemaBuilder.struct()
+    // Given:
+    final ConnectSchema schema = (ConnectSchema) SchemaBuilder.struct()
         .field("ordertime", Schema.OPTIONAL_INT64_SCHEMA)
         .field("orderid", Schema.OPTIONAL_STRING_SCHEMA)
         .field("itemid", Schema.OPTIONAL_STRING_SCHEMA)
@@ -171,10 +185,15 @@ public class SchemaUtilTest {
         .field("arraycol", SchemaBuilder.array(Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build())
         .field("mapcol",
             SchemaBuilder.map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_FLOAT64_SCHEMA))
-        .optional().build();
-    final String avroSchemaString = SchemaUtil.buildAvroSchema(schema, "orders")
-        .toString();
-    assertThat(avroSchemaString, equalTo(
+        .optional()
+        .build();
+
+    // When:
+    final org.apache.avro.Schema avroSchema = SchemaUtil
+        .buildAvroSchema(PersistenceSchema.of(schema), "orders");
+
+    // Then:
+    assertThat(avroSchema.toString(), equalTo(
         "{\"type\":\"record\",\"name\":\"orders\",\"namespace\":\"ksql\",\"fields\":"
             + "[{\"name\":\"ordertime\",\"type\":[\"null\",\"long\"],\"default\":null},{\"name\":"
             + "\"orderid\",\"type\":[\"null\",\"string\"],\"default\":null},{\"name\":\"itemid\","
@@ -188,7 +207,8 @@ public class SchemaUtilTest {
   @Test
   public void shouldSupportAvroStructs() {
     // When:
-    final org.apache.avro.Schema avroSchema = SchemaUtil.buildAvroSchema(schema, "bob");
+    final org.apache.avro.Schema avroSchema = SchemaUtil
+        .buildAvroSchema(PersistenceSchema.of(SCHEMA), "bob");
 
     // Then:
     final org.apache.avro.Schema.Field rawStruct = avroSchema.getField("RAW_STRUCT");
@@ -211,7 +231,8 @@ public class SchemaUtilTest {
   @Test
   public void shouldSupportAvroArrayOfStructs() {
     // When:
-    final org.apache.avro.Schema avroSchema = SchemaUtil.buildAvroSchema(schema, "bob");
+    final org.apache.avro.Schema avroSchema = SchemaUtil
+        .buildAvroSchema(PersistenceSchema.of(SCHEMA), "bob");
 
     // Then:
     final org.apache.avro.Schema.Field rawStruct = avroSchema.getField("ARRAY_OF_STRUCTS");
@@ -237,7 +258,8 @@ public class SchemaUtilTest {
   @Test
   public void shouldSupportAvroMapOfStructs() {
     // When:
-    final org.apache.avro.Schema avroSchema = SchemaUtil.buildAvroSchema(schema, "bob");
+    final org.apache.avro.Schema avroSchema = SchemaUtil
+        .buildAvroSchema(PersistenceSchema.of(SCHEMA), "bob");
 
     // Then:
     final org.apache.avro.Schema.Field rawStruct = avroSchema.getField("MAP_OF_STRUCTS");
@@ -263,7 +285,8 @@ public class SchemaUtilTest {
   @Test
   public void shouldSupportAvroNestedStructs() {
     // When:
-    final org.apache.avro.Schema avroSchema = SchemaUtil.buildAvroSchema(schema, "bob");
+    final org.apache.avro.Schema avroSchema = SchemaUtil
+        .buildAvroSchema(PersistenceSchema.of(SCHEMA), "bob");
 
     // Then:
     final org.apache.avro.Schema.Field rawStruct = avroSchema.getField("NESTED_STRUCTS");
@@ -308,6 +331,107 @@ public class SchemaUtilTest {
             + "{\"name\":\"s1\",\"type\":[\"null\"," + s1Schema + "],\"default\":null}"
             + "]}"
     ));
+  }
+
+  @Test
+  public void shouldCreateAvroSchemaForBoolean() {
+    // Given:
+    final PersistenceSchema schema = PersistenceSchema
+        .of((ConnectSchema) Schema.OPTIONAL_BOOLEAN_SCHEMA);
+
+    // When:
+    final org.apache.avro.Schema avroSchema = SchemaUtil.buildAvroSchema(schema, "orders");
+
+    // Then:
+    assertThat(avroSchema.toString(), equalTo("\"boolean\""));
+  }
+
+  @Test
+  public void shouldCreateAvroSchemaForInt() {
+    // Given:
+    final PersistenceSchema schema = PersistenceSchema
+        .of((ConnectSchema) Schema.OPTIONAL_INT32_SCHEMA);
+
+    // When:
+    final org.apache.avro.Schema avroSchema = SchemaUtil.buildAvroSchema(schema, "orders");
+
+    // Then:
+    assertThat(avroSchema.toString(), equalTo("\"int\""));
+  }
+
+  @Test
+  public void shouldCreateAvroSchemaForBigInt() {
+    // Given:
+    final PersistenceSchema schema = PersistenceSchema
+        .of((ConnectSchema) Schema.OPTIONAL_INT64_SCHEMA);
+
+    // When:
+    final org.apache.avro.Schema avroSchema = SchemaUtil.buildAvroSchema(schema, "orders");
+
+    // Then:
+    assertThat(avroSchema.toString(), equalTo("\"long\""));
+  }
+
+  @Test
+  public void shouldCreateAvroSchemaForDouble() {
+    // Given:
+    final PersistenceSchema schema = PersistenceSchema
+        .of((ConnectSchema) Schema.OPTIONAL_FLOAT64_SCHEMA);
+
+    // When:
+    final org.apache.avro.Schema avroSchema = SchemaUtil.buildAvroSchema(schema, "orders");
+
+    // Then:
+    assertThat(avroSchema.toString(), equalTo("\"double\""));
+  }
+
+  @Test
+  public void shouldCreateAvroSchemaForString() {
+    // Given:
+    final PersistenceSchema schema = PersistenceSchema
+        .of((ConnectSchema) Schema.OPTIONAL_STRING_SCHEMA);
+
+    // When:
+    final org.apache.avro.Schema avroSchema = SchemaUtil.buildAvroSchema(schema, "orders");
+
+    // Then:
+    assertThat(avroSchema.toString(), equalTo("\"string\""));
+  }
+
+  @Test
+  public void shouldCreateAvroSchemaForArray() {
+    // Given:
+    final PersistenceSchema schema = PersistenceSchema
+        .of((ConnectSchema) SchemaBuilder
+            .array(Schema.OPTIONAL_INT64_SCHEMA)
+            .build());
+
+    // When:
+    final org.apache.avro.Schema avroSchema = SchemaUtil.buildAvroSchema(schema, "orders");
+
+    // Then:
+    assertThat(avroSchema.toString(), equalTo("{"
+        + "\"type\":\"array\","
+        + "\"items\":[\"null\",\"long\"]"
+        + "}"));
+  }
+
+  @Test
+  public void shouldCreateAvroSchemaForMap() {
+    // Given:
+    final PersistenceSchema schema = PersistenceSchema
+        .of((ConnectSchema) SchemaBuilder
+            .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.BOOLEAN_SCHEMA)
+            .build());
+
+    // When:
+    final org.apache.avro.Schema avroSchema = SchemaUtil.buildAvroSchema(schema, "orders");
+
+    // Then:
+    assertThat(avroSchema.toString(), equalTo("{"
+        + "\"type\":\"map\","
+        + "\"values\":[\"null\",\"boolean\"]"
+        + "}"));
   }
 
   @Test
@@ -427,7 +551,7 @@ public class SchemaUtilTest {
   }
 
 
-
+  // Todo(ac): Will be removed before merge. Just left to show the tests still pass
   @Test
   public void shouldGetCorrectSqlType() {
     final String sqlType1 = SchemaUtil.getSqlTypeName(Schema.OPTIONAL_BOOLEAN_SCHEMA);
@@ -447,7 +571,7 @@ public class SchemaUtilTest {
     assertThat("Invalid SQL type.", sqlType4, equalTo("DOUBLE"));
     assertThat("Invalid SQL type.", sqlType5, equalTo("VARCHAR"));
     assertThat("Invalid SQL type.", sqlType6, equalTo("ARRAY<DOUBLE>"));
-    assertThat("Invalid SQL type.", sqlType7, equalTo("MAP<VARCHAR,DOUBLE>"));
+    assertThat("Invalid SQL type.", sqlType7, equalTo("MAP<VARCHAR, DOUBLE>"));
   }
 
   @Test

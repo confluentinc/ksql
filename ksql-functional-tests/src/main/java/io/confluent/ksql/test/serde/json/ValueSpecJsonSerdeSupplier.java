@@ -82,7 +82,7 @@ public class ValueSpecJsonSerdeSupplier implements SerdeSupplier<Object> {
         return null;
       }
       try {
-        return new ObjectMapper().readValue(data, Map.class);
+        return new ObjectMapper().readValue(data, Object.class);
       } catch (final Exception e) {
         throw new RuntimeException(e);
       }

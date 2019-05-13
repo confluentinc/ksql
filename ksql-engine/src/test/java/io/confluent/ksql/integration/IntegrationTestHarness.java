@@ -26,6 +26,8 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlContextTestUtil;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.persistence.PersistenceSchemas;
+import io.confluent.ksql.schema.persistence.PersistenceSchemasFactory;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.GenericRowSerDe;
 import io.confluent.ksql.serde.KsqlSerdeFactories;
@@ -585,8 +587,13 @@ public class IntegrationTestHarness extends ExternalResource {
   public void ensureSchema(final String topicName, final KsqlSchema schema) {
     final SchemaRegistryClient srClient = serviceContext.get().getSchemaRegistryClient();
     try {
+      final KsqlConfig defaultConfig = new KsqlConfig(Collections.emptyMap());
+
+      final PersistenceSchemas persistenceSchemas = PersistenceSchemasFactory
+          .from(schema, defaultConfig);
+
       final org.apache.avro.Schema avroSchema = SchemaUtil
-          .buildAvroSchema(schema.getSchema(), "test-" + topicName);
+          .buildAvroSchema(persistenceSchemas.valueSchema(), "test-" + topicName);
 
       srClient.register(topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX, avroSchema);
     } catch (final Exception e) {

@@ -15,22 +15,15 @@
 
 package io.confluent.ksql.serde.delimited;
 
-import static io.confluent.ksql.logging.processing.ProcessingLoggerUtil.join;
-
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
-import io.confluent.ksql.serde.util.SerdeUtils;
 import io.confluent.ksql.util.KsqlConfig;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Collections;
 import java.util.function.Supplier;
 import org.apache.kafka.common.serialization.Deserializer;
-import org.apache.kafka.common.serialization.Serde;
-import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
@@ -44,25 +37,28 @@ public class KsqlDelimitedSerdeFactory extends KsqlSerdeFactory {
   }
 
   @Override
-  public Serde<Struct> createSerde(
+  protected Serializer<Struct> createSerializer(
+      final Schema schema,
+      final KsqlConfig ksqlConfig,
+      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
+  ) {
+    final Serializer<Struct> serializer = new KsqlDelimitedSerializer();
+    serializer.configure(Collections.emptyMap(), false);
+    return serializer;
+  }
+
+  @Override
+  protected Deserializer<Struct> createDeserializer(
       final Schema schema,
       final KsqlConfig ksqlConfig,
       final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
-      final String loggerNamePrefix,
-      final ProcessingLogContext processingLogContext
+      final ProcessingLogger processingLogger
   ) {
-    final Map<String, Object> serdeProps = new HashMap<>();
-
-    final Serializer<Struct> genericRowSerializer = new KsqlDelimitedSerializer();
-    genericRowSerializer.configure(serdeProps, false);
-
-    final ProcessingLogger processingLogger = processingLogContext.getLoggerFactory()
-        .getLogger(join(loggerNamePrefix, SerdeUtils.DESERIALIZER_LOGGER_NAME));
-
-    final Deserializer<Struct> genericRowDeserializer =
+    final Deserializer<Struct> deserializer =
         new KsqlDelimitedDeserializer(schema, processingLogger);
-    genericRowDeserializer.configure(serdeProps, false);
 
-    return Serdes.serdeFrom(genericRowSerializer, genericRowDeserializer);
+    deserializer.configure(Collections.emptyMap(), false);
+
+    return deserializer;
   }
 }

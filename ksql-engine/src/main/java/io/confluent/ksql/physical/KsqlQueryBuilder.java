@@ -22,6 +22,9 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.planner.plan.PlanNodeId;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.persistence.PersistenceSchemas;
+import io.confluent.ksql.schema.persistence.PersistenceSchemasFactory;
 import io.confluent.ksql.serde.GenericRowSerDe;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.services.ServiceContext;
@@ -134,6 +137,18 @@ public final class KsqlQueryBuilder {
         loggerNamePrefix,
         processingLogContext
     );
+  }
+
+  /**
+   * The schema used for persistence.
+   *
+   * @param ksqlSchema the logical Ksql schema.
+   * @return the schemas used when serializing and de-serializing.
+   */
+  PersistenceSchemas getPersistenceSchemas(
+      final KsqlSchema ksqlSchema
+  ) {
+    return PersistenceSchemasFactory.from(ksqlSchema.withoutImplicitFields(), ksqlConfig);
   }
 
   private void track(final String loggerNamePrefix, final Schema schema) {

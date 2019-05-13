@@ -21,10 +21,12 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.nullValue;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
@@ -313,5 +315,144 @@ public class ConnectDataTranslatorTest {
     // Then:
     assertThat(row.schema(), is(rowSchema));
     assertThat(row.get("STRUCT"), is(nullValue()));
+  }
+
+  @Test
+  public void shouldExtractTopLevelPrimitiveIfSchemaHasOnlySingleField() {
+    // Given:
+    final Schema schema = SchemaBuilder.struct()
+        .field("id", Schema.OPTIONAL_INT32_SCHEMA)
+        .build();
+
+    final Struct value = new Struct(schema)
+        .put("id", 10);
+
+    final ConnectDataTranslator translator =
+        new ConnectDataTranslator(schema.field("id").schema());
+
+    // When:
+    final Object result = translator.toConnectRow(value);
+
+    // Then:
+    assertThat(result, is(10));
+  }
+
+  @Test
+  public void shouldThrowOnSerializedTopLevelPrimitiveWhenSchemaHasMoreThanOneField() {
+    // Given:
+    final Schema schema = SchemaBuilder.struct()
+        .field("id", Schema.OPTIONAL_INT32_SCHEMA)
+        .field("id2", Schema.OPTIONAL_INT32_SCHEMA)
+        .build();
+
+    final Struct value = new Struct(schema)
+        .put("id", 10);
+
+    final ConnectDataTranslator translator =
+        new ConnectDataTranslator(schema.field("id").schema());
+
+    // Then:
+    expectedException.expect(SerializationException.class);
+    expectedException.expectMessage("Expected to serialize primitive, map or array not record");
+
+    // When:
+    translator.toConnectRow(value);
+  }
+
+  @Test
+  public void shouldExtractTopLevelArrayIfSchemaHasOnlySingleField() {
+    // Given:
+    final Schema schema = SchemaBuilder.struct()
+        .field("ids", SchemaBuilder
+            .array(Schema.OPTIONAL_INT32_SCHEMA)
+            .optional()
+            .build())
+        .build();
+
+    final Struct value = new Struct(schema)
+        .put("ids", ImmutableList.of(1, 2, 3));
+
+    final ConnectDataTranslator translator =
+        new ConnectDataTranslator(schema.field("ids").schema());
+
+    // When:
+    final Object result = translator.toConnectRow(value);
+
+    // Then:
+    assertThat(result, is(ImmutableList.of(1, 2, 3)));
+  }
+
+  @Test
+  public void shouldThrowOnSerializedTopLevelArrayWhenSchemaHasMoreThanOneField() {
+    // Given:
+    final Schema schema = SchemaBuilder.struct()
+        .field("ids", SchemaBuilder
+            .array(Schema.OPTIONAL_INT32_SCHEMA)
+            .optional()
+            .build())
+        .field("id2", Schema.OPTIONAL_INT32_SCHEMA)
+        .build();
+
+    final Struct value = new Struct(schema)
+        .put("ids", ImmutableList.of(1, 2, 3));
+
+    final ConnectDataTranslator translator =
+        new ConnectDataTranslator(schema.field("ids").schema());
+
+    // Then:
+    expectedException.expect(SerializationException.class);
+    expectedException.expectMessage("Expected to serialize primitive, map or array not record");
+
+    // When:
+    translator.toConnectRow(value);
+  }
+
+  @Test
+  public void shouldExtractTopLevelMapIfSchemaHasOnlySingleField() {
+    // Given:
+    final Schema schema = SchemaBuilder.struct()
+        .field("ids", SchemaBuilder
+            .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_INT64_SCHEMA)
+            .optional()
+            .build())
+        .build();
+
+    final Struct value = new Struct(schema)
+        .put("ids", ImmutableMap.of("a", 1L, "b", 2L));
+
+    final ConnectDataTranslator translator =
+        new ConnectDataTranslator(schema.field("ids").schema());
+
+    // When:
+    final Object result = translator.toConnectRow(value);
+
+    // Then:
+    assertThat(result, is(ImmutableMap.of("a", 1L, "b", 2L)));
+  }
+
+  @Test
+  public void shouldThrowOnSerializedTopLevelMapWhenSchemaHasMoreThanOneField() {
+    // Given:
+    final Schema schema = SchemaBuilder.struct()
+        .field("ids", SchemaBuilder
+            .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_INT64_SCHEMA)
+            .optional()
+            .build())
+        .field("id2", Schema.OPTIONAL_INT32_SCHEMA)
+        .build();
+
+    final Struct value = new Struct(schema)
+        .put("ids", ImmutableMap.of("a", 1L, "b", 2L));
+
+    final ConnectDataTranslator translator =
+        new ConnectDataTranslator(schema.field("ids").schema());
+
+
+    // Then:
+    expectedException.expect(SerializationException.class);
+    expectedException.expectMessage("Expected to serialize primitive, map or array not record");
+
+    // When:
+    translator.toConnectRow(value);
   }
 }

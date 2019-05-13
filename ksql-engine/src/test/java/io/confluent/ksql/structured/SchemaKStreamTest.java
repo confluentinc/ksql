@@ -774,7 +774,7 @@ public class SchemaKStreamTest {
 
     // When/Then:
     final String expected =
-        " > [ SOURCE ] | Schema: [key : VARCHAR, val : BIGINT] | Logger: query.node.source\n\t"
+        " > [ SOURCE ] | Schema: [key VARCHAR, val BIGINT] | Logger: query.node.source\n\t"
             + "parent plan";
     assertThat(schemaKtream.getExecutionPlan(""), equalTo(expected));
   }
@@ -795,7 +795,7 @@ public class SchemaKStreamTest {
 
     // When/Then:
     final String expected =
-        " > [ SOURCE ] | Schema: [key : VARCHAR, val : BIGINT] | Logger: query.node.source\n";
+        " > [ SOURCE ] | Schema: [key VARCHAR, val BIGINT] | Logger: query.node.source\n";
     assertThat(schemaKtream.getExecutionPlan(""), equalTo(expected));
   }
 
@@ -821,7 +821,7 @@ public class SchemaKStreamTest {
 
     // When/Then:
     final String expected =
-        " > [ SOURCE ] | Schema: [key : VARCHAR, val : BIGINT] | Logger: query.node.source\n"
+        " > [ SOURCE ] | Schema: [key VARCHAR, val BIGINT] | Logger: query.node.source\n"
             + "\tparent 1 plan"
             + "\tparent 2 plan";
     assertThat(schemaKtream.getExecutionPlan(""), equalTo(expected));

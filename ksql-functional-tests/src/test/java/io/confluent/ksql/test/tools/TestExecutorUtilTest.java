@@ -30,6 +30,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -41,20 +42,6 @@ public class TestExecutorUtilTest {
   private ServiceContext serviceContext;
   private KsqlEngine ksqlEngine;
   private KsqlConfig ksqlConfig;
-//  @Mock
-//  private ServiceContext serviceContext;
-//  @Mock
-//  private KsqlEngine ksqlEngine;
-//  @Mock
-//  private KsqlConfig ksqlConfig;
-//  @Mock
-//  private KafkaTopicClient kafkaTopicClient;
-//  @Mock
-//  private SchemaRegistryClient schemaRegistryClient;
-//  @Mock
-//  private MetaStore metaStore;
-//  @Mock
-//  protected DataSource source, sink;
   private TestCase testCase;
 
   @Before
@@ -70,6 +57,12 @@ public class TestExecutorUtilTest {
     serviceContext = TestExecutor.getServiceContext();
     ksqlEngine = TestExecutor.getKsqlEngine(serviceContext);
     ksqlConfig = new KsqlConfig(TestExecutor.getConfigs(Collections.emptyMap()));
+  }
+
+  @After
+  public void tearDown() {
+    ksqlEngine.close();
+    serviceContext.close();
   }
 
   @Test

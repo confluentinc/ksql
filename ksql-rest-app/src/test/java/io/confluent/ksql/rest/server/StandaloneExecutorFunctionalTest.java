@@ -293,6 +293,7 @@ public class StandaloneExecutorFunctionalTest {
             .field("fred", Schema.OPTIONAL_INT32_SCHEMA)
             .optional()
             .build())
+        .field("Other", Schema.OPTIONAL_INT64_SCHEMA)
         .build());
 
     TEST_HARNESS.ensureSchema(topicName, incompatible);

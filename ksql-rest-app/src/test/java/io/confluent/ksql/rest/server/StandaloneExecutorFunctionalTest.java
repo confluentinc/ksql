@@ -152,16 +152,20 @@ public class StandaloneExecutorFunctionalTest {
         + "\n"
         + "CREATE STREAM " + s2 + " AS SELECT * FROM S;\n");
 
+    final KsqlSchema dataSchema = KsqlSchema.of(SchemaBuilder.struct()
+        .field("ORDERTIME", Schema.OPTIONAL_INT64_SCHEMA)
+        .build());
+
     // When:
     standalone.start();
 
     // Then:
     // CSAS and INSERT INTO both input into S1:
-    TEST_HARNESS.verifyAvailableRows(s1, DATA_SIZE * 2, JSON, DATA_SCHEMA);
+    TEST_HARNESS.verifyAvailableRows(s1, DATA_SIZE * 2, JSON, dataSchema);
     // CTAS only into T1:
-    TEST_HARNESS.verifyAvailableUniqueRows(t1, DATA_SIZE, JSON, DATA_SCHEMA);
+    TEST_HARNESS.verifyAvailableUniqueRows(t1, DATA_SIZE, JSON, dataSchema);
     // S2 should be empty as 'auto.offset.reset' unset:
-    TEST_HARNESS.verifyAvailableUniqueRows(s2, 0, JSON, DATA_SCHEMA);
+    TEST_HARNESS.verifyAvailableUniqueRows(s2, 0, JSON, dataSchema);
   }
 
   @Test
@@ -186,16 +190,20 @@ public class StandaloneExecutorFunctionalTest {
         + "\n"
         + "CREATE STREAM " + s2 + " AS SELECT * FROM S;\n");
 
+    final KsqlSchema dataSchema = KsqlSchema.of(SchemaBuilder.struct()
+        .field("ORDERTIME", Schema.OPTIONAL_INT64_SCHEMA)
+        .build());
+
     // When:
     standalone.start();
 
     // Then:
     // CSAS and INSERT INTO both input into S1:
-    TEST_HARNESS.verifyAvailableRows(s1, DATA_SIZE * 2, AVRO, DATA_SCHEMA);
+    TEST_HARNESS.verifyAvailableRows(s1, DATA_SIZE * 2, AVRO, dataSchema);
     // CTAS only into T1:
-    TEST_HARNESS.verifyAvailableUniqueRows(t1, DATA_SIZE, AVRO, DATA_SCHEMA);
+    TEST_HARNESS.verifyAvailableUniqueRows(t1, DATA_SIZE, AVRO, dataSchema);
     // S2 should be empty as 'auto.offset.reset' unset:
-    TEST_HARNESS.verifyAvailableUniqueRows(s2, 0, AVRO, DATA_SCHEMA);
+    TEST_HARNESS.verifyAvailableUniqueRows(s2, 0, AVRO, dataSchema);
   }
 
   @Test

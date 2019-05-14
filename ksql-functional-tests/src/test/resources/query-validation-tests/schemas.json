@@ -403,6 +403,36 @@
       }
     },
     {
+      "name": "deserialize to single field where persisted data has additional fields - value",
+      "format": ["JSON", "AVRO"],
+      "statements": [
+        "CREATE STREAM INPUT (foo INT) WITH (kafka_topic='input_topic', value_format='{FORMAT}');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "topics": [
+        {
+          "name": "input_topic",
+          "schema": {"name": "ignored", "type": "record", "fields": [
+            {"name": "FOO", "type": ["null", "int"]},
+            {"name": "BAR", "type": ["null", "int"]}
+          ]},
+          "format": "{FORMAT}"
+        }
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"FOO": 1, "BAR": 2}},
+        {"topic": "input_topic", "value": {"FOO": 1, "BAR": null}},
+        {"topic": "input_topic", "value": {"FOO": null, "BAR": 2}},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": 1},
+        {"topic": "OUTPUT", "value": 1},
+        {"topic": "OUTPUT", "value": null},
+        {"topic": "OUTPUT", "value": null}
+      ]
+    },
+    {
       "name": "serialize top level primitive - value",
       "format": ["JSON", "AVRO"],
       "statements": [
@@ -574,6 +604,68 @@
       "outputs": [
         {"topic": "OUTPUT", "value": {"FOO": {"a": 1.1, "b": 2.2, "c": 3.456}}},
         {"topic": "OUTPUT", "value": {"FOO": {"a": 1.1, "b": 2.2, "c": null}}},
+        {"topic": "OUTPUT", "value": {"FOO": null}},
+        {"topic": "OUTPUT", "value": null}
+      ]
+    },
+    {
+      "name": "serialize top level struct - value",
+      "format": ["JSON", "AVRO"],
+      "statements": [
+        "CREATE STREAM INPUT (foo STRUCT<F0 INT>) WITH (kafka_topic='input_topic', value_format='{FORMAT}');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "properties": {
+        "ksql.persistence.serialization.wrap.single.values": "false"
+      },
+      "topics": [
+        {
+          "name": "OUTPUT",
+          "schema": {"type": "record", "name": "ignored", "fields": [{"name": "F0", "type": ["null", "int"]}]},
+          "format": "{FORMAT}"
+        }
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"FOO": {"F0": 1}}},
+        {"topic": "input_topic", "value": {"FOO": {"F0": null}}},
+        {"topic": "input_topic", "value": {"FOO": null}},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"F0": 1}},
+        {"topic": "OUTPUT", "value": {"F0": null}},
+        {"topic": "OUTPUT", "value": null},
+        {"topic": "OUTPUT", "value": null}
+      ]
+    },
+    {
+      "name": "serialize nested struct - value",
+      "format": ["JSON", "AVRO"],
+      "statements": [
+        "CREATE STREAM INPUT (foo STRUCT<F0 INT>) WITH (kafka_topic='input_topic', value_format='{FORMAT}');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "properties": {
+        "ksql.persistence.serialization.wrap.single.values": "true"
+      },
+      "topics": [
+        {
+          "name": "OUTPUT",
+          "schema": {"name": "ignored", "type": "record", "fields": [
+            {"name": "FOO", "type": ["null", {"name": "ignored2", "type": "record", "fields": [{"name": "F0", "type": ["null", "int"]}]}]}
+          ]},
+          "format": "{FORMAT}"
+        }
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"FOO": {"F0": 1}}},
+        {"topic": "input_topic", "value": {"FOO": {"F0": null}}},
+        {"topic": "input_topic", "value": {"FOO": null}},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"FOO": {"F0": 1}}},
+        {"topic": "OUTPUT", "value": {"FOO": {"F0": null}}},
         {"topic": "OUTPUT", "value": {"FOO": null}},
         {"topic": "OUTPUT", "value": null}
       ]

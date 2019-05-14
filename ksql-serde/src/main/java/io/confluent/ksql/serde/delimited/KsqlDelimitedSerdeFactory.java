@@ -38,7 +38,7 @@ public class KsqlDelimitedSerdeFactory extends KsqlSerdeFactory {
 
   @Override
   protected Serializer<Struct> createSerializer(
-      final Schema schema,
+      final Schema logicalSchema,
       final KsqlConfig ksqlConfig,
       final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
   ) {
@@ -49,13 +49,13 @@ public class KsqlDelimitedSerdeFactory extends KsqlSerdeFactory {
 
   @Override
   protected Deserializer<Struct> createDeserializer(
-      final Schema schema,
+      final Schema logicalSchema,
       final KsqlConfig ksqlConfig,
       final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
       final ProcessingLogger processingLogger
   ) {
     final Deserializer<Struct> deserializer =
-        new KsqlDelimitedDeserializer(schema, processingLogger);
+        new KsqlDelimitedDeserializer(logicalSchema, processingLogger);
 
     deserializer.configure(Collections.emptyMap(), false);
 

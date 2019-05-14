@@ -53,7 +53,7 @@ public class KsqlTestingToolTest {
   @Test
   public void shouldRunCorrectTest() throws UnsupportedEncodingException {
     // When:
-    KsqlTestingTool.loadAndRunTests(new String[]{"src/test/resources/unit_test.json"});
+    KsqlTestingTool.loadAndRunTests(new String[]{"src/test/resources/testing_tool_tests.json"});
 
     // Then:
     assertThat(outContent.toString("UTF-8"), containsString("All tests passed!"));

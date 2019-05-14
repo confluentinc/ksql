@@ -434,7 +434,7 @@ public class TestCase implements Test {
       final List<FakeKafkaRecord> expected,
       final List<FakeKafkaRecord> actual,
       final SchemaRegistryClient schemaRegistryClient) {
-    assertThat(expected.size(), equalTo(actual.size()));
+    assertThat(actual.size(), equalTo(expected.size()));
     for (int i = 0; i < expected.size(); i++) {
       final ProducerRecord actualProducerRecord = actual.get(i).getProducerRecord();
       final ProducerRecord expectedProducerRecord = expected.get(i).getProducerRecord();

@@ -29,8 +29,10 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.HoppingWindowExpression;
+import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.KsqlWindowExpression;
+import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Relation;
 import io.confluent.ksql.parser.tree.SessionWindowExpression;
 import io.confluent.ksql.parser.tree.TumblingWindowExpression;
@@ -170,9 +172,19 @@ final class TestExecutorUtil {
       return new ExecuteResultAndSortedSources(
           executeResult,
           getSortedSources(
-              (CreateAsSelect)prepared.getStatement(),
+              ((CreateAsSelect)prepared.getStatement()).getQuery(),
               executionContext.getMetaStore()),
-          getWindowType((CreateAsSelect)prepared.getStatement(), executionContext.getMetaStore()));
+          getWindowType(((CreateAsSelect)prepared.getStatement()).getQuery(),
+              executionContext.getMetaStore()));
+    }
+    if (prepared.getStatement() instanceof InsertInto) {
+      return new ExecuteResultAndSortedSources(
+          executeResult,
+          getSortedSources(((InsertInto) prepared.getStatement()).getQuery(),
+              executionContext.getMetaStore()),
+          getWindowType(((InsertInto) prepared.getStatement()).getQuery(),
+              executionContext.getMetaStore())
+      );
     }
     return new ExecuteResultAndSortedSources(
         executeResult,
@@ -181,9 +193,9 @@ final class TestExecutorUtil {
   }
 
   private static List<DataSource> getSortedSources(
-      final CreateAsSelect createAsSelect,
+      final Query query,
       final MetaStore metaStore) {
-    final Relation from = createAsSelect.getQuery().getFrom();
+    final Relation from = query.getFrom();
     if (from instanceof Join) {
       final Join join = (Join) from;
       final AliasedRelation left = (AliasedRelation) join.getLeft();
@@ -207,12 +219,11 @@ final class TestExecutorUtil {
   }
 
   private static Pair<WindowType, Long> getWindowType(
-      final CreateAsSelect createAsSelect,
+      final Query query,
       final MetaStore metaStore) {
-    if (createAsSelect.getQuery().getWindow().isPresent()) {
+    if (query.getWindow().isPresent()) {
 
-      final KsqlWindowExpression ksqlWindowExpression = createAsSelect
-          .getQuery()
+      final KsqlWindowExpression ksqlWindowExpression = query
           .getWindow()
           .get().getKsqlWindowExpression();
       if (ksqlWindowExpression instanceof SessionWindowExpression) {
@@ -227,7 +238,7 @@ final class TestExecutorUtil {
               ((HoppingWindowExpression) ksqlWindowExpression).getSizeUnit());
       return new Pair<>(WindowType.TIME, windowSize);
     }
-    final Relation fromRelation = (Relation) createAsSelect.getQuery().getFrom();
+    final Relation fromRelation = (Relation) query.getFrom();
     // No join on windowed key yet.
     if (fromRelation instanceof Join) {
       return new Pair<>(WindowType.NO_WINDOW, Long.MIN_VALUE);

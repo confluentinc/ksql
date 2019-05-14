@@ -47,10 +47,10 @@ public class TestExecutorUtilTest {
   @Before
   public void setUp() throws IOException {
     final QttTestFile qttTestFile = JsonMapper.INSTANCE.mapper
-        .readValue(new File("src/test/resources/unit_test.json"), QttTestFile.class);
+        .readValue(new File("src/test/resources/testing_tool_tests.json"), QttTestFile.class);
     final TestCaseNode testCaseNode = qttTestFile.tests.get(0);
     testCase = testCaseNode.buildTests(
-        new File("src/test/resources/unit_test.json").toPath(),
+        new File("src/test/resources/testing_tool_tests.json").toPath(),
         TestFunctionRegistry.INSTANCE.get()
     ).get(0);
 

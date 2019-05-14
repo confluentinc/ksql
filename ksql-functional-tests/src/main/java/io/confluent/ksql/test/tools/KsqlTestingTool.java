@@ -82,18 +82,16 @@ public final class KsqlTestingTool {
       final List<Pair<String, String>> failedTests
   ) {
     try {
-
       System.out.println(" >>> Running test: " + testCase.getName());
       testExecutor.buildAndExecuteQuery(testCase);
       System.out.println("\t >>> Test " + testCase.getName() + " passed!");
       passedTests.add(testCase.getName());
-      totalNumberOfTests ++;
     } catch (final Exception e) {
-      e.printStackTrace();
       System.err.println("\t>>>>> Test " + testCase.getName() + " failed: " + e.getMessage());
       failedTests.add(new Pair<>(testCase.getName(), e.getMessage()));
     } finally {
       testExecutor.close();
+      totalNumberOfTests ++;
     }
   }
 

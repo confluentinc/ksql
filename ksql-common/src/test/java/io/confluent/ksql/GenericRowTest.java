@@ -17,7 +17,7 @@ package io.confluent.ksql;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
+import static org.hamcrest.CoreMatchers.is;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -129,22 +129,11 @@ public class GenericRowTest {
   }
 
   @Test
-  public void testToString() {
-      LinkedList<Object> linkedList = new LinkedList<>();
-      GenericRow genericRow = new GenericRow(linkedList);
-      linkedList.addLast( null);
-
-      assertEquals("[ null ]", genericRow.toString());
-      assertEquals(1, linkedList.size());
-  }
-
-  @Test
-  public void testGetColumnsWhenNoneAreSet() {
+  public void shouldHandleRowWithNoElements() {
       List<Object> linkedList = new LinkedList<>();
       GenericRow genericRow = new GenericRow(linkedList);
 
-      assertEquals(0, linkedList.size());
-      assertEquals(0, genericRow.getColumns().size());
+      assertThat(genericRow.getColumns().size(), is(0) );
   }
 
   @Test
@@ -164,10 +153,6 @@ public class GenericRowTest {
               addEqualityGroup(
                       new GenericRow(new Object())
               ).
-              addEqualityGroup(
-                      new GenericRow(columnListWithEmptyObject),
-                      new GenericRow(columnListWithEmptyObject)
-                      ).
               addEqualityGroup(
                       new GenericRow(columnListWithString),
                       new GenericRow(columnListWithString)

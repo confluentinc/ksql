@@ -171,10 +171,10 @@ Object Model (POM) file for the Maven build, and name it ``pom.xml``:
         <properties>
             <exec.mainClass>my.company.ksql.udfdemo.thisisignored</exec.mainClass>
             <java.version>1.8</java.version>
-            <kafka.version>2.0.0</kafka.version>
-            <kafka.scala.version>2.11</kafka.scala.version>
+            <kafka.version>|kafka_release|</kafka.version>
+            <kafka.scala.version>|scala_version|</kafka.scala.version>
             <scala.version>${kafka.scala.version}.8</scala.version>
-            <confluent.version>5.1.0</confluent.version>
+            <confluent.version>|release|</confluent.version>
             <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         </properties>
 
@@ -184,7 +184,7 @@ Object Model (POM) file for the Maven build, and name it ``pom.xml``:
             <dependency>
                 <groupId>io.confluent.ksql</groupId>
                 <artifactId>ksql-udf</artifactId>
-                <version>|release|</version>
+                <version>${confluent.version}</version>
             </dependency>
         </dependencies>
 
@@ -196,8 +196,8 @@ Object Model (POM) file for the Maven build, and name it ``pom.xml``:
                     <artifactId>maven-compiler-plugin</artifactId>
                     <version>3.6.1</version>
                     <configuration>
-                        <source>1.8</source>
-                        <target>1.8</target>
+                        <source>${java.version}</source>
+                        <target>${java.version}</target>
                     </configuration>
                 </plugin>
 

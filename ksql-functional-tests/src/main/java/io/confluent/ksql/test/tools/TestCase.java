@@ -89,6 +89,10 @@ public class TestCase implements Test {
     return inputRecords;
   }
 
+  public Collection<Topic> getTopics() {
+    return topics;
+  }
+
   @Override
   public String getTestFile() {
     return testPath.toString();
@@ -320,21 +324,6 @@ public class TestCase implements Test {
     return result.toString();
   }
 
-  void createInputTopics(final FakeKafkaService fakeKafkaService) {
-    topics.forEach(fakeKafkaService::createTopic);
-  }
-
-  void writeInputIntoTopics(
-      final FakeKafkaService fakeKafkaService,
-      final SchemaRegistryClient schemaRegistryClient
-  ) {
-    inputRecords.forEach(
-        record -> fakeKafkaService.writeRecord(
-            record.topic.getName(),
-            FakeKafkaRecord.of(record, null))
-    );
-  }
-
   @SuppressWarnings("unchecked")
   static void processSingleRecord(
       final FakeKafkaRecord fakeKafkaRecord,
@@ -376,11 +365,7 @@ public class TestCase implements Test {
       fakeKafkaService.writeRecord(
           producerRecord.topic(),
           FakeKafkaRecord.of(
-              getTopic(
-                  kafkaTopicClient,
-                  testDriver.getSinkKsqlTopic(),
-                  schemaRegistryClient,
-                  false),
+              sinkTopic,
               producerRecord)
       );
     }
@@ -432,14 +417,13 @@ public class TestCase implements Test {
           || !actualProducerRecord.key().equals(expectedProducerRecord.key())
           || !actualProducerRecord.value().equals(value)
           ) {
-        final AssertionError error = new AssertionError(
+        throw new KsqlException(
             "Expected <" + expectedProducerRecord.key() + ", "
                 + value + "> with timestamp="
                 + expectedProducerRecord.timestamp()
                 + " but was <" + actualProducerRecord.key() + ", "
                 + actualProducerRecord.value() + "> with timestamp="
                 + actualProducerRecord.timestamp());
-        throw new KsqlException(error.getMessage());
       }
     }
   }

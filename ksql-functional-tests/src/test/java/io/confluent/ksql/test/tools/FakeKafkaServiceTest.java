@@ -42,17 +42,19 @@ public class FakeKafkaServiceTest {
   private Record record;
   private FakeKafkaRecord fakeKafkaRecord;
 
+  private FakeKafkaService fakeKafkaService;
+  private Topic topic;
+
   @Before
   public void setUp() {
     fakeKafkaRecord = FakeKafkaRecord.of(record, producerRecord);
+    fakeKafkaService = FakeKafkaService.create();
+    topic = new Topic("foo", Optional.of(avroSchema), new StringSerdeSupplier(), 1, 1);
   }
 
 
   @Test
   public void shouldCreateTopicCorrectly() {
-    // Given:
-    final FakeKafkaService fakeKafkaService = FakeKafkaService.create();
-    final Topic topic = new Topic("foo", Optional.of(avroSchema), new StringSerdeSupplier(), 1, 1);
 
     // When:
     fakeKafkaService.createTopic(topic);
@@ -64,8 +66,6 @@ public class FakeKafkaServiceTest {
   @Test
   public void shouldWriteSingleRecordToTopic() {
     // Givien:
-    final FakeKafkaService fakeKafkaService = FakeKafkaService.create();
-    final Topic topic = new Topic("foo", Optional.of(avroSchema), new StringSerdeSupplier(), 1, 1);
     fakeKafkaService.createTopic(topic);
 
     // When:
@@ -78,8 +78,6 @@ public class FakeKafkaServiceTest {
 
   public void shouldReadRecordFromTopic() {
     // Givien:
-    final FakeKafkaService fakeKafkaService = FakeKafkaService.create();
-    final Topic topic = new Topic("foo", Optional.of(avroSchema), new StringSerdeSupplier(), 1, 1);
     fakeKafkaService.createTopic(topic);
     fakeKafkaService.writeRecord("foo", fakeKafkaRecord);
 

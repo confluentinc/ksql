@@ -30,6 +30,7 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import java.io.IOException;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -68,8 +69,8 @@ final class TestExecutor {
               ksqlConfig
       );
 
-      testCase.createInputTopics(fakeKafkaService);
-      testCase.writeInputIntoTopics(fakeKafkaService, serviceContext.getSchemaRegistryClient());
+      createInputTopics(testCase.getTopics(), fakeKafkaService);
+      writeInputIntoTopics(testCase.getInputRecords(), fakeKafkaService);
       final Set<String> inputTopics = testCase.getInputRecords()
           .stream()
           .map(record -> record.topic.getName())
@@ -193,6 +194,24 @@ final class TestExecutor {
     }
     return mapBuilder.build();
 
+  }
+
+
+  private static void createInputTopics(
+      final Collection<Topic> topics,
+      final FakeKafkaService fakeKafkaService) {
+    topics.forEach(fakeKafkaService::createTopic);
+  }
+
+  private static void writeInputIntoTopics(
+      final List<Record> inputRecords,
+      final FakeKafkaService fakeKafkaService
+  ) {
+    inputRecords.forEach(
+        record -> fakeKafkaService.writeRecord(
+            record.topic.getName(),
+            FakeKafkaRecord.of(record, null))
+    );
   }
 
 }

@@ -57,10 +57,6 @@ public final class KsqlTestingTool {
 
       final QttTestFile qttTestFile = OBJECT_MAPPER.readValue(
           new File(testOptions.getTestFile()), QttTestFile.class);
-      if (qttTestFile.tests.isEmpty()) {
-        System.err.println("No tests in the file: " + args[0]);
-        return;
-      }
       for (final TestCaseNode testCaseNode: qttTestFile.tests) {
         final List<TestCase> testCases = testCaseNode.buildTests(
             new File(testOptions.getTestFile()).toPath(),

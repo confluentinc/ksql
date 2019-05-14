@@ -12,7 +12,7 @@ Run the testing tool from a terminal and pass the test file as a parameter.
 
 .. code:: bash
 
-    $ ksql-testing-tool /path/to/the/test/file.json
+    ksql-testing-tool /path/to/the/test/file.json
 
 
 Test File Structure

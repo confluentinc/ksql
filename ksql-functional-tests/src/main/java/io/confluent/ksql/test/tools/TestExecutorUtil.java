@@ -128,18 +128,19 @@ final class TestExecutorUtil {
 
     return statements.stream()
         .map(stmt -> execute(engine, stmt, ksqlConfig, overriddenProperties, schemaInjector))
-        .filter(queryAndSortedSources -> queryAndSortedSources.getSources() != null)
+        .filter(executeResultAndSortedSources -> executeResultAndSortedSources.getSources() != null)
         .map(
-            queryAndSortedSources -> new PersistentQueryAndSortedSources(
-                (PersistentQueryMetadata) queryAndSortedSources.getExecuteResult().getQuery().get(),
-                queryAndSortedSources.getSources()
+            executeResultAndSortedSources -> new PersistentQueryAndSortedSources(
+                (PersistentQueryMetadata) executeResultAndSortedSources
+                    .getExecuteResult().getQuery().get(),
+                executeResultAndSortedSources.getSources()
             ))
         .collect(Collectors.toList());
   }
 
 
   @SuppressWarnings({"rawtypes","unchecked"})
-  private static QueryAndSortedSources execute(
+  private static ExecuteResultAndSortedSources execute(
       final KsqlExecutionContext executionContext,
       final ParsedStatement stmt,
       final KsqlConfig ksqlConfig,
@@ -155,13 +156,13 @@ final class TestExecutorUtil {
             .orElse((ConfiguredStatement) configured);
     final ExecuteResult executeResult = executionContext.execute(withSchema);
     if (prepared.getStatement() instanceof CreateAsSelect) {
-      return new QueryAndSortedSources(
+      return new ExecuteResultAndSortedSources(
           executeResult,
           getSortedSources(
               (CreateAsSelect)prepared.getStatement(),
               executionContext.getMetaStore()));
     }
-    return new QueryAndSortedSources(executeResult, null);
+    return new ExecuteResultAndSortedSources(executeResult, null);
   }
 
   private static List<DataSource> getSortedSources(
@@ -173,10 +174,10 @@ final class TestExecutorUtil {
       final AliasedRelation left = (AliasedRelation) join.getLeft();
       final AliasedRelation right = (AliasedRelation) join.getRight();
       if (metaStore.getSource(left.getRelation().toString()) == null) {
-        throw new KsqlException("Sourde does not exist: " + left.getRelation().toString());
+        throw new KsqlException("Source does not exist: " + left.getRelation().toString());
       }
       if (metaStore.getSource(right.getRelation().toString()) == null) {
-        throw new KsqlException("Sourde does not exist: " + right.getRelation().toString());
+        throw new KsqlException("Source does not exist: " + right.getRelation().toString());
       }
       return ImmutableList.of(
           metaStore.getSource(left.getRelation().toString()),
@@ -184,18 +185,18 @@ final class TestExecutorUtil {
     } else {
       final String fromName = ((AliasedRelation) from).getRelation().toString();
       if (metaStore.getSource(fromName) == null) {
-        throw new KsqlException("Sourde does not exist: " + fromName);
+        throw new KsqlException("Source does not exist: " + fromName);
       }
       return ImmutableList.of(metaStore.getSource(fromName));
     }
   }
 
 
-  static final class QueryAndSortedSources {
+  private static final class ExecuteResultAndSortedSources {
     private final ExecuteResult executeResult;
     private final List<DataSource> sources;
 
-    QueryAndSortedSources(
+    ExecuteResultAndSortedSources(
         final ExecuteResult executeResult,
         final List<DataSource> sources) {
       this.executeResult = executeResult;
@@ -211,7 +212,7 @@ final class TestExecutorUtil {
     }
   }
 
-  static final class PersistentQueryAndSortedSources {
+  private static final class PersistentQueryAndSortedSources {
     private final PersistentQueryMetadata persistentQueryMetadata;
     private final List<DataSource> sources;
 

@@ -52,6 +52,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.TopologyTestDriver;
+import org.apache.kafka.streams.kstream.WindowedSerdes.SessionWindowedSerde;
+import org.apache.kafka.streams.kstream.WindowedSerdes.TimeWindowedSerde;
 
 final class TestExecutorUtil {
 
@@ -170,7 +172,7 @@ final class TestExecutorUtil {
           getSortedSources(
               (CreateAsSelect)prepared.getStatement(),
               executionContext.getMetaStore()),
-          getWindowType((CreateAsSelect)prepared.getStatement()));
+          getWindowType((CreateAsSelect)prepared.getStatement(), executionContext.getMetaStore()));
     }
     return new ExecuteResultAndSortedSources(
         executeResult,
@@ -204,8 +206,11 @@ final class TestExecutorUtil {
     }
   }
 
-  private static Pair<WindowType, Long> getWindowType(final CreateAsSelect createAsSelect) {
+  private static Pair<WindowType, Long> getWindowType(
+      final CreateAsSelect createAsSelect,
+      final MetaStore metaStore) {
     if (createAsSelect.getQuery().getWindow().isPresent()) {
+
       final KsqlWindowExpression ksqlWindowExpression = createAsSelect
           .getQuery()
           .getWindow()
@@ -221,6 +226,20 @@ final class TestExecutorUtil {
               ((HoppingWindowExpression) ksqlWindowExpression).getSize(),
               ((HoppingWindowExpression) ksqlWindowExpression).getSizeUnit());
       return new Pair<>(WindowType.TIME, windowSize);
+    }
+    final Relation fromRelation = (Relation) createAsSelect.getQuery().getFrom();
+    // No join on windowed key yet.
+    if (fromRelation instanceof Join) {
+      return new Pair<>(WindowType.NO_WINDOW, Long.MIN_VALUE);
+    }
+    final AliasedRelation aliasedRelation = (AliasedRelation) fromRelation;
+    final DataSource source = metaStore.getSource(aliasedRelation.getRelation().toString());
+    if (source != null) {
+      if (source.getKeySerdeFactory().create() instanceof TimeWindowedSerde) {
+        return new Pair<>(WindowType.TIME, Long.MAX_VALUE);
+      } else if (source.getKeySerdeFactory().create() instanceof SessionWindowedSerde) {
+        return new Pair<>(WindowType.SESSION, Long.MIN_VALUE);
+      }
     }
 
     return new Pair<>(WindowType.NO_WINDOW, Long.MIN_VALUE);

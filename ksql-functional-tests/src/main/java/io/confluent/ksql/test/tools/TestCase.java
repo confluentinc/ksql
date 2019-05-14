@@ -62,6 +62,9 @@ import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.streams.kstream.SessionWindowedDeserializer;
 import org.apache.kafka.streams.kstream.TimeWindowedDeserializer;
+import org.apache.kafka.streams.kstream.Windowed;
+import org.apache.kafka.streams.kstream.internals.SessionWindow;
+import org.apache.kafka.streams.kstream.internals.TimeWindow;
 import org.apache.kafka.streams.test.ConsumerRecordFactory;
 import org.apache.kafka.streams.test.OutputVerifier;
 import org.hamcrest.StringDescription;
@@ -360,26 +363,46 @@ public class TestCase implements Test {
         ? new ValueSpecAvroSerdeSupplier().getDeserializer(schemaRegistryClient)
         : sinkTopic.getDeserializer(schemaRegistryClient);
     final Deserializer keyDeserializer;
+    boolean unnestRedundantWindow = false;
     if (testDriver.getWindow().getLeft() == WindowType.NO_WINDOW) {
       keyDeserializer = Serdes.String().deserializer();
     } else {
-
       final Deserializer<String> inner = Serdes.String().deserializer();
-      keyDeserializer = testDriver.getWindow().getLeft() == WindowType.SESSION
-          ? new SessionWindowedDeserializer<>(inner)
-          : new TimeWindowedDeserializer<>(inner, testDriver.getWindow().getRight());
+      if (testDriver.getWindow().getLeft() == WindowType.SESSION) {
+        keyDeserializer = new SessionWindowedDeserializer<>(inner);
+      } else {
+        if (testDriver.getWindow().getRight() != Long.MAX_VALUE) {
+          keyDeserializer = new TimeWindowedDeserializer<>(
+              inner,
+              testDriver.getWindow().getRight());
+        } else {
+          keyDeserializer = fakeKafkaRecord.getTestRecord().keyDeserializer();
+          unnestRedundantWindow = true;
+        }
+      }
     }
-    final ProducerRecord producerRecord = testDriver.getTopologyTestDriver().readOutput(
+    ProducerRecord producerRecord = testDriver.getTopologyTestDriver().readOutput(
         testDriver.getSinkKsqlTopic().getKafkaTopicName(),
         keyDeserializer,
         sinkValueDeserializer
     );
+    if (unnestRedundantWindow) {
+      producerRecord = new ProducerRecord(
+          producerRecord.topic(),
+          producerRecord.partition(),
+          producerRecord.timestamp(),
+          getWindowed(
+              ((Windowed) producerRecord.key()).key().toString(), testDriver.getWindow().getLeft()),
+          producerRecord.value()
+      );
+    }
     if (producerRecord != null) {
       fakeKafkaService.writeRecord(
           producerRecord.topic(),
           FakeKafkaRecord.of(
               sinkTopic,
-              producerRecord)
+              producerRecord,
+              testDriver.getWindow().getLeft())
       );
     }
   }
@@ -412,7 +435,9 @@ public class TestCase implements Test {
       final ProducerRecord actualProducerRecord = actual.get(i).getProducerRecord();
       final ProducerRecord expectedProducerRecord = expected.get(i).getProducerRecord();
       final Object value;
-      if (expected.get(i).getTestRecord().topic.getSerdeSupplier()
+      if (expectedProducerRecord.value() == null) {
+        value = null;
+      } else if (expected.get(i).getTestRecord().topic.getSerdeSupplier()
           instanceof ValueSpecAvroSerdeSupplier) {
         final ValueSpecAvroSerdeSupplier valueSpecAvroSerdeSupplier
             = new ValueSpecAvroSerdeSupplier();
@@ -425,19 +450,27 @@ public class TestCase implements Test {
         value = new String((byte[]) expectedProducerRecord.value(), Charset.forName("UTF-8"));
       }
 
-      if (
-          !actualProducerRecord.timestamp().equals(expectedProducerRecord.timestamp())
-          || !actualProducerRecord.key().equals(expectedProducerRecord.key())
-          || !actualProducerRecord.value().equals(value)
-          ) {
-        throw new KsqlException(
-            "Expected <" + expectedProducerRecord.key() + ", "
-                + value + "> with timestamp="
-                + expectedProducerRecord.timestamp()
-                + " but was <" + actualProducerRecord.key() + ", "
-                + actualProducerRecord.value() + "> with timestamp="
-                + actualProducerRecord.timestamp());
-      }
+      validateCreatedMessage(actualProducerRecord, expectedProducerRecord, value);
+    }
+  }
+
+  private static void validateCreatedMessage(
+      final ProducerRecord actualProducerRecord,
+      final ProducerRecord expectedProducerRecord,
+      final Object value
+  ) {
+    final boolean boothValuesNull = (actualProducerRecord.value() == null && value == null);
+    if (
+        !actualProducerRecord.timestamp().equals(expectedProducerRecord.timestamp())
+            || !actualProducerRecord.key().equals(expectedProducerRecord.key())
+            || (!boothValuesNull && !actualProducerRecord.value().equals(value))) {
+      throw new KsqlException(
+          "Expected <" + expectedProducerRecord.key() + ", "
+              + value + "> with timestamp="
+              + expectedProducerRecord.timestamp()
+              + " but was <" + actualProducerRecord.key() + ", "
+              + actualProducerRecord.value() + "> with timestamp="
+              + actualProducerRecord.timestamp());
     }
   }
 
@@ -512,5 +545,20 @@ public class TestCase implements Test {
       }
       throw e;
     }
+  }
+
+  @SuppressWarnings("unchecked")
+  private static Windowed getWindowed(final String windowString, final WindowType windowType) {
+    final int atIndex = windowString.indexOf("@");
+    final int slashIndex = windowString.indexOf("/");
+    final String key = windowString.substring(1, atIndex);
+    final Long start = Long.parseLong(windowString.substring(atIndex + 1, slashIndex));
+    final Long end = Long.parseLong(windowString.substring(
+        slashIndex + 1,
+        windowString.length() - 1));
+    if (windowType == WindowType.SESSION) {
+      return new Windowed(key, new SessionWindow(start, end));
+    }
+    return new Windowed(key, new TimeWindow(start, end));
   }
 }

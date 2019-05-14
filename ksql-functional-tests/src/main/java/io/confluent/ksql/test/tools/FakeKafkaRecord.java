@@ -15,11 +15,15 @@
 
 package io.confluent.ksql.test.tools;
 
+import io.confluent.ksql.test.model.WindowData;
+import io.confluent.ksql.test.model.WindowData.Type;
 import io.confluent.ksql.test.serde.SerdeSupplier;
 import io.confluent.ksql.test.serde.ValueSpec;
 import io.confluent.ksql.test.serde.avro.AvroSerdeSupplier;
+import io.confluent.ksql.test.tools.TopologyTestDriverContainer.WindowType;
 import java.util.Objects;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.streams.kstream.Windowed;
 
 public final class FakeKafkaRecord {
 
@@ -38,7 +42,8 @@ public final class FakeKafkaRecord {
 
   public static FakeKafkaRecord of(
       final Topic topic,
-      final ProducerRecord producerRecord) {
+      final ProducerRecord producerRecord,
+      final WindowType windowType) {
     Objects.requireNonNull(producerRecord);
     Objects.requireNonNull(topic, "topic");
     final SerdeSupplier serdeSupplier = topic.getSerdeSupplier();
@@ -49,9 +54,22 @@ public final class FakeKafkaRecord {
             ? ((ValueSpec)producerRecord.value()).getSpec()
             : producerRecord.value(),
         producerRecord.timestamp(),
-        null
+        getWindowData(producerRecord, windowType)
     );
     return new FakeKafkaRecord(testRecord, producerRecord);
+  }
+
+  private static WindowData getWindowData(
+      final ProducerRecord producerRecord,
+      final WindowType windowType) {
+    if (producerRecord.key() instanceof Windowed) {
+      final Windowed windowed = (Windowed) producerRecord.key();
+      return new WindowData(
+          windowed.window().start(),
+          windowed.window().end(),
+          windowType == WindowType.SESSION ? Type.SESSION.toString() : Type.TIME.toString());
+    }
+    return null;
   }
 
   Record getTestRecord() {

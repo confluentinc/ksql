@@ -164,7 +164,7 @@ public class TopicAccessValidatorTest {
   }
 
   @Test
-  public void shouldJoinWitOneRightTopicWithReadPermissionsDenied() {
+  public void shouldJoinWithOneRightTopicWithReadPermissionsDenied() {
     // Given:
     givenTopicPermissions(TOPIC_1, Collections.singleton(AclOperation.READ));
     givenTopicPermissions(TOPIC_2, Collections.singleton(AclOperation.WRITE));

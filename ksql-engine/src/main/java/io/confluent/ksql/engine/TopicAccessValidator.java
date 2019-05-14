@@ -88,22 +88,8 @@ public class TopicAccessValidator {
 
     validateQueryTopicSources(createAsSelect.getQuery());
 
-    String kafkaTopic;
-
-    try {
-      // Get the topic from the Metastore if a different name is used
-      kafkaTopic = getSourceTopicName(createAsSelect.getName().getSuffix());
-    } catch (final KsqlException e) {
-      // Get the topic if WITH(kafka_topic='') clause is used
-      final Expression nameExpression = createAsSelect.getProperties()
-          .get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY);
-
-      kafkaTopic = (nameExpression != null)
-          ? StringUtils.strip(nameExpression.toString(), "'")
-          : createAsSelect.getName().getSuffix();
-    }
-
     // At this point, the topic should have been created by the TopicCreateInjector
+    final String kafkaTopic = getSourceTopicFromCreateAsSelect(createAsSelect);
     checkAccess(kafkaTopic, AclOperation.WRITE);
   }
 
@@ -120,11 +106,11 @@ public class TopicAccessValidator {
     checkAccess(kafkaTopic, AclOperation.WRITE);
   }
 
-  private String getSourceTopicName(final String ksqlTopicName) {
-    final DataSource<?> dataSource = metaStore.getSource(ksqlTopicName);
+  private String getSourceTopicName(final String streamOrTable) {
+    final DataSource<?> dataSource = metaStore.getSource(streamOrTable);
     if (dataSource == null) {
       throw new KsqlException("Cannot validate for topic access from an unknown stream/table: "
-          + ksqlTopicName);
+          + streamOrTable);
     }
 
     return dataSource.getKafkaTopicName();
@@ -146,5 +132,17 @@ public class TopicAccessValidator {
               StringUtils.capitalize(operation.toString().toLowerCase()), topicName)
       );
     }
+  }
+
+  private String getSourceTopicFromCreateAsSelect(final CreateAsSelect createAsSelect) {
+    // Get the topic if WITH(kafka_topic='') clause is used
+    final Expression nameExpression = createAsSelect.getProperties()
+        .get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY);
+
+    if (nameExpression != null) {
+      return StringUtils.strip(nameExpression.toString(), "'");
+    }
+
+    return getSourceTopicName(createAsSelect.getName().getSuffix());
   }
 }

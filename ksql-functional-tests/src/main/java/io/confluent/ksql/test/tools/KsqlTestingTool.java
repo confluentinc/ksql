@@ -35,11 +35,14 @@ public final class KsqlTestingTool {
 
   private static final ObjectMapper OBJECT_MAPPER = JsonMapper.INSTANCE.mapper;
 
+  private static int totalNumberOfTests;
+
   public static void main(final String[] args) throws IOException {
     loadAndRunTests(args);
   }
 
   static void loadAndRunTests(final String[] args) {
+    totalNumberOfTests = 0;
     final List<String> passedTests = new ArrayList<>();
     final List<Pair<String, String>> failedTests = new ArrayList<>();
     try {
@@ -70,7 +73,7 @@ public final class KsqlTestingTool {
               failedTests);
         }
       }
-      printResults(qttTestFile.tests.size(), passedTests, failedTests);
+      printResults(totalNumberOfTests, passedTests, failedTests);
     } catch (final Exception e) {
       System.err.println("Failed to start KSQL testing tool: " + e.getMessage());
     }
@@ -83,10 +86,12 @@ public final class KsqlTestingTool {
       final List<Pair<String, String>> failedTests
   ) {
     try {
+
       System.out.println(" >>> Running test: " + testCase.getName());
       testExecutor.buildAndExecuteQuery(testCase);
       System.out.println("\t >>> Test " + testCase.getName() + " passed!");
       passedTests.add(testCase.getName());
+      totalNumberOfTests ++;
     } catch (final Exception e) {
       e.printStackTrace();
       System.err.println("\t>>>>> Test " + testCase.getName() + " failed: " + e.getMessage());

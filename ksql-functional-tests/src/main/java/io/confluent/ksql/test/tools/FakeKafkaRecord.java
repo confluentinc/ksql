@@ -15,6 +15,9 @@
 
 package io.confluent.ksql.test.tools;
 
+import io.confluent.ksql.test.serde.SerdeSupplier;
+import io.confluent.ksql.test.serde.ValueSpec;
+import io.confluent.ksql.test.serde.avro.AvroSerdeSupplier;
 import java.util.Objects;
 import org.apache.kafka.clients.producer.ProducerRecord;
 
@@ -38,10 +41,13 @@ public final class FakeKafkaRecord {
       final ProducerRecord producerRecord) {
     Objects.requireNonNull(producerRecord);
     Objects.requireNonNull(topic, "topic");
+    final SerdeSupplier serdeSupplier = topic.getSerdeSupplier();
     final Record testRecord = new Record(
         topic,
         producerRecord.key().toString(),
-        producerRecord.value(),
+        serdeSupplier instanceof AvroSerdeSupplier
+            ? ((ValueSpec)producerRecord.value()).getSpec()
+            : producerRecord.value(),
         producerRecord.timestamp(),
         null
     );

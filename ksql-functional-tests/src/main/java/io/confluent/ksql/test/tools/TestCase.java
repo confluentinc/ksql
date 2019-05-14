@@ -31,8 +31,9 @@ import io.confluent.ksql.serde.delimited.KsqlDelimitedSerdeFactory;
 import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.test.serde.SerdeSupplier;
+import io.confluent.ksql.test.serde.ValueSpec;
 import io.confluent.ksql.test.serde.avro.AvroSerdeSupplier;
-import io.confluent.ksql.test.serde.json.ValueSpecJsonSerdeSupplier;
+import io.confluent.ksql.test.serde.avro.ValueSpecAvroSerdeSupplier;
 import io.confluent.ksql.test.serde.string.StringSerdeSupplier;
 import io.confluent.ksql.test.tools.conditions.PostConditions;
 import io.confluent.ksql.test.tools.exceptions.KsqlExpectedException;
@@ -56,6 +57,7 @@ import org.apache.avro.Schema;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.Deserializer;
+import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.streams.test.ConsumerRecordFactory;
 import org.apache.kafka.streams.test.OutputVerifier;
@@ -340,25 +342,35 @@ public class TestCase implements Test {
       final TopologyTestDriverContainer testDriver,
       final KafkaTopicClient kafkaTopicClient,
       final SchemaRegistryClient schemaRegistryClient) throws IOException, RestClientException {
+    final Serializer serializer = fakeKafkaRecord.getTestRecord().topic.getSerdeSupplier()
+        instanceof AvroSerdeSupplier
+        ? new ValueSpecAvroSerdeSupplier().getSerializer(schemaRegistryClient)
+        : fakeKafkaRecord.getTestRecord().topic.getSerializer(schemaRegistryClient);
     testDriver.getTopologyTestDriver().pipeInput(
         new ConsumerRecordFactory<>(
             fakeKafkaRecord.getTestRecord().keySerializer(),
-            fakeKafkaRecord.getTestRecord().topic.getSerializer(schemaRegistryClient)
+            serializer
         ).create(
             fakeKafkaRecord.getTestRecord().topic.name,
             fakeKafkaRecord.getTestRecord().key(),
-            fakeKafkaRecord.getTestRecord().value,
+            fakeKafkaRecord.getTestRecord().value(),
             fakeKafkaRecord.getTestRecord().timestamp
         )
     );
+
     final Topic sinkTopic = getTopic(
         kafkaTopicClient,
         testDriver.getSinkKsqlTopic(),
-        schemaRegistryClient);
+        schemaRegistryClient,
+        true);
+    final Deserializer sinkValueDeserializer = sinkTopic.getSerdeSupplier()
+        instanceof AvroSerdeSupplier
+        ? new ValueSpecAvroSerdeSupplier().getDeserializer(schemaRegistryClient)
+        : sinkTopic.getDeserializer(schemaRegistryClient);
     final ProducerRecord producerRecord = testDriver.getTopologyTestDriver().readOutput(
         testDriver.getSinkKsqlTopic().getKafkaTopicName(),
         new StringDeserializer(),
-        sinkTopic.getDeserializer(schemaRegistryClient)
+        sinkValueDeserializer
     );
     if (producerRecord != null) {
       fakeKafkaService.writeRecord(
@@ -367,7 +379,8 @@ public class TestCase implements Test {
               getTopic(
                   kafkaTopicClient,
                   testDriver.getSinkKsqlTopic(),
-                  schemaRegistryClient),
+                  schemaRegistryClient,
+                  false),
               producerRecord)
       );
     }
@@ -402,14 +415,16 @@ public class TestCase implements Test {
       final ProducerRecord expectedProducerRecord = expected.get(i).getProducerRecord();
       final Object value;
       if (expected.get(i).getTestRecord().topic.getSerdeSupplier()
-          instanceof ValueSpecJsonSerdeSupplier) {
-        value = new String((byte[]) expectedProducerRecord.value(), Charset.forName("UTF-8"));
-      } else {
-        final Deserializer deserializer = expected.get(i).getTestRecord().topic
+          instanceof ValueSpecAvroSerdeSupplier) {
+        final ValueSpecAvroSerdeSupplier valueSpecAvroSerdeSupplier
+            = new ValueSpecAvroSerdeSupplier();
+        final Deserializer deserializer = valueSpecAvroSerdeSupplier
             .getDeserializer(schemaRegistryClient);
-        value = deserializer.deserialize(
+        value = ((ValueSpec) deserializer.deserialize(
             expectedProducerRecord.topic(),
-            (byte[]) expectedProducerRecord.value());
+            (byte[]) expectedProducerRecord.value())).getSpec();
+      } else {
+        value = new String((byte[]) expectedProducerRecord.value(), Charset.forName("UTF-8"));
       }
 
       if (
@@ -457,12 +472,13 @@ public class TestCase implements Test {
   private static Topic getTopic(
       final KafkaTopicClient kafkaTopicClient,
       final KsqlTopic ksqlTopic,
-      final SchemaRegistryClient schemaRegistryClient) throws IOException, RestClientException {
+      final SchemaRegistryClient schemaRegistryClient,
+      final boolean ignoreSrException) throws IOException, RestClientException {
     final TopicDescription topicDescription = kafkaTopicClient
         .describeTopic(ksqlTopic.getKafkaTopicName());
     return new Topic(
         ksqlTopic.getKafkaTopicName(),
-        getSchema(ksqlTopic, schemaRegistryClient),
+        getSchema(ksqlTopic, schemaRegistryClient, ignoreSrException),
         getSerdeSupplierForKsqlTopic(ksqlTopic),
         topicDescription.partitions().size(),
         topicDescription.partitions().get(0).replicas().size()
@@ -483,13 +499,21 @@ public class TestCase implements Test {
 
   private static Optional<Schema> getSchema(
       final KsqlTopic ksqlTopic,
-      final SchemaRegistryClient schemaRegistryClient) throws IOException, RestClientException {
+      final SchemaRegistryClient schemaRegistryClient,
+      final boolean ignoreSrException) throws IOException, RestClientException {
     if (!(ksqlTopic.getValueSerdeFactory() instanceof KsqlAvroSerdeFactory)) {
       return Optional.empty();
     }
-    return Optional.of(new Schema.Parser().parse(
-        schemaRegistryClient.getLatestSchemaMetadata(ksqlTopic.getKafkaTopicName()
-            + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX).getSchema()
-    ));
+    try {
+      return Optional.of(new Schema.Parser().parse(
+          schemaRegistryClient.getLatestSchemaMetadata(ksqlTopic.getKafkaTopicName()
+              + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX).getSchema()
+      ));
+    } catch (final IOException | RestClientException e) {
+      if (ignoreSrException) {
+        return Optional.empty();
+      }
+      throw e;
+    }
   }
 }

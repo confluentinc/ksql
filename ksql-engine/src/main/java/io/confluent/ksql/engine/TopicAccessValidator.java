@@ -89,7 +89,7 @@ public class TopicAccessValidator {
     validateQueryTopicSources(createAsSelect.getQuery());
 
     // At this point, the topic should have been created by the TopicCreateInjector
-    final String kafkaTopic = getSourceTopicFromCreateAsSelect(createAsSelect);
+    final String kafkaTopic = getCreateAsSelectSinkTopic(createAsSelect);
     checkAccess(kafkaTopic, AclOperation.WRITE);
   }
 
@@ -128,14 +128,13 @@ public class TopicAccessValidator {
       // due to an authorization error. I used this message to keep a consistent message.
       throw new KsqlException(String.format(
               "Failed to %s Kafka topic: [%s]%n"
-                  + "Caused by: Not authorized to access topic",
-              StringUtils.capitalize(operation.toString().toLowerCase()), topicName)
+                  + "Caused by: Not authorized to access topic: [%s]",
+              StringUtils.capitalize(operation.toString().toLowerCase()), topicName, topicName)
       );
     }
   }
 
-  private String getSourceTopicFromCreateAsSelect(final CreateAsSelect createAsSelect) {
-    // Get the topic if WITH(kafka_topic='') clause is used
+  private String getCreateAsSelectSinkTopic(final CreateAsSelect createAsSelect) {
     final Expression nameExpression = createAsSelect.getProperties()
         .get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY);
 

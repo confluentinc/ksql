@@ -214,8 +214,8 @@ public class StreamedQueryResource {
         new HashMap<>(ksqlConfig.getKsqlStreamConfigProps());
     propertiesWithOverrides.putAll(streamProperties);
 
-    final TopicStreamWriter topicStreamWriter = new TopicStreamWriter(
-        serviceContext.getSchemaRegistryClient(),
+    final TopicStreamWriter topicStreamWriter = TopicStreamWriter.create(
+        serviceContext,
         propertiesWithOverrides,
         printTopic,
         disconnectCheckInterval

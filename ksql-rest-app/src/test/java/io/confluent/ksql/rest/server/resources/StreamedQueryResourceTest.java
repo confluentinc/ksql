@@ -136,9 +136,6 @@ public class StreamedQueryResourceTest {
         .andReturn(statement);
     replay(mockKsqlEngine, mockStatementParser);
 
-    expect(ksqlConfig.getBoolean(KsqlConfig.KSQL_TOPIC_AUTHORIZATION_ENABLED)).andReturn(false);
-    replay(ksqlConfig);
-
     testResource = new StreamedQueryResource(
         ksqlConfig,
         mockKsqlEngine,
@@ -147,7 +144,7 @@ public class StreamedQueryResourceTest {
         DISCONNECT_CHECK_INTERVAL,
         COMMAND_QUEUE_CATCHUP_TIMOEUT,
         activenessRegistrar,
-        TopicAccessValidatorFactory.create(ksqlConfig, mockKsqlEngine.getMetaStore()));
+        TopicAccessValidatorFactory.create(serviceContext, mockKsqlEngine.getMetaStore()));
   }
 
   @Test

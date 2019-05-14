@@ -16,7 +16,6 @@
 package io.confluent.ksql.services;
 
 import com.google.common.base.Suppliers;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import io.confluent.ksql.exception.KafkaResponseGetFailedException;
 import io.confluent.ksql.topic.TopicProperties;
@@ -44,9 +43,7 @@ import org.apache.kafka.clients.admin.DescribeTopicsOptions;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.KafkaFuture;
-import org.apache.kafka.common.Node;
 import org.apache.kafka.common.config.ConfigResource;
-import org.apache.kafka.common.config.ConfigResource.Type;
 import org.apache.kafka.common.config.TopicConfig;
 import org.apache.kafka.common.errors.TopicExistsException;
 import org.apache.kafka.common.errors.UnsupportedVersionException;
@@ -309,28 +306,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   }
 
   private Config getConfig() {
-    try {
-      final Collection<Node> brokers = adminClient.describeCluster().nodes().get();
-      final Node broker = Iterables.getFirst(brokers, null);
-      if (broker == null) {
-        LOG.warn("No available broker found to fetch config info.");
-        throw new KsqlServerException(
-            "AdminClient discovered an empty Kafka Cluster. "
-                + "Check that Kafka is deployed and KSQL is properly configured.");
-      }
-
-      final ConfigResource configResource = new ConfigResource(Type.BROKER, broker.idString());
-
-      final Map<ConfigResource, Config> brokerConfig = ExecutorUtil.executeWithRetries(
-          () -> adminClient.describeConfigs(Collections.singleton(configResource)).all().get(),
-          ExecutorUtil.RetryBehaviour.ON_RETRYABLE);
-
-      return brokerConfig.get(configResource);
-    } catch (final KsqlServerException e) {
-      throw e;
-    } catch (final Exception e) {
-      throw new KsqlServerException("Could not get Kafka cluster configuration!", e);
-    }
+    return KafkaClusterUtil.getConfig(adminClient);
   }
 
   private static boolean isInternalTopic(final String topicName, final String applicationId) {

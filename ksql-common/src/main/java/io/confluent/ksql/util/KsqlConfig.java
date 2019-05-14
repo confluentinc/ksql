@@ -153,14 +153,6 @@ public class KsqlConfig extends AbstractConfig {
 
   public static final String DEFAULT_EXT_DIR = "ext";
 
-  public static final String KSQL_TOPIC_AUTHORIZATION_ENABLED = "ksql.topic.authorization.enabled";
-  public static final boolean KSQL_TOPIC_AUTHORIZATION_ENABLED_DEFAULT = false;
-  public static final String KSQL_TOPIC_AUTHORIZATION_ENABLED_DOC = ""
-      + "Enable KSQL topic access authorization checks. Set this config to true if you are using "
-      + "a Kafka authorization service and want to check topic permissions prior to execute "
-      + "KSQL commands. This feature is limited to a few KSQL commands and must be used "
-      + "in combination with a KSQL impersonation context functionality.";
-
   private static final Collection<CompatibilityBreakingConfigDef> COMPATIBLY_BREAKING_CONFIG_DEFS
       = ImmutableList.of(
           new CompatibilityBreakingConfigDef(
@@ -429,12 +421,6 @@ public class KsqlConfig extends AbstractConfig {
                 + "e.g. '{\"FOO\": 10}." + System.lineSeparator()
                 + "Note: the DELIMITED format ignores this setting as it does not support the "
                 + "concept of a STRUCT, record or document."
-        ).define(
-            KSQL_TOPIC_AUTHORIZATION_ENABLED,
-            ConfigDef.Type.BOOLEAN,
-            KSQL_TOPIC_AUTHORIZATION_ENABLED_DEFAULT,
-            ConfigDef.Importance.LOW,
-            KSQL_TOPIC_AUTHORIZATION_ENABLED_DOC
         )
         .withClientSslSupport();
     for (final CompatibilityBreakingConfigDef compatibilityBreakingConfigDef

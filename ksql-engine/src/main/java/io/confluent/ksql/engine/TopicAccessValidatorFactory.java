@@ -16,22 +16,28 @@
 package io.confluent.ksql.engine;
 
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.services.KafkaClusterUtil;
+import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.util.KsqlServerException;
+import org.apache.kafka.clients.admin.AdminClient;
+import org.apache.kafka.clients.admin.ConfigEntry;
+import org.apache.kafka.common.errors.ClusterAuthorizationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public final class TopicAccessValidatorFactory {
   private static final Logger LOG = LoggerFactory.getLogger(TopicAccessValidatorFactory.class);
+  private static final String KAFKA_AUTHORIZER_CLASS_NAME = "authorizer.class.name";
 
   private TopicAccessValidatorFactory() {
 
   }
 
   public static TopicAccessValidator create(
-      final KsqlConfig ksqlConfig,
+      final ServiceContext serviceContext,
       final MetaStore metaStore
   ) {
-    if (ksqlConfig.getBoolean(KsqlConfig.KSQL_TOPIC_AUTHORIZATION_ENABLED)) {
+    if (isKafkaAuthorizerEnabled(serviceContext.getAdminClient())) {
       LOG.info("KSQL topic authorization checks enabled.");
       return new AuthorizationTopicAccessValidator(metaStore);
     }
@@ -40,5 +46,24 @@ public final class TopicAccessValidatorFactory {
     return (sc, statement) -> {
       return;
     };
+  }
+
+  private static boolean isKafkaAuthorizerEnabled(final AdminClient adminClient) {
+    try {
+      final ConfigEntry configEntry =
+          KafkaClusterUtil.getConfig(adminClient).get(KAFKA_AUTHORIZER_CLASS_NAME);
+
+      return configEntry != null
+          && configEntry.value() != null
+          && !configEntry.value().isEmpty();
+    } catch (final KsqlServerException e) {
+      // If ClusterAuthorizationException is thrown is because the AdminClient is not authorized
+      // to describe cluster configs. This also means authorization is enabled.
+      if (e.getCause() instanceof ClusterAuthorizationException) {
+        return true;
+      }
+    }
+
+    return false;
   }
 }

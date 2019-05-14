@@ -173,7 +173,7 @@ public class RecoveryTest {
           Duration.ofMillis(0),
           ()->{},
           Injectors.DEFAULT,
-          TopicAccessValidatorFactory.create(ksqlConfig, ksqlEngine.getMetaStore()));
+          TopicAccessValidatorFactory.create(serviceContext, ksqlEngine.getMetaStore()));
       this.statementExecutor = new StatementExecutor(
           ksqlConfig,
           ksqlEngine,

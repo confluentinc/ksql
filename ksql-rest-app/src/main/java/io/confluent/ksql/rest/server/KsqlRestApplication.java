@@ -402,7 +402,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         .apply(ksqlEngine::hasActiveQueries);
 
     final TopicAccessValidator topicAccessValidator =
-        TopicAccessValidatorFactory.create(ksqlConfig, ksqlEngine.getMetaStore());
+        TopicAccessValidatorFactory.create(serviceContext, ksqlEngine.getMetaStore());
 
     final StreamedQueryResource streamedQueryResource = new StreamedQueryResource(
         ksqlConfig,

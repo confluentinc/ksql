@@ -15,30 +15,61 @@
 
 package io.confluent.ksql.engine;
 
-import io.confluent.ksql.util.KsqlConfig;
+import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.services.ServiceContext;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import org.apache.kafka.clients.admin.AdminClient;
+import org.apache.kafka.clients.admin.Config;
+import org.apache.kafka.clients.admin.ConfigEntry;
+import org.apache.kafka.clients.admin.DescribeClusterResult;
+import org.apache.kafka.clients.admin.DescribeConfigsResult;
+import org.apache.kafka.common.KafkaFuture;
+import org.apache.kafka.common.Node;
+import org.apache.kafka.common.config.ConfigResource;
+import org.easymock.EasyMock;
+import org.easymock.EasyMockRunner;
+import org.easymock.Mock;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
 
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.mock;
+import static org.easymock.EasyMock.replay;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
-import static org.mockito.Mockito.when;
 
-@RunWith(MockitoJUnitRunner.class)
+@RunWith(EasyMockRunner.class)
 public class TopicAccessValidatorFactoryTest {
+  private static final String KAFKA_AUTHORIZER_CLASS_NAME = "authorizer.class.name";
+
   @Mock
-  private KsqlConfig ksqlConfig;
+  private ServiceContext serviceContext;
+  @Mock
+  private AdminClient adminClient;
+
+  private Node node;
+
+  @Before
+  public void setUp() {
+    node = new Node(1, "host", 9092);
+
+    expect(serviceContext.getAdminClient()).andReturn(adminClient);
+    replay(serviceContext);
+  }
 
   @Test
   public void shouldReturnAuthorizationValidator() {
     // Given:
-    givenTopicAuthorizationConfig(true);
+    givenKafkaAuthorizer("an-authorizer-class");
 
     // When:
-    final TopicAccessValidator validator = TopicAccessValidatorFactory.create(ksqlConfig, null);
+    final TopicAccessValidator validator = TopicAccessValidatorFactory.create(serviceContext, null);
 
     // Then
     assertThat(validator, is(instanceOf(AuthorizationTopicAccessValidator.class)));
@@ -47,16 +78,43 @@ public class TopicAccessValidatorFactoryTest {
   @Test
   public void shouldReturnDummyValidator() {
     // Given:
-    givenTopicAuthorizationConfig(false);
+    givenKafkaAuthorizer("");
 
     // When:
-    final TopicAccessValidator validator = TopicAccessValidatorFactory.create(ksqlConfig, null);
+    final TopicAccessValidator validator = TopicAccessValidatorFactory.create(serviceContext, null);
 
     // Then
     assertThat(validator, not(instanceOf(AuthorizationTopicAccessValidator.class)));
   }
 
-  private void givenTopicAuthorizationConfig(final boolean value) {
-    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_TOPIC_AUTHORIZATION_ENABLED)).thenReturn(value);
+  private void givenKafkaAuthorizer(final String className) {
+    expect(adminClient.describeCluster()).andReturn(describeClusterResult());
+    expect(adminClient.describeConfigs(describeBrokerRequest()))
+        .andReturn(describeBrokerResult(Collections.singletonList(
+            new ConfigEntry(KAFKA_AUTHORIZER_CLASS_NAME, className)
+        )));
+
+    replay(adminClient);
+  }
+
+  private DescribeClusterResult describeClusterResult() {
+    final Collection<Node> nodes = Collections.singletonList(node);
+    final DescribeClusterResult describeClusterResult = EasyMock.mock(DescribeClusterResult.class);
+    expect(describeClusterResult.nodes()).andReturn(KafkaFuture.completedFuture(nodes));
+    replay(describeClusterResult);
+    return describeClusterResult;
+  }
+
+  private Collection<ConfigResource> describeBrokerRequest() {
+    return Collections.singleton(new ConfigResource(ConfigResource.Type.BROKER, node.idString()));
+  }
+
+  private DescribeConfigsResult describeBrokerResult(final List<ConfigEntry> brokerConfigs) {
+    final DescribeConfigsResult describeConfigsResult = mock(DescribeConfigsResult.class);
+    final Map<ConfigResource, Config> config = ImmutableMap.of(
+        new ConfigResource(ConfigResource.Type.BROKER, node.idString()), new Config(brokerConfigs));
+    expect(describeConfigsResult.all()).andReturn(KafkaFuture.completedFuture(config)).anyTimes();
+    replay(describeConfigsResult);
+    return describeConfigsResult;
   }
 }

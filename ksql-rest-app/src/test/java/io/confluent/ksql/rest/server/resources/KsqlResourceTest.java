@@ -1910,7 +1910,7 @@ public class KsqlResourceTest {
             schemaInjectorFactory.apply(sc),
             topicInjectorFactory.apply(ec),
             new TopicDeleteInjector(ec, sc)),
-        (sc, metaStore) -> topicAccessValidator
+        topicAccessValidator
     );
   }
 

@@ -27,7 +27,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlEngineTestUtil;
-import io.confluent.ksql.engine.TopicAccessValidator;
+import io.confluent.ksql.engine.TopicAccessValidatorFactory;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.internal.KsqlEngineMetrics;
 import io.confluent.ksql.metastore.MetaStore;
@@ -173,7 +173,7 @@ public class RecoveryTest {
           Duration.ofMillis(0),
           ()->{},
           Injectors.DEFAULT,
-          TopicAccessValidator::new);
+          TopicAccessValidatorFactory.create(ksqlConfig, ksqlEngine.getMetaStore()));
       this.statementExecutor = new StatementExecutor(
           ksqlConfig,
           ksqlEngine,

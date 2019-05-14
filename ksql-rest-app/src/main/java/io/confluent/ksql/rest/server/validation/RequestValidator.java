@@ -21,7 +21,6 @@ import static java.util.Objects.requireNonNull;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.TopicAccessValidator;
-import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
@@ -57,7 +56,7 @@ public class RequestValidator {
   private final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory;
   private final Supplier<KsqlExecutionContext> snapshotSupplier;
   private final KsqlConfig ksqlConfig;
-  private final BiFunction<ServiceContext, MetaStore, TopicAccessValidator> topicAccessValidator;
+  private final TopicAccessValidator topicAccessValidator;
 
   /**
    * @param customValidators        a map describing how to validate each statement of type
@@ -72,7 +71,7 @@ public class RequestValidator {
       final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory,
       final Supplier<KsqlExecutionContext> snapshotSupplier,
       final KsqlConfig ksqlConfig,
-      final BiFunction<ServiceContext, MetaStore, TopicAccessValidator> topicAccessValidator
+      final TopicAccessValidator topicAccessValidator
   ) {
     this.customValidators = requireNonNull(customValidators, "customValidators");
     this.injectorFactory = requireNonNull(injectorFactory, "injectorFactory");
@@ -147,8 +146,7 @@ public class RequestValidator {
     } else if (KsqlEngine.isExecutableStatement(configured.getStatement())) {
       final ConfiguredStatement<?> statementInjected = injector.inject(configured);
 
-      topicAccessValidator.apply(serviceContext, executionContext.getMetaStore())
-          .validate(statementInjected.getStatement());
+      topicAccessValidator.validate(serviceContext, statementInjected.getStatement());
 
       executionContext.execute(serviceContext, statementInjected);
     } else {

@@ -363,6 +363,7 @@ public class RequestValidatorTest {
 
     // Then:
     verify(topicAccessValidator, times(1)).validate(
+        otherServiceContext,
         ksqlEngine.prepare(statements.get(0)).getStatement()
     );
   }
@@ -379,7 +380,7 @@ public class RequestValidatorTest {
         (ec, sc) -> InjectorChain.of(schemaInjector, topicInjector),
         () -> executionContext,
         ksqlConfig,
-        (sc, metaStore) -> topicAccessValidator
+        topicAccessValidator
     );
   }
 

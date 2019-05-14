@@ -19,7 +19,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.TopicAccessValidator;
 import io.confluent.ksql.json.JsonMapper;
-import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
@@ -42,7 +41,6 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-import java.util.function.BiFunction;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -68,7 +66,7 @@ public class StreamedQueryResource {
   private final Duration commandQueueCatchupTimeout;
   private final ObjectMapper objectMapper;
   private final ActivenessRegistrar activenessRegistrar;
-  private final BiFunction<ServiceContext, MetaStore, TopicAccessValidator> topicAccessValidator;
+  private final TopicAccessValidator topicAccessValidator;
 
   public StreamedQueryResource(
       final KsqlConfig ksqlConfig,
@@ -78,7 +76,7 @@ public class StreamedQueryResource {
       final Duration disconnectCheckInterval,
       final Duration commandQueueCatchupTimeout,
       final ActivenessRegistrar activenessRegistrar,
-      final BiFunction<ServiceContext, MetaStore, TopicAccessValidator> topicAccessValidator
+      final TopicAccessValidator topicAccessValidator
   ) {
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
@@ -167,8 +165,7 @@ public class StreamedQueryResource {
     final ConfiguredStatement<Query> configured =
         ConfiguredStatement.of(statement, streamsProperties, ksqlConfig);
 
-    topicAccessValidator.apply(serviceContext, ksqlEngine.getMetaStore())
-        .validate(statement.getStatement());
+    topicAccessValidator.validate(serviceContext, statement.getStatement());
 
     final QueryMetadata query = ksqlEngine.execute(serviceContext, configured)
         .getQuery()

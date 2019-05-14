@@ -27,6 +27,7 @@ import io.confluent.ksql.ddl.commands.CreateStreamCommand;
 import io.confluent.ksql.ddl.commands.RegisterTopicCommand;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.TopicAccessValidator;
+import io.confluent.ksql.engine.TopicAccessValidatorFactory;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.MutableFunctionRegistry;
 import io.confluent.ksql.function.UdfLoader;
@@ -400,6 +401,9 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
     final VersionCheckerAgent versionChecker = versionCheckerFactory
         .apply(ksqlEngine::hasActiveQueries);
 
+    final TopicAccessValidator topicAccessValidator =
+        TopicAccessValidatorFactory.create(ksqlConfig, ksqlEngine.getMetaStore());
+
     final StreamedQueryResource streamedQueryResource = new StreamedQueryResource(
         ksqlConfig,
         ksqlEngine,
@@ -409,7 +413,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
             restConfig.getLong(KsqlRestConfig.STREAMED_QUERY_DISCONNECT_CHECK_MS_CONFIG)),
         Duration.ofMillis(restConfig.getLong(DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG)),
         versionChecker::updateLastRequestTime,
-        TopicAccessValidator::new
+        topicAccessValidator
     );
 
     final KsqlResource ksqlResource = new KsqlResource(
@@ -419,7 +423,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         Duration.ofMillis(restConfig.getLong(DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG)),
         versionChecker::updateLastRequestTime,
         Injectors.DEFAULT,
-        TopicAccessValidator::new);
+        topicAccessValidator);
 
     final Optional<String> processingLogTopic =
         ProcessingLogServerUtils.maybeCreateProcessingLogTopic(

@@ -41,7 +41,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.engine.KsqlEngine;
-import io.confluent.ksql.engine.TopicAccessValidator;
+import io.confluent.ksql.engine.TopicAccessValidatorFactory;
 import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Query;
@@ -136,6 +136,9 @@ public class StreamedQueryResourceTest {
         .andReturn(statement);
     replay(mockKsqlEngine, mockStatementParser);
 
+    expect(ksqlConfig.getBoolean(KsqlConfig.KSQL_TOPIC_AUTHORIZATION_ENABLED)).andReturn(false);
+    replay(ksqlConfig);
+
     testResource = new StreamedQueryResource(
         ksqlConfig,
         mockKsqlEngine,
@@ -144,7 +147,7 @@ public class StreamedQueryResourceTest {
         DISCONNECT_CHECK_INTERVAL,
         COMMAND_QUEUE_CATCHUP_TIMOEUT,
         activenessRegistrar,
-        TopicAccessValidator::new);
+        TopicAccessValidatorFactory.create(ksqlConfig, mockKsqlEngine.getMetaStore()));
   }
 
   @Test

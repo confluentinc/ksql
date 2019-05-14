@@ -48,7 +48,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
-public class TopicAccessValidatorTest {
+public class AuthorizationTopicAccessValidatorTest {
   private static final KsqlSchema SCHEMA = KsqlSchema.of(SchemaBuilder
       .struct()
       .field("F1", Schema.OPTIONAL_STRING_SCHEMA)
@@ -78,7 +78,7 @@ public class TopicAccessValidatorTest {
     metaStore = new MetaStoreImpl(new InternalFunctionRegistry());
     ksqlEngine = KsqlEngineTestUtil.createKsqlEngine(serviceContext, metaStore);
 
-    accessValidator = new TopicAccessValidator(serviceContext, metaStore);
+    accessValidator = new AuthorizationTopicAccessValidator(metaStore);
     when(serviceContext.getTopicClient()).thenReturn(kafkaTopicClient);
 
     givenTopic("topic1", TOPIC_1);
@@ -104,7 +104,7 @@ public class TopicAccessValidatorTest {
     final Statement statement = givenStatement("SELECT * FROM " + STREAM_TOPIC_1 + ";");
 
     // When:
-    accessValidator.validate(statement);
+    accessValidator.validate(serviceContext, statement);
 
     // Then:
     // Above command should not throw any exception
@@ -125,7 +125,7 @@ public class TopicAccessValidatorTest {
     ));
 
     // When:
-    accessValidator.validate(statement);
+    accessValidator.validate(serviceContext, statement);
   }
 
   @Test
@@ -138,7 +138,7 @@ public class TopicAccessValidatorTest {
     );
 
     // When:
-    accessValidator.validate(statement);
+    accessValidator.validate(serviceContext, statement);
 
     // Then:
     // Above command should not throw any exception
@@ -160,7 +160,7 @@ public class TopicAccessValidatorTest {
     ));
 
     // When:
-    accessValidator.validate(statement);
+    accessValidator.validate(serviceContext, statement);
   }
 
   @Test
@@ -179,7 +179,7 @@ public class TopicAccessValidatorTest {
     ));
 
     // When:
-    accessValidator.validate(statement);
+    accessValidator.validate(serviceContext, statement);
   }
 
   @Test
@@ -198,7 +198,7 @@ public class TopicAccessValidatorTest {
     ));
 
     // When:
-    accessValidator.validate(statement);
+    accessValidator.validate(serviceContext, statement);
   }
 
   @Test
@@ -211,7 +211,7 @@ public class TopicAccessValidatorTest {
     );
 
     // When:
-    accessValidator.validate(statement);
+    accessValidator.validate(serviceContext, statement);
 
     // Then:
     // Above command should not throw any exception
@@ -233,7 +233,7 @@ public class TopicAccessValidatorTest {
     ));
 
     // When:
-    accessValidator.validate(statement);
+    accessValidator.validate(serviceContext, statement);
   }
 
   @Test
@@ -252,7 +252,7 @@ public class TopicAccessValidatorTest {
     ));
 
     // When:
-    accessValidator.validate(statement);
+    accessValidator.validate(serviceContext, statement);
   }
 
   @Test
@@ -270,7 +270,7 @@ public class TopicAccessValidatorTest {
     ));
 
     // When:
-    accessValidator.validate(statement);
+    accessValidator.validate(serviceContext, statement);
   }
 
   @Test
@@ -283,7 +283,7 @@ public class TopicAccessValidatorTest {
     );
 
     // When:
-    accessValidator.validate(statement);
+    accessValidator.validate(serviceContext, statement);
 
     // Then:
     // Above command should not throw any exception
@@ -306,7 +306,7 @@ public class TopicAccessValidatorTest {
 
 
     // When:
-    accessValidator.validate(statement);
+    accessValidator.validate(serviceContext, statement);
   }
 
   @Test
@@ -320,7 +320,7 @@ public class TopicAccessValidatorTest {
     );
 
     // When:
-    accessValidator.validate(statement);
+    accessValidator.validate(serviceContext, statement);
 
     // Then:
     // Above command should not throw any exception
@@ -337,7 +337,7 @@ public class TopicAccessValidatorTest {
     expectedException.expect(KafkaResponseGetFailedException.class);
 
     // When:
-    accessValidator.validate(statement);
+    accessValidator.validate(serviceContext, statement);
   }
 
   private void givenTopic(final String topicName, final TopicDescription topicDescription) {

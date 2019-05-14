@@ -21,7 +21,6 @@ import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.TopicAccessValidator;
-import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.tree.DescribeFunction;
@@ -100,7 +99,7 @@ public class KsqlResource {
       final Duration distributedCmdResponseTimeout,
       final ActivenessRegistrar activenessRegistrar,
       final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory,
-      final BiFunction<ServiceContext, MetaStore, TopicAccessValidator> topicAccessValidatorFactory
+      final TopicAccessValidator topicAccessValidator
   ) {
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
     this.commandQueue = Objects.requireNonNull(commandQueue, "commandQueue");
@@ -114,7 +113,7 @@ public class KsqlResource {
         injectorFactory,
         ksqlEngine::createSandbox,
         ksqlConfig,
-        topicAccessValidatorFactory);
+        topicAccessValidator);
     this.handler = new RequestHandler(
         CustomExecutors.EXECUTOR_MAP,
         new DistributingExecutor(

@@ -18,6 +18,8 @@ package io.confluent.ksql.schema.ksql;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.schema.connect.SqlSchemaFormatter;
+import io.confluent.ksql.schema.connect.SqlSchemaFormatter.Option;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.List;
 import java.util.Map;
@@ -52,6 +54,8 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 @Immutable
 public final class KsqlSchema {
 
+  private static final SqlSchemaFormatter FORMATTER = new SqlSchemaFormatter(Option.AS_COLUMN_LIST);
+
   private static final Set<String> IMPLICIT_FIELD_NAMES = ImmutableSet.of(
       SchemaUtil.ROWTIME_NAME,
       SchemaUtil.ROWKEY_NAME
@@ -82,7 +86,7 @@ public final class KsqlSchema {
     this.schema = validate(Objects.requireNonNull(schema, "schema"), true);
   }
 
-  public Schema getSchema() {
+  public ConnectSchema getSchema() {
     return schema;
   }
 
@@ -253,9 +257,7 @@ public final class KsqlSchema {
 
   @Override
   public String toString() {
-    return schema.fields().stream()
-        .map(field -> field.name() + " : " + SchemaUtil.getSqlTypeName(field.schema()))
-        .collect(Collectors.joining(", ", "[", "]"));
+    return FORMATTER.format(schema);
   }
 
   private static ConnectSchema validate(final Schema schema, final boolean topLevel) {

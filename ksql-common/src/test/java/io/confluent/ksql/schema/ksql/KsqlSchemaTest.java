@@ -436,14 +436,14 @@ public class KsqlSchemaTest {
     // Then:
     assertThat(s, is(
         "["
-            + "f0 : BOOLEAN, "
-            + "f1 : INT, "
-            + "f2 : BIGINT, "
-            + "f4 : DOUBLE, "
-            + "f5 : VARCHAR, "
-            + "f6 : STRUCT<a BIGINT>, "
-            + "f7 : ARRAY<VARCHAR>, "
-            + "f8 : MAP<VARCHAR,VARCHAR>"
+            + "f0 BOOLEAN, "
+            + "f1 INT, "
+            + "f2 BIGINT, "
+            + "f4 DOUBLE, "
+            + "f5 VARCHAR, "
+            + "f6 STRUCT<a BIGINT>, "
+            + "f7 ARRAY<VARCHAR>, "
+            + "f8 MAP<VARCHAR, VARCHAR>"
             + "]"));
   }
 

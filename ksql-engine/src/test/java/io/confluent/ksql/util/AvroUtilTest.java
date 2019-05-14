@@ -23,12 +23,15 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableMap;
 import io.confluent.connect.avro.AvroData;
 import io.confluent.connect.avro.AvroDataConfig;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.persistence.PersistenceSchema;
+import io.confluent.ksql.schema.persistence.PersistenceSchemas;
 import io.confluent.ksql.serde.avro.KsqlAvroSerdeFactory;
 import io.confluent.ksql.serde.connect.ConnectSchemaTranslator;
 import java.io.IOException;
@@ -60,8 +63,19 @@ public class AvroUtilTest {
 
   private static final KsqlSchema RESULT_SCHEMA = toKsqlSchema(AVRO_SCHEMA_STRING);
 
-  private static final KsqlTopic RESULT_TOPIC =
-      new KsqlTopic("registered-name", "actual-name", new KsqlAvroSerdeFactory(KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME), false);
+  private static final PersistenceSchema VALUE_PERSISTENCE_SCHEMA = PersistenceSchema
+      .of(RESULT_SCHEMA.getSchema());
+
+  private static final PersistenceSchemas PERSISTENCE_SCHEMAS =
+      PersistenceSchemas.of(VALUE_PERSISTENCE_SCHEMA);
+
+  private static final KsqlConfig KSQL_CONFIG = new KsqlConfig(ImmutableMap.of());
+
+  private static final KsqlTopic RESULT_TOPIC = new KsqlTopic(
+      "registered-name",
+      "actual-name",
+      new KsqlAvroSerdeFactory(KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME),
+      false);
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -73,7 +87,7 @@ public class AvroUtilTest {
 
   @Before
   public void setUp() {
-    when(persistentQuery.getResultSchema()).thenReturn(RESULT_SCHEMA);
+    when(persistentQuery.getPersistenceSchemas()).thenReturn(PERSISTENCE_SCHEMAS);
     when(persistentQuery.getResultTopic()).thenReturn(RESULT_TOPIC);
     when(persistentQuery.getResultTopicFormat())
         .thenReturn(RESULT_TOPIC.getValueSerdeFactory().getFormat());
@@ -81,9 +95,6 @@ public class AvroUtilTest {
 
   @Test
   public void shouldValidateSchemaEvolutionWithCorrectSubject() throws Exception {
-    // Given:
-    when(persistentQuery.getResultTopic()).thenReturn(RESULT_TOPIC);
-
     // When:
     AvroUtil.isValidSchemaEvolution(persistentQuery, srClient);
 
@@ -94,10 +105,8 @@ public class AvroUtilTest {
   @Test
   public void shouldValidateSchemaEvolutionWithCorrectSchema() throws Exception {
     // Given:
-    when(persistentQuery.getResultSchema()).thenReturn(RESULT_SCHEMA);
-
     final org.apache.avro.Schema expectedAvroSchema = SchemaUtil
-        .buildAvroSchema(RESULT_SCHEMA.getSchema(), RESULT_TOPIC.getKsqlTopicName());
+        .buildAvroSchema(PERSISTENCE_SCHEMAS.valueSchema(), RESULT_TOPIC.getKsqlTopicName());
 
     // When:
     AvroUtil.isValidSchemaEvolution(persistentQuery, srClient);

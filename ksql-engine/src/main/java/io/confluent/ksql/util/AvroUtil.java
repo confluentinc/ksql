@@ -35,7 +35,7 @@ public final class AvroUtil {
     }
 
     final org.apache.avro.Schema avroSchema = SchemaUtil.buildAvroSchema(
-        persistentQueryMetadata.getResultSchema().getSchema(),
+        persistentQueryMetadata.getPersistenceSchemas().valueSchema(),
         persistentQueryMetadata.getResultTopic().getKsqlTopicName()
     );
 

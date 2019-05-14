@@ -25,9 +25,9 @@ import io.confluent.ksql.rest.entity.FunctionDescriptionList;
 import io.confluent.ksql.rest.entity.FunctionInfo;
 import io.confluent.ksql.rest.entity.FunctionType;
 import io.confluent.ksql.rest.entity.KsqlEntity;
+import io.confluent.ksql.schema.connect.SqlSchemaFormatter;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -113,11 +113,11 @@ public final class DescribeFunctionExecutor {
     for (int i = 0; i < argTypes.size(); i++) {
       final Schema s = argTypes.get(i);
       final boolean isVariadic = variadic && i == (argTypes.size() - 1);
-      final String sqlType = SchemaUtil.getSqlTypeName(isVariadic ? s.valueSchema() : s);
+      final String sqlType = SqlSchemaFormatter.DEFAULT.format(isVariadic ? s.valueSchema() : s);
       args.add(new ArgumentInfo(s.name(), sqlType, s.doc(), isVariadic));
     }
 
-    final String returnType = SchemaUtil.getSqlTypeName(returnTypeSchema);
+    final String returnType = SqlSchemaFormatter.DEFAULT.format(returnTypeSchema);
 
     return new FunctionInfo(args, returnType, description);
   }

@@ -15,15 +15,17 @@
 
 package io.confluent.ksql.util;
 
+import static java.util.Objects.requireNonNull;
+
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.physical.QuerySchemas;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.persistence.PersistenceSchemas;
 import io.confluent.ksql.serde.Format;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
 import org.apache.kafka.streams.KafkaStreams;
@@ -38,12 +40,14 @@ public class PersistentQueryMetadata extends QueryMetadata {
   private final KsqlTopic resultTopic;
   private final Set<String> sinkNames;
   private final QuerySchemas schemas;
+  private final PersistenceSchemas persistenceSchemas;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   public PersistentQueryMetadata(
       final String statementString,
       final KafkaStreams kafkaStreams,
       final KsqlSchema resultSchema,
+      final PersistenceSchemas persistenceSchemas,
       final Set<String> sourceNames,
       final String sinkName,
       final String executionPlan,
@@ -70,10 +74,11 @@ public class PersistentQueryMetadata extends QueryMetadata {
         streamsProperties,
         overriddenProperties,
         closeCallback);
-    this.id = Objects.requireNonNull(id, "id");
-    this.resultTopic = Objects.requireNonNull(resultTopic, "resultTopic");
+    this.id = requireNonNull(id, "id");
+    this.resultTopic = requireNonNull(resultTopic, "resultTopic");
     this.sinkNames = ImmutableSet.of(sinkName);
-    this.schemas = Objects.requireNonNull(schemas, "schemas");
+    this.schemas = requireNonNull(schemas, "schemas");
+    this.persistenceSchemas = requireNonNull(persistenceSchemas, "persistenceSchemas");
   }
 
   private PersistentQueryMetadata(
@@ -85,6 +90,7 @@ public class PersistentQueryMetadata extends QueryMetadata {
     this.resultTopic = other.resultTopic;
     this.sinkNames = other.sinkNames;
     this.schemas = other.schemas;
+    this.persistenceSchemas = other.persistenceSchemas;
   }
 
   public PersistentQueryMetadata copyWith(final Consumer<QueryMetadata> closeCallback) {
@@ -109,5 +115,9 @@ public class PersistentQueryMetadata extends QueryMetadata {
 
   public String getSchemasDescription() {
     return schemas.toString();
+  }
+
+  public PersistenceSchemas getPersistenceSchemas() {
+    return persistenceSchemas;
   }
 }

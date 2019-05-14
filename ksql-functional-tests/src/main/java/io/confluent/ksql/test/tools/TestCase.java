@@ -381,22 +381,26 @@ public class TestCase implements Test {
         }
       }
     }
-    ProducerRecord producerRecord = testDriver.getTopologyTestDriver().readOutput(
-        testDriver.getSinkKsqlTopic().getKafkaTopicName(),
-        keyDeserializer,
-        sinkValueDeserializer
-    );
-    if (unnestRedundantWindow) {
-      producerRecord = new ProducerRecord(
-          producerRecord.topic(),
-          producerRecord.partition(),
-          producerRecord.timestamp(),
-          getWindowed(
-              ((Windowed) producerRecord.key()).key().toString(), testDriver.getWindow().getLeft()),
-          producerRecord.value()
+
+    while (true) {
+      ProducerRecord producerRecord = testDriver.getTopologyTestDriver().readOutput(
+          testDriver.getSinkKsqlTopic().getKafkaTopicName(),
+          keyDeserializer,
+          sinkValueDeserializer
       );
-    }
-    if (producerRecord != null) {
+      if (producerRecord == null) {
+        return;
+      }
+      if (unnestRedundantWindow) {
+        producerRecord = new ProducerRecord(
+            producerRecord.topic(),
+            producerRecord.partition(),
+            producerRecord.timestamp(),
+            getWindowed(
+                ((Windowed) producerRecord.key()), testDriver.getWindow().getLeft()),
+            producerRecord.value()
+        );
+      }
       fakeKafkaService.writeRecord(
           producerRecord.topic(),
           FakeKafkaRecord.of(
@@ -405,6 +409,7 @@ public class TestCase implements Test {
               testDriver.getWindow().getLeft())
       );
     }
+
   }
 
   void verifyOutputTopics(
@@ -548,7 +553,11 @@ public class TestCase implements Test {
   }
 
   @SuppressWarnings("unchecked")
-  private static Windowed getWindowed(final String windowString, final WindowType windowType) {
+  private static Windowed getWindowed(final Windowed windowed, final WindowType windowType) {
+    final String windowString = windowed.key().toString();
+    if (!windowString.contains("@") && !windowString.contains("/")) {
+      return windowed;
+    }
     final int atIndex = windowString.indexOf("@");
     final int slashIndex = windowString.indexOf("/");
     final String key = windowString.substring(1, atIndex);

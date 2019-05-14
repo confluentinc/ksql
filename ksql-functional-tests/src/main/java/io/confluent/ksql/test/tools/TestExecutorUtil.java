@@ -28,20 +28,27 @@ import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
+import io.confluent.ksql.parser.tree.HoppingWindowExpression;
 import io.confluent.ksql.parser.tree.Join;
+import io.confluent.ksql.parser.tree.KsqlWindowExpression;
 import io.confluent.ksql.parser.tree.Relation;
+import io.confluent.ksql.parser.tree.SessionWindowExpression;
+import io.confluent.ksql.parser.tree.TumblingWindowExpression;
 import io.confluent.ksql.schema.inference.DefaultSchemaInjector;
 import io.confluent.ksql.schema.inference.SchemaRegistryTopicSchemaSupplier;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.test.tools.TopologyTestDriverContainer.WindowType;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.TopologyTestDriver;
@@ -79,7 +86,8 @@ final class TestExecutorUtil {
               .map(DataSource::getKsqlTopic)
               .collect(Collectors.toList()),
           ksqlEngine.getMetaStore().getSource(persistentQueryMetadata.getSinkNames()
-              .iterator().next()).getKsqlTopic()
+              .iterator().next()).getKsqlTopic(),
+          persistentQueryAndSortedSources.getWindow()
       ));
     }
     return topologyTestDrivers;
@@ -133,7 +141,8 @@ final class TestExecutorUtil {
             executeResultAndSortedSources -> new PersistentQueryAndSortedSources(
                 (PersistentQueryMetadata) executeResultAndSortedSources
                     .getExecuteResult().getQuery().get(),
-                executeResultAndSortedSources.getSources()
+                executeResultAndSortedSources.getSources(),
+                executeResultAndSortedSources.getWindow()
             ))
         .collect(Collectors.toList());
   }
@@ -160,9 +169,13 @@ final class TestExecutorUtil {
           executeResult,
           getSortedSources(
               (CreateAsSelect)prepared.getStatement(),
-              executionContext.getMetaStore()));
+              executionContext.getMetaStore()),
+          getWindowType((CreateAsSelect)prepared.getStatement()));
     }
-    return new ExecuteResultAndSortedSources(executeResult, null);
+    return new ExecuteResultAndSortedSources(
+        executeResult,
+        null,
+        new Pair<>(WindowType.NO_WINDOW, Long.MIN_VALUE));
   }
 
   private static List<DataSource> getSortedSources(
@@ -191,16 +204,56 @@ final class TestExecutorUtil {
     }
   }
 
+  private static Pair<WindowType, Long> getWindowType(final CreateAsSelect createAsSelect) {
+    if (createAsSelect.getQuery().getWindow().isPresent()) {
+      final KsqlWindowExpression ksqlWindowExpression = createAsSelect
+          .getQuery()
+          .getWindow()
+          .get().getKsqlWindowExpression();
+      if (ksqlWindowExpression instanceof SessionWindowExpression) {
+        return new Pair<>(WindowType.SESSION, Long.MIN_VALUE);
+      }
+      final long windowSize = ksqlWindowExpression instanceof TumblingWindowExpression
+          ? getWindowSize(
+          ((TumblingWindowExpression) ksqlWindowExpression).getSize(),
+          ((TumblingWindowExpression) ksqlWindowExpression).getSizeUnit())
+          : getWindowSize(
+              ((HoppingWindowExpression) ksqlWindowExpression).getSize(),
+              ((HoppingWindowExpression) ksqlWindowExpression).getSizeUnit());
+      return new Pair<>(WindowType.TIME, windowSize);
+    }
+
+    return new Pair<>(WindowType.NO_WINDOW, Long.MIN_VALUE);
+  }
+
+
+  private static Long getWindowSize(final Long windowSize, final TimeUnit timeUnit) {
+    switch (timeUnit) {
+      case SECONDS:
+        return windowSize * 1000;
+      case MINUTES:
+        return windowSize * 1000 * 60;
+      case HOURS:
+        return windowSize * 1000 * 60 * 60;
+      case DAYS:
+        return windowSize * 1000 * 60 * 60 * 24;
+      default:
+        throw new KsqlException("Invalid window time unit: " + timeUnit);
+    }
+  }
 
   private static final class ExecuteResultAndSortedSources {
     private final ExecuteResult executeResult;
     private final List<DataSource> sources;
+    private final Pair<WindowType, Long> window;
 
     ExecuteResultAndSortedSources(
         final ExecuteResult executeResult,
-        final List<DataSource> sources) {
+        final List<DataSource> sources,
+        final Pair<WindowType, Long> window) {
       this.executeResult = executeResult;
       this.sources = sources;
+      this.window = window;
     }
 
     ExecuteResult getExecuteResult() {
@@ -210,18 +263,25 @@ final class TestExecutorUtil {
     List<DataSource> getSources() {
       return sources;
     }
+
+    public Pair<WindowType, Long> getWindow() {
+      return window;
+    }
   }
 
   private static final class PersistentQueryAndSortedSources {
     private final PersistentQueryMetadata persistentQueryMetadata;
     private final List<DataSource> sources;
+    private final Pair<WindowType, Long> window;
 
     PersistentQueryAndSortedSources(
         final PersistentQueryMetadata persistentQueryMetadata,
-        final List<DataSource> sources
+        final List<DataSource> sources,
+        final Pair<WindowType, Long> window
     ) {
       this.persistentQueryMetadata = persistentQueryMetadata;
       this.sources = sources;
+      this.window = window;
     }
 
     PersistentQueryMetadata getPersistentQueryMetadata() {
@@ -230,6 +290,10 @@ final class TestExecutorUtil {
 
     List<DataSource> getSources() {
       return sources;
+    }
+
+    public Pair<WindowType, Long> getWindow() {
+      return window;
     }
   }
 }

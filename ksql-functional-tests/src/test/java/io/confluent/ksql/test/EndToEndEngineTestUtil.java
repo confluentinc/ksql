@@ -39,7 +39,9 @@ import io.confluent.ksql.test.tools.Test;
 import io.confluent.ksql.test.tools.TestCase;
 import io.confluent.ksql.test.tools.TopologyAndConfigs;
 import io.confluent.ksql.test.tools.TopologyTestDriverContainer;
+import io.confluent.ksql.test.tools.TopologyTestDriverContainer.WindowType;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import java.io.BufferedReader;
@@ -179,7 +181,8 @@ final class EndToEndEngineTestUtil {
             .map(s -> ksqlEngine.getMetaStore().getSource(s).getKsqlTopic())
             .collect(Collectors.toList()),
         ksqlEngine.getMetaStore().getSource(persistentQueryMetadata.getSinkNames()
-            .iterator().next()).getKsqlTopic()
+            .iterator().next()).getKsqlTopic(),
+        new Pair<>(WindowType.NO_WINDOW, Long.MIN_VALUE)
     );
   }
 

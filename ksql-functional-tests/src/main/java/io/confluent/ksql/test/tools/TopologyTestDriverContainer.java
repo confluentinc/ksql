@@ -16,33 +16,44 @@
 package io.confluent.ksql.test.tools;
 
 import io.confluent.ksql.metastore.model.KsqlTopic;
+import io.confluent.ksql.util.Pair;
 import java.util.List;
 import java.util.Objects;
 import org.apache.kafka.streams.TopologyTestDriver;
 
 public final class TopologyTestDriverContainer {
 
+  public enum WindowType { NO_WINDOW, TIME, SESSION }
+
   private final TopologyTestDriver topologyTestDriver;
   private final List<KsqlTopic> sourceKsqlTopics;
   private final KsqlTopic sinkKsqlTopic;
+  private final Pair<WindowType, Long> window;
 
   private TopologyTestDriverContainer(
       final TopologyTestDriver topologyTestDriver,
       final List<KsqlTopic> sourceKsqlTopics,
-      final KsqlTopic sinkKsqlTopic) {
+      final KsqlTopic sinkKsqlTopic,
+      final Pair<WindowType, Long> window) {
     this.topologyTestDriver = topologyTestDriver;
     this.sourceKsqlTopics = sourceKsqlTopics;
     this.sinkKsqlTopic = sinkKsqlTopic;
+    this.window = window;
   }
 
   public static TopologyTestDriverContainer of(
       final TopologyTestDriver topologyTestDriver,
       final List<KsqlTopic> sourceKsqlTopics,
-      final KsqlTopic sinkKsqlTopic) {
+      final KsqlTopic sinkKsqlTopic,
+      final Pair<WindowType, Long> window) {
     Objects.requireNonNull(topologyTestDriver, "topologyTestDriver");
     Objects.requireNonNull(sourceKsqlTopics, "sourceKsqlTopics");
     Objects.requireNonNull(sinkKsqlTopic, "sinkKsqlTopic");
-    return new TopologyTestDriverContainer(topologyTestDriver, sourceKsqlTopics, sinkKsqlTopic);
+    return new TopologyTestDriverContainer(
+        topologyTestDriver,
+        sourceKsqlTopics,
+        sinkKsqlTopic,
+        window);
   }
 
   TopologyTestDriver getTopologyTestDriver() {
@@ -55,5 +66,9 @@ public final class TopologyTestDriverContainer {
 
   public KsqlTopic getSinkKsqlTopic() {
     return sinkKsqlTopic;
+  }
+
+  public Pair<WindowType, Long> getWindow() {
+    return window;
   }
 }

@@ -35,6 +35,7 @@ import io.confluent.ksql.test.serde.ValueSpec;
 import io.confluent.ksql.test.serde.avro.AvroSerdeSupplier;
 import io.confluent.ksql.test.serde.avro.ValueSpecAvroSerdeSupplier;
 import io.confluent.ksql.test.serde.string.StringSerdeSupplier;
+import io.confluent.ksql.test.tools.TopologyTestDriverContainer.WindowType;
 import io.confluent.ksql.test.tools.conditions.PostConditions;
 import io.confluent.ksql.test.tools.exceptions.KsqlExpectedException;
 import io.confluent.ksql.util.KsqlConstants;
@@ -57,8 +58,10 @@ import org.apache.avro.Schema;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.Deserializer;
+import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.serialization.Serializer;
-import org.apache.kafka.common.serialization.StringDeserializer;
+import org.apache.kafka.streams.kstream.SessionWindowedDeserializer;
+import org.apache.kafka.streams.kstream.TimeWindowedDeserializer;
 import org.apache.kafka.streams.test.ConsumerRecordFactory;
 import org.apache.kafka.streams.test.OutputVerifier;
 import org.hamcrest.StringDescription;
@@ -356,9 +359,19 @@ public class TestCase implements Test {
         instanceof AvroSerdeSupplier
         ? new ValueSpecAvroSerdeSupplier().getDeserializer(schemaRegistryClient)
         : sinkTopic.getDeserializer(schemaRegistryClient);
+    final Deserializer keyDeserializer;
+    if (testDriver.getWindow().getLeft() == WindowType.NO_WINDOW) {
+      keyDeserializer = Serdes.String().deserializer();
+    } else {
+
+      final Deserializer<String> inner = Serdes.String().deserializer();
+      keyDeserializer = testDriver.getWindow().getLeft() == WindowType.SESSION
+          ? new SessionWindowedDeserializer<>(inner)
+          : new TimeWindowedDeserializer<>(inner, testDriver.getWindow().getRight());
+    }
     final ProducerRecord producerRecord = testDriver.getTopologyTestDriver().readOutput(
         testDriver.getSinkKsqlTopic().getKafkaTopicName(),
-        new StringDeserializer(),
+        keyDeserializer,
         sinkValueDeserializer
     );
     if (producerRecord != null) {

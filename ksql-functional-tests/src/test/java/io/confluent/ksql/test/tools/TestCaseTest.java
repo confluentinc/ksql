@@ -32,8 +32,10 @@ import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.test.serde.SerdeSupplier;
 import io.confluent.ksql.test.serde.avro.AvroSerdeSupplier;
 import io.confluent.ksql.test.serde.string.StringSerdeSupplier;
+import io.confluent.ksql.test.tools.TopologyTestDriverContainer.WindowType;
 import io.confluent.ksql.test.tools.conditions.PostConditions;
 import io.confluent.ksql.test.tools.exceptions.KsqlExpectedException;
+import io.confluent.ksql.util.Pair;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
@@ -114,7 +116,8 @@ public class TestCaseTest {
     final TopologyTestDriverContainer topologyTestDriverContainer = TopologyTestDriverContainer.of(
         topologyTestDriver,
         ImmutableList.of(new KsqlTopic("FOO", "foo_kafka_different_input", new KsqlJsonSerdeFactory(), false)),
-        new KsqlTopic("BAR", "bar_kafka", new KsqlJsonSerdeFactory(), false)
+        new KsqlTopic("BAR", "bar_kafka", new KsqlJsonSerdeFactory(), false),
+        new Pair<>(WindowType.NO_WINDOW, Long.MIN_VALUE)
     );
 
 
@@ -230,7 +233,8 @@ public class TestCaseTest {
     return TopologyTestDriverContainer.of(
         topologyTestDriver,
         ImmutableList.of(new KsqlTopic("FOO", "foo_kafka", new KsqlJsonSerdeFactory(), false)),
-        new KsqlTopic("BAR", "bar_kafka", new KsqlJsonSerdeFactory(), false)
+        new KsqlTopic("BAR", "bar_kafka", new KsqlJsonSerdeFactory(), false),
+        new Pair<>(WindowType.NO_WINDOW, Long.MIN_VALUE)
     );
   }
 

@@ -270,6 +270,8 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
       );
 
       final StatementParser statementParser = new StatementParser(ksqlEngine);
+      final TopicAccessValidator topicAccessValidator =
+          TopicAccessValidatorFactory.create(serviceContext, ksqlEngine.getMetaStore());
 
       container.addEndpoint(
           ServerEndpointConfig.Builder
@@ -291,7 +293,8 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
                       exec,
                       versionCheckerAgent::updateLastRequestTime,
                       Duration.ofMillis(config.getLong(
-                          KsqlRestConfig.DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG))
+                          KsqlRestConfig.DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG)),
+                      topicAccessValidator
                   );
                 }
 

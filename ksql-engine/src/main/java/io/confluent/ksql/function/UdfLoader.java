@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.function;
 
-import io.confluent.ksql.function.udaf.UdafAggregateFunctionFactory;
 import io.confluent.ksql.function.udaf.UdafDescription;
 import io.confluent.ksql.function.udaf.UdafFactory;
 import io.confluent.ksql.function.udf.Kudf;
@@ -174,7 +173,9 @@ public class UdfLoader {
               return Optional.of(compiler.compileAggregate(method,
                   loader,
                   udafAnnotation.name(),
-                  annotation.description()
+                  annotation.description(),
+                  annotation.paramSchema(),
+                  annotation.returnSchema()
               ));
             } catch (final Exception e) {
               LOGGER.warn("Failed to create UDAF name={}, method={}, class={}, path={}",

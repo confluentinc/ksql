@@ -21,6 +21,8 @@ import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.function.udaf.TableUdaf;
 import io.confluent.ksql.function.udaf.Udaf;
 import io.confluent.ksql.function.udaf.UdfArgSupplier;
+import io.confluent.ksql.schema.ksql.LogicalSchemas;
+import io.confluent.ksql.schema.ksql.TypeContextUtil;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.SchemaUtil;
@@ -69,13 +71,13 @@ public class UdfCompiler {
       .add(Double.class)
       .add(Boolean.class)
       .add(String.class)
+      .add(Struct.class)
       .build();
 
   private static final Set<Class<?>> SUPPORTED_UDF_TYPES = ImmutableSet.<Class<?>>builder()
       .addAll(SUPPORTED_UDAF_TYPES)
       .add(List.class)
       .add(Map.class)
-      .add(Struct.class)
       .build();
 
   private static final String UDAF_PACKAGE = "io.confluent.ksql.function.udaf.";
@@ -109,10 +111,19 @@ public class UdfCompiler {
       final Method method,
       final ClassLoader loader,
       final String functionName,
-      final String description
+      final String description,
+      final String paramSchema,
+      final String returnSchema
   ) {
     final Pair<Type, Type> valueAndAggregateTypes
         = getValueAndAggregateTypes(method, functionName);
+    if (valueAndAggregateTypes.left.equals(Struct.class) && paramSchema.isEmpty()) {
+      throw new KsqlException("Must specify 'paramSchema' for STRUCT parameter in @UdafFactory.");
+    }
+    if (valueAndAggregateTypes.right.equals(Struct.class) && returnSchema.isEmpty()) {
+      throw new KsqlException("Must specify 'returnSchema' to return STRUCT from @UdafFactory.");
+    }
+
     try {
       final String generatedClassName
           = method.getDeclaringClass().getSimpleName() + "_" + method.getName() + "_Aggregate";
@@ -136,11 +147,15 @@ public class UdfCompiler {
                   + "(args, returnType, metrics);",
               UdfArgSupplier.class, new String[]{"args", "returnType", "metrics"});
 
-      final List<Schema> args = Collections.singletonList(
-          SchemaUtil.getSchemaFromType(valueAndAggregateTypes.left));
+      final Schema argSchema = paramSchema.isEmpty()
+          ? SchemaUtil.getSchemaFromType(valueAndAggregateTypes.left)
+          : LogicalSchemas.fromSqlTypeConverter().fromSqlType(TypeContextUtil.getType(paramSchema));
+      final List<Schema> args = Collections.singletonList(argSchema);
 
-      final Schema returnValue = SchemaUtil.ensureOptional(
-          SchemaUtil.getSchemaFromType(valueAndAggregateTypes.right));
+      final Schema returnValue = returnSchema.isEmpty()
+          ? SchemaUtil.ensureOptional(SchemaUtil.getSchemaFromType(valueAndAggregateTypes.right))
+          : LogicalSchemas.fromSqlTypeConverter()
+              .fromSqlType(TypeContextUtil.getType(returnSchema));
 
       return evaluator.apply(args, returnValue, metrics);
     } catch (final Exception e) {

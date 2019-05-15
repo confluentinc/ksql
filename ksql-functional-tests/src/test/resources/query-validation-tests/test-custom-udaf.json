@@ -51,6 +51,23 @@
         {"topic": "SUM_ID_BY_REGION", "key": "west", "value": "west,6"},
         {"topic": "SUM_ID_BY_REGION", "key": "west", "value": "west,5"}
       ]
+    },
+    {
+      "name": "test_udaf with struct",
+      "statements": [
+        "CREATE STREAM TEST (id VARCHAR, val STRUCT<A INT, B INT>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE RESULT AS SELECT id, test_udaf(val) as result FROM TEST GROUP BY ID;"
+      ],
+      "inputs": [
+        {"topic":  "test_topic", "key": "0", "value": {"id":  "0", "val":  {"A":  1, "B":  2}}},
+        {"topic":  "test_topic", "key": "0", "value": {"id":  "0", "val":  {"A":  2, "B":  3}}},
+        {"topic":  "test_topic", "key": "1", "value": {"id":  "1", "val":  {"A":  1, "B":  0}}}
+      ],
+      "outputs": [
+        {"topic": "RESULT", "key":  "0", "value":  {"ID":  "0", "RESULT":  {"A":  1, "B":  2}}},
+        {"topic": "RESULT", "key":  "0", "value":  {"ID":  "0", "RESULT":  {"A":  3, "B":  5}}},
+        {"topic": "RESULT", "key":  "1", "value":  {"ID":  "1", "RESULT":  {"A":  1, "B":  0}}}
+      ]
     }
   ]
 }

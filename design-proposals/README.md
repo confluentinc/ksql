@@ -15,11 +15,12 @@ Here is the process for submitting a KLIP and getting it approved.
 
 Next KLIP number: 3.
 
-| KLIP                                                                 | Status     | Release |
-|----------------------------------------------------------------------|:----------:| ------: |
-| [KLIP-X: Template](klip-template.md)                                 | Open       | N/A     |
-| [KLIP-1: Improve UDF Interfaces](klip-1-improve-udf-interfaces.md)   | Accepted   | N/A     |
-| [KLIP-2: Insert Into Semantics](klip-2-produce-data.md)              | Accepted   | N/A     |
+| KLIP                                                                               | Status         | Release |
+|------------------------------------------------------------------------------------|:--------------:| ------: |
+| [KLIP-X: Template](klip-template.md)                                               | -              | N/A     |
+| [KLIP-1: Improve UDF Interfaces](klip-1-improve-udf-interfaces.md)                 | Accepted       | N/A     |
+| [KLIP-2: Insert Into Semantics](klip-2-produce-data.md)                            | Accepted       | N/A     |
+| [KLIP-3: Serialization of single Fields](klip-3-serialization-of-single-fields.md) | In Discussion  | N/A     |
 
 
 

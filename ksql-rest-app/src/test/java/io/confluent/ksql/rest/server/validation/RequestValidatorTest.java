@@ -260,51 +260,6 @@ public class RequestValidatorTest {
   }
 
 
-  @Test
-  public void shouldThrowIfInvalidOverriddenProperty() {
-    // Given:
-    final Map<String, Object> props = ImmutableMap.of(
-        "invalid.property", "foo");
-    givenRequestValidator(
-        ImmutableMap.of(CreateStream.class, statementValidator)
-    );
-    final List<ParsedStatement> statements =
-        givenParsed(
-            "CREATE STREAM a WITH (kafka_topic='a', value_format='json');"
-        );
-
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Invalid config property: invalid.property");
-
-    // When:
-    validator.validate(serviceContext, statements, props, "sql");
-  }
-
-  @Test
-  public void shouldValidateForValidOverriddenProperty() {
-    // Given:
-    final Map<String, Object> props = ImmutableMap.of(
-        ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
-    givenRequestValidator(
-        ImmutableMap.of(CreateStream.class, statementValidator)
-    );
-    final List<ParsedStatement> statements =
-        givenParsed(
-            "CREATE STREAM a WITH (kafka_topic='a', value_format='json');"
-        );
-
-    // When:
-    validator.validate(serviceContext, statements, props, "sql");
-
-    // Then:
-    verify(statementValidator, times(1)).validate(
-        argThat(is(configured(preparedStatement(instanceOf(CreateStream.class))))),
-        eq(executionContext),
-        any()
-    );
-
-  }
 
   @Test
   public void shouldThrowIfServiceContextIsNotSandbox() {

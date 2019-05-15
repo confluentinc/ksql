@@ -27,7 +27,6 @@ import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.RunScript;
 import io.confluent.ksql.parser.tree.Statement;
-import io.confluent.ksql.rest.client.properties.LocalPropertyValidator;
 import io.confluent.ksql.rest.util.QueryCapacityUtil;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -102,7 +101,6 @@ public class RequestValidator {
   ) {
     requireSandbox(serviceContext);
 
-    validateOverriddenConfigProperties(propertyOverrides);
     final KsqlExecutionContext ctx = requireSandbox(snapshotSupplier.get());
     final Injector injector = injectorFactory.apply(ctx, serviceContext);
 
@@ -176,18 +174,6 @@ public class RequestValidator {
         + "statement: " + statement.getStatementText());
 
     return validate(serviceContext, executionContext.parse(sql), statement.getOverrides(), sql);
-  }
-
-  private static void validateOverriddenConfigProperties(
-      final Map<String, Object> propertyOverrides
-  ) {
-    propertyOverrides.keySet()
-        .forEach(
-            propertyName -> {
-              if (!LocalPropertyValidator.CONFIG_PROPERTY_WHITELIST.contains(propertyName)) {
-                throw new KsqlException("Invalid config property: " + propertyName);
-              }
-            });
   }
 
 }

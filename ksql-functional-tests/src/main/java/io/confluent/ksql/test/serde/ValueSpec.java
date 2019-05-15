@@ -58,6 +58,10 @@ public class ValueSpec {
     }
   }
 
+  public Object getSpec() {
+    return spec;
+  }
+
   @SuppressFBWarnings("HE_EQUALS_USE_HASHCODE")
   // Hack to make work with OutputVerifier.
   @SuppressWarnings({"EqualsWhichDoesntCheckParameterClass", "Contract"})

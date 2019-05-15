@@ -1,0 +1,17 @@
+#!/bin/bash
+# (Copyright) [2019 - 2019] Confluent, Inc.
+
+ #
+# Use shellcheck to lint this file
+#
+set -ue
+
+ base_dir=$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )
+: "${KSQL_CONFIG_DIR:="$base_dir/config"}"
+
+ : "${KSQL_LOG4J_OPTS:=""}"
+if [ -z "$KSQL_LOG4J_OPTS" ] && [ -e "$KSQL_CONFIG_DIR/log4j-silent.properties" ]; then
+  export KSQL_LOG4J_OPTS="-Dlog4j.configuration=file:$KSQL_CONFIG_DIR/log4j-silent.properties"
+fi
+
+ exec "$base_dir"/bin/ksql-run-class io.confluent.ksql.test.tools.KsqlTestingTool "$@"

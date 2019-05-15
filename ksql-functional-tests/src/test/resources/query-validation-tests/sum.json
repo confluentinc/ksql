@@ -47,6 +47,7 @@
         {"topic": "OUTPUT", "key": 1, "value": "1,10"},
         {"topic": "OUTPUT", "key": 0, "value": "0,0"},
         {"topic": "OUTPUT", "key": 0, "value": "0,20"},
+        {"topic": "OUTPUT", "key": 0, "value": "0,0"},
         {"topic": "OUTPUT", "key": 0, "value": "0,0"}
       ]
     },

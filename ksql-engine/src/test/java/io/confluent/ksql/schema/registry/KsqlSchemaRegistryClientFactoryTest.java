@@ -64,7 +64,7 @@ public class KsqlSchemaRegistryClientFactoryTest {
 
   @Before
   public void setUp() {
-    when(srClientFactory.create(any(), anyInt(), any()))
+    when(srClientFactory.create(any(), anyInt(), any(), any()))
         .thenReturn(mock(CachedSchemaRegistryClient.class));
 
     when(restServiceSupplier.get()).thenReturn(restService);
@@ -86,7 +86,7 @@ public class KsqlSchemaRegistryClientFactoryTest {
     // When:
     final SchemaRegistryClient client =
         new KsqlSchemaRegistryClientFactory(config, restServiceSupplier, sslFactory,
-            srClientFactory).get();
+            srClientFactory, Collections.emptyMap()).get();
 
     // Then:
     assertThat(client, is(notNullValue()));
@@ -107,7 +107,7 @@ public class KsqlSchemaRegistryClientFactoryTest {
     // When:
     final SchemaRegistryClient client =
         new KsqlSchemaRegistryClientFactory(config, restServiceSupplier, sslFactory,
-            srClientFactory).get();
+            srClientFactory, Collections.emptyMap()).get();
 
     // Then:
     assertThat(client, is(notNullValue()));
@@ -128,7 +128,7 @@ public class KsqlSchemaRegistryClientFactoryTest {
     // When:
     final SchemaRegistryClient client =
         new KsqlSchemaRegistryClientFactory(config, restServiceSupplier, sslFactory,
-            srClientFactory).get();
+            srClientFactory, Collections.emptyMap()).get();
 
 
     // Then:
@@ -153,10 +153,10 @@ public class KsqlSchemaRegistryClientFactoryTest {
 
     // When:
     new KsqlSchemaRegistryClientFactory(
-        config, restServiceSupplier, sslFactory, srClientFactory).get();
+        config, restServiceSupplier, sslFactory, srClientFactory, Collections.emptyMap()).get();
 
     // Then:
-    srClientFactory.create(same(restService), anyInt(), eq(expectedConfigs));
+    srClientFactory.create(same(restService), anyInt(), eq(expectedConfigs), any());
   }
 
   private static Map<String, Object> defaultConfigs() {

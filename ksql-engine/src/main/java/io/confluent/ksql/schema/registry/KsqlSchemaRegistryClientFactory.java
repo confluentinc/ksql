@@ -34,19 +34,25 @@ public class KsqlSchemaRegistryClientFactory {
   private final Supplier<RestService> serviceSupplier;
   private final Map<String, Object> schemaRegistryClientConfigs;
   private final SchemaRegistryClientFactory schemaRegistryClientFactory;
+  private final Map<String, String> schemaRegistryHttpHeaders;
 
   interface SchemaRegistryClientFactory {
     CachedSchemaRegistryClient create(RestService service,
                                       int identityMapCapacity,
-                                      Map<String, Object> clientConfigs);
+                                      Map<String, Object> clientConfigs,
+                                      Map<String, String> httpHeaders);
   }
 
 
-  public KsqlSchemaRegistryClientFactory(final KsqlConfig config) {
+  public KsqlSchemaRegistryClientFactory(
+      final KsqlConfig config,
+      final Map<String, String> schemaRegistryHttpHeaders
+  ) {
     this(config,
         () -> new RestService(config.getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY)),
         new SslFactory(Mode.CLIENT),
-        CachedSchemaRegistryClient::new
+        CachedSchemaRegistryClient::new,
+        schemaRegistryHttpHeaders
     );
 
     // Force config exception now:
@@ -56,7 +62,8 @@ public class KsqlSchemaRegistryClientFactory {
   KsqlSchemaRegistryClientFactory(final KsqlConfig config,
                                   final Supplier<RestService> serviceSupplier,
                                   final SslFactory sslFactory,
-                                  final SchemaRegistryClientFactory schemaRegistryClientFactory) {
+                                  final SchemaRegistryClientFactory schemaRegistryClientFactory,
+                                  final Map<String, String> schemaRegistryHttpHeaders) {
     this.sslFactory = sslFactory;
     this.serviceSupplier = serviceSupplier;
     this.schemaRegistryClientConfigs = config.originalsWithPrefix(
@@ -66,6 +73,7 @@ public class KsqlSchemaRegistryClientFactory {
         .configure(config.valuesWithPrefixOverride(KsqlConfig.KSQL_SCHEMA_REGISTRY_PREFIX));
 
     this.schemaRegistryClientFactory = schemaRegistryClientFactory;
+    this.schemaRegistryHttpHeaders = schemaRegistryHttpHeaders;
   }
 
   public SchemaRegistryClient get() {
@@ -75,6 +83,11 @@ public class KsqlSchemaRegistryClientFactory {
       restService.setSslSocketFactory(sslContext.getSocketFactory());
     }
 
-    return schemaRegistryClientFactory.create(restService, 1000, schemaRegistryClientConfigs);
+    return schemaRegistryClientFactory.create(
+        restService,
+        1000,
+        schemaRegistryClientConfigs,
+        schemaRegistryHttpHeaders
+    );
   }
 }

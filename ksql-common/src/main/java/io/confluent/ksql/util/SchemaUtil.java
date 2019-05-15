@@ -26,7 +26,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Ordering;
-import io.confluent.ksql.schema.connect.SqlSchemaFormatter;
 import io.confluent.ksql.schema.persistence.PersistenceSchema;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
@@ -210,11 +209,6 @@ public final class SchemaUtil {
     }
 
     return castString;
-  }
-
-  // Todo(ac): Will be removed before merge. Just left to show the tests still pass
-  public static String getSqlTypeName(final Schema schema) {
-    return SqlSchemaFormatter.DEFAULT.format(schema);
   }
 
   public static org.apache.avro.Schema buildAvroSchema(

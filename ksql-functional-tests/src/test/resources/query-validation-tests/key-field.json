@@ -219,6 +219,9 @@
         "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT COUNT(*) FROM INPUT GROUP BY foo;"
       ],
+      "properties": {
+        "ksql.persistence.serialization.wrap.single.values": "true"
+      },
       "inputs": [
         {"topic": "input_topic", "value": {"foo": 1, "bar": 2}}
       ],
@@ -246,7 +249,8 @@
         "CREATE TABLE DOWNSTREAM AS SELECT COUNT(*) FROM OUTPUT GROUP BY ROWKEY;"
       ],
       "properties": {
-        "ksql.query.fields.key.legacy": "true"
+        "ksql.query.fields.key.legacy": "true",
+        "ksql.persistence.serialization.wrap.single.values": "true"
       },
       "inputs": [
         {"topic": "OUTPUT", "key": "1", "value": {"KSQL_COL_0": 1}}
@@ -434,6 +438,9 @@
         "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT bar FROM INPUT;"
       ],
+      "properties": {
+        "ksql.persistence.serialization.wrap.single.values": "true"
+      },
       "inputs": [
         {"topic": "input_topic", "value": {"foo": 1, "bar": 2}}
       ],
@@ -461,7 +468,8 @@
         "CREATE STREAM DOWNSTREAM AS SELECT bar as FOO FROM OUTPUT PARTITION BY FOO;"
       ],
       "properties": {
-        "ksql.query.fields.key.legacy": "true"
+        "ksql.query.fields.key.legacy": "true",
+        "ksql.persistence.serialization.wrap.single.values": "true"
       },
       "inputs": [
         {"topic": "OUTPUT", "key": "-", "value": {"BAR": 2}}
@@ -640,6 +648,9 @@
         "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT COUNT(*) FROM INPUT GROUP BY foo;"
       ],
+      "properties": {
+        "ksql.persistence.serialization.wrap.single.values": "true"
+      },
       "inputs": [
         {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
       ],
@@ -754,6 +765,9 @@
         "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT COUNT(*) FROM INPUT GROUP BY bar;"
       ],
+      "properties": {
+        "ksql.persistence.serialization.wrap.single.values": "true"
+      },
       "inputs": [
         {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
       ],
@@ -780,7 +794,8 @@
         "CREATE TABLE DOWNSTREAM AS SELECT COUNT(*) FROM OUTPUT GROUP BY ROWKEY;"
       ],
       "properties": {
-        "ksql.query.fields.key.legacy": "true"
+        "ksql.query.fields.key.legacy": "true",
+        "ksql.persistence.serialization.wrap.single.values": "true"
       },
       "inputs": [
         {"topic": "OUTPUT", "key":"2", "value": {"KSQL_COL_0": 1}}
@@ -800,6 +815,9 @@
         "CREATE TABLE INPUT (bar INT) WITH (kafka_topic='input_topic', value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT * FROM INPUT;"
       ],
+      "properties": {
+        "ksql.persistence.serialization.wrap.single.values": "true"
+      },
       "inputs": [
         {"topic": "input_topic", "key": "x", "value": {"bar": 1}}
       ],
@@ -958,6 +976,9 @@
         "CREATE TABLE INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT bar FROM INPUT;"
       ],
+      "properties": {
+        "ksql.persistence.serialization.wrap.single.values": "true"
+      },
       "inputs": [
         {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
       ],
@@ -1072,6 +1093,9 @@
         "CREATE TABLE INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT COUNT(*) FROM INPUT GROUP BY foo;"
       ],
+      "properties": {
+        "ksql.persistence.serialization.wrap.single.values": "true"
+      },
       "inputs": [
         {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
       ],
@@ -1098,7 +1122,8 @@
         "CREATE TABLE DOWNSTREAM AS SELECT COUNT(*) FROM OUTPUT GROUP BY ROWKEY;"
       ],
       "properties": {
-        "ksql.query.fields.key.legacy": "true"
+        "ksql.query.fields.key.legacy": "true",
+        "ksql.persistence.serialization.wrap.single.values": "true"
       },
       "inputs": [
         {"topic": "OUTPUT", "key": "1", "value": {"KSQL_COL_0":  1}}
@@ -1215,6 +1240,9 @@
         "CREATE TABLE INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT COUNT(*) FROM INPUT GROUP BY bar;"
       ],
+      "properties": {
+        "ksql.persistence.serialization.wrap.single.values": "true"
+      },
       "inputs": [
         {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
       ],
@@ -1241,7 +1269,8 @@
         "CREATE TABLE DOWNSTREAM AS SELECT COUNT(*) FROM OUTPUT GROUP BY ROWKEY;"
       ],
       "properties": {
-        "ksql.query.fields.key.legacy": "true"
+        "ksql.query.fields.key.legacy": "true",
+        "ksql.persistence.serialization.wrap.single.values": "true"
       },
       "inputs": [
         {"topic": "OUTPUT", "key": "2", "value": {"KSQL_COL_0":  1}}
@@ -1315,7 +1344,8 @@
         "CREATE TABLE DOWNSTREAM AS SELECT COUNT(*) FROM OUTPUT GROUP BY ROWKEY;"
       ],
       "properties": {
-        "ksql.query.fields.key.legacy": "true"
+        "ksql.query.fields.key.legacy": "true",
+        "ksql.persistence.serialization.wrap.single.values": "true"
       },
       "inputs": [
         {"topic": "OUTPUT", "key":"2|+|1", "value": {"FOO": 1, "BAR": 2, "KSQL_COL_2": 1}}
@@ -1364,7 +1394,8 @@
         "CREATE TABLE DOWNSTREAM AS SELECT COUNT(*) FROM OUTPUT GROUP BY ROWKEY;"
       ],
       "properties": {
-        "ksql.query.fields.key.legacy": "true"
+        "ksql.query.fields.key.legacy": "true",
+        "ksql.persistence.serialization.wrap.single.values": "true"
       },
       "inputs": [
         {"topic": "OUTPUT", "key":"3", "value": {"KSQL_COL_0": 3, "KSQL_COL_1": 1}}
@@ -1384,6 +1415,9 @@
         "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT foo FROM INPUT WHERE bar < 10;"
       ],
+      "properties": {
+        "ksql.persistence.serialization.wrap.single.values": "true"
+      },
       "inputs": [
         {"topic": "input_topic", "value": {"foo": 1, "bar": 2}}
       ],
@@ -1402,6 +1436,9 @@
         "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT foo as boo FROM INPUT WHERE bar < 10;"
       ],
+      "properties": {
+        "ksql.persistence.serialization.wrap.single.values": "true"
+      },
       "inputs": [
         {"topic": "input_topic", "value": {"foo": 1, "bar": 2}}
       ],
@@ -1420,6 +1457,9 @@
         "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT i.foo FROM INPUT i WHERE bar < 10;"
       ],
+      "properties": {
+        "ksql.persistence.serialization.wrap.single.values": "true"
+      },
       "inputs": [
         {"topic": "input_topic", "value": {"foo": 1, "bar": 2}}
       ],
@@ -1438,6 +1478,9 @@
         "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT input.foo FROM INPUT WHERE bar < 10;"
       ],
+      "properties": {
+        "ksql.persistence.serialization.wrap.single.values": "true"
+      },
       "inputs": [
         {"topic": "input_topic", "value": {"foo": 1, "bar": 2}}
       ],
@@ -1456,6 +1499,9 @@
         "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT ROWKEY AS ID FROM INPUT;"
       ],
+      "properties": {
+        "ksql.persistence.serialization.wrap.single.values": "true"
+      },
       "inputs": [
         {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
       ],

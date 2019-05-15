@@ -17,9 +17,9 @@
         {"topic":  "test_topic", "key":  3, "value": {"url": "nothing"}, "timestamp":  2}
       ],
       "outputs": [
-        {"topic":  "OUTPUT", "key":  1, "value":  {"ENCODED": "%3Ffoo+%24bar"}, "timestamp": 0},
-        {"topic":  "OUTPUT", "key":  2, "value":  {"ENCODED": "hello%26world"}, "timestamp": 1},
-        {"topic":  "OUTPUT", "key":  3, "value":  {"ENCODED": "nothing"}, "timestamp": 2}
+        {"topic":  "OUTPUT", "key":  1, "value":  "%3Ffoo+%24bar", "timestamp": 0},
+        {"topic":  "OUTPUT", "key":  2, "value":  "hello%26world", "timestamp": 1},
+        {"topic":  "OUTPUT", "key":  3, "value":  "nothing", "timestamp": 2}
       ]
     },
     {
@@ -35,9 +35,9 @@
         {"topic":  "test_topic", "key":  3, "value": {"url": "nothing"}, "timestamp":  2}
       ],
       "outputs": [
-        {"topic":  "OUTPUT", "key":  1, "value":  {"DECODED": "?foo $bar"}, "timestamp": 0},
-        {"topic":  "OUTPUT", "key":  2, "value":  {"DECODED": "hello&world"}, "timestamp": 1},
-        {"topic":  "OUTPUT", "key":  3, "value":  {"DECODED": "nothing"}, "timestamp": 2}
+        {"topic":  "OUTPUT", "key":  1, "value":  "?foo $bar", "timestamp": 0},
+        {"topic":  "OUTPUT", "key":  2, "value":  "hello&world", "timestamp": 1},
+        {"topic":  "OUTPUT", "key":  3, "value":  "nothing", "timestamp": 2}
       ]
     },
     {
@@ -52,8 +52,8 @@
         {"topic":  "test_topic", "key":  2, "value": {"url": "http://www.nofragment.com"}, "timestamp":  1}
       ],
       "outputs": [
-        {"topic":  "OUTPUT", "key":  1, "value":  {"FRAGMENT": "fragment"}, "timestamp": 0},
-        {"topic":  "OUTPUT", "key":  2, "value":  {"FRAGMENT": null}, "timestamp": 1}
+        {"topic":  "OUTPUT", "key":  1, "value":  "fragment", "timestamp": 0},
+        {"topic":  "OUTPUT", "key":  2, "value":  null, "timestamp": 1}
       ]
     },
     {
@@ -68,8 +68,8 @@
         {"topic":  "test_topic", "key":  2, "value": {"url": "http://test@confluent.io:8080"}, "timestamp":  1}
       ],
       "outputs": [
-        {"topic":  "OUTPUT", "key":  1, "value":  {"HOST": "www.test.com"}, "timestamp": 0},
-        {"topic":  "OUTPUT", "key":  2, "value":  {"HOST": "confluent.io"}, "timestamp": 1}
+        {"topic":  "OUTPUT", "key":  1, "value":  "www.test.com", "timestamp": 0},
+        {"topic":  "OUTPUT", "key":  2, "value":  "confluent.io", "timestamp": 1}
       ]
     },
     {
@@ -97,7 +97,7 @@
         {"topic":  "test_topic", "key":  1, "value": {"url": "http://www.test.com/?one=a&two=url%20encoded"}, "timestamp":  0}
       ],
       "outputs": [
-        {"topic":  "OUTPUT", "key":  1, "value":  {"PARAM":  "url encoded"}, "timestamp": 0}
+        {"topic":  "OUTPUT", "key":  1, "value":  "url encoded", "timestamp": 0}
       ]
     },
     {
@@ -113,9 +113,9 @@
         {"topic":  "test_topic", "key":  3, "value": {"url": "http://test@confluent.io:8080/nested/path?query&jobs"}, "timestamp":  2}
       ],
       "outputs": [
-        {"topic":  "OUTPUT", "key":  1, "value":  {"PATH": ""}, "timestamp": 0},
-        {"topic":  "OUTPUT", "key":  2, "value":  {"PATH": "/path"}, "timestamp": 1},
-        {"topic":  "OUTPUT", "key":  3, "value":  {"PATH": "/nested/path"}, "timestamp": 2}
+        {"topic":  "OUTPUT", "key":  1, "value":  "", "timestamp": 0},
+        {"topic":  "OUTPUT", "key":  2, "value":  "/path", "timestamp": 1},
+        {"topic":  "OUTPUT", "key":  3, "value":  "/nested/path", "timestamp": 2}
       ]
     },
     {
@@ -130,8 +130,8 @@
         {"topic":  "test_topic", "key":  2, "value": {"url": "http://test@confluent.io:8080/nested/path?query&jobs"}, "timestamp":  1}
       ],
       "outputs": [
-        {"topic":  "OUTPUT", "key":  1, "value":  {"PORT": null}, "timestamp": 0},
-        {"topic":  "OUTPUT", "key":  2, "value":  {"PORT": 8080}, "timestamp": 1}
+        {"topic":  "OUTPUT", "key":  1, "value":  null, "timestamp": 0},
+        {"topic":  "OUTPUT", "key":  2, "value":  8080, "timestamp": 1}
       ]
     },
     {
@@ -147,9 +147,9 @@
         {"topic":  "test_topic", "key":  3, "value": {"url": "www.confluent.io"}, "timestamp":  2}
       ],
       "outputs": [
-        {"topic":  "OUTPUT", "key":  1, "value":  {"PROTOCOL": "http"}, "timestamp": 0},
-        {"topic":  "OUTPUT", "key":  2, "value":  {"PROTOCOL": "https"}, "timestamp": 1},
-        {"topic":  "OUTPUT", "key":  3, "value":  {"PROTOCOL": null}, "timestamp": 2}
+        {"topic":  "OUTPUT", "key":  1, "value":  "http", "timestamp": 0},
+        {"topic":  "OUTPUT", "key":  2, "value":  "https", "timestamp": 1},
+        {"topic":  "OUTPUT", "key":  3, "value":  null, "timestamp": 2}
       ]
     },
     {
@@ -166,10 +166,10 @@
         {"topic":  "test_topic", "key":  4, "value": {"url": "http://test@confluent.io:8080/path"}, "timestamp":  3}
       ],
       "outputs": [
-        {"topic":  "OUTPUT", "key":  1, "value":  {"Q": "query"}, "timestamp": 0},
-        {"topic":  "OUTPUT", "key":  2, "value":  {"Q": "q1&q2"}, "timestamp": 1},
-        {"topic":  "OUTPUT", "key":  3, "value":  {"Q": "q=2"}, "timestamp": 2},
-        {"topic":  "OUTPUT", "key":  4, "value":  {"Q": null}, "timestamp": 3}
+        {"topic":  "OUTPUT", "key":  1, "value":  "query", "timestamp": 0},
+        {"topic":  "OUTPUT", "key":  2, "value":  "q1&q2", "timestamp": 1},
+        {"topic":  "OUTPUT", "key":  3, "value":  "q=2", "timestamp": 2},
+        {"topic":  "OUTPUT", "key":  4, "value":  null, "timestamp": 3}
       ]
     }
   ]

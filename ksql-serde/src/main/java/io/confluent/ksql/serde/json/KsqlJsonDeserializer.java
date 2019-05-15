@@ -100,8 +100,8 @@ public class KsqlJsonDeserializer implements Deserializer<Struct> {
 
     if (value instanceof Map) {
       final Map<String, Object> map = (Map<String, Object>) value;
-      if (treatAsStruct(map)) {
-        return asStruct(map);
+      if (treatAsRow(map)) {
+        return asRow(map);
       }
     }
 
@@ -151,7 +151,7 @@ public class KsqlJsonDeserializer implements Deserializer<Struct> {
    * @param map the map to check.
    * @return true if it should be treated as a record.
    */
-  private boolean treatAsStruct(final Map<String, Object> map) {
+  private boolean treatAsRow(final Map<String, Object> map) {
     if (!ambiguousMapSchema) {
       return true;
     }
@@ -159,7 +159,7 @@ public class KsqlJsonDeserializer implements Deserializer<Struct> {
     final Field onlyField = schema.fields().get(0);
     final String fieldName = onlyField.name();
 
-    final boolean coercibleToStruct = map.entrySet().stream()
+    final boolean coercibleToRow = map.entrySet().stream()
         .filter(e -> fieldName.equalsIgnoreCase(e.getKey()))
         .map(Entry::getValue)
         .filter(v -> JsonSerdeUtils.isCoercible(v, onlyField.schema()))
@@ -167,12 +167,12 @@ public class KsqlJsonDeserializer implements Deserializer<Struct> {
         .findFirst()
         .orElse(false);
 
-    final boolean coercibleToMap = JsonSerdeUtils.isCoercible(map, onlyField.schema());
+    final boolean coercibleToField = JsonSerdeUtils.isCoercible(map, onlyField.schema());
 
-    return coercibleToStruct || !coercibleToMap;
+    return coercibleToRow || !coercibleToField;
   }
 
-  private Struct asStruct(final Map<String, Object> valueMap) {
+  private Struct asRow(final Map<String, Object> valueMap) {
     final Map<String, String> caseInsensitiveFieldNameMap =
         getCaseInsensitiveFieldNameMap(valueMap, true);
 

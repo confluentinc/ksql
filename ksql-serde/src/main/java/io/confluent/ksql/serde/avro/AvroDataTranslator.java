@@ -28,12 +28,12 @@ import java.util.Map;
 import java.util.Objects;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.Schema.Type;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 
 
 public class AvroDataTranslator implements DataTranslator {
+
   private final DataTranslator innerTranslator;
   private final Schema ksqlSchema;
   private final Schema avroCompatibleSchema;
@@ -67,12 +67,8 @@ public class AvroDataTranslator implements DataTranslator {
 
   @Override
   public Object toConnectRow(final Struct struct) {
-    if (ksqlSchema.schema().type() == Type.STRUCT) {
-      final Struct compatibleStruct = convert(struct, avroCompatibleSchema);
-      return innerTranslator.toConnectRow(compatibleStruct);
-    }
-
-    return innerTranslator.toConnectRow(struct);
+    final Struct compatibleStruct = convert(struct, avroCompatibleSchema);
+    return innerTranslator.toConnectRow(compatibleStruct);
   }
 
   private static Struct convert(

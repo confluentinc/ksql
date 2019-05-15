@@ -21,6 +21,7 @@ import io.confluent.ksql.config.ConfigItem;
 import io.confluent.ksql.config.KsqlConfigResolver;
 import io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler;
 import io.confluent.ksql.errors.ProductionExceptionHandlerUtil;
+import io.confluent.ksql.model.SemanticVersion;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -139,7 +140,8 @@ public class KsqlConfig extends AbstractConfig {
 
   public static final String KSQL_USE_LEGACY_KEY_FIELD = "ksql.query.fields.key.legacy";
 
-  public static final String KSQL_WRAP_SINGLE_VALUES = "ksql.persistence.wrap.single.values";
+  public static final String KSQL_WRAP_SINGLE_VALUES =
+      "ksql.persistence.serialization.wrap.single.values";
 
   public static final String
       defaultSchemaRegistryUrl = "http://localhost:8081";
@@ -153,7 +155,7 @@ public class KsqlConfig extends AbstractConfig {
 
   public static final String DEFAULT_EXT_DIR = "ext";
 
-  private static final Collection<CompatibilityBreakingConfigDef> COMPATIBLY_BREAKING_CONFIG_DEFS
+  public static final Collection<CompatibilityBreakingConfigDef> COMPATIBLY_BREAKING_CONFIG_DEFS
       = ImmutableList.of(
           new CompatibilityBreakingConfigDef(
               KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG,
@@ -161,6 +163,7 @@ public class KsqlConfig extends AbstractConfig {
               KSQL_PERSISTENT_QUERY_NAME_PREFIX_DEFAULT,
               KSQL_PERSISTENT_QUERY_NAME_PREFIX_DEFAULT,
               ConfigDef.Importance.MEDIUM,
+              Optional.empty(),
               "Second part of the prefix for persistent queries. For instance if "
                   + "the prefix is query_ the query name will be ksql_query_1."),
           new CompatibilityBreakingConfigDef(
@@ -169,6 +172,7 @@ public class KsqlConfig extends AbstractConfig {
               true,
               false,
               ConfigDef.Importance.LOW,
+              Optional.empty(),
               KSQL_FUNCTIONS_SUBSTRING_LEGACY_ARGS_DOCS),
           new CompatibilityBreakingConfigDef(
               KSQL_WINDOWED_SESSION_KEY_LEGACY_CONFIG,
@@ -176,6 +180,7 @@ public class KsqlConfig extends AbstractConfig {
               true,
               false,
               ConfigDef.Importance.LOW,
+              Optional.empty(),
               KSQL_WINDOWED_SESSION_KEY_LEGACY_DOC),
           new CompatibilityBreakingConfigDef(
               KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG,
@@ -183,6 +188,7 @@ public class KsqlConfig extends AbstractConfig {
               KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_DEFAULT,
               KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_DEFAULT,
               ConfigDef.Importance.LOW,
+              Optional.empty(),
               KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_DOC),
           new CompatibilityBreakingConfigDef(
               KSQL_USE_NAMED_INTERNAL_TOPICS,
@@ -191,6 +197,7 @@ public class KsqlConfig extends AbstractConfig {
               KSQL_USE_NAMED_INTERNAL_TOPICS_ON,
               ConfigDef.Importance.LOW,
               KSQL_USE_NAMED_INTERNAL_TOPICS_DOC,
+              Optional.empty(),
               KSQL_USE_NAMED_INTERNAL_TOPICS_VALIDATOR),
           new CompatibilityBreakingConfigDef(
               SINK_NUMBER_OF_PARTITIONS_PROPERTY,
@@ -198,6 +205,7 @@ public class KsqlConfig extends AbstractConfig {
               4,
               null,
               Importance.LOW,
+              Optional.empty(),
               "The legacy default number of partitions for the topics created by KSQL"
                   + "in 5.2 and earlier versions."
                   + "This property should not be set for 5.3 and later versions."),
@@ -207,6 +215,7 @@ public class KsqlConfig extends AbstractConfig {
               (short) 1,
               null,
               ConfigDef.Importance.LOW,
+              Optional.empty(),
               "The default number of replicas for the topics created by KSQL "
                   + "in 5.2 and earlier versions."
                   + "This property should not be set for 5.3 and later versions."
@@ -217,6 +226,7 @@ public class KsqlConfig extends AbstractConfig {
               false,
               true,
               ConfigDef.Importance.LOW,
+              Optional.empty(),
               KSQL_USE_NAMED_AVRO_MAPS_DOC
           ),
           new CompatibilityBreakingConfigDef(
@@ -225,10 +235,35 @@ public class KsqlConfig extends AbstractConfig {
               true,
               false,
               ConfigDef.Importance.LOW,
+              Optional.empty(),
               "Determines if the legacy key field is used when building queries. "
                   + "This setting is automatically applied for persistent queries started by "
                   + "older versions of KSQL. "
                   + "This setting should not be set manually."
+          ),
+          new CompatibilityBreakingConfigDef(
+              KSQL_WRAP_SINGLE_VALUES,
+              ConfigDef.Type.BOOLEAN,
+              true,
+              false,
+              ConfigDef.Importance.LOW,
+              Optional.of(SemanticVersion.of(5, 3, 0)),
+              "Controls how KSQL will serialize a value whose schema contains only a "
+                  + "single column. The setting only effects `CREATE STREAM` and `CREATE TABLE` "
+                  + "statements. Other statements, such as `CREATE STREAM AS SELECT`, `CREATE "
+                  + "TABLE AS SELECT` and `INSERT INTO` inherit this setting from their source."
+                  + "Where there are multiple source, i.e. in JOINs, the setting is inherited from "
+                  + "the first source."  + System.lineSeparator()
+                  + "When set to true, KSQL will persist the single column nested with a STRUCT, "
+                  + "for formats that support them. When set to false KSQL will persist "
+                  + "the column as the top level object." + System.lineSeparator()
+                  + "For example, if the value contains only a single column 'FOO INT' and the "
+                  + "format is JSON,  and this setting is false, then KSQL will persist the value "
+                  + "as an unnamed number, e.g. '10'. Where as if this setting is true, then KSQL "
+                  + "will persist the value as a JSON document with a single numeric property, "
+                  + "e.g. '{\"FOO\": 10}." + System.lineSeparator()
+                  + "Note: the DELIMITED format ignores this setting as it does not support the "
+                  + "concept of a STRUCT, record or document."
           )
   );
 
@@ -237,22 +272,34 @@ public class KsqlConfig extends AbstractConfig {
     CURRENT
   }
 
-  private static class CompatibilityBreakingConfigDef {
+  public static class CompatibilityBreakingConfigDef {
     private final String name;
     private final ConfigDef.Type type;
     private final Object defaultValueLegacy;
     private final Object defaultValueCurrent;
     private final ConfigDef.Importance importance;
     private final String documentation;
+    private final Optional<SemanticVersion> since;
     private final Validator validator;
 
-    CompatibilityBreakingConfigDef(final String name,
+    CompatibilityBreakingConfigDef(
+        final String name,
         final ConfigDef.Type type,
         final Object defaultValueLegacy,
         final Object defaultValueCurrent,
         final ConfigDef.Importance importance,
-        final String documentation) {
-      this(name, type, defaultValueLegacy, defaultValueCurrent, importance, documentation, null);
+        final Optional<SemanticVersion> since,
+        final String documentation
+    ) {
+      this(
+          name,
+          type,
+          defaultValueLegacy,
+          defaultValueCurrent,
+          importance,
+          documentation,
+          since,
+          null);
     }
 
     CompatibilityBreakingConfigDef(
@@ -262,18 +309,29 @@ public class KsqlConfig extends AbstractConfig {
         final Object defaultValueCurrent,
         final ConfigDef.Importance importance,
         final String documentation,
-        final Validator validator) {
-      this.name = name;
-      this.type = type;
+        final Optional<SemanticVersion> since,
+        final Validator validator
+    ) {
+      this.name = Objects.requireNonNull(name, "name");
+      this.type = Objects.requireNonNull(type, "type");
       this.defaultValueLegacy = defaultValueLegacy;
       this.defaultValueCurrent = defaultValueCurrent;
-      this.importance = importance;
-      this.documentation = documentation;
+      this.importance = Objects.requireNonNull(importance, "importance");
+      this.documentation = Objects.requireNonNull(documentation, "documentation");
+      this.since = Objects.requireNonNull(since, "since");
       this.validator = validator;
     }
 
     public String getName() {
       return this.name;
+    }
+
+    public Optional<SemanticVersion> since() {
+      return since;
+    }
+
+    public Object getCurrentDefaultValue() {
+      return defaultValueCurrent;
     }
 
     private void define(final ConfigDef configDef, final Object defaultValue) {
@@ -405,22 +463,6 @@ public class KsqlConfig extends AbstractConfig {
             true,
             ConfigDef.Importance.LOW,
             "Enable the INSERT INTO ... VALUES functionality."
-        ).define(
-            KSQL_WRAP_SINGLE_VALUES,
-            ConfigDef.Type.BOOLEAN,
-            true,
-            ConfigDef.Importance.LOW,
-            "Controls how KSQL will serialize a value whose schema contains only a "
-                + "single column. When set to true KSQL will persist the column nested with a "
-                + "STRUCT, for formats that support them. When set to false KSQL will persist "
-                + "the column as the top level object." + System.lineSeparator()
-                + "For example, if the value contains only a single column 'FOO INT' and the "
-                + "format is JSON,  and this setting is false, then KSQL will persist the value "
-                + "as an unnamed number, e.g. '10'. Where as if this setting is true, then KSQL "
-                + "will persist the value as a JSON document with a single numeric property, "
-                + "e.g. '{\"FOO\": 10}." + System.lineSeparator()
-                + "Note: the DELIMITED format ignores this setting as it does not support the "
-                + "concept of a STRUCT, record or document."
         )
         .withClientSslSupport();
     for (final CompatibilityBreakingConfigDef compatibilityBreakingConfigDef

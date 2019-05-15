@@ -20,8 +20,10 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
+import io.confluent.ksql.serde.SerdeUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Collections;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
@@ -37,24 +39,34 @@ public class KsqlJsonSerdeFactory extends KsqlSerdeFactory {
 
   @Override
   protected Serializer<Struct> createSerializer(
-      final Schema schema,
+      final Schema logicalSchema,
       final KsqlConfig ksqlConfig,
       final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
   ) {
-    final Serializer<Struct> serializer = new KsqlJsonSerializer(schema);
+    final boolean unwrap = SerdeUtil.shouldUnwrap(logicalSchema, ksqlConfig);
+
+    final Schema physicalSchema = unwrap
+        ? SerdeUtil.unwrapSchema(logicalSchema)
+        : logicalSchema;
+
+    final Function<Struct, Object> preprocessor = unwrap
+        ? SerdeUtil::unwrapStruct
+        : s -> s;
+
+    final Serializer<Struct> serializer = new KsqlJsonSerializer(physicalSchema, preprocessor);
     serializer.configure(Collections.emptyMap(), false);
     return serializer;
   }
 
   @Override
   protected Deserializer<Struct> createDeserializer(
-      final Schema schema,
+      final Schema logicalSchema,
       final KsqlConfig ksqlConfig,
       final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
       final ProcessingLogger processingLogger
   ) {
     final Deserializer<Struct> deserializer =
-        new KsqlJsonDeserializer(schema, processingLogger);
+        new KsqlJsonDeserializer(logicalSchema, processingLogger);
 
     deserializer.configure(Collections.emptyMap(), false);
 

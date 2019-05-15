@@ -45,11 +45,11 @@ JSON format. When KSQL writes out the result to Kafka, it persists a row with fi
    }
 
 If you want the value to be serialized without the outer JSON object or Avro record, set
-:ref:`ksql_persistence_ensure_value_is_struct` to ``false`` before running the statement.
+:ref:`ksql_persistence_serialization_wrap_single_values` to ``false`` before running the statement.
 
 .. code:: sql
 
-    SET 'ksql.persistence.wrap.single.values'='false';
+    SET 'ksql.persistence.serialization.wrap.single.values'='false';
     CREATE STREAM y AS SELECT f0 FROM x;
 
 When this setting is turned off, the output isn't nested. In this example, it's a JSON

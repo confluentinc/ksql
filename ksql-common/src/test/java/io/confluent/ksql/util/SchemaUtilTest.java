@@ -117,63 +117,6 @@ public class SchemaUtilTest {
     assertThat(mapClazz, equalTo(Map.class));
   }
 
-  // Todo(ac): Will be removed before merge. Just left to show the tests still pass
-  @Test
-  public void shouldGetCorrectSqlTypeNameForBoolean() {
-    assertThat(SchemaUtil.getSqlTypeName(Schema.OPTIONAL_BOOLEAN_SCHEMA), equalTo("BOOLEAN"));
-  }
-
-  // Todo(ac): Will be removed before merge. Just left to show the tests still pass
-  @Test
-  public void shouldGetCorrectSqlTypeNameForInt() {
-    assertThat(SchemaUtil.getSqlTypeName(Schema.OPTIONAL_INT32_SCHEMA), equalTo("INT"));
-  }
-
-  // Todo(ac): Will be removed before merge. Just left to show the tests still pass
-  @Test
-  public void shouldGetCorrectSqlTypeNameForBigint() {
-    assertThat(SchemaUtil.getSqlTypeName(Schema.OPTIONAL_INT64_SCHEMA), equalTo("BIGINT"));
-  }
-
-  // Todo(ac): Will be removed before merge. Just left to show the tests still pass
-  @Test
-  public void shouldGetCorrectSqlTypeNameForDouble() {
-    assertThat(SchemaUtil.getSqlTypeName(Schema.OPTIONAL_FLOAT64_SCHEMA), equalTo("DOUBLE"));
-  }
-
-  // Todo(ac): Will be removed before merge. Just left to show the tests still pass
-  @Test
-  public void shouldGetCorrectSqlTypeNameForArray() {
-    assertThat(SchemaUtil
-            .getSqlTypeName(SchemaBuilder.array(Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build()),
-        equalTo("ARRAY<DOUBLE>"));
-  }
-
-  @Test
-  public void shouldGetCorrectSqlTypeNameForMap() {
-    assertThat(SchemaUtil.getSqlTypeName(
-        SchemaBuilder.map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_FLOAT64_SCHEMA).optional()
-            .build()),
-        equalTo("MAP<VARCHAR, DOUBLE>"));
-  }
-
-  // Todo(ac): Will be removed before merge. Just left to show the tests still pass
-  @Test
-  public void shouldGetCorrectSqlTypeNameForStruct() {
-    final Schema structSchema = SchemaBuilder.struct()
-        .field("COL1", Schema.OPTIONAL_STRING_SCHEMA)
-        .field("COL2", Schema.OPTIONAL_INT32_SCHEMA)
-        .field("COL3", Schema.OPTIONAL_FLOAT64_SCHEMA)
-        .field("COL4", SchemaBuilder.array(Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build())
-        .field("COL5",
-            SchemaBuilder.map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_FLOAT64_SCHEMA)
-                .optional().build())
-        .build();
-    assertThat(SchemaUtil.getSqlTypeName(structSchema),
-        equalTo(
-            "STRUCT<COL1 VARCHAR, COL2 INT, COL3 DOUBLE, COL4 ARRAY<DOUBLE>, COL5 MAP<VARCHAR, DOUBLE>>"));
-  }
-
   @Test
   public void shouldCreateCorrectAvroSchemaWithNullableFields() {
     // Given:
@@ -548,30 +491,6 @@ public class SchemaUtilTest {
         equalTo("(Double)"));
     assertThat("Incorrect class.", SchemaUtil.getJavaCastString(Schema.OPTIONAL_STRING_SCHEMA),
         equalTo("(String)"));
-  }
-
-
-  // Todo(ac): Will be removed before merge. Just left to show the tests still pass
-  @Test
-  public void shouldGetCorrectSqlType() {
-    final String sqlType1 = SchemaUtil.getSqlTypeName(Schema.OPTIONAL_BOOLEAN_SCHEMA);
-    final String sqlType2 = SchemaUtil.getSqlTypeName(Schema.OPTIONAL_INT32_SCHEMA);
-    final String sqlType3 = SchemaUtil.getSqlTypeName(Schema.OPTIONAL_INT64_SCHEMA);
-    final String sqlType4 = SchemaUtil.getSqlTypeName(Schema.OPTIONAL_FLOAT64_SCHEMA);
-    final String sqlType5 = SchemaUtil.getSqlTypeName(Schema.OPTIONAL_STRING_SCHEMA);
-    final String sqlType6 = SchemaUtil
-        .getSqlTypeName(SchemaBuilder.array(Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build());
-    final String sqlType7 = SchemaUtil.getSqlTypeName(
-        SchemaBuilder.map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_FLOAT64_SCHEMA).optional()
-            .build());
-
-    assertThat("Invalid SQL type.", sqlType1, equalTo("BOOLEAN"));
-    assertThat("Invalid SQL type.", sqlType2, equalTo("INT"));
-    assertThat("Invalid SQL type.", sqlType3, equalTo("BIGINT"));
-    assertThat("Invalid SQL type.", sqlType4, equalTo("DOUBLE"));
-    assertThat("Invalid SQL type.", sqlType5, equalTo("VARCHAR"));
-    assertThat("Invalid SQL type.", sqlType6, equalTo("ARRAY<DOUBLE>"));
-    assertThat("Invalid SQL type.", sqlType7, equalTo("MAP<VARCHAR, DOUBLE>"));
   }
 
   @Test

@@ -168,6 +168,7 @@ public class TestCaseNode {
       return new TestCase(
           testPath,
           testName,
+          Optional.empty(),
           properties,
           topics.values(),
           inputRecords,

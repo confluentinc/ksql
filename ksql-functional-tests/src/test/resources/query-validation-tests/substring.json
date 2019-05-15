@@ -100,7 +100,7 @@
         {"topic": "test_topic", "value": {"source": "some_string"}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "value": {"SUBSTRING":"string"}}
+        {"topic": "OUTPUT", "value": "string"}
       ]
     },
     {

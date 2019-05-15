@@ -39,11 +39,11 @@ public final class TopicAccessValidatorFactory {
   ) {
     if (isKafkaAuthorizerEnabled(serviceContext.getAdminClient())) {
       LOG.info("KSQL topic authorization checks enabled.");
-      return new AuthorizationTopicAccessValidator(metaStore);
+      return new AuthorizationTopicAccessValidator();
     }
 
     // Dummy validator if a Kafka authorizer is not enabled
-    return (sc, statement) -> {
+    return (sc, metastore, statement) -> {
       return;
     };
   }

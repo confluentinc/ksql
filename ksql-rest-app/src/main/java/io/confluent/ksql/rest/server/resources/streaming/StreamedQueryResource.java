@@ -165,7 +165,11 @@ public class StreamedQueryResource {
     final ConfiguredStatement<Query> configured =
         ConfiguredStatement.of(statement, streamsProperties, ksqlConfig);
 
-    topicAccessValidator.validate(serviceContext, statement.getStatement());
+    topicAccessValidator.validate(
+        serviceContext,
+        ksqlEngine.getMetaStore(),
+        statement.getStatement()
+    );
 
     final QueryMetadata query = ksqlEngine.execute(serviceContext, configured)
         .getQuery()

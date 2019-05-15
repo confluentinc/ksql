@@ -37,25 +37,24 @@ import org.apache.kafka.common.acl.AclOperation;
  * and persistent query statements.
  */
 public class AuthorizationTopicAccessValidator implements TopicAccessValidator {
-  private final MetaStore metaStore;
-
-  public AuthorizationTopicAccessValidator(final MetaStore metaStore) {
-    this.metaStore = metaStore;
-  }
-
   @Override
-  public void validate(final ServiceContext serviceContext, final Statement statement) {
+  public void validate(
+      final ServiceContext serviceContext,
+      final MetaStore metaStore,
+      final Statement statement
+  ) {
     if (statement instanceof Query) {
-      validateQueryTopicSources(serviceContext, (Query)statement);
+      validateQueryTopicSources(serviceContext, metaStore, (Query)statement);
     } else if (statement instanceof InsertInto) {
-      validateInsertInto(serviceContext, (InsertInto)statement);
+      validateInsertInto(serviceContext, metaStore, (InsertInto)statement);
     } else if (statement instanceof CreateAsSelect) {
-      validateCreateAsSelect(serviceContext, (CreateAsSelect)statement);
+      validateCreateAsSelect(serviceContext, metaStore, (CreateAsSelect)statement);
     }
   }
 
   private void validateQueryTopicSources(
       final ServiceContext serviceContext,
+      final MetaStore metaStore,
       final Query query
   ) {
     final SourceTopicsExtractor extractor = new SourceTopicsExtractor(metaStore);
@@ -67,6 +66,7 @@ public class AuthorizationTopicAccessValidator implements TopicAccessValidator {
 
   private void validateCreateAsSelect(
       final ServiceContext serviceContext,
+      final MetaStore metaStore,
       final CreateAsSelect createAsSelect
   ) {
     /*
@@ -78,15 +78,16 @@ public class AuthorizationTopicAccessValidator implements TopicAccessValidator {
      * the target topic using the same ServiceContext used for validation.
      */
 
-    validateQueryTopicSources(serviceContext, createAsSelect.getQuery());
+    validateQueryTopicSources(serviceContext, metaStore, createAsSelect.getQuery());
 
     // At this point, the topic should have been created by the TopicCreateInjector
-    final String kafkaTopic = getCreateAsSelectSinkTopic(createAsSelect);
+    final String kafkaTopic = getCreateAsSelectSinkTopic(metaStore, createAsSelect);
     checkAccess(serviceContext, kafkaTopic, AclOperation.WRITE);
   }
 
   private void validateInsertInto(
       final ServiceContext serviceContext,
+      final MetaStore metaStore,
       final InsertInto insertInto
   ) {
     /*
@@ -95,13 +96,13 @@ public class AuthorizationTopicAccessValidator implements TopicAccessValidator {
      * Validates Write on the target topic, and Read on the query sources topics.
      */
 
-    validateQueryTopicSources(serviceContext, insertInto.getQuery());
+    validateQueryTopicSources(serviceContext, metaStore, insertInto.getQuery());
 
-    final String kafkaTopic = getSourceTopicName(insertInto.getTarget().getSuffix());
+    final String kafkaTopic = getSourceTopicName(metaStore, insertInto.getTarget().getSuffix());
     checkAccess(serviceContext, kafkaTopic, AclOperation.WRITE);
   }
 
-  private String getSourceTopicName(final String streamOrTable) {
+  private String getSourceTopicName(final MetaStore metaStore, final String streamOrTable) {
     final DataSource<?> dataSource = metaStore.getSource(streamOrTable);
     if (dataSource == null) {
       throw new KsqlException("Cannot validate for topic access from an unknown stream/table: "
@@ -133,7 +134,10 @@ public class AuthorizationTopicAccessValidator implements TopicAccessValidator {
     }
   }
 
-  private String getCreateAsSelectSinkTopic(final CreateAsSelect createAsSelect) {
+  private String getCreateAsSelectSinkTopic(
+      final MetaStore metaStore,
+      final CreateAsSelect createAsSelect
+  ) {
     final Expression nameExpression = createAsSelect.getProperties()
         .get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY);
 
@@ -141,6 +145,6 @@ public class AuthorizationTopicAccessValidator implements TopicAccessValidator {
       return StringUtils.strip(nameExpression.toString(), "'");
     }
 
-    return getSourceTopicName(createAsSelect.getName().getSuffix());
+    return getSourceTopicName(metaStore, createAsSelect.getName().getSuffix());
   }
 }

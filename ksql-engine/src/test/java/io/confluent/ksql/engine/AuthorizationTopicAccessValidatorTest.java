@@ -78,7 +78,7 @@ public class AuthorizationTopicAccessValidatorTest {
     metaStore = new MetaStoreImpl(new InternalFunctionRegistry());
     ksqlEngine = KsqlEngineTestUtil.createKsqlEngine(serviceContext, metaStore);
 
-    accessValidator = new AuthorizationTopicAccessValidator(metaStore);
+    accessValidator = new AuthorizationTopicAccessValidator();
     when(serviceContext.getTopicClient()).thenReturn(kafkaTopicClient);
 
     givenTopic("topic1", TOPIC_1);
@@ -104,7 +104,7 @@ public class AuthorizationTopicAccessValidatorTest {
     final Statement statement = givenStatement("SELECT * FROM " + STREAM_TOPIC_1 + ";");
 
     // When:
-    accessValidator.validate(serviceContext, statement);
+    accessValidator.validate(serviceContext, metaStore, statement);
 
     // Then:
     // Above command should not throw any exception
@@ -125,7 +125,7 @@ public class AuthorizationTopicAccessValidatorTest {
     ));
 
     // When:
-    accessValidator.validate(serviceContext, statement);
+    accessValidator.validate(serviceContext, metaStore, statement);
   }
 
   @Test
@@ -138,7 +138,7 @@ public class AuthorizationTopicAccessValidatorTest {
     );
 
     // When:
-    accessValidator.validate(serviceContext, statement);
+    accessValidator.validate(serviceContext, metaStore, statement);
 
     // Then:
     // Above command should not throw any exception
@@ -160,7 +160,7 @@ public class AuthorizationTopicAccessValidatorTest {
     ));
 
     // When:
-    accessValidator.validate(serviceContext, statement);
+    accessValidator.validate(serviceContext, metaStore, statement);
   }
 
   @Test
@@ -179,7 +179,7 @@ public class AuthorizationTopicAccessValidatorTest {
     ));
 
     // When:
-    accessValidator.validate(serviceContext, statement);
+    accessValidator.validate(serviceContext, metaStore, statement);
   }
 
   @Test
@@ -198,7 +198,7 @@ public class AuthorizationTopicAccessValidatorTest {
     ));
 
     // When:
-    accessValidator.validate(serviceContext, statement);
+    accessValidator.validate(serviceContext, metaStore, statement);
   }
 
   @Test
@@ -211,7 +211,7 @@ public class AuthorizationTopicAccessValidatorTest {
     );
 
     // When:
-    accessValidator.validate(serviceContext, statement);
+    accessValidator.validate(serviceContext, metaStore, statement);
 
     // Then:
     // Above command should not throw any exception
@@ -233,7 +233,7 @@ public class AuthorizationTopicAccessValidatorTest {
     ));
 
     // When:
-    accessValidator.validate(serviceContext, statement);
+    accessValidator.validate(serviceContext, metaStore, statement);
   }
 
   @Test
@@ -252,7 +252,7 @@ public class AuthorizationTopicAccessValidatorTest {
     ));
 
     // When:
-    accessValidator.validate(serviceContext, statement);
+    accessValidator.validate(serviceContext, metaStore, statement);
   }
 
   @Test
@@ -270,7 +270,7 @@ public class AuthorizationTopicAccessValidatorTest {
     ));
 
     // When:
-    accessValidator.validate(serviceContext, statement);
+    accessValidator.validate(serviceContext, metaStore, statement);
   }
 
   @Test
@@ -283,7 +283,7 @@ public class AuthorizationTopicAccessValidatorTest {
     );
 
     // When:
-    accessValidator.validate(serviceContext, statement);
+    accessValidator.validate(serviceContext, metaStore, statement);
 
     // Then:
     // Above command should not throw any exception
@@ -306,7 +306,7 @@ public class AuthorizationTopicAccessValidatorTest {
 
 
     // When:
-    accessValidator.validate(serviceContext, statement);
+    accessValidator.validate(serviceContext, metaStore, statement);
   }
 
   @Test
@@ -320,7 +320,7 @@ public class AuthorizationTopicAccessValidatorTest {
     );
 
     // When:
-    accessValidator.validate(serviceContext, statement);
+    accessValidator.validate(serviceContext, metaStore, statement);
 
     // Then:
     // Above command should not throw any exception
@@ -337,7 +337,7 @@ public class AuthorizationTopicAccessValidatorTest {
     expectedException.expect(KafkaResponseGetFailedException.class);
 
     // When:
-    accessValidator.validate(serviceContext, statement);
+    accessValidator.validate(serviceContext, metaStore, statement);
   }
 
   private void givenTopic(final String topicName, final TopicDescription topicDescription) {

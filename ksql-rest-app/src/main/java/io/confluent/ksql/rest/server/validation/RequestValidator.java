@@ -144,7 +144,11 @@ public class RequestValidator {
     } else if (KsqlEngine.isExecutableStatement(configured.getStatement())) {
       final ConfiguredStatement<?> statementInjected = injector.inject(configured);
 
-      topicAccessValidator.validate(serviceContext, statementInjected.getStatement());
+      topicAccessValidator.validate(
+          serviceContext,
+          executionContext.getMetaStore(),
+          statementInjected.getStatement()
+      );
 
       executionContext.execute(serviceContext, statementInjected);
     } else {

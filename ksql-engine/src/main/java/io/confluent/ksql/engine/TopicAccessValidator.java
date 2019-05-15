@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.engine;
 
+import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlException;
@@ -33,8 +34,10 @@ public interface TopicAccessValidator {
    * Other permissions checks are already validated by the {@code Injectors} which attempts to
    * create and/or delete topics using the same {@code ServiceContext}.
    *
+   * @param serviceContext The service context to validate.
+   * @param metaStore The metastore containing updated sources names.
    * @param statement The statement to verify for permissions.
    * @throws KsqlException If a topic is not authorized for access, or the topic does not exist.
    */
-  void validate(ServiceContext serviceContext, Statement statement);
+  void validate(ServiceContext serviceContext, MetaStore metaStore, Statement statement);
 }

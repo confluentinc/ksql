@@ -319,6 +319,7 @@ public class RequestValidatorTest {
     // Then:
     verify(topicAccessValidator, times(1)).validate(
         otherServiceContext,
+        metaStore,
         ksqlEngine.prepare(statements.get(0)).getStatement()
     );
   }

@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.test.tools;
 
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
@@ -434,7 +433,10 @@ public class TestCase implements Test {
       final List<FakeKafkaRecord> expected,
       final List<FakeKafkaRecord> actual,
       final SchemaRegistryClient schemaRegistryClient) {
-    assertThat(actual.size(), equalTo(expected.size()));
+    if (actual.size() != expected.size()) {
+      throw new KsqlException("Expected <" + expected.size()
+          + "> records but it was <" + actual.size() + ">");
+    }
     for (int i = 0; i < expected.size(); i++) {
       final ProducerRecord actualProducerRecord = actual.get(i).getProducerRecord();
       final ProducerRecord expectedProducerRecord = expected.get(i).getProducerRecord();

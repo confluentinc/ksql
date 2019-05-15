@@ -21,7 +21,7 @@ import com.github.rvesse.airline.annotations.restrictions.Once;
 import com.github.rvesse.airline.annotations.restrictions.Required;
 import java.io.IOException;
 
-@Command(name = "testingtool", description = "KSQL testing tool")
+@Command(name = "ksql-testing-tool", description = "KSQL testing tool")
 public class TestOptions {
 
   @SuppressWarnings("unused") // Accessed via reflection

@@ -50,8 +50,6 @@ public final class KsqlTestingTool {
       final TestOptions testOptions = TestOptions.parse(args);
 
       if (testOptions == null) {
-        System.err.println("Invalid parameter.");
-        System.err.println("Usage: ksql-testing-tool /path/to/the/test/file.json");
         return;
       }
 

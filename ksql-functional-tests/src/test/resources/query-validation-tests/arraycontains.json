@@ -17,9 +17,9 @@
         {"topic": "test_topic", "key": 1, "value": {"colors": ["Pink", null]}, "timestamp": 0}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": 1, "value": {"COLORS":["Pink", "Yellow", "Pink"]}, "timestamp": 0},
-        {"topic": "OUTPUT", "key": 1, "value": {"COLORS":["White", "Pink"]}, "timestamp": 0},
-        {"topic": "OUTPUT", "key": 1, "value": {"COLORS":["Pink", null]}, "timestamp": 0}
+        {"topic": "OUTPUT", "key": 1, "value": ["Pink", "Yellow", "Pink"], "timestamp": 0},
+        {"topic": "OUTPUT", "key": 1, "value": ["White", "Pink"], "timestamp": 0},
+        {"topic": "OUTPUT", "key": 1, "value": ["Pink", null], "timestamp": 0}
       ]
     },
     {
@@ -36,9 +36,9 @@
         {"topic": "test_topic", "key": 1, "value": {"c1":{"colors": ["Pink", null]}}, "timestamp": 0}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": 1, "value": {"COLORS":["Pink", "Yellow", "Pink"]}, "timestamp": 0},
-        {"topic": "OUTPUT", "key": 1, "value": {"COLORS":["White", "Pink"]}, "timestamp": 0},
-        {"topic": "OUTPUT", "key": 1, "value": {"COLORS":["Pink", null]}, "timestamp": 0}
+        {"topic": "OUTPUT", "key": 1, "value": ["Pink", "Yellow", "Pink"], "timestamp": 0},
+        {"topic": "OUTPUT", "key": 1, "value": ["White", "Pink"], "timestamp": 0},
+        {"topic": "OUTPUT", "key": 1, "value": ["Pink", null], "timestamp": 0}
       ]
     }
   ]

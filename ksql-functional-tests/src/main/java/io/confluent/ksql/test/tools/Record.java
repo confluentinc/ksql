@@ -89,4 +89,8 @@ public class Record {
   public long timestamp() {
     return timestamp;
   }
+
+  public WindowData getWindow() {
+    return window;
+  }
 }

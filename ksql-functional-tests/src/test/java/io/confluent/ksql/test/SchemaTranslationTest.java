@@ -169,6 +169,7 @@ public class SchemaTranslationTest {
         return Stream.of(new TestCase(
             testPath,
             name,
+            Optional.empty(),
             Collections.emptyMap(),
             ImmutableList.of(srcTopic, OUTPUT_TOPIC),
             inputRecords,

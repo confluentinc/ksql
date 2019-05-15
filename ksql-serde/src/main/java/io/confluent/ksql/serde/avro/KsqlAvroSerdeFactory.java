@@ -23,6 +23,7 @@ import io.confluent.kafka.serializers.AbstractKafkaAvroSerDeConfig;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
+import io.confluent.ksql.serde.SerdeUtil;
 import io.confluent.ksql.serde.connect.KsqlConnectDeserializer;
 import io.confluent.ksql.serde.connect.KsqlConnectSerializer;
 import io.confluent.ksql.serde.tls.ThreadLocalDeserializer;
@@ -30,6 +31,7 @@ import io.confluent.ksql.serde.tls.ThreadLocalSerializer;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
@@ -71,13 +73,13 @@ public class KsqlAvroSerdeFactory extends KsqlSerdeFactory {
 
   @Override
   protected Serializer<Struct> createSerializer(
-      final Schema schema,
+      final Schema logicalSchema,
       final KsqlConfig ksqlConfig,
       final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
   ) {
     return new ThreadLocalSerializer<>(
         () -> createConnectSerializer(
-            schema,
+            logicalSchema,
             ksqlConfig,
             schemaRegistryClientFactory
         )
@@ -86,14 +88,14 @@ public class KsqlAvroSerdeFactory extends KsqlSerdeFactory {
 
   @Override
   protected Deserializer<Struct> createDeserializer(
-      final Schema schema,
+      final Schema logicalSchema,
       final KsqlConfig ksqlConfig,
       final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
       final ProcessingLogger processingLogger
   ) {
     return new ThreadLocalDeserializer<>(
         () -> createConnectDeserializer(
-            schema,
+            logicalSchema,
             ksqlConfig,
             schemaRegistryClientFactory,
             processingLogger)
@@ -101,16 +103,31 @@ public class KsqlAvroSerdeFactory extends KsqlSerdeFactory {
   }
 
   private KsqlConnectSerializer createConnectSerializer(
-      final Schema schema,
+      final Schema logicalSchema,
       final KsqlConfig ksqlConfig,
       final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
   ) {
-    final AvroDataTranslator translator = createAvroTranslator(schema, ksqlConfig);
+    final AvroDataTranslator translator = createAvroTranslator(logicalSchema, ksqlConfig);
 
     final AvroConverter avroConverter =
         getAvroConverter(schemaRegistryClientFactory.get(), ksqlConfig);
 
-    return new KsqlConnectSerializer(translator.getConnectSchema(), translator, avroConverter);
+    final boolean unwrap = SerdeUtil.shouldUnwrap(logicalSchema, ksqlConfig);
+
+    final Schema physicalSchema = unwrap
+        ? SerdeUtil.unwrapSchema(translator.getConnectSchema())
+        : translator.getConnectSchema();
+
+    final Function<Struct, Object> preprocessor = unwrap
+        ? SerdeUtil::unwrapStruct
+        : s -> s;
+
+    return new KsqlConnectSerializer(
+        physicalSchema,
+        preprocessor,
+        translator,
+        avroConverter
+    );
   }
 
   private KsqlConnectDeserializer createConnectDeserializer(

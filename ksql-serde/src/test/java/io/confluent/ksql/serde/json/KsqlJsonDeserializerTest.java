@@ -309,7 +309,7 @@ public class KsqlJsonDeserializerTest {
   }
 
   @Test
-  public void shouldDeserializeSingleMapFieldAsRecordIfSchemaHasMultipleFields() {
+  public void shouldDeserializeSingleMapFieldAsRowIfSchemaHasMultipleFields() {
     // Given:
     final Schema schema = SchemaBuilder.struct()
         .field("ids", SchemaBuilder
@@ -332,7 +332,7 @@ public class KsqlJsonDeserializerTest {
   }
 
   @Test
-  public void shouldDeserializeSingleMapFieldAsRecordIfKeyNotString() {
+  public void shouldDeserializeSingleMapFieldAsRowIfKeyNotString() {
     // Given:
     final Schema schema = SchemaBuilder.struct()
         .field("A", SchemaBuilder
@@ -416,7 +416,7 @@ public class KsqlJsonDeserializerTest {
   }
 
   @Test
-  public void shouldDeserializeSingleMapFieldAsRecordIfFieldNamePresentAndCorrectType() {
+  public void shouldDeserializeSingleMapFieldAsRowIfFieldNamePresentAndCorrectType() {
     // Given:
     final Schema schema = SchemaBuilder.struct()
         .field("A", SchemaBuilder
@@ -437,7 +437,7 @@ public class KsqlJsonDeserializerTest {
   }
 
   @Test
-  public void shouldDeserializeSingleMapFieldAsRecordIfFieldNamePresentAndCorrectNestedMap() {
+  public void shouldDeserializeSingleMapFieldAsRowIfFieldNamePresentAndCorrectNestedMap() {
     // Given:
     final Schema schema = SchemaBuilder.struct()
         .field("A", SchemaBuilder
@@ -462,7 +462,7 @@ public class KsqlJsonDeserializerTest {
   }
 
   @Test
-  public void shouldDeserializeSingleMapFieldAsRecordIfFieldNamePresentAndCorrectNestedStruct() {
+  public void shouldDeserializeSingleMapFieldAsRowIfFieldNamePresentAndCorrectNestedStruct() {
     // Given:
     final Schema schema = SchemaBuilder.struct()
         .field("A", SchemaBuilder
@@ -488,7 +488,7 @@ public class KsqlJsonDeserializerTest {
   }
 
   @Test
-  public void shouldDeserializeSingleMapFieldAsRecordIfSecondFieldMatchesSchema() {
+  public void shouldDeserializeSingleMapFieldAsRowIfSecondFieldMatchesSchema() {
     // Given:
     final Schema schema = SchemaBuilder.struct()
         .field("A", SchemaBuilder
@@ -518,7 +518,7 @@ public class KsqlJsonDeserializerTest {
   }
 
   @Test
-  public void shouldDefaultToDeserializeSingleMapFieldAsRecordValueNotCoercibleToMapOrRecordType() {
+  public void shouldDefaultToDeserializeSingleMapFieldAsRowValueNotCoercibleToMapOrRecordType() {
     // Given:
     final Schema schema = SchemaBuilder.struct()
         .field("A", SchemaBuilder

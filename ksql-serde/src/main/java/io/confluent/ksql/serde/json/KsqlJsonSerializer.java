@@ -22,7 +22,6 @@ import java.util.function.Function;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.Schema.Type;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.json.JsonConverter;
 import org.slf4j.Logger;
@@ -37,13 +36,14 @@ public class KsqlJsonSerializer implements Serializer<Struct> {
   private final Function<Struct, Object> preprocessor;
 
   public KsqlJsonSerializer(final Schema schema) {
-    this.schema = Objects.requireNonNull(schema, "schema").schema();
+    this(schema, s -> s);
+  }
+
+  KsqlJsonSerializer(final Schema schema, final Function<Struct, Object> preprocessor) {
     this.jsonConverter = new JsonConverter();
     this.jsonConverter.configure(Collections.singletonMap("schemas.enable", false), false);
-
-    this.preprocessor = schema.type() == Type.STRUCT
-        ? t -> t
-        : KsqlJsonSerializer::toSingleField;
+    this.schema = Objects.requireNonNull(schema, "schema").schema();
+    this.preprocessor = Objects.requireNonNull(preprocessor, "preprocessor");
   }
 
   @Override
@@ -71,13 +71,5 @@ public class KsqlJsonSerializer implements Serializer<Struct> {
 
   @Override
   public void close() {
-  }
-
-  private static Object toSingleField(final Struct struct) {
-    if (struct.schema().fields().size() != 1) {
-      throw new SerializationException("Expected to serialize JSON value or array not JSON object");
-    }
-
-    return struct.get(struct.schema().fields().get(0));
   }
 }

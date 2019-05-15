@@ -24,7 +24,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.metastore.model.KsqlTopic;
@@ -33,8 +32,10 @@ import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.test.serde.SerdeSupplier;
 import io.confluent.ksql.test.serde.avro.AvroSerdeSupplier;
 import io.confluent.ksql.test.serde.string.StringSerdeSupplier;
+import io.confluent.ksql.test.tools.TopologyTestDriverContainer.WindowType;
 import io.confluent.ksql.test.tools.conditions.PostConditions;
 import io.confluent.ksql.test.tools.exceptions.KsqlExpectedException;
+import io.confluent.ksql.util.Pair;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
@@ -46,6 +47,7 @@ import org.apache.kafka.streams.TopologyTestDriver;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
@@ -57,8 +59,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class TestCaseTest {
 
   @Rule
-  public final org.junit.rules.ExpectedException expectedException = org.junit.rules.ExpectedException
-      .none();
+  public final ExpectedException expectedException = ExpectedException.none();
 
   private final SerdeSupplier serdeSupplier = new StringSerdeSupplier();
   private final Topic topic = new Topic("foo_kafka", Optional.empty(), serdeSupplier, 4, 1);
@@ -66,6 +67,7 @@ public class TestCaseTest {
   private final TestCase testCase = new TestCase(
       null,
       "test",
+      Optional.empty(),
       Collections.emptyMap(),
       ImmutableList.of(topic),
       ImmutableList.of(record),
@@ -114,8 +116,9 @@ public class TestCaseTest {
     // Given:
     final TopologyTestDriverContainer topologyTestDriverContainer = TopologyTestDriverContainer.of(
         topologyTestDriver,
-        ImmutableSet.of(new KsqlTopic("FOO", "foo_kafka_different_input", new KsqlJsonSerdeFactory(), false)),
-        ImmutableSet.of(new KsqlTopic("BAR", "bar_kafka", new KsqlJsonSerdeFactory(), false))
+        ImmutableList.of(new KsqlTopic("FOO", "foo_kafka_different_input", new KsqlJsonSerdeFactory(), false)),
+        new KsqlTopic("BAR", "bar_kafka", new KsqlJsonSerdeFactory(), false),
+        new Pair<>(WindowType.NO_WINDOW, Long.MIN_VALUE)
     );
 
 
@@ -181,6 +184,7 @@ public class TestCaseTest {
     final TestCase testCase = new TestCase(
         null,
         "test",
+        Optional.empty(),
         Collections.emptyMap(),
         ImmutableList.of(topic),
         ImmutableList.of(record),
@@ -230,8 +234,9 @@ public class TestCaseTest {
   private TopologyTestDriverContainer getSampleTopologyTestDriverContainer() {
     return TopologyTestDriverContainer.of(
         topologyTestDriver,
-        ImmutableSet.of(new KsqlTopic("FOO", "foo_kafka", new KsqlJsonSerdeFactory(), false)),
-        ImmutableSet.of(new KsqlTopic("BAR", "bar_kafka", new KsqlJsonSerdeFactory(), false))
+        ImmutableList.of(new KsqlTopic("FOO", "foo_kafka", new KsqlJsonSerdeFactory(), false)),
+        new KsqlTopic("BAR", "bar_kafka", new KsqlJsonSerdeFactory(), false),
+        new Pair<>(WindowType.NO_WINDOW, Long.MIN_VALUE)
     );
   }
 

@@ -33,13 +33,17 @@ import io.confluent.ksql.engine.KsqlEngineTestUtil;
 import io.confluent.ksql.function.TestFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.MutableMetaStore;
+import io.confluent.ksql.model.SemanticVersion;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.test.tools.Test;
 import io.confluent.ksql.test.tools.TestCase;
 import io.confluent.ksql.test.tools.TopologyAndConfigs;
 import io.confluent.ksql.test.tools.TopologyTestDriverContainer;
+import io.confluent.ksql.test.tools.TopologyTestDriverContainer.WindowType;
+import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import java.io.BufferedReader;
@@ -57,9 +61,12 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.NavigableMap;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.avro.generic.GenericData;
@@ -73,6 +80,9 @@ final class EndToEndEngineTestUtil {
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
   private static final String CONFIG_END_MARKER = "CONFIGS_END";
   private static final String SCHEMAS_END_MARKER = "SCHEMAS_END";
+
+  private static final NavigableMap<SemanticVersion, Map<String, Object>>
+      COMPATIBILITY_BREAKING_CONFIGS = buildCompatibilityBreakingConfigs();
 
   // Pass a single test or multiple tests separated by commas to the test framework.
   // Example:
@@ -141,10 +151,19 @@ final class EndToEndEngineTestUtil {
   private static KsqlConfig buildConfig(final TestCase testCase) {
     final KsqlConfig baseConfig = new KsqlConfig(baseConfig());
 
-    final Map<String, String> persistedConfigs = testCase.persistedProperties();
+    final Map<String, String> configs = testCase.ksqlVersion()
+        .map(ksqlVersion -> COMPATIBILITY_BREAKING_CONFIGS
+            .tailMap(ksqlVersion.getVersion(), false)
+            .values()
+            .stream()
+            .flatMap(m -> m.entrySet().stream())
+            .collect(Collectors.toMap(Entry::getKey, e -> Objects.toString(e.getValue()))))
+        .orElseGet(HashMap::new);
 
-    final KsqlConfig compatibleConfig = persistedConfigs.isEmpty() ? baseConfig :
-        baseConfig.overrideBreakingConfigsWithOriginalValues(persistedConfigs);
+    configs.putAll(testCase.persistedProperties());
+
+    final KsqlConfig compatibleConfig = configs.isEmpty() ? baseConfig :
+        baseConfig.overrideBreakingConfigsWithOriginalValues(configs);
 
     return compatibleConfig
         .cloneWithPropertyOverwrite(testCase.properties());
@@ -177,11 +196,10 @@ final class EndToEndEngineTestUtil {
         persistentQueryMetadata.getSourceNames()
             .stream()
             .map(s -> ksqlEngine.getMetaStore().getSource(s).getKsqlTopic())
-            .collect(Collectors.toSet()),
-        persistentQueryMetadata.getSinkNames()
-            .stream()
-            .map(s -> ksqlEngine.getMetaStore().getSource(s).getKsqlTopic())
-            .collect(Collectors.toSet())
+            .collect(Collectors.toList()),
+        ksqlEngine.getMetaStore().getSource(persistentQueryMetadata.getSinkNames()
+            .iterator().next()).getKsqlTopic(),
+        new Pair<>(WindowType.NO_WINDOW, Long.MIN_VALUE)
     );
   }
 
@@ -234,10 +252,14 @@ final class EndToEndEngineTestUtil {
   }
 
   private static TopologyAndConfigs readTopologyFile(final String file, final ObjectReader objectReader) {
+    final InputStream s = EndToEndEngineTestUtil.class.getClassLoader().getResourceAsStream(file);
+    if (s == null) {
+      throw new AssertionError("File not found: " + file);
+    }
+
     try (final BufferedReader reader =
-        new BufferedReader((
-            new InputStreamReader(EndToEndEngineTestUtil.class.getClassLoader().
-                getResourceAsStream(file), StandardCharsets.UTF_8)))) {
+        new BufferedReader(new InputStreamReader(s, StandardCharsets.UTF_8))
+    ) {
       final StringBuilder topologyFileBuilder = new StringBuilder();
 
       String schemas = null;
@@ -268,42 +290,52 @@ final class EndToEndEngineTestUtil {
     }
   }
 
-  static List<String> findExpectedTopologyDirectories(final String dir) {
-    try {
-      return findContentsOfDirectory(dir);
-    } catch (final IOException e) {
-      throw new RuntimeException("Could not find expected topology directories.", e);
-    }
-  }
-
   private static List<String> findExpectedTopologyFiles(final String dir) {
     try {
       return findContentsOfDirectory(dir);
-    } catch (final IOException e) {
+    } catch (final Exception e) {
       throw new RuntimeException("Could not find expected topology files. dir: " + dir, e);
     }
   }
 
-  private static List<String> findContentsOfDirectory(final String dir) throws IOException {
-    final List<String> contents = new ArrayList<>();
-    try (final BufferedReader reader =
-        new BufferedReader(
-            new InputStreamReader(EndToEndEngineTestUtil.class.getClassLoader().
-                getResourceAsStream(dir), StandardCharsets.UTF_8))) {
+  static List<String> findContentsOfDirectory(final String path) {
+    return loadContents(path)
+        .orElseThrow(() -> new AssertionError("Dir not found: " + path));
+  }
 
+  static Optional<List<String>> loadContents(final String path) {
+    final InputStream s = EndToEndEngineTestUtil.class.getClassLoader()
+        .getResourceAsStream(path);
+
+    if (s == null) {
+      return Optional.empty();
+    }
+
+    try (final BufferedReader reader =
+        new BufferedReader(new InputStreamReader(s, StandardCharsets.UTF_8))
+    ) {
+      final List<String> contents = new ArrayList<>();
       String file;
       while ((file = reader.readLine()) != null) {
         contents.add(file);
       }
+      return Optional.of(contents);
+    } catch (final IOException e) {
+      throw new AssertionError("Failed to read path: " + path, e);
     }
-    return contents;
   }
 
   private static List<Path> findTests(final Path dir) {
-    try (final BufferedReader reader = new BufferedReader(
-        new InputStreamReader(EndToEndEngineTestUtil.class.getClassLoader().
-            getResourceAsStream(dir.toString()), StandardCharsets.UTF_8))) {
+    final InputStream s = EndToEndEngineTestUtil.class.getClassLoader()
+        .getResourceAsStream(dir.toString());
 
+    if (s == null) {
+      throw new AssertionError("File not found: " + dir);
+    }
+
+    try (final BufferedReader reader = new BufferedReader(
+        new InputStreamReader(s, StandardCharsets.UTF_8))
+    ) {
       final List<Path> tests = new ArrayList<>();
 
       String test;
@@ -314,7 +346,7 @@ final class EndToEndEngineTestUtil {
       }
       return tests;
     } catch (final IOException e) {
-      throw new AssertionError("Invalid test - failed to read dir: " + dir);
+      throw new AssertionError("Invalid test - failed to read dir: " + dir, e);
     }
   }
 
@@ -557,21 +589,18 @@ final class EndToEndEngineTestUtil {
     }
   }
 
-  static final class MissingFieldException extends RuntimeException {
+  @SuppressWarnings("OptionalGetWithoutIsPresent")
+  private static NavigableMap<SemanticVersion, Map<String, Object>> buildCompatibilityBreakingConfigs() {
+    final Map<SemanticVersion, Map<String, Object>> builder = new HashMap<>();
 
-    MissingFieldException(final String fieldName) {
-      super("test must define '" + fieldName + "' field");
-    }
-  }
+    KsqlConfig.COMPATIBLY_BREAKING_CONFIG_DEFS.stream()
+        .filter(def -> def.since().isPresent())
+        .forEach(def -> builder
+            .computeIfAbsent(def.since().get(), v -> new HashMap<>())
+            .put(def.getName(), def.getCurrentDefaultValue()));
 
-  static final class InvalidFieldException extends RuntimeException {
-
-    InvalidFieldException(
-        final String fieldName,
-        final String reason,
-        final Throwable cause
-    ) {
-      super(fieldName + ": " + reason, cause);
-    }
+    final NavigableMap<SemanticVersion, Map<String, Object>> configs = new TreeMap<>();
+    builder.forEach((k, v) -> configs.put(k, ImmutableMap.copyOf(v)));
+    return Collections.unmodifiableNavigableMap(configs);
   }
 }

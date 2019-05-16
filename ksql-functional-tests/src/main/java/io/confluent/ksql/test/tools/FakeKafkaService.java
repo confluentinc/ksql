@@ -37,10 +37,10 @@ public final class FakeKafkaService {
     this.topicData = new HashMap<>();
   }
 
-  void createTopic(final Topic topic) {
+  public void createTopic(final Topic topic) {
     Objects.requireNonNull(topic, "Topic");
     if (this.topicMap.containsKey(topic.getName())) {
-      throw new KsqlException("Topic already exist: " +  topic.getName());
+      return;
     }
     this.topicMap.put(topic.getName(), topic);
     this.topicData.put(topic.getName(), new ArrayList<>());
@@ -65,7 +65,19 @@ public final class FakeKafkaService {
     }
   }
 
-  Map<String, Topic> getTopicMap() {
+  public boolean topicExists(final Topic topic) {
+    return topicMap.containsKey(topic.getName());
+  }
+
+  public void updateTopic(final Topic topic) {
+    if (!topicMap.containsKey(topic.getName())) {
+      throw new KsqlException("Topic does not exist: " + topic.getName());
+    }
+    topicMap.put(topic.getName(), topic);
+  }
+
+
+  public Map<String, Topic> getTopicMap() {
     return topicMap;
   }
 

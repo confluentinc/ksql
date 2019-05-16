@@ -26,22 +26,15 @@ import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientExcept
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.serde.avro.KsqlAvroSerdeFactory;
-import io.confluent.ksql.serde.delimited.KsqlDelimitedSerdeFactory;
-import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.test.model.KsqlVersion;
-import io.confluent.ksql.test.serde.SerdeSupplier;
-import io.confluent.ksql.test.serde.ValueSpec;
 import io.confluent.ksql.test.serde.avro.AvroSerdeSupplier;
 import io.confluent.ksql.test.serde.avro.ValueSpecAvroSerdeSupplier;
-import io.confluent.ksql.test.serde.string.StringSerdeSupplier;
-import io.confluent.ksql.test.tools.TopologyTestDriverContainer.WindowType;
 import io.confluent.ksql.test.tools.conditions.PostConditions;
 import io.confluent.ksql.test.tools.exceptions.KsqlExpectedException;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import java.io.IOException;
-import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -55,16 +48,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.apache.avro.Schema;
-import org.apache.kafka.clients.admin.TopicDescription;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.common.serialization.Deserializer;
-import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.serialization.Serializer;
-import org.apache.kafka.streams.kstream.SessionWindowedDeserializer;
-import org.apache.kafka.streams.kstream.TimeWindowedDeserializer;
-import org.apache.kafka.streams.kstream.Windowed;
-import org.apache.kafka.streams.kstream.internals.SessionWindow;
-import org.apache.kafka.streams.kstream.internals.TimeWindow;
 import org.apache.kafka.streams.test.ConsumerRecordFactory;
 import org.apache.kafka.streams.test.OutputVerifier;
 import org.hamcrest.StringDescription;
@@ -181,9 +167,9 @@ public class TestCase implements Test {
   @SuppressWarnings("unchecked")
   public void processInput(final TopologyTestDriverContainer topologyTestDriverContainer,
       final SchemaRegistryClient schemaRegistryClient) {
-    final Set<String> sourceKafkaTopicNames = topologyTestDriverContainer.getSourceKsqlTopics()
+    final Set<String> sourceKafkaTopicNames = topologyTestDriverContainer.getSourceTopics()
         .stream()
-        .map(KsqlTopic::getKafkaTopicName)
+        .map(Topic::getName)
         .collect(Collectors.toSet());
     inputRecords
         .stream().filter(record -> sourceKafkaTopicNames.contains(record.topic.getName()))
@@ -237,8 +223,10 @@ public class TestCase implements Test {
 
   public void initializeTopics(
       final KafkaTopicClient kafkaTopicClient,
+      final FakeKafkaService fakeKafkaService,
       final SchemaRegistryClient schemaRegistryClient) {
     for (final Topic topic : topics) {
+      fakeKafkaService.createTopic(topic);
       kafkaTopicClient.createTopic(
           topic.getName(),
           topic.numPartitions,
@@ -345,76 +333,42 @@ public class TestCase implements Test {
       final TopologyTestDriverContainer testDriver,
       final KafkaTopicClient kafkaTopicClient,
       final SchemaRegistryClient schemaRegistryClient) throws IOException, RestClientException {
-    final Serializer serializer = fakeKafkaRecord.getTestRecord().topic.getSerdeSupplier()
+    final Serializer keySerializer = fakeKafkaRecord.getTestRecord().topic.getKeySerializer();
+    final Serializer valueSerializer = fakeKafkaRecord.getTestRecord().topic.getSerdeSupplier()
         instanceof AvroSerdeSupplier
         ? new ValueSpecAvroSerdeSupplier().getSerializer(schemaRegistryClient)
         : fakeKafkaRecord.getTestRecord().topic.getSerializer(schemaRegistryClient);
-    testDriver.getTopologyTestDriver().pipeInput(
-        new ConsumerRecordFactory<>(
-            fakeKafkaRecord.getTestRecord().keySerializer(),
-            serializer
-        ).create(
-            fakeKafkaRecord.getTestRecord().topic.name,
-            fakeKafkaRecord.getTestRecord().key(),
-            fakeKafkaRecord.getTestRecord().value(),
-            fakeKafkaRecord.getTestRecord().timestamp
-        )
+    final Object key = fakeKafkaRecord.getProducerRecord() == null
+        ? fakeKafkaRecord.getTestRecord().key()
+        : fakeKafkaRecord.getProducerRecord().key();
+    final ConsumerRecord consumerRecord = new ConsumerRecordFactory<>(
+        keySerializer,
+        valueSerializer
+    ).create(
+        fakeKafkaRecord.getTestRecord().topic.name,
+        key,
+        fakeKafkaRecord.getTestRecord().value(),
+        fakeKafkaRecord.getTestRecord().timestamp
     );
+    testDriver.getTopologyTestDriver().pipeInput(consumerRecord);
 
-    final Topic sinkTopic = getTopic(
-        kafkaTopicClient,
-        testDriver.getSinkKsqlTopic(),
-        schemaRegistryClient,
-        true);
-    final Deserializer sinkValueDeserializer = sinkTopic.getSerdeSupplier()
-        instanceof AvroSerdeSupplier
-        ? new ValueSpecAvroSerdeSupplier().getDeserializer(schemaRegistryClient)
-        : sinkTopic.getDeserializer(schemaRegistryClient);
-    final Deserializer keyDeserializer;
-    boolean unnestRedundantWindow = false;
-    if (testDriver.getWindow().getLeft() == WindowType.NO_WINDOW) {
-      keyDeserializer = Serdes.String().deserializer();
-    } else {
-      final Deserializer<String> inner = Serdes.String().deserializer();
-      if (testDriver.getWindow().getLeft() == WindowType.SESSION) {
-        keyDeserializer = new SessionWindowedDeserializer<>(inner);
-      } else {
-        if (testDriver.getWindow().getRight() != Long.MAX_VALUE) {
-          keyDeserializer = new TimeWindowedDeserializer<>(
-              inner,
-              testDriver.getWindow().getRight());
-        } else {
-          keyDeserializer = fakeKafkaRecord.getTestRecord().keyDeserializer();
-          unnestRedundantWindow = true;
-        }
-      }
-    }
+    final Topic sinkTopic = testDriver.getSinkTopic();
 
     while (true) {
-      ProducerRecord producerRecord = testDriver.getTopologyTestDriver().readOutput(
-          testDriver.getSinkKsqlTopic().getKafkaTopicName(),
-          keyDeserializer,
-          sinkValueDeserializer
+      final ProducerRecord producerRecord = testDriver.getTopologyTestDriver().readOutput(
+          sinkTopic.getName(),
+          sinkTopic.getKeyDeserializer(),
+          sinkTopic.getDeserializer(schemaRegistryClient)
       );
       if (producerRecord == null) {
         return;
       }
-      if (unnestRedundantWindow) {
-        producerRecord = new ProducerRecord(
-            producerRecord.topic(),
-            producerRecord.partition(),
-            producerRecord.timestamp(),
-            getWindowed(
-                ((Windowed) producerRecord.key()), testDriver.getWindow().getLeft()),
-            producerRecord.value()
-        );
-      }
+
       fakeKafkaService.writeRecord(
           producerRecord.topic(),
           FakeKafkaRecord.of(
               sinkTopic,
-              producerRecord,
-              testDriver.getWindow().getLeft())
+              producerRecord)
       );
     }
 
@@ -450,39 +404,25 @@ public class TestCase implements Test {
     for (int i = 0; i < expected.size(); i++) {
       final ProducerRecord actualProducerRecord = actual.get(i).getProducerRecord();
       final ProducerRecord expectedProducerRecord = expected.get(i).getProducerRecord();
-      final Object value;
-      if (expectedProducerRecord.value() == null) {
-        value = null;
-      } else if (expected.get(i).getTestRecord().topic.getSerdeSupplier()
-          instanceof ValueSpecAvroSerdeSupplier) {
-        final ValueSpecAvroSerdeSupplier valueSpecAvroSerdeSupplier
-            = new ValueSpecAvroSerdeSupplier();
-        final Deserializer deserializer = valueSpecAvroSerdeSupplier
-            .getDeserializer(schemaRegistryClient);
-        value = ((ValueSpec) deserializer.deserialize(
-            expectedProducerRecord.topic(),
-            (byte[]) expectedProducerRecord.value())).getSpec();
-      } else {
-        value = new String((byte[]) expectedProducerRecord.value(), Charset.forName("UTF-8"));
-      }
 
-      validateCreatedMessage(actualProducerRecord, expectedProducerRecord, value);
+      validateCreatedMessage(actualProducerRecord, expectedProducerRecord);
     }
   }
 
   private static void validateCreatedMessage(
       final ProducerRecord actualProducerRecord,
-      final ProducerRecord expectedProducerRecord,
-      final Object value
+      final ProducerRecord expectedProducerRecord
   ) {
-    final boolean boothValuesNull = (actualProducerRecord.value() == null && value == null);
+    final boolean boothValuesNull = (actualProducerRecord.value() == null
+        && expectedProducerRecord.value() == null);
     if (
         !actualProducerRecord.timestamp().equals(expectedProducerRecord.timestamp())
             || !actualProducerRecord.key().equals(expectedProducerRecord.key())
-            || (!boothValuesNull && !actualProducerRecord.value().equals(value))) {
+            || (!boothValuesNull
+            && !actualProducerRecord.value().equals(expectedProducerRecord.value()))) {
       throw new KsqlException(
           "Expected <" + expectedProducerRecord.key() + ", "
-              + value + "> with timestamp="
+              + expectedProducerRecord.value() + "> with timestamp="
               + expectedProducerRecord.timestamp()
               + " but was <" + actualProducerRecord.key() + ", "
               + actualProducerRecord.value() + "> with timestamp="
@@ -505,42 +445,11 @@ public class TestCase implements Test {
                   null,
                   record.timestamp(),
                   record.key(),
-                  record.topic.getSerializer(schemaRegistryClient).serialize(
-                      record.topic.getName(),
-                      record.value()
-                  )
+                  record.value()
               )));
         }
     );
     return outputRecordsFromTest;
-  }
-
-  private static Topic getTopic(
-      final KafkaTopicClient kafkaTopicClient,
-      final KsqlTopic ksqlTopic,
-      final SchemaRegistryClient schemaRegistryClient,
-      final boolean ignoreSrException) throws IOException, RestClientException {
-    final TopicDescription topicDescription = kafkaTopicClient
-        .describeTopic(ksqlTopic.getKafkaTopicName());
-    return new Topic(
-        ksqlTopic.getKafkaTopicName(),
-        getSchema(ksqlTopic, schemaRegistryClient, ignoreSrException),
-        getSerdeSupplierForKsqlTopic(ksqlTopic),
-        topicDescription.partitions().size(),
-        topicDescription.partitions().get(0).replicas().size()
-    );
-  }
-
-  private static SerdeSupplier getSerdeSupplierForKsqlTopic(final KsqlTopic ksqlTopic) {
-    Objects.requireNonNull(ksqlTopic);
-    if (ksqlTopic.getValueSerdeFactory() instanceof KsqlJsonSerdeFactory
-        || ksqlTopic.getValueSerdeFactory() instanceof KsqlDelimitedSerdeFactory) {
-      return new StringSerdeSupplier();
-    } else if (ksqlTopic.getValueSerdeFactory() instanceof KsqlAvroSerdeFactory) {
-      return new AvroSerdeSupplier();
-    }
-    throw new KsqlException("Unsupported topic serde: "
-        + ksqlTopic.getValueSerdeFactory().getClass().getSimpleName());
   }
 
   private static Optional<Schema> getSchema(
@@ -563,22 +472,4 @@ public class TestCase implements Test {
     }
   }
 
-  @SuppressWarnings("unchecked")
-  private static Windowed getWindowed(final Windowed windowed, final WindowType windowType) {
-    final String windowString = windowed.key().toString();
-    if (!windowString.contains("@") && !windowString.contains("/")) {
-      return windowed;
-    }
-    final int atIndex = windowString.indexOf("@");
-    final int slashIndex = windowString.indexOf("/");
-    final String key = windowString.substring(1, atIndex);
-    final Long start = Long.parseLong(windowString.substring(atIndex + 1, slashIndex));
-    final Long end = Long.parseLong(windowString.substring(
-        slashIndex + 1,
-        windowString.length() - 1));
-    if (windowType == WindowType.SESSION) {
-      return new Windowed(key, new SessionWindow(start, end));
-    }
-    return new Windowed(key, new TimeWindow(start, end));
-  }
 }

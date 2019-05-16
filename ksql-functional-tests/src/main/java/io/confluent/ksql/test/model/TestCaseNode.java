@@ -25,6 +25,7 @@ import com.google.common.collect.Streams;
 import io.confluent.connect.avro.AvroData;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStoreImpl;
+import io.confluent.ksql.metastore.SerdeFactory;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
@@ -35,9 +36,6 @@ import io.confluent.ksql.parser.tree.CreateSourceProperties;
 import io.confluent.ksql.schema.ksql.LogicalSchemas;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.test.serde.SerdeSupplier;
-import io.confluent.ksql.test.serde.avro.ValueSpecAvroSerdeSupplier;
-import io.confluent.ksql.test.serde.json.ValueSpecJsonSerdeSupplier;
-import io.confluent.ksql.test.serde.string.StringSerdeSupplier;
 import io.confluent.ksql.test.tools.Record;
 import io.confluent.ksql.test.tools.TestCase;
 import io.confluent.ksql.test.tools.Topic;
@@ -45,6 +43,7 @@ import io.confluent.ksql.test.tools.conditions.PostConditions;
 import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;
 import io.confluent.ksql.test.tools.exceptions.KsqlExpectedException;
 import io.confluent.ksql.test.tools.exceptions.MissingFieldException;
+import io.confluent.ksql.test.utils.Utilities;
 import io.confluent.ksql.util.KsqlConstants;
 import java.nio.file.Path;
 import java.util.HashMap;
@@ -60,6 +59,7 @@ import java.util.stream.Stream;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.streams.kstream.Windowed;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 @SuppressWarnings("UnstableApiUsage")
@@ -243,13 +243,15 @@ public class TestCaseNode {
         stmt.getStatement().statement() instanceof SqlBaseParser.CreateStreamContext
             || stmt.getStatement().statement() instanceof SqlBaseParser.CreateTableContext;
 
-    final Function<PreparedStatement<?>, Topic> extractTopic = stmt -> {
+    final Function<PreparedStatement<?>, Topic> extractTopic = (PreparedStatement<?> stmt) -> {
       final CreateSource statement = (CreateSource) stmt
           .getStatement();
 
       final CreateSourceProperties properties = statement.getProperties();
       final String topicName = properties.getKafkaTopic();
       final Format format = properties.getValueFormat();
+      final Optional<SerdeFactory<Windowed<String>>> windowedSerdeFactory
+          =  properties.getWindowType();
 
       final Optional<org.apache.avro.Schema> avroSchema;
       if (format == Format.AVRO) {
@@ -264,12 +266,19 @@ public class TestCaseNode {
       } else {
         avroSchema = Optional.empty();
       }
-      return new Topic(
+      return windowedSerdeFactory.map(wsf -> new Topic(
           topicName,
           avroSchema,
-          getSerdeSupplier(format),
+          wsf,
+          Utilities.getSerdeSupplier(format),
           KsqlConstants.legacyDefaultSinkPartitionCount,
-          KsqlConstants.legacyDefaultSinkReplicaCount);
+          KsqlConstants.legacyDefaultSinkReplicaCount,
+          Optional.empty())).orElseGet(() -> new Topic(
+          topicName,
+          avroSchema,
+          Utilities.getSerdeSupplier(format),
+          KsqlConstants.legacyDefaultSinkPartitionCount,
+          KsqlConstants.legacyDefaultSinkReplicaCount));
     };
 
     try {
@@ -321,19 +330,6 @@ public class TestCaseNode {
     return builder.build();
   }
 
-  @SuppressWarnings("rawtypes")
-  private static SerdeSupplier getSerdeSupplier(final Format format) {
-    switch (format) {
-      case AVRO:
-        return new ValueSpecAvroSerdeSupplier();
-      case JSON:
-        return new ValueSpecJsonSerdeSupplier();
-      case DELIMITED:
-        return new StringSerdeSupplier();
-      default:
-        throw new InvalidFieldException("format", "unsupported value: " + format);
-    }
-  }
 
   @SuppressWarnings("UnstableApiUsage")
   private static String buildTestName(

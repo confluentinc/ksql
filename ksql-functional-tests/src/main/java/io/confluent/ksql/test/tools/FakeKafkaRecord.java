@@ -20,10 +20,11 @@ import io.confluent.ksql.test.model.WindowData.Type;
 import io.confluent.ksql.test.serde.SerdeSupplier;
 import io.confluent.ksql.test.serde.ValueSpec;
 import io.confluent.ksql.test.serde.avro.AvroSerdeSupplier;
-import io.confluent.ksql.test.tools.TopologyTestDriverContainer.WindowType;
 import java.util.Objects;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.streams.kstream.Windowed;
+import org.apache.kafka.streams.kstream.internals.SessionWindow;
 
 public final class FakeKafkaRecord {
 
@@ -42,8 +43,7 @@ public final class FakeKafkaRecord {
 
   public static FakeKafkaRecord of(
       final Topic topic,
-      final ProducerRecord producerRecord,
-      final WindowType windowType) {
+      final ProducerRecord producerRecord) {
     Objects.requireNonNull(producerRecord);
     Objects.requireNonNull(topic, "topic");
     final SerdeSupplier serdeSupplier = topic.getSerdeSupplier();
@@ -54,20 +54,25 @@ public final class FakeKafkaRecord {
             ? ((ValueSpec)producerRecord.value()).getSpec()
             : producerRecord.value(),
         producerRecord.timestamp(),
-        getWindowData(producerRecord, windowType)
+        getWindowData(producerRecord, topic)
     );
     return new FakeKafkaRecord(testRecord, producerRecord);
   }
 
+  @SuppressWarnings("unchecked")
   private static WindowData getWindowData(
       final ProducerRecord producerRecord,
-      final WindowType windowType) {
+      final Topic topic) {
+    final Serde keySerde = topic.getKeySerdeFactory().create();
     if (producerRecord.key() instanceof Windowed) {
+      final Serde<Windowed<String>> windowedSerde = (Serde<Windowed<String>>) keySerde;
       final Windowed windowed = (Windowed) producerRecord.key();
       return new WindowData(
           windowed.window().start(),
           windowed.window().end(),
-          windowType == WindowType.SESSION ? Type.SESSION.toString() : Type.TIME.toString());
+          windowed.window() instanceof SessionWindow
+              ? Type.SESSION.toString()
+              : Type.TIME.toString());
     }
     return null;
   }

@@ -18,19 +18,28 @@ package io.confluent.ksql.test.tools;
 import static java.util.Objects.requireNonNull;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.ksql.metastore.SerdeFactory;
 import io.confluent.ksql.test.serde.SerdeSupplier;
+import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
 import org.apache.avro.Schema;
 import org.apache.kafka.common.serialization.Deserializer;
+import org.apache.kafka.common.serialization.Serde;
+import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.serialization.Serializer;
+import org.apache.kafka.common.serialization.StringDeserializer;
+import org.apache.kafka.streams.kstream.TimeWindowedDeserializer;
+import org.apache.kafka.streams.kstream.WindowedSerdes.TimeWindowedSerde;
 
 @SuppressWarnings("rawtypes")
 public class Topic {
   final String name;
   private final Optional<Schema> schema;
+  private final SerdeFactory keySerdeFactory;
   private final SerdeSupplier serdeSupplier;
   final int numPartitions;
   final int replicas;
+  final Optional<Long> windowSize;
 
   public Topic(
       final String name,
@@ -41,9 +50,29 @@ public class Topic {
   ) {
     this.name = requireNonNull(name, "name");
     this.schema = requireNonNull(schema, "schema");
+    this.keySerdeFactory = (SerdeFactory)Serdes::String;
     this.serdeSupplier = requireNonNull(serdeSupplier, "serdeSupplier");
     this.numPartitions = numPartitions;
     this.replicas = replicas;
+    this.windowSize = Optional.empty();
+  }
+
+  public Topic(
+      final String name,
+      final Optional<Schema> schema,
+      final SerdeFactory keySerdeFactory,
+      final SerdeSupplier serdeSupplier,
+      final int numPartitions,
+      final int replicas,
+      final Optional<Long> windowSize
+  ) {
+    this.name = requireNonNull(name, "name");
+    this.schema = requireNonNull(schema, "schema");
+    this.keySerdeFactory = requireNonNull(keySerdeFactory, "keySerdeFactory");
+    this.serdeSupplier = requireNonNull(serdeSupplier, "serdeSupplier");
+    this.numPartitions = numPartitions;
+    this.replicas = replicas;
+    this.windowSize = requireNonNull(windowSize, "windowSize");
   }
 
   public String getName() {
@@ -58,11 +87,39 @@ public class Topic {
     return serdeSupplier;
   }
 
+  public SerdeFactory getKeySerdeFactory() {
+    return keySerdeFactory;
+  }
+
   Serializer getSerializer(final SchemaRegistryClient schemaRegistryClient) {
     return serdeSupplier.getSerializer(schemaRegistryClient);
   }
 
   Deserializer getDeserializer(final SchemaRegistryClient schemaRegistryClient) {
     return serdeSupplier.getDeserializer(schemaRegistryClient);
+  }
+
+  Serializer getKeySerializer() {
+    return keySerdeFactory.create().serializer();
+  }
+
+  @SuppressWarnings("unchecked")
+  Deserializer getKeyDeserializer() {
+    final Serde keySerde = keySerdeFactory.create();
+    if (keySerde instanceof TimeWindowedSerde) {
+      final TimeWindowedSerde windowedSerde = (TimeWindowedSerde) keySerde;
+      final TimeWindowedDeserializer timeWindowedDeserializer =
+          (TimeWindowedDeserializer) windowedSerde.deserializer();
+      if (!windowSize.isPresent()) {
+        if (timeWindowedDeserializer.getWindowSize() != Long.MAX_VALUE) {
+          return new TimeWindowedDeserializer(
+              new StringDeserializer(),
+              timeWindowedDeserializer.getWindowSize());
+        }
+        throw new KsqlException("Window size is not present for time windowed deserializer.");
+      }
+      return new TimeWindowedDeserializer(new StringDeserializer(), windowSize.get());
+    }
+    return keySerdeFactory.create().deserializer();
   }
 }

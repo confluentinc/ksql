@@ -22,7 +22,9 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
+import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
 import java.security.Permission;
@@ -60,7 +62,7 @@ public class KsqlTestingToolTest {
   }
 
   @Test
-  public void shouldUseAndCloseTestExecutor() {
+  public void shouldUseAndCloseTestExecutor() throws IOException, RestClientException {
     // Given:
     final TestCase testCase = mock(TestCase.class);
     final TestExecutor testExecutor = mock(TestExecutor.class);

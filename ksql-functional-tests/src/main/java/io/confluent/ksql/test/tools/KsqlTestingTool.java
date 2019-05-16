@@ -85,6 +85,7 @@ public final class KsqlTestingTool {
       System.out.println("\t >>> Test " + testCase.getName() + " passed!");
       passedTests.add(testCase.getName());
     } catch (final Exception e) {
+      e.printStackTrace();
       System.err.println("\t>>>>> Test " + testCase.getName() + " failed: " + e.getMessage());
       failedTests.add(new Pair<>(testCase.getName(), e.getMessage()));
     } finally {

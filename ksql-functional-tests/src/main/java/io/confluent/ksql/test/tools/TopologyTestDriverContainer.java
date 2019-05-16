@@ -15,60 +15,47 @@
 
 package io.confluent.ksql.test.tools;
 
-import io.confluent.ksql.metastore.model.KsqlTopic;
-import io.confluent.ksql.util.Pair;
 import java.util.List;
 import java.util.Objects;
 import org.apache.kafka.streams.TopologyTestDriver;
 
 public final class TopologyTestDriverContainer {
 
-  public enum WindowType { NO_WINDOW, TIME, SESSION }
-
   private final TopologyTestDriver topologyTestDriver;
-  private final List<KsqlTopic> sourceKsqlTopics;
-  private final KsqlTopic sinkKsqlTopic;
-  private final Pair<WindowType, Long> window;
+  private final List<Topic> sourceTopics;
+  private final Topic sinkTopic;
 
   private TopologyTestDriverContainer(
       final TopologyTestDriver topologyTestDriver,
-      final List<KsqlTopic> sourceKsqlTopics,
-      final KsqlTopic sinkKsqlTopic,
-      final Pair<WindowType, Long> window) {
+      final List<Topic> sourceTopics,
+      final Topic sinkTopic) {
     this.topologyTestDriver = topologyTestDriver;
-    this.sourceKsqlTopics = sourceKsqlTopics;
-    this.sinkKsqlTopic = sinkKsqlTopic;
-    this.window = window;
+    this.sourceTopics = sourceTopics;
+    this.sinkTopic = sinkTopic;
   }
 
   public static TopologyTestDriverContainer of(
       final TopologyTestDriver topologyTestDriver,
-      final List<KsqlTopic> sourceKsqlTopics,
-      final KsqlTopic sinkKsqlTopic,
-      final Pair<WindowType, Long> window) {
+      final List<Topic> sourceTopics,
+      final Topic sinkTopic) {
     Objects.requireNonNull(topologyTestDriver, "topologyTestDriver");
-    Objects.requireNonNull(sourceKsqlTopics, "sourceKsqlTopics");
-    Objects.requireNonNull(sinkKsqlTopic, "sinkKsqlTopic");
+    Objects.requireNonNull(sourceTopics, "sourceTopics");
+    Objects.requireNonNull(sinkTopic, "sinkTopic");
     return new TopologyTestDriverContainer(
         topologyTestDriver,
-        sourceKsqlTopics,
-        sinkKsqlTopic,
-        window);
+        sourceTopics,
+        sinkTopic);
   }
 
   TopologyTestDriver getTopologyTestDriver() {
     return topologyTestDriver;
   }
 
-  List<KsqlTopic> getSourceKsqlTopics() {
-    return sourceKsqlTopics;
+  public List<Topic> getSourceTopics() {
+    return sourceTopics;
   }
 
-  public KsqlTopic getSinkKsqlTopic() {
-    return sinkKsqlTopic;
-  }
-
-  public Pair<WindowType, Long> getWindow() {
-    return window;
+  public Topic getSinkTopic() {
+    return sinkTopic;
   }
 }

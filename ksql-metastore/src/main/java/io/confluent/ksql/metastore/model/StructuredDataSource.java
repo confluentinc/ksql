@@ -24,7 +24,7 @@ import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 
 @Immutable
-abstract class StructuredDataSource<K> implements DataSource<K> {
+public abstract class StructuredDataSource<K> implements DataSource<K> {
 
   private final String dataSourceName;
   private final DataSourceType dataSourceType;

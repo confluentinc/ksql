@@ -18,44 +18,43 @@ package io.confluent.ksql.test.tools;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.google.common.collect.ImmutableList;
+import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.metastore.model.StructuredDataSource;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
-import io.confluent.ksql.parser.tree.HoppingWindowExpression;
 import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.Join;
-import io.confluent.ksql.parser.tree.KsqlWindowExpression;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Relation;
-import io.confluent.ksql.parser.tree.SessionWindowExpression;
-import io.confluent.ksql.parser.tree.TumblingWindowExpression;
 import io.confluent.ksql.schema.inference.DefaultSchemaInjector;
 import io.confluent.ksql.schema.inference.SchemaRegistryTopicSchemaSupplier;
+import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
-import io.confluent.ksql.test.tools.TopologyTestDriverContainer.WindowType;
+import io.confluent.ksql.test.utils.Utilities;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import org.apache.avro.Schema;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.TopologyTestDriver;
-import org.apache.kafka.streams.kstream.WindowedSerdes.SessionWindowedSerde;
-import org.apache.kafka.streams.kstream.WindowedSerdes.TimeWindowedSerde;
 
 final class TestExecutorUtil {
 
@@ -65,13 +64,18 @@ final class TestExecutorUtil {
       final TestCase testCase,
       final ServiceContext serviceContext,
       final KsqlEngine ksqlEngine,
-      final KsqlConfig ksqlConfig) {
+      final KsqlConfig ksqlConfig,
+      final FakeKafkaService fakeKafkaService) throws IOException, RestClientException {
     final Map<String, String> persistedConfigs = testCase.persistedProperties();
     final KsqlConfig maybeUpdatedConfigs = persistedConfigs.isEmpty() ? ksqlConfig :
         ksqlConfig.overrideBreakingConfigsWithOriginalValues(persistedConfigs);
 
     final List<PersistentQueryAndSortedSources> queryMetadataList = buildQueries(
-        testCase, serviceContext, ksqlEngine, maybeUpdatedConfigs);
+        testCase,
+        serviceContext,
+        ksqlEngine,
+        maybeUpdatedConfigs,
+        fakeKafkaService);
     final List<TopologyTestDriverContainer> topologyTestDrivers = new ArrayList<>();
     for (final PersistentQueryAndSortedSources persistentQueryAndSortedSources: queryMetadataList) {
       final PersistentQueryMetadata persistentQueryMetadata = persistentQueryAndSortedSources
@@ -83,28 +87,85 @@ final class TestExecutorUtil {
           topology,
           streamsProperties,
           0);
+      final List<Topic> sourceTopics = persistentQueryAndSortedSources.getSources()
+          .stream()
+          .map(dataSource -> {
+            if (!fakeKafkaService.getTopicMap().containsKey(dataSource.getKafkaTopicName())) {
+              throw new KsqlException("Source topic not in the kafka cluster: "
+                  + dataSource.getKafkaTopicName());
+            }
+            return fakeKafkaService.getTopicMap().get(dataSource.getKafkaTopicName());
+          })
+          .collect(Collectors.toList());
+
+      final Topic sinkTopic = buildSinkTopic(
+          ksqlEngine.getMetaStore()
+              .getSource(persistentQueryMetadata.getSinkNames().iterator().next()),
+          persistentQueryAndSortedSources.getWindowSize(),
+          fakeKafkaService,
+          serviceContext.getSchemaRegistryClient());
       topologyTestDrivers.add(TopologyTestDriverContainer.of(
           topologyTestDriver,
-          persistentQueryAndSortedSources.getSources()
-              .stream()
-              .map(DataSource::getKsqlTopic)
-              .collect(Collectors.toList()),
-          ksqlEngine.getMetaStore().getSource(persistentQueryMetadata.getSinkNames()
-              .iterator().next()).getKsqlTopic(),
-          persistentQueryAndSortedSources.getWindow()
+          sourceTopics,
+          sinkTopic
       ));
     }
     return topologyTestDrivers;
   }
 
+  private static Topic buildSinkTopic(
+      final DataSource<?> sinkDataSource,
+      final Optional<Long> windowSize,
+      final FakeKafkaService fakeKafkaService,
+      final SchemaRegistryClient schemaRegistryClient) throws IOException, RestClientException {
+    final StructuredDataSource structuredDataSource = (StructuredDataSource) sinkDataSource;
+    final String kafkaTopicName = structuredDataSource.getKafkaTopicName();
+    final Optional<org.apache.avro.Schema> avroSchema =
+        structuredDataSource.getValueSerdeFactory().getFormat() == Format.AVRO
+        ? getAvroSchema(schemaRegistryClient, kafkaTopicName)
+        : Optional.empty();
+    final Topic sinkTopic = new Topic(
+        kafkaTopicName,
+        avroSchema,
+        structuredDataSource.getKeySerdeFactory(),
+        Utilities.getSerdeSupplier(structuredDataSource.getValueSerdeFactory().getFormat()),
+        KsqlConstants.legacyDefaultSinkPartitionCount,
+        KsqlConstants.legacyDefaultSinkReplicaCount,
+        windowSize
+    );
+
+    if (fakeKafkaService.topicExists(sinkTopic)) {
+      fakeKafkaService.updateTopic(sinkTopic);
+    } else {
+      fakeKafkaService.createTopic(sinkTopic);
+    }
+    return sinkTopic;
+  }
+
+  private static Optional<Schema> getAvroSchema(
+      final SchemaRegistryClient schemaRegistryClient,
+      final String kafkaTopicName) {
+    try {
+      final SchemaMetadata schemaMetadata = schemaRegistryClient.getLatestSchemaMetadata(
+          kafkaTopicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
+      return Optional.of(new org.apache.avro.Schema.Parser().parse(schemaMetadata.getSchema()));
+    } catch (final Exception e) {
+      // do nothing
+    }
+    return Optional.empty();
+  }
+
+
   private static List<PersistentQueryAndSortedSources> buildQueries(
       final TestCase testCase,
       final ServiceContext serviceContext,
       final KsqlEngine ksqlEngine,
-      final KsqlConfig ksqlConfig
+      final KsqlConfig ksqlConfig,
+      final FakeKafkaService fakeKafkaService
   ) {
     testCase.initializeTopics(
         serviceContext.getTopicClient(),
+        fakeKafkaService,
         serviceContext.getSchemaRegistryClient());
 
     final String sql = testCase.statements().stream()
@@ -146,7 +207,7 @@ final class TestExecutorUtil {
                 (PersistentQueryMetadata) executeResultAndSortedSources
                     .getExecuteResult().getQuery().get(),
                 executeResultAndSortedSources.getSources(),
-                executeResultAndSortedSources.getWindow()
+                executeResultAndSortedSources.getWindowSize()
             ))
         .collect(Collectors.toList());
   }
@@ -174,7 +235,7 @@ final class TestExecutorUtil {
           getSortedSources(
               ((CreateAsSelect)prepared.getStatement()).getQuery(),
               executionContext.getMetaStore()),
-          getWindowType(((CreateAsSelect)prepared.getStatement()).getQuery(),
+          Utilities.getWindowSize(((CreateAsSelect)prepared.getStatement()).getQuery(),
               executionContext.getMetaStore()));
     }
     if (prepared.getStatement() instanceof InsertInto) {
@@ -182,14 +243,14 @@ final class TestExecutorUtil {
           executeResult,
           getSortedSources(((InsertInto) prepared.getStatement()).getQuery(),
               executionContext.getMetaStore()),
-          getWindowType(((InsertInto) prepared.getStatement()).getQuery(),
+          Utilities.getWindowSize(((InsertInto) prepared.getStatement()).getQuery(),
               executionContext.getMetaStore())
       );
     }
     return new ExecuteResultAndSortedSources(
         executeResult,
         null,
-        new Pair<>(WindowType.NO_WINDOW, Long.MIN_VALUE));
+        Optional.empty());
   }
 
   private static List<DataSource> getSortedSources(
@@ -218,72 +279,18 @@ final class TestExecutorUtil {
     }
   }
 
-  private static Pair<WindowType, Long> getWindowType(
-      final Query query,
-      final MetaStore metaStore) {
-    if (query.getWindow().isPresent()) {
-
-      final KsqlWindowExpression ksqlWindowExpression = query
-          .getWindow()
-          .get().getKsqlWindowExpression();
-      if (ksqlWindowExpression instanceof SessionWindowExpression) {
-        return new Pair<>(WindowType.SESSION, Long.MIN_VALUE);
-      }
-      final long windowSize = ksqlWindowExpression instanceof TumblingWindowExpression
-          ? getWindowSize(
-          ((TumblingWindowExpression) ksqlWindowExpression).getSize(),
-          ((TumblingWindowExpression) ksqlWindowExpression).getSizeUnit())
-          : getWindowSize(
-              ((HoppingWindowExpression) ksqlWindowExpression).getSize(),
-              ((HoppingWindowExpression) ksqlWindowExpression).getSizeUnit());
-      return new Pair<>(WindowType.TIME, windowSize);
-    }
-    final Relation fromRelation = (Relation) query.getFrom();
-    // No join on windowed key yet.
-    if (fromRelation instanceof Join) {
-      return new Pair<>(WindowType.NO_WINDOW, Long.MIN_VALUE);
-    }
-    final AliasedRelation aliasedRelation = (AliasedRelation) fromRelation;
-    final DataSource source = metaStore.getSource(aliasedRelation.getRelation().toString());
-    if (source != null) {
-      if (source.getKeySerdeFactory().create() instanceof TimeWindowedSerde) {
-        return new Pair<>(WindowType.TIME, Long.MAX_VALUE);
-      } else if (source.getKeySerdeFactory().create() instanceof SessionWindowedSerde) {
-        return new Pair<>(WindowType.SESSION, Long.MIN_VALUE);
-      }
-    }
-
-    return new Pair<>(WindowType.NO_WINDOW, Long.MIN_VALUE);
-  }
-
-
-  private static Long getWindowSize(final Long windowSize, final TimeUnit timeUnit) {
-    switch (timeUnit) {
-      case SECONDS:
-        return windowSize * 1000;
-      case MINUTES:
-        return windowSize * 1000 * 60;
-      case HOURS:
-        return windowSize * 1000 * 60 * 60;
-      case DAYS:
-        return windowSize * 1000 * 60 * 60 * 24;
-      default:
-        throw new KsqlException("Invalid window time unit: " + timeUnit);
-    }
-  }
-
   private static final class ExecuteResultAndSortedSources {
     private final ExecuteResult executeResult;
     private final List<DataSource> sources;
-    private final Pair<WindowType, Long> window;
+    private final Optional<Long> windowSize;
 
     ExecuteResultAndSortedSources(
         final ExecuteResult executeResult,
         final List<DataSource> sources,
-        final Pair<WindowType, Long> window) {
+        final Optional<Long> windowSize) {
       this.executeResult = executeResult;
       this.sources = sources;
-      this.window = window;
+      this.windowSize = windowSize;
     }
 
     ExecuteResult getExecuteResult() {
@@ -294,24 +301,24 @@ final class TestExecutorUtil {
       return sources;
     }
 
-    public Pair<WindowType, Long> getWindow() {
-      return window;
+    public Optional<Long> getWindowSize() {
+      return windowSize;
     }
   }
 
   private static final class PersistentQueryAndSortedSources {
     private final PersistentQueryMetadata persistentQueryMetadata;
     private final List<DataSource> sources;
-    private final Pair<WindowType, Long> window;
+    private final Optional<Long> windowSize;
 
     PersistentQueryAndSortedSources(
         final PersistentQueryMetadata persistentQueryMetadata,
         final List<DataSource> sources,
-        final Pair<WindowType, Long> window
+        final Optional<Long> windowSize
     ) {
       this.persistentQueryMetadata = persistentQueryMetadata;
       this.sources = sources;
-      this.window = window;
+      this.windowSize = windowSize;
     }
 
     PersistentQueryMetadata getPersistentQueryMetadata() {
@@ -322,8 +329,8 @@ final class TestExecutorUtil {
       return sources;
     }
 
-    public Pair<WindowType, Long> getWindow() {
-      return window;
+    public Optional<Long> getWindowSize() {
+      return windowSize;
     }
   }
 }

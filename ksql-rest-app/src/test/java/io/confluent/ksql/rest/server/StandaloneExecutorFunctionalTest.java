@@ -21,6 +21,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.common.utils.IntegrationTest;
+import io.confluent.ksql.KsqlConfigTestUtil;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.rest.server.computation.ConfigStore;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
@@ -91,13 +92,15 @@ public class StandaloneExecutorFunctionalTest {
     DATA_SCHEMA = provider.schema();
   }
 
+  @SuppressWarnings("unchecked")
   @Before
   public void setUp() throws Exception {
     queryFile = TMP.newFile().toPath();
 
-    final Map<String, String> properties = ImmutableMap.of(
-        CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, TEST_HARNESS.kafkaBootstrapServers()
-    );
+    final Map<String, Object> properties = ImmutableMap.<String, Object>builder()
+        .putAll(KsqlConfigTestUtil.baseTestConfig())
+        .put(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, TEST_HARNESS.kafkaBootstrapServers())
+        .build();
 
     final KsqlConfig ksqlConfig = new KsqlConfig(properties);
 
@@ -110,7 +113,7 @@ public class StandaloneExecutorFunctionalTest {
         );
 
     standalone = StandaloneExecutorFactory.create(
-        properties,
+        (Map)properties,
         queryFile.toString(),
         ".",
         serviceContextFactory,

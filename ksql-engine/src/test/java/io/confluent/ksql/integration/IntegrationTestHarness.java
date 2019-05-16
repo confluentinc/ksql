@@ -23,7 +23,7 @@ import static org.hamcrest.Matchers.is;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.KsqlContextTestUtil;
+import io.confluent.ksql.KsqlConfigTestUtil;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.schema.persistence.PersistenceSchemas;
@@ -644,7 +644,7 @@ public class IntegrationTestHarness extends ExternalResource {
     private ServiceContext get() {
       if (serviceContext.get() == null) {
         final ServiceContext created = TestServiceContext.create(
-            KsqlContextTestUtil.createKsqlConfig(kafkaCluster),
+            KsqlConfigTestUtil.create(kafkaCluster),
             () -> schemaRegistryClient);
 
         if (!serviceContext.compareAndSet(null, created)) {

@@ -20,7 +20,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.KsqlContextTestUtil;
+import io.confluent.ksql.KsqlConfigTestUtil;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlEngineTestUtil;
 import io.confluent.ksql.function.InternalFunctionRegistry;
@@ -88,7 +88,7 @@ public class JsonFormatTest {
   public void before() throws Exception {
     streamName = "STREAM_" + COUNTER.getAndIncrement();
 
-    ksqlConfig = KsqlContextTestUtil.createKsqlConfig(CLUSTER);
+    ksqlConfig = KsqlConfigTestUtil.create(CLUSTER);
     serviceContext = DefaultServiceContext.create(ksqlConfig);
     processingLogContext = ProcessingLogContext.create();
 

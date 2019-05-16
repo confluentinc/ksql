@@ -78,7 +78,7 @@ public class KsqlSchemaRegistryClientFactory {
 
   public SchemaRegistryClient get() {
     final RestService restService = serviceSupplier.get();
-    final SSLContext sslContext = sslFactory.sslContext();
+    final SSLContext sslContext = sslFactory.sslEngineBuilder().sslContext();
     if (sslContext != null) {
       restService.setSslSocketFactory(sslContext.getSocketFactory());
     }

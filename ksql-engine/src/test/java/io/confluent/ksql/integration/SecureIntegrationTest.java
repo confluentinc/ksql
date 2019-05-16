@@ -36,6 +36,7 @@ import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
 
 import io.confluent.common.utils.IntegrationTest;
+import io.confluent.ksql.KsqlConfigTestUtil;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlEngineTestUtil;
 import io.confluent.ksql.function.InternalFunctionRegistry;
@@ -298,11 +299,8 @@ public class SecureIntegrationTest {
   }
 
   private static Map<String, Object> getBaseKsqlConfig() {
-    final Map<String, Object> configs = new HashMap<>();
+    final Map<String, Object> configs = new HashMap<>(KsqlConfigTestUtil.baseTestConfig());
     configs.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, SECURE_CLUSTER.bootstrapServers());
-    configs.put("commit.interval.ms", 0);
-    configs.put("cache.max.bytes.buffering", 0);
-    configs.put("auto.offset.reset", "earliest");
 
     // Additional Properties required for KSQL to talk to test secure cluster,
     // where SSL cert not properly signed. (Not required for proper cluster).

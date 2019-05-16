@@ -38,6 +38,7 @@ import java.util.function.Supplier;
 import javax.net.ssl.SSLContext;
 import org.apache.kafka.common.config.SslConfigs;
 import org.apache.kafka.common.network.Mode;
+import org.apache.kafka.common.security.ssl.SslEngineBuilder;
 import org.apache.kafka.common.security.ssl.SslFactory;
 import org.junit.Before;
 import org.junit.Test;
@@ -58,6 +59,8 @@ public class KsqlSchemaRegistryClientFactoryTest {
 
   @Mock
   private SslFactory sslFactory;
+  @Mock
+  private SslEngineBuilder sslEngineBuilder;
 
   @Mock
   private KsqlSchemaRegistryClientFactory.SchemaRegistryClientFactory srClientFactory;
@@ -69,7 +72,8 @@ public class KsqlSchemaRegistryClientFactoryTest {
 
     when(restServiceSupplier.get()).thenReturn(restService);
 
-    when(sslFactory.sslContext()).thenReturn(SSL_CONTEXT);
+    when(sslFactory.sslEngineBuilder()).thenReturn(sslEngineBuilder);
+    when(sslEngineBuilder.sslContext()).thenReturn(SSL_CONTEXT);
   }
 
   @Test
@@ -179,6 +183,6 @@ public class KsqlSchemaRegistryClientFactoryTest {
         .valuesWithPrefixOverride(KsqlConfig.KSQL_SCHEMA_REGISTRY_PREFIX);
 
     sslFactory.configure(configs);
-    return sslFactory.sslContext();
+    return sslFactory.sslEngineBuilder().sslContext();
   }
 }

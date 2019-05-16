@@ -34,6 +34,7 @@ import static org.hamcrest.Matchers.notNullValue;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import io.confluent.ksql.KsqlConfigTestUtil;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlEngineTestUtil;
@@ -67,7 +68,6 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -104,10 +104,7 @@ public class StatementExecutorTest extends EasyMockSupport {
 
   @Before
   public void setUp() {
-    final Map<String, Object> props = new HashMap<>();
-    props.put("bootstrap.servers", CLUSTER.bootstrapServers());
-
-    ksqlConfig = new KsqlConfig(props);
+    ksqlConfig = KsqlConfigTestUtil.create(CLUSTER);
     final FakeKafkaTopicClient fakeKafkaTopicClient = new FakeKafkaTopicClient();
     fakeKafkaTopicClient.createTopic("pageview_topic", 1, (short) 1, emptyMap());
     fakeKafkaTopicClient.createTopic("foo", 1, (short) 1, emptyMap());

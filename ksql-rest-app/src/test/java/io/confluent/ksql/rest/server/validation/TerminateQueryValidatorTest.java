@@ -61,7 +61,7 @@ public class TerminateQueryValidatorTest {
   @Test
   public void shouldValidateKnownQueryId() {
     // Given:
-    final PersistentQueryMetadata metadata = TemporaryEngine.givenPersistentQuery("id");
+    final PersistentQueryMetadata metadata = mock(PersistentQueryMetadata.class);
     final KsqlEngine mockEngine = mock(KsqlEngine.class);
     when(mockEngine.getPersistentQuery(any())).thenReturn(Optional.ofNullable(metadata));
 
@@ -76,5 +76,4 @@ public class TerminateQueryValidatorTest {
         engine.getServiceContext()
     );
   }
-
 }

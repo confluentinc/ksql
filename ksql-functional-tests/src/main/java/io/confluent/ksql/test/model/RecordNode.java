@@ -27,7 +27,9 @@ import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;
 import io.confluent.ksql.test.tools.exceptions.MissingFieldException;
 import java.io.IOException;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 public class RecordNode {
 
@@ -61,10 +63,18 @@ public class RecordNode {
     return topicName;
   }
 
+  @SuppressWarnings("unchecked")
   public Record build(final Map<String, Topic> topics) {
     final Topic topic = topics.get(topicName());
 
-    final Object topicValue = buildValue(topic);
+    Object topicValue = buildValue(topic);
+
+    if (topicValue instanceof Map) {
+      final Map<String, Object> map = (Map<String, Object>) topicValue;
+      topicValue = map.entrySet()
+          .stream()
+          .collect(Collectors.toMap(entry -> entry.getKey().toUpperCase(), Entry::getValue));
+    }
 
     return new Record(
         topic,

@@ -27,6 +27,7 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.schema.registry.SchemaRegistryUtil;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.services.KafkaTopicClient;
+import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.util.ExecutorUtil;
@@ -51,11 +52,14 @@ public class TopicDeleteInjector implements Injector {
   private final KafkaTopicClient topicClient;
   private final SchemaRegistryClient schemaRegistryClient;
 
-  public TopicDeleteInjector(final KsqlExecutionContext executionContext) {
+  public TopicDeleteInjector(
+      final KsqlExecutionContext executionContext,
+      final ServiceContext serviceContext
+  ) {
     this(
         Objects.requireNonNull(executionContext, "executionContext").getMetaStore(),
-        executionContext.getServiceContext().getTopicClient(),
-        executionContext.getServiceContext().getSchemaRegistryClient()
+        serviceContext.getTopicClient(),
+        serviceContext.getSchemaRegistryClient()
     );
   }
 

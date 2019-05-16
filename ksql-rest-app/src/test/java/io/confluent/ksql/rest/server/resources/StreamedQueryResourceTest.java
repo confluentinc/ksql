@@ -41,6 +41,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.engine.TopicAccessValidatorFactory;
 import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Query;
@@ -142,7 +143,8 @@ public class StreamedQueryResourceTest {
         commandQueue,
         DISCONNECT_CHECK_INTERVAL,
         COMMAND_QUEUE_CATCHUP_TIMOEUT,
-        activenessRegistrar);
+        activenessRegistrar,
+        TopicAccessValidatorFactory.create(serviceContext, mockKsqlEngine.getMetaStore()));
   }
 
   @Test
@@ -317,7 +319,8 @@ public class StreamedQueryResourceTest {
             Collections.emptyMap(),
             queryCloseCallback);
     reset(mockOutputNode);
-    expect(mockKsqlEngine.execute(ConfiguredStatement.of(statement, requestStreamsProperties, ksqlConfig)))
+    expect(mockKsqlEngine.execute(serviceContext,
+        ConfiguredStatement.of(statement, requestStreamsProperties, ksqlConfig)))
         .andReturn(ExecuteResult.of(queuedQueryMetadata));
 
     expect(mockKsqlEngine.isAcceptingStatements()).andReturn(true);

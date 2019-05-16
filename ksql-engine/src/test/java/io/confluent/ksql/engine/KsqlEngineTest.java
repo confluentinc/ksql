@@ -191,7 +191,6 @@ public class KsqlEngineTest {
 
   @Test
   public void shouldThrowWhenExecutingInsertIntoTable() {
-    // Given:
     KsqlEngineTestUtil.execute(
         ksqlEngine, "create table bar as select * from test2;", KSQL_CONFIG,
         Collections.emptyMap());

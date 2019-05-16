@@ -61,9 +61,11 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
+import io.confluent.ksql.KsqlConfigTestUtil;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlEngineTestUtil;
+import io.confluent.ksql.engine.TopicAccessValidator;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
@@ -249,6 +251,8 @@ public class KsqlResourceTest {
   private Injector topicInjector;
   @Mock
   private Injector sandboxTopicInjector;
+  @Mock
+  private TopicAccessValidator topicAccessValidator;
 
   private KsqlResource ksqlResource;
   private SchemaRegistryClient schemaRegistryClient;
@@ -285,7 +289,6 @@ public class KsqlResourceTest {
     );
 
     ksqlEngine = realEngine;
-    when(sandbox.getServiceContext()).thenAnswer(inv -> SandboxedServiceContext.create(serviceContext));
     when(sandbox.getMetaStore()).thenAnswer(inv -> metaStore.copy());
 
     addTestTopicAndSources();
@@ -712,7 +715,7 @@ public class KsqlResourceTest {
     makeRequest(sql);
 
     // Then:
-    verify(sandbox).execute(eq(configuredStatement));
+    verify(sandbox).execute(any(SandboxedServiceContext.class), eq(configuredStatement));
     verify(commandStore).enqueueCommand(argThat(configured(preparedStatementText(sql))));
   }
 
@@ -794,7 +797,7 @@ public class KsqlResourceTest {
     makeRequest(sql);
 
     // Then:
-    verify(sandbox).execute(eq(CFG_0_WITH_SCHEMA));
+    verify(sandbox).execute(any(SandboxedServiceContext.class), eq(CFG_0_WITH_SCHEMA));
     verify(commandStore).enqueueCommand(eq(CFG_1_WITH_SCHEMA));
   }
 
@@ -1149,7 +1152,7 @@ public class KsqlResourceTest {
     final String ksqlString = "CREATE STREAM test_explain AS SELECT * FROM test_stream;";
     givenMockEngine();
 
-    when(sandbox.execute(any()))
+    when(sandbox.execute(any(), any()))
         .thenThrow(new RuntimeException("internal error"));
 
     // When:
@@ -1334,7 +1337,7 @@ public class KsqlResourceTest {
   public void shouldListDefaultKsqlProperty() {
     // Given:
     givenKsqlConfigWith(ImmutableMap.<String, Object>builder()
-        .put(StreamsConfig.STATE_DIR_CONFIG, "/tmp/kafka-streams")
+        .put(StreamsConfig.STATE_DIR_CONFIG, "/var/lib/kafka-streams")
         .build());
 
     // When:
@@ -1752,7 +1755,6 @@ public class KsqlResourceTest {
     when(sandbox.prepare(any()))
         .thenAnswer(invocation -> realEngine.createSandbox().prepare(invocation.getArgument(0)));
     when(ksqlEngine.createSandbox()).thenReturn(sandbox);
-    when(ksqlEngine.getServiceContext()).thenReturn(serviceContext);
     when(ksqlEngine.getMetaStore()).thenReturn(metaStore);
     when(topicInjectorFactory.apply(ksqlEngine)).thenReturn(topicInjector);
     setUpKsqlResource();
@@ -1908,7 +1910,8 @@ public class KsqlResourceTest {
         (ec, sc) -> InjectorChain.of(
             schemaInjectorFactory.apply(sc),
             topicInjectorFactory.apply(ec),
-            new TopicDeleteInjector(ec))
+            new TopicDeleteInjector(ec, sc)),
+        topicAccessValidator
     );
   }
 
@@ -1974,11 +1977,8 @@ public class KsqlResourceTest {
   }
 
   private static Properties getDefaultKsqlConfig() {
-    final Map<String, Object> configMap = new HashMap<>();
+    final Map<String, Object> configMap = new HashMap<>(KsqlConfigTestUtil.baseTestConfig());
     configMap.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
-    configMap.put("commit.interval.ms", 0);
-    configMap.put("cache.max.bytes.buffering", 0);
-    configMap.put("auto.offset.reset", "earliest");
     configMap.put("ksql.command.topic.suffix", "commands");
     configMap.put(RestConfig.LISTENERS_CONFIG, "http://localhost:8088");
 

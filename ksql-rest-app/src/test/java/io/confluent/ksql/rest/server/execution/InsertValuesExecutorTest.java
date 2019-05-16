@@ -16,6 +16,8 @@
 package io.confluent.ksql.rest.server.execution;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -47,9 +49,13 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.clients.producer.RecordMetadata;
+import org.apache.kafka.common.KafkaFuture;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serializer;
@@ -65,6 +71,7 @@ import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
+import scala.concurrent.ExecutionContext;
 
 @RunWith(MockitoJUnitRunner.class)
 public class InsertValuesExecutorTest {
@@ -109,6 +116,8 @@ public class InsertValuesExecutorTest {
   @Mock
   private ServiceContext serviceContext;
   @Mock
+  private Future producerResultFuture;
+  @Mock
   private KafkaProducer<byte[], byte[]> producer;
   private Struct expectedRow;
 
@@ -121,6 +130,8 @@ public class InsertValuesExecutorTest {
 
     when(keySerializer.serialize(any(), any())).thenReturn(KEY);
     when(rowSerializer.serialize(any(), any())).thenReturn(VALUE);
+
+    doReturn(producerResultFuture).when(producer).send(any());
 
     final KafkaClientSupplier kafkaClientSupplier = mock(KafkaClientSupplier.class);
     when(kafkaClientSupplier.getProducer(any())).thenReturn(producer);
@@ -338,6 +349,30 @@ public class InsertValuesExecutorTest {
         .put("COL0", 1L)
         .put("COL1", null));
     verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
+  }
+
+  @Test
+  public void shouldThrowOnProducerSendError() throws ExecutionException, InterruptedException {
+    // Given:
+    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
+        SCHEMA.fields().stream().map(Field::name).collect(Collectors.toList()),
+        ImmutableList.of(
+            new LongLiteral(1L),
+            new LongLiteral(2L),
+            new LongLiteral(2L),
+            new StringLiteral("str"))
+    );
+
+    final Future failure = mock(Future.class);
+    when(failure.get()).thenThrow(ExecutionException.class);
+    doReturn(failure).when(producer).send(any());
+
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Failed to insert values into stream/table: ");
+
+    // When:
+    new InsertValuesExecutor(() -> -1L).execute(statement, engine, serviceContext);
   }
 
   @Test

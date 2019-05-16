@@ -20,6 +20,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.engine.TopicAccessValidator;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
@@ -50,6 +51,7 @@ import javax.websocket.OnError;
 import javax.websocket.OnOpen;
 import javax.websocket.Session;
 import javax.websocket.server.ServerEndpoint;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -77,6 +79,7 @@ public class WSQueryEndpoint {
   private final QueryPublisher queryPublisher;
   private final PrintTopicPublisher topicPublisher;
   private final Duration commandQueueCatchupTimeout;
+  private final TopicAccessValidator topicAccessValidator;
 
   private WebSocketSubscriber<?> subscriber;
 
@@ -89,7 +92,8 @@ public class WSQueryEndpoint {
       final CommandQueue commandQueue,
       final ListeningScheduledExecutorService exec,
       final ActivenessRegistrar activenessRegistrar,
-      final Duration commandQueueCatchupTimeout
+      final Duration commandQueueCatchupTimeout,
+      final TopicAccessValidator topicAccessValidator
   ) {
     this(ksqlConfig,
         mapper,
@@ -101,7 +105,8 @@ public class WSQueryEndpoint {
         WSQueryEndpoint::startQueryPublisher,
         WSQueryEndpoint::startPrintPublisher,
         activenessRegistrar,
-        commandQueueCatchupTimeout);
+        commandQueueCatchupTimeout,
+        topicAccessValidator);
   }
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
@@ -117,7 +122,8 @@ public class WSQueryEndpoint {
       final QueryPublisher queryPublisher,
       final PrintTopicPublisher topicPublisher,
       final ActivenessRegistrar activenessRegistrar,
-      final Duration commandQueueCatchupTimeout
+      final Duration commandQueueCatchupTimeout,
+      final TopicAccessValidator topicAccessValidator
   ) {
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     this.mapper = Objects.requireNonNull(mapper, "mapper");
@@ -133,6 +139,8 @@ public class WSQueryEndpoint {
         Objects.requireNonNull(activenessRegistrar, "activenessRegistrar");
     this.commandQueueCatchupTimeout =
         Objects.requireNonNull(commandQueueCatchupTimeout, "commandQueueCatchupTimeout");
+    this.topicAccessValidator =
+        Objects.requireNonNull(topicAccessValidator, "topicAccessValidator");
   }
 
   @SuppressWarnings("unused")
@@ -169,6 +177,12 @@ public class WSQueryEndpoint {
       }
 
       final PreparedStatement<?> preparedStatement = parseStatement(request);
+
+      topicAccessValidator.validate(
+          serviceContext,
+          ksqlEngine.getMetaStore(),
+          preparedStatement.getStatement()
+      );
 
       final Statement statement = preparedStatement.getStatement();
       final Class<? extends Statement> type = statement.getClass();

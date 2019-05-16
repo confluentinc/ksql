@@ -42,7 +42,7 @@ public class ConfiguredKafkaClientSupplier implements KafkaClientSupplier {
     );
   }
 
-  private Map<String, Object> injectSupplierProperties(final Map<String, Object> config) {
+  public Map<String, Object> injectSupplierProperties(final Map<String, Object> config) {
     final Map<String, Object> newConfig = new HashMap<>(config);
     newConfig.putAll(supplierProperties);
     return newConfig;

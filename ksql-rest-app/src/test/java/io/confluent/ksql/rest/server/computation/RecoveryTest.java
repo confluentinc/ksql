@@ -25,8 +25,10 @@ import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.KsqlConfigTestUtil;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlEngineTestUtil;
+import io.confluent.ksql.engine.TopicAccessValidatorFactory;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.internal.KsqlEngineMetrics;
 import io.confluent.ksql.metastore.MetaStore;
@@ -70,11 +72,8 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class RecoveryTest {
-  private final KsqlConfig ksqlConfig = new KsqlConfig(
-      ImmutableMap.of(
-          "bootstrap.servers", "0.0.0.0"
-      )
-  );
+
+  private final KsqlConfig ksqlConfig = KsqlConfigTestUtil.create("0.0.0.0");
   private final List<QueuedCommand> commands = new LinkedList<>();
   private final FakeKafkaTopicClient topicClient = new FakeKafkaTopicClient();
   private final ServiceContext serviceContext = TestServiceContext.create(topicClient);
@@ -171,7 +170,8 @@ public class RecoveryTest {
           fakeCommandQueue,
           Duration.ofMillis(0),
           ()->{},
-          Injectors.DEFAULT);
+          Injectors.DEFAULT,
+          TopicAccessValidatorFactory.create(serviceContext, ksqlEngine.getMetaStore()));
       this.statementExecutor = new StatementExecutor(
           ksqlConfig,
           ksqlEngine,

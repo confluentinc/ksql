@@ -24,7 +24,9 @@ import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.QueryDescription;
 import io.confluent.ksql.rest.entity.QueryDescriptionEntity;
 import io.confluent.ksql.rest.server.TemporaryEngine;
@@ -48,7 +50,7 @@ public class ExplainExecutorTest {
   public void shouldExplainQueryId() {
     // Given:
     final ConfiguredStatement<?> explain = engine.configure("EXPLAIN id;");
-    final PersistentQueryMetadata metadata = TemporaryEngine.givenPersistentQuery("id");
+    final PersistentQueryMetadata metadata = givenPersistentQuery("id");
 
     KsqlEngine engine = mock(KsqlEngine.class);
     when(engine.getPersistentQuery(metadata.getQueryId())).thenReturn(Optional.of(metadata));
@@ -118,5 +120,13 @@ public class ExplainExecutorTest {
     );
   }
 
+  @SuppressWarnings("SameParameterValue")
+  public static PersistentQueryMetadata givenPersistentQuery(final String id) {
+    final PersistentQueryMetadata metadata = mock(PersistentQueryMetadata.class);
+    when(metadata.getQueryId()).thenReturn(new QueryId(id));
+    when(metadata.getSinkNames()).thenReturn(ImmutableSet.of(id));
+    when(metadata.getResultSchema()).thenReturn(TemporaryEngine.SCHEMA);
 
+    return metadata;
+  }
 }

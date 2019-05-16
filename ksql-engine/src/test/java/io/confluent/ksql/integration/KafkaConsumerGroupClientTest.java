@@ -17,9 +17,9 @@ package io.confluent.ksql.integration;
 
 
 import static io.confluent.ksql.serde.Format.JSON;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
+import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static org.hamcrest.Matchers.hasItems;
+import static org.hamcrest.Matchers.is;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.KsqlContextTestUtil;
@@ -31,12 +31,13 @@ import io.confluent.ksql.util.KafkaConsumerGroupClientImpl;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.OrderDataProvider;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -44,10 +45,9 @@ import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.test.IntegrationTest;
-import org.apache.kafka.test.TestUtils;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Rule;
+import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
@@ -62,12 +62,12 @@ public class KafkaConsumerGroupClientTest {
 
   private static final int PARTITION_COUNT = 3;
 
-  private final IntegrationTestHarness testHarness = IntegrationTestHarness.build();
+  private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
 
-  @Rule
-  public final RuleChain clusterWithRetry = RuleChain
+  @ClassRule
+  public static final RuleChain clusterWithRetry = RuleChain
       .outerRule(Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS))
-      .around(testHarness);
+      .around(TEST_HARNESS);
 
   private AdminClient adminClient;
   private KafkaConsumerGroupClient consumerGroupClient;
@@ -77,7 +77,7 @@ public class KafkaConsumerGroupClientTest {
 
   @Before
   public void startUp() {
-    final KsqlConfig ksqlConfig = KsqlContextTestUtil.createKsqlConfig(testHarness.getKafkaCluster());
+    final KsqlConfig ksqlConfig = KsqlContextTestUtil.createKsqlConfig(TEST_HARNESS.getKafkaCluster());
 
     adminClient = AdminClient.create(ksqlConfig.getKsqlAdminClientConfigProps());
     consumerGroupClient = new KafkaConsumerGroupClientImpl(adminClient);
@@ -94,11 +94,6 @@ public class KafkaConsumerGroupClientTest {
   }
 
   @Test
-  public void shouldListNoConsumerGroupsWhenThereAreNone() {
-    assertThat(consumerGroupClient.listGroups(), equalTo(Collections.<String>emptyList()));
-  }
-
-  @Test
   public void shouldListConsumerGroupsWhenTheyExist() throws InterruptedException {
     givenTopicExistsWithData();
     verifyListsGroups(group0, ImmutableList.of(group0));
@@ -109,61 +104,55 @@ public class KafkaConsumerGroupClientTest {
   public void shouldDescribeGroup() throws InterruptedException {
     givenTopicExistsWithData();
     try (final KafkaConsumer<String, byte[]> c1 = createConsumer(group0)) {
-      verifyDescribeGroup(1, group0, Collections.singletonList(c1));
+      verifyDescribeGroup(1, group0, ImmutableList.of(c1));
       try (final KafkaConsumer<String, byte[]> c2 = createConsumer(group0)) {
-        verifyDescribeGroup(2, group0, Arrays.asList(c1, c2));
+        verifyDescribeGroup(2, group0, ImmutableList.of(c1, c2));
       }
     }
   }
 
   private void verifyDescribeGroup(
-      final int expectedConsumers,
+      final int expectedNumConsumers,
       final String group,
-      final List<KafkaConsumer<String, byte[]>> consumers)
-      throws InterruptedException {
-    final List<ConsumerSummary> summaries = new ArrayList<>();
-    TestUtils.waitForCondition(() -> {
+      final List<KafkaConsumer<?, ?>> consumers
+  ) {
+    final Supplier<ConsumerAndPartitionCount> pollAndGetCounts = () -> {
       consumers.forEach(consumer -> consumer.poll(Duration.ofMillis(1)));
-      summaries.clear();
-      summaries.addAll(consumerGroupClient.describeConsumerGroup(group).consumers());
-      return summaries.size() == expectedConsumers
-          && summaries.stream().mapToLong(summary -> summary.partitions().size()).sum()
-          == PARTITION_COUNT;
-    }, 30000, "didn't receive expected number of consumers and/or partitions for group");
 
+      final Collection<ConsumerSummary> summaries = consumerGroupClient
+          .describeConsumerGroup(group).consumers();
+
+      final long partitionCount = summaries.stream()
+          .mapToLong(summary -> summary.partitions().size())
+          .sum();
+
+      return new ConsumerAndPartitionCount(consumers.size(), (int) partitionCount);
+    };
+
+    assertThatEventually(pollAndGetCounts,
+        is(new ConsumerAndPartitionCount(expectedNumConsumers, PARTITION_COUNT)));
   }
 
-  private void verifyListsGroups(final String newGroup, final List<String> consumerGroups)
-      throws InterruptedException {
+  private void verifyListsGroups(final String newGroup, final List<String> consumerGroups) {
 
     try(final KafkaConsumer<String, byte[]> consumer = createConsumer(newGroup)) {
-      final List<String> actual = waitForGroups(consumerGroups.size(), consumer);
-      assertThat(actual, hasItems(consumerGroups.toArray(new String[0])));
+
+      final Supplier<List<String>> pollAndGetGroups = () -> {
+        consumer.poll(Duration.ofMillis(1));
+        return consumerGroupClient.listGroups();
+      };
+
+      assertThatEventually(pollAndGetGroups, hasItems(consumerGroups.toArray(new String[0])));
     }
   }
 
-  private List<String> waitForGroups(
-      final int expectedNumberOfGroups,
-      final KafkaConsumer<String, byte[]> consumer
-  ) throws InterruptedException {
-
-    TestUtils.waitForCondition(
-        () -> {
-          consumer.poll(Duration.ofMillis(1));
-          final List<String> strings = consumerGroupClient.listGroups();
-          return strings.size() == expectedNumberOfGroups;
-        },
-        "didn't receive exepected number of groups: " + expectedNumberOfGroups);
-    return consumerGroupClient.listGroups();
-  }
-
   private void givenTopicExistsWithData() {
-    testHarness.ensureTopics(PARTITION_COUNT, topicName);
-    testHarness.produceRows(topicName, new OrderDataProvider(), JSON, System::currentTimeMillis);
+    TEST_HARNESS.ensureTopics(PARTITION_COUNT, topicName);
+    TEST_HARNESS.produceRows(topicName, new OrderDataProvider(), JSON, System::currentTimeMillis);
   }
 
   private KafkaConsumer<String, byte[]> createConsumer(final String group) {
-    final Map<String, Object> consumerConfigs = testHarness.consumerConfig();
+    final Map<String, Object> consumerConfigs = TEST_HARNESS.consumerConfig();
     consumerConfigs.put(ConsumerConfig.GROUP_ID_CONFIG, group);
 
     final KafkaConsumer<String, byte[]> consumer = new KafkaConsumer<>(
@@ -173,5 +162,34 @@ public class KafkaConsumerGroupClientTest {
 
     consumer.subscribe(Collections.singleton(topicName));
     return consumer;
+  }
+
+  private static final class ConsumerAndPartitionCount {
+
+    private final int consumerCount;
+    private final int partitionCount;
+
+    private ConsumerAndPartitionCount(final int consumerCount, final int partitionCount) {
+      this.consumerCount = consumerCount;
+      this.partitionCount = partitionCount;
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+      final ConsumerAndPartitionCount that = (ConsumerAndPartitionCount) o;
+      return consumerCount == that.consumerCount &&
+          partitionCount == that.partitionCount;
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(consumerCount, partitionCount);
+    }
   }
 }

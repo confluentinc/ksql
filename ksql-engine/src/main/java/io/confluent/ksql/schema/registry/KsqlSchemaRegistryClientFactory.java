@@ -34,7 +34,7 @@ public class KsqlSchemaRegistryClientFactory {
   private final Supplier<RestService> serviceSupplier;
   private final Map<String, Object> schemaRegistryClientConfigs;
   private final SchemaRegistryClientFactory schemaRegistryClientFactory;
-  private final Map<String, String> schemaRegistryHttpHeaders;
+  private final Map<String, String> httpHeaders;
 
   interface SchemaRegistryClientFactory {
     CachedSchemaRegistryClient create(RestService service,
@@ -63,7 +63,7 @@ public class KsqlSchemaRegistryClientFactory {
                                   final Supplier<RestService> serviceSupplier,
                                   final SslFactory sslFactory,
                                   final SchemaRegistryClientFactory schemaRegistryClientFactory,
-                                  final Map<String, String> schemaRegistryHttpHeaders) {
+                                  final Map<String, String> httpHeaders) {
     this.sslFactory = sslFactory;
     this.serviceSupplier = serviceSupplier;
     this.schemaRegistryClientConfigs = config.originalsWithPrefix(
@@ -73,7 +73,7 @@ public class KsqlSchemaRegistryClientFactory {
         .configure(config.valuesWithPrefixOverride(KsqlConfig.KSQL_SCHEMA_REGISTRY_PREFIX));
 
     this.schemaRegistryClientFactory = schemaRegistryClientFactory;
-    this.schemaRegistryHttpHeaders = schemaRegistryHttpHeaders;
+    this.httpHeaders = httpHeaders;
   }
 
   public SchemaRegistryClient get() {
@@ -87,7 +87,7 @@ public class KsqlSchemaRegistryClientFactory {
         restService,
         1000,
         schemaRegistryClientConfigs,
-        schemaRegistryHttpHeaders
+        httpHeaders
     );
   }
 }

@@ -15,12 +15,15 @@
 
 package io.confluent.ksql.rest.server.context;
 
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.ksql.schema.registry.KsqlSchemaRegistryClientFactory;
 import io.confluent.ksql.services.DefaultServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Supplier;
 import javax.inject.Inject;
 import javax.ws.rs.container.ContainerRequestContext;
 
@@ -48,18 +51,29 @@ public class KsqlRestServiceContextFactory implements Factory<ServiceContext> {
 
   @Override
   public ServiceContext provide() {
-    return DefaultServiceContext.create(ksqlConfig, getKafkaClientSupplier());
-  }
-
-  private KafkaClientSupplier getKafkaClientSupplier() {
     if (ksqlRestContext.isPresent()) {
-      return new ConfiguredKafkaClientSupplier(
-          new DefaultKafkaClientSupplier(),
-          ksqlRestContext.get().getRestContextProperties()
+      return DefaultServiceContext.create(
+          ksqlConfig,
+          getKafkaClientSupplier(),
+          getSchemaRegistryClientSupplier()
       );
     }
 
-    return new DefaultKafkaClientSupplier();
+    return DefaultServiceContext.create(ksqlConfig);
+  }
+
+  private KafkaClientSupplier getKafkaClientSupplier() {
+    return new ConfiguredKafkaClientSupplier(
+        new DefaultKafkaClientSupplier(),
+        ksqlRestContext.get().getKafkaClientSupplierProperties()
+    );
+  }
+
+  private Supplier<SchemaRegistryClient> getSchemaRegistryClientSupplier() {
+    return new KsqlSchemaRegistryClientFactory(
+        ksqlConfig,
+        ksqlRestContext.get().getSchemaRegistryClientHttpHeaders()
+    )::get;
   }
 
   @Override

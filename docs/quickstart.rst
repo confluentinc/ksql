@@ -14,7 +14,7 @@ KSQL Tutorials and Examples
 
     - :ref:`Writing Streaming Queries Against Kafka Using KSQL <ksql_tutorials>`. This tutorial demonstrates
       a simple workflow using KSQL to write streaming queries against messages in Kafka.
-    - :ref:`Clickstream Data Analysis Pipeline Using KSQL <ksql_tutorials>`. Learn how to use KSQL,
+    - :ref:`Clickstream Data Analysis Pipeline Using KSQL <ksql_clickstream-docker>`. Learn how to use KSQL,
       ElasticSearch, and Grafana to analyze data feeds and build a real-time dashboard for reporting and alerting.
 
     .. include:: ../../includes/connect-streams-pipeline-link.rst

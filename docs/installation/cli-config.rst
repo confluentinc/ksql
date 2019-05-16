@@ -24,8 +24,8 @@ or by using the SET statement from within the KSQL CLI session. For more informa
 Here are some common KSQL CLI properties that you can customize:
 
 - :ref:`ksql.streams.auto.offset.reset <ksql-auto-offset-reset>`
-- :ref:`ksql.streams.cache.max.bytes.buffering <streams_developer-guide_optional-configs>`
-- :ref:`ksql.streams.num.stream.threads <streams_developer-guide_optional-configs>`
+- :ref:`ksql.streams.cache.max.bytes.buffering <ksql-cache-max-bytes-buffering>`
+- :ref:`ksql.streams.num.stream.threads <ksql-streams-num-streams-threads>`
 - :ref:`ksql.sink.partitions <ksql-sink-partitions>`
 - :ref:`ksql.sink.replicas <ksql-sink-replicas>`
 

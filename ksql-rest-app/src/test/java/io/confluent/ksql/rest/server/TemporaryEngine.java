@@ -18,7 +18,9 @@ package io.confluent.ksql.rest.server;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import io.confluent.ksql.KsqlConfigTestUtil;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlEngineTestUtil;
 import io.confluent.ksql.function.InternalFunctionRegistry;
@@ -44,8 +46,6 @@ import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
 import io.confluent.rest.RestConfig;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Map;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -64,19 +64,18 @@ public class TemporaryEngine extends ExternalResource {
   private ServiceContext serviceContext;
 
   @Override
-  protected void before() throws Throwable {
+  protected void before() {
     metaStore = new MetaStoreImpl(new InternalFunctionRegistry());
-    serviceContext = (TestServiceContext.create());
+    serviceContext = TestServiceContext.create();
     engine = (KsqlEngineTestUtil.createKsqlEngine(getServiceContext(), metaStore));
 
-    final Map<String, Object> configMap = new HashMap<>();
-    configMap.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
-    configMap.put("commit.interval.ms", 0);
-    configMap.put("cache.max.bytes.buffering", 0);
-    configMap.put("auto.offset.reset", "earliest");
-    configMap.put("ksql.command.topic.suffix", "commands");
-    configMap.put(RestConfig.LISTENERS_CONFIG, "http://localhost:8088");
-    ksqlConfig = (new KsqlConfig(configMap));
+    ksqlConfig = KsqlConfigTestUtil.create(
+        "localhost:9092",
+        ImmutableMap.of(
+            "ksql.command.topic.suffix", "commands",
+            RestConfig.LISTENERS_CONFIG, "http://localhost:8088"
+        )
+    );
   }
 
   @Override

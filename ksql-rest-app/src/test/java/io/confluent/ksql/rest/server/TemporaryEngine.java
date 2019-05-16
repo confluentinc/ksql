@@ -15,11 +15,7 @@
 
 package io.confluent.ksql.rest.server;
 
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.KsqlConfigTestUtil;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlEngineTestUtil;
@@ -33,7 +29,6 @@ import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.parser.DefaultKsqlParser;
-import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
@@ -41,7 +36,6 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
 import io.confluent.rest.RestConfig;
 import java.util.Collections;
@@ -132,16 +126,6 @@ public class TemporaryEngine extends ExternalResource {
         getEngine().prepare(new DefaultKsqlParser().parse(sql).get(0)),
         new HashMap<>(),
         ksqlConfig);
-  }
-
-  @SuppressWarnings("SameParameterValue")
-  public static PersistentQueryMetadata givenPersistentQuery(final String id) {
-    final PersistentQueryMetadata metadata = mock(PersistentQueryMetadata.class);
-    when(metadata.getQueryId()).thenReturn(new QueryId(id));
-    when(metadata.getSinkNames()).thenReturn(ImmutableSet.of(id));
-    when(metadata.getResultSchema()).thenReturn(SCHEMA);
-
-    return metadata;
   }
 
   public KsqlConfig getKsqlConfig() {

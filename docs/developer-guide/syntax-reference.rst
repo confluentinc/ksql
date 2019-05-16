@@ -146,9 +146,7 @@ in KSQL statements.
             timestamp='event_timestamp',                    \
             timestamp_format='hh ''o''clock'' a, zzzz');
 
-For more information on timestamp formats, see
-`DateTimeFormatter <https://docs.oracle.com/javase/8/docs/api/java/time/format/DateTimeFormatter.html>`__.
-
+For more information on timestamp formats, see `DateTimeFormatter <https://cnfl.io/java-dtf>`__.
 
 =================
 KSQL CLI Commands
@@ -314,9 +312,12 @@ The WITH clause supports the following properties:
 |                         | bigint. If it is set, then the TIMESTAMP field must be of type varchar and have a format      |
 |                         | that can be parsed with the Java ``DateTimeFormatter``. If your timestamp format has          |
 |                         | characters requiring single quotes, you can escape them with two successive single quotes,    |
-|                         | ``''``, for example: ``'yyyy-MM-dd''T''HH:mm:ssX'``.                                          |
+|                         | ``''``, for example: ``'yyyy-MM-dd''T''HH:mm:ssX'``. For more information on timestamp        |
+|                         | formats, see `DateTimeFormatter <https://cnfl.io/java-dtf>`__.                                |
 +-------------------------+-----------------------------------------------------------------------------------------------+
 
+For more information on timestamp formats, see
+`DateTimeFormatter <https://docs.oracle.com/javase/8/docs/api/java/time/format/DateTimeFormatter.html>`__.
 
 .. include:: ../includes/ksql-includes.rst
     :start-after: Avro_note_start
@@ -412,7 +413,8 @@ The WITH clause supports the following properties:
 |                         | bigint. If it is set, then the TIMESTAMP field must be of type varchar and have a format   |
 |                         | that can be parsed with the Java ``DateTimeFormatter``. If your timestamp format has       |
 |                         | characters requiring single quotes, you can escape them with two successive single quotes, |
-|                         | ``''``, for example: ``'yyyy-MM-dd''T''HH:mm:ssX'``.                                       |
+|                         | ``''``, for example: ``'yyyy-MM-dd''T''HH:mm:ssX'``. For more information on timestamp     |
+|                         | formats, see `DateTimeFormatter <https://cnfl.io/java-dtf>`__.                             |
 +-------------------------+--------------------------------------------------------------------------------------------+
 
 .. include:: ../includes/ksql-includes.rst
@@ -515,7 +517,8 @@ The WITH clause for the result supports the following properties:
 |                         | bigint. If it is set, then the TIMESTAMP field must be of type varchar and have a format             |
 |                         | that can be parsed with the Java ``DateTimeFormatter``. If your timestamp format has                 |
 |                         | characters requiring single quotes, you can escape them with two successive single quotes,           |
-|                         | ``''``, for example: ``'yyyy-MM-dd''T''HH:mm:ssX'``.                                                 |
+|                         | ``''``, for example: ``'yyyy-MM-dd''T''HH:mm:ssX'``. For more information on timestamp               |
+|                         | formats, see `DateTimeFormatter <https://cnfl.io/java-dtf>`__.                                       |
 +-------------------------+------------------------------------------------------------------------------------------------------+
 
 .. include:: ../includes/ksql-includes.rst
@@ -598,7 +601,8 @@ The WITH clause supports the following properties:
 |                         | bigint. If it is set, then the TIMESTAMP field must be of type varchar and have a format             |
 |                         | that can be parsed with the Java ``DateTimeFormatter``. If your timestamp format has                 |
 |                         | characters requiring single quotes, you can escape them with two successive single quotes,           |
-|                         | ``''``, for example: ``'yyyy-MM-dd''T''HH:mm:ssX'``.                                                 |
+|                         | ``''``, for example: ``'yyyy-MM-dd''T''HH:mm:ssX'``. For more information on timestamp               |
+|                         | formats, see `DateTimeFormatter <https://cnfl.io/java-dtf>`__.                                       |
 +-------------------------+------------------------------------------------------------------------------------------------------+
 
 .. include:: ../includes/ksql-includes.rst
@@ -1332,7 +1336,9 @@ Scalar functions
 |                        |                                                                           | example: ``'yyyy-MM-dd''T''HH:mm:ssX'``.          |
 |                        |                                                                           | TIMEZONE is an optional parameter and it is a     |
 |                        |                                                                           | java.util.TimeZone ID format, for example: "UTC", |
-|                        |                                                                           | "America/Los_Angeles", "PDT", "Europe/London"     |
+|                        |                                                                           | "America/Los_Angeles", "PDT", "Europe/London". For|
+|                        |                                                                           | more information on timestamp formats, see        |
+|                        |                                                                           | `DateTimeFormatter <https://cnfl.io/java-dtf>`__. |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | SUBSTRING              |  ``SUBSTRING(col1, 2, 5)``                                                | ``SUBSTRING(str, pos, [len]``.                    |
 |                        |                                                                           | Returns a substring of ``str`` that starts at     |
@@ -1365,7 +1371,9 @@ Scalar functions
 |                        |                                                                           | ``'yyyy-MM-dd''T''HH:mm:ssX'``.                   |
 |                        |                                                                           | TIMEZONE is an optional parameter and it is a     |
 |                        |                                                                           | java.util.TimeZone ID format, for example: "UTC", |
-|                        |                                                                           | "America/Los_Angeles", "PDT", "Europe/London"     |
+|                        |                                                                           | "America/Los_Angeles", "PDT", "Europe/London". For|
+|                        |                                                                           | more information on timestamp formats, see        |
+|                        |                                                                           | `DateTimeFormatter <https://cnfl.io/java-dtf>`__. |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | TRIM                   |  ``TRIM(col1)``                                                           | Trim the spaces from the beginning and end of     |
 |                        |                                                                           | a string.                                         |

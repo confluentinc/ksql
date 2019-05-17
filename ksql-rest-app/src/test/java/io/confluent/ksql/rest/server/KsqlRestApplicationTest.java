@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.server;
 import static io.confluent.ksql.parser.ParserMatchers.configured;
 import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -36,6 +37,8 @@ import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.rest.server.resources.RootDocument;
 import io.confluent.ksql.rest.server.resources.StatusResource;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
+import io.confluent.ksql.rest.server.security.KsqlDefaultSecurityExtension;
+import io.confluent.ksql.rest.server.security.KsqlSecurityExtension;
 import io.confluent.ksql.rest.util.ProcessingLogServerUtils;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.FakeKafkaClientSupplier;
@@ -49,6 +52,8 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
+
+import javax.ws.rs.core.Configurable;
 
 @RunWith(MockitoJUnitRunner.class)
 public class KsqlRestApplicationTest {
@@ -86,6 +91,8 @@ public class KsqlRestApplicationTest {
   private CommandQueue commandQueue;
   @Mock
   private QueuedCommandStatus queuedCommandStatus;
+  @Mock
+  private KsqlSecurityExtension securityExtension;
   private KsqlRestApplication app;
 
   @Before
@@ -116,7 +123,8 @@ public class KsqlRestApplicationTest {
         streamedQueryResource,
         ksqlResource,
         versionCheckerAgent,
-        KsqlRestServiceContextBinder::new
+        KsqlRestServiceContextBinder::new,
+        securityExtension
     );
   }
 
@@ -127,6 +135,28 @@ public class KsqlRestApplicationTest {
 
     // Then:
     verify(serviceContext).close();
+  }
+
+  @Test
+  public void shouldCloseSecurityExtensionOnClose() {
+    // When:
+    app.stop();
+
+    // Then:
+    verify(securityExtension).close();
+  }
+
+  @Test
+  public void shouldRegisterRestSecurityExtension() {
+    // Given:
+    final Configurable configurable = mock(Configurable.class);
+
+    // When:
+    app.configureBaseApplication(configurable, Collections.emptyMap());
+
+    // Then:
+    verify(securityExtension).initialize(ksqlConfig);
+    verify(securityExtension).registerRestEndpoints(configurable);
   }
 
   @Test

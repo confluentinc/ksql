@@ -76,7 +76,6 @@ public class StringUtilTest {
       linkedList.add("a");
 
       assertThat(StringUtil.join("x", linkedList), is("xa"));
-      assertThat(linkedList.size(), is(2));
   }
 
 

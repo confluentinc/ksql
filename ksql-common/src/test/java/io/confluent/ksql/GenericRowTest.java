@@ -139,11 +139,7 @@ public class GenericRowTest {
   @Test
   public void testEquals(){
 
-      List<Object> columnListWithEmptyObject = new ArrayList<>(1);
-      columnListWithEmptyObject.add(new Object());
-
-      List<Object> columnListWithString = new ArrayList<>(1);
-      columnListWithString.add("nr");
+    List<Object> columnListWithString = ImmutableList.of("nr");
 
       new EqualsTester().
               addEqualityGroup(

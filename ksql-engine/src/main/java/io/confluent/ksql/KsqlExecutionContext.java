@@ -89,16 +89,27 @@ public interface KsqlExecutionContext {
   PreparedStatement<?> prepare(ParsedStatement stmt);
 
   /**
+   * Executes a statement using the engine's primary service context.
+   *
+   * @see #execute(ServiceContext, ConfiguredStatement)
+   */
+  ExecuteResult execute(ConfiguredStatement<?> statement);
+
+  /**
    * Execute the supplied statement, updating the meta store and registering any query.
    *
    * <p>The statement must be executable. See {@link KsqlEngine#isExecutableStatement}.
    *
    * <p>If the statement contains a query, then it will be tracked, but not started.
    *
+   * <p>The statement is executed using the specific {@code ServiceContext}
+   *
+   * @param serviceContext The ServiceContext of the user executing the statement.
    * @param statement The SQL to execute.
    * @return The execution result.
    */
-  ExecuteResult execute(ConfiguredStatement<?> statement);
+  ExecuteResult execute(ServiceContext serviceContext, ConfiguredStatement<?> statement);
+
 
   /**
    * Holds the union of possible results from an {@link #execute} call.

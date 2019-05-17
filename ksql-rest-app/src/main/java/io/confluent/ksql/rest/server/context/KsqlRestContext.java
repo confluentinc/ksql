@@ -16,7 +16,6 @@
 package io.confluent.ksql.rest.server.context;
 
 import com.google.common.collect.ImmutableMap;
-
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -54,15 +53,27 @@ public class KsqlRestContext {
     requestContext.setProperty(KSQL_REST_CONTEXT_PROPERTY, restContext);
   }
 
-  private final ImmutableMap<String, Object> restContextProperties;
+  private final ImmutableMap<String, Object> kafkaClientSupplierProperties;
+  private final ImmutableMap<String, String> schemaRegistryClientHttpHeaders;
 
-  public KsqlRestContext(final Map<String, Object> restContextProperties) {
-    this.restContextProperties = ImmutableMap.copyOf(
-        Objects.requireNonNull(restContextProperties, "restContextProperties")
+  public KsqlRestContext(
+      final Map<String, Object> kafkaClientSupplierProperties,
+      final Map<String, String> schemaRegistryHttpHeaders
+  ) {
+    this.kafkaClientSupplierProperties = ImmutableMap.copyOf(
+        Objects.requireNonNull(kafkaClientSupplierProperties, "kafkaClientSupplierProperties")
+    );
+
+    this.schemaRegistryClientHttpHeaders = ImmutableMap.copyOf(
+        Objects.requireNonNull(schemaRegistryHttpHeaders, "schemaRegistryClientHttpHeaders")
     );
   }
 
-  public Map<String, Object> getRestContextProperties() {
-    return restContextProperties;
+  public Map<String, Object> getKafkaClientSupplierProperties() {
+    return kafkaClientSupplierProperties;
+  }
+
+  public Map<String, String> getSchemaRegistryClientHttpHeaders() {
+    return schemaRegistryClientHttpHeaders;
   }
 }

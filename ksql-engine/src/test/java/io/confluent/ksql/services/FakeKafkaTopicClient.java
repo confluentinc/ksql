@@ -17,9 +17,8 @@ package io.confluent.ksql.services;
 
 import static org.apache.kafka.common.config.TopicConfig.CLEANUP_POLICY_COMPACT;
 import static org.apache.kafka.common.config.TopicConfig.CLEANUP_POLICY_CONFIG;
-import static org.apache.kafka.common.config.TopicConfig.COMPRESSION_TYPE_CONFIG;
 
-import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Sets;
 import io.confluent.ksql.topic.TopicProperties;
 import io.confluent.ksql.util.KsqlConstants;
 import java.util.Collection;
@@ -35,6 +34,7 @@ import java.util.stream.IntStream;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.Node;
 import org.apache.kafka.common.TopicPartitionInfo;
+import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.common.errors.UnknownTopicOrPartitionException;
 
 /**
@@ -71,7 +71,12 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
               .mapToObj(
                   p -> new TopicPartitionInfo(p, node, replicas, Collections.emptyList()))
               .collect(Collectors.toList());
-      return new TopicDescription(topicName, false, partitionInfoList);
+      return new SandboxedTopicDescription(
+          topicName,
+          false,
+          partitionInfoList,
+          Sets.newHashSet(AclOperation.READ, AclOperation.WRITE)
+      );
     }
 
     @Override

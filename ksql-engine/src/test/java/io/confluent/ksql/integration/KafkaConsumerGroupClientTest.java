@@ -22,7 +22,7 @@ import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.is;
 
 import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.KsqlContextTestUtil;
+import io.confluent.ksql.KsqlConfigTestUtil;
 import io.confluent.ksql.test.util.ConsumerGroupTestUtil;
 import io.confluent.ksql.test.util.TopicTestUtil;
 import io.confluent.ksql.util.KafkaConsumerGroupClient;
@@ -77,7 +77,7 @@ public class KafkaConsumerGroupClientTest {
 
   @Before
   public void startUp() {
-    final KsqlConfig ksqlConfig = KsqlContextTestUtil.createKsqlConfig(TEST_HARNESS.getKafkaCluster());
+    final KsqlConfig ksqlConfig = KsqlConfigTestUtil.create(TEST_HARNESS.getKafkaCluster());
 
     adminClient = AdminClient.create(ksqlConfig.getKsqlAdminClientConfigProps());
     consumerGroupClient = new KafkaConsumerGroupClientImpl(adminClient);

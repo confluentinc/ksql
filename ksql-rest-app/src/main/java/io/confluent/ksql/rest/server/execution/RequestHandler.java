@@ -107,6 +107,7 @@ public class RequestHandler {
 
     final StatementExecutor<T> executor = (StatementExecutor<T>)
         customExecutors.getOrDefault(statementClass, distributor);
+
     return executor.execute(
         configured,
         ksqlEngine,

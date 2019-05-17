@@ -18,17 +18,21 @@ package io.confluent.ksql.serde.json;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.serde.SerdeUtil;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import org.apache.kafka.common.errors.SerializationException;
+import java.util.function.Function;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
@@ -36,7 +40,12 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.stubbing.Answer;
 
+@RunWith(MockitoJUnitRunner.class)
 public class KsqlJsonSerializerTest {
 
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
@@ -89,12 +98,16 @@ public class KsqlJsonSerializerTest {
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
+  @Mock
+  private Function<Struct, Object> preprocessor;
 
   private KsqlJsonSerializer serializer;
 
   @Before
   public void before() {
-    serializer = new KsqlJsonSerializer(ORDER_SCHEMA);
+    serializer = new KsqlJsonSerializer(ORDER_SCHEMA, preprocessor);
+
+    when(preprocessor.apply(any())).then(inv -> inv.getArgument(0));
   }
 
   @Test
@@ -155,7 +168,7 @@ public class KsqlJsonSerializerTest {
   public void shouldHandleStruct() throws IOException {
     // Given:
     final Struct struct = buildWithNestedStruct();
-    serializer = new KsqlJsonSerializer(SCHEMA_WITH_STRUCT);
+    serializer = new KsqlJsonSerializer(SCHEMA_WITH_STRUCT, preprocessor);
 
     // When:
     final byte[] bytes = serializer.serialize("", struct);
@@ -170,13 +183,19 @@ public class KsqlJsonSerializerTest {
   @Test
   public void shouldSerializedTopLevelPrimitiveIfValueHasOneField() {
     // Given:
-    final Schema schema = SchemaBuilder.struct()
+    final Schema logicalSchema = SchemaBuilder.struct()
         .field("id", Schema.OPTIONAL_INT64_SCHEMA)
         .build();
 
-    final KsqlJsonSerializer serializer = new KsqlJsonSerializer(Schema.OPTIONAL_INT64_SCHEMA);
+    when(preprocessor.apply(any()))
+        .thenAnswer(unwrap());
 
-    final Struct value = new Struct(schema)
+    final Schema physicalSchema = logicalSchema.fields().get(0).schema();
+
+    final KsqlJsonSerializer serializer =
+        new KsqlJsonSerializer(physicalSchema, preprocessor);
+
+    final Struct value = new Struct(logicalSchema)
         .put("id", 10L);
 
     // When:
@@ -187,7 +206,7 @@ public class KsqlJsonSerializerTest {
   }
 
   @Test
-  public void shouldThrowOnSerializedTopLevelPrimitiveWhenSchemaHasMoreThanOneField() {
+  public void shouldThrowIfPreprocessorThrows() {
     // Given:
     final Schema schema = SchemaBuilder.struct()
         .field("id", Schema.OPTIONAL_INT32_SCHEMA)
@@ -197,11 +216,14 @@ public class KsqlJsonSerializerTest {
     final Struct value = new Struct(schema)
         .put("id", 10);
 
-    final KsqlJsonSerializer serializer = new KsqlJsonSerializer(Schema.OPTIONAL_INT64_SCHEMA);
+    final KsqlJsonSerializer serializer =
+        new KsqlJsonSerializer(schema, preprocessor);
+
+    when(preprocessor.apply(any())).thenThrow(new RuntimeException("boom"));
 
     // Then:
-    expectedException.expect(SerializationException.class);
-    expectedException.expectMessage("Expected to serialize JSON value or array not JSON object");
+    expectedException.expect(RuntimeException.class);
+    expectedException.expectMessage("boom");
 
     // When:
     serializer.serialize("", value);
@@ -210,19 +232,22 @@ public class KsqlJsonSerializerTest {
   @Test
   public void shouldSerializeTopLevelArrayIfValueHasOnlySingleField() {
     // Given:
-    final Schema schema = SchemaBuilder.struct()
+    final Schema logicalSchema = SchemaBuilder.struct()
         .field("ids", SchemaBuilder
             .array(Schema.OPTIONAL_INT64_SCHEMA)
             .optional()
             .build())
         .build();
 
-    final Struct value = new Struct(schema)
+    final Struct value = new Struct(logicalSchema)
         .put("ids", ImmutableList.of(1L, 2L, 3L));
 
-    final KsqlJsonSerializer serializer = new KsqlJsonSerializer(SchemaBuilder
-        .array(Schema.OPTIONAL_INT64_SCHEMA)
-        .build());
+    when(preprocessor.apply(any()))
+        .thenAnswer(unwrap());
+
+    final Schema physicalSchema = logicalSchema.fields().get(0).schema();
+
+    final KsqlJsonSerializer serializer = new KsqlJsonSerializer(physicalSchema, preprocessor);
 
     // When:
     final byte[] bytes = serializer.serialize("", value);
@@ -232,29 +257,61 @@ public class KsqlJsonSerializerTest {
   }
 
   @Test
-  public void shouldThrowOnSerializedTopLevelArrayWhenSchemaHasMoreThanOneField() {
+  public void shouldSerializeTopLevelMapIfValueHasOnlySingleField() {
     // Given:
-    final Schema schema = SchemaBuilder.struct()
+    final Schema logicalSchema = SchemaBuilder.struct()
         .field("ids", SchemaBuilder
-            .array(Schema.OPTIONAL_INT32_SCHEMA)
+            .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_INT64_SCHEMA)
             .optional()
             .build())
-        .field("id2", Schema.OPTIONAL_INT32_SCHEMA)
         .build();
 
-    final Struct value = new Struct(schema)
-        .put("ids", ImmutableList.of(1, 2, 3));
+    when(preprocessor.apply(any()))
+        .thenAnswer(unwrap());
 
-    final KsqlJsonSerializer serializer = new KsqlJsonSerializer(SchemaBuilder
-        .array(Schema.OPTIONAL_INT64_SCHEMA)
-        .build());
+    final Schema physicalSchema = logicalSchema.fields().get(0).schema();
 
-    // Then:
-    expectedException.expect(SerializationException.class);
-    expectedException.expectMessage("Expected to serialize JSON value or array not JSON object");
+    final KsqlJsonSerializer serializer = new KsqlJsonSerializer(physicalSchema, preprocessor);
+
+    final Struct value = new Struct(logicalSchema)
+        .put("ids", ImmutableMap.of("a", 1L));
 
     // When:
-    serializer.serialize("", value);
+    final byte[] bytes = serializer.serialize("", value);
+
+    // Then:
+    assertThat(new String(bytes, StandardCharsets.UTF_8), is("{\"a\":1}"));
+  }
+
+  @Test
+  public void shouldSerializeTopLevelStructIfValueHasOnlySingleField() {
+    // Given:
+    final Schema logicalSchema = SchemaBuilder.struct()
+        .field("ids", SchemaBuilder
+            .struct()
+            .field("f0", Schema.OPTIONAL_INT64_SCHEMA)
+            .optional()
+            .build())
+        .build();
+
+    when(preprocessor.apply(any()))
+        .thenAnswer(unwrap());
+
+    final Schema physicalSchema = logicalSchema.fields().get(0).schema();
+
+    final KsqlJsonSerializer serializer = new KsqlJsonSerializer(physicalSchema, preprocessor);
+
+    final Struct ids = new Struct(physicalSchema)
+        .put("f0", 1L);
+
+    final Struct value = new Struct(logicalSchema)
+        .put("ids", ids);
+
+    // When:
+    final byte[] bytes = serializer.serialize("", value);
+
+    // Then:
+    assertThat(new String(bytes, StandardCharsets.UTF_8), is("{\"f0\":1}"));
   }
 
   private static Struct buildWithNestedStruct() {
@@ -292,5 +349,9 @@ public class KsqlJsonSerializerTest {
     topLevel.put("address", address);
 
     return topLevel;
+  }
+
+  private static Answer<Object> unwrap() {
+    return inv -> SerdeUtil.unwrapStruct(inv.getArgument(0));
   }
 }

@@ -27,6 +27,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.same;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -57,8 +58,10 @@ import java.util.ListIterator;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
+import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.StreamsBuilder;
@@ -163,6 +166,9 @@ public class DataSourceNodeTest {
             .push(inv.getArgument(0).toString()));
     when(ksqlStreamBuilder.buildGenericRowSerde(any(), any(), any())).thenReturn(rowSerde);
     when(ksqlStreamBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
+
+    when(rowSerde.serializer()).thenReturn(mock(Serializer.class));
+    when(rowSerde.deserializer()).thenReturn(mock(Deserializer.class));
 
     realStream = node.buildStream(ksqlStreamBuilder);
 

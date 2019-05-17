@@ -562,6 +562,35 @@ public class KsqlAvroSerializerTest {
     assertThat(array.toString(), is("[{\"key\": \"a\", \"value\": 1}, {\"key\": \"b\", \"value\": 2}]"));
   }
 
+  @Test
+  public void shouldSerializeTopLevelStructIfValueHasOnlySingleField() {
+    // Given:
+    givenConfiguredToSerializeSingleFieldWithoutStruct();
+
+    final Schema schema = SchemaBuilder.struct()
+        .field("ids", SchemaBuilder
+            .struct()
+            .field("f0", Schema.OPTIONAL_INT64_SCHEMA)
+            .optional()
+            .build())
+        .build();
+
+    final Struct physicalSchema = new Struct(schema.fields().get(0).schema())
+        .put("f0", 1L);
+
+    final Struct value = new Struct(schema)
+        .put("ids", physicalSchema);
+
+    resetSerde(schema);
+
+    // When:
+    final byte[] bytes = serializer.serialize("t", value);
+
+    // Then:
+    final GenericData.Record record = deserialize(bytes);
+    assertThat(record.toString(), is("{\"f0\": 1}"));
+  }
+
   @SuppressWarnings("unchecked")
   private <T> T deserialize(final byte[] serializedRow) {
     final KafkaAvroDeserializer kafkaAvroDeserializer =

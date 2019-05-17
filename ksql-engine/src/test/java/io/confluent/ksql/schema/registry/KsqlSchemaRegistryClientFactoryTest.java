@@ -38,6 +38,7 @@ import java.util.function.Supplier;
 import javax.net.ssl.SSLContext;
 import org.apache.kafka.common.config.SslConfigs;
 import org.apache.kafka.common.network.Mode;
+import org.apache.kafka.common.security.ssl.SslEngineBuilder;
 import org.apache.kafka.common.security.ssl.SslFactory;
 import org.junit.Before;
 import org.junit.Test;
@@ -58,18 +59,21 @@ public class KsqlSchemaRegistryClientFactoryTest {
 
   @Mock
   private SslFactory sslFactory;
+  @Mock
+  private SslEngineBuilder sslEngineBuilder;
 
   @Mock
   private KsqlSchemaRegistryClientFactory.SchemaRegistryClientFactory srClientFactory;
 
   @Before
   public void setUp() {
-    when(srClientFactory.create(any(), anyInt(), any()))
+    when(srClientFactory.create(any(), anyInt(), any(), any()))
         .thenReturn(mock(CachedSchemaRegistryClient.class));
 
     when(restServiceSupplier.get()).thenReturn(restService);
 
-    when(sslFactory.sslContext()).thenReturn(SSL_CONTEXT);
+    when(sslFactory.sslEngineBuilder()).thenReturn(sslEngineBuilder);
+    when(sslEngineBuilder.sslContext()).thenReturn(SSL_CONTEXT);
   }
 
   @Test
@@ -86,7 +90,7 @@ public class KsqlSchemaRegistryClientFactoryTest {
     // When:
     final SchemaRegistryClient client =
         new KsqlSchemaRegistryClientFactory(config, restServiceSupplier, sslFactory,
-            srClientFactory).get();
+            srClientFactory, Collections.emptyMap()).get();
 
     // Then:
     assertThat(client, is(notNullValue()));
@@ -107,7 +111,7 @@ public class KsqlSchemaRegistryClientFactoryTest {
     // When:
     final SchemaRegistryClient client =
         new KsqlSchemaRegistryClientFactory(config, restServiceSupplier, sslFactory,
-            srClientFactory).get();
+            srClientFactory, Collections.emptyMap()).get();
 
     // Then:
     assertThat(client, is(notNullValue()));
@@ -128,7 +132,7 @@ public class KsqlSchemaRegistryClientFactoryTest {
     // When:
     final SchemaRegistryClient client =
         new KsqlSchemaRegistryClientFactory(config, restServiceSupplier, sslFactory,
-            srClientFactory).get();
+            srClientFactory, Collections.emptyMap()).get();
 
 
     // Then:
@@ -153,10 +157,10 @@ public class KsqlSchemaRegistryClientFactoryTest {
 
     // When:
     new KsqlSchemaRegistryClientFactory(
-        config, restServiceSupplier, sslFactory, srClientFactory).get();
+        config, restServiceSupplier, sslFactory, srClientFactory, Collections.emptyMap()).get();
 
     // Then:
-    srClientFactory.create(same(restService), anyInt(), eq(expectedConfigs));
+    srClientFactory.create(same(restService), anyInt(), eq(expectedConfigs), any());
   }
 
   private static Map<String, Object> defaultConfigs() {
@@ -179,6 +183,6 @@ public class KsqlSchemaRegistryClientFactoryTest {
         .valuesWithPrefixOverride(KsqlConfig.KSQL_SCHEMA_REGISTRY_PREFIX);
 
     sslFactory.configure(configs);
-    return sslFactory.sslContext();
+    return sslFactory.sslEngineBuilder().sslContext();
   }
 }

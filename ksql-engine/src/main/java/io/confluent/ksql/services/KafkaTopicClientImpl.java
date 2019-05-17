@@ -15,7 +15,7 @@
 
 package io.confluent.ksql.services;
 
-import com.google.common.collect.Iterables;
+import com.google.common.base.Suppliers;
 import com.google.common.collect.Lists;
 import io.confluent.ksql.exception.KafkaResponseGetFailedException;
 import io.confluent.ksql.topic.TopicProperties;
@@ -31,6 +31,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import javax.annotation.concurrent.ThreadSafe;
 import org.apache.kafka.clients.admin.AdminClient;
@@ -38,12 +39,11 @@ import org.apache.kafka.clients.admin.AlterConfigOp;
 import org.apache.kafka.clients.admin.Config;
 import org.apache.kafka.clients.admin.ConfigEntry;
 import org.apache.kafka.clients.admin.DeleteTopicsResult;
+import org.apache.kafka.clients.admin.DescribeTopicsOptions;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.KafkaFuture;
-import org.apache.kafka.common.Node;
 import org.apache.kafka.common.config.ConfigResource;
-import org.apache.kafka.common.config.ConfigResource.Type;
 import org.apache.kafka.common.config.TopicConfig;
 import org.apache.kafka.common.errors.TopicExistsException;
 import org.apache.kafka.common.errors.UnsupportedVersionException;
@@ -64,7 +64,14 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   private static final String DELETE_TOPIC_ENABLE = "delete.topic.enable";
 
   private final AdminClient adminClient;
-  private final boolean isDeleteTopicEnabled;
+
+  // This supplier solves two issues:
+  // 1. Avoids the constructor to check for the topic.delete.enable unnecessary. The AdminClient
+  //    might not have access to this config, and it would fail for every Ksql command if it does
+  //    the check initially.
+  // 2. It is a memoize supplier. Once this is call, the subsequent calls will return the cached
+  //    value.
+  private final Supplier<Boolean> isTopicDeleteEnabledSupplier;
 
   /**
    * Construct a topic client from an existing admin client.
@@ -73,7 +80,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
    */
   public KafkaTopicClientImpl(final AdminClient adminClient) {
     this.adminClient = Objects.requireNonNull(adminClient, "adminClient");
-    this.isDeleteTopicEnabled = isTopicDeleteEnabled();
+    this.isTopicDeleteEnabledSupplier = Suppliers.memoize(this::isTopicDeleteEnabled);
   }
 
   @Override
@@ -167,7 +174,10 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   public Map<String, TopicDescription> describeTopics(final Collection<String> topicNames) {
     try {
       return ExecutorUtil.executeWithRetries(
-          () -> adminClient.describeTopics(topicNames).all().get(),
+          () -> adminClient.describeTopics(
+              topicNames,
+              new DescribeTopicsOptions().includeAuthorizedOperations(true)
+          ).all().get(),
           ExecutorUtil.RetryBehaviour.ON_RETRYABLE);
     } catch (final ExecutionException e) {
       throw new KafkaResponseGetFailedException(
@@ -239,7 +249,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
     if (topicsToDelete.isEmpty()) {
       return;
     }
-    if (!isDeleteTopicEnabled) {
+    if (!isTopicDeleteEnabledSupplier.get()) {
       LOG.info("Cannot delete topics since '" + DELETE_TOPIC_ENABLE + "' is false. ");
       return;
     }
@@ -261,7 +271,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
 
   @Override
   public void deleteInternalTopics(final String applicationId) {
-    if (!isDeleteTopicEnabled) {
+    if (!isTopicDeleteEnabledSupplier.get()) {
       LOG.warn("Cannot delete topics since '" + DELETE_TOPIC_ENABLE + "' is false. ");
       return;
     }
@@ -296,28 +306,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   }
 
   private Config getConfig() {
-    try {
-      final Collection<Node> brokers = adminClient.describeCluster().nodes().get();
-      final Node broker = Iterables.getFirst(brokers, null);
-      if (broker == null) {
-        LOG.warn("No available broker found to fetch config info.");
-        throw new KsqlServerException(
-            "AdminClient discovered an empty Kafka Cluster. "
-                + "Check that Kafka is deployed and KSQL is properly configured.");
-      }
-
-      final ConfigResource configResource = new ConfigResource(Type.BROKER, broker.idString());
-
-      final Map<ConfigResource, Config> brokerConfig = ExecutorUtil.executeWithRetries(
-          () -> adminClient.describeConfigs(Collections.singleton(configResource)).all().get(),
-          ExecutorUtil.RetryBehaviour.ON_RETRYABLE);
-
-      return brokerConfig.get(configResource);
-    } catch (final KsqlServerException e) {
-      throw e;
-    } catch (final Exception e) {
-      throw new KsqlServerException("Could not get Kafka cluster configuration!", e);
-    }
+    return KafkaClusterUtil.getConfig(adminClient);
   }
 
   private static boolean isInternalTopic(final String topicName, final String applicationId) {

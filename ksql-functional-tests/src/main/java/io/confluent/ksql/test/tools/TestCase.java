@@ -29,6 +29,7 @@ import io.confluent.ksql.serde.avro.KsqlAvroSerdeFactory;
 import io.confluent.ksql.serde.delimited.KsqlDelimitedSerdeFactory;
 import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
 import io.confluent.ksql.services.KafkaTopicClient;
+import io.confluent.ksql.test.model.KsqlVersion;
 import io.confluent.ksql.test.serde.SerdeSupplier;
 import io.confluent.ksql.test.serde.ValueSpec;
 import io.confluent.ksql.test.serde.avro.AvroSerdeSupplier;
@@ -74,6 +75,7 @@ public class TestCase implements Test {
 
   private final Path testPath;
   public final String name;
+  private final Optional<KsqlVersion> ksqlVersion;
   private final Map<String, Object> properties;
   private final Collection<Topic> topics;
   private final List<Record> inputRecords;
@@ -106,6 +108,7 @@ public class TestCase implements Test {
   public TestCase(
       final Path testPath,
       final String name,
+      final Optional<KsqlVersion> ksqlVersion,
       final Map<String, Object> properties,
       final Collection<Topic> topics,
       final List<Record> inputRecords,
@@ -119,16 +122,19 @@ public class TestCase implements Test {
     this.outputRecords = outputRecords;
     this.testPath = testPath;
     this.name = name;
+    this.ksqlVersion = Objects.requireNonNull(ksqlVersion, "ksqlVersion");
     this.properties = ImmutableMap.copyOf(properties);
     this.statements = statements;
     this.ksqlExpectedException = ksqlExpectedException;
     this.postConditions = Objects.requireNonNull(postConditions, "postConditions");
   }
 
-  public TestCase copyWithName(final String newName) {
+  public TestCase withVersion(final KsqlVersion version) {
+    final String newName = name + "-" + version.getName();
     final TestCase copy = new TestCase(
         testPath,
         newName,
+        Optional.of(version),
         properties,
         topics,
         inputRecords,
@@ -166,6 +172,10 @@ public class TestCase implements Test {
 
   public List<String> statements() {
     return statements;
+  }
+
+  public Optional<KsqlVersion> ksqlVersion() {
+    return ksqlVersion;
   }
 
   @SuppressWarnings("unchecked")
@@ -485,7 +495,7 @@ public class TestCase implements Test {
       final SchemaRegistryClient schemaRegistryClient) {
     final Map<String, List<FakeKafkaRecord>> outputRecordsFromTest = new HashMap<>();
     outputRecords.forEach(
-        record ->  {
+        record -> {
           if (!outputRecordsFromTest.containsKey(record.topic.getName())) {
             outputRecordsFromTest.put(record.topic.getName(), new ArrayList<>());
           }

@@ -35,6 +35,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.KsqlConfigTestUtil;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlEngineTestUtil;
 import io.confluent.ksql.errors.ProductionExceptionHandlerUtil;
@@ -140,12 +141,7 @@ public class PhysicalPlanBuilderTest {
   private static final String simpleSelectFilter = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
   private PhysicalPlanBuilder physicalPlanBuilder;
   private final MutableMetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
-  private static final KsqlConfig INITIAL_CONFIG = new KsqlConfig(
-      ImmutableMap.of(
-          ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092",
-          "commit.interval.ms", 0,
-          "cache.max.bytes.buffering", 0,
-          "auto.offset.reset", "earliest"));
+  private static final KsqlConfig INITIAL_CONFIG = KsqlConfigTestUtil.create("what-eva");
   private final KafkaTopicClient kafkaTopicClient = new FakeKafkaTopicClient();
   private KsqlEngine ksqlEngine;
   private ProcessingLogContext processingLogContext;

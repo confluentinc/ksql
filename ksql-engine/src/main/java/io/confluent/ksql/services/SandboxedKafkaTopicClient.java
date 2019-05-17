@@ -18,6 +18,7 @@ package io.confluent.ksql.services;
 import static io.confluent.ksql.util.LimitedProxyBuilder.methodParams;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Sets;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.util.LimitedProxyBuilder;
 import java.util.Collection;
@@ -33,6 +34,7 @@ import java.util.stream.IntStream;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.Node;
 import org.apache.kafka.common.TopicPartitionInfo;
+import org.apache.kafka.common.acl.AclOperation;
 
 /**
  * A topic client to use when trying out operations.
@@ -97,7 +99,12 @@ final class SandboxedKafkaTopicClient {
             Collections.emptyList()))
         .collect(Collectors.toList());
 
-    createdTopics.put(topic, new TopicDescription(topic, false, partitions));
+    createdTopics.put(topic, new SandboxedTopicDescription(
+        topic,
+        false,
+        partitions,
+        Sets.newHashSet(AclOperation.READ, AclOperation.WRITE)
+    ));
   }
 
   private boolean isTopicExists(final String topic) {

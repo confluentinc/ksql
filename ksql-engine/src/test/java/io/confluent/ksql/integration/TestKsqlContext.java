@@ -16,6 +16,7 @@
 package io.confluent.ksql.integration;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.ksql.KsqlConfigTestUtil;
 import io.confluent.ksql.KsqlContext;
 import io.confluent.ksql.KsqlContextTestUtil;
 import io.confluent.ksql.function.TestFunctionRegistry;
@@ -66,7 +67,7 @@ public final class TestKsqlContext extends ExternalResource {
 
   @Override
   protected void before() {
-    final KsqlConfig ksqlConfig = KsqlContextTestUtil.createKsqlConfig(
+    final KsqlConfig ksqlConfig = KsqlConfigTestUtil.create(
         testHarness.kafkaBootstrapServers(),
         additionalConfig
     );

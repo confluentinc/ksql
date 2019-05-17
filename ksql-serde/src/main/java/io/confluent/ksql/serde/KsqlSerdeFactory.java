@@ -28,7 +28,6 @@ import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.serialization.Serializer;
-import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Schema.Type;
 import org.apache.kafka.connect.data.Struct;
@@ -63,7 +62,7 @@ public abstract class KsqlSerdeFactory {
         .getLogger(join(loggerNamePrefix, DESERIALIZER_LOGGER_NAME));
 
     final Serializer<Struct> serializer = createSerializer(
-        getSerializerSchema(schema, ksqlConfig),
+        schema,
         ksqlConfig,
         schemaRegistryClientFactory
     );
@@ -79,13 +78,13 @@ public abstract class KsqlSerdeFactory {
   }
 
   protected abstract Serializer<Struct> createSerializer(
-      Schema schema,
+      Schema logicalSchema,
       KsqlConfig ksqlConfig,
       Supplier<SchemaRegistryClient> schemaRegistryClientFactory
   );
 
   protected abstract Deserializer<Struct> createDeserializer(
-      Schema schema,
+      Schema logicalSchema,
       KsqlConfig ksqlConfig,
       Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
       ProcessingLogger processingLogger
@@ -106,18 +105,5 @@ public abstract class KsqlSerdeFactory {
   @Override
   public int hashCode() {
     return Objects.hash(format);
-  }
-
-  private static Schema getSerializerSchema(final Schema schema, final KsqlConfig ksqlConfig) {
-    if (schema.fields().size() != 1) {
-      return schema;
-    }
-
-    if (ksqlConfig.getBoolean(KsqlConfig.KSQL_WRAP_SINGLE_VALUES)) {
-      return schema;
-    }
-
-    final Field onlyField = schema.fields().get(0);
-    return onlyField.schema();
   }
 }

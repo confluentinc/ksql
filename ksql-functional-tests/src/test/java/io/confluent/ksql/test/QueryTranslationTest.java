@@ -15,8 +15,9 @@
 
 package io.confluent.ksql.test;
 
-import static io.confluent.ksql.test.EndToEndEngineTestUtil.findExpectedTopologyDirectories;
+import static io.confluent.ksql.test.EndToEndEngineTestUtil.findContentsOfDirectory;
 import static io.confluent.ksql.test.EndToEndEngineTestUtil.formatQueryName;
+import static io.confluent.ksql.test.EndToEndEngineTestUtil.loadContents;
 import static io.confluent.ksql.test.EndToEndEngineTestUtil.loadExpectedTopologies;
 import static java.util.Objects.requireNonNull;
 
@@ -24,16 +25,22 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.function.TestFunctionRegistry;
+import io.confluent.ksql.model.SemanticVersion;
 import io.confluent.ksql.test.EndToEndEngineTestUtil.TestFile;
+import io.confluent.ksql.test.model.KsqlVersion;
 import io.confluent.ksql.test.model.TestCaseNode;
 import io.confluent.ksql.test.tools.TestCase;
 import io.confluent.ksql.test.tools.TopologyAndConfigs;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.junit.Test;
@@ -51,6 +58,8 @@ public class QueryTranslationTest {
 
   private static final Path QUERY_VALIDATION_TEST_DIR = Paths.get("query-validation-tests");
   private static final String TOPOLOGY_CHECKS_DIR = "expected_topology/";
+  private static final String TOPOLOGY_VERSION_FILE = "__version";
+  private static final Pattern TOPOLOGY_VERSION_PATTERN = Pattern.compile("(\\d+)_(\\d+)(_\\d+)?");
   private static final String TOPOLOGY_VERSIONS_DELIMITER = ",";
   private static final String TOPOLOGY_VERSIONS_PROP = "topology.versions";
 
@@ -78,23 +87,59 @@ public class QueryTranslationTest {
   }
 
   private static List<TopologiesAndVersion> loadTopologiesAndVersions() {
-    return Stream.of(getTopologyVersions())
-        .map(version ->
-            new TopologiesAndVersion(version, loadExpectedTopologies(TOPOLOGY_CHECKS_DIR + version)))
+    return getTopologyVersions().stream()
+        .map(version -> new TopologiesAndVersion(
+            version,
+            loadExpectedTopologies(TOPOLOGY_CHECKS_DIR + version.getName())
+            ))
         .collect(Collectors.toList());
   }
 
-  private static String[] getTopologyVersions() {
-    String[] topologyVersions;
-    final String topologyVersionsProp = System.getProperty(TOPOLOGY_VERSIONS_PROP);
-    if (topologyVersionsProp != null) {
-      topologyVersions = topologyVersionsProp.split(TOPOLOGY_VERSIONS_DELIMITER);
-    } else {
-      final List<String> topologyVersionsList = findExpectedTopologyDirectories(TOPOLOGY_CHECKS_DIR);
-      topologyVersions = new String[topologyVersionsList.size()];
-      topologyVersions = topologyVersionsList.toArray(topologyVersions);
+  private static List<KsqlVersion> getTopologyVersions() {
+    final String versionProp = System.getProperty(TOPOLOGY_VERSIONS_PROP);
+
+    final Stream<String> versionStrings = versionProp == null
+        ? findExpectedTopologyDirectories().stream()
+        : Arrays.stream(versionProp.split(TOPOLOGY_VERSIONS_DELIMITER));
+
+    return versionStrings
+        .map(QueryTranslationTest::getVersion)
+        .collect(Collectors.toList());
+  }
+
+  private static List<String> findExpectedTopologyDirectories() {
+    try {
+      return findContentsOfDirectory(TOPOLOGY_CHECKS_DIR);
+    } catch (final Exception e) {
+      throw new RuntimeException("Could not find expected topology directories.", e);
     }
-    return topologyVersions;
+  }
+
+  private static KsqlVersion getVersion(final String dir) {
+    final Path versionFile = Paths.get(TOPOLOGY_CHECKS_DIR, dir, TOPOLOGY_VERSION_FILE);
+
+    try {
+      final String versionString = loadContents(versionFile.toString())
+          .map(content -> String.join("", content))
+          .orElse(dir);
+
+      final Matcher matcher = TOPOLOGY_VERSION_PATTERN.matcher(versionString);
+      if (!matcher.matches()) {
+        throw new RuntimeException("Version does not match required pattern. "
+            + TOPOLOGY_VERSION_PATTERN
+            + ". Correct the directory name, or add a " + TOPOLOGY_VERSION_FILE + ".");
+      }
+
+      final int major = Integer.parseInt(matcher.group(1));
+      final int minor = Integer.parseInt(matcher.group(2));
+      final int patch = matcher.groupCount() == 3
+          ? 0
+          : Integer.parseInt(matcher.group(3).substring(1));
+
+      return KsqlVersion.of(dir, SemanticVersion.of(major, minor, patch));
+    } catch (Exception e) {
+      throw new RuntimeException("Failed to load version file: " + versionFile, e);
+    }
   }
 
   private static Stream<TestCase> buildVersionedTestCases(
@@ -107,8 +152,7 @@ public class QueryTranslationTest {
           topologies.getTopology(formatQueryName(testCase.getName()));
       // could be null if the testCase has expected errors, no topology or configs saved
       if (topologyAndConfigs != null) {
-        final TestCase versionedTestCase = testCase.copyWithName(
-            testCase.getName() + "-" + topologies.getVersion());
+        final TestCase versionedTestCase = testCase.withVersion(topologies.getVersion());
         versionedTestCase.setExpectedTopology(topologyAndConfigs);
         builder = builder.add(versionedTestCase);
       }
@@ -131,15 +175,15 @@ public class QueryTranslationTest {
 
   private static class TopologiesAndVersion {
 
-    private final String version;
+    private final KsqlVersion version;
     private final Map<String, TopologyAndConfigs> topologies;
 
-    TopologiesAndVersion(final String version, final Map<String, TopologyAndConfigs> topologies) {
-      this.version = version;
-      this.topologies = topologies;
+    TopologiesAndVersion(final KsqlVersion version, final Map<String, TopologyAndConfigs> topologies) {
+      this.version = Objects.requireNonNull(version, "version");
+      this.topologies = Objects.requireNonNull(topologies, "topologies");
     }
 
-    String getVersion() {
+    KsqlVersion getVersion() {
       return version;
     }
 
@@ -168,5 +212,4 @@ public class QueryTranslationTest {
           .flatMap(node -> node.buildTests(testPath, TestFunctionRegistry.INSTANCE.get()).stream());
     }
   }
-
 }

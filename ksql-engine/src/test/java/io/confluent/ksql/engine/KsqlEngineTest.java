@@ -37,9 +37,9 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
-import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.ksql.KsqlConfigTestUtil;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.function.InternalFunctionRegistry;
@@ -80,7 +80,6 @@ import org.apache.avro.Schema;
 import org.apache.avro.Schema.Type;
 import org.apache.avro.SchemaBuilder;
 import org.apache.kafka.common.utils.Utils;
-import org.apache.kafka.streams.StreamsConfig;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -91,12 +90,11 @@ import org.junit.runner.RunWith;
 import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnitRunner;
 
-@SuppressWarnings({"ConstantConditions", "SameParameterValue"})
+@SuppressWarnings({"OptionalGetWithoutIsPresent", "SameParameterValue"})
 @RunWith(MockitoJUnitRunner.class)
 public class KsqlEngineTest {
 
-  private static final KsqlConfig KSQL_CONFIG = new KsqlConfig(
-      ImmutableMap.of(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092"));
+  private static final KsqlConfig KSQL_CONFIG = KsqlConfigTestUtil.create("what-eva");
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -193,7 +191,6 @@ public class KsqlEngineTest {
 
   @Test
   public void shouldThrowWhenExecutingInsertIntoTable() {
-    // Given:
     KsqlEngineTestUtil.execute(
         ksqlEngine, "create table bar as select * from test2;", KSQL_CONFIG,
         Collections.emptyMap());

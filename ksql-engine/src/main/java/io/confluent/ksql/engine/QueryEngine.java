@@ -38,7 +38,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
-import org.apache.kafka.streams.KafkaClientSupplier;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -105,7 +104,6 @@ class QueryEngine {
       final LogicalPlanNode logicalPlanNode,
       final KsqlConfig ksqlConfig,
       final Map<String, Object> overriddenProperties,
-      final KafkaClientSupplier clientSupplier,
       final MutableMetaStore metaStore
   ) {
 
@@ -121,7 +119,7 @@ class QueryEngine {
         overriddenProperties,
         metaStore,
         queryIdGenerator,
-        new KafkaStreamsBuilderImpl(clientSupplier),
+        new KafkaStreamsBuilderImpl(serviceContext.getKafkaClientSupplier()),
         queryCloseCallback
     );
 

@@ -21,6 +21,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.common.utils.IntegrationTest;
+import io.confluent.ksql.KsqlConfigTestUtil;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.rest.server.computation.ConfigStore;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
@@ -91,13 +92,15 @@ public class StandaloneExecutorFunctionalTest {
     DATA_SCHEMA = provider.schema();
   }
 
+  @SuppressWarnings("unchecked")
   @Before
   public void setUp() throws Exception {
     queryFile = TMP.newFile().toPath();
 
-    final Map<String, String> properties = ImmutableMap.of(
-        CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, TEST_HARNESS.kafkaBootstrapServers()
-    );
+    final Map<String, Object> properties = ImmutableMap.<String, Object>builder()
+        .putAll(KsqlConfigTestUtil.baseTestConfig())
+        .put(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, TEST_HARNESS.kafkaBootstrapServers())
+        .build();
 
     final KsqlConfig ksqlConfig = new KsqlConfig(properties);
 
@@ -110,7 +113,7 @@ public class StandaloneExecutorFunctionalTest {
         );
 
     standalone = StandaloneExecutorFactory.create(
-        properties,
+        (Map)properties,
         queryFile.toString(),
         ".",
         serviceContextFactory,
@@ -152,16 +155,20 @@ public class StandaloneExecutorFunctionalTest {
         + "\n"
         + "CREATE STREAM " + s2 + " AS SELECT * FROM S;\n");
 
+    final KsqlSchema dataSchema = KsqlSchema.of(SchemaBuilder.struct()
+        .field("ORDERTIME", Schema.OPTIONAL_INT64_SCHEMA)
+        .build());
+
     // When:
     standalone.start();
 
     // Then:
     // CSAS and INSERT INTO both input into S1:
-    TEST_HARNESS.verifyAvailableRows(s1, DATA_SIZE * 2, JSON, DATA_SCHEMA);
+    TEST_HARNESS.verifyAvailableRows(s1, DATA_SIZE * 2, JSON, dataSchema);
     // CTAS only into T1:
-    TEST_HARNESS.verifyAvailableUniqueRows(t1, DATA_SIZE, JSON, DATA_SCHEMA);
+    TEST_HARNESS.verifyAvailableUniqueRows(t1, DATA_SIZE, JSON, dataSchema);
     // S2 should be empty as 'auto.offset.reset' unset:
-    TEST_HARNESS.verifyAvailableUniqueRows(s2, 0, JSON, DATA_SCHEMA);
+    TEST_HARNESS.verifyAvailableUniqueRows(s2, 0, JSON, dataSchema);
   }
 
   @Test
@@ -186,16 +193,20 @@ public class StandaloneExecutorFunctionalTest {
         + "\n"
         + "CREATE STREAM " + s2 + " AS SELECT * FROM S;\n");
 
+    final KsqlSchema dataSchema = KsqlSchema.of(SchemaBuilder.struct()
+        .field("ORDERTIME", Schema.OPTIONAL_INT64_SCHEMA)
+        .build());
+
     // When:
     standalone.start();
 
     // Then:
     // CSAS and INSERT INTO both input into S1:
-    TEST_HARNESS.verifyAvailableRows(s1, DATA_SIZE * 2, AVRO, DATA_SCHEMA);
+    TEST_HARNESS.verifyAvailableRows(s1, DATA_SIZE * 2, AVRO, dataSchema);
     // CTAS only into T1:
-    TEST_HARNESS.verifyAvailableUniqueRows(t1, DATA_SIZE, AVRO, DATA_SCHEMA);
+    TEST_HARNESS.verifyAvailableUniqueRows(t1, DATA_SIZE, AVRO, dataSchema);
     // S2 should be empty as 'auto.offset.reset' unset:
-    TEST_HARNESS.verifyAvailableUniqueRows(s2, 0, AVRO, DATA_SCHEMA);
+    TEST_HARNESS.verifyAvailableUniqueRows(s2, 0, AVRO, dataSchema);
   }
 
   @Test
@@ -285,6 +296,7 @@ public class StandaloneExecutorFunctionalTest {
             .field("fred", Schema.OPTIONAL_INT32_SCHEMA)
             .optional()
             .build())
+        .field("Other", Schema.OPTIONAL_INT64_SCHEMA)
         .build());
 
     TEST_HARNESS.ensureSchema(topicName, incompatible);

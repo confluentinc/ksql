@@ -23,6 +23,7 @@ import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.ExecutableDdlStatement;
 import io.confluent.ksql.planner.LogicalPlanNode;
+import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.AvroUtil;
 import io.confluent.ksql.util.KsqlConfig;
@@ -35,19 +36,28 @@ import java.util.Objects;
 /**
  * Executor of {@code PreparedStatement} within a specific {@code EngineContext} and using a
  * specific set of config.
+ * </p>
+ * All statements are executed using a {@code ServiceContext} specified in the constructor. This
+ * {@code ServiceContext} might have been initialized with limited permissions to access Kafka
+ * resources. The {@code EngineContext} has an internal {@code ServiceContext} that might have
+ * more or less permissions than the one specified. This approach is useful when KSQL needs to
+ * impersonate the current REST user executing the statements.
  */
 final class EngineExecutor {
 
   private final EngineContext engineContext;
+  private final ServiceContext serviceContext;
   private final KsqlConfig ksqlConfig;
   private final Map<String, Object> overriddenProperties;
 
   private EngineExecutor(
       final EngineContext engineContext,
+      final ServiceContext serviceContext,
       final KsqlConfig ksqlConfig,
       final Map<String, Object> overriddenProperties
   ) {
     this.engineContext = Objects.requireNonNull(engineContext, "engineContext");
+    this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     this.overriddenProperties =
         Objects.requireNonNull(overriddenProperties, "overriddenProperties");
@@ -57,17 +67,18 @@ final class EngineExecutor {
 
   static EngineExecutor create(
       final EngineContext engineContext,
+      final ServiceContext serviceContext,
       final KsqlConfig ksqlConfig,
       final Map<String, Object> overriddenProperties
   ) {
-    return new EngineExecutor(engineContext, ksqlConfig, overriddenProperties);
+    return new EngineExecutor(engineContext, serviceContext, ksqlConfig, overriddenProperties);
   }
 
   ExecuteResult execute(final ConfiguredStatement<?> statement) {
     try {
       throwOnNonExecutableStatement(statement);
 
-      final QueryEngine queryEngine = engineContext.createQueryEngine();
+      final QueryEngine queryEngine = engineContext.createQueryEngine(serviceContext);
 
       final LogicalPlanNode logicalPlan = queryEngine.buildLogicalPlan(
           engineContext.getMetaStore(),
@@ -88,7 +99,6 @@ final class EngineExecutor {
           logicalPlan,
           ksqlConfig,
           overriddenProperties,
-          engineContext.getServiceContext().getKafkaClientSupplier(),
           engineContext.getMetaStore()
       );
 

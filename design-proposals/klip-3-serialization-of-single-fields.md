@@ -1,9 +1,9 @@
 # KLIP 3 - Deserialization and Derialization of Single Fields.
 
 **Author**: @big-andy-coates | 
-**Release Target**: TBD | 
+**Release Target**: 5.3 + 1 | 
 **Status**: In Discussion | 
-**Discussion**: 
+**Discussion**: https://github.com/confluentinc/ksql/pull/2824
 
 **tl;dr:** _Add the ability to deserialize from, and serialize to, primitive types, 
 arrays and maps._

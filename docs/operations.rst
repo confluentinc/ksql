@@ -16,6 +16,17 @@ see the :ref:`quickstart`.
     :start-after: cli_limitations_start
     :end-before: cli_limitations_end
 
+===============================
+Installing and Configuring KSQL
+===============================
+
+You have a number of options when you set up KSQL Server. For more information 
+on installing and configuring KSQL, see the following topics.
+
+- :ref:`install_ksql`
+- :ref:`ksql-server-config`
+- :ref:`ksql-param-reference`
+
 ===================================
 Starting and Stopping KSQL Clusters
 ===================================

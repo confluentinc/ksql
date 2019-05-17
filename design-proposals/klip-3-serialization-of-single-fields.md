@@ -24,14 +24,14 @@ A row in KSQL has a logical schema made up of multiple fields. Fields within the
 schema are persisted to either the key or value of the underlying Kafka message. 
 In this sense the key and value also have a logical schema.  
 
-The term _single field_ is used to describe a key or value logical schema where 
+The term _single field schema_ is used to describe a key or value logical schema where 
 the schema contains only a single field. 
            
 ## Motivation and background
 
 Currently, the `JSON` and `AVRO` formats in KSQL can only deserialize _record_ values, 
 i.e. those in the form of a JSON object or an Avro record. These formats can 
-only deserialize _non-record_ types if the type is contained as a field within a
+only deserialize _non-record_ types if those type are contained as a field within a
 top-level _record_ type.
 
 Likewise, KSQL always serializes the value fields with in a schema as fields within
@@ -44,9 +44,9 @@ On the other hand, KSQL only supports string keys, i.e. a _non-record_ type.
 
 Being able to both process and produce both _record_ and _non-record_ values opens up 
 KSQL to more use cases, and is a precondition of enhancing KSQL to support _record_
-keys, a.k.a. structured keys. (Support for _non_record_ keys will be needed to 
-allow KSQL to maintain backwards compatibility with existing queries, which have
-string keys).
+keys, a.k.a. _structured keys_, a.k.a _composite keys_. 
+(Support for _non_record_ keys will be needed to allow KSQL to maintain 
+backwards compatibility with existing queries, which have string keys).
 
 For example, given a statement such as: 
 
@@ -80,7 +80,12 @@ _record_, or as an anonymous JSON number or Avro int.
 * (De)serialization of _record_ and _non-record_ keys, but only in the context on
   ensuring a design that can be extended to include such keys.
   
-* Any configuration and/or syntax used to control the (de)serialization of single fields.
+* Any configuration and/or syntax used to control the (de)serialization of 
+_single field schemas_.
+
+* Maintaining compatibility with queries started on earlier versions of KSQL,
+  i.e. ensuring those queries continue to serialize single field schemas as
+  they did previously.
 
 ## What is not in scope
 
@@ -125,8 +130,8 @@ KSQL to work with more _key_ schemas, opening up KSQL to even more use-cases.
 ### SQL syntax
 
 Users can override the configured defaults and control how single field
-keys and values are serialized by providing the following `WITH` clause
-properties.
+keys and values schemas are serialized by providing the following `WITH` 
+clause properties.
 
 * `WRAP_SINGLE_VALUES`: boolean property that will override the
   `ksql.persistence.wrap.single.values` configuration.
@@ -143,7 +148,7 @@ properties.
 
 ## Design
 
-### `CREATE STEAM` and `CREATE TABLE`
+### `CREATE STREAM` and `CREATE TABLE`
 
 C* statements will, by default, capture the values of 
 `ksql.persistence.wrap.single.keys` and `ksql.persistence.wrap.single.values`.  
@@ -154,7 +159,7 @@ the `WRAP_SINGLE_XXX` familty of `WITH` clause properties.
 
 These settings control both how the data in the source's topic should be
 deserialized if it only has a single field _and_ how downstream queries
-should serialize any single fields.  
+should serialize any single fields schemas.  
 
 Note: as the settings control both deserialization and serialization, it is
 not possible to define a new source with a single field that should be 
@@ -218,12 +223,12 @@ CREATE STREAM A AS SELECT ID FROM EXPLICIT_SOURCE;
 -- downstream queries will NOT wrap values by default, due to with clause
 CREATE STREAM B WITH(WRAP_SINGLE_VALUES=false) AS SELECT ID FROM EXPLICIT_SOURCE;
 
--- KSQL knows the source data is not wrapped because the source is flagged as such and has single field
+-- KSQL knows the source data is not wrapped because the source is flagged as such and has single field schema
 -- serialized value will NOT be wrapped, due to inherited props
 -- downstream queries will NOT wrap values by default, due to inherited props
 CREATE STREAM C AS SELECT ID FROM IMPLICIT_SOURCE;
 
--- KSQL knows the source data is not wrapped because the source is flagged as such and has single field
+-- KSQL knows the source data is not wrapped because the source is flagged as such and has single field schema
 -- serialized value will be wrapped, due to with clause
 -- downstream queries will wrap values by default, due to with clause
 CREATE STREAM D WITH(WRAP_SINGLE_VALUES=true) AS SELECT ID FROM IMPLICIT_SOURCE;
@@ -248,11 +253,11 @@ CREATE STREAM G AS SELECT ID, FROM MULTI_FIELD_SOURCE;
 -- downsteam queries will wrap single values by default, due to with clause
 CREATE STREAM H WITH(WRAP_SINGLE_VALUES=true) AS SELECT ID FROM MULTI_FIELD_SOURCE;
 
--- KSQL knows the source left source data is not wrapped because the source is flagged as such and how a single field
+-- KSQL knows the source left source data is not wrapped because the source is flagged as such and how a single field schema
 -- and the right source data is wrapped as it has multiple fields
 -- serialized value will be wrapped as it has multple fields. If it had only one field it would NOT be wrapped, as the left source is not wrapped.
 -- downstreeam queries will NOT be wrapped by default, due to props inherited from the left source.
-CREATE STEAM I AS SELECT I.ID, M.NAME FROM IMPLICIT_SOURCE I JOIN MULTI_FIELD_SOURCE M ON I.ID = M.ID WITHIN 1 SECOND;
+CREATE STREAM I AS SELECT I.ID, M.NAME FROM IMPLICIT_SOURCE I JOIN MULTI_FIELD_SOURCE M ON I.ID = M.ID WITHIN 1 SECOND;
  ```
  
 ### INSERT
@@ -276,7 +281,7 @@ Insert values statements do not create sources of their own, so there is no
 inheritance of settings. They use the serialization settings of their sink.
  
 ```sql
--- Will use the serialization settings of 'SINK` to determine if single fields should be wrapped or not.
+-- Will use the serialization settings of 'SINK` to determine if single field schemas should be wrapped or not.
 INSERT INTO SINK (ID) VALUES (10);
 
 -- Will wrap value as it has multiple fields
@@ -334,7 +339,7 @@ not supplied explicitly in :ref:`CREATE TABLE <create-table>` and
 :ref:`CREATE STREAM <create-stream>` statements.
 
 .. note:: this value of this configuration does not directly effect how
-         other statements deserialize and serialize single fields.
+         other statements deserialize and serialize single field schemas.
          :ref:`CREATE TABLE AS SELECT <create-table-as-select>` and
          :ref:`CREATE STREAM AS SELECT <create-stream-as-select>` statements
          inherit ``WRAP_SINGLE_KEYS`` from their source.
@@ -362,7 +367,7 @@ not supplied explicitly in :ref:`CREATE TABLE <create-table>` and
 :ref:`CREATE STREAM <create-stream>` statements.
 
 .. note:: this value of this configuration does not directly effect how
-         other statements deserialize and serialize single fields.
+         other statements deserialize and serialize single field schemas.
          :ref:`CREATE TABLE AS SELECT <create-table-as-select>` and
          :ref:`CREATE STREAM AS SELECT <create-stream-as-select>` statements
          inherit ``WRAP_SINGLE_VALUES`` from their source.
@@ -388,13 +393,12 @@ For more information, refer to the :ref:`CREATE TABLE <create-table>` and
  | WRAP_SINGLE_KEYS        | Controls how keys are persisted where the key's schema contains only a single field.                   |
  |                         |                                                                                                        |
  |                         | The setting controls how KSQL will deserialize the key of the records in the supplied ``KAFKA_TOPIC``  |
- |                         | If set to ``false`` and the key schema contains only a single field, KSQL expects the field to         |
- |                         | have been serialized as an anonymous value.                                                            |
+ |                         | If set to ``false`` and the key has a single field schema, KSQL expects the field to have been         |
+ |                         | serialized as an anonymous value.                                                                      |
  |                         | If set to ``true``, or if the key schema contains multiple fields, KSQL expects the field(s) to have   |
  |                         | been serialized as named field(s) within a record.                                                     |
  |                         |                                                                                                        |
- |                         | The setting also controls how downstream queries will serialize keys with a single field in their      |
- |                         | schema.                                                                                                |
+ |                         | The setting also controls how downstream queries will serialize keys with a single field schema.       |
  |                         | If set to ``true` KSQL will serialize the single key field as a named field within a record, in the    |
  |                         | same way that it would persist a key with multiple fields.                                             |
  |                         | If set to ``false`` KSQL will serialize the single key field as an anonymous value.                    |
@@ -410,13 +414,12 @@ For more information, refer to the :ref:`CREATE TABLE <create-table>` and
  | WRAP_SINGLE_VALUES      | Controls how values are persisted where the value's schema contains only a single field.               |
  |                         |                                                                                                        |
  |                         | The setting controls how KSQL will deserialize the value of the records in the supplied ``KAFKA_TOPIC``|
- |                         | If set to ``false`` and the value schema contains only a single field, KSQL expects the field to       |
- |                         | have been serialized as an anonymous value.                                                            |
+ |                         | If set to ``false`` and the value has a single field schema, KSQL expects the field to have been       |
+ |                         | serialized as an anonymous value.                                                                      |
  |                         | If set to ``true``, or if the value schema contains multiple fields, KSQL expects the field(s) to have |
  |                         | been serialized as named field(s) within a record.                                                     |
  |                         |                                                                                                        |
- |                         | The setting also controls how downstream queries will serialize values with a single field in their    |
- |                         | schema.                                                                                                |
+ |                         | The setting also controls how downstream queries will serialize values with a single field schema.     |
  |                         | If set to ``true` KSQL will serialize the single value field as a named field within a record, in the  |
  |                         | same way that it would persist a value with multiple fields.                                           |
  |                         | If set to ``false`` KSQL will serialize the single value field as an anonymous value.                  |
@@ -440,7 +443,7 @@ For more information, refer to the :ref:`CREATE TABLE <create-table>` and
  +=========================+========================================================================================================+
  | WRAP_SINGLE_KEYS        | Controls how keys are persisted where the key's schema contains only a single field.                   |
  |                         |                                                                                                        |
- |                         | The setting controls how the query will serialize keys with a single field in their schema.            |
+ |                         | The setting controls how the query will serialize keys with a single field schema.                     |
  |                         | If set to ``true` KSQL will serialize the single key field as a named field within a record, in the    |
  |                         | same way that it would persist a key with multiple fields.                                             |
  |                         | If set to ``false`` KSQL will serialize the single key field as an anonymous value.                    |
@@ -456,7 +459,7 @@ For more information, refer to the :ref:`CREATE TABLE <create-table>` and
  +-------------------------+--------------------------------------------------------------------------------------------------------+
  | WRAP_SINGLE_VALUES      | Controls how values are persisted where the value's schema contains only a single field.               |
  |                         |                                                                                                        |
- |                         | The setting controls how the query will serialize values with a single field in their schema.          |
+ |                         | The setting controls how the query will serialize values with single field schema.                     |
  |                         | If set to ``true` KSQL will serialize the single value field as a named field within a record, in the  |
  |                         | same way that it would persist a value with multiple fields.                                           |
  |                         | If set to ``false`` KSQL will serialize the single value field as an anonymous value.                  |
@@ -867,12 +870,12 @@ Examples
     -- downstream queries will NOT wrap values by default, due to with clause
     CREATE STREAM B WITH(WRAP_SINGLE_VALUES=false) AS SELECT ID FROM EXPLICIT_SOURCE;
     
-    -- KSQL knows the source data is not wrapped because the source is flagged as such and has single field
+    -- KSQL knows the source data is not wrapped because the source is flagged as such and has single field schema
     -- serialized value will NOT be wrapped, due to inherited props
     -- downstream queries will NOT wrap values by default, due to inherited props
     CREATE STREAM C AS SELECT ID FROM IMPLICIT_SOURCE;
     
-    -- KSQL knows the source data is not wrapped because the source is flagged as such and has single field
+    -- KSQL knows the source data is not wrapped because the source is flagged as such and has single field schema
     -- serialized value will be wrapped, due to with clause
     -- downstream queries will wrap values by default, due to with clause
     CREATE STREAM D WITH(WRAP_SINGLE_VALUES=true) AS SELECT ID FROM IMPLICIT_SOURCE;
@@ -897,22 +900,35 @@ Examples
     -- downsteam queries will wrap single values by default, due to with clause
     CREATE STREAM H WITH(WRAP_SINGLE_VALUES=true) AS SELECT ID FROM MULTI_FIELD_SOURCE;
     
-    -- KSQL knows the source left source data is not wrapped because the source is flagged as such and how a single field
+    -- KSQL knows the source left source data is not wrapped because the source is flagged as such and how a single field schema
     -- and the right source data is wrapped as it has multiple fields
     -- serialized value will be wrapped as it has multple fields. If it had only one field it would NOT be wrapped, as the left source is not wrapped.
     -- downstreeam queries will NOT be wrapped by default, due to props inherited from the left source.
-    CREATE STEAM I AS SELECT I.ID, M.NAME FROM IMPLICIT_SOURCE I JOIN MULTI_FIELD_SOURCE M ON I.ID = M.ID WITHIN 1 SECOND;
+    CREATE STREAM I AS SELECT I.ID, M.NAME FROM IMPLICIT_SOURCE I JOIN MULTI_FIELD_SOURCE M ON I.ID = M.ID WITHIN 1 SECOND;
 
 ```
 
-* Suitable details will be added to the ``changelog.rst``.
+* Suitable details will be added to the `changelog.rst`.
 
 # Compatibility Implications
 
-Tests are already inplace to ensure this change does not change the schema or format of any internal topics.
+Tests are already inplace to ensure this change does not change the schema 
+or format of any internal topics.
 
-Backwards compatibility will be maintained for any queries started on earlier versions of KSQL as the 
-new configurations will be added as ``CompatibilityBreakingConfigDef``s.
+Legacy queries, i.e. those started on previous versions of KSQL, will have
+unwrapped string keys and will wrap values with single field schemas.
+To maintain backwards compatibility this must continue to be the case _after_
+the proposed work is complete.
+
+To maintain backwards compatibility of the value schema the new 
+`ksql.persistence.wrap.single.values` setting will be added as a 
+`CompatibilityBreakingConfigDef`. It will default to `true` for legacy queries 
+and `false` for new queries, thereby ensuring legacy queries continue to 
+persist single field value schemas wrapped.
+
+No special handling is required to ensure backwards compatibility of key
+single field schemas, as legacy queries already persist the single string
+key unwrapped.
 
 ## Performance Implications
 
@@ -928,7 +944,7 @@ None.
 
 ## Smart deserializers
 
-Rather than have the deserialization of wrapped vs unwrapped single fields be controlled 
+Rather than have the deserialization of wrapped vs unwrapped single field schemas be controlled 
 by the ``WRAP_SINGLE_XXX`` family of properties, it is _almost_ possible to have the 
 deserializers able to determine _at runtime_ and on a _record by record_ basis whether
 the serialized data contains an anonymous value or the single field within a record.
@@ -978,14 +994,13 @@ are edge cases where it is simply unclear which way the deserializer should go.
 This ambiguity is the reason this alternative has been rejected in favour of more intuitive and
 specific behaviour. 
 
-```
 
 ## Split `WRAP_SINGLE_XXX` into one property for deserialization and one for serialization.
 
-Because the current ``WRAP_SINGLE_XXXX` family of `WITH` clause properties controls both deserialization 
-and serialization of single fields it is not possible to have a C* statement
+Because the current `WRAP_SINGLE_XXXX` family of `WITH` clause properties controls both deserialization 
+and serialization of single field schemas it is not possible to have a C* statement
 where the value will be _deserialized unwrapped_, but downstream 
-queries will _serialize_ single fields _wrapped_, or vice-versa.
+queries will _serialize_ single field schemas _wrapped_, or vice-versa.
 
 An alternative would be to separate `WRAP_SINGLE_XXXX` (and the underlying system properties) into
 properties specific to deserialization and serialization.
@@ -1029,12 +1044,12 @@ CREATE STREAM A AS SELECT ID FROM EXPLICIT_SOURCE;
 -- downstream queries will NOT wrap values by default, due to with clause
 CREATE STREAM B WITH(WRAP_SINGLE_VALUES=false) AS SELECT ID FROM EXPLICIT_SOURCE;
  
--- KSQL knows the source data is not wrapped because the source is flagged as such and has single field
+-- KSQL knows the source data is not wrapped because the source is flagged as such and has single field schema
 -- serialized value will NOT be wrapped, due to inherited props
 -- downstream queries will NOT wrap values by default, due to inherited props
 CREATE STREAM C AS SELECT ID FROM IMPLICIT_SOURCE;
  
--- KSQL knows the source data is not wrapped because the source is flagged as such and has single field
+-- KSQL knows the source data is not wrapped because the source is flagged as such and has single field schema
 -- serialized value will be wrapped, due to with clause
 -- downstream queries will wrap values by default, due to with clause
 CREATE STREAM D WITH(WRAP_SINGLE_VALUES=true) AS SELECT ID FROM IMPLICIT_SOURCE;

@@ -15,6 +15,14 @@
 
 package io.confluent.ksql.engine;
 
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.mock;
+import static org.easymock.EasyMock.replay;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.services.ServiceContext;
 import java.util.Collection;
@@ -35,14 +43,6 @@ import org.easymock.Mock;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-
-import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.mock;
-import static org.easymock.EasyMock.replay;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
 
 @RunWith(EasyMockRunner.class)
 public class TopicAccessValidatorFactoryTest {

@@ -23,7 +23,6 @@ import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.Node;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.util.KsqlException;
-
 import java.util.HashSet;
 import java.util.Set;
 

@@ -444,7 +444,8 @@
         {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "zero", "VALUE": 0, "F1": "blah", "F2": 50}, "timestamp": 9999},
         {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "blah", "F2": 50}, "timestamp": 13000},
         {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "a", "F2": 10}, "timestamp": 15000},
-        {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "late-message", "VALUE": 10000, "F1": "blah", "F2": 50}, "timestamp": 9999}
+        {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "late-message", "VALUE": 10000, "F1": "blah", "F2": 50}, "timestamp": 9999},
+        {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "late-message", "VALUE": 10000, "F1": "a", "F2": 10}, "timestamp": 15000}
       ]
     },
     {
@@ -604,7 +605,8 @@
         {"topic": "LEFT_OUTER_JOIN", "key": 10, "value": {"T_ID": 10, "NAME": "100", "VALUE": 5, "F1": null, "F2": null}, "timestamp": 11000},
         {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "blah", "F2": 50}, "timestamp": 13000},
         {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "a", "F2": 10}, "timestamp": 15000},
-        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "bar", "VALUE": 99, "F1": "a", "F2": 10}, "timestamp": 16000}
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "bar", "VALUE": 99, "F1": "a", "F2": 10}, "timestamp": 16000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 90, "value": {"T_ID": 90, "NAME": "ninety", "VALUE": 90, "F1": null, "F2": null}, "timestamp": 17000}
       ],
       "post": {
         "sources": [
@@ -634,7 +636,8 @@
         {"topic": "LEFT_OUTER_JOIN", "key": 10, "value": {"NAME": "100", "VALUE": 5, "F1": null, "F2": null}, "timestamp": 11000},
         {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"NAME": "foo", "VALUE": 100, "F1": "blah", "F2": 50}, "timestamp": 13000},
         {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"NAME": "foo", "VALUE": 100, "F1": "a", "F2": 10}, "timestamp": 15000},
-        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"NAME": "bar", "VALUE": 99, "F1": "a", "F2": 10}, "timestamp": 16000}
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"NAME": "bar", "VALUE": 99, "F1": "a", "F2": 10}, "timestamp": 16000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 90, "value": {"NAME": "ninety", "VALUE": 90, "F1": null, "F2": null}, "timestamp": 17000}
       ],
       "post": {
         "sources": [
@@ -664,7 +667,8 @@
         {"topic": "LEFT_OUTER_JOIN", "key": 10, "value": {"TT_ID": null, "NAME": "100", "VALUE": 5, "F1": null, "F2": null}, "timestamp": 11000},
         {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"TT_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "blah", "F2": 50}, "timestamp": 13000},
         {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"TT_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "a", "F2": 10}, "timestamp": 15000},
-        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"TT_ID": 0, "NAME": "bar", "VALUE": 99, "F1": "a", "F2": 10}, "timestamp": 16000}
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"TT_ID": 0, "NAME": "bar", "VALUE": 99, "F1": "a", "F2": 10}, "timestamp": 16000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"TT_ID": null, "NAME": "ninety", "VALUE": 90, "F1": null, "F2": null}, "timestamp": 17000}
       ],
       "post": {
         "comments": [
@@ -697,7 +701,8 @@
         {"topic": "LEFT_OUTER_JOIN", "key": 10, "value": {"T_ID": 10, "TT_ID": null, "NAME": "100", "VALUE": 5, "F1": null, "F2": null}, "timestamp": 11000},
         {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "TT_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "blah", "F2": 50}, "timestamp": 13000},
         {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "TT_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "a", "F2": 10}, "timestamp": 15000},
-        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "TT_ID": 0, "NAME": "bar", "VALUE": 99, "F1": "a", "F2": 10}, "timestamp": 16000}
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "TT_ID": 0, "NAME": "bar", "VALUE": 99, "F1": "a", "F2": 10}, "timestamp": 16000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 90, "value": {"T_ID": 90, "TT_ID": null, "NAME": "ninety", "VALUE": 90, "F1": null, "F2": null}, "timestamp": 17000}
       ],
       "post": {
         "sources": [

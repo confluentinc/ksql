@@ -24,8 +24,6 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.metastore.model.KsqlTopic;
-import io.confluent.ksql.serde.avro.KsqlAvroSerdeFactory;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.test.model.KsqlVersion;
 import io.confluent.ksql.test.serde.avro.AvroSerdeSupplier;
@@ -47,7 +45,6 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import org.apache.avro.Schema;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.Serializer;
@@ -331,7 +328,6 @@ public class TestCase implements Test {
       final FakeKafkaRecord fakeKafkaRecord,
       final FakeKafkaService fakeKafkaService,
       final TopologyTestDriverContainer testDriver,
-      final KafkaTopicClient kafkaTopicClient,
       final SchemaRegistryClient schemaRegistryClient) throws IOException, RestClientException {
     final Serializer keySerializer = fakeKafkaRecord.getTestRecord().topic.getKeySerializer();
     final Serializer valueSerializer = fakeKafkaRecord.getTestRecord().topic.getSerdeSupplier()
@@ -375,10 +371,8 @@ public class TestCase implements Test {
   }
 
   void verifyOutputTopics(
-      final FakeKafkaService fakeKafkaService,
-      final SchemaRegistryClient schemaRegistryClient) {
-    final Map<String, List<FakeKafkaRecord>> expectedOutput = getExpectedRecordsMap(
-        schemaRegistryClient);
+      final FakeKafkaService fakeKafkaService) {
+    final Map<String, List<FakeKafkaRecord>> expectedOutput = getExpectedRecordsMap();
     final Map<String, List<FakeKafkaRecord>> outputRecordsFromKafka = new HashMap<>();
     expectedOutput.keySet().forEach(
         kafkaTopicName -> outputRecordsFromKafka.put(
@@ -388,15 +382,13 @@ public class TestCase implements Test {
     );
     expectedOutput.keySet().forEach(kafkaTopic -> validateTopicData(
         expectedOutput.get(kafkaTopic),
-        outputRecordsFromKafka.get(kafkaTopic),
-        schemaRegistryClient
+        outputRecordsFromKafka.get(kafkaTopic)
     ));
   }
 
   private static void validateTopicData(
       final List<FakeKafkaRecord> expected,
-      final List<FakeKafkaRecord> actual,
-      final SchemaRegistryClient schemaRegistryClient) {
+      final List<FakeKafkaRecord> actual) {
     if (actual.size() != expected.size()) {
       throw new KsqlException("Expected <" + expected.size()
           + "> records but it was <" + actual.size() + ">");
@@ -431,8 +423,7 @@ public class TestCase implements Test {
   }
 
   @SuppressWarnings("unchecked")
-  private Map<String, List<FakeKafkaRecord>> getExpectedRecordsMap(
-      final SchemaRegistryClient schemaRegistryClient) {
+  private Map<String, List<FakeKafkaRecord>> getExpectedRecordsMap() {
     final Map<String, List<FakeKafkaRecord>> outputRecordsFromTest = new HashMap<>();
     outputRecords.forEach(
         record -> {
@@ -450,26 +441,6 @@ public class TestCase implements Test {
         }
     );
     return outputRecordsFromTest;
-  }
-
-  private static Optional<Schema> getSchema(
-      final KsqlTopic ksqlTopic,
-      final SchemaRegistryClient schemaRegistryClient,
-      final boolean ignoreSrException) throws IOException, RestClientException {
-    if (!(ksqlTopic.getValueSerdeFactory() instanceof KsqlAvroSerdeFactory)) {
-      return Optional.empty();
-    }
-    try {
-      return Optional.of(new Schema.Parser().parse(
-          schemaRegistryClient.getLatestSchemaMetadata(ksqlTopic.getKafkaTopicName()
-              + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX).getSchema()
-      ));
-    } catch (final IOException | RestClientException e) {
-      if (ignoreSrException) {
-        return Optional.empty();
-      }
-      throw e;
-    }
   }
 
 }

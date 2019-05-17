@@ -96,10 +96,7 @@ final class TestExecutor {
               serviceContext);
         }
       }
-      testCase.verifyOutputTopics(
-          fakeKafkaService,
-          serviceContext.getSchemaRegistryClient()
-      );
+      testCase.verifyOutputTopics(fakeKafkaService);
       testCase.verifyMetastore(ksqlEngine.getMetaStore());
     } catch (final RuntimeException e) {
       testCase.handleException(e);
@@ -123,7 +120,6 @@ final class TestExecutor {
             FakeKafkaRecord.of(record, null),
             fakeKafkaService,
             topologyTestDriverContainer,
-            serviceContext.getTopicClient(),
             serviceContext.getSchemaRegistryClient()
         );
       } catch (IOException | RestClientException e) {
@@ -145,7 +141,6 @@ final class TestExecutor {
             fakeKafkaRecord,
             fakeKafkaService,
             topologyTestDriverContainer,
-            serviceContext.getTopicClient(),
             serviceContext.getSchemaRegistryClient()
         );
       } catch (IOException | RestClientException e) {

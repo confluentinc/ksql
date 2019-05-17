@@ -115,13 +115,13 @@
         }
       ],
       "inputs": [
-        {"topic": "input_topic", "value": ["a", "b", "c"]},
-        {"topic": "input_topic", "value": ["a", "b", null]},
+        {"topic": "input_topic", "value": ["A", "B", "C"]},
+        {"topic": "input_topic", "value": ["A", "B", null]},
         {"topic": "input_topic", "value": null}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "value": ["a", "b", "c"]},
-        {"topic": "OUTPUT", "value": ["a", "b", null]},
+        {"topic": "OUTPUT", "value": ["A", "B", "C"]},
+        {"topic": "OUTPUT", "value": ["A", "B", null]},
         {"topic": "OUTPUT", "value": null}
       ]
     },
@@ -268,7 +268,7 @@
         {"topic": "input_topic", "value": {"a": 1, "b": 2, "c": 3}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "value": {"a": "1", "b": "2", "c": "3"}}
+        {"topic": "OUTPUT", "value": {"A": "1", "B": "2", "C": "3"}}
       ],
       "post": {
         "sources": [
@@ -300,14 +300,14 @@
         }
       ],
       "inputs": [
-        {"topic": "input_topic", "value": {"FOO": {"a": 1, "b": 2, "c": 3}}},
-        {"topic": "input_topic", "value": {"FOO": {"a": 1, "b": 2, "c": null}}},
+        {"topic": "input_topic", "value": {"FOO": {"A": 1, "B": 2, "C": 3}}},
+        {"topic": "input_topic", "value": {"FOO": {"A": 1, "B": 2, "C": null}}},
         {"topic": "input_topic", "value": {"FOO": null}},
         {"topic": "input_topic", "value": null}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "value": {"a": 1, "b": 2, "c": 3}},
-        {"topic": "OUTPUT", "value": {"a": 1, "b": 2, "c": null}},
+        {"topic": "OUTPUT", "value": {"A": 1, "B": 2, "C": 3}},
+        {"topic": "OUTPUT", "value": {"A": 1, "B": 2, "C": null}},
         {"topic": "OUTPUT", "value": null},
         {"topic": "OUTPUT", "value": null}
       ],
@@ -338,7 +338,7 @@
         {"topic": "input_topic", "value": {"a": 1, "b": 2, "c": 3}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "value": {"a": 1, "b": 2, "c": 3}}
+        {"topic": "OUTPUT", "value": {"A": 1, "B": 2, "C": 3}}
       ],
       "post": {
         "sources": [
@@ -361,10 +361,10 @@
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
       ],
       "inputs": [
-        {"topic": "input_topic", "value": {"foo": 1, "FOO": {"a":  1}}}
+        {"topic": "input_topic", "value": {"foo": 1, "FOO": {"A":  1}}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "value": {"a": "1"}}
+        {"topic": "OUTPUT", "value": {"A": "1"}}
       ],
       "post": {
         "sources": [
@@ -390,7 +390,7 @@
         {"topic": "input_topic", "value": {"a":  1, "FoO": 2, "c": 3}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "value": {"a":  "1", "FoO": "2", "c": "3"}}
+        {"topic": "OUTPUT", "value": {"A":  "1", "FOO": "2", "C": "3"}}
       ],
       "post": {
         "sources": [
@@ -566,14 +566,14 @@
         }
       ],
       "inputs": [
-        {"topic": "input_topic", "value": {"FOO": {"a": 1.1, "b": 2.2, "c": 3.456}}},
-        {"topic": "input_topic", "value": {"FOO": {"a": 1.1, "b": 2.2, "c": null}}},
+        {"topic": "input_topic", "value": {"FOO": {"A": 1.1, "B": 2.2, "C": 3.456}}},
+        {"topic": "input_topic", "value": {"FOO": {"A": 1.1, "B": 2.2, "C": null}}},
         {"topic": "input_topic", "value": {"FOO": null}},
         {"topic": "input_topic", "value": null}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "value": {"a": 1.1, "b": 2.2, "c": 3.456}},
-        {"topic": "OUTPUT", "value": {"a": 1.1, "b": 2.2, "c": null}},
+        {"topic": "OUTPUT", "value": {"A": 1.1, "B": 2.2, "C": 3.456}},
+        {"topic": "OUTPUT", "value": {"A": 1.1, "B": 2.2, "C": null}},
         {"topic": "OUTPUT", "value": null},
         {"topic": "OUTPUT", "value": null}
       ]
@@ -621,7 +621,7 @@
       "topics": [
         {
           "name": "OUTPUT",
-          "schema": {"type": "record", "name": "ignored", "fields": [{"name": "F0", "type": ["null", "int"]}]},
+          "schema": {"type": "record", "name": "IGNORED", "fields": [{"name": "F0", "type": ["null", "int"]}]},
           "format": "{FORMAT}"
         }
       ],
@@ -652,7 +652,7 @@
         {
           "name": "OUTPUT",
           "schema": {"name": "ignored", "type": "record", "fields": [
-            {"name": "FOO", "type": ["null", {"name": "ignored2", "type": "record", "fields": [{"name": "F0", "type": ["null", "int"]}]}]}
+            {"name": "FOO", "type": ["null", {"name": "IGNORED2", "type": "record", "fields": [{"name": "F0", "type": ["null", "int"]}]}]}
           ]},
           "format": "{FORMAT}"
         }

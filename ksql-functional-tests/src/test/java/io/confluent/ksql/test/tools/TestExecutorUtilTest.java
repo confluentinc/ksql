@@ -18,7 +18,6 @@ package io.confluent.ksql.test.tools;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.mockito.Mockito.mock;
 
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.engine.KsqlEngine;
@@ -27,11 +26,13 @@ import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.test.model.QttTestFile;
 import io.confluent.ksql.test.model.TestCaseNode;
+import io.confluent.ksql.test.serde.string.StringSerdeSupplier;
 import io.confluent.ksql.util.KsqlConfig;
 import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -45,6 +46,7 @@ public class TestExecutorUtilTest {
   private KsqlEngine ksqlEngine;
   private KsqlConfig ksqlConfig;
   private TestCase testCase;
+  private FakeKafkaService fakeKafkaService;
 
   @Before
   public void setUp() throws IOException {
@@ -59,6 +61,7 @@ public class TestExecutorUtilTest {
     serviceContext = TestExecutor.getServiceContext();
     ksqlEngine = TestExecutor.getKsqlEngine(serviceContext);
     ksqlConfig = new KsqlConfig(TestExecutor.getConfigs(Collections.emptyMap()));
+    fakeKafkaService = FakeKafkaService.create();
   }
 
   @After
@@ -70,13 +73,17 @@ public class TestExecutorUtilTest {
   @Test
   public void shouldBuildStreamsTopologyTestDrivers() throws IOException, RestClientException {
 
+    // Given:
+    final Topic sourceTopic = new Topic("test_topic", Optional.empty(), new StringSerdeSupplier(), 1, 1);
+    fakeKafkaService.createTopic(sourceTopic);
+
     // When:
     final List<TopologyTestDriverContainer> topologyTestDriverContainerList = TestExecutorUtil.buildStreamsTopologyTestDrivers(
         testCase,
         serviceContext,
         ksqlEngine,
         ksqlConfig,
-        mock(FakeKafkaService.class)
+        fakeKafkaService
     );
 
     // Then:

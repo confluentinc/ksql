@@ -92,8 +92,7 @@ public class TestCaseTest {
   @SuppressWarnings("unchecked")
   public void shouldProcessInputRecords() {
     // Given:
-    final TopologyTestDriverContainer topologyTestDriverContainer = getSampleTopologyTestDriverContainer();
-
+    final TopologyTestDriverContainer topologyTestDriverContainer = getSampleTopologyTestDriverContainer(Optional.of(topic));
 
     // When:
     testCase.processInput(topologyTestDriverContainer, null);
@@ -130,7 +129,7 @@ public class TestCaseTest {
   @Test
   public void shouldValidateOutputCorrectly() {
     // Given:
-    final TopologyTestDriverContainer topologyTestDriverContainer = getSampleTopologyTestDriverContainer();
+    final TopologyTestDriverContainer topologyTestDriverContainer = getSampleTopologyTestDriverContainer(Optional.empty());
     when(topologyTestDriver.readOutput(any(), any(), any()))
         .thenReturn(new ProducerRecord<>("bar_kafka", 1, 123456789L, "k1", "v1, v2"));
 
@@ -143,7 +142,7 @@ public class TestCaseTest {
   @Test
   public void shouldFailForIncorrectOutput() {
     // Given:
-    final TopologyTestDriverContainer topologyTestDriverContainer = getSampleTopologyTestDriverContainer();
+    final TopologyTestDriverContainer topologyTestDriverContainer = getSampleTopologyTestDriverContainer(Optional.empty());
     when(topologyTestDriver.readOutput(any(), any(), any()))
         .thenReturn(new ProducerRecord<>("bar_kafka", 1, 123456789L, "k12", "v1, v2"));
 
@@ -228,10 +227,12 @@ public class TestCaseTest {
     testCase.verifyTopology();
   }
 
-  private TopologyTestDriverContainer getSampleTopologyTestDriverContainer() {
+  private TopologyTestDriverContainer getSampleTopologyTestDriverContainer(final Optional<Topic> sourceTopic) {
     return TopologyTestDriverContainer.of(
         topologyTestDriver,
-        ImmutableList.of(new Topic("FOO", Optional.empty(), new StringSerdeSupplier(), 1, 1)),
+        ImmutableList.of(sourceTopic.isPresent()
+    ? sourceTopic.get()
+    : new Topic("FOO", Optional.empty(), new StringSerdeSupplier(), 1, 1)),
             new Topic("BAR", Optional.empty(), new StringSerdeSupplier(), 1, 1)
     );
   }

@@ -306,13 +306,13 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
                       JsonMapper.INSTANCE.mapper,
                       statementParser,
                       ksqlEngine,
-                      serviceContext,
                       commandQueue,
                       exec,
                       versionCheckerAgent::updateLastRequestTime,
                       Duration.ofMillis(config.getLong(
                           KsqlRestConfig.DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG)),
-                      topicAccessValidator
+                      topicAccessValidator,
+                      securityExtension
                   );
                 }
 

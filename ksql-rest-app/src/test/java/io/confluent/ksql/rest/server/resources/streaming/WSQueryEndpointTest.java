@@ -31,6 +31,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.engine.KsqlEngine;
@@ -47,24 +48,29 @@ import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint.PrintTopicPublisher;
 import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint.QueryPublisher;
-import io.confluent.ksql.services.KafkaTopicClient;
-import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.rest.server.security.KsqlSecurityExtension;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import java.io.IOException;
+import java.security.Principal;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
+import java.util.Set;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 import javax.websocket.CloseReason;
 import javax.websocket.CloseReason.CloseCodes;
 import javax.websocket.Session;
+import org.apache.kafka.clients.admin.AdminClient;
+import org.apache.kafka.clients.admin.ListTopicsResult;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.common.KafkaFuture;
+import org.apache.kafka.streams.KafkaClientSupplier;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -100,11 +106,13 @@ public class WSQueryEndpointTest {
   @Mock
   private KsqlEngine ksqlEngine;
   @Mock
-  private ServiceContext serviceContext;
-  @Mock
   private SchemaRegistryClient schemaRegistryClient;
   @Mock
-  private KafkaTopicClient topicClient;
+  private KafkaClientSupplier topicClientSupplier;
+  @Mock
+  private AdminClient adminClient;
+  @Mock
+  private Principal principal;
   @Mock
   private StatementParser statementParser;
   @Mock
@@ -121,6 +129,8 @@ public class WSQueryEndpointTest {
   private ActivenessRegistrar activenessRegistrar;
   @Mock
   private TopicAccessValidator topicAccessValidator;
+  @Mock
+  private KsqlSecurityExtension securityExtension;
   @Captor
   private ArgumentCaptor<CloseReason> closeReasonCaptor;
   private Query query;
@@ -133,17 +143,25 @@ public class WSQueryEndpointTest {
         Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), OptionalInt.empty()
     );
     when(session.getId()).thenReturn("session-id");
+    when(session.getUserPrincipal()).thenReturn(principal);
     when(statementParser.parseSingleStatement(anyString()))
         .thenAnswer(invocation -> PreparedStatement.of(invocation.getArgument(0).toString(), query));
-    when(serviceContext.getSchemaRegistryClient()).thenReturn(schemaRegistryClient);
-    when(serviceContext.getTopicClient()).thenReturn(topicClient);
+    when(securityExtension.getSchemaRegistryClientSupplier(principal)).thenReturn(() -> schemaRegistryClient);
+    when(securityExtension.getKafkaClientSupplier(principal)).thenReturn(topicClientSupplier);
+    when(topicClientSupplier.getAdminClient(any())).thenReturn(adminClient);
     when(ksqlEngine.isAcceptingStatements()).thenReturn(true);
     givenRequest(VALID_REQUEST);
 
     wsQueryEndpoint = new WSQueryEndpoint(
-        ksqlConfig, OBJECT_MAPPER, statementParser, ksqlEngine, serviceContext, commandQueue, exec,
+        ksqlConfig, OBJECT_MAPPER, statementParser, ksqlEngine, commandQueue, exec,
         queryPublisher, topicPublisher, activenessRegistrar, COMMAND_QUEUE_CATCHUP_TIMEOUT,
-        topicAccessValidator);
+        topicAccessValidator, securityExtension);
+  }
+
+  @Test
+  public void shouldInitializeSecurityExtension() {
+    // Then:
+    verify(securityExtension).initialize(ksqlConfig);
   }
 
   @Test
@@ -323,10 +341,10 @@ public class WSQueryEndpointTest {
   }
 
   @Test
-  public void shouldHandlePrintTopic() {
+  public void shouldHandlePrintTopic() throws Exception {
     // Given:
     givenRequestIs(StreamingTestUtils.printTopic("bob", true, null, null));
-    when(topicClient.isTopicExists("bob")).thenReturn(true);
+    givenTopicExists("bob");
     when(ksqlConfig.getKsqlStreamConfigProps()).thenReturn(ImmutableMap.of("this", "that"));
 
     // When:
@@ -342,10 +360,33 @@ public class WSQueryEndpointTest {
   }
 
   @Test
+  public void shouldUseSecurityExtensionClientsInHandlePrintTopic() throws Exception {
+    // Given:
+    givenRequestIs(StreamingTestUtils.printTopic("bob", true, null, null));
+    givenTopicExists("bob");
+    when(ksqlConfig.getKsqlStreamConfigProps()).thenReturn(Collections.emptyMap());
+
+    // When:
+    wsQueryEndpoint.onOpen(session, null);
+
+    // Then:
+    verify(securityExtension).getKafkaClientSupplier(eq(principal));
+    verify(securityExtension).getSchemaRegistryClientSupplier(eq(principal));
+    verify(topicClientSupplier).getAdminClient(any());
+    verify(adminClient).listTopics();
+    verify(topicPublisher).start(
+        eq(exec),
+        eq(schemaRegistryClient),
+        any(),
+        eq(StreamingTestUtils.printTopic("bob", true, null, null)),
+        any());
+  }
+
+  @Test
   public void shouldReturnErrorIfTopicDoesNotExist() throws Exception {
     // Given:
     givenRequestIs(StreamingTestUtils.printTopic("bob", true, null, null));
-    when(topicClient.isTopicExists("bob")).thenReturn(false);
+    givenTopicDoesNotExist("bob");
 
     // When:
     wsQueryEndpoint.onOpen(session, null);
@@ -439,6 +480,22 @@ public class WSQueryEndpointTest {
   private void givenRequestIs(final Statement stmt) {
     when(statementParser.parseSingleStatement(anyString()))
         .thenReturn(PreparedStatement.of("statement", stmt));
+  }
+
+  private void givenTopicExists(final String topicName) throws Exception {
+    final ListTopicsResult listTopicsResult = mock(ListTopicsResult.class);
+    final KafkaFuture<Set<String>> namesFuture = mock(KafkaFuture.class);
+    when(adminClient.listTopics()).thenReturn(listTopicsResult);
+    when(listTopicsResult.names()).thenReturn(namesFuture);
+    when(namesFuture.get()).thenReturn(ImmutableSet.of(topicName));
+  }
+
+  private void givenTopicDoesNotExist(final String topicName) throws Exception {
+    final ListTopicsResult listTopicsResult = mock(ListTopicsResult.class);
+    final KafkaFuture<Set<String>> namesFuture = mock(KafkaFuture.class);
+    when(adminClient.listTopics()).thenReturn(listTopicsResult);
+    when(listTopicsResult.names()).thenReturn(namesFuture);
+    when(namesFuture.get()).thenReturn(Collections.emptySet());
   }
 
   private static String serialize(final KsqlRequest request) {

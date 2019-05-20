@@ -21,25 +21,20 @@ import com.google.common.collect.Iterators;
 import com.google.common.math.IntMath;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.rest.server.resources.streaming.Flow.Subscriber;
 import io.confluent.ksql.rest.server.resources.streaming.TopicStream.RecordFormatter;
+import io.confluent.ksql.services.ServiceContext;
 import java.math.RoundingMode;
 import java.time.Duration;
 import java.util.AbstractCollection;
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.common.TopicPartition;
-import org.apache.kafka.common.serialization.BytesDeserializer;
-import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.utils.Bytes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,40 +44,25 @@ public class PrintPublisher implements Flow.Publisher<Collection<String>> {
   private static final Logger log = LoggerFactory.getLogger(PrintPublisher.class);
 
   private final ListeningScheduledExecutorService exec;
-  private final SchemaRegistryClient schemaRegistryClient;
+  private final ServiceContext serviceContext;
   private final Map<String, Object> consumerProperties;
   private final PrintTopic printTopic;
 
   public PrintPublisher(
       final ListeningScheduledExecutorService exec,
-      final SchemaRegistryClient schemaRegistryClient,
+      final ServiceContext serviceContext,
       final Map<String, Object> consumerProperties,
       final PrintTopic printTopic) {
     this.exec = exec;
-    this.schemaRegistryClient = Objects.requireNonNull(schemaRegistryClient, "schemaRegistry");
+    this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
     this.consumerProperties = Objects.requireNonNull(consumerProperties, "consumerProperties");
     this.printTopic = Objects.requireNonNull(printTopic, "printTopic");
   }
 
   @Override
   public void subscribe(final Flow.Subscriber<Collection<String>> subscriber) {
-    final KafkaConsumer<String, Bytes> topicConsumer = new KafkaConsumer<>(
-        consumerProperties,
-        new StringDeserializer(),
-        new BytesDeserializer()
-    );
-
-    log.info("Running consumer for topic {}", printTopic.getTopic());
-    final List<TopicPartition> topicPartitions =
-        topicConsumer.partitionsFor(printTopic.getTopic().toString())
-        .stream()
-        .map(partitionInfo -> new TopicPartition(partitionInfo.topic(), partitionInfo.partition()))
-        .collect(Collectors.toList());
-    topicConsumer.assign(topicPartitions);
-
-    if (printTopic.getFromBeginning()) {
-      topicConsumer.seekToBeginning(topicPartitions);
-    }
+    final KafkaConsumer<String, Bytes> topicConsumer =
+        PrintTopicUtil.createTopicConsumer(serviceContext, consumerProperties, printTopic);
 
     subscriber.onSubscribe(
         new PrintSubscription(
@@ -90,7 +70,8 @@ public class PrintPublisher implements Flow.Publisher<Collection<String>> {
             printTopic,
             subscriber,
             topicConsumer,
-            new RecordFormatter(schemaRegistryClient, printTopic.getTopic().toString())
+            new RecordFormatter(
+                serviceContext.getSchemaRegistryClient(), printTopic.getTopic().toString())
         )
     );
   }

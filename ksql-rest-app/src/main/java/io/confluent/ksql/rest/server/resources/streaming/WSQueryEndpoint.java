@@ -16,6 +16,7 @@
 package io.confluent.ksql.rest.server.resources.streaming;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
@@ -46,6 +47,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.TimeoutException;
+import java.util.function.Supplier;
 import javax.websocket.CloseReason;
 import javax.websocket.CloseReason.CloseCodes;
 import javax.websocket.EndpointConfig;
@@ -54,6 +56,7 @@ import javax.websocket.OnError;
 import javax.websocket.OnOpen;
 import javax.websocket.Session;
 import javax.websocket.server.ServerEndpoint;
+import org.apache.kafka.streams.KafkaClientSupplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -82,8 +85,19 @@ public class WSQueryEndpoint {
   private final Duration commandQueueCatchupTimeout;
   private final TopicAccessValidator topicAccessValidator;
   private final KsqlSecurityExtension securityExtension;
+  private final ServiceContextFactory serviceContextFactory;
 
   private WebSocketSubscriber<?> subscriber;
+
+  @VisibleForTesting
+  @FunctionalInterface
+  interface ServiceContextFactory {
+    ServiceContext create(
+        KsqlConfig ksqlConfig,
+        KafkaClientSupplier kafkaClientSupplier,
+        Supplier<SchemaRegistryClient> srClientFactory
+    );
+  }
 
   public WSQueryEndpoint(
       final KsqlConfig ksqlConfig,
@@ -108,7 +122,8 @@ public class WSQueryEndpoint {
         activenessRegistrar,
         commandQueueCatchupTimeout,
         topicAccessValidator,
-        securityExtension);
+        securityExtension,
+        DefaultServiceContext::create);
   }
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
@@ -125,7 +140,8 @@ public class WSQueryEndpoint {
       final ActivenessRegistrar activenessRegistrar,
       final Duration commandQueueCatchupTimeout,
       final TopicAccessValidator topicAccessValidator,
-      final KsqlSecurityExtension securityExtension
+      final KsqlSecurityExtension securityExtension,
+      final ServiceContextFactory serviceContextFactory
   ) {
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     this.mapper = Objects.requireNonNull(mapper, "mapper");
@@ -143,8 +159,8 @@ public class WSQueryEndpoint {
     this.topicAccessValidator =
         Objects.requireNonNull(topicAccessValidator, "topicAccessValidator");
     this.securityExtension = Objects.requireNonNull(securityExtension, "securityExtension");
-
-    this.securityExtension.initialize(this.ksqlConfig);
+    this.serviceContextFactory =
+        Objects.requireNonNull(serviceContextFactory, "serviceContextFactory");
   }
 
   @SuppressWarnings("unused")
@@ -183,7 +199,7 @@ public class WSQueryEndpoint {
       final PreparedStatement<?> preparedStatement = parseStatement(request);
 
       final Principal principal = session.getUserPrincipal();
-      final ServiceContext serviceContext = DefaultServiceContext.create(
+      final ServiceContext serviceContext = serviceContextFactory.create(
           ksqlConfig,
           securityExtension.getKafkaClientSupplier(principal),
           securityExtension.getSchemaRegistryClientSupplier(principal));
@@ -293,7 +309,7 @@ public class WSQueryEndpoint {
     final ConfiguredStatement<Query> configured =
         ConfiguredStatement.of(statement, clientLocalProperties, ksqlConfig);
 
-    queryPublisher.start(ksqlEngine, exec, configured, streamSubscriber);
+    queryPublisher.start(ksqlEngine, info.serviceContext, exec, configured, streamSubscriber);
   }
 
   private void handlePrintTopic(final RequestContext info, final PrintTopic printTopic) {
@@ -308,8 +324,11 @@ public class WSQueryEndpoint {
         new WebSocketSubscriber<>(info.session, mapper);
     this.subscriber = topicSubscriber;
 
-    topicPublisher.start(exec, info.serviceContext.getSchemaRegistryClient(),
-        ksqlConfig.getKsqlStreamConfigProps(), printTopic,
+    topicPublisher.start(
+        exec,
+        info.serviceContext,
+        ksqlConfig.getKsqlStreamConfigProps(),
+        printTopic,
         topicSubscriber
     );
   }
@@ -327,28 +346,30 @@ public class WSQueryEndpoint {
 
   private static void startQueryPublisher(
       final KsqlEngine ksqlEngine,
+      final ServiceContext serviceContext,
       final ListeningScheduledExecutorService exec,
       final ConfiguredStatement<Query> query,
       final WebSocketSubscriber<StreamedRow> streamSubscriber
   ) {
-    new StreamPublisher(ksqlEngine, exec, query)
+    new StreamPublisher(ksqlEngine, serviceContext, exec, query)
         .subscribe(streamSubscriber);
   }
 
   private static void startPrintPublisher(
       final ListeningScheduledExecutorService exec,
-      final SchemaRegistryClient schemaRegistryClient,
+      final ServiceContext serviceContext,
       final Map<String, Object> ksqlStreamConfigProps,
       final PrintTopic printTopic,
       final WebSocketSubscriber<String> topicSubscriber
   ) {
-    new PrintPublisher(exec, schemaRegistryClient, ksqlStreamConfigProps, printTopic)
+    new PrintPublisher(exec, serviceContext, ksqlStreamConfigProps, printTopic)
         .subscribe(topicSubscriber);
   }
 
   interface QueryPublisher {
     void start(
         KsqlEngine ksqlEngine,
+        ServiceContext serviceContext,
         ListeningScheduledExecutorService exec,
         ConfiguredStatement<Query> query,
         WebSocketSubscriber<StreamedRow> subscriber);
@@ -359,7 +380,7 @@ public class WSQueryEndpoint {
 
     void start(
         ListeningScheduledExecutorService exec,
-        SchemaRegistryClient schemaRegistryClient,
+        ServiceContext serviceContext,
         Map<String, Object> consumerProperties,
         PrintTopic printTopic,
         WebSocketSubscriber<String> subscriber);

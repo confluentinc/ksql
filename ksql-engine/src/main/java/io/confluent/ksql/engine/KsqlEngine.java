@@ -17,7 +17,6 @@ package io.confluent.ksql.engine;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.KsqlExecutionContext;
-import io.confluent.ksql.ddl.commands.DdlCommandExec;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.internal.KsqlEngineMetrics;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
@@ -132,10 +131,6 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   @Override
   public ServiceContext getServiceContext() {
     return primaryContext.getServiceContext();
-  }
-
-  public DdlCommandExec getDdlCommandExec() {
-    return primaryContext.getDdlCommandExec();
   }
 
   public String getServiceId() {

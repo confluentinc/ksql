@@ -171,13 +171,13 @@ public class KsqlEngineMetrics implements Closeable {
   }
 
   private Sensor configureTotalMessagesIn(final Metrics metrics) {
-    final String metricName = "total-messages-consumed";
+    final String metricName = "messages-consumed-total";
     final String description = "The total number of messages consumed across all queries";
     return createSensor(metrics, metricName, description, Value::new);
   }
 
   private Sensor configureTotalBytesIn(final Metrics metrics) {
-    final String metricName = "total-bytes-consumed";
+    final String metricName = "bytes-consumed-total";
     final String description = "The total number of bytes consumed across all queries";
     return createSensor(metrics, metricName, description, Value::new);
   }
@@ -197,7 +197,7 @@ public class KsqlEngineMetrics implements Closeable {
 
           @Override
           public void record(final MetricConfig metricConfig, final double v, final long l) {
-            // We don't want to record anything, since the live queries anyway.
+            // We don't want to record anything, since the engine tracks query counts internally
           }
         }
     );
@@ -218,7 +218,7 @@ public class KsqlEngineMetrics implements Closeable {
 
           @Override
           public void record(final MetricConfig metricConfig, final double v, final long l) {
-            // We don't want to record anything, since the live queries anyway.
+            // We don't want to record anything, since the engine tracks query counts internally
           }
         }
     );

@@ -140,7 +140,7 @@ public final class CreateSourceProperties {
     );
 
     replicas = Property.from(
-        KsqlConstants.SOURCE_NUMBER_OF_PARTITIONS,
+        KsqlConstants.SOURCE_NUMBER_OF_REPLICAS,
         properties,
         replicas -> Short.parseShort(replicas.toString())
     );

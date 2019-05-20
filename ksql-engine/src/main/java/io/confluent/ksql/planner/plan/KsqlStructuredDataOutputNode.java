@@ -17,8 +17,6 @@ package io.confluent.ksql.planner.plan;
 
 import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.model.KeyField;
@@ -47,18 +45,17 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
   private final boolean doCreateInto;
   private final boolean selectKeyRequired;
 
-  @JsonCreator
   public KsqlStructuredDataOutputNode(
-      @JsonProperty("id") final PlanNodeId id,
-      @JsonProperty("source") final PlanNode source,
-      @JsonProperty("schema") final KsqlSchema schema,
-      @JsonProperty("timestamp") final TimestampExtractionPolicy timestampExtractionPolicy,
-      @JsonProperty("key") final KeyField keyField,
-      @JsonProperty("ksqlTopic") final KsqlTopic ksqlTopic,
-      @JsonProperty("topicName") final String kafkaTopicName,
-      @JsonProperty("selectKeyRequired") final boolean selectKeyRequired,
-      @JsonProperty("limit") final Optional<Integer> limit,
-      @JsonProperty("doCreateInto") final boolean doCreateInto
+      final PlanNodeId id,
+      final PlanNode source,
+      final KsqlSchema schema,
+      final TimestampExtractionPolicy timestampExtractionPolicy,
+      final KeyField keyField,
+      final KsqlTopic ksqlTopic,
+      final String kafkaTopicName,
+      final boolean selectKeyRequired,
+      final Optional<Integer> limit,
+      final boolean doCreateInto
   ) {
     super(id, source, schema, limit, timestampExtractionPolicy);
     this.kafkaTopicName = Objects.requireNonNull(kafkaTopicName, "kafkaTopicName");

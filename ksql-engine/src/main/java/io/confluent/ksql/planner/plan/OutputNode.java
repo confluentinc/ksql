@@ -17,8 +17,6 @@ package io.confluent.ksql.planner.plan;
 
 import static java.util.Objects.requireNonNull;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
@@ -39,13 +37,12 @@ public abstract class OutputNode
   private final Optional<Integer> limit;
   private final TimestampExtractionPolicy timestampExtractionPolicy;
 
-  @JsonCreator
   protected OutputNode(
-      @JsonProperty("id") final PlanNodeId id,
-      @JsonProperty("source") final PlanNode source,
-      @JsonProperty("schema") final KsqlSchema schema,
-      @JsonProperty("limit") final Optional<Integer> limit,
-      @JsonProperty("timestamp_policy") final TimestampExtractionPolicy timestampExtractionPolicy
+      final PlanNodeId id,
+      final PlanNode source,
+      final KsqlSchema schema,
+      final Optional<Integer> limit,
+      final TimestampExtractionPolicy timestampExtractionPolicy
   ) {
     super(id, source.getNodeOutputType());
 
@@ -70,7 +67,6 @@ public abstract class OutputNode
     return limit;
   }
 
-  @JsonProperty
   public PlanNode getSource() {
     return source;
   }

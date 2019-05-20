@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.planner.plan;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.metastore.model.DataSource;
@@ -70,17 +69,17 @@ public class JoinNode extends PlanNode {
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   public JoinNode(
-      @JsonProperty("id") final PlanNodeId id,
-      @JsonProperty("type") final JoinType joinType,
-      @JsonProperty("left") final PlanNode left,
-      @JsonProperty("right") final PlanNode right,
-      @JsonProperty("leftJoinFieldName") final String leftJoinFieldName,
-      @JsonProperty("rightJoinFieldName") final String rightJoinFieldName,
-      @JsonProperty("leftAlias") final String leftAlias,
-      @JsonProperty("rightAlias") final String rightAlias,
-      @JsonProperty("within") final WithinExpression withinExpression,
-      @JsonProperty("leftType") final DataSourceType leftType,
-      @JsonProperty("rightType") final DataSourceType rightType
+      final PlanNodeId id,
+      final JoinType joinType,
+      final PlanNode left,
+      final PlanNode right,
+      final String leftJoinFieldName,
+      final String rightJoinFieldName,
+      final String leftAlias,
+      final String rightAlias,
+      final WithinExpression withinExpression,
+      final DataSourceType leftType,
+      final DataSourceType rightType
   ) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     super(id, (leftType == DataSourceType.KTABLE && rightType == DataSourceType.KTABLE)

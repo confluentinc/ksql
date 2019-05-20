@@ -116,16 +116,18 @@ KSQL to work with more _key_ schemas, opening up KSQL to even more use-cases.
   queries, and a new default of `false`, meaning new queries will default
   to writing single value fields as anonymous values.
   
+### New config:
+  
 * `ksql.persistence.wrap.single.keys`: which provides a default for how 
   KEY schemas with a single field should be deserialized and serialized:
   `true` indicating keys should be persisted within a _record_; `false`
   indicating values should be persisted as anonymous values.
   
-  With a legacy default of `true` to ensure backwards compatibility of old
-  queries with string keys, and a new default of `false`, meaning new 
-  queries will default to writing single value fields as anonymous values.
+  The default value will be `false` to ensure backwards compatibility of 
+  old queries with string keys.
   
-  Note: to be added as part of the future structured keys work.
+  Note: this new config will be added as part of the future structured 
+  keys work.
  
 ### SQL syntax
 

@@ -17,8 +17,6 @@ package io.confluent.ksql.planner.plan;
 
 import static java.util.Objects.requireNonNull;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonValue;
 import javax.annotation.concurrent.Immutable;
 
 @Immutable
@@ -26,14 +24,12 @@ public class PlanNodeId {
 
   private final String id;
 
-  @JsonCreator
   public PlanNodeId(final String id) {
     requireNonNull(id, "id is null");
     this.id = id;
   }
 
   @Override
-  @JsonValue
   public String toString() {
     return id;
   }

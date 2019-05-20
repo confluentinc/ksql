@@ -152,6 +152,11 @@ public class KsqlConfig extends AbstractConfig {
 
   public static final String DEFAULT_EXT_DIR = "ext";
 
+  public static final String KSQL_SECURITY_EXTENSION_CLASS = "ksql.security.extension.class";
+  public static final String KSQL_SECURITY_EXTENSION_DEFAULT = null;
+  public static final String KSQL_SECURITY_EXTENSION_DOC = "A KSQL security extension class that "
+      + "provides authorization to KSQL servers.";
+
   public static final Collection<CompatibilityBreakingConfigDef> COMPATIBLY_BREAKING_CONFIG_DEFS
       = ImmutableList.of(
           new CompatibilityBreakingConfigDef(
@@ -436,6 +441,12 @@ public class KsqlConfig extends AbstractConfig {
             true,
             ConfigDef.Importance.LOW,
             "Enable the INSERT INTO ... VALUES functionality."
+        ).define(
+            KSQL_SECURITY_EXTENSION_CLASS,
+            Type.CLASS,
+            KSQL_SECURITY_EXTENSION_DEFAULT,
+            ConfigDef.Importance.LOW,
+            KSQL_SECURITY_EXTENSION_DOC
         )
         .withClientSslSupport();
     for (final CompatibilityBreakingConfigDef compatibilityBreakingConfigDef

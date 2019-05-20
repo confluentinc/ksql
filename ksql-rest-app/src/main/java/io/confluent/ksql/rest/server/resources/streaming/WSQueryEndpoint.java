@@ -227,7 +227,6 @@ public class WSQueryEndpoint {
     if (subscriber != null) {
       subscriber.close();
     }
-    securityExtension.close();
     log.debug(
         "Closing websocket session {} ({}): {}",
         session.getId(),

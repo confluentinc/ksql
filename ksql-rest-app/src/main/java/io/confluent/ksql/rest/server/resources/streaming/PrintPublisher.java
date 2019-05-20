@@ -71,7 +71,9 @@ public class PrintPublisher implements Flow.Publisher<Collection<String>> {
             subscriber,
             topicConsumer,
             new RecordFormatter(
-                serviceContext.getSchemaRegistryClient(), printTopic.getTopic().toString())
+                serviceContext.getSchemaRegistryClient(),
+                printTopic.getTopic().toString()
+            )
         )
     );
   }

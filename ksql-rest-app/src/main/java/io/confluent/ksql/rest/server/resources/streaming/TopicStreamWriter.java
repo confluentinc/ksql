@@ -56,7 +56,10 @@ public class TopicStreamWriter implements StreamingOutput {
   ) {
     return new TopicStreamWriter(
         serviceContext.getSchemaRegistryClient(),
-        PrintTopicUtil.createTopicConsumer(serviceContext, consumerProperties, printTopic),
+        PrintTopicUtil.createTopicConsumer(
+            serviceContext,
+            consumerProperties,
+            printTopic),
         printTopic.getTopic().toString(),
         printTopic.getIntervalValue(),
         disconnectCheckInterval,

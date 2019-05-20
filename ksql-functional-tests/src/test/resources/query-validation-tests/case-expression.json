@@ -61,31 +61,41 @@
         {
           "topic": "S1",
           "timestamp": 0,
-          "value": "medium",
+          "value": {
+            "CASE_RESAULT": "medium"
+          },
           "key": 0
         },
         {
           "topic": "S1",
           "timestamp": 0,
-          "value": "large",
+          "value": {
+            "CASE_RESAULT": "large"
+          },
           "key": 100
         },
         {
           "topic": "S1",
           "timestamp": 0,
-          "value": "large",
+          "value": {
+            "CASE_RESAULT": "large"
+          },
           "key": 101
         },
         {
           "topic": "S1",
           "timestamp": 0,
-          "value": "medium",
+          "value": {
+            "CASE_RESAULT": "medium"
+          },
           "key": 101
         },
         {
           "topic": "S1",
           "timestamp": 0,
-          "value": "small",
+          "value": {
+            "CASE_RESAULT": "small"
+          },
           "key": 101
         }
       ]
@@ -147,31 +157,41 @@
         {
           "topic": "S1",
           "timestamp": 0,
-          "value": null,
+          "value": {
+            "CASE_RESAULT": null
+          },
           "key": 0
         },
         {
           "topic": "S1",
           "timestamp": 0,
-          "value": null,
+          "value": {
+            "CASE_RESAULT": null
+          },
           "key": 100
         },
         {
           "topic": "S1",
           "timestamp": 0,
-          "value": null,
+          "value": {
+            "CASE_RESAULT": null
+          },
           "key": 101
         },
         {
           "topic": "S1",
           "timestamp": 0,
-          "value": null,
+          "value": {
+            "CASE_RESAULT": null
+          },
           "key": 101
         },
         {
           "topic": "S1",
           "timestamp": 0,
-          "value": 7,
+          "value": {
+            "CASE_RESAULT": 7
+          },
           "key": 101
         }
       ]
@@ -206,13 +226,17 @@
         {
           "topic": "S1",
           "timestamp": 0,
-          "value": "default",
+          "value": {
+            "CASE_RESAULT": "default"
+          },
           "key": 0
         },
         {
           "topic": "S1",
           "timestamp": 0,
-          "value": "foo",
+          "value": {
+            "CASE_RESAULT": "foo"
+          },
           "key": 100
         }
       ]
@@ -340,31 +364,41 @@
         {
           "topic": "S1",
           "timestamp": 0,
-          "value": "Food",
+          "value": {
+            "CASE_RESAULT": "Food"
+          },
           "key": 0
         },
         {
           "topic": "S1",
           "timestamp": 0,
-          "value": "default",
+          "value": {
+            "CASE_RESAULT": "default"
+          },
           "key": 100
         },
         {
           "topic": "S1",
           "timestamp": 0,
-          "value": "default",
+          "value": {
+            "CASE_RESAULT": "default"
+          },
           "key": 101
         },
         {
           "topic": "S1",
           "timestamp": 0,
-          "value": "default",
+          "value": {
+            "CASE_RESAULT": "default"
+          },
           "key": 101
         },
         {
           "topic": "S1",
           "timestamp": 0,
-          "value": "CITY_6",
+          "value": {
+            "CASE_RESAULT": "CITY_6"
+          },
           "key": 101
         }
       ]

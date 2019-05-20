@@ -24,7 +24,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import org.apache.kafka.common.errors.SerializationException;
@@ -46,7 +45,6 @@ public class KsqlJsonDeserializer implements Deserializer<Struct> {
   private final Schema schema;
   private final JsonConverter jsonConverter;
   private final ProcessingLogger recordLogger;
-  private final boolean ambiguousMapSchema;
 
   public KsqlJsonDeserializer(
       final Schema schema,
@@ -61,10 +59,6 @@ public class KsqlJsonDeserializer implements Deserializer<Struct> {
     if (schema.type() != Type.STRUCT) {
       throw new IllegalArgumentException("KSQL expects all top level schemas to be STRUCTs");
     }
-
-    this.ambiguousMapSchema = schema.fields().size() == 1
-        && schema.fields().get(0).schema().type() == Type.MAP
-        && schema.fields().get(0).schema().keySchema().type() == Type.STRING;
   }
 
   @Override
@@ -98,87 +92,13 @@ public class KsqlJsonDeserializer implements Deserializer<Struct> {
       return null;
     }
 
-    if (value instanceof Map) {
-      final Map<String, Object> map = (Map<String, Object>) value;
-      if (treatAsRow(map)) {
-        return asRow(map);
-      }
-    }
-
-    if (schema.fields().size() != 1) {
-      throw new KsqlException("Expected JSON object not JSON value or array");
-    }
-
-    final Struct struct = new Struct(schema);
-    final Field field = schema.fields().get(0);
-
-    final Object coerced = enforceFieldType(field.schema(), value);
-    struct.put(field, coerced);
-
-    return struct;
-  }
-
-  /**
-   * Should this value be treated as a record or a top level map?
-   *
-   * <p>The deserializer supports deserializing top-level unnamed primitives, arrays and maps if
-   * the target schema only contains a single field of the required type, e.g. the value '10' can be
-   * deserialized into a schema containing a single numeric field. Likewise, the value '[1,2]' can
-   * be deserialized into a schema containing a single array field. The same is true of maps, but
-   * maps can be ambiguous.
-   *
-   * <p>There is ambiguity when handling top level maps due to the fact that JSON does not have a
-   * map type, so KSQL persists maps as JSON objects.  JSON objects are also used to represent KSQL
-   * structs. When the deserializer is presented with a JSON object and a target schema that
-   * contains a single MAP field, it is not immediately apparent if this should be deserialized as a
-   * struct or a top-level map.
-   *
-   * <p>Map fields are only ambiguous if:
-   * <ul>
-   *   <li>The target schema contains only a single field</li>
-   *   <li>and that field is a map</li>
-   *   <li>and that map has a string key</li>
-   *   <li>and that map has a key with the same name as the field</li>
-   * </ul>
-   *
-   * <p>This method determines which it should be treated as by comparing the target schema with
-   * the actual value. If the value is coercible into the target schema then it will be treated
-   * as a record, not a top level map.
-   *
-   * <p>Note: It is strongly recommended that users avoid the situation by ensuring that single
-   * map fields never have the same name as any of the keys in the map.
-   *
-   * @param map the map to check.
-   * @return true if it should be treated as a record.
-   */
-  private boolean treatAsRow(final Map<String, Object> map) {
-    if (!ambiguousMapSchema) {
-      return true;
-    }
-
-    final Field onlyField = schema.fields().get(0);
-    final String fieldName = onlyField.name();
-
-    final boolean coercibleToRow = map.entrySet().stream()
-        .filter(e -> fieldName.equalsIgnoreCase(e.getKey()))
-        .map(Entry::getValue)
-        .filter(v -> JsonSerdeUtils.isCoercible(v, onlyField.schema()))
-        .map(v -> true)
-        .findFirst()
-        .orElse(false);
-
-    final boolean coercibleToField = JsonSerdeUtils.isCoercible(map, onlyField.schema());
-
-    return coercibleToRow || !coercibleToField;
-  }
-
-  private Struct asRow(final Map<String, Object> valueMap) {
+    final Map<String, Object> map = (Map<String, Object>) value;
     final Map<String, String> caseInsensitiveFieldNameMap =
-        getCaseInsensitiveFieldNameMap(valueMap, true);
+        getCaseInsensitiveFieldNameMap(map, true);
 
     final Struct struct = new Struct(schema);
     for (final Field field : schema.fields()) {
-      final Object columnVal = valueMap.get(caseInsensitiveFieldNameMap.get(field.name()));
+      final Object columnVal = map.get(caseInsensitiveFieldNameMap.get(field.name()));
       final Object coerced = enforceFieldType(field.schema(), columnVal);
       struct.put(field, coerced);
     }

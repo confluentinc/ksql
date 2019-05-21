@@ -34,7 +34,7 @@ Also, the ``userid`` field is assigned as the table's KEY property.
 
 .. note::
 
-    The KEY field is optional. For more information, see
+    The KEY field is required for all KSQL tables. For more information, see
     :ref:`ksql_key_requirements`.
 
 KSQL can't infer the topic's data format, so you must provide the format of the

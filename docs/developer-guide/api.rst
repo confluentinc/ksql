@@ -251,7 +251,7 @@ statements use the ``/query`` endpoint.
         }
       ]
 
-.. _coordinate_multiple_requests
+.. _coordinate_multiple_requests:
 
 Coordinate Multiple Requests
 ----------------------------

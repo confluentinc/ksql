@@ -15,22 +15,41 @@
 
 package io.confluent.ksql.rest.server.security;
 
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.ksql.schema.registry.KsqlSchemaRegistryClientFactory;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlException;
 
+import java.security.Principal;
+import java.util.Collections;
+import java.util.function.Supplier;
 import javax.ws.rs.core.Configurable;
+import org.apache.kafka.streams.KafkaClientSupplier;
+import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
 
 /**
  * This is the default security extension for KSQL. For now, this class is just a dummy
  * implementation of the {@link KsqlSecurityExtension} interface.
  */
 public class KsqlDefaultSecurityExtension implements KsqlSecurityExtension {
+  private KsqlConfig ksqlConfig;
+
   @Override
-  public void initialize(final KsqlConfig config) throws KsqlException {
+  public void initialize(final KsqlConfig config) {
+    this.ksqlConfig = config;
   }
 
   @Override
   public void registerRestEndpoints(final Configurable<?> configurable) {
+  }
+
+  @Override
+  public KafkaClientSupplier getKafkaClientSupplier(final Principal principal) {
+    return new DefaultKafkaClientSupplier();
+  }
+
+  @Override
+  public Supplier<SchemaRegistryClient> getSchemaRegistryClientSupplier(final Principal principal) {
+    return new KsqlSchemaRegistryClientFactory(ksqlConfig, Collections.emptyMap())::get;
   }
 
   @Override

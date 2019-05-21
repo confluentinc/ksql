@@ -493,7 +493,7 @@ Example:
 
 .. code:: sql
 
-    CREATE TABLE users (usertimestamp BIGINT, user_id VARCHAR, gender VARCHAR, region_id VARCHAR)
+    CREATE TABLE users (usertimestamp BIGINT, user_id VARCHAR, gender VARCHAR, region_id VARCHAR) WITH (
         KAFKA_TOPIC = 'my-users-topic',
         KEY = 'user_id');
 

@@ -39,6 +39,7 @@ import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.HandlerMaps;
 import io.confluent.ksql.util.HandlerMaps.ClassHandlerMap2;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import java.security.Principal;
 import java.time.Duration;
@@ -163,10 +164,23 @@ public class WSQueryEndpoint {
         Objects.requireNonNull(serviceContextFactory, "serviceContextFactory");
   }
 
+  private void checkEndpointAuthorization(final Principal userPrincipal) {
+    final Class className = this.getClass();
+    final String methodName = this.getClass().getAnnotation(ServerEndpoint.class).value();
+
+    if (!securityExtension.getAuthorizer().hasAccess(userPrincipal, className, methodName)) {
+      final String userName = (userPrincipal != null) ? userPrincipal.getName() : null;
+      throw new KsqlException(
+          String.format("User:%s is denied to access this cluster.", userName)
+      );
+    }
+  }
+
   @SuppressWarnings("unused")
   @OnOpen
   public void onOpen(final Session session, final EndpointConfig unused) {
     log.debug("Opening websocket session {}", session.getId());
+
     if (!ksqlEngine.isAcceptingStatements()) {
       log.info("The cluster has been terminated. No new request will be accepted.");
       SessionUtil.closeSilently(
@@ -177,6 +191,9 @@ public class WSQueryEndpoint {
       return;
     }
     try {
+      // Check if the user has authorization to access this Websocket endpoint
+      checkEndpointAuthorization(session.getUserPrincipal());
+
       validateVersion(session);
 
       final KsqlRequest request = parseRequest(session);

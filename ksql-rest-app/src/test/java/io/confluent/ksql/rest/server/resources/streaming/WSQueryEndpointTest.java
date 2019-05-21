@@ -48,6 +48,7 @@ import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint.PrintTopicPublisher;
 import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint.QueryPublisher;
 import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint.ServiceContextFactory;
+import io.confluent.ksql.rest.server.security.KsqlAuthorizer;
 import io.confluent.ksql.rest.server.security.KsqlSecurityExtension;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
@@ -131,6 +132,8 @@ public class WSQueryEndpointTest {
   @Mock
   private KsqlSecurityExtension securityExtension;
   @Mock
+  private KsqlAuthorizer authorizer;
+  @Mock
   private ServiceContext serviceContext;
   @Mock
   private ServiceContextFactory serviceContextFactory;
@@ -152,6 +155,8 @@ public class WSQueryEndpointTest {
     when(securityExtension.getSchemaRegistryClientSupplier(principal))
         .thenReturn(schemaRegistryClientSupplier);
     when(securityExtension.getKafkaClientSupplier(principal)).thenReturn(topicClientSupplier);
+    when(securityExtension.getAuthorizer()).thenReturn(authorizer);
+    when(authorizer.hasAccess(any(), any(), any())).thenReturn(true);
     when(serviceContextFactory.create(ksqlConfig, topicClientSupplier, schemaRegistryClientSupplier))
         .thenReturn(serviceContext);
     when(serviceContext.getTopicClient()).thenReturn(topicClient);
@@ -426,6 +431,22 @@ public class WSQueryEndpointTest {
     // Then:
     verifyClosedWithReason("yikes", CloseCodes.TRY_AGAIN_LATER);
     verify(statementParser, never()).parseSingleStatement(any());
+  }
+
+  @Test
+  public void shouldReturnErrorIfEndpointAuthorizationIsDenied() throws Exception {
+    // Given:
+    givenRequest(REQUEST_WITH_SEQUENCE_NUMBER);
+    when(authorizer.hasAccess(any(), eq(WSQueryEndpoint.class), eq("/query")))
+        .thenReturn(false);
+
+    // When:
+    wsQueryEndpoint.onOpen(session, null);
+
+    // Then:
+    verifyClosedWithReason(
+        "User:null is denied to access this cluster.",
+        CloseCodes.CANNOT_ACCEPT);
   }
 
   private void givenVersions(final String... versions) {

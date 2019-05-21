@@ -71,6 +71,26 @@ public interface KsqlSecurityExtension extends AutoCloseable {
       throws KsqlException;
 
   /**
+   * Constructs a {@link org.apache.kafka.streams.KafkaClientSupplier} with the user's credentials.
+   *
+   * @param principal The {@link Principal} whose credentials will be used.
+   * @throws KsqlException If an error occurs while creating the
+   * {@link org.apache.kafka.streams.KafkaClientSupplier}.
+   */
+  KafkaClientSupplier getKafkaClientSupplier(Principal principal) throws KsqlException;
+
+  /**
+   * Constructs a {@link io.confluent.kafka.schemaregistry.client.SchemaRegistryClient} supplier
+   * with the user's credentials.
+   *
+   * @param principal The {@link Principal} whose credentials will be used.
+   * @throws KsqlException If an error occurs while creating the
+   * {@link io.confluent.kafka.schemaregistry.client.SchemaRegistryClient} supplier.
+   */
+  Supplier<SchemaRegistryClient> getSchemaRegistryClientSupplier(Principal principal)
+      throws KsqlException;
+
+  /**
    * Closes the current security extension. This is called in case the implementation requires
    * to clean any security data in memory, files, and/or close connections to external security
    * services.

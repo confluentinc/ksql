@@ -15,8 +15,8 @@
         {"topic": "test_topic", "value": {"source": "s2"}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "value": "prefix-s1-postfix"},
-        {"topic": "OUTPUT", "value": "prefix-s2-postfix"}
+        {"topic": "OUTPUT", "value": {"THING":"prefix-s1-postfix"}},
+        {"topic": "OUTPUT", "value": {"THING":"prefix-s2-postfix"}}
       ]
     },
     {
@@ -31,8 +31,8 @@
         {"topic": "test_topic", "value": {"source": "s2"}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "value": "prefix-s1-postfix"},
-        {"topic": "OUTPUT", "value": "prefix-s2-postfix"}
+        {"topic": "OUTPUT", "value": {"THING":"prefix-s1-postfix"}},
+        {"topic": "OUTPUT", "value": {"THING":"prefix-s2-postfix"}}
       ]
     }
   ]

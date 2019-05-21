@@ -26,17 +26,6 @@ KSQL 5.3.0 includes new features, including:
 * ``CREATE STREAM`` and ``CREATE TABLE`` will now allow you to create the topic if it is missing.
   To do this, specify the ``PARTITIONS`` and optionally ``REPLICAS`` in the ``WITH`` clause.
 
-* KSQL now supports deserializing records where the value is:
-
-  #. A primitive, e.g. a ``STRING``, ``INT``, ``DOUBLE`` etc, in Avro, JSON and Delimited formats.
-  #. An array, for both Avro and JSON formats.
-  #. A map, for both Avro and JSON formats.
-
-* It is now possible to configure KSQL to persist rows with only a single field as JSON primitives
-  or arrays, or Avro primitives, arrays and maps. Previously, the single field would of been
-  persisted nested within a JSON object or Avro record.  For more information, see the documentation
-  for the ``ksql.persistence.serialization.wrap.single.values`` configuration.
-
 KSQL 5.3.0 includes bug fixes, including:
 
 * The ``ROWTIME`` of the row generated when a ``JOIN`` encounters late data was previous the ``ROWTIME`` of the late event,

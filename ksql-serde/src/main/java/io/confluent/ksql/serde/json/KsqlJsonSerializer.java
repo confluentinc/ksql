@@ -33,7 +33,6 @@ public class KsqlJsonSerializer implements Serializer<Struct> {
 
   private final Schema schema;
   private final JsonConverter jsonConverter;
-  private final Function<Struct, Object> preprocessor;
 
   public KsqlJsonSerializer(final Schema schema) {
     this(schema, s -> s);
@@ -43,7 +42,6 @@ public class KsqlJsonSerializer implements Serializer<Struct> {
     this.jsonConverter = new JsonConverter();
     this.jsonConverter.configure(Collections.singletonMap("schemas.enable", false), false);
     this.schema = Objects.requireNonNull(schema, "schema").schema();
-    this.preprocessor = Objects.requireNonNull(preprocessor, "preprocessor");
   }
 
   @Override
@@ -60,10 +58,8 @@ public class KsqlJsonSerializer implements Serializer<Struct> {
       return null;
     }
 
-    final Object toSerialize = preprocessor.apply(data);
-
     try {
-      return jsonConverter.fromConnectData(topic, schema, toSerialize);
+      return jsonConverter.fromConnectData(topic, schema, data);
     } catch (final Exception e) {
       throw new SerializationException("Error serializing JSON message", e);
     }

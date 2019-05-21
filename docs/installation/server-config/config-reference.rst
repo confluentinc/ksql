@@ -252,44 +252,6 @@ The corresponding environment variable in the
 `KSQL Server image <https://hub.docker.com/r/confluentinc/cp-ksql-server/>`__ is
 ``KSQL_KSQL_FUNCTIONS_SUBSTRING_LEGACY_ARGS``.
 
-.. _ksql_persistence_serialization_wrap_single_values:
-
--------------------------------------------------
-ksql.persistence.serialization.wrap.single.values
--------------------------------------------------
-
-Controls how KSQL serializes a value whose schema contains only a single column.
-
-When set to the default value, ``true``, KSQL serializes the column value nested with a JSON object or
-Avro record, depending on the format in use. When set to ``false``, KSQL persists the column
-value without any nesting.
-
-For example, consider the statement:
-
-.. code:: sql
-
-    CREATE STREAM y AS SELECT f0 FROM x;
-
-The statement selects a single field as the value of stream ``y``. If ``f0`` has the
-integer value ``10``,
-with ``ksql.persistence.serialization.wrap.single.values`` set to ``true``, the JSON format persists
-the value within a JSON object, as it would if the value had more fields:
-
-.. code:: json
-
-    {
-       "F0": 10
-    }
-
-With ``ksql.persistence.serialization.wrap.single.values`` set to ``false``, the JSON format
-persists the single field's value as a JSON number: ``10``.
-
-The ``AVRO`` format can also be controlled by setting ``ksql.persistence.serialization.wrap.single.values``,
-which controls whether or not the field's value is written as nested within an Avro record.
-
-.. note:: The ``DELIMITED`` format is  not affected by the `ksql.persistence.ensure.value.is.struct`` setting,
-          because it has no concept of an outer record or structure.
-
 KSQL Server Settings
 --------------------
 

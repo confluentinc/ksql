@@ -17,11 +17,11 @@
         {"topic": "test_topic", "key": 5, "value": {"message": ""}, "timestamp": 0}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": 1, "value": ["a", "b", "c"], "timestamp": 0},
-        {"topic": "OUTPUT", "key": 2, "value": ["", "abc", ""], "timestamp": 0},
-        {"topic": "OUTPUT", "key": 3, "value": ["", "", "a", "", ""], "timestamp": 0},
-        {"topic": "OUTPUT", "key": 4, "value": ["abc"], "timestamp": 0},
-        {"topic": "OUTPUT", "key": 5, "value": [""], "timestamp": 0}
+        {"topic": "OUTPUT", "key": 1, "value": {"SPLIT_MSG":["a", "b", "c"]}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": 2, "value": {"SPLIT_MSG":["", "abc", ""]}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": 3, "value": {"SPLIT_MSG":["", "", "a", "", ""]}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": 4, "value": {"SPLIT_MSG":["abc"]}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": 5, "value": {"SPLIT_MSG":[""]}, "timestamp": 0}
       ]
     },
     {
@@ -38,11 +38,11 @@
         {"topic": "test_topic", "key": 5, "value": {"message": ""}, "timestamp": 0}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": 1, "value": ["a", "b.c"], "timestamp": 0},
-        {"topic": "OUTPUT", "key": 2, "value": [".abc", ""], "timestamp": 0},
-        {"topic": "OUTPUT", "key": 3, "value": [".", "a.."], "timestamp": 0},
-        {"topic": "OUTPUT", "key": 4, "value": ["abc"], "timestamp": 0},
-        {"topic": "OUTPUT", "key": 5, "value": [""], "timestamp": 0}
+        {"topic": "OUTPUT", "key": 1, "value": {"SPLIT_MSG":["a", "b.c"]}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": 2, "value": {"SPLIT_MSG":[".abc", ""]}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": 3, "value": {"SPLIT_MSG":[".", "a.."]}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": 4, "value": {"SPLIT_MSG":["abc"]}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": 5, "value": {"SPLIT_MSG":[""]}, "timestamp": 0}
       ]
     },
     {
@@ -59,11 +59,11 @@
         {"topic": "test_topic", "key": 5, "value": {"message": ""}, "timestamp": 0}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": 1, "value": ["a", "." ,"b", ".", "c"], "timestamp": 0},
-        {"topic": "OUTPUT", "key": 2, "value": [".", "a", "b", "c", "."], "timestamp": 0},
-        {"topic": "OUTPUT", "key": 3, "value": [".", ".", "a", ".", "."], "timestamp": 0},
-        {"topic": "OUTPUT", "key": 4, "value": ["a", "b", "c"], "timestamp": 0},
-        {"topic": "OUTPUT", "key": 5, "value": [""], "timestamp": 0}
+        {"topic": "OUTPUT", "key": 1, "value": {"SPLIT_MSG":["a", "." ,"b", ".", "c"]}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": 2, "value": {"SPLIT_MSG":[".", "a", "b", "c", "."]}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": 3, "value": {"SPLIT_MSG":[".", ".", "a", ".", "."]}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": 4, "value": {"SPLIT_MSG":["a", "b", "c"]}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": 5, "value": {"SPLIT_MSG":[""]}, "timestamp": 0}
       ]
     },
     {

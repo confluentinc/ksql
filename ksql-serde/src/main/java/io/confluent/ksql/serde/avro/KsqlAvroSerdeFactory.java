@@ -23,7 +23,6 @@ import io.confluent.kafka.serializers.AbstractKafkaAvroSerDeConfig;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
-import io.confluent.ksql.serde.SerdeUtil;
 import io.confluent.ksql.serde.connect.KsqlConnectDeserializer;
 import io.confluent.ksql.serde.connect.KsqlConnectSerializer;
 import io.confluent.ksql.serde.tls.ThreadLocalDeserializer;
@@ -31,7 +30,6 @@ import io.confluent.ksql.serde.tls.ThreadLocalSerializer;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Map;
 import java.util.Objects;
-import java.util.function.Function;
 import java.util.function.Supplier;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
@@ -112,19 +110,10 @@ public class KsqlAvroSerdeFactory extends KsqlSerdeFactory {
     final AvroConverter avroConverter =
         getAvroConverter(schemaRegistryClientFactory.get(), ksqlConfig);
 
-    final boolean unwrap = SerdeUtil.shouldUnwrap(logicalSchema, ksqlConfig);
-
-    final Schema physicalSchema = unwrap
-        ? SerdeUtil.unwrapSchema(translator.getConnectSchema())
-        : translator.getConnectSchema();
-
-    final Function<Struct, Object> preprocessor = unwrap
-        ? SerdeUtil::unwrapStruct
-        : s -> s;
+    final Schema physicalSchema = translator.getConnectSchema();
 
     return new KsqlConnectSerializer(
         physicalSchema,
-        preprocessor,
         translator,
         avroConverter
     );

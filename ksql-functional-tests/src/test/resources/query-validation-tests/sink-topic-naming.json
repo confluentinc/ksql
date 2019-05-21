@@ -13,7 +13,7 @@
         {"topic": "test_topic", "key": 1, "value": {"source": "s1"}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": 1, "value": "s1"}
+        {"topic": "OUTPUT", "key": 1, "value": {"SOURCE":"s1"}}
       ]
     },
     {
@@ -29,7 +29,7 @@
         {"topic": "test_topic", "key": 1, "value": {"source": "s1"}}
       ],
       "outputs": [
-        {"topic": "Fred", "key": 1, "value": "s1"}
+        {"topic": "Fred", "key": 1, "value": {"SOURCE":"s1"}}
       ]
     },
     {
@@ -45,7 +45,7 @@
         {"topic": "test_topic", "key": 1, "value": {"source": "s1"}}
       ],
       "outputs": [
-        {"topic": "some-prefix-OUTPUT", "key": 1, "value": "s1"}
+        {"topic": "some-prefix-OUTPUT", "key": 1, "value": {"SOURCE":"s1"}}
       ]
     }
   ]

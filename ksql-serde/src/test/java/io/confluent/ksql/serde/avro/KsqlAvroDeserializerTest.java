@@ -17,10 +17,8 @@ package io.confluent.ksql.serde.avro;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.internal.matchers.ThrowableMessageMatcher.hasMessage;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -32,7 +30,6 @@ import io.confluent.kafka.serializers.KafkaAvroSerializer;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
-import io.confluent.ksql.util.KsqlException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -44,7 +41,6 @@ import java.util.Map;
 import org.apache.avro.LogicalTypes;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
-import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -642,155 +638,6 @@ public class KsqlAvroDeserializerTest {
 
     // When:
     deserializer(Schema.OPTIONAL_INT64_SCHEMA);
-  }
-
-  @Test
-  public void shouldDeserializedTopLevelPrimitiveTypeIfSchemaHasOnlySingleField() {
-    // Given:
-    final Schema ksqlSchema = SchemaBuilder.struct()
-        .field("id", Schema.OPTIONAL_INT32_SCHEMA)
-        .build();
-
-    final Deserializer<Struct> deserializer = deserializer(ksqlSchema);
-
-    final byte[] bytes = serializeAsBinaryAvro("topic", Schema.INT32_SCHEMA, 10);
-
-    // When:
-    final Struct row = deserializer.deserialize("topic", bytes);
-
-    // Then:
-    assertThat(row, is((Object) new Struct(ksqlSchema)
-        .put("id", 10)));
-  }
-
-  @Test
-  public void shouldThrowOnDeserializedTopLevelPrimitiveWhenSchemaHasMoreThanOneField() {
-    // Given:
-    final Schema schema = SchemaBuilder.struct()
-        .field("id", Schema.OPTIONAL_INT32_SCHEMA)
-        .field("id2", Schema.OPTIONAL_INT32_SCHEMA)
-        .build();
-
-    final Deserializer<Struct> deserializer = deserializer(schema);
-
-    final byte[] bytes = serializeAsBinaryAvro("foo", Schema.INT32_SCHEMA, 10);
-
-    // Then:
-    expectedException.expect(SerializationException.class);
-    expectedException.expectCause(instanceOf(KsqlException.class));
-    expectedException
-        .expectCause(hasMessage(is("Expected Avro record not primitive, array or map type")));
-
-    // When:
-    deserializer.deserialize("foo", bytes);
-  }
-
-  @Test
-  public void shouldDeserializeTopLevelArrayIfSchemaHasOnlySingleField() {
-    // Given:
-    final Schema ksqlSchema = SchemaBuilder.struct()
-        .field("ids", SchemaBuilder
-            .array(Schema.OPTIONAL_INT64_SCHEMA)
-            .optional()
-            .build())
-        .build();
-
-    final Deserializer<Struct> deserializer = deserializer(ksqlSchema);
-
-    final Schema serializerSchema = SchemaBuilder.array(Schema.INT32_SCHEMA).build();
-    final byte[] bytes =
-        serializeAsBinaryAvro("bar", serializerSchema, ImmutableList.of(1, 2, 3));
-
-    // When:
-    final Struct result = deserializer.deserialize("bar", bytes);
-
-    // Then:
-    assertThat(result, is(new Struct(ksqlSchema)
-        .put("ids", ImmutableList.of(1L, 2L, 3L))));
-  }
-
-  @Test
-  public void shouldThrowOnDeserializedTopLevelArrayWhenSchemaHasMoreThanOneField() {
-    // Given:
-    final Schema schema = SchemaBuilder.struct()
-        .field("ids", SchemaBuilder
-            .array(Schema.OPTIONAL_INT32_SCHEMA)
-            .optional()
-            .build())
-        .field("id2", Schema.OPTIONAL_INT32_SCHEMA)
-        .build();
-
-    final Deserializer<Struct> deserializer = deserializer(schema);
-
-    final Schema serializerSchema = SchemaBuilder.array(Schema.INT32_SCHEMA).build();
-    final byte[] bytes =
-        serializeAsBinaryAvro("bar", serializerSchema, ImmutableList.of(1, 2, 3));
-
-    // Then:
-    expectedException.expect(SerializationException.class);
-    expectedException.expectCause(instanceOf(KsqlException.class));
-    expectedException
-        .expectCause(hasMessage(is("Expected Avro record not primitive, array or map type")));
-
-    // When:
-    deserializer.deserialize("bar", bytes);
-  }
-
-  @Test
-  public void shouldDeserializeTopLevelMapIfSchemaHasOnlySingleField() {
-    // Given:
-    final Schema ksqlSchema = SchemaBuilder.struct()
-        .field("ids", SchemaBuilder
-            .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_INT32_SCHEMA)
-            .optional()
-            .build())
-        .build();
-
-    final Deserializer<Struct> deserializer = deserializer(ksqlSchema);
-
-    final Schema serializerSchema = SchemaBuilder
-        .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.INT32_SCHEMA)
-        .build();
-
-    final byte[] bytes =
-        serializeAsBinaryAvro("bar", serializerSchema, ImmutableMap.of("a", 1, "b", 2));
-
-    // When:
-    final Struct result = deserializer.deserialize("bar", bytes);
-
-    // Then:
-    assertThat(result, is(new Struct(ksqlSchema)
-        .put("ids", ImmutableMap.of("a", 1, "b", 2))));
-  }
-
-  @Test
-  public void shouldThrowOnDeserializedTopLevelMapWhenSchemaHasMoreThanOneField() {
-    // Given:
-    final Schema schema = SchemaBuilder.struct()
-        .field("ids", SchemaBuilder
-            .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_INT32_SCHEMA)
-            .optional()
-            .build())
-        .field("id2", Schema.OPTIONAL_INT32_SCHEMA)
-        .build();
-
-    final Deserializer<Struct> deserializer = deserializer(schema);
-
-    final Schema serializerSchema = SchemaBuilder
-        .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.INT32_SCHEMA)
-        .build();
-
-    final byte[] bytes =
-        serializeAsBinaryAvro("bar", serializerSchema, ImmutableMap.of("a", 1, "b", 2));
-
-    // Then:
-    expectedException.expect(SerializationException.class);
-    expectedException.expectCause(instanceOf(KsqlException.class));
-    expectedException
-        .expectCause(hasMessage(is("Expected Avro record not primitive, array or map type")));
-
-    // When:
-    deserializer.deserialize("bar", bytes);
   }
 
   private byte[] serializeAsBinaryAvro(

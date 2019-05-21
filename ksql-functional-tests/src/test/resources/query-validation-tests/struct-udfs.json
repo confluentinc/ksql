@@ -9,9 +9,6 @@
         "CREATE STREAM test (value STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT TOSTRUCT(value) AS value FROM test;"
       ],
-      "properties": {
-        "ksql.persistence.serialization.wrap.single.values": "true"
-      },
       "inputs": [
         {"topic": "test_topic", "key": 1, "value": {"value": "a"}, "timestamp": 0}
       ],
@@ -25,9 +22,6 @@
         "CREATE STREAM test (value STRUCT<A VARCHAR>) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT TEST_UDF(value) AS VALUE FROM test;"
       ],
-      "properties": {
-        "ksql.persistence.serialization.wrap.single.values": "true"
-      },
       "inputs": [
         {"topic":  "test_topic", "key":  1, "value": {"value":  {"A":  "1"}}, "timestamp":  0}
       ],

@@ -96,8 +96,13 @@ public class InsertValuesExecutor {
         .cloneWithPropertyOverwrite(statement.getOverrides());
 
     final GenericRow row = extractRow(insertValues, dataSource);
+    final long timestamp = row.getColumnValue(SchemaUtil.ROWTIME_INDEX);
     final byte[] key = serializeKey(row.getColumnValue(SchemaUtil.ROWKEY_INDEX), dataSource);
-    final byte[] value = serializeRow(row, dataSource, config, serviceContext);
+    final byte[] value = serializeRow(
+        gerRowWithoutRowTimeRowKey(row),
+        dataSource,
+        config,
+        serviceContext);
 
     final String topicName = dataSource.getKafkaTopicName();
 
@@ -110,7 +115,7 @@ public class InsertValuesExecutor {
         new ProducerRecord<>(
             topicName,
             null,
-            row.getColumnValue(SchemaUtil.ROWTIME_INDEX),
+            timestamp,
             key,
             value
         )
@@ -180,7 +185,7 @@ public class InsertValuesExecutor {
 
     values.putIfAbsent(SchemaUtil.ROWTIME_NAME, clock.getAsLong());
 
-    for (Field field : dataSource.getSchema().fields()) {
+    for (final Field field : dataSource.getSchema().fields()) {
       if (!field.schema().isOptional() && values.getOrDefault(field.name(), null) == null) {
         throw new KsqlException("Got null value for nonnull field: " + field);
       }
@@ -197,7 +202,7 @@ public class InsertValuesExecutor {
   }
 
   @SuppressWarnings("unchecked") // we know that key is String
-  private byte[] serializeKey(final Object keyValue, final DataSource<?> dataSource) {
+  private static byte[] serializeKey(final Object keyValue, final DataSource<?> dataSource) {
     if (keyValue == null) {
       return null;
     }
@@ -219,7 +224,7 @@ public class InsertValuesExecutor {
   ) {
     final Serde<GenericRow> rowSerde = GenericRowSerDe.from(
         dataSource.getValueSerdeFactory(),
-        dataSource.getSchema().getSchema(),
+        dataSource.getSchema().withoutImplicitFields().getSchema(),
         config,
         serviceContext.getSchemaRegistryClientFactory(),
         "",
@@ -230,6 +235,11 @@ public class InsertValuesExecutor {
     } catch (final Exception e) {
       throw new KsqlException("Could not serialize row: " + row, e);
     }
+  }
+
+  private static GenericRow gerRowWithoutRowTimeRowKey(final GenericRow genericRow) {
+    final int lastIndex = genericRow.getColumns().size();
+    return new GenericRow(genericRow.getColumns().subList(SchemaUtil.ROWKEY_INDEX + 1, lastIndex));
   }
 
   private static class ExpressionResolver extends AstVisitor<Object, Void> {

@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.serde.connect;
 
-import io.confluent.ksql.util.KsqlException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -47,21 +46,7 @@ public class ConnectDataTranslator implements DataTranslator {
       return null;
     }
 
-    if (connectSchema.type() == Type.STRUCT) {
-      return (Struct) toKsqlValue(schema, connectSchema, connectData, "");
-    }
-
-    if (schema.fields().size() != 1) {
-      throw new KsqlException("Expected Avro record not primitive, array or map type");
-    }
-
-    final Struct struct = new Struct(schema);
-    final Field field = schema.fields().get(0);
-
-    final Object coerced = toKsqlValue(field.schema(), connectSchema, connectData, "");
-    struct.put(field, coerced);
-
-    return struct;
+    return (Struct) toKsqlValue(schema, connectSchema, connectData, "");
   }
 
   private static void throwTypeMismatchException(

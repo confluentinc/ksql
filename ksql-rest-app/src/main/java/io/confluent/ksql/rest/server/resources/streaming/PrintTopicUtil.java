@@ -36,34 +36,23 @@ final class PrintTopicUtil {
   static KafkaConsumer<String, Bytes> createTopicConsumer(
       final ServiceContext serviceContext,
       final Map<String, Object> consumerProperties,
-      final PrintTopic printTopic) {
-    return createTopicConsumer(
-        serviceContext,
-        consumerProperties,
-        printTopic.getTopic().toString(),
-        printTopic.getFromBeginning()
-    );
-  }
-
-  private static KafkaConsumer<String, Bytes> createTopicConsumer(
-      final ServiceContext serviceContext,
-      final Map<String, Object> consumerProperties,
-      final String topicName,
-      final boolean fromBeginning) {
-
+      final PrintTopic printTopic
+  ) {
     final KafkaConsumer<String, Bytes> topicConsumer = new KafkaConsumer<>(
         injectSupplierProperties(serviceContext, consumerProperties),
         new StringDeserializer(),
         new BytesDeserializer()
     );
 
-    final List<TopicPartition> topicPartitions = topicConsumer.partitionsFor(topicName)
-        .stream()
-        .map(partitionInfo -> new TopicPartition(partitionInfo.topic(), partitionInfo.partition()))
-        .collect(Collectors.toList());
+    final List<TopicPartition> topicPartitions =
+        topicConsumer.partitionsFor(printTopic.getTopic().toString())
+            .stream()
+            .map(partitionInfo ->
+                new TopicPartition(partitionInfo.topic(), partitionInfo.partition()))
+            .collect(Collectors.toList());
     topicConsumer.assign(topicPartitions);
 
-    if (fromBeginning) {
+    if (printTopic.getFromBeginning()) {
       topicConsumer.seekToBeginning(topicPartitions);
     }
     return topicConsumer;

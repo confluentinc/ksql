@@ -32,9 +32,9 @@ public @interface UdfParameter {
    *
    * <p>This text is displayed when the user calls {@code DESCRIBE FUNCTION ...}.
    *
-   * <p>If your Java class is compiled with the {@code -parameter} compiler flag, then name of the
+   * <p>If your Java class is compiled with the {@code -parameters} compiler flag, then name of the
    * parameter will be inferred from the method declaration and this value can be left at the
-   * default. If compiling with out the {@code -parameter} compiler flag, use this property to
+   * default. If compiling with out the {@code -parameters} compiler flag, use this property to
    * provide the user with the name of the parameter.
    *
    * @return parameter name.

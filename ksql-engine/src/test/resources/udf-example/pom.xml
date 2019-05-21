@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project>
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>org.damian.ksql.udf</groupId>
+  <artifactId>udf-example</artifactId>
+  <version>1</version>
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <ksql.version>5.3.0-SNAPSHOT</ksql.version>
+    <maven.shade.version>3.2.1</maven.shade.version>
+  </properties>
+
+  <build>
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-compiler-plugin</artifactId>
+          <version>3.7.0</version>
+          <configuration>
+            <source>8</source>
+            <target>8</target>
+            <encoding>UTF-8</encoding>
+            <compilerArgs>
+              <arg>-parameters</arg>
+            </compilerArgs>
+          </configuration>
+        </plugin>
+      </plugins>
+    </pluginManagement>
+  </build>
+
+  <dependencies>
+    <!-- KSQL dependencies -->
+    <dependency>
+      <groupId>io.confluent.ksql</groupId>
+      <artifactId>ksql-udf</artifactId>
+      <version>${ksql.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.kafka</groupId>
+      <artifactId>connect-api</artifactId>
+      <version>2.2.0</version>
+    </dependency>
+
+  </dependencies>
+
+</project>

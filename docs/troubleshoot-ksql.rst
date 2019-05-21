@@ -256,6 +256,21 @@ The solution is to register Avro schemas manually against the replicated subject
     # Replicated topic name = pageviews.replica
     curl -X POST -H "Content-Type: application/vnd.schemaregistry.v1+json" --data "{\"schema\": $(curl -s http://localhost:8081/subjects/pageviews-value/versions/latest | jq '.schema')}" http://localhost:8081/subjects/pageviews.replica-value/versions
 
+.. _ksql-snappy-messages:
+
+Snappy encoded messages don't decompress
+****************************************
+
+If you don't have write access to the ``/tmp`` directory because it's set to
+``noexec``, you need to pass in a directory path for ``snappy`` that you have
+write access to:
+
+::
+
+    -Dorg.xerial.snappy.tempdir=/path/to/newtmp
+
+If you're using |c3|, see :ref:`rocksdb_tmp_dir`.
+
 .. _ksql-check-server-logs:
 
 

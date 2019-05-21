@@ -51,7 +51,6 @@ import javax.websocket.OnError;
 import javax.websocket.OnOpen;
 import javax.websocket.Session;
 import javax.websocket.server.ServerEndpoint;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

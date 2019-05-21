@@ -18,8 +18,6 @@ package io.confluent.ksql.planner.plan;
 import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import static java.util.Objects.requireNonNull;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.AggregateFunctionArguments;
@@ -86,19 +84,18 @@ public class AggregateNode extends PlanNode {
   private final Expression havingExpressions;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
-  @JsonCreator
   public AggregateNode(
-      @JsonProperty("id") final PlanNodeId id,
-      @JsonProperty("source") final PlanNode source,
-      @JsonProperty("schema") final KsqlSchema schema,
-      @JsonProperty("keyField") final Optional<String> keyFieldName,
-      @JsonProperty("groupby") final List<Expression> groupByExpressions,
-      @JsonProperty("window") final WindowExpression windowExpression,
-      @JsonProperty("aggregateFunctionArguments") final List<Expression> aggregateFunctionArguments,
-      @JsonProperty("functionList") final List<FunctionCall> functionList,
-      @JsonProperty("requiredColumnList") final List<DereferenceExpression> requiredColumns,
-      @JsonProperty("finalSelectExpressions") final List<Expression> finalSelectExpressions,
-      @JsonProperty("havingExpressions") final Expression havingExpressions
+      final PlanNodeId id,
+      final PlanNode source,
+      final KsqlSchema schema,
+      final Optional<String> keyFieldName,
+      final List<Expression> groupByExpressions,
+      final WindowExpression windowExpression,
+      final List<Expression> aggregateFunctionArguments,
+      final List<FunctionCall> functionList,
+      final List<DereferenceExpression> requiredColumns,
+      final List<Expression> finalSelectExpressions,
+      final Expression havingExpressions
   ) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     super(id, DataSourceType.KTABLE);

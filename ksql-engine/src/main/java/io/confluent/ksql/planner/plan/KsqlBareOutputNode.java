@@ -15,8 +15,6 @@
 
 package io.confluent.ksql.planner.plan;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.physical.KsqlQueryBuilder;
 import io.confluent.ksql.query.QueryId;
@@ -33,13 +31,12 @@ public class KsqlBareOutputNode extends OutputNode {
 
   private final KeyField keyField;
 
-  @JsonCreator
   public KsqlBareOutputNode(
-      @JsonProperty("id") final PlanNodeId id,
-      @JsonProperty("source") final PlanNode source,
-      @JsonProperty("schema") final KsqlSchema schema,
-      @JsonProperty("limit") final Optional<Integer> limit,
-      @JsonProperty("timestampExtraction") final TimestampExtractionPolicy extractionPolicy
+      final PlanNodeId id,
+      final PlanNode source,
+      final KsqlSchema schema,
+      final Optional<Integer> limit,
+      final TimestampExtractionPolicy extractionPolicy
   ) {
     super(id, source, schema, limit, extractionPolicy);
     this.keyField = KeyField.of(source.getKeyField().name(), Optional.empty())

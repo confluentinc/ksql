@@ -55,7 +55,6 @@ import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.Sandbox;
 import java.util.List;
 import java.util.Map;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Before;

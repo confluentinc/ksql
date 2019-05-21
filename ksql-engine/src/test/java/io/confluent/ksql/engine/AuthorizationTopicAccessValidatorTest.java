@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.engine;
 
+import static org.mockito.Mockito.when;
+
 import io.confluent.ksql.exception.KafkaResponseGetFailedException;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStoreImpl;
@@ -44,8 +46,6 @@ import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-
-import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class AuthorizationTopicAccessValidatorTest {

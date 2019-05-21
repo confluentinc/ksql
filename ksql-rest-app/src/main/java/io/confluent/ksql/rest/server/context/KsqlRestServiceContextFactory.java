@@ -20,13 +20,11 @@ import io.confluent.ksql.schema.registry.KsqlSchemaRegistryClientFactory;
 import io.confluent.ksql.services.DefaultServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
-
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Supplier;
 import javax.inject.Inject;
 import javax.ws.rs.container.ContainerRequestContext;
-
 import org.apache.kafka.streams.KafkaClientSupplier;
 import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
 import org.glassfish.hk2.api.Factory;

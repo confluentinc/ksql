@@ -194,7 +194,6 @@ public class KsqlResourceFunctionalTest {
         .field("TITLE", Schema.OPTIONAL_STRING_SCHEMA)
         .build());
 
-    TEST_HARNESS.ensureTopics("books");
     TEST_HARNESS.getSchemaRegistryClient()
         .register(
             "books" + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX,
@@ -207,7 +206,7 @@ public class KsqlResourceFunctionalTest {
     // When:
     final List<KsqlEntity> results = makeKsqlRequest(""
         + "CREATE STREAM books (author VARCHAR, title VARCHAR) "
-        + "WITH (kafka_topic='books', key='author', value_format='avro');"
+        + "WITH (kafka_topic='books', key='author', value_format='avro', partitions=1);"
         + " "
         + "INSERT INTO BOOKS (ROWTIME, author, title) VALUES (123, 'Metamorphosis', 'Franz Kafka');"
     );

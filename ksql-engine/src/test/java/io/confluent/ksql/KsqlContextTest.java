@@ -117,7 +117,7 @@ public class KsqlContextTest {
 
     when(ksqlEngine.execute(any())).thenReturn(ExecuteResult.of("success"));
 
-    when(ksqlEngine.createSandbox()).thenReturn(sandbox);
+    when(ksqlEngine.createSandbox(any())).thenReturn(sandbox);
 
     when(sandbox.prepare(PARSED_STMT_0)).thenReturn((PreparedStatement) PREPARED_STMT_0);
     when(sandbox.prepare(PARSED_STMT_1)).thenReturn((PreparedStatement) PREPARED_STMT_1);

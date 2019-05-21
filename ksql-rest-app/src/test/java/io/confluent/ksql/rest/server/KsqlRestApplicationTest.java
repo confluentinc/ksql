@@ -104,7 +104,7 @@ public class KsqlRestApplicationTest {
         .thenReturn(LOG_STREAM_NAME);
     when(processingLogConfig.getString(ProcessingLogConfig.TOPIC_NAME))
         .thenReturn(LOG_TOPIC_NAME);
-    when(ksqlEngine.createSandbox()).thenReturn(sandBox);
+    when(ksqlEngine.createSandbox(any())).thenReturn(sandBox);
     when(commandQueue.isEmpty()).thenReturn(true);
     when(commandQueue.enqueueCommand(any()))
         .thenReturn(queuedCommandStatus);
@@ -149,7 +149,7 @@ public class KsqlRestApplicationTest {
   @Test
   public void shouldRegisterRestSecurityExtension() {
     // Given:
-    final Configurable configurable = mock(Configurable.class);
+    final Configurable<?> configurable = mock(Configurable.class);
 
     // When:
     app.configureBaseApplication(configurable, Collections.emptyMap());

@@ -17,8 +17,6 @@ package io.confluent.ksql.planner.plan;
 
 import static java.util.Objects.requireNonNull;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.parser.tree.Expression;
@@ -41,13 +39,12 @@ public class ProjectNode extends PlanNode {
   private final List<Expression> projectExpressions;
   private final KeyField keyField;
 
-  @JsonCreator
   public ProjectNode(
-      @JsonProperty("id") final PlanNodeId id,
-      @JsonProperty("source") final PlanNode source,
-      @JsonProperty("schema") final KsqlSchema schema,
-      @JsonProperty("key") final Optional<String> keyFieldName,
-      @JsonProperty("projectExpressions") final List<Expression> projectExpressions
+      final PlanNodeId id,
+      final PlanNode source,
+      final KsqlSchema schema,
+      final Optional<String> keyFieldName,
+      final List<Expression> projectExpressions
   ) {
     super(id, source.getNodeOutputType());
 
@@ -70,7 +67,6 @@ public class ProjectNode extends PlanNode {
     return ImmutableList.of(source);
   }
 
-  @JsonProperty
   public PlanNode getSource() {
     return source;
   }

@@ -18,9 +18,9 @@
         {"topic": "test_topic", "key": 5, "value": {"source": 5}, "timestamp": 0}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": 2, "value": 2, "timestamp": 0},
-        {"topic": "OUTPUT", "key": 3, "value": 3, "timestamp": 0},
-        {"topic": "OUTPUT", "key": 4, "value": 4, "timestamp": 0}
+        {"topic": "OUTPUT", "key": 2, "value": {"THING": 2}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": 3, "value": {"THING": 3}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": 4, "value": {"THING": 4}, "timestamp": 0}
       ]
     },
     {
@@ -38,9 +38,9 @@
         {"topic": "test_topic", "key": 5, "value": {"source": 5}, "timestamp": 0}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": 2, "value": 2, "timestamp": 0},
-        {"topic": "OUTPUT", "key": 3, "value": 3, "timestamp": 0},
-        {"topic": "OUTPUT", "key": 4, "value": 4, "timestamp": 0}
+        {"topic": "OUTPUT", "key": 2, "value": {"THING": 2}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": 3, "value": {"THING": 3}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": 4, "value": {"THING": 4}, "timestamp": 0}
       ]
     },
     {
@@ -58,9 +58,9 @@
         {"topic": "test_topic", "key": 5, "value": {"source": 4.0}, "timestamp": 0}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": 2, "value": 2.0, "timestamp": 0},
-        {"topic": "OUTPUT", "key": 3, "value": 2.1, "timestamp": 0},
-        {"topic": "OUTPUT", "key": 4, "value": 3.9, "timestamp": 0}
+        {"topic": "OUTPUT", "key": 2, "value": {"THING": 2.0}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": 3, "value": {"THING": 2.1}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": 4, "value": {"THING": 3.9}, "timestamp": 0}
       ]
     },
     {
@@ -78,9 +78,9 @@
         {"topic": "test_topic", "key": 5, "value": {"source": "ca"}, "timestamp": 0}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": 2, "value": "b", "timestamp": 0},
-        {"topic": "OUTPUT", "key": 3, "value": "ba", "timestamp": 0},
-        {"topic": "OUTPUT", "key": 4, "value": "c", "timestamp": 0}
+        {"topic": "OUTPUT", "key": 2, "value": {"THING": "b"}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": 3, "value": {"THING": "ba"}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": 4, "value": {"THING": "c"}, "timestamp": 0}
       ]
     },
     {
@@ -97,7 +97,7 @@
         {"topic": "test_topic", "key": 4, "value": {"source": 4, "min":  null, "max": null}, "timestamp": 0}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": 1, "value": 1, "timestamp": 0}
+        {"topic": "OUTPUT", "key": 1, "value": {"THING": 1}, "timestamp": 0}
       ]
     },
     {
@@ -113,8 +113,8 @@
         {"topic": "test_topic", "key": 4, "value": {"source": 4, "avg":  10}, "timestamp": 0}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": 3, "value": 10, "timestamp": 0},
-        {"topic": "OUTPUT", "key": 4, "value": 4, "timestamp": 0}
+        {"topic": "OUTPUT", "key": 3, "value": {"THING": 10}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": 4, "value": {"THING": 4}, "timestamp": 0}
       ]
     },
     {
@@ -131,8 +131,8 @@
         {"topic": "test_topic", "key": 5, "value": {"source": 5}, "timestamp": 0}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": 1, "value": 1, "timestamp": 0},
-        {"topic": "OUTPUT", "key": 5, "value": 5, "timestamp": 0}
+        {"topic": "OUTPUT", "key": 1, "value": {"THING": 1}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": 5, "value": {"THING": 5}, "timestamp": 0}
       ]
     },
     {
@@ -149,9 +149,9 @@
         {"topic": "test_topic", "key": 5, "value": {"source": [10,5]}, "timestamp": 0}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": 2, "value": 2, "timestamp": 0},
-        {"topic": "OUTPUT", "key": 3, "value": 3, "timestamp": 0},
-        {"topic": "OUTPUT", "key": 4, "value": 4, "timestamp": 0}
+        {"topic": "OUTPUT", "key": 2, "value": {"THING": 2}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": 3, "value": {"THING": 3}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": 4, "value": {"THING": 4}, "timestamp": 0}
       ]
     },
     {
@@ -169,9 +169,9 @@
         {"topic": "test_topic", "key": 5, "value": {"source": "ca"}, "timestamp": 0}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": 2, "value": "b", "timestamp": 0},
-        {"topic": "OUTPUT", "key": 3, "value": "ba", "timestamp": 0},
-        {"topic": "OUTPUT", "key": 4, "value": "c", "timestamp": 0}
+        {"topic": "OUTPUT", "key": 2, "value": {"THING": "b"}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": 3, "value": {"THING": "ba"}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": 4, "value": {"THING": "c"}, "timestamp": 0}
       ]
     }
   ]

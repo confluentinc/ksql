@@ -17,8 +17,6 @@ package io.confluent.ksql.planner.plan;
 
 import static java.util.Objects.requireNonNull;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.metastore.model.DataSource;
@@ -94,11 +92,10 @@ public class DataSourceNode
   private final KeyField keyField;
   private final Function<KsqlConfig, MaterializedFactory> materializedFactorySupplier;
 
-  @JsonCreator
   public DataSourceNode(
-      @JsonProperty("id") final PlanNodeId id,
-      @JsonProperty("dataSource") final DataSource<?> dataSource,
-      @JsonProperty("alias") final String alias
+      final PlanNodeId id,
+      final DataSource<?> dataSource,
+      final String alias
   ) {
     this(id, dataSource, alias, MaterializedFactory::create);
   }

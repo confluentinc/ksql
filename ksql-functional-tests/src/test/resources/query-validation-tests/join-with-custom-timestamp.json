@@ -83,13 +83,13 @@
         {"topic": "s1", "key": 0, "value": {"ID": 0, "NAME": "zero", "TS": 0}, "timestamp": 0},
         {"topic": "s2", "key": 0, "value": {"ID": 0, "F1": "blah", "F2": "foo"}, "timestamp": 10000},
         {"topic": "s2", "key": 10, "value": {"ID": 10, "F1": "foo", "F2": "bar"}, "timestamp": 13000},
-        {"topic": "s1", "key": 10, "value": {"ID": 10, "NAME": "100", "TS": 11000}, "timestamp": 22000},
-        {"topic": "s1", "key": 0, "value": {"ID": 0, "NAME": "jan", "TS": 8000}, "timestamp": 33000}
+        {"topic": "s1", "key": 10, "value": {"ID": 10, "NAME": "100", "TS": 19000}, "timestamp": 22000},
+        {"topic": "s1", "key": 0, "value": {"ID": 0, "NAME": "jan", "TS": 18000}, "timestamp": 33000}
       ],
       "outputs": [
         {"topic": "S1_JOIN_S2", "key": 0, "value": {"ID": 0, "NAME": "zero", "TS": 0, "F1": "blah", "F2": "foo"}, "timestamp": 10000},
-        {"topic": "S1_JOIN_S2", "key": 10, "value": {"ID": 10, "NAME": "100", "TS": 11000, "F1": "foo", "F2": "bar"}, "timestamp": 11000},
-        {"topic": "S1_JOIN_S2", "key": 0, "value": {"ID": 0, "NAME": "jan", "TS": 8000, "F1": "blah", "F2": "foo"}, "timestamp": 8000}
+        {"topic": "S1_JOIN_S2", "key": 10, "value": {"ID": 10, "NAME": "100", "TS": 19000, "F1": "foo", "F2": "bar"}, "timestamp": 19000},
+        {"topic": "S1_JOIN_S2", "key": 0, "value": {"ID": 0, "NAME": "jan", "TS": 18000, "F1": "blah", "F2": "foo"}, "timestamp": 18000}
       ]
     },
     {
@@ -109,8 +109,8 @@
       ],
       "outputs": [
         {"topic": "S1_JOIN_S2", "key": 0, "value": {"ID": 0, "NAME": "zero", "TS": 0, "F1": "blah", "F2": "foo"}, "timestamp": 10000},
-        {"topic": "S1_JOIN_S2", "key": 10, "value": {"ID": 10, "NAME": "100", "TS": 11000, "F1": "foo", "F2": "bar"}, "timestamp": 11000},
-        {"topic": "S1_JOIN_S2", "key": 0, "value": {"ID": 0, "NAME": "jan", "TS": 8000, "F1": "blah", "F2": "foo"}, "timestamp": 8000}
+        {"topic": "S1_JOIN_S2", "key": 10, "value": {"ID": 10, "NAME": "100", "TS": 11000, "F1": "foo", "F2": "bar"}, "timestamp": 13000},
+        {"topic": "S1_JOIN_S2", "key": 0, "value": {"ID": 0, "NAME": "jan", "TS": 8000, "F1": "blah", "F2": "foo"}, "timestamp": 10000}
       ]
     }
   ]

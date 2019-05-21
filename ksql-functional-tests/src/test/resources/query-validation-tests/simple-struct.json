@@ -831,19 +831,25 @@
         {
           "topic": "S2",
           "timestamp": 0,
-          "value": "Item_6",
+          "value": {
+            "ITEMID__NAME": "Item_6"
+          },
           "key": 0
         },
         {
           "topic": "S2",
           "timestamp": 0,
-          "value": "Item_6",
+          "value": {
+            "ITEMID__NAME": "Item_6"
+          },
           "key": 100
         },
         {
           "topic": "S2",
           "timestamp": 0,
-          "value": "Item_6",
+          "value": {
+            "ITEMID__NAME": "Item_6"
+          },
           "key": 101
         }
       ]

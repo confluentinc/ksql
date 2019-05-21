@@ -504,7 +504,7 @@ use the following statement to declare your table:
 
 .. code:: sql
 
-    CREATE TABLE users (usertimestamp BIGINT, user_id VARCHAR, gender VARCHAR, region_id VARCHAR, `Properties` VARCHAR)
+    CREATE TABLE users (usertimestamp BIGINT, user_id VARCHAR, gender VARCHAR, region_id VARCHAR, `Properties` VARCHAR) WITH (
             KAFKA_TOPIC = 'my-users-topic',
             KEY = 'user_id');
 

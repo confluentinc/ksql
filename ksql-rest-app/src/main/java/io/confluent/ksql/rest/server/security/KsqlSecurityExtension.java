@@ -15,10 +15,14 @@
 
 package io.confluent.ksql.rest.server.security;
 
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 
+import java.security.Principal;
+import java.util.function.Supplier;
 import javax.ws.rs.core.Configurable;
+import org.apache.kafka.streams.KafkaClientSupplier;
 
 /**
  * This interface provides a security extension (or plugin) to the KSQL server in order to
@@ -45,6 +49,26 @@ public interface KsqlSecurityExtension extends AutoCloseable {
    * @throws KsqlException If an error occurs while registering the REST security plugin.
    */
   void registerRestEndpoints(Configurable<?> configurable) throws KsqlException;
+
+  /**
+   * Constructs a {@link org.apache.kafka.streams.KafkaClientSupplier} with the user's credentials.
+   *
+   * @param principal The {@link Principal} whose credentials will be used.
+   * @throws KsqlException If an error occurs while creating the
+   * {@link org.apache.kafka.streams.KafkaClientSupplier}.
+   */
+  KafkaClientSupplier getKafkaClientSupplier(Principal principal) throws KsqlException;
+
+  /**
+   * Constructs a {@link io.confluent.kafka.schemaregistry.client.SchemaRegistryClient} supplier
+   * with the user's credentials.
+   *
+   * @param principal The {@link Principal} whose credentials will be used.
+   * @throws KsqlException If an error occurs while creating the
+   * {@link io.confluent.kafka.schemaregistry.client.SchemaRegistryClient} supplier.
+   */
+  Supplier<SchemaRegistryClient> getSchemaRegistryClientSupplier(Principal principal)
+      throws KsqlException;
 
   /**
    * Closes the current security extension. This is called in case the implementation requires

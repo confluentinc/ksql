@@ -67,7 +67,7 @@ support a map type, KSQL serializes ``MAP``s as JSON objects.  Because of this t
 only support ``MAP`` objects that have ``STRING`` keys.
 
 The serialized object should be a Kafka-serialized string containing a valid JSON value. The format
-supports JSON objects only. Top-level primitives and arrays are not currently supported.
+supports JSON objects only. Top-level primitives, arrays and maps are not currently supported.
 
 JSON Objects
 ------------
@@ -98,7 +98,7 @@ KSQL deserializes the JSON object's fields into the corresponding fields of the 
 Avro
 ----
 
-The ``AVRO`` format supports Avro binary serialized of all of KSQL's ref:`data types <data-types>`.
+The ``AVRO`` format supports Avro binary serialization of all of KSQL's ref:`data types <data-types>`.
 
 The format supports Avro records only. Top-level primitives, arrays and maps are not supported at
 this time.

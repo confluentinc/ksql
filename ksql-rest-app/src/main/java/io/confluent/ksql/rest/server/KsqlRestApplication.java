@@ -56,6 +56,8 @@ import io.confluent.ksql.rest.server.resources.ServerInfoResource;
 import io.confluent.ksql.rest.server.resources.StatusResource;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
 import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint;
+import io.confluent.ksql.rest.server.security.KsqlDefaultSecurityExtension;
+import io.confluent.ksql.rest.server.security.KsqlSecurityExtension;
 import io.confluent.ksql.rest.util.ClusterTerminator;
 import io.confluent.ksql.rest.util.KsqlInternalTopicUtils;
 import io.confluent.ksql.rest.util.ProcessingLogServerUtils;
@@ -125,6 +127,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
   private final VersionCheckerAgent versionCheckerAgent;
   private final ServiceContext serviceContext;
   private final Function<KsqlConfig, Binder> serviceContextBinderFactory;
+  private final KsqlSecurityExtension securityExtension;
 
   public static String getCommandsStreamName() {
     return COMMANDS_STREAM_NAME;
@@ -144,7 +147,8 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
       final StreamedQueryResource streamedQueryResource,
       final KsqlResource ksqlResource,
       final VersionCheckerAgent versionCheckerAgent,
-      final Function<KsqlConfig, Binder> serviceContextBinderFactory) {
+      final Function<KsqlConfig, Binder> serviceContextBinderFactory,
+      final KsqlSecurityExtension securityExtension) {
     super(config);
     this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
@@ -161,6 +165,10 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         Objects.requireNonNull(versionCheckerAgent, "versionCheckerAgent");
     this.serviceContextBinderFactory = Objects.requireNonNull(
         serviceContextBinderFactory, "serviceContextBinderFactory");
+    this.securityExtension = Objects.requireNonNull(
+        securityExtension, "securityExtension"
+    );
+
     this.serverInfo = new ServerInfo(
         Version.getVersion(),
         getKafkaClusterId(serviceContext),
@@ -215,6 +223,12 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
     } catch (final Exception e) {
       log.error("Exception while closing services", e);
     }
+
+    try {
+      securityExtension.close();
+    } catch (final Exception e) {
+      log.error("Exception while closing security extension", e);
+    }
   }
 
   public List<URL> getListeners() {
@@ -254,6 +268,10 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
     // Don't want to buffer rows when streaming JSON in a request to the query resource
     config.property(ServerProperties.OUTBOUND_CONTENT_LENGTH_BUFFER, 0);
     config.property(ServerProperties.WADL_FEATURE_DISABLE, true);
+
+    // Registers the REST security extensions
+    securityExtension.initialize(ksqlConfig);
+    securityExtension.registerRestEndpoints(config);
   }
 
   @Override
@@ -404,6 +422,8 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
     final VersionCheckerAgent versionChecker = versionCheckerFactory
         .apply(ksqlEngine::hasActiveQueries);
 
+    final KsqlSecurityExtension securityExtension = loadSecurityExtension(ksqlConfig);
+
     final TopicAccessValidator topicAccessValidator =
         TopicAccessValidatorFactory.create(serviceContext, ksqlEngine.getMetaStore());
 
@@ -465,8 +485,16 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         streamedQueryResource,
         ksqlResource,
         versionChecker,
-        serviceContextBinderFactory
+        serviceContextBinderFactory,
+        securityExtension
     );
+  }
+
+  private static KsqlSecurityExtension loadSecurityExtension(final KsqlConfig ksqlConfig) {
+    return Optional.ofNullable(ksqlConfig.getConfiguredInstance(
+        ksqlConfig.KSQL_SECURITY_EXTENSION_CLASS,
+        KsqlSecurityExtension.class
+    )).orElse(new KsqlDefaultSecurityExtension());
   }
 
   private static String getKafkaClusterId(final ServiceContext serviceContext) {

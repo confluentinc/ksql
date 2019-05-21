@@ -71,9 +71,7 @@ public class KsqlAvroSerializerTest {
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
 
-  private KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of(
-      KsqlConfig.KSQL_WRAP_SINGLE_VALUES, true
-  ));
+  private KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of());
   private Serializer<Struct> serializer;
   private Deserializer<Struct> deserializer;
 
@@ -348,8 +346,7 @@ public class KsqlAvroSerializerTest {
   @Test
   public void shouldSerializeMapWithoutNameIfDisabled() {
     ksqlConfig = new KsqlConfig(ImmutableMap.of(
-        KsqlConfig.KSQL_USE_NAMED_AVRO_MAPS, false,
-        KsqlConfig.KSQL_WRAP_SINGLE_VALUES, true
+        KsqlConfig.KSQL_USE_NAMED_AVRO_MAPS, false
     ));
 
     final org.apache.avro.Schema avroSchema = mapSchema(legacyMapEntrySchema());
@@ -492,116 +489,11 @@ public class KsqlAvroSerializerTest {
     assertThat(avroRecord.getSchema().getName(), equalTo(schemaName));
   }
 
-  @Test
-  public void shouldSerializedTopLevelPrimitiveIfValueHasOneField() {
-    // Given:
-    givenConfiguredToSerializeSingleFieldWithoutStruct();
-
-    final Schema schema = SchemaBuilder.struct()
-        .field("id", Schema.OPTIONAL_INT64_SCHEMA)
-        .build();
-
-    resetSerde(schema);
-
-    final Struct value = new Struct(schema)
-        .put("id", 10L);
-
-    // When:
-    final byte[] bytes = serializer.serialize("t", value);
-
-    // Then:
-    assertThat(deserialize(bytes), is(10L));
-  }
-
-  @Test
-  public void shouldSerializeTopLevelArrayIfValueHasOnlySingleField() {
-    // Given:
-    givenConfiguredToSerializeSingleFieldWithoutStruct();
-
-    final Schema schema = SchemaBuilder.struct()
-        .field("ids", SchemaBuilder
-            .array(Schema.OPTIONAL_INT64_SCHEMA)
-            .optional()
-            .build())
-        .build();
-
-    final Struct value = new Struct(schema)
-        .put("ids", ImmutableList.of(1L, 2L, 3L));
-
-    resetSerde(schema);
-
-    // When:
-    final byte[] bytes = serializer.serialize("t", value);
-
-    // Then:
-    assertThat(deserialize(bytes), is(ImmutableList.of(1L, 2L, 3L)));
-  }
-
-  @Test
-  public void shouldSerializeTopLevelMapIfValueHasOnlySingleField() {
-    // Given:
-    givenConfiguredToSerializeSingleFieldWithoutStruct();
-
-    final Schema schema = SchemaBuilder.struct()
-        .field("ids", SchemaBuilder
-            .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_INT64_SCHEMA)
-            .optional()
-            .build())
-        .build();
-
-    final Struct value = new Struct(schema)
-        .put("ids", ImmutableMap.of("a", 1L, "b", 2L));
-
-    resetSerde(schema);
-
-    // When:
-    final byte[] bytes = serializer.serialize("t", value);
-
-    // Then:
-    final GenericData.Array<GenericData.Record> array = deserialize(bytes);
-    assertThat(array.toString(), is("[{\"key\": \"a\", \"value\": 1}, {\"key\": \"b\", \"value\": 2}]"));
-  }
-
-  @Test
-  public void shouldSerializeTopLevelStructIfValueHasOnlySingleField() {
-    // Given:
-    givenConfiguredToSerializeSingleFieldWithoutStruct();
-
-    final Schema schema = SchemaBuilder.struct()
-        .field("ids", SchemaBuilder
-            .struct()
-            .field("f0", Schema.OPTIONAL_INT64_SCHEMA)
-            .optional()
-            .build())
-        .build();
-
-    final Struct physicalSchema = new Struct(schema.fields().get(0).schema())
-        .put("f0", 1L);
-
-    final Struct value = new Struct(schema)
-        .put("ids", physicalSchema);
-
-    resetSerde(schema);
-
-    // When:
-    final byte[] bytes = serializer.serialize("t", value);
-
-    // Then:
-    final GenericData.Record record = deserialize(bytes);
-    assertThat(record.toString(), is("{\"f0\": 1}"));
-  }
-
   @SuppressWarnings("unchecked")
   private <T> T deserialize(final byte[] serializedRow) {
     final KafkaAvroDeserializer kafkaAvroDeserializer =
         new KafkaAvroDeserializer(schemaRegistryClient);
 
     return (T) kafkaAvroDeserializer.deserialize("t", serializedRow);
-  }
-
-  private void givenConfiguredToSerializeSingleFieldWithoutStruct() {
-    ksqlConfig = new KsqlConfig(ImmutableMap.of(
-        KsqlConfig.KSQL_WRAP_SINGLE_VALUES, false
-    ));
   }
 }

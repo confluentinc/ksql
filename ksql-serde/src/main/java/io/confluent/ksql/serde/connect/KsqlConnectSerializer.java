@@ -17,7 +17,6 @@ package io.confluent.ksql.serde.connect;
 
 import java.util.Map;
 import java.util.Objects;
-import java.util.function.Function;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.Schema;
@@ -29,18 +28,15 @@ public class KsqlConnectSerializer implements Serializer<Struct> {
   private final Schema physicalSchema;
   private final DataTranslator translator;
   private final Converter converter;
-  private final Function<Struct, Object> preprocessor;
 
   public KsqlConnectSerializer(
       final Schema physicalSchema,
-      final Function<Struct, Object> preprocessor,
       final DataTranslator translator,
       final Converter converter
   ) {
     this.physicalSchema = Objects.requireNonNull(physicalSchema, "physicalSchema");
     this.translator = Objects.requireNonNull(translator, "translator");
     this.converter = Objects.requireNonNull(converter, "converter");
-    this.preprocessor = Objects.requireNonNull(preprocessor, "preprocessor");
   }
 
   @Override
@@ -51,10 +47,8 @@ public class KsqlConnectSerializer implements Serializer<Struct> {
 
     final Object connectRow = translator.toConnectRow(data);
 
-    final Object toSerialize = preprocessor.apply((Struct)connectRow);
-
     try {
-      return converter.fromConnectData(topic, physicalSchema, toSerialize);
+      return converter.fromConnectData(topic, physicalSchema, connectRow);
     } catch (final Exception e) {
       throw new SerializationException(
           "Error serializing row to topic " + topic + " using Converter API", e);

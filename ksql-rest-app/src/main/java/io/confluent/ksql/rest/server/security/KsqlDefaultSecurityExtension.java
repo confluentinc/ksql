@@ -13,23 +13,27 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.schema.persistence;
+package io.confluent.ksql.rest.server.security;
 
-import static org.mockito.Mockito.mock;
-
-import com.google.common.collect.ImmutableMap;
-import com.google.common.testing.NullPointerTester;
-import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.util.KsqlConfig;
-import org.junit.Test;
+import io.confluent.ksql.util.KsqlException;
 
-public class PersistenceSchemasFactoryTest {
+import javax.ws.rs.core.Configurable;
 
-  @Test
-  public void shouldNPE() {
-    new NullPointerTester()
-        .setDefault(KsqlSchema.class, mock(KsqlSchema.class))
-        .setDefault(KsqlConfig.class, new KsqlConfig(ImmutableMap.of()))
-        .testAllPublicStaticMethods(PersistenceSchemasFactory.class);
+/**
+ * This is the default security extension for KSQL. For now, this class is just a dummy
+ * implementation of the {@link KsqlSecurityExtension} interface.
+ */
+public class KsqlDefaultSecurityExtension implements KsqlSecurityExtension {
+  @Override
+  public void initialize(final KsqlConfig config) throws KsqlException {
+  }
+
+  @Override
+  public void registerRestEndpoints(final Configurable<?> configurable) {
+  }
+
+  @Override
+  public void close() {
   }
 }

@@ -16,7 +16,6 @@
 package io.confluent.ksql.rest.server.context;
 
 import com.google.common.collect.ImmutableMap;
-
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;

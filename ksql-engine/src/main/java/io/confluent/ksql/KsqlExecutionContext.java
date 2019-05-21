@@ -39,7 +39,7 @@ public interface KsqlExecutionContext {
    *
    * @return a sand boxed execution context.
    */
-  KsqlExecutionContext createSandbox();
+  KsqlExecutionContext createSandbox(ServiceContext serviceContext);
 
   /**
    * @return read-only access to the context's {@link MetaStore}.

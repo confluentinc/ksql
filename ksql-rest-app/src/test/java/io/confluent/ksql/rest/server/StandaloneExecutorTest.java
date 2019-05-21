@@ -245,7 +245,7 @@ public class StandaloneExecutorTest {
 
     when(ksqlEngine.execute(any())).thenReturn(ExecuteResult.of(persistentQuery));
 
-    when(ksqlEngine.createSandbox()).thenReturn(sandBox);
+    when(ksqlEngine.createSandbox(any())).thenReturn(sandBox);
 
     when(sandBox.prepare(PARSED_STMT_0)).thenReturn((PreparedStatement) PREPARED_STMT_0);
     when(sandBox.prepare(PARSED_STMT_1)).thenReturn((PreparedStatement) PREPARED_STMT_1);

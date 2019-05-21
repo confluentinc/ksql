@@ -91,15 +91,13 @@ final class EngineContext {
         onQueryCloseCallback);
   }
 
-  EngineContext createSandbox() {
+  EngineContext createSandbox(final ServiceContext serviceContext) {
     final EngineContext sandBox = EngineContext.create(
         SandboxedServiceContext.create(serviceContext),
         processingLogContext,
         metaStore.copy(),
         queryIdGenerator.copy(),
-        (serviceContext, query) -> {
-          // No-op
-        }
+        (sc, query) -> { /* No-op */ }
     );
 
     persistentQueries.forEach((queryId, query) ->

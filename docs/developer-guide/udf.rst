@@ -242,7 +242,7 @@ about the method when, for example, they execute ``DESCRIBE FUNCTION`` on the me
 +------------+------------------------------+------------------------+
 | Field      | Description                  | Required               |
 +============+==============================+========================+
-| value      | The case-insensitive name of | Required if the udf JAR|
+| value      | The case-insensitive name of | Required if the UDF JAR|
 |            | the parameter                | was not compiled with  |
 |            |                              | the ``-parameters``    |
 |            |                              | javac argument.        |

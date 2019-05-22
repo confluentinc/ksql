@@ -173,7 +173,7 @@ public class StandaloneExecutor implements Executable {
   }
 
   private void validateStatements(final List<ParsedStatement> statements) {
-    final KsqlExecutionContext sandboxEngine = ksqlEngine.createSandbox();
+    final KsqlExecutionContext sandboxEngine = ksqlEngine.createSandbox(serviceContext);
     final Injector injector = injectorFactory.apply(
         sandboxEngine, sandboxEngine.getServiceContext());
 

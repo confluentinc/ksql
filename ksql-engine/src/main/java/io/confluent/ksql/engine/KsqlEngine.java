@@ -151,8 +151,8 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   }
 
   @Override
-  public KsqlExecutionContext createSandbox() {
-    return new SandboxedExecutionContext(primaryContext);
+  public KsqlExecutionContext createSandbox(final ServiceContext serviceContext) {
+    return new SandboxedExecutionContext(primaryContext, serviceContext);
   }
 
   @Override

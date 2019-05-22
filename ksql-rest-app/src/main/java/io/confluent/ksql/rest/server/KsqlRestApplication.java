@@ -491,7 +491,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
 
   private static KsqlSecurityExtension loadSecurityExtension(final KsqlConfig ksqlConfig) {
     return Optional.ofNullable(ksqlConfig.getConfiguredInstance(
-        ksqlConfig.KSQL_SECURITY_EXTENSION_CLASS,
+        KsqlConfig.KSQL_SECURITY_EXTENSION_CLASS,
         KsqlSecurityExtension.class
     )).orElse(new KsqlDefaultSecurityExtension());
   }
@@ -553,7 +553,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         statement, Collections.emptyMap(), ksqlConfig);
 
     try {
-      ksqlEngine.createSandbox().execute(configured.get());
+      ksqlEngine.createSandbox(ksqlEngine.getServiceContext()).execute(configured.get());
     } catch (final KsqlException e) {
       log.warn("Failed to create processing log stream", e);
       return;

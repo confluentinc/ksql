@@ -115,16 +115,12 @@ final class TestExecutor {
       final ServiceContext serviceContext
   ) {
     for (final Record record : testCase.getInputRecords()) {
-      try {
-        TestCase.processSingleRecord(
-            FakeKafkaRecord.of(record, null),
-            fakeKafkaService,
-            topologyTestDriverContainer,
-            serviceContext.getSchemaRegistryClient()
-        );
-      } catch (IOException | RestClientException e) {
-        e.printStackTrace();
-      }
+      TestCase.processSingleRecord(
+          FakeKafkaRecord.of(record, null),
+          fakeKafkaService,
+          topologyTestDriverContainer,
+          serviceContext.getSchemaRegistryClient()
+      );
     }
   }
 
@@ -136,16 +132,12 @@ final class TestExecutor {
   ) {
     for (final FakeKafkaRecord fakeKafkaRecord : fakeKafkaService
         .readRecords(kafkaTopicName)) {
-      try {
-        TestCase.processSingleRecord(
-            fakeKafkaRecord,
-            fakeKafkaService,
-            topologyTestDriverContainer,
-            serviceContext.getSchemaRegistryClient()
-        );
-      } catch (IOException | RestClientException e) {
-        e.printStackTrace();
-      }
+      TestCase.processSingleRecord(
+          fakeKafkaRecord,
+          fakeKafkaService,
+          topologyTestDriverContainer,
+          serviceContext.getSchemaRegistryClient()
+      );
     }
   }
 

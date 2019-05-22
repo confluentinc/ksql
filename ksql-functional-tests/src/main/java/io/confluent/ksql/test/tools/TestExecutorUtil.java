@@ -26,7 +26,6 @@ import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
-import io.confluent.ksql.metastore.model.StructuredDataSource;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.AliasedRelation;
@@ -40,7 +39,8 @@ import io.confluent.ksql.schema.inference.SchemaRegistryTopicSchemaSupplier;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
-import io.confluent.ksql.test.utils.Utilities;
+import io.confluent.ksql.test.utils.SerdeUtil;
+import io.confluent.ksql.test.utils.WindowUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
@@ -90,11 +90,8 @@ final class TestExecutorUtil {
       final List<Topic> sourceTopics = persistentQueryAndSortedSources.getSources()
           .stream()
           .map(dataSource -> {
-            if (!fakeKafkaService.getTopicMap().containsKey(dataSource.getKafkaTopicName())) {
-              throw new KsqlException("Source topic not in the kafka cluster: "
-                  + dataSource.getKafkaTopicName());
-            }
-            return fakeKafkaService.getTopicMap().get(dataSource.getKafkaTopicName());
+            fakeKafkaService.ensureTopicExists(dataSource.getKafkaTopicName());
+            return fakeKafkaService.getTopic(dataSource.getKafkaTopicName());
           })
           .collect(Collectors.toList());
 
@@ -117,18 +114,15 @@ final class TestExecutorUtil {
       final DataSource<?> sinkDataSource,
       final Optional<Long> windowSize,
       final FakeKafkaService fakeKafkaService,
-      final SchemaRegistryClient schemaRegistryClient) throws IOException, RestClientException {
-    final StructuredDataSource structuredDataSource = (StructuredDataSource) sinkDataSource;
-    final String kafkaTopicName = structuredDataSource.getKafkaTopicName();
+      final SchemaRegistryClient schemaRegistryClient) {
+    final String kafkaTopicName = sinkDataSource.getKafkaTopicName();
     final Optional<org.apache.avro.Schema> avroSchema =
-        structuredDataSource.getValueSerdeFactory().getFormat() == Format.AVRO
-        ? getAvroSchema(schemaRegistryClient, kafkaTopicName)
-        : Optional.empty();
+        getAvroSchema(sinkDataSource, schemaRegistryClient);
     final Topic sinkTopic = new Topic(
         kafkaTopicName,
         avroSchema,
-        structuredDataSource.getKeySerdeFactory(),
-        Utilities.getSerdeSupplier(structuredDataSource.getValueSerdeFactory().getFormat()),
+        sinkDataSource.getKeySerdeFactory(),
+        SerdeUtil.getSerdeSupplier(sinkDataSource.getValueSerdeFactory().getFormat()),
         KsqlConstants.legacyDefaultSinkPartitionCount,
         KsqlConstants.legacyDefaultSinkReplicaCount,
         windowSize
@@ -143,14 +137,16 @@ final class TestExecutorUtil {
   }
 
   private static Optional<Schema> getAvroSchema(
-      final SchemaRegistryClient schemaRegistryClient,
-      final String kafkaTopicName) {
-    try {
-      final SchemaMetadata schemaMetadata = schemaRegistryClient.getLatestSchemaMetadata(
-          kafkaTopicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
-      return Optional.of(new org.apache.avro.Schema.Parser().parse(schemaMetadata.getSchema()));
-    } catch (final Exception e) {
-      // do nothing
+      final DataSource<?> dataSource,
+      final SchemaRegistryClient schemaRegistryClient) {
+    if (dataSource.getValueSerdeFactory().getFormat() == Format.AVRO) {
+      try {
+        final SchemaMetadata schemaMetadata = schemaRegistryClient.getLatestSchemaMetadata(
+            dataSource.getKafkaTopicName() + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
+        return Optional.of(new org.apache.avro.Schema.Parser().parse(schemaMetadata.getSchema()));
+      } catch (final Exception e) {
+        // do nothing
+      }
     }
     return Optional.empty();
   }
@@ -235,16 +231,14 @@ final class TestExecutorUtil {
           getSortedSources(
               ((CreateAsSelect)prepared.getStatement()).getQuery(),
               executionContext.getMetaStore()),
-          Utilities.getWindowSize(((CreateAsSelect)prepared.getStatement()).getQuery(),
-              executionContext.getMetaStore()));
+          WindowUtil.getWindowSize(((CreateAsSelect)prepared.getStatement()).getQuery()));
     }
     if (prepared.getStatement() instanceof InsertInto) {
       return new ExecuteResultAndSortedSources(
           executeResult,
           getSortedSources(((InsertInto) prepared.getStatement()).getQuery(),
               executionContext.getMetaStore()),
-          Utilities.getWindowSize(((InsertInto) prepared.getStatement()).getQuery(),
-              executionContext.getMetaStore())
+          WindowUtil.getWindowSize(((InsertInto) prepared.getStatement()).getQuery())
       );
     }
     return new ExecuteResultAndSortedSources(

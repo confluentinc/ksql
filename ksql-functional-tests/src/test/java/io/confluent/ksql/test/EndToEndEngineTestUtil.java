@@ -44,7 +44,7 @@ import io.confluent.ksql.test.tools.Topic;
 import io.confluent.ksql.test.tools.TopologyAndConfigs;
 import io.confluent.ksql.test.tools.TopologyTestDriverContainer;
 import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;
-import io.confluent.ksql.test.utils.Utilities;
+import io.confluent.ksql.test.utils.SerdeUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
@@ -157,7 +157,7 @@ final class EndToEndEngineTestUtil {
       final Topic sinkTopic = new Topic(
           sinkKafkaTopicName,
           Optional.empty(),
-          Utilities.getSerdeSupplierForKsqlSerdeFactory(
+          SerdeUtil.getSerdeSupplierForKsqlSerdeFactory(
               persistentQueryMetadata.getResultTopic().getValueSerdeFactory()
           ),
           1,
@@ -217,10 +217,9 @@ final class EndToEndEngineTestUtil {
         topologyTestDriver,
         persistentQueryMetadata.getSourceNames()
             .stream()
-            .map(s -> fakeKafkaService.getTopicMap()
-                    .get(ksqlEngine.getMetaStore().getSource(s).getKafkaTopicName()))
+            .map(s -> fakeKafkaService.getTopic(ksqlEngine.getMetaStore().getSource(s).getKafkaTopicName()))
             .collect(Collectors.toList()),
-        fakeKafkaService.getTopicMap().get(
+        fakeKafkaService.getTopic(
             ksqlEngine.getMetaStore()
                 .getSource(persistentQueryMetadata.getSinkNames().iterator().next())
                 .getKafkaTopicName())

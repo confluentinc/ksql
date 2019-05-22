@@ -22,7 +22,6 @@ import static org.junit.matchers.JUnitMatchers.isThrowable;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.test.model.KsqlVersion;
@@ -32,7 +31,6 @@ import io.confluent.ksql.test.tools.conditions.PostConditions;
 import io.confluent.ksql.test.tools.exceptions.KsqlExpectedException;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
-import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -174,7 +172,7 @@ public class TestCase implements Test {
             r -> topologyTestDriverContainer.getTopologyTestDriver().pipeInput(
                 new ConsumerRecordFactory<>(
                     r.keySerializer(),
-                    r.topic.getSerializer(schemaRegistryClient)
+                    r.topic.getValueSerializer(schemaRegistryClient)
                 ).create(r.topic.name, r.key(), r.value, r.timestamp)
             ));
   }
@@ -195,7 +193,7 @@ public class TestCase implements Test {
             .readOutput(
                 expectedOutput.topic.name,
                 expectedOutput.keyDeserializer(),
-                expectedOutput.topic.getDeserializer(schemaRegistryClient));
+                expectedOutput.topic.getValueDeserializer(schemaRegistryClient));
 
         if (record == null) {
           throw new AssertionError("No record received");
@@ -328,15 +326,14 @@ public class TestCase implements Test {
       final FakeKafkaRecord fakeKafkaRecord,
       final FakeKafkaService fakeKafkaService,
       final TopologyTestDriverContainer testDriver,
-      final SchemaRegistryClient schemaRegistryClient) throws IOException, RestClientException {
+      final SchemaRegistryClient schemaRegistryClient) {
     final Serializer keySerializer = fakeKafkaRecord.getTestRecord().topic.getKeySerializer();
-    final Serializer valueSerializer = fakeKafkaRecord.getTestRecord().topic.getSerdeSupplier()
+    final Serializer valueSerializer = fakeKafkaRecord.getTestRecord()
+        .topic.getValueSerdeSupplier()
         instanceof AvroSerdeSupplier
         ? new ValueSpecAvroSerdeSupplier().getSerializer(schemaRegistryClient)
-        : fakeKafkaRecord.getTestRecord().topic.getSerializer(schemaRegistryClient);
-    final Object key = fakeKafkaRecord.getProducerRecord() == null
-        ? fakeKafkaRecord.getTestRecord().key()
-        : fakeKafkaRecord.getProducerRecord().key();
+        : fakeKafkaRecord.getTestRecord().topic.getValueSerializer(schemaRegistryClient);
+    final Object key = getKey(fakeKafkaRecord);
     final ConsumerRecord consumerRecord = new ConsumerRecordFactory<>(
         keySerializer,
         valueSerializer
@@ -354,7 +351,7 @@ public class TestCase implements Test {
       final ProducerRecord producerRecord = testDriver.getTopologyTestDriver().readOutput(
           sinkTopic.getName(),
           sinkTopic.getKeyDeserializer(),
-          sinkTopic.getDeserializer(schemaRegistryClient)
+          sinkTopic.getValueDeserializer(schemaRegistryClient)
       );
       if (producerRecord == null) {
         return;
@@ -405,12 +402,12 @@ public class TestCase implements Test {
       final ProducerRecord actualProducerRecord,
       final ProducerRecord expectedProducerRecord
   ) {
-    final boolean boothValuesNull = (actualProducerRecord.value() == null
+    final boolean bothValuesNull = (actualProducerRecord.value() == null
         && expectedProducerRecord.value() == null);
     if (
         !actualProducerRecord.timestamp().equals(expectedProducerRecord.timestamp())
             || !actualProducerRecord.key().equals(expectedProducerRecord.key())
-            || (!boothValuesNull
+            || (!bothValuesNull
             && !actualProducerRecord.value().equals(expectedProducerRecord.value()))) {
       throw new KsqlException(
           "Expected <" + expectedProducerRecord.key() + ", "
@@ -441,6 +438,12 @@ public class TestCase implements Test {
         }
     );
     return outputRecordsFromTest;
+  }
+
+  private static Object getKey(final FakeKafkaRecord fakeKafkaRecord) {
+    return fakeKafkaRecord.getProducerRecord() == null
+        ? fakeKafkaRecord.getTestRecord().key()
+        : fakeKafkaRecord.getProducerRecord().key();
   }
 
 }

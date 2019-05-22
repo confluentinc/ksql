@@ -45,7 +45,7 @@ public final class FakeKafkaRecord {
       final ProducerRecord producerRecord) {
     Objects.requireNonNull(producerRecord);
     Objects.requireNonNull(topic, "topic");
-    final SerdeSupplier serdeSupplier = topic.getSerdeSupplier();
+    final SerdeSupplier serdeSupplier = topic.getValueSerdeSupplier();
     final Record testRecord = new Record(
         topic,
         producerRecord.key().toString(),

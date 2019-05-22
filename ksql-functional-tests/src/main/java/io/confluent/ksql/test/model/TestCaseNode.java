@@ -43,7 +43,7 @@ import io.confluent.ksql.test.tools.conditions.PostConditions;
 import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;
 import io.confluent.ksql.test.tools.exceptions.KsqlExpectedException;
 import io.confluent.ksql.test.tools.exceptions.MissingFieldException;
-import io.confluent.ksql.test.utils.Utilities;
+import io.confluent.ksql.test.utils.SerdeUtil;
 import io.confluent.ksql.util.KsqlConstants;
 import java.nio.file.Path;
 import java.util.HashMap;
@@ -221,7 +221,7 @@ public class TestCaseNode {
     }
 
     final SerdeSupplier defaultSerdeSupplier =
-        allTopics.values().iterator().next().getSerdeSupplier();
+        allTopics.values().iterator().next().getValueSerdeSupplier();
 
     // Get topics from inputs and outputs fields:
     Streams.concat(inputs.stream(), outputs.stream())
@@ -266,19 +266,23 @@ public class TestCaseNode {
       } else {
         avroSchema = Optional.empty();
       }
-      return windowedSerdeFactory.map(wsf -> new Topic(
-          topicName,
-          avroSchema,
-          wsf,
-          Utilities.getSerdeSupplier(format),
-          KsqlConstants.legacyDefaultSinkPartitionCount,
-          KsqlConstants.legacyDefaultSinkReplicaCount,
-          Optional.empty())).orElseGet(() -> new Topic(
-          topicName,
-          avroSchema,
-          Utilities.getSerdeSupplier(format),
-          KsqlConstants.legacyDefaultSinkPartitionCount,
-          KsqlConstants.legacyDefaultSinkReplicaCount));
+      if (windowedSerdeFactory.isPresent()) {
+        return new Topic(
+            topicName,
+            avroSchema,
+            windowedSerdeFactory.get(),
+            SerdeUtil.getSerdeSupplier(format),
+            KsqlConstants.legacyDefaultSinkPartitionCount,
+            KsqlConstants.legacyDefaultSinkReplicaCount,
+            Optional.empty());
+      } else {
+        return new Topic(
+            topicName,
+            avroSchema,
+            SerdeUtil.getSerdeSupplier(format),
+            KsqlConstants.legacyDefaultSinkPartitionCount,
+            KsqlConstants.legacyDefaultSinkReplicaCount);
+      }
     };
 
     try {

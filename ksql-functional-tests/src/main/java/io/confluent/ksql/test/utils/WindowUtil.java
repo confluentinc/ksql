@@ -15,46 +15,21 @@
 
 package io.confluent.ksql.test.utils;
 
-import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.HoppingWindowExpression;
 import io.confluent.ksql.parser.tree.KsqlWindowExpression;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.SessionWindowExpression;
 import io.confluent.ksql.parser.tree.TumblingWindowExpression;
-import io.confluent.ksql.serde.Format;
-import io.confluent.ksql.serde.KsqlSerdeFactory;
-import io.confluent.ksql.test.serde.SerdeSupplier;
-import io.confluent.ksql.test.serde.avro.ValueSpecAvroSerdeSupplier;
-import io.confluent.ksql.test.serde.json.ValueSpecJsonSerdeSupplier;
-import io.confluent.ksql.test.serde.string.StringSerdeSupplier;
-import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
-public final class Utilities {
+public final class WindowUtil {
 
-  private Utilities() {
-
-  }
-
-  @SuppressWarnings("rawtypes")
-  public static SerdeSupplier getSerdeSupplier(final Format format) {
-    switch (format) {
-      case AVRO:
-        return new ValueSpecAvroSerdeSupplier();
-      case JSON:
-        return new ValueSpecJsonSerdeSupplier();
-      case DELIMITED:
-        return new StringSerdeSupplier();
-      default:
-        throw new InvalidFieldException("format", "unsupported value: " + format);
-    }
-  }
+  private WindowUtil() {}
 
   public static Optional<Long> getWindowSize(
-      final Query query,
-      final MetaStore metaStore) {
+      final Query query) {
     if (query.getWindow().isPresent()) {
 
       final KsqlWindowExpression ksqlWindowExpression = query
@@ -89,21 +64,4 @@ public final class Utilities {
         throw new KsqlException("Invalid window time unit: " + timeUnit);
     }
   }
-
-  public static SerdeSupplier getSerdeSupplierForKsqlSerdeFactory(
-      final KsqlSerdeFactory ksqlSerdeFactory) {
-    switch (ksqlSerdeFactory.getFormat()) {
-      case AVRO:
-        return new ValueSpecAvroSerdeSupplier();
-      case JSON:
-        return new ValueSpecJsonSerdeSupplier();
-      case DELIMITED:
-        return
-            new StringSerdeSupplier();
-      default:
-        throw new KsqlException("Unsupported serde: " + ksqlSerdeFactory.getFormat());
-    }
-  }
-
 }
-

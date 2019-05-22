@@ -36,7 +36,7 @@ public class Topic {
   final String name;
   private final Optional<Schema> schema;
   private final SerdeFactory keySerdeFactory;
-  private final SerdeSupplier serdeSupplier;
+  private final SerdeSupplier valueSserdeSupplier;
   final int numPartitions;
   final int replicas;
   final Optional<Long> windowSize;
@@ -44,24 +44,26 @@ public class Topic {
   public Topic(
       final String name,
       final Optional<Schema> schema,
-      final SerdeSupplier serdeSupplier,
+      final SerdeSupplier valueSserdeSupplier,
       final int numPartitions,
       final int replicas
   ) {
-    this.name = requireNonNull(name, "name");
-    this.schema = requireNonNull(schema, "schema");
-    this.keySerdeFactory = (SerdeFactory)Serdes::String;
-    this.serdeSupplier = requireNonNull(serdeSupplier, "serdeSupplier");
-    this.numPartitions = numPartitions;
-    this.replicas = replicas;
-    this.windowSize = Optional.empty();
+    this(
+        name,
+        schema,
+        Serdes::String,
+        valueSserdeSupplier,
+        numPartitions,
+        replicas,
+        Optional.empty()
+    );
   }
 
   public Topic(
       final String name,
       final Optional<Schema> schema,
       final SerdeFactory keySerdeFactory,
-      final SerdeSupplier serdeSupplier,
+      final SerdeSupplier valueSserdeSupplier,
       final int numPartitions,
       final int replicas,
       final Optional<Long> windowSize
@@ -69,7 +71,7 @@ public class Topic {
     this.name = requireNonNull(name, "name");
     this.schema = requireNonNull(schema, "schema");
     this.keySerdeFactory = requireNonNull(keySerdeFactory, "keySerdeFactory");
-    this.serdeSupplier = requireNonNull(serdeSupplier, "serdeSupplier");
+    this.valueSserdeSupplier = requireNonNull(valueSserdeSupplier, "valueSserdeSupplier");
     this.numPartitions = numPartitions;
     this.replicas = replicas;
     this.windowSize = requireNonNull(windowSize, "windowSize");
@@ -83,27 +85,26 @@ public class Topic {
     return schema;
   }
 
-  public SerdeSupplier getSerdeSupplier() {
-    return serdeSupplier;
+  public SerdeSupplier getValueSerdeSupplier() {
+    return valueSserdeSupplier;
   }
 
   public SerdeFactory getKeySerdeFactory() {
     return keySerdeFactory;
   }
 
-  Serializer getSerializer(final SchemaRegistryClient schemaRegistryClient) {
-    return serdeSupplier.getSerializer(schemaRegistryClient);
+  Serializer getValueSerializer(final SchemaRegistryClient schemaRegistryClient) {
+    return valueSserdeSupplier.getSerializer(schemaRegistryClient);
   }
 
-  Deserializer getDeserializer(final SchemaRegistryClient schemaRegistryClient) {
-    return serdeSupplier.getDeserializer(schemaRegistryClient);
+  Deserializer getValueDeserializer(final SchemaRegistryClient schemaRegistryClient) {
+    return valueSserdeSupplier.getDeserializer(schemaRegistryClient);
   }
 
   Serializer getKeySerializer() {
     return keySerdeFactory.create().serializer();
   }
 
-  @SuppressWarnings("unchecked")
   Deserializer getKeyDeserializer() {
     final Serde keySerde = keySerdeFactory.create();
     if (keySerde instanceof TimeWindowedSerde) {
@@ -112,14 +113,14 @@ public class Topic {
           (TimeWindowedDeserializer) windowedSerde.deserializer();
       if (!windowSize.isPresent()) {
         if (timeWindowedDeserializer.getWindowSize() != Long.MAX_VALUE) {
-          return new TimeWindowedDeserializer(
+          return new TimeWindowedDeserializer<>(
               new StringDeserializer(),
               timeWindowedDeserializer.getWindowSize());
         }
         throw new KsqlException("Window size is not present for time windowed deserializer.");
       }
-      return new TimeWindowedDeserializer(new StringDeserializer(), windowSize.get());
+      return new TimeWindowedDeserializer<>(new StringDeserializer(), windowSize.get());
     }
-    return keySerdeFactory.create().deserializer();
+    return keySerde.deserializer();
   }
 }

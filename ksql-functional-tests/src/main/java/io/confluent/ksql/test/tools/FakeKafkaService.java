@@ -59,7 +59,7 @@ public final class FakeKafkaService {
     return ImmutableList.copyOf(topicData.get(topicName));
   }
 
-  private void ensureTopicExists(final String topicName) {
+  public void ensureTopicExists(final String topicName) {
     if (!this.topicMap.containsKey(topicName)) {
       throw new KsqlException("Topic does not exist: " +  topicName);
     }
@@ -70,16 +70,16 @@ public final class FakeKafkaService {
   }
 
   public void updateTopic(final Topic topic) {
-    if (!topicMap.containsKey(topic.getName())) {
+    if (!topicExists(topic)) {
       throw new KsqlException("Topic does not exist: " + topic.getName());
     }
     topicMap.put(topic.getName(), topic);
   }
 
-
-  public Map<String, Topic> getTopicMap() {
-    return topicMap;
+  public Topic getTopic(final String topicName) {
+    return topicMap.get(topicName);
   }
+
 
   Map<String, List<FakeKafkaRecord>> getTopicData() {
     return topicData;

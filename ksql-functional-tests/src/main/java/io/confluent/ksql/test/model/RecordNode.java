@@ -92,7 +92,7 @@ public class RecordNode {
       return null;
     }
 
-    if (topic.getSerdeSupplier() instanceof StringSerdeSupplier) {
+    if (topic.getValueSerdeSupplier() instanceof StringSerdeSupplier) {
       return value.asText();
     }
 

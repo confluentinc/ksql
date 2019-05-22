@@ -437,7 +437,7 @@ public class WSQueryEndpointTest {
   public void shouldReturnErrorIfEndpointAuthorizationIsDenied() throws Exception {
     // Given:
     givenRequest(REQUEST_WITH_SEQUENCE_NUMBER);
-    when(authorizer.hasAccess(any(), eq(WSQueryEndpoint.class), eq("/query")))
+    when(authorizer.hasAccess(any(), eq(WSQueryEndpoint.class), eq("onOpen")))
         .thenReturn(false);
 
     // When:

@@ -16,14 +16,12 @@
 package io.confluent.ksql.test.tools;
 
 import io.confluent.ksql.test.model.WindowData;
-import io.confluent.ksql.test.model.WindowData.Type;
 import io.confluent.ksql.test.serde.SerdeSupplier;
 import io.confluent.ksql.test.serde.ValueSpec;
 import io.confluent.ksql.test.serde.avro.AvroSerdeSupplier;
 import java.util.Objects;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.streams.kstream.Windowed;
-import org.apache.kafka.streams.kstream.internals.SessionWindow;
 
 public final class FakeKafkaRecord {
 
@@ -63,12 +61,7 @@ public final class FakeKafkaRecord {
       final ProducerRecord producerRecord) {
     if (producerRecord.key() instanceof Windowed) {
       final Windowed windowed = (Windowed) producerRecord.key();
-      return new WindowData(
-          windowed.window().start(),
-          windowed.window().end(),
-          windowed.window() instanceof SessionWindow
-              ? Type.SESSION.toString()
-              : Type.TIME.toString());
+      return new WindowData(windowed);
     }
     return null;
   }

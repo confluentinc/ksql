@@ -36,7 +36,7 @@ public class Topic {
   final String name;
   private final Optional<Schema> schema;
   private final SerdeFactory keySerdeFactory;
-  private final SerdeSupplier valueSserdeSupplier;
+  private final SerdeSupplier valueSerdeSupplier;
   final int numPartitions;
   final int replicas;
   final Optional<Long> windowSize;
@@ -44,7 +44,7 @@ public class Topic {
   public Topic(
       final String name,
       final Optional<Schema> schema,
-      final SerdeSupplier valueSserdeSupplier,
+      final SerdeSupplier valueSerdeSupplier,
       final int numPartitions,
       final int replicas
   ) {
@@ -52,7 +52,7 @@ public class Topic {
         name,
         schema,
         Serdes::String,
-        valueSserdeSupplier,
+        valueSerdeSupplier,
         numPartitions,
         replicas,
         Optional.empty()
@@ -63,7 +63,7 @@ public class Topic {
       final String name,
       final Optional<Schema> schema,
       final SerdeFactory keySerdeFactory,
-      final SerdeSupplier valueSserdeSupplier,
+      final SerdeSupplier valueSerdeSupplier,
       final int numPartitions,
       final int replicas,
       final Optional<Long> windowSize
@@ -71,7 +71,7 @@ public class Topic {
     this.name = requireNonNull(name, "name");
     this.schema = requireNonNull(schema, "schema");
     this.keySerdeFactory = requireNonNull(keySerdeFactory, "keySerdeFactory");
-    this.valueSserdeSupplier = requireNonNull(valueSserdeSupplier, "valueSserdeSupplier");
+    this.valueSerdeSupplier = requireNonNull(valueSerdeSupplier, "valueSerdeSupplier");
     this.numPartitions = numPartitions;
     this.replicas = replicas;
     this.windowSize = requireNonNull(windowSize, "windowSize");
@@ -86,7 +86,7 @@ public class Topic {
   }
 
   public SerdeSupplier getValueSerdeSupplier() {
-    return valueSserdeSupplier;
+    return valueSerdeSupplier;
   }
 
   public SerdeFactory getKeySerdeFactory() {
@@ -94,11 +94,11 @@ public class Topic {
   }
 
   Serializer getValueSerializer(final SchemaRegistryClient schemaRegistryClient) {
-    return valueSserdeSupplier.getSerializer(schemaRegistryClient);
+    return valueSerdeSupplier.getSerializer(schemaRegistryClient);
   }
 
   Deserializer getValueDeserializer(final SchemaRegistryClient schemaRegistryClient) {
-    return valueSserdeSupplier.getDeserializer(schemaRegistryClient);
+    return valueSerdeSupplier.getDeserializer(schemaRegistryClient);
   }
 
   Serializer getKeySerializer() {

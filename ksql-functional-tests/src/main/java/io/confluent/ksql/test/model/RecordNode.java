@@ -26,7 +26,7 @@ import io.confluent.ksql.test.tools.Topic;
 import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;
 import io.confluent.ksql.test.tools.exceptions.MissingFieldException;
 import java.io.IOException;
-import java.util.LinkedHashMap;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
@@ -71,7 +71,7 @@ public class RecordNode {
 
     if (topicValue instanceof Map) {
       final Map<String, Object> map = (Map<String, Object>) topicValue;
-      final Map<String, Object> uppercaseMap = new LinkedHashMap<>();
+      final Map<String, Object> uppercaseMap = new HashMap<>();
       for (final Entry<String, Object> entry: map.entrySet()) {
         uppercaseMap.put(entry.getKey().toUpperCase(), entry.getValue());
       }

@@ -21,7 +21,6 @@ import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.UdafAggregator;
 import io.confluent.ksql.metastore.SerdeFactory;
-import io.confluent.ksql.util.KsqlException;
 import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
@@ -110,17 +109,6 @@ public class TumblingWindowExpression extends KsqlWindowExpression {
   }
 
   private static Long computeWindowSize(final Long windowSize, final TimeUnit timeUnit) {
-    switch (timeUnit) {
-      case SECONDS:
-        return windowSize * 1000;
-      case MINUTES:
-        return windowSize * 1000 * 60;
-      case HOURS:
-        return windowSize * 1000 * 60 * 60;
-      case DAYS:
-        return windowSize * 1000 * 60 * 60 * 24;
-      default:
-        throw new KsqlException("Invalid window time unit: " + timeUnit);
-    }
+    return TimeUnit.MILLISECONDS.convert(windowSize, timeUnit);
   }
 }

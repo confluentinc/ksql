@@ -20,6 +20,9 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import org.junit.Test;
 
+import java.util.LinkedList;
+import java.util.List;
+
 public class StringUtilTest {
 
   @Test
@@ -65,4 +68,15 @@ public class StringUtilTest {
     final String result = StringUtil.cleanQuotes(input);
     assertThat(result, is(expected));
   }
+
+  @Test
+  public void shouldJoinWithEmptyString() {
+      List<Object> linkedList = new LinkedList<>();
+      linkedList.add("");
+      linkedList.add("a");
+
+      assertThat(StringUtil.join("x", linkedList), is("xa"));
+  }
+
+
 }

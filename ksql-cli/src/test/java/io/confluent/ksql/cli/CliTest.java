@@ -110,6 +110,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 /**
  * Most tests in CliTest are end-to-end integration tests, so it may expect a long running time.
  */
+@SuppressWarnings("SameParameterValue")
 @RunWith(MockitoJUnitRunner.class)
 @Category({IntegrationTest.class})
 public class CliTest {
@@ -142,7 +143,7 @@ public class CliTest {
       .withLookingForStuckThread(true)
       .build();
 
-  private static final String COMMANDS_KSQL_TOPIC_NAME = KsqlRestApplication.COMMANDS_KSQL_TOPIC_NAME;
+  private static final String COMMANDS_KSQL_TOPIC_NAME = KsqlRestApplication.COMMANDS_STREAM_NAME;
   private static final OutputFormat CLI_OUTPUT_FORMAT = OutputFormat.TABULAR;
 
   private static final long STREAMED_QUERY_ROW_LIMIT = 10000;
@@ -183,7 +184,6 @@ public class CliTest {
     }
   }
 
-  @SuppressWarnings("unchecked")
   @Before
   public void setUp() {
     streamName = KsqlIdentifierTestUtil.uniqueIdentifierName();
@@ -230,14 +230,6 @@ public class CliTest {
   private static Matcher<Iterable<List<String>>> contains(final TestResult expected) {
     return new BoundedMatcher(
         Matchers.contains(expected.rows().stream()
-            .map(CoreMatchers::equalTo)
-            .toArray(Matcher[]::new)));
-  }
-
-  @SuppressWarnings("unchecked")
-  private static Matcher<Iterable<List<String>>> containsInAnyOrder(final TestResult expected) {
-    return new BoundedMatcher(
-        Matchers.containsInAnyOrder(expected.rows().stream()
             .map(CoreMatchers::equalTo)
             .toArray(Matcher[]::new)));
   }

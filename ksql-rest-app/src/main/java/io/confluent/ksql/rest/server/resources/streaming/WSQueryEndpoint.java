@@ -66,6 +66,8 @@ public class WSQueryEndpoint {
 
   private static final Logger log = LoggerFactory.getLogger(WSQueryEndpoint.class);
 
+  private static String QUERY_ENDPOINT_METHOD_NAME = "onOpen";
+
   private static final ClassHandlerMap2<Statement, WSQueryEndpoint, RequestContext> HANDLER_MAP =
       HandlerMaps
           .forClass(Statement.class)
@@ -180,7 +182,7 @@ public class WSQueryEndpoint {
     }
     try {
       // Check if the user has authorization to access this Websocket endpoint
-      checkEndpointAuthorization(session.getUserPrincipal(), "onOpen");
+      checkEndpointAuthorization(session.getUserPrincipal(), QUERY_ENDPOINT_METHOD_NAME);
 
       validateVersion(session);
 

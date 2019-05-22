@@ -20,7 +20,6 @@ import io.confluent.ksql.parser.tree.KsqlWindowExpression;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.SessionWindowExpression;
 import io.confluent.ksql.parser.tree.TumblingWindowExpression;
-import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
@@ -28,40 +27,27 @@ public final class WindowUtil {
 
   private WindowUtil() {}
 
-  public static Optional<Long> getWindowSize(
-      final Query query) {
-    if (query.getWindow().isPresent()) {
-
-      final KsqlWindowExpression ksqlWindowExpression = query
-          .getWindow()
-          .get().getKsqlWindowExpression();
-      if (ksqlWindowExpression instanceof SessionWindowExpression) {
-        return Optional.empty();
-      }
-      final long windowSize = ksqlWindowExpression instanceof TumblingWindowExpression
-          ? computeWindowSize(
-          ((TumblingWindowExpression) ksqlWindowExpression).getSize(),
-          ((TumblingWindowExpression) ksqlWindowExpression).getSizeUnit())
-          : computeWindowSize(
-              ((HoppingWindowExpression) ksqlWindowExpression).getSize(),
-              ((HoppingWindowExpression) ksqlWindowExpression).getSizeUnit());
-      return Optional.of(windowSize);
+  public static Optional<Long> getWindowSize(final Query query) {
+    if (!query.getWindow().isPresent()) {
+      return Optional.empty();
     }
-    return Optional.empty();
+    final KsqlWindowExpression ksqlWindowExpression = query
+        .getWindow()
+        .get().getKsqlWindowExpression();
+    if (ksqlWindowExpression instanceof SessionWindowExpression) {
+      return Optional.empty();
+    }
+    final long windowSize = ksqlWindowExpression instanceof TumblingWindowExpression
+        ? computeWindowSize(
+        ((TumblingWindowExpression) ksqlWindowExpression).getSize(),
+        ((TumblingWindowExpression) ksqlWindowExpression).getSizeUnit())
+        : computeWindowSize(
+            ((HoppingWindowExpression) ksqlWindowExpression).getSize(),
+            ((HoppingWindowExpression) ksqlWindowExpression).getSizeUnit());
+    return Optional.of(windowSize);
   }
 
   private static Long computeWindowSize(final Long windowSize, final TimeUnit timeUnit) {
-    switch (timeUnit) {
-      case SECONDS:
-        return windowSize * 1000;
-      case MINUTES:
-        return windowSize * 1000 * 60;
-      case HOURS:
-        return windowSize * 1000 * 60 * 60;
-      case DAYS:
-        return windowSize * 1000 * 60 * 60 * 24;
-      default:
-        throw new KsqlException("Invalid window time unit: " + timeUnit);
-    }
+    return TimeUnit.MILLISECONDS.convert(windowSize, timeUnit);
   }
 }

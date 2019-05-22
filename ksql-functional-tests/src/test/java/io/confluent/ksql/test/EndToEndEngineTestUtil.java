@@ -24,6 +24,7 @@ import com.fasterxml.jackson.databind.ObjectWriter;
 import com.fasterxml.jackson.databind.node.NullNode;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import io.confluent.connect.avro.AvroData;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
@@ -152,8 +153,9 @@ final class EndToEndEngineTestUtil {
     for (QueryMetadata queryMetadata: queries) {
       final PersistentQueryMetadata persistentQueryMetadata
           = (PersistentQueryMetadata) queryMetadata;
-      final String sinkKafkaTopicName = metaStore.getSource(
-          persistentQueryMetadata.getSinkNames().iterator().next()).getKafkaTopicName();
+      final String sinkKafkaTopicName = metaStore
+          .getSource(Iterables.getOnlyElement(persistentQueryMetadata.getSinkNames()))
+          .getKafkaTopicName();
       final Topic sinkTopic = new Topic(
           sinkKafkaTopicName,
           Optional.empty(),

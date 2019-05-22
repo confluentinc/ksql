@@ -327,18 +327,18 @@ public class TestCase implements Test {
       final FakeKafkaService fakeKafkaService,
       final TopologyTestDriverContainer testDriver,
       final SchemaRegistryClient schemaRegistryClient) {
-    final Serializer keySerializer = fakeKafkaRecord.getTestRecord().topic.getKeySerializer();
-    final Serializer valueSerializer = fakeKafkaRecord.getTestRecord()
-        .topic.getValueSerdeSupplier()
+    final Topic recordTopic = fakeKafkaRecord.getTestRecord().topic;
+    final Serializer keySerializer = recordTopic.getKeySerializer();
+    final Serializer valueSerializer = recordTopic.getValueSerdeSupplier()
         instanceof AvroSerdeSupplier
         ? new ValueSpecAvroSerdeSupplier().getSerializer(schemaRegistryClient)
-        : fakeKafkaRecord.getTestRecord().topic.getValueSerializer(schemaRegistryClient);
+        : recordTopic.getValueSerializer(schemaRegistryClient);
     final Object key = getKey(fakeKafkaRecord);
     final ConsumerRecord consumerRecord = new ConsumerRecordFactory<>(
         keySerializer,
         valueSerializer
     ).create(
-        fakeKafkaRecord.getTestRecord().topic.name,
+        recordTopic.name,
         key,
         fakeKafkaRecord.getTestRecord().value(),
         fakeKafkaRecord.getTestRecord().timestamp

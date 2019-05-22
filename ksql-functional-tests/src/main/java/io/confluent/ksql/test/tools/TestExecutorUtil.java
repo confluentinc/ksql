@@ -20,7 +20,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import com.google.common.collect.ImmutableList;
 import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.engine.KsqlEngine;
@@ -45,7 +44,6 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -65,7 +63,7 @@ final class TestExecutorUtil {
       final ServiceContext serviceContext,
       final KsqlEngine ksqlEngine,
       final KsqlConfig ksqlConfig,
-      final FakeKafkaService fakeKafkaService) throws IOException, RestClientException {
+      final FakeKafkaService fakeKafkaService) {
     final Map<String, String> persistedConfigs = testCase.persistedProperties();
     final KsqlConfig maybeUpdatedConfigs = persistedConfigs.isEmpty() ? ksqlConfig :
         ksqlConfig.overrideBreakingConfigsWithOriginalValues(persistedConfigs);
@@ -90,7 +88,7 @@ final class TestExecutorUtil {
       final List<Topic> sourceTopics = persistentQueryAndSortedSources.getSources()
           .stream()
           .map(dataSource -> {
-            fakeKafkaService.ensureTopicExists(dataSource.getKafkaTopicName());
+            fakeKafkaService.requireTopicExists(dataSource.getKafkaTopicName());
             return fakeKafkaService.getTopic(dataSource.getKafkaTopicName());
           })
           .collect(Collectors.toList());

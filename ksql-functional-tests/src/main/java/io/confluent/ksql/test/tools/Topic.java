@@ -105,22 +105,25 @@ public class Topic {
     return keySerdeFactory.create().serializer();
   }
 
-  Deserializer getKeyDeserializer() {
+  Deserializer<?> getKeyDeserializer() {
     final Serde keySerde = keySerdeFactory.create();
-    if (keySerde instanceof TimeWindowedSerde) {
-      final TimeWindowedSerde windowedSerde = (TimeWindowedSerde) keySerde;
-      final TimeWindowedDeserializer timeWindowedDeserializer =
-          (TimeWindowedDeserializer) windowedSerde.deserializer();
-      if (!windowSize.isPresent()) {
-        if (timeWindowedDeserializer.getWindowSize() != Long.MAX_VALUE) {
-          return new TimeWindowedDeserializer<>(
-              new StringDeserializer(),
-              timeWindowedDeserializer.getWindowSize());
-        }
-        throw new KsqlException("Window size is not present for time windowed deserializer.");
-      }
+    if (!(keySerde instanceof TimeWindowedSerde)) {
+      return keySerde.deserializer();
+    }
+
+    if (windowSize.isPresent()) {
       return new TimeWindowedDeserializer<>(new StringDeserializer(), windowSize.get());
     }
-    return keySerde.deserializer();
+
+    final TimeWindowedSerde windowedSerde = (TimeWindowedSerde) keySerde;
+    final TimeWindowedDeserializer timeWindowedDeserializer =
+        (TimeWindowedDeserializer) windowedSerde.deserializer();
+    if (timeWindowedDeserializer.getWindowSize() == Long.MAX_VALUE) {
+      throw new KsqlException("Window size is not present for time windowed deserializer.");
+    }
+
+    return new TimeWindowedDeserializer<>(
+        new StringDeserializer(),
+        timeWindowedDeserializer.getWindowSize());
   }
 }

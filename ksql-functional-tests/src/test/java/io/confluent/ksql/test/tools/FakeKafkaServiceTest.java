@@ -59,7 +59,7 @@ public class FakeKafkaServiceTest {
     fakeKafkaService.createTopic(topic);
 
     // Then:
-    fakeKafkaService.ensureTopicExists(topic.getName());
+    fakeKafkaService.requireTopicExists(topic.getName());
   }
 
   @Test

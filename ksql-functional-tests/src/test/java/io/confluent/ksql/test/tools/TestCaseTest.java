@@ -40,7 +40,6 @@ import org.apache.avro.Schema;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.streams.TopologyTestDriver;
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -80,12 +79,6 @@ public class TestCaseTest {
   private ArgumentCaptor<ConsumerRecord> captor;
   @Mock
   private FakeKafkaService fakeKafkaService;
-
-
-  @Before
-  public void init() {
-
-  }
 
 
   @Test

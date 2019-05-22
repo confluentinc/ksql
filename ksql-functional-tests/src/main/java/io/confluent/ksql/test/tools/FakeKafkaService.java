@@ -49,17 +49,17 @@ public final class FakeKafkaService {
   void writeRecord(final String topicName, final FakeKafkaRecord record) {
     Objects.requireNonNull(topicName, "Topic");
     Objects.requireNonNull(record, "Record");
-    ensureTopicExists(topicName);
+    requireTopicExists(topicName);
     this.topicData.get(topicName).add(record);
   }
 
   List<FakeKafkaRecord> readRecords(final String topicName) {
     Objects.requireNonNull(topicName, "Topic");
-    ensureTopicExists(topicName);
+    requireTopicExists(topicName);
     return ImmutableList.copyOf(topicData.get(topicName));
   }
 
-  public void ensureTopicExists(final String topicName) {
+  public void requireTopicExists(final String topicName) {
     if (!this.topicMap.containsKey(topicName)) {
       throw new KsqlException("Topic does not exist: " +  topicName);
     }

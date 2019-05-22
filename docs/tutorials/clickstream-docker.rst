@@ -156,7 +156,8 @@ Load the Streaming Data to KSQL
         :start-after: CLI_welcome_start
         :end-before: CLI_welcome_end
 
-#.  Load the ``clickstream.sql`` schema file that runs the tutorial app.
+#.  Load the `clickstream-schema.sql <https://github.com/confluentinc/examples/blob/master/clickstream/ksql/ksql-clickstream-demo/demo/clickstream-schema.sql>`__
+    file that runs the tutorial app.
 
     **Important:** Before running this step, you must have already run
     ksql-datagen utility to create the clickstream data, status codes,

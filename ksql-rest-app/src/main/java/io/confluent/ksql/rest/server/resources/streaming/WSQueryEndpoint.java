@@ -164,18 +164,6 @@ public class WSQueryEndpoint {
         Objects.requireNonNull(serviceContextFactory, "serviceContextFactory");
   }
 
-  private void checkEndpointAuthorization(final Principal userPrincipal) {
-    final Class className = this.getClass();
-    final String methodName = this.getClass().getAnnotation(ServerEndpoint.class).value();
-
-    if (!securityExtension.getAuthorizer().hasAccess(userPrincipal, className, methodName)) {
-      final String userName = (userPrincipal != null) ? userPrincipal.getName() : null;
-      throw new KsqlException(
-          String.format("User:%s is denied to access this cluster.", userName)
-      );
-    }
-  }
-
   @SuppressWarnings("unused")
   @OnOpen
   public void onOpen(final Session session, final EndpointConfig unused) {
@@ -256,6 +244,18 @@ public class WSQueryEndpoint {
   @OnError
   public void onError(final Session session, final Throwable t) {
     log.error("websocket error in session {}", session.getId(), t);
+  }
+
+  private void checkEndpointAuthorization(final Principal userPrincipal) {
+    final Class className = this.getClass();
+    final String methodName = this.getClass().getAnnotation(ServerEndpoint.class).value();
+
+    if (!securityExtension.getAuthorizer().hasAccess(userPrincipal, className, methodName)) {
+      final String userName = (userPrincipal != null) ? userPrincipal.getName() : null;
+      throw new KsqlException(
+          String.format("User:%s is denied to access this cluster.", userName)
+      );
+    }
   }
 
   private void validateVersion(final Session session) {

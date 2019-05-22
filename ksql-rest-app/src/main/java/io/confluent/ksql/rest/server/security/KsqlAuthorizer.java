@@ -20,7 +20,7 @@ import java.security.Principal;
 /**
  * This Authorizer is used by KSQL to request access to KSQL resources.
  * </p>
- * Currently, the authorizer is limited to request access to Websocket endpoints. REST endpoints
+ * Currently, the authorizer is only used to request access to Websocket endpoints. REST endpoints
  * should be secured by the implementation when calling {@link KsqlSecurityExtension#register()}.
  */
 public interface KsqlAuthorizer {
@@ -28,10 +28,10 @@ public interface KsqlAuthorizer {
    * Checks if a user has access to the specified {@code resourceClass} and {@code resourceMethod}.
    * </p>
    * The access requested is simply to check if the {@code user} is authorized to call the desired
-   * REST/Websocket endoiunt or not. It is up to the implementation to decide the type of
+   * REST/WebSocket endpoint or not. It is up to the implementation to decide the type of
    * access to verify.
    *
-   * @param principal The user principal requesting access authorization
+   * @param user The user principal requesting access authorization
    * @param resourceClass The REST class name
    * @param resourceMethod The REST method name
    * @return True if the user is permitted; False otherwise

@@ -34,7 +34,7 @@ import org.apache.kafka.streams.KafkaClientSupplier;
  */
 public interface KsqlSecurityExtension extends AutoCloseable {
   /**
-   * @return The {@code KsqlAuthorizer} used to request access to KSQL resources.
+   * @return The {@code KsqlAuthorizer} used to authorize access to KSQL resources.
    */
   KsqlAuthorizer getAuthorizer();
 
@@ -45,30 +45,10 @@ public interface KsqlSecurityExtension extends AutoCloseable {
    * secure KSQL REST endpoints (i.e. Authorization filters).
    *
    * @param configurable The {@link Configurable} object where to register the security plugins.
-   * @param config The KSQL configuration containing security required configs.
+   * @param ksqlConfig The KSQL configuration containing security required configs.
    * @throws KsqlException If an error occurs while registering the REST security plugin.
    */
   void register(Configurable<?> configurable, KsqlConfig ksqlConfig);
-
-  /**
-   * Constructs a {@link org.apache.kafka.streams.KafkaClientSupplier} with the user's credentials.
-   *
-   * @param principal The {@link Principal} whose credentials will be used.
-   * @throws KsqlException If an error occurs while creating the
-   * {@link org.apache.kafka.streams.KafkaClientSupplier}.
-   */
-  KafkaClientSupplier getKafkaClientSupplier(Principal principal) throws KsqlException;
-
-  /**
-   * Constructs a {@link io.confluent.kafka.schemaregistry.client.SchemaRegistryClient} supplier
-   * with the user's credentials.
-   *
-   * @param principal The {@link Principal} whose credentials will be used.
-   * @throws KsqlException If an error occurs while creating the
-   * {@link io.confluent.kafka.schemaregistry.client.SchemaRegistryClient} supplier.
-   */
-  Supplier<SchemaRegistryClient> getSchemaRegistryClientSupplier(Principal principal)
-      throws KsqlException;
 
   /**
    * Constructs a {@link org.apache.kafka.streams.KafkaClientSupplier} with the user's credentials.

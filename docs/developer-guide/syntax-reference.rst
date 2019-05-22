@@ -1487,6 +1487,9 @@ In either case, when setting ``KEY`` you must be sure that *both* of the followi
 
 If these conditions are not met, then the results of aggregations and joins may be incorrect. However, if your data doesn't meet these requirements, you can still use KSQL with a few extra steps. The following section explains how.
 
+Table-table joins can be joined only on the ``KEY`` field, and one-to-many
+(1:N) joins aren't supported.
+
 What To Do If Your Key Is Not Set or Is In A Different Format
 -------------------------------------------------------------
 

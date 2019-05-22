@@ -334,7 +334,7 @@ public class RequestValidatorTest {
     validator = new RequestValidator(
         customValidators,
         (ec, sc) -> InjectorChain.of(schemaInjector, topicInjector),
-        () -> executionContext,
+        (sc) -> executionContext,
         ksqlConfig,
         topicAccessValidator
     );

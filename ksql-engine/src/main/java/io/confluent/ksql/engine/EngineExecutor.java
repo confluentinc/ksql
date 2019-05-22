@@ -133,8 +133,7 @@ final class EngineExecutor {
 
     if (query instanceof PersistentQueryMetadata) {
       final PersistentQueryMetadata persistentQuery = (PersistentQueryMetadata) query;
-      final SchemaRegistryClient srClient = engineContext.getServiceContext()
-          .getSchemaRegistryClient();
+      final SchemaRegistryClient srClient = serviceContext.getSchemaRegistryClient();
 
       if (!AvroUtil.isValidSchemaEvolution(persistentQuery, srClient)) {
         throw new KsqlStatementException(String.format(

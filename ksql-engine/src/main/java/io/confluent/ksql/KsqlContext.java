@@ -112,7 +112,7 @@ public class KsqlContext {
   public List<QueryMetadata> sql(final String sql, final Map<String, Object> overriddenProperties) {
     final List<ParsedStatement> statements = ksqlEngine.parse(sql);
 
-    final KsqlExecutionContext sandbox = ksqlEngine.createSandbox();
+    final KsqlExecutionContext sandbox = ksqlEngine.createSandbox(ksqlEngine.getServiceContext());
     for (ParsedStatement stmt : statements) {
       execute(
           sandbox,

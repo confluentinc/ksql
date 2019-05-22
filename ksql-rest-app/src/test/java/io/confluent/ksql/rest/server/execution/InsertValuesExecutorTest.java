@@ -112,7 +112,7 @@ public class InsertValuesExecutorTest {
   @Mock
   private ServiceContext serviceContext;
   @Mock
-  private Future producerResultFuture;
+  private Future<?> producerResultFuture;
   @Mock
   private KafkaProducer<byte[], byte[]> producer;
   private Struct expectedRow;
@@ -352,7 +352,7 @@ public class InsertValuesExecutorTest {
             new StringLiteral("str"))
     );
 
-    final Future failure = mock(Future.class);
+    final Future<?> failure = mock(Future.class);
     when(failure.get()).thenThrow(ExecutionException.class);
     doReturn(failure).when(producer).send(any());
 

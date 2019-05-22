@@ -128,7 +128,7 @@ public class KsqlEngineTest {
         metaStore
     );
 
-    sandbox = ksqlEngine.createSandbox();
+    sandbox = ksqlEngine.createSandbox(serviceContext);
   }
 
   @After
@@ -1056,7 +1056,7 @@ public class KsqlEngineTest {
   ) {
     ksqlEngine.execute(
         ConfiguredStatement.of(ksqlEngine.prepare(statement), new HashMap<>(), KSQL_CONFIG));
-    sandbox = ksqlEngine.createSandbox();
+    sandbox = ksqlEngine.createSandbox(serviceContext);
   }
 
   private void givenSqlAlreadyExecuted(final String sql) {
@@ -1064,6 +1064,6 @@ public class KsqlEngineTest {
         ksqlEngine.execute(
             ConfiguredStatement.of(ksqlEngine.prepare(stmt), new HashMap<>(), KSQL_CONFIG)));
 
-    sandbox = ksqlEngine.createSandbox();
+    sandbox = ksqlEngine.createSandbox(serviceContext);
   }
 }

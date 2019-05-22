@@ -96,7 +96,7 @@ public final class ExplainExecutor {
         explain.getStatementText().substring("EXPLAIN ".length()),
         statement);
 
-    final QueryMetadata metadata = executionContext.createSandbox()
+    final QueryMetadata metadata = executionContext.createSandbox(serviceContext)
         .execute(
             serviceContext,
             ConfiguredStatement.of(preparedStatement, explain.getOverrides(), explain.getConfig()))

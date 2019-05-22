@@ -180,7 +180,7 @@ public class WSQueryEndpoint {
     }
     try {
       // Check if the user has authorization to access this Websocket endpoint
-      checkEndpointAuthorization(session.getUserPrincipal());
+      checkEndpointAuthorization(session.getUserPrincipal(), "onOpen");
 
       validateVersion(session);
 
@@ -246,9 +246,8 @@ public class WSQueryEndpoint {
     log.error("websocket error in session {}", session.getId(), t);
   }
 
-  private void checkEndpointAuthorization(final Principal userPrincipal) {
+  private void checkEndpointAuthorization(final Principal userPrincipal, final String methodName) {
     final Class className = this.getClass();
-    final String methodName = this.getClass().getAnnotation(ServerEndpoint.class).value();
 
     if (!securityExtension.getAuthorizer().hasAccess(userPrincipal, className, methodName)) {
       final String userName = (userPrincipal != null) ? userPrincipal.getName() : null;

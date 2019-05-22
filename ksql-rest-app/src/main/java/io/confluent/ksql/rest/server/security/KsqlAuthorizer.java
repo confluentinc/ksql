@@ -32,8 +32,8 @@ public interface KsqlAuthorizer {
    * access to verify.
    *
    * @param user The user principal requesting access authorization
-   * @param resourceClass The REST class name
-   * @param resourceMethod The REST method name
+   * @param resourceClass The resource class name
+   * @param resourceMethod The resource method name
    * @return True if the user is permitted; False otherwise
    */
   boolean hasAccess(Principal user, Class resourceClass, String resourceMethod);

@@ -23,7 +23,6 @@ import io.confluent.ksql.test.model.TestCaseNode;
 import io.confluent.ksql.test.tools.command.TestOptions;
 import io.confluent.ksql.util.Pair;
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -37,7 +36,7 @@ public final class KsqlTestingTool {
 
   private static int totalNumberOfTests;
 
-  public static void main(final String[] args) throws IOException {
+  public static void main(final String[] args) {
     loadAndRunTests(args);
   }
 
@@ -106,7 +105,7 @@ public final class KsqlTestingTool {
     if (!failedTests.isEmpty()) {
       System.out.println(failedTests.size() + " tests failed: ");
       System.out.println("Failing tests: ");
-      for (final Pair pair: failedTests) {
+      for (final Pair<String, String> pair: failedTests) {
         System.out.println("\t\t Test name: " + pair.getLeft()
             + " , Failure reason: " + pair.getRight());
       }

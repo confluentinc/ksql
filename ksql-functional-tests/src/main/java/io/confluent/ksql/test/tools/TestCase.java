@@ -344,11 +344,14 @@ public class TestCase implements Test {
       final FakeKafkaService fakeKafkaService,
       final TopologyTestDriverContainer testDriver,
       final KafkaTopicClient kafkaTopicClient,
-      final SchemaRegistryClient schemaRegistryClient) throws IOException, RestClientException {
-    final Serializer serializer = fakeKafkaRecord.getTestRecord().topic.getSerdeSupplier()
+      final SchemaRegistryClient schemaRegistryClient
+  ) throws IOException, RestClientException {
+
+    final Serializer<Object> serializer = fakeKafkaRecord.getTestRecord().topic.getSerdeSupplier()
         instanceof AvroSerdeSupplier
         ? new ValueSpecAvroSerdeSupplier().getSerializer(schemaRegistryClient)
         : fakeKafkaRecord.getTestRecord().topic.getSerializer(schemaRegistryClient);
+
     testDriver.getTopologyTestDriver().pipeInput(
         new ConsumerRecordFactory<>(
             fakeKafkaRecord.getTestRecord().keySerializer(),
@@ -366,11 +369,13 @@ public class TestCase implements Test {
         testDriver.getSinkKsqlTopic(),
         schemaRegistryClient,
         true);
-    final Deserializer sinkValueDeserializer = sinkTopic.getSerdeSupplier()
+
+    final Deserializer<Object> sinkValueDeserializer = sinkTopic.getSerdeSupplier()
         instanceof AvroSerdeSupplier
         ? new ValueSpecAvroSerdeSupplier().getDeserializer(schemaRegistryClient)
         : sinkTopic.getDeserializer(schemaRegistryClient);
-    final Deserializer keyDeserializer;
+
+    final Deserializer<?> keyDeserializer;
     boolean unnestRedundantWindow = false;
     if (testDriver.getWindow().getLeft() == WindowType.NO_WINDOW) {
       keyDeserializer = Serdes.String().deserializer();
@@ -391,7 +396,7 @@ public class TestCase implements Test {
     }
 
     while (true) {
-      ProducerRecord producerRecord = testDriver.getTopologyTestDriver().readOutput(
+      ProducerRecord<?,?> producerRecord = testDriver.getTopologyTestDriver().readOutput(
           testDriver.getSinkKsqlTopic().getKafkaTopicName(),
           keyDeserializer,
           sinkValueDeserializer
@@ -400,12 +405,12 @@ public class TestCase implements Test {
         return;
       }
       if (unnestRedundantWindow) {
-        producerRecord = new ProducerRecord(
+        producerRecord = new ProducerRecord<>(
             producerRecord.topic(),
             producerRecord.partition(),
             producerRecord.timestamp(),
             getWindowed(
-                ((Windowed) producerRecord.key()), testDriver.getWindow().getLeft()),
+                ((Windowed<String>) producerRecord.key()), testDriver.getWindow().getLeft()),
             producerRecord.value()
         );
       }
@@ -448,8 +453,8 @@ public class TestCase implements Test {
           + "> records but it was <" + actual.size() + ">");
     }
     for (int i = 0; i < expected.size(); i++) {
-      final ProducerRecord actualProducerRecord = actual.get(i).getProducerRecord();
-      final ProducerRecord expectedProducerRecord = expected.get(i).getProducerRecord();
+      final ProducerRecord<?, ?> actualProducerRecord = actual.get(i).getProducerRecord();
+      final ProducerRecord<?, ?> expectedProducerRecord = expected.get(i).getProducerRecord();
       final Object value;
       if (expectedProducerRecord.value() == null) {
         value = null;
@@ -457,7 +462,7 @@ public class TestCase implements Test {
           instanceof ValueSpecAvroSerdeSupplier) {
         final ValueSpecAvroSerdeSupplier valueSpecAvroSerdeSupplier
             = new ValueSpecAvroSerdeSupplier();
-        final Deserializer deserializer = valueSpecAvroSerdeSupplier
+        final Deserializer<?> deserializer = valueSpecAvroSerdeSupplier
             .getDeserializer(schemaRegistryClient);
         value = ((ValueSpec) deserializer.deserialize(
             expectedProducerRecord.topic(),
@@ -471,8 +476,8 @@ public class TestCase implements Test {
   }
 
   private static void validateCreatedMessage(
-      final ProducerRecord actualProducerRecord,
-      final ProducerRecord expectedProducerRecord,
+      final ProducerRecord<?,?> actualProducerRecord,
+      final ProducerRecord<?,?> expectedProducerRecord,
       final Object value
   ) {
     final boolean boothValuesNull = (actualProducerRecord.value() == null && value == null);
@@ -500,7 +505,7 @@ public class TestCase implements Test {
             outputRecordsFromTest.put(record.topic.getName(), new ArrayList<>());
           }
           outputRecordsFromTest.get(record.topic.getName()).add(
-              FakeKafkaRecord.of(record, new ProducerRecord(
+              FakeKafkaRecord.of(record, new ProducerRecord<>(
                   record.topic.getName(),
                   null,
                   record.timestamp(),
@@ -531,7 +536,7 @@ public class TestCase implements Test {
     );
   }
 
-  private static SerdeSupplier getSerdeSupplierForKsqlTopic(final KsqlTopic ksqlTopic) {
+  private static SerdeSupplier<?> getSerdeSupplierForKsqlTopic(final KsqlTopic ksqlTopic) {
     Objects.requireNonNull(ksqlTopic);
     if (ksqlTopic.getValueSerdeFactory() instanceof KsqlJsonSerdeFactory
         || ksqlTopic.getValueSerdeFactory() instanceof KsqlDelimitedSerdeFactory) {
@@ -563,22 +568,24 @@ public class TestCase implements Test {
     }
   }
 
-  @SuppressWarnings("unchecked")
-  private static Windowed getWindowed(final Windowed windowed, final WindowType windowType) {
-    final String windowString = windowed.key().toString();
+  private static Windowed<String> getWindowed(
+      final Windowed<String> windowed,
+      final WindowType windowType
+  ) {
+    final String windowString = windowed.key();
     if (!windowString.contains("@") && !windowString.contains("/")) {
       return windowed;
     }
     final int atIndex = windowString.indexOf("@");
     final int slashIndex = windowString.indexOf("/");
     final String key = windowString.substring(1, atIndex);
-    final Long start = Long.parseLong(windowString.substring(atIndex + 1, slashIndex));
-    final Long end = Long.parseLong(windowString.substring(
+    final long start = Long.parseLong(windowString.substring(atIndex + 1, slashIndex));
+    final long end = Long.parseLong(windowString.substring(
         slashIndex + 1,
         windowString.length() - 1));
     if (windowType == WindowType.SESSION) {
-      return new Windowed(key, new SessionWindow(start, end));
+      return new Windowed<>(key, new SessionWindow(start, end));
     }
-    return new Windowed(key, new TimeWindow(start, end));
+    return new Windowed<>(key, new TimeWindow(start, end));
   }
 }

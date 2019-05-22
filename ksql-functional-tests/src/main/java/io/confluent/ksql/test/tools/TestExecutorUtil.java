@@ -192,7 +192,7 @@ final class TestExecutorUtil {
         new Pair<>(WindowType.NO_WINDOW, Long.MIN_VALUE));
   }
 
-  private static List<DataSource> getSortedSources(
+  private static List<DataSource<?>> getSortedSources(
       final Query query,
       final MetaStore metaStore) {
     final Relation from = query.getFrom();
@@ -238,13 +238,13 @@ final class TestExecutorUtil {
               ((HoppingWindowExpression) ksqlWindowExpression).getSizeUnit());
       return new Pair<>(WindowType.TIME, windowSize);
     }
-    final Relation fromRelation = (Relation) query.getFrom();
+    final Relation fromRelation = query.getFrom();
     // No join on windowed key yet.
     if (fromRelation instanceof Join) {
       return new Pair<>(WindowType.NO_WINDOW, Long.MIN_VALUE);
     }
     final AliasedRelation aliasedRelation = (AliasedRelation) fromRelation;
-    final DataSource source = metaStore.getSource(aliasedRelation.getRelation().toString());
+    final DataSource<?> source = metaStore.getSource(aliasedRelation.getRelation().toString());
     if (source != null) {
       if (source.getKeySerdeFactory().create() instanceof TimeWindowedSerde) {
         return new Pair<>(WindowType.TIME, Long.MAX_VALUE);
@@ -274,12 +274,12 @@ final class TestExecutorUtil {
 
   private static final class ExecuteResultAndSortedSources {
     private final ExecuteResult executeResult;
-    private final List<DataSource> sources;
+    private final List<DataSource<?>> sources;
     private final Pair<WindowType, Long> window;
 
     ExecuteResultAndSortedSources(
         final ExecuteResult executeResult,
-        final List<DataSource> sources,
+        final List<DataSource<?>> sources,
         final Pair<WindowType, Long> window) {
       this.executeResult = executeResult;
       this.sources = sources;
@@ -290,7 +290,7 @@ final class TestExecutorUtil {
       return executeResult;
     }
 
-    List<DataSource> getSources() {
+    List<DataSource<?>> getSources() {
       return sources;
     }
 
@@ -301,12 +301,12 @@ final class TestExecutorUtil {
 
   private static final class PersistentQueryAndSortedSources {
     private final PersistentQueryMetadata persistentQueryMetadata;
-    private final List<DataSource> sources;
+    private final List<DataSource<?>> sources;
     private final Pair<WindowType, Long> window;
 
     PersistentQueryAndSortedSources(
         final PersistentQueryMetadata persistentQueryMetadata,
-        final List<DataSource> sources,
+        final List<DataSource<?>> sources,
         final Pair<WindowType, Long> window
     ) {
       this.persistentQueryMetadata = persistentQueryMetadata;
@@ -318,7 +318,7 @@ final class TestExecutorUtil {
       return persistentQueryMetadata;
     }
 
-    List<DataSource> getSources() {
+    List<DataSource<?>> getSources() {
       return sources;
     }
 

@@ -39,6 +39,7 @@ import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.HandlerMaps;
 import io.confluent.ksql.util.HandlerMaps.ClassHandlerMap2;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import java.security.Principal;
 import java.time.Duration;
@@ -64,6 +65,8 @@ import org.slf4j.LoggerFactory;
 public class WSQueryEndpoint {
 
   private static final Logger log = LoggerFactory.getLogger(WSQueryEndpoint.class);
+
+  private static String QUERY_ENDPOINT_METHOD_NAME = "onOpen";
 
   private static final ClassHandlerMap2<Statement, WSQueryEndpoint, RequestContext> HANDLER_MAP =
       HandlerMaps
@@ -167,6 +170,7 @@ public class WSQueryEndpoint {
   @OnOpen
   public void onOpen(final Session session, final EndpointConfig unused) {
     log.debug("Opening websocket session {}", session.getId());
+
     if (!ksqlEngine.isAcceptingStatements()) {
       log.info("The cluster has been terminated. No new request will be accepted.");
       SessionUtil.closeSilently(
@@ -177,6 +181,9 @@ public class WSQueryEndpoint {
       return;
     }
     try {
+      // Check if the user has authorization to access this Websocket endpoint
+      checkEndpointAuthorization(session.getUserPrincipal(), QUERY_ENDPOINT_METHOD_NAME);
+
       validateVersion(session);
 
       final KsqlRequest request = parseRequest(session);
@@ -239,6 +246,17 @@ public class WSQueryEndpoint {
   @OnError
   public void onError(final Session session, final Throwable t) {
     log.error("websocket error in session {}", session.getId(), t);
+  }
+
+  private void checkEndpointAuthorization(final Principal userPrincipal, final String methodName) {
+    final Class className = this.getClass();
+
+    if (!securityExtension.getAuthorizer().hasAccess(userPrincipal, className, methodName)) {
+      final String userName = (userPrincipal != null) ? userPrincipal.getName() : null;
+      throw new KsqlException(
+          String.format("User:%s is denied to access this cluster.", userName)
+      );
+    }
   }
 
   private void validateVersion(final Session session) {

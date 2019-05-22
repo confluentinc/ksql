@@ -270,8 +270,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
     config.property(ServerProperties.WADL_FEATURE_DISABLE, true);
 
     // Registers the REST security extensions
-    securityExtension.initialize(ksqlConfig);
-    securityExtension.registerRestEndpoints(config);
+    securityExtension.register(config, ksqlConfig);
   }
 
   @Override

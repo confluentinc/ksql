@@ -34,12 +34,14 @@ public class KsqlDefaultSecurityExtension implements KsqlSecurityExtension {
   private KsqlConfig ksqlConfig;
 
   @Override
-  public void initialize(final KsqlConfig config) {
-    this.ksqlConfig = config;
+  public KsqlAuthorizer getAuthorizer() {
+    // Return a dummy authorizer that authorizes any request
+    return (user, resourceClass, resourceMethod) -> true;
   }
 
   @Override
-  public void registerRestEndpoints(final Configurable<?> configurable) {
+  public void register(final Configurable<?> configurable, final KsqlConfig ksqlConfig) {
+    this.ksqlConfig = ksqlConfig;
   }
 
   @Override

@@ -34,21 +34,21 @@ import org.apache.kafka.streams.KafkaClientSupplier;
  */
 public interface KsqlSecurityExtension extends AutoCloseable {
   /**
-   * Initializes the security extension. This is called in case the implementation requires
-   * to initializes internal objects prior to registering necessary endpoints.
-   *
-   * @param config The KSQL configuration containing security required configs.
-   * @throws KsqlException If an error occurs while initializing the security extension.
+   * @return The {@code KsqlAuthorizer} used to authorize access to KSQL resources.
    */
-  void initialize(KsqlConfig config) throws KsqlException;
+  KsqlAuthorizer getAuthorizer();
 
   /**
-   * Registers the security extension for the KSQL REST endpoints.
+   * Registers the security extension.
+   * </p>
+   * A {@link Configurable} is passed so that the extension can register REST filters to
+   * secure KSQL REST endpoints (i.e. Authorization filters).
    *
    * @param configurable The {@link Configurable} object where to register the security plugins.
+   * @param ksqlConfig The KSQL configuration containing security required configs.
    * @throws KsqlException If an error occurs while registering the REST security plugin.
    */
-  void registerRestEndpoints(Configurable<?> configurable) throws KsqlException;
+  void register(Configurable<?> configurable, KsqlConfig ksqlConfig);
 
   /**
    * Constructs a {@link org.apache.kafka.streams.KafkaClientSupplier} with the user's credentials.
@@ -78,5 +78,5 @@ public interface KsqlSecurityExtension extends AutoCloseable {
    * @throws KsqlException If an error occurs while closing the security extension.
    */
   @Override
-  void close() throws KsqlException;
+  void close();
 }

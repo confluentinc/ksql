@@ -155,8 +155,7 @@ public class KsqlRestApplicationTest {
     app.configureBaseApplication(configurable, Collections.emptyMap());
 
     // Then:
-    verify(securityExtension).initialize(ksqlConfig);
-    verify(securityExtension).registerRestEndpoints(configurable);
+    verify(securityExtension).register(configurable, ksqlConfig);
   }
 
   @Test

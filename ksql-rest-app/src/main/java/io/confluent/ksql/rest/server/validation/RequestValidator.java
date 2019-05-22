@@ -38,7 +38,7 @@ import io.confluent.ksql.util.KsqlStatementException;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
-import java.util.function.Supplier;
+import java.util.function.Function;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,7 +53,7 @@ public class RequestValidator {
 
   private final Map<Class<? extends Statement>, StatementValidator<?>> customValidators;
   private final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory;
-  private final Supplier<KsqlExecutionContext> snapshotSupplier;
+  private final Function<ServiceContext, KsqlExecutionContext> snapshotSupplier;
   private final KsqlConfig ksqlConfig;
   private final TopicAccessValidator topicAccessValidator;
 
@@ -68,7 +68,7 @@ public class RequestValidator {
   public RequestValidator(
       final Map<Class<? extends Statement>, StatementValidator<?>> customValidators,
       final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory,
-      final Supplier<KsqlExecutionContext> snapshotSupplier,
+      final Function<ServiceContext, KsqlExecutionContext> snapshotSupplier,
       final KsqlConfig ksqlConfig,
       final TopicAccessValidator topicAccessValidator
   ) {
@@ -101,7 +101,7 @@ public class RequestValidator {
   ) {
     requireSandbox(serviceContext);
 
-    final KsqlExecutionContext ctx = requireSandbox(snapshotSupplier.get());
+    final KsqlExecutionContext ctx = requireSandbox(snapshotSupplier.apply(serviceContext));
     final Injector injector = injectorFactory.apply(ctx, serviceContext);
 
     int numPersistentQueries = 0;

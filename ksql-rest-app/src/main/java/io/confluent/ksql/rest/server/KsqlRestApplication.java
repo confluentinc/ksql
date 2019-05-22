@@ -306,13 +306,13 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
                       JsonMapper.INSTANCE.mapper,
                       statementParser,
                       ksqlEngine,
-                      serviceContext,
                       commandQueue,
                       exec,
                       versionCheckerAgent::updateLastRequestTime,
                       Duration.ofMillis(config.getLong(
                           KsqlRestConfig.DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG)),
-                      topicAccessValidator
+                      topicAccessValidator,
+                      securityExtension
                   );
                 }
 
@@ -492,7 +492,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
 
   private static KsqlSecurityExtension loadSecurityExtension(final KsqlConfig ksqlConfig) {
     return Optional.ofNullable(ksqlConfig.getConfiguredInstance(
-        ksqlConfig.KSQL_SECURITY_EXTENSION_CLASS,
+        KsqlConfig.KSQL_SECURITY_EXTENSION_CLASS,
         KsqlSecurityExtension.class
     )).orElse(new KsqlDefaultSecurityExtension());
   }
@@ -554,7 +554,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         statement, Collections.emptyMap(), ksqlConfig);
 
     try {
-      ksqlEngine.createSandbox().execute(configured.get());
+      ksqlEngine.createSandbox(ksqlEngine.getServiceContext()).execute(configured.get());
     } catch (final KsqlException e) {
       log.warn("Failed to create processing log stream", e);
       return;

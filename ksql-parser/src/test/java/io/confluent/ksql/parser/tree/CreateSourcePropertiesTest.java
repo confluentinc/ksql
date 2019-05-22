@@ -64,6 +64,8 @@ public class CreateSourcePropertiesTest {
     assertThat(properties.getWindowType(), is(Optional.empty()));
     assertThat(properties.getAvroSchemaId(), is(Optional.empty()));
     assertThat(properties.getValueAvroSchemaName(), is(Optional.empty()));
+    assertThat(properties.getReplicas(), is(Optional.empty()));
+    assertThat(properties.getPartitions(), is(Optional.empty()));
   }
 
   @Test
@@ -171,6 +173,32 @@ public class CreateSourcePropertiesTest {
 
     // Then:
     assertThat(properties.getValueAvroSchemaName(), is(Optional.of("schema")));
+  }
+
+  @Test
+  public void shouldSetReplicas() {
+    // When:
+    final CreateSourceProperties properties = new CreateSourceProperties(
+        ImmutableMap.<String, Literal>builder()
+            .putAll(MINIMUM_VALID_PROPS)
+            .put(KsqlConstants.SOURCE_NUMBER_OF_REPLICAS, new IntegerLiteral(2))
+            .build());
+
+    // Then:
+    assertThat(properties.getReplicas(), is(Optional.of((short) 2)));
+  }
+
+  @Test
+  public void shouldSetPartitions() {
+    // When:
+    final CreateSourceProperties properties = new CreateSourceProperties(
+        ImmutableMap.<String, Literal>builder()
+            .putAll(MINIMUM_VALID_PROPS)
+            .put(KsqlConstants.SOURCE_NUMBER_OF_PARTITIONS, new IntegerLiteral(2))
+            .build());
+
+    // Then:
+    assertThat(properties.getPartitions(), is(Optional.of(2)));
   }
 
   @Test

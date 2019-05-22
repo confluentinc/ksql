@@ -1753,8 +1753,8 @@ public class KsqlResourceTest {
     when(ksqlEngine.prepare(any()))
         .thenAnswer(invocation -> realEngine.prepare(invocation.getArgument(0)));
     when(sandbox.prepare(any()))
-        .thenAnswer(invocation -> realEngine.createSandbox().prepare(invocation.getArgument(0)));
-    when(ksqlEngine.createSandbox()).thenReturn(sandbox);
+        .thenAnswer(invocation -> realEngine.createSandbox(serviceContext).prepare(invocation.getArgument(0)));
+    when(ksqlEngine.createSandbox(any())).thenReturn(sandbox);
     when(ksqlEngine.getMetaStore()).thenReturn(metaStore);
     when(topicInjectorFactory.apply(ksqlEngine)).thenReturn(topicInjector);
     setUpKsqlResource();

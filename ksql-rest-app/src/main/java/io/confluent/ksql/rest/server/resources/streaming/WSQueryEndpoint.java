@@ -91,6 +91,7 @@ public class WSQueryEndpoint {
   private final ServiceContextFactory serviceContextFactory;
 
   private WebSocketSubscriber<?> subscriber;
+  private ServiceContext serviceContext;
 
   @VisibleForTesting
   @FunctionalInterface
@@ -206,7 +207,7 @@ public class WSQueryEndpoint {
       final PreparedStatement<?> preparedStatement = parseStatement(request);
 
       final Principal principal = session.getUserPrincipal();
-      final ServiceContext serviceContext = serviceContextFactory.create(
+      serviceContext = serviceContextFactory.create(
           ksqlConfig,
           securityExtension.getKafkaClientSupplier(principal),
           securityExtension.getSchemaRegistryClientSupplier(principal));
@@ -234,6 +235,11 @@ public class WSQueryEndpoint {
     if (subscriber != null) {
       subscriber.close();
     }
+
+    if (serviceContext != null) {
+      serviceContext.close();
+    }
+
     log.debug(
         "Closing websocket session {} ({}): {}",
         session.getId(),

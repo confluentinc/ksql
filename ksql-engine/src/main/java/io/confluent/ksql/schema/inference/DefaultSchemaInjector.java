@@ -134,9 +134,8 @@ public class DefaultSchemaInjector implements Injector {
       final ConfiguredStatement<CreateSource> preparedStatement
   ) {
     try {
-      // this statement throws if schema.schema is invalid
       schema.fields()
-          .forEach(field -> LogicalSchemas.toSqlTypeConverter().toSqlType(field.schema()));
+          .forEach(field -> LogicalSchemas.toSqlTypeConverter().validate(field.schema()));
       return SchemaParser.parse(SchemaUtil.getSqlSchemaString(schema, ParserUtil.RESERVED_WORDS));
     } catch (final Exception e) {
       throw new KsqlStatementException(

@@ -69,6 +69,12 @@ public final class LogicalSchemas {
      * @return the sql type.
      */
     Type toSqlType(Schema schema);
+
+    /**
+     * Ensures that the schema passed in is valid. Otherwise, it throws a
+     * {@code KsqlException}.
+     */
+    void validate(Schema schema) throws KsqlException;
   }
 
   public interface SqlTypeToLogicalConverter {
@@ -115,6 +121,11 @@ public final class LogicalSchemas {
     @Override
     public Type toSqlType(final Schema schema) {
       return sqlType(schema);
+    }
+
+    @Override
+    public void validate(final Schema schema) throws KsqlException {
+      sqlType(schema);
     }
 
     private static Type sqlType(final Schema schema) {

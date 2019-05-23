@@ -20,7 +20,6 @@ import static org.apache.avro.Schema.createArray;
 import static org.apache.avro.Schema.createMap;
 import static org.apache.avro.Schema.createUnion;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -69,7 +68,6 @@ public final class SchemaUtil {
       .put(double.class, SchemaBuilder::float64)
       .build();
 
-  @VisibleForTesting
   private static final List<Schema.Type> ARITHMETIC_TYPES_LIST =
       ImmutableList.of(
           Schema.Type.INT8,
@@ -103,7 +101,7 @@ public final class SchemaUtil {
           .put(Schema.Type.FLOAT64, Schema.OPTIONAL_FLOAT64_SCHEMA)
           .build();
 
-  private static final ImmutableMap<Schema.Type, String> SCHEMA_TYPE_NAME_TO_SQL_TYPE =
+  private static final ImmutableMap<Schema.Type, String> SCHEMA_TYPE_TO_SQL_TYPE =
       new ImmutableMap.Builder<Schema.Type, String>()
           .put(Schema.Type.STRING, "VARCHAR")
           .put(Schema.Type.INT64, "BIGINT")
@@ -111,9 +109,9 @@ public final class SchemaUtil {
           .put(Schema.Type.FLOAT32, "DOUBLE")
           .put(Schema.Type.FLOAT64, "DOUBLE")
           .put(Schema.Type.BOOLEAN, "BOOLEAN")
-          .put(Schema.Type.ARRAY, "ARRAY")
-          .put(Schema.Type.MAP, "MAP")
-          .put(Schema.Type.STRUCT, "STRUCT")
+          .put(Schema.Type.ARRAY, ARRAY)
+          .put(Schema.Type.MAP, MAP)
+          .put(Schema.Type.STRUCT, STRUCT)
           .build();
 
   private static final Map<Schema.Type, Class<?>> SCHEMA_TYPE_TO_JAVA_TYPE =
@@ -202,7 +200,7 @@ public final class SchemaUtil {
     return schema.fields()
         .stream()
         .map(field ->
-            escape(field.name(), reservedWords)
+            quote(field.name(), reservedWords)
                 + " "
                 + getSqlElementSchema(field.schema(), reservedWords))
         .collect(Collectors.joining(", "));
@@ -211,23 +209,23 @@ public final class SchemaUtil {
   private static String getSqlElementSchema(final Schema schema, final Set<String> reservedWords) {
     switch (schema.type()) {
       case ARRAY:
-        return "ARRAY<" + getSqlElementSchema(schema.valueSchema(), reservedWords) +  ">";
+        return ARRAY + "<" + getSqlElementSchema(schema.valueSchema(), reservedWords) +  ">";
       case MAP:
-        return "MAP<" + getSqlElementSchema(schema.keySchema(), reservedWords)
+        return MAP + "<" + getSqlElementSchema(schema.keySchema(), reservedWords)
             +  ", " + getSqlElementSchema(schema.valueSchema(), reservedWords) + ">";
       case STRUCT:
-        return "STRUCT<" + getSqlSchemaString(schema, reservedWords) + ">";
+        return STRUCT + "<" + getSqlSchemaString(schema, reservedWords) + ">";
       default:
         return getSchemaTypeAsSqlType(schema.type());
     }
   }
 
-  private static String escape(final String token, final Set<String> reservedWords) {
+  private static String quote(final String token, final Set<String> reservedWords) {
     return reservedWords.contains(token) ? "`" + token + "`" : token;
   }
 
   public static String getSchemaTypeAsSqlType(final Schema.Type type) {
-    final String sqlType = SCHEMA_TYPE_NAME_TO_SQL_TYPE.get(type);
+    final String sqlType = SCHEMA_TYPE_TO_SQL_TYPE.get(type);
     if (sqlType == null) {
       throw new IllegalArgumentException("Unknown schema type: " + type);
     }

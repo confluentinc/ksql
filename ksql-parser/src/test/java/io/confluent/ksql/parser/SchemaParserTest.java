@@ -55,6 +55,19 @@ public class SchemaParserTest {
   }
 
   @Test
+  public void shouldParseQuotedSchema() {
+    // Given:
+    final String schema = "`END` VARCHAR";
+
+    // When:
+    final List<TableElement> elements = SchemaParser.parse(schema);
+
+    // Then:
+    assertThat(elements.size(), is(1));
+    assertThat(elements.get(0), is(new TableElement("END", PrimitiveType.of(SqlType.STRING))));
+  }
+
+  @Test
   public void shouldParseEmptySchema() {
     // Given:
     final String schema = "";

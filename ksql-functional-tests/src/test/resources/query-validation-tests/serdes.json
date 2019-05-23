@@ -218,23 +218,23 @@
       "statements": [
         "CREATE STREAM INPUT (foo MAP<STRING, INT>) WITH (kafka_topic='input_topic', value_format='AVRO');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
-       ],
-       "topics": [
+      ],
+      "topics": [
         {
           "name": "input_topic",
           "schema": {"type": "map", "values": ["null", "int"]},
           "format": "AVRO"
         }
-       ],
-       "inputs": [
+      ],
+      "inputs": [
         {"topic": "input_topic", "value": {"a": 1, "b": 2, "c": 3}},
         {"topic": "input_topic", "value": {"a": 1, "b": 2, "c": null}},
         {"topic": "input_topic", "value": null}
-       ],
-       "outputs": [
-         {"topic": "OUTPUT", "value": null}
-       ],
-       "post": {
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": null}
+      ],
+      "post": {
         "sources": [
           {
             "name": "INPUT",
@@ -242,7 +242,7 @@
             "valueSchema": "STRUCT<ROWTIME BIGINT, ROWKEY STRING, FOO MAP<STRING, INT>>"
           }
         ]
-       }
+      }
     },
     {
       "name": "deserialize top level map - value",
@@ -250,18 +250,18 @@
       "statements": [
         "CREATE STREAM INPUT (foo MAP<STRING, INT>) WITH (kafka_topic='input_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
-       ],
-       "inputs": [
+      ],
+      "inputs": [
         {"topic": "input_topic", "value": {"a": 1, "b": 2, "c": 3}},
         {"topic": "input_topic", "value": {"a": 1, "b": 2, "c": null}},
         {"topic": "input_topic", "value": null}
-       ],
-       "outputs": [
-         {"topic": "OUTPUT", "value": {"FOO": null}},
-         {"topic": "OUTPUT", "value": {"FOO": null}},
-         {"topic": "OUTPUT", "value": null}
-       ],
-       "post": {
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"FOO": null}},
+        {"topic": "OUTPUT", "value": {"FOO": null}},
+        {"topic": "OUTPUT", "value": null}
+      ],
+      "post": {
         "sources": [
           {
             "name": "INPUT",
@@ -269,7 +269,7 @@
             "valueSchema": "STRUCT<ROWTIME BIGINT, ROWKEY STRING, FOO MAP<STRING, INT>>"
           }
         ]
-       }
+      }
     },
     {
       "name": "deserialize top level map - value - with coercion - AVRO",

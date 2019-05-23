@@ -37,10 +37,10 @@ public final class FakeKafkaService {
     this.topicData = new HashMap<>();
   }
 
-  void createTopic(final Topic topic) {
+  public void createTopic(final Topic topic) {
     Objects.requireNonNull(topic, "Topic");
     if (this.topicMap.containsKey(topic.getName())) {
-      throw new KsqlException("Topic already exist: " +  topic.getName());
+      return;
     }
     this.topicMap.put(topic.getName(), topic);
     this.topicData.put(topic.getName(), new ArrayList<>());
@@ -49,25 +49,37 @@ public final class FakeKafkaService {
   void writeRecord(final String topicName, final FakeKafkaRecord record) {
     Objects.requireNonNull(topicName, "Topic");
     Objects.requireNonNull(record, "Record");
-    ensureTopicExists(topicName);
+    requireTopicExists(topicName);
     this.topicData.get(topicName).add(record);
   }
 
   List<FakeKafkaRecord> readRecords(final String topicName) {
     Objects.requireNonNull(topicName, "Topic");
-    ensureTopicExists(topicName);
+    requireTopicExists(topicName);
     return ImmutableList.copyOf(topicData.get(topicName));
   }
 
-  private void ensureTopicExists(final String topicName) {
+  public void requireTopicExists(final String topicName) {
     if (!this.topicMap.containsKey(topicName)) {
       throw new KsqlException("Topic does not exist: " +  topicName);
     }
   }
 
-  Map<String, Topic> getTopicMap() {
-    return topicMap;
+  public boolean topicExists(final Topic topic) {
+    return topicMap.containsKey(topic.getName());
   }
+
+  public void updateTopic(final Topic topic) {
+    if (!topicExists(topic)) {
+      throw new KsqlException("Topic does not exist: " + topic.getName());
+    }
+    topicMap.put(topic.getName(), topic);
+  }
+
+  public Topic getTopic(final String topicName) {
+    return topicMap.get(topicName);
+  }
+
 
   Map<String, List<FakeKafkaRecord>> getTopicData() {
     return topicData;

@@ -265,6 +265,14 @@ public class UdfLoader {
           .filter(val -> !val.isEmpty())
           .orElse(param.isNamePresent() ? param.getName() : "");
 
+      if (name.trim().isEmpty()) {
+        throw new KsqlFunctionException(
+            String.format("Cannot resolve parameter name for param at index %d for udf %s:%s. "
+                + "Please specify a name in @UdfParameter or compile your JAR with -parameters "
+                + "to infer the name from the parameter name.",
+                idx, classLevelAnnotation.name(), method.getName()));
+      }
+
       final String doc = annotation.map(UdfParameter::description).orElse("");
       if (annotation.isPresent() && !annotation.get().schema().isEmpty()) {
         return LogicalSchemas.fromSqlTypeConverter()

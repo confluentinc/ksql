@@ -242,8 +242,10 @@ about the method when, for example, they execute ``DESCRIBE FUNCTION`` on the me
 +------------+------------------------------+------------------------+
 | Field      | Description                  | Required               |
 +============+==============================+========================+
-| value      | The case-insensitive name of | No                     |
-|            | the parameter                |                        |
+| value      | The case-insensitive name of | Required if the UDF JAR|
+|            | the parameter                | was not compiled with  |
+|            |                              | the ``-parameters``    |
+|            |                              | javac argument.        |
 +------------+------------------------------+------------------------+
 | description| A string describing generally| No                     |
 |            | what the parameter represents|                        |
@@ -268,7 +270,7 @@ about the method when, for example, they execute ``DESCRIBE FUNCTION`` on the me
        @UdfParameter(value = "zipcode", description = "a US postal code") final String zipcode,
        @UdfParameter(schema = "STRUCT<ZIP STRING, NAME STRING>") final Struct employee)
 
-If your Java8 class is compiled with the ``-parameter`` compiler flag, the name of the parameter
+If your Java8 class is compiled with the ``-parameters`` compiler flag, the name of the parameter
 will be inferred from the method declaration.
 
 Configurable UDF

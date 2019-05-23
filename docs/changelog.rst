@@ -1,6 +1,14 @@
 Changelog
 =========
 
+Version 5.4.0
+-------------
+
+KSQL 5.4.0 includes the following misc. changes:
+
+* Require either the value for a ``@UdfParameter`` or for the UDF JAR to be compiled with
+  the Java8 ``-parameters`` compilation option. The UDF archetype now includes this flag.
+
 Version 5.3.0
 -------------
 

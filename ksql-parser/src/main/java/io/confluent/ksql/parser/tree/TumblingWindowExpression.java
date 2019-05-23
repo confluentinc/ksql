@@ -105,6 +105,10 @@ public class TumblingWindowExpression extends KsqlWindowExpression {
 
   @Override
   public <K> SerdeFactory<Windowed<K>> getKeySerdeFactory(final Class<K> innerType) {
-    return () -> WindowedSerdes.timeWindowedSerdeFrom(innerType);
+    return () -> WindowedSerdes.timeWindowedSerdeFrom(innerType, computeWindowSize(size, sizeUnit));
+  }
+
+  private static Long computeWindowSize(final Long windowSize, final TimeUnit timeUnit) {
+    return TimeUnit.MILLISECONDS.convert(windowSize, timeUnit);
   }
 }

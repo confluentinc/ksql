@@ -25,12 +25,10 @@ import io.confluent.ksql.engine.KsqlEngineTestUtil;
 import io.confluent.ksql.function.TestFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.MutableMetaStore;
-import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import java.io.IOException;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -47,7 +45,7 @@ final class TestExecutor {
 
   private final FakeKafkaService fakeKafkaService = FakeKafkaService.create();
 
-  void buildAndExecuteQuery(final TestCase testCase) {
+  void buildAndExecuteQuery(final TestCase testCase) throws IOException, RestClientException {
 
     final KsqlConfig currentConfigs = new KsqlConfig(config);
 
@@ -57,19 +55,15 @@ final class TestExecutor {
         currentConfigs.overrideBreakingConfigsWithOriginalValues(persistedConfigs);
 
     try {
-      testCase.initializeTopics(
-          serviceContext.getTopicClient(),
-          serviceContext.getSchemaRegistryClient());
-
       final List<TopologyTestDriverContainer> topologyTestDrivers =
           TestExecutorUtil.buildStreamsTopologyTestDrivers(
               testCase,
               serviceContext,
               ksqlEngine,
-              ksqlConfig
+              ksqlConfig,
+              fakeKafkaService
       );
 
-      createInputTopics(testCase.getTopics(), fakeKafkaService);
       writeInputIntoTopics(testCase.getInputRecords(), fakeKafkaService);
       final Set<String> inputTopics = testCase.getInputRecords()
           .stream()
@@ -78,18 +72,14 @@ final class TestExecutor {
 
       for (final TopologyTestDriverContainer topologyTestDriverContainer : topologyTestDrivers) {
         testCase.verifyTopology();
-        final List<String> topologySourceKafkaTopics = topologyTestDriverContainer
-            .getSourceKsqlTopics()
+
+        final Set<Topic> topicsFromInput = topologyTestDriverContainer.getSourceTopics()
             .stream()
-            .map(KsqlTopic::getKafkaTopicName)
-            .collect(Collectors.toList());
-        final Set<String> topicsFromInput = topologySourceKafkaTopics
-            .stream()
-            .filter(inputTopics::contains)
+            .filter(topic -> inputTopics.contains(topic.getName()))
             .collect(Collectors.toSet());
-        final Set<String> topicsFromKafka = topologySourceKafkaTopics
+        final Set<Topic> topicsFromKafka = topologyTestDriverContainer.getSourceTopics()
             .stream()
-            .filter(kafkaTopicName -> !inputTopics.contains(kafkaTopicName))
+            .filter(topic -> !inputTopics.contains(topic.getName()))
             .collect(Collectors.toSet());
         if (!topicsFromInput.isEmpty()) {
           pipeRecordsFromProvidedInput(
@@ -98,18 +88,15 @@ final class TestExecutor {
               topologyTestDriverContainer,
               serviceContext);
         }
-        for (final String kafkaTopicName : topicsFromKafka) {
+        for (final Topic kafkaTopic : topicsFromKafka) {
           pipeRecordsFromKafka(
-              kafkaTopicName,
+              kafkaTopic.getName(),
               fakeKafkaService,
               topologyTestDriverContainer,
               serviceContext);
         }
       }
-      testCase.verifyOutputTopics(
-          fakeKafkaService,
-          serviceContext.getSchemaRegistryClient()
-      );
+      testCase.verifyOutputTopics(fakeKafkaService);
       testCase.verifyMetastore(ksqlEngine.getMetaStore());
     } catch (final RuntimeException e) {
       testCase.handleException(e);
@@ -128,17 +115,12 @@ final class TestExecutor {
       final ServiceContext serviceContext
   ) {
     for (final Record record : testCase.getInputRecords()) {
-      try {
-        TestCase.processSingleRecord(
-            FakeKafkaRecord.of(record, null),
-            fakeKafkaService,
-            topologyTestDriverContainer,
-            serviceContext.getTopicClient(),
-            serviceContext.getSchemaRegistryClient()
-        );
-      } catch (IOException | RestClientException e) {
-        e.printStackTrace();
-      }
+      TestCase.processSingleRecord(
+          FakeKafkaRecord.of(record, null),
+          fakeKafkaService,
+          topologyTestDriverContainer,
+          serviceContext.getSchemaRegistryClient()
+      );
     }
   }
 
@@ -150,17 +132,12 @@ final class TestExecutor {
   ) {
     for (final FakeKafkaRecord fakeKafkaRecord : fakeKafkaService
         .readRecords(kafkaTopicName)) {
-      try {
-        TestCase.processSingleRecord(
-            fakeKafkaRecord,
-            fakeKafkaService,
-            topologyTestDriverContainer,
-            serviceContext.getTopicClient(),
-            serviceContext.getSchemaRegistryClient()
-        );
-      } catch (IOException | RestClientException e) {
-        e.printStackTrace();
-      }
+      TestCase.processSingleRecord(
+          fakeKafkaRecord,
+          fakeKafkaService,
+          topologyTestDriverContainer,
+          serviceContext.getSchemaRegistryClient()
+      );
     }
   }
 
@@ -194,13 +171,6 @@ final class TestExecutor {
     }
     return mapBuilder.build();
 
-  }
-
-
-  private static void createInputTopics(
-      final Collection<Topic> topics,
-      final FakeKafkaService fakeKafkaService) {
-    topics.forEach(fakeKafkaService::createTopic);
   }
 
   private static void writeInputIntoTopics(

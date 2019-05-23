@@ -24,6 +24,7 @@ import com.fasterxml.jackson.databind.ObjectWriter;
 import com.fasterxml.jackson.databind.node.NullNode;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import io.confluent.connect.avro.AvroData;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
@@ -31,19 +32,21 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlEngineTestUtil;
 import io.confluent.ksql.function.TestFunctionRegistry;
+import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.model.SemanticVersion;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
+import io.confluent.ksql.test.tools.FakeKafkaService;
 import io.confluent.ksql.test.tools.Test;
 import io.confluent.ksql.test.tools.TestCase;
+import io.confluent.ksql.test.tools.Topic;
 import io.confluent.ksql.test.tools.TopologyAndConfigs;
 import io.confluent.ksql.test.tools.TopologyTestDriverContainer;
-import io.confluent.ksql.test.tools.TopologyTestDriverContainer.WindowType;
 import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;
+import io.confluent.ksql.test.utils.SerdeUtil;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import java.io.BufferedReader;
@@ -89,6 +92,7 @@ final class EndToEndEngineTestUtil {
   //     mvn test -pl ksql-engine -Dtest=QueryTranslationTest -Dksql.test.files=test1.json
   //     mvn test -pl ksql-engine -Dtest=QueryTranslationTest -Dksql.test.files=test1.json,test2,json
   private static final String KSQL_TEST_FILES = "ksql.test.files";
+  private static final FakeKafkaService fakeKafkaService = FakeKafkaService.create();
 
   private EndToEndEngineTestUtil(){}
 
@@ -131,6 +135,7 @@ final class EndToEndEngineTestUtil {
   ) {
     testCase.initializeTopics(
         serviceContext.getTopicClient(),
+        fakeKafkaService,
         serviceContext.getSchemaRegistryClient());
 
     final String sql = testCase.statements().stream()
@@ -143,6 +148,25 @@ final class EndToEndEngineTestUtil {
         new HashMap<>(),
         Optional.of(serviceContext.getSchemaRegistryClient())
     );
+
+    final MetaStore metaStore = ksqlEngine.getMetaStore();
+    for (QueryMetadata queryMetadata: queries) {
+      final PersistentQueryMetadata persistentQueryMetadata
+          = (PersistentQueryMetadata) queryMetadata;
+      final String sinkKafkaTopicName = metaStore
+          .getSource(Iterables.getOnlyElement(persistentQueryMetadata.getSinkNames()))
+          .getKafkaTopicName();
+      final Topic sinkTopic = new Topic(
+          sinkKafkaTopicName,
+          Optional.empty(),
+          SerdeUtil.getSerdeSupplierForKsqlSerdeFactory(
+              persistentQueryMetadata.getResultTopic().getValueSerdeFactory()
+          ),
+          1,
+          1);
+      fakeKafkaService
+          .createTopic(sinkTopic);
+    }
 
     assertThat("test did not generate any queries.", queries.isEmpty(), is(false));
     return (PersistentQueryMetadata) queries.get(queries.size() - 1);
@@ -195,11 +219,12 @@ final class EndToEndEngineTestUtil {
         topologyTestDriver,
         persistentQueryMetadata.getSourceNames()
             .stream()
-            .map(s -> ksqlEngine.getMetaStore().getSource(s).getKsqlTopic())
+            .map(s -> fakeKafkaService.getTopic(ksqlEngine.getMetaStore().getSource(s).getKafkaTopicName()))
             .collect(Collectors.toList()),
-        ksqlEngine.getMetaStore().getSource(persistentQueryMetadata.getSinkNames()
-            .iterator().next()).getKsqlTopic(),
-        new Pair<>(WindowType.NO_WINDOW, Long.MIN_VALUE)
+        fakeKafkaService.getTopic(
+            ksqlEngine.getMetaStore()
+                .getSource(persistentQueryMetadata.getSinkNames().iterator().next())
+                .getKafkaTopicName())
     );
   }
 
@@ -464,6 +489,7 @@ final class EndToEndEngineTestUtil {
     ) {
       testCase.initializeTopics(
           serviceContext.getTopicClient(),
+          fakeKafkaService,
           serviceContext.getSchemaRegistryClient());
 
       final TopologyTestDriverContainer topologyTestDriverContainer =

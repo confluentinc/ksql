@@ -48,8 +48,6 @@ public class CommandFactories implements DdlCommandFactory {
       .put(DropStream.class, CommandFactories::handleDropStream)
       .put(DropTable.class, CommandFactories::handleDropTable)
       .put(DropTopic.class, CommandFactories::handleDropTopic)
-      .put(SetProperty.class, CommandFactories::handleSetProperty)
-      .put(UnsetProperty.class, CommandFactories::handleUnsetProperty)
       .build();
 
   private final ServiceContext serviceContext;
@@ -119,22 +117,6 @@ public class CommandFactories implements DdlCommandFactory {
 
   private static DropTopicCommand handleDropTopic(final DropTopic statement) {
     return new DropTopicCommand(statement);
-  }
-
-  @SuppressWarnings("MethodMayBeStatic")
-  private SetPropertyCommand handleSetProperty(
-      final CallInfo callInfo,
-      final SetProperty statement
-  ) {
-    return new SetPropertyCommand(statement, callInfo.properties);
-  }
-
-  @SuppressWarnings("MethodMayBeStatic")
-  private UnsetPropertyCommand handleUnsetProperty(
-      final CallInfo callInfo,
-      final UnsetProperty statement
-  ) {
-    return new UnsetPropertyCommand(statement, callInfo.properties);
   }
 
   private static final class CallInfo {

@@ -255,7 +255,7 @@ public class WSQueryEndpoint {
   }
 
   private void checkEndpointAuthorization(final Principal userPrincipal, final String methodName) {
-    final Class className = this.getClass();
+    final Class<?> className = this.getClass();
 
     if (!securityExtension.getAuthorizer().hasAccess(userPrincipal, className, methodName)) {
       final String userName = (userPrincipal != null) ? userPrincipal.getName() : null;

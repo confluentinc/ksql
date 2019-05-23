@@ -32,6 +32,7 @@ import io.confluent.ksql.parser.tree.QueryContainer;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.UnsetProperty;
+import io.confluent.ksql.rest.server.validation.PropertyOverrider;
 import io.confluent.ksql.rest.util.ProcessingLogServerUtils;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -319,12 +320,11 @@ public class StandaloneExecutor implements Executable {
     }
 
     private void handleSetProperty(final ConfiguredStatement<SetProperty> statement) {
-      final SetProperty setProperty = statement.getStatement();
-      configProperties.put(setProperty.getPropertyName(), setProperty.getPropertyValue());
+      PropertyOverrider.set(statement, null, null);
     }
 
     private void handleUnsetProperty(final ConfiguredStatement<UnsetProperty> statement) {
-      configProperties.remove(statement.getStatement().getPropertyName());
+      PropertyOverrider.unset(statement, null, null);
     }
 
     private void handleExecutableDdl(final ConfiguredStatement<?> statement) {

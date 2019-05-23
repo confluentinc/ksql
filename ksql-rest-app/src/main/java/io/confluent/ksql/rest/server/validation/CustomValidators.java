@@ -70,8 +70,8 @@ public enum CustomValidators {
   SHOW_COLUMNS(ShowColumns.class, ListSourceExecutor::columns),
   EXPLAIN(Explain.class, ExplainExecutor::execute),
   DESCRIBE_FUNCTION(DescribeFunction.class, DescribeFunctionExecutor::execute),
-  SET_PROPERTY(SetProperty.class, PropertyValidator::set),
-  UNSET_PROPERTY(UnsetProperty.class, PropertyValidator::unset),
+  SET_PROPERTY(SetProperty.class, PropertyOverrider::set),
+  UNSET_PROPERTY(UnsetProperty.class, PropertyOverrider::unset),
 
   TERMINATE_QUERY(TerminateQuery.class, TerminateQueryValidator::validate);
 

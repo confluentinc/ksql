@@ -149,7 +149,7 @@ public class RequestValidatorTest {
   @Test
   public void shouldExecuteOnEngineIfNoCustomExecutor() {
     // Given:
-    final List<ParsedStatement> statements = givenParsed("SET 'property'='value';");
+    final List<ParsedStatement> statements = givenParsed("CREATE STREAM foo");
 
     // When:
     validator.validate(serviceContext, statements, ImmutableMap.of(), "sql");
@@ -157,7 +157,7 @@ public class RequestValidatorTest {
     // Then:
     verify(ksqlEngine, times(1)).execute(
         eq(serviceContext),
-        argThat(configured(preparedStatement(instanceOf(SetProperty.class))))
+        argThat(configured(preparedStatement(instanceOf(CreateStream.class))))
     );
   }
 

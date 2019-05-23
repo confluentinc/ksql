@@ -15,6 +15,9 @@
 
 package io.confluent.ksql;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasEntry;
+import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.inOrder;
@@ -31,7 +34,9 @@ import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
+import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.statement.InjectorChain;
@@ -41,6 +46,10 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueuedQueryMetadata;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -124,6 +133,7 @@ public class KsqlContextTest {
 
     when(schemaInjector.inject(CFG_STMT_0)).thenReturn((ConfiguredStatement) STMT_0_WITH_SCHEMA);
     when(schemaInjector.inject(CFG_STMT_1)).thenReturn((ConfiguredStatement) STMT_1_WITH_SCHEMA);
+    when(schemaInjector.inject(any())).thenAnswer(inv -> inv.getArgument(0));
 
     when(topicInjector.inject(any())).thenAnswer(inv -> inv.getArgument(0));
 
@@ -354,5 +364,42 @@ public class KsqlContextTest {
 
     // Then:
     verify(ksqlEngine).execute(eq(STMT_1_WITH_TOPIC));
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test
+  public void shouldSetProperty() {
+    // Given:
+    final Map<String, Object> properties = new HashMap<>();
+    when(ksqlEngine.prepare(any()))
+        .thenReturn(
+            (PreparedStatement) PreparedStatement.of(
+                "SET SOMETHING",
+                new SetProperty(Optional.empty(), ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")));
+
+    // When:
+    ksqlContext.sql("SQL;", properties);
+
+    // Then:
+    assertThat(properties, hasEntry(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"));
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test
+  public void shouldUnsetProperty() {
+    // Given:
+    final Map<String, Object> properties = new HashMap<>();
+    properties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+    when(ksqlEngine.prepare(any()))
+        .thenReturn(
+            (PreparedStatement) PreparedStatement.of(
+                "UNSET SOMETHING",
+                new UnsetProperty(Optional.empty(), ConsumerConfig.AUTO_OFFSET_RESET_CONFIG)));
+
+    // When:
+    ksqlContext.sql("SQL;", properties);
+
+    // Then:
+    assertThat(properties, not(hasEntry(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")));
   }
 }

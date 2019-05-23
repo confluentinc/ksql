@@ -230,13 +230,6 @@ public class KsqlResource {
 
   @POST
   public Response handleKsqlStatements(final KsqlRequest request) {
-    if (!ksqlEngine.isAcceptingStatements()) {
-      return Errors.serverErrorForStatement(
-          new KsqlException("The cluster has been terminated. No new request will be accepted."),
-          request.getKsql(),
-          new KsqlEntityList()
-      );
-    }
     activenessRegistrar.updateLastRequestTime();
     try {
       CommandStoreUtil.httpWaitForCommandSequenceNumber(

@@ -24,11 +24,13 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
+import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.rest.util.CommandStoreUtil;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.HandlerMaps;
@@ -40,6 +42,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.TimeoutException;
 import javax.websocket.CloseReason;
 import javax.websocket.CloseReason.CloseCodes;
@@ -49,6 +52,7 @@ import javax.websocket.OnError;
 import javax.websocket.OnOpen;
 import javax.websocket.Session;
 import javax.websocket.server.ServerEndpoint;
+import javax.ws.rs.core.Response;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -76,6 +80,7 @@ public class WSQueryEndpoint {
   private final QueryPublisher queryPublisher;
   private final PrintTopicPublisher topicPublisher;
   private final Duration commandQueueCatchupTimeout;
+  private final ServerState serverState;
 
   private WebSocketSubscriber<?> subscriber;
 
@@ -88,7 +93,8 @@ public class WSQueryEndpoint {
       final CommandQueue commandQueue,
       final ListeningScheduledExecutorService exec,
       final ActivenessRegistrar activenessRegistrar,
-      final Duration commandQueueCatchupTimeout
+      final Duration commandQueueCatchupTimeout,
+      final ServerState serverState
   ) {
     this(ksqlConfig,
         mapper,
@@ -100,7 +106,8 @@ public class WSQueryEndpoint {
         WSQueryEndpoint::startQueryPublisher,
         WSQueryEndpoint::startPrintPublisher,
         activenessRegistrar,
-        commandQueueCatchupTimeout);
+        commandQueueCatchupTimeout,
+        serverState);
   }
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
@@ -116,7 +123,8 @@ public class WSQueryEndpoint {
       final QueryPublisher queryPublisher,
       final PrintTopicPublisher topicPublisher,
       final ActivenessRegistrar activenessRegistrar,
-      final Duration commandQueueCatchupTimeout
+      final Duration commandQueueCatchupTimeout,
+      final ServerState serverState
   ) {
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     this.mapper = Objects.requireNonNull(mapper, "mapper");
@@ -132,23 +140,23 @@ public class WSQueryEndpoint {
         Objects.requireNonNull(activenessRegistrar, "activenessRegistrar");
     this.commandQueueCatchupTimeout =
         Objects.requireNonNull(commandQueueCatchupTimeout, "commandQueueCatchupTimeout");
+    this.serverState = Objects.requireNonNull(serverState, "serverState");
   }
 
   @SuppressWarnings("unused")
   @OnOpen
   public void onOpen(final Session session, final EndpointConfig unused) {
     log.debug("Opening websocket session {}", session.getId());
-    if (!ksqlEngine.isAcceptingStatements()) {
-      log.info("The cluster has been terminated. No new request will be accepted.");
-      SessionUtil.closeSilently(
-          session,
-          CloseCodes.CANNOT_ACCEPT,
-          "The cluster has been terminated. No new request will be accepted."
-      );
-      return;
-    }
+
     try {
       validateVersion(session);
+
+      final Optional<Response> readyResponse = serverState.checkReady();
+      if (readyResponse.isPresent()) {
+        final String msg = ((KsqlErrorMessage) readyResponse.get().getEntity()).getMessage();
+        SessionUtil.closeSilently(session, CloseCodes.TRY_AGAIN_LATER, msg);
+        return;
+      }
 
       final KsqlRequest request = parseRequest(session);
 

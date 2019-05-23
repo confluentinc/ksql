@@ -34,6 +34,7 @@ import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.KsqlRequest;
+import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandId.Action;
 import io.confluent.ksql.rest.server.computation.CommandId.Type;
@@ -159,6 +160,7 @@ public class RecoveryTest {
     final FakeCommandQueue fakeCommandQueue;
     final StatementExecutor statementExecutor;
     final CommandRunner commandRunner;
+    final ServerState serverState;
 
     KsqlServer(final List<QueuedCommand> commandLog) {
       this.ksqlEngine = createKsqlEngine();
@@ -166,6 +168,8 @@ public class RecoveryTest {
       this.fakeCommandQueue = new FakeCommandQueue(
           new CommandIdAssigner(ksqlEngine.getMetaStore()),
           commandLog);
+      serverState = new ServerState();
+      serverState.setReady();
       this.ksqlResource = new KsqlResource(
           ksqlConfig,
           ksqlEngine,
@@ -181,9 +185,9 @@ public class RecoveryTest {
       this.commandRunner = new CommandRunner(
           statementExecutor,
           fakeCommandQueue,
-          ksqlEngine,
           1,
-          mock(ClusterTerminator.class)
+          mock(ClusterTerminator.class),
+          serverState
       );
     }
 

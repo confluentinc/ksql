@@ -15,7 +15,12 @@
 
 package io.confluent.ksql.rest.server.resources;
 
+import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.entity.Versions;
+import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.Version;
+import java.util.concurrent.TimeUnit;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -25,15 +30,41 @@ import javax.ws.rs.core.Response;
 @Path("/info")
 @Produces({Versions.KSQL_V1_JSON, MediaType.APPLICATION_JSON})
 public class ServerInfoResource {
+  private static final long DESCRIBE_CLUSTER_TIMEOUT_SECONDS = 30;
 
-  private final io.confluent.ksql.rest.entity.ServerInfo serverInfo;
+  private final ServiceContext serviceContext;
+  private final KsqlConfig ksqlConfig;
+  private volatile io.confluent.ksql.rest.entity.ServerInfo serverInfo = null;
 
-  public ServerInfoResource(final io.confluent.ksql.rest.entity.ServerInfo serverInfo) {
-    this.serverInfo = serverInfo;
+  public ServerInfoResource(final ServiceContext serviceContext, final KsqlConfig ksqlConfig) {
+    this.serviceContext = serviceContext;
+    this.ksqlConfig = ksqlConfig;
+  }
+
+  private ServerInfo getServerInfo() {
+    if (serverInfo == null) {
+      serverInfo = new ServerInfo(
+          Version.getVersion(),
+          getKafkaClusterId(serviceContext),
+          ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)
+      );
+    }
+    return serverInfo;
+  }
+
+  private static String getKafkaClusterId(final ServiceContext serviceContext) {
+    try {
+      return serviceContext.getAdminClient()
+          .describeCluster()
+          .clusterId()
+          .get(DESCRIBE_CLUSTER_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+    } catch (final Exception e) {
+      throw new RuntimeException("Failed to get Kafka cluster information", e);
+    }
   }
 
   @GET
   public Response get() {
-    return Response.ok(serverInfo).build();
+    return Response.ok(getServerInfo()).build();
   }
 }

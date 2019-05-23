@@ -6,9 +6,7 @@
   <version>1</version>
 
   <properties>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <ksql.version>5.3.0-SNAPSHOT</ksql.version>
-    <maven.shade.version>3.2.1</maven.shade.version>
+    <ksql.version>5.4.0-SNAPSHOT</ksql.version>
   </properties>
 
   <build>

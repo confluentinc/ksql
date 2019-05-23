@@ -380,6 +380,19 @@ public class WSQueryEndpointTest {
   }
 
   @Test
+  public void shouldCloseImpersonatedServiceContextOnClose() {
+    // Given:
+    givenRequestIs(query);
+
+    // When:
+    wsQueryEndpoint.onOpen(session, null);
+    wsQueryEndpoint.onClose(session, new CloseReason(CloseCodes.NO_STATUS_CODE, ""));
+
+    // Then:
+    verify(serviceContext).close();
+  }
+
+  @Test
   public void shouldReturnErrorIfTopicDoesNotExist() throws Exception {
     // Given:
     givenRequestIs(StreamingTestUtils.printTopic("bob", true, null, null));

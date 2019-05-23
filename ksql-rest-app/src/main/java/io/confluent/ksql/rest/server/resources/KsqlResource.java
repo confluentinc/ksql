@@ -17,12 +17,15 @@ package io.confluent.ksql.rest.server.resources;
 
 import static java.util.regex.Pattern.compile;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.TopicAccessValidator;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
+import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.DescribeFunction;
 import io.confluent.ksql.parser.tree.ListFunctions;
 import io.confluent.ksql.parser.tree.ListProperties;
@@ -41,10 +44,12 @@ import io.confluent.ksql.rest.server.execution.DefaultCommandQueueSync;
 import io.confluent.ksql.rest.server.execution.RequestHandler;
 import io.confluent.ksql.rest.server.validation.CustomValidators;
 import io.confluent.ksql.rest.server.validation.RequestValidator;
+import io.confluent.ksql.rest.server.validation.ValidatedStatement;
 import io.confluent.ksql.rest.util.CommandStoreUtil;
 import io.confluent.ksql.rest.util.TerminateCluster;
 import io.confluent.ksql.services.SandboxedServiceContext;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -71,8 +76,9 @@ import javax.ws.rs.core.Response;
 public class KsqlResource {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
-  private static final List<ParsedStatement> TERMINATE_CLUSTER =
-      new DefaultKsqlParser().parse(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT);
+  private static final ParsedStatement TERMINATE_CLUSTER =
+      Iterables.getOnlyElement(
+          new DefaultKsqlParser().parse(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT));
 
   private static final Set<Class<? extends Statement>> SYNC_BLACKLIST =
       ImmutableSet.<Class<? extends Statement>>builder()
@@ -90,7 +96,7 @@ public class KsqlResource {
   private final ActivenessRegistrar activenessRegistrar;
   private final RequestValidator validator;
   private final RequestHandler handler;
-
+  private final KsqlConfig ksqlConfig;
 
   public KsqlResource(
       final KsqlConfig ksqlConfig,
@@ -101,6 +107,7 @@ public class KsqlResource {
       final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory,
       final TopicAccessValidator topicAccessValidator
   ) {
+    this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
     this.commandQueue = Objects.requireNonNull(commandQueue, "commandQueue");
     this.distributedCmdResponseTimeout =
@@ -111,7 +118,6 @@ public class KsqlResource {
     this.validator = new RequestValidator(
         CustomValidators.VALIDATOR_MAP,
         injectorFactory,
-        ksqlEngine::createSandbox,
         ksqlConfig,
         topicAccessValidator);
     this.handler = new RequestHandler(
@@ -121,7 +127,6 @@ public class KsqlResource {
             distributedCmdResponseTimeout,
             injectorFactory),
         ksqlEngine,
-        ksqlConfig,
         new DefaultCommandQueueSync(
             commandQueue,
             KsqlResource::shouldSynchronize,
@@ -137,8 +142,12 @@ public class KsqlResource {
   ) {
     ensureValidPatterns(request.getDeleteTopicList());
     try {
+      final PreparedStatement<?> preparedStatement = ksqlEngine.prepare(TERMINATE_CLUSTER);
+      final ConfiguredStatement<?> configured = ConfiguredStatement
+          .of(preparedStatement, request.getStreamsProperties(), ksqlConfig);
+      final ValidatedStatement validatedStatement = ValidatedStatement.of(configured);
       return Response.ok(
-          handler.execute(serviceContext, TERMINATE_CLUSTER, request.getStreamsProperties())
+          handler.execute(serviceContext, ImmutableList.of(validatedStatement))
       ).build();
     } catch (final Exception e) {
       return Errors.serverErrorForStatement(
@@ -166,19 +175,17 @@ public class KsqlResource {
           request,
           distributedCmdResponseTimeout);
 
+      final KsqlExecutionContext sandbox = ksqlEngine.createSandbox(ksqlEngine.getServiceContext());
       final List<ParsedStatement> statements = ksqlEngine.parse(request.getKsql());
-      validator.validate(
+      final List<ValidatedStatement> validatedStatements = validator.validate(
+          sandbox,
           SandboxedServiceContext.create(serviceContext),
           statements,
           request.getStreamsProperties(),
           request.getKsql()
       );
 
-      final KsqlEntityList entities = handler.execute(
-          serviceContext,
-          statements,
-          request.getStreamsProperties()
-      );
+      final KsqlEntityList entities = handler.execute(serviceContext, validatedStatements);
       return Response.ok(entities).build();
     } catch (final KsqlRestException e) {
       throw e;

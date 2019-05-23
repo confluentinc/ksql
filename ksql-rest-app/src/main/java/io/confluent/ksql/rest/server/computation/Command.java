@@ -18,26 +18,33 @@ package io.confluent.ksql.rest.server.computation;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
+import io.confluent.ksql.statement.Checksum;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
+import javax.annotation.Nullable;
 
 @JsonSubTypes({})
 public class Command {
   private final String statement;
   private final Map<String, Object> overwriteProperties;
   private final Map<String, String> originalProperties;
+  private final Checksum checksum;
   private final boolean preVersion5;
 
   @JsonCreator
-  public Command(@JsonProperty("statement") final String statement,
-                 @JsonProperty("streamsProperties") final Map<String, Object> overwriteProperties,
-                 @JsonProperty("originalProperties") final Map<String, String> originalProperties) {
+  public Command(
+      @JsonProperty("statement") final String statement,
+      @JsonProperty("streamsProperties") final Map<String, Object> overwriteProperties,
+      @JsonProperty("originalProperties") final Map<String, String> originalProperties,
+      @JsonProperty("checksum") final Checksum checksum
+  ) {
     this.statement = statement;
     this.overwriteProperties = Collections.unmodifiableMap(overwriteProperties);
     this.preVersion5 = originalProperties == null;
     this.originalProperties =
         originalProperties == null ? Collections.emptyMap() : originalProperties;
+    this.checksum = checksum;
   }
 
   @JsonProperty("statement")
@@ -57,6 +64,11 @@ public class Command {
 
   boolean isPreVersion5() {
     return this.preVersion5;
+  }
+
+  @Nullable
+  public Checksum getChecksum() {
+    return checksum;
   }
 
   @Override

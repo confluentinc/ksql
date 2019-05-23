@@ -81,7 +81,7 @@ public class DefaultSchemaInjector implements Injector {
     final PreparedStatement<CreateSource> prepared =
         buildPreparedStatement(withSchema);
     return Optional.of(ConfiguredStatement.of(
-        prepared, statement.getOverrides(), statement.getConfig()));
+        prepared, statement.getOverrides(), statement.getConfig(), statement.getChecksum()));
   }
 
   private SchemaAndId getValueSchema(

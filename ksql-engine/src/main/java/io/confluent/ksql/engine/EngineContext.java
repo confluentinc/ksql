@@ -29,6 +29,9 @@ import io.confluent.ksql.parser.tree.ExecutableDdlStatement;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.services.SandboxedServiceContext;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.statement.Checksum;
+import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.statement.HashChain;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -56,13 +59,15 @@ final class EngineContext {
   private final KsqlParser parser = new DefaultKsqlParser();
   private final BiConsumer<ServiceContext, QueryMetadata> outerOnQueryCloseCallback;
   private final Map<QueryId, PersistentQueryMetadata> persistentQueries;
+  private final HashChain hashChain;
 
   private EngineContext(
       final ServiceContext serviceContext,
       final ProcessingLogContext processingLogContext,
       final MutableMetaStore metaStore,
       final QueryIdGenerator queryIdGenerator,
-      final BiConsumer<ServiceContext, QueryMetadata> onQueryCloseCallback
+      final BiConsumer<ServiceContext, QueryMetadata> onQueryCloseCallback,
+      final HashChain hashChain
   ) {
     this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
     this.metaStore = Objects.requireNonNull(metaStore, "metaStore");
@@ -74,6 +79,7 @@ final class EngineContext {
     this.persistentQueries = new ConcurrentHashMap<>();
     this.processingLogContext = Objects
         .requireNonNull(processingLogContext, "processingLogContext");
+    this.hashChain = Objects.requireNonNull(hashChain, "hashChain");
   }
 
   static EngineContext create(
@@ -88,16 +94,18 @@ final class EngineContext {
         processingLogContext,
         metaStore,
         queryIdGenerator,
-        onQueryCloseCallback);
+        onQueryCloseCallback,
+        new HashChain());
   }
 
   EngineContext createSandbox(final ServiceContext serviceContext) {
-    final EngineContext sandBox = EngineContext.create(
+    final EngineContext sandBox = new EngineContext(
         SandboxedServiceContext.create(serviceContext),
         processingLogContext,
         metaStore.copy(),
         queryIdGenerator.copy(),
-        (sc, query) -> { /* No-op */ }
+        (sc, query) -> { /* No-op */ },
+        hashChain.copy()
     );
 
     persistentQueries.forEach((queryId, query) ->
@@ -167,6 +175,14 @@ final class EngineContext {
     }
 
     return result.getMessage();
+  }
+
+  void updateChecksum(final ConfiguredStatement<?> statement) {
+    hashChain.update(statement);
+  }
+
+  Checksum getChecksum() {
+    return hashChain.getChecksum();
   }
 
   void registerQuery(final QueryMetadata query) {

@@ -32,6 +32,8 @@ import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import java.util.Map;
 import java.util.Objects;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Executor of {@code PreparedStatement} within a specific {@code EngineContext} and using a
@@ -44,6 +46,8 @@ import java.util.Objects;
  * impersonate the current REST user executing the statements.
  */
 final class EngineExecutor {
+
+  private static final Logger LOG = LoggerFactory.getLogger(EngineExecutor.class);
 
   private final EngineContext engineContext;
   private final ServiceContext serviceContext;
@@ -75,6 +79,14 @@ final class EngineExecutor {
   }
 
   ExecuteResult execute(final ConfiguredStatement<?> statement) {
+    LOG.info("Executing {} with current checksum: {}", statement, engineContext.getChecksum());
+
+    final ExecuteResult result = doExecute(statement);
+    engineContext.updateChecksum(statement);
+    return result;
+  }
+
+  private ExecuteResult doExecute(final ConfiguredStatement<?> statement) {
     try {
       throwOnNonExecutableStatement(statement);
 

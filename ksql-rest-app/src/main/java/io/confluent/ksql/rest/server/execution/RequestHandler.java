@@ -15,21 +15,16 @@
 
 package io.confluent.ksql.rest.server.execution;
 
-import com.google.common.collect.Iterables;
 import io.confluent.ksql.engine.KsqlEngine;
-import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
-import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.RunScript;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.server.computation.DistributingExecutor;
+import io.confluent.ksql.rest.server.validation.ValidatedStatement;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
-import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlConstants;
-import io.confluent.ksql.util.KsqlStatementException;
-import java.util.HashMap;
+import io.confluent.ksql.util.KsqlServerException;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -43,7 +38,6 @@ public class RequestHandler {
 
   private final Map<Class<? extends Statement>, StatementExecutor<?>> customExecutors;
   private final KsqlEngine ksqlEngine;
-  private final KsqlConfig ksqlConfig;
   private final DistributingExecutor distributor;
   private final CommandQueueSync commandQueueSync;
 
@@ -54,45 +48,34 @@ public class RequestHandler {
    *                        statement
    * @param ksqlEngine      the primary KSQL engine - the state of this engine <b>will</b>
    *                        be directly modified by this class
-   * @param ksqlConfig      a configuration
    */
   public RequestHandler(
       final Map<Class<? extends Statement>, StatementExecutor<?>> customExecutors,
       final DistributingExecutor distributor,
       final KsqlEngine ksqlEngine,
-      final KsqlConfig ksqlConfig,
       final CommandQueueSync commandQueueSync
   ) {
     this.customExecutors = Objects.requireNonNull(customExecutors, "customExecutors");
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
-    this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     this.distributor = Objects.requireNonNull(distributor, "distributor");
     this.commandQueueSync = Objects.requireNonNull(commandQueueSync, "commandQueueSync");
   }
 
   public KsqlEntityList execute(
       final ServiceContext serviceContext,
-      final List<ParsedStatement> statements,
-      final Map<String, Object> propertyOverrides
+      final List<ValidatedStatement> statements
   ) {
-    final Map<String, Object> scopedPropertyOverrides = new HashMap<>(propertyOverrides);
     final KsqlEntityList entities = new KsqlEntityList();
-    for (ParsedStatement parsed : statements) {
-      final PreparedStatement<?> prepared = ksqlEngine.prepare(parsed);
-      if (prepared.getStatement() instanceof RunScript) {
-        final KsqlEntityList result = executeRunScript(serviceContext, prepared, propertyOverrides);
-        if (!result.isEmpty()) {
-          // This is to maintain backwards compatibility until we deprecate
-          // RunScript in the next major release - the expected behavior was
-          // to return only the last entity
-          entities.add(Iterables.getLast(result));
-        }
-      } else {
-        final ConfiguredStatement<?> configured = ConfiguredStatement.of(
-            prepared, scopedPropertyOverrides, ksqlConfig);
-        executeStatement(serviceContext, configured, entities).ifPresent(entities::add);
+
+    for (ValidatedStatement statement : statements) {
+      final Optional<KsqlEntity> result =
+          executeStatement(serviceContext, statement.getStatement(), entities);
+
+      if (statement.shouldReturnResult()) {
+        result.ifPresent(entities::add);
       }
     }
+
     return entities;
   }
 
@@ -103,6 +86,11 @@ public class RequestHandler {
       final KsqlEntityList entities
   ) {
     final Class<? extends Statement> statementClass = configured.getStatement().getClass();
+    if (RunScript.class.isAssignableFrom(statementClass)) {
+      throw new KsqlServerException(
+          "Expected RunScript to be unfolded in RequestValidator: " + configured);
+    }
+
     commandQueueSync.waitFor(new KsqlEntityList(entities), statementClass);
 
     final StatementExecutor<T> executor = (StatementExecutor<T>)
@@ -113,21 +101,6 @@ public class RequestHandler {
         ksqlEngine,
         serviceContext
     );
-  }
-
-  private KsqlEntityList executeRunScript(
-      final ServiceContext serviceContext,
-      final PreparedStatement<?> statement,
-      final Map<String, Object> propertyOverrides) {
-    final String sql = (String) propertyOverrides
-        .get(KsqlConstants.LEGACY_RUN_SCRIPT_STATEMENTS_CONTENT);
-
-    if (sql == null) {
-      throw new KsqlStatementException(
-          "Request is missing script content", statement.getStatementText());
-    }
-
-    return execute(serviceContext, ksqlEngine.parse(sql), propertyOverrides);
   }
 
 }

@@ -33,6 +33,7 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.registry.SchemaRegistryUtil;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.statement.Checksum;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryIdGenerator;
@@ -179,6 +180,11 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
     result.getQuery().ifPresent(this::registerQuery);
 
     return result;
+  }
+
+  @Override
+  public Checksum getChecksum() {
+    return primaryContext.getChecksum();
   }
 
   @Override

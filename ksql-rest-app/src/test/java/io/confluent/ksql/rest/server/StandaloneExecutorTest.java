@@ -62,6 +62,7 @@ import io.confluent.ksql.parser.tree.Type.SqlType;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.statement.Checksum;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.statement.InjectorChain;
@@ -245,6 +246,7 @@ public class StandaloneExecutorTest {
     when(ksqlEngine.prepare(PARSED_STMT_1)).thenReturn((PreparedStatement) PREPARED_STMT_1);
 
     when(ksqlEngine.execute(any())).thenReturn(ExecuteResult.of(persistentQuery));
+    when(ksqlEngine.getChecksum()).thenReturn(new Checksum());
 
     when(ksqlEngine.createSandbox(any())).thenReturn(sandBox);
 
@@ -254,6 +256,7 @@ public class StandaloneExecutorTest {
     when(sandBox.execute(any())).thenReturn(ExecuteResult.of("success"));
     when(sandBox.execute(eq(CSAS_CFG_WITH_TOPIC)))
         .thenReturn(ExecuteResult.of(persistentQuery));
+    when(sandBox.getChecksum()).thenReturn(new Checksum());
 
     when(injectorFactory.apply(any(), any())).thenReturn(InjectorChain.of(sandBoxSchemaInjector, sandBoxTopicInjector));
     when(injectorFactory.apply(ksqlEngine, serviceContext)).thenReturn(InjectorChain.of(schemaInjector, topicInjector));

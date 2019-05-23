@@ -21,6 +21,7 @@ import static org.junit.Assert.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.json.JsonMapper;
+import io.confluent.ksql.statement.Checksum;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
@@ -32,7 +33,8 @@ public class CommandTest {
     final String commandStr = "{" +
         "\"statement\": \"test statement;\", " +
         "\"streamsProperties\": {\"foo\": \"bar\"}, " +
-        "\"originalProperties\": {\"biz\": \"baz\"} " +
+        "\"originalProperties\": {\"biz\": \"baz\"}, " +
+        "\"checksum\": {\"checksum\": 123}" +
         "}";
     final ObjectMapper mapper = JsonMapper.INSTANCE.mapper;
     final Command command = mapper.readValue(commandStr, Command.class);
@@ -44,6 +46,7 @@ public class CommandTest {
         = Collections.singletonMap("biz", "baz");
     assertThat(command.getOriginalProperties(), equalTo(expectedOriginalProperties));
     assertThat(command.isPreVersion5(), is(false));
+    assertThat(command.getChecksum(), is(new Checksum(123)));
   }
 
   @Test
@@ -61,6 +64,18 @@ public class CommandTest {
     assertThat(command.isPreVersion5(), equalTo(true));
   }
 
+  @Test
+  public void shouldDeserializeWithoutChecksum() throws IOException {
+    final String commandStr = "{" +
+        "\"statement\": \"test statement;\", " +
+        "\"streamsProperties\": {\"foo\": \"bar\"}," +
+        "\"originalProperties\": {\"biz\": \"baz\"} " +
+        "}";
+    final ObjectMapper mapper = JsonMapper.INSTANCE.mapper;
+    final Command command = mapper.readValue(commandStr, Command.class);
+    assertThat(command.getChecksum(), equalTo(null));
+  }
+
   void grep(final String string, final String regex) {
     assertThat(string.matches(regex), is(true));
   }
@@ -70,7 +85,8 @@ public class CommandTest {
     final Command command = new Command(
         "test statement;",
         Collections.singletonMap("foo", "bar"),
-        Collections.singletonMap("biz", "baz"));
+        Collections.singletonMap("biz", "baz"),
+        new Checksum(123));
     final ObjectMapper mapper = JsonMapper.INSTANCE.mapper;
     final String serialized = mapper.writeValueAsString(command);
     grep(serialized, ".*\"streamsProperties\" *: *\\{ *\"foo\" *: *\"bar\" *\\}.*");

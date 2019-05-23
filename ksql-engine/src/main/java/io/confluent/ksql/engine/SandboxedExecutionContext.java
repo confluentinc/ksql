@@ -22,6 +22,7 @@ import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.statement.Checksum;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.Sandbox;
@@ -95,5 +96,10 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
         .create(engineContext, serviceContext, statement.getConfig(), statement.getOverrides());
 
     return executor.execute(statement);
+  }
+
+  @Override
+  public Checksum getChecksum() {
+    return engineContext.getChecksum();
   }
 }

@@ -17,7 +17,7 @@ package io.confluent.ksql.rest.server.execution;
 
 import static io.confluent.ksql.parser.ParserMatchers.configured;
 import static io.confluent.ksql.parser.ParserMatchers.preparedStatement;
-import static io.confluent.ksql.parser.ParserMatchers.preparedStatementText;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
@@ -31,6 +31,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.function.InternalFunctionRegistry;
@@ -43,19 +44,25 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.server.computation.DistributingExecutor;
+import io.confluent.ksql.rest.server.validation.ValidatedStatement;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.util.KsqlServerException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -64,6 +71,9 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class RequestHandlerTest {
 
   private static final String SOME_STREAM_SQL = "CREATE STREAM x WITH (value_format='json', kafka_topic='x');";
+
+  @Rule
+  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock KsqlEngine ksqlEngine;
   @Mock KsqlConfig ksqlConfig;
@@ -98,7 +108,7 @@ public class RequestHandlerTest {
     // When
     final List<ParsedStatement> statements =
         new DefaultKsqlParser().parse(SOME_STREAM_SQL);
-    final KsqlEntityList entities = handler.execute(serviceContext, statements, ImmutableMap.of());
+    final KsqlEntityList entities = execute(statements, ImmutableMap.of());
 
     // Then
     assertThat(entities, contains(entity));
@@ -120,7 +130,7 @@ public class RequestHandlerTest {
     // When
     final List<ParsedStatement> statements =
         new DefaultKsqlParser().parse(SOME_STREAM_SQL);
-    final KsqlEntityList entities = handler.execute(serviceContext, statements, ImmutableMap.of());
+    final KsqlEntityList entities = execute(statements, ImmutableMap.of());
 
     // Then
     assertThat(entities, contains(entity));
@@ -142,8 +152,7 @@ public class RequestHandlerTest {
     // When
     final List<ParsedStatement> statements =
         new DefaultKsqlParser().parse(SOME_STREAM_SQL);
-    final KsqlEntityList entities = handler.execute(
-        serviceContext,
+    final KsqlEntityList entities = execute(
         statements,
         ImmutableMap.of("x", "y")
     );
@@ -181,7 +190,7 @@ public class RequestHandlerTest {
         );
 
     // When
-    handler.execute(serviceContext, statements, ImmutableMap.of());
+    execute(statements, ImmutableMap.of());
 
     // Then
     verify(sync).waitFor(argThat(hasItems(entity1, entity2)), any());
@@ -191,7 +200,7 @@ public class RequestHandlerTest {
   }
 
   @Test
-  public void shouldInlineRunScriptStatements() {
+  public void shouldThrowOnRunScript() {
     // Given:
     final Map<String, Object> props = ImmutableMap.of(
         KsqlConstants.LEGACY_RUN_SCRIPT_STATEMENTS_CONTENT,
@@ -202,31 +211,21 @@ public class RequestHandlerTest {
         (KsqlEntity) null);
     givenRequestHandler(ImmutableMap.of(CreateStream.class, customExecutor));
 
+    // Expect:
+    expectedException.expect(KsqlServerException.class);
+    expectedException.expectMessage("Expected RunScript to be unfolded in RequestValidator");
+
     // When:
     final List<ParsedStatement> statements = new DefaultKsqlParser()
         .parse("RUN SCRIPT '/some/script.sql';" );
-    handler.execute(serviceContext, statements, props);
-
-    // Then:
-    verify(customExecutor, times(1))
-        .execute(
-            argThat(is(
-                configured(preparedStatementText(SOME_STREAM_SQL)))),
-            eq(ksqlEngine),
-            eq(serviceContext)
-        );
+    execute(statements, props);
   }
 
   @Test
-  public void shouldOnlyReturnLastInRunScript() {
+  public void shouldNotReturnIgnoredValidatedStatements() {
     // Given:
     final KsqlEntity entity1 = mock(KsqlEntity.class);
     final KsqlEntity entity2 = mock(KsqlEntity.class);
-
-    final Map<String, Object> props = ImmutableMap.of(
-        KsqlConstants.LEGACY_RUN_SCRIPT_STATEMENTS_CONTENT,
-            SOME_STREAM_SQL
-            + "CREATE STREAM Y WITH (value_format='json', kafka_topic='y');");
 
     final StatementExecutor<CreateStream> customExecutor = givenReturningExecutor(
         CreateStream.class, entity1, entity2);
@@ -234,11 +233,38 @@ public class RequestHandlerTest {
 
     // When:
     final List<ParsedStatement> statements = new DefaultKsqlParser()
-        .parse("RUN SCRIPT '/some/script.sql';" );
-    final KsqlEntityList result = handler.execute(serviceContext, statements, props);
+        .parse("CREATE STREAM x WITH (kafka_topic='x', value_format='JSON');"
+            + "CREATE STREAM y WITH (kafka_topic='y', value_format='JSON');" );
+    final List<ValidatedStatement> validatedStatements = ImmutableList.of(
+        ValidatedStatement.ignored(
+            ValidatedStatement.of(
+                ConfiguredStatement.of(
+                    ksqlEngine.prepare(statements.get(0)),
+                    ImmutableMap.of(),
+                    ksqlConfig))),
+        ValidatedStatement.of(
+            ConfiguredStatement.of(
+                ksqlEngine.prepare(statements.get(1)),
+                ImmutableMap.of(),
+                ksqlConfig))
+    );
+
+    final KsqlEntityList result = handler.execute(serviceContext, validatedStatements);
 
     // Then:
+    assertThat(result, not(contains(entity1)));
     assertThat(result, contains(entity2));
+  }
+
+  private KsqlEntityList execute(
+      final List<ParsedStatement> statements,
+      final Map<String, Object> props) {
+    final List<ValidatedStatement> validatedStatements = statements.stream()
+        .map(ksqlEngine::prepare)
+        .map(stmt -> ConfiguredStatement.of(stmt, props, ksqlConfig))
+        .map(ValidatedStatement::of)
+        .collect(Collectors.toList());
+    return handler.execute(serviceContext, validatedStatements);
   }
 
   private void givenRequestHandler(
@@ -247,7 +273,6 @@ public class RequestHandlerTest {
         executors,
         distributor,
         ksqlEngine,
-        ksqlConfig,
         sync
     );
   }

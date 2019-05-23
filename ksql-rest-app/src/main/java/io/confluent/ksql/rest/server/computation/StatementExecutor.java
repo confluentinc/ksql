@@ -217,7 +217,11 @@ public class StatementExecutor {
   private String executeDdlStatement(final PreparedStatement<?> statement, final Command command) {
     final KsqlConfig mergedConfig = buildMergedConfig(command);
     final ConfiguredStatement<?> configured =
-        ConfiguredStatement.of(statement, command.getOverwriteProperties(), mergedConfig);
+        ConfiguredStatement.of(
+            statement,
+            command.getOverwriteProperties(),
+            mergedConfig,
+            command.getChecksum());
 
     return ksqlEngine
         .execute(configured)

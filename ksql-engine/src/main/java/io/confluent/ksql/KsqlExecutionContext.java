@@ -21,6 +21,7 @@ import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.statement.Checksum;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
@@ -110,6 +111,11 @@ public interface KsqlExecutionContext {
    */
   ExecuteResult execute(ServiceContext serviceContext, ConfiguredStatement<?> statement);
 
+  /**
+   * @return an immutable {@code Checksum} that represents the <b>current</b> state of
+   *         the engine.
+   */
+  Checksum getChecksum();
 
   /**
    * Holds the union of possible results from an {@link #execute} call.

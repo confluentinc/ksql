@@ -53,6 +53,7 @@ import io.confluent.ksql.rest.util.KsqlInternalTopicUtils;
 import io.confluent.ksql.rest.util.ProcessingLogServerUtils;
 import io.confluent.ksql.services.DefaultServiceContext;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.statement.Checksum;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injectors;
 import io.confluent.ksql.util.KsqlConfig;
@@ -523,8 +524,14 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
 
     final PreparedStatement<?> statement = ProcessingLogServerUtils
         .processingLogStreamCreateStatement(config, ksqlConfig);
+
+    // since this is the first statement we expect to be executed, we pass
+    // in a new Checksum, which is what the engine is initialized with
+    // - this will prevent a race where two servers start up at the same
+    // time and get to this point (e.g. commandQueue.isEmpty() returns true
+    // for both servers)
     final Supplier<ConfiguredStatement<?>> configured = () -> ConfiguredStatement.of(
-        statement, Collections.emptyMap(), ksqlConfig);
+        statement, Collections.emptyMap(), ksqlConfig, new Checksum());
 
     try {
       ksqlEngine.createSandbox(ksqlEngine.getServiceContext()).execute(configured.get());

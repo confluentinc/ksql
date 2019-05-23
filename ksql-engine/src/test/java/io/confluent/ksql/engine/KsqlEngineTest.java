@@ -37,11 +37,14 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.KsqlConfigTestUtil;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
+import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
@@ -51,15 +54,18 @@ import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.DropTable;
-import io.confluent.ksql.parser.tree.SetProperty;
-import io.confluent.ksql.parser.tree.UnsetProperty;
+import io.confluent.ksql.parser.tree.ListProperties;
+import io.confluent.ksql.parser.tree.QualifiedName;
+import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
+import io.confluent.ksql.statement.Checksum;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.statement.KsqlChecksumException;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
@@ -72,7 +78,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -80,6 +85,7 @@ import org.apache.avro.Schema;
 import org.apache.avro.Schema.Type;
 import org.apache.avro.SchemaBuilder;
 import org.apache.kafka.common.utils.Utils;
+import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -989,6 +995,70 @@ public class KsqlEngineTest {
     // Then:
     verifyNoMoreInteractions(topicClient);
     verifyNoMoreInteractions(schemaRegistryClient);
+  }
+
+  @Test
+  public void shouldChangeChecksumAfterExecutingStatement() {
+    // Given:
+    givenTopicsExist("s1_topic");
+    final Checksum initialChecksum = ksqlEngine.getChecksum();
+    final String sql = "CREATE STREAM S1 (COL1 BIGINT, COL2 VARCHAR) "
+        + "WITH  (KAFKA_TOPIC = 's1_topic', VALUE_FORMAT = 'JSON');";
+
+    // When:
+    KsqlEngineTestUtil.execute(ksqlEngine, sql, KSQL_CONFIG, Collections.emptyMap());
+
+    // Then:
+    assertThat(initialChecksum, is(not(ksqlEngine.getChecksum())));
+  }
+
+  @Test
+  public void shouldThrowOnIncorrectChecksum() {
+    // Given:
+    final ConfiguredStatement<ListProperties> statement = ConfiguredStatement.of(
+        PreparedStatement.of("LIST PROPERTIES", new ListProperties(Optional.empty())),
+        ImmutableMap.of(),
+        new KsqlConfig(ImmutableMap.of()),
+        new Checksum(1337)
+    );
+
+    // Expect:
+    expectedException.expect(KsqlChecksumException.class);
+    expectedException.expectMessage("Rejecting statement with invalid checksum");
+
+    // When:
+    ksqlEngine.execute(statement);
+  }
+
+  @Test
+  public void shouldNotUpdateChecksumIfStatementFailsToExecute() {
+    // Given:
+    final ConfiguredStatement<CreateStream> statement = ConfiguredStatement.of(
+        PreparedStatement.of("FUBAR", new CreateStream(
+            QualifiedName.of("FUBAR"),
+            ImmutableList.of(),
+            true,
+            ImmutableMap.of(
+                DdlConfig.VALUE_FORMAT_PROPERTY, new StringLiteral("JSON"),
+                DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral("fubar")
+            )
+        )),
+        ImmutableMap.of(),
+        new KsqlConfig(ImmutableMap.of()),
+        new Checksum(0)
+    );
+    final Checksum originalChecksum = ksqlEngine.getChecksum();
+
+    // When:
+    try {
+      ksqlEngine.execute(statement);
+      fail("Expected command to fail with 'Kafka topic does not exist: fubar'");
+    } catch (final KsqlException e) {
+      assertThat(e.getMessage(), containsString("Kafka topic does not exist: fubar"));
+    }
+
+    // Then:
+    assertThat(originalChecksum, is(ksqlEngine.getChecksum()));
   }
 
   private void givenTopicsExist(final String... topics) {

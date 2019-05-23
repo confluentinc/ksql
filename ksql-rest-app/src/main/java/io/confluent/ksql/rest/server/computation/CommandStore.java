@@ -20,6 +20,7 @@ import com.google.common.collect.Maps;
 import io.confluent.ksql.rest.server.CommandTopic;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlServerException;
 import java.io.Closeable;
 import java.time.Duration;
 import java.util.List;
@@ -91,7 +92,12 @@ public class CommandStore implements CommandQueue, Closeable {
     final Command command = new Command(
         statement.getStatementText(),
         statement.getOverrides(),
-        statement.getConfig().getAllConfigPropsWithSecretsObfuscated());
+        statement.getConfig().getAllConfigPropsWithSecretsObfuscated(),
+        statement.getChecksum()
+            .orElseThrow(() -> new KsqlServerException(
+                "Commands on the command topic must be validated with a checksum! Got: "
+                    + statement)));
+
     final CommandStatusFuture statusFuture = commandStatusMap.compute(
         commandId,
         (k, v) -> {

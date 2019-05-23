@@ -34,14 +34,17 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.server.CommandTopic;
+import io.confluent.ksql.statement.Checksum;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlServerException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -62,7 +65,6 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 
-@SuppressWarnings("unchecked")
 @RunWith(MockitoJUnitRunner.class)
 public class CommandStoreTest {
 
@@ -96,7 +98,7 @@ public class CommandStoreTest {
   private final CommandId commandId =
       new CommandId(CommandId.Type.STREAM, "foo", CommandId.Action.CREATE);
   private final Command command =
-      new Command(statementText, Collections.emptyMap(), Collections.emptyMap());
+      new Command(statementText, Collections.emptyMap(), Collections.emptyMap(), new Checksum());
   private final RecordMetadata recordMetadata = new RecordMetadata(
       COMMAND_TOPIC_PARTITION, 0, 0, RecordBatch.NO_TIMESTAMP, 0L, 0, 0);
 
@@ -115,7 +117,7 @@ public class CommandStoreTest {
     when(sequenceNumberFutureStore.getFutureForSequenceNumber(anyLong())).thenReturn(future);
 
     configured = ConfiguredStatement.of(
-        PreparedStatement.of(statementText, statement), OVERRIDE_PROPERTIES, KSQL_CONFIG);
+        PreparedStatement.of(statementText, statement), OVERRIDE_PROPERTIES, KSQL_CONFIG, new Checksum());
 
     commandStore = new CommandStore(
         commandTopic,
@@ -296,6 +298,20 @@ public class CommandStoreTest {
 
     // Then:
     verify(commandTopic).close();
+  }
+
+  @Test
+  public void shouldThrowEnqueueWithNoChecksum() {
+    // Given:
+    configured = ConfiguredStatement.of(
+        PreparedStatement.of(statementText, statement), OVERRIDE_PROPERTIES, KSQL_CONFIG);
+
+    // Expect:
+    expectedException.expect(KsqlServerException.class);
+    expectedException.expectMessage("Commands on the command topic must be validated with a checksum!");
+
+    // When:
+    commandStore.enqueueCommand(configured);
   }
 
   private static ConsumerRecords<CommandId, Command> buildRecords(final Object... args) {

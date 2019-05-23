@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.server.validation;
 import static io.confluent.ksql.util.SandboxUtil.requireSandbox;
 import static java.util.Objects.requireNonNull;
 
+import com.google.common.collect.Iterables;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.TopicAccessValidator;
@@ -29,16 +30,18 @@ import io.confluent.ksql.parser.tree.RunScript;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.rest.util.QueryCapacityUtil;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.statement.Checksum;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
-import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,28 +56,22 @@ public class RequestValidator {
 
   private final Map<Class<? extends Statement>, StatementValidator<?>> customValidators;
   private final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory;
-  private final Function<ServiceContext, KsqlExecutionContext> snapshotSupplier;
   private final KsqlConfig ksqlConfig;
   private final TopicAccessValidator topicAccessValidator;
 
   /**
    * @param customValidators        a map describing how to validate each statement of type
    * @param injectorFactory         creates an {@link Injector} to modify the statements
-   * @param snapshotSupplier        supplies a snapshot of the current execution state, the
-   *                                snapshot returned will be owned by this class and changes
-   *                                to the snapshot should not affect the source and vice versa
    * @param ksqlConfig              the {@link KsqlConfig} to validate against
    */
   public RequestValidator(
       final Map<Class<? extends Statement>, StatementValidator<?>> customValidators,
       final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory,
-      final Function<ServiceContext, KsqlExecutionContext> snapshotSupplier,
       final KsqlConfig ksqlConfig,
       final TopicAccessValidator topicAccessValidator
   ) {
     this.customValidators = requireNonNull(customValidators, "customValidators");
     this.injectorFactory = requireNonNull(injectorFactory, "injectorFactory");
-    this.snapshotSupplier = requireNonNull(snapshotSupplier, "snapshotSupplier");
     this.ksqlConfig = requireNonNull(ksqlConfig, "ksqlConfig");
     this.topicAccessValidator = topicAccessValidator;
   }
@@ -82,44 +79,56 @@ public class RequestValidator {
   /**
    * Validates the messages against a snapshot in time of the KSQL engine.
    *
+   * @param ctx                 a sandbox execution context to validate against
    * @param statements          the list of statements to validate
    * @param propertyOverrides   a map of properties to override for this validation
    * @param sql                 the sql that generated the list of statements, used for
    *                            generating more useful debugging information
    *
-   * @return the number of new persistent queries that would be created by {@code statements}
+   * @return a list of {@link ValidatedStatement} that represent the result of validation
    * @throws KsqlException if any of the statements cannot be validated, or the number
    *                       of requested statements would cause the execution context
    *                       to exceed the number of persistent queries that it was configured
    *                       to support
    */
-  public int validate(
+  public List<ValidatedStatement> validate(
+      final KsqlExecutionContext ctx,
       final ServiceContext serviceContext,
       final List<ParsedStatement> statements,
       final Map<String, Object> propertyOverrides,
       final String sql
   ) {
     requireSandbox(serviceContext);
+    requireSandbox(ctx);
 
-    final KsqlExecutionContext ctx = requireSandbox(snapshotSupplier.apply(serviceContext));
     final Injector injector = injectorFactory.apply(ctx, serviceContext);
 
-    int numPersistentQueries = 0;
+    final List<ValidatedStatement> validatedStatements = new ArrayList<>();
+
     for (ParsedStatement parsed : statements) {
       final PreparedStatement<?> prepared = ctx.prepare(parsed);
+      final Checksum checksum = ctx.getChecksum();
       final ConfiguredStatement<?> configured = ConfiguredStatement.of(
-          prepared, propertyOverrides, ksqlConfig);
+          prepared, propertyOverrides, ksqlConfig, checksum);
 
-      numPersistentQueries += (prepared.getStatement() instanceof RunScript)
-          ? validateRunScript(serviceContext, configured, ctx)
-          : validate(serviceContext, configured, ctx, injector);
+      if (prepared.getStatement() instanceof RunScript) {
+        validatedStatements.addAll(validateRunScript(serviceContext, configured, ctx));
+      } else {
+        validatedStatements.add(validate(serviceContext, configured, ctx, injector));
+      }
     }
 
+    final int numPersistentQueries =
+        (int) validatedStatements.stream()
+            .map(ValidatedStatement::getStatement)
+            .map(ConfiguredStatement::getStatement)
+            .filter(s -> s instanceof CreateAsSelect || s instanceof InsertInto)
+            .count();
     if (QueryCapacityUtil.exceedsPersistentQueryCapacity(ctx, ksqlConfig, numPersistentQueries)) {
       QueryCapacityUtil.throwTooManyActivePersistentQueriesException(ctx, ksqlConfig, sql);
     }
 
-    return numPersistentQueries;
+    return validatedStatements;
   }
 
   /**
@@ -128,7 +137,7 @@ public class RequestValidator {
    * @throws KsqlStatementException if the statement cannot be validated
    */
   @SuppressWarnings("unchecked")
-  private <T extends Statement> int validate(
+  private <T extends Statement> ValidatedStatement validate(
       final ServiceContext serviceContext,
       final ConfiguredStatement<T> configured,
       final KsqlExecutionContext executionContext,
@@ -158,10 +167,10 @@ public class RequestValidator {
           configured.getStatementText());
     }
 
-    return (statement instanceof CreateAsSelect || statement instanceof InsertInto) ? 1 : 0;
+    return ValidatedStatement.of(configured);
   }
 
-  private int validateRunScript(
+  private List<ValidatedStatement> validateRunScript(
       final ServiceContext serviceContext,
       final ConfiguredStatement<?> statement,
       final KsqlExecutionContext executionContext) {
@@ -177,7 +186,28 @@ public class RequestValidator {
         + "Note: RUN SCRIPT is deprecated and will be removed in the next major version. "
         + "statement: " + statement.getStatementText());
 
-    return validate(serviceContext, executionContext.parse(sql), statement.getOverrides(), sql);
+    final List<ValidatedStatement> validatedStatements =
+        validate(
+            executionContext,
+            serviceContext,
+            executionContext.parse(sql),
+            statement.getOverrides(),
+            sql);
+
+    if (validatedStatements.isEmpty()) {
+      return validatedStatements;
+    }
+
+    // This is to maintain backwards compatibility until we deprecate
+    // RunScript in the next major release - the expected behavior was
+    // to return only the last entity
+    final List<ValidatedStatement> results =
+        validatedStatements.subList(0, validatedStatements.size() - 1)
+            .stream()
+            .map(ValidatedStatement::ignored)
+            .collect(Collectors.toCollection(ArrayList::new));
+    results.add(Iterables.getLast(validatedStatements));
+    return results;
   }
 
 }

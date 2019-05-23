@@ -32,7 +32,7 @@ public class TestUtils {
     final Command topicCommand = new Command(
         "REGISTER TOPIC pageview_topic WITH "
             + "(value_format = 'json', kafka_topic='pageview_topic_json');",
-        Collections.emptyMap(), Collections.emptyMap());
+        Collections.emptyMap(), Collections.emptyMap(), null);
     final CommandId topicCommandId =  new CommandId(CommandId.Type.TOPIC, "_CSASTopicGen", CommandId.Action.CREATE);
     priorCommands.add(new Pair<>(topicCommandId, topicCommand));
 
@@ -40,13 +40,13 @@ public class TestUtils {
     final Command csCommand = new Command("CREATE STREAM pageview "
                                     + "(viewtime bigint, pageid varchar, userid varchar) "
                                     + "WITH (kafka_topic='pageview_topic_json', value_format='json', registered_topic = 'pageview_topic');",
-                                    Collections.emptyMap(), Collections.emptyMap());
+                                    Collections.emptyMap(), Collections.emptyMap(), null);
     final CommandId csCommandId =  new CommandId(CommandId.Type.STREAM, "_CSASStreamGen", CommandId.Action.CREATE);
     priorCommands.add(new Pair<>(csCommandId, csCommand));
 
     final Command csasCommand = new Command("CREATE STREAM user1pv "
                                       + " AS select * from pageview WHERE userid = 'user1';",
-                                      Collections.emptyMap(), Collections.emptyMap());
+                                      Collections.emptyMap(), Collections.emptyMap(), null);
 
     final CommandId csasCommandId =  new CommandId(CommandId.Type.STREAM, "_CSASGen", CommandId.Action.CREATE);
     priorCommands.add(new Pair<>(csasCommandId, csasCommand));
@@ -56,7 +56,7 @@ public class TestUtils {
                                       + " AS select * from pageview window tumbling(size 5 "
                                       + "second) WHERE userid = "
                                       + "'user1' group by pageid;",
-                                      Collections.emptyMap(), Collections.emptyMap());
+                                      Collections.emptyMap(), Collections.emptyMap(), null);
 
     final CommandId ctasCommandId =  new CommandId(CommandId.Type.TABLE, "_CTASGen", CommandId.Action.CREATE);
     priorCommands.add(new Pair<>(ctasCommandId, ctasCommand));

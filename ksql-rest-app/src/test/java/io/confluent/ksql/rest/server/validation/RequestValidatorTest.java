@@ -149,7 +149,8 @@ public class RequestValidatorTest {
   @Test
   public void shouldExecuteOnEngineIfNoCustomExecutor() {
     // Given:
-    final List<ParsedStatement> statements = givenParsed("CREATE STREAM foo");
+    final List<ParsedStatement> statements =
+        givenParsed("CREATE STREAM foo WITH (kafka_topic='foo', value_format='json');");
 
     // When:
     validator.validate(serviceContext, statements, ImmutableMap.of(), "sql");

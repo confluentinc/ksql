@@ -24,8 +24,6 @@ import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.DropTopic;
 import io.confluent.ksql.parser.tree.RegisterTopic;
-import io.confluent.ksql.parser.tree.SetProperty;
-import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.HandlerMaps;
 import io.confluent.ksql.util.HandlerMaps.ClassHandlerMapR2;

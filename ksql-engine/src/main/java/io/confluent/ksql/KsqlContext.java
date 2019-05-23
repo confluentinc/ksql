@@ -195,13 +195,14 @@ public class KsqlContext {
     private static final Map<Class<? extends Statement>, CustomExecutor> CUSTOM_EXECUTORS =
         ImmutableMap.<Class<? extends Statement>, CustomExecutor>builder()
             .put(SetProperty.class, stmt -> {
-              ConfiguredStatement<SetProperty> set = (ConfiguredStatement<SetProperty>) stmt;
+              final ConfiguredStatement<SetProperty> set = (ConfiguredStatement<SetProperty>) stmt;
               set.getOverrides()
                   .put(set.getStatement().getPropertyName(), set.getStatement().getPropertyValue());
               return ExecuteResult.of("Successfully executed " + set.getStatement());
             })
             .put(UnsetProperty.class, stmt -> {
-              ConfiguredStatement<UnsetProperty> unset = (ConfiguredStatement<UnsetProperty>) stmt;
+              final ConfiguredStatement<UnsetProperty> unset =
+                  (ConfiguredStatement<UnsetProperty>) stmt;
               unset.getOverrides().remove(unset.getStatement().getPropertyName());
               return ExecuteResult.of("Successfully executed " + unset.getStatement());
             })

@@ -15,19 +15,42 @@
 
 package io.confluent.ksql.util;
 
+import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toList;
 
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.parser.SqlBaseLexer;
 import io.confluent.ksql.parser.SqlBaseParser;
+import io.confluent.ksql.parser.tree.NodeLocation;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import org.antlr.v4.runtime.ParserRuleContext;
+import org.antlr.v4.runtime.Token;
+import org.antlr.v4.runtime.tree.TerminalNode;
+import org.apache.commons.lang3.ObjectUtils;
 
 public final class ParserUtil {
+
+  public static final Set<String> RESERVED_WORDS;
+
+  static {
+    final ImmutableSet.Builder<String> reservedWords = new ImmutableSet.Builder<>();
+    for (int i = 1; i < SqlBaseParser.VOCABULARY.getMaxTokenType(); i++) {
+      final String name = ObjectUtils.firstNonNull(
+          SqlBaseParser.VOCABULARY.getLiteralName(i),
+          SqlBaseParser.VOCABULARY.getSymbolicName(i),
+          "<INVALID>"
+      );
+      reservedWords.add(StringUtil.cleanQuotes(name));
+    }
+    RESERVED_WORDS = reservedWords.build();
+  }
+
   private ParserUtil() {
   }
 
@@ -67,5 +90,20 @@ public final class ParserUtil {
         .collect(toList());
 
     return QualifiedName.of(parts);
+  }
+
+  public static Optional<NodeLocation> getLocation(final TerminalNode terminalNode) {
+    requireNonNull(terminalNode, "terminalNode is null");
+    return getLocation(terminalNode.getSymbol());
+  }
+
+  public static Optional<NodeLocation> getLocation(final ParserRuleContext parserRuleContext) {
+    requireNonNull(parserRuleContext, "parserRuleContext is null");
+    return getLocation(parserRuleContext.getStart());
+  }
+
+  public static Optional<NodeLocation> getLocation(final Token token) {
+    requireNonNull(token, "token is null");
+    return Optional.of(new NodeLocation(token.getLine(), token.getCharPositionInLine()));
   }
 }

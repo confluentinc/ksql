@@ -17,6 +17,7 @@ package io.confluent.ksql.parser;
 
 import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import static io.confluent.ksql.schema.ksql.TypeContextUtil.getType;
+import static io.confluent.ksql.util.ParserUtil.getLocation;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toList;
 
@@ -208,10 +209,13 @@ public class AstBuilder {
 
     @Override
     public Node visitCreateTable(final SqlBaseParser.CreateTableContext context) {
+      final List<TableElement> elements = context.tableElements() == null
+          ? ImmutableList.of()
+          : visit(context.tableElements().tableElement(), TableElement.class);
       return new CreateTable(
           getLocation(context),
           ParserUtil.getQualifiedName(context.qualifiedName()),
-          visit(context.tableElement(), TableElement.class),
+          elements,
           context.EXISTS() != null,
           processTableProperties(context.tableProperties())
       );
@@ -229,10 +233,13 @@ public class AstBuilder {
 
     @Override
     public Node visitCreateStream(final SqlBaseParser.CreateStreamContext context) {
+      final List<TableElement> elements = context.tableElements() == null
+          ? ImmutableList.of()
+          : visit(context.tableElements().tableElement(), TableElement.class);
       return new CreateStream(
           getLocation(context),
           ParserUtil.getQualifiedName(context.qualifiedName()),
-          visit(context.tableElement(), TableElement.class),
+          elements,
           context.EXISTS() != null,
           processTableProperties(context.tableProperties())
       );
@@ -1318,21 +1325,6 @@ public class AstBuilder {
         default:
           throw new IllegalArgumentException("Unsupported operator: " + token.getText());
       }
-    }
-
-    private static Optional<NodeLocation> getLocation(final TerminalNode terminalNode) {
-      requireNonNull(terminalNode, "terminalNode is null");
-      return getLocation(terminalNode.getSymbol());
-    }
-
-    private static Optional<NodeLocation> getLocation(final ParserRuleContext parserRuleContext) {
-      requireNonNull(parserRuleContext, "parserRuleContext is null");
-      return getLocation(parserRuleContext.getStart());
-    }
-
-    private static Optional<NodeLocation> getLocation(final Token token) {
-      requireNonNull(token, "token is null");
-      return Optional.of(new NodeLocation(token.getLine(), token.getCharPositionInLine()));
     }
 
     private OptionalInt getLimit(final LimitClauseContext limitContext) {

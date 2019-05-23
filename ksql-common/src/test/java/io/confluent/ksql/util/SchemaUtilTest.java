@@ -23,6 +23,7 @@ import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.notNullValue;
 
+import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.schema.persistence.PersistenceSchema;
 import java.lang.reflect.Type;
 import java.util.List;
@@ -495,7 +496,7 @@ public class SchemaUtilTest {
 
   @Test
   public void shouldGetCorrectSqlTypeFromSchemaType() {
-    assertThat(SchemaUtil.getSchemaTypeAsSqlType(Schema.Type.STRING), is("VARCHAR(STRING)"));
+    assertThat(SchemaUtil.getSchemaTypeAsSqlType(Schema.Type.STRING), is("VARCHAR"));
     assertThat(SchemaUtil.getSchemaTypeAsSqlType(Schema.Type.INT64), is("BIGINT"));
     assertThat(SchemaUtil.getSchemaTypeAsSqlType(Schema.Type.INT32), is("INTEGER"));
     assertThat(SchemaUtil.getSchemaTypeAsSqlType(Schema.Type.FLOAT64), is("DOUBLE"));
@@ -858,6 +859,56 @@ public class SchemaUtilTest {
     assertThat(SchemaUtil.maybeUpCast(Schema.Type.FLOAT32, Schema.Type.FLOAT64, val), is(empty()));
     assertThat(SchemaUtil.maybeUpCast(Schema.Type.INT64, Schema.Type.FLOAT64, val), is(empty()));
     assertThat(SchemaUtil.maybeUpCast(Schema.Type.INT32, Schema.Type.FLOAT64, val), is(empty()));
+  }
+
+  @Test
+  public void shouldConvertSchemaToSqlString() {
+    // Given:
+    final Schema struct = SchemaBuilder.struct().field("S0", Schema.OPTIONAL_INT64_SCHEMA);
+    final Schema fullSchema = SchemaBuilder.struct()
+        .field("intField", Schema.OPTIONAL_INT32_SCHEMA)
+        .field("bigIntField", Schema.OPTIONAL_INT64_SCHEMA)
+        .field("floatField", Schema.OPTIONAL_FLOAT32_SCHEMA)
+        .field("doubleField", Schema.OPTIONAL_FLOAT64_SCHEMA)
+        .field("stringField", Schema.OPTIONAL_STRING_SCHEMA)
+        .field("booleanField", Schema.OPTIONAL_BOOLEAN_SCHEMA)
+        .field("arrayField", SchemaBuilder.array(struct))
+        .field("mapField", SchemaBuilder
+            .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_INT64_SCHEMA))
+        .field("structField", struct)
+        .build();
+
+    // When:
+    final String schemaString = SchemaUtil.getSqlSchemaString(fullSchema, ImmutableSet.of());
+
+    // Then:
+    assertThat(
+        schemaString,
+        is("intField INTEGER, "
+            + "bigIntField BIGINT, "
+            + "floatField DOUBLE, "
+            + "doubleField DOUBLE, "
+            + "stringField VARCHAR, "
+            + "booleanField BOOLEAN, "
+            + "arrayField ARRAY<STRUCT<S0 BIGINT>>, "
+            + "mapField MAP<VARCHAR, BIGINT>, "
+            + "structField STRUCT<S0 BIGINT>"));
+  }
+
+  @Test
+  public void shouldEscapeReservedWords() {
+    // Given:
+    final Schema struct = SchemaBuilder.struct().field("end", Schema.OPTIONAL_INT64_SCHEMA);
+    final Schema schema = SchemaBuilder.struct()
+        .field("end", Schema.OPTIONAL_INT32_SCHEMA)
+        .field("structField", struct)
+        .build();
+
+    // When:
+    final String schemaString = SchemaUtil.getSqlSchemaString(schema, ImmutableSet.of("end"));
+
+    // Then:
+    assertThat(schemaString, is("`end` INTEGER, structField STRUCT<`end` BIGINT>"));
   }
 
   // Following methods not invoked but used to test conversion from Type -> Schema

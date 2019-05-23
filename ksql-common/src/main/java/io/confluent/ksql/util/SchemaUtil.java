@@ -36,6 +36,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import org.apache.avro.SchemaBuilder.FieldAssembler;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -69,7 +70,7 @@ public final class SchemaUtil {
       .build();
 
   @VisibleForTesting
-  static final List<Schema.Type> ARITHMETIC_TYPES_LIST =
+  private static final List<Schema.Type> ARITHMETIC_TYPES_LIST =
       ImmutableList.of(
           Schema.Type.INT8,
           Schema.Type.INT16,
@@ -102,16 +103,17 @@ public final class SchemaUtil {
           .put(Schema.Type.FLOAT64, Schema.OPTIONAL_FLOAT64_SCHEMA)
           .build();
 
-  private static final ImmutableMap<String, String> SCHEMA_TYPE_NAME_TO_SQL_TYPE =
-      new ImmutableMap.Builder<String, String>()
-          .put("STRING", "VARCHAR(STRING)")
-          .put("INT64", "BIGINT")
-          .put("INT32", "INTEGER")
-          .put("FLOAT64", "DOUBLE")
-          .put("BOOLEAN", "BOOLEAN")
-          .put("ARRAY", "ARRAY")
-          .put("MAP", "MAP")
-          .put("STRUCT", "STRUCT")
+  private static final ImmutableMap<Schema.Type, String> SCHEMA_TYPE_NAME_TO_SQL_TYPE =
+      new ImmutableMap.Builder<Schema.Type, String>()
+          .put(Schema.Type.STRING, "VARCHAR")
+          .put(Schema.Type.INT64, "BIGINT")
+          .put(Schema.Type.INT32, "INTEGER")
+          .put(Schema.Type.FLOAT32, "DOUBLE")
+          .put(Schema.Type.FLOAT64, "DOUBLE")
+          .put(Schema.Type.BOOLEAN, "BOOLEAN")
+          .put(Schema.Type.ARRAY, "ARRAY")
+          .put(Schema.Type.MAP, "MAP")
+          .put(Schema.Type.STRUCT, "STRUCT")
           .build();
 
   private static final Map<Schema.Type, Class<?>> SCHEMA_TYPE_TO_JAVA_TYPE =
@@ -193,8 +195,39 @@ public final class SchemaUtil {
     return prefix + fieldName;
   }
 
+  public static String getSqlSchemaString(
+      final Schema schema,
+      final Set<String> reservedWords
+  ) {
+    return schema.fields()
+        .stream()
+        .map(field ->
+            escape(field.name(), reservedWords)
+                + " "
+                + getSqlElementSchema(field.schema(), reservedWords))
+        .collect(Collectors.joining(", "));
+  }
+
+  private static String getSqlElementSchema(final Schema schema, final Set<String> reservedWords) {
+    switch (schema.type()) {
+      case ARRAY:
+        return "ARRAY<" + getSqlElementSchema(schema.valueSchema(), reservedWords) +  ">";
+      case MAP:
+        return "MAP<" + getSqlElementSchema(schema.keySchema(), reservedWords)
+            +  ", " + getSqlElementSchema(schema.valueSchema(), reservedWords) + ">";
+      case STRUCT:
+        return "STRUCT<" + getSqlSchemaString(schema, reservedWords) + ">";
+      default:
+        return getSchemaTypeAsSqlType(schema.type());
+    }
+  }
+
+  private static String escape(final String token, final Set<String> reservedWords) {
+    return reservedWords.contains(token) ? "`" + token + "`" : token;
+  }
+
   public static String getSchemaTypeAsSqlType(final Schema.Type type) {
-    final String sqlType = SCHEMA_TYPE_NAME_TO_SQL_TYPE.get(type.name());
+    final String sqlType = SCHEMA_TYPE_NAME_TO_SQL_TYPE.get(type);
     if (sqlType == null) {
       throw new IllegalArgumentException("Unknown schema type: " + type);
     }

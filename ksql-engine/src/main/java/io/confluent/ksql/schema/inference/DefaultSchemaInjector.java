@@ -16,6 +16,7 @@
 package io.confluent.ksql.schema.inference;
 
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.parser.SchemaParser;
 import io.confluent.ksql.parser.SqlFormatter;
 import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.CreateSourceProperties;
@@ -23,10 +24,13 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.schema.inference.TopicSchemaSupplier.SchemaAndId;
 import io.confluent.ksql.schema.inference.TopicSchemaSupplier.SchemaResult;
+import io.confluent.ksql.schema.ksql.LogicalSchemas;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.util.KsqlStatementException;
+import io.confluent.ksql.util.ParserUtil;
+import io.confluent.ksql.util.SchemaUtil;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -130,7 +134,10 @@ public class DefaultSchemaInjector implements Injector {
       final ConfiguredStatement<CreateSource> preparedStatement
   ) {
     try {
-      return TableElement.fromSchema(schema);
+      // this statement throws if schema.schema is invalid
+      schema.fields()
+          .forEach(field -> LogicalSchemas.toSqlTypeConverter().toSqlType(field.schema()));
+      return SchemaParser.parse(SchemaUtil.getSqlSchemaString(schema, ParserUtil.RESERVED_WORDS));
     } catch (final Exception e) {
       throw new KsqlStatementException(
           "Failed to convert schema to KSQL model: " + e.getMessage(),

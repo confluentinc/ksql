@@ -16,6 +16,7 @@
 package io.confluent.ksql;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.function.InternalFunctionRegistry;
@@ -25,6 +26,9 @@ import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.parser.tree.SetProperty;
+import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.services.DefaultServiceContext;
 import io.confluent.ksql.services.ServiceContext;
@@ -42,6 +46,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.BiFunction;
+import java.util.function.Function;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -171,7 +176,36 @@ public class KsqlContext {
       final Injector injector) {
     final PreparedStatement<?> prepared = executionContext.prepare(stmt);
     final ConfiguredStatement<?> configured =
-        ConfiguredStatement.of(prepared, overriddenProperties, ksqlConfig);
-    return executionContext.execute(injector.inject(configured));
+        injector.inject(ConfiguredStatement.of(prepared, overriddenProperties, ksqlConfig));
+
+    final CustomExecutor executor =
+        CustomExecutors.CUSTOM_EXECUTORS.getOrDefault(
+            configured.getStatement().getClass(),
+            executionContext::execute);
+
+    return executor.apply(configured);
+  }
+
+  @FunctionalInterface
+  private interface CustomExecutor extends Function<ConfiguredStatement<?>, ExecuteResult> { }
+
+  @SuppressWarnings("unchecked")
+  private static final class CustomExecutors {
+
+    private static final Map<Class<? extends Statement>, CustomExecutor> CUSTOM_EXECUTORS =
+        ImmutableMap.<Class<? extends Statement>, CustomExecutor>builder()
+            .put(SetProperty.class, stmt -> {
+              ConfiguredStatement<SetProperty> set = (ConfiguredStatement<SetProperty>) stmt;
+              set.getOverrides()
+                  .put(set.getStatement().getPropertyName(), set.getStatement().getPropertyValue());
+              return ExecuteResult.of("Successfully executed " + set.getStatement());
+            })
+            .put(UnsetProperty.class, stmt -> {
+              ConfiguredStatement<UnsetProperty> unset = (ConfiguredStatement<UnsetProperty>) stmt;
+              unset.getOverrides().remove(unset.getStatement().getPropertyName());
+              return ExecuteResult.of("Successfully executed " + unset.getStatement());
+            })
+            .build();
+
   }
 }

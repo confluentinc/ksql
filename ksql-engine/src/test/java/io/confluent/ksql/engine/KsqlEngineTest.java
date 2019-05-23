@@ -543,14 +543,10 @@ public class KsqlEngineTest {
         + "CREATE STREAM S0 (a INT, b VARCHAR) "
         + "      WITH (kafka_topic='s0_topic', value_format='DELIMITED');\n"
         + "\n"
-        + "SET 'auto.offset.reset'='earliest';\n"
-        + "\n"
         + "CREATE TABLE T1 (f0 BIGINT, f1 DOUBLE) "
         + "     WITH (kafka_topic='t1_topic', value_format='JSON', key = 'f0');\n"
         + "\n"
         + "CREATE STREAM S1 AS SELECT * FROM S0;\n"
-        + "\n"
-        + "UNSET 'auto.offset.reset';\n"
         + "\n"
         + "CREATE STREAM S2 AS SELECT * FROM S0;\n"
         + "\n"
@@ -579,38 +575,13 @@ public class KsqlEngineTest {
 
     assertThat(statements, contains(
         instanceOf(CreateStream.class),
-        instanceOf(SetProperty.class),
         instanceOf(CreateTable.class),
         instanceOf(CreateStreamAsSelect.class),
-        instanceOf(UnsetProperty.class),
         instanceOf(CreateStreamAsSelect.class),
         instanceOf(DropTable.class)
     ));
 
     assertThat(queries, hasSize(2));
-  }
-
-  @Test
-  public void shouldSetPropertyInRunScript() {
-    final Map<String, Object> overriddenProperties = new HashMap<>();
-
-    KsqlEngineTestUtil.execute(ksqlEngine,
-        "SET 'auto.offset.reset' = 'earliest';",
-        KSQL_CONFIG, overriddenProperties);
-
-    assertThat(overriddenProperties.get("auto.offset.reset"), equalTo("earliest"));
-  }
-
-  @Test
-  public void shouldUnsetPropertyInRunScript() {
-    final Map<String, Object> overriddenProperties = new HashMap<>();
-
-    KsqlEngineTestUtil.execute(ksqlEngine,
-        "SET 'auto.offset.reset' = 'earliest';"
-            + "UNSET 'auto.offset.reset';",
-        KSQL_CONFIG, overriddenProperties);
-
-    assertThat(overriddenProperties.keySet(), not(hasItem("auto.offset.reset")));
   }
 
   @Test
@@ -832,8 +803,7 @@ public class KsqlEngineTest {
     final int numPersistentQueries = ksqlEngine.getPersistentQueries().size();
 
     final List<ParsedStatement> statements = parse(
-        "SET 'auto.offset.reset' = 'earliest';"
-            + "CREATE STREAM S1 (COL1 BIGINT) WITH (KAFKA_TOPIC = 's1_topic', VALUE_FORMAT = 'JSON');"
+            "CREATE STREAM S1 (COL1 BIGINT) WITH (KAFKA_TOPIC = 's1_topic', VALUE_FORMAT = 'JSON');"
             + "CREATE TABLE BAR AS SELECT * FROM TEST2;"
             + "CREATE TABLE FOO AS SELECT * FROM TEST2;"
             + "DROP TABLE TEST3;");
@@ -950,15 +920,15 @@ public class KsqlEngineTest {
   @Test
   public void shouldExecuteDdlStatement() {
     // Given:
+    givenTopicsExist("foo");
     final PreparedStatement<?> statement =
-        prepare(parse("SET 'auto.offset.reset' = 'earliest';").get(0));
+        prepare(parse("CREATE STREAM FOO (a int) WITH (kafka_topic='foo', value_format='json');").get(0));
 
     // When:
     final ExecuteResult result = sandbox.execute(ConfiguredStatement.of(statement, new HashMap<>(), KSQL_CONFIG));
 
     // Then:
-    assertThat(result.getCommandResult(),
-        is(Optional.of("property:auto.offset.reset set to earliest")));
+    assertThat(result.getCommandResult(), is(Optional.of("Stream created")));
   }
 
   @Test

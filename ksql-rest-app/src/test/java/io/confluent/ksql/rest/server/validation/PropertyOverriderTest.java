@@ -15,6 +15,11 @@
 
 package io.confluent.ksql.rest.server.validation;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasEntry;
+import static org.hamcrest.Matchers.hasKey;
+import static org.hamcrest.Matchers.not;
+
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.UnsetProperty;
@@ -23,6 +28,7 @@ import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlStatementException;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.junit.Rule;
@@ -32,7 +38,7 @@ import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class PropertyValidatorTest {
+public class PropertyOverriderTest {
 
   @Rule public final TemporaryEngine engine = new TemporaryEngine();
   @Rule public final ExpectedException expectedException = ExpectedException.none();
@@ -58,17 +64,23 @@ public class PropertyValidatorTest {
 
   @Test
   public void shouldAllowSetKnownProperty() {
-    // No exception when:
+    // Given:
+    final Map<String, Object> properties = new HashMap<>();
+
+    // When:
     CustomValidators.SET_PROPERTY.validate(
         ConfiguredStatement.of(
         PreparedStatement.of(
             "SET '" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "' = 'earliest';",
             new SetProperty(Optional.empty(), ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")),
-            new HashMap<>(),
+            properties,
             engine.getKsqlConfig()),
         engine.getEngine(),
         engine.getServiceContext()
     );
+
+    // Then:
+    assertThat(properties, hasEntry(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"));
   }
 
 
@@ -112,16 +124,23 @@ public class PropertyValidatorTest {
 
   @Test
   public void shouldAllowUnsetKnownProperty() {
-    // No exception when:
+    // Given:
+    final Map<String, Object> properties = new HashMap<>();
+    properties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+
+    // When:
     CustomValidators.UNSET_PROPERTY.validate(
         ConfiguredStatement.of(
         PreparedStatement.of(
             "UNSET '" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "';",
             new UnsetProperty(Optional.empty(), ConsumerConfig.AUTO_OFFSET_RESET_CONFIG)),
-            new HashMap<>(),
+            properties,
             engine.getKsqlConfig()),
         engine.getEngine(),
         engine.getServiceContext()
     );
+
+    // Then:
+    assertThat(properties, not(hasKey(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG)));
   }
 }

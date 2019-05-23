@@ -85,6 +85,7 @@ import java.util.OptionalInt;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.test.TestUtils;
 import org.junit.Before;
 import org.junit.Rule;
@@ -383,7 +384,7 @@ public class StandaloneExecutorTest {
     givenExecutorWillFailOnNoQueries();
 
     givenQueryFileParsesTo(PreparedStatement.of("SET PROP",
-        new SetProperty(Optional.empty(), "name", "value")));
+        new SetProperty(Optional.empty(), ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")));
 
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage(
@@ -428,7 +429,7 @@ public class StandaloneExecutorTest {
   public void shouldRunSetStatements() {
     // Given:
     final PreparedStatement<SetProperty> setProp = PreparedStatement.of("SET PROP",
-        new SetProperty(Optional.empty(), "name", "value"));
+        new SetProperty(Optional.empty(), ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"));
 
     final PreparedStatement<CreateStream> cs = PreparedStatement.of("CS",
         new CreateStream(SOME_NAME, SOME_ELEMENTS, false, JSON_PROPS));
@@ -439,17 +440,21 @@ public class StandaloneExecutorTest {
     standaloneExecutor.start();
 
     // Then:
-    verify(ksqlEngine).execute(eq(ConfiguredStatement.of(cs, ImmutableMap.of("name", "value"), ksqlConfig)));
+    verify(ksqlEngine).execute(
+        eq(ConfiguredStatement.of(
+            cs,
+            ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"),
+            ksqlConfig)));
   }
 
   @Test
   public void shouldRunUnSetStatements() {
     // Given:
     final PreparedStatement<SetProperty> setProp = PreparedStatement.of("SET",
-        new SetProperty(Optional.empty(), "name", "value"));
+        new SetProperty(Optional.empty(), ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"));
 
     final PreparedStatement<UnsetProperty> unsetProp = PreparedStatement.of("UNSET",
-        new UnsetProperty(Optional.empty(), "name"));
+        new UnsetProperty(Optional.empty(), ConsumerConfig.AUTO_OFFSET_RESET_CONFIG));
 
     final PreparedStatement<CreateStream> cs = PreparedStatement.of("CS",
         new CreateStream(SOME_NAME, SOME_ELEMENTS, false, JSON_PROPS));

@@ -36,5 +36,5 @@ public interface KsqlAuthorizer {
    * @param resourceMethod The resource method name
    * @return True if the user is permitted; False otherwise
    */
-  boolean hasAccess(Principal user, Class resourceClass, String resourceMethod);
+  boolean hasAccess(Principal user, Class<?> resourceClass, String resourceMethod);
 }

@@ -417,19 +417,18 @@ public class DefaultSchemaInjectorTest {
   }
 
   @Test
-  public void shouldFailIfAvroSchemaHasReservedColumnName() {
+  public void shouldEscapeAvroSchemaThatHasReservedColumnName() {
     // Given:
     when(schemaSupplier.getValueSchema(any(), any()))
         .thenReturn(SchemaResult.success(schemaAndId(
             SchemaBuilder.struct().field("CREATE", Schema.INT64_SCHEMA).build(),
             SCHEMA_ID)));
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Failed to convert schema to KSQL model");
-
     // When:
-    injector.inject(ctStatement);
+    final ConfiguredStatement<CreateTable> inject = injector.inject(ctStatement);
+
+    // Then:
+    assertThat(inject.getStatementText(), containsString("`CREATE`"));
   }
 
   @Test

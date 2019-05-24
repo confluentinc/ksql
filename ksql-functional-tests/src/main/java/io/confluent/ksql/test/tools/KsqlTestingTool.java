@@ -18,14 +18,22 @@ package io.confluent.ksql.test.tools;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.function.TestFunctionRegistry;
 import io.confluent.ksql.json.JsonMapper;
-import io.confluent.ksql.test.model.QttTestFile;
+import io.confluent.ksql.parser.DefaultKsqlParser;
+import io.confluent.ksql.parser.KsqlParser;
+import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
+import io.confluent.ksql.test.model.InputRecordsNode;
+import io.confluent.ksql.test.model.OutputRecordsNode;
+import io.confluent.ksql.test.model.RecordNode;
 import io.confluent.ksql.test.model.TestCaseNode;
 import io.confluent.ksql.test.tools.command.TestOptions;
-import io.confluent.ksql.util.Pair;
+import io.confluent.ksql.util.KsqlException;
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Paths;
+import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public final class KsqlTestingTool {
 
@@ -35,81 +43,95 @@ public final class KsqlTestingTool {
 
   private static final ObjectMapper OBJECT_MAPPER = JsonMapper.INSTANCE.mapper;
 
-  private static int totalNumberOfTests;
-
   public static void main(final String[] args) throws IOException {
-    loadAndRunTests(args);
-  }
 
-  static void loadAndRunTests(final String[] args) {
-    totalNumberOfTests = 0;
-    final List<String> passedTests = new ArrayList<>();
-    final List<Pair<String, String>> failedTests = new ArrayList<>();
     try {
-
       final TestOptions testOptions = TestOptions.parse(args);
-
       if (testOptions == null) {
         return;
       }
-
-      final QttTestFile qttTestFile = OBJECT_MAPPER.readValue(
-          new File(testOptions.getTestFile()), QttTestFile.class);
-      for (final TestCaseNode testCaseNode: qttTestFile.tests) {
-        final List<TestCase> testCases = testCaseNode.buildTests(
-            new File(testOptions.getTestFile()).toPath(),
-            TestFunctionRegistry.INSTANCE.get());
-        for (final TestCase testCase: testCases) {
-          executeTestCase(
-              testCase,
-              new TestExecutor(),
-              passedTests,
-              failedTests);
-        }
+      if (testOptions.getStatementsFile() != null
+          && testOptions.getInputFile() != null
+          && testOptions.getOutputFile() != null) {
+        runWithThripleFiles(
+            testOptions.getStatementsFile(),
+            testOptions.getInputFile(),
+            testOptions.getOutputFile());
       }
-      printResults(totalNumberOfTests, passedTests, failedTests);
-    } catch (final Exception e) {
-      System.err.println("Failed to start KSQL testing tool: " + e.getMessage());
+    } catch (final IOException e) {
+      System.err.println("Invalid arguments: " + e.getMessage());
     }
+  }
+
+  @SuppressWarnings("unchecked")
+  private static List<RecordNode> getRecordNodesFromFile(final String filePath) throws IOException {
+    return OBJECT_MAPPER.readValue(new File(filePath), List.class);
+  }
+
+  private static List<String> getSqlStatements(final String queryFilePath) {
+    try {
+      final String sqlStatements = new String(java.nio.file.Files.readAllBytes(
+          Paths.get(queryFilePath)), StandardCharsets.UTF_8);
+
+      final KsqlParser ksqlParser = new DefaultKsqlParser();
+      final List<ParsedStatement> parsedStatements = ksqlParser.parse(sqlStatements);
+      return parsedStatements
+          .stream()
+          .map(ParsedStatement::getStatementText)
+          .collect(Collectors.toList());
+    } catch (final IOException e) {
+      throw new KsqlException(
+          String.format("Could not read the query file: %s. Details: %s",
+              queryFilePath, e.getMessage()),
+          e);
+    }
+  }
+
+
+  static void runWithThripleFiles(
+      final String statementFile,
+      final String inputFile,
+      final String outputFile) throws IOException {
+    final InputRecordsNode inputRecordNodes = OBJECT_MAPPER
+        .readValue(new File(inputFile), InputRecordsNode.class);
+    final OutputRecordsNode outRecordNodes = OBJECT_MAPPER
+        .readValue(new File(outputFile), OutputRecordsNode.class);
+    final List<String> statements = getSqlStatements(statementFile);
+
+    final TestCaseNode testCaseNode = new TestCaseNode(
+        "KSQL_Test",
+        null,
+        inputRecordNodes.getInputRecords(),
+        outRecordNodes.getOutputRecords(),
+        Collections.emptyList(),
+        statements,
+        null,
+        null,
+        null
+    );
+
+    final TestCase testCase = testCaseNode.buildTests(
+        new File(statementFile).toPath(),
+        TestFunctionRegistry.INSTANCE.get())
+        .get(0);
+
+    executeTestCase(
+        testCase,
+        new TestExecutor());
+
   }
 
   static void executeTestCase(
       final TestCase testCase,
-      final TestExecutor testExecutor,
-      final List<String> passedTests,
-      final List<Pair<String, String>> failedTests
+      final TestExecutor testExecutor
   ) {
     try {
-      System.out.println(" >>> Running test: " + testCase.getName());
       testExecutor.buildAndExecuteQuery(testCase);
-      System.out.println("\t >>> Test " + testCase.getName() + " passed!");
-      passedTests.add(testCase.getName());
+      System.out.println("\t >>> Test passed!");
     } catch (final Exception e) {
-      System.err.println("\t>>>>> Test " + testCase.getName() + " failed: " + e.getMessage());
-      failedTests.add(new Pair<>(testCase.getName(), e.getMessage()));
+      System.err.println("\t>>>>> Test failed: " + e.getMessage());
     } finally {
       testExecutor.close();
-      totalNumberOfTests ++;
-    }
-  }
-
-  private static void printResults(
-      final int totalNumberOfTests,
-      final List<String> passedTests,
-      final List<Pair<String, String>> failedTests) {
-    System.out.println("Number of tests: " + totalNumberOfTests);
-    if (passedTests.size() == totalNumberOfTests) {
-      System.out.println("All tests passed!");
-      return;
-    }
-    System.out.println(passedTests.size() + " out of " + totalNumberOfTests + " tests passed!");
-    if (!failedTests.isEmpty()) {
-      System.out.println(failedTests.size() + " tests failed: ");
-      System.out.println("Failing tests: ");
-      for (final Pair pair: failedTests) {
-        System.out.println("\t\t Test name: " + pair.getLeft()
-            + " , Failure reason: " + pair.getRight());
-      }
     }
   }
 }

@@ -16,17 +16,14 @@
 package io.confluent.ksql.test.tools;
 
 import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
-import java.security.Permission;
-import java.util.ArrayList;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -51,12 +48,16 @@ public class KsqlTestingToolTest {
   }
 
   @Test
-  public void shouldRunCorrectTest() throws UnsupportedEncodingException {
-    // When:
-    KsqlTestingTool.loadAndRunTests(new String[]{"src/test/resources/testing_tool_tests.json"});
-
-    // Then:
-    assertThat(outContent.toString("UTF-8"), containsString("All tests passed!"));
+  public void shouldRunCorrectsTest() throws IOException {
+    final String testFolderPath = "src/test/resources/test-runner/";
+    for (int i = 1; i <= 3; i++) {
+      outContent.reset();
+      errContent.reset();
+      runTestCase(testFolderPath + "test" + i + "/statements.sql",
+          testFolderPath + "test" + i + "/input.json",
+          testFolderPath + "test" + i + "/output.json"
+          );
+    }
   }
 
   @Test
@@ -69,9 +70,7 @@ public class KsqlTestingToolTest {
     // When:
     KsqlTestingTool.executeTestCase(
         testCase,
-        testExecutor,
-        new ArrayList<>(),
-        new ArrayList<>());
+        testExecutor);
 
     // Then:
     verify(testExecutor).buildAndExecuteQuery(testCase);
@@ -80,46 +79,34 @@ public class KsqlTestingToolTest {
   }
 
   @Test
+  public void shouldFailWithIncorrectTest() throws IOException {
+    // When:
+    KsqlTestingTool.runWithThripleFiles(
+        "src/test/resources/test-runner/incorrect-test/statements.sql",
+        "src/test/resources/test-runner/incorrect-test/input.json",
+        "src/test/resources/test-runner/incorrect-test/output.json");
+
+    // Then:
+    assertThat(errContent.toString("UTF-8"),
+        containsString("\t>>>>> Test failed: Expected <1001, 101> with timestamp=0 but was <101, 101> with timestamp=0\n"));
+  }
+
+  @Test
   public void shouldFailWithIncorrectArgs() throws UnsupportedEncodingException {
 
-    // Given:
-    System.setSecurityManager(new TestSecurityManager());
 
-    // When:
-    try {
-      KsqlTestingTool.loadAndRunTests(new String[]{"foo"});
-    } catch (final Exception e) {
-      assertThat(e, instanceOf(TestSecurityManager.ExitSecurityException.class));
-      final TestSecurityManager.ExitSecurityException exitSecurityException = (TestSecurityManager.ExitSecurityException) e;
-      assertThat(exitSecurityException.getStatus(), equalTo(-1));
-      assertThat(errContent.toString("UTF-8"), equalTo("Failed to start KSQL testing tool: foo (No such file or directory)\n"));
-    }
   }
 
 
-  static class TestSecurityManager extends SecurityManager {
+  private void runTestCase(
+      final String statementsFilePath,
+      final String inputFilePath,
+      final String outputFilePath
+      ) throws IOException {
+    // When:
+    KsqlTestingTool.runWithThripleFiles(statementsFilePath, inputFilePath, outputFilePath);
 
-    final class ExitSecurityException extends SecurityException {
-      private final int status;
-
-      ExitSecurityException(final int status) {
-        this.status = status;
-      }
-
-      int getStatus() {
-        return this.status;
-      }
-    }
-
-    @Override
-    public void checkExit(final int status) {
-      if (status != 0) {
-        throw new TestSecurityManager.ExitSecurityException(status);
-      }
-    }
-
-    @Override
-    public void checkPermission(final Permission perm) {}
-
+    // Then:
+    assertThat(outContent.toString("UTF-8"), containsString(">>> Test passed!"));
   }
 }

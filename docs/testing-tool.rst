@@ -7,85 +7,100 @@ Use the KSQL testing tool to test a set of KSQL statements. The KSQL testing too
 is a command line utility that enables testing KSQL statements without requiring any infrastructure, like |ak-tm| and KSQL clusters.
 The KSQL testing tool is a great way to design your KSQL pipeline and ensure the expected results are generated.
 You can collaborate on designing your KSQL statements by sharing the test files.
-You provide a JSON file that describes a set of KSQL statements, along with the input data and expected output data.
-Run the testing tool from a terminal and pass the test file as a parameter.
+To test a set of KSQL statements, you provide three files, one file containing the KSQL statements and two JSON files containing the input records and th expected output records.
 
 .. code:: bash
 
-    ksql-testing-tool /path/to/the/test/file.json
+    ksql-test-runner --sql-file /path/to/the/statements.sql --input-file /path/to/the/input.json --output-file /path/to/the/exoected/output.json
 
 
 Test File Structure
 *******************
-The test file is a JSON file containing the KSQL statements, input data, desired configurations, and the expected results or expected errors.
-The following is a sample test file:
+
+Statements File
+---------------
+
+The statements file contain the KSQL statements that will be tested. The following are the supported statements in the testing tool:
+
+- CREATE STREAM
+- CREATE TABLE
+- CREATE STREAM AS SELECT
+- CREATE TABLE AS SELECT
+- INSERT INTO SELECT
+
+Here is a sample statements file for testing tool:
+
+.. code:: sql
+    CREATE STREAM TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='JSON', key='ID');
+    CREATE STREAM TEST_STREAM (ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='JSON', key='ID');
+    CREATE STREAM LEFT_OUTER_JOIN as SELECT t.id, name, value, f1, f2 FROM test t left join TEST_STREAM tt WITHIN 11 seconds ON t.id = tt.id;
+    CREATE STREAM foo AS SELECT t_id, name FROM LEFT_OUTER_JOIN WHERE t_id = 90;
+    CREATE STREAM bar AS SELECT * FROM foo;
+
+Input File
+----------
+
+The input file is a JSON file with one array field named "inputs". Each element in the array is the representation of input messages.
+A message should have topic, key, value and timestamp. The following is a sample input file for the above test:
 
 .. code:: json
     {
-      "comments": [
-        "Add a description of the functionality that this file tests"
-      ],
-      "tests": [
-        {
-          "name": "my first positive test",
-          "description": "an example positive test where the output is verified",
-          "statements": [
-            "CREATE STREAM intput (ID bigint) WITH (kafka_topic='input_topic', value_format='JSON');",
-            "CREATE STREAM output AS SELECT id FROM intput WHERE id < 10;"
-          ],
-          "inputs": [
-            {"topic": "input_topic", "key": 0, "value": {"id": 8}, "timestamp": 0},
-            {"topic": "input_topic", "key": 0, "value": {"id": 10}, "timestamp": 10000},
-            {"topic": "input_topic", "key": 1, "value": {"id": 9}, "timestamp": 30000},
-            {"topic": "input_topic", "key": 1, "value": {"id": 11}, "timestamp": 40000}
-          ],
-          "outputs": [
-            {"topic": "OUTPUT", "key": 0, "value": {"ID": 8}, "timestamp": 0},
-            {"topic": "OUTPUT", "key": 1, "value": {"ID": 9}, "timestamp": 30000}
-          ]
-        },
-        {
-          "name": "my first negative test",
-          "description": "an example negative test where the statement will fail to parse",
-          "statements": [
-            "CREATE STREAM TEST WITH (kafka_topic='test_topic', value_format='DELIMITED');"
-          ],
-          "expectedException": {
-            "type": "io.confluent.ksql.util.KsqlException",
-            "message": "The statement does not define any columns."
-          }
-        }
+      "inputs": [
+        {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "zero", "VALUE": 0}, "timestamp": 0},
+        {"topic": "right_topic", "key": 0, "value": {"ID": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
+        {"topic": "left_topic", "key": 10, "value": {"ID": 10, "NAME": "100", "VALUE": 5}, "timestamp": 11000},
+        {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "foo", "VALUE": 100}, "timestamp": 13000},
+        {"topic": "right_topic", "key": 0, "value": {"ID": 0, "F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "right_topic", "key": 100, "value": {"ID": 100, "F1": "newblah", "F2": 150}, "timestamp": 16000},
+        {"topic": "left_topic", "key": 90, "value": {"ID": 90, "NAME": "ninety", "VALUE": 90}, "timestamp": 17000},
+        {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "bar", "VALUE": 99}, "timestamp": 30000}
       ]
     }
 
 
-You can have multiple tests in one test file. In addition to name, description, and statements, each test includes
-input topics and their data along with the expected output topics and their data.
-The test file format is the same as the files KSQL code uses for integration tests. For more details on the
-structure of the test file and all possible settings, see the `README.md <https://github.com/confluentinc/ksql/tree/master/ksql-functional-tests>` in the KSQL repository.
+Output File
+----------
 
-Running Tests
-*************
+The output file is a JSON file with an array field names "outputs". Similar to the input file, each element in the array is the representation of the expected output messages.
+An expected output message should have topic, key, value and timestamp. The following is a sample exected output file for the above test:
 
-Assume we run the previous test file, which is stored in test.json in the home directory.
-The following command shows how to run the test from the terminal:
-
-.. code:: bash
-
-    ksql-testing-tool ~/test.json
-
-
-Your output should resemble:
-
-.. code:: bash
-
-     >>> Running test: ksql-test - my first positive test
-    	 >>> Test ksql-test - my first positive test passed!
-     >>> Running test: ksql-test - my first negative test
-    	 >>> Test ksql-test - my first negative test passed!
-    All tests passed!
+.. code:: json
+     {
+       "outputs": [
+         {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "zero", "VALUE": 0, "F1": null, "F2": null}, "timestamp": 0},
+         {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "zero", "VALUE": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
+         {"topic": "LEFT_OUTER_JOIN", "key": 10, "value": {"T_ID": 10, "NAME": "100", "VALUE": 5, "F1": null, "F2": null}, "timestamp": 11000},
+         {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "blah", "F2": 50}, "timestamp": 13000},
+         {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "a", "F2": 10}, "timestamp": 15000},
+         {"topic": "LEFT_OUTER_JOIN", "key": 90, "value": {"T_ID": 90, "NAME": "ninety", "VALUE": 90, "F1": null, "F2": null}, "timestamp": 17000},
+         {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "bar", "VALUE": 99, "F1": null, "F2": null}, "timestamp": 30000},
+         {"topic": "FOO", "key": 90, "value": {"T_ID": 90, "NAME": "ninety"}, "timestamp": 17000},
+         {"topic": "BAR", "key": 90, "value": {"T_ID": 90, "NAME": "ninety"}, "timestamp": 17000}
+       ]
+     }
 
 
-For each test case, the testing tool first creates and populates the input topics in its internal simulated Kafka cluster.
-It compiles the KSQL statements, runs them, and compares the generated results with the expected results. If the expected results are generated, the test passes, otherwise it fails.
-The status of each test is printed out into the terminal.
+In either of input or output files you can have messages with windowed keys. Such messages can be generated by windowed aggretations in KSQL.
+To specify a window for a message you can add "window" field to the message. A window field has three fields:
+
+- start: this represents the start time for the window.
+- end: this represents the end time for the windoe.
+- type: this represents the type of the window. A window type can be time or session.
+
+The following is a sample expecte output file with records that have window field:
+
+.. code:: json
+     {
+        "outputs": [
+          {"topic": "S2", "key": 0, "value": "0,0", "timestamp": 0, "window": {"start": 0, "end": 30000, "type": "time"}},
+          {"topic": "S2", "key": 0, "value": "0,5", "timestamp": 10000, "window": {"start": 0, "end": 30000, "type": "time"}},
+          {"topic": "S2", "key": 100, "value": "100,100", "timestamp": 30000, "window": {"start": 30000, "end": 60000, "type": "time"}},
+          {"topic": "S2", "key": 100, "value": "100,100", "timestamp": 45000, "window": {"start": 30000, "end": 60000, "type": "time"}},
+          {"topic": "S2", "key": 100, "value": "100,300", "timestamp": 50000, "window": {"start": 30000, "end": 60000, "type": "time"}},
+          {"topic": "S2", "key": 0, "value": "0,100", "timestamp": 35000, "window": {"start": 30000, "end": 60000, "type": "time"}},
+          {"topic": "S2", "key": 0, "value": "0,2000", "timestamp": 40000, "window": {"start": 30000, "end": 60000, "type": "time"}}
+        ]
+     }
+
+
+

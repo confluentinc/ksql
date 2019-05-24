@@ -80,10 +80,7 @@ final class EngineExecutor {
 
   ExecuteResult execute(final ConfiguredStatement<?> statement) {
     LOG.info("Executing {} with current checksum: {}", statement, engineContext.getChecksum());
-
-    final ExecuteResult result = doExecute(statement);
-    engineContext.updateChecksum(statement);
-    return result;
+    return engineContext.execute(statement, this::doExecute);
   }
 
   private ExecuteResult doExecute(final ConfiguredStatement<?> statement) {

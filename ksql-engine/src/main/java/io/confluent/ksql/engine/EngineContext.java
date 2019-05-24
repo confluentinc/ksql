@@ -44,6 +44,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
+import java.util.function.Function;
 
 /**
  * Holds the mutable state and services of the engine.
@@ -177,8 +178,11 @@ final class EngineContext {
     return result.getMessage();
   }
 
-  void updateChecksum(final ConfiguredStatement<?> statement) {
-    hashChain.update(statement);
+  <T> T execute(
+      final ConfiguredStatement<?> statement,
+      final Function<ConfiguredStatement<?>, T> executor
+  ) {
+    return hashChain.update(statement, executor);
   }
 
   Checksum getChecksum() {

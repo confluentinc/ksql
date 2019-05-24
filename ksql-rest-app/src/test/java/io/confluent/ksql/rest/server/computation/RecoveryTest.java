@@ -20,6 +20,7 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.mockito.Mockito.mock;
 
@@ -47,6 +48,7 @@ import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
+import io.confluent.ksql.statement.Checksum;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injectors;
 import io.confluent.ksql.util.KsqlConfig;
@@ -66,6 +68,7 @@ import java.util.stream.Collectors;
 import javax.ws.rs.core.Response;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
+import org.hamcrest.Matchers;
 import org.hamcrest.TypeSafeDiagnosingMatcher;
 import org.junit.After;
 import org.junit.Before;
@@ -116,7 +119,8 @@ public class RecoveryTest {
               new Command(
                   statement.getStatementText(),
                   Collections.emptyMap(),
-                  statement.getConfig().getAllConfigPropsWithSecretsObfuscated(), null),
+                  statement.getConfig().getAllConfigPropsWithSecretsObfuscated(),
+                  statement.getChecksum().orElse(null)),
               Optional.empty()));
       return new QueuedCommandStatus(commandSequenceNumber, new CommandStatusFuture(commandId));
     }
@@ -623,6 +627,51 @@ public class RecoveryTest {
     server2.submitCommands("DROP STREAM B;");
     server1.submitCommands("TERMINATE InsertQuery_0;");
     shouldRecover(commands);
+  }
+
+  @Test
+  public void shouldNotRecoverIfStatementIsNoLongerValid() {
+    // Given:
+    topicClient.preconditionTopicExists("B");
+
+    server1.submitCommands(
+        "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
+        "CREATE STREAM B (COLUMN STRING) WITH (KAFKA_TOPIC='B', VALUE_FORMAT='JSON');"
+    );
+
+    // When:
+    // after deleting topic "A", the first statement will no longer be able to run,
+    // which will cause the other statements to fail
+    topicClient.deleteTopics(ImmutableList.of("A"));
+    final KsqlServer recoverServer = new KsqlServer(commands);
+    recoverServer.recover();
+
+    // Then:
+    assertThat(recoverServer.ksqlEngine.getChecksum(), is(new Checksum(0)));
+  }
+
+  @Test
+  public void shouldAcceptNewCommandsIfChecksumMismatchHappens() {
+    // Given:
+    topicClient.preconditionTopicExists("B");
+
+    server1.submitCommands(
+        "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
+        "CREATE STREAM B (COLUMN STRING) WITH (KAFKA_TOPIC='B', VALUE_FORMAT='JSON');"
+    );
+
+    // When:
+    // after deleting topic "A", the first statement will no longer be able to run,
+    // which will cause the other statements to fail
+    topicClient.deleteTopics(ImmutableList.of("A"));
+    final KsqlServer recoverServer = new KsqlServer(commands);
+    recoverServer.recover();
+
+    // Then:
+    assertThat(recoverServer.ksqlEngine.getChecksum(), is(new Checksum(0)));
+    recoverServer.submitCommands(
+        "CREATE STREAM B (COLUMN STRING) WITH (KAFKA_TOPIC='B', VALUE_FORMAT='JSON');");
+    assertThat(recoverServer.ksqlEngine.getChecksum(), not(is(new Checksum(0))));
   }
 
   @Test

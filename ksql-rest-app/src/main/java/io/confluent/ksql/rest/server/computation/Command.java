@@ -77,12 +77,13 @@ public class Command {
         o instanceof Command
         && Objects.equals(statement, ((Command)o).statement)
         && Objects.equals(overwriteProperties, ((Command)o).overwriteProperties)
-        && Objects.equals(originalProperties, ((Command)o).originalProperties);
+        && Objects.equals(originalProperties, ((Command)o).originalProperties)
+        && Objects.equals(checksum, ((Command) o).checksum);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(statement, overwriteProperties, originalProperties);
+    return Objects.hash(statement, overwriteProperties, originalProperties, checksum);
   }
 
   @Override
@@ -90,6 +91,7 @@ public class Command {
     return "Command{"
         + "statement='" + statement + '\''
         + ", overwriteProperties=" + overwriteProperties
+        + ", checksum=" + checksum
         + '}';
   }
 }

@@ -39,7 +39,7 @@ public final class ConfiguredStatement<T extends Statement> {
       final KsqlConfig config,
       final Checksum checksum
   ) {
-    return of(statement, overrides, config, Optional.of(checksum));
+    return of(statement, overrides, config, Optional.ofNullable(checksum));
   }
 
   public static <S extends Statement> ConfiguredStatement<S> of(
@@ -104,6 +104,11 @@ public final class ConfiguredStatement<T extends Statement> {
       final T statement) {
     return new ConfiguredStatement<>(
         PreparedStatement.of(statementText, statement), this.overrides, this.config, this.checksum);
+  }
+
+  public ConfiguredStatement<T> withChecksum(final Checksum checksum) {
+    return new ConfiguredStatement<T>(
+        this.statement, this.overrides, this.config, Optional.ofNullable(checksum));
   }
 
   @Override

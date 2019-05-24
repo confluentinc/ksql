@@ -58,6 +58,7 @@ import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.regex.PatternSyntaxException;
@@ -143,8 +144,13 @@ public class KsqlResource {
     ensureValidPatterns(request.getDeleteTopicList());
     try {
       final PreparedStatement<?> preparedStatement = ksqlEngine.prepare(TERMINATE_CLUSTER);
-      final ConfiguredStatement<?> configured = ConfiguredStatement
-          .of(preparedStatement, request.getStreamsProperties(), ksqlConfig);
+      final ConfiguredStatement<?> configured =
+          ConfiguredStatement.of(
+              preparedStatement,
+              request.getStreamsProperties(),
+              ksqlConfig,
+              Optional.of(ksqlEngine.getChecksum()));
+
       final ValidatedStatement validatedStatement = ValidatedStatement.of(configured);
       return Response.ok(
           handler.execute(serviceContext, ImmutableList.of(validatedStatement))
@@ -175,11 +181,13 @@ public class KsqlResource {
           request,
           distributedCmdResponseTimeout);
 
-      final KsqlExecutionContext sandbox = ksqlEngine.createSandbox(ksqlEngine.getServiceContext());
+      final SandboxedServiceContext sandboxedServiceContext =
+          SandboxedServiceContext.create(serviceContext);
+      final KsqlExecutionContext sandbox = ksqlEngine.createSandbox(sandboxedServiceContext);
       final List<ParsedStatement> statements = ksqlEngine.parse(request.getKsql());
       final List<ValidatedStatement> validatedStatements = validator.validate(
           sandbox,
-          SandboxedServiceContext.create(serviceContext),
+          sandboxedServiceContext,
           statements,
           request.getStreamsProperties(),
           request.getKsql()

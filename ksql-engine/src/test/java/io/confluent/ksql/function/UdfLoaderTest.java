@@ -240,7 +240,7 @@ public class UdfLoaderTest {
     assertThat(arguments.get(1).name(), is("valueAndDescription"));
     assertThat(arguments.get(1).doc(), is("Some description"));
     // NB: Is the below failing?
-    // Then you need to add `-parameter` to your IDE's java compiler settings.
+    // Then you need to add `-parameters` to your IDE's java compiler settings.
     assertThat(arguments.get(2).name(), is("noValue"));
     assertThat(arguments.get(2).doc(), is(""));
   }

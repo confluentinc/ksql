@@ -320,6 +320,8 @@ used to call the UDAF. The UDAF can be invoked in four ways:
 - with a Double column, returning the aggregated value as Double.
 - with a String (VARCHAR) and an initializer that is a String (VARCHAR), returning the aggregated String (VARCHAR) length
   as a Long (BIGINT).
+- with a Struct (STRUCT<A INTEGER, B INTEGER>) that wraps two integers, returning an aggregate that
+  sums each value independently
 
 .. code:: java
 

@@ -53,7 +53,7 @@ public class KsqlTestingToolTest {
     for (int i = 1; i <= 3; i++) {
       outContent.reset();
       errContent.reset();
-      runTestCase(testFolderPath + "test" + i + "/statements.sql",
+      runTestCaseAndAssertPassed(testFolderPath + "test" + i + "/statements.sql",
           testFolderPath + "test" + i + "/input.json",
           testFolderPath + "test" + i + "/output.json"
           );
@@ -81,14 +81,14 @@ public class KsqlTestingToolTest {
   @Test
   public void shouldFailWithIncorrectTest() throws IOException {
     // When:
-    KsqlTestingTool.runWithThripleFiles(
+    KsqlTestingTool.runWithTripleFiles(
         "src/test/resources/test-runner/incorrect-test/statements.sql",
         "src/test/resources/test-runner/incorrect-test/input.json",
         "src/test/resources/test-runner/incorrect-test/output.json");
 
     // Then:
     assertThat(errContent.toString("UTF-8"),
-        containsString("\t>>>>> Test failed: Expected <1001, 101> with timestamp=0 but was <101, 101> with timestamp=0\n"));
+        containsString("Test failed: Expected <1001, 101> with timestamp=0 but was <101, 101> with timestamp=0\n"));
   }
 
   @Test
@@ -98,15 +98,15 @@ public class KsqlTestingToolTest {
   }
 
 
-  private void runTestCase(
+  private void runTestCaseAndAssertPassed(
       final String statementsFilePath,
       final String inputFilePath,
       final String outputFilePath
       ) throws IOException {
     // When:
-    KsqlTestingTool.runWithThripleFiles(statementsFilePath, inputFilePath, outputFilePath);
+    KsqlTestingTool.runWithTripleFiles(statementsFilePath, inputFilePath, outputFilePath);
 
     // Then:
-    assertThat(outContent.toString("UTF-8"), containsString(">>> Test passed!"));
+    assertThat(outContent.toString("UTF-8"), containsString("Test passed!"));
   }
 }

@@ -27,14 +27,14 @@ public class TestOptions {
   @Required
   @Once
   @Option(
-      name = "--input-file",
+      name = {"--input-file", "-i"},
       description = "A JSON file containing the input records.")
   private String inputFile;
 
   @Required
   @Once
   @Option(
-      name = "--output-file",
+      name = {"--output-file", "-o"},
       description = "A JSON file containing the expected output records.")
   private String outputFile;
 
@@ -42,7 +42,7 @@ public class TestOptions {
   @Required
   @Once
   @Option(
-      name = "--sql-file",
+      name = {"--sql-file", "-s"},
       description = "A SQL file containing KSQL statements to be tested.")
   private String statementsFile;
 

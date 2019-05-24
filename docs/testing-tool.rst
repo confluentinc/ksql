@@ -7,11 +7,36 @@ Use the KSQL testing tool to test a set of KSQL statements. The KSQL testing too
 is a command line utility that enables testing KSQL statements without requiring any infrastructure, like |ak-tm| and KSQL clusters.
 The KSQL testing tool is a great way to design your KSQL pipeline and ensure the expected results are generated.
 You can collaborate on designing your KSQL statements by sharing the test files.
-To test a set of KSQL statements, you provide three files, one file containing the KSQL statements and two JSON files containing the input records and th expected output records.
+To test a set of KSQL statements, you provide three files, one file containing the KSQL statements and two JSON files containing the input records and the expected output records.
 
 .. code:: bash
 
-    ksql-test-runner --sql-file /path/to/the/statements.sql --input-file /path/to/the/input.json --output-file /path/to/the/exoected/output.json
+    NAME
+            ksql-test-runner - The KSQL testing tool
+
+    SYNOPSIS
+            ksql-test-runner {--input-file | -i} <inputFile>
+                    {--output-file | -o} <outputFile>
+                    {--sql-file | -s} <statementsFile>
+
+    OPTIONS
+            --input-file <inputFile>, -i <inputFile>
+                A JSON file containing the input records.
+
+                This option may occur a maximum of 1 times
+
+
+            --output-file <outputFile>, -o <outputFile>
+                A JSON file containing the expected output records.
+
+                This option may occur a maximum of 1 times
+
+
+            --sql-file <statementsFile>, -s <statementsFile>
+                A SQL file containing KSQL statements to be tested.
+
+                This option may occur a maximum of 1 times
+
 
 
 Test File Structure

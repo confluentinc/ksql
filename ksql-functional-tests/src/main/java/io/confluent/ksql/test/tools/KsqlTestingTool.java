@@ -53,7 +53,7 @@ public final class KsqlTestingTool {
       if (testOptions.getStatementsFile() != null
           && testOptions.getInputFile() != null
           && testOptions.getOutputFile() != null) {
-        runWithThripleFiles(
+        runWithTripleFiles(
             testOptions.getStatementsFile(),
             testOptions.getInputFile(),
             testOptions.getOutputFile());
@@ -88,7 +88,7 @@ public final class KsqlTestingTool {
   }
 
 
-  static void runWithThripleFiles(
+  static void runWithTripleFiles(
       final String statementFile,
       final String inputFile,
       final String outputFile) throws IOException {

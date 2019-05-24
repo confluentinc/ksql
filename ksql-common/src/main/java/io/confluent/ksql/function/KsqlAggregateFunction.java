@@ -21,11 +21,9 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.kstream.Merger;
 
 
-public interface KsqlAggregateFunction<V, A> {
+public interface KsqlAggregateFunction<V, A> extends IndexedFunction {
 
   KsqlAggregateFunction<V, A> getInstance(AggregateFunctionArguments aggregateFunctionArguments);
-
-  String getFunctionName();
 
   Supplier<A> getInitialValueSupplier();
 
@@ -46,7 +44,10 @@ public interface KsqlAggregateFunction<V, A> {
    */
   Merger<String, A> getMerger();
 
-  List<Schema> getArgTypes();
-
   String getDescription();
+
+  @Override
+  default boolean isVariadic() {
+    return false;
+  }
 }

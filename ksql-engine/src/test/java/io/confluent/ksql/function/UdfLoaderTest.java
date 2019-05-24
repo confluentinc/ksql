@@ -48,6 +48,7 @@ import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.connect.data.Struct;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -102,6 +103,34 @@ public class UdfLoaderTest {
     assertThat(instance.getInitialValueSupplier().get(), equalTo(0L));
     assertThat(instance.aggregate(1L, 1L), equalTo(2L));
     assertThat(instance.getMerger().apply("k", 2L, 3L), equalTo(5L));
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test
+  public void shouldLoadStructUdafs() {
+    final Schema schema = SchemaBuilder.struct()
+        .field("A", Schema.OPTIONAL_INT32_SCHEMA)
+        .field("B", Schema.OPTIONAL_INT32_SCHEMA)
+        .optional()
+        .build();
+
+    final KsqlAggregateFunction aggregate = FUNC_REG
+        .getAggregate("test_udaf", schema);
+    final KsqlAggregateFunction<Struct, Struct> instance = aggregate.getInstance(
+        new AggregateFunctionArguments(0, Collections.singletonList("udfIndex")));
+
+    assertThat(instance.getInitialValueSupplier().get(),
+        equalTo(new Struct(schema).put("A", 0).put("B", 0)));
+    assertThat(instance.aggregate(
+          new Struct(schema).put("A", 0).put("B", 0),
+          new Struct(schema).put("A", 1).put("B", 2)
+        ),
+        equalTo(new Struct(schema).put("A", 1).put("B", 2)));
+    assertThat(instance.getMerger().apply("foo",
+        new Struct(schema).put("A", 0).put("B", 0),
+        new Struct(schema).put("A", 1).put("B", 2)
+        ),
+        equalTo(new Struct(schema).put("A", 1).put("B", 2)));
   }
 
   @Test

@@ -275,7 +275,7 @@ public class InternalFunctionRegistryTest {
               }
 
               @Override
-              public List<Schema> getArgTypes() {
+              public List<Schema> getArguments() {
                 return argTypeList;
               }
 

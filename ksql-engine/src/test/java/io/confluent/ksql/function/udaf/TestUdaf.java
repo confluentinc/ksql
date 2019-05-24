@@ -15,6 +15,10 @@
 
 package io.confluent.ksql.function.udaf;
 
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.connect.data.Struct;
+
 @UdafDescription(name = "test_udaf", description = "test_udaf")
 public class TestUdaf {
 
@@ -104,6 +108,38 @@ public class TestUdaf {
       @Override
       public Long merge(final Long aggOne, final Long aggTwo) {
         return aggOne + aggTwo;
+      }
+    };
+  }
+
+  @UdafFactory(
+      description = "returns a struct with {SUM(in->A), SUM(in->B)}",
+      paramSchema = "STRUCT<A INTEGER, B INTEGER>",
+      returnSchema = "STRUCT<A INTEGER, B INTEGER>")
+  public static Udaf<Struct, Struct> createStructUdaf() {
+    return new Udaf<Struct, Struct>() {
+
+      @Override
+      public Struct initialize() {
+        return new Struct(SchemaBuilder.struct()
+            .field("A", Schema.OPTIONAL_INT32_SCHEMA)
+            .field("B", Schema.OPTIONAL_INT32_SCHEMA)
+            .optional()
+            .build())
+            .put("A", 0)
+            .put("B", 0);
+      }
+
+      @Override
+      public Struct aggregate(final Struct current, final Struct aggregate) {
+        aggregate.put("A", current.getInt32("A") + aggregate.getInt32("A"));
+        aggregate.put("B", current.getInt32("B") + aggregate.getInt32("B"));
+        return aggregate;
+      }
+
+      @Override
+      public Struct merge(final Struct aggOne, final Struct aggTwo) {
+        return aggregate(aggOne, aggTwo);
       }
     };
   }

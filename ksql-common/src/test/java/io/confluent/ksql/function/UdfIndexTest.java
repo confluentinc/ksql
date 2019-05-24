@@ -5,22 +5,16 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
 import io.confluent.ksql.function.udf.Kudf;
-import io.confluent.ksql.function.udf.UdfMetadata;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Arrays;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameter;
-import org.junit.runners.Parameterized.Parameters;
 
 public class UdfIndexTest {
 
@@ -37,11 +31,11 @@ public class UdfIndexTest {
   private static final String EXPECTED = "expected";
   private static final String OTHER = "other";
 
-  private UdfIndex udfIndex;
+  private UdfIndex<KsqlFunction> udfIndex;
 
   @Before
   public void setUp() {
-    udfIndex = new UdfIndex("name");
+    udfIndex = new UdfIndex<KsqlFunction>("name");
   }
 
   @Rule

@@ -166,15 +166,16 @@ public class TestCase implements Test {
         .stream()
         .map(Topic::getName)
         .collect(Collectors.toSet());
-    inputRecords
-        .stream().filter(record -> sourceKafkaTopicNames.contains(record.topic.getName()))
-        .forEach(
-            r -> topologyTestDriverContainer.getTopologyTestDriver().pipeInput(
-                new ConsumerRecordFactory<>(
-                    r.keySerializer(),
-                    r.topic.getValueSerializer(schemaRegistryClient)
-                ).create(r.topic.name, r.key(), r.value, r.timestamp)
-            ));
+    for (Record record : inputRecords) {
+      if (sourceKafkaTopicNames.contains(record.topic.getName())) {
+        topologyTestDriverContainer.getTopologyTestDriver().pipeInput(
+            new ConsumerRecordFactory<>(
+                record.keySerializer(),
+                record.topic.getValueSerializer(schemaRegistryClient)
+            ).create(record.topic.name, record.key(), record.value, record.timestamp)
+        );
+      }
+    }
   }
 
   @SuppressWarnings({"unchecked", "rawtypes"})

@@ -218,12 +218,12 @@ public class KsqlResourceFunctionalTest {
         "books",
         contains(matches(
             "Metamorphosis",
-            new GenericRow(ImmutableList.of(123L, "Metamorphosis", "Metamorphosis", "Franz Kafka")),
+            new GenericRow(ImmutableList.of("Metamorphosis", "Franz Kafka")),
             0,
             0L,
             123L)),
         Format.AVRO,
-        schema);
+        schema.withoutImplicitFields());
   }
 
   @SuppressWarnings("SameParameterValue")

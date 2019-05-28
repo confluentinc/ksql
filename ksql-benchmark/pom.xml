@@ -98,8 +98,13 @@ questions.
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.0</version>
         <configuration>
+          <compilerArgs>
+            <arg>-Xlint:all,-serial,-processing</arg>
+            <arg>-Werror</arg>
+          </compilerArgs>
+          <showWarnings>true</showWarnings>
+          <showDeprecation>true</showDeprecation>
           <compilerVersion>1.8</compilerVersion>
           <source>1.8</source>
           <target>1.8</target>

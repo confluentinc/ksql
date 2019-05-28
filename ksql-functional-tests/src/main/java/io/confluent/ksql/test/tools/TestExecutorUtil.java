@@ -245,7 +245,7 @@ final class TestExecutorUtil {
         Optional.empty());
   }
 
-  private static List<DataSource> getSortedSources(
+  private static List<DataSource<?>> getSortedSources(
       final Query query,
       final MetaStore metaStore) {
     final Relation from = query.getFrom();
@@ -273,12 +273,12 @@ final class TestExecutorUtil {
 
   private static final class ExecuteResultAndSortedSources {
     private final ExecuteResult executeResult;
-    private final List<DataSource> sources;
+    private final List<DataSource<?>> sources;
     private final Optional<Long> windowSize;
 
     ExecuteResultAndSortedSources(
         final ExecuteResult executeResult,
-        final List<DataSource> sources,
+        final List<DataSource<?>> sources,
         final Optional<Long> windowSize) {
       this.executeResult = executeResult;
       this.sources = sources;
@@ -289,7 +289,7 @@ final class TestExecutorUtil {
       return executeResult;
     }
 
-    List<DataSource> getSources() {
+    List<DataSource<?>> getSources() {
       return sources;
     }
 
@@ -300,12 +300,12 @@ final class TestExecutorUtil {
 
   private static final class PersistentQueryAndSortedSources {
     private final PersistentQueryMetadata persistentQueryMetadata;
-    private final List<DataSource> sources;
+    private final List<DataSource<?>> sources;
     private final Optional<Long> windowSize;
 
     PersistentQueryAndSortedSources(
         final PersistentQueryMetadata persistentQueryMetadata,
-        final List<DataSource> sources,
+        final List<DataSource<?>> sources,
         final Optional<Long> windowSize
     ) {
       this.persistentQueryMetadata = persistentQueryMetadata;
@@ -317,7 +317,7 @@ final class TestExecutorUtil {
       return persistentQueryMetadata;
     }
 
-    List<DataSource> getSources() {
+    List<DataSource<?>> getSources() {
       return sources;
     }
 

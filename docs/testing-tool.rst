@@ -63,7 +63,7 @@ Input File
 ----------
 
 The input file is a JSON file with one array field named "inputs". Each element in the array is the representation of input messages.
-A message should have topic, key, value and timestamp. The following is a sample input file for the above test:
+A message should have a topic, a key, a value and a timestamp. The following is a sample input file for the above test:
 
 .. code:: json
     {

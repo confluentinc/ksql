@@ -76,6 +76,7 @@ import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 
@@ -83,6 +84,7 @@ import org.junit.experimental.categories.Category;
  * Most tests in CliTest are end-to-end integration tests, so it may expect a long running time.
  */
 @Category({IntegrationTest.class})
+@Ignore("flaky test fixed in future KSQL versions - backport effort is too large")
 public class CliTest extends TestRunner {
 
   @ClassRule
@@ -537,6 +539,7 @@ public class CliTest extends TestRunner {
     assertThat(terminal.getCliSpecificCommands().get("server"),
         instanceOf(Cli.RemoteServerSpecificCommand.class));
   }
+<<<<<<< HEAD
 
   @Test
   public void shouldPrintErrorOnUnsupportedAPI() throws Exception {

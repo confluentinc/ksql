@@ -539,7 +539,6 @@ public class CliTest extends TestRunner {
     assertThat(terminal.getCliSpecificCommands().get("server"),
         instanceOf(Cli.RemoteServerSpecificCommand.class));
   }
-<<<<<<< HEAD
 
   @Test
   public void shouldPrintErrorOnUnsupportedAPI() throws Exception {

@@ -136,9 +136,7 @@ public class InsertValuesExecutorTest {
 
     givenDataSourceWithSchema(SCHEMA);
 
-    expectedRow = new Struct(SCHEMA.getSchema())
-        .put("ROWTIME", 1L)
-        .put("ROWKEY", 2L)
+    expectedRow = new Struct(SCHEMA.withoutImplicitFields().getSchema())
         .put("COL0", 2L)
         .put("COL1", "str");
   }
@@ -147,16 +145,14 @@ public class InsertValuesExecutorTest {
   public void shouldHandleFullRow() {
     // Given:
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
-        SCHEMA.fields().stream().map(Field::name).collect(Collectors.toList()),
+        SCHEMA.withoutImplicitFields().fields().stream().map(Field::name).collect(Collectors.toList()),
         ImmutableList.of(
-            new LongLiteral(1L),
-            new LongLiteral(2L),
             new LongLiteral(2L),
             new StringLiteral("str"))
     );
 
     // When:
-    new InsertValuesExecutor(() -> -1L).execute(statement, engine, serviceContext);
+    new InsertValuesExecutor(() -> 1L).execute(statement, engine, serviceContext);
 
     // Then:
     verify(rowSerializer).serialize(TOPIC_NAME, expectedRow);
@@ -311,9 +307,7 @@ public class InsertValuesExecutorTest {
     new InsertValuesExecutor(() -> 1L).execute(statement, engine, serviceContext);
 
     // Then:
-    verify(rowSerializer).serialize(TOPIC_NAME, new Struct(BIG_SCHEMA.getSchema())
-        .put("ROWTIME", 1L)
-        .put("ROWKEY", 2L)
+    verify(rowSerializer).serialize(TOPIC_NAME, new Struct(BIG_SCHEMA.withoutImplicitFields().getSchema())
         .put("INT", 0)
         .put("COL0", 2L)
         .put("DOUBLE", 3.0)
@@ -341,7 +335,6 @@ public class InsertValuesExecutorTest {
 
     // Then:
     verify(rowSerializer).serialize(TOPIC_NAME, expectedRow
-        .put("ROWKEY", 1L)
         .put("COL0", 1L)
         .put("COL1", null));
     verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));

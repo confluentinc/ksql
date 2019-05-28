@@ -31,6 +31,10 @@ public class InputRecordsNode {
     if (inputRecords == null) {
       throw new Exception("No 'inputs' field in the input file.");
     }
+    if (inputRecords.isEmpty()) {
+      throw new Exception("Inputs cannot be empty.");
+    }
+
     this.inputRecords = ImmutableList.copyOf(inputRecords);
   }
 

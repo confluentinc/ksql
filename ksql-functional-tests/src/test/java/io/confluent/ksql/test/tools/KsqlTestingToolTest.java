@@ -124,6 +124,20 @@ public class KsqlTestingToolTest {
 
   }
 
+  @Test
+  public void shouldFailWithEmptyInput() throws Exception {
+    // Given:
+    expectedException.expect(Exception.class);
+    expectedException.expectMessage("File name: src/test/resources/test-runner/incorrect-test4/input.json Message: Cannot construct instance of `io.confluent.ksql.test.model.InputRecordsNode`, problem: Inputs cannot be empty.");
+
+    // When:
+    KsqlTestingTool.runWithTripleFiles(
+        "src/test/resources/test-runner/incorrect-test4/statements.sql",
+        "src/test/resources/test-runner/incorrect-test4/input.json",
+        "src/test/resources/test-runner/incorrect-test4/output.json");
+
+  }
+
   private void runTestCaseAndAssertPassed(
       final String statementsFilePath,
       final String inputFilePath,

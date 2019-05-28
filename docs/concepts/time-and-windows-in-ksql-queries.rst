@@ -180,29 +180,43 @@ windows per record key.
 
 When using windows in your KSQL queries, aggregate functions are applied only
 to the records that occur within a specific time window. Records that arrive
-late are handled as you might expect: although the time window they belong to
-has expired, the late records are still associated with the correct window.
+out-of-order are handled as you might expect: although the time window they belong to
+has expired, the out-of-order records are still associated with the correct window.
 
-You can specify a retention period for the window in your KSQL queries. This
-retention period controls how long KSQL waits for out-of-order or late-arriving
-records for a given window. If a record arrives after the retention period of a
-window has passed, the record is discarded and isn't processed in that window.
+You can specify a *grace period* for the window in your KSQL queries. This
+grace period controls how long KSQL waits for out-of-order records for a window.
+If a record arrives after the grace period of a window has passed, the record
+is discarded and isn't processed in that window. The following formula shows
+how the grace period is related to a window's end time and a record's timestamp.
+
+::
+
+    record.ts > window-end-time + grace-period
 
 .. note::
 
-    Starting in KSQL 5.1, a *grace period* configuration determines how long
-    to wait before closing a window. This enables accessing the window with
-    interactive queries, even if it's closed. Retention time is still a valid
-    parameter that defines for how long the potentially closed window is stored. 
+      **grace period vs. retention time**
+      
+      The *grace period* supersedes *retention time* as a more
+      specific means of defining the amount of time a window should allow for
+      out-of-order events after the window ends. Grace period relates directly
+      to usage of final results for a window and is also a lower bound on
+      retention time. 
+      
+      Retention time is still configurable, but as a lower-level property of the
+      window store. You might choose to retain events for a long time (the
+      default is one day) to support, for example, Interactive Queries over
+      final windows or even indefinitely on remote, distributed systems with
+      large storage capacity. On the other hand, you might retain events for a
+      short time for an in-memory implementation. 
 
-In the real world, late-arriving records are always possible, and your KSQL
+In the real world, out-of-order records are always possible, and your KSQL
 applications must account for them properly. The system's time semantics
-determine how late records are handled. For processing-time, the semantics are
-“when the record is being processed”, which means that the notion of late records
-isn't applicable because, by definition, no record can be late.
-
-Late-arriving records are considered “late” only for event-time and ingestion-time
-semantics. In both cases, KSQL is able to handle late-arriving records properly.
+determine how out-of-order records are handled. For processing-time, the
+semantics are “when the record is being processed”, which means that the notion
+of out-of-order records isn't applicable because only processing time is
+considered. Out-of-order records can only be considered for event-time semantics.
+In both cases, KSQL is able to handle out-of-order records properly.
 
 .. important::
 

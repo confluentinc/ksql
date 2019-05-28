@@ -27,10 +27,11 @@ public class InputRecordsNode {
 
   public InputRecordsNode(
       @JsonProperty("inputs") final List<RecordNode> inputRecords
-  ) {
-    this.inputRecords = inputRecords == null
-        ? ImmutableList.of()
-        : ImmutableList.copyOf(inputRecords);
+  ) throws Exception {
+    if (inputRecords == null) {
+      throw new Exception("No 'inputs' field in the input file.");
+    }
+    this.inputRecords = ImmutableList.copyOf(inputRecords);
   }
 
   public List<RecordNode> getInputRecords() {

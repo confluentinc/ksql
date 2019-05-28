@@ -108,11 +108,6 @@ public class TestCaseNode {
       throw new InvalidFieldException("statements", "was empty");
     }
 
-    if (this.inputs.isEmpty() != this.outputs.isEmpty()) {
-      throw new InvalidFieldException("inputs and outputs",
-          "either both, or neither, field should be set");
-    }
-
     if (!this.inputs.isEmpty() && this.expectedException.isPresent()) {
       throw new InvalidFieldException("inputs and expectedException",
           "can not both be set");

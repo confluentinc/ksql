@@ -21,7 +21,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
 import org.junit.After;
@@ -53,9 +52,9 @@ public class KsqlTestingToolTest {
   }
 
   @Test
-  public void shouldRunCorrectsTest() throws IOException {
+  public void shouldRunCorrectsTest() throws Exception {
     final String testFolderPath = "src/test/resources/test-runner/";
-    for (int i = 1; i <= 3; i++) {
+    for (int i = 1; i <= 4; i++) {
       outContent.reset();
       errContent.reset();
       runTestCaseAndAssertPassed(testFolderPath + "test" + i + "/statements.sql",
@@ -84,7 +83,7 @@ public class KsqlTestingToolTest {
   }
 
   @Test
-  public void shouldFailWithIncorrectTest() throws IOException {
+  public void shouldFailWithIncorrectTest() throws Exception {
     // When:
     KsqlTestingTool.runWithTripleFiles(
         "src/test/resources/test-runner/incorrect-test1/statements.sql",
@@ -97,9 +96,9 @@ public class KsqlTestingToolTest {
   }
 
   @Test
-  public void shouldFailWithIncorrectInputFormat() throws IOException {
+  public void shouldFailWithIncorrectInputFormat() throws Exception {
     // Given:
-    expectedException.expect(IOException.class);
+    expectedException.expect(Exception.class);
     expectedException.expectMessage("File name: src/test/resources/test-runner/incorrect-test2/input.json Message: Unexpected character ('{' (code 123)): was expecting double-quote to start field name");
 
     // When:
@@ -110,11 +109,26 @@ public class KsqlTestingToolTest {
 
   }
 
+
+  @Test
+  public void shouldFailWithOutputFileMissingField() throws Exception {
+    // Given:
+    expectedException.expect(Exception.class);
+    expectedException.expectMessage("Message: Cannot construct instance of `io.confluent.ksql.test.model.OutputRecordsNode`, problem: No 'outputs' field in the output file.");
+
+    // When:
+    KsqlTestingTool.runWithTripleFiles(
+        "src/test/resources/test-runner/incorrect-test3/statements.sql",
+        "src/test/resources/test-runner/incorrect-test3/input.json",
+        "src/test/resources/test-runner/incorrect-test3/output.json");
+
+  }
+
   private void runTestCaseAndAssertPassed(
       final String statementsFilePath,
       final String inputFilePath,
       final String outputFilePath
-      ) throws IOException {
+      ) throws Exception {
     // When:
     KsqlTestingTool.runWithTripleFiles(statementsFilePath, inputFilePath, outputFilePath);
 

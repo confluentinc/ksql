@@ -43,7 +43,7 @@ public final class KsqlTestingTool {
 
   private static final ObjectMapper OBJECT_MAPPER = JsonMapper.INSTANCE.mapper;
 
-  public static void main(final String[] args) throws IOException {
+  public static void main(final String[] args) throws Exception {
 
     try {
       final TestOptions testOptions = TestOptions.parse(args);
@@ -58,7 +58,7 @@ public final class KsqlTestingTool {
             testOptions.getInputFile(),
             testOptions.getOutputFile());
       }
-    } catch (final IOException e) {
+    } catch (final Exception e) {
       System.err.println("Invalid arguments: " + e.getMessage());
     }
   }
@@ -91,22 +91,23 @@ public final class KsqlTestingTool {
   static void runWithTripleFiles(
       final String statementFile,
       final String inputFile,
-      final String outputFile) throws IOException {
+      final String outputFile) throws Exception {
     final InputRecordsNode inputRecordNodes;
     final OutputRecordsNode outRecordNodes;
     try {
       inputRecordNodes = OBJECT_MAPPER
           .readValue(new File(inputFile), InputRecordsNode.class);
-    } catch (final IOException inputException) {
-      throw new IOException("File name: " + inputFile + " Message: " + inputException.getMessage());
+    } catch (final Exception inputException) {
+      throw new Exception("File name: " + inputFile + " Message: " + inputException.getMessage());
     }
     try {
       outRecordNodes = OBJECT_MAPPER
           .readValue(new File(outputFile), OutputRecordsNode.class);
-    } catch (final IOException outputException) {
-      throw new IOException("File name: " + outputFile
+    } catch (final Exception outputException) {
+      throw new Exception("File name: " + outputFile
           + " Message: " + outputException.getMessage());
     }
+
     final List<String> statements = getSqlStatements(statementFile);
 
     final TestCaseNode testCaseNode = new TestCaseNode(

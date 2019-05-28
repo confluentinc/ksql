@@ -38,6 +38,11 @@ public final class TopicAccessValidatorFactory {
       final MetaStore metaStore
   ) {
     if (isKafkaAuthorizerEnabled(serviceContext.getAdminClient())) {
+      // This service works only on Kakfa 2.3 and newer versions. There was no way to detect
+      // the version of Kafka during this point, so I left the version check during the
+      // AuthorizationTopicAccessValidator validation
+      // (see AuthorizationTopicAccessValidator#hasAcccess)
+
       LOG.info("KSQL topic authorization checks enabled.");
       return new AuthorizationTopicAccessValidator();
     }

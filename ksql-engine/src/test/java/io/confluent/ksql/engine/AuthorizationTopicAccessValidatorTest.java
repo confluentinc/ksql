@@ -98,6 +98,21 @@ public class AuthorizationTopicAccessValidatorTest {
   }
 
   @Test
+  public void shouldAllowAnyOperationIfPermissionsAreNull() {
+    // This test case verifies permissions will not work if the Kafka broker returns NULL
+
+    // Given:
+    givenTopicPermissions(TOPIC_1, null);
+    final Statement statement = givenStatement("SELECT * FROM " + STREAM_TOPIC_1 + ";");
+
+    // When:
+    accessValidator.validate(serviceContext, metaStore, statement);
+
+    // Then:
+    // Above command should not throw any exception
+  }
+
+  @Test
   public void shouldSingleSelectWithReadPermissionsAllowed() {
     // Given:
     givenTopicPermissions(TOPIC_1, Collections.singleton(AclOperation.READ));

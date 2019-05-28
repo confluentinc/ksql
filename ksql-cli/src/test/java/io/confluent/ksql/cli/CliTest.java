@@ -698,7 +698,6 @@ public class CliTest {
     assertThat(console.getCliSpecificCommands().get("server"),
         instanceOf(RemoteServerSpecificCommand.class));
   }
-<<<<<<< HEAD
 
   @Test
   public void shouldRegisterRequestPipeliningCommand() {

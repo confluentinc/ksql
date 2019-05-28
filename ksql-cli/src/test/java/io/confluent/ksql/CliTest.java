@@ -51,7 +51,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 /**
  * Most tests in CliTest are end-to-end integration tests, so it may expect a long running time.
  */
-@Ignore("flaky test fixed in future KSQl versions - backport effort is too large")
+@Ignore("flaky test fixed in future KSQL versions - backport effort is too large")
 public class CliTest extends TestRunner {
 
   @ClassRule

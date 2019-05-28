@@ -26,16 +26,12 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
-import io.confluent.ksql.metastore.model.KsqlTopic;
-import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.test.serde.SerdeSupplier;
 import io.confluent.ksql.test.serde.avro.AvroSerdeSupplier;
 import io.confluent.ksql.test.serde.string.StringSerdeSupplier;
-import io.confluent.ksql.test.tools.TopologyTestDriverContainer.WindowType;
 import io.confluent.ksql.test.tools.conditions.PostConditions;
 import io.confluent.ksql.test.tools.exceptions.KsqlExpectedException;
-import io.confluent.ksql.util.Pair;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
@@ -44,7 +40,6 @@ import org.apache.avro.Schema;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.streams.TopologyTestDriver;
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -82,20 +77,19 @@ public class TestCaseTest {
   private TopologyTestDriver topologyTestDriver;
   @Captor
   private ArgumentCaptor<ConsumerRecord> captor;
-
-
-  @Before
-  public void init() {
-
-  }
+  @Mock
+  private FakeKafkaService fakeKafkaService;
 
 
   @Test
   @SuppressWarnings("unchecked")
   public void shouldProcessInputRecords() {
     // Given:
-    final TopologyTestDriverContainer topologyTestDriverContainer = getSampleTopologyTestDriverContainer();
-
+    final TopologyTestDriverContainer topologyTestDriverContainer = TopologyTestDriverContainer.of(
+        topologyTestDriver,
+        ImmutableList.of(topic),
+        new Topic("BAR", Optional.empty(), new StringSerdeSupplier(), 1, 1)
+    );
 
     // When:
     testCase.processInput(topologyTestDriverContainer, null);
@@ -114,12 +108,7 @@ public class TestCaseTest {
   @SuppressWarnings("unchecked")
   public void shouldFilterNonSourceTopics() {
     // Given:
-    final TopologyTestDriverContainer topologyTestDriverContainer = TopologyTestDriverContainer.of(
-        topologyTestDriver,
-        ImmutableList.of(new KsqlTopic("FOO", "foo_kafka_different_input", new KsqlJsonSerdeFactory(), false)),
-        new KsqlTopic("BAR", "bar_kafka", new KsqlJsonSerdeFactory(), false),
-        new Pair<>(WindowType.NO_WINDOW, Long.MIN_VALUE)
-    );
+    final TopologyTestDriverContainer topologyTestDriverContainer = getSampleTopologyTestDriverContainer();
 
 
     // When:
@@ -168,7 +157,7 @@ public class TestCaseTest {
     final KafkaTopicClient kafkaTopicClient = mock(KafkaTopicClient.class);
 
     // When:
-    testCase.initializeTopics(kafkaTopicClient, null);
+    testCase.initializeTopics(kafkaTopicClient, fakeKafkaService, null);
 
     // Then:
     verify(kafkaTopicClient).createTopic("foo_kafka", 4, (short)1);
@@ -195,7 +184,7 @@ public class TestCaseTest {
     );
 
     // When:
-    testCase.initializeTopics(kafkaTopicClient, schemaRegistryClient);
+    testCase.initializeTopics(kafkaTopicClient, fakeKafkaService, schemaRegistryClient);
 
     // Then:
     verify(schemaRegistryClient).register("foo-value", fakeAvroSchema);
@@ -234,9 +223,8 @@ public class TestCaseTest {
   private TopologyTestDriverContainer getSampleTopologyTestDriverContainer() {
     return TopologyTestDriverContainer.of(
         topologyTestDriver,
-        ImmutableList.of(new KsqlTopic("FOO", "foo_kafka", new KsqlJsonSerdeFactory(), false)),
-        new KsqlTopic("BAR", "bar_kafka", new KsqlJsonSerdeFactory(), false),
-        new Pair<>(WindowType.NO_WINDOW, Long.MIN_VALUE)
+        ImmutableList.of(new Topic("FOO", Optional.empty(), new StringSerdeSupplier(), 1, 1)),
+        new Topic("BAR", Optional.empty(), new StringSerdeSupplier(), 1, 1)
     );
   }
 

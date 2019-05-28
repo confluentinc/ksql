@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.function;
 
-import io.confluent.ksql.function.udaf.UdafAggregateFunctionFactory;
 import io.confluent.ksql.function.udaf.UdafDescription;
 import io.confluent.ksql.function.udaf.UdafFactory;
 import io.confluent.ksql.function.udf.Kudf;
@@ -174,7 +173,9 @@ public class UdfLoader {
               return Optional.of(compiler.compileAggregate(method,
                   loader,
                   udafAnnotation.name(),
-                  annotation.description()
+                  annotation.description(),
+                  annotation.paramSchema(),
+                  annotation.returnSchema()
               ));
             } catch (final Exception e) {
               LOGGER.warn("Failed to create UDAF name={}, method={}, class={}, path={}",
@@ -264,6 +265,14 @@ public class UdfLoader {
       final String name = annotation.map(UdfParameter::value)
           .filter(val -> !val.isEmpty())
           .orElse(param.isNamePresent() ? param.getName() : "");
+
+      if (name.trim().isEmpty()) {
+        throw new KsqlFunctionException(
+            String.format("Cannot resolve parameter name for param at index %d for udf %s:%s. "
+                + "Please specify a name in @UdfParameter or compile your JAR with -parameters "
+                + "to infer the name from the parameter name.",
+                idx, classLevelAnnotation.name(), method.getName()));
+      }
 
       final String doc = annotation.map(UdfParameter::description).orElse("");
       if (annotation.isPresent() && !annotation.get().schema().isEmpty()) {

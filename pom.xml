@@ -213,7 +213,7 @@
             <dependency>
                 <groupId>io.confluent.support</groupId>
                 <artifactId>support-metrics-common</artifactId>
-                <version>${confluent.version}</version>
+                <version>${kafka.version}</version>
             </dependency>
 
             <dependency>

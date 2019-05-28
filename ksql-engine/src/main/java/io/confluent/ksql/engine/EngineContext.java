@@ -120,10 +120,6 @@ final class EngineContext {
     return metaStore;
   }
 
-  DdlCommandExec getDdlCommandExec() {
-    return ddlCommandExec;
-  }
-
   ServiceContext getServiceContext() {
     return serviceContext;
   }

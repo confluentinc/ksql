@@ -17,7 +17,6 @@ package io.confluent.ksql.test.tools;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertTrue;
 
 import io.confluent.ksql.test.serde.string.StringSerdeSupplier;
 import java.util.List;
@@ -60,7 +59,7 @@ public class FakeKafkaServiceTest {
     fakeKafkaService.createTopic(topic);
 
     // Then:
-    assertTrue(fakeKafkaService.getTopicMap().containsKey(topic.getName()));
+    fakeKafkaService.requireTopicExists(topic.getName());
   }
 
   @Test

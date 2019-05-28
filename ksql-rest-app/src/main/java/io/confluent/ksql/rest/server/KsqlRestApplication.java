@@ -22,9 +22,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import io.confluent.ksql.ddl.DdlConfig;
-import io.confluent.ksql.ddl.commands.CreateStreamCommand;
-import io.confluent.ksql.ddl.commands.RegisterTopicCommand;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.TopicAccessValidator;
 import io.confluent.ksql.engine.TopicAccessValidatorFactory;
@@ -34,15 +31,8 @@ import io.confluent.ksql.function.UdfLoader;
 import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
+import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
-import io.confluent.ksql.parser.tree.CreateStream;
-import io.confluent.ksql.parser.tree.Literal;
-import io.confluent.ksql.parser.tree.PrimitiveType;
-import io.confluent.ksql.parser.tree.QualifiedName;
-import io.confluent.ksql.parser.tree.RegisterTopic;
-import io.confluent.ksql.parser.tree.StringLiteral;
-import io.confluent.ksql.parser.tree.TableElement;
-import io.confluent.ksql.parser.tree.Type.SqlType;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.computation.CommandRunner;
@@ -81,7 +71,6 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -112,8 +101,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
 
   private static final Logger log = LoggerFactory.getLogger(KsqlRestApplication.class);
 
-  public static final String COMMANDS_KSQL_TOPIC_NAME = "__KSQL_COMMANDS_TOPIC";
-  private static final String COMMANDS_STREAM_NAME = "KSQL_COMMANDS";
+  public static final String COMMANDS_STREAM_NAME = "KSQL_COMMANDS";
 
   private final KsqlConfig ksqlConfig;
   private final KsqlEngine ksqlEngine;
@@ -270,8 +258,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
     config.property(ServerProperties.WADL_FEATURE_DISABLE, true);
 
     // Registers the REST security extensions
-    securityExtension.initialize(ksqlConfig);
-    securityExtension.registerRestEndpoints(config);
+    securityExtension.register(config, ksqlConfig);
   }
 
   @Override
@@ -366,42 +353,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
 
     UdfLoader.newInstance(ksqlConfig, functionRegistry, ksqlInstallDir).load();
 
-    final String commandTopic = KsqlInternalTopicUtils.getTopicName(
-        ksqlConfig, KsqlRestConfig.COMMAND_TOPIC_SUFFIX);
-    KsqlInternalTopicUtils.ensureTopic(commandTopic, ksqlConfig, serviceContext.getTopicClient());
-
-    final Map<String, Literal> commandTopicProperties = new HashMap<>();
-    commandTopicProperties.put(
-        DdlConfig.VALUE_FORMAT_PROPERTY,
-        new StringLiteral("json")
-    );
-    commandTopicProperties.put(
-        DdlConfig.KAFKA_TOPIC_NAME_PROPERTY,
-        new StringLiteral(commandTopic)
-    );
-
-    ksqlEngine.getDdlCommandExec().execute(new RegisterTopicCommand(new RegisterTopic(
-        QualifiedName.of(COMMANDS_KSQL_TOPIC_NAME),
-        false,
-        commandTopicProperties
-    )));
-
-    ksqlEngine.getDdlCommandExec().execute(new CreateStreamCommand(
-        "statementText",
-        new CreateStream(
-            QualifiedName.of(COMMANDS_STREAM_NAME),
-            Collections.singletonList(new TableElement(
-                "STATEMENT",
-                PrimitiveType.of(SqlType.STRING)
-            )),
-            false,
-            ImmutableMap.<String, Literal>builder()
-                .putAll(commandTopicProperties)
-                .put(DdlConfig.TOPIC_NAME_PROPERTY, new StringLiteral(COMMANDS_KSQL_TOPIC_NAME))
-            .build()
-        ),
-        serviceContext.getTopicClient()
-    ));
+    final String commandTopic = registerCommandTopic(serviceContext, ksqlConfig, ksqlEngine);
 
     final StatementParser statementParser = new StatementParser(ksqlEngine);
 
@@ -488,6 +440,27 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         serviceContextBinderFactory,
         securityExtension
     );
+  }
+
+  private static String registerCommandTopic(
+      final ServiceContext serviceContext,
+      final KsqlConfig ksqlConfig,
+      final KsqlEngine ksqlEngine
+  ) {
+    final String commandTopic = KsqlInternalTopicUtils
+        .getTopicName(ksqlConfig, KsqlRestConfig.COMMAND_TOPIC_SUFFIX);
+
+    KsqlInternalTopicUtils.ensureTopic(commandTopic, ksqlConfig, serviceContext.getTopicClient());
+
+    final String createCmd = "CREATE STREAM " + COMMANDS_STREAM_NAME
+        + " (STATEMENT STRING)"
+        + " WITH(VALUE_FORMAT='JSON', KAFKA_TOPIC='" + commandTopic + "');";
+
+    final ParsedStatement parsed = ksqlEngine.parse(createCmd).get(0);
+    final PreparedStatement<?> prepared = ksqlEngine.prepare(parsed);
+    ksqlEngine.execute(ConfiguredStatement.of(prepared, ImmutableMap.of(), ksqlConfig));
+
+    return commandTopic;
   }
 
   private static KsqlSecurityExtension loadSecurityExtension(final KsqlConfig ksqlConfig) {

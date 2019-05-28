@@ -155,8 +155,9 @@ public class UdfCompilerTest {
         = udfCompiler.compileAggregate(TestUdaf.class.getMethod("createSumLong"),
         classLoader,
         "test-udf",
-        "desc"
-    );
+        "desc",
+        "",
+        "");
     assertThat(function.getInstance(
         new AggregateFunctionArguments(0, Collections.singletonList("udfIndex"))),
         not(nullValue()));
@@ -182,8 +183,9 @@ public class UdfCompilerTest {
         = udfCompiler.compileAggregate(TestUdaf.class.getMethod("createSumLong"),
         classLoader,
         "test-udf",
-        "desc"
-    );
+        "desc",
+        "",
+        "");
     assertThat(function, instanceOf(TableAggregationFunction.class));
   }
 
@@ -194,8 +196,9 @@ public class UdfCompilerTest {
         String.class),
         classLoader,
         "test-udf",
-        "desc"
-    );
+        "desc",
+        "",
+        "");
     final KsqlAggregateFunction instance = function.getInstance(
         new AggregateFunctionArguments(0, Arrays.asList("udfIndex", "some string")));
     assertThat(instance,
@@ -213,8 +216,9 @@ public class UdfCompilerTest {
         = udfCompiler.compileAggregate(TestUdaf.class.getMethod("createSumLong"),
         classLoader,
         "test-udf",
-        "desc"
-    );
+        "desc",
+        "",
+        "");
 
     final KsqlAggregateFunction<Long, Long> executable = function.getInstance(
         new AggregateFunctionArguments(0, Collections.singletonList("udfIndex")));
@@ -271,8 +275,9 @@ public class UdfCompilerTest {
     udfCompiler.compileAggregate(UdfCompilerTest.class.getMethod("createBlah"),
         classLoader,
         "test",
-        "desc"
-    );
+        "desc",
+        "",
+        "");
   }
 
   @Test
@@ -280,8 +285,9 @@ public class UdfCompilerTest {
     udfCompiler.compileAggregate(UdfCompilerTest.class.getMethod("createLongDouble"),
         classLoader,
         "test",
-        "desc"
-    );
+        "desc",
+        "",
+        "");
   }
 
   @Test
@@ -289,8 +295,9 @@ public class UdfCompilerTest {
     udfCompiler.compileAggregate(UdfCompilerTest.class.getMethod("createDoubleLong"),
         classLoader,
         "test",
-        "desc"
-    );
+        "desc",
+        "",
+        "");
   }
 
   @Test
@@ -298,8 +305,9 @@ public class UdfCompilerTest {
     udfCompiler.compileAggregate(UdfCompilerTest.class.getMethod("createIntegerString"),
         classLoader,
         "test",
-        "desc"
-    );
+        "desc",
+        "",
+        "");
   }
 
   @Test
@@ -307,8 +315,9 @@ public class UdfCompilerTest {
     udfCompiler.compileAggregate(UdfCompilerTest.class.getMethod("createStringInteger"),
         classLoader,
         "test",
-        "desc"
-    );
+        "desc",
+        "",
+        "");
   }
 
   @Test
@@ -316,8 +325,9 @@ public class UdfCompilerTest {
     udfCompiler.compileAggregate(UdfCompilerTest.class.getMethod("createBooleanList"),
         classLoader,
         "test",
-        "desc"
-    );
+        "desc",
+        "",
+        "");
   }
 
   @Test
@@ -325,8 +335,9 @@ public class UdfCompilerTest {
     udfCompiler.compileAggregate(UdfCompilerTest.class.getMethod("createListBoolean"),
         classLoader,
         "test",
-        "desc"
-    );
+        "desc",
+        "",
+        "");
   }
 
   @Test
@@ -334,17 +345,29 @@ public class UdfCompilerTest {
     udfCompiler.compileAggregate(UdfCompilerTest.class.getMethod("createMapMap"),
         classLoader,
         "test",
-        "desc"
-    );
+        "desc",
+        "",
+        "");
   }
 
   @Test
   public void shouldHandleUdafsWithMapValMapAggTypesAndFactoryArg() throws Exception {
     udfCompiler.compileAggregate(UdfCompilerTest.class.getMethod("createMapMap", int.class),
-                                 classLoader,
-                                 "test",
-                                 "desc"
-    );
+        classLoader,
+        "test",
+        "desc",
+        "",
+        "");
+  }
+
+  @Test
+  public void shouldHandleUdafsWithStructStructTypes() throws Exception {
+    udfCompiler.compileAggregate(UdfCompilerTest.class.getMethod("createStructStruct"),
+        classLoader,
+        "test",
+        "desc",
+        "STRUCT<A VARCHAR>",
+        "STRUCT<B VARCHAR>");
   }
 
   @Test(expected = KsqlException.class)
@@ -352,8 +375,9 @@ public class UdfCompilerTest {
     udfCompiler.compileAggregate(UdfCompilerTest.class.getMethod("createBad"),
         classLoader,
         "test",
-        "desc"
-    );
+        "desc",
+        "",
+        "");
   }
 
   @Test(expected = KsqlException.class)
@@ -361,8 +385,9 @@ public class UdfCompilerTest {
     udfCompiler.compileAggregate(UdfCompilerTest.class.getMethod("createNonStatic"),
         classLoader,
         "test",
-        "desc"
-    );
+        "desc",
+        "",
+        "");
   }
 
   public String udf(final Set val) {
@@ -470,6 +495,10 @@ public class UdfCompilerTest {
   }
 
   public static Udaf<Map<String, Integer>, Map<Long, Boolean>> createMapMap(int ignored) {
+    return null;
+  }
+
+  public static Udaf<Struct, Struct> createStructStruct() {
     return null;
   }
 

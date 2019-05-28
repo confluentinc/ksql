@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.function;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import io.confluent.ksql.schema.connect.SqlSchemaFormatter;
@@ -57,7 +58,7 @@ import org.slf4j.LoggerFactory;
  *       that was added first.</li>
  * </ul>
  */
-public class UdfIndex {
+public class UdfIndex<T extends IndexedFunction> {
   // this class is implemented as a custom Trie data structure that resolves
   // the rules described above. the Trie is built so that each node in the
   // trie references a single possible parameter in the signature. take for
@@ -89,14 +90,14 @@ public class UdfIndex {
 
   private final String udfName;
   private final Node root = new Node();
-  private final Map<List<Schema>, KsqlFunction> allFunctions;
+  private final Map<List<Schema>, T> allFunctions;
 
   UdfIndex(final String udfName) {
     this.udfName = Objects.requireNonNull(udfName, "udfName");
     allFunctions = new HashMap<>();
   }
 
-  void addFunction(final KsqlFunction function) {
+  void addFunction(final T function) {
     final List<Schema> parameters = function.getArguments();
     if (allFunctions.put(function.getArguments(), function) != null) {
       throw new KsqlException(
@@ -138,7 +139,7 @@ public class UdfIndex {
     curr.update(function, order);
   }
 
-  KsqlFunction getFunction(final List<Schema> arguments) {
+  T getFunction(final List<Schema> arguments) {
     final List<Node> candidates = new ArrayList<>();
     getCandidates(arguments, 0, root, candidates);
 
@@ -149,7 +150,7 @@ public class UdfIndex {
         .orElseThrow(() -> createNoMatchingFunctionException(arguments));
   }
 
-  private static void getCandidates(
+  private void getCandidates(
       final List<Schema> arguments,
       final int argIndex,
       final Node current,
@@ -184,7 +185,7 @@ public class UdfIndex {
         + "' does not accept parameters of types:" + sqlParamTypes);
   }
 
-  public Collection<KsqlFunction> values() {
+  public Collection<T> values() {
     return allFunctions.values();
   }
 
@@ -195,17 +196,18 @@ public class UdfIndex {
     return sb.toString();
   }
 
-  private static final class Node {
+  private final class Node {
 
-    private static final Comparator<KsqlFunction> COMPARE_FUNCTIONS =
+    @VisibleForTesting
+    private final Comparator<T> compareFunctions =
         Comparator.nullsFirst(
             Comparator
-                .<KsqlFunction, Integer>comparing(fun -> fun.isVariadic() ? 0 : 1)
+                .<T, Integer>comparing(fun -> fun.isVariadic() ? 0 : 1)
                 .thenComparing(fun -> fun.getArguments().size())
         );
 
     private final Map<Parameter, Node> children;
-    private KsqlFunction value;
+    private T value;
     private int order = 0;
 
     private Node() {
@@ -213,8 +215,8 @@ public class UdfIndex {
       this.value = null;
     }
 
-    private void update(final KsqlFunction function, final int order) {
-      if (COMPARE_FUNCTIONS.compare(function, value) > 0) {
+    private void update(final T function, final int order) {
+      if (compareFunctions.compare(function, value) > 0) {
         value = function;
         this.order = order;
       }
@@ -239,10 +241,11 @@ public class UdfIndex {
       return value != null ? value.getFunctionName() : "EMPTY";
     }
 
-    public static int compare(final Node a, final Node b) {
-      final int compare = COMPARE_FUNCTIONS.compare(a.value, b.value);
-      return compare == 0 ? -(a.order - b.order) : compare;
+    int compare(final Node other) {
+      final int compare = compareFunctions.compare(value, other.value);
+      return compare == 0 ? -(order - other.order) : compare;
     }
+
   }
 
   /**

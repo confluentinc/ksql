@@ -13,32 +13,29 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.function.udaf;
+package io.confluent.ksql.function;
 
-import io.confluent.ksql.function.AggregateFunctionFactory;
-import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.udf.UdfMetadata;
 import io.confluent.ksql.util.KsqlException;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Schema;
 
 public class UdafAggregateFunctionFactory extends AggregateFunctionFactory {
-  private final Map<List<Schema>, KsqlAggregateFunction<?, ?>> aggregateFunctions = new HashMap<>();
+  private final UdfIndex<KsqlAggregateFunction<?, ?>> udfIndex;
 
-  @SuppressWarnings("unchecked")
-  public UdafAggregateFunctionFactory(final UdfMetadata metadata,
-                                      final List<KsqlAggregateFunction<?, ?>> functionList) {
+  UdafAggregateFunctionFactory(
+      final UdfMetadata metadata,
+      final List<KsqlAggregateFunction<?, ?>> functionList
+  ) {
     super(metadata, functionList);
-    functionList
-        .forEach(function -> aggregateFunctions.put(function.getArgTypes(), function));
+    udfIndex = new UdfIndex<>(metadata.getName());
+    functionList.forEach(udfIndex::addFunction);
   }
 
   @Override
   public KsqlAggregateFunction<?, ?> getProperAggregateFunction(final List<Schema> argTypeList) {
-    final KsqlAggregateFunction ksqlAggregateFunction = aggregateFunctions.get(argTypeList);
+    final KsqlAggregateFunction ksqlAggregateFunction = udfIndex.getFunction(argTypeList);
     if (ksqlAggregateFunction == null) {
       throw new KsqlException("There is no aggregate function with name='" + getName()
           + "' that has arguments of type="

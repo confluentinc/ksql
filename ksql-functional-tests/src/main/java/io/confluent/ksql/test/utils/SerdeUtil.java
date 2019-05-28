@@ -31,7 +31,7 @@ public final class SerdeUtil {
   }
 
   @SuppressWarnings("rawtypes")
-  public static SerdeSupplier getSerdeSupplier(final Format format) {
+  public static SerdeSupplier<?> getSerdeSupplier(final Format format) {
     switch (format) {
       case AVRO:
         return new ValueSpecAvroSerdeSupplier();
@@ -44,7 +44,7 @@ public final class SerdeUtil {
     }
   }
 
-  public static SerdeSupplier getSerdeSupplierForKsqlSerdeFactory(
+  public static SerdeSupplier<?> getSerdeSupplierForKsqlSerdeFactory(
       final KsqlSerdeFactory ksqlSerdeFactory) {
     switch (ksqlSerdeFactory.getFormat()) {
       case AVRO:

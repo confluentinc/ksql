@@ -18,10 +18,9 @@ package io.confluent.ksql.util;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-import org.junit.Test;
-
 import java.util.LinkedList;
 import java.util.List;
+import org.junit.Test;
 
 public class StringUtilTest {
 

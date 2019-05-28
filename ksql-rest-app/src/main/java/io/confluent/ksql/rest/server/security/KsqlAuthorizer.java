@@ -21,7 +21,7 @@ import java.security.Principal;
  * This Authorizer is used by KSQL to request access to KSQL resources.
  * </p>
  * Currently, the authorizer is only used to request access to Websocket endpoints. REST endpoints
- * should be secured by the implementation when calling {@link KsqlSecurityExtension#register()}.
+ * should be secured by the implementation when calling {@link KsqlSecurityExtension#register}.
  */
 public interface KsqlAuthorizer {
   /**
@@ -36,5 +36,5 @@ public interface KsqlAuthorizer {
    * @param resourceMethod The resource method name
    * @return True if the user is permitted; False otherwise
    */
-  boolean hasAccess(Principal user, Class resourceClass, String resourceMethod);
+  boolean hasAccess(Principal user, Class<?> resourceClass, String resourceMethod);
 }

@@ -92,10 +92,21 @@ public final class KsqlTestingTool {
       final String statementFile,
       final String inputFile,
       final String outputFile) throws IOException {
-    final InputRecordsNode inputRecordNodes = OBJECT_MAPPER
-        .readValue(new File(inputFile), InputRecordsNode.class);
-    final OutputRecordsNode outRecordNodes = OBJECT_MAPPER
-        .readValue(new File(outputFile), OutputRecordsNode.class);
+    final InputRecordsNode inputRecordNodes;
+    final OutputRecordsNode outRecordNodes;
+    try {
+      inputRecordNodes = OBJECT_MAPPER
+          .readValue(new File(inputFile), InputRecordsNode.class);
+    } catch (final IOException inputException) {
+      throw new IOException("File name: " + inputFile + " Message: " + inputException.getMessage());
+    }
+    try {
+      outRecordNodes = OBJECT_MAPPER
+          .readValue(new File(outputFile), OutputRecordsNode.class);
+    } catch (final IOException outputException) {
+      throw new IOException("File name: " + outputFile
+          + " Message: " + outputException.getMessage());
+    }
     final List<String> statements = getSqlStatements(statementFile);
 
     final TestCaseNode testCaseNode = new TestCaseNode(

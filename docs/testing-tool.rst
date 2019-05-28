@@ -84,15 +84,7 @@ An expected output message should have a topic, a key, a value and a timestamp. 
 .. code:: json
      {
        "outputs": [
-         {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "zero", "VALUE": 0, "F1": null, "F2": null}, "timestamp": 0},
-         {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "zero", "VALUE": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
-         {"topic": "LEFT_OUTER_JOIN", "key": 10, "value": {"T_ID": 10, "NAME": "100", "VALUE": 5, "F1": null, "F2": null}, "timestamp": 11000},
-         {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "blah", "F2": 50}, "timestamp": 13000},
-         {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "a", "F2": 10}, "timestamp": 15000},
-         {"topic": "LEFT_OUTER_JOIN", "key": 90, "value": {"T_ID": 90, "NAME": "ninety", "VALUE": 90, "F1": null, "F2": null}, "timestamp": 17000},
-         {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "bar", "VALUE": 99, "F1": null, "F2": null}, "timestamp": 30000},
-         {"topic": "FOO", "key": 90, "value": {"T_ID": 90, "NAME": "ninety"}, "timestamp": 17000},
-         {"topic": "BAR", "key": 90, "value": {"T_ID": 90, "NAME": "ninety"}, "timestamp": 17000}
+               {"topic": "SRTREAM1", "key": 101, "value": "101"}
        ]
      }
 
@@ -112,10 +104,7 @@ The following is an example expected output file with records that have a window
           {"topic": "S2", "key": 0, "value": "0,0", "timestamp": 0, "window": {"start": 0, "end": 30000, "type": "time"}},
           {"topic": "S2", "key": 0, "value": "0,5", "timestamp": 10000, "window": {"start": 0, "end": 30000, "type": "time"}},
           {"topic": "S2", "key": 100, "value": "100,100", "timestamp": 30000, "window": {"start": 30000, "end": 60000, "type": "time"}},
-          {"topic": "S2", "key": 100, "value": "100,100", "timestamp": 45000, "window": {"start": 30000, "end": 60000, "type": "time"}},
-          {"topic": "S2", "key": 100, "value": "100,300", "timestamp": 50000, "window": {"start": 30000, "end": 60000, "type": "time"}},
-          {"topic": "S2", "key": 0, "value": "0,100", "timestamp": 35000, "window": {"start": 30000, "end": 60000, "type": "time"}},
-          {"topic": "S2", "key": 0, "value": "0,2000", "timestamp": 40000, "window": {"start": 30000, "end": 60000, "type": "time"}}
+          {"topic": "S2", "key": 100, "value": "100,100", "timestamp": 45000, "window": {"start": 30000, "end": 60000, "type": "time"}}
         ]
      }
 

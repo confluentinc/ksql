@@ -26,7 +26,9 @@ import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 public class KsqlTestingToolTest {
 
@@ -34,6 +36,9 @@ public class KsqlTestingToolTest {
   private final ByteArrayOutputStream errContent = new ByteArrayOutputStream();
   private final PrintStream originalOut = System.out;
   private final PrintStream originalErr = System.err;
+
+  @Rule
+  public final ExpectedException expectedException = ExpectedException.none();
 
   @Before
   public void setUpStreams() throws UnsupportedEncodingException {
@@ -82,9 +87,9 @@ public class KsqlTestingToolTest {
   public void shouldFailWithIncorrectTest() throws IOException {
     // When:
     KsqlTestingTool.runWithTripleFiles(
-        "src/test/resources/test-runner/incorrect-test/statements.sql",
-        "src/test/resources/test-runner/incorrect-test/input.json",
-        "src/test/resources/test-runner/incorrect-test/output.json");
+        "src/test/resources/test-runner/incorrect-test1/statements.sql",
+        "src/test/resources/test-runner/incorrect-test1/input.json",
+        "src/test/resources/test-runner/incorrect-test1/output.json");
 
     // Then:
     assertThat(errContent.toString("UTF-8"),
@@ -92,11 +97,18 @@ public class KsqlTestingToolTest {
   }
 
   @Test
-  public void shouldFailWithIncorrectArgs() throws UnsupportedEncodingException {
+  public void shouldFailWithIncorrectInputFormat() throws IOException {
+    // Given:
+    expectedException.expect(IOException.class);
+    expectedException.expectMessage("File name: src/test/resources/test-runner/incorrect-test2/input.json Message: Unexpected character ('{' (code 123)): was expecting double-quote to start field name");
 
+    // When:
+    KsqlTestingTool.runWithTripleFiles(
+        "src/test/resources/test-runner/incorrect-test2/statements.sql",
+        "src/test/resources/test-runner/incorrect-test2/input.json",
+        "src/test/resources/test-runner/incorrect-test2/output.json");
 
   }
-
 
   private void runTestCaseAndAssertPassed(
       final String statementsFilePath,

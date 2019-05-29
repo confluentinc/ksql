@@ -15,13 +15,14 @@
 
 package io.confluent.ksql.test.tools.command;
 
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
-import org.hamcrest.CoreMatchers;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -32,12 +33,32 @@ public class TestOptionsParserTest {
   public final ExpectedException expectedException = org.junit.rules.ExpectedException.none();
 
   @Test
-  public void shouldParseCommandWithTestFile() throws IOException {
+  public void shouldParseCommandWithAllFiles() throws IOException {
     // When:
-    final TestOptions testOptions = TestOptionsParser.parse(new String[]{"foo"}, TestOptions.class);
+    final TestOptions testOptions = TestOptionsParser.parse(new String[]{"--sql-file", "foo", "--input-file", "bar", "--output-file", "tab"}, TestOptions.class);
 
     // Then:
-    assertThat(testOptions.getTestFile(), CoreMatchers.equalTo("foo"));
+    assert testOptions != null;
+    assertThat(testOptions.getStatementsFile(), equalTo("foo"));
+    assertThat(testOptions.getInputFile(), equalTo("bar"));
+    assertThat(testOptions.getOutputFile(), equalTo("tab"));
+  }
+
+  @Test
+  public void shouldPrintHelp() throws IOException {
+    // Given:
+    final ByteArrayOutputStream outContent = new ByteArrayOutputStream();
+    System.setOut(new PrintStream(outContent, true, "UTF-8"));
+
+    // When:
+    final TestOptions testOptions = TestOptionsParser.parse(new String[]{"-h"}, TestOptions.class);
+
+    // Then:
+    System.setOut(System.out);
+    assertThat(outContent.toString("UTF-8"), containsString("ksql-test-runner - The KSQL testing tool"));
+    assertThat(outContent.toString("UTF-8"), containsString("--input-file <inputFile>"));
+    assertThat(outContent.toString("UTF-8"), containsString("--output-file <outputFile>"));
+    assertThat(outContent.toString("UTF-8"), containsString("--sql-file <statementsFile>"));
   }
 
   @Test
@@ -51,7 +72,7 @@ public class TestOptionsParserTest {
     TestOptionsParser.parse(new String[]{}, TestOptions.class);
 
     // Then:
-    assertTrue(errContent.toString("UTF-8").startsWith("Required arguments are missing: 'test-file'"));
+    assertTrue(errContent.toString("UTF-8").startsWith("Required option '--input-file' is missing"));
     System.setErr(originalErr);
   }
 

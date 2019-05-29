@@ -18,6 +18,7 @@ package io.confluent.ksql.schema.connect;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
+import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.schema.connect.SqlSchemaFormatter.Option;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -169,6 +170,26 @@ public class SqlSchemaFormatterTest {
             + "COL4 ARRAY<DOUBLE NOT NULL> NOT NULL, "
             + "COL5 MAP<VARCHAR NOT NULL, DOUBLE NOT NULL> NOT NULL"
             + "> NOT NULL"));
+  }
+
+  @Test
+  public void shouldEscapeReservedWords() {
+    // Given:
+    final Schema structSchema = SchemaBuilder.struct()
+        .field("COL1", Schema.STRING_SCHEMA)
+        .field("COL2", SchemaBuilder
+            .struct()
+            .field("COL3", Schema.STRING_SCHEMA)
+            .build())
+        .build();
+    final SqlSchemaFormatter formatter = new SqlSchemaFormatter(ImmutableSet.of("COL1", "COL2", "COL3"));
+
+    // Then:
+    assertThat(formatter.format(structSchema), is(
+        "STRUCT<"
+            + "`COL1` VARCHAR, "
+            + "`COL2` STRUCT<`COL3` VARCHAR>"
+            + ">"));
   }
 
   @Test

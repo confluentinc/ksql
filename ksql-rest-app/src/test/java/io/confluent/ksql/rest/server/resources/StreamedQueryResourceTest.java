@@ -144,7 +144,9 @@ public class StreamedQueryResourceTest {
         DISCONNECT_CHECK_INTERVAL,
         COMMAND_QUEUE_CATCHUP_TIMOEUT,
         activenessRegistrar,
-        TopicAccessValidatorFactory.create(serviceContext, mockKsqlEngine.getMetaStore()));
+        (sc, metastore, statement) -> {
+          return;
+        });
   }
 
   @Test

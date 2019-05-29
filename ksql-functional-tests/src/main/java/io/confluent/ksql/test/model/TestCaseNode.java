@@ -78,7 +78,7 @@ public class TestCaseNode {
   private final Optional<PostConditionsNode> postConditions;
 
   // CHECKSTYLE_RULES.OFF: CyclomaticComplexity|NPathComplexity
-  TestCaseNode(
+  public TestCaseNode(
       @JsonProperty("name") final String name,
       @JsonProperty("format") final List<String> formats,
       @JsonProperty("inputs") final List<RecordNode> inputs,
@@ -106,11 +106,6 @@ public class TestCaseNode {
 
     if (this.statements.isEmpty()) {
       throw new InvalidFieldException("statements", "was empty");
-    }
-
-    if (this.inputs.isEmpty() != this.outputs.isEmpty()) {
-      throw new InvalidFieldException("inputs and outputs",
-          "either both, or neither, field should be set");
     }
 
     if (!this.inputs.isEmpty() && this.expectedException.isPresent()) {

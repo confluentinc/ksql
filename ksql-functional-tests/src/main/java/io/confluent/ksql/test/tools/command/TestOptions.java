@@ -15,30 +15,51 @@
 
 package io.confluent.ksql.test.tools.command;
 
-import com.github.rvesse.airline.annotations.Arguments;
 import com.github.rvesse.airline.annotations.Command;
+import com.github.rvesse.airline.annotations.Option;
 import com.github.rvesse.airline.annotations.restrictions.Once;
 import com.github.rvesse.airline.annotations.restrictions.Required;
 import java.io.IOException;
 
-@Command(name = "ksql-testing-tool", description = "KSQL testing tool")
+@Command(name = "ksql-test-runner", description = "The KSQL testing tool")
 public class TestOptions {
 
-  @SuppressWarnings("unused") // Accessed via reflection
-  @Once
   @Required
-  @Arguments(
-      title = "test-file",
-      description = "A JSON file containing the test configurations"
-          + " including statements and test data.")
-  private String testFile;
+  @Once
+  @Option(
+      name = {"--input-file", "-i"},
+      description = "A JSON file containing the input records.")
+  private String inputFile;
 
+  @Required
+  @Once
+  @Option(
+      name = {"--output-file", "-o"},
+      description = "A JSON file containing the expected output records.")
+  private String outputFile;
+
+
+  @Required
+  @Once
+  @Option(
+      name = {"--sql-file", "-s"},
+      description = "A SQL file containing KSQL statements to be tested.")
+  private String statementsFile;
 
   public static TestOptions parse(final String... args) throws IOException {
     return TestOptionsParser.parse(args, TestOptions.class);
   }
 
-  public String getTestFile() {
-    return testFile;
+
+  public String getInputFile() {
+    return inputFile;
+  }
+
+  public String getOutputFile() {
+    return outputFile;
+  }
+
+  public String getStatementsFile() {
+    return statementsFile;
   }
 }

@@ -16,8 +16,6 @@
 package io.confluent.ksql.test.tools;
 
 import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -25,11 +23,11 @@ import static org.mockito.Mockito.verify;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
-import java.security.Permission;
-import java.util.ArrayList;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 public class KsqlTestingToolTest {
 
@@ -37,6 +35,9 @@ public class KsqlTestingToolTest {
   private final ByteArrayOutputStream errContent = new ByteArrayOutputStream();
   private final PrintStream originalOut = System.out;
   private final PrintStream originalErr = System.err;
+
+  @Rule
+  public final ExpectedException expectedException = ExpectedException.none();
 
   @Before
   public void setUpStreams() throws UnsupportedEncodingException {
@@ -51,12 +52,16 @@ public class KsqlTestingToolTest {
   }
 
   @Test
-  public void shouldRunCorrectTest() throws UnsupportedEncodingException {
-    // When:
-    KsqlTestingTool.loadAndRunTests(new String[]{"src/test/resources/testing_tool_tests.json"});
-
-    // Then:
-    assertThat(outContent.toString("UTF-8"), containsString("All tests passed!"));
+  public void shouldRunCorrectsTest() throws Exception {
+    final String testFolderPath = "src/test/resources/test-runner/";
+    for (int i = 1; i <= 4; i++) {
+      outContent.reset();
+      errContent.reset();
+      runTestCaseAndAssertPassed(testFolderPath + "test" + i + "/statements.sql",
+          testFolderPath + "test" + i + "/input.json",
+          testFolderPath + "test" + i + "/output.json"
+          );
+    }
   }
 
   @Test
@@ -69,9 +74,7 @@ public class KsqlTestingToolTest {
     // When:
     KsqlTestingTool.executeTestCase(
         testCase,
-        testExecutor,
-        new ArrayList<>(),
-        new ArrayList<>());
+        testExecutor);
 
     // Then:
     verify(testExecutor).buildAndExecuteQuery(testCase);
@@ -80,46 +83,70 @@ public class KsqlTestingToolTest {
   }
 
   @Test
-  public void shouldFailWithIncorrectArgs() throws UnsupportedEncodingException {
+  public void shouldFailWithIncorrectTest() throws Exception {
+    // When:
+    KsqlTestingTool.runWithTripleFiles(
+        "src/test/resources/test-runner/incorrect-test1/statements.sql",
+        "src/test/resources/test-runner/incorrect-test1/input.json",
+        "src/test/resources/test-runner/incorrect-test1/output.json");
 
+    // Then:
+    assertThat(errContent.toString("UTF-8"),
+        containsString("Test failed: Expected <1001, 101> with timestamp=0 but was <101, 101> with timestamp=0\n"));
+  }
+
+  @Test
+  public void shouldFailWithIncorrectInputFormat() throws Exception {
     // Given:
-    System.setSecurityManager(new TestSecurityManager());
+    expectedException.expect(Exception.class);
+    expectedException.expectMessage("File name: src/test/resources/test-runner/incorrect-test2/input.json Message: Unexpected character ('{' (code 123)): was expecting double-quote to start field name");
 
     // When:
-    try {
-      KsqlTestingTool.loadAndRunTests(new String[]{"foo"});
-    } catch (final Exception e) {
-      assertThat(e, instanceOf(TestSecurityManager.ExitSecurityException.class));
-      final TestSecurityManager.ExitSecurityException exitSecurityException = (TestSecurityManager.ExitSecurityException) e;
-      assertThat(exitSecurityException.getStatus(), equalTo(-1));
-      assertThat(errContent.toString("UTF-8"), equalTo("Failed to start KSQL testing tool: foo (No such file or directory)\n"));
-    }
+    KsqlTestingTool.runWithTripleFiles(
+        "src/test/resources/test-runner/incorrect-test2/statements.sql",
+        "src/test/resources/test-runner/incorrect-test2/input.json",
+        "src/test/resources/test-runner/incorrect-test2/output.json");
+
   }
 
 
-  static class TestSecurityManager extends SecurityManager {
+  @Test
+  public void shouldFailWithOutputFileMissingField() throws Exception {
+    // Given:
+    expectedException.expect(Exception.class);
+    expectedException.expectMessage("Message: Cannot construct instance of `io.confluent.ksql.test.model.OutputRecordsNode`, problem: No 'outputs' field in the output file.");
 
-    final class ExitSecurityException extends SecurityException {
-      private final int status;
+    // When:
+    KsqlTestingTool.runWithTripleFiles(
+        "src/test/resources/test-runner/incorrect-test3/statements.sql",
+        "src/test/resources/test-runner/incorrect-test3/input.json",
+        "src/test/resources/test-runner/incorrect-test3/output.json");
 
-      ExitSecurityException(final int status) {
-        this.status = status;
-      }
+  }
 
-      int getStatus() {
-        return this.status;
-      }
-    }
+  @Test
+  public void shouldFailWithEmptyInput() throws Exception {
+    // Given:
+    expectedException.expect(Exception.class);
+    expectedException.expectMessage("File name: src/test/resources/test-runner/incorrect-test4/input.json Message: Cannot construct instance of `io.confluent.ksql.test.model.InputRecordsNode`, problem: Inputs cannot be empty.");
 
-    @Override
-    public void checkExit(final int status) {
-      if (status != 0) {
-        throw new TestSecurityManager.ExitSecurityException(status);
-      }
-    }
+    // When:
+    KsqlTestingTool.runWithTripleFiles(
+        "src/test/resources/test-runner/incorrect-test4/statements.sql",
+        "src/test/resources/test-runner/incorrect-test4/input.json",
+        "src/test/resources/test-runner/incorrect-test4/output.json");
 
-    @Override
-    public void checkPermission(final Permission perm) {}
+  }
 
+  private void runTestCaseAndAssertPassed(
+      final String statementsFilePath,
+      final String inputFilePath,
+      final String outputFilePath
+      ) throws Exception {
+    // When:
+    KsqlTestingTool.runWithTripleFiles(statementsFilePath, inputFilePath, outputFilePath);
+
+    // Then:
+    assertThat(outContent.toString("UTF-8"), containsString("Test passed!"));
   }
 }

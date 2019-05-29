@@ -7,85 +7,124 @@ Use the KSQL testing tool to test a set of KSQL statements. The KSQL testing too
 is a command line utility that enables testing KSQL statements without requiring any infrastructure, like |ak-tm| and KSQL clusters.
 The KSQL testing tool is a great way to design your KSQL pipeline and ensure the expected results are generated.
 You can collaborate on designing your KSQL statements by sharing the test files.
-You provide a JSON file that describes a set of KSQL statements, along with the input data and expected output data.
-Run the testing tool from a terminal and pass the test file as a parameter.
+To test a set of KSQL statements, you provide three files, one file containing the KSQL statements and two JSON files containing the input records and the expected output records.
 
 .. code:: bash
 
-    ksql-testing-tool /path/to/the/test/file.json
+    NAME
+            ksql-test-runner - The KSQL testing tool
+
+    SYNOPSIS
+            ksql-test-runner {--input-file | -i} <inputFile>
+                    {--output-file | -o} <outputFile>
+                    {--sql-file | -s} <statementsFile>
+
+    OPTIONS
+            --input-file <inputFile>, -i <inputFile>
+                A JSON file containing the input records.
+
+                This option may occur a maximum of 1 time
+
+
+            --output-file <outputFile>, -o <outputFile>
+                A JSON file containing the expected output records.
+
+                This option may occur a maximum of 1 time
+
+
+            --sql-file <statementsFile>, -s <statementsFile>
+                A SQL file containing KSQL statements to be tested.
+
+                This option may occur a maximum of 1 time
+
 
 
 Test File Structure
 *******************
-The test file is a JSON file containing the KSQL statements, input data, desired configurations, and the expected results or expected errors.
-The following is a sample test file:
+
+Statements File
+---------------
+
+The statements file contains the KSQL statements to test. The following are the supported statements in the testing tool:
+
+- CREATE STREAM
+- CREATE TABLE
+- CREATE STREAM AS SELECT
+- CREATE TABLE AS SELECT
+- INSERT INTO SELECT
+
+Here is a sample statements file for the testing tool:
+
+.. code:: sql
+    CREATE STREAM orders (ORDERUNITS double) WITH (kafka_topic='test_topic', value_format='JSON');
+    CREATE STREAM S1 AS SELECT ORDERUNITS, CASE WHEN orderunits < 2.0 THEN 'small' WHEN orderunits < 4.0 THEN 'medium' ELSE 'large' END AS case_resault FROM orders;
+
+Input File
+----------
+
+The input file is a JSON file with one array field named "inputs". Each element in the array is the representation of input messages.
+A message should have a topic, a key, a value and a timestamp. The following is a sample input file for the above test:
 
 .. code:: json
     {
-      "comments": [
-        "Add a description of the functionality that this file tests"
-      ],
-      "tests": [
-        {
-          "name": "my first positive test",
-          "description": "an example positive test where the output is verified",
-          "statements": [
-            "CREATE STREAM intput (ID bigint) WITH (kafka_topic='input_topic', value_format='JSON');",
-            "CREATE STREAM output AS SELECT id FROM intput WHERE id < 10;"
-          ],
-          "inputs": [
-            {"topic": "input_topic", "key": 0, "value": {"id": 8}, "timestamp": 0},
-            {"topic": "input_topic", "key": 0, "value": {"id": 10}, "timestamp": 10000},
-            {"topic": "input_topic", "key": 1, "value": {"id": 9}, "timestamp": 30000},
-            {"topic": "input_topic", "key": 1, "value": {"id": 11}, "timestamp": 40000}
-          ],
-          "outputs": [
-            {"topic": "OUTPUT", "key": 0, "value": {"ID": 8}, "timestamp": 0},
-            {"topic": "OUTPUT", "key": 1, "value": {"ID": 9}, "timestamp": 30000}
-          ]
-        },
-        {
-          "name": "my first negative test",
-          "description": "an example negative test where the statement will fail to parse",
-          "statements": [
-            "CREATE STREAM TEST WITH (kafka_topic='test_topic', value_format='DELIMITED');"
-          ],
-          "expectedException": {
-            "type": "io.confluent.ksql.util.KsqlException",
-            "message": "The statement does not define any columns."
-          }
-        }
-      ]
+      "inputs": [
+              {"topic": "test_topic", "timestamp": 0, "value": {"ORDERUNITS": 2.0}, "key": 0},
+              {"topic": "test_topic", "timestamp": 0, "value": {"ORDERUNITS": 4.0}, "key": 100},
+              {"topic": "test_topic", "timestamp": 0, "value": {"ORDERUNITS": 6.0 }, "key": 101},
+              {"topic": "test_topic", "timestamp": 0, "value": {"ORDERUNITS": 3.0}, "key": 101},
+              {"topic": "test_topic", "timestamp": 0, "value": {"ORDERUNITS": 1.0}, "key": 101}
+            ]
     }
 
 
-You can have multiple tests in one test file. In addition to name, description, and statements, each test includes
-input topics and their data along with the expected output topics and their data.
-The test file format is the same as the files KSQL code uses for integration tests. For more details on the
-structure of the test file and all possible settings, see the `README.md <https://github.com/confluentinc/ksql/tree/master/ksql-functional-tests>` in the KSQL repository.
+Output File
+----------
 
-Running Tests
-*************
+The output file is a JSON file with an array field named "outputs". Similar to the input file, each element in the array is the representation of the expected output messages.
+An expected output message should have a topic, a key, a value and a timestamp. The following is a sample expected output file for the above test:
 
-Assume we run the previous test file, which is stored in test.json in the home directory.
-The following command shows how to run the test from the terminal:
+.. code:: json
+     {
+       "outputs": [
+               {"topic": "S1", "timestamp": 0, "value": {"ORDERUNITS": 2.0, "CASE_RESAULT": "medium"}, "key": 0},
+               {"topic": "S1", "timestamp": 0, "value": {"ORDERUNITS": 4.0, "CASE_RESAULT": "large"}, "key": 100},
+               {"topic": "S1", "timestamp": 0, "value": {"ORDERUNITS": 6.0, "CASE_RESAULT": "large"}, "key": 101},
+               {"topic": "S1", "timestamp": 0, "value": {"ORDERUNITS": 3.0, "CASE_RESAULT": "medium"}, "key": 101},
+               {"topic": "S1", "timestamp": 0, "value": {"ORDERUNITS": 1.0, "CASE_RESAULT": "small"},"key": 101}
+             ]
+     }
+
+
+In the input and output files you can have messages with windowed keys. Such messages can be generated by windowed aggretations in KSQL.
+To specify a window for a message you can add a "window" field to the message. A window field has three fields:
+
+- start: the start time for the window.
+- end: the end time for the window.
+- type: the type of the window. A window type can be ``time`` or ``session``.
+
+The following is an example expected output file with records that have a window field:
+
+.. code:: json
+     {
+        "outputs": [
+          {"topic": "S2", "key": 0, "value": "0,0", "timestamp": 0, "window": {"start": 0, "end": 30000, "type": "time"}},
+          {"topic": "S2", "key": 0, "value": "0,5", "timestamp": 10000, "window": {"start": 0, "end": 30000, "type": "time"}},
+          {"topic": "S2", "key": 100, "value": "100,100", "timestamp": 30000, "window": {"start": 30000, "end": 60000, "type": "time"}},
+          {"topic": "S2", "key": 100, "value": "100,100", "timestamp": 45000, "window": {"start": 30000, "end": 60000, "type": "time"}}
+        ]
+     }
+
+Currently, in the input files you can only have record with session window types.
+
+The testing tool will indicate the success or failure of a test by printing the corresponding message. The following is the result of a successful test:
 
 .. code:: bash
+    ksql-test-runner -s statements.sql -i input.json -o output.json
+     Test passed!
 
-    ksql-testing-tool ~/test.json
-
-
-Your output should resemble:
+If a test fails, the testing tool will indicate the failure along with the cause. Here is an example of the output for a failing test:
 
 .. code:: bash
+    ksql-test-runner -s statements_bad.sql -i input_bad.json -o output_bad.json
+      Test failed: Expected <900, {T_ID=90, NAME=ninety}> with timestamp=17000 but was <90, {T_ID=90, NAME=ninety}> with timestamp=17000
 
-     >>> Running test: ksql-test - my first positive test
-    	 >>> Test ksql-test - my first positive test passed!
-     >>> Running test: ksql-test - my first negative test
-    	 >>> Test ksql-test - my first negative test passed!
-    All tests passed!
-
-
-For each test case, the testing tool first creates and populates the input topics in its internal simulated Kafka cluster.
-It compiles the KSQL statements, runs them, and compares the generated results with the expected results. If the expected results are generated, the test passes, otherwise it fails.
-The status of each test is printed out into the terminal.

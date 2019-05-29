@@ -99,8 +99,6 @@ public class AuthorizationTopicAccessValidatorTest {
 
   @Test
   public void shouldAllowAnyOperationIfPermissionsAreNull() {
-    // This test case verifies permissions will not work if the Kafka broker returns NULL
-
     // Given:
     givenTopicPermissions(TOPIC_1, null);
     final Statement statement = givenStatement("SELECT * FROM " + STREAM_TOPIC_1 + ";");

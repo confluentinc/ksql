@@ -51,7 +51,7 @@ public class TestOptionsParserTest {
     System.setOut(new PrintStream(outContent, true, "UTF-8"));
 
     // When:
-    final TestOptions testOptions = TestOptionsParser.parse(new String[]{"-h"}, TestOptions.class);
+    TestOptionsParser.parse(new String[]{"-h"}, TestOptions.class);
 
     // Then:
     System.setOut(System.out);

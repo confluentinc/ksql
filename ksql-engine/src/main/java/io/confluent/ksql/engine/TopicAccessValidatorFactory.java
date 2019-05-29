@@ -45,7 +45,7 @@ public final class TopicAccessValidatorFactory {
         return new AuthorizationTopicAccessValidator();
       }
 
-      LOG.info("The Kafka broker has an authorization service enabled, but the Kafka "
+      LOG.warn("The Kafka broker has an authorization service enabled, but the Kafka "
           + "version does not support authorizedOperations(). "
           + "KSQL topic authorization checks will not be enabled.");
     }

@@ -21,8 +21,11 @@ import io.confluent.ksql.util.KsqlServerException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
+
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.Config;
+import org.apache.kafka.clients.admin.DescribeClusterOptions;
+import org.apache.kafka.clients.admin.DescribeClusterResult;
 import org.apache.kafka.common.Node;
 import org.apache.kafka.common.config.ConfigResource;
 import org.slf4j.Logger;
@@ -33,6 +36,18 @@ public final class KafkaClusterUtil {
 
   private KafkaClusterUtil() {
 
+  }
+
+  public static boolean isAuthorizedOperationsSupported(final AdminClient adminClient) {
+    try {
+      final DescribeClusterResult authorizedOperations = adminClient.describeCluster(
+          new DescribeClusterOptions().includeAuthorizedOperations(true)
+      );
+
+      return authorizedOperations.authorizedOperations().get() != null;
+    } catch (Exception e) {
+      throw new KsqlServerException("Could not get Kafka authorized operations!", e);
+    }
   }
 
   public static Config getConfig(final AdminClient adminClient) {

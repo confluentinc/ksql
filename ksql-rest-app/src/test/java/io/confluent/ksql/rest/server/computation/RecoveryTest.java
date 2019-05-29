@@ -171,7 +171,9 @@ public class RecoveryTest {
           Duration.ofMillis(0),
           ()->{},
           Injectors.DEFAULT,
-          TopicAccessValidatorFactory.create(serviceContext, ksqlEngine.getMetaStore()));
+          (sc, metastore, statement) -> {
+            return;
+          });
       this.statementExecutor = new StatementExecutor(
           ksqlConfig,
           ksqlEngine,

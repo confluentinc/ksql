@@ -33,6 +33,8 @@ import org.apache.kafka.common.acl.AclOperation;
 /**
  * Checks if a {@link ServiceContext} has access to the source and target topics of transient
  * and persistent query statements.
+ * </p>
+ * This validator only works on Kakfa 2.3 or later.
  */
 public class AuthorizationTopicAccessValidator implements TopicAccessValidator {
   @Override
@@ -121,7 +123,9 @@ public class AuthorizationTopicAccessValidator implements TopicAccessValidator {
     final Set<AclOperation> authorizedOperations = serviceContext.getTopicClient()
         .describeTopic(topicName).authorizedOperations();
 
-    if (!authorizedOperations.contains(operation)) {
+    // Kakfa 2.2 or lower do not support authorizedOperations(). In case of running on a
+    // unsupported broker version, then the authorizeOperation will be null.
+    if (authorizedOperations != null && !authorizedOperations.contains(operation)) {
       // This error message is similar to what Kafka throws when it cannot access the topic
       // due to an authorization error. I used this message to keep a consistent message.
       throw new KsqlException(String.format(

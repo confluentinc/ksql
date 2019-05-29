@@ -98,6 +98,19 @@ public class AuthorizationTopicAccessValidatorTest {
   }
 
   @Test
+  public void shouldAllowAnyOperationIfPermissionsAreNull() {
+    // Given:
+    givenTopicPermissions(TOPIC_1, null);
+    final Statement statement = givenStatement("SELECT * FROM " + STREAM_TOPIC_1 + ";");
+
+    // When:
+    accessValidator.validate(serviceContext, metaStore, statement);
+
+    // Then:
+    // Above command should not throw any exception
+  }
+
+  @Test
   public void shouldSingleSelectWithReadPermissionsAllowed() {
     // Given:
     givenTopicPermissions(TOPIC_1, Collections.singleton(AclOperation.READ));

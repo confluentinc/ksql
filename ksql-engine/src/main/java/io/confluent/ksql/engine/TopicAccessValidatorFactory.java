@@ -37,9 +37,17 @@ public final class TopicAccessValidatorFactory {
       final ServiceContext serviceContext,
       final MetaStore metaStore
   ) {
-    if (isKafkaAuthorizerEnabled(serviceContext.getAdminClient())) {
-      LOG.info("KSQL topic authorization checks enabled.");
-      return new AuthorizationTopicAccessValidator();
+    final AdminClient adminClient = serviceContext.getAdminClient();
+
+    if (isKafkaAuthorizerEnabled(adminClient)) {
+      if (KafkaClusterUtil.isAuthorizedOperationsSupported(adminClient)) {
+        LOG.info("KSQL topic authorization checks enabled.");
+        return new AuthorizationTopicAccessValidator();
+      }
+
+      LOG.warn("The Kafka broker has an authorization service enabled, but the Kafka "
+          + "version does not support authorizedOperations(). "
+          + "KSQL topic authorization checks will not be enabled.");
     }
 
     // Dummy validator if a Kafka authorizer is not enabled
@@ -62,8 +70,10 @@ public final class TopicAccessValidatorFactory {
       if (e.getCause() instanceof ClusterAuthorizationException) {
         return true;
       }
-    }
 
-    return false;
+      // Throw the unknown exception to avoid leaving the Server unsecured if a different
+      // error was thrown
+      throw e;
+    }
   }
 }

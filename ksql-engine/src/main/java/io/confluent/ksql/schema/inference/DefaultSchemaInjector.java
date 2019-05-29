@@ -22,6 +22,8 @@ import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TableElement;
+import io.confluent.ksql.schema.connect.SqlSchemaFormatter;
+import io.confluent.ksql.schema.connect.SqlSchemaFormatter.Option;
 import io.confluent.ksql.schema.inference.TopicSchemaSupplier.SchemaAndId;
 import io.confluent.ksql.schema.inference.TopicSchemaSupplier.SchemaResult;
 import io.confluent.ksql.schema.ksql.LogicalSchemas;
@@ -30,7 +32,6 @@ import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.ParserUtil;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -49,6 +50,9 @@ import org.apache.kafka.connect.data.Schema;
  * <p>If any of the above are not true then the {@code statement} is returned unchanged.
  */
 public class DefaultSchemaInjector implements Injector {
+
+  private static final SqlSchemaFormatter FORMATTER = new SqlSchemaFormatter(
+      ParserUtil.RESERVED_WORDS, Option.AS_COLUMN_LIST);
 
   private final TopicSchemaSupplier schemaSupplier;
 
@@ -134,9 +138,9 @@ public class DefaultSchemaInjector implements Injector {
       final ConfiguredStatement<CreateSource> preparedStatement
   ) {
     try {
-      schema.fields()
-          .forEach(field -> LogicalSchemas.toSqlTypeConverter().validate(field.schema()));
-      return SchemaParser.parse(SchemaUtil.getSqlSchemaString(schema, ParserUtil.RESERVED_WORDS));
+      // throws exception if invalid
+      schema.fields().forEach(f -> LogicalSchemas.toSqlTypeConverter().toSqlType(f.schema()));
+      return SchemaParser.parse(FORMATTER.format(schema));
     } catch (final Exception e) {
       throw new KsqlStatementException(
           "Failed to convert schema to KSQL model: " + e.getMessage(),

@@ -226,10 +226,8 @@ public class SqlSchemaFormatterTest {
 
     // Then:
     assertThat(result, is(
-        "["
-            + "COL1 VARCHAR, "
+        "COL1 VARCHAR, "
             + "COL4 ARRAY<DOUBLE>, "
-            + "COL5 MAP<VARCHAR, DOUBLE>"
-            + "]"));
+            + "COL5 MAP<VARCHAR, DOUBLE>"));
   }
 }

@@ -35,7 +35,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 import org.apache.avro.SchemaBuilder.FieldAssembler;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -191,37 +190,6 @@ public final class SchemaUtil {
       return fieldName;
     }
     return prefix + fieldName;
-  }
-
-  public static String getSqlSchemaString(
-      final Schema schema,
-      final Set<String> reservedWords
-  ) {
-    return schema.fields()
-        .stream()
-        .map(field ->
-            quote(field.name(), reservedWords)
-                + " "
-                + getSqlElementSchema(field.schema(), reservedWords))
-        .collect(Collectors.joining(", "));
-  }
-
-  private static String getSqlElementSchema(final Schema schema, final Set<String> reservedWords) {
-    switch (schema.type()) {
-      case ARRAY:
-        return ARRAY + "<" + getSqlElementSchema(schema.valueSchema(), reservedWords) +  ">";
-      case MAP:
-        return MAP + "<" + getSqlElementSchema(schema.keySchema(), reservedWords)
-            +  ", " + getSqlElementSchema(schema.valueSchema(), reservedWords) + ">";
-      case STRUCT:
-        return STRUCT + "<" + getSqlSchemaString(schema, reservedWords) + ">";
-      default:
-        return getSchemaTypeAsSqlType(schema.type());
-    }
-  }
-
-  private static String quote(final String token, final Set<String> reservedWords) {
-    return reservedWords.contains(token) ? "`" + token + "`" : token;
   }
 
   public static String getSchemaTypeAsSqlType(final Schema.Type type) {

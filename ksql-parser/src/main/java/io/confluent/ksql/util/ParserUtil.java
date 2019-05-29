@@ -43,9 +43,11 @@ public final class ParserUtil {
     for (int i = 1; i < SqlBaseParser.VOCABULARY.getMaxTokenType(); i++) {
       final String name = ObjectUtils.firstNonNull(
           SqlBaseParser.VOCABULARY.getLiteralName(i),
-          SqlBaseParser.VOCABULARY.getSymbolicName(i),
-          "<INVALID>"
+          SqlBaseParser.VOCABULARY.getSymbolicName(i)
       );
+      if (name == null) {
+        throw new IllegalStateException("Did not expect to unknown word in vocab at index " + i);
+      }
       reservedWords.add(StringUtil.cleanQuotes(name));
     }
     RESERVED_WORDS = reservedWords.build();

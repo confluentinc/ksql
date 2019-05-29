@@ -281,10 +281,21 @@ class SandboxedAdminClient extends AdminClient {
     throw new UnsupportedOperationException();
   }
 
+  @SuppressWarnings("deprecation")
   @Override
-  public ElectLeadersResult electLeaders(final ElectionType electionType,
+  public org.apache.kafka.clients.admin.ElectPreferredLeadersResult electPreferredLeaders(
+      final Collection<TopicPartition> partitions,
+      final org.apache.kafka.clients.admin.ElectPreferredLeadersOptions options
+  ) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public ElectLeadersResult electLeaders(
+      final ElectionType electionType,
       final Set<TopicPartition> set,
-      final ElectLeadersOptions electLeadersOptions) {
+      final ElectLeadersOptions electLeadersOptions
+  ) {
     throw new UnsupportedOperationException();
   }
 

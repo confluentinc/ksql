@@ -118,7 +118,7 @@ command:
    sudo systemctl stop confluent-ksql
 
 For more information on shutting down |cp|, see
-:ref:`<installation-overview>`.
+:ref:`installation-overview`.
 
 ============================================
 How do I configure the target Kafka cluster?

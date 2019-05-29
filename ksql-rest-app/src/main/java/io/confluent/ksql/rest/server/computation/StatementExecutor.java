@@ -190,12 +190,13 @@ public class StatementExecutor {
     if (statement.getStatement() instanceof ExecutableDdlStatement) {
       successMessage = executeDdlStatement(statement, command);
     } else if (statement.getStatement() instanceof CreateAsSelect) {
-      startQuery(statement, command, mode);
+      final PersistentQueryMetadata query = startQuery(statement, command, mode);
       successMessage = statement.getStatement() instanceof CreateTableAsSelect
           ? "Table created and running" : "Stream created and running";
+      successMessage += " with id: " + query.getQueryId();
     } else if (statement.getStatement() instanceof InsertInto) {
-      startQuery(statement, command, mode);
-      successMessage = "Insert Into query is running.";
+      final PersistentQueryMetadata query = startQuery(statement, command, mode);
+      successMessage = "Insert Into query is running with id: " + query.getQueryId() + " .";
     } else if (statement.getStatement() instanceof TerminateQuery) {
       terminateQuery((PreparedStatement<TerminateQuery>) statement);
       successMessage = "Query terminated.";
@@ -271,7 +272,7 @@ public class StatementExecutor {
     }
   }
 
-  private void startQuery(
+  private PersistentQueryMetadata startQuery(
       final PreparedStatement<?> statement,
       final Command command,
       final Mode mode
@@ -301,6 +302,7 @@ public class StatementExecutor {
     if (mode == Mode.EXECUTE) {
       persistentQueryMd.start();
     }
+    return persistentQueryMd;
   }
 
   private KsqlConfig buildMergedConfig(final Command command) {

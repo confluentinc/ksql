@@ -85,7 +85,6 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 
-@SuppressWarnings("ConstantConditions")
 public class StatementExecutorTest extends EasyMockSupport {
 
   private static final Map<String, String> PRE_VERSION_5_NULL_ORIGINAL_PROPS = null;
@@ -330,6 +329,7 @@ public class StatementExecutorTest extends EasyMockSupport {
     assertThat(statusStore.get(topicCommandId).getStatus(), equalTo(CommandStatus.Status.SUCCESS));
     assertThat(statusStore.get(csCommandId).getStatus(), equalTo(CommandStatus.Status.SUCCESS));
     assertThat(statusStore.get(csasCommandId).getStatus(), equalTo(CommandStatus.Status.SUCCESS));
+    assertThat(statusStore.get(csasCommandId).getMessage(), equalTo("Stream created and running with id: CSAS_USER1PV_0"));
     assertThat(statusStore.get(ctasCommandId).getStatus(), equalTo(CommandStatus.Status.ERROR));
     assertThat(statusStore.get(terminateCmdId).getStatus(), equalTo(CommandStatus.Status.SUCCESS));
   }

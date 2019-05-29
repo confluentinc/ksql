@@ -21,6 +21,7 @@ Next KLIP number: 7.
 |------------------------------------------------------------------------------------|:--------------:| ------: |
 | [KLIP-X: Template](klip-template.md)                                               | -              | N/A     |
 | [KLIP-1: Improve UDF Interfaces](klip-1-improve-udf-interfaces.md)                 | Accepted       | N/A     |
-| [KLIP-2: Insert Into Semantics](klip-2-produce-data.md)                            | Accepted       | N/A     |
+| [KLIP-2: Insert Into Semantics](klip-2-produce-data.md)                            | Adopted        | 5.3     |
 | [KLIP-3: Serialization of single Fields](klip-3-serialization-of-single-fields.md) | Accepted       | N/A     |
+| [KLIP-4: Custom Type Registry](klip-4-custom-types.md)                             | Accepted       | N/A     |
 | [KLIP-6: Execution Plans](klip-6-execution-plans.md)                               | Accepted       | N/A     |

@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.rest.client.properties;
+package io.confluent.ksql.properties;
 
 import io.confluent.ksql.config.ConfigItem;
 import io.confluent.ksql.config.ConfigResolver;

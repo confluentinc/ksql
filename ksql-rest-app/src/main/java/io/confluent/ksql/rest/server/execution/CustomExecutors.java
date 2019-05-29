@@ -32,7 +32,6 @@ import io.confluent.ksql.parser.tree.ShowColumns;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.rest.entity.KsqlEntity;
-import io.confluent.ksql.rest.server.validation.PropertyOverrider;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import java.util.EnumSet;
@@ -61,8 +60,8 @@ public enum CustomExecutors {
   SHOW_COLUMNS(ShowColumns.class, ListSourceExecutor::columns),
   EXPLAIN(Explain.class, ExplainExecutor::execute),
   DESCRIBE_FUNCTION(DescribeFunction.class, DescribeFunctionExecutor::execute),
-  SET_PROPERTY(SetProperty.class, PropertyOverrider::set),
-  UNSET_PROPERTY(UnsetProperty.class, PropertyOverrider::unset),
+  SET_PROPERTY(SetProperty.class, PropertyExecutor::set),
+  UNSET_PROPERTY(UnsetProperty.class, PropertyExecutor::unset),
   INSERT_VALUES(InsertValues.class, new InsertValuesExecutor()::execute);
 
   public static final Map<Class<? extends Statement>, StatementExecutor<?>> EXECUTOR_MAP =

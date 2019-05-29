@@ -13,48 +13,30 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.rest.server.validation;
+package io.confluent.ksql.properties;
 
 import com.google.common.collect.ImmutableMap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.UnsetProperty;
-import io.confluent.ksql.rest.client.properties.LocalPropertyValidator;
-import io.confluent.ksql.rest.entity.KsqlEntity;
-import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlStatementException;
-import java.util.Optional;
 
 public final class PropertyOverrider {
 
   private PropertyOverrider() { }
 
-  public static Optional<KsqlEntity> set(
-      final ConfiguredStatement<SetProperty> statement,
-      final KsqlExecutionContext context,
-      final ServiceContext serviceContext
-  ) {
-    if (statement.getStatement() != null) {
-      final SetProperty setProperty = statement.getStatement();
-      throwIfInvalidProperty(setProperty.getPropertyName(), statement.getStatementText());
-      throwIfInvalidPropertyValues(setProperty, statement);
-      statement.getOverrides().put(setProperty.getPropertyName(), setProperty.getPropertyValue());
-    }
-
-    return Optional.empty();
+  public static void set(final ConfiguredStatement<SetProperty> statement) {
+    final SetProperty setProperty = statement.getStatement();
+    throwIfInvalidProperty(setProperty.getPropertyName(), statement.getStatementText());
+    throwIfInvalidPropertyValues(setProperty, statement);
+    statement.getOverrides().put(setProperty.getPropertyName(), setProperty.getPropertyValue());
   }
 
-  public static Optional<KsqlEntity> unset(
-      final ConfiguredStatement<UnsetProperty> statement,
-      final KsqlExecutionContext context,
-      final ServiceContext serviceContext
-  ) {
+  public static void unset(final ConfiguredStatement<UnsetProperty> statement) {
     final UnsetProperty unsetProperty = statement.getStatement();
     throwIfInvalidProperty(unsetProperty.getPropertyName(), statement.getStatementText());
     statement.getOverrides().remove(unsetProperty.getPropertyName());
-    return Optional.empty();
   }
 
   @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_INFERRED") // clone has side-effects

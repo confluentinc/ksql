@@ -252,7 +252,7 @@ public class StandaloneExecutorTest {
     when(sandBox.prepare(PARSED_STMT_1)).thenReturn((PreparedStatement) PREPARED_STMT_1);
 
     when(sandBox.execute(any())).thenReturn(ExecuteResult.of("success"));
-    when(sandBox.execute(eq(CSAS_CFG_WITH_TOPIC)))
+    when(sandBox.execute(CSAS_CFG_WITH_TOPIC))
         .thenReturn(ExecuteResult.of(persistentQuery));
 
     when(injectorFactory.apply(any(), any())).thenReturn(InjectorChain.of(sandBoxSchemaInjector, sandBoxTopicInjector));
@@ -441,10 +441,10 @@ public class StandaloneExecutorTest {
 
     // Then:
     verify(ksqlEngine).execute(
-        eq(ConfiguredStatement.of(
+        ConfiguredStatement.of(
             cs,
             ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"),
-            ksqlConfig)));
+            ksqlConfig));
   }
 
   @Test
@@ -467,7 +467,7 @@ public class StandaloneExecutorTest {
     standaloneExecutor.start();
 
     // Then:
-    verify(ksqlEngine).execute(eq(configured));
+    verify(ksqlEngine).execute(configured);
   }
 
   @Test
@@ -478,7 +478,7 @@ public class StandaloneExecutorTest {
     final ConfiguredStatement<?> configured = ConfiguredStatement.of(csas, emptyMap(), ksqlConfig);
     givenQueryFileParsesTo(csas);
 
-    when(sandBox.execute(eq(configured)))
+    when(sandBox.execute(configured))
         .thenReturn(ExecuteResult.of(persistentQuery));
 
     // When:
@@ -497,7 +497,7 @@ public class StandaloneExecutorTest {
 
     givenQueryFileParsesTo(ctas);
 
-    when(sandBox.execute(eq(configured)))
+    when(sandBox.execute(configured))
         .thenReturn(ExecuteResult.of(persistentQuery));
 
     // When:
@@ -516,7 +516,7 @@ public class StandaloneExecutorTest {
 
     givenQueryFileParsesTo(insertInto);
 
-    when(sandBox.execute(eq(configured)))
+    when(sandBox.execute(configured))
         .thenReturn(ExecuteResult.of(persistentQuery));
 
     // When:
@@ -629,9 +629,9 @@ public class StandaloneExecutorTest {
     // Then:
     final InOrder inOrder = inOrder(ksqlEngine);
     inOrder.verify(ksqlEngine).prepare(PARSED_STMT_0);
-    inOrder.verify(ksqlEngine).execute(eq(CFG_STMT_0));
+    inOrder.verify(ksqlEngine).execute(CFG_STMT_0);
     inOrder.verify(ksqlEngine).prepare(PARSED_STMT_1);
-    inOrder.verify(ksqlEngine).execute(eq(CFG_STMT_1));
+    inOrder.verify(ksqlEngine).execute(CFG_STMT_1);
   }
 
   @Test
@@ -669,8 +669,8 @@ public class StandaloneExecutorTest {
     standaloneExecutor.start();
 
     // Then:
-    verify(sandBox).execute(eq(CFG_0_WITH_SCHEMA));
-    verify(ksqlEngine).execute(eq(CFG_1_WITH_SCHEMA));
+    verify(sandBox).execute(CFG_0_WITH_SCHEMA);
+    verify(ksqlEngine).execute(CFG_1_WITH_SCHEMA);
   }
 
   @Test
@@ -685,7 +685,7 @@ public class StandaloneExecutorTest {
     standaloneExecutor.start();
 
     // Then:
-    verify(sandBox).execute(eq(CSAS_CFG_WITH_TOPIC));
+    verify(sandBox).execute(CSAS_CFG_WITH_TOPIC);
   }
 
   private void givenExecutorWillFailOnNoQueries() {

@@ -38,6 +38,7 @@ import io.confluent.ksql.rest.server.execution.DescribeFunctionExecutor;
 import io.confluent.ksql.rest.server.execution.ExplainExecutor;
 import io.confluent.ksql.rest.server.execution.InsertValuesExecutor;
 import io.confluent.ksql.rest.server.execution.ListSourceExecutor;
+import io.confluent.ksql.rest.server.execution.PropertyExecutor;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlException;
@@ -70,8 +71,8 @@ public enum CustomValidators {
   SHOW_COLUMNS(ShowColumns.class, ListSourceExecutor::columns),
   EXPLAIN(Explain.class, ExplainExecutor::execute),
   DESCRIBE_FUNCTION(DescribeFunction.class, DescribeFunctionExecutor::execute),
-  SET_PROPERTY(SetProperty.class, PropertyOverrider::set),
-  UNSET_PROPERTY(UnsetProperty.class, PropertyOverrider::unset),
+  SET_PROPERTY(SetProperty.class, PropertyExecutor::set),
+  UNSET_PROPERTY(UnsetProperty.class, PropertyExecutor::unset),
 
   TERMINATE_QUERY(TerminateQuery.class, TerminateQueryValidator::validate);
 

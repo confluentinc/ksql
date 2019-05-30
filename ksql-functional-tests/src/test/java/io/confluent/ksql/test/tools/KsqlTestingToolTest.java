@@ -54,7 +54,7 @@ public class KsqlTestingToolTest {
   @Test
   public void shouldRunCorrectsTest() throws Exception {
     final String testFolderPath = "src/test/resources/test-runner/";
-    for (int i = 1; i <= 4; i++) {
+    for (int i = 1; i <= 3; i++) {
       outContent.reset();
       errContent.reset();
       runTestCaseAndAssertPassed(testFolderPath + "test" + i + "/statements.sql",
@@ -135,6 +135,20 @@ public class KsqlTestingToolTest {
         "src/test/resources/test-runner/incorrect-test4/statements.sql",
         "src/test/resources/test-runner/incorrect-test4/input.json",
         "src/test/resources/test-runner/incorrect-test4/output.json");
+
+  }
+
+  @Test
+  public void shouldFailWithEmptyOutput() throws Exception {
+    // Given:
+    expectedException.expect(Exception.class);
+    expectedException.expectMessage("File name: src/test/resources/test-runner/incorrect-test5/output.json Message: Cannot construct instance of `io.confluent.ksql.test.model.OutputRecordsNode`, problem: Outputs cannot be empty.");
+
+    // When:
+    KsqlTestingTool.runWithTripleFiles(
+        "src/test/resources/test-runner/incorrect-test5/statements.sql",
+        "src/test/resources/test-runner/incorrect-test5/input.json",
+        "src/test/resources/test-runner/incorrect-test5/output.json");
 
   }
 

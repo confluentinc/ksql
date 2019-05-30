@@ -31,6 +31,9 @@ public class OutputRecordsNode {
     if (outputRecords == null) {
       throw new Exception("No 'outputs' field in the output file.");
     }
+    if (outputRecords.isEmpty()) {
+      throw new Exception("Outputs cannot be empty.");
+    }
     this.outputRecords = ImmutableList.copyOf(outputRecords);
   }
 

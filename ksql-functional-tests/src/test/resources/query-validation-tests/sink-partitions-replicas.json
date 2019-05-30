@@ -10,7 +10,7 @@
       "topics": [
         {
           "name": "input",
-          "schema": {"name": "blah", "type": "record", "fields": [{"name": "C1", "type": "int"}]},
+          "schema": {"name": "blah", "type": "record", "fields": [{"name": "c1", "type": "int"}]},
           "format": "AVRO",
           "partitions": 5,
           "replicas" : 3
@@ -34,7 +34,7 @@
       "topics": [
         {
           "name": "input",
-          "schema": {"name": "blah", "type": "record", "fields": [{"name": "C1", "type": "int"}]},
+          "schema": {"name": "blah", "type": "record", "fields": [{"name": "c1", "type": "int"}]},
           "format": "AVRO",
           "partitions": 5,
           "replicas" : 3

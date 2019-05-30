@@ -252,6 +252,7 @@ public class WSQueryEndpoint {
   @OnError
   public void onError(final Session session, final Throwable t) {
     log.error("websocket error in session {}", session.getId(), t);
+    SessionUtil.closeSilently(session, CloseCodes.UNEXPECTED_CONDITION, t.getMessage());
   }
 
   private void checkEndpointAuthorization(final Principal userPrincipal, final String methodName) {

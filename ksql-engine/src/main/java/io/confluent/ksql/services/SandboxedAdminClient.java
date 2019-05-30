@@ -18,7 +18,6 @@ package io.confluent.ksql.services;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.Map;
-import java.util.Set;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.AlterConfigOp;
 import org.apache.kafka.clients.admin.AlterConfigsOptions;
@@ -58,8 +57,6 @@ import org.apache.kafka.clients.admin.DescribeReplicaLogDirsOptions;
 import org.apache.kafka.clients.admin.DescribeReplicaLogDirsResult;
 import org.apache.kafka.clients.admin.DescribeTopicsOptions;
 import org.apache.kafka.clients.admin.DescribeTopicsResult;
-import org.apache.kafka.clients.admin.ElectLeadersOptions;
-import org.apache.kafka.clients.admin.ElectLeadersResult;
 import org.apache.kafka.clients.admin.ExpireDelegationTokenOptions;
 import org.apache.kafka.clients.admin.ExpireDelegationTokenResult;
 import org.apache.kafka.clients.admin.ListConsumerGroupOffsetsOptions;
@@ -73,7 +70,6 @@ import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.admin.RecordsToDelete;
 import org.apache.kafka.clients.admin.RenewDelegationTokenOptions;
 import org.apache.kafka.clients.admin.RenewDelegationTokenResult;
-import org.apache.kafka.common.ElectionType;
 import org.apache.kafka.common.Metric;
 import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.TopicPartition;
@@ -286,15 +282,6 @@ class SandboxedAdminClient extends AdminClient {
   public org.apache.kafka.clients.admin.ElectPreferredLeadersResult electPreferredLeaders(
       final Collection<TopicPartition> partitions,
       final org.apache.kafka.clients.admin.ElectPreferredLeadersOptions options
-  ) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public ElectLeadersResult electLeaders(
-      final ElectionType electionType,
-      final Set<TopicPartition> set,
-      final ElectLeadersOptions electLeadersOptions
   ) {
     throw new UnsupportedOperationException();
   }

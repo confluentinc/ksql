@@ -35,7 +35,7 @@ public class ServerState {
     TERMINATING
   }
 
-  private static class StateWithReason {
+  private static final class StateWithReason {
     final State state;
     final String reason;
 

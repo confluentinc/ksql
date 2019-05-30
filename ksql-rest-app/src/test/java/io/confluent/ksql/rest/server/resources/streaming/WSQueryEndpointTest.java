@@ -390,6 +390,15 @@ public class WSQueryEndpointTest {
     verify(statementParser, never()).parseSingleStatement(any());
   }
 
+  @Test
+  public void shouldCloseSessionOnError() throws Exception {
+    // When:
+    wsQueryEndpoint.onError(session, new Throwable("ahh scary"));
+
+    // Then:
+    verifyClosedWithReason("ahh scary", CloseCodes.UNEXPECTED_CONDITION);
+  }
+
   private void givenVersions(final String... versions) {
 
     givenRequestAndVersions(

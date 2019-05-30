@@ -20,6 +20,9 @@ import javax.ws.rs.container.ResourceInfo;
 import javax.ws.rs.core.FeatureContext;
 import javax.ws.rs.ext.Provider;
 
+/**
+ * A javax dynamic binding for registering the server state filter with KSQL resources.
+ */
 @Provider
 public class ServerStateDynamicBinding implements DynamicFeature {
   private final ServerState state;
@@ -28,6 +31,14 @@ public class ServerStateDynamicBinding implements DynamicFeature {
     this.state = state;
   }
 
+  /**
+   * Binds ServerStateFilter with the provided filter if the filter is defined in a package
+   * with the prefix "io.confluent.ksql.rest". This ensures that resources configured as
+   * plugins can continue to function.
+   *
+   * @param resourceInfo ResourceInfo instance provided by javax.
+   * @param context FeatureContext instance provided by javax.
+   */
   @Override
   public void configure(final ResourceInfo resourceInfo, final FeatureContext context) {
     final String packageName = resourceInfo.getResourceClass().getPackage().getName();

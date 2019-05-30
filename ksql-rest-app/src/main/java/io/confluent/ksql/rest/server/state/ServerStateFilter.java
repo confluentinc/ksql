@@ -18,6 +18,10 @@ package io.confluent.ksql.rest.server.state;
 import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.container.ContainerRequestFilter;
 
+/**
+ * A javax request filter that ensures the KSQL server is in the READY state before
+ * serving requests.
+ */
 public class ServerStateFilter implements ContainerRequestFilter {
   private final ServerState state;
 
@@ -25,6 +29,13 @@ public class ServerStateFilter implements ContainerRequestFilter {
     this.state = state;
   }
 
+  /**
+   * Ensures the KSQL server is in the READY state. If not, filter will abort the passed
+   * in request context with the API error returned by the state machine.
+   *
+   * @param requestContext the ContainerRequestContext instance provided by the javax
+   *                       implementation.
+   */
   @Override
   public void filter(final ContainerRequestContext requestContext) {
     state.checkReady().ifPresent(requestContext::abortWith);

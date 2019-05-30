@@ -167,6 +167,13 @@ are named *windows*.
 A window has a start time and an end time, which you access in your queries by
 using the WINDOWSTART() and WINDOWEND() functions.
 
+.. important::
+
+    KSQL is based on the Unix epoch time in the UTC timezone, and this can affect
+    time windows. For example, if you define a 24-hour tumbling time window, it will
+    be in the UTC timezone, which may not be appropriate if you want to have daily
+    windows in your timezone.
+
 Windowing lets you control how to group records that have the same key for
 stateful operations, like aggregations or joins, into time spans. KSQL tracks
 windows per record key.
@@ -193,37 +200,13 @@ how the grace period is related to a window's end time and a record's timestamp.
 
     record.ts > window-end-time + grace-period
 
-.. note::
+.. include:: ../../../includes/grace-period-late-events.rst
+   :start-after: time-window-semantics-start
+   :end-before:  time-window-semantics-end     
 
-      **grace period vs. retention time**
-      
-      The *grace period* supersedes *retention time* as a more
-      specific means of defining the amount of time a window should allow for
-      out-of-order events after the window ends. Grace period relates directly
-      to usage of final results for a window and is also a lower bound on
-      retention time. 
-      
-      Retention time is still configurable, but as a lower-level property of the
-      window store. You might choose to retain events for a long time (the
-      default is one day) to support, for example, Interactive Queries over
-      final windows or even indefinitely on remote, distributed systems with
-      large storage capacity. On the other hand, you might retain events for a
-      short time for an in-memory implementation. 
-
-In the real world, out-of-order records are always possible, and your KSQL
-applications must account for them properly. The system's time semantics
-determine how out-of-order records are handled. For processing-time, the
-semantics are “when the record is being processed”, which means that the notion
-of out-of-order records isn't applicable because only processing time is
-considered. Out-of-order records can only be considered for event-time semantics.
-In both cases, KSQL is able to handle out-of-order records properly.
-
-.. important::
-
-    KSQL is based on the Unix epoch time in the UTC timezone, and this can affect
-    time windows. For example, if you define a 24-hour tumbling time window, it will
-    be in the UTC timezone, which may not be appropriate if you want to have daily
-    windows in your timezone.
+.. include:: ../../../includes/grace-period-late-events.rst
+   :start-after: grace-tip-start
+   :end-before:  grace-tip-end     
 
 Window Types
 ============

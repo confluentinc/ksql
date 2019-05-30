@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.services;
 
+import com.google.common.base.Suppliers;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import java.util.function.Supplier;
 import org.apache.kafka.clients.admin.AdminClient;
@@ -22,46 +23,38 @@ import org.apache.kafka.streams.KafkaClientSupplier;
 
 public class LazyServiceContext implements ServiceContext {
   private final Supplier<ServiceContext> serviceContextSupplier;
-  private volatile ServiceContext serviceContext = null;
 
   public LazyServiceContext(final Supplier<ServiceContext> serviceContextSupplier) {
-    this.serviceContextSupplier = serviceContextSupplier;
-  }
-
-  private ServiceContext getServiceContext() {
-    if (this.serviceContext == null) {
-      this.serviceContext = serviceContextSupplier.get();
-    }
-    return serviceContext;
+    this.serviceContextSupplier = Suppliers.memoize(serviceContextSupplier::get);
   }
 
   @Override
   public AdminClient getAdminClient() {
-    return getServiceContext().getAdminClient();
+    return serviceContextSupplier.get().getAdminClient();
   }
 
   @Override
   public KafkaTopicClient getTopicClient() {
-    return getServiceContext().getTopicClient();
+    return serviceContextSupplier.get().getTopicClient();
   }
 
   @Override
   public KafkaClientSupplier getKafkaClientSupplier() {
-    return getServiceContext().getKafkaClientSupplier();
+    return serviceContextSupplier.get().getKafkaClientSupplier();
   }
 
   @Override
   public SchemaRegistryClient getSchemaRegistryClient() {
-    return getServiceContext().getSchemaRegistryClient();
+    return serviceContextSupplier.get().getSchemaRegistryClient();
   }
 
   @Override
   public Supplier<SchemaRegistryClient> getSchemaRegistryClientFactory() {
-    return getServiceContext().getSchemaRegistryClientFactory();
+    return serviceContextSupplier.get().getSchemaRegistryClientFactory();
   }
 
   @Override
   public void close() {
-    getServiceContext().close();
+    serviceContextSupplier.get().close();
   }
 }

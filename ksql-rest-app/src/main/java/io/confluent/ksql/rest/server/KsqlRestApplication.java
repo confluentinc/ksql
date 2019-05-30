@@ -19,6 +19,7 @@ import static io.confluent.ksql.rest.server.KsqlRestConfig.DISTRIBUTED_COMMAND_R
 
 import com.fasterxml.jackson.jaxrs.base.JsonParseExceptionMapper;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -219,8 +220,9 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
   }
 
   private void waitForPreconditions() {
-    final List<Predicate<Exception>> predicates = new LinkedList<>();
-    predicates.add(e -> !(e instanceof KsqlFailedPrecondition));
+    final List<Predicate<Exception>> predicates = ImmutableList.of(
+        e -> !(e instanceof KsqlFailedPrecondition)
+    );
     RetryUtil.retryWithBackoff(
         Integer.MAX_VALUE,
         1000,

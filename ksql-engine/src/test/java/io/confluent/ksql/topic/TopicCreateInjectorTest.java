@@ -44,6 +44,7 @@ import io.confluent.ksql.parser.tree.IntegerLiteral;
 import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -110,10 +111,12 @@ public class TopicCreateInjectorTest {
         "",
         "SOURCE",
         SCHEMA,
+        SerdeOption.none(),
         KeyField.none(),
         new MetadataTimestampExtractionPolicy(),
         sourceTopic,
-        Serdes::String);
+        Serdes::String
+    );
     metaStore.putSource(source);
 
     final KsqlTopic joinTopic =
@@ -122,10 +125,12 @@ public class TopicCreateInjectorTest {
         "",
         "J_SOURCE",
         SCHEMA,
+        SerdeOption.none(),
         KeyField.none(),
         new MetadataTimestampExtractionPolicy(),
         joinTopic,
-        Serdes::String);
+        Serdes::String
+    );
     metaStore.putSource(joinSource);
 
     when(topicClient.describeTopic("source")).thenReturn(sourceDescription);

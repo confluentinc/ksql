@@ -23,6 +23,7 @@ import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.physical.KsqlQueryBuilder;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.KsqlSchemaWithOptions;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.QueryContext;
@@ -351,11 +352,12 @@ public class JoinNode extends PlanNode {
           .getKsqlTopic()
           .getValueSerdeFactory();
 
-      final KsqlSchema schema = dataSource.getSchema();
-
       return builder.buildGenericRowSerde(
           valueSerdeFactory,
-          schema.getSchema(),
+          KsqlSchemaWithOptions.of(
+              dataSource.getSchema(),
+              dataSource.getSerdeOptions()
+          ),
           contextStacker.getQueryContext()
       );
     }

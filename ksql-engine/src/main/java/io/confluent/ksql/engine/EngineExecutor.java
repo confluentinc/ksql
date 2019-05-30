@@ -89,6 +89,7 @@ final class EngineExecutor {
         final String msg = engineContext.executeDdlStatement(
             statement.getStatementText(),
             (ExecutableDdlStatement) statement.getStatement(),
+            ksqlConfig,
             overriddenProperties
         );
 

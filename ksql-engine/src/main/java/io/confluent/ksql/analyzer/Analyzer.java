@@ -18,12 +18,14 @@ package io.confluent.ksql.analyzer;
 import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 
+import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.analyzer.Analysis.Into;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.parser.DefaultTraversalVisitor;
+import io.confluent.ksql.parser.LiteralUtil;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.Cast;
@@ -49,21 +51,23 @@ import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.planner.plan.DataSourceNode;
 import io.confluent.ksql.planner.plan.JoinNode;
 import io.confluent.ksql.planner.plan.PlanNodeId;
+import io.confluent.ksql.schema.ksql.Identifiers;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.KsqlSerdeFactories;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.serde.SerdeFactories;
+import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.StringUtil;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Predicate;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
 
@@ -71,28 +75,46 @@ import org.apache.kafka.connect.data.Field;
 class Analyzer {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
+  private static final Set<String> VALID_WITH_PROPS = ImmutableSet.<String>builder()
+      .add(DdlConfig.VALUE_FORMAT_PROPERTY.toUpperCase())
+      .add(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY.toUpperCase())
+      .add(DdlConfig.PARTITION_BY_PROPERTY.toUpperCase())
+      .add(KsqlConstants.SINK_TIMESTAMP_COLUMN_NAME.toUpperCase())
+      .add(KsqlConstants.SINK_NUMBER_OF_PARTITIONS.toUpperCase())
+      .add(KsqlConstants.SINK_NUMBER_OF_REPLICAS.toUpperCase())
+      .add(DdlConfig.TIMESTAMP_FORMAT_PROPERTY.toUpperCase())
+      .add(DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME.toUpperCase())
+      .add(DdlConfig.WRAP_SINGLE_VALUE.toUpperCase())
+      .build();
+
   private final MetaStore metaStore;
   private final String topicPrefix;
   private final SerdeFactories serdeFactories;
+  private final Set<SerdeOption> defaultSerdeOptions;
 
   /**
-   * @param metaStore     the metastore to use.
-   * @param topicPrefix   the prefix to use for topic names where an explicit name is not specified.
+   * @param metaStore the metastore to use.
+   * @param topicPrefix the prefix to use for topic names where an explicit name is not specified.
+   * @param defaultSerdeOptions the default serde options.
    */
   Analyzer(
       final MetaStore metaStore,
-      final String topicPrefix
+      final String topicPrefix,
+      final Set<SerdeOption> defaultSerdeOptions
   ) {
-    this(metaStore, topicPrefix, new KsqlSerdeFactories());
+    this(metaStore, topicPrefix, defaultSerdeOptions, new KsqlSerdeFactories());
   }
 
   private Analyzer(
       final MetaStore metaStore,
       final String topicPrefix,
+      final Set<SerdeOption> defaultSerdeOptions,
       final SerdeFactories serdeFactories
   ) {
     this.metaStore = requireNonNull(metaStore, "metaStore");
     this.topicPrefix = requireNonNull(topicPrefix, "topicPrefix");
+    this.defaultSerdeOptions = ImmutableSet
+        .copyOf(requireNonNull(defaultSerdeOptions, "defaultSerdeOptions"));
     this.serdeFactories = requireNonNull(serdeFactories, "serdeFactories");
   }
 
@@ -139,6 +161,8 @@ class Analyzer {
       setPartitionBy(sinkProperties);
 
       setIntoTimestampColumnAndFormat(sinkProperties);
+
+      setSerdeOptions(sinkProperties);
     }
 
     private void setPartitionBy(final Map<String, Expression> properties) {
@@ -261,20 +285,41 @@ class Analyzer {
       }
     }
 
+    private void setSerdeOptions(final Map<String, Expression> properties) {
+      final boolean singleField = analysis.getSelectExpressionAlias().stream()
+          .filter(((Predicate<String>)Identifiers::isImplicitColumnName).negate())
+          .count() == 1;
+
+      final Expression exp = properties.get(DdlConfig.WRAP_SINGLE_VALUE);
+      if (exp == null) {
+        if (singleField) {
+          analysis.setSerdeOptions(defaultSerdeOptions);
+        }
+        return;
+      }
+
+      if (!singleField) {
+        throw new KsqlException("'" + DdlConfig.WRAP_SINGLE_VALUE
+            + "' is only valid for single-field value schemas");
+      }
+
+      if (!(exp instanceof Literal)) {
+        throw new KsqlException(DdlConfig.WRAP_SINGLE_VALUE
+            + " set in the WITH clause must be set to a literal");
+      }
+
+      final Set<SerdeOption> options = SerdeOption.none();
+
+      if (!LiteralUtil.toBoolean(((Literal) exp), DdlConfig.WRAP_SINGLE_VALUE)) {
+        options.add(SerdeOption.UNWRAP_SINGLE_VALUES);
+      }
+
+      analysis.setSerdeOptions(options);
+    }
+
     private void validateWithClause(final Set<String> withClauseVariables) {
-
-      final Set<String> validSet = new HashSet<>();
-      validSet.add(DdlConfig.VALUE_FORMAT_PROPERTY.toUpperCase());
-      validSet.add(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY.toUpperCase());
-      validSet.add(DdlConfig.PARTITION_BY_PROPERTY.toUpperCase());
-      validSet.add(KsqlConstants.SINK_TIMESTAMP_COLUMN_NAME.toUpperCase());
-      validSet.add(KsqlConstants.SINK_NUMBER_OF_PARTITIONS.toUpperCase());
-      validSet.add(KsqlConstants.SINK_NUMBER_OF_REPLICAS.toUpperCase());
-      validSet.add(DdlConfig.TIMESTAMP_FORMAT_PROPERTY.toUpperCase());
-      validSet.add(DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME.toUpperCase());
-
       for (final String withVariable : withClauseVariables) {
-        if (!validSet.contains(withVariable.toUpperCase())) {
+        if (!VALID_WITH_PROPS.contains(withVariable.toUpperCase())) {
           throw new KsqlException("Invalid config variable in the WITH clause: " + withVariable);
         }
       }
@@ -533,12 +578,11 @@ class Analyzer {
               );
             }
           } else {
-            for (final Field field : analysis.getFromDataSources().get(0).getLeft().getSchema()
-                .fields()) {
+            final Pair<DataSource<?>, String> leftSource = analysis.getFromDataSources().get(0);
+            for (final Field field : leftSource.getLeft().getSchema().fields()) {
               final QualifiedNameReference qualifiedNameReference =
                   new QualifiedNameReference(allColumns.getLocation(), QualifiedName
-                      .of(analysis.getFromDataSources().get(0).getRight() + "." + field
-                          .name()));
+                      .of(leftSource.getRight() + "." + field.name()));
               analysis.addSelectItem(qualifiedNameReference, field.name());
             }
           }

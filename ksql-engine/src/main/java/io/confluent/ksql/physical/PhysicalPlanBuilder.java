@@ -35,7 +35,7 @@ import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
-import io.confluent.ksql.schema.persistence.PersistenceSchemas;
+import io.confluent.ksql.schema.ksql.KsqlSchemaWithOptions;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.structured.QueuedSchemaKStream;
 import io.confluent.ksql.structured.SchemaKStream;
@@ -162,9 +162,6 @@ public class PhysicalPlanBuilder {
       final String persistanceQueryPrefix =
           ksqlConfig.getString(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG);
 
-      final PersistenceSchemas persistenceSchemas = ksqlQueryBuilder
-          .getPersistenceSchemas(outputNode.getSchema());
-
       return buildPlanForStructuredOutputNode(
           logicalPlanNode.getStatementText(),
           resultStream,
@@ -172,7 +169,6 @@ public class PhysicalPlanBuilder {
           getServiceId(),
           persistanceQueryPrefix,
           queryId,
-          persistenceSchemas,
           ksqlQueryBuilder.getSchemas()
       );
     }
@@ -234,7 +230,6 @@ public class PhysicalPlanBuilder {
       final String serviceId,
       final String persistanceQueryPrefix,
       final QueryId queryId,
-      final PersistenceSchemas persistenceSchemas,
       final QuerySchemas schemas
   ) {
     if (metaStore.getTopic(outputNode.getKsqlTopic().getKsqlTopicName()) == null) {
@@ -251,6 +246,7 @@ public class PhysicalPlanBuilder {
               sqlExpression,
               outputNode.getId().toString(),
               sinkSchema,
+              outputNode.getSerdeOptions(),
               schemaKTable.getKeyField(),
               outputNode.getTimestampExtractionPolicy(),
               outputNode.getKsqlTopic(),
@@ -262,6 +258,7 @@ public class PhysicalPlanBuilder {
               sqlExpression,
               outputNode.getId().toString(),
               sinkSchema,
+              outputNode.getSerdeOptions(),
               schemaKStream.getKeyField(),
               outputNode.getTimestampExtractionPolicy(),
               outputNode.getKsqlTopic(),
@@ -283,15 +280,18 @@ public class PhysicalPlanBuilder {
         queryId,
         processingLogContext
     );
+
     final KafkaStreams streams = kafkaStreamsBuilder.buildKafkaStreams(builder, streamsProperties);
 
     final Topology topology = builder.build();
 
+    final KsqlSchemaWithOptions querySchema = KsqlSchemaWithOptions
+        .of(outputNode.getSchema().withoutImplicitFields(), outputNode.getSerdeOptions());
+
     return new PersistentQueryMetadata(
         sqlExpression,
         streams,
-        sinkSchema,
-        persistenceSchemas,
+        querySchema,
         getSourceNames(outputNode),
         sinkDataSource.getName(),
         schemaKStream.getExecutionPlan(""),

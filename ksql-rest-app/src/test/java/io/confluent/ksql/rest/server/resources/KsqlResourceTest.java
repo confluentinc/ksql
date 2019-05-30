@@ -117,6 +117,7 @@ import io.confluent.ksql.rest.server.computation.QueuedCommandStatus;
 import io.confluent.ksql.rest.util.EntityUtil;
 import io.confluent.ksql.rest.util.TerminateCluster;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.services.SandboxedServiceContext;
@@ -1963,16 +1964,28 @@ public class KsqlResourceTest {
     if (type == DataSourceType.KSTREAM) {
       metaStore.putSource(
           new KsqlStream<>(
-              "statementText", sourceName, schema,
+              "statementText",
+              sourceName,
+              schema,
+              SerdeOption.none(),
               KeyField.of(schema.fields().get(0).name(), schema.fields().get(0)),
-              new MetadataTimestampExtractionPolicy(), ksqlTopic, Serdes::String));
+              new MetadataTimestampExtractionPolicy(),
+              ksqlTopic,
+              Serdes::String
+          ));
     }
     if (type == DataSourceType.KTABLE) {
       metaStore.putSource(
           new KsqlTable<>(
-              "statementText", sourceName, schema,
+              "statementText",
+              sourceName,
+              schema,
+              SerdeOption.none(),
               KeyField.of(schema.fields().get(0).name(), schema.fields().get(0)),
-              new MetadataTimestampExtractionPolicy(), ksqlTopic, Serdes::String));
+              new MetadataTimestampExtractionPolicy(),
+              ksqlTopic,
+              Serdes::String
+          ));
     }
   }
 

@@ -41,7 +41,9 @@ import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.physical.KsqlQueryBuilder;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.KsqlSchemaWithOptions;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
+import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.avro.KsqlAvroSerdeFactory;
 import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
 import io.confluent.ksql.structured.QueryContext;
@@ -55,6 +57,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
@@ -98,10 +101,13 @@ public class KsqlStructuredDataOutputNodeTest {
 
   private final KsqlStream dataSource = new KsqlStream<>("sqlExpression", "datasource",
       schema,
+      SerdeOption.none(),
       KeyField.of("key", schema.getSchema().field("key")),
       new LongColumnTimestampExtractionPolicy("timestamp"),
       new KsqlTopic(SOURCE_TOPIC_NAME, SOURCE_KAFKA_TOPIC_NAME,
-          new KsqlJsonSerdeFactory(), false), Serdes::String);
+          new KsqlJsonSerdeFactory(), false),
+      Serdes::String
+  );
 
   private final DataSourceNode sourceNode = new DataSourceNode(
       new PlanNodeId("0"),
@@ -122,6 +128,8 @@ public class KsqlStructuredDataOutputNodeTest {
   private FunctionRegistry functionRegistry;
   @Captor
   private ArgumentCaptor<QueryContext> queryContextCaptor;
+
+  private final Set<SerdeOption> serdeOptions = SerdeOption.none();
 
   @Before
   public void before() {
@@ -147,10 +155,11 @@ public class KsqlStructuredDataOutputNodeTest {
         new LongColumnTimestampExtractionPolicy("timestamp"),
         KeyField.of("key", schema.getSchema().field("key")),
         new KsqlTopic(SINK_TOPIC_NAME, SINK_KAFKA_TOPIC_NAME, serde, true),
-        SINK_KAFKA_TOPIC_NAME,
         partitionBy,
         Optional.empty(),
-        createInto);
+        createInto,
+        SerdeOption.none()
+    );
   }
 
   @Test(expected = IllegalArgumentException.class)
@@ -163,10 +172,11 @@ public class KsqlStructuredDataOutputNodeTest {
         new LongColumnTimestampExtractionPolicy("timestamp"),
         KeyField.none(),
         new KsqlTopic(SINK_TOPIC_NAME, SINK_KAFKA_TOPIC_NAME, new KsqlJsonSerdeFactory(), true),
-        SINK_KAFKA_TOPIC_NAME,
         true,
         Optional.empty(),
-        false);
+        false,
+        SerdeOption.none()
+    );
   }
 
   @Test
@@ -286,9 +296,10 @@ public class KsqlStructuredDataOutputNodeTest {
     assertThat(queryId, equalTo(new QueryId("InsertQuery_" + QUERY_ID_STRING)));
   }
 
-  private static KsqlTopic mockTopic(final KsqlSerdeFactory serdeFactory) {
+  private static KsqlTopic mockTopic(final KsqlSerdeFactory serdeFactory, final String kafkaTopicName) {
     final KsqlTopic ksqlTopic = mock(KsqlTopic.class);
     when(ksqlTopic.getValueSerdeFactory()).thenReturn(serdeFactory);
+    when(ksqlTopic.getKafkaTopicName()).thenReturn(kafkaTopicName);
     return ksqlTopic;
   }
 
@@ -314,19 +325,21 @@ public class KsqlStructuredDataOutputNodeTest {
         schema,
         new LongColumnTimestampExtractionPolicy("timestamp"),
         KeyField.of("key", schema.getSchema().field("key")),
-        mockTopic(valueSerdeFactory),
-        "output",
+        mockTopic(valueSerdeFactory, "output"),
         false,
         Optional.empty(),
-        false);
+        false,
+        serdeOptions
+    );
 
     // When:
     outputNode.buildStream(ksqlStreamBuilder);
 
     // Then:
+    final KsqlSchemaWithOptions expectedSchema = KsqlSchemaWithOptions.of(schema, serdeOptions);
     verify(ksqlStreamBuilder).buildGenericRowSerde(
         eq(valueSerdeFactory),
-        eq(schema.getSchema()),
+        eq(expectedSchema),
         queryContextCaptor.capture()
     );
 
@@ -339,11 +352,13 @@ public class KsqlStructuredDataOutputNodeTest {
     final KsqlTable<K> dataSource = new KsqlTable<>(
         "sqlExpression", "datasource",
         schema,
+        SerdeOption.none(),
         KeyField.of("key", schema.getSchema().field("key")),
         new MetadataTimestampExtractionPolicy(),
         new KsqlTopic(SOURCE_TOPIC_NAME, SOURCE_KAFKA_TOPIC_NAME, new KsqlJsonSerdeFactory(),
             false),
-        keySerdeFatory);
+        keySerdeFatory
+    );
 
     final DataSourceNode tableSourceNode = new DataSourceNode(
         new PlanNodeId("0"),
@@ -357,9 +372,10 @@ public class KsqlStructuredDataOutputNodeTest {
         new MetadataTimestampExtractionPolicy(),
         KeyField.of("key", schema.getSchema().field("key")),
         new KsqlTopic(SINK_TOPIC_NAME, SINK_KAFKA_TOPIC_NAME, new KsqlJsonSerdeFactory(), true),
-        SINK_KAFKA_TOPIC_NAME,
         false,
         Optional.empty(),
-        true);
+        true,
+        SerdeOption.none()
+    );
   }
 }

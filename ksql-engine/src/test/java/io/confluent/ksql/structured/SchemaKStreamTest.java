@@ -52,7 +52,9 @@ import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.KsqlSchemaWithOptions;
 import io.confluent.ksql.serde.GenericRowSerDe;
+import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
 import io.confluent.ksql.streams.GroupedFactory;
 import io.confluent.ksql.streams.JoinedFactory;
@@ -63,7 +65,6 @@ import io.confluent.ksql.structured.SchemaKStream.Type;
 import io.confluent.ksql.testutils.AnalysisTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.MetaStoreFixture;
-import io.confluent.ksql.util.SchemaTestUtil;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.SelectExpression;
 import java.time.Duration;
@@ -75,6 +76,7 @@ import java.util.Optional;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.serialization.Serdes.StringSerde;
+import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -200,10 +202,10 @@ public class SchemaKStreamTest {
     whenCreateJoined();
   }
 
-  private static Serde<GenericRow> getRowSerde(final KsqlTopic topic, final Schema schema) {
+  private static Serde<GenericRow> getRowSerde(final KsqlTopic topic, final ConnectSchema schema) {
     return GenericRowSerDe.from(
         topic.getValueSerdeFactory(),
-        schema,
+        KsqlSchemaWithOptions.of(KsqlSchema.of(schema), SerdeOption.none()),
         new KsqlConfig(Collections.emptyMap()),
         MockSchemaRegistryClient::new,
         "test",
@@ -937,7 +939,7 @@ public class SchemaKStreamTest {
 
     rowSerde = GenericRowSerDe.from(
         new KsqlJsonSerdeFactory(),
-        SchemaTestUtil.getSchemaWithNoAlias(initialSchemaKStream.getSchema().getSchema()),
+        KsqlSchemaWithOptions.of(initialSchemaKStream.getSchema(), SerdeOption.none()),
         null,
         () -> null,
         "test",

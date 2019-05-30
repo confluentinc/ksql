@@ -24,6 +24,8 @@ import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.physical.KsqlQueryBuilder;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.KsqlSchemaWithOptions;
+import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.structured.QueryContext;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
@@ -39,11 +41,11 @@ import org.apache.kafka.connect.data.Field;
 
 public class KsqlStructuredDataOutputNode extends OutputNode {
 
-  private final String kafkaTopicName;
   private final KsqlTopic ksqlTopic;
   private final KeyField keyField;
   private final boolean doCreateInto;
   private final boolean selectKeyRequired;
+  private final Set<SerdeOption> serdeOptions;
 
   public KsqlStructuredDataOutputNode(
       final PlanNodeId id,
@@ -52,13 +54,13 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
       final TimestampExtractionPolicy timestampExtractionPolicy,
       final KeyField keyField,
       final KsqlTopic ksqlTopic,
-      final String kafkaTopicName,
       final boolean selectKeyRequired,
       final Optional<Integer> limit,
-      final boolean doCreateInto
+      final boolean doCreateInto,
+      final Set<SerdeOption> serdeOptions
   ) {
     super(id, source, schema, limit, timestampExtractionPolicy);
-    this.kafkaTopicName = Objects.requireNonNull(kafkaTopicName, "kafkaTopicName");
+    this.serdeOptions = Objects.requireNonNull(serdeOptions, "serdeOptions");
     this.keyField = Objects.requireNonNull(keyField, "keyField")
         .validateKeyExistsIn(schema);
     this.ksqlTopic = Objects.requireNonNull(ksqlTopic, "ksqlTopic");
@@ -70,12 +72,16 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     }
   }
 
-  public String getKafkaTopicName() {
-    return kafkaTopicName;
-  }
-
   public boolean isDoCreateInto() {
     return doCreateInto;
+  }
+
+  public KsqlTopic getKsqlTopic() {
+    return ksqlTopic;
+  }
+
+  public Set<SerdeOption> getSerdeOptions() {
+    return serdeOptions;
   }
 
   @Override
@@ -103,7 +109,6 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     final QueryContext.Stacker contextStacker = builder.buildNodeContext(getId());
 
     final Set<Integer> rowkeyIndexes = getSchema().implicitColumnIndexes();
-    final KsqlSchema schema = getSchema().withoutImplicitFields();
 
     final SchemaKStream<?> result = createOutputStream(
         schemaKStream,
@@ -114,11 +119,12 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
 
     final Serde<GenericRow> outputRowSerde = builder.buildGenericRowSerde(
         getKsqlTopic().getValueSerdeFactory(),
-        schema.getSchema(),
-        contextStacker.getQueryContext());
+        KsqlSchemaWithOptions.of(getSchema().withoutImplicitFields(), serdeOptions),
+        contextStacker.getQueryContext()
+    );
 
     result.into(
-        getKafkaTopicName(),
+        getKsqlTopic().getKafkaTopicName(),
         outputRowSerde,
         rowkeyIndexes
     );
@@ -164,9 +170,5 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
         .orElseThrow(IllegalStateException::new);
 
     return result.selectKey(newKey.name(), false, contextStacker);
-  }
-
-  public KsqlTopic getKsqlTopic() {
-    return ksqlTopic;
   }
 }

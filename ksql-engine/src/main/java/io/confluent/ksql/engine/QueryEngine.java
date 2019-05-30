@@ -29,6 +29,7 @@ import io.confluent.ksql.physical.PhysicalPlanBuilder;
 import io.confluent.ksql.planner.LogicalPlanNode;
 import io.confluent.ksql.planner.LogicalPlanner;
 import io.confluent.ksql.planner.plan.OutputNode;
+import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
@@ -37,6 +38,7 @@ import io.confluent.ksql.util.QueryMetadata;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Consumer;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.slf4j.Logger;
@@ -145,11 +147,25 @@ class QueryEngine {
       final KsqlConfig config
   ) {
     final String outputPrefix = config.getString(KsqlConfig.KSQL_OUTPUT_TOPIC_NAME_PREFIX_CONFIG);
-    final QueryAnalyzer queryAnalyzer = new QueryAnalyzer(metaStore, outputPrefix);
+
+    final Set<SerdeOption> defaultSerdeOptions = buildDefaultSerdeOptions(config);
+
+    final QueryAnalyzer queryAnalyzer =
+        new QueryAnalyzer(metaStore, outputPrefix, defaultSerdeOptions);
 
     final Analysis analysis = queryAnalyzer.analyze(sqlExpression, query, sink);
     final AggregateAnalysisResult aggAnalysis = queryAnalyzer.analyzeAggregate(query, analysis);
 
     return new LogicalPlanner(analysis, aggAnalysis, metaStore).buildPlan();
+  }
+
+  private static Set<SerdeOption> buildDefaultSerdeOptions(final KsqlConfig config) {
+    final Set<SerdeOption> options = SerdeOption.none();
+
+    if (!config.getBoolean(KsqlConfig.KSQL_WRAP_SINGLE_VALUES)) {
+      options.add(SerdeOption.UNWRAP_SINGLE_VALUES);
+    }
+
+    return options;
   }
 }

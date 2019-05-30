@@ -17,6 +17,8 @@ package io.confluent.ksql.util;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.KsqlSchemaWithOptions;
+import io.confluent.ksql.serde.SerdeOption;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -40,7 +42,7 @@ public class ItemDataProvider extends TestDataProvider {
   private static final Map<String, GenericRow> data = buildData();
 
   public ItemDataProvider() {
-    super(namePrefix, ksqlSchemaString, key, schema, data);
+    super(namePrefix, ksqlSchemaString, key, KsqlSchemaWithOptions.of(schema, SerdeOption.none()), data);
   }
 
   private static Map<String, GenericRow> buildData() {

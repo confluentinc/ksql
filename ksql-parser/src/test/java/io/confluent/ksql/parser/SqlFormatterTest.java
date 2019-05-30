@@ -51,6 +51,7 @@ import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.Type.SqlType;
 import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
@@ -137,10 +138,12 @@ public class SqlFormatterTest {
         "sqlexpression",
         "ADDRESS",
         KsqlSchema.of(schemaBuilderOrders),
+        SerdeOption.none(),
         KeyField.of("ORDERTIME", schemaBuilderOrders.field("ORDERTIME")),
         new MetadataTimestampExtractionPolicy(),
         ksqlTopicOrders,
-        Serdes::String);
+        Serdes::String
+    );
 
     metaStore.putTopic(ksqlTopicOrders);
     metaStore.putSource(ksqlStreamOrders);
@@ -152,10 +155,12 @@ public class SqlFormatterTest {
         "sqlexpression",
         "ITEMID",
         KsqlSchema.of(itemInfoSchema),
+        SerdeOption.none(),
         KeyField.of("ITEMID", itemInfoSchema.field("ITEMID")),
         new MetadataTimestampExtractionPolicy(),
         ksqlTopicItems,
-        Serdes::String);
+        Serdes::String
+    );
     metaStore.putTopic(ksqlTopicItems);
     metaStore.putSource(ksqlTableOrders);
   }

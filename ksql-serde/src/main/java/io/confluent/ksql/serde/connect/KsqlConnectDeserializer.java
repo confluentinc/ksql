@@ -23,10 +23,9 @@ import java.util.Optional;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.connect.data.SchemaAndValue;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.storage.Converter;
 
-public class KsqlConnectDeserializer implements Deserializer<Struct> {
+public class KsqlConnectDeserializer implements Deserializer<Object> {
 
   private final Converter converter;
   private final DataTranslator translator;
@@ -47,14 +46,15 @@ public class KsqlConnectDeserializer implements Deserializer<Struct> {
   }
 
   @Override
-  public Struct deserialize(final String topic, final byte[] bytes) {
+  public Object deserialize(final String topic, final byte[] bytes) {
     try {
       final SchemaAndValue schemaAndValue = converter.toConnectData(topic, bytes);
       return translator.toKsqlRow(schemaAndValue.schema(), schemaAndValue.value());
     } catch (final Exception e) {
       recordLogger.error(SerdeProcessingLogMessageFactory
           .deserializationErrorMsg(e, Optional.ofNullable(bytes)));
-      throw new SerializationException(e);
+      throw new SerializationException(
+          "Error deserializing message from topic: " + topic, e);
     }
   }
 

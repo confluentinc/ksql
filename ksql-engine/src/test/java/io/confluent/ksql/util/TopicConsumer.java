@@ -19,11 +19,12 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasSize;
 
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
-import io.confluent.ksql.schema.ksql.KsqlSchema;
-import io.confluent.ksql.serde.GenericRowSerDe.GenericRowDeserializer;
-import io.confluent.ksql.serde.json.KsqlJsonDeserializer;
+import io.confluent.ksql.schema.ksql.KsqlSchemaWithOptions;
+import io.confluent.ksql.serde.GenericRowSerDe;
+import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import java.time.Duration;
 import java.util.Collections;
@@ -89,14 +90,18 @@ public class TopicConsumer {
 
   public <K> Map<K, GenericRow> readResults(
       final String topic,
-      final KsqlSchema schema,
+      final KsqlSchemaWithOptions schema,
       final int expectedNumMessages,
       final Deserializer<K> keyDeserializer
   ) {
-    final Deserializer<GenericRow> deserializer = new GenericRowDeserializer(
-        new KsqlJsonDeserializer(
-            schema.getSchema(),
-            processingLogContext.getLoggerFactory().getLogger("consumer")));
+    final Deserializer<GenericRow> deserializer = GenericRowSerDe.from(
+        new KsqlJsonSerdeFactory(),
+        schema,
+        new KsqlConfig(ImmutableMap.of()),
+        () -> null,
+        "consumer",
+        processingLogContext
+    ).deserializer();
 
     return readResults(
         topic,

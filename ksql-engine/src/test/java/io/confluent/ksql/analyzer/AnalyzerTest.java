@@ -17,9 +17,11 @@ package io.confluent.ksql.analyzer;
 
 import static io.confluent.ksql.testutils.AnalysisTestUtil.analyzeQuery;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 
+import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.analyzer.Analysis.Into;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.InternalFunctionRegistry;
@@ -36,6 +38,7 @@ import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.planner.plan.JoinNode;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.avro.KsqlAvroSerdeFactory;
 import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
 import io.confluent.ksql.util.KsqlConstants;
@@ -44,6 +47,7 @@ import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Schema;
@@ -56,6 +60,8 @@ import org.junit.rules.ExpectedException;
 
 @SuppressWarnings("OptionalGetWithoutIsPresent")
 public class AnalyzerTest {
+
+  private static final Set<SerdeOption> DEFAULT_SERDE_OPTIONS = SerdeOption.none();
 
   private MutableMetaStore jsonMetaStore;
   private MutableMetaStore avroMetaStore;
@@ -247,7 +253,7 @@ public class AnalyzerTest {
     final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statements.get(0);
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(testMetastore, "");
+    final Analyzer analyzer = new Analyzer(testMetastore, "", DEFAULT_SERDE_OPTIONS);
     final Analysis analysis = analyzer
         .analyze("sqlExpression", query, Optional.of(createStreamAsSelect.getSink()));
 
@@ -266,7 +272,7 @@ public class AnalyzerTest {
     final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statements.get(0);
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(jsonMetaStore, "");
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", DEFAULT_SERDE_OPTIONS);
     final Analysis analysis = analyzer
         .analyze("sqlExpression", query, Optional.of(createStreamAsSelect.getSink()));
 
@@ -282,7 +288,7 @@ public class AnalyzerTest {
     final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statements.get(0);
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(jsonMetaStore, "");
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", DEFAULT_SERDE_OPTIONS);
     final Analysis analysis = analyzer
         .analyze("sqlExpression", query, Optional.of(createStreamAsSelect.getSink()));
 
@@ -299,7 +305,7 @@ public class AnalyzerTest {
     final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statements.get(0);
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(avroMetaStore, "");
+    final Analyzer analyzer = new Analyzer(avroMetaStore, "", DEFAULT_SERDE_OPTIONS);
     final Analysis analysis = analyzer
           .analyze("sqlExpression", query, Optional.of(createStreamAsSelect.getSink()));
 
@@ -330,10 +336,12 @@ public class AnalyzerTest {
             "create stream s0 with(KAFKA_TOPIC='s0', VALUE_AVRO_SCHEMA_FULL_NAME='org.ac.s1', VALUE_FORMAT='avro');",
             "S0",
             KsqlSchema.of(schema),
+        SerdeOption.none(),
             KeyField.of("FIELD1", schema.field("FIELD1")),
             new MetadataTimestampExtractionPolicy(),
             ksqlTopic,
-            Serdes::String);
+            Serdes::String
+    );
 
     newAvroMetaStore.putTopic(ksqlTopic);
     newAvroMetaStore.putSource(ksqlStream);
@@ -342,7 +350,7 @@ public class AnalyzerTest {
     final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statements.get(0);
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(newAvroMetaStore, "");
+    final Analyzer analyzer = new Analyzer(newAvroMetaStore, "", DEFAULT_SERDE_OPTIONS);
     final Analysis analysis = analyzer
         .analyze("sqlExpression", query, Optional.of(createStreamAsSelect.getSink()));
 
@@ -359,7 +367,7 @@ public class AnalyzerTest {
     final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statements.get(0);
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(avroMetaStore, "");
+    final Analyzer analyzer = new Analyzer(avroMetaStore, "", DEFAULT_SERDE_OPTIONS);
     final Analysis analysis = analyzer
         .analyze("sqlExpression", query, Optional.of(createStreamAsSelect.getSink()));
 
@@ -375,7 +383,7 @@ public class AnalyzerTest {
     final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statements.get(0);
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(jsonMetaStore, "");
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", DEFAULT_SERDE_OPTIONS);
 
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage(DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME + " is only valid for AVRO topics.");
@@ -390,12 +398,115 @@ public class AnalyzerTest {
     final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statements.get(0);
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(jsonMetaStore, "");
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", DEFAULT_SERDE_OPTIONS);
 
     expectedException.expect(IllegalArgumentException.class);
     expectedException.expectMessage("the schema name cannot be empty");
 
     analyzer.analyze("sqlExpression", query, Optional.of(createStreamAsSelect.getSink()));
+  }
+
+  @Test
+  public void shouldExtractExplicitUnwrappingOfSingleValue() {
+    // Given:
+    final CreateStreamAsSelect csas = parseSingle(
+        "CREATE STREAM FOO WITH (WRAP_SINGLE_VALUE=false) AS SELECT col0 FROM test1;");
+
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", SerdeOption.none());
+
+    // When:
+    final Analysis result = analyzer
+        .analyze("sql Exp", csas.getQuery(), Optional.of(csas.getSink()));
+
+    // Then:
+    assertThat(result.getSerdeOptions(), contains(SerdeOption.UNWRAP_SINGLE_VALUES));
+  }
+
+  @Test
+  public void shouldExtractExplicitWrappingOfSingleValue() {
+    // Given:
+    final CreateStreamAsSelect csas = parseSingle(
+        "CREATE STREAM FOO WITH (WRAP_SINGLE_VALUE=true) AS SELECT col0 FROM test1;");
+
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", SerdeOption.of(SerdeOption.UNWRAP_SINGLE_VALUES));
+
+    // When:
+    final Analysis result = analyzer
+        .analyze("sql Exp", csas.getQuery(), Optional.of(csas.getSink()));
+
+    // Then:
+    assertThat(result.getSerdeOptions(), not(contains(SerdeOption.UNWRAP_SINGLE_VALUES)));
+  }
+
+  @Test
+  public void shouldDefaultToWrappedSingleValue() {
+    // Given:
+    final CreateStreamAsSelect csas = parseSingle(
+        "CREATE STREAM FOO AS SELECT col0 FROM test1;");
+
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", DEFAULT_SERDE_OPTIONS);
+
+    // When:
+    final Analysis result = analyzer
+        .analyze("sql Exp", csas.getQuery(), Optional.of(csas.getSink()));
+
+    // Then:
+    assertThat(result.getSerdeOptions(), not(contains(SerdeOption.UNWRAP_SINGLE_VALUES)));
+  }
+
+  @Test
+  public void shouldNotSetValueWrappingByDefaultForMultField() {
+    // Given:
+    final CreateStreamAsSelect csas = parseSingle(
+        "CREATE STREAM FOO AS SELECT * FROM test1;");
+
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", DEFAULT_SERDE_OPTIONS);
+
+    // When:
+    final Analysis result = analyzer
+        .analyze("sql Exp", csas.getQuery(), Optional.of(csas.getSink()));
+
+    // Then:
+    assertThat(result.getSerdeOptions(), is(ImmutableSet.of()));
+  }
+
+  @Test
+  public void shouldThrowIfWrapSingleValueSuppliedForMultiField() {
+    // Given:
+    final CreateStreamAsSelect csas = parseSingle(
+        "CREATE STREAM FOO WITH (WRAP_SINGLE_VALUE=true) AS SELECT * FROM test1;");
+
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", DEFAULT_SERDE_OPTIONS);
+
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(
+        "'WRAP_SINGLE_VALUE' is only valid for single-field value schemas");
+
+    // When:
+    analyzer.analyze("sql Exp", csas.getQuery(), Optional.of(csas.getSink()));
+  }
+
+  @Test
+  public void shouldThrowIfUnwrapSingleValueSuppliedForMultiField() {
+    // Given:
+    final CreateStreamAsSelect csas = parseSingle(
+        "CREATE STREAM FOO WITH (WRAP_SINGLE_VALUE=false) AS SELECT * FROM test1;");
+
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", DEFAULT_SERDE_OPTIONS);
+
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(
+        "'WRAP_SINGLE_VALUE' is only valid for single-field value schemas");
+
+    // When:
+    analyzer.analyze("sql Exp", csas.getQuery(), Optional.of(csas.getSink()));
+  }
+
+  @SuppressWarnings("unchecked")
+  private <T extends Statement> T parseSingle(final String simpleQuery) {
+    return (T)parse(simpleQuery, jsonMetaStore).get(0);
   }
 
   private static List<Statement> parse(final String simpleQuery, final MetaStore metaStore) {

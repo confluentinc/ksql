@@ -27,19 +27,19 @@ public final class AvroUtil {
   }
 
   public static boolean isValidSchemaEvolution(
-      final PersistentQueryMetadata persistentQueryMetadata,
+      final PersistentQueryMetadata queryMetadata,
       final SchemaRegistryClient schemaRegistryClient
   ) {
-    if (persistentQueryMetadata.getResultTopicFormat() != Format.AVRO) {
+    if (queryMetadata.getResultTopicFormat() != Format.AVRO) {
       return true;
     }
 
     final org.apache.avro.Schema avroSchema = SchemaUtil.buildAvroSchema(
-        persistentQueryMetadata.getPersistenceSchemas().valueSchema(),
-        persistentQueryMetadata.getResultTopic().getKsqlTopicName()
+        queryMetadata.getResultSchemaWithOptions().getPhysicalSchema().valueSchema(),
+        queryMetadata.getResultTopic().getKsqlTopicName()
     );
 
-    final String topicName = persistentQueryMetadata.getResultTopic().getKafkaTopicName();
+    final String topicName = queryMetadata.getResultTopic().getKafkaTopicName();
 
     return isValidAvroSchemaForTopic(topicName, avroSchema, schemaRegistryClient);
   }

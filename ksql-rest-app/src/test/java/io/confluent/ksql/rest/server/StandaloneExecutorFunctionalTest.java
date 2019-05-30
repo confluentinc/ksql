@@ -25,6 +25,10 @@ import io.confluent.ksql.KsqlConfigTestUtil;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.rest.server.computation.ConfigStore;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.KsqlSchemaWithOptions;
+import io.confluent.ksql.schema.persistence.PersistenceSchema;
+import io.confluent.ksql.schema.persistence.PersistenceSchemas;
+import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
@@ -40,6 +44,7 @@ import java.nio.file.Path;
 import java.util.Map;
 import java.util.function.Function;
 import org.apache.kafka.clients.CommonClientConfigs;
+import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.After;
@@ -71,7 +76,7 @@ public class StandaloneExecutorFunctionalTest {
   private static final String AVRO_TOPIC = "avro-topic";
   private static final String JSON_TOPIC = "json-topic";
   private static int DATA_SIZE;
-  private static KsqlSchema DATA_SCHEMA;
+  private static KsqlSchemaWithOptions DATA_SCHEMA;
 
   @Mock
   private VersionCheckerAgent versionChecker;
@@ -155,9 +160,12 @@ public class StandaloneExecutorFunctionalTest {
         + "\n"
         + "CREATE STREAM " + s2 + " AS SELECT * FROM S;\n");
 
-    final KsqlSchema dataSchema = KsqlSchema.of(SchemaBuilder.struct()
-        .field("ORDERTIME", Schema.OPTIONAL_INT64_SCHEMA)
-        .build());
+    final KsqlSchemaWithOptions dataSchema = KsqlSchemaWithOptions.of(
+        KsqlSchema.of(SchemaBuilder.struct()
+            .field("ORDERTIME", Schema.OPTIONAL_INT64_SCHEMA)
+            .build()),
+        SerdeOption.none()
+    );
 
     // When:
     standalone.start();
@@ -193,9 +201,12 @@ public class StandaloneExecutorFunctionalTest {
         + "\n"
         + "CREATE STREAM " + s2 + " AS SELECT * FROM S;\n");
 
-    final KsqlSchema dataSchema = KsqlSchema.of(SchemaBuilder.struct()
-        .field("ORDERTIME", Schema.OPTIONAL_INT64_SCHEMA)
-        .build());
+    final KsqlSchemaWithOptions dataSchema = KsqlSchemaWithOptions.of(
+        KsqlSchema.of(SchemaBuilder.struct()
+            .field("ORDERTIME", Schema.OPTIONAL_INT64_SCHEMA)
+            .build()),
+        SerdeOption.none()
+    );
 
     // When:
     standalone.start();
@@ -290,14 +301,17 @@ public class StandaloneExecutorFunctionalTest {
   }
 
   private static void givenIncompatibleSchemaExists(final String topicName) {
-    final KsqlSchema incompatible = KsqlSchema.of(SchemaBuilder.struct()
+    final PersistenceSchemas incompatible = PersistenceSchemas.of(
+        PersistenceSchema.of((ConnectSchema) SchemaBuilder.struct()
         .field("ORDERID", SchemaBuilder
             .struct()
             .field("fred", Schema.OPTIONAL_INT32_SCHEMA)
             .optional()
             .build())
         .field("Other", Schema.OPTIONAL_INT64_SCHEMA)
-        .build());
+                .build()
+        )
+    );
 
     TEST_HARNESS.ensureSchema(topicName, incompatible);
   }

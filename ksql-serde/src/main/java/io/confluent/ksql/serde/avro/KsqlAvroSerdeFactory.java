@@ -21,6 +21,7 @@ import io.confluent.connect.avro.AvroDataConfig;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.AbstractKafkaAvroSerDeConfig;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
+import io.confluent.ksql.schema.persistence.PersistenceSchema;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.serde.connect.KsqlConnectDeserializer;
@@ -33,8 +34,6 @@ import java.util.Objects;
 import java.util.function.Supplier;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.Struct;
 
 @Immutable
 public class KsqlAvroSerdeFactory extends KsqlSerdeFactory {
@@ -70,14 +69,14 @@ public class KsqlAvroSerdeFactory extends KsqlSerdeFactory {
   }
 
   @Override
-  protected Serializer<Struct> createSerializer(
-      final Schema logicalSchema,
+  protected Serializer<Object> createSerializer(
+      final PersistenceSchema schema,
       final KsqlConfig ksqlConfig,
       final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
   ) {
     return new ThreadLocalSerializer<>(
         () -> createConnectSerializer(
-            logicalSchema,
+            schema,
             ksqlConfig,
             schemaRegistryClientFactory
         )
@@ -85,15 +84,15 @@ public class KsqlAvroSerdeFactory extends KsqlSerdeFactory {
   }
 
   @Override
-  protected Deserializer<Struct> createDeserializer(
-      final Schema logicalSchema,
+  protected Deserializer<Object> createDeserializer(
+      final PersistenceSchema schema,
       final KsqlConfig ksqlConfig,
       final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
       final ProcessingLogger processingLogger
   ) {
     return new ThreadLocalDeserializer<>(
         () -> createConnectDeserializer(
-            logicalSchema,
+            schema,
             ksqlConfig,
             schemaRegistryClientFactory,
             processingLogger)
@@ -101,26 +100,20 @@ public class KsqlAvroSerdeFactory extends KsqlSerdeFactory {
   }
 
   private KsqlConnectSerializer createConnectSerializer(
-      final Schema logicalSchema,
+      final PersistenceSchema schema,
       final KsqlConfig ksqlConfig,
       final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
   ) {
-    final AvroDataTranslator translator = createAvroTranslator(logicalSchema, ksqlConfig);
+    final AvroDataTranslator translator = createAvroTranslator(schema, ksqlConfig);
 
     final AvroConverter avroConverter =
         getAvroConverter(schemaRegistryClientFactory.get(), ksqlConfig);
 
-    final Schema physicalSchema = translator.getConnectSchema();
-
-    return new KsqlConnectSerializer(
-        physicalSchema,
-        translator,
-        avroConverter
-    );
+    return new KsqlConnectSerializer(translator.getConnectSchema(), translator, avroConverter);
   }
 
   private KsqlConnectDeserializer createConnectDeserializer(
-      final Schema schema,
+      final PersistenceSchema schema,
       final KsqlConfig ksqlConfig,
       final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
       final ProcessingLogger processingLogger
@@ -134,7 +127,7 @@ public class KsqlAvroSerdeFactory extends KsqlSerdeFactory {
   }
 
   private AvroDataTranslator createAvroTranslator(
-      final Schema schema,
+      final PersistenceSchema schema,
       final KsqlConfig ksqlConfig
   ) {
     final boolean useNamedMaps = ksqlConfig.getBoolean(KsqlConfig.KSQL_USE_NAMED_AVRO_MAPS);

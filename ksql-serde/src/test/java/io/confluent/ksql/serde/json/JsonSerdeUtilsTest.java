@@ -15,13 +15,25 @@
 
 package io.confluent.ksql.serde.json;
 
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
-import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.schema.persistence.PersistenceSchema;
+import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.apache.kafka.connect.data.ConnectSchema;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 public class JsonSerdeUtilsTest {
+
+  @Rule
+  public final ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void shouldConvertToBooleanCorrectly() {
@@ -58,7 +70,7 @@ public class JsonSerdeUtilsTest {
     assertThat(i, equalTo(1));
   }
 
-  @Test(expected = KsqlException.class)
+  @Test(expected = IllegalArgumentException.class)
   public void shouldNotConvertIncorrectStringToInt() {
     JsonSerdeUtils.toInteger("1!:)");
   }
@@ -92,7 +104,7 @@ public class JsonSerdeUtilsTest {
     assertThat(l, equalTo(1L));
   }
 
-  @Test(expected = KsqlException.class)
+  @Test(expected = IllegalArgumentException.class)
   public void shouldNotConvertIncorrectStringToLong() {
     JsonSerdeUtils.toLong("1!:)");
   }
@@ -126,7 +138,7 @@ public class JsonSerdeUtilsTest {
     assertThat(d, equalTo(1.0));
   }
 
-  @Test(expected = KsqlException.class)
+  @Test(expected = IllegalArgumentException.class)
   public void shouldNotConvertIncorrectStringToDouble() {
     JsonSerdeUtils.toDouble("1!:)");
   }
@@ -134,5 +146,89 @@ public class JsonSerdeUtilsTest {
   @Test(expected = IllegalArgumentException.class)
   public void shouldFailWhenConvertingIncompatibleDouble() {
     JsonSerdeUtils.toDouble(true);
+  }
+
+  @Test
+  public void shouldNotIncludeValueInExceptionWhenFailingToBoolean() {
+    try {
+      // When:
+      JsonSerdeUtils.toBoolean("personal info: do not log me");
+
+      fail("Invalid test: should throw");
+
+    } catch (final Exception e) {
+      assertThat(ExceptionUtils.getStackTrace(e), not(containsString("personal info")));
+    }
+  }
+
+  @Test
+  public void shouldNotIncludeValueInExceptionWhenFailingToInteger() {
+    try {
+      // When:
+      JsonSerdeUtils.toInteger("personal info: do not log me");
+
+      fail("Invalid test: should throw");
+
+    } catch (final Exception e) {
+      assertThat(ExceptionUtils.getStackTrace(e), not(containsString("personal info")));
+    }
+  }
+
+  @Test
+  public void shouldNotIncludeValueInExceptionWhenFailingToLong() {
+    try {
+      // When:
+      JsonSerdeUtils.toLong("personal info: do not log me");
+
+      fail("Invalid test: should throw");
+
+    } catch (final Exception e) {
+      assertThat(ExceptionUtils.getStackTrace(e), not(containsString("personal info")));
+    }
+  }
+
+  @Test
+  public void shouldNotIncludeValueInExceptionWhenFailingToDouble() {
+    try {
+      // When:
+      JsonSerdeUtils.toDouble("personal info: do not log me");
+
+      fail("Invalid test: should throw");
+
+    } catch (final Exception e) {
+      assertThat(ExceptionUtils.getStackTrace(e), not(containsString("personal info")));
+    }
+  }
+
+  @Test
+  public void shouldThrowOnMapWithNoneStringKeys() {
+    // Then:
+    expectedException.expect(IllegalArgumentException.class);
+    expectedException.expectMessage("Only MAPs with STRING keys are supported");
+
+    //  When:
+    JsonSerdeUtils.validateSchema(PersistenceSchema.of(
+        (ConnectSchema) SchemaBuilder
+            .map(Schema.OPTIONAL_BOOLEAN_SCHEMA, Schema.OPTIONAL_STRING_SCHEMA)
+            .build()
+    ));
+  }
+
+  @Test
+  public void shouldThrowOnNestedMapWithNoneStringKeys() {
+    // Then:
+    expectedException.expect(IllegalArgumentException.class);
+    expectedException.expectMessage("Only MAPs with STRING keys are supported");
+
+    //  When:
+    JsonSerdeUtils.validateSchema(PersistenceSchema.of(
+        (ConnectSchema) SchemaBuilder
+            .struct()
+            .field("f0", SchemaBuilder
+                .map(Schema.OPTIONAL_BOOLEAN_SCHEMA, Schema.OPTIONAL_STRING_SCHEMA)
+                .optional()
+                .build())
+            .build()
+    ));
   }
 }

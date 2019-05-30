@@ -27,7 +27,8 @@ import static org.hamcrest.Matchers.is;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.schema.ksql.KsqlSchemaWithOptions;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.KafkaTopicClient.TopicCleanupPolicy;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
@@ -87,7 +88,7 @@ public class WindowingIntTest {
   private String sourceTopicName;
   private String resultStream0;
   private String resultStream1;
-  private KsqlSchema resultSchema;
+  private KsqlSchemaWithOptions resultSchema;
   private Set<String> preExistingTopics;
   private KafkaTopicClient topicClient;
 
@@ -210,7 +211,11 @@ public class WindowingIntTest {
 
   private void givenTable(final String sql) {
     ksqlContext.sql(String.format(sql, resultStream0));
-    resultSchema = ksqlContext.getMetaStore().getSource(resultStream0).getSchema();
+    final DataSource<?> source = ksqlContext.getMetaStore().getSource(resultStream0);
+    resultSchema = KsqlSchemaWithOptions.of(
+        source.getSchema(),
+        source.getSerdeOptions()
+    );
   }
 
   @SuppressWarnings("unchecked")
@@ -231,7 +236,13 @@ public class WindowingIntTest {
       final Matcher<? super Map<K, GenericRow>> tableRowMatcher
   ) {
     ksqlContext.sql("CREATE TABLE " + resultStream1 + " AS SELECT * FROM " + resultStream0 + ";");
-    resultSchema = ksqlContext.getMetaStore().getSource(resultStream1).getSchema();
+
+    final DataSource<?> source = ksqlContext.getMetaStore().getSource(resultStream1);
+
+    resultSchema = KsqlSchemaWithOptions.of(
+        source.getSchema(),
+        source.getSerdeOptions()
+    );
 
     assertOutputOf(resultStream1, expected, tableRowMatcher);
   }

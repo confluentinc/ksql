@@ -20,7 +20,9 @@ import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.schema.connect.SchemaFormatter;
+import io.confluent.ksql.schema.persistence.PersistenceSchema;
 import java.util.LinkedHashMap;
+import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Schema;
 import org.junit.Before;
 import org.junit.Test;
@@ -31,9 +33,12 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class QuerySchemasTest {
 
-  private static final Schema SCHEMA_ONE = Schema.FLOAT64_SCHEMA;
-  private static final Schema SCHEMA_TWO = Schema.OPTIONAL_INT32_SCHEMA;
-  private static final Schema SCHEMA_THREE = Schema.STRING_SCHEMA;
+  private static final PersistenceSchema SCHEMA_ONE = PersistenceSchema
+      .of((ConnectSchema) Schema.FLOAT64_SCHEMA);
+  private static final PersistenceSchema SCHEMA_TWO = PersistenceSchema
+      .of((ConnectSchema) Schema.OPTIONAL_INT32_SCHEMA);
+  private static final PersistenceSchema SCHEMA_THREE = PersistenceSchema
+      .of((ConnectSchema) Schema.STRING_SCHEMA);
 
   private static final String SCHEMA_ONE_TEXT = "{if you squint, this looks like schema one}";
   private static final String SCHEMA_TWO_TEXT = "{better looking than schema one}";
@@ -46,16 +51,16 @@ public class QuerySchemasTest {
 
   @Before
   public void setUp() {
-    final LinkedHashMap<String, Schema> orderedSchemas = new LinkedHashMap<>();
+    final LinkedHashMap<String, PersistenceSchema> orderedSchemas = new LinkedHashMap<>();
     orderedSchemas.put("thing one", SCHEMA_ONE);
     orderedSchemas.put("thing two", SCHEMA_TWO);
     orderedSchemas.put("thing three", SCHEMA_THREE);
 
     schemas = new QuerySchemas(orderedSchemas, schemaFormatter);
 
-    when(schemaFormatter.format(SCHEMA_ONE)).thenReturn(SCHEMA_ONE_TEXT);
-    when(schemaFormatter.format(SCHEMA_TWO)).thenReturn(SCHEMA_TWO_TEXT);
-    when(schemaFormatter.format(SCHEMA_THREE)).thenReturn(SCHEMA_THREE_TEXT);
+    when(schemaFormatter.format(SCHEMA_ONE.getConnectSchema())).thenReturn(SCHEMA_ONE_TEXT);
+    when(schemaFormatter.format(SCHEMA_TWO.getConnectSchema())).thenReturn(SCHEMA_TWO_TEXT);
+    when(schemaFormatter.format(SCHEMA_THREE.getConnectSchema())).thenReturn(SCHEMA_THREE_TEXT);
   }
 
   @Test

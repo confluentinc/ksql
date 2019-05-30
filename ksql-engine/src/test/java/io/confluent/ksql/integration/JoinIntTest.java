@@ -20,7 +20,8 @@ import static io.confluent.ksql.serde.Format.JSON;
 
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.schema.ksql.KsqlSchemaWithOptions;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.test.util.TopicTestUtil;
 import io.confluent.ksql.util.ItemDataProvider;
@@ -104,8 +105,13 @@ public class JoinIntTest {
 
     ksqlContext.sql(queryString);
 
-    final KsqlSchema resultSchema = ksqlContext.getMetaStore().getSource(testStreamName)
-        .getSchema();
+    final DataSource<?> source = ksqlContext.getMetaStore()
+        .getSource(testStreamName);
+
+    final KsqlSchemaWithOptions resultSchema = KsqlSchemaWithOptions.of(
+        source.getSchema(),
+        source.getSerdeOptions()
+    );
 
     final Map<String, GenericRow> expectedResults =
         Collections.singletonMap("ITEM_1",
@@ -173,8 +179,13 @@ public class JoinIntTest {
     ksqlContext.sql(csasQueryString);
     ksqlContext.sql(insertQueryString);
 
-    final KsqlSchema resultSchema = ksqlContext.getMetaStore().getSource(testStreamName)
-        .getSchema();
+    final DataSource<?> source = ksqlContext.getMetaStore()
+        .getSource(testStreamName);
+
+    final KsqlSchemaWithOptions resultSchema = KsqlSchemaWithOptions.of(
+        source.getSchema(),
+        source.getSerdeOptions()
+    );
 
     final Map<String, GenericRow> expectedResults = Collections.singletonMap("ITEM_1", new GenericRow(Arrays.asList(null, null, "ORDER_1", "ITEM_1", 10.0, "home cinema")));
 
@@ -237,7 +248,14 @@ public class JoinIntTest {
     ksqlContext.sql(queryString);
 
     final String outputStream = "OUTPUT";
-    final KsqlSchema resultSchema = ksqlContext.getMetaStore().getSource(outputStream).getSchema();
+
+    final DataSource<?> source = ksqlContext.getMetaStore()
+        .getSource(outputStream);
+
+    final KsqlSchemaWithOptions resultSchema = KsqlSchemaWithOptions.of(
+        source.getSchema(),
+        source.getSerdeOptions()
+    );
 
     final Map<String, GenericRow> expectedResults =
         Collections.singletonMap("ITEM_1",

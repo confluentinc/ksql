@@ -34,8 +34,9 @@ import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
-import io.confluent.ksql.schema.persistence.PersistenceSchema;
+import io.confluent.ksql.schema.ksql.KsqlSchemaWithOptions;
 import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import io.confluent.ksql.util.KsqlConstants;
@@ -46,7 +47,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.Schema.Type;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.glassfish.hk2.api.Factory;
 import org.glassfish.hk2.utilities.binding.AbstractBinder;
@@ -187,18 +187,19 @@ public class KsqlResourceFunctionalTest {
   @Test
   public void shouldInsertIntoValuesForAvroTopic() throws Exception {
     // Given:
-    final KsqlSchema schema = KsqlSchema.of(new SchemaBuilder(Type.STRUCT)
-        .field("ROWTIME", Schema.OPTIONAL_INT64_SCHEMA)
-        .field("ROWKEY", Schema.OPTIONAL_STRING_SCHEMA)
-        .field("AUTHOR", Schema.OPTIONAL_STRING_SCHEMA)
-        .field("TITLE", Schema.OPTIONAL_STRING_SCHEMA)
-        .build());
+    final KsqlSchemaWithOptions schema = KsqlSchemaWithOptions.of(
+        KsqlSchema.of(SchemaBuilder.struct()
+            .field("AUTHOR", Schema.OPTIONAL_STRING_SCHEMA)
+            .field("TITLE", Schema.OPTIONAL_STRING_SCHEMA)
+            .build()),
+        SerdeOption.none()
+    );
 
     TEST_HARNESS.getSchemaRegistryClient()
         .register(
             "books" + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX,
             SchemaUtil.buildAvroSchema(
-                PersistenceSchema.of(schema.withoutImplicitFields().getSchema()),
+                schema.getPhysicalSchema().valueSchema(),
                 "books" + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX
             )
         );
@@ -223,7 +224,8 @@ public class KsqlResourceFunctionalTest {
             0L,
             123L)),
         Format.AVRO,
-        schema.withoutImplicitFields());
+        schema
+    );
   }
 
   @SuppressWarnings("SameParameterValue")

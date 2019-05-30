@@ -81,7 +81,7 @@ public class KsqlConnectDeserializerTest {
   @Test
   public void shouldDeserializeRecordsCorrectly() {
     // When:
-    final Struct deserialized = connectDeserializer.deserialize(TOPIC, BYTES);
+    final Struct deserialized = (Struct) connectDeserializer.deserialize(TOPIC, BYTES);
 
     // Then:
     verify(converter, times(1)).toConnectData(TOPIC, BYTES);

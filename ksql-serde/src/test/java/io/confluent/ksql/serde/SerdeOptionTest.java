@@ -13,23 +13,14 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.schema.persistence;
+package io.confluent.ksql.serde;
 
-import static org.mockito.Mockito.mock;
-
-import com.google.common.collect.ImmutableMap;
-import com.google.common.testing.NullPointerTester;
-import io.confluent.ksql.schema.ksql.KsqlSchema;
-import io.confluent.ksql.util.KsqlConfig;
 import org.junit.Test;
 
-public class PersistenceSchemasFactoryTest {
+public class SerdeOptionTest {
 
   @Test
-  public void shouldNPE() {
-    new NullPointerTester()
-        .setDefault(KsqlSchema.class, mock(KsqlSchema.class))
-        .setDefault(KsqlConfig.class, new KsqlConfig(ImmutableMap.of()))
-        .testAllPublicStaticMethods(PersistenceSchemasFactory.class);
+  public void shouldBuildFromConfig() {
+
   }
 }

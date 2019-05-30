@@ -28,15 +28,16 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MutableMetaStore;
+import io.confluent.ksql.parser.tree.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.QualifiedName;
-import io.confluent.ksql.parser.tree.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.Type.SqlType;
 import io.confluent.ksql.services.KafkaTopicClient;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.Collections;
@@ -62,6 +63,8 @@ public class CreateTableCommandTest {
   private KafkaTopicClient topicClient;
   @Mock
   private CreateTable createTableStatement;
+  @Mock
+  private KsqlConfig ksqlConfig;
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -188,7 +191,11 @@ public class CreateTableCommandTest {
 
 
   private CreateTableCommand createCmd() {
-    return new CreateTableCommand("some sql", createTableStatement, topicClient);
+    return new CreateTableCommand(
+        "some sql",
+        createTableStatement,
+        ksqlConfig,
+        topicClient);
   }
 
   private void givenPropertiesWith(final Map<String, Literal> props) {

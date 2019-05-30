@@ -43,6 +43,7 @@ import io.confluent.ksql.physical.KsqlQueryBuilder;
 import io.confluent.ksql.planner.plan.JoinNode.JoinType;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.KsqlSchemaWithOptions;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
@@ -122,6 +123,10 @@ public class JoinNodeTest {
   public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
+  private DataSource<?> leftSource;
+  @Mock
+  private DataSource<?> rightSource;
+  @Mock
   private DataSourceNode left;
   @Mock
   private DataSourceNode right;
@@ -161,8 +166,8 @@ public class JoinNodeTest {
     when(left.getPartitions(mockKafkaTopicClient)).thenReturn(2);
     when(right.getPartitions(mockKafkaTopicClient)).thenReturn(2);
 
-    setUpSource(left, "Foobar1");
-    setUpSource(right, "Foobar2");
+    setUpSource(left, leftSource, "Foobar1");
+    setUpSource(right, rightSource, "Foobar2");
 
     when(leftSchemaKStream.getKeyField()).thenReturn(leftJoinField);
     when(leftSchemaKTable.getKeyField()).thenReturn(leftJoinField);
@@ -1002,6 +1007,70 @@ public class JoinNodeTest {
     );
   }
 
+  @Test
+  public void shouldBuildLeftRowSerde() {
+    // Given:
+    setupStream(left, leftSchemaKStream, leftSchema);
+    setupStream(right, rightSchemaKStream, rightSchema);
+
+    final JoinNode joinNode = new JoinNode(
+        nodeId,
+        JoinNode.JoinType.LEFT,
+        left,
+        right,
+        LEFT_JOIN_FIELD_NAME,
+        RIGHT_JOIN_FIELD_NAME,
+        leftAlias,
+        rightAlias,
+        WITHIN_EXPRESSION,
+        DataSourceType.KSTREAM,
+        DataSourceType.KSTREAM);
+
+    // When:
+    joinNode.buildStream(ksqlStreamBuilder);
+
+    // Then:
+    final KsqlSchemaWithOptions expected = KsqlSchemaWithOptions
+        .of(leftSchema, leftSource.getSerdeOptions());
+
+    verify(ksqlStreamBuilder).buildGenericRowSerde(
+        any(),
+        eq(expected),
+        any());
+  }
+
+  @Test
+  public void shouldBuildRightRowSerde() {
+    // Given:
+    setupStream(left, leftSchemaKStream, leftSchema);
+    setupStream(right, rightSchemaKStream, rightSchema);
+
+    final JoinNode joinNode = new JoinNode(
+        nodeId,
+        JoinNode.JoinType.LEFT,
+        left,
+        right,
+        LEFT_JOIN_FIELD_NAME,
+        RIGHT_JOIN_FIELD_NAME,
+        leftAlias,
+        rightAlias,
+        WITHIN_EXPRESSION,
+        DataSourceType.KSTREAM,
+        DataSourceType.KSTREAM);
+
+    // When:
+    joinNode.buildStream(ksqlStreamBuilder);
+
+    // Then:
+    final KsqlSchemaWithOptions expected = KsqlSchemaWithOptions
+        .of(rightSchema, rightSource.getSerdeOptions());
+
+    verify(ksqlStreamBuilder).buildGenericRowSerde(
+        any(),
+        eq(expected),
+        any());
+  }
+
   @SuppressWarnings("unchecked")
   private void setupTable(
       final DataSourceNode node,
@@ -1126,8 +1195,11 @@ public class JoinNodeTest {
   }
 
   @SuppressWarnings("unchecked")
-  private static void setUpSource(final DataSourceNode node, final String name) {
-    final DataSource<?> dataSource = mock(DataSource.class);
+  private static void setUpSource(
+      final DataSourceNode node,
+      final DataSource<?> dataSource,
+      final String name
+  ) {
     when(dataSource.getName()).thenReturn(name);
     when(node.getDataSource()).thenReturn((DataSource)dataSource);
     final KsqlSchema schema = node.getSchema();

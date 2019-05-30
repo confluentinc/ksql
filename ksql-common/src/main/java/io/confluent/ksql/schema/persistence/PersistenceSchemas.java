@@ -24,8 +24,8 @@ import java.util.Objects;
  *
  * <p>While {@link KsqlSchema} represents the logical schema used by KSQL. The schema used to
  * persist keys and values may be different.  The logical schema is always a STRUCT, where as
- * persistence schema may be a STRUCT, or if persisting a single unwrapped field, it may be a
- * primitive, array or map.
+ * persistence schema may be a STRUCT, or if persisting a single unwrapped field, it may be an
+ * anonymous primitive, array or map.
  */
 @Immutable
 public final class PersistenceSchemas {

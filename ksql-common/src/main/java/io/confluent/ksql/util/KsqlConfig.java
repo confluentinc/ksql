@@ -140,7 +140,10 @@ public class KsqlConfig extends AbstractConfig {
 
   public static final String KSQL_USE_LEGACY_KEY_FIELD = "ksql.query.fields.key.legacy";
 
-  private static final String
+  public static final String KSQL_WRAP_SINGLE_VALUES =
+      "ksql.persistence.wrap.single.values";
+
+  public static final String
       defaultSchemaRegistryUrl = "http://localhost:8081";
 
   public static final String KSQL_STREAMS_PREFIX = "ksql.streams.";
@@ -447,6 +450,26 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_SECURITY_EXTENSION_DEFAULT,
             ConfigDef.Importance.LOW,
             KSQL_SECURITY_EXTENSION_DOC
+        ).define(
+            KSQL_WRAP_SINGLE_VALUES,
+            ConfigDef.Type.BOOLEAN,
+            true,
+            ConfigDef.Importance.LOW,
+            "Controls how KSQL will serialize a value whose schema contains only a "
+                + "single column. The setting only sets the default for `CREATE STREAM`, "
+                + "`CREATE TABLE`, `CREATE STREAM AS SELECT`, `CREATE TABLE AS SELECT` and "
+                + "`INSERT INTO` statements, where `WRAP_SINGLE_VALUE` is not provided explicitly "
+                + "in the statement." + System.lineSeparator()
+                + "When set to true, KSQL will persist the single column nested with a STRUCT, "
+                + "for formats that support them. When set to false KSQL will persist "
+                + "the column as the anonymous values." + System.lineSeparator()
+                + "For example, if the value contains only a single column 'FOO INT' and the "
+                + "format is JSON,  and this setting is `false`, then KSQL will persist the value "
+                + "as an unnamed JSON number, e.g. '10'. Where as, if this setting is `true`, KSQL "
+                + "will persist the value as a JSON document with a single numeric property, "
+                + "e.g. '{\"FOO\": 10}." + System.lineSeparator()
+                + "Note: the DELIMITED format ignores this setting as it does not support the "
+                + "concept of a STRUCT, record or object."
         )
         .withClientSslSupport();
     for (final CompatibilityBreakingConfigDef compatibilityBreakingConfigDef

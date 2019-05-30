@@ -75,24 +75,27 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class InsertValuesExecutorTest {
 
   private static final KsqlSchema SINGLE_FIELD_SCHEMA = KsqlSchema.of(SchemaBuilder.struct()
+      .field("ROWTIME", Schema.OPTIONAL_INT64_SCHEMA)
+      .field("ROWKEY", Schema.OPTIONAL_INT64_SCHEMA)
       .field("COL0", Schema.OPTIONAL_INT64_SCHEMA)
-      .build())
-      .withImplicitFields();
+      .build());
 
   private static final KsqlSchema SCHEMA = KsqlSchema.of(SchemaBuilder.struct()
+      .field("ROWTIME", Schema.OPTIONAL_INT64_SCHEMA)
+      .field("ROWKEY", Schema.OPTIONAL_INT64_SCHEMA)
       .field("COL0", Schema.OPTIONAL_INT64_SCHEMA)
       .field("COL1", Schema.OPTIONAL_STRING_SCHEMA)
-      .build())
-      .withImplicitFields();
+      .build());
 
   private static final KsqlSchema BIG_SCHEMA = KsqlSchema.of(SchemaBuilder.struct()
+      .field("ROWTIME", Schema.OPTIONAL_INT64_SCHEMA)
+      .field("ROWKEY", Schema.OPTIONAL_INT64_SCHEMA)
       .field("INT", Schema.OPTIONAL_INT32_SCHEMA)
       .field("COL0", Schema.OPTIONAL_INT64_SCHEMA) // named COL0 for auto-ROWKEY
       .field("DOUBLE", Schema.OPTIONAL_FLOAT64_SCHEMA)
       .field("BOOLEAN", Schema.OPTIONAL_BOOLEAN_SCHEMA)
       .field("VARCHAR", Schema.OPTIONAL_STRING_SCHEMA)
-      .build())
-      .withImplicitFields();
+      .build());
 
   private static final byte[] KEY = new byte[]{1};
   private static final byte[] VALUE = new byte[]{2};

@@ -193,7 +193,7 @@ public class StatementExecutor {
       final PersistentQueryMetadata query = startQuery(statement, command, mode);
       successMessage = statement.getStatement() instanceof CreateTableAsSelect
           ? "Table created and running" : "Stream created and running";
-      successMessage += " with query ID: " + query.getQueryId();
+      successMessage += ". Created by query with query ID: " + query.getQueryId();
     } else if (statement.getStatement() instanceof InsertInto) {
       final PersistentQueryMetadata query = startQuery(statement, command, mode);
       successMessage = "Insert Into query is running with query ID: " + query.getQueryId();

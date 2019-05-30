@@ -329,7 +329,7 @@ public class StatementExecutorTest extends EasyMockSupport {
     assertThat(statusStore.get(topicCommandId).getStatus(), equalTo(CommandStatus.Status.SUCCESS));
     assertThat(statusStore.get(csCommandId).getStatus(), equalTo(CommandStatus.Status.SUCCESS));
     assertThat(statusStore.get(csasCommandId).getStatus(), equalTo(CommandStatus.Status.SUCCESS));
-    assertThat(statusStore.get(csasCommandId).getMessage(), equalTo("Stream created and running with id: CSAS_USER1PV_0"));
+    assertThat(statusStore.get(csasCommandId).getMessage(), equalTo("Stream created and running with query ID: CSAS_USER1PV_0"));
     assertThat(statusStore.get(ctasCommandId).getStatus(), equalTo(CommandStatus.Status.ERROR));
     assertThat(statusStore.get(terminateCmdId).getStatus(), equalTo(CommandStatus.Status.SUCCESS));
   }

@@ -167,7 +167,7 @@ For windowed aggregates the size is determined by the number of outstanding wind
 
 When run in interactive configuration, a KSQL cluster creates an internal topic (whose name is derived from the ``ksql.service.id`` setting) to persist the log of queries to run across all the servers in this KSQL cluster. These special-purpose topics for KSQL are called command topics.  Command topics have a single partition and default to a replication factor of 1.
 
-.. note:
+.. note::
 
    Headless mode deployments don't have a command topic.
 

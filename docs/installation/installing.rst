@@ -11,7 +11,7 @@ as a part of the |cp| bundle.
 KSQL must have access to a running |ak-tm| cluster, which can be in your data center, in a public cloud, |ccloud|, etc.
 
 Docker support
-    You can deploy KSQL by using Docker containers. Starting with |cp| 4.1.2,
+    You can deploy KSQL by using :ref:`Docker containers <install-ksql-with-docker>`. Starting with |cp| 4.1.2,
     Confluent maintains images at `Docker Hub <https://hub.docker.com/r/confluentinc/cp-ksql-server/>`__.
     To start KSQL containers in configurations like "KSQL Headless Server" and
     "Interactive Server with Interceptors", see
@@ -36,6 +36,13 @@ Follow the instructions at :ref:`installing_cp`.
 
 It is also possible to install KSQL individually through :ref:`standalone packages <confluent-ksql-package>`.
 
+---------------------------------
+Scale Your KSQL Server Deployment
+---------------------------------
+
+You can scale KSQL by adding more capacity per server (vertically) or by adding
+more servers (horizontally). Also, you can scale KSQL clusters during live operations
+without loss of data. For more information, see :ref:`ksql-capacity-planning-scaling`.
 
 .. _start_ksql-server:
 

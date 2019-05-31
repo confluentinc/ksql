@@ -227,6 +227,8 @@ Here are some guidelines for choosing between the configuration types:
 - For exploring and experimenting with your data, interactive KSQL clusters are recommended. With this method you can quickly create queries for your use case that will function as a streaming “application” to produce meaningful results. You can then run this “application” with headless, non-interactive KSQL clusters in production.
 - For interactive KSQL usage, you should deploy an interactive KSQL cluster per project or per team instead of a single, large KSQL cluster for your organization.
 
+.. _ksql-capacity-planning-scaling:
+
 Scaling KSQL
 ------------
 

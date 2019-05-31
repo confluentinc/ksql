@@ -167,6 +167,10 @@ For windowed aggregates the size is determined by the number of outstanding wind
 
 When run in interactive configuration, a KSQL cluster creates an internal topic (whose name is derived from the ``ksql.service.id`` setting) to persist the log of queries to run across all the servers in this KSQL cluster. These special-purpose topics for KSQL are called command topics.  Command topics have a single partition and default to a replication factor of 1.
 
+.. note::
+
+   Headless mode deployments don't have a command topic.
+
 Consumption and Production
 ++++++++++++++++++++++++++
 
@@ -223,6 +227,8 @@ Here are some guidelines for choosing between the configuration types:
 - For exploring and experimenting with your data, interactive KSQL clusters are recommended. With this method you can quickly create queries for your use case that will function as a streaming “application” to produce meaningful results. You can then run this “application” with headless, non-interactive KSQL clusters in production.
 - For interactive KSQL usage, you should deploy an interactive KSQL cluster per project or per team instead of a single, large KSQL cluster for your organization.
 
+.. _ksql-capacity-planning-scaling:
+
 Scaling KSQL
 ------------
 
@@ -235,7 +241,10 @@ Similar to Kafka Streams, KSQL throughput scales well as resources are added, if
   lowering the data retention configuration for that underlying stream topic.
 - Increase the number of partitions in the input topic.
 
-To scale KSQL horizontally, run additional KSQL servers with the same ``ksql.service.id``. 
+To scale KSQL horizontally, run additional KSQL servers with the same ``ksql.service.id``.
+
+You can add KSQL Server instances continuously to scale load horizontally, as
+long as there are more partitions than consumers.
 
 How to Know When to Scale
 +++++++++++++++++++++++++

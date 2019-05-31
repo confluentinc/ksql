@@ -53,6 +53,7 @@ public final class TestMethods {
       .put(Duration.class, Duration.ofMillis(1))
       .put(Pattern.class, Pattern.compile(".*"))
       .put(ElectLeadersOptions.class, new ElectLeadersOptions())
+      // Note: do not add none-generic defaults here. Use setDefault() on specific case.
       .build();
 
   private TestMethods() {

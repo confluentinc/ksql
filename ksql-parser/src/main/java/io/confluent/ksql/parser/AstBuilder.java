@@ -1222,8 +1222,6 @@ public class AstBuilder {
           : OptionalInt.of(processIntegerNumber(limitContext.number(), "LIMIT"));
     }
 
-    // Todo(ac): remomve the need for this.
-    // Todo(ac): remove dependency on metastore?
     private DataSource<?> getSource(
         final String name,
         final Optional<NodeLocation> location

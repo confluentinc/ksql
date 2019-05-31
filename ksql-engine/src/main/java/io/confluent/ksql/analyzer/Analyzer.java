@@ -51,7 +51,6 @@ import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.planner.plan.DataSourceNode;
 import io.confluent.ksql.planner.plan.JoinNode;
 import io.confluent.ksql.planner.plan.PlanNodeId;
-import io.confluent.ksql.schema.ksql.Identifiers;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.KsqlSerdeFactories;
@@ -287,7 +286,7 @@ class Analyzer {
 
     private void setSerdeOptions(final Map<String, Expression> properties) {
       final boolean singleField = analysis.getSelectExpressionAlias().stream()
-          .filter(((Predicate<String>)Identifiers::isImplicitColumnName).negate())
+          .filter(((Predicate<String>)KsqlSchema::isImplicitColumnName).negate())
           .count() == 1;
 
       final Expression exp = properties.get(DdlConfig.WRAP_SINGLE_VALUE);

@@ -205,7 +205,7 @@ public final class KsqlSchema {
     schemaBuilder.field(SchemaUtil.ROWTIME_NAME, Schema.OPTIONAL_INT64_SCHEMA);
     schemaBuilder.field(SchemaUtil.ROWKEY_NAME, Schema.OPTIONAL_STRING_SCHEMA);
     for (final Field field : ((Schema) schema).fields()) {
-      if (notImplicitField(field.name())) {
+      if (!isImplicitColumnName(field.name())) {
         schemaBuilder.field(field.name(), field.schema());
       }
     }
@@ -230,7 +230,7 @@ public final class KsqlSchema {
 
     for (final Field field : schema.fields()) {
       final String fieldName = SchemaUtil.getFieldNameWithNoAlias(field.name());
-      if (notImplicitField(fieldName)) {
+      if (!isImplicitColumnName(fieldName)) {
         schemaBuilder.field(field.name(), field.schema());
       }
     }
@@ -258,6 +258,10 @@ public final class KsqlSchema {
   @Override
   public String toString() {
     return "[" + FORMATTER.format(schema) + "]";
+  }
+
+  public static boolean isImplicitColumnName(final String fieldName) {
+    return IMPLICIT_FIELD_NAMES.contains(fieldName.toUpperCase());
   }
 
   private static ConnectSchema validate(final Schema schema, final boolean topLevel) {
@@ -316,10 +320,6 @@ public final class KsqlSchema {
     }
 
     return true;
-  }
-
-  private static boolean notImplicitField(final String fieldName) {
-    return !IMPLICIT_FIELD_NAMES.contains(fieldName);
   }
 }
 

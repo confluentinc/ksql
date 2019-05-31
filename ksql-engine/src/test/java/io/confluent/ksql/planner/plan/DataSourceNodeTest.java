@@ -20,7 +20,6 @@ import static io.confluent.ksql.planner.plan.PlanTestUtil.getNodeByName;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.verifyProcessorNode;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -266,15 +265,6 @@ public class DataSourceNodeTest {
     final TopologyDescription.Processor node = (TopologyDescription.Processor) getNodeByName(
         realBuilder.build(), PlanTestUtil.TRANSFORM_NODE);
     verifyProcessorNode(node, Collections.singletonList(PlanTestUtil.MAPVALUES_NODE), Collections.emptyList());
-  }
-
-  @Test
-  public void shouldHaveNoOutputNode() {
-    // When:
-    realStream = node.buildStream(ksqlStreamBuilder);
-
-    // Then:
-    assertThat(realStream.outputNode(), nullValue());
   }
 
   @Test

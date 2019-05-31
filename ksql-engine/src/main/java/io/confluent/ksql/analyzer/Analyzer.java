@@ -347,12 +347,12 @@ class Analyzer {
     }
 
     private void analyzeExpressions() {
-      KsqlSchema schema = analysis.getFromDataSources().get(0).getLeft().getSchema();
-      boolean isJoinSchema = false;
-      if (analysis.getJoin() != null) {
-        schema = analysis.getJoin().getSchema();
-        isJoinSchema = true;
-      }
+      final boolean isJoinSchema = analysis.getJoin() != null;
+
+      final KsqlSchema schema = isJoinSchema
+          ? analysis.getJoin().getSchema()
+          : analysis.getFromDataSources().get(0).getLeft().getSchema();
+
       final ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(schema, isJoinSchema);
 
       for (final Expression selectExpression : analysis.getSelectExpressions()) {
@@ -411,32 +411,31 @@ class Analyzer {
         throw new KsqlException("Only equality join criteria is supported.");
       }
 
-      final DataSourceNode leftSourceKafkaTopicNode = new DataSourceNode(
+      final DataSourceNode leftSourceNode = new DataSourceNode(
           new PlanNodeId("KafkaTopic_Left"),
           leftDataSource,
           leftAlias
       );
 
-      final DataSourceNode rightSourceKafkaTopicNode = new DataSourceNode(
+      final DataSourceNode rightSourceNode = new DataSourceNode(
           new PlanNodeId("KafkaTopic_Right"),
           rightDataSource,
           rightAlias
       );
 
-      final JoinNode joinNode =
-          new JoinNode(
-              new PlanNodeId("Join"),
-              joinType,
-              leftSourceKafkaTopicNode,
-              rightSourceKafkaTopicNode,
-              leftJoinField.name(),
-              rightJoinField.name(),
-              leftAlias,
-              rightAlias,
-              node.getWithinExpression().orElse(null),
-              leftDataSource.getDataSourceType(),
-              rightDataSource.getDataSourceType()
-          );
+      final JoinNode joinNode = new JoinNode(
+          new PlanNodeId("Join"),
+          joinType,
+          leftSourceNode,
+          rightSourceNode,
+          leftJoinField.name(),
+          rightJoinField.name(),
+          leftAlias,
+          rightAlias,
+          node.getWithinExpression().orElse(null),
+          leftDataSource.getDataSourceType(),
+          rightDataSource.getDataSourceType()
+      );
 
       analysis.setJoin(joinNode);
       return null;

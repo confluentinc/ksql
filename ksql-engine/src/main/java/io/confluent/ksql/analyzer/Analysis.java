@@ -35,6 +35,7 @@ import io.confluent.ksql.util.SchemaUtil;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.Set;
 
 public class Analysis {
@@ -52,8 +53,7 @@ public class Analysis {
   private Optional<String> partitionBy = Optional.empty();
   private ImmutableSet<SerdeOption> serdeOptions = ImmutableSet.of();
   private Expression havingExpression = null;
-
-  private Integer limitClause = null;
+  private OptionalInt limitClause = OptionalInt.empty();
 
   void addSelectItem(final Expression expression, final String alias) {
     selectExpressions.add(expression);
@@ -145,12 +145,12 @@ public class Analysis {
     this.partitionBy = Optional.of(partitionBy);
   }
 
-  public Optional<Integer> getLimitClause() {
-    return Optional.ofNullable(limitClause);
+  public OptionalInt getLimitClause() {
+    return limitClause;
   }
 
-  public void setLimitClause(final Integer limitClause) {
-    this.limitClause = limitClause;
+  public void setLimitClause(final int limitClause) {
+    this.limitClause = OptionalInt.of(limitClause);
   }
 
   public Pair<DataSource<?>, String> getFromDataSource(final int index) {

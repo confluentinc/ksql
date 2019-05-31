@@ -17,7 +17,6 @@ package io.confluent.ksql.planner.plan;
 
 import static io.confluent.ksql.planner.plan.PlanTestUtil.verifyProcessorNode;
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.mockito.ArgumentMatchers.any;
@@ -145,11 +144,6 @@ public class KsqlBareOutputNodeTest {
     // Then:
     assertThat(ids.size(), equalTo(100));
     verifyNoMoreInteractions(queryIdGenerator);
-  }
-
-  @Test
-  public void shouldSetOutputNode() {
-    assertThat(stream.outputNode(), instanceOf(KsqlBareOutputNode.class));
   }
 
   private TopologyDescription.Node getNodeByName(final String nodeName) {

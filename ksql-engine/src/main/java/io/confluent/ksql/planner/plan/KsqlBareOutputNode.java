@@ -24,6 +24,7 @@ import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.util.QueryIdGenerator;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.concurrent.ThreadLocalRandom;
 
 @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
@@ -35,7 +36,7 @@ public class KsqlBareOutputNode extends OutputNode {
       final PlanNodeId id,
       final PlanNode source,
       final KsqlSchema schema,
-      final Optional<Integer> limit,
+      final OptionalInt limit,
       final TimestampExtractionPolicy extractionPolicy
   ) {
     super(id, source, schema, limit, extractionPolicy);
@@ -58,12 +59,9 @@ public class KsqlBareOutputNode extends OutputNode {
     final SchemaKStream<?> schemaKStream = getSource()
         .buildStream(builder);
 
-    final QueuedSchemaKStream<?> queued = new QueuedSchemaKStream<>(
+    return new QueuedSchemaKStream<>(
         schemaKStream,
         builder.buildNodeContext(getId()).getQueryContext()
     );
-
-    queued.setOutputNode(this);
-    return queued;
   }
 }

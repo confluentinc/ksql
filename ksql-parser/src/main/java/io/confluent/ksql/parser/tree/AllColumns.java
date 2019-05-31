@@ -43,6 +43,7 @@ public class AllColumns extends SelectItem {
   }
 
   @Override
+
   public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitAllColumns(this, context);
   }

@@ -26,38 +26,32 @@ import java.util.Optional;
 @Immutable
 public class SingleColumn extends SelectItem {
 
-  private final Optional<AllColumns> source;
-  private final Optional<String> alias;
+  private final String alias;
   private final Expression expression;
 
   public SingleColumn(
       final Expression expression,
-      final Optional<String> alias,
-      final Optional<AllColumns> source
+      final String alias
   ) {
-    this(Optional.empty(), expression, alias, source);
+    this(Optional.empty(), expression, alias);
   }
 
   public SingleColumn(
       final Optional<NodeLocation> location,
       final Expression expression,
-      final Optional<String> alias,
-      final Optional<AllColumns> source
+      final String alias
   ) {
     super(location);
 
-    alias.ifPresent(name -> {
-      checkForReservedToken(expression, name, SchemaUtil.ROWTIME_NAME);
-      checkForReservedToken(expression, name, SchemaUtil.ROWKEY_NAME);
-    });
+    checkForReservedToken(expression, alias, SchemaUtil.ROWTIME_NAME);
+    checkForReservedToken(expression, alias, SchemaUtil.ROWKEY_NAME);
 
     this.expression = requireNonNull(expression, "expression");
     this.alias = requireNonNull(alias, "alias");
-    this.source = requireNonNull(source, "source");
   }
 
   public SingleColumn copyWithExpression(final Expression expression) {
-    return new SingleColumn(getLocation(), expression, alias, source);
+    return new SingleColumn(getLocation(), expression, alias);
   }
 
   private static void checkForReservedToken(
@@ -74,21 +68,12 @@ public class SingleColumn extends SelectItem {
     }
   }
 
-  public Optional<String> getAlias() {
+  public String getAlias() {
     return alias;
   }
 
   public Expression getExpression() {
     return expression;
-  }
-
-  /**
-   * @return a reference to an {@code AllColumns} if this single column
-   *         was expanded as part of a {@code SELECT *} Expression, otherwise
-   *         returns an empty optional
-   */
-  public Optional<AllColumns> getAllColumns() {
-    return source;
   }
 
   @Override
@@ -101,18 +86,17 @@ public class SingleColumn extends SelectItem {
     }
     final SingleColumn other = (SingleColumn) obj;
     return Objects.equals(this.alias, other.alias)
-        && Objects.equals(this.expression, other.expression)
-        && Objects.equals(this.source, other.source);
+        && Objects.equals(this.expression, other.expression);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(source, alias, expression);
+    return Objects.hash(alias, expression);
   }
 
   @Override
   public String toString() {
-    return "SingleColumn{" + "source=" + source
+    return "SingleColumn{"
         + ", alias=" + alias
         + ", expression=" + expression
         + '}';

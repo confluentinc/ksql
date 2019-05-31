@@ -130,7 +130,6 @@ import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.RuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.TerminalNode;
-import org.apache.kafka.connect.data.Field;
 
 public class AstBuilder {
 
@@ -348,7 +347,7 @@ public class AstBuilder {
 
       final Select select = new Select(
           getLocation(context.SELECT()),
-          processSelectItems(visit(context.selectItem(), SelectItem.class), from)
+          visit(context.selectItem(), SelectItem.class)
       );
 
       final OptionalInt limit = getLimit(context.limitClause());
@@ -363,118 +362,6 @@ public class AstBuilder {
           visitIfPresent(context.having, Expression.class),
           limit
       );
-    }
-
-    private List<SelectItem> processSelectItems(
-        final List<SelectItem> selectItems,
-        final Relation from
-    ) {
-      final List<SelectItem> result = new ArrayList<>();
-      for (final SelectItem selectItem : selectItems) {
-        if (selectItem instanceof AllColumns) {
-          result.addAll(getSelectStarItems((AllColumns) selectItem, from));
-        } else if (selectItem instanceof SingleColumn) {
-          result.add(selectItem);
-        } else {
-          throw new IllegalArgumentException(
-              "Unsupported SelectItem type: " + selectItem.getClass().getName());
-        }
-      }
-      return result;
-    }
-
-    private List<SelectItem> getSelectStarItems(final AllColumns allColumns, final Relation from) {
-      final List<SelectItem> selectItems = new ArrayList<>();
-
-      final Optional<NodeLocation> location = allColumns.getLocation();
-      if (from instanceof Join) {
-        final Join join = (Join) from;
-        if (allColumns.getPrefix().isPresent()) {
-          final QualifiedName alias = allColumns.getPrefix().get();
-          final DataSource<?> source = getDataSourceForAlias(join, alias);
-          final String aliasStr = alias.toString();
-          addFieldsFromDataSource(selectItems, source, location, aliasStr, aliasStr, allColumns);
-        } else {
-          final AliasedRelation left = (AliasedRelation) join.getLeft();
-          final DataSource<?> leftDataSource =
-              getSource(left.getRelation().toString(), left.getRelation().getLocation());
-          final AliasedRelation right = (AliasedRelation) join.getRight();
-          final DataSource<?> rightDataSource =
-              getSource(right.getRelation().toString(), right.getRelation().getLocation());
-
-          addFieldsFromDataSource(selectItems, leftDataSource, location,
-              left.getAlias(), left.getAlias(), allColumns);
-          addFieldsFromDataSource(selectItems, rightDataSource, location,
-              right.getAlias(), right.getAlias(), allColumns);
-        }
-      } else {
-        final AliasedRelation fromRel = (AliasedRelation) from;
-        final Table table = (Table) fromRel.getRelation();
-        final DataSource<?> fromDataSource =
-            getSource(table.getName().getSuffix(), table.getLocation());
-
-        addFieldsFromDataSource(selectItems, fromDataSource, location,
-            fromDataSource.getName(), "", allColumns);
-      }
-      return selectItems;
-    }
-
-    private static void addFieldsFromDataSource(
-        final List<SelectItem> selectItems,
-        final DataSource<?> dataSource,
-        final Optional<NodeLocation> location,
-        final String alias,
-        final String columnNamePrefix,
-        final AllColumns source
-    ) {
-      final QualifiedNameReference sourceName =
-          new QualifiedNameReference(location, QualifiedName.of(alias));
-
-      final String prefix = columnNamePrefix.isEmpty() ? "" : columnNamePrefix + "_";
-
-      for (final Field field : dataSource.getSchema().fields()) {
-
-        final DereferenceExpression exp
-            = new DereferenceExpression(location, sourceName, field.name());
-
-        final SingleColumn newColumn = new SingleColumn(
-            exp,
-            Optional.of(prefix + field.name()),
-            Optional.of(source));
-
-        selectItems.add(newColumn);
-      }
-    }
-
-    private DataSource<?> getDataSourceForAlias(
-        final Join join,
-        final QualifiedName alias
-    ) {
-      final AliasedRelation leftAliased = (AliasedRelation) join.getLeft();
-      final AliasedRelation rightAliased = (AliasedRelation) join.getRight();
-
-      final String sourceName;
-      if (leftAliased.getAlias().equalsIgnoreCase(alias.toString())) {
-        sourceName = leftAliased.getRelation().toString();
-      } else if (rightAliased.getAlias().equalsIgnoreCase(alias.toString())) {
-        sourceName = rightAliased.getRelation().toString();
-      } else {
-        throw new KsqlException("Invalid alias used in join: alias='"
-            + alias + "'. Available aliases '"
-            + leftAliased.getAlias() + "' and '"
-            + rightAliased.getAlias() + "'");
-      }
-
-      final DataSource<?> source = metaStore.getSource(sourceName);
-
-      if (source == null) {
-        throw new InvalidColumnReferenceException(
-            join.getLocation(),
-            "Source for alias '" + alias + "' doesn't exist"
-        );
-      }
-
-      return source;
     }
 
     @Override
@@ -616,45 +503,43 @@ public class AstBuilder {
       final Optional<QualifiedName> prefix = Optional.ofNullable(context.qualifiedName())
           .map(ParserUtil::getQualifiedName);
 
+      prefix.ifPresent(name -> throwOnUnknownNameOrAlias(name.toString()));
+
       return new AllColumns(getLocation(context), prefix);
     }
 
     @Override
     public Node visitSelectSingle(final SqlBaseParser.SelectSingleContext context) {
-      final Expression selectItemExpression = (Expression) visit(context.expression());
-      Optional<String> alias = Optional
-          .ofNullable(context.identifier())
-          .map(ParserUtil::getIdentifierText);
+      final Expression selectItem = (Expression) visit(context.expression());
 
-      if (!alias.isPresent()) {
-        if (selectItemExpression instanceof QualifiedNameReference) {
-          final QualifiedNameReference
-              qualifiedNameReference =
-              (QualifiedNameReference) selectItemExpression;
-          alias = Optional.of(qualifiedNameReference.getName().getSuffix());
-        } else if (selectItemExpression instanceof DereferenceExpression) {
-          final DereferenceExpression dereferenceExp = (DereferenceExpression) selectItemExpression;
+      final String alias;
+      if (context.identifier() != null) {
+        alias = ParserUtil.getIdentifierText(context.identifier());
+      } else {
+        if (selectItem instanceof QualifiedNameReference) {
+          alias = ((QualifiedNameReference) selectItem).getName().getSuffix();
+        } else if (selectItem instanceof DereferenceExpression) {
+          final DereferenceExpression dereferenceExp = (DereferenceExpression) selectItem;
           final String dereferenceExpressionString = dereferenceExp.toString();
           if (dataSourceExtractor.isJoin()
               && dataSourceExtractor
               .getCommonFieldNames()
               .contains(dereferenceExp.getFieldName())
           ) {
-            alias = Optional.of(replaceDotFieldRef(dereferenceExpressionString));
+            alias = replaceDotFieldRef(dereferenceExpressionString);
           } else if (dereferenceExpressionString.contains(KsqlConstants.STRUCT_FIELD_REF)) {
-            alias = Optional.of(
-                replaceDotFieldRef(
+            alias = replaceDotFieldRef(
                     dereferenceExpressionString.substring(
-                        dereferenceExpressionString.indexOf(KsqlConstants.DOT) + 1)));
+                        dereferenceExpressionString.indexOf(KsqlConstants.DOT) + 1));
           } else {
-            alias = Optional.of(dereferenceExp.getFieldName());
+            alias = dereferenceExp.getFieldName();
           }
         } else {
-          alias = Optional.of("KSQL_COL_" + selectItemIndex);
+          alias = "KSQL_COL_" + selectItemIndex;
         }
       }
       selectItemIndex++;
-      return new SingleColumn(getLocation(context), selectItemExpression, alias, Optional.empty());
+      return new SingleColumn(getLocation(context), selectItem, alias);
     }
 
     private static String replaceDotFieldRef(final String input) {
@@ -1047,10 +932,8 @@ public class AstBuilder {
       }
 
       if (prefixName != null) {
-        if (!isValidNameOrAlias(prefixName)) {
-          throw new KsqlException(String.format(
-              "'%s' is not a valid stream/table name or alias.", prefixName));
-        }
+        throwOnUnknownNameOrAlias(prefixName);
+
         final Expression baseExpression =
             new QualifiedNameReference(
                 getLocation(context),
@@ -1253,6 +1136,12 @@ public class AstBuilder {
       throw new UnsupportedOperationException("not yet implemented");
     }
 
+    private void throwOnUnknownNameOrAlias(final String name) {
+      if (!isValidNameOrAlias(name)) {
+        throw new KsqlException("'" + name + "' is not a valid stream/table name or alias.");
+      }
+    }
+
     private <T> Optional<T> visitIfPresent(final ParserRuleContext context, final Class<T> clazz) {
       return Optional.ofNullable(context)
           .map(this::visit)
@@ -1333,6 +1222,8 @@ public class AstBuilder {
           : OptionalInt.of(processIntegerNumber(limitContext.number(), "LIMIT"));
     }
 
+    // Todo(ac): remomve the need for this.
+    // Todo(ac): remove dependency on metastore?
     private DataSource<?> getSource(
         final String name,
         final Optional<NodeLocation> location

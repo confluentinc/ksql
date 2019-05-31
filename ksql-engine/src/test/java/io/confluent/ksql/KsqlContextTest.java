@@ -37,10 +37,10 @@ import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.UnsetProperty;
+import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.statement.InjectorChain;
-import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -131,8 +131,6 @@ public class KsqlContextTest {
     when(sandbox.prepare(PARSED_STMT_0)).thenReturn((PreparedStatement) PREPARED_STMT_0);
     when(sandbox.prepare(PARSED_STMT_1)).thenReturn((PreparedStatement) PREPARED_STMT_1);
 
-    when(schemaInjector.inject(CFG_STMT_0)).thenReturn((ConfiguredStatement) STMT_0_WITH_SCHEMA);
-    when(schemaInjector.inject(CFG_STMT_1)).thenReturn((ConfiguredStatement) STMT_1_WITH_SCHEMA);
     when(schemaInjector.inject(any())).thenAnswer(inv -> inv.getArgument(0));
 
     when(topicInjector.inject(any())).thenAnswer(inv -> inv.getArgument(0));

@@ -75,10 +75,6 @@ public class DataSourceExtractor {
     }
   }
 
-  public MetaStore getMetaStore() {
-    return metaStore;
-  }
-
   public String getFromAlias() {
     return fromAlias;
   }

@@ -28,12 +28,11 @@ public class QueryTest {
 
   public static final NodeLocation SOME_LOCATION = new NodeLocation(0, 0);
   public static final NodeLocation OTHER_LOCATION = new NodeLocation(1, 0);
-  private static final Relation SOME_RELATION = new Table(QualifiedName.of("bob"));
   private static final Relation OTHER_RELATION = new Table(QualifiedName.of("pete"));
   private static final Select SOME_SELECT = new Select(ImmutableList.of(
       new AllColumns(Optional.empty())));
   private static final Select OTHER_SELECT = new Select(ImmutableList.of(new SingleColumn(
-      new QualifiedNameReference(QualifiedName.of("Bob")), Optional.empty(), Optional.empty())));
+      new QualifiedNameReference(QualifiedName.of("Bob")), "B")));
   private static final Relation SOME_FROM = new Table(QualifiedName.of("from"));
   private static final Optional<WindowExpression> SOME_WINDOW = Optional.of(
       mock(WindowExpression.class)

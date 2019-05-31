@@ -24,6 +24,7 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.GenericRow;
@@ -36,7 +37,6 @@ import io.confluent.ksql.test.util.TopicTestUtil;
 import io.confluent.ksql.util.OrderDataProvider;
 import io.confluent.ksql.util.QueryMetadata;
 import java.time.Duration;
-import java.util.Arrays;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -128,7 +128,8 @@ public class WindowingIntTest {
 
     final Map<String, GenericRow> expected = ImmutableMap.of(
         "ITEM_1",
-        new GenericRow(Arrays.asList(null, null, "ITEM_1", 2, 20.0, 2.0)));
+        new GenericRow(ImmutableList.of("ITEM_1", 2, 20.0, 2.0))
+    );
 
     // Then:
     assertOutputOf(resultStream0, expected, is(expected));
@@ -146,7 +147,8 @@ public class WindowingIntTest {
 
     final Map<Windowed<String>, GenericRow> expected = ImmutableMap.of(
         new Windowed<>("ITEM_1", new TimeWindow(tenSecWindowStartMs, Long.MAX_VALUE)),
-        new GenericRow(Arrays.asList(null, null, "ITEM_1", 2, 20.0, 100.0)));
+        new GenericRow(ImmutableList.of("ITEM_1", 2, 20.0, 100.0))
+    );
 
     // Then:
     assertOutputOf(resultStream0, expected, is(expected));
@@ -167,9 +169,10 @@ public class WindowingIntTest {
 
     final Map<Windowed<String>, GenericRow> expected = ImmutableMap.of(
         new Windowed<>("ITEM_1", new TimeWindow(firstWindowStart, Long.MAX_VALUE)),
-        new GenericRow(Arrays.asList(null, null, "ITEM_1", 2, 20.0, 200.0)),
+        new GenericRow(ImmutableList.of("ITEM_1", 2, 20.0, 200.0)),
         new Windowed<>("ITEM_1", new TimeWindow(secondWindowStart, Long.MAX_VALUE)),
-        new GenericRow(Arrays.asList(null, null, "ITEM_1", 2, 20.0, 200.0)));
+        new GenericRow(ImmutableList.of("ITEM_1", 2, 20.0, 200.0))
+    );
 
     // Then:
     assertOutputOf(resultStream0, expected, is(expected));
@@ -190,17 +193,17 @@ public class WindowingIntTest {
     final Map<Windowed<String>, GenericRow> expected = ImmutableMap
         .<Windowed<String>, GenericRow>builder()
         .put(new Windowed<>("ORDER_1", new SessionWindow(batch0SentMs, sessionEnd)),
-            new GenericRow(Arrays.asList(null, null, "ORDER_1", 2, 20.0)))
+            new GenericRow(ImmutableList.of("ORDER_1", 2, 20.0)))
         .put(new Windowed<>("ORDER_2", new SessionWindow(batch0SentMs, sessionEnd)),
-            new GenericRow(Arrays.asList(null, null, "ORDER_2", 2, 40.0)))
+            new GenericRow(ImmutableList.of("ORDER_2", 2, 40.0)))
         .put(new Windowed<>("ORDER_3", new SessionWindow(batch0SentMs, sessionEnd)),
-            new GenericRow(Arrays.asList(null, null, "ORDER_3", 2, 60.0)))
+            new GenericRow(ImmutableList.of("ORDER_3", 2, 60.0)))
         .put(new Windowed<>("ORDER_4", new SessionWindow(batch0SentMs, sessionEnd)),
-            new GenericRow(Arrays.asList(null, null, "ORDER_4", 2, 80.0)))
+            new GenericRow(ImmutableList.of("ORDER_4", 2, 80.0)))
         .put(new Windowed<>("ORDER_5", new SessionWindow(batch0SentMs, sessionEnd)),
-            new GenericRow(Arrays.asList(null, null, "ORDER_5", 2, 100.0)))
+            new GenericRow(ImmutableList.of("ORDER_5", 2, 100.0)))
         .put(new Windowed<>("ORDER_6", new SessionWindow(batch0SentMs, sessionEnd)),
-            new GenericRow(Arrays.asList(null, null, "ORDER_6", 6, 420.0)))
+            new GenericRow(ImmutableList.of("ORDER_6", 6, 420.0)))
         .build();
 
     // Then:
@@ -213,7 +216,7 @@ public class WindowingIntTest {
     ksqlContext.sql(String.format(sql, resultStream0));
     final DataSource<?> source = ksqlContext.getMetaStore().getSource(resultStream0);
     resultSchema = KsqlSchemaWithOptions.of(
-        source.getSchema(),
+        source.getSchema().withoutImplicitFields(),
         source.getSerdeOptions()
     );
   }
@@ -240,7 +243,7 @@ public class WindowingIntTest {
     final DataSource<?> source = ksqlContext.getMetaStore().getSource(resultStream1);
 
     resultSchema = KsqlSchemaWithOptions.of(
-        source.getSchema(),
+        source.getSchema().withoutImplicitFields(),
         source.getSerdeOptions()
     );
 

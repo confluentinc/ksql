@@ -371,7 +371,7 @@ public class StatementRewriterTest {
             + "WITH (kafka_topic='foo', value_format='json', registered_topic = 'users_topic', key='userid');";
     final Statement statement = parse(queryStr);
     final Statement rewrittenStatement = (Statement) statementRewriter.process(statement, null);
-    assertThat("testRegisterTopic failed.", rewrittenStatement instanceof CreateTable);
+    assertThat(rewrittenStatement, is(instanceOf(CreateTable.class)));
     final CreateTable createTable = (CreateTable)rewrittenStatement;
     assertThat(createTable.getName().toString(), equalTo("USERS"));
     assertThat(createTable.getElements().size(), equalTo(4));
@@ -386,7 +386,7 @@ public class StatementRewriterTest {
             + "WITH (kafka_topic = 'users_topic', value_format='json', key = 'userid');";
     final Statement statement = parse(queryStr);
     final Statement rewrittenStatement = (Statement) statementRewriter.process(statement, null);
-    assertThat("testRegisterTopic failed.", rewrittenStatement instanceof CreateTable);
+    assertThat(rewrittenStatement, is(instanceOf(CreateTable.class)));
     final CreateTable createTable = (CreateTable)rewrittenStatement;
     assertThat(createTable.getName().toString(), equalTo("USERS"));
     assertThat(createTable.getElements().size(), equalTo(4));

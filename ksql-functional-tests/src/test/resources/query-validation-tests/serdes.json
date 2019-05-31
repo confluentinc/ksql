@@ -346,20 +346,6 @@
       }
     },
     {
-      "name": "deserialization should pick up value wrapping from overrides",
-      "statements": [
-        "SET 'ksql.persistence.wrap.single.values'='false';",
-        "CREATE STREAM INPUT (foo STRING) WITH (kafka_topic='input_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT foo, foo as foo2 FROM INPUT;"
-      ],
-      "inputs": [
-        {"topic": "input_topic", "value": "bar"}
-      ],
-      "outputs": [
-        {"topic": "OUTPUT", "value": {"FOO": "bar", "FOO2": "bar"}}
-      ]
-    },
-    {
       "name": "deserialization should pick up value wrapping from config",
       "statements": [
         "CREATE STREAM INPUT (foo STRING) WITH (kafka_topic='input_topic', value_format='JSON');",
@@ -622,20 +608,6 @@
         {"topic": "OUTPUT", "value": {"FOO": {"F0": null}}},
         {"topic": "OUTPUT", "value": {"FOO": null}},
         {"topic": "OUTPUT", "value": null}
-      ]
-    },
-    {
-      "name": "serialization should pick up value wrapping from overrides",
-      "statements": [
-        "SET 'ksql.persistence.wrap.single.values'='false';",
-        "CREATE STREAM INPUT (foo STRING, foo2 STRING) WITH (kafka_topic='input_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT foo FROM INPUT;"
-      ],
-      "inputs": [
-        {"topic": "input_topic", "value": {"FOO": "bar", "FOO2": "blar"}}
-      ],
-      "outputs": [
-        {"topic": "OUTPUT", "value": "bar"}
       ]
     },
     {

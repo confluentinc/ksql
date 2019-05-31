@@ -44,6 +44,16 @@ General guidelines for a basic KSQL server are:
 - 100 GB SSD
 - 1 Gbit network
 
+.. important:: **Don't deploy multi-tenant KSQL Server instances.**
+
+   We recommend against using KSQL in a multi-tenant fashion. For example, if you
+   have two KSQL applications running on the same node, and one is greedy, you're
+   likely to encounter resource issues related to multi-tenancy. We recommend
+   using a single pool of KSQL Server instances per use case. You should deploy
+   separate applications onto separate KSQL nodes, because it becomes easier to
+   reason about scaling and resource utilization. Also, deploying per use case
+   makes it easier to reason about failovers and replication.
+
 Kafka
 -----
 

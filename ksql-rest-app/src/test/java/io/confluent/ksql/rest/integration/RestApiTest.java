@@ -47,7 +47,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.websocket.CloseReason.CloseCodes;
-import javax.ws.rs.client.Client;
 import javax.ws.rs.core.MediaType;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketClose;
@@ -55,8 +54,6 @@ import org.eclipse.jetty.websocket.api.annotations.OnWebSocketError;
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketMessage;
 import org.eclipse.jetty.websocket.api.annotations.WebSocket;
 import org.eclipse.jetty.websocket.client.WebSocketClient;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -123,8 +120,6 @@ public class RestApiTest {
   @ClassRule
   public static final RuleChain CHAIN = RuleChain.outerRule(TEST_HARNESS).around(REST_APP);
 
-  private Client restClient;
-
   @BeforeClass
   public static void setUpClass() {
     TEST_HARNESS.ensureTopics(PAGE_VIEW_TOPIC);
@@ -132,16 +127,6 @@ public class RestApiTest {
     TEST_HARNESS.produceRows(PAGE_VIEW_TOPIC, new PageViewDataProvider(), Format.JSON);
 
     RestIntegrationTestUtil.createStreams(REST_APP, PAGE_VIEW_STREAM, PAGE_VIEW_TOPIC);
-  }
-
-  @Before
-  public void setUp() {
-    restClient = TestKsqlRestApp.buildClient();
-  }
-
-  @After
-  public void cleanUp() {
-    restClient.close();
   }
 
   @Test
@@ -188,14 +173,12 @@ public class RestApiTest {
       // Given:
       RestIntegrationTestUtil.makeKsqlRequest(
           REST_APP,
-          REST_APP.buildKsqlClient(),
           "CREATE STREAM X AS SELECT * FROM " + PAGE_VIEW_STREAM + ";");
       assertThat("Expected topic X to be created", serviceContext.getTopicClient().isTopicExists("X"));
 
       // When:
       RestIntegrationTestUtil.makeKsqlRequest(
           REST_APP,
-          REST_APP.buildKsqlClient(),
           "TERMINATE QUERY CSAS_X_0; DROP STREAM X DELETE TOPIC;");
 
       // Then:

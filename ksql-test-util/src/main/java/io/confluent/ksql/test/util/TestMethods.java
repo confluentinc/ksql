@@ -51,6 +51,7 @@ public final class TestMethods {
       .put(String.class, "")
       .put(Duration.class, Duration.ofMillis(1))
       .put(Pattern.class, Pattern.compile(".*"))
+      // Note: do not add none-generic defaults here. Use setDefault() on specific case.
       .build();
 
   private TestMethods() {

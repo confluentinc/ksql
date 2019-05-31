@@ -22,6 +22,7 @@ import java.util.Collection;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import org.apache.kafka.clients.admin.AdminClient;
+import org.apache.kafka.clients.admin.ElectLeadersOptions;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.runners.Enclosed;
@@ -43,6 +44,7 @@ public final class SandboxedAdminClientTest {
           .ignore("close")
           .ignore("close", Duration.class)
           .ignore("close", long.class, TimeUnit.class)
+          .setDefault(ElectLeadersOptions.class, new ElectLeadersOptions())
           .build();
     }
 

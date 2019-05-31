@@ -135,6 +135,10 @@ In both deployment modes, KSQL enables distributing the processing load for your
 KSQL applications across all KSQL Server instances, and you can add more KSQL
 Server instances without restarting your applications.
 
+.. note::
+
+   All servers that run in a cluster must use the same deployment mode.
+
 Interactive Deployment
 ====================== 
 
@@ -185,6 +189,10 @@ In headless mode you can:
 * Version-control your queries and transformations as code
 * Ensure resource isolation
 * Leave resource management to dedicated systems, like Kubernetes
+
+.. note:
+
+   Headless mode deployments don't have a command topic.
 
 .. _ksql-architecture-config-topic:
 

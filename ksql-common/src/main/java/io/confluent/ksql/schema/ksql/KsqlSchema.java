@@ -257,7 +257,7 @@ public final class KsqlSchema {
 
   @Override
   public String toString() {
-    return FORMATTER.format(schema);
+    return "[" + FORMATTER.format(schema) + "]";
   }
 
   private static ConnectSchema validate(final Schema schema, final boolean topLevel) {

@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.server.execution;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.UnsetProperty;
+import io.confluent.ksql.properties.PropertyOverrider;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -32,7 +33,7 @@ public final class PropertyExecutor {
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext
   ) {
-    executionContext.execute(statement);
+    PropertyOverrider.set(statement);
     return Optional.empty();
   }
 
@@ -41,7 +42,7 @@ public final class PropertyExecutor {
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext
   ) {
-    executionContext.execute(statement);
+    PropertyOverrider.unset(statement);
     return Optional.empty();
   }
 

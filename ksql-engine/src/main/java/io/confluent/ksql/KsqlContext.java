@@ -16,6 +16,7 @@
 package io.confluent.ksql;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.function.InternalFunctionRegistry;
@@ -25,6 +26,10 @@ import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.parser.tree.SetProperty;
+import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.parser.tree.UnsetProperty;
+import io.confluent.ksql.properties.PropertyOverrider;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.services.DefaultServiceContext;
 import io.confluent.ksql.services.ServiceContext;
@@ -36,12 +41,15 @@ import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.BiFunction;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -171,7 +179,62 @@ public class KsqlContext {
       final Injector injector) {
     final PreparedStatement<?> prepared = executionContext.prepare(stmt);
     final ConfiguredStatement<?> configured =
-        ConfiguredStatement.of(prepared, overriddenProperties, ksqlConfig);
-    return executionContext.execute(injector.inject(configured));
+        injector.inject(ConfiguredStatement.of(prepared, overriddenProperties, ksqlConfig));
+
+    final CustomExecutor executor =
+        CustomExecutors.EXECUTOR_MAP.getOrDefault(
+            configured.getStatement().getClass(),
+            executionContext::execute);
+
+    return executor.apply(configured);
+  }
+
+  @FunctionalInterface
+  private interface CustomExecutor extends Function<ConfiguredStatement<?>, ExecuteResult> { }
+
+  @SuppressWarnings("unchecked")
+  private enum CustomExecutors {
+
+    SET_PROPERTY(SetProperty.class, stmt -> {
+      PropertyOverrider.set((ConfiguredStatement<SetProperty>) stmt);
+      return ExecuteResult.of("Successfully executed " + stmt.getStatement());
+    }),
+    UNSET_PROPERTY(UnsetProperty.class, stmt -> {
+      PropertyOverrider.unset((ConfiguredStatement<UnsetProperty>) stmt);
+      return ExecuteResult.of("Successfully executed " + stmt.getStatement());
+    })
+    ;
+
+    public static final Map<Class<? extends Statement>, CustomExecutor> EXECUTOR_MAP =
+        ImmutableMap.copyOf(
+            EnumSet.allOf(CustomExecutors.class)
+                .stream()
+                .collect(Collectors.toMap(
+                    CustomExecutors::getStatementClass,
+                    CustomExecutors::getExecutor))
+        );
+
+    private final Class<? extends Statement> statementClass;
+    private final CustomExecutor executor;
+
+    CustomExecutors(
+        final Class<? extends Statement> statementClass,
+        final CustomExecutor executor) {
+      this.statementClass = Objects.requireNonNull(statementClass, "statementClass");
+      this.executor = Objects.requireNonNull(executor, "executor");
+    }
+
+    private Class<? extends Statement> getStatementClass() {
+      return statementClass;
+    }
+
+    private CustomExecutor getExecutor() {
+      return this::execute;
+    }
+
+    public ExecuteResult execute(final ConfiguredStatement<?> statement) {
+      return executor.apply(statement);
+    }
+
   }
 }

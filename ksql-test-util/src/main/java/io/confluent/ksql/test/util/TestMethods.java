@@ -34,7 +34,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import org.apache.kafka.clients.admin.ElectLeadersOptions;
 
 /**
  * Find methods within a class on which to run tests.
@@ -52,7 +51,7 @@ public final class TestMethods {
       .put(String.class, "")
       .put(Duration.class, Duration.ofMillis(1))
       .put(Pattern.class, Pattern.compile(".*"))
-      .put(ElectLeadersOptions.class, new ElectLeadersOptions())
+      // Note: do not add none-generic defaults here. Use setDefault() on specific case.
       .build();
 
   private TestMethods() {

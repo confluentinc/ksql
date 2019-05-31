@@ -22,7 +22,7 @@ import java.util.Objects;
 import java.util.Optional;
 
 @Immutable
-public class SetProperty extends Statement implements ExecutableDdlStatement {
+public class SetProperty extends Statement {
 
   private final String propertyName;
   private final String propertyValue;

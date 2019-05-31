@@ -190,7 +190,7 @@ In headless mode you can:
 * Ensure resource isolation
 * Leave resource management to dedicated systems, like Kubernetes
 
-.. note:
+.. note::
 
    Headless mode deployments don't have a command topic.
 

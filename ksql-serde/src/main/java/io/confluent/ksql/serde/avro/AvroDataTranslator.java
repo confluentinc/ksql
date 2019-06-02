@@ -40,11 +40,11 @@ public class AvroDataTranslator implements DataTranslator {
   private final Schema avroCompatibleSchema;
 
   AvroDataTranslator(
-      final PersistenceSchema ksqlSchema,
+      final PersistenceSchema schema,
       final String schemaFullName,
       final boolean useNamedMaps
   ) {
-    this.ksqlSchema = Objects.requireNonNull(ksqlSchema, "ksqlSchema").getConnectSchema();
+    this.ksqlSchema = Objects.requireNonNull(schema, "schema").getConnectSchema();
     this.avroCompatibleSchema = buildAvroCompatibleSchema(
         this.ksqlSchema,
         new TypeNameGenerator(Collections.singleton(schemaFullName), useNamedMaps)

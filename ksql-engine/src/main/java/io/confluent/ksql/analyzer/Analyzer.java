@@ -307,13 +307,13 @@ class Analyzer {
             + " set in the WITH clause must be set to a literal");
       }
 
-      final Set<SerdeOption> options = SerdeOption.none();
+      final ImmutableSet.Builder<SerdeOption> options = ImmutableSet.builder();
 
       if (!LiteralUtil.toBoolean(((Literal) exp), DdlConfig.WRAP_SINGLE_VALUE)) {
         options.add(SerdeOption.UNWRAP_SINGLE_VALUES);
       }
 
-      analysis.setSerdeOptions(options);
+      analysis.setSerdeOptions(options.build());
     }
 
     private void validateWithClause(final Set<String> withClauseVariables) {

@@ -15,7 +15,7 @@
 
 package io.confluent.ksql.serde;
 
-import java.util.EnumSet;
+import com.google.common.collect.ImmutableSet;
 import java.util.Set;
 
 public enum SerdeOption {
@@ -29,10 +29,10 @@ public enum SerdeOption {
   UNWRAP_SINGLE_VALUES;
 
   public static Set<SerdeOption> none() {
-    return EnumSet.noneOf(SerdeOption.class);
+    return ImmutableSet.of();
   }
 
-  public static Set<SerdeOption> of(final SerdeOption first, final SerdeOption... rest) {
-    return EnumSet.of(first, rest);
+  public static Set<SerdeOption> of(final SerdeOption... options) {
+    return ImmutableSet.copyOf(options);
   }
 }

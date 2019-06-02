@@ -16,7 +16,9 @@
 package io.confluent.ksql.planner.plan;
 
 import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
+import static java.util.Objects.requireNonNull;
 
+import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.model.KeyField;
@@ -33,7 +35,6 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.QueryIdGenerator;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import java.util.Collections;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import org.apache.kafka.common.serialization.Serde;
@@ -60,10 +61,10 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
       final Set<SerdeOption> serdeOptions
   ) {
     super(id, source, schema, limit, timestampExtractionPolicy);
-    this.serdeOptions = Objects.requireNonNull(serdeOptions, "serdeOptions");
-    this.keyField = Objects.requireNonNull(keyField, "keyField")
+    this.serdeOptions = ImmutableSet.copyOf(requireNonNull(serdeOptions, "serdeOptions"));
+    this.keyField = requireNonNull(keyField, "keyField")
         .validateKeyExistsIn(schema);
-    this.ksqlTopic = Objects.requireNonNull(ksqlTopic, "ksqlTopic");
+    this.ksqlTopic = requireNonNull(ksqlTopic, "ksqlTopic");
     this.selectKeyRequired = selectKeyRequired;
     this.doCreateInto = doCreateInto;
 

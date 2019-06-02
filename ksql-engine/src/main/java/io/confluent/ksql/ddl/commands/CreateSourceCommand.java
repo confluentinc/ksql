@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.ddl.commands;
 
+import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.SerdeFactory;
@@ -178,7 +179,7 @@ abstract class CreateSourceCommand implements DdlCommand {
   ) {
     final Format valueFormat = properties.getValueFormat();
 
-    final Set<SerdeOption> options = SerdeOption.none();
+    final ImmutableSet.Builder<SerdeOption> options = ImmutableSet.builder();
 
     final boolean singleValueField = schema.getSchema().fields().size() == 1;
 
@@ -198,6 +199,6 @@ abstract class CreateSourceCommand implements DdlCommand {
       options.add(SerdeOption.UNWRAP_SINGLE_VALUES);
     }
 
-    return Collections.unmodifiableSet(options);
+    return Collections.unmodifiableSet(options.build());
   }
 }

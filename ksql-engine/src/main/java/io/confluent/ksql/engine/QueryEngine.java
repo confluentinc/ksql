@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.engine;
 
+import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.analyzer.AggregateAnalysisResult;
 import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.QueryAnalyzer;
@@ -160,12 +161,12 @@ class QueryEngine {
   }
 
   private static Set<SerdeOption> buildDefaultSerdeOptions(final KsqlConfig config) {
-    final Set<SerdeOption> options = SerdeOption.none();
+    final ImmutableSet.Builder<SerdeOption> options = ImmutableSet.builder();
 
     if (!config.getBoolean(KsqlConfig.KSQL_WRAP_SINGLE_VALUES)) {
       options.add(SerdeOption.UNWRAP_SINGLE_VALUES);
     }
 
-    return options;
+    return ImmutableSet.copyOf(options.build());
   }
 }

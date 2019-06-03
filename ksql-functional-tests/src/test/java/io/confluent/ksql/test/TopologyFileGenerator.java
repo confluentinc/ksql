@@ -77,7 +77,7 @@ public final class TopologyFileGenerator {
             return path.resolve(BASE_DIRECTORY);
         }
         throw new RuntimeException("Failed to determine location of expected topologies directory. "
-            + "App should be run with current directory either set to the root of the repo or the "
+            + "App should be run with current directory set to either the root of the repo or the "
             + "root of the ksql-functional-tests module");
     }
 

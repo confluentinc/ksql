@@ -283,13 +283,14 @@ public class TestCase implements Test {
       final TopologyTestDriverContainer testDriver,
       final SchemaRegistryClient schemaRegistryClient) {
     final Topic recordTopic = fakeKafkaRecord.getTestRecord().topic;
-    final Serializer keySerializer = recordTopic.getKeySerializer();
-    final Serializer valueSerializer = recordTopic.getValueSerdeSupplier()
+    final Serializer<Object> keySerializer = recordTopic.getKeySerializer();
+    final Serializer<Object> valueSerializer = recordTopic.getValueSerdeSupplier()
         instanceof AvroSerdeSupplier
         ? new ValueSpecAvroSerdeSupplier().getSerializer(schemaRegistryClient)
         : recordTopic.getValueSerializer(schemaRegistryClient);
+
     final Object key = getKey(fakeKafkaRecord);
-    final ConsumerRecord consumerRecord = new ConsumerRecordFactory<>(
+    final ConsumerRecord<byte[], byte[]> consumerRecord = new ConsumerRecordFactory<>(
         keySerializer,
         valueSerializer
     ).create(
@@ -303,7 +304,7 @@ public class TestCase implements Test {
     final Topic sinkTopic = testDriver.getSinkTopic();
 
     while (true) {
-      final ProducerRecord producerRecord = testDriver.getTopologyTestDriver().readOutput(
+      final ProducerRecord<?,?> producerRecord = testDriver.getTopologyTestDriver().readOutput(
           sinkTopic.getName(),
           sinkTopic.getKeyDeserializer(),
           sinkTopic.getValueDeserializer(schemaRegistryClient)
@@ -346,16 +347,16 @@ public class TestCase implements Test {
           + "> records but it was <" + actual.size() + ">");
     }
     for (int i = 0; i < expected.size(); i++) {
-      final ProducerRecord actualProducerRecord = actual.get(i).getProducerRecord();
-      final ProducerRecord expectedProducerRecord = expected.get(i).getProducerRecord();
+      final ProducerRecord<?, ?> actualProducerRecord = actual.get(i).getProducerRecord();
+      final ProducerRecord<?, ?> expectedProducerRecord = expected.get(i).getProducerRecord();
 
       validateCreatedMessage(actualProducerRecord, expectedProducerRecord);
     }
   }
 
   private static void validateCreatedMessage(
-      final ProducerRecord actualProducerRecord,
-      final ProducerRecord expectedProducerRecord
+      final ProducerRecord<?,?> actualProducerRecord,
+      final ProducerRecord<?,?> expectedProducerRecord
   ) {
     final boolean bothValuesNull = (actualProducerRecord.value() == null
         && expectedProducerRecord.value() == null);
@@ -374,7 +375,6 @@ public class TestCase implements Test {
     }
   }
 
-  @SuppressWarnings("unchecked")
   private Map<String, List<FakeKafkaRecord>> getExpectedRecordsMap() {
     final Map<String, List<FakeKafkaRecord>> outputRecordsFromTest = new HashMap<>();
     outputRecords.forEach(
@@ -383,7 +383,7 @@ public class TestCase implements Test {
             outputRecordsFromTest.put(record.topic.getName(), new ArrayList<>());
           }
           outputRecordsFromTest.get(record.topic.getName()).add(
-              FakeKafkaRecord.of(record, new ProducerRecord(
+              FakeKafkaRecord.of(record, new ProducerRecord<>(
                   record.topic.getName(),
                   null,
                   record.timestamp(),

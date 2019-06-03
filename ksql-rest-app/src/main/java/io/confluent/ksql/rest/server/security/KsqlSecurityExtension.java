@@ -18,7 +18,6 @@ package io.confluent.ksql.rest.server.security;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
-
 import java.security.Principal;
 import java.util.function.Supplier;
 import javax.ws.rs.core.Configurable;

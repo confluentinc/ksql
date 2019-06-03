@@ -18,7 +18,6 @@ package io.confluent.ksql.rest.server.security;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.schema.registry.KsqlSchemaRegistryClientFactory;
 import io.confluent.ksql.util.KsqlConfig;
-
 import java.security.Principal;
 import java.util.Collections;
 import java.util.function.Supplier;

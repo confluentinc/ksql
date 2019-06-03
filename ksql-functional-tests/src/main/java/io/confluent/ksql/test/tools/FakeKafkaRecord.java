@@ -26,24 +26,27 @@ import org.apache.kafka.streams.kstream.Windowed;
 public final class FakeKafkaRecord {
 
   private final Record testRecord;
-  private final ProducerRecord producerRecord;
+  private final ProducerRecord<?,?> producerRecord;
 
-  private FakeKafkaRecord(final Record testRecord, final ProducerRecord producerRecord) {
+  private FakeKafkaRecord(final Record testRecord, final ProducerRecord<?,?> producerRecord) {
     this.testRecord = testRecord;
     this.producerRecord = producerRecord;
   }
 
-  public static FakeKafkaRecord of(final Record testRecord, final ProducerRecord producerRecord) {
+  public static FakeKafkaRecord of(
+      final Record testRecord,
+      final ProducerRecord<?,?> producerRecord
+  ) {
     Objects.requireNonNull(testRecord, "testRecord");
     return new FakeKafkaRecord(testRecord, producerRecord);
   }
 
   public static FakeKafkaRecord of(
       final Topic topic,
-      final ProducerRecord producerRecord) {
+      final ProducerRecord<?,?> producerRecord) {
     Objects.requireNonNull(producerRecord);
     Objects.requireNonNull(topic, "topic");
-    final SerdeSupplier serdeSupplier = topic.getValueSerdeSupplier();
+    final SerdeSupplier<?> serdeSupplier = topic.getValueSerdeSupplier();
     final Record testRecord = new Record(
         topic,
         producerRecord.key().toString(),
@@ -58,9 +61,9 @@ public final class FakeKafkaRecord {
 
   @SuppressWarnings("unchecked")
   private static WindowData getWindowData(
-      final ProducerRecord producerRecord) {
+      final ProducerRecord<?,?> producerRecord) {
     if (producerRecord.key() instanceof Windowed) {
-      final Windowed windowed = (Windowed) producerRecord.key();
+      final Windowed<?> windowed = (Windowed<?>) producerRecord.key();
       return new WindowData(windowed);
     }
     return null;
@@ -70,7 +73,7 @@ public final class FakeKafkaRecord {
     return testRecord;
   }
 
-  ProducerRecord getProducerRecord() {
+  ProducerRecord<?,?> getProducerRecord() {
     return producerRecord;
   }
 }

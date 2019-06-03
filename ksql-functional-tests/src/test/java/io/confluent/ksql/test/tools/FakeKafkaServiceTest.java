@@ -36,7 +36,7 @@ public class FakeKafkaServiceTest {
   @Mock
   private Schema avroSchema;
   @Mock
-  private ProducerRecord producerRecord;
+  private ProducerRecord<?, ?> producerRecord;
   @Mock
   private Record record;
   private FakeKafkaRecord fakeKafkaRecord;

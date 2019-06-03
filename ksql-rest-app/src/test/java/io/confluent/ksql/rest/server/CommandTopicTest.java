@@ -102,6 +102,10 @@ public class CommandTopicTest {
 
   @Test
   public void shouldAssignCorrectPartitionToConsumer() {
+    // When:
+    commandTopic.start();
+
+    // Then:
     verify(commandConsumer)
         .assign(eq(Collections.singleton(new TopicPartition(COMMAND_TOPIC_NAME, 0))));
   }

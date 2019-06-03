@@ -1554,7 +1554,11 @@ public class KsqlResourceTest {
 
   private void setUpKsqlResource() {
     ksqlResource = new KsqlResource(
-        ksqlConfig, ksqlEngine, serviceContext, commandStore, DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT,
+        ksqlConfig,
+        ksqlEngine,
+        serviceContext,
+        commandStore,
+        DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT,
         activenessRegistrar);
   }
 

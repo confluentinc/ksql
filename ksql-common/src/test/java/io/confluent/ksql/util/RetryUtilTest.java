@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.util;
 
+import java.util.Collections;
 import java.util.function.Consumer;
 import org.junit.Test;
 import org.mockito.InOrder;
@@ -41,7 +42,7 @@ public class RetryUtilTest {
   public void shouldBackoffOnFailure() {
     doThrow(new RuntimeException("error")).when(runnable).run();
     try {
-      RetryUtil.retryWithBackoff(3, 1, 100, runnable, sleep);
+      RetryUtil.retryWithBackoff(3, 1, 100, runnable, sleep, Collections.emptyList());
       fail("retry should have thrown");
     } catch (final RuntimeException e) {
     }
@@ -57,7 +58,7 @@ public class RetryUtilTest {
   public void shouldRespectMaxWait() {
     doThrow(new RuntimeException("error")).when(runnable).run();
     try {
-      RetryUtil.retryWithBackoff(3, 1, 3, runnable, sleep);
+      RetryUtil.retryWithBackoff(3, 1, 3, runnable, sleep, Collections.emptyList());
       fail("retry should have thrown");
     } catch (final RuntimeException e) {
     }

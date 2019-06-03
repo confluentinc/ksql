@@ -17,6 +17,7 @@ package io.confluent.ksql.rest.server.computation;
 
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
+import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.rest.util.ClusterTerminator;
 import io.confluent.ksql.rest.util.TerminateCluster;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -44,25 +45,25 @@ public class CommandRunner implements Runnable, Closeable {
   private static final int MAX_STATEMENT_RETRY_MS = 5 * 1000;
 
   private final StatementExecutor statementExecutor;
-  private final KsqlEngine ksqlEngine;
   private final CommandQueue commandStore;
   private volatile boolean closed;
   private final int maxRetries;
   private final ClusterTerminator clusterTerminator;
+  private final ServerState serverState;
 
   public CommandRunner(
       final StatementExecutor statementExecutor,
       final CommandQueue commandStore,
-      final KsqlEngine ksqlEngine,
       final int maxRetries,
-      final ClusterTerminator clusterTerminator
+      final ClusterTerminator clusterTerminator,
+      final ServerState serverState
   ) {
     this.statementExecutor = Objects.requireNonNull(statementExecutor, "statementExecutor");
     this.commandStore = Objects.requireNonNull(commandStore, "commandStore");
-    this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
     this.maxRetries = maxRetries;
     closed = false;
     this.clusterTerminator = Objects.requireNonNull(clusterTerminator, "clusterTerminator");
+    this.serverState = Objects.requireNonNull(serverState, "serverState");
   }
 
   /**
@@ -148,7 +149,7 @@ public class CommandRunner implements Runnable, Closeable {
 
   @SuppressWarnings("unchecked")
   private void terminateCluster(final Command command) {
-    ksqlEngine.stopAcceptingStatements();
+    serverState.setTerminating();
     log.info("Terminating the KSQL server.");
     this.close();
     final List<String> deleteTopicList = (List<String>) command.getOverwriteProperties()

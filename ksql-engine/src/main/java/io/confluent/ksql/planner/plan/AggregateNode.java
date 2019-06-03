@@ -36,7 +36,7 @@ import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.physical.KsqlQueryBuilder;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
-import io.confluent.ksql.schema.ksql.KsqlSchemaWithOptions;
+import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.services.KafkaTopicClient;
@@ -205,7 +205,7 @@ public class AggregateNode extends PlanNode {
 
     final Serde<GenericRow> genericRowSerde = builder.buildGenericRowSerde(
         valueSerdeFactory,
-        KsqlSchemaWithOptions.of(aggregateArgExpanded.getSchema(), SerdeOption.none()),
+        PhysicalSchema.from(aggregateArgExpanded.getSchema(), SerdeOption.none()),
         groupByContext.getQueryContext()
     );
 
@@ -234,7 +234,7 @@ public class AggregateNode extends PlanNode {
 
     final Serde<GenericRow> aggValueGenericRowSerde = builder.buildGenericRowSerde(
         valueSerdeFactory,
-        KsqlSchemaWithOptions.of(aggStageSchema, SerdeOption.none()),
+        PhysicalSchema.from(aggStageSchema, SerdeOption.none()),
         aggregationContext.getQueryContext()
     );
 

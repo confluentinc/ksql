@@ -26,7 +26,7 @@ import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.physical.KsqlQueryBuilder;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
-import io.confluent.ksql.schema.ksql.KsqlSchemaWithOptions;
+import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.structured.QueryContext;
 import io.confluent.ksql.structured.SchemaKStream;
@@ -120,7 +120,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
 
     final Serde<GenericRow> outputRowSerde = builder.buildGenericRowSerde(
         getKsqlTopic().getValueSerdeFactory(),
-        KsqlSchemaWithOptions.of(getSchema().withoutImplicitFields(), serdeOptions),
+        PhysicalSchema.from(getSchema().withoutImplicitFields(), serdeOptions),
         contextStacker.getQueryContext()
     );
 

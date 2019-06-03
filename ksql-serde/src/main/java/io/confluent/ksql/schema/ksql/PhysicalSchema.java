@@ -21,7 +21,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.schema.persistence.PersistenceSchema;
-import io.confluent.ksql.schema.persistence.PersistenceSchemas;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Objects;
@@ -30,41 +29,53 @@ import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Field;
 
 /**
- * Tuple of a Ksql Logical schema and serde options.
+ * Physical KSQL schema.
+ *
+ * <p/>The physical KSQL schema is a combination of a logical schema and the serialization options
+ * used to control the serialized form.
  */
 @Immutable
-public final class KsqlSchemaWithOptions {
+public final class PhysicalSchema {
 
   private final KsqlSchema logicalSchema;
   private final ImmutableSet<SerdeOption> serdeOptions;
-  private final PersistenceSchemas physicalSchema;
+  private final PersistenceSchema valueSchema;
 
-  public static KsqlSchemaWithOptions of(
+  public static PhysicalSchema from(
       final KsqlSchema logicalSchema,
       final Set<SerdeOption> serdeOptions
   ) {
-    return new KsqlSchemaWithOptions(logicalSchema, serdeOptions);
+    return new PhysicalSchema(logicalSchema, serdeOptions);
   }
 
-  public KsqlSchema getLogicalSchema() {
+  /**
+   * @return the logical schema used to build this physical schema.
+   */
+  public KsqlSchema logicalSchema() {
     return logicalSchema;
   }
 
-  public Set<SerdeOption> getSerdeOptions() {
+  /**
+   * @return the serde options of this physical schema.
+   */
+  public Set<SerdeOption> serdeOptions() {
     return serdeOptions;
   }
 
-  public PersistenceSchemas getPhysicalSchema() {
-    return physicalSchema;
+  /**
+   * @return the physical value schema.
+   */
+  public PersistenceSchema valueSchema() {
+    return valueSchema;
   }
 
-  private KsqlSchemaWithOptions(
+  private PhysicalSchema(
       final KsqlSchema logicalSchema,
       final Set<SerdeOption> serdeOptions
   ) {
     this.logicalSchema = requireNonNull(logicalSchema, "logicalSchema");
     this.serdeOptions = ImmutableSet.copyOf(requireNonNull(serdeOptions, "serdeOptions"));
-    this.physicalSchema = buildPhysical(logicalSchema, serdeOptions);
+    this.valueSchema = buildPhysical(logicalSchema.getSchema(), serdeOptions);
   }
 
   @Override
@@ -75,10 +86,10 @@ public final class KsqlSchemaWithOptions {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    final KsqlSchemaWithOptions that = (KsqlSchemaWithOptions) o;
+    final PhysicalSchema that = (PhysicalSchema) o;
     return Objects.equals(logicalSchema, that.logicalSchema)
         && Objects.equals(serdeOptions, that.serdeOptions)
-        && Objects.equals(physicalSchema, that.physicalSchema);
+        && Objects.equals(valueSchema, that.valueSchema);
   }
 
   @Override
@@ -88,24 +99,13 @@ public final class KsqlSchemaWithOptions {
 
   @Override
   public String toString() {
-    return "KsqlSchemaWithOptions{"
+    return "PhysicalSchema{"
         + "logicalSchema=" + logicalSchema
         + ", serdeOptions=" + serdeOptions
         + '}';
   }
 
-  private static PersistenceSchemas buildPhysical(
-      final KsqlSchema ksqlSchema,
-      final Set<SerdeOption> serdeOptions
-  ) {
-    final ConnectSchema schema = ksqlSchema.getSchema();
-
-    final PersistenceSchema serializerSchema = buildValuePhysical(schema, serdeOptions);
-
-    return PersistenceSchemas.of(serializerSchema);
-  }
-
-  private static PersistenceSchema buildValuePhysical(
+  private static PersistenceSchema buildPhysical(
       final ConnectSchema schema,
       final Set<SerdeOption> serdeOptions
   ) {

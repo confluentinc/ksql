@@ -21,8 +21,7 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
-import io.confluent.ksql.schema.ksql.KsqlSchemaWithOptions;
-import io.confluent.ksql.schema.persistence.PersistenceSchemas;
+import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.ArrayList;
 import java.util.List;
@@ -40,21 +39,20 @@ import org.apache.kafka.connect.data.Struct;
 public final class GenericRowSerDe implements Serde<GenericRow> {
 
   private final Serde<Object> delegate;
-  private final KsqlSchemaWithOptions schema;
+  private final PhysicalSchema schema;
   private final boolean unwrapped;
 
   public static Serde<GenericRow> from(
       final KsqlSerdeFactory serdeFactory,
-      final KsqlSchemaWithOptions schema,
+      final PhysicalSchema schema,
       final KsqlConfig ksqlConfig,
       final Supplier<SchemaRegistryClient> srClientFactory,
       final String loggerNamePrefix,
       final ProcessingLogContext processingLogContext
   ) {
-    final PersistenceSchemas physicalSchema = schema.getPhysicalSchema();
 
     final Serde<Object> structSerde = serdeFactory.createSerde(
-        physicalSchema.valueSchema(),
+        schema.valueSchema(),
         ksqlConfig,
         srClientFactory,
         loggerNamePrefix,
@@ -65,19 +63,19 @@ public final class GenericRowSerDe implements Serde<GenericRow> {
 
   private GenericRowSerDe(
       final Serde<Object> delegate,
-      final KsqlSchemaWithOptions schema
+      final PhysicalSchema schema
   ) {
     this.delegate = requireNonNull(delegate, "delegate");
     this.schema = requireNonNull(schema, "schema");
-    this.unwrapped = schema.getLogicalSchema().fields().size() == 1
-        && schema.getSerdeOptions().contains(SerdeOption.UNWRAP_SINGLE_VALUES);
+    this.unwrapped = schema.logicalSchema().fields().size() == 1
+        && schema.serdeOptions().contains(SerdeOption.UNWRAP_SINGLE_VALUES);
   }
 
   @Override
   public Serializer<GenericRow> serializer() {
     return unwrapped
         ? new UnwrappedGenericRowSerializer(delegate.serializer())
-        : new GenericRowSerializer(delegate.serializer(), schema.getLogicalSchema());
+        : new GenericRowSerializer(delegate.serializer(), schema.logicalSchema());
   }
 
   @SuppressWarnings("unchecked")

@@ -34,7 +34,7 @@ import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
-import io.confluent.ksql.schema.ksql.KsqlSchemaWithOptions;
+import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.services.ServiceContext;
@@ -187,7 +187,7 @@ public class KsqlResourceFunctionalTest {
   @Test
   public void shouldInsertIntoValuesForAvroTopic() throws Exception {
     // Given:
-    final KsqlSchemaWithOptions schema = KsqlSchemaWithOptions.of(
+    final PhysicalSchema schema = PhysicalSchema.from(
         KsqlSchema.of(SchemaBuilder.struct()
             .field("AUTHOR", Schema.OPTIONAL_STRING_SCHEMA)
             .field("TITLE", Schema.OPTIONAL_STRING_SCHEMA)
@@ -199,7 +199,7 @@ public class KsqlResourceFunctionalTest {
         .register(
             "books" + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX,
             SchemaUtil.buildAvroSchema(
-                schema.getPhysicalSchema().valueSchema(),
+                schema.valueSchema(),
                 "books" + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX
             )
         );

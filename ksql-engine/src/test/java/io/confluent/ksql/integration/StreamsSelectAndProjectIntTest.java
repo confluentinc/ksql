@@ -24,7 +24,7 @@ import static org.hamcrest.Matchers.is;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.metastore.model.DataSource;
-import io.confluent.ksql.schema.ksql.KsqlSchemaWithOptions;
+import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import io.confluent.ksql.test.util.TopicTestUtil;
@@ -413,12 +413,12 @@ public class StreamsSelectAndProjectIntTest {
         DATA_PROVIDER.schema());
   }
 
-  private KsqlSchemaWithOptions getResultSchema() {
+  private PhysicalSchema getResultSchema() {
     final DataSource<?> source = ksqlContext
         .getMetaStore()
         .getSource(resultStream.toUpperCase());
 
-    return KsqlSchemaWithOptions.of(
+    return PhysicalSchema.from(
         source.getSchema(),
         source.getSerdeOptions()
     );

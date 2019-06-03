@@ -28,7 +28,7 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
-import io.confluent.ksql.schema.ksql.KsqlSchemaWithOptions;
+import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.util.KsqlConfig;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
@@ -53,23 +53,23 @@ public class GenericRowSerDeTest {
 
   private static final String LOGGER_PREFIX = "bob";
 
-  private static final KsqlSchemaWithOptions MUTLI_FIELD_SCHEMA =
-      KsqlSchemaWithOptions.of(
+  private static final PhysicalSchema MUTLI_FIELD_SCHEMA =
+      PhysicalSchema.from(
           KsqlSchema.of(SchemaBuilder.struct()
               .field("f0", Schema.OPTIONAL_STRING_SCHEMA)
               .field("f1", Schema.OPTIONAL_INT32_SCHEMA)
               .build()),
           SerdeOption.none());
 
-  private static final KsqlSchemaWithOptions WRAPPED_SINGLE_FIELD_SCHEMA =
-      KsqlSchemaWithOptions.of(
+  private static final PhysicalSchema WRAPPED_SINGLE_FIELD_SCHEMA =
+      PhysicalSchema.from(
           KsqlSchema.of(SchemaBuilder.struct()
               .field("f0", Schema.OPTIONAL_STRING_SCHEMA)
               .build()),
           SerdeOption.none());
 
-  private static final KsqlSchemaWithOptions UNWRAPPED_SINGLE_FIELD_SCHEMA =
-      KsqlSchemaWithOptions.of(
+  private static final PhysicalSchema UNWRAPPED_SINGLE_FIELD_SCHEMA =
+      PhysicalSchema.from(
           KsqlSchema.of(SchemaBuilder.struct()
               .field("f0", Schema.OPTIONAL_STRING_SCHEMA)
               .build()),
@@ -122,7 +122,7 @@ public class GenericRowSerDeTest {
 
     // Then:
     verify(valueSerdeFactory).createSerde(
-        MUTLI_FIELD_SCHEMA.getPhysicalSchema().valueSchema(),
+        MUTLI_FIELD_SCHEMA.valueSchema(),
         ksqlConfig,
         srClientFactory,
         LOGGER_PREFIX,
@@ -253,7 +253,7 @@ public class GenericRowSerDeTest {
     // Then:
     verify(delegateSerializer).serialize(
         SOME_TOPIC,
-        new Struct(MUTLI_FIELD_SCHEMA.getLogicalSchema().getSchema())
+        new Struct(MUTLI_FIELD_SCHEMA.logicalSchema().getSchema())
             .put("f0", "str")
             .put("f1", 10)
     );
@@ -324,7 +324,7 @@ public class GenericRowSerDeTest {
     // Then:
     verify(delegateSerializer).serialize(
         SOME_TOPIC,
-        new Struct(WRAPPED_SINGLE_FIELD_SCHEMA.getLogicalSchema().getSchema())
+        new Struct(WRAPPED_SINGLE_FIELD_SCHEMA.logicalSchema().getSchema())
             .put("f0", "str")
     );
 
@@ -388,7 +388,7 @@ public class GenericRowSerDeTest {
         .deserializer();
 
     when(delegateDeserializer.deserialize(any(), any()))
-        .thenReturn(new Struct(MUTLI_FIELD_SCHEMA.getLogicalSchema().getSchema())
+        .thenReturn(new Struct(MUTLI_FIELD_SCHEMA.logicalSchema().getSchema())
             .put("f0", "str")
             .put("f1", 10));
 
@@ -425,7 +425,7 @@ public class GenericRowSerDeTest {
         .deserializer();
 
     when(delegateDeserializer.deserialize(any(), any()))
-        .thenReturn(new Struct(WRAPPED_SINGLE_FIELD_SCHEMA.getLogicalSchema().getSchema())
+        .thenReturn(new Struct(WRAPPED_SINGLE_FIELD_SCHEMA.logicalSchema().getSchema())
             .put("f0", "str"));
 
     // When:
@@ -471,7 +471,7 @@ public class GenericRowSerDeTest {
     assertThat(row, is(nullValue()));
   }
 
-  private Serde<GenericRow> givenSerdeForSchema(final KsqlSchemaWithOptions schema) {
+  private Serde<GenericRow> givenSerdeForSchema(final PhysicalSchema schema) {
     rowSerde = GenericRowSerDe.from(
         valueSerdeFactory,
         schema,

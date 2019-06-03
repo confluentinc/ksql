@@ -16,7 +16,7 @@
 package io.confluent.ksql.util;
 
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.schema.ksql.KsqlSchemaWithOptions;
+import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import java.util.Map;
 import java.util.Objects;
 
@@ -24,7 +24,7 @@ public abstract class TestDataProvider {
   private final String topicName;
   private final String ksqlSchemaString;
   private final String key;
-  private final KsqlSchemaWithOptions schema;
+  private final PhysicalSchema schema;
   private final Map<String, GenericRow> data;
   private final String kstreamName;
 
@@ -32,7 +32,7 @@ public abstract class TestDataProvider {
       final String namePrefix,
       final String ksqlSchemaString,
       final String key,
-      final KsqlSchemaWithOptions schema,
+      final PhysicalSchema schema,
       final Map<String, GenericRow> data
   ) {
     this.topicName = Objects.requireNonNull(namePrefix, "namePrefix") + "_TOPIC";
@@ -55,7 +55,7 @@ public abstract class TestDataProvider {
     return key;
   }
 
-  public KsqlSchemaWithOptions schema() {
+  public PhysicalSchema schema() {
     return schema;
   }
 

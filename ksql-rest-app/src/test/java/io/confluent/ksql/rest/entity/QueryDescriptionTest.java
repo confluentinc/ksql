@@ -30,7 +30,7 @@ import io.confluent.ksql.physical.QuerySchemas;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.SchemaInfo.Type;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
-import io.confluent.ksql.schema.ksql.KsqlSchemaWithOptions;
+import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -138,7 +138,7 @@ public class QueryDescriptionTest {
     final PersistentQueryMetadata queryMetadata = new PersistentQueryMetadata(
         "test statement",
         queryStreams,
-        KsqlSchemaWithOptions.of(SCHEMA, SerdeOption.none()),
+        PhysicalSchema.from(SCHEMA, SerdeOption.none()),
         Collections.emptySet(),
         fakeSink.getName(),
         "execution plan",

@@ -22,7 +22,7 @@ import static org.hamcrest.Matchers.hasSize;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
-import io.confluent.ksql.schema.ksql.KsqlSchemaWithOptions;
+import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.GenericRowSerDe;
 import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
@@ -90,7 +90,7 @@ public class TopicConsumer {
 
   public <K> Map<K, GenericRow> readResults(
       final String topic,
-      final KsqlSchemaWithOptions schema,
+      final PhysicalSchema schema,
       final int expectedNumMessages,
       final Deserializer<K> keyDeserializer
   ) {

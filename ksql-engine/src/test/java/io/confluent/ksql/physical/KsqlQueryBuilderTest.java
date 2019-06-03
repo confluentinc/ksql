@@ -30,7 +30,7 @@ import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.planner.plan.PlanNodeId;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
-import io.confluent.ksql.schema.ksql.KsqlSchemaWithOptions;
+import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.GenericRowSerDe;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.serde.SerdeOption;
@@ -54,7 +54,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class KsqlQueryBuilderTest {
 
-  private static final KsqlSchemaWithOptions SOME_SCHEMA = KsqlSchemaWithOptions.of(
+  private static final PhysicalSchema SOME_SCHEMA = PhysicalSchema.from(
       KsqlSchema.of(SchemaBuilder.struct()
           .field("f0", Schema.OPTIONAL_BOOLEAN_SCHEMA)
           .build()),
@@ -147,7 +147,7 @@ public class KsqlQueryBuilderTest {
 
     // Then:
     verify(valueSerdeFactory).createSerde(
-        SOME_SCHEMA.getPhysicalSchema().valueSchema(),
+        SOME_SCHEMA.valueSchema(),
         ksqlConfig,
         srClientFactory,
         QueryLoggerUtil.queryLoggerName(queryContext),
@@ -180,8 +180,8 @@ public class KsqlQueryBuilderTest {
   @Test
   public void shouldTrackSchemasTakingIntoAccountSerdeOptions() {
     // Given:
-    final KsqlSchemaWithOptions schema = KsqlSchemaWithOptions.of(
-        SOME_SCHEMA.getLogicalSchema(),
+    final PhysicalSchema schema = PhysicalSchema.from(
+        SOME_SCHEMA.logicalSchema(),
         SerdeOption.of(SerdeOption.UNWRAP_SINGLE_VALUES)
     );
 

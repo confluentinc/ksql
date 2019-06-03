@@ -26,7 +26,7 @@ import io.confluent.ksql.datagen.RowGenerator;
 import io.confluent.ksql.datagen.SessionManager;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
-import io.confluent.ksql.schema.ksql.KsqlSchemaWithOptions;
+import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.GenericRowSerDe;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.avro.KsqlAvroSerdeFactory;
@@ -167,7 +167,7 @@ public class SerdeBenchmark {
     ) {
       return GenericRowSerDe.from(
           new KsqlJsonSerdeFactory(),
-          KsqlSchemaWithOptions.of(KsqlSchema.of(schema), SerdeOption.none()),
+          PhysicalSchema.from(KsqlSchema.of(schema), SerdeOption.none()),
           new KsqlConfig(Collections.emptyMap()),
           () -> null,
           "benchmark",
@@ -180,7 +180,7 @@ public class SerdeBenchmark {
       final SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
       return GenericRowSerDe.from(
           new KsqlAvroSerdeFactory("benchmarkSchema"),
-          KsqlSchemaWithOptions.of(KsqlSchema.of(schema), SerdeOption.none()),
+          PhysicalSchema.from(KsqlSchema.of(schema), SerdeOption.none()),
           new KsqlConfig(Collections.emptyMap()),
           () -> schemaRegistryClient,
           "benchmark",

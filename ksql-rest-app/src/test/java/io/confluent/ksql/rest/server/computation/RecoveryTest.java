@@ -28,7 +28,6 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlConfigTestUtil;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlEngineTestUtil;
-import io.confluent.ksql.engine.TopicAccessValidatorFactory;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.internal.KsqlEngineMetrics;
 import io.confluent.ksql.metastore.MetaStore;
@@ -408,7 +407,7 @@ public class RecoveryTest {
     PersistentQueryMetadataMatcher(final PersistentQueryMetadata metadata) {
       this.sourcesNamesMatcher = equalTo(metadata.getSourceNames());
       this.sinkNamesMatcher = equalTo(metadata.getSinkNames());
-      this.resultSchemaMatcher = equalTo(metadata.getResultSchema());
+      this.resultSchemaMatcher = equalTo(metadata.getLogicalSchema());
       this.sqlMatcher = equalTo(metadata.getStatementString());
       this.stateMatcher = equalTo(metadata.getState());
     }
@@ -449,7 +448,7 @@ public class RecoveryTest {
       }
       if (!test(
           resultSchemaMatcher,
-          metadata.getResultSchema(),
+          metadata.getLogicalSchema(),
           description,
           "schema mismatch: "
       )) {

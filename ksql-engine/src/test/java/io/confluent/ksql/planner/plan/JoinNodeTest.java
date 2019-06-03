@@ -43,7 +43,7 @@ import io.confluent.ksql.physical.KsqlQueryBuilder;
 import io.confluent.ksql.planner.plan.JoinNode.JoinType;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
-import io.confluent.ksql.schema.ksql.KsqlSchemaWithOptions;
+import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
@@ -1030,8 +1030,8 @@ public class JoinNodeTest {
     joinNode.buildStream(ksqlStreamBuilder);
 
     // Then:
-    final KsqlSchemaWithOptions expected = KsqlSchemaWithOptions
-        .of(leftSchema, leftSource.getSerdeOptions());
+    final PhysicalSchema expected = PhysicalSchema
+        .from(leftSchema, leftSource.getSerdeOptions());
 
     verify(ksqlStreamBuilder).buildGenericRowSerde(
         any(),
@@ -1062,8 +1062,8 @@ public class JoinNodeTest {
     joinNode.buildStream(ksqlStreamBuilder);
 
     // Then:
-    final KsqlSchemaWithOptions expected = KsqlSchemaWithOptions
-        .of(rightSchema, rightSource.getSerdeOptions());
+    final PhysicalSchema expected = PhysicalSchema
+        .from(rightSchema, rightSource.getSerdeOptions());
 
     verify(ksqlStreamBuilder).buildGenericRowSerde(
         any(),

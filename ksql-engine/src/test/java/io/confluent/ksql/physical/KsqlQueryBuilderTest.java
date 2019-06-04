@@ -164,6 +164,6 @@ public class KsqlQueryBuilderTest {
     );
 
     // Then:
-    assertThat(ksqlQueryBuilder.getSchemas().toString(), is("fred.context = optional<string>"));
+    assertThat(ksqlQueryBuilder.getSchemas().toString(), is("fred.context = VARCHAR"));
   }
 }

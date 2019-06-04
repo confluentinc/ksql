@@ -32,7 +32,7 @@ import org.apache.kafka.clients.producer.Producer;
  */
 final class SandboxedProducer<K, V> {
 
-  @SuppressFBWarnings("NP_NONNULL_PARAM_VIOLATION") // Not a bug
+  @SuppressFBWarnings("NP_NONNULL_PARAM_VIOLATION") // `null` is valid for `completedFuture`.
   static <K, V> Producer<K, V> createProxy() {
     return LimitedProxyBuilder.forClass(Producer.class)
         .swallow("send", anyParams(), CompletableFuture.completedFuture(null))

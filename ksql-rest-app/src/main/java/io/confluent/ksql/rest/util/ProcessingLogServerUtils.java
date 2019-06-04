@@ -50,7 +50,7 @@ public final class ProcessingLogServerUtils {
         .schema();
   }
 
-  private static String getTopicName(
+  public static String getTopicName(
       final ProcessingLogConfig config,
       final KsqlConfig ksqlConfig) {
     final String topicNameConfig = config.getString(ProcessingLogConfig.TOPIC_NAME);
@@ -85,7 +85,7 @@ public final class ProcessingLogServerUtils {
     return Optional.of(topicName);
   }
 
-  public static PreparedStatement<?> processingLogStreamCreateStatement(
+  public static PreparedStatement<CreateSource> processingLogStreamCreateStatement(
       final ProcessingLogConfig config,
       final KsqlConfig ksqlConfig
   ) {
@@ -95,7 +95,7 @@ public final class ProcessingLogServerUtils {
     );
   }
 
-  private static PreparedStatement<?> processingLogStreamCreateStatement(
+  private static PreparedStatement<CreateSource> processingLogStreamCreateStatement(
       final String name,
       final String topicName
   ) {

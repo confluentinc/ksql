@@ -29,7 +29,6 @@ import io.confluent.ksql.parser.KsqlParserTestUtil;
 import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TableElement;
-import io.confluent.ksql.schema.connect.SchemaFormatter;
 import io.confluent.ksql.schema.connect.SqlSchemaFormatter;
 import io.confluent.ksql.schema.ksql.LogicalSchemas;
 import io.confluent.ksql.statement.ConfiguredStatement;

@@ -136,7 +136,8 @@ You can add or remove KSQL servers during live operations. KSQL servers that hav
 Kafka cluster (``bootstrap.servers``) and the same KSQL service ID (``ksql.service.id``) form a given KSQL cluster.
 
 To add a KSQL server to an existing KSQL cluster the server must be configured with the same ``bootstrap.servers`` and
-``ksql.service.id`` settings as the KSQL cluster it should join. For more information, see :ref:`ksql-server-config`.
+``ksql.service.id`` settings as the KSQL cluster it should join. For more information, see :ref:`ksql-server-config`
+and :ref:`ksql-capacity-planning-scaling`.
 
 ======================================================================================
 How can I lock-down KSQL servers for production and prevent interactive client access?

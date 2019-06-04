@@ -56,7 +56,6 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -81,8 +80,8 @@ import org.apache.kafka.test.TestUtils;
 
 final class EndToEndEngineTestUtil {
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-  private static final String CONFIG_END_MARKER = "CONFIGS_END";
-  private static final String SCHEMAS_END_MARKER = "SCHEMAS_END";
+  static final String CONFIG_END_MARKER = "CONFIGS_END";
+  static final String SCHEMAS_END_MARKER = "SCHEMAS_END";
 
   private static final NavigableMap<SemanticVersion, Map<String, Object>>
       COMPATIBILITY_BREAKING_CONFIGS = buildCompatibilityBreakingConfigs();
@@ -97,9 +96,9 @@ final class EndToEndEngineTestUtil {
   private EndToEndEngineTestUtil(){}
 
   static void writeExpectedTopologyFiles(
-      final String topologyDir,
-      final List<TestCase> testCases) {
-
+      final Path topologyDir,
+      final List<TestCase> testCases
+  ) {
     final ObjectWriter objectWriter = new ObjectMapper().writerWithDefaultPrettyPrinter();
 
     testCases.forEach(testCase -> {
@@ -233,12 +232,11 @@ final class EndToEndEngineTestUtil {
       final PersistentQueryMetadata query,
       final Map<String, String> configs,
       final ObjectWriter objectWriter,
-      final String topologyDir
+      final Path topologyDir
   ) {
-    final Path newTopologyDataPath = Paths.get(topologyDir);
     try {
       final String updatedQueryName = formatQueryName(queryName);
-      final Path topologyFile = Paths.get(newTopologyDataPath.toString(), updatedQueryName);
+      final Path topologyFile = topologyDir.resolve(updatedQueryName);
       final String configString = objectWriter.writeValueAsString(configs);
       final String topologyString = query.getTopology().describe().toString();
       final String schemasString = query.getSchemasDescription();

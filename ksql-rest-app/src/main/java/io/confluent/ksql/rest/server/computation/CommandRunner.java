@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.server.computation;
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
+import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.rest.util.ClusterTerminator;
 import io.confluent.ksql.rest.util.TerminateCluster;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -51,27 +52,27 @@ public class CommandRunner implements Closeable {
   private static final int SHUTDOWN_TIMEOUT_MS = 3 * MAX_STATEMENT_RETRY_MS;
 
   private final StatementExecutor statementExecutor;
-  private final KsqlEngine ksqlEngine;
   private final CommandQueue commandStore;
   private final ExecutorService executor;
   private volatile boolean closed = false;
   private final int maxRetries;
   private final ClusterTerminator clusterTerminator;
+  private final ServerState serverState;
 
   public CommandRunner(
       final StatementExecutor statementExecutor,
       final CommandQueue commandStore,
-      final KsqlEngine ksqlEngine,
       final int maxRetries,
-      final ClusterTerminator clusterTerminator
+      final ClusterTerminator clusterTerminator,
+      final ServerState serverState
   ) {
     this(
         statementExecutor,
         commandStore,
-        ksqlEngine,
         maxRetries,
         clusterTerminator,
-        Executors.newSingleThreadExecutor(r -> new Thread(r, "CommandRunner"))
+        Executors.newSingleThreadExecutor(r -> new Thread(r, "CommandRunner")),
+        serverState
     );
   }
 
@@ -79,17 +80,17 @@ public class CommandRunner implements Closeable {
   CommandRunner(
       final StatementExecutor statementExecutor,
       final CommandQueue commandStore,
-      final KsqlEngine ksqlEngine,
       final int maxRetries,
       final ClusterTerminator clusterTerminator,
-      final ExecutorService executor
+      final ExecutorService executor,
+      final ServerState serverState
   ) {
     this.statementExecutor = Objects.requireNonNull(statementExecutor, "statementExecutor");
     this.commandStore = Objects.requireNonNull(commandStore, "commandStore");
-    this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
     this.maxRetries = maxRetries;
     this.clusterTerminator = Objects.requireNonNull(clusterTerminator, "clusterTerminator");
     this.executor = Objects.requireNonNull(executor, "executor");
+    this.serverState = Objects.requireNonNull(serverState, "serverState");
   }
 
   /**
@@ -193,7 +194,7 @@ public class CommandRunner implements Closeable {
 
   @SuppressWarnings("unchecked")
   private void terminateCluster(final Command command) {
-    ksqlEngine.stopAcceptingStatements();
+    serverState.setTerminating();
     log.info("Terminating the KSQL server.");
     this.close();
     final List<String> deleteTopicList = (List<String>) command.getOverwriteProperties()

@@ -26,7 +26,6 @@ import static org.mockito.Mockito.when;
 import io.confluent.ksql.config.ConfigItem;
 import io.confluent.ksql.config.ConfigResolver;
 import io.confluent.ksql.config.PropertyValidator;
-import io.confluent.ksql.properties.LocalPropertyParser;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import java.util.Optional;

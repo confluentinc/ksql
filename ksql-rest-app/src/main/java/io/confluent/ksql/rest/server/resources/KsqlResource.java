@@ -151,13 +151,6 @@ public class KsqlResource {
       @Context final ServiceContext serviceContext,
       final KsqlRequest request
   ) {
-    if (!ksqlEngine.isAcceptingStatements()) {
-      return Errors.serverErrorForStatement(
-          new KsqlException("The cluster has been terminated. No new request will be accepted."),
-          request.getKsql(),
-          new KsqlEntityList()
-      );
-    }
     activenessRegistrar.updateLastRequestTime();
 
     try {

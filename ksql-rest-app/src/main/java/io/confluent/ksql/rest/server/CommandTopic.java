@@ -44,8 +44,8 @@ public class CommandTopic {
   private static final Logger log = LoggerFactory.getLogger(CommandTopic.class);
   private final TopicPartition commandTopicPartition;
 
-  private final Consumer<CommandId, Command> commandConsumer;
-  private final Producer<CommandId, Command> commandProducer;
+  private Consumer<CommandId, Command> commandConsumer = null;
+  private Producer<CommandId, Command> commandProducer = null;
   private final String commandTopicName;
 
   public CommandTopic(
@@ -76,9 +76,15 @@ public class CommandTopic {
     this.commandConsumer = Objects.requireNonNull(commandConsumer, "commandConsumer");
     this.commandProducer = Objects.requireNonNull(commandProducer, "commandProducer");
     this.commandTopicName = Objects.requireNonNull(commandTopicName, "commandTopicName");
-    commandConsumer.assign(Collections.singleton(commandTopicPartition));
   }
 
+  public String getCommandTopicName() {
+    return commandTopicName;
+  }
+
+  public void start() {
+    commandConsumer.assign(Collections.singleton(commandTopicPartition));
+  }
 
   public RecordMetadata send(final CommandId commandId, final Command command) {
     final ProducerRecord<CommandId, Command> producerRecord = new ProducerRecord<>(

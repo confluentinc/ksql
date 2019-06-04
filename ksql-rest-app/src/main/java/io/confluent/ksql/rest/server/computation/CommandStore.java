@@ -80,6 +80,17 @@ public class CommandStore implements CommandQueue, Closeable {
     commandTopic.wakeup();
   }
 
+  public String getCommandTopicName() {
+    return commandTopic.getCommandTopicName();
+  }
+
+  public void start() {
+    commandTopic.start();
+  }
+
+  /**
+   * Close the store, rendering it unable to read or write commands
+   */
   @Override
   public void close() {
     commandTopic.close();

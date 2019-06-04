@@ -56,33 +56,47 @@ public final class TopologyFileGenerator {
 
     private static final String BASE_DIRECTORY = "src/test/resources/expected_topology/";
 
-    // NOTE: must be run with current directory ksql/ksql-engine (IntelliJ default is ksql)
     public static void main(final String[] args) throws Exception {
-        generateTopologies(BASE_DIRECTORY);
+        generateTopologies(findBaseDir());
     }
 
     @Test
     public void shouldGenerateTopologies() throws Exception {
         final File tmp = TestUtils.tempDirectory();
         tmp.deleteOnExit();
-        generateTopologies(tmp.getAbsolutePath());
+        generateTopologies(tmp.toPath());
     }
 
-    private static void generateTopologies(final String base) throws Exception {
+    static Path findBaseDir() {
+        Path path = Paths.get("./ksql-functional-tests");
+        if (Files.exists(path)) {
+            return path.resolve(BASE_DIRECTORY);
+        }
+        path = Paths.get("../ksql-functional-tests");
+        if (Files.exists(path)) {
+            return path.resolve(BASE_DIRECTORY);
+        }
+        throw new RuntimeException("Failed to determine location of expected topologies directory. "
+            + "App should be run with current directory set to either the root of the repo or the "
+            + "root of the ksql-functional-tests module");
+    }
+
+    private static void generateTopologies(final Path base) throws Exception {
         final String formattedVersion = getFormattedVersionFromPomFile();
-        final String generatedTopologyPath = base + formattedVersion;
+        final Path generatedTopologyPath = base.resolve(formattedVersion);
 
         System.out.println(String.format("Starting to write topology files to %s", generatedTopologyPath));
-        final Path dirPath = Paths.get(generatedTopologyPath);
 
-        if (!dirPath.toFile().exists()) {
-            Files.createDirectory(dirPath);
+        if (!generatedTopologyPath.toFile().exists()) {
+            Files.createDirectory(generatedTopologyPath);
         } else {
-            System.out.println(String.format("Directory %s already exists, this will re-generate topology files", dirPath));
+            System.out.println("Warning: Directory already exists, "
+                + "this will re-generate topology files. dir: " + generatedTopologyPath);
         }
 
         EndToEndEngineTestUtil.writeExpectedTopologyFiles(generatedTopologyPath, getTestCases());
-        System.out.println(String.format("Done writing topology files to %s", dirPath));
+        System.out
+            .println(String.format("Done writing topology files to %s", generatedTopologyPath));
     }
 
     private static List<TestCase> getTestCases() {

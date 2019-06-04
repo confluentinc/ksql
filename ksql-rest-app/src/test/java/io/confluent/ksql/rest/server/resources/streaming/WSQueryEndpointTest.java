@@ -41,6 +41,7 @@ import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Relation;
 import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.StatementParser;
@@ -50,6 +51,7 @@ import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint.QueryPu
 import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint.ServiceContextFactory;
 import io.confluent.ksql.rest.server.security.KsqlAuthorizer;
 import io.confluent.ksql.rest.server.security.KsqlSecurityExtension;
+import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -69,6 +71,7 @@ import java.util.stream.Collectors;
 import javax.websocket.CloseReason;
 import javax.websocket.CloseReason.CloseCodes;
 import javax.websocket.Session;
+import javax.ws.rs.core.Response;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.streams.KafkaClientSupplier;
 import org.junit.Before;
@@ -137,6 +140,8 @@ public class WSQueryEndpointTest {
   private ServiceContext serviceContext;
   @Mock
   private ServiceContextFactory serviceContextFactory;
+  @Mock
+  private ServerState serverState;
   @Captor
   private ArgumentCaptor<CloseReason> closeReasonCaptor;
   private Query query;
@@ -160,25 +165,13 @@ public class WSQueryEndpointTest {
     when(serviceContextFactory.create(ksqlConfig, topicClientSupplier, schemaRegistryClientSupplier))
         .thenReturn(serviceContext);
     when(serviceContext.getTopicClient()).thenReturn(topicClient);
-    when(ksqlEngine.isAcceptingStatements()).thenReturn(true);
+    when(serverState.checkReady()).thenReturn(Optional.empty());
     givenRequest(VALID_REQUEST);
 
     wsQueryEndpoint = new WSQueryEndpoint(
         ksqlConfig, OBJECT_MAPPER, statementParser, ksqlEngine, commandQueue, exec,
         queryPublisher, topicPublisher, activenessRegistrar, COMMAND_QUEUE_CATCHUP_TIMEOUT,
-        topicAccessValidator, securityExtension, serviceContextFactory);
-  }
-
-  @Test
-  public void shouldReturnErrorIfClusterWasTerminated() throws Exception {
-    // Given:
-    when(ksqlEngine.isAcceptingStatements()).thenReturn(false);
-
-    // When:
-    wsQueryEndpoint.onOpen(session, null);
-
-    // Then:
-    verifyClosedWithReason("The cluster has been terminated. No new request will be accepted.", CloseCodes.CANNOT_ACCEPT);
+        topicAccessValidator, securityExtension, serviceContextFactory, serverState);
   }
 
   @Test
@@ -322,6 +315,25 @@ public class WSQueryEndpointTest {
     verifyClosedWithReason(
         "Error parsing request: Failed to set 'unknown-property' to 'true'",
         CloseCodes.CANNOT_ACCEPT);
+  }
+
+  @Test
+  public void shouldReturnErrorOnFailedStateCheck() throws Exception {
+    // Given:
+    when(serverState.checkReady()).thenReturn(
+        Optional.of(
+            Response.status(503)
+                .entity(new KsqlErrorMessage(50300, "error"))
+                .build()
+        )
+    );
+    givenRequest("");
+
+    // When:
+    wsQueryEndpoint.onOpen(session, null);
+
+    // Then:
+    verifyClosedWithReason("error", CloseCodes.TRY_AGAIN_LATER);
   }
 
   @Test

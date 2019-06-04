@@ -27,7 +27,6 @@ import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
-import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.entity.CommandStatus.Status;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.KsqlEntity;
@@ -101,7 +100,6 @@ public class KsqlResourceFunctionalTest {
       .around(TEST_HARNESS)
       .around(REST_APP);
 
-  private KsqlRestClient restClient;
   private String source;
 
   @BeforeClass
@@ -113,8 +111,6 @@ public class KsqlResourceFunctionalTest {
 
   @Before
   public void setUp() {
-    restClient = REST_APP.buildKsqlClient();
-
     source = KsqlIdentifierTestUtil.uniqueIdentifierName("source");
 
     RestIntegrationTestUtil.createStreams(REST_APP, source, PAGE_VIEW_TOPIC);
@@ -125,7 +121,6 @@ public class KsqlResourceFunctionalTest {
     NEXT_QUERY_ID.addAndGet(REST_APP.getPersistentQueries().size());
     REST_APP.closePersistentQueries();
     REST_APP.dropSourcesExcept(PAGE_VIEW_STREAM);
-    restClient.close();
   }
 
   @Test
@@ -269,7 +264,7 @@ public class KsqlResourceFunctionalTest {
             is(Status.SUCCESS)));
   }
 
-  private List<KsqlEntity> makeKsqlRequest(final String sql) {
-    return RestIntegrationTestUtil.makeKsqlRequest(REST_APP, restClient, sql);
+  private static List<KsqlEntity> makeKsqlRequest(final String sql) {
+    return RestIntegrationTestUtil.makeKsqlRequest(REST_APP, sql);
   }
 }

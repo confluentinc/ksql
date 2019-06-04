@@ -22,7 +22,7 @@ Next KLIP number: 4.
 | [KLIP-X: Template](klip-template.md)                                               | -              | N/A     |
 | [KLIP-1: Improve UDF Interfaces](klip-1-improve-udf-interfaces.md)                 | Accepted       | N/A     |
 | [KLIP-2: Insert Into Semantics](klip-2-produce-data.md)                            | Accepted       | N/A     |
-| [KLIP-3: Serialization of single Fields](klip-3-serialization-of-single-fields.md) | [In Discussion](https://github.com/confluentinc/ksql/pull/2824)  | N/A     |
+| [KLIP-3: Serialization of single Fields](klip-3-serialization-of-single-fields.md) | Accepted       | N/A     |
 
 
 

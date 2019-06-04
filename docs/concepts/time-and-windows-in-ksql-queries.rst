@@ -187,26 +187,8 @@ windows per record key.
 
 When using windows in your KSQL queries, aggregate functions are applied only
 to the records that occur within a specific time window. Records that arrive
-out-of-order are handled as you might expect: although the time window they belong to
-has expired, the out-of-order records are still associated with the correct window.
-
-You can specify a *grace period* for the window in your KSQL queries. This
-grace period controls how long KSQL waits for out-of-order records for a window.
-If a record arrives after the grace period of a window has passed, the record
-is discarded and isn't processed in that window. The following formula shows
-how the grace period is related to a window's end time and a record's timestamp.
-
-::
-
-    record.ts > window-end-time + grace-period
-
-.. include:: ../../../includes/grace-period-late-events.rst
-   :start-after: time-window-semantics-start
-   :end-before:  time-window-semantics-end     
-
-.. include:: ../../../includes/grace-period-late-events.rst
-   :start-after: grace-tip-start
-   :end-before:  grace-tip-end     
+out-of-order are handled as you might expect: although the window end time has
+passed, the out-of-order records are still associated with the correct window.
 
 Window Types
 ============

@@ -22,7 +22,6 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
-import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.services.ServiceContext;
@@ -38,8 +37,6 @@ import kafka.zookeeper.ZooKeeperClientException;
 import org.glassfish.hk2.api.Factory;
 import org.glassfish.hk2.utilities.binding.AbstractBinder;
 import org.glassfish.jersey.process.internal.RequestScoped;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -88,8 +85,6 @@ public class ClusterTerminationTest {
       .around(TEST_HARNESS)
       .around(REST_APP);
 
-  private KsqlRestClient restClient;
-
   @BeforeClass
   public static void setUpClass() {
     TEST_HARNESS.ensureTopics(PAGE_VIEW_TOPIC);
@@ -97,22 +92,11 @@ public class ClusterTerminationTest {
     RestIntegrationTestUtil.createStreams(REST_APP, PAGE_VIEW_STREAM, PAGE_VIEW_TOPIC);
   }
 
-  @Before
-  public void setUp() {
-    restClient = REST_APP.buildKsqlClient();
-  }
-
-  @After
-  public void cleanUp() {
-    restClient.close();
-  }
-
   @Test
   public void shouldCleanUpSinkTopicsAndSchemasDuringClusterTermination() throws Exception {
     // Given:
     RestIntegrationTestUtil.makeKsqlRequest(
         REST_APP,
-        restClient,
         "CREATE STREAM " + SINK_STREAM
             + " WITH (kafka_topic='" + SINK_TOPIC + "',value_format='avro')"
             + " AS SELECT * FROM " + PAGE_VIEW_STREAM + ";"

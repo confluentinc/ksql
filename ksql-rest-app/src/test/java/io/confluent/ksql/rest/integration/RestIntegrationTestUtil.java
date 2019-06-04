@@ -47,12 +47,14 @@ final class RestIntegrationTestUtil {
   private RestIntegrationTestUtil() {
   }
 
-  static List<KsqlEntity> makeKsqlRequest(final TestKsqlRestApp restApp, final KsqlRestClient restClient, final String sql) {
-    final RestResponse<KsqlEntityList> res = restClient.makeKsqlRequest(sql);
+  static List<KsqlEntity> makeKsqlRequest(final TestKsqlRestApp restApp, final String sql) {
+    try (final KsqlRestClient restClient = restApp.buildKsqlClient()) {
+      final RestResponse<KsqlEntityList> res = restClient.makeKsqlRequest(sql);
 
-    throwOnError(res);
+      throwOnError(res);
 
-    return awaitResults(restApp, res.getResponse());
+      return awaitResults(restApp, res.getResponse());
+    }
   }
 
   static void createStreams(final TestKsqlRestApp restApp, final String streamName, final String topicName) {

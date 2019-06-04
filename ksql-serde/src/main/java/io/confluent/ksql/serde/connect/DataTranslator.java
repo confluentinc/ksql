@@ -21,5 +21,5 @@ public interface DataTranslator {
 
   Object toKsqlRow(Schema connectSchema, Object connectData);
 
-  Object toConnectRow(Object genericRow);
+  Object toConnectRow(Object ksqlData);
 }

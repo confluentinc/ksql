@@ -18,6 +18,7 @@ package io.confluent.ksql.serde;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
+import io.confluent.ksql.schema.persistence.PersistenceSchema;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.ArrayList;
 import java.util.List;
@@ -27,13 +28,14 @@ import java.util.function.Supplier;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serializer;
+import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
 
 public final class GenericRowSerDe implements Serde<GenericRow> {
 
-  private final Serde<Struct> delegate;
+  private final Serde<Object> delegate;
   private final Schema schema;
 
   public static Serde<GenericRow> from(
@@ -44,8 +46,9 @@ public final class GenericRowSerDe implements Serde<GenericRow> {
       final String loggerNamePrefix,
       final ProcessingLogContext processingLogContext
   ) {
-    final Serde<Struct> structSerde = serdeFactory.createSerde(
-        schema,
+
+    final Serde<Object> structSerde = serdeFactory.createSerde(
+        PersistenceSchema.of((ConnectSchema) schema),
         ksqlConfig,
         srClientFactory,
         loggerNamePrefix,
@@ -55,7 +58,7 @@ public final class GenericRowSerDe implements Serde<GenericRow> {
   }
 
   private GenericRowSerDe(
-      final Serde<Struct> delegate,
+      final Serde<Object> delegate,
       final Schema schema
   ) {
     this.delegate = Objects.requireNonNull(delegate, "delegate");
@@ -92,10 +95,10 @@ public final class GenericRowSerDe implements Serde<GenericRow> {
 
   public static class GenericRowSerializer implements Serializer<GenericRow> {
 
-    private final Serializer<Struct> inner;
+    private final Serializer<Object> inner;
     private final Schema schema;
 
-    public GenericRowSerializer(final Serializer<Struct> inner, final Schema schema) {
+    public GenericRowSerializer(final Serializer<Object> inner, final Schema schema) {
       this.inner = Objects.requireNonNull(inner, "inner");
       this.schema = Objects.requireNonNull(schema, "schema");
     }
@@ -122,9 +125,9 @@ public final class GenericRowSerDe implements Serde<GenericRow> {
 
   public static class GenericRowDeserializer implements Deserializer<GenericRow> {
 
-    private final Deserializer<Struct> inner;
+    private final Deserializer<Object> inner;
 
-    public GenericRowDeserializer(final Deserializer<Struct> inner) {
+    public GenericRowDeserializer(final Deserializer<Object> inner) {
       this.inner = Objects.requireNonNull(inner, "inner");
     }
 
@@ -135,7 +138,7 @@ public final class GenericRowSerDe implements Serde<GenericRow> {
 
     @Override
     public GenericRow deserialize(final String topic, final byte[] data) {
-      final Struct struct = inner.deserialize(topic, data);
+      final Struct struct = (Struct) inner.deserialize(topic, data);
       if (struct == null) {
         return null;
       }

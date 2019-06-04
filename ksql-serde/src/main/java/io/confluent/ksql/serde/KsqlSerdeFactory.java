@@ -21,6 +21,7 @@ import com.google.errorprone.annotations.Immutable;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
+import io.confluent.ksql.schema.persistence.PersistenceSchema;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Objects;
 import java.util.function.Supplier;
@@ -28,9 +29,6 @@ import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.serialization.Serializer;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.Schema.Type;
-import org.apache.kafka.connect.data.Struct;
 
 @Immutable
 public abstract class KsqlSerdeFactory {
@@ -47,27 +45,23 @@ public abstract class KsqlSerdeFactory {
     return format;
   }
 
-  public Serde<Struct> createSerde(
-      final Schema schema,
+  public Serde<Object> createSerde(
+      final PersistenceSchema schema,
       final KsqlConfig ksqlConfig,
       final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
       final String loggerNamePrefix,
       final ProcessingLogContext processingLogContext
   ) {
-    if (schema.type() != Type.STRUCT) {
-      throw new IllegalArgumentException("KSQL expects all top level schemas to be STRUCTs");
-    }
-
     final ProcessingLogger processingLogger = processingLogContext.getLoggerFactory()
         .getLogger(join(loggerNamePrefix, DESERIALIZER_LOGGER_NAME));
 
-    final Serializer<Struct> serializer = createSerializer(
+    final Serializer<Object> serializer = createSerializer(
         schema,
         ksqlConfig,
         schemaRegistryClientFactory
     );
 
-    final Deserializer<Struct> deserializer = createDeserializer(
+    final Deserializer<Object> deserializer = createDeserializer(
         schema,
         ksqlConfig,
         schemaRegistryClientFactory,
@@ -77,14 +71,14 @@ public abstract class KsqlSerdeFactory {
     return Serdes.serdeFrom(serializer, deserializer);
   }
 
-  protected abstract Serializer<Struct> createSerializer(
-      Schema logicalSchema,
+  protected abstract Serializer<Object> createSerializer(
+      PersistenceSchema schema,
       KsqlConfig ksqlConfig,
       Supplier<SchemaRegistryClient> schemaRegistryClientFactory
   );
 
-  protected abstract Deserializer<Struct> createDeserializer(
-      Schema logicalSchema,
+  protected abstract Deserializer<Object> createDeserializer(
+      PersistenceSchema schema,
       KsqlConfig ksqlConfig,
       Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
       ProcessingLogger processingLogger

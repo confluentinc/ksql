@@ -28,6 +28,11 @@ import org.apache.kafka.connect.data.Time;
 import org.apache.kafka.connect.data.Timestamp;
 import org.apache.kafka.connect.errors.DataException;
 
+/**
+ * Translates full set of Connect types to the limited subset supported by KSQL.
+ *
+ * <p>Responsible for the coercion of connect types to the subset KSQL supports.
+ */
 public class ConnectDataTranslator implements DataTranslator {
   private static final String PATH_SEPARATOR = "->";
 

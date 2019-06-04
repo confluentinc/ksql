@@ -36,6 +36,15 @@ import org.apache.kafka.connect.data.Schema.Type;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 
+/**
+ * Translates KSQL data and schemas to Avro equivalents.
+ *
+ * <p>Responsible for converting the KSQL schema to a version ready for connect to convert to an
+ *  avro schema.
+ *
+ * <p>This includes ensuring field names are valid Avro field names and that nested types do not
+ * have name clashes.
+ */
 public class AvroDataTranslator implements DataTranslator {
 
   private final DataTranslator innerTranslator;

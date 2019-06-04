@@ -24,6 +24,7 @@ import static org.junit.internal.matchers.ThrowableMessageMatcher.hasMessage;
 
 import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
+import io.confluent.ksql.schema.persistence.PersistenceSchema;
 import io.confluent.ksql.serde.SerdeTestUtils;
 import io.confluent.ksql.serde.util.SerdeProcessingLogMessageFactory;
 import io.confluent.ksql.util.KsqlException;
@@ -31,6 +32,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.Optional;
 import org.apache.kafka.common.errors.SerializationException;
+import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
@@ -46,12 +48,14 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class KsqlDelimitedDeserializerTest {
 
-  private static final Schema ORDER_SCHEMA = SchemaBuilder.struct()
+  private static final PersistenceSchema ORDER_SCHEMA = persistenceSchema(
+      SchemaBuilder.struct()
       .field("ORDERTIME", Schema.OPTIONAL_INT64_SCHEMA)
       .field("ORDERID", Schema.OPTIONAL_INT64_SCHEMA)
       .field("ITEMID", Schema.OPTIONAL_STRING_SCHEMA)
       .field("ORDERUNITS", Schema.OPTIONAL_FLOAT64_SCHEMA)
-      .build();
+      .build()
+  );
 
   private final ProcessingLogConfig processingLogConfig =
       new ProcessingLogConfig(Collections.emptyMap());
@@ -78,7 +82,7 @@ public class KsqlDelimitedDeserializerTest {
     final Struct struct = deserializer.deserialize("", bytes);
 
     // Then:
-    assertThat(struct.schema(), is(ORDER_SCHEMA));
+    assertThat(struct.schema(), is(ORDER_SCHEMA.getConnectSchema()));
     assertThat(struct.get("ORDERTIME"), is(1511897796092L));
     assertThat(struct.get("ORDERID"), is(1L));
     assertThat(struct.get("ITEMID"), is("item_1"));
@@ -101,7 +105,7 @@ public class KsqlDelimitedDeserializerTest {
           recordLogger,
           SerdeProcessingLogMessageFactory.deserializationErrorMsg(
               e.getCause(),
-              Optional.ofNullable(record)).apply(processingLogConfig),
+              Optional.of(record)).apply(processingLogConfig),
           processingLogConfig);
     }
   }
@@ -115,7 +119,7 @@ public class KsqlDelimitedDeserializerTest {
     final Struct struct = deserializer.deserialize("", bytes);
 
     // Then:
-    assertThat(struct.schema(), is(ORDER_SCHEMA));
+    assertThat(struct.schema(), is(ORDER_SCHEMA.getConnectSchema()));
     assertThat(struct.get("ORDERTIME"), is(1511897796092L));
     assertThat(struct.get("ORDERID"), is(1L));
     assertThat(struct.get("ITEMID"), is("item_1"));
@@ -154,21 +158,23 @@ public class KsqlDelimitedDeserializerTest {
   public void shouldThrowIfTopLevelNotStruct() {
     // Then:
     expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("KSQL expects all top level schemas to be STRUCTs");
+    expectedException.expectMessage("DELIMITED expects all top level schemas to be STRUCTs");
 
     // When:
-    new KsqlDelimitedDeserializer(Schema.OPTIONAL_INT64_SCHEMA, recordLogger);
+    new KsqlDelimitedDeserializer(persistenceSchema(Schema.OPTIONAL_INT64_SCHEMA), recordLogger);
   }
 
   @Test
   public void shouldDeserializedTopLevelPrimitiveTypeIfSchemaHasOnlySingleField() {
     // Given:
-    final Schema schema = SchemaBuilder.struct()
+    final PersistenceSchema schema = persistenceSchema(
+        SchemaBuilder.struct()
         .field("id", Schema.OPTIONAL_INT32_SCHEMA)
-        .build();
+        .build()
+    );
 
-    final KsqlDelimitedDeserializer deserializer = new KsqlDelimitedDeserializer(schema,
-        recordLogger);
+    final KsqlDelimitedDeserializer deserializer =
+        new KsqlDelimitedDeserializer(schema, recordLogger);
 
     final byte[] bytes = "10".getBytes(StandardCharsets.UTF_8);
 
@@ -182,10 +188,12 @@ public class KsqlDelimitedDeserializerTest {
   @Test
   public void shouldThrowOnDeserializedTopLevelPrimitiveWhenSchemaHasMoreThanOneField() {
     // Given:
-    final Schema schema = SchemaBuilder.struct()
+    final PersistenceSchema schema = persistenceSchema(
+        SchemaBuilder.struct()
         .field("id", Schema.OPTIONAL_INT32_SCHEMA)
         .field("id2", Schema.OPTIONAL_INT32_SCHEMA)
-        .build();
+        .build()
+    );
 
     final KsqlDelimitedDeserializer deserializer = new KsqlDelimitedDeserializer(schema,
         recordLogger);
@@ -205,16 +213,18 @@ public class KsqlDelimitedDeserializerTest {
   @Test
   public void shouldThrowOnArrayTypes() {
     // Given:
-    final Schema schema = SchemaBuilder.struct()
+    final PersistenceSchema schema = persistenceSchema(
+        SchemaBuilder.struct()
         .field("ids", SchemaBuilder
             .array(Schema.OPTIONAL_INT32_SCHEMA)
             .optional()
             .build())
-        .build();
+        .build()
+    );
 
     // Then:
     expectedException.expect(UnsupportedOperationException.class);
-    expectedException.expectMessage("DELIMITED does not support complex type: ARRAY");
+    expectedException.expectMessage("DELIMITED does not support type: ARRAY, field: ids");
 
     // When:
     new KsqlDelimitedDeserializer(schema, recordLogger);
@@ -223,16 +233,18 @@ public class KsqlDelimitedDeserializerTest {
   @Test
   public void shouldThrowOnMapTypes() {
     // Given:
-    final Schema schema = SchemaBuilder.struct()
+    final PersistenceSchema schema = persistenceSchema(
+        SchemaBuilder.struct()
         .field("ids", SchemaBuilder
             .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_INT64_SCHEMA)
             .optional()
             .build())
-        .build();
+        .build()
+    );
 
     // Then:
     expectedException.expect(UnsupportedOperationException.class);
-    expectedException.expectMessage("DELIMITED does not support complex type: MAP");
+    expectedException.expectMessage("DELIMITED does not support type: MAP, field: ids");
 
     // When:
     new KsqlDelimitedDeserializer(schema, recordLogger);
@@ -241,19 +253,25 @@ public class KsqlDelimitedDeserializerTest {
   @Test
   public void shouldThrowOnStructTypes() {
     // Given:
-    final Schema schema = SchemaBuilder.struct()
+    final PersistenceSchema schema = persistenceSchema(
+        SchemaBuilder.struct()
         .field("ids", SchemaBuilder
             .struct()
             .field("f0", Schema.OPTIONAL_INT32_SCHEMA)
             .optional()
             .build())
-        .build();
+        .build()
+    );
 
     // Then:
     expectedException.expect(UnsupportedOperationException.class);
-    expectedException.expectMessage("DELIMITED does not support complex type: STRUCT");
+    expectedException.expectMessage("DELIMITED does not support type: STRUCT, field: ids");
 
     // When:
     new KsqlDelimitedDeserializer(schema, recordLogger);
+  }
+
+  private static PersistenceSchema persistenceSchema(final Schema connectSchema) {
+    return PersistenceSchema.of((ConnectSchema) connectSchema);
   }
 }

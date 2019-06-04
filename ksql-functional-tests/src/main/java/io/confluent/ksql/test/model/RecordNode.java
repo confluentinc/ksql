@@ -61,9 +61,8 @@ public class RecordNode {
     return topicName;
   }
 
-  @SuppressWarnings("unchecked")
   public Record build(final Map<String, Topic> topics) {
-    final Topic topic = topics.get(topicName());
+    final Topic topic = topics.get(topicName);
 
     final Object topicValue = buildValue(topic);
 

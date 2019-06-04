@@ -26,12 +26,14 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.security.KsqlSecurityExtension;
+import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.rest.util.CommandStoreUtil;
 import io.confluent.ksql.services.DefaultServiceContext;
 import io.confluent.ksql.services.ServiceContext;
@@ -47,6 +49,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
 import javax.websocket.CloseReason;
@@ -57,6 +60,7 @@ import javax.websocket.OnError;
 import javax.websocket.OnOpen;
 import javax.websocket.Session;
 import javax.websocket.server.ServerEndpoint;
+import javax.ws.rs.core.Response;
 import org.apache.kafka.streams.KafkaClientSupplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -89,6 +93,7 @@ public class WSQueryEndpoint {
   private final TopicAccessValidator topicAccessValidator;
   private final KsqlSecurityExtension securityExtension;
   private final ServiceContextFactory serviceContextFactory;
+  private final ServerState serverState;
 
   private WebSocketSubscriber<?> subscriber;
   private ServiceContext serviceContext;
@@ -103,7 +108,9 @@ public class WSQueryEndpoint {
     );
   }
 
+  // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   public WSQueryEndpoint(
+      // CHECKSTYLE_RULES.ON: ParameterNumberCheck
       final KsqlConfig ksqlConfig,
       final ObjectMapper mapper,
       final StatementParser statementParser,
@@ -113,7 +120,8 @@ public class WSQueryEndpoint {
       final ActivenessRegistrar activenessRegistrar,
       final Duration commandQueueCatchupTimeout,
       final TopicAccessValidator topicAccessValidator,
-      final KsqlSecurityExtension securityExtension
+      final KsqlSecurityExtension securityExtension,
+      final ServerState serverState
   ) {
     this(ksqlConfig,
         mapper,
@@ -127,7 +135,8 @@ public class WSQueryEndpoint {
         commandQueueCatchupTimeout,
         topicAccessValidator,
         securityExtension,
-        DefaultServiceContext::create);
+        DefaultServiceContext::create,
+        serverState);
   }
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
@@ -145,7 +154,8 @@ public class WSQueryEndpoint {
       final Duration commandQueueCatchupTimeout,
       final TopicAccessValidator topicAccessValidator,
       final KsqlSecurityExtension securityExtension,
-      final ServiceContextFactory serviceContextFactory
+      final ServiceContextFactory serviceContextFactory,
+      final ServerState serverState
   ) {
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     this.mapper = Objects.requireNonNull(mapper, "mapper");
@@ -165,6 +175,7 @@ public class WSQueryEndpoint {
     this.securityExtension = Objects.requireNonNull(securityExtension, "securityExtension");
     this.serviceContextFactory =
         Objects.requireNonNull(serviceContextFactory, "serviceContextFactory");
+    this.serverState = Objects.requireNonNull(serverState, "serverState");
   }
 
   @SuppressWarnings("unused")
@@ -172,20 +183,18 @@ public class WSQueryEndpoint {
   public void onOpen(final Session session, final EndpointConfig unused) {
     log.debug("Opening websocket session {}", session.getId());
 
-    if (!ksqlEngine.isAcceptingStatements()) {
-      log.info("The cluster has been terminated. No new request will be accepted.");
-      SessionUtil.closeSilently(
-          session,
-          CloseCodes.CANNOT_ACCEPT,
-          "The cluster has been terminated. No new request will be accepted."
-      );
-      return;
-    }
     try {
       // Check if the user has authorization to access this Websocket endpoint
       checkEndpointAuthorization(session.getUserPrincipal(), QUERY_ENDPOINT_METHOD_NAME);
 
       validateVersion(session);
+
+      final Optional<Response> readyResponse = serverState.checkReady();
+      if (readyResponse.isPresent()) {
+        final String msg = ((KsqlErrorMessage) readyResponse.get().getEntity()).getMessage();
+        SessionUtil.closeSilently(session, CloseCodes.TRY_AGAIN_LATER, msg);
+        return;
+      }
 
       final KsqlRequest request = parseRequest(session);
 

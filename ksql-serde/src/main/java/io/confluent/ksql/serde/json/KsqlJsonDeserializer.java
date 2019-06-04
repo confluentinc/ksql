@@ -37,7 +37,7 @@ import org.apache.kafka.connect.json.JsonConverter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class KsqlJsonDeserializer implements Deserializer<Struct> {
+public class KsqlJsonDeserializer implements Deserializer<Object> {
 
   private static final Logger LOG = LoggerFactory.getLogger(KsqlJsonDeserializer.class);
 

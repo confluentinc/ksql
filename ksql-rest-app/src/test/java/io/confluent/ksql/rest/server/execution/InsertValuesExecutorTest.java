@@ -106,9 +106,9 @@ public class InsertValuesExecutorTest {
   @Mock
   private Serializer<String> keySerializer;
   @Mock
-  private Serde<Struct> rowSerDe;
+  private Serde<Object> rowSerDe;
   @Mock
-  private Serializer<Struct> rowSerializer;
+  private Serializer<Object> rowSerializer;
   @Mock
   private ServiceContext serviceContext;
   @Mock

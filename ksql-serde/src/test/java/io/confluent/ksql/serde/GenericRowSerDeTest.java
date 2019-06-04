@@ -28,6 +28,7 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
+import io.confluent.ksql.schema.persistence.PersistenceSchema;
 import io.confluent.ksql.util.KsqlConfig;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
@@ -35,6 +36,7 @@ import java.util.function.Supplier;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serializer;
+import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
@@ -49,7 +51,7 @@ public class GenericRowSerDeTest {
 
   private static final String LOGGER_PREFIX = "bob";
 
-  private static final Schema ROW_SCHEMA = SchemaBuilder.struct()
+  private static final ConnectSchema ROW_SCHEMA = (ConnectSchema) SchemaBuilder.struct()
       .field("f0", Schema.OPTIONAL_STRING_SCHEMA)
       .field("f1", Schema.OPTIONAL_INT32_SCHEMA)
       .build();
@@ -67,18 +69,18 @@ public class GenericRowSerDeTest {
   @Mock
   private ProcessingLogContext processingContext;
   @Mock
-  private Serde<Struct> structSerde;
+  private Serde<Object> deletageSerde;
   @Mock
-  private Serializer<Struct> structSerializer;
+  private Serializer<Object> delegateSerializer;
   @Mock
-  private Deserializer<Struct> structDeserializer;
+  private Deserializer<Object> delegateDeserializer;
   private Serde<GenericRow> rowSerde;
 
   @Before
   public void setUp() {
-    when(valueSerdeFactory.createSerde(any(), any(), any(), any(), any())).thenReturn(structSerde);
-    when(structSerde.serializer()).thenReturn(structSerializer);
-    when(structSerde.deserializer()).thenReturn(structDeserializer);
+    when(valueSerdeFactory.createSerde(any(), any(), any(), any(), any())).thenReturn(deletageSerde);
+    when(deletageSerde.serializer()).thenReturn(delegateSerializer);
+    when(deletageSerde.deserializer()).thenReturn(delegateDeserializer);
 
     rowSerde = GenericRowSerDe.from(
         valueSerdeFactory,
@@ -107,7 +109,7 @@ public class GenericRowSerDeTest {
 
     // Then:
     verify(valueSerdeFactory).createSerde(
-        ROW_SCHEMA,
+        PersistenceSchema.of(ROW_SCHEMA),
         ksqlConfig,
         srClientFactory,
         LOGGER_PREFIX,
@@ -133,11 +135,7 @@ public class GenericRowSerDeTest {
 
   @Test(expected = NullPointerException.class)
   public void shouldThrowOnNullSchema() {
-    // Given:
-    when(valueSerdeFactory.createSerde(any(), any(), any(), any(), any())).thenReturn(null);
-
-    // When:
-    GenericRowSerDe.from(
+     GenericRowSerDe.from(
         valueSerdeFactory,
         null,
         ksqlConfig,
@@ -156,7 +154,7 @@ public class GenericRowSerDeTest {
     serializer.configure(SOME_CONFIG, true);
 
     // Then:
-    verify(structSerializer).configure(SOME_CONFIG, true);
+    verify(delegateSerializer).configure(SOME_CONFIG, true);
   }
 
   @Test
@@ -168,7 +166,7 @@ public class GenericRowSerDeTest {
     deserializer.configure(SOME_CONFIG, true);
 
     // Then:
-    verify(structDeserializer).configure(SOME_CONFIG, true);
+    verify(delegateDeserializer).configure(SOME_CONFIG, true);
   }
 
   @Test
@@ -180,7 +178,7 @@ public class GenericRowSerDeTest {
     rowSerde.serializer();
 
     // Then:
-    verify(structSerde, times(2)).serializer();
+    verify(deletageSerde, times(2)).serializer();
   }
 
   @Test
@@ -192,7 +190,7 @@ public class GenericRowSerDeTest {
     rowSerde.deserializer();
 
     // Then:
-    verify(structSerde, times(2)).deserializer();
+    verify(deletageSerde, times(2)).deserializer();
   }
 
   @Test
@@ -200,7 +198,7 @@ public class GenericRowSerDeTest {
     // Given:
     final GenericRow row = new GenericRow("str", 10);
 
-    when(structSerializer.serialize(any(), any())).thenReturn(SOME_BYTES);
+    when(delegateSerializer.serialize(any(), any())).thenReturn(SOME_BYTES);
 
     final Serializer<GenericRow> serializer = rowSerde.serializer();
 
@@ -208,7 +206,7 @@ public class GenericRowSerDeTest {
     final byte[] bytes = serializer.serialize(SOME_TOPIC, row);
 
     // Then:
-    verify(structSerializer).serialize(
+    verify(delegateSerializer).serialize(
         SOME_TOPIC,
         new Struct(ROW_SCHEMA)
             .put("f0", "str")
@@ -221,7 +219,7 @@ public class GenericRowSerDeTest {
   @Test
   public void shouldSerializeNullGenericRow() {
     // Given:
-    when(structSerializer.serialize(any(), any())).thenReturn(null);
+    when(delegateSerializer.serialize(any(), any())).thenReturn(null);
 
     final Serializer<GenericRow> serializer = rowSerde.serializer();
 
@@ -229,7 +227,7 @@ public class GenericRowSerDeTest {
     final byte[] bytes = serializer.serialize(SOME_TOPIC, null);
 
     // Then:
-    verify(structSerializer).serialize(SOME_TOPIC, null);
+    verify(delegateSerializer).serialize(SOME_TOPIC, null);
 
     assertThat(bytes, is(nullValue()));
   }
@@ -237,7 +235,7 @@ public class GenericRowSerDeTest {
   @Test
   public void shouldDeserializeGenericRow() {
     // Given:
-    when(structDeserializer.deserialize(any(), any()))
+    when(delegateDeserializer.deserialize(any(), any()))
         .thenReturn(new Struct(ROW_SCHEMA)
             .put("f0", "str")
             .put("f1", 10));
@@ -248,7 +246,7 @@ public class GenericRowSerDeTest {
     final GenericRow row = deserializer.deserialize(SOME_TOPIC, SOME_BYTES);
 
     // Then:
-    verify(structDeserializer).deserialize(SOME_TOPIC, SOME_BYTES);
+    verify(delegateDeserializer).deserialize(SOME_TOPIC, SOME_BYTES);
 
     assertThat(row, is(new GenericRow("str", 10)));
   }
@@ -256,7 +254,7 @@ public class GenericRowSerDeTest {
   @Test
   public void shouldDeserializeNullGenericRow() {
     // Given:
-    when(structDeserializer.deserialize(any(), any())).thenReturn(null);
+    when(delegateDeserializer.deserialize(any(), any())).thenReturn(null);
 
     final Deserializer<GenericRow> deserializer = rowSerde.deserializer();
 
@@ -264,7 +262,7 @@ public class GenericRowSerDeTest {
     final GenericRow row = deserializer.deserialize(SOME_TOPIC, null);
 
     // Then:
-    verify(structDeserializer).deserialize(SOME_TOPIC, null);
+    verify(delegateDeserializer).deserialize(SOME_TOPIC, null);
 
     assertThat(row, is(nullValue()));
   }

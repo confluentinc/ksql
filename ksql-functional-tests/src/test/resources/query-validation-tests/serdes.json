@@ -96,7 +96,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "DELIMITED does not support complex type: ARRAY, field: FOO"
+        "message": "DELIMITED does not support type: ARRAY, field: FOO"
       }
     },
     {
@@ -209,7 +209,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "DELIMITED does not support complex type: MAP, field: FOO"
+        "message": "DELIMITED does not support type: MAP, field: FOO"
       }
     },
     {

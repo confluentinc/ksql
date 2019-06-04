@@ -40,7 +40,6 @@ import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.Explain;
-import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.services.SandboxedServiceContext;

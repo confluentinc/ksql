@@ -1715,7 +1715,7 @@
       "issues": [
         "With the current implementation the null values of the stream are ignored by KS.",
         "This is probably not what we want. We could treat null values as a null ID for streams.",
-        "Though this would not make sense for tables, where null is a tombstone"
+        "Though this would not make sense for tables, where null is a tombstone."
       ],
       "statements": [
         "CREATE STREAM S (ID bigint) WITH (WRAP_SINGLE_VALUE=false, kafka_topic='S', value_format='JSON');",

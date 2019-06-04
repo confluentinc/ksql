@@ -34,7 +34,9 @@ Installation Instructions
 
 Follow the instructions at :ref:`installing_cp`.
 
-It is also possible to install KSQL individually through :ref:`standalone packages <confluent-ksql-package>`.
+Also, you can install KSQL individually by using the
+:ref:`confluent-ksql package <confluent-ksql-package>`.
+For more information, see :ref:`available_packages`.
 
 ---------------------------------
 Scale Your KSQL Server Deployment

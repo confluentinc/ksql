@@ -112,6 +112,8 @@ public class CommandStoreTest {
 
     when(commandTopic.getNewCommands(any())).thenReturn(buildRecords(commandId, command));
 
+    when(commandTopic.getCommandTopicName()).thenReturn(COMMAND_TOPIC);
+
     when(sequenceNumberFutureStore.getFutureForSequenceNumber(anyLong())).thenReturn(future);
 
     configured = ConfiguredStatement.of(
@@ -296,6 +298,20 @@ public class CommandStoreTest {
 
     // Then:
     verify(commandTopic).close();
+  }
+
+  @Test
+  public void shouldGetCommandTopicName() {
+    assertThat(commandStore.getCommandTopicName(), equalTo(COMMAND_TOPIC));
+  }
+
+  @Test
+  public void shouldStartCommandTopicOnStart() {
+    // When:
+    commandStore.start();
+
+    // Then:
+    verify(commandTopic).start();
   }
 
   private static ConsumerRecords<CommandId, Command> buildRecords(final Object... args) {

@@ -58,7 +58,7 @@ public class QueryTranslationTest {
 
   private static final Path QUERY_VALIDATION_TEST_DIR = Paths.get("query-validation-tests");
   private static final String TOPOLOGY_CHECKS_DIR = "expected_topology/";
-  private static final String TOPOLOGY_VERSION_FILE = "__version";
+  static final String TOPOLOGY_VERSION_FILE = "__version";
   private static final Pattern TOPOLOGY_VERSION_PATTERN = Pattern.compile("(\\d+)_(\\d+)(_\\d+)?");
   private static final String TOPOLOGY_VERSIONS_DELIMITER = ",";
   private static final String TOPOLOGY_VERSIONS_PROP = "topology.versions";

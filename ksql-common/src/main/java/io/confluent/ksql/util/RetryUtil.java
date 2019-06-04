@@ -18,7 +18,10 @@ package io.confluent.ksql.util;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Arrays;
+import java.util.List;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,6 +37,23 @@ public final class RetryUtil {
       final int maxWaitMs,
       final Runnable runnable,
       final Class<?>... passThroughExceptions) {
+    retryWithBackoff(
+        maxRetries,
+        initialWaitMs,
+        maxWaitMs,
+        runnable,
+        Arrays.stream(passThroughExceptions)
+            .map(c -> (Predicate<Exception>) c::isInstance)
+            .collect(Collectors.toList())
+    );
+  }
+
+  public static void retryWithBackoff(
+      final int maxRetries,
+      final int initialWaitMs,
+      final int maxWaitMs,
+      final Runnable runnable,
+      final List<Predicate<Exception>> passThroughExceptions) {
     retryWithBackoff(
         maxRetries,
         initialWaitMs,
@@ -56,7 +76,7 @@ public final class RetryUtil {
       final int maxWaitMs,
       final Runnable runnable,
       final Consumer<Long> sleep,
-      final Class<?>... passThroughExceptions) {
+      final List<Predicate<Exception>> passThroughExceptions) {
     long wait = initialWaitMs;
     int i = 0;
     while (true) {
@@ -64,8 +84,8 @@ public final class RetryUtil {
         runnable.run();
         return;
       } catch (final RuntimeException exception) {
-        Arrays.stream(passThroughExceptions)
-            .filter(pte -> pte.isInstance(exception))
+        passThroughExceptions.stream()
+            .filter(pte -> pte.test(exception))
             .findFirst()
             .ifPresent(
                 e -> {

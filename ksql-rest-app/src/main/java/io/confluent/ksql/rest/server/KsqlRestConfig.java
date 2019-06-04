@@ -58,6 +58,13 @@ public class KsqlRestConfig extends RestConfig {
   private static final String KSQL_WEBSOCKETS_NUM_THREADS_DOC =
       "The number of websocket threads to handle query results";
 
+  static final String KSQL_SERVER_PRECONDITIONS =
+      KSQL_CONFIG_PREFIX + "server.preconditions";
+  private static final String KSQL_SERVER_PRECONDITIONS_DOC =
+      "A comma separated list of classes implementing KsqlServerPrecondition. The KSQL server "
+      + "will not start serving requests until all preconditions are satisfied. Until that time, "
+      + "requests will return a 503 error";
+
   private static final ConfigDef CONFIG_DEF;
 
   static {
@@ -85,6 +92,12 @@ public class KsqlRestConfig extends RestConfig {
         5,
         Importance.LOW,
         KSQL_WEBSOCKETS_NUM_THREADS_DOC
+    ).define(
+        KSQL_SERVER_PRECONDITIONS,
+        Type.LIST,
+        "",
+       Importance.LOW,
+       KSQL_SERVER_PRECONDITIONS_DOC
     );
   }
 

@@ -113,6 +113,17 @@
             <!-- Cross-submodule dependencies -->
 
             <dependency>
+                <groupId>org.apache.kafka</groupId>
+                <artifactId>kafka-streams</artifactId>
+                <!--
+                 Temporarily pinning KSQL to old Kafka snapshot until issues with breaking change
+                 due to state store name changes in PR https://github.com/apache/kafka/pull/6411,
+                 (part of KIP-307), is fixed.
+                -->
+                <version>5.4.0-ccs-20190531.005406-27</version>
+            </dependency>
+
+            <dependency>
                 <groupId>io.confluent.ksql</groupId>
                 <artifactId>ksql-common</artifactId>
                 <version>${project.version}</version>
@@ -213,6 +224,12 @@
             <dependency>
                 <groupId>io.confluent.support</groupId>
                 <artifactId>support-metrics-common</artifactId>
+                <version>${kafka.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.kafka</groupId>
+                <artifactId>kafka-log4j-appender</artifactId>
                 <version>${kafka.version}</version>
             </dependency>
 

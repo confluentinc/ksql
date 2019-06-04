@@ -24,8 +24,12 @@ import org.apache.kafka.connect.data.ConnectSchema;
  * Type-safe schema used purely for persistence.
  *
  * <p>There are a lot of different schema types in KSQL. This is a wrapper around the connect
- * schema type used to indicate the schema is for use only in persistence. Allowing code to be more
- * type-safe when it comes to dealing with different schema types.
+ * schema type used to indicate the schema is for use only for persistence, i.e. it is a
+ * schema that represents how parts of a row should be serialized, or are serialized, e.g. the
+ * Kafka message's value or key.
+ *
+ * <p>Having a specific type allows code to be more type-safe when it comes to dealing with
+ * different schema types.
  */
 @Immutable
 public final class PersistenceSchema {

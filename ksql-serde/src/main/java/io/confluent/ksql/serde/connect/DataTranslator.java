@@ -16,11 +16,10 @@
 package io.confluent.ksql.serde.connect;
 
 import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.Struct;
 
 public interface DataTranslator {
 
-  Struct toKsqlRow(Schema connectSchema, Object connectData);
+  Object toKsqlRow(Schema connectSchema, Object connectData);
 
-  Object toConnectRow(Struct genericRow);
+  Object toConnectRow(Object genericRow);
 }

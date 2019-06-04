@@ -27,6 +27,7 @@ import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
+import io.confluent.ksql.schema.persistence.PersistenceSchema;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import java.util.Collections;
@@ -40,6 +41,7 @@ import org.apache.avro.util.Utf8;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serializer;
+import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
@@ -72,8 +74,8 @@ public class KsqlAvroSerializerTest {
   public final ExpectedException expectedException = ExpectedException.none();
 
   private KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of());
-  private Serializer<Struct> serializer;
-  private Deserializer<Struct> deserializer;
+  private Serializer<Object> serializer;
+  private Deserializer<Object> deserializer;
 
   @Before
   public void setup() {
@@ -81,10 +83,10 @@ public class KsqlAvroSerializerTest {
   }
 
   private void resetSerde(final Schema schema) {
-    final Serde<Struct> serde =
+    final Serde<Object> serde =
         new KsqlAvroSerdeFactory(KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME)
             .createSerde(
-            schema,
+            PersistenceSchema.of((ConnectSchema) schema),
             ksqlConfig,
             () -> schemaRegistryClient,
             "loggerName",
@@ -216,7 +218,7 @@ public class KsqlAvroSerializerTest {
         equalTo(org.apache.avro.Schema.create(org.apache.avro.Schema.Type.NULL)));
     assertThat(field.schema().getTypes().get(1), equalTo(avroSchema));
     assertThat(avroRecord.get("field0"), equalTo(avroValue));
-    final Struct deserializedKsqlRecord = deserializer.deserialize("topic", bytes);
+    final Object deserializedKsqlRecord = deserializer.deserialize("topic", bytes);
     assertThat(deserializedKsqlRecord, equalTo(ksqlRecord));
   }
 
@@ -449,7 +451,7 @@ public class KsqlAvroSerializerTest {
     assertThat(avroRecord.getSchema().getFields().size(), equalTo(1));
     assertThat(avroRecord.get("source_field0"), equalTo(123));
 
-    final Struct deserializedKsqlRecord = deserializer.deserialize("topic", bytes);
+    final Object deserializedKsqlRecord = deserializer.deserialize("topic", bytes);
     assertThat(deserializedKsqlRecord, equalTo(ksqlRecord));
   }
 
@@ -469,10 +471,10 @@ public class KsqlAvroSerializerTest {
     final Struct ksqlRecord = new Struct(ksqlRecordSchema)
         .put("field0", ksqlValue);
 
-    final Serializer<Struct> serializer =
+    final Serializer<Object> serializer =
         new KsqlAvroSerdeFactory(schemaNamespace + "." + schemaName)
             .createSerde(
-                ksqlRecordSchema,
+                PersistenceSchema.of((ConnectSchema) ksqlRecordSchema),
                 ksqlConfig,
                 () -> schemaRegistryClient,
                 "logger.name.prefix",

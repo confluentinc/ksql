@@ -29,6 +29,7 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.planner.plan.PlanNodeId;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.schema.persistence.PersistenceSchema;
 import io.confluent.ksql.serde.GenericRowSerDe;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.services.ServiceContext;
@@ -38,8 +39,8 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.QueryLoggerUtil;
 import java.util.function.Supplier;
 import org.apache.kafka.common.serialization.Serde;
+import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.junit.Before;
 import org.junit.Test;
@@ -51,7 +52,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class KsqlQueryBuilderTest {
 
-  private static final Schema SOME_SCHEMA = Schema.OPTIONAL_STRING_SCHEMA;
+  private static final ConnectSchema SOME_SCHEMA = (ConnectSchema)Schema.OPTIONAL_STRING_SCHEMA;
   private static final QueryId QUERY_ID = new QueryId("fred");
 
   @Mock
@@ -67,7 +68,7 @@ public class KsqlQueryBuilderTest {
   @Mock
   private KsqlSerdeFactory valueSerdeFactory;
   @Mock
-  private Serde<Struct> rowSerde;
+  private Serde<Object> rowSerde;
   @Mock
   private Supplier<SchemaRegistryClient> srClientFactory;
   private QueryContext queryContext;
@@ -138,7 +139,7 @@ public class KsqlQueryBuilderTest {
 
     // Then:
     verify(valueSerdeFactory).createSerde(
-        SOME_SCHEMA,
+        PersistenceSchema.of(SOME_SCHEMA),
         ksqlConfig,
         srClientFactory,
         QueryLoggerUtil.queryLoggerName(queryContext),

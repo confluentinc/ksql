@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.schema.ksql;
 
+import static io.confluent.ksql.util.SchemaUtil.ROWKEY_NAME;
+import static io.confluent.ksql.util.SchemaUtil.ROWTIME_NAME;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
@@ -615,6 +617,27 @@ public class KsqlSchemaTest {
 
     // Then:
     assertThat(result, is(empty()));
+  }
+
+  @Test
+  public void shouldMarkRowTimeAsImplicit() {
+    assertThat(KsqlSchema.isImplicitColumnName(ROWTIME_NAME), is(true));
+  }
+
+  @Test
+  public void shouldMarkRowKeyAsImplicit() {
+    assertThat(KsqlSchema.isImplicitColumnName(ROWKEY_NAME), is(true));
+  }
+
+  @Test
+  public void shouldMarkAsImplicitRegardlessOfCase() {
+    assertThat(KsqlSchema.isImplicitColumnName(ROWTIME_NAME.toLowerCase()), is(true));
+    assertThat(KsqlSchema.isImplicitColumnName(ROWTIME_NAME.toUpperCase()), is(true));
+  }
+
+  @Test
+  public void shouldNotMarkOtherFieldsAsImplicit() {
+    assertThat(KsqlSchema.isImplicitColumnName("other"), is(false));
   }
 
   private static Schema nested(final Schema schema) {

@@ -27,7 +27,7 @@ import org.apache.kafka.connect.json.JsonConverter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class KsqlJsonSerializer implements Serializer<Struct> {
+public class KsqlJsonSerializer implements Serializer<Object> {
 
   private static final Logger LOG = LoggerFactory.getLogger(KsqlJsonSerializer.class);
 
@@ -49,7 +49,7 @@ public class KsqlJsonSerializer implements Serializer<Struct> {
   }
 
   @Override
-  public byte[] serialize(final String topic, final Struct data) {
+  public byte[] serialize(final String topic, final Object data) {
     if (LOG.isTraceEnabled()) {
       LOG.trace("Serializing row. topic:{}, row:{}", topic, data);
     }

@@ -52,6 +52,16 @@ public class KsqlDelimitedSerializerTest {
   }
 
   @Test
+  public void shouldThrowIfNotStruct() {
+    // Then:
+    expectedException.expect(SerializationException.class);
+    expectedException.expectCause(hasMessage(is("DELIMITED does not support anonymous fields")));
+
+    // When:
+    serializer.serialize("t1", "not a struct");
+  }
+
+  @Test
   public void shouldSerializeRowCorrectly() {
     // Given:
     final Struct data = new Struct(SCHEMA)
@@ -92,7 +102,7 @@ public class KsqlDelimitedSerializerTest {
         .field("id", Schema.OPTIONAL_INT64_SCHEMA)
         .build();
 
-    final Serializer<Struct> serializer = new KsqlDelimitedSerializer();
+    final Serializer<Object> serializer = new KsqlDelimitedSerializer();
 
     final Struct value = new Struct(schema)
         .put("id", 10L);

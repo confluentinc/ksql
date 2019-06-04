@@ -23,7 +23,6 @@ import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.hamcrest.core.IsNot.not;
 import static org.mockito.Mockito.mock;
 
-import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParserTestUtil;
@@ -38,7 +37,7 @@ import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.Struct;
-import io.confluent.ksql.parser.tree.Type.SqlType;
+import io.confluent.ksql.schema.SqlType;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.util.MetaStoreFixture;
 import org.junit.Assert;

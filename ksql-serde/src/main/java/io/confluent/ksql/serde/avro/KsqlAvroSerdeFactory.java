@@ -74,13 +74,16 @@ public class KsqlAvroSerdeFactory extends KsqlSerdeFactory {
       final KsqlConfig ksqlConfig,
       final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
   ) {
-    return new ThreadLocalSerializer<>(
-        () -> createConnectSerializer(
-            schema,
-            ksqlConfig,
-            schemaRegistryClientFactory
-        )
+    final Supplier<Serializer<Object>> supplier = () -> createConnectSerializer(
+        schema,
+        ksqlConfig,
+        schemaRegistryClientFactory
     );
+
+    // Sanity check:
+    supplier.get();
+
+    return new ThreadLocalSerializer<>(supplier);
   }
 
   @Override
@@ -90,13 +93,16 @@ public class KsqlAvroSerdeFactory extends KsqlSerdeFactory {
       final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
       final ProcessingLogger processingLogger
   ) {
-    return new ThreadLocalDeserializer<>(
-        () -> createConnectDeserializer(
-            schema,
-            ksqlConfig,
-            schemaRegistryClientFactory,
-            processingLogger)
-    );
+    final Supplier<Deserializer<Object>> supplier = () -> createConnectDeserializer(
+        schema,
+        ksqlConfig,
+        schemaRegistryClientFactory,
+        processingLogger);
+
+    // Sanity check:
+    supplier.get();
+
+    return new ThreadLocalDeserializer<>(supplier);
   }
 
   private KsqlConnectSerializer createConnectSerializer(
@@ -109,7 +115,11 @@ public class KsqlAvroSerdeFactory extends KsqlSerdeFactory {
     final AvroConverter avroConverter =
         getAvroConverter(schemaRegistryClientFactory.get(), ksqlConfig);
 
-    return new KsqlConnectSerializer(translator.getConnectSchema(), translator, avroConverter);
+    return new KsqlConnectSerializer(
+        translator.getAvroCompatibleSchema(),
+        translator,
+        avroConverter
+    );
   }
 
   private KsqlConnectDeserializer createConnectDeserializer(
@@ -132,7 +142,7 @@ public class KsqlAvroSerdeFactory extends KsqlSerdeFactory {
   ) {
     final boolean useNamedMaps = ksqlConfig.getBoolean(KsqlConfig.KSQL_USE_NAMED_AVRO_MAPS);
 
-    return new AvroDataTranslator(schema.getConnectSchema(), fullSchemaName, useNamedMaps);
+    return new AvroDataTranslator(schema, fullSchemaName, useNamedMaps);
   }
 
   private static AvroConverter getAvroConverter(

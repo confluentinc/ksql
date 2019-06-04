@@ -25,6 +25,7 @@ import io.confluent.ksql.physical.KsqlQueryBuilder;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
+import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.QueryContext;
 import io.confluent.ksql.structured.SchemaKStream;
@@ -356,7 +357,7 @@ public class JoinNode extends PlanNode {
           valueSerdeFactory,
           PhysicalSchema.from(
               dataSource.getSchema(),
-              dataSource.getSerdeOptions()
+              SerdeOption.none()
           ),
           contextStacker.getQueryContext()
       );

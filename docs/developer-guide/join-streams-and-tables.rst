@@ -35,6 +35,10 @@ combination of a ``pageviews`` stream and a ``users`` table:
 
 For the full code example, see :ref:`ksql_quickstart-docker`.
 
+When you join two streams, you can specify an optional WITHIN clause for
+matching records that both occur within a specified time interval. For valid
+time units, see :ref:`ksql-time-units`.
+
 Here's an example stream-stream join that combines a ``shipments`` stream with
 an ``orders`` stream, within a time window. The resulting ``late_orders`` stream
 detects late orders by matching ``shipments`` rows with ``orders`` rows that

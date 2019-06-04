@@ -32,8 +32,8 @@
   "ksql.query.persistent.active.limit" : "2147483647"
 }
 CONFIGS_END
-CSAS_S3_0.KsqlTopic.source = struct<ORDERTIME optional<int64>,ORDERID optional<int64>,ITEMID optional<struct<ITEMID optional<int64>,NAME optional<string>,CATEGORY optional<struct<ID optional<int64>,NAME optional<string>>>>>,ORDERUNITS optional<float64>,ARRAYCOL optional<array<optional<float64>>>,MAPCOL optional<map<optional<string>, optional<float64>>>,ADDRESS optional<struct<NUMBER optional<int64>,STREET optional<string>,CITY optional<string>,STATE optional<string>,ZIPCODE optional<int64>>>>
-CSAS_S3_0.S3 = struct<ITEMID__CATEGORY__ID optional<int64>,ADDRESS__STREET optional<string>,ZIPCODE optional<int64>,STATE optional<string>>
+CSAS_S3_0.KsqlTopic.source = STRUCT<ORDERTIME BIGINT, ORDERID BIGINT, ITEMID STRUCT<ITEMID BIGINT, NAME VARCHAR, CATEGORY STRUCT<ID BIGINT, NAME VARCHAR>>, ORDERUNITS DOUBLE, ARRAYCOL ARRAY<DOUBLE>, MAPCOL MAP<VARCHAR, DOUBLE>, ADDRESS STRUCT<NUMBER BIGINT, STREET VARCHAR, CITY VARCHAR, STATE VARCHAR, ZIPCODE BIGINT>> NOT NULL
+CSAS_S3_0.S3 = STRUCT<ITEMID__CATEGORY__ID BIGINT, ADDRESS__STREET VARCHAR, ZIPCODE BIGINT, STATE VARCHAR> NOT NULL
 SCHEMAS_END
 Topologies:
    Sub-topology: 0

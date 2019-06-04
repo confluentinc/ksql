@@ -29,8 +29,8 @@
   "ksql.query.persistent.active.limit" : "2147483647"
 }
 CONFIGS_END
-CSAS_DATE_STREAM_0.KsqlTopic.source = struct<ID optional<int64>,START_DATE optional<int32>,DATE_FORMAT optional<string>>
-CSAS_DATE_STREAM_0.DATE_STREAM = struct<ID optional<int64>,CUSTOM_FORMATTED_START_DATE optional<string>>
+CSAS_DATE_STREAM_0.KsqlTopic.source = STRUCT<ID BIGINT, START_DATE INT, DATE_FORMAT VARCHAR> NOT NULL
+CSAS_DATE_STREAM_0.DATE_STREAM = STRUCT<ID BIGINT, CUSTOM_FORMATTED_START_DATE VARCHAR> NOT NULL
 SCHEMAS_END
 Topologies:
    Sub-topology: 0

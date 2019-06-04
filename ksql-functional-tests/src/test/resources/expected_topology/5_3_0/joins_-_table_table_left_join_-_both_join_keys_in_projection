@@ -32,7 +32,7 @@
   "ksql.query.persistent.active.limit" : "2147483647"
 }
 CONFIGS_END
-CTAS_LEFT_OUTER_JOIN_0.LEFT_OUTER_JOIN = struct<T_ID optional<int64>,TT_ID optional<int64>,NAME optional<string>,VALUE optional<int64>,F1 optional<string>,F2 optional<int64>>
+CTAS_LEFT_OUTER_JOIN_0.LEFT_OUTER_JOIN = STRUCT<T_ID BIGINT, TT_ID BIGINT, NAME VARCHAR, VALUE BIGINT, F1 VARCHAR, F2 BIGINT> NOT NULL
 SCHEMAS_END
 Topologies:
    Sub-topology: 0

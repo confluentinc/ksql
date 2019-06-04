@@ -29,8 +29,8 @@
   "ksql.query.persistent.active.limit" : "2147483647"
 }
 CONFIGS_END
-CSAS_SINK_0.KsqlTopic.source = struct<M1 optional<map<optional<string>, optional<int32>>>,M2 optional<map<optional<string>, optional<string>>>>
-CSAS_SINK_0.SINK = struct<M1 optional<map<optional<string>, optional<int32>>>,M2 optional<map<optional<string>, optional<string>>>>
+CSAS_SINK_0.KsqlTopic.source = STRUCT<M1 MAP<VARCHAR, INT>, M2 MAP<VARCHAR, VARCHAR>> NOT NULL
+CSAS_SINK_0.SINK = STRUCT<M1 MAP<VARCHAR, INT>, M2 MAP<VARCHAR, VARCHAR>> NOT NULL
 SCHEMAS_END
 Topologies:
    Sub-topology: 0

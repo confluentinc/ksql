@@ -29,9 +29,9 @@
   "ksql.query.persistent.active.limit" : "2147483647"
 }
 CONFIGS_END
-CTAS_OUTPUT_0.KsqlTopic.source = struct<BAR optional<int32>>
-CTAS_OUTPUT_0.KsqlTopic.reduce = struct<INPUT.ROWTIME optional<int64>,INPUT.ROWKEY optional<string>,INPUT.BAR optional<int32>>
-CTAS_OUTPUT_0.OUTPUT = struct<BAR optional<int32>>
+CTAS_OUTPUT_0.KsqlTopic.source = STRUCT<BAR INT> NOT NULL
+CTAS_OUTPUT_0.KsqlTopic.reduce = STRUCT<INPUT.ROWTIME BIGINT, INPUT.ROWKEY VARCHAR, INPUT.BAR INT> NOT NULL
+CTAS_OUTPUT_0.OUTPUT = STRUCT<BAR INT> NOT NULL
 SCHEMAS_END
 Topologies:
    Sub-topology: 0

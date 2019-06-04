@@ -29,8 +29,8 @@
   "ksql.query.persistent.active.limit" : "2147483647"
 }
 CONFIGS_END
-CSAS_EVENTSTEST_0.KsqlTopic.source = struct<ID optional<int32>,FIELD0 optional<string>>
-CSAS_EVENTSTEST_0.EVENTSTEST = struct<ID optional<int32>,FIELD1 optional<string>,FIELD0 optional<string>>
+CSAS_EVENTSTEST_0.KsqlTopic.source = STRUCT<ID INT, FIELD0 VARCHAR> NOT NULL
+CSAS_EVENTSTEST_0.EVENTSTEST = STRUCT<ID INT, FIELD1 VARCHAR, FIELD0 VARCHAR> NOT NULL
 SCHEMAS_END
 Topologies:
    Sub-topology: 0

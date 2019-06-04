@@ -29,8 +29,8 @@
   "ksql.query.persistent.active.limit" : "2147483647"
 }
 CONFIGS_END
-CSAS_S1_0.KsqlTopic.source = struct<ORDERTIME optional<int64>,ORDERID optional<int64>,ITEMID optional<string>,ORDERUNITS optional<float64>,ARRAYCOL optional<array<optional<float64>>>,MAPCOL optional<map<optional<string>, optional<float64>>>,ADDRESS optional<struct<NUMBER optional<int64>,STREET optional<string>,CITY optional<string>,STATE optional<string>,ZIPCODE optional<int64>>>>
-CSAS_S1_0.S1 = struct<ITEMID optional<string>,KSQL_COL_1 optional<string>>
+CSAS_S1_0.KsqlTopic.source = STRUCT<ORDERTIME BIGINT, ORDERID BIGINT, ITEMID VARCHAR, ORDERUNITS DOUBLE, ARRAYCOL ARRAY<DOUBLE>, MAPCOL MAP<VARCHAR, DOUBLE>, ADDRESS STRUCT<NUMBER BIGINT, STREET VARCHAR, CITY VARCHAR, STATE VARCHAR, ZIPCODE BIGINT>> NOT NULL
+CSAS_S1_0.S1 = STRUCT<ITEMID VARCHAR, KSQL_COL_1 VARCHAR> NOT NULL
 SCHEMAS_END
 Topologies:
    Sub-topology: 0

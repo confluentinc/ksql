@@ -32,8 +32,8 @@
   "ksql.query.persistent.active.limit" : "2147483647"
 }
 CONFIGS_END
-CSAS_OUTPUT_0.KsqlTopic.source = struct<URL optional<string>>
-CSAS_OUTPUT_0.OUTPUT = struct<Q optional<string>>
+CSAS_OUTPUT_0.KsqlTopic.source = STRUCT<URL VARCHAR> NOT NULL
+CSAS_OUTPUT_0.OUTPUT = STRUCT<Q VARCHAR> NOT NULL
 SCHEMAS_END
 Topologies:
    Sub-topology: 0

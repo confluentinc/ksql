@@ -43,9 +43,12 @@ public final class TopologyFileRewriter {
    */
   private static final Rewriter REWRITER = new TheRewriter();
 
+  /**
+   * Exclude some versions. Anything version starting with one of these strings is excluded:
+   */
   private static final Set<String> EXCLUDE_VERSIONS = ImmutableSet.<String>builder()
-      .add("5_0")
-      .add("5_1")
+      //.add("5_0")
+      //.add("5_1")
       .build();
 
   private TopologyFileRewriter() {
@@ -120,8 +123,8 @@ public final class TopologyFileRewriter {
   ) {
     final int start = startMarker
         .map(marker -> {
-          final int idx = contents.indexOf(marker);
-          return idx < 0 ? idx : idx + marker.length();
+          final int idx = contents.indexOf(marker + System.lineSeparator());
+          return idx < 0 ? idx : idx + marker.length() + 1;
         })
         .orElse(0);
 
@@ -161,7 +164,8 @@ public final class TopologyFileRewriter {
     default String rewrite(final Path path, final String contents) {
       final String newConfig = rewriteConfig(path,
               grabContent(contents, Optional.empty(), Optional.of(CONFIG_END_MARKER)))
-              + CONFIG_END_MARKER;
+              + CONFIG_END_MARKER
+              + System.lineSeparator();
 
       final boolean hasSchemas = contents.contains(SCHEMAS_END_MARKER);
 
@@ -169,6 +173,7 @@ public final class TopologyFileRewriter {
           ? rewriteSchemas(path,
           grabContent(contents, Optional.of(CONFIG_END_MARKER), Optional.of(SCHEMAS_END_MARKER)))
           + SCHEMAS_END_MARKER
+          + System.lineSeparator()
           : "";
 
       final Optional<String> topologyStart = hasSchemas
@@ -185,13 +190,58 @@ public final class TopologyFileRewriter {
   private static final class TheRewriter implements StructuredRewriter {
 
     @Override
-    public String rewriteTopologies(final Path path, final String topologies) {
-      if (path.toString().contains("partition-by") || path.toString().contains("partition_by")) {
-        return topologies;
+    public String rewriteSchemas(final Path path, final String schemas) {
+
+      int start;
+      String result = schemas;
+
+      while ((start = result.indexOf("optional<")) != -1) {
+        final int end = findCloseTagFor(result, start + "optional".length());
+
+        final String contents = result.substring(start + "optional<".length(), end);
+
+        result = result.substring(0, start)
+            + contents
+            + result.substring(end + 1);
       }
 
-      return topologies
-          .replaceAll("KSTREAM-KEY-SELECT-\\d+", "Aggregate-groupby");
+      return result
+          .replaceAll(",(\\S)", ", $1")
+          .replaceAll("\\n", " NOT NULL" + System.lineSeparator())
+          .replaceAll("struct<", "STRUCT<")
+          .replaceAll("map<", "MAP<")
+          .replaceAll("array<", "ARRAY<")
+          .replaceAll("boolean", "BOOLEAN")
+          .replaceAll("int32", "INT")
+          .replaceAll("int64", "BIGINT")
+          .replaceAll("float64", "DOUBLE")
+          .replaceAll("string", "VARCHAR");
+    }
+
+    private static int findCloseTagFor(final String contents, final int startIdx) {
+      assert(contents.charAt(startIdx) == '<');
+
+      int depth = 1;
+      int idx = startIdx + 1;
+
+      while (depth > 0 && idx < contents.length()) {
+        final char c = contents.charAt(idx++);
+        switch (c) {
+          case '<':
+            depth++;
+            break;
+
+          case '>':
+            depth--;
+            break;
+        }
+      }
+
+      if (depth > 0) {
+        throw new RuntimeException("Reached end of file before finding close tag");
+      }
+
+      return idx - 1;
     }
   }
 }

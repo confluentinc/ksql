@@ -29,7 +29,7 @@
   "ksql.query.persistent.active.limit" : "2147483647"
 }
 CONFIGS_END
-CTAS_OUTPUT_0.OUTPUT = struct<T_ID optional<int64>,NAME optional<string>,F1 optional<string>,F2 optional<int64>>
+CTAS_OUTPUT_0.OUTPUT = STRUCT<T_ID BIGINT, NAME VARCHAR, F1 VARCHAR, F2 BIGINT> NOT NULL
 SCHEMAS_END
 Topologies:
    Sub-topology: 0

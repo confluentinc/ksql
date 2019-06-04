@@ -29,11 +29,11 @@
   "ksql.query.persistent.active.limit" : "2147483647"
 }
 CONFIGS_END
-CSAS_INNER_JOIN_0.KafkaTopic_Left.source = struct<ID optional<int64>,NAME optional<string>,VALUE optional<int64>>
-CSAS_INNER_JOIN_0.KafkaTopic_Right.source = struct<ID optional<int64>,F1 optional<string>,F2 optional<int64>>
-CSAS_INNER_JOIN_0.Join.left = struct<ROWTIME optional<int64>,ROWKEY optional<string>,ID optional<int64>,NAME optional<string>,VALUE optional<int64>>
-CSAS_INNER_JOIN_0.Join.right = struct<ROWTIME optional<int64>,ROWKEY optional<string>,ID optional<int64>,F1 optional<string>,F2 optional<int64>>
-CSAS_INNER_JOIN_0.INNER_JOIN = struct<T_ROWTIME optional<int64>,T_ROWKEY optional<string>,T_ID optional<int64>,T_NAME optional<string>,T_VALUE optional<int64>,F1 optional<string>>
+CSAS_INNER_JOIN_0.KafkaTopic_Left.source = STRUCT<ID BIGINT, NAME VARCHAR, VALUE BIGINT> NOT NULL
+CSAS_INNER_JOIN_0.KafkaTopic_Right.source = STRUCT<ID BIGINT, F1 VARCHAR, F2 BIGINT> NOT NULL
+CSAS_INNER_JOIN_0.Join.left = STRUCT<ROWTIME BIGINT, ROWKEY VARCHAR, ID BIGINT, NAME VARCHAR, VALUE BIGINT> NOT NULL
+CSAS_INNER_JOIN_0.Join.right = STRUCT<ROWTIME BIGINT, ROWKEY VARCHAR, ID BIGINT, F1 VARCHAR, F2 BIGINT> NOT NULL
+CSAS_INNER_JOIN_0.INNER_JOIN = STRUCT<T_ROWTIME BIGINT, T_ROWKEY VARCHAR, T_ID BIGINT, T_NAME VARCHAR, T_VALUE BIGINT, F1 VARCHAR> NOT NULL
 SCHEMAS_END
 Topologies:
    Sub-topology: 0

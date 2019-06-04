@@ -197,7 +197,7 @@ public class KsqlJsonDeserializerTest {
 
     // When:
     final Struct result = (Struct) deserializer.deserialize(SOME_TOPIC, bytes);
-    
+
     // Then:
     assertThat(result, is(expectedOrder
         .put(ORDERTIME, null)

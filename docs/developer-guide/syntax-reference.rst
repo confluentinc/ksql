@@ -475,6 +475,10 @@ columns.
 For stream-table joins, the column used in the join criteria for the table
 must be the table key.
 
+For stream-stream joins, you can specify an optional WITHIN clause for matching
+records that both occur within a specified time interval. For valid time units,
+see :ref:`ksql-time-units`.
+
 For more information, see :ref:`join-streams-and-tables`.
 
 The WITH clause for the result supports the following properties:

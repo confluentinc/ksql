@@ -22,9 +22,7 @@ import static org.junit.Assert.assertThat;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.schema.persistence.PersistenceSchema;
 import io.confluent.ksql.util.KsqlConstants;
-import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
@@ -34,17 +32,17 @@ public class AvroDataTranslatorTest {
   @Test
   public void shoudRenameSourceDereference() {
     // Given:
-    final PersistenceSchema schema = persistenceSchema(SchemaBuilder.struct()
+    final Schema schema = SchemaBuilder.struct()
         .field("STREAM_NAME.COLUMN_NAME", Schema.OPTIONAL_INT32_SCHEMA)
         .optional()
-        .build());
+        .build();
 
     final AvroDataTranslator dataTranslator = new AvroDataTranslator(
         schema,
         KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME,
         true);
 
-    final Struct ksqlRow = new Struct(schema.getConnectSchema())
+    final Struct ksqlRow = new Struct(schema)
         .put("STREAM_NAME.COLUMN_NAME", 123);
 
     // When:
@@ -82,14 +80,14 @@ public class AvroDataTranslatorTest {
         .optional()
         .build();
 
-    final PersistenceSchema schema = persistenceSchema(SchemaBuilder.struct()
+    final Schema schema = SchemaBuilder.struct()
         .field("ARRAY", SchemaBuilder.array(arrayInner).optional().build())
         .field(
             "MAP",
             SchemaBuilder.map(Schema.OPTIONAL_STRING_SCHEMA, mapInner).optional().build())
         .field("STRUCT", structInner)
         .optional()
-        .build());
+        .build();
 
     final Struct arrayInnerStruct = new Struct(arrayInner)
         .put("ARRAY_INNER", 123);
@@ -103,7 +101,7 @@ public class AvroDataTranslatorTest {
         KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME,
         true);
 
-    final Struct ksqlRow = new Struct(schema.getConnectSchema())
+    final Struct ksqlRow = new Struct(schema)
         .put("ARRAY", ImmutableList.of(arrayInnerStruct))
         .put("MAP", ImmutableMap.of("bar", mapInnerStruct))
         .put("STRUCT", structInnerStruct);
@@ -161,19 +159,19 @@ public class AvroDataTranslatorTest {
   @Test
   public void shouldReplaceNullWithNull() {
     // Given:
-    final PersistenceSchema schema = persistenceSchema(SchemaBuilder.struct()
+    final Schema schema = SchemaBuilder.struct()
         .field(
             "COLUMN_NAME",
             SchemaBuilder.array(Schema.OPTIONAL_INT64_SCHEMA).optional().build())
         .optional()
-        .build());
+        .build();
 
     final AvroDataTranslator dataTranslator = new AvroDataTranslator(
         schema,
         KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME,
         true);
 
-    final Struct ksqlRow = new Struct(schema.getConnectSchema());
+    final Struct ksqlRow = new Struct(schema);
 
     // When:
     final Struct struct = (Struct)dataTranslator.toConnectRow(ksqlRow);
@@ -187,17 +185,17 @@ public class AvroDataTranslatorTest {
   @Test
   public void shoudlReplacePrimitivesCorrectly() {
     // Given:
-    final PersistenceSchema schema = persistenceSchema(SchemaBuilder.struct()
+    final Schema schema = SchemaBuilder.struct()
         .field("COLUMN_NAME", Schema.OPTIONAL_INT64_SCHEMA)
         .optional()
-        .build());
+        .build();
 
     final AvroDataTranslator dataTranslator = new AvroDataTranslator(
         schema,
         KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME,
         true);
 
-    final Struct ksqlRow = new Struct(schema.getConnectSchema())
+    final Struct ksqlRow = new Struct(schema)
         .put("COLUMN_NAME", 123L);
 
     // When:
@@ -212,24 +210,20 @@ public class AvroDataTranslatorTest {
   @Test
   public void shouldUseExplicitSchemaName() {
     // Given:
-    final PersistenceSchema schema = persistenceSchema(SchemaBuilder.struct()
+    final Schema schema = SchemaBuilder.struct()
             .field("COLUMN_NAME", Schema.OPTIONAL_INT64_SCHEMA)
             .optional()
-            .build());
+        .build();
 
     String schemaFullName = "com.custom.schema";
 
     final AvroDataTranslator dataTranslator = new AvroDataTranslator(schema, schemaFullName, true);
-    final Struct ksqlRow = new Struct(schema.getConnectSchema())
+    final Struct ksqlRow = new Struct(schema)
         .put("COLUMN_NAME", 123L);
 
     // When:
     final Struct struct = (Struct)dataTranslator.toConnectRow(ksqlRow);
 
     assertThat(struct.schema().name(), equalTo(schemaFullName));
-  }
-
-  private static PersistenceSchema persistenceSchema(final Schema connectSchema) {
-    return PersistenceSchema.of((ConnectSchema)connectSchema);
   }
 }

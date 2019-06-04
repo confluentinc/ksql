@@ -17,7 +17,6 @@ package io.confluent.ksql.serde.avro;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import io.confluent.ksql.schema.persistence.PersistenceSchema;
 import io.confluent.ksql.serde.connect.ConnectDataTranslator;
 import io.confluent.ksql.serde.connect.DataTranslator;
 import java.util.ArrayList;
@@ -27,7 +26,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -40,11 +38,11 @@ public class AvroDataTranslator implements DataTranslator {
   private final Schema avroCompatibleSchema;
 
   AvroDataTranslator(
-      final PersistenceSchema schema,
+      final Schema schema,
       final String schemaFullName,
       final boolean useNamedMaps
   ) {
-    this.ksqlSchema = Objects.requireNonNull(schema, "schema").getConnectSchema();
+    this.ksqlSchema = Objects.requireNonNull(schema, "schema");
     this.avroCompatibleSchema = buildAvroCompatibleSchema(
         this.ksqlSchema,
         new TypeNameGenerator(Collections.singleton(schemaFullName), useNamedMaps)
@@ -52,8 +50,8 @@ public class AvroDataTranslator implements DataTranslator {
     this.innerTranslator = new ConnectDataTranslator(avroCompatibleSchema);
   }
 
-  PersistenceSchema getConnectSchema() {
-    return PersistenceSchema.of((ConnectSchema) avroCompatibleSchema);
+  Schema getConnectSchema() {
+    return avroCompatibleSchema;
   }
 
   @Override

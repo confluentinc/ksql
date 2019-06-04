@@ -16,7 +16,6 @@
 package io.confluent.ksql.properties;
 
 import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.properties.LocalPropertyValidator;
 import java.util.Collection;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.junit.Before;

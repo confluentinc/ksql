@@ -132,14 +132,14 @@ Some queries require that the input stream be repartitioned so that all messages
               --> KSTREAM-FILTER-0000000004
               <-- KSTREAM-TRANSFORMVALUES-0000000002
             Processor: KSTREAM-FILTER-0000000004 (stores: [])
-              --> KSTREAM-KEY-SELECT-0000000005
+              --> Aggregate-groupby
               <-- KSTREAM-MAPVALUES-0000000003
-            Processor: KSTREAM-KEY-SELECT-0000000005 (stores: [])
+            Processor: Aggregate-groupby (stores: [])
               --> KSTREAM-FILTER-0000000009
               <-- KSTREAM-FILTER-0000000004
             Processor: KSTREAM-FILTER-0000000009 (stores: [])
               --> KSTREAM-SINK-0000000008
-              <-- KSTREAM-KEY-SELECT-0000000005
+              <-- Aggregate-groupby
             Sink: KSTREAM-SINK-0000000008 (topic: KSTREAM-AGGREGATE-STATE-STORE-0000000006-repartition)
               <-- KSTREAM-FILTER-0000000009
         

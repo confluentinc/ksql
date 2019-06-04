@@ -25,7 +25,6 @@ import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.rest.server.TemporaryEngine;
 import io.confluent.ksql.statement.ConfiguredStatement;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlStatementException;
 import java.util.HashMap;
 import java.util.Map;

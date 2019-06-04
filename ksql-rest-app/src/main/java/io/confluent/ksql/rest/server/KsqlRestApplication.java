@@ -18,6 +18,8 @@ package io.confluent.ksql.rest.server;
 import static io.confluent.ksql.rest.server.KsqlRestConfig.DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG;
 
 import com.fasterxml.jackson.jaxrs.base.JsonParseExceptionMapper;
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -43,7 +45,6 @@ import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.Type.SqlType;
-import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.computation.CommandRunner;
 import io.confluent.ksql.rest.server.computation.CommandStore;
@@ -58,15 +59,19 @@ import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
 import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint;
 import io.confluent.ksql.rest.server.security.KsqlDefaultSecurityExtension;
 import io.confluent.ksql.rest.server.security.KsqlSecurityExtension;
+import io.confluent.ksql.rest.server.state.ServerState;
+import io.confluent.ksql.rest.server.state.ServerStateDynamicBinding;
 import io.confluent.ksql.rest.util.ClusterTerminator;
 import io.confluent.ksql.rest.util.KsqlInternalTopicUtils;
 import io.confluent.ksql.rest.util.ProcessingLogServerUtils;
 import io.confluent.ksql.services.DefaultServiceContext;
+import io.confluent.ksql.services.LazyServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injectors;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.RetryUtil;
 import io.confluent.ksql.util.Version;
 import io.confluent.ksql.util.WelcomeMsgUtils;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
@@ -91,6 +96,7 @@ import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.Executors;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import javax.websocket.DeploymentException;
@@ -98,7 +104,6 @@ import javax.websocket.server.ServerEndpoint;
 import javax.websocket.server.ServerEndpointConfig;
 import javax.websocket.server.ServerEndpointConfig.Configurator;
 import javax.ws.rs.core.Configurable;
-import org.apache.kafka.common.errors.UnsupportedVersionException;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.websocket.jsr356.server.ServerContainer;
 import org.glassfish.hk2.utilities.Binder;
@@ -118,16 +123,18 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
   private final KsqlConfig ksqlConfig;
   private final KsqlEngine ksqlEngine;
   private final CommandRunner commandRunner;
-  private final CommandQueue commandQueue;
+  private final CommandStore commandStore;
   private final RootDocument rootDocument;
   private final StatusResource statusResource;
   private final StreamedQueryResource streamedQueryResource;
   private final KsqlResource ksqlResource;
-  private final ServerInfo serverInfo;
   private final VersionCheckerAgent versionCheckerAgent;
   private final ServiceContext serviceContext;
   private final Function<KsqlConfig, Binder> serviceContextBinderFactory;
   private final KsqlSecurityExtension securityExtension;
+  private final ServerState serverState;
+  private final ProcessingLogContext processingLogContext;
+  private final List<KsqlServerPrecondition> preconditions;
 
   public static String getCommandsStreamName() {
     return COMMANDS_STREAM_NAME;
@@ -141,14 +148,18 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
       final KsqlConfig ksqlConfig,
       final KsqlRestConfig config,
       final CommandRunner commandRunner,
-      final CommandQueue commandQueue,
+      final CommandStore commandStore,
       final RootDocument rootDocument,
       final StatusResource statusResource,
       final StreamedQueryResource streamedQueryResource,
       final KsqlResource ksqlResource,
       final VersionCheckerAgent versionCheckerAgent,
       final Function<KsqlConfig, Binder> serviceContextBinderFactory,
-      final KsqlSecurityExtension securityExtension) {
+      final KsqlSecurityExtension securityExtension,
+      final ServerState serverState,
+      final ProcessingLogContext processingLogContext,
+      final List<KsqlServerPrecondition> preconditions
+  ) {
     super(config);
     this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
@@ -159,8 +170,12 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
     this.streamedQueryResource =
         Objects.requireNonNull(streamedQueryResource, "streamedQueryResource");
     this.ksqlResource = Objects.requireNonNull(ksqlResource, "ksqlResource");
-    this.commandQueue = Objects.requireNonNull(commandQueue, "commandQueue");
-
+    this.commandStore = Objects.requireNonNull(commandStore, "commandStore");
+    this.serverState = Objects.requireNonNull(serverState, "serverState");
+    this.processingLogContext = Objects.requireNonNull(
+        processingLogContext,
+        "processingLogContext");
+    this.preconditions = Objects.requireNonNull(preconditions, "preconditions");
     this.versionCheckerAgent =
         Objects.requireNonNull(versionCheckerAgent, "versionCheckerAgent");
     this.serviceContextBinderFactory = Objects.requireNonNull(
@@ -168,34 +183,125 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
     this.securityExtension = Objects.requireNonNull(
         securityExtension, "securityExtension"
     );
-
-    this.serverInfo = new ServerInfo(
-        Version.getVersion(),
-        getKafkaClusterId(serviceContext),
-        ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG));
   }
 
   @Override
   public void setupResources(final Configurable<?> config, final KsqlRestConfig appConfig) {
     config.register(rootDocument);
-    config.register(new ServerInfoResource(serverInfo));
+    config.register(new ServerInfoResource(serviceContext, ksqlConfig));
     config.register(statusResource);
     config.register(ksqlResource);
     config.register(streamedQueryResource);
     config.register(new KsqlExceptionMapper());
+    config.register(new ServerStateDynamicBinding(serverState));
   }
 
   @Override
   public void start() throws Exception {
-    commandRunner.start();
     super.start();
+    startKsql();
+    commandRunner.start();
     final Properties metricsProperties = new Properties();
     metricsProperties.putAll(getConfiguration().getOriginals());
     if (versionCheckerAgent != null) {
       versionCheckerAgent.start(KsqlModuleType.SERVER, metricsProperties);
     }
-
     displayWelcomeMessage();
+  }
+
+  @VisibleForTesting
+  void startKsql() {
+    waitForPreconditions();
+    initialize();
+  }
+
+  private static final class KsqlFailedPrecondition extends RuntimeException {
+    private KsqlFailedPrecondition(final String message) {
+      super(message);
+    }
+  }
+
+  private void checkPreconditions() {
+    for (final KsqlServerPrecondition precondition : preconditions) {
+      final Optional<String> error = precondition.checkPrecondition(
+          config,
+          serviceContext
+      );
+      if (error.isPresent()) {
+        serverState.setInitializingReason(error.get());
+        throw new KsqlFailedPrecondition(error.get());
+      }
+    }
+  }
+
+  private void waitForPreconditions() {
+    final List<Predicate<Exception>> predicates = ImmutableList.of(
+        e -> !(e instanceof KsqlFailedPrecondition)
+    );
+    RetryUtil.retryWithBackoff(
+        Integer.MAX_VALUE,
+        1000,
+        30000,
+        this::checkPreconditions,
+        predicates
+    );
+  }
+
+  private void initialize() {
+    final String commandTopic = commandStore.getCommandTopicName();
+    KsqlInternalTopicUtils.ensureTopic(
+        commandTopic,
+        ksqlConfig,
+        serviceContext.getTopicClient()
+    );
+    commandStore.start();
+
+    final Map<String, Literal> commandTopicProperties = new HashMap<>();
+    commandTopicProperties.put(
+        DdlConfig.VALUE_FORMAT_PROPERTY,
+        new StringLiteral("json")
+    );
+    commandTopicProperties.put(
+        DdlConfig.KAFKA_TOPIC_NAME_PROPERTY,
+        new StringLiteral(commandTopic)
+    );
+    ksqlEngine.getDdlCommandExec().execute(new RegisterTopicCommand(new RegisterTopic(
+        QualifiedName.of(COMMANDS_KSQL_TOPIC_NAME),
+        false,
+        commandTopicProperties
+    )));
+    ksqlEngine.getDdlCommandExec().execute(new CreateStreamCommand(
+        "statementText",
+        new CreateStream(
+            QualifiedName.of(COMMANDS_STREAM_NAME),
+            Collections.singletonList(new TableElement(
+                "STATEMENT",
+                PrimitiveType.of(SqlType.STRING)
+            )),
+            false,
+            ImmutableMap.<String, Literal>builder()
+                .putAll(commandTopicProperties)
+                .put(DdlConfig.TOPIC_NAME_PROPERTY, new StringLiteral(COMMANDS_KSQL_TOPIC_NAME))
+                .build()
+        ),
+        serviceContext.getTopicClient()
+    ));
+
+    ProcessingLogServerUtils.maybeCreateProcessingLogTopic(
+        serviceContext.getTopicClient(),
+        processingLogContext.getConfig(),
+        ksqlConfig
+    );
+    maybeCreateProcessingLogStream(
+        processingLogContext.getConfig(),
+        ksqlConfig,
+        ksqlEngine,
+        commandStore
+    );
+
+    commandRunner.processPriorCommands();
+
+    serverState.setReady();
   }
 
   @Override
@@ -305,16 +411,16 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
                       JsonMapper.INSTANCE.mapper,
                       statementParser,
                       ksqlEngine,
-                      commandQueue,
+                      commandStore,
                       exec,
                       versionCheckerAgent::updateLastRequestTime,
                       Duration.ofMillis(config.getLong(
                           KsqlRestConfig.DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG)),
                       topicAccessValidator,
-                      securityExtension
+                      securityExtension,
+                      serverState
                   );
                 }
-
               })
               .build()
       );
@@ -329,7 +435,8 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
       final int maxStatementRetries
   ) {
     final KsqlConfig ksqlConfig = new KsqlConfig(restConfig.getKsqlConfigProperties());
-    final ServiceContext serviceContext = DefaultServiceContext.create(ksqlConfig);
+    final ServiceContext serviceContext
+        = new LazyServiceContext(() -> DefaultServiceContext.create(ksqlConfig));
 
     return buildApplication(
         restConfig,
@@ -367,40 +474,6 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
 
     final String commandTopic = KsqlInternalTopicUtils.getTopicName(
         ksqlConfig, KsqlRestConfig.COMMAND_TOPIC_SUFFIX);
-    KsqlInternalTopicUtils.ensureTopic(commandTopic, ksqlConfig, serviceContext.getTopicClient());
-
-    final Map<String, Literal> commandTopicProperties = new HashMap<>();
-    commandTopicProperties.put(
-        DdlConfig.VALUE_FORMAT_PROPERTY,
-        new StringLiteral("json")
-    );
-    commandTopicProperties.put(
-        DdlConfig.KAFKA_TOPIC_NAME_PROPERTY,
-        new StringLiteral(commandTopic)
-    );
-
-    ksqlEngine.getDdlCommandExec().execute(new RegisterTopicCommand(new RegisterTopic(
-        QualifiedName.of(COMMANDS_KSQL_TOPIC_NAME),
-        false,
-        commandTopicProperties
-    )));
-
-    ksqlEngine.getDdlCommandExec().execute(new CreateStreamCommand(
-        "statementText",
-        new CreateStream(
-            QualifiedName.of(COMMANDS_STREAM_NAME),
-            Collections.singletonList(new TableElement(
-                "STATEMENT",
-                PrimitiveType.of(SqlType.STRING)
-            )),
-            false,
-            ImmutableMap.<String, Literal>builder()
-                .putAll(commandTopicProperties)
-                .put(DdlConfig.TOPIC_NAME_PROPERTY, new StringLiteral(COMMANDS_KSQL_TOPIC_NAME))
-            .build()
-        ),
-        serviceContext.getTopicClient()
-    ));
 
     final StatementParser statementParser = new StatementParser(ksqlEngine);
 
@@ -418,8 +491,10 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
     final RootDocument rootDocument = new RootDocument();
 
     final StatusResource statusResource = new StatusResource(statementExecutor);
-    final VersionCheckerAgent versionChecker = versionCheckerFactory
-        .apply(ksqlEngine::hasActiveQueries);
+    final VersionCheckerAgent versionChecker
+        = versionCheckerFactory.apply(ksqlEngine::hasActiveQueries);
+
+    final ServerState serverState = new ServerState();
 
     final KsqlSecurityExtension securityExtension = loadSecurityExtension(ksqlConfig);
 
@@ -447,30 +522,23 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         Injectors.DEFAULT,
         topicAccessValidator);
 
-    final Optional<String> processingLogTopic =
-        ProcessingLogServerUtils.maybeCreateProcessingLogTopic(
-            serviceContext.getTopicClient(),
-            processingLogConfig,
-            ksqlConfig);
-    maybeCreateProcessingLogStream(
-        processingLogConfig,
-        ksqlConfig,
-        ksqlEngine,
-        commandStore
-    );
-
     final List<String> managedTopics = new LinkedList<>();
     managedTopics.add(commandTopic);
-    processingLogTopic.ifPresent(managedTopics::add);
+    if (processingLogConfig.getBoolean(ProcessingLogConfig.TOPIC_AUTO_CREATE)) {
+      managedTopics.add(ProcessingLogServerUtils.getTopicName(processingLogConfig, ksqlConfig));
+    }
     final CommandRunner commandRunner = new CommandRunner(
         statementExecutor,
         commandStore,
-        ksqlEngine,
         maxStatementRetries,
-        new ClusterTerminator(ksqlConfig, ksqlEngine, serviceContext, managedTopics)
+        new ClusterTerminator(ksqlConfig, ksqlEngine, serviceContext, managedTopics),
+        serverState
     );
 
-    commandRunner.processPriorCommands();
+    final List<KsqlServerPrecondition> preconditions = restConfig.getConfiguredInstances(
+        KsqlRestConfig.KSQL_SERVER_PRECONDITIONS,
+        KsqlServerPrecondition.class
+    );
 
     return new KsqlRestApplication(
         serviceContext,
@@ -485,7 +553,10 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         ksqlResource,
         versionChecker,
         serviceContextBinderFactory,
-        securityExtension
+        securityExtension,
+        serverState,
+        processingLogContext,
+        preconditions
     );
   }
 
@@ -494,20 +565,6 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         KsqlConfig.KSQL_SECURITY_EXTENSION_CLASS,
         KsqlSecurityExtension.class
     )).orElse(new KsqlDefaultSecurityExtension());
-  }
-
-  private static String getKafkaClusterId(final ServiceContext serviceContext) {
-    try {
-      return serviceContext.getAdminClient().describeCluster().clusterId().get();
-
-    } catch (final UnsupportedVersionException e) {
-      throw new KsqlException(
-          "The kafka brokers are incompatible with. "
-          + "KSQL requires broker versions >= 0.10.1.x"
-      );
-    } catch (final Exception e) {
-      throw new KsqlException("Failed to get Kafka cluster information", e);
-    }
   }
 
   private void displayWelcomeMessage() {

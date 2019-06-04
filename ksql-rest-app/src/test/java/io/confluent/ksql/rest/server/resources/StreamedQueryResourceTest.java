@@ -150,28 +150,6 @@ public class StreamedQueryResourceTest {
   }
 
   @Test
-  public void shouldFailIfIsNotAcceptingStatements() throws Exception {
-    // Given:
-    final String queryString = "SELECT * FROM test_stream;";
-    reset(mockKsqlEngine);
-    expect(mockKsqlEngine.isAcceptingStatements()).andReturn(false);
-    replay(mockKsqlEngine);
-
-    // When:
-    final Response response =
-        testResource.streamQuery(
-            serviceContext,
-            new KsqlRequest(queryString, Collections.emptyMap(), null)
-        );
-
-    // Then:
-    assertThat(response.getStatus(), equalTo(Status.INTERNAL_SERVER_ERROR.getStatusCode()));
-    final KsqlErrorMessage errorMessage = (KsqlErrorMessage)response.getEntity();
-    assertThat(errorMessage.getErrorCode(), equalTo(Errors.ERROR_CODE_SERVER_ERROR));
-    assertThat(errorMessage.getMessage(), containsString("Cluster has been terminated."));
-  }
-
-  @Test
   public void shouldReturn400OnBadStatement() throws Exception {
     // Given:
     reset(mockStatementParser);

@@ -46,6 +46,9 @@ public final class Errors {
   public static final int ERROR_CODE_COMMAND_QUEUE_CATCHUP_TIMEOUT =
       toErrorCode(SERVICE_UNAVAILABLE.getStatusCode()) + 1;
 
+  public static final int ERROR_CODE_SERVER_NOT_READY =
+      toErrorCode(SERVICE_UNAVAILABLE.getStatusCode()) + 2;
+
   private Errors() {
   }
 
@@ -148,6 +151,13 @@ public final class Errors {
         .entity(new KsqlErrorMessage(
             ERROR_CODE_SERVER_SHUTTING_DOWN,
             "The server is shutting down"))
+        .build();
+  }
+
+  public static Response serverNotReady(final String reason) {
+    return Response
+        .status(SERVICE_UNAVAILABLE)
+        .entity(new KsqlErrorMessage(ERROR_CODE_SERVER_NOT_READY, reason))
         .build();
   }
 }

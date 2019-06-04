@@ -50,7 +50,7 @@ public final class ProcessingLogServerUtils {
         .schema();
   }
 
-  private static String getTopicName(
+  public static String getTopicName(
       final ProcessingLogConfig config,
       final KsqlConfig ksqlConfig) {
     final String topicNameConfig = config.getString(ProcessingLogConfig.TOPIC_NAME);

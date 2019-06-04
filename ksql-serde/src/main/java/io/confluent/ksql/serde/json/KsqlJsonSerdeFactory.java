@@ -40,7 +40,7 @@ public class KsqlJsonSerdeFactory extends KsqlSerdeFactory {
       final KsqlConfig ksqlConfig,
       final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
   ) {
-    final Serializer<Object> serializer = new KsqlJsonSerializer(schema.getConnectSchema());
+    final Serializer<Object> serializer = new KsqlJsonSerializer(schema);
     serializer.configure(Collections.emptyMap(), false);
     return serializer;
   }
@@ -53,7 +53,7 @@ public class KsqlJsonSerdeFactory extends KsqlSerdeFactory {
       final ProcessingLogger processingLogger
   ) {
     final Deserializer<Object> deserializer =
-        new KsqlJsonDeserializer(schema.getConnectSchema(), processingLogger);
+        new KsqlJsonDeserializer(schema, processingLogger);
 
     deserializer.configure(Collections.emptyMap(), false);
     return deserializer;

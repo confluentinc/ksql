@@ -15,24 +15,42 @@
 
 package io.confluent.ksql.serde.json;
 
-import io.confluent.ksql.util.KsqlException;
-import java.util.Objects;
+import io.confluent.ksql.schema.connect.SchemaWalker;
+import io.confluent.ksql.schema.connect.SchemaWalker.Visitor;
+import io.confluent.ksql.schema.persistence.PersistenceSchema;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.Schema.Type;
 
 final class JsonSerdeUtils {
 
   private JsonSerdeUtils() {
   }
 
+  static PersistenceSchema validateSchema(final PersistenceSchema schema) {
+
+    class SchemaValidator implements Visitor {
+
+      @Override
+      public boolean visitMap(final Schema schema) {
+        if (schema.keySchema().type() != Type.STRING) {
+          throw new IllegalArgumentException("Only MAPs with STRING keys are supported");
+        }
+        return true;
+      }
+    }
+
+    SchemaWalker.visit(schema.getConnectSchema(), new SchemaValidator());
+    return schema;
+  }
+
   static boolean toBoolean(final Object object) {
-    Objects.requireNonNull(object, "Object cannot be null");
     if (object instanceof Boolean) {
       return (Boolean) object;
     }
-    throw new IllegalArgumentException("This Object doesn't represent a boolean");
+    throw invalidConversionException(object, "BOOLEAN");
   }
 
   static int toInteger(final Object object) {
-    Objects.requireNonNull(object, "Object cannot be null");
     if (object instanceof Integer) {
       return (Integer) object;
     }
@@ -43,15 +61,13 @@ final class JsonSerdeUtils {
       try {
         return Integer.parseInt((String) object);
       } catch (final NumberFormatException e) {
-        throw new KsqlException("Cannot convert " + object + " to INT.", e);
+        throw failedStringCoercionException("INT");
       }
-
     }
-    throw new IllegalArgumentException("This Object doesn't represent an int");
+    throw invalidConversionException(object, "INT");
   }
 
   static long toLong(final Object object) {
-    Objects.requireNonNull(object, "Object cannot be null");
     if (object instanceof Long) {
       return (Long) object;
     }
@@ -62,15 +78,13 @@ final class JsonSerdeUtils {
       try {
         return Long.parseLong((String) object);
       } catch (final NumberFormatException e) {
-        throw new KsqlException("Cannot convert " + object + " to BIGINT.", e);
+        throw failedStringCoercionException("BIGINT");
       }
-
     }
-    throw new IllegalArgumentException("This Object doesn't represent a long");
+    throw invalidConversionException(object, "BIGINT");
   }
 
   static double toDouble(final Object object) {
-    Objects.requireNonNull(object, "Object cannot be null");
     if (object instanceof Double) {
       return (Double) object;
     }
@@ -81,9 +95,22 @@ final class JsonSerdeUtils {
       try {
         return Double.parseDouble((String) object);
       } catch (final NumberFormatException e) {
-        throw new KsqlException("Cannot convert " + object + " to DOUBLE.", e);
+        throw failedStringCoercionException("DOUBLE");
       }
     }
-    throw new IllegalArgumentException("This Object doesn't represent a double");
+    throw invalidConversionException(object, "DOUBLE");
+  }
+
+  static IllegalArgumentException invalidConversionException(
+      final Object object,
+      final String sqlType
+  ) {
+    return new IllegalArgumentException("Can't convert type."
+        + " sourceType: " + object.getClass().getSimpleName()
+        + ", requiredType: " + sqlType);
+  }
+
+  private static IllegalArgumentException failedStringCoercionException(final String sqlType) {
+    return new IllegalArgumentException("Can't coerce string to type. targetType: " + sqlType);
   }
 }

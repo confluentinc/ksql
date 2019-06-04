@@ -124,12 +124,13 @@ public class TestCaseTest {
     // Given:
     final TopologyTestDriverContainer topologyTestDriverContainer = getSampleTopologyTestDriverContainer();
     when(topologyTestDriver.readOutput(any(), any(), any()))
-        .thenReturn(new ProducerRecord<>("bar_kafka", 1, 123456789L, "k1", "v1, v2"));
-
+        .thenReturn(new ProducerRecord<>("bar_kafka", 1, 123456789L, "k1", "v1, v2"))
+        .thenReturn(null);
 
     // When:
     testCase.verifyOutput(topologyTestDriverContainer, null);
 
+    // Then: no exception thrown.
   }
 
   @Test
@@ -141,14 +142,28 @@ public class TestCaseTest {
 
     // Expect
     expectedException.expect(AssertionError.class);
-    expectedException.expectMessage("TestCase name: test in file: null failed while processing output row 0 topic: "
+    expectedException.expectMessage("failed while processing output row 0 topic: "
         + "foo_kafka due to: Expected <k1, v1, v2> with timestamp=123456789 "
         + "but was <k12, v1, v2> with timestamp=123456789");
 
+    // When:
+    testCase.verifyOutput(topologyTestDriverContainer, null);
+  }
+
+  @Test
+  public void shouldFailOnUnexpectedOutput() {
+    // Given:
+    final TopologyTestDriverContainer topologyTestDriverContainer = getSampleTopologyTestDriverContainer();
+    when(topologyTestDriver.readOutput(any(), any(), any()))
+        .thenReturn(new ProducerRecord<>("bar_kafka", 1, 123456789L, "k1", "v1, v2"))
+        .thenReturn(new ProducerRecord<>("unexpected", 1, 123456789L, "k12", "v1, v2"));
+
+    // Expect
+    expectedException.expect(AssertionError.class);
+    expectedException.expectMessage("Unexpected input available on topic: foo_kafka");
 
     // When:
     testCase.verifyOutput(topologyTestDriverContainer, null);
-
   }
 
   @Test

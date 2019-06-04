@@ -42,7 +42,7 @@ public final class DataGen {
       usage();
       System.exit(1);
     } catch (final Exception e) {
-      System.err.println(e.getMessage());
+      e.printStackTrace();
       System.exit(1);
     }
   }

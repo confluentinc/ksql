@@ -20,7 +20,6 @@ import static org.apache.avro.Schema.createArray;
 import static org.apache.avro.Schema.createMap;
 import static org.apache.avro.Schema.createUnion;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -68,8 +67,7 @@ public final class SchemaUtil {
       .put(double.class, SchemaBuilder::float64)
       .build();
 
-  @VisibleForTesting
-  static final List<Schema.Type> ARITHMETIC_TYPES_LIST =
+  private static final List<Schema.Type> ARITHMETIC_TYPES_LIST =
       ImmutableList.of(
           Schema.Type.INT8,
           Schema.Type.INT16,
@@ -102,16 +100,17 @@ public final class SchemaUtil {
           .put(Schema.Type.FLOAT64, Schema.OPTIONAL_FLOAT64_SCHEMA)
           .build();
 
-  private static final ImmutableMap<String, String> SCHEMA_TYPE_NAME_TO_SQL_TYPE =
-      new ImmutableMap.Builder<String, String>()
-          .put("STRING", "VARCHAR(STRING)")
-          .put("INT64", "BIGINT")
-          .put("INT32", "INTEGER")
-          .put("FLOAT64", "DOUBLE")
-          .put("BOOLEAN", "BOOLEAN")
-          .put("ARRAY", "ARRAY")
-          .put("MAP", "MAP")
-          .put("STRUCT", "STRUCT")
+  private static final ImmutableMap<Schema.Type, String> SCHEMA_TYPE_TO_SQL_TYPE =
+      new ImmutableMap.Builder<Schema.Type, String>()
+          .put(Schema.Type.STRING, "VARCHAR")
+          .put(Schema.Type.INT64, "BIGINT")
+          .put(Schema.Type.INT32, "INTEGER")
+          .put(Schema.Type.FLOAT32, "DOUBLE")
+          .put(Schema.Type.FLOAT64, "DOUBLE")
+          .put(Schema.Type.BOOLEAN, "BOOLEAN")
+          .put(Schema.Type.ARRAY, ARRAY)
+          .put(Schema.Type.MAP, MAP)
+          .put(Schema.Type.STRUCT, STRUCT)
           .build();
 
   private static final Map<Schema.Type, Class<?>> SCHEMA_TYPE_TO_JAVA_TYPE =
@@ -194,7 +193,7 @@ public final class SchemaUtil {
   }
 
   public static String getSchemaTypeAsSqlType(final Schema.Type type) {
-    final String sqlType = SCHEMA_TYPE_NAME_TO_SQL_TYPE.get(type.name());
+    final String sqlType = SCHEMA_TYPE_TO_SQL_TYPE.get(type);
     if (sqlType == null) {
       throw new IllegalArgumentException("Unknown schema type: " + type);
     }

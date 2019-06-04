@@ -44,6 +44,16 @@ General guidelines for a basic KSQL server are:
 - 100 GB SSD
 - 1 Gbit network
 
+.. important:: **Don't deploy multi-tenant KSQL Server instances.**
+
+   We recommend against using KSQL in a multi-tenant fashion. For example, if you
+   have two KSQL applications running on the same node, and one is greedy, you're
+   likely to encounter resource issues related to multi-tenancy. We recommend
+   using a single pool of KSQL Server instances per use case. You should deploy
+   separate applications onto separate KSQL nodes, because it becomes easier to
+   reason about scaling and resource utilization. Also, deploying per use case
+   makes it easier to reason about failovers and replication.
+
 Kafka
 -----
 
@@ -122,14 +132,14 @@ Some queries require that the input stream be repartitioned so that all messages
               --> KSTREAM-FILTER-0000000004
               <-- KSTREAM-TRANSFORMVALUES-0000000002
             Processor: KSTREAM-FILTER-0000000004 (stores: [])
-              --> KSTREAM-KEY-SELECT-0000000005
+              --> Aggregate-groupby
               <-- KSTREAM-MAPVALUES-0000000003
-            Processor: KSTREAM-KEY-SELECT-0000000005 (stores: [])
+            Processor: Aggregate-groupby (stores: [])
               --> KSTREAM-FILTER-0000000009
               <-- KSTREAM-FILTER-0000000004
             Processor: KSTREAM-FILTER-0000000009 (stores: [])
               --> KSTREAM-SINK-0000000008
-              <-- KSTREAM-KEY-SELECT-0000000005
+              <-- Aggregate-groupby
             Sink: KSTREAM-SINK-0000000008 (topic: KSTREAM-AGGREGATE-STATE-STORE-0000000006-repartition)
               <-- KSTREAM-FILTER-0000000009
         
@@ -241,7 +251,8 @@ Similar to Kafka Streams, KSQL throughput scales well as resources are added, if
   lowering the data retention configuration for that underlying stream topic.
 - Increase the number of partitions in the input topic.
 
-To scale KSQL horizontally, run additional KSQL servers with the same ``ksql.service.id``.
+To scale KSQL horizontally, run additional KSQL servers with the same ``ksql.service.id``
+and ``ksql.streams.bootstrap.servers`` settings.
 
 You can add KSQL Server instances continuously to scale load horizontally, as
 long as there are more partitions than consumers.

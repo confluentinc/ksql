@@ -78,13 +78,13 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.test.TestUtils;
 import org.junit.Before;
 import org.junit.Rule;
@@ -251,7 +251,7 @@ public class StandaloneExecutorTest {
     when(sandBox.prepare(PARSED_STMT_1)).thenReturn((PreparedStatement) PREPARED_STMT_1);
 
     when(sandBox.execute(any())).thenReturn(ExecuteResult.of("success"));
-    when(sandBox.execute(eq(CSAS_CFG_WITH_TOPIC)))
+    when(sandBox.execute(CSAS_CFG_WITH_TOPIC))
         .thenReturn(ExecuteResult.of(persistentQuery));
 
     when(injectorFactory.apply(any(), any())).thenReturn(InjectorChain.of(sandBoxSchemaInjector, sandBoxTopicInjector));
@@ -383,7 +383,7 @@ public class StandaloneExecutorTest {
     givenExecutorWillFailOnNoQueries();
 
     givenQueryFileParsesTo(PreparedStatement.of("SET PROP",
-        new SetProperty(Optional.empty(), "name", "value")));
+        new SetProperty(Optional.empty(), ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")));
 
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage(
@@ -428,7 +428,7 @@ public class StandaloneExecutorTest {
   public void shouldRunSetStatements() {
     // Given:
     final PreparedStatement<SetProperty> setProp = PreparedStatement.of("SET PROP",
-        new SetProperty(Optional.empty(), "name", "value"));
+        new SetProperty(Optional.empty(), ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"));
 
     final PreparedStatement<CreateStream> cs = PreparedStatement.of("CS",
         new CreateStream(SOME_NAME, SOME_ELEMENTS, false, JSON_PROPS));
@@ -439,17 +439,21 @@ public class StandaloneExecutorTest {
     standaloneExecutor.start();
 
     // Then:
-    verify(ksqlEngine).execute(eq(ConfiguredStatement.of(cs, ImmutableMap.of("name", "value"), ksqlConfig)));
+    verify(ksqlEngine).execute(
+        ConfiguredStatement.of(
+            cs,
+            ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"),
+            ksqlConfig));
   }
 
   @Test
   public void shouldRunUnSetStatements() {
     // Given:
     final PreparedStatement<SetProperty> setProp = PreparedStatement.of("SET",
-        new SetProperty(Optional.empty(), "name", "value"));
+        new SetProperty(Optional.empty(), ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"));
 
     final PreparedStatement<UnsetProperty> unsetProp = PreparedStatement.of("UNSET",
-        new UnsetProperty(Optional.empty(), "name"));
+        new UnsetProperty(Optional.empty(), ConsumerConfig.AUTO_OFFSET_RESET_CONFIG));
 
     final PreparedStatement<CreateStream> cs = PreparedStatement.of("CS",
         new CreateStream(SOME_NAME, SOME_ELEMENTS, false, JSON_PROPS));
@@ -462,7 +466,7 @@ public class StandaloneExecutorTest {
     standaloneExecutor.start();
 
     // Then:
-    verify(ksqlEngine).execute(eq(configured));
+    verify(ksqlEngine).execute(configured);
   }
 
   @Test
@@ -473,7 +477,7 @@ public class StandaloneExecutorTest {
     final ConfiguredStatement<?> configured = ConfiguredStatement.of(csas, emptyMap(), ksqlConfig);
     givenQueryFileParsesTo(csas);
 
-    when(sandBox.execute(eq(configured)))
+    when(sandBox.execute(configured))
         .thenReturn(ExecuteResult.of(persistentQuery));
 
     // When:
@@ -492,7 +496,7 @@ public class StandaloneExecutorTest {
 
     givenQueryFileParsesTo(ctas);
 
-    when(sandBox.execute(eq(configured)))
+    when(sandBox.execute(configured))
         .thenReturn(ExecuteResult.of(persistentQuery));
 
     // When:
@@ -511,7 +515,7 @@ public class StandaloneExecutorTest {
 
     givenQueryFileParsesTo(insertInto);
 
-    when(sandBox.execute(eq(configured)))
+    when(sandBox.execute(configured))
         .thenReturn(ExecuteResult.of(persistentQuery));
 
     // When:
@@ -624,9 +628,9 @@ public class StandaloneExecutorTest {
     // Then:
     final InOrder inOrder = inOrder(ksqlEngine);
     inOrder.verify(ksqlEngine).prepare(PARSED_STMT_0);
-    inOrder.verify(ksqlEngine).execute(eq(CFG_STMT_0));
+    inOrder.verify(ksqlEngine).execute(CFG_STMT_0);
     inOrder.verify(ksqlEngine).prepare(PARSED_STMT_1);
-    inOrder.verify(ksqlEngine).execute(eq(CFG_STMT_1));
+    inOrder.verify(ksqlEngine).execute(CFG_STMT_1);
   }
 
   @Test
@@ -664,8 +668,8 @@ public class StandaloneExecutorTest {
     standaloneExecutor.start();
 
     // Then:
-    verify(sandBox).execute(eq(CFG_0_WITH_SCHEMA));
-    verify(ksqlEngine).execute(eq(CFG_1_WITH_SCHEMA));
+    verify(sandBox).execute(CFG_0_WITH_SCHEMA);
+    verify(ksqlEngine).execute(CFG_1_WITH_SCHEMA);
   }
 
   @Test
@@ -680,7 +684,7 @@ public class StandaloneExecutorTest {
     standaloneExecutor.start();
 
     // Then:
-    verify(sandBox).execute(eq(CSAS_CFG_WITH_TOPIC));
+    verify(sandBox).execute(CSAS_CFG_WITH_TOPIC);
   }
 
   private void givenExecutorWillFailOnNoQueries() {

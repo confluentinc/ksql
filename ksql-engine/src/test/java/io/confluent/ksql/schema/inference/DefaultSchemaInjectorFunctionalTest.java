@@ -29,20 +29,27 @@ import io.confluent.ksql.parser.KsqlParserTestUtil;
 import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TableElement;
+import io.confluent.ksql.schema.connect.SqlSchemaFormatter;
 import io.confluent.ksql.schema.ksql.LogicalSchemas;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class DefaultSchemaInjectorFunctionalTest {
+
+  @Rule
+  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private SchemaRegistryClient srClient;
@@ -241,18 +248,40 @@ public class DefaultSchemaInjectorFunctionalTest {
   }
 
   @Test
+  public void shouldThrowIfNoFields() {
+    // expect:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("STRUCT type must define fields");
+
+    // when:
+    shouldInferConnectType(SchemaBuilder.struct(), null);
+  }
+
+  @Test
   public void shouldIgnoreFixed() {
     shouldInferType(
-        org.apache.avro.SchemaBuilder.fixed("fixed_field").size(32),
-        null
+        org.apache.avro.SchemaBuilder.record("foo").fields()
+            .name("fixed_field").type(org.apache.avro.SchemaBuilder.fixed("fixed").size(32)).noDefault()
+            .nullableString("STRING", "bar")
+            .endRecord(),
+        SchemaBuilder.struct()
+            .field("STRING", Schema.OPTIONAL_STRING_SCHEMA)
+            .optional()
+            .build()
     );
   }
 
   @Test
   public void shouldIgnoreBytes() {
     shouldInferType(
-        org.apache.avro.SchemaBuilder.builder().bytesType(),
-        null
+        org.apache.avro.SchemaBuilder.record("foo").fields()
+            .nullableBytes("bytes", new byte[]{})
+            .nullableString("STRING", "bar")
+            .endRecord(),
+        SchemaBuilder.struct()
+            .field("STRING", Schema.OPTIONAL_STRING_SCHEMA)
+            .optional()
+            .build()
     );
   }
 
@@ -345,9 +374,15 @@ public class DefaultSchemaInjectorFunctionalTest {
 
   @Test
   public void shouldIgnoreConnectMapWithUnsupportedKey() {
+    final Schema map = SchemaBuilder.map(Schema.BYTES_SCHEMA, Schema.OPTIONAL_INT64_SCHEMA).build();
+    final Schema schema =
+        SchemaBuilder.struct()
+            .field("map", map)
+            .field("foo", Schema.OPTIONAL_STRING_SCHEMA)
+            .build();
     shouldInferConnectType(
-        SchemaBuilder.map(Schema.BYTES_SCHEMA, Schema.OPTIONAL_INT64_SCHEMA),
-        null
+        schema,
+        SchemaBuilder.struct().field("FOO", Schema.OPTIONAL_STRING_SCHEMA).optional().build()
     );
   }
 
@@ -470,6 +505,8 @@ public class DefaultSchemaInjectorFunctionalTest {
 
     final Schema actual = getSchemaForDdlStatement((CreateSource) withSchema);
 
+    Assert.assertThat(new SqlSchemaFormatter().format(actual),
+        equalTo(new SqlSchemaFormatter().format(expectedKqlSchema)));
     Assert.assertThat(actual, equalTo(expectedKqlSchema));
   }
 

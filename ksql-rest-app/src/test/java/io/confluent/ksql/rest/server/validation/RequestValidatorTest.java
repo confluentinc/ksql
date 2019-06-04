@@ -40,7 +40,6 @@ import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.Explain;
-import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.services.SandboxedServiceContext;
@@ -149,7 +148,8 @@ public class RequestValidatorTest {
   @Test
   public void shouldExecuteOnEngineIfNoCustomExecutor() {
     // Given:
-    final List<ParsedStatement> statements = givenParsed("SET 'property'='value';");
+    final List<ParsedStatement> statements =
+        givenParsed("CREATE STREAM foo WITH (kafka_topic='foo', value_format='json');");
 
     // When:
     validator.validate(serviceContext, statements, ImmutableMap.of(), "sql");
@@ -157,7 +157,7 @@ public class RequestValidatorTest {
     // Then:
     verify(ksqlEngine, times(1)).execute(
         eq(serviceContext),
-        argThat(configured(preparedStatement(instanceOf(SetProperty.class))))
+        argThat(configured(preparedStatement(instanceOf(CreateStream.class))))
     );
   }
 

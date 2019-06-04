@@ -1,6 +1,18 @@
 Changelog
 =========
 
+Version 5.4.0
+-------------
+
+KSQL 5.4.0 includes new features, including:
+
+* UDAFs support STRUCTs as parameters and return values.
+
+KSQL 5.4.0 includes the following misc. changes:
+
+* Require either the value for a ``@UdfParameter`` or for the UDF JAR to be compiled with
+  the Java8 ``-parameters`` compilation option. The UDF archetype now includes this flag.
+
 Version 5.3.0
 -------------
 
@@ -42,9 +54,6 @@ KSQL 5.3.0 includes bug fixes, including:
   another KSQL cluster, running version 5.3.
 
   See `Github issue #2769 <https://github.com/confluentinc/ksql/pull/2769>`_ for more info.
-
-
-KSQL 5.3 includes bug fixes, including:
 
 * Fixed issues with using ``AS`` keyword when aliasing sources.
   See `#2732 <https://github.com/confluentinc/ksql/issues/2732>`_ for more info.

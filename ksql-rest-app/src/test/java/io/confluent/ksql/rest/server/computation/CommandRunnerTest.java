@@ -29,6 +29,7 @@ import static org.mockito.Mockito.when;
 import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 
 import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.rest.util.ClusterTerminator;
 import io.confluent.ksql.rest.util.TerminateCluster;
 import java.time.Duration;
@@ -50,9 +51,11 @@ public class CommandRunnerTest {
   @Mock
   private CommandStore commandStore;
   @Mock
-  private KsqlEngine ksqlEngine;
-  @Mock
   private ClusterTerminator clusterTerminator;
+  @Mock
+  private ServerState serverState;
+  @Mock
+  private KsqlEngine ksqlEngine;
   @Mock
   private Command command;
   @Mock
@@ -84,10 +87,10 @@ public class CommandRunnerTest {
     commandRunner = new CommandRunner(
         statementExecutor,
         commandStore,
-        ksqlEngine,
         1,
         clusterTerminator,
-        executor);
+        executor,
+        serverState);
   }
 
   @Test
@@ -115,7 +118,7 @@ public class CommandRunnerTest {
     commandRunner.processPriorCommands();
 
     // Then:
-    verify(ksqlEngine).stopAcceptingStatements();
+    verify(serverState).setTerminating();
     verify(commandStore).close();
     verify(clusterTerminator).terminateCluster(anyList());
     verify(statementExecutor, never()).handleRestore(any());
@@ -131,7 +134,6 @@ public class CommandRunnerTest {
     commandRunner.processPriorCommands();
 
     // Then:
-    verify(ksqlEngine).stopAcceptingStatements();
     verify(statementExecutor, never()).handleRestore(any());
   }
 
@@ -160,7 +162,6 @@ public class CommandRunnerTest {
     commandRunner.fetchAndRunCommands();
 
     // Then:
-    verify(ksqlEngine).stopAcceptingStatements();
     verify(statementExecutor, never()).handleRestore(queuedCommand1);
     verify(statementExecutor, never()).handleRestore(queuedCommand2);
     verify(statementExecutor, never()).handleRestore(queuedCommand3);

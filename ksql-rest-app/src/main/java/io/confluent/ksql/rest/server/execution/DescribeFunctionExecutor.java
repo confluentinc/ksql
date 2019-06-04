@@ -65,7 +65,7 @@ public final class DescribeFunctionExecutor {
     final ImmutableList.Builder<FunctionInfo> listBuilder = ImmutableList.builder();
 
     aggregateFactory.eachFunction(func -> listBuilder.add(
-        getFunctionInfo(func.getArgTypes(), func.getReturnType(), func.getDescription(), false)));
+        getFunctionInfo(func.getArguments(), func.getReturnType(), func.getDescription(), false)));
 
     return new FunctionDescriptionList(
         statementText,

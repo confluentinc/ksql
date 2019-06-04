@@ -80,5 +80,27 @@ import java.lang.annotation.Target;
  * </pre>
  */
 public @interface UdafFactory {
+
+  /**
+   * @return a description for the UDAF
+   */
   String description();
+
+  /**
+   * The schema for the parameter.
+   *
+   * <p>For simple parameters, this is optional and can be determined from
+   * the Java value itself. For complex return types (e.g. {@code Struct} types),
+   * this is required and will fail if not supplied.
+   */
+  String paramSchema() default "";
+
+  /**
+   * The schema for the return value.
+   *
+   * <p>For simple parameters, this is optional and can be determined from
+   * the Java value itself. For complex return types (e.g. {@code Struct} types),
+   * this is required and will fail if not supplied.
+   */
+  String returnSchema() default "";
 }

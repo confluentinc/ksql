@@ -495,7 +495,7 @@ public class SchemaUtilTest {
 
   @Test
   public void shouldGetCorrectSqlTypeFromSchemaType() {
-    assertThat(SchemaUtil.getSchemaTypeAsSqlType(Schema.Type.STRING), is("VARCHAR(STRING)"));
+    assertThat(SchemaUtil.getSchemaTypeAsSqlType(Schema.Type.STRING), is("VARCHAR"));
     assertThat(SchemaUtil.getSchemaTypeAsSqlType(Schema.Type.INT64), is("BIGINT"));
     assertThat(SchemaUtil.getSchemaTypeAsSqlType(Schema.Type.INT32), is("INTEGER"));
     assertThat(SchemaUtil.getSchemaTypeAsSqlType(Schema.Type.FLOAT64), is("DOUBLE"));

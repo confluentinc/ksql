@@ -12,6 +12,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.rest.server.StandaloneExecutorFactory.StandaloneExecutorConstructor;
 import io.confluent.ksql.rest.server.computation.ConfigStore;
@@ -125,6 +126,7 @@ public class StandaloneExecutorFactoryTest {
     }
   }
 
+  @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
   @Test
   public void shouldCreateConfigTopicThenGetConfig() {
     // When:

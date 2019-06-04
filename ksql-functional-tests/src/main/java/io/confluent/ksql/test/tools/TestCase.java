@@ -40,8 +40,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -166,15 +164,16 @@ public class TestCase implements Test {
         .stream()
         .map(Topic::getName)
         .collect(Collectors.toSet());
-    inputRecords
-        .stream().filter(record -> sourceKafkaTopicNames.contains(record.topic.getName()))
-        .forEach(
-            r -> topologyTestDriverContainer.getTopologyTestDriver().pipeInput(
-                new ConsumerRecordFactory<>(
-                    r.keySerializer(),
-                    r.topic.getValueSerializer(schemaRegistryClient)
-                ).create(r.topic.name, r.key(), r.value, r.timestamp)
-            ));
+    for (Record record : inputRecords) {
+      if (sourceKafkaTopicNames.contains(record.topic.getName())) {
+        topologyTestDriverContainer.getTopologyTestDriver().pipeInput(
+            new ConsumerRecordFactory<>(
+                record.keySerializer(),
+                record.topic.getValueSerializer(schemaRegistryClient)
+            ).create(record.topic.name, record.key(), record.value, record.timestamp)
+        );
+      }
+    }
   }
 
   @SuppressWarnings({"unchecked", "rawtypes"})
@@ -245,8 +244,8 @@ public class TestCase implements Test {
 
   public void verifyTopology() {
     expectedTopology.ifPresent(expected -> {
-      final String expectedTopology = standardizeTopology(expected.topology);
-      final String actualTopology = standardizeTopology(generatedTopologies.get(0));
+      final String expectedTopology = expected.topology;
+      final String actualTopology = generatedTopologies.get(0);
       assertThat("Generated topology differs from that built by previous versions of KSQL"
               + " - this likely means there is a non-backwards compatible change.\n"
               + "THIS IS BAD!",
@@ -276,49 +275,6 @@ public class TestCase implements Test {
     } else {
       throw e;
     }
-  }
-
-  /**
-   * Convert a string topology into a standard form.
-   *
-   * <p>The standardized form takes known compatible changes into account.
-   */
-  private static String standardizeTopology(final String topology) {
-    final String[] lines = topology.split(System.lineSeparator());
-    final Pattern aggGroupBy = Pattern.compile("(.*)(--> |<-- |Processor: )Aggregate-groupby(.*)");
-    final Pattern linePattern = Pattern.compile("(.*)((?:KSTREAM|KTABLE)-.+-)(\\d+)(.*)");
-
-    final StringBuilder result = new StringBuilder();
-    final AtomicInteger nodeCounter = new AtomicInteger();
-    final Map<String, String> nodeMappings = new HashMap<>();
-
-    for (String line : lines) {
-      final java.util.regex.Matcher aggGroupMatcher = aggGroupBy.matcher(line);
-      if (aggGroupMatcher.matches()) {
-        line = aggGroupMatcher.group(1)
-            + aggGroupMatcher.group(2)
-            + "KSTREAM-KEY-SELECT-99999"
-            + aggGroupMatcher.group(3);
-      }
-
-      final java.util.regex.Matcher mainMatcher = linePattern.matcher(line);
-      if (mainMatcher.matches()) {
-        final String originalNodeType = mainMatcher.group(2);
-        final Integer originalNodeNumber = Integer.valueOf(mainMatcher.group(3));
-
-        final String originalId = originalNodeType + originalNodeNumber;
-        final String standardizedId = nodeMappings
-            .computeIfAbsent(originalId, key -> originalNodeType + nodeCounter.getAndIncrement());
-
-        line = mainMatcher.group(1) + standardizedId + mainMatcher.group(4);
-      }
-
-      result
-          .append(line)
-          .append(System.lineSeparator());
-    }
-
-    return result.toString();
   }
 
   @SuppressWarnings("unchecked")

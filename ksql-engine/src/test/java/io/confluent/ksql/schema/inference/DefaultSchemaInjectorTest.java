@@ -33,13 +33,13 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.CreateSource;
+import io.confluent.ksql.parser.tree.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.Statement;
-import io.confluent.ksql.parser.tree.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.Type.SqlType;
@@ -115,7 +115,7 @@ public class DefaultSchemaInjectorTest {
       .add(new TableElement("MAPFIELD", io.confluent.ksql.parser.tree.Map.of(
           PrimitiveType.of(SqlType.BIGINT))))
       .add(new TableElement("STRUCTFIELD", io.confluent.ksql.parser.tree.Struct.builder()
-          .addField("s0", PrimitiveType.of(SqlType.BIGINT))
+          .addField("S0", PrimitiveType.of(SqlType.BIGINT))
           .build()))
       .build();
   private static final int SCHEMA_ID = 5;
@@ -280,7 +280,7 @@ public class DefaultSchemaInjectorTest {
             + "BOOLEANFIELD BOOLEAN, "
             + "ARRAYFIELD ARRAY<INTEGER>, "
             + "MAPFIELD MAP<VARCHAR, BIGINT>, "
-            + "STRUCTFIELD STRUCT<s0 BIGINT>) "
+            + "STRUCTFIELD STRUCT<S0 BIGINT>) "
             + "WITH (VALUE_FORMAT='avro', KAFKA_TOPIC='some-topic', AVRO_SCHEMA_ID='5');"
     ));
   }
@@ -305,7 +305,7 @@ public class DefaultSchemaInjectorTest {
             + "BOOLEANFIELD BOOLEAN, "
             + "ARRAYFIELD ARRAY<INTEGER>, "
             + "MAPFIELD MAP<VARCHAR, BIGINT>, "
-            + "STRUCTFIELD STRUCT<s0 BIGINT>) "
+            + "STRUCTFIELD STRUCT<S0 BIGINT>) "
             + "WITH (VALUE_FORMAT='avro', KAFKA_TOPIC='some-topic', AVRO_SCHEMA_ID='5');"
     ));
   }
@@ -332,7 +332,7 @@ public class DefaultSchemaInjectorTest {
             + "BOOLEANFIELD BOOLEAN, "
             + "ARRAYFIELD ARRAY<INTEGER>, "
             + "MAPFIELD MAP<VARCHAR, BIGINT>, "
-            + "STRUCTFIELD STRUCT<s0 BIGINT>) "
+            + "STRUCTFIELD STRUCT<S0 BIGINT>) "
             + "WITH (VALUE_FORMAT='avro', KAFKA_TOPIC='some-topic', AVRO_SCHEMA_ID='42');"
     ));
   }
@@ -359,7 +359,7 @@ public class DefaultSchemaInjectorTest {
             + "BOOLEANFIELD BOOLEAN, "
             + "ARRAYFIELD ARRAY<INTEGER>, "
             + "MAPFIELD MAP<VARCHAR, BIGINT>, "
-            + "STRUCTFIELD STRUCT<s0 BIGINT>) "
+            + "STRUCTFIELD STRUCT<S0 BIGINT>) "
             + "WITH (VALUE_FORMAT='avro', KAFKA_TOPIC='some-topic', AVRO_SCHEMA_ID='42');"
     ));
   }
@@ -414,6 +414,37 @@ public class DefaultSchemaInjectorTest {
         assertThat(e.getSqlStatement(), is(csStatement.getStatementText()));
       }
     }
+  }
+
+  @Test
+  public void shouldEscapeAvroSchemaThatHasReservedColumnName() {
+    // Given:
+    when(schemaSupplier.getValueSchema(any(), any()))
+        .thenReturn(SchemaResult.success(schemaAndId(
+            SchemaBuilder.struct().field("CREATE", Schema.INT64_SCHEMA).build(),
+            SCHEMA_ID)));
+
+    // When:
+    final ConfiguredStatement<CreateTable> inject = injector.inject(ctStatement);
+
+    // Then:
+    assertThat(inject.getStatementText(), containsString("`CREATE`"));
+  }
+
+  @Test
+  public void shouldFailIfAvroSchemaHasInvalidColumnName() {
+    // Given:
+    when(schemaSupplier.getValueSchema(any(), any()))
+        .thenReturn(SchemaResult.success(schemaAndId(
+            SchemaBuilder.struct().field("foo-bar", Schema.INT64_SCHEMA).build(),
+            SCHEMA_ID)));
+
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Failed to convert schema to KSQL model");
+
+    // When:
+    injector.inject(ctStatement);
   }
 
   @Test

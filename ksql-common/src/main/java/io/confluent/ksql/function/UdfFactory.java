@@ -24,15 +24,16 @@ import java.util.function.Consumer;
 import org.apache.kafka.connect.data.Schema;
 
 public class UdfFactory {
+
   private final UdfMetadata metadata;
   private final Class<? extends Kudf> udfClass;
-  private final UdfIndex udfIndex;
+  private final UdfIndex<KsqlFunction> udfIndex;
 
   UdfFactory(final Class<? extends Kudf> udfClass,
              final UdfMetadata metadata) {
     this.udfClass = Objects.requireNonNull(udfClass, "udfClass can't be null");
     this.metadata = Objects.requireNonNull(metadata, "metadata can't be null");
-    this.udfIndex = new UdfIndex(metadata.getName());
+    this.udfIndex = new UdfIndex<>(metadata.getName());
   }
 
   void addFunction(final KsqlFunction ksqlFunction) {

@@ -67,6 +67,9 @@
                     <showDeprecation>true</showDeprecation>
                     <source>1.8</source>
                     <target>1.8</target>
+                    <compilerArgs>
+                        <arg>-parameters</arg>
+                    </compilerArgs>
                 </configuration>
             </plugin>
             <plugin>

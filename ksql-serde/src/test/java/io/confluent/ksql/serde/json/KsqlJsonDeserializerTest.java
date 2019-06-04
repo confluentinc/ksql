@@ -328,7 +328,7 @@ public class KsqlJsonDeserializerTest {
     // Then:
     expectedException.expect(SerializationException.class);
     expectedException.expectCause(hasMessage(is(
-        "Can't convert type. sourceType: Boolean, requiredType: INT")));
+        "Can't convert type. sourceType: Boolean, requiredType: INTEGER")));
 
     // When:
     deserializer.deserialize(SOME_TOPIC, bytes);
@@ -491,7 +491,7 @@ public class KsqlJsonDeserializerTest {
     // Then:
     expectedException.expect(SerializationException.class);
     expectedException.expectCause(hasMessage(is(
-        "Can't coerce string to type. targetType: INT")));
+        "Can't coerce string to type. targetType: INTEGER")));
 
     // When:
     deserializer.deserialize(SOME_TOPIC, bytes);
@@ -546,7 +546,7 @@ public class KsqlJsonDeserializerTest {
     // Then:
     expectedException.expect(SerializationException.class);
     expectedException.expectCause(hasMessage(is(
-        "Can't convert type. sourceType: Boolean, requiredType: INT")));
+        "Can't convert type. sourceType: Boolean, requiredType: INTEGER")));
 
     // When:
     deserializer.deserialize(SOME_TOPIC, bytes);

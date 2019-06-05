@@ -210,7 +210,7 @@ public class AvroDataTranslator implements DataTranslator {
 
   private static Schema throwOnInvalidSchema(final Schema schema) {
 
-    class SchemaValidator implements Visitor<Void> {
+    class SchemaValidator implements Visitor<Void, Void> {
 
       @Override
       public Void visitMap(final Schema schema, final Void key, final Void value) {

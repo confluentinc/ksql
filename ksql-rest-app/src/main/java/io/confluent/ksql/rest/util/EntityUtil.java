@@ -26,7 +26,7 @@ import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Schema;
 
 public final class EntityUtil {
-  private static final Map<Schema.Type, SchemaInfo.Type>
+  private static final Map<Schema.Type, SqlType>
       SCHEMA_TYPE_TO_SCHEMA_INFO_TYPE =
       ImmutableMap.<Schema.Type, SqlType>builder()
           .put(Schema.Type.INT32, SqlType.INTEGER)

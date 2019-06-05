@@ -48,7 +48,9 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
 import org.apache.avro.LogicalTypes;
+import org.apache.avro.Schema.Type;
 import org.apache.avro.generic.GenericData;
+import org.apache.avro.generic.GenericData.Record;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kafka.common.errors.SerializationException;
@@ -71,26 +73,59 @@ public class KsqlAvroDeserializerTest {
   private static final org.apache.avro.Schema BOOLEAN_AVRO_SCHEMA =
       parseAvroSchema("{\"type\": \"boolean\"}");
 
+  private static final org.apache.avro.Schema OPTIONAL_BOOLEAN_AVRO_SCHEMA =
+      parseAvroSchema("[\"null\", \"boolean\"]");
+
   private static final org.apache.avro.Schema INT_AVRO_SCHEMA =
       parseAvroSchema("{\"type\": \"int\"}");
+
+  private static final org.apache.avro.Schema OPTIONAL_INT_AVRO_SCHEMA =
+      parseAvroSchema("[\"null\", \"int\"]");
 
   private static final org.apache.avro.Schema LONG_AVRO_SCHEMA =
       parseAvroSchema("{\"type\": \"long\"}");
 
+  private static final org.apache.avro.Schema OPTIONAL_LONG_AVRO_SCHEMA =
+      parseAvroSchema("[\"null\", \"long\"]");
+
   private static final org.apache.avro.Schema DOUBLE_AVRO_SCHEMA =
       parseAvroSchema("{\"type\": \"double\"}");
+
+  private static final org.apache.avro.Schema OPTIONAL_DOUBLE_AVRO_SCHEMA =
+      parseAvroSchema("[\"null\", \"double\"]");
 
   private static final org.apache.avro.Schema STRING_AVRO_SCHEMA =
       parseAvroSchema("{\"type\": \"string\"}");
 
+  private static final org.apache.avro.Schema OPTIONAL_STRING_AVRO_SCHEMA =
+      parseAvroSchema("[\"null\", \"string\"]");
+
   private static final org.apache.avro.Schema STRING_ARRAY_AVRO_SCHEMA =
       parseAvroSchema("{\"type\": \"array\", \"items\": \"string\"}");
+
+  private static final org.apache.avro.Schema OPTIONAL_ARRAY_AVRO_SCHEMA =
+      parseAvroSchema("[\"null\", {\"type\": \"array\", \"items\": \"string\"}]");
 
   private static final org.apache.avro.Schema INT_MAP_AVRO_SCHEMA =
       parseAvroSchema("{\"type\": \"map\", \"values\": \"int\"}");
 
   private static final org.apache.avro.Schema LONG_MAP_AVRO_SCHEMA =
       parseAvroSchema("{\"type\": \"map\", \"values\": \"long\"}");
+
+  private static final org.apache.avro.Schema OPTIONAL_INT_MAP_AVRO_SCHEMA =
+      parseAvroSchema("[\"null\", {\"type\": \"map\", \"values\": \"int\"}]");
+
+  private static final org.apache.avro.Schema OPTIONAL_KEY_MAP_AVRO_SCHEMA =
+      parseAvroSchema("{"
+          + "\"type\":\"array\","
+          + "\"items\":{"
+          + "\"type\":\"record\","
+          + "\"name\":\"KsqlDataSourceSchema\","
+          + "\"namespace\":\"io.confluent.ksql.avro_schemas\","
+          + "\"fields\":["
+          + "{\"name\":\"key\",\"type\":[\"null\",\"string\"],\"default\":null},"
+          + "{\"name\":\"value\",\"type\":[\"null\",\"int\"],\"default\":null}],"
+          + "\"connect.internal.type\":\"MapEntry\"}}");
 
   private static final org.apache.avro.Schema ARRAY_OF_MAP_AVRO_SCHEMA =
       parseAvroSchema("{\"type\": \"array\", \"items\": ["
@@ -351,11 +386,25 @@ public class KsqlAvroDeserializerTest {
   }
 
   @Test
-  public void shouldDeserializedAvroBoolean() {
+  public void shouldDeserializeAvroBoolean() {
     // Given:
     givenDeserializerForSchema(Schema.OPTIONAL_BOOLEAN_SCHEMA);
 
     final byte[] bytes = givenAvroSerialized(true, BOOLEAN_AVRO_SCHEMA);
+
+    // When:
+    final Object result = deserializer.deserialize(SOME_TOPIC, bytes);
+
+    // Then:
+    assertThat(result, is(true));
+  }
+
+  @Test
+  public void shouldDeserializeAvroOptionalBoolean() {
+    // Given:
+    givenDeserializerForSchema(Schema.OPTIONAL_BOOLEAN_SCHEMA);
+
+    final byte[] bytes = givenAvroSerialized(true, OPTIONAL_BOOLEAN_AVRO_SCHEMA);
 
     // When:
     final Object result = deserializer.deserialize(SOME_TOPIC, bytes);
@@ -381,11 +430,25 @@ public class KsqlAvroDeserializerTest {
   }
 
   @Test
-  public void shouldDeserializedAvroInt() {
+  public void shouldDeserializeAvroInt() {
     // Given:
     givenDeserializerForSchema(Schema.OPTIONAL_INT32_SCHEMA);
 
     final byte[] bytes = givenAvroSerialized(42, INT_AVRO_SCHEMA);
+
+    // When:
+    final Object result = deserializer.deserialize(SOME_TOPIC, bytes);
+
+    // Then:
+    assertThat(result, is(42));
+  }
+
+  @Test
+  public void shouldDeserializeAvroOptionalInt() {
+    // Given:
+    givenDeserializerForSchema(Schema.OPTIONAL_INT32_SCHEMA);
+
+    final byte[] bytes = givenAvroSerialized(42, OPTIONAL_INT_AVRO_SCHEMA);
 
     // When:
     final Object result = deserializer.deserialize(SOME_TOPIC, bytes);
@@ -411,13 +474,15 @@ public class KsqlAvroDeserializerTest {
   }
 
   @Test
-  public void shouldDeserializedAvroBigInt() {
+  public void shouldDeserializeAvroBigInt() {
     // Given:
     givenDeserializerForSchema(Schema.OPTIONAL_INT64_SCHEMA);
 
     final Map<org.apache.avro.Schema, Object> validCoercions = ImmutableMap.of(
         INT_AVRO_SCHEMA, 42,
-        LONG_AVRO_SCHEMA, 42L
+        OPTIONAL_INT_AVRO_SCHEMA, 42,
+        LONG_AVRO_SCHEMA, 42L,
+        OPTIONAL_LONG_AVRO_SCHEMA, 42L
     );
 
     validCoercions.forEach((schema, value) -> {
@@ -449,11 +514,24 @@ public class KsqlAvroDeserializerTest {
   }
 
   @Test
-  public void shouldDeserializedAvroDouble() {
+  public void shouldDeserializeAvroDouble() {
     // Given:
     givenDeserializerForSchema(Schema.OPTIONAL_FLOAT64_SCHEMA);
 
     final byte[] bytes = givenAvroSerialized(23.1, DOUBLE_AVRO_SCHEMA);
+
+    // When:
+    final Object result = deserializer.deserialize(SOME_TOPIC, bytes);
+
+    // Then:
+    assertThat(result, is(23.1));
+  }
+
+  public void shouldDeserializeAvroOptionalDouble() {
+    // Given:
+    givenDeserializerForSchema(Schema.OPTIONAL_FLOAT64_SCHEMA);
+
+    final byte[] bytes = givenAvroSerialized(23.1, OPTIONAL_DOUBLE_AVRO_SCHEMA);
 
     // When:
     final Object result = deserializer.deserialize(SOME_TOPIC, bytes);
@@ -479,17 +557,23 @@ public class KsqlAvroDeserializerTest {
   }
 
   @Test
-  public void shouldDeserializedAvroString() {
+  public void shouldDeserializeAvroString() {
     // Given:
     givenDeserializerForSchema(Schema.OPTIONAL_STRING_SCHEMA);
 
-    final Map<org.apache.avro.Schema, Object> validCoercions = ImmutableMap.of(
-        BOOLEAN_AVRO_SCHEMA, false,
-        INT_AVRO_SCHEMA, 41,
-        LONG_AVRO_SCHEMA, 42L,
-        DOUBLE_AVRO_SCHEMA, 43.5,
-        STRING_AVRO_SCHEMA, "just a string"
-    );
+    final Map<org.apache.avro.Schema, Object> validCoercions = ImmutableMap
+        .<org.apache.avro.Schema, Object>builder()
+        .put(BOOLEAN_AVRO_SCHEMA, false)
+        .put(OPTIONAL_BOOLEAN_AVRO_SCHEMA, true)
+        .put(INT_AVRO_SCHEMA, 40)
+        .put(OPTIONAL_INT_AVRO_SCHEMA, 41)
+        .put(LONG_AVRO_SCHEMA, 42L)
+        .put(OPTIONAL_LONG_AVRO_SCHEMA, 43L)
+        .put(DOUBLE_AVRO_SCHEMA, 44.5)
+        .put(OPTIONAL_DOUBLE_AVRO_SCHEMA, 45.5)
+        .put(STRING_AVRO_SCHEMA, "just a string")
+        .put(OPTIONAL_STRING_AVRO_SCHEMA, "just another string")
+        .build();
 
     validCoercions.forEach((schema, value) -> {
 
@@ -520,7 +604,7 @@ public class KsqlAvroDeserializerTest {
   }
 
   @Test
-  public void shouldDeserializedAvroArray() {
+  public void shouldDeserializeAvroArray() {
     // Given:
     givenDeserializerForSchema(SchemaBuilder
         .array(Schema.OPTIONAL_STRING_SCHEMA)
@@ -530,6 +614,25 @@ public class KsqlAvroDeserializerTest {
     final List<?> value = ImmutableList.of("look", "ma,", "an", "array!");
 
     final byte[] bytes = givenAvroSerialized(value, STRING_ARRAY_AVRO_SCHEMA);
+
+    // When:
+    final Object result = deserializer.deserialize(SOME_TOPIC, bytes);
+
+    // Then:
+    assertThat(result, is(value));
+  }
+
+  @Test
+  public void shouldDeserializeAvroOptionalArray() {
+    // Given:
+    givenDeserializerForSchema(SchemaBuilder
+        .array(Schema.OPTIONAL_STRING_SCHEMA)
+        .build()
+    );
+
+    final List<?> value = ImmutableList.of("look", "ma,", "an", "array!");
+
+    final byte[] bytes = givenAvroSerialized(value, OPTIONAL_ARRAY_AVRO_SCHEMA);
 
     // When:
     final Object result = deserializer.deserialize(SOME_TOPIC, bytes);
@@ -611,7 +714,7 @@ public class KsqlAvroDeserializerTest {
   }
 
   @Test
-  public void shouldDeserializedAvroArrayOfMap() {
+  public void shouldDeserializeAvroArrayOfMap() {
     // Given:
     givenDeserializerForSchema(SchemaBuilder
         .array(SchemaBuilder
@@ -633,7 +736,7 @@ public class KsqlAvroDeserializerTest {
   }
 
   @Test
-  public void shouldDeserializedAvroMap() {
+  public void shouldDeserializeAvroMap() {
     // Given:
     givenDeserializerForSchema(SchemaBuilder
         .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_INT64_SCHEMA)
@@ -642,6 +745,7 @@ public class KsqlAvroDeserializerTest {
 
     final Map<org.apache.avro.Schema, Map<String, Number>> validCoercions = ImmutableMap.of(
         INT_MAP_AVRO_SCHEMA, ImmutableMap.of("a", 1, "b", 2),
+        OPTIONAL_INT_MAP_AVRO_SCHEMA, ImmutableMap.of("a", 1, "b", 2),
         LONG_MAP_AVRO_SCHEMA, ImmutableMap.of("a", 1L, "b", 2L)
     );
 
@@ -658,6 +762,32 @@ public class KsqlAvroDeserializerTest {
       // Then:
       assertThat(result, is(expected));
     });
+  }
+
+  @Test
+  public void shouldDeserializeConnectMapWithOptionalKeys() {
+    /*
+    Note: Connect serializers maps with optional keys are an array of key-value pairs.
+     */
+
+    // Given:
+    givenDeserializerForSchema(SchemaBuilder
+        .map(Schema.STRING_SCHEMA, Schema.OPTIONAL_INT64_SCHEMA)
+        .build()
+    );
+
+    final List<?> mapEntries = buildEntriesForMapWithOptionalKey(null, null, "a", 1);
+
+    final byte[] bytes = givenAvroSerialized(mapEntries, OPTIONAL_KEY_MAP_AVRO_SCHEMA);
+
+    // When:
+    final Object result = deserializer.deserialize(SOME_TOPIC, bytes);
+
+    // Then:
+    final Map<String, Long> expected = new HashMap<>();
+    expected.put(null, null);
+    expected.put("a", 1L);
+    assertThat(result, is(expected));
   }
 
   @Test
@@ -792,13 +922,13 @@ public class KsqlAvroDeserializerTest {
   }
 
   @Test
-  public void shouldDeserializeBooleanToBoolean() {
-    shouldDeserializeTypeCorrectly(
+  public void shouldDeserializeBooleanFieldToBoolean() {
+    shouldDeserializeFieldTypeCorrectly(
         org.apache.avro.Schema.create(org.apache.avro.Schema.Type.BOOLEAN),
         false,
         Schema.OPTIONAL_BOOLEAN_SCHEMA
     );
-    shouldDeserializeTypeCorrectly(
+    shouldDeserializeFieldTypeCorrectly(
         org.apache.avro.Schema.create(org.apache.avro.Schema.Type.BOOLEAN),
         true,
         Schema.OPTIONAL_BOOLEAN_SCHEMA
@@ -806,24 +936,24 @@ public class KsqlAvroDeserializerTest {
   }
 
   @Test
-  public void shouldDeserializeIntToInt() {
-    shouldDeserializeTypeCorrectly(
+  public void shouldDeserializeIntFieldToInt() {
+    shouldDeserializeFieldTypeCorrectly(
         org.apache.avro.Schema.create(org.apache.avro.Schema.Type.INT),
         123,
         Schema.OPTIONAL_INT32_SCHEMA);
   }
 
   @Test
-  public void shouldDeserializeIntToBigint() {
-    shouldDeserializeTypeCorrectly(
+  public void shouldDeserializeIntFieldToBigint() {
+    shouldDeserializeFieldTypeCorrectly(
         org.apache.avro.Schema.create(org.apache.avro.Schema.Type.INT),
         123L,
         Schema.OPTIONAL_INT64_SCHEMA);
   }
 
   @Test
-  public void shouldDeserializeLongToBigint() {
-    shouldDeserializeTypeCorrectly(
+  public void shouldDeserializeLongFieldToBigint() {
+    shouldDeserializeFieldTypeCorrectly(
         org.apache.avro.Schema.create(org.apache.avro.Schema.Type.LONG),
         ((long) Integer.MAX_VALUE) * 32,
         Schema.OPTIONAL_INT64_SCHEMA
@@ -831,8 +961,8 @@ public class KsqlAvroDeserializerTest {
   }
 
   @Test
-  public void shouldDeserializeFloatToDouble() {
-    shouldDeserializeTypeCorrectly(
+  public void shouldDeserializeFloatFieldToDouble() {
+    shouldDeserializeFieldTypeCorrectly(
         org.apache.avro.Schema.create(org.apache.avro.Schema.Type.FLOAT),
         (float) 1.25,
         Schema.OPTIONAL_FLOAT64_SCHEMA,
@@ -841,8 +971,8 @@ public class KsqlAvroDeserializerTest {
   }
 
   @Test
-  public void shouldDeserializeDoubleToDouble() {
-    shouldDeserializeTypeCorrectly(
+  public void shouldDeserializeDoubleFieldToDouble() {
+    shouldDeserializeFieldTypeCorrectly(
         org.apache.avro.Schema.create(org.apache.avro.Schema.Type.DOUBLE),
         1.234567890123456789,
         Schema.OPTIONAL_FLOAT64_SCHEMA
@@ -850,8 +980,8 @@ public class KsqlAvroDeserializerTest {
   }
 
   @Test
-  public void shouldDeserializeStringToString() {
-    shouldDeserializeTypeCorrectly(
+  public void shouldDeserializeStringFieldToString() {
+    shouldDeserializeFieldTypeCorrectly(
         org.apache.avro.Schema.create(org.apache.avro.Schema.Type.STRING),
         "foobarbizbazboz",
         Schema.OPTIONAL_STRING_SCHEMA
@@ -859,22 +989,21 @@ public class KsqlAvroDeserializerTest {
   }
 
   @Test
-  public void shouldDeserializeEnumToString() {
+  public void shouldDeserializeEnumFieldToString() {
     final org.apache.avro.Schema enumSchema = org.apache.avro.Schema.createEnum(
         "enum",
         "doc",
         "namespace",
         ImmutableList.of("V0", "V1", "V2"));
-    shouldDeserializeTypeCorrectly(
+    shouldDeserializeFieldTypeCorrectly(
         enumSchema,
         new GenericData.EnumSymbol(enumSchema, "V1"),
         Schema.OPTIONAL_STRING_SCHEMA,
         "V1");
-
   }
 
   @Test
-  public void shouldDeserializeRecordToStruct() {
+  public void shouldDeserializeRecordFieldToStruct() {
     final org.apache.avro.Schema recordSchema = org.apache.avro.SchemaBuilder.record("record")
         .fields()
         .name("inner1")
@@ -897,20 +1026,20 @@ public class KsqlAvroDeserializerTest {
     struct.put("inner1", "foobar");
     struct.put("inner2", 123456);
 
-    shouldDeserializeTypeCorrectly(recordSchema, record, structSchema, struct);
+    shouldDeserializeFieldTypeCorrectly(recordSchema, record, structSchema, struct);
   }
 
   @Test
-  public void shouldDeserializeNullValue() {
-    shouldDeserializeTypeCorrectly(
+  public void shouldDeserializeNullFieldValue() {
+    shouldDeserializeFieldTypeCorrectly(
         org.apache.avro.SchemaBuilder.unionOf().nullType().and().intType().endUnion(),
         null,
         Schema.OPTIONAL_INT32_SCHEMA);
   }
 
   @Test
-  public void shouldDeserializeArrayToArray() {
-    shouldDeserializeTypeCorrectly(
+  public void shouldDeserializeArrayFieldToArray() {
+    shouldDeserializeFieldTypeCorrectly(
         org.apache.avro.SchemaBuilder.array().items().intType(),
         ImmutableList.of(1, 2, 3, 4, 5, 6),
         SchemaBuilder.array(Schema.OPTIONAL_INT32_SCHEMA).optional().build()
@@ -918,8 +1047,8 @@ public class KsqlAvroDeserializerTest {
   }
 
   @Test
-  public void shouldDeserializeMapToMap() {
-    shouldDeserializeTypeCorrectly(
+  public void shouldDeserializeMapFieldToMap() {
+    shouldDeserializeFieldTypeCorrectly(
         org.apache.avro.SchemaBuilder.map().values().intType(),
         ImmutableMap.of("one", 1, "two", 2, "three", 3),
         SchemaBuilder.map(
@@ -929,8 +1058,8 @@ public class KsqlAvroDeserializerTest {
   }
 
   @Test
-  public void shouldDeserializeDateToInteger() {
-    shouldDeserializeTypeCorrectly(
+  public void shouldDeserializeDateFieldToInteger() {
+    shouldDeserializeFieldTypeCorrectly(
         LogicalTypes.date().addToSchema(
             org.apache.avro.SchemaBuilder.builder().intType()),
         (int) ChronoUnit.DAYS.between(LocalDate.ofEpochDay(0), LocalDate.now()),
@@ -939,8 +1068,8 @@ public class KsqlAvroDeserializerTest {
   }
 
   @Test
-  public void shouldDeserializeDateToBigint() {
-    shouldDeserializeTypeCorrectly(
+  public void shouldDeserializeDateFieldToBigint() {
+    shouldDeserializeFieldTypeCorrectly(
         LogicalTypes.date().addToSchema(
             org.apache.avro.SchemaBuilder.builder().intType()),
         ChronoUnit.DAYS.between(LocalDate.ofEpochDay(0), LocalDate.now()),
@@ -949,8 +1078,8 @@ public class KsqlAvroDeserializerTest {
   }
 
   @Test
-  public void shouldDeserializeTimeMicrosToBigint() {
-    shouldDeserializeTypeCorrectly(
+  public void shouldDeserializeTimeMicrosFieldToBigint() {
+    shouldDeserializeFieldTypeCorrectly(
         LogicalTypes.timeMicros().addToSchema(
             org.apache.avro.SchemaBuilder.builder().longType()),
         ChronoUnit.MICROS.between(
@@ -961,8 +1090,8 @@ public class KsqlAvroDeserializerTest {
   }
 
   @Test
-  public void shouldDeserializeTimeMillisToBigint() {
-    shouldDeserializeTypeCorrectly(
+  public void shouldDeserializeTimeMillisFieldToBigint() {
+    shouldDeserializeFieldTypeCorrectly(
         LogicalTypes.timeMillis().addToSchema(
             org.apache.avro.SchemaBuilder.builder().intType()),
         ChronoUnit.MILLIS.between(
@@ -973,8 +1102,8 @@ public class KsqlAvroDeserializerTest {
   }
 
   @Test
-  public void shouldDeserializeTimestampToInteger() {
-    shouldDeserializeTypeCorrectly(
+  public void shouldDeserializeTimestampFieldToInteger() {
+    shouldDeserializeFieldTypeCorrectly(
         LogicalTypes.timestampMicros().addToSchema(
             org.apache.avro.SchemaBuilder.builder().longType()),
         ChronoUnit.MICROS.between(
@@ -985,8 +1114,8 @@ public class KsqlAvroDeserializerTest {
   }
 
   @Test
-  public void shouldDeserializeTimestampToBigint() {
-    shouldDeserializeTypeCorrectly(
+  public void shouldDeserializeTimestampFieldToBigint() {
+    shouldDeserializeFieldTypeCorrectly(
         LogicalTypes.timestampMillis().addToSchema(
             org.apache.avro.SchemaBuilder.builder().longType()),
         ChronoUnit.MILLIS.between(
@@ -997,7 +1126,7 @@ public class KsqlAvroDeserializerTest {
   }
 
   @Test
-  public void shouldDeserializeUnionToStruct() {
+  public void shouldDeserializeUnionFieldToStruct() {
     final org.apache.avro.Schema avroSchema = org.apache.avro.SchemaBuilder.unionOf()
         .intType().and()
         .stringType()
@@ -1008,10 +1137,10 @@ public class KsqlAvroDeserializerTest {
         .optional()
         .build();
     final Struct ksqlValue = new Struct(ksqlSchema).put("string", "foobar");
-    shouldDeserializeTypeCorrectly(avroSchema, "foobar", ksqlSchema, ksqlValue);
+    shouldDeserializeFieldTypeCorrectly(avroSchema, "foobar", ksqlSchema, ksqlValue);
   }
 
-  private void shouldDeserializeConnectTypeCorrectly(
+  private void shouldDeserializeConnectFieldTypeCorrectly(
       final Schema connectSchema,
       final Object connectValue,
       final Schema ksqlSchema,
@@ -1040,7 +1169,7 @@ public class KsqlAvroDeserializerTest {
 
   @Test
   public void shouldDeserializeConnectInt8ToInteger() {
-    shouldDeserializeConnectTypeCorrectly(
+    shouldDeserializeConnectFieldTypeCorrectly(
         Schema.INT8_SCHEMA,
         (byte) 32,
         Schema.OPTIONAL_INT32_SCHEMA,
@@ -1050,7 +1179,7 @@ public class KsqlAvroDeserializerTest {
 
   @Test
   public void shouldDeserializeConnectInt16ToInteger() {
-    shouldDeserializeConnectTypeCorrectly(
+    shouldDeserializeConnectFieldTypeCorrectly(
         Schema.INT16_SCHEMA,
         (short) 16384,
         Schema.OPTIONAL_INT32_SCHEMA,
@@ -1060,7 +1189,7 @@ public class KsqlAvroDeserializerTest {
 
   @Test
   public void shouldDeserializeConnectInt8ToBigint() {
-    shouldDeserializeConnectTypeCorrectly(
+    shouldDeserializeConnectFieldTypeCorrectly(
         Schema.INT8_SCHEMA,
         (byte) 32,
         Schema.OPTIONAL_INT64_SCHEMA,
@@ -1070,7 +1199,7 @@ public class KsqlAvroDeserializerTest {
 
   @Test
   public void shouldDeserializeConnectInt16ToBigint() {
-    shouldDeserializeConnectTypeCorrectly(
+    shouldDeserializeConnectFieldTypeCorrectly(
         Schema.INT16_SCHEMA,
         (short) 16384,
         Schema.OPTIONAL_INT64_SCHEMA,
@@ -1080,7 +1209,7 @@ public class KsqlAvroDeserializerTest {
 
   @Test
   public void shouldDeserializeConnectMapWithInt8Key() {
-    shouldDeserializeConnectTypeCorrectly(
+    shouldDeserializeConnectFieldTypeCorrectly(
         SchemaBuilder.map(Schema.INT8_SCHEMA, Schema.INT32_SCHEMA).optional().build(),
         ImmutableMap.of((byte) 1, 10, (byte) 2, 20, (byte) 3, 30),
         SchemaBuilder.map(
@@ -1092,7 +1221,7 @@ public class KsqlAvroDeserializerTest {
 
   @Test
   public void shouldDeserializeConnectMapWithInt16Key() {
-    shouldDeserializeConnectTypeCorrectly(
+    shouldDeserializeConnectFieldTypeCorrectly(
         SchemaBuilder.map(Schema.INT16_SCHEMA, Schema.INT32_SCHEMA).optional().build(),
         ImmutableMap.of((short) 1, 10, (short) 2, 20, (short) 3, 30),
         SchemaBuilder.map(
@@ -1104,7 +1233,7 @@ public class KsqlAvroDeserializerTest {
 
   @Test
   public void shouldDeserializeConnectMapWithInt32Key() {
-    shouldDeserializeConnectTypeCorrectly(
+    shouldDeserializeConnectFieldTypeCorrectly(
         SchemaBuilder.map(Schema.INT32_SCHEMA, Schema.INT32_SCHEMA).optional().build(),
         ImmutableMap.of(1, 10, 2, 20, 3, 30),
         SchemaBuilder.map(
@@ -1116,7 +1245,7 @@ public class KsqlAvroDeserializerTest {
 
   @Test
   public void shouldDeserializeConnectMapWithInt64Key() {
-    shouldDeserializeConnectTypeCorrectly(
+    shouldDeserializeConnectFieldTypeCorrectly(
         SchemaBuilder.map(Schema.INT64_SCHEMA, Schema.INT32_SCHEMA).optional().build(),
         ImmutableMap.of( 1L, 10, 2L, 20, 3L, 30),
         SchemaBuilder.map(
@@ -1128,7 +1257,7 @@ public class KsqlAvroDeserializerTest {
 
   @Test
   public void shouldDeserializeConnectMapWithBooleanKey() {
-    shouldDeserializeConnectTypeCorrectly(
+    shouldDeserializeConnectFieldTypeCorrectly(
         SchemaBuilder.map(Schema.BOOLEAN_SCHEMA, Schema.INT32_SCHEMA).optional().build(),
         ImmutableMap.of( true, 10, false, 20),
         SchemaBuilder.map(
@@ -1158,15 +1287,15 @@ public class KsqlAvroDeserializerTest {
     return (Struct) deserializer.deserialize(topicName, bytes);
   }
 
-  private void shouldDeserializeTypeCorrectly(
+  private void shouldDeserializeFieldTypeCorrectly(
       final org.apache.avro.Schema avroSchema,
       final Object avroValue,
       final Schema ksqlSchema
   ) {
-    shouldDeserializeTypeCorrectly(avroSchema, avroValue, ksqlSchema, avroValue);
+    shouldDeserializeFieldTypeCorrectly(avroSchema, avroValue, ksqlSchema, avroValue);
   }
 
-  private void shouldDeserializeTypeCorrectly(
+  private void shouldDeserializeFieldTypeCorrectly(
       final org.apache.avro.Schema avroSchema,
       final Object avroValue,
       final Schema ksqlSchema,
@@ -1250,15 +1379,38 @@ public class KsqlAvroDeserializerTest {
       final org.apache.avro.Schema avroSchema,
       final Object value
   ) {
-    switch (avroSchema.getType()) {
+    final org.apache.avro.Schema schema = avroSchema.getType() == Type.UNION
+        ? avroSchema.getTypes().get(1)
+        : avroSchema;
+
+    switch (schema.getType()) {
       case RECORD:
-        return givenAvroRecord(avroSchema, (Map<String, ?>) value);
+        return givenAvroRecord(schema, (Map<String, ?>) value);
       case ARRAY:
-        return new GenericData.Array<>(avroSchema, (Collection<?>) value);
+        return new GenericData.Array<>(schema, (Collection<?>) value);
       case MAP:
-        return new AvroTestUtil.GenericMap<>(avroSchema, (Map<?, ?>) value);
+        return new AvroTestUtil.GenericMap<>(schema, (Map<?, ?>) value);
       default:
         return value;
     }
+  }
+
+  private static List<?> buildEntriesForMapWithOptionalKey(
+      final String k1, final Integer v1,
+      final String k2, final Integer v2
+  ) {
+
+    final org.apache.avro.Schema entrySchema = AvroTestUtil
+        .connectOptionalKeyMapEntrySchema("bob", INT_AVRO_SCHEMA);
+
+    final Record e1 = new Record(entrySchema);
+    e1.put("key", k1);
+    e1.put("value", v1);
+
+    final Record e2 = new Record(entrySchema);
+    e2.put("key", k2);
+    e2.put("value", v2);
+
+    return ImmutableList.of(e1, e2);
   }
 }

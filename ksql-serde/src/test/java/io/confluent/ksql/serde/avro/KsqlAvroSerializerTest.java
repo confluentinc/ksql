@@ -28,6 +28,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.connect.avro.AvroData;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.AbstractKafkaAvroSerDeConfig;
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
@@ -55,7 +56,6 @@ import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
-import org.apache.kafka.connect.errors.DataException;
 import org.hamcrest.CoreMatchers;
 import org.junit.Before;
 import org.junit.Rule;
@@ -81,6 +81,40 @@ public class KsqlAvroSerializerTest {
       + " {\"name\": \"MAPCOL\", \"type\": [\"null\",{\"type\": \"map\", \"values\": [\"null\",\"double\"]}], \"default\": null}"
       + " ]"
       + "}");
+
+  private static final org.apache.avro.Schema BOOLEAN_AVRO_SCHEMA =
+      parseAvroSchema("{\"type\": \"boolean\"}");
+
+  private static final org.apache.avro.Schema INT_AVRO_SCHEMA =
+      parseAvroSchema("{\"type\": \"int\"}");
+
+  private static final org.apache.avro.Schema LONG_AVRO_SCHEMA =
+      parseAvroSchema("{\"type\": \"long\"}");
+
+  private static final org.apache.avro.Schema DOUBLE_AVRO_SCHEMA =
+      parseAvroSchema("{\"type\": \"double\"}");
+
+  private static final org.apache.avro.Schema STRING_AVRO_SCHEMA =
+      parseAvroSchema("{\"type\": \"string\"}");
+
+  private static final org.apache.avro.Schema BOOLEAN_ARRAY_AVRO_SCHEMA =
+      parseAvroSchema("{\"type\": \"array\", \"items\": [\"null\", \"boolean\"]}]");
+
+  private static final org.apache.avro.Schema REQUIRED_KEY_MAP_AVRO_SCHEMA =
+      parseAvroSchema("{\"type\": \"map\", \"values\": [\"null\", \"int\"]}");
+
+  private static final org.apache.avro.Schema OPTIONAL_KEY_MAP_AVRO_SCHEMA =
+      parseAvroSchema("{"
+          + "\"type\":\"array\","
+          + "\"items\":{"
+          + "\"type\":\"record\","
+          + "\"name\":\"KsqlDataSourceSchema\","
+          + "\"namespace\":\"io.confluent.ksql.avro_schemas\","
+          + "\"fields\":["
+          + "{\"name\":\"key\",\"type\":[\"null\",\"string\"],\"default\":null},"
+          + "{\"name\":\"value\",\"type\":[\"null\",\"int\"],\"default\":null}],"
+          + "\"connect.internal.type\":\"MapEntry\"}}");
+
 
   private static final String SOME_TOPIC = "bob";
 
@@ -165,6 +199,7 @@ public class KsqlAvroSerializerTest {
     // Then:
     final GenericRecord deserialized = deserialize(serializedRow);
     assertThat(deserialized, is(avroOrder));
+    assertThat(avroSchemaStoredInSchemaRegistry(), is(ORDER_AVRO_SCHEMA));
   }
 
   @Test
@@ -228,6 +263,7 @@ public class KsqlAvroSerializerTest {
     // Then:
     // Then:
     assertThat(deserialize(bytes), is(true));
+    assertThat(avroSchemaStoredInSchemaRegistry(), is(BOOLEAN_AVRO_SCHEMA));
   }
 
   @Test
@@ -254,6 +290,7 @@ public class KsqlAvroSerializerTest {
 
     // Then:
     assertThat(deserialize(bytes), is(62));
+    assertThat(avroSchemaStoredInSchemaRegistry(), is(INT_AVRO_SCHEMA));
   }
 
   @Test
@@ -280,6 +317,7 @@ public class KsqlAvroSerializerTest {
 
     // Then:
     assertThat(deserialize(bytes), is(62L));
+    assertThat(avroSchemaStoredInSchemaRegistry(), is(LONG_AVRO_SCHEMA));
   }
 
   @Test
@@ -306,6 +344,7 @@ public class KsqlAvroSerializerTest {
 
     // Then:
     assertThat(deserialize(bytes), is(62.0));
+    assertThat(avroSchemaStoredInSchemaRegistry(), is(DOUBLE_AVRO_SCHEMA));
   }
 
   @Test
@@ -331,7 +370,8 @@ public class KsqlAvroSerializerTest {
     final byte[] bytes = serializer.serialize(SOME_TOPIC, "a string");
 
     // Then:
-    assertThat(deserialize(bytes), is(new Utf8("a string")));
+    assertThat(deserialize(bytes), is("a string"));
+    assertThat(avroSchemaStoredInSchemaRegistry(), is(STRING_AVRO_SCHEMA));
   }
 
   @Test
@@ -352,7 +392,7 @@ public class KsqlAvroSerializerTest {
   public void shouldSerializeArray() {
     // Given:
     givenSerializerForSchema(SchemaBuilder
-        .array(Schema.BOOLEAN_SCHEMA)
+        .array(Schema.OPTIONAL_BOOLEAN_SCHEMA)
         .build()
     );
 
@@ -363,13 +403,14 @@ public class KsqlAvroSerializerTest {
 
     // Then:
     assertThat(deserialize(bytes), is(value));
+    assertThat(avroSchemaStoredInSchemaRegistry(), is(BOOLEAN_ARRAY_AVRO_SCHEMA));
   }
 
   @Test
   public void shouldThrowIfNotArray() {
     // Given:
     givenSerializerForSchema(SchemaBuilder
-        .array(Schema.BOOLEAN_SCHEMA)
+        .array(Schema.OPTIONAL_BOOLEAN_SCHEMA)
         .build()
     );
 
@@ -434,7 +475,7 @@ public class KsqlAvroSerializerTest {
     final byte[] bytes = serializer.serialize(SOME_TOPIC, value);
 
     // Then:
-    final GenericArray<?> expectedElements = buildAvroMapEntries(
+    final GenericArray<?> expectedElements = buildConnectMapEntries(
         ImmutableMap.of(new Utf8("a"), 1L),
         org.apache.avro.Schema.create(Type.LONG)
     );
@@ -460,7 +501,24 @@ public class KsqlAvroSerializerTest {
   }
 
   @Test
-  public void shouldSerializeMap() {
+  public void shouldSerializeMapWithRequiredKeys() {
+    // Given:
+    givenSerializerForSchema(SchemaBuilder
+        .map(Schema.STRING_SCHEMA, Schema.OPTIONAL_INT32_SCHEMA)
+        .build()
+    );
+
+    // When:
+    final byte[] bytes = serializer.serialize(SOME_TOPIC, ImmutableMap.of("a", 1, "b", 2));
+
+    // Then:
+    final Map<?, ?> actual = deserialize(bytes);
+    assertThat(actual, is(ImmutableMap.of(new Utf8("a"), 1, new Utf8("b"), 2)));
+    assertThat(avroSchemaStoredInSchemaRegistry(), is(REQUIRED_KEY_MAP_AVRO_SCHEMA));
+  }
+
+  @Test
+  public void shouldSerializeMapWithOptionalKeys() {
     // Given:
     givenSerializerForSchema(SchemaBuilder
         .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_INT32_SCHEMA)
@@ -471,13 +529,14 @@ public class KsqlAvroSerializerTest {
     final byte[] bytes = serializer.serialize(SOME_TOPIC, ImmutableMap.of("a", 1, "b", 2));
 
     // Then:
-    final GenericArray<?> expected = buildAvroMapEntries(
+    final GenericArray<?> expected = buildConnectMapEntries(
         ImmutableMap.of(new Utf8("a"), 1, new Utf8("b"), 2),
         org.apache.avro.Schema.create(Type.INT)
     );
 
     final GenericArray<?> actual = deserialize(bytes);
     assertThat(actual, is(expected));
+    assertThat(avroSchemaStoredInSchemaRegistry(), is(OPTIONAL_KEY_MAP_AVRO_SCHEMA));
   }
 
   @Test
@@ -597,14 +656,15 @@ public class KsqlAvroSerializerTest {
     final byte[] bytes = serializer.serialize(SOME_TOPIC, value);
 
     // Then:
-    final GenericArray<?> inner = buildAvroMapEntries(
+    final GenericArray<?> inner = buildConnectMapEntries(
         ImmutableMap.of(new Utf8("a"), 1, new Utf8("b"), 2),
         org.apache.avro.Schema.create(Type.INT)
     );
 
-    final GenericArray<?> expected = buildAvroMapEntries(
+    final GenericArray<?> expected = buildConnectMapEntries(
         ImmutableMap.of(new Utf8("k"), inner),
-        mapSchema(mapEntrySchema("KsqlDataSourceSchema_MapValue",
+        AvroTestUtil.connectOptionalKeyMapSchema(
+            AvroTestUtil.connectOptionalKeyMapEntrySchema("KsqlDataSourceSchema_MapValue",
             org.apache.avro.Schema.create(Type.INT)))
     );
 
@@ -637,7 +697,7 @@ public class KsqlAvroSerializerTest {
     avroOrder.put(ARRAYCOL, ImmutableList.of(100.0));
     avroOrder.put(MAPCOL, ImmutableMap.of(new Utf8("key1"), 100.0));
 
-    final GenericArray<?> expected = buildAvroMapEntries(
+    final GenericArray<?> expected = buildConnectMapEntries(
         ImmutableMap.of(new Utf8("k"), avroOrder),
         elementSchema
     );
@@ -703,21 +763,6 @@ public class KsqlAvroSerializerTest {
     }
   }
 
-  @Test(expected = DataException.class)
-  public void shouldFailForIncompatibleType() {
-    // Given:
-    final Struct data = new Struct(ORDER_SCHEMA)
-        .put(ORDERTIME, 1511897796092L)
-        .put(ORDERID, 1L)
-        .put(ITEMID, null)
-        .put(ORDERUNITS, "this is not a number")
-        .put(ARRAYCOL, Collections.singletonList(100.0))
-        .put(MAPCOL, Collections.singletonMap("key1", 100.0));
-
-    // When:
-    serializer.serialize(SOME_TOPIC, data);
-  }
-
   @Test
   public void shouldSerializeIntegerField() {
     shouldSerializeFieldTypeCorrectly(
@@ -776,8 +821,10 @@ public class KsqlAvroSerializerTest {
 
   @Test
   public void shouldSerializeMapFieldWithName() {
-    final org.apache.avro.Schema avroSchema = mapSchema(
-        mapEntrySchema(KsqlConstants.AVRO_SCHEMA_NAMESPACE + ".KsqlDataSourceSchema_field0"));
+    final org.apache.avro.Schema avroSchema =
+        AvroTestUtil.connectOptionalKeyMapSchema(
+        connectMapEntrySchema(KsqlConstants.AVRO_SCHEMA_NAMESPACE + ".KsqlDataSourceSchema_field0"));
+
     shouldSerializeMap(avroSchema);
   }
 
@@ -787,17 +834,19 @@ public class KsqlAvroSerializerTest {
         KsqlConfig.KSQL_USE_NAMED_AVRO_MAPS, false
     ));
 
-    final org.apache.avro.Schema avroSchema = mapSchema(legacyMapEntrySchema());
+    final org.apache.avro.Schema avroSchema =
+        AvroTestUtil.connectOptionalKeyMapSchema(legacyMapEntrySchema());
+
     shouldSerializeMap(avroSchema);
   }
 
   @Test
   public void shouldSerializeMultipleMapFields() {
     final org.apache.avro.Schema avroInnerSchema0
-        = mapEntrySchema(
+        = connectMapEntrySchema(
         KsqlConstants.AVRO_SCHEMA_NAMESPACE + ".KsqlDataSourceSchema_field0_inner0");
     final org.apache.avro.Schema avroInnerSchema1 =
-        mapEntrySchema(
+        AvroTestUtil.connectOptionalKeyMapEntrySchema(
             KsqlConstants.AVRO_SCHEMA_NAMESPACE + ".KsqlDataSourceSchema_field0_inner1",
             org.apache.avro.Schema.create(Type.STRING));
     final org.apache.avro.Schema avroSchema =
@@ -924,21 +973,6 @@ public class KsqlAvroSerializerTest {
     assertThat(avroRecord.getSchema().getName(), is(schemaName));
   }
 
-  private static org.apache.avro.Schema mapEntrySchema(
-      final String name,
-      final org.apache.avro.Schema valueSchema
-  ) {
-    return org.apache.avro.SchemaBuilder.record(name)
-        .namespace("io.confluent.ksql.avro_schemas")
-        .prop("connect.internal.type", "MapEntry")
-        .fields()
-        .optionalString("key")
-        .name("value")
-        .type().unionOf().nullType().and().type(valueSchema).endUnion()
-        .nullDefault()
-        .endRecord();
-  }
-
   private static org.apache.avro.Schema legacyMapEntrySchema() {
     final String name = AvroData.NAMESPACE + "." + AvroData.MAP_ENTRY_TYPE_NAME;
     return org.apache.avro.SchemaBuilder.record(name)
@@ -950,12 +984,9 @@ public class KsqlAvroSerializerTest {
         .endRecord();
   }
 
-  private static org.apache.avro.Schema mapEntrySchema(final String name) {
-    return mapEntrySchema(name, org.apache.avro.Schema.create(Type.LONG));
-  }
-
-  private static org.apache.avro.Schema mapSchema(final org.apache.avro.Schema entrySchema) {
-    return org.apache.avro.SchemaBuilder.array().items(entrySchema);
+  private static org.apache.avro.Schema connectMapEntrySchema(final String name) {
+    return AvroTestUtil
+        .connectOptionalKeyMapEntrySchema(name, org.apache.avro.Schema.create(Type.LONG));
   }
 
   private static org.apache.avro.Schema recordSchema(
@@ -1049,18 +1080,30 @@ public class KsqlAvroSerializerTest {
         );
   }
 
+  private org.apache.avro.Schema avroSchemaStoredInSchemaRegistry() {
+    try {
+      final SchemaMetadata schemaMetadata = schemaRegistryClient
+          .getLatestSchemaMetadata(SOME_TOPIC + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
+
+      return parseAvroSchema(schemaMetadata.getSchema());
+    } catch (final Exception e) {
+      throw new RuntimeException("Failed to get schema from SR", e);
+    }
+  }
+
   private static org.apache.avro.Schema parseAvroSchema(final String avroSchema) {
     return new org.apache.avro.Schema.Parser().parse(avroSchema);
   }
 
-  private static GenericArray<GenericRecord> buildAvroMapEntries(
+  private static GenericArray<GenericRecord> buildConnectMapEntries(
       final Map<Utf8, Object> data,
       final org.apache.avro.Schema valueSchema
   ) {
     final org.apache.avro.Schema entrySchema =
-        mapEntrySchema("KsqlDataSourceSchema", valueSchema);
+        AvroTestUtil.connectOptionalKeyMapEntrySchema("KsqlDataSourceSchema", valueSchema);
 
-    final org.apache.avro.Schema arraySchema = mapSchema(entrySchema);
+    final org.apache.avro.Schema arraySchema =
+        AvroTestUtil.connectOptionalKeyMapSchema(entrySchema);
 
     final Array<GenericRecord> entries = new Array<>(data.size(), arraySchema);
 

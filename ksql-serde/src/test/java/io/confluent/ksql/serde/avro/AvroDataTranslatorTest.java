@@ -16,6 +16,7 @@
 package io.confluent.ksql.serde.avro;
 
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
@@ -56,7 +57,6 @@ public class AvroDataTranslatorTest {
             .struct()
             .name(struct.schema().name())
             .field("STREAM_NAME_COLUMN_NAME", Schema.OPTIONAL_INT32_SCHEMA)
-            .optional()
             .build()
         )
     );
@@ -226,7 +226,70 @@ public class AvroDataTranslatorTest {
     // When:
     final Struct struct = (Struct)dataTranslator.toConnectRow(ksqlRow);
 
+    // Then:
     assertThat(struct.schema().name(), equalTo(schemaFullName));
+  }
+
+  @Test
+  public void shouldDropOptionalFromRootPrimitiveSchema() {
+    // Given:
+    final PersistenceSchema schema = persistenceSchema(Schema.OPTIONAL_INT64_SCHEMA);
+
+    // When:
+    final AvroDataTranslator translator =
+        new AvroDataTranslator(schema, KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME, true);
+
+    // Then:
+    assertThat("Root required", translator.getAvroCompatibleSchema().isOptional(), is(false));
+  }
+
+  @Test
+  public void shouldDropOptionalFromRootArraySchema() {
+    // Given:
+    final PersistenceSchema schema = persistenceSchema(SchemaBuilder
+        .array(Schema.OPTIONAL_INT64_SCHEMA)
+        .optional()
+        .build());
+
+    // When:
+    final AvroDataTranslator translator =
+        new AvroDataTranslator(schema, KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME, true);
+
+    // Then:
+    assertThat("Root required", translator.getAvroCompatibleSchema().isOptional(), is(false));
+  }
+
+  @Test
+  public void shouldDropOptionalFromRootMapSchema() {
+    // Given:
+    final PersistenceSchema schema = persistenceSchema(SchemaBuilder
+        .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_INT64_SCHEMA)
+        .optional()
+        .build());
+
+    // When:
+    final AvroDataTranslator translator =
+        new AvroDataTranslator(schema, KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME, true);
+
+    // Then:
+    assertThat("Root required", translator.getAvroCompatibleSchema().isOptional(), is(false));
+  }
+
+  @Test
+  public void shouldDropOptionalFromRootStructSchema() {
+    // Given:
+    final PersistenceSchema schema = persistenceSchema(SchemaBuilder
+        .struct()
+        .field("COLUMN_NAME", Schema.OPTIONAL_INT64_SCHEMA)
+        .optional()
+        .build());
+
+    // When:
+    final AvroDataTranslator translator =
+        new AvroDataTranslator(schema, KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME, true);
+
+    // Then:
+    assertThat("Root required", translator.getAvroCompatibleSchema().isOptional(), is(false));
   }
 
   private static PersistenceSchema persistenceSchema(final Schema connectSchema) {

@@ -17,6 +17,7 @@ package io.confluent.ksql.util;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.persistence.PersistenceSchema;
 import io.confluent.ksql.serde.GenericRowSerDe.GenericRowSerializer;
 import io.confluent.ksql.serde.json.KsqlJsonSerializer;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
@@ -67,7 +68,7 @@ public class TopicProducer {
   ) throws InterruptedException, TimeoutException, ExecutionException {
 
     final Serializer<GenericRow> serializer = new GenericRowSerializer(
-        new KsqlJsonSerializer(schema.getSchema()),
+        new KsqlJsonSerializer(PersistenceSchema.of(schema.getSchema())),
         schema.getSchema());
 
     final KafkaProducer<String, GenericRow> producer =

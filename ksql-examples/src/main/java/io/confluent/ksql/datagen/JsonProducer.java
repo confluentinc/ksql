@@ -16,10 +16,12 @@
 package io.confluent.ksql.datagen;
 
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.schema.persistence.PersistenceSchema;
 import io.confluent.ksql.serde.GenericRowSerDe.GenericRowSerializer;
 import io.confluent.ksql.serde.json.KsqlJsonSerializer;
 import org.apache.avro.Schema;
 import org.apache.kafka.common.serialization.Serializer;
+import org.apache.kafka.connect.data.ConnectSchema;
 
 public class JsonProducer extends DataGenProducer {
 
@@ -30,7 +32,7 @@ public class JsonProducer extends DataGenProducer {
       final String topicName
   ) {
     return new GenericRowSerializer(
-        new KsqlJsonSerializer(kafkaSchema),
+        new KsqlJsonSerializer(PersistenceSchema.of((ConnectSchema) kafkaSchema)),
         kafkaSchema
     );
   }

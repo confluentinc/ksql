@@ -21,7 +21,7 @@ import static org.hamcrest.Matchers.is;
 import com.google.common.collect.ImmutableList;
 import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.parser.tree.Struct.Field;
-import io.confluent.ksql.parser.tree.Type.SqlType;
+import io.confluent.ksql.schema.SqlType;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import org.junit.Rule;

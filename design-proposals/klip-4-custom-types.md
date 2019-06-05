@@ -15,9 +15,9 @@ other schemas. It is desirable to be able to define this custom schema in KSQL o
 in all future statements. For example, imagine the following schema declarations:
 
 ```sql
-REGISTER TYPE ADDRESS AS STRUCT<number INTEGER, street VARCHAR, city VARCHAR>;
-REGISTER TYPE PERSON AS STRUCT<firstname VARCHAR, lastname VARCHAR, address ADDRESS>;
-REGISTER TYPE COMPANY AS STRUCT<name VARCHAR, headquarters ADDRESS>;
+CREATE TYPE ADDRESS AS STRUCT<number INTEGER, street VARCHAR, city VARCHAR>;
+CREATE TYPE PERSON AS STRUCT<firstname VARCHAR, lastname VARCHAR, address ADDRESS>;
+CREATE TYPE COMPANY AS STRUCT<name VARCHAR, headquarters ADDRESS>;
 ```
 
 With this feature organizations can leverage existing schemas in their KSQL queries and share 
@@ -27,6 +27,9 @@ data with other parts of their organizations.
 
 * Syntax to register and unregister custom type aliases
 * Ability to include custom types at compile-time (e.g. in the JAR) for use in UDF declarations
+* Ability to list all custom types
+
+Schema Registry integration is not considered within scope.
 
 ## Value/Return
 
@@ -35,41 +38,65 @@ user interaction with complicated schemas.
 
 ## Public APIS
 
-### REGISTER TYPE
+### CREATE TYPE
 
 ```sql
-REGISTER TYPE <type_name> AS <type>;
+CREATE TYPE <type_name> AS <type>;
 ```
 
-The `REGISTER TYPE` syntax will allow KSQL users to register a type alias directly in SQL (either 
+The `CREATE TYPE` syntax will allow KSQL users to register a type alias directly in SQL (either 
 interactive or headless modes). Any types registered using this command can be leveraged in any
 future statement. 
 
-Any attempts to register the same type twice without a corresponding `UNREGISTER TYPE` will fail.
+Any attempts to register the same type twice without a corresponding `DROP TYPE` will fail.
 
-### UNREGISTER TYPE
+### DROP TYPE 
 
 ```sql
-UNREGISTER TYPE <type_name>;
+DROP TYPE <type_name>;
 ```
 
-The `UNREGISTER TYPE` syntax will allow KSQL users to remove a type alias from KSQL. This statement
+The `DROP TYPE` syntax will allow KSQL users to remove a type alias from KSQL. This statement
 will fail if the type is being used in any active query or UDF.
+
+### SHOW TYPES
+
+```sql
+SHOW TYPES;
+```
+
+The `SHOW TYPES` command will list all custom types and their type definitions. A sample output
+for this command would be:
+```
+|---------------|--------------------------------------------------------------|------------------|
+|     name      |       definition                                             | source           |
+|---------------|--------------------------------------------------------------|------------------|
+| ADDRESS       | STRUCT<number INTEGER, street VARCHAR, city VARCHAR>         | types.sql        |
+| PERSON        | STRUCT<firstname VARCHAR, lastname VARCHAR, address ADDRESS> | types.sql        |
+| COMPANY       | STRUCT<name VARCHAR, headquarters ADDRESS>                   | CLI              |
+|---------------|--------------------------------------------------------------|------------------|
+```
 
 ### Extension Directory
 
-The `ksql.extension.dir` will now also recognize `.sql` files that contain only `REGISTER TYPE`
+The `ksql.extension.dir` will now also recognize `.sql` files that contain only `CREATE TYPE`
 commands. These commands will all be run before compiling any UDFs so these custom type declarations
-can be used in the `@Udf` annotations.
+can be used in the `@Udf` annotations. They will be loaded in natural order to ensure that the
+loading behavior is deterministic.
 
 ## Design
 
-There will be a rewriter phase during parsing that will replace any aliased type with the full
-schema. For UDFs, the annotation will lookup the schema directly and compile the UDF using the 
-full schema.
+There will be a rewriter phase that will replace any aliased type with the full schema. For UDFs, 
+the annotation will lookup the schema directly and compile the UDF using the full schema. There
+are no restrictions on what types can be added as custom types, and custom types can be composite.
 
-**NOTE:** the UI should be aware of this feature, and it would be nice-to-have a list of all 
-existing registered custom types.
+This rewriting will be done _before_ enqueuing the command on the command topic to make sure that
+if the types change the existing statements will already be resolved.
+
+## Future Work
+* in v1, `DESCRIBE` commands would show the flattened types (resolved) - it is better to keep the
+original type structure and map it back for `DESCRIBE` commands
+* SchemaRegistry integration is not in scope
 
 ## Test plan
 
@@ -77,21 +104,21 @@ Nothing special of note here.
 
 ## Documentation Updates
 
-* The `syntax-reference.rst` will have an updated section on `REGISTER TYPE`:
+* The `syntax-reference.rst` will have an updated section on `CREATE TYPE`:
 
 >**Synopsis**
 >
 >.. code:: sql
 >
->    REGISTER TYPE <type_name> AS <type>;
+>    CREATE TYPE <type_name> AS <type>;
 >
 > Example:
 >
 >.. code:: sql
 >
->   REGISTER TYPE ADDRESS AS STRUCT<number INTEGER, street VARCHAR, city VARCHAR>;
->   REGISTER TYPE PERSON AS STRUCT<firstname VARCHAR, lastname VARCHAR, address ADDRESS>;
->   REGISTER TYPE COMPANY AS STRUCT<name VARCHAR, headquarters ADDRESS>;
+>   CREATE TYPE ADDRESS AS STRUCT<number INTEGER, street VARCHAR, city VARCHAR>;
+>   CREATE TYPE PERSON AS STRUCT<firstname VARCHAR, lastname VARCHAR, address ADDRESS>;
+>   CREATE TYPE COMPANY AS STRUCT<name VARCHAR, headquarters ADDRESS>;
 >
 >**Description**
 >
@@ -99,13 +126,13 @@ Nothing special of note here.
 >column schema can be registered as a custom type, and the type_name must be exclusively letters
 >```[A-Z]```.
 
-* The `syntax-reference.rst` will have an updated section on `UNREGISTER TYPE`:
+* The `syntax-reference.rst` will have an updated section on `DROP TYPE`:
 
 >**Synopsis**
 >
 >.. code:: sql
 >
->    UNREGISTER TYPE <type_name>;
+>    DROP TYPE <type_name>;
 >
 >**Description**
 >
@@ -117,7 +144,7 @@ Nothing special of note here.
 
 > The extension dir contains two entities: JARs that contain UDFs/UDAFs and `.sql` files that
 > contain any custom types. The JARs are described more in :ref:`deploying-udf`. Any `.sql` files
-> must contain only statements of ``REGISTER TYPE``.
+> must contain only statements of ``CREATE TYPE``.
 
 # Compatibility Implications
 
@@ -133,10 +160,15 @@ N/A
 
 ## Rejected Alternatives
 
+### Syntax
+
+Instead of the original `REGISTER TYPE` syntax, the suggestion is to follow what Postgres-SQL does
+and introduce `CREATE TYPE`/`DROP TYPE` (https://www.postgresql.org/docs/9.5/sql-createtype.html)
+
 ### Annotations
 
 We could implement the types as annotations instead of allowing users to submit a `.sql` file that
-contains the `REGISTER TYPE` statements. For example:
+contains the `CREATE TYPE` statements. For example:
 ```java
 @TypeRegistry
 public class MyTypes {

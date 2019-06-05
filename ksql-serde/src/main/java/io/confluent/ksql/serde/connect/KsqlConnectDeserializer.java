@@ -53,7 +53,8 @@ public class KsqlConnectDeserializer implements Deserializer<Object> {
     } catch (final Exception e) {
       recordLogger.error(SerdeProcessingLogMessageFactory
           .deserializationErrorMsg(e, Optional.ofNullable(bytes)));
-      throw new SerializationException(e);
+      throw new SerializationException(
+          "Error deserializing message from topic: " + topic, e);
     }
   }
 

@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.util;
 import avro.shaded.com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.rest.entity.FieldInfo;
 import io.confluent.ksql.rest.entity.SchemaInfo;
+import io.confluent.ksql.schema.SqlType;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
 import java.util.List;
 import java.util.Map;
@@ -25,18 +26,18 @@ import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Schema;
 
 public final class EntityUtil {
-  private static final Map<Schema.Type, SchemaInfo.Type>
+  private static final Map<Schema.Type, SqlType>
       SCHEMA_TYPE_TO_SCHEMA_INFO_TYPE =
-      ImmutableMap.<Schema.Type, SchemaInfo.Type>builder()
-          .put(Schema.Type.INT32, SchemaInfo.Type.INTEGER)
-          .put(Schema.Type.INT64, SchemaInfo.Type.BIGINT)
-          .put(Schema.Type.FLOAT32, SchemaInfo.Type.DOUBLE)
-          .put(Schema.Type.FLOAT64, SchemaInfo.Type.DOUBLE)
-          .put(Schema.Type.BOOLEAN, SchemaInfo.Type.BOOLEAN)
-          .put(Schema.Type.STRING, SchemaInfo.Type.STRING)
-          .put(Schema.Type.ARRAY, SchemaInfo.Type.ARRAY)
-          .put(Schema.Type.MAP, SchemaInfo.Type.MAP)
-          .put(Schema.Type.STRUCT, SchemaInfo.Type.STRUCT)
+      ImmutableMap.<Schema.Type, SqlType>builder()
+          .put(Schema.Type.INT32, SqlType.INTEGER)
+          .put(Schema.Type.INT64, SqlType.BIGINT)
+          .put(Schema.Type.FLOAT32, SqlType.DOUBLE)
+          .put(Schema.Type.FLOAT64, SqlType.DOUBLE)
+          .put(Schema.Type.BOOLEAN, SqlType.BOOLEAN)
+          .put(Schema.Type.STRING, SqlType.STRING)
+          .put(Schema.Type.ARRAY, SqlType.ARRAY)
+          .put(Schema.Type.MAP, SqlType.MAP)
+          .put(Schema.Type.STRUCT, SqlType.STRUCT)
           .build();
 
   private EntityUtil() {
@@ -48,17 +49,19 @@ public final class EntityUtil {
   }
 
   private static SchemaInfo buildSchemaEntity(final Schema schema) {
+    final SqlType sqlType = getSqlType(schema);
+
     switch (schema.type()) {
       case ARRAY:
       case MAP:
         return new SchemaInfo(
-            getSchemaTypeString(schema),
+            sqlType,
             null,
             buildSchemaEntity(schema.valueSchema())
         );
       case STRUCT:
         return new SchemaInfo(
-            getSchemaTypeString(schema),
+            sqlType,
             schema.fields()
                 .stream()
                 .map(
@@ -67,12 +70,12 @@ public final class EntityUtil {
             null
         );
       default:
-        return new SchemaInfo(getSchemaTypeString(schema), null, null);
+        return new SchemaInfo(sqlType, null, null);
     }
   }
 
-  private static SchemaInfo.Type getSchemaTypeString(final Schema schema) {
-    final SchemaInfo.Type type = SCHEMA_TYPE_TO_SCHEMA_INFO_TYPE.get(schema.type());
+  private static SqlType getSqlType(final Schema schema) {
+    final SqlType type = SCHEMA_TYPE_TO_SCHEMA_INFO_TYPE.get(schema.type());
     if (type == null) {
       throw new RuntimeException(String.format("Invalid type in schema: %s.",
           schema.type().getName()));

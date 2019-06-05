@@ -17,7 +17,6 @@ package io.confluent.ksql.serde.connect;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -29,6 +28,11 @@ import org.apache.kafka.connect.data.Time;
 import org.apache.kafka.connect.data.Timestamp;
 import org.apache.kafka.connect.errors.DataException;
 
+/**
+ * Translates full set of Connect types to the limited subset supported by KSQL.
+ *
+ * <p>Responsible for the coercion of connect types to the subset KSQL supports.
+ */
 public class ConnectDataTranslator implements DataTranslator {
   private static final String PATH_SEPARATOR = "->";
 
@@ -47,6 +51,10 @@ public class ConnectDataTranslator implements DataTranslator {
     return toKsqlValue(schema, connectSchema, connectData, "");
   }
 
+  public Object toConnectRow(final Object ksqlData) {
+    return ksqlData;
+  }
+
   private static void throwTypeMismatchException(
       final String pathStr,
       final Schema schema,
@@ -54,7 +62,7 @@ public class ConnectDataTranslator implements DataTranslator {
   ) {
     throw new DataException(
         String.format(
-            "Cannot deserialize type %s as type %s for field %s",
+            "Cannot deserialize type %s as type %s for path: %s",
             connectSchema.type().getName(),
             schema.type().getName(),
             pathStr));
@@ -110,6 +118,8 @@ public class ConnectDataTranslator implements DataTranslator {
       Schema.Type.INT16,
       Schema.Type.INT32,
       Schema.Type.INT64,
+      Schema.Type.FLOAT32,
+      Schema.Type.FLOAT64,
       Schema.Type.BOOLEAN,
       Schema.Type.STRING
   };
@@ -255,14 +265,12 @@ public class ConnectDataTranslator implements DataTranslator {
       final Struct connectStruct,
       final String pathStr
   ) {
-    // todo: check name here? e.g. what if the struct gets changed to a union?
     final Struct ksqlStruct = new Struct(schema);
     final Map<String, Field> caseInsensitiveFieldMap =
         getCaseInsensitiveFieldMap(connectSchema);
+
     schema.fields().forEach(field -> {
       final String fieldNameUppercase = field.name().toUpperCase();
-      // TODO: should we throw an exception if this is not true? this means the schema changed
-      //       or the user declared the source with a schema incompatible with the registry schema
       if (caseInsensitiveFieldMap.containsKey(fieldNameUppercase)) {
         final Field connectField = caseInsensitiveFieldMap.get(fieldNameUppercase);
         // make sure to get/put the field using the Field object to avoid a lookup in Struct
@@ -286,23 +294,5 @@ public class ConnectDataTranslator implements DataTranslator {
         field -> fieldsByName.put(field.name().toUpperCase(), field)
     );
     return fieldsByName;
-  }
-
-  public Object toConnectRow(final Object struct) {
-    return toConnectStruct((Struct) struct);
-  }
-
-  private Object toConnectStruct(final Struct row) {
-    final Struct struct = new Struct(schema);
-
-    final Iterator<Field> ksqlIt = row.schema().fields().iterator();
-
-    for (final Field connectField : schema.fields()) {
-      final Field ksqlField = ksqlIt.next();
-      final Object value = row.get(ksqlField);
-      struct.put(connectField, value);
-    }
-
-    return struct;
   }
 }

@@ -28,6 +28,7 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.AbstractKafkaAvroSerDeConfig;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
+import io.confluent.ksql.schema.persistence.PersistenceSchema;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import java.time.LocalDate;
@@ -42,6 +43,7 @@ import org.apache.avro.LogicalTypes;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.kafka.common.serialization.Deserializer;
+import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -113,10 +115,10 @@ public class KsqlAvroDeserializerTest {
   @Test
   public void shouldDeserializeNull() {
     // Given:
-    final Deserializer<Struct> deserializer = deserializer(SCHEMA);
+    final Deserializer<?> deserializer = deserializer(SCHEMA);
 
     // When:
-    final Struct row = deserializer.deserialize("topic", null);
+    final Object row = deserializer.deserialize("topic", null);
 
     // Then:
     assertThat(row, is(nullValue()));
@@ -225,15 +227,15 @@ public class KsqlAvroDeserializerTest {
 
     final byte[] bytes = kafkaAvroSerializer.serialize(topicName, avroRecord);
 
-    final Deserializer<Struct> deserializer =
+    final Deserializer<Object> deserializer =
         new KsqlAvroSerdeFactory(KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME).createSerde(
-            schema,
+            PersistenceSchema.of((ConnectSchema) schema),
             KSQL_CONFIG,
             () -> schemaRegistryClient,
             "loggerName",
             ProcessingLogContext.create()).deserializer();
 
-    return deserializer.deserialize(topicName, bytes);
+    return (Struct) deserializer.deserialize(topicName, bytes);
   }
 
   private Struct serializeDeserializeRow(
@@ -522,9 +524,9 @@ public class KsqlAvroDeserializerTest {
         .optional()
         .build();
 
-    final Deserializer<Struct> deserializer = deserializer(ksqlRecordSchema);
+    final Deserializer<Object> deserializer = deserializer(ksqlRecordSchema);
 
-    final Struct row = deserializer.deserialize("topic", bytes);
+    final Struct row = (Struct) deserializer.deserialize("topic", bytes);
 
     assertThat(row.schema().field("field0").schema(), is(ksqlSchema));
     assertThat(row.get("field0"), is(ksqlValue));
@@ -630,16 +632,6 @@ public class KsqlAvroDeserializerTest {
     );
   }
 
-  @Test
-  public void shouldThrowIfTopLevelNotStruct() {
-    // Then:
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("KSQL expects all top level schemas to be STRUCTs");
-
-    // When:
-    deserializer(Schema.OPTIONAL_INT64_SCHEMA);
-  }
-
   private byte[] serializeAsBinaryAvro(
       final String topicName,
       final Schema schema,
@@ -648,11 +640,11 @@ public class KsqlAvroDeserializerTest {
     return converter.fromConnectData(topicName, schema, value);
   }
 
-  private Deserializer<Struct> deserializer(final Schema schema) {
-    final Deserializer<Struct> deserializer =
+  private Deserializer<Object> deserializer(final Schema schema) {
+    final Deserializer<Object> deserializer =
         new KsqlAvroSerdeFactory(KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME)
             .createSerde(
-                schema,
+                PersistenceSchema.of((ConnectSchema) schema),
                 KSQL_CONFIG,
                 () -> schemaRegistryClient,
                 "loggerName",

@@ -18,6 +18,7 @@ package io.confluent.ksql.serde.json;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
+import io.confluent.ksql.schema.persistence.PersistenceSchema;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.util.KsqlConfig;
@@ -25,8 +26,6 @@ import java.util.Collections;
 import java.util.function.Supplier;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.Struct;
 
 @Immutable
 public class KsqlJsonSerdeFactory extends KsqlSerdeFactory {
@@ -36,28 +35,27 @@ public class KsqlJsonSerdeFactory extends KsqlSerdeFactory {
   }
 
   @Override
-  protected Serializer<Struct> createSerializer(
-      final Schema logicalSchema,
+  protected Serializer<Object> createSerializer(
+      final PersistenceSchema schema,
       final KsqlConfig ksqlConfig,
       final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
   ) {
-    final Serializer<Struct> serializer = new KsqlJsonSerializer(logicalSchema);
+    final Serializer<Object> serializer = new KsqlJsonSerializer(schema);
     serializer.configure(Collections.emptyMap(), false);
     return serializer;
   }
 
   @Override
-  protected Deserializer<Struct> createDeserializer(
-      final Schema logicalSchema,
+  protected Deserializer<Object> createDeserializer(
+      final PersistenceSchema schema,
       final KsqlConfig ksqlConfig,
       final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
       final ProcessingLogger processingLogger
   ) {
-    final Deserializer<Struct> deserializer =
-        new KsqlJsonDeserializer(logicalSchema, processingLogger);
+    final Deserializer<Object> deserializer =
+        new KsqlJsonDeserializer(schema, processingLogger);
 
     deserializer.configure(Collections.emptyMap(), false);
-
     return deserializer;
   }
 }

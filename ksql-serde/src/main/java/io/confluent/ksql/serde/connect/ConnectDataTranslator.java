@@ -21,11 +21,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.connect.data.Date;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.Schema.Type;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.data.Time;
 import org.apache.kafka.connect.data.Timestamp;
@@ -41,12 +39,12 @@ public class ConnectDataTranslator implements DataTranslator {
   }
 
   @Override
-  public Struct toKsqlRow(final Schema connectSchema, final Object connectData) {
+  public Object toKsqlRow(final Schema connectSchema, final Object connectData) {
     if (connectData == null) {
       return null;
     }
 
-    return (Struct) toKsqlValue(schema, connectSchema, connectData, "");
+    return toKsqlValue(schema, connectSchema, connectData, "");
   }
 
   private static void throwTypeMismatchException(
@@ -290,17 +288,8 @@ public class ConnectDataTranslator implements DataTranslator {
     return fieldsByName;
   }
 
-  public Object toConnectRow(final Struct struct) {
-    if (schema.type() == Type.STRUCT) {
-      return toConnectStruct(struct);
-    }
-
-    if (struct.schema().fields().size() != 1) {
-      throw new SerializationException("Expected to serialize primitive, map or array not record");
-    }
-
-    final Field field = struct.schema().fields().get(0);
-    return struct.get(field);
+  public Object toConnectRow(final Object struct) {
+    return toConnectStruct((Struct) struct);
   }
 
   private Object toConnectStruct(final Struct row) {

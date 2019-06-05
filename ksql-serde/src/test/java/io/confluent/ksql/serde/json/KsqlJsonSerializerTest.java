@@ -15,21 +15,33 @@
 
 package io.confluent.ksql.serde.json;
 
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
+import static org.junit.internal.matchers.ThrowableMessageMatcher.hasMessage;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.schema.persistence.PersistenceSchema;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.apache.kafka.common.errors.SerializationException;
+import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
+import org.hamcrest.CoreMatchers;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -42,16 +54,25 @@ public class KsqlJsonSerializerTest {
 
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
+  private static final String SOME_TOPIC = "bob";
+
+  private static final String ORDERTIME = "ORDERTIME";
+  private static final String ORDERID = "ORDERID";
+  private static final String ITEMID = "ITEMID";
+  private static final String ORDERUNITS = "ORDERUNITS";
+  private static final String ARRAYCOL = "ARRAYCOL";
+  private static final String MAPCOL = "MAPCOL";
+
   private static final Schema ORDER_SCHEMA = SchemaBuilder.struct()
-      .field("ORDERTIME", Schema.OPTIONAL_INT64_SCHEMA)
-      .field("ORDERID", Schema.OPTIONAL_INT64_SCHEMA)
-      .field("ITEMID", Schema.OPTIONAL_STRING_SCHEMA)
-      .field("ORDERUNITS", Schema.OPTIONAL_FLOAT64_SCHEMA)
-      .field("ARRAYCOL", SchemaBuilder
+      .field(ORDERTIME, Schema.OPTIONAL_INT64_SCHEMA)
+      .field(ORDERID, Schema.OPTIONAL_INT64_SCHEMA)
+      .field(ITEMID, Schema.OPTIONAL_STRING_SCHEMA)
+      .field(ORDERUNITS, Schema.OPTIONAL_FLOAT64_SCHEMA)
+      .field(ARRAYCOL, SchemaBuilder
           .array(Schema.OPTIONAL_FLOAT64_SCHEMA)
           .optional()
           .build())
-      .field("MAPCOL", SchemaBuilder
+      .field(MAPCOL, SchemaBuilder
           .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_FLOAT64_SCHEMA)
           .optional()
           .build())
@@ -63,18 +84,21 @@ public class KsqlJsonSerializerTest {
       .field("CITY", Schema.OPTIONAL_STRING_SCHEMA)
       .field("STATE", Schema.OPTIONAL_STRING_SCHEMA)
       .field("ZIPCODE", Schema.OPTIONAL_INT64_SCHEMA)
-      .optional().build();
+      .optional()
+      .build();
 
   private static final Schema CATEGORY_SCHEMA = SchemaBuilder.struct()
       .field("ID", Schema.OPTIONAL_INT64_SCHEMA)
       .field("NAME", Schema.OPTIONAL_STRING_SCHEMA)
-      .optional().build();
+      .optional()
+      .build();
 
   private static final Schema ITEM_SCHEMA = SchemaBuilder.struct()
-      .field("ITEMID", Schema.OPTIONAL_INT64_SCHEMA)
+      .field(ITEMID, Schema.OPTIONAL_INT64_SCHEMA)
       .field("NAME", Schema.OPTIONAL_STRING_SCHEMA)
       .field("CATEGORIES", SchemaBuilder.array(CATEGORY_SCHEMA).optional().build())
-      .optional().build();
+      .optional()
+      .build();
 
   private static final Schema SCHEMA_WITH_STRUCT = SchemaBuilder.struct()
       .field("ordertime", Schema.OPTIONAL_INT64_SCHEMA)
@@ -82,9 +106,13 @@ public class KsqlJsonSerializerTest {
       .field("itemid", ITEM_SCHEMA)
       .field("orderunits", Schema.OPTIONAL_INT32_SCHEMA)
       .field("arraycol", SchemaBuilder
-          .array(Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build())
+          .array(Schema.OPTIONAL_FLOAT64_SCHEMA)
+          .optional()
+          .build())
       .field("mapcol", SchemaBuilder
-          .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build())
+          .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_FLOAT64_SCHEMA)
+          .optional()
+          .build())
       .field("address", ADDRESS_SCHEMA)
       .build();
 
@@ -95,26 +123,37 @@ public class KsqlJsonSerializerTest {
 
   @Before
   public void before() {
-    serializer = new KsqlJsonSerializer(ORDER_SCHEMA);
+    givenSerializerForSchema(ORDER_SCHEMA);
   }
 
   @Test
-  public void shouldSerializeRowCorrectly() {
+  public void shouldSerializeNullValue() {
     // Given:
-    final Struct struct = new Struct(ORDER_SCHEMA)
-        .put("ORDERTIME", 1511897796092L)
-        .put("ORDERID", 1L)
-        .put("ITEMID", "item_1")
-        .put("ORDERUNITS", 10.0)
-        .put("ARRAYCOL", Collections.singletonList(100.0))
-        .put("MAPCOL", Collections.singletonMap("key1", 100.0));
+    givenSerializerForSchema(ORDER_SCHEMA);
 
     // When:
-    final byte[] bytes = serializer.serialize("t1", struct);
+    final byte[] serializedRow = serializer.serialize(SOME_TOPIC, null);
 
     // Then:
-    final String jsonString = new String(bytes, StandardCharsets.UTF_8);
-    assertThat(jsonString, equalTo(
+    assertThat(serializedRow, is(CoreMatchers.nullValue()));
+  }
+
+  @Test
+  public void shouldSerializeStructCorrectly() {
+    // Given:
+    final Struct struct = new Struct(ORDER_SCHEMA)
+        .put(ORDERTIME, 1511897796092L)
+        .put(ORDERID, 1L)
+        .put(ITEMID, "item_1")
+        .put(ORDERUNITS, 10.0)
+        .put(ARRAYCOL, Collections.singletonList(100.0))
+        .put(MAPCOL, Collections.singletonMap("key1", 100.0));
+
+    // When:
+    final byte[] bytes = serializer.serialize(SOME_TOPIC, struct);
+
+    // Then:
+    assertThat(asJsonString(bytes), equalTo(
         "{"
             + "\"ORDERTIME\":1511897796092,"
             + "\"ORDERID\":1,"
@@ -126,22 +165,336 @@ public class KsqlJsonSerializerTest {
   }
 
   @Test
-  public void shouldSerializeRowWithNull() {
-    // Given:
-    final Struct struct = new Struct(ORDER_SCHEMA)
-        .put("ORDERTIME", 1511897796092L)
-        .put("ORDERID", 1L)
-        .put("ITEMID", "item_1")
-        .put("ORDERUNITS", 10.0)
-        .put("ARRAYCOL", null)
-        .put("MAPCOL", null);
+  public void shouldThrowIfNotStruct() {
+    // Then:
+    expectedException.expect(SerializationException.class);
+    expectedException.expectCause(hasMessage(containsString(
+        "Invalid type for STRUCT: class java.lang.Integer")));
 
     // When:
-    final byte[] bytes = serializer.serialize("t1", struct);
+    serializer.serialize(SOME_TOPIC, 10);
+  }
+
+  @Test
+  public void shouldHandleNestedStruct() throws IOException {
+    // Given:
+    givenSerializerForSchema(SCHEMA_WITH_STRUCT);
+    final Struct struct = buildWithNestedStruct();
+
+    // When:
+    final byte[] bytes = serializer.serialize(SOME_TOPIC, struct);
 
     // Then:
-    final String jsonString = new String(bytes, StandardCharsets.UTF_8);
-    assertThat(jsonString, equalTo(
+    final JsonNode jsonNode = OBJECT_MAPPER.readTree(bytes);
+    assertThat(jsonNode.size(), equalTo(7));
+    assertThat(jsonNode.get("ordertime").asLong(), is(1234567L));
+    assertThat(jsonNode.get("itemid").get("NAME").asText(), is("Item_10"));
+  }
+
+  @Test
+  public void shouldSerializeBoolean() {
+    // Given:
+    givenSerializerForSchema(Schema.OPTIONAL_BOOLEAN_SCHEMA);
+
+    // When:
+    final byte[] bytes = serializer.serialize(SOME_TOPIC, true);
+
+    // Then:
+    assertThat(asJsonString(bytes), is("true"));
+  }
+
+  @Test
+  public void shouldThrowIfNotBoolean() {
+    // Given:
+    givenSerializerForSchema(Schema.OPTIONAL_BOOLEAN_SCHEMA);
+
+    // Then:
+    expectedException.expect(SerializationException.class);
+    expectedException.expectCause(hasMessage(CoreMatchers.is(
+        "Invalid type for BOOLEAN: class java.lang.Integer")));
+
+    // When:
+    serializer.serialize(SOME_TOPIC, 10);
+  }
+
+  @Test
+  public void shouldSerializeInt() {
+    // Given:
+    givenSerializerForSchema(Schema.OPTIONAL_INT32_SCHEMA);
+
+    // When:
+    final byte[] bytes = serializer.serialize(SOME_TOPIC, 62);
+
+    // Then:
+    assertThat(asJsonString(bytes), is("62"));
+  }
+
+  @Test
+  public void shouldThrowIfNotInt() {
+    // Given:
+    givenSerializerForSchema(Schema.OPTIONAL_INT32_SCHEMA);
+
+    // Then:
+    expectedException.expect(SerializationException.class);
+    expectedException.expectCause(hasMessage(CoreMatchers.is(
+        "Invalid type for INT32: class java.lang.Boolean")));
+
+    // When:
+    serializer.serialize(SOME_TOPIC, true);
+  }
+
+  @Test
+  public void shouldSerializeBigInt() {
+    // Given:
+    givenSerializerForSchema(Schema.OPTIONAL_INT64_SCHEMA);
+
+    // When:
+    final byte[] bytes = serializer.serialize(SOME_TOPIC, 62L);
+
+    // Then:
+    assertThat(asJsonString(bytes), is("62"));
+  }
+
+  @Test
+  public void shouldThrowIfNotBigInt() {
+    // Given:
+    givenSerializerForSchema(Schema.OPTIONAL_INT64_SCHEMA);
+
+    // Then:
+    expectedException.expect(SerializationException.class);
+    expectedException.expectCause(hasMessage(CoreMatchers.is(
+        "Invalid type for INT64: class java.lang.Boolean")));
+
+    // When:
+    serializer.serialize(SOME_TOPIC, true);
+  }
+
+  @Test
+  public void shouldSerializeDouble() {
+    // Given:
+    givenSerializerForSchema(Schema.OPTIONAL_FLOAT64_SCHEMA);
+
+    // When:
+    final byte[] bytes = serializer.serialize(SOME_TOPIC, 62.0);
+
+    // Then:
+    assertThat(asJsonString(bytes), is("62.0"));
+  }
+
+  @Test
+  public void shouldThrowIfNotDouble() {
+    // Given:
+    givenSerializerForSchema(Schema.OPTIONAL_FLOAT64_SCHEMA);
+
+    // Then:
+    expectedException.expect(SerializationException.class);
+    expectedException.expectCause(hasMessage(CoreMatchers.is(
+        "Invalid type for FLOAT64: class org.apache.kafka.connect.data.Struct")));
+
+    // When:
+    serializer.serialize(SOME_TOPIC, new Struct(ORDER_SCHEMA));
+  }
+
+  @Test
+  public void shouldSerializeString() {
+    // Given:
+    givenSerializerForSchema(Schema.OPTIONAL_STRING_SCHEMA);
+
+    // When:
+    final byte[] bytes = serializer.serialize(SOME_TOPIC, "a string");
+
+    // Then:
+    assertThat(asJsonString(bytes), is("\"a string\""));
+  }
+
+  @Test
+  public void shouldThrowIfNotString() {
+    // Given:
+    givenSerializerForSchema(Schema.OPTIONAL_STRING_SCHEMA);
+
+    // Then:
+    expectedException.expect(SerializationException.class);
+    expectedException.expectCause(hasMessage(CoreMatchers.is(
+        "Invalid type for STRING: class org.apache.kafka.connect.data.Struct")));
+
+    // When:
+    serializer.serialize(SOME_TOPIC, new Struct(ORDER_SCHEMA));
+  }
+
+  @Test
+  public void shouldSerializeArray() {
+    // Given:
+    givenSerializerForSchema(SchemaBuilder
+        .array(Schema.BOOLEAN_SCHEMA)
+        .build()
+    );
+
+    // When:
+    final byte[] bytes = serializer.serialize(SOME_TOPIC, ImmutableList.of(true, false));
+
+    // Then:
+    assertThat(asJsonString(bytes), is("[true,false]"));
+  }
+
+  @Test
+  public void shouldThrowIfNotArray() {
+    // Given:
+    givenSerializerForSchema(SchemaBuilder
+        .array(Schema.BOOLEAN_SCHEMA)
+        .build()
+    );
+
+    // Then:
+    expectedException.expect(SerializationException.class);
+    expectedException.expectCause(hasMessage(CoreMatchers.is(
+        "Invalid type for ARRAY: class java.lang.Boolean")));
+
+    // When:
+    serializer.serialize(SOME_TOPIC, true);
+  }
+
+  @Test
+  public void shouldThrowOnWrongElementType() {
+    // Given:
+    givenSerializerForSchema(SchemaBuilder
+        .array(Schema.BOOLEAN_SCHEMA)
+        .build()
+    );
+
+    // Then:
+    expectedException.expect(SerializationException.class);
+    expectedException.expectCause(hasMessage(CoreMatchers.is(
+        "Invalid type for BOOLEAN: class java.lang.String")));
+
+    // When:
+    serializer.serialize(SOME_TOPIC, ImmutableList.of("not boolean"));
+  }
+
+  @Test
+  public void shouldSerializeMap() {
+    // Given:
+    givenSerializerForSchema(SchemaBuilder
+        .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_INT32_SCHEMA)
+        .build()
+    );
+
+    // When:
+    final byte[] bytes = serializer.serialize(SOME_TOPIC, ImmutableMap.of("a", 1, "b", 2));
+
+    // Then:
+    assertThat(asJsonString(bytes), is("{\"a\":1,\"b\":2}"));
+  }
+
+  @Test
+  public void shouldThrowIfNotMap() {
+    // Given:
+    givenSerializerForSchema(SchemaBuilder
+        .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_INT64_SCHEMA)
+        .build()
+    );
+
+    // Then:
+    expectedException.expect(SerializationException.class);
+    expectedException.expectCause(hasMessage(CoreMatchers.is(
+        "Invalid type for MAP: class java.lang.Boolean")));
+
+    // When:
+    serializer.serialize(SOME_TOPIC, true);
+  }
+
+  @Test
+  public void shouldThrowIfKeyWrongType() {
+    // Given:
+    givenSerializerForSchema(SchemaBuilder
+        .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_INT64_SCHEMA)
+        .build()
+    );
+
+    // Then:
+    expectedException.expect(SerializationException.class);
+    expectedException.expectCause(hasMessage(CoreMatchers.is(
+        "Invalid type for STRING: class java.lang.Integer")));
+
+    // When:
+    serializer.serialize(SOME_TOPIC, ImmutableMap.of(1, 2));
+  }
+
+  @Test
+  public void shouldThrowIfValueWrongType() {
+    // Given:
+    givenSerializerForSchema(SchemaBuilder
+        .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_INT64_SCHEMA)
+        .build()
+    );
+
+    // Then:
+    expectedException.expect(SerializationException.class);
+    expectedException.expectCause(hasMessage(CoreMatchers.is(
+        "Invalid type for INT64: class java.lang.Boolean")));
+
+    // When:
+    serializer.serialize(SOME_TOPIC, ImmutableMap.of("a", false));
+  }
+
+  @Test
+  public void shouldThrowOnMapSchemaWithNonStringKeys() {
+    // Given:
+    final PersistenceSchema physicalSchema = PersistenceSchema.of(
+        (ConnectSchema) SchemaBuilder
+            .map(Schema.OPTIONAL_INT32_SCHEMA, Schema.INT32_SCHEMA)
+            .build()
+    );
+
+    // Then:
+    expectedException.expect(IllegalArgumentException.class);
+    expectedException.expectMessage("Only MAPs with STRING keys are supported");
+
+    // When:
+    new KsqlJsonSerializer(physicalSchema);
+  }
+
+  @Test
+  public void shouldThrowOnNestedMapSchemaWithNonStringKeys() {
+    // Given:
+    final PersistenceSchema physicalSchema = PersistenceSchema.of(
+        (ConnectSchema) SchemaBuilder
+            .struct()
+            .field("f0", SchemaBuilder
+                .map(Schema.OPTIONAL_INT32_SCHEMA, Schema.INT32_SCHEMA)
+                .optional()
+                .build())
+            .build()
+    );
+
+    // Then:
+    expectedException.expect(IllegalArgumentException.class);
+    expectedException.expectMessage("Only MAPs with STRING keys are supported");
+
+    // When:
+    new KsqlJsonSerializer(physicalSchema);
+  }
+
+  @Test
+  public void shouldSerializeNullAsNull() {
+    assertThat(serializer.serialize(SOME_TOPIC, null), is(nullValue()));
+  }
+
+  @Test
+  public void shouldHandleNulls() {
+    // Given:
+    final Struct struct = new Struct(ORDER_SCHEMA)
+        .put(ORDERTIME, 1511897796092L)
+        .put(ORDERID, 1L)
+        .put(ITEMID, "item_1")
+        .put(ORDERUNITS, 10.0)
+        .put(ARRAYCOL, null)
+        .put(MAPCOL, null);
+
+    // When:
+    final byte[] bytes = serializer.serialize(SOME_TOPIC, struct);
+
+    // Then:
+    assertThat(asJsonString(bytes), equalTo(
         "{"
             + "\"ORDERTIME\":1511897796092,"
             + "\"ORDERID\":1,"
@@ -153,19 +506,36 @@ public class KsqlJsonSerializerTest {
   }
 
   @Test
-  public void shouldHandleStruct() throws IOException {
+  public void shouldIncludeTopicNameInException() {
     // Given:
-    final Struct struct = buildWithNestedStruct();
-    serializer = new KsqlJsonSerializer(SCHEMA_WITH_STRUCT);
-
-    // When:
-    final byte[] bytes = serializer.serialize("", struct);
+    givenSerializerForSchema(Schema.OPTIONAL_INT64_SCHEMA);
 
     // Then:
-    final JsonNode jsonNode = OBJECT_MAPPER.readTree(bytes);
-    assertThat(jsonNode.size(), equalTo(7));
-    assertThat(jsonNode.get("ordertime").asLong(), is(1234567L));
-    assertThat(jsonNode.get("itemid").get("NAME").asText(), is("Item_10"));
+    expectedException.expectMessage(SOME_TOPIC);
+
+    // When:
+    serializer.serialize(SOME_TOPIC, true);
+  }
+
+  @Test
+  public void shouldNotIncludeBadValueInExceptionAsThatWouldBeASecurityIssue() {
+    // Given:
+    givenSerializerForSchema(Schema.OPTIONAL_INT64_SCHEMA);
+
+    try {
+
+      // When:
+      serializer.serialize(SOME_TOPIC, "personal info: do not log me");
+
+      fail("Invalid test: should throw");
+
+    } catch (final Exception e) {
+      assertThat(ExceptionUtils.getStackTrace(e), not(containsString("personal info")));
+    }
+  }
+
+  private static String asJsonString(final byte[] bytes) {
+    return new String(bytes, StandardCharsets.UTF_8);
   }
 
   private static Struct buildWithNestedStruct() {
@@ -179,7 +549,7 @@ public class KsqlJsonSerializerTest {
     category.put("NAME", Math.random() > 0.5 ? "Produce" : "Food");
 
     final Struct item = new Struct(ITEM_SCHEMA);
-    item.put("ITEMID", 10L);
+    item.put(ITEMID, 10L);
     item.put("NAME", "Item_10");
     item.put("CATEGORIES", Collections.singletonList(category));
 
@@ -203,5 +573,10 @@ public class KsqlJsonSerializerTest {
     topLevel.put("address", address);
 
     return topLevel;
+  }
+
+  private void givenSerializerForSchema(final Schema connectSchema) {
+    final PersistenceSchema physicalSchema = PersistenceSchema.of((ConnectSchema) connectSchema);
+    serializer = new KsqlJsonSerializer(physicalSchema);
   }
 }

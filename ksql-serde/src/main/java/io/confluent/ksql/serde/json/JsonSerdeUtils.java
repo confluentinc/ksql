@@ -29,14 +29,18 @@ final class JsonSerdeUtils {
 
   static PersistenceSchema validateSchema(final PersistenceSchema schema) {
 
-    class SchemaValidator implements Visitor {
+    class SchemaValidator implements Visitor<Void> {
 
       @Override
-      public boolean visitMap(final Schema schema) {
+      public Void visitMap(final Schema schema, final Void key, final Void value) {
         if (schema.keySchema().type() != Type.STRING) {
           throw new IllegalArgumentException("Only MAPs with STRING keys are supported");
         }
-        return true;
+        return null;
+      }
+
+      public Void visitSchema(final Schema schema) {
+        return null;
       }
     }
 

@@ -16,8 +16,11 @@
 package io.confluent.ksql.schema.connect;
 
 import com.google.common.collect.ImmutableMap;
+import java.util.List;
 import java.util.Map;
-import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
+import java.util.stream.Collectors;
+import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Schema.Type;
 
@@ -26,8 +29,8 @@ import org.apache.kafka.connect.data.Schema.Type;
  */
 public final class SchemaWalker {
 
-  private static final Map<Type, BiConsumer<Visitor, Schema>> HANDLER =
-      ImmutableMap.<Type, BiConsumer<Visitor, Schema>>builder()
+  private static final Map<Type, BiFunction<Visitor<?>, Schema, Object>> HANDLER =
+      ImmutableMap.<Type, BiFunction<Visitor<?>, Schema, Object>>builder()
           .put(Type.BOOLEAN, Visitor::visitBoolean)
           .put(Type.INT8, Visitor::visitInt8)
           .put(Type.INT16, Visitor::visitInt16)
@@ -45,99 +48,98 @@ public final class SchemaWalker {
   private SchemaWalker() {
   }
 
-  public interface Visitor {
+  public interface Visitor<T> {
 
-    default void visitBoolean(Schema schema) {
+    default T visitSchema(Schema schema) {
+      throw new UnsupportedOperationException("Unsupported schema type: " + schema);
     }
 
-    default void visitNumber(Schema schema) {
+    default T visitPrimitive(Schema schema) {
+      return visitSchema(schema);
     }
 
-    default void visitInt(Schema schema) {
-      visitNumber(schema);
+    default T visitBoolean(Schema schema) {
+      return visitPrimitive(schema);
     }
 
-    default void visitInt8(Schema schema) {
-      visitInt(schema);
+    default T visitInt8(Schema schema) {
+      return visitPrimitive(schema);
     }
 
-    default void visitInt16(Schema schema) {
-      visitInt(schema);
+    default T visitInt16(Schema schema) {
+      return visitPrimitive(schema);
     }
 
-    default void visitInt32(Schema schema) {
-      visitInt(schema);
+    default T visitInt32(Schema schema) {
+      return visitPrimitive(schema);
     }
 
-    default void visitInt64(Schema schema) {
-      visitInt(schema);
+    default T visitInt64(Schema schema) {
+      return visitPrimitive(schema);
     }
 
-    default void visitFloat(Schema schema) {
-      visitNumber(schema);
+    default T visitFloat32(Schema schema) {
+      return visitPrimitive(schema);
     }
 
-    default void visitFloat32(Schema schema) {
-      visitFloat(schema);
+    default T visitFloat64(Schema schema) {
+      return visitPrimitive(schema);
     }
 
-    default void visitFloat64(Schema schema) {
-      visitFloat(schema);
+    default T visitString(Schema schema) {
+      return visitPrimitive(schema);
     }
 
-    default void visitString(Schema schema) {
+    default T visitBytes(Schema schema) {
+      return visitSchema(schema);
     }
 
-    default void visitBytes(Schema schema) {
+    default T visitArray(Schema schema, T element) {
+      return visitSchema(schema);
     }
 
-    /**
-     * @return {@code true} to visit element schema.
-     */
-    default boolean visitArray(Schema schema) {
-      return true;
+    default T visitMap(Schema schema, T key, T value) {
+      return visitSchema(schema);
     }
 
-    /**
-     * @return {@code true} to visit key and value schemas.
-     */
-    default boolean visitMap(Schema schema) {
-      return true;
+    default T visitStruct(Schema schema, List<? extends T> fields) {
+      return visitSchema(schema);
     }
 
-    /**
-     * @return {@code true} to visit field schemas.
-     */
-    default boolean visitStruct(Schema schema) {
-      return true;
+    default T visitField(Field field, T type) {
+      return null;
     }
   }
 
-  public static void visit(final Schema schema, final Visitor visitor) {
-    final BiConsumer<Visitor, Schema> handler = HANDLER.get(schema.type());
+  @SuppressWarnings("unchecked")
+  public static <T> T visit(final Schema schema, final Visitor<T> visitor) {
+    final BiFunction<Visitor<?>, Schema, Object> handler = HANDLER.get(schema.type());
     if (handler == null) {
       throw new UnsupportedOperationException("Unsupported schema type: " + schema.type());
     }
 
-    handler.accept(visitor, schema);
+    return (T) handler.apply(visitor, schema);
   }
 
-  private static void visitArray(final Visitor visitor, final Schema schema) {
-    if (visitor.visitArray(schema)) {
-      visit(schema.valueSchema(), visitor);
-    }
+  private static <T> T visitArray(final Visitor<T> visitor, final Schema schema) {
+    final T element = visit(schema.valueSchema(), visitor);
+    return visitor.visitArray(schema, element);
   }
 
-  private static void visitMap(final Visitor visitor, final Schema schema) {
-    if (visitor.visitMap(schema)) {
-      visit(schema.keySchema(), visitor);
-      visit(schema.valueSchema(), visitor);
-    }
+  private static <T> T visitMap(final Visitor<T> visitor, final Schema schema) {
+    final T key = visit(schema.keySchema(), visitor);
+    final T value = visit(schema.valueSchema(), visitor);
+    return visitor.visitMap(schema, key, value);
   }
 
-  private static void visitStruct(final Visitor visitor, final Schema schema) {
-    if (visitor.visitStruct(schema)) {
-      schema.fields().forEach(f -> visit(f.schema(), visitor));
-    }
+  private static <T> T visitStruct(final Visitor<T> visitor, final Schema schema) {
+    final List<T> fields = schema.fields().stream()
+        .map(field -> visitor.visitField(
+            field,
+            SchemaWalker.<T>visit(field.schema(), visitor))
+        )
+        .collect(Collectors.toList());
+
+    return visitor.visitStruct(schema, fields);
   }
 }

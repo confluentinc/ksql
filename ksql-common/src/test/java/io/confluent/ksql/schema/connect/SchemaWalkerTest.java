@@ -15,136 +15,164 @@
 
 package io.confluent.ksql.schema.connect;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
-import static org.mockito.Mockito.clearInvocations;
-import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Streams;
 import io.confluent.ksql.schema.connect.SchemaWalker.Visitor;
 import java.util.stream.Stream;
+import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.Schema.Type;
 import org.apache.kafka.connect.data.SchemaBuilder;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
-import org.mockito.Spy;
+import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class SchemaWalkerTest {
 
-  @Spy
-  private SchemaWalker.Visitor visitor = new Visitor() {
-  };
+  @Rule
+  public final ExpectedException expectedException = ExpectedException.none();
+
+  @Mock
+  private SchemaWalker.Visitor<String> visitor;
 
   @Test
   public void shouldVisitBoolean() {
     // Given:
     final Schema schema = Schema.OPTIONAL_BOOLEAN_SCHEMA;
+    when(visitor.visitBoolean(any())).thenReturn("Expected");
 
     // When:
-    SchemaWalker.visit(schema, visitor);
+    final String result = SchemaWalker.visit(schema, visitor);
 
     // Then:
     verify(visitor).visitBoolean(same(schema));
+    assertThat(result, is("Expected"));
   }
 
   @Test
   public void shouldVisitInt8() {
     // Given:
     final Schema schema = Schema.OPTIONAL_INT8_SCHEMA;
+    when(visitor.visitInt8(any())).thenReturn("Expected");
 
     // When:
-    SchemaWalker.visit(schema, visitor);
+    final String result = SchemaWalker.visit(schema, visitor);
 
     // Then:
     verify(visitor).visitInt8(same(schema));
+    assertThat(result, is("Expected"));
   }
 
   @Test
   public void shouldVisitInt16() {
     // Given:
     final Schema schema = Schema.OPTIONAL_INT16_SCHEMA;
+    when(visitor.visitInt16(any())).thenReturn("Expected");
 
     // When:
-    SchemaWalker.visit(schema, visitor);
+    final String result = SchemaWalker.visit(schema, visitor);
 
     // Then:
     verify(visitor).visitInt16(same(schema));
+    assertThat(result, is("Expected"));
   }
 
   @Test
   public void shouldVisitInt32() {
     // Given:
     final Schema schema = Schema.OPTIONAL_INT32_SCHEMA;
+    when(visitor.visitInt32(any())).thenReturn("Expected");
 
     // When:
-    SchemaWalker.visit(schema, visitor);
+    final String result = SchemaWalker.visit(schema, visitor);
 
     // Then:
     verify(visitor).visitInt32(same(schema));
+    assertThat(result, is("Expected"));
   }
 
   @Test
   public void shouldVisitInt64() {
     // Given:
     final Schema schema = Schema.OPTIONAL_INT64_SCHEMA;
+    when(visitor.visitInt64(any())).thenReturn("Expected");
 
     // When:
-    SchemaWalker.visit(schema, visitor);
+    final String result = SchemaWalker.visit(schema, visitor);
 
     // Then:
     verify(visitor).visitInt64(same(schema));
+    assertThat(result, is("Expected"));
   }
 
   @Test
   public void shouldVisitFloat32() {
     // Given:
     final Schema schema = Schema.OPTIONAL_FLOAT32_SCHEMA;
+    when(visitor.visitFloat32(any())).thenReturn("Expected");
 
     // When:
-    SchemaWalker.visit(schema, visitor);
+    final String result = SchemaWalker.visit(schema, visitor);
 
     // Then:
     verify(visitor).visitFloat32(same(schema));
+    assertThat(result, is("Expected"));
   }
 
   @Test
   public void shouldVisitFloat64() {
     // Given:
     final Schema schema = Schema.OPTIONAL_FLOAT64_SCHEMA;
+    when(visitor.visitFloat64(any())).thenReturn("Expected");
 
     // When:
-    SchemaWalker.visit(schema, visitor);
+    final String result = SchemaWalker.visit(schema, visitor);
 
     // Then:
     verify(visitor).visitFloat64(same(schema));
+    assertThat(result, is("Expected"));
   }
 
   @Test
   public void shouldVisitString() {
     // Given:
     final Schema schema = Schema.OPTIONAL_STRING_SCHEMA;
+    when(visitor.visitString(any())).thenReturn("Expected");
 
     // When:
-    SchemaWalker.visit(schema, visitor);
+    final String result = SchemaWalker.visit(schema, visitor);
 
     // Then:
     verify(visitor).visitString(same(schema));
+    assertThat(result, is("Expected"));
   }
 
   @Test
   public void shouldVisitBytes() {
     // Given:
     final Schema schema = Schema.OPTIONAL_BYTES_SCHEMA;
+    when(visitor.visitBytes(any())).thenReturn("Expected");
 
     // When:
-    SchemaWalker.visit(schema, visitor);
+    final String result = SchemaWalker.visit(schema, visitor);
 
     // Then:
     verify(visitor).visitBytes(same(schema));
+    assertThat(result, is("Expected"));
   }
 
   @Test
@@ -154,28 +182,16 @@ public class SchemaWalkerTest {
         .array(Schema.INT64_SCHEMA)
         .build();
 
+    when(visitor.visitInt64(any())).thenReturn("Expected-element");
+    when(visitor.visitArray(any(), any())).thenReturn("Expected");
+
     // When:
-    SchemaWalker.visit(schema, visitor);
+    final String result = SchemaWalker.visit(schema, visitor);
 
     // Then:
-    verify(visitor).visitArray(same(schema));
     verify(visitor).visitInt64(same(schema.valueSchema()));
-  }
-
-  @Test
-  public void shouldNotVisitArrayElements() {
-    // Given:
-    final Schema schema = SchemaBuilder
-        .array(Schema.INT64_SCHEMA)
-        .build();
-
-    when(visitor.visitArray(any())).thenReturn(false);
-
-    // When:
-    SchemaWalker.visit(schema, visitor);
-
-    // Then:
-    verify(visitor, never()).visitInt64(any());
+    verify(visitor).visitArray(same(schema), eq("Expected-element"));
+    assertThat(result, is("Expected"));
   }
 
   @Test
@@ -185,30 +201,18 @@ public class SchemaWalkerTest {
         .map(Schema.OPTIONAL_BOOLEAN_SCHEMA, Schema.INT32_SCHEMA)
         .build();
 
+    when(visitor.visitBoolean(any())).thenReturn("Expected-key");
+    when(visitor.visitInt32(any())).thenReturn("Expected-value");
+    when(visitor.visitMap(any(), any(), any())).thenReturn("Expected");
+
     // When:
-    SchemaWalker.visit(schema, visitor);
+    final String result = SchemaWalker.visit(schema, visitor);
 
     // Then:
-    verify(visitor).visitMap(same(schema));
     verify(visitor).visitBoolean(same(schema.keySchema()));
     verify(visitor).visitInt32(same(schema.valueSchema()));
-  }
-
-  @Test
-  public void shouldVisitNotVisitMapKeyAndValue() {
-    // Given:
-    final Schema schema = SchemaBuilder
-        .map(Schema.OPTIONAL_BOOLEAN_SCHEMA, Schema.INT32_SCHEMA)
-        .build();
-
-    when(visitor.visitMap(any())).thenReturn(false);
-
-    // When:
-    SchemaWalker.visit(schema, visitor);
-
-    // Then:
-    verify(visitor, never()).visitBoolean(any());
-    verify(visitor, never()).visitInt32(any());
+    verify(visitor).visitMap(same(schema), eq("Expected-key"), eq("Expected-value"));
+    assertThat(result, is("Expected"));
   }
 
   @Test
@@ -220,111 +224,140 @@ public class SchemaWalkerTest {
         .field("f1", Schema.INT32_SCHEMA)
         .build();
 
+    when(visitor.visitFloat64(any())).thenReturn("Expected-f0");
+    when(visitor.visitInt32(any())).thenReturn("Expected-f1");
+    when(visitor.visitField(any(), any())).thenAnswer(inv ->
+        inv.<Field>getArgument(0).name() + "->" + inv.getArgument(1));
+    when(visitor.visitStruct(any(), any())).thenReturn("Expected");
+
     // When:
-    SchemaWalker.visit(schema, visitor);
+    final String result = SchemaWalker.visit(schema, visitor);
 
     // Then:
-    verify(visitor).visitStruct(same(schema));
     verify(visitor).visitFloat64(same(schema.fields().get(0).schema()));
     verify(visitor).visitInt32(same(schema.fields().get(1).schema()));
-  }
-
-  @Test
-  public void shouldNotVisitStructFields() {
-    // Given:
-    final Schema schema = SchemaBuilder
-        .struct()
-        .field("f0", Schema.FLOAT64_SCHEMA)
-        .field("f1", Schema.INT32_SCHEMA)
-        .build();
-
-    when(visitor.visitStruct(any())).thenReturn(false);
-
-    // When:
-    SchemaWalker.visit(schema, visitor);
-
-    // Then:
-    verify(visitor, never()).visitFloat64(any());
-    verify(visitor, never()).visitInt32(any());
+    verify(visitor).visitStruct(same(schema),
+        eq(ImmutableList.of("f0->Expected-f0", "f1->Expected-f1")));
+    assertThat(result, is("Expected"));
   }
 
   @Test
   public void shouldVisitNonOptionals() {
     // Given:
     final Schema schema = Schema.BOOLEAN_SCHEMA;
+    when(visitor.visitBoolean(any())).thenReturn("Expected");
 
     // When:
-    SchemaWalker.visit(schema, visitor);
+    final String result = SchemaWalker.visit(schema, visitor);
 
     // Then:
     verify(visitor).visitBoolean(same(schema));
+    assertThat(result, is("Expected"));
   }
 
   @Test
-  public void shouldVisitIntegers() {
-    integerSchemas().forEach(schema -> {
+  public void shouldVisitPrimitives() {
+    // Given:
+    visitor = new Visitor<String>() {
+      @Override
+      public String visitPrimitive(final Schema schema) {
+        return "Expected";
+      }
+    };
 
-      // Given:
-      clearInvocations(visitor);
+    primitiveSchemas().forEach(schema -> {
 
       // When:
-      SchemaWalker.visit(schema, visitor);
+      final String result = SchemaWalker.visit(schema, visitor);
 
       // Then:
-      verify(visitor).visitInt(same(schema));
+      assertThat(result, is("Expected"));
     });
   }
 
   @Test
-  public void shouldVisitFloats() {
-    floatSchemas().forEach(schema -> {
+  public void shouldVisitAll() {
+    // Given:
+    visitor = new Visitor<String>() {
+      @Override
+      public String visitSchema(final Schema schema) {
+        return "Expected";
+      }
+    };
 
-      // Given:
-      clearInvocations(visitor);
+    allSchemas().forEach(schema -> {
 
       // When:
-      SchemaWalker.visit(schema, visitor);
+      final String result = SchemaWalker.visit(schema, visitor);
 
       // Then:
-      verify(visitor).visitFloat(same(schema));
+      assertThat(result, is("Expected"));
     });
   }
 
   @Test
-  public void shouldVisitNumbers() {
-    numberSchemas().forEach(schema -> {
+  public void shouldThrowByDefaultFromAll() {
+    // Given:
+    visitor = new Visitor<String>() {
+    };
 
-      // Given:
-      clearInvocations(visitor);
+    allSchemas().forEach(schema -> {
 
-      // When:
-      SchemaWalker.visit(schema, visitor);
+      try {
+        // When:
+        SchemaWalker.visit(schema, visitor);
 
-      // Then:
-      verify(visitor).visitNumber(same(schema));
+        fail();
+
+      } catch (final UnsupportedOperationException e) {
+        // Then:
+        assertThat(e.getMessage(), is("Unsupported schema type: " + schema));
+      }
     });
   }
 
-  public static Stream<Schema> integerSchemas() {
+  @Test
+  public void shouldThrowOnUnknownType() {
+    // Given:
+    final Type unknownType = mock(Type.class, "bob");
+    final Schema schema = mock(Schema.class);
+    when(schema.type()).thenReturn(unknownType);
+
+    // Then:
+    expectedException.expect(UnsupportedOperationException.class);
+    expectedException.expectMessage("Unsupported schema type: bob");
+
+    // When:
+    SchemaWalker.visit(schema, visitor);
+  }
+
+  public static Stream<Schema> primitiveSchemas() {
     return Stream.of(
+        Schema.OPTIONAL_BOOLEAN_SCHEMA,
         Schema.OPTIONAL_INT8_SCHEMA,
         Schema.OPTIONAL_INT16_SCHEMA,
         Schema.OPTIONAL_INT32_SCHEMA,
-        Schema.OPTIONAL_INT64_SCHEMA
-    );
-  }
-
-  public static Stream<Schema> floatSchemas() {
-    return Stream.of(
+        Schema.OPTIONAL_INT64_SCHEMA,
         Schema.OPTIONAL_FLOAT32_SCHEMA,
-        Schema.OPTIONAL_FLOAT64_SCHEMA
+        Schema.OPTIONAL_FLOAT64_SCHEMA,
+        Schema.OPTIONAL_STRING_SCHEMA
     );
   }
 
-  public static Stream<Schema> numberSchemas() {
+  @SuppressWarnings("UnstableApiUsage")
+  public static Stream<Schema> allSchemas() {
     return Streams.concat(
-        integerSchemas(),
-        floatSchemas()
+        primitiveSchemas(),
+        Stream.of(
+            Schema.OPTIONAL_BOOLEAN_SCHEMA,
+            Schema.OPTIONAL_INT8_SCHEMA,
+            Schema.OPTIONAL_INT16_SCHEMA,
+            Schema.OPTIONAL_INT32_SCHEMA,
+            Schema.OPTIONAL_INT64_SCHEMA,
+            Schema.OPTIONAL_FLOAT32_SCHEMA,
+            Schema.OPTIONAL_FLOAT64_SCHEMA,
+            Schema.OPTIONAL_STRING_SCHEMA
+        )
     );
   }
 }

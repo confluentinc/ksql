@@ -33,7 +33,6 @@ import io.confluent.kafka.serializers.AbstractKafkaAvroSerDeConfig;
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.schema.persistence.PersistenceSchema;
-import io.confluent.ksql.serde.json.KsqlJsonSerializer;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import java.util.Collections;
@@ -109,9 +108,7 @@ public class KsqlAvroSerializerTest {
 
   private final SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
 
-  private KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of(
-      KsqlConfig.KSQL_WRAP_SINGLE_VALUES, true
-  ));
+  private KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of());
 
   private Serializer<Object> serializer;
   private Deserializer<Object> deserializer;
@@ -544,10 +541,15 @@ public class KsqlAvroSerializerTest {
 
     // Then:
     expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("Only MAPs with STRING keys are supported");
+    expectedException.expectMessage("Avro only supports MAPs with STRING keys");
 
     // When:
-    new KsqlJsonSerializer(physicalSchema);
+    new KsqlAvroSerdeFactory(KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME)
+        .createSerializer(
+            physicalSchema,
+            ksqlConfig,
+            () -> schemaRegistryClient
+        );
   }
 
   @Test
@@ -565,10 +567,15 @@ public class KsqlAvroSerializerTest {
 
     // Then:
     expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("Only MAPs with STRING keys are supported");
+    expectedException.expectMessage("Avro only supports MAPs with STRING keys");
 
     // When:
-    new KsqlJsonSerializer(physicalSchema);
+    new KsqlAvroSerdeFactory(KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME)
+        .createSerializer(
+            physicalSchema,
+            ksqlConfig,
+            () -> schemaRegistryClient
+        );
   }
 
   @Test
@@ -776,8 +783,7 @@ public class KsqlAvroSerializerTest {
   @Test
   public void shouldSerializeMapFieldWithoutNameIfDisabled() {
     ksqlConfig = new KsqlConfig(ImmutableMap.of(
-        KsqlConfig.KSQL_USE_NAMED_AVRO_MAPS, false,
-        KsqlConfig.KSQL_WRAP_SINGLE_VALUES, true
+        KsqlConfig.KSQL_USE_NAMED_AVRO_MAPS, false
     ));
 
     final org.apache.avro.Schema avroSchema = mapSchema(legacyMapEntrySchema());

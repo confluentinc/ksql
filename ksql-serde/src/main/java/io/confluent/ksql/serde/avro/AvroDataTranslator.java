@@ -15,8 +15,12 @@
 
 package io.confluent.ksql.serde.avro;
 
+import static java.util.Objects.requireNonNull;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import io.confluent.ksql.schema.connect.SchemaWalker;
+import io.confluent.ksql.schema.connect.SchemaWalker.Visitor;
 import io.confluent.ksql.serde.connect.ConnectDataTranslator;
 import io.confluent.ksql.serde.connect.DataTranslator;
 import java.util.ArrayList;
@@ -28,9 +32,19 @@ import java.util.Map;
 import java.util.Objects;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.Schema.Type;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 
+/**
+ * Translates KSQL data and schemas to Avro equivalents.
+ *
+ * <p>Responsible for converting the KSQL schema to a version ready for connect to convert to an
+ * avro schema.
+ *
+ * <p>This includes ensuring field names are valid Avro field names and that nested types do not
+ * have name clashes.
+ */
 public class AvroDataTranslator implements DataTranslator {
 
   private final DataTranslator innerTranslator;
@@ -42,15 +56,17 @@ public class AvroDataTranslator implements DataTranslator {
       final String schemaFullName,
       final boolean useNamedMaps
   ) {
-    this.ksqlSchema = Objects.requireNonNull(schema, "schema");
+    this.ksqlSchema = throwOnInvalidSchema(Objects.requireNonNull(schema, "schema"));
+
     this.avroCompatibleSchema = buildAvroCompatibleSchema(
         this.ksqlSchema,
         new TypeNameGenerator(Collections.singleton(schemaFullName), useNamedMaps)
     );
+
     this.innerTranslator = new ConnectDataTranslator(avroCompatibleSchema);
   }
 
-  Schema getConnectSchema() {
+  Schema getAvroCompatibleSchema() {
     return avroCompatibleSchema;
   }
 
@@ -89,6 +105,7 @@ public class AvroDataTranslator implements DataTranslator {
   }
 
   private static final class TypeNameGenerator {
+
     private static final String DELIMITER = "_";
 
     static final String MAP_KEY_NAME = "MapKey";
@@ -98,7 +115,7 @@ public class AvroDataTranslator implements DataTranslator {
     private final boolean useNamedMaps;
 
     private TypeNameGenerator(final Iterable<String> names, final boolean useNamedMaps) {
-      this.names = Objects.requireNonNull(names, "names");
+      this.names = requireNonNull(names, "names");
       this.useNamedMaps = useNamedMaps;
     }
 
@@ -151,7 +168,7 @@ public class AvroDataTranslator implements DataTranslator {
                 typeNameGenerator.with(TypeNameGenerator.MAP_VALUE_NAME))
         );
         schemaBuilder = typeNameGenerator.useNamedMaps
-          ? mapSchemaBuilder.name(typeNameGenerator.name())
+            ? mapSchemaBuilder.name(typeNameGenerator.name())
             : mapSchemaBuilder;
         break;
     }
@@ -188,5 +205,28 @@ public class AvroDataTranslator implements DataTranslator {
       default:
         return object;
     }
+  }
+
+
+  private static Schema throwOnInvalidSchema(final Schema schema) {
+
+    class SchemaValidator implements Visitor<Void> {
+
+      @Override
+      public Void visitMap(final Schema schema, final Void key, final Void value) {
+        if (schema.keySchema().type() != Type.STRING) {
+          throw new IllegalArgumentException("Avro only supports MAPs with STRING keys");
+        }
+        return null;
+      }
+
+      @Override
+      public Void visitSchema(final Schema schema) {
+        return null;
+      }
+    }
+
+    SchemaWalker.visit(schema, new SchemaValidator());
+    return schema;
   }
 }

@@ -24,16 +24,16 @@ import org.apache.kafka.connect.storage.Converter;
 
 public class KsqlConnectSerializer implements Serializer<Object> {
 
-  private final Schema physicalSchema;
+  private final Schema schema;
   private final DataTranslator translator;
   private final Converter converter;
 
   public KsqlConnectSerializer(
-      final Schema physicalSchema,
+      final Schema schema,
       final DataTranslator translator,
       final Converter converter
   ) {
-    this.physicalSchema = Objects.requireNonNull(physicalSchema, "physicalSchema");
+    this.schema = Objects.requireNonNull(schema, "schema");
     this.translator = Objects.requireNonNull(translator, "translator");
     this.converter = Objects.requireNonNull(converter, "converter");
   }
@@ -46,7 +46,7 @@ public class KsqlConnectSerializer implements Serializer<Object> {
 
     try {
       final Object connectRow = translator.toConnectRow(data);
-      return converter.fromConnectData(topic, physicalSchema, connectRow);
+      return converter.fromConnectData(topic, schema, connectRow);
     } catch (final Exception e) {
       throw new SerializationException(
           "Error serializing message to topic: " + topic, e);

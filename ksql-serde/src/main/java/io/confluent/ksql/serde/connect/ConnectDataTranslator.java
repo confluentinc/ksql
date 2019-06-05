@@ -15,8 +15,6 @@
 
 package io.confluent.ksql.serde.connect;
 
-import io.confluent.ksql.schema.connect.SchemaWalker;
-import io.confluent.ksql.schema.connect.SchemaWalker.Visitor;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -25,19 +23,25 @@ import java.util.Objects;
 import org.apache.kafka.connect.data.Date;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.Schema.Type;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.data.Time;
 import org.apache.kafka.connect.data.Timestamp;
 import org.apache.kafka.connect.errors.DataException;
 
+/**
+ * Translates full set of Connect types to the limited subset supported by KSQL.
+ *
+ * <p>Responsible for the coercion of connect types to the subset KSQL supports and handling
+ * case-insensitivity of struct field names.
+ */
 public class ConnectDataTranslator implements DataTranslator {
+
   private static final String PATH_SEPARATOR = "->";
 
   private final Schema schema;
 
   public ConnectDataTranslator(final Schema schema) {
-    this.schema = throwOnInvalidSchema(Objects.requireNonNull(schema, "schema"));
+    this.schema = Objects.requireNonNull(schema, "schema");
   }
 
   @Override
@@ -292,22 +296,5 @@ public class ConnectDataTranslator implements DataTranslator {
         field -> fieldsByName.put(field.name().toUpperCase(), field)
     );
     return fieldsByName;
-  }
-
-  private static Schema throwOnInvalidSchema(final Schema schema) {
-
-    class SchemaValidator implements Visitor {
-
-      @Override
-      public boolean visitMap(final Schema schema) {
-        if (schema.keySchema().type() != Type.STRING) {
-          throw new IllegalArgumentException("Avro only supports MAPs with STRING keys");
-        }
-        return true;
-      }
-    }
-
-    SchemaWalker.visit(schema, new SchemaValidator());
-    return schema;
   }
 }

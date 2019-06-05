@@ -100,19 +100,6 @@ public final class SchemaUtil {
           .put(Schema.Type.FLOAT64, Schema.OPTIONAL_FLOAT64_SCHEMA)
           .build();
 
-  private static final ImmutableMap<Schema.Type, String> SCHEMA_TYPE_TO_SQL_TYPE =
-      new ImmutableMap.Builder<Schema.Type, String>()
-          .put(Schema.Type.STRING, "VARCHAR")
-          .put(Schema.Type.INT64, "BIGINT")
-          .put(Schema.Type.INT32, "INTEGER")
-          .put(Schema.Type.FLOAT32, "DOUBLE")
-          .put(Schema.Type.FLOAT64, "DOUBLE")
-          .put(Schema.Type.BOOLEAN, "BOOLEAN")
-          .put(Schema.Type.ARRAY, ARRAY)
-          .put(Schema.Type.MAP, MAP)
-          .put(Schema.Type.STRUCT, STRUCT)
-          .build();
-
   private static final Map<Schema.Type, Class<?>> SCHEMA_TYPE_TO_JAVA_TYPE =
       ImmutableMap.<Schema.Type, Class<?>>builder()
           .put(Schema.Type.STRING, String.class)
@@ -190,15 +177,6 @@ public final class SchemaUtil {
       return fieldName;
     }
     return prefix + fieldName;
-  }
-
-  public static String getSchemaTypeAsSqlType(final Schema.Type type) {
-    final String sqlType = SCHEMA_TYPE_TO_SQL_TYPE.get(type);
-    if (sqlType == null) {
-      throw new IllegalArgumentException("Unknown schema type: " + type);
-    }
-
-    return sqlType;
   }
 
   public static String getJavaCastString(final Schema schema) {

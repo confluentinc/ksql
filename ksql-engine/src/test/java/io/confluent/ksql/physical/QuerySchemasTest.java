@@ -104,7 +104,7 @@ public class QuerySchemasTest {
   }
 
   @Test
-  public void shouldBeStrictAboutNoneOptionals() {
+  public void shouldBeStrictAboutNonOptionals() {
     // When:
     final QuerySchemas nonOptionals = QuerySchemas.of(linkedMapOf(
         "a", Schema.INT32_SCHEMA,

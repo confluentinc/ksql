@@ -106,6 +106,14 @@
         <generext.version>1.0.2</generext.version>
         <avro.random.generator.version>0.2.2</avro.random.generator.version>
         <apache.curator.version>2.9.0</apache.curator.version>
+        <!--
+         Temporarily pinning KSQL to old Kafka Streams snapshot until issues with breaking change
+         due to state store name changes in PR https://github.com/apache/kafka/pull/6411,
+         (part of KIP-307), is fixed.
+
+         To revert this, remove this property and replace all use with `${kafka.version}`
+        -->
+        <kafka.streams.version>5.3.0-ccs-SNAPSHOT</kafka.streams.version>
     </properties>
 
     <dependencyManagement>
@@ -115,23 +123,13 @@
             <dependency>
                 <groupId>org.apache.kafka</groupId>
                 <artifactId>kafka-streams</artifactId>
-                <!--
-                 Temporarily pinning KSQL to old Kafka snapshot until issues with breaking change
-                 due to state store name changes in PR https://github.com/apache/kafka/pull/6411,
-                 (part of KIP-307), is fixed.
-                -->
-                <version>5.4.0-ccs-20190531.005406-27</version>
+                <version>${kafka.streams.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>org.apache.kafka</groupId>
                 <artifactId>kafka-streams-test-utils</artifactId>
-                <!--
-                 Temporarily pinning KSQL to old Kafka snapshot until issues with breaking change
-                 due to state store name changes in PR https://github.com/apache/kafka/pull/6411,
-                 (part of KIP-307), is fixed.
-                -->
-                <version>5.4.0-ccs-20190531.005419-26</version>
+                <version>${kafka.streams.version}</version>
             </dependency>
 
             <dependency>

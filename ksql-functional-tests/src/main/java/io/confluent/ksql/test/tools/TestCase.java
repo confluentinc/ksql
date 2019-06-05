@@ -230,7 +230,7 @@ public class TestCase implements Test {
               new BytesDeserializer());
 
       if (record != null) {
-        throw new AssertionError("Unexpected input available on topic: " + topic.name);
+        throw new AssertionError("Unexpected records available on topic: " + topic.name);
       }
     });
   }

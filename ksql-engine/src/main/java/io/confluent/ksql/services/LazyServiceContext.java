@@ -25,7 +25,7 @@ public class LazyServiceContext implements ServiceContext {
   private final Supplier<ServiceContext> serviceContextSupplier;
 
   public LazyServiceContext(final Supplier<ServiceContext> serviceContextSupplier) {
-    this.serviceContextSupplier = Suppliers.memoize(serviceContextSupplier::get);
+    this.serviceContextSupplier = Suppliers.memoize(serviceContextSupplier::get)::get;
   }
 
   @Override

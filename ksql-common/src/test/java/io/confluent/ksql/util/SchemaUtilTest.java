@@ -494,20 +494,6 @@ public class SchemaUtilTest {
   }
 
   @Test
-  public void shouldGetCorrectSqlTypeFromSchemaType() {
-    assertThat(SchemaUtil.getSchemaTypeAsSqlType(Schema.Type.STRING), is("VARCHAR"));
-    assertThat(SchemaUtil.getSchemaTypeAsSqlType(Schema.Type.INT64), is("BIGINT"));
-    assertThat(SchemaUtil.getSchemaTypeAsSqlType(Schema.Type.INT32), is("INTEGER"));
-    assertThat(SchemaUtil.getSchemaTypeAsSqlType(Schema.Type.FLOAT64), is("DOUBLE"));
-    assertThat(SchemaUtil.getSchemaTypeAsSqlType(Schema.Type.BOOLEAN), is("BOOLEAN"));
-  }
-
-  @Test(expected = IllegalArgumentException.class)
-  public void shouldThrowOnUnknownSchemaType() {
-    SchemaUtil.getSchemaTypeAsSqlType(Schema.Type.BYTES);
-  }
-
-  @Test
   public void shouldStripAliasFromField() {
     // Given:
     final Field field = new Field("alias.some-field-name", 1, Schema.OPTIONAL_STRING_SCHEMA);

@@ -25,7 +25,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.testing.NullPointerTester;
 import com.google.common.testing.NullPointerTester.Visibility;
 import io.confluent.ksql.ddl.DdlConfig;
-import io.confluent.ksql.parser.tree.Type.SqlType;
+import io.confluent.ksql.schema.SqlType;
 import io.confluent.ksql.test.util.ClassFinder;
 import io.confluent.ksql.test.util.ImmutableTester;
 import java.lang.reflect.Modifier;

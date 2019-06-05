@@ -17,6 +17,7 @@ package io.confluent.ksql.serde.delimited;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
+import io.confluent.ksql.schema.persistence.PersistenceSchema;
 import io.confluent.ksql.serde.util.SerdeProcessingLogMessageFactory;
 import io.confluent.ksql.util.KsqlException;
 import java.nio.charset.StandardCharsets;
@@ -31,12 +32,13 @@ import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
+import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Schema.Type;
 import org.apache.kafka.connect.data.Struct;
 
-public class KsqlDelimitedDeserializer implements Deserializer<Struct> {
+public class KsqlDelimitedDeserializer implements Deserializer<Object> {
 
   private static final Map<Type, Function<String, Object>> PARSERS = ImmutableMap.of(
       Type.BOOLEAN, Boolean::parseBoolean,
@@ -46,17 +48,17 @@ public class KsqlDelimitedDeserializer implements Deserializer<Struct> {
       Type.STRING, s -> s
   );
 
-  private final Schema schema;
+  private final ConnectSchema schema;
   private final ProcessingLogger recordLogger;
 
   KsqlDelimitedDeserializer(
-      final Schema schema,
+      final PersistenceSchema schema,
       final ProcessingLogger recordLogger
   ) {
-    this.schema = Objects.requireNonNull(schema, "schema").schema();
+    this.schema = Objects.requireNonNull(schema, "schema").getConnectSchema();
     this.recordLogger = Objects.requireNonNull(recordLogger, "recordLogger");
 
-    throwOnUnsupported(schema);
+    throwOnUnsupported(this.schema);
   }
 
   @Override
@@ -110,7 +112,7 @@ public class KsqlDelimitedDeserializer implements Deserializer<Struct> {
       return struct;
     } catch (final Exception e) {
       recordLogger.error(SerdeProcessingLogMessageFactory
-          .deserializationErrorMsg(e, Optional.ofNullable(bytes)));
+          .deserializationErrorMsg(e, Optional.of(bytes)));
       throw new SerializationException("Error deserializing delimited row", e);
     }
   }
@@ -137,14 +139,14 @@ public class KsqlDelimitedDeserializer implements Deserializer<Struct> {
 
   private static void throwOnUnsupported(final Schema schema) {
     if (schema.type() != Type.STRUCT) {
-      throw new IllegalArgumentException("KSQL expects all top level schemas to be STRUCTs");
+      throw new IllegalArgumentException("DELIMITED expects all top level schemas to be STRUCTs");
     }
 
     schema.fields().forEach(field -> {
       final Type type = field.schema().type();
       if (!PARSERS.keySet().contains(type)) {
         throw new UnsupportedOperationException(
-            "DELIMITED does not support complex type: " + type + ", field: " + field.name());
+            "DELIMITED does not support type: " + type + ", field: " + field.name());
       }
     });
   }

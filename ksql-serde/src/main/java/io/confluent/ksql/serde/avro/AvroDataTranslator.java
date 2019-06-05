@@ -56,18 +56,18 @@ public class AvroDataTranslator implements DataTranslator {
   }
 
   @Override
-  public Struct toKsqlRow(final Schema connectSchema, final Object connectObject) {
-    final Struct avroCompatibleRow = innerTranslator.toKsqlRow(connectSchema, connectObject);
+  public Object toKsqlRow(final Schema connectSchema, final Object connectObject) {
+    final Object avroCompatibleRow = innerTranslator.toKsqlRow(connectSchema, connectObject);
     if (avroCompatibleRow == null) {
       return null;
     }
 
-    return convert(avroCompatibleRow, ksqlSchema);
+    return convert((Struct)avroCompatibleRow, ksqlSchema);
   }
 
   @Override
-  public Object toConnectRow(final Struct struct) {
-    final Struct compatibleStruct = convert(struct, avroCompatibleSchema);
+  public Object toConnectRow(final Object struct) {
+    final Struct compatibleStruct = convert((Struct)struct, avroCompatibleSchema);
     return innerTranslator.toConnectRow(compatibleStruct);
   }
 

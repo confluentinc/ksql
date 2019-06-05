@@ -60,7 +60,7 @@ public class AvroDataTranslatorTest {
     );
     assertThat(struct.get("STREAM_NAME_COLUMN_NAME"), equalTo(123));
 
-    final Struct translatedRow = dataTranslator.toKsqlRow(struct.schema(), struct);
+    final Object translatedRow = dataTranslator.toKsqlRow(struct.schema(), struct);
     assertThat(translatedRow, equalTo(ksqlRow));
   }
 
@@ -151,7 +151,7 @@ public class AvroDataTranslatorTest {
         struct.getStruct("STRUCT").getString("STRUCT_INNER"),
         equalTo("foo"));
 
-    final Struct translatedRow = dataTranslator.toKsqlRow(struct.schema(), struct);
+    final Object translatedRow = dataTranslator.toKsqlRow(struct.schema(), struct);
     assertThat(translatedRow, equalTo(ksqlRow));
   }
 
@@ -177,7 +177,7 @@ public class AvroDataTranslatorTest {
 
     assertThat(struct.get("COLUMN_NAME"), nullValue());
 
-    final Struct translatedRow = dataTranslator.toKsqlRow(struct.schema(), struct);
+    final Object translatedRow = dataTranslator.toKsqlRow(struct.schema(), struct);
     assertThat(translatedRow, equalTo(ksqlRow));
   }
 
@@ -202,7 +202,7 @@ public class AvroDataTranslatorTest {
 
     assertThat(struct.get("COLUMN_NAME"), equalTo(123L));
 
-    final Struct translatedRow = dataTranslator.toKsqlRow(struct.schema(), struct);
+    final Object translatedRow = dataTranslator.toKsqlRow(struct.schema(), struct);
     assertThat(translatedRow, equalTo(ksqlRow));
   }
 

@@ -42,7 +42,7 @@ import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
-import io.confluent.ksql.parser.tree.Type.SqlType;
+import io.confluent.ksql.schema.SqlType;
 import io.confluent.ksql.schema.inference.TopicSchemaSupplier.SchemaResult;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;

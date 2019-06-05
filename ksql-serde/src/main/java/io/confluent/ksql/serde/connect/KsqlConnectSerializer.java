@@ -20,10 +20,9 @@ import java.util.Objects;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.storage.Converter;
 
-public class KsqlConnectSerializer implements Serializer<Struct> {
+public class KsqlConnectSerializer implements Serializer<Object> {
 
   private final Schema physicalSchema;
   private final DataTranslator translator;
@@ -40,7 +39,7 @@ public class KsqlConnectSerializer implements Serializer<Struct> {
   }
 
   @Override
-  public byte[] serialize(final String topic, final Struct data) {
+  public byte[] serialize(final String topic, final Object data) {
     if (data == null) {
       return null;
     }

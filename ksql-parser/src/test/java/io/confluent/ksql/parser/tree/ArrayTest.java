@@ -19,7 +19,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 import com.google.common.testing.EqualsTester;
-import io.confluent.ksql.parser.tree.Type.SqlType;
+import io.confluent.ksql.schema.SqlType;
 import org.junit.Test;
 
 public class ArrayTest {

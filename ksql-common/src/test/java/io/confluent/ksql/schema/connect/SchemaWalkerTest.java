@@ -296,12 +296,37 @@ public class SchemaWalkerTest {
   }
 
   @Test
-  public void shouldThrowByDefaultFromAll() {
+  public void shouldThrowByDefaultFromNonStructured() {
     // Given:
     visitor = new Visitor<String>() {
     };
 
-    allSchemas().forEach(schema -> {
+    nonStructuredSchemas().forEach(schema -> {
+
+      try {
+        // When:
+        SchemaWalker.visit(schema, visitor);
+
+        fail();
+
+      } catch (final UnsupportedOperationException e) {
+        // Then:
+        assertThat(e.getMessage(), is("Unsupported schema type: " + schema));
+      }
+    });
+  }
+
+  @Test
+  public void shouldThrowByDefaultFromStructured() {
+    // Given:
+    visitor = new Visitor<String>() {
+      @Override
+      public String visitPrimitive(final Schema schema) {
+        return null;
+      }
+    };
+
+    structuredSchemas().forEach(schema -> {
 
       try {
         // When:
@@ -345,19 +370,36 @@ public class SchemaWalkerTest {
   }
 
   @SuppressWarnings("UnstableApiUsage")
-  public static Stream<Schema> allSchemas() {
+  private static Stream<Schema> nonStructuredSchemas() {
     return Streams.concat(
         primitiveSchemas(),
-        Stream.of(
-            Schema.OPTIONAL_BOOLEAN_SCHEMA,
-            Schema.OPTIONAL_INT8_SCHEMA,
-            Schema.OPTIONAL_INT16_SCHEMA,
-            Schema.OPTIONAL_INT32_SCHEMA,
-            Schema.OPTIONAL_INT64_SCHEMA,
-            Schema.OPTIONAL_FLOAT32_SCHEMA,
-            Schema.OPTIONAL_FLOAT64_SCHEMA,
-            Schema.OPTIONAL_STRING_SCHEMA
-        )
+        Stream.of(Schema.OPTIONAL_BYTES_SCHEMA)
+    );
+  }
+
+  private static Stream<Schema> structuredSchemas() {
+    return Stream.of(
+        Schema.OPTIONAL_BYTES_SCHEMA,
+        SchemaBuilder
+            .array(Schema.OPTIONAL_INT64_SCHEMA)
+            .optional()
+            .build(),
+        SchemaBuilder
+            .map(Schema.OPTIONAL_INT64_SCHEMA, Schema.OPTIONAL_STRING_SCHEMA)
+            .optional()
+            .build(),
+        SchemaBuilder
+            .struct()
+            .field("f0", Schema.OPTIONAL_INT64_SCHEMA)
+            .optional()
+            .build()
+    );
+  }
+
+  private static Stream<Schema> allSchemas() {
+    return Streams.concat(
+        nonStructuredSchemas(),
+        structuredSchemas()
     );
   }
 }

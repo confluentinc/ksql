@@ -160,7 +160,7 @@ public class TestCaseTest {
 
     // Expect
     expectedException.expect(AssertionError.class);
-    expectedException.expectMessage("Unexpected input available on topic: foo_kafka");
+    expectedException.expectMessage("Unexpected records available on topic: foo_kafka");
 
     // When:
     testCase.verifyOutput(topologyTestDriverContainer, null);

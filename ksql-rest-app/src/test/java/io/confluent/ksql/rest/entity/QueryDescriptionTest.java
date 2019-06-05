@@ -28,7 +28,7 @@ import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.physical.LimitHandler;
 import io.confluent.ksql.physical.QuerySchemas;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.rest.entity.SchemaInfo.Type;
+import io.confluent.ksql.schema.SqlType;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.schema.persistence.PersistenceSchema;
 import io.confluent.ksql.schema.persistence.PersistenceSchemas;
@@ -70,8 +70,8 @@ public class QueryDescriptionTest {
   );
 
   private static final List<FieldInfo> EXPECTED_FIELDS = Arrays.asList(
-      new FieldInfo("field1", new SchemaInfo(Type.INTEGER, null, null)),
-      new FieldInfo("field2", new SchemaInfo(Type.STRING, null, null)));
+      new FieldInfo("field1", new SchemaInfo(SqlType.INTEGER, null, null)),
+      new FieldInfo("field2", new SchemaInfo(SqlType.STRING, null, null)));
 
   private static final String STATEMENT = "statement";
   private static final Map<String, Object> STREAMS_PROPS = Collections.singletonMap("k1", "v1");

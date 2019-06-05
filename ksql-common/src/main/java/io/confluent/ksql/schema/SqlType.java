@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2019 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -13,25 +13,11 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.parser.tree;
+package io.confluent.ksql.schema;
 
-import static java.util.Objects.requireNonNull;
-
-import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.schema.SqlType;
-import java.util.Optional;
-
-@Immutable
-public abstract class Type extends Expression {
-
-  private final SqlType sqlType;
-
-  protected Type(final Optional<NodeLocation> location, final SqlType sqlType) {
-    super(location);
-    this.sqlType = requireNonNull(sqlType, "sqlType");
-  }
-
-  public SqlType getSqlType() {
-    return sqlType;
-  }
+/**
+ * The SQL types supported by KSQL.
+ */
+public enum SqlType {
+  BOOLEAN, INTEGER, BIGINT, DOUBLE, STRING, ARRAY, MAP, STRUCT
 }

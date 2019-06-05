@@ -23,7 +23,6 @@ import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.util.KafkaConsumerGroupClient;
 import io.confluent.ksql.util.KafkaConsumerGroupClientImpl;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlConstants;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -155,7 +154,7 @@ public class KafkaTopicsList extends KsqlEntity {
       final Map<String, TopicDescription> kafkaTopicDescriptions, final KsqlConfig ksqlConfig
   ) {
     final Map<String, TopicDescription> filteredKafkaTopics = new HashMap<>();
-    final String serviceId = KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX
+    final String serviceId = ksqlConfig.getString(KsqlConfig.KSQL_INTERNAL_TOPIC_PREFIX_CONFIG)
                        + ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
     final String persistentQueryPrefix = ksqlConfig.getString(
         KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG);

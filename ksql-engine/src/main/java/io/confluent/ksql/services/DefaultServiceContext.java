@@ -56,7 +56,8 @@ public class DefaultServiceContext implements ServiceContext {
     return new DefaultServiceContext(
         kafkaClientSupplier,
         adminClient,
-        new KafkaTopicClientImpl(adminClient),
+        new KafkaTopicClientImpl(adminClient,
+            ksqlConfig.getString(KsqlConfig.KSQL_INTERNAL_TOPIC_PREFIX_CONFIG)),
         srClientFactory
     );
   }

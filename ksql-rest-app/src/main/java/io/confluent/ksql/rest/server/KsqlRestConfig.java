@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.rest.server;
 
-import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.rest.RestConfig;
 import java.util.Map;
@@ -132,10 +131,11 @@ public class KsqlRestConfig extends RestConfig {
     return getOriginals();
   }
 
-  public static String getCommandTopic(final String ksqlServiceId) {
+  public static String getCommandTopic(final String ksqlInternalTopicPrefix,
+      final String ksqlServiceId) {
     return String.format(
         "%s%s_%s",
-        KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX,
+        ksqlInternalTopicPrefix,
         ksqlServiceId,
         COMMAND_TOPIC_SUFFIX
     );

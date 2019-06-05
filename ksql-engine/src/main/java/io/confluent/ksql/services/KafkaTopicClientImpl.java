@@ -65,6 +65,8 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
 
   private final AdminClient adminClient;
 
+  private final String internalTopicPrefix;
+
   // This supplier solves two issues:
   // 1. Avoids the constructor to check for the topic.delete.enable unnecessary. The AdminClient
   //    might not have access to this config, and it would fail for every Ksql command if it does
@@ -77,10 +79,13 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
    * Construct a topic client from an existing admin client.
    *
    * @param adminClient the admin client.
+   * @param internalTopicPrefix KSQL internal topic prefix.
    */
-  public KafkaTopicClientImpl(final AdminClient adminClient) {
+  public KafkaTopicClientImpl(final AdminClient adminClient,
+      final String internalTopicPrefix) {
     this.adminClient = Objects.requireNonNull(adminClient, "adminClient");
     this.isTopicDeleteEnabledSupplier = Suppliers.memoize(this::isTopicDeleteEnabled);
+    this.internalTopicPrefix = internalTopicPrefix;
   }
 
   @Override
@@ -165,7 +170,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   @Override
   public Set<String> listNonInternalTopicNames() {
     return listTopicNames().stream()
-        .filter((topic) -> !(topic.startsWith(KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX)
+        .filter((topic) -> !(topic.startsWith(internalTopicPrefix)
             || topic.startsWith(KsqlConstants.CONFLUENT_INTERNAL_TOPIC_PREFIX)))
         .collect(Collectors.toSet());
   }

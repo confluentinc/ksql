@@ -60,7 +60,7 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.testutils.AnalysisTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.MetaStoreFixture;
@@ -729,7 +729,7 @@ public class PhysicalPlanBuilderTest {
   @Test
   public void shouldCreateExpectedServiceId() {
     final String serviceId = physicalPlanBuilder.getServiceId();
-    assertThat(serviceId, equalTo(KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX
+    assertThat(serviceId, equalTo(KsqlConfig.KSQL_INTERNAL_TOPIC_PREFIX_DEFAULT
         + KsqlConfig.KSQL_SERVICE_ID_DEFAULT));
   }
 

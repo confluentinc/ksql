@@ -16,9 +16,9 @@
 package io.confluent.ksql.rest.util;
 
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.exception.KafkaResponseGetFailedException;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlConstants;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.config.TopicConfig;
 import org.slf4j.Logger;
@@ -49,7 +49,7 @@ public final class KsqlInternalTopicUtils {
   public static String getTopicName(final KsqlConfig ksqlConfig, final String topicSuffix) {
     return String.format(
         "%s%s_%s",
-        KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX,
+        ksqlConfig.getString(KsqlConfig.KSQL_INTERNAL_TOPIC_PREFIX_CONFIG),
         ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG),
         topicSuffix
     );
@@ -76,7 +76,10 @@ public final class KsqlInternalTopicUtils {
               + "This is not advisable in a production environment. ",
           name, replicationFactor);
     }
-    final long requiredTopicRetention = Long.MAX_VALUE;
+    final long requiredTopicRetention =
+        ksqlConfig.originals().containsKey(KsqlConfig.KSQL_INTERNAL_TOPIC_RETENTION_CONFIG)
+            ? ksqlConfig.getLong(KsqlConfig.KSQL_INTERNAL_TOPIC_RETENTION_CONFIG) :
+            KsqlConfig.KSQL_INTERNAL_TOPIC_RETENTION_DEFAULT;
 
     if (topicClient.isTopicExists(name)) {
       final TopicDescription description = topicClient.describeTopic(name);
@@ -95,11 +98,16 @@ public final class KsqlInternalTopicUtils {
       final ImmutableMap<String, Object> requiredConfig =
           ImmutableMap.of(TopicConfig.RETENTION_MS_CONFIG, requiredTopicRetention);
 
-      if (topicClient.addTopicConfig(name, requiredConfig)) {
-        log.info(
-            "Corrected retention.ms on ksql internal topic. topic:{}, retention.ms:{}",
-            name,
-            requiredTopicRetention);
+      try {
+        if (topicClient.addTopicConfig(name, requiredConfig)) {
+          log.info(
+              "Corrected retention.ms on ksql internal topic. topic:{}, retention.ms:{}",
+              name,
+              requiredTopicRetention);
+        }
+      } catch (final KafkaResponseGetFailedException e) {
+        // heroku topic configuration works only with heroku kafka:topics:retention-time
+        log.warn("Failed to set topic config", e);
       }
 
       return;

@@ -44,7 +44,8 @@ public final class KsqlContextTestUtil {
     final AdminClient adminClient = clientSupplier
         .getAdminClient(ksqlConfig.getKsqlAdminClientConfigProps());
 
-    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
+    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient,
+        KsqlConfig.KSQL_INTERNAL_TOPIC_PREFIX_DEFAULT);
 
     final ServiceContext serviceContext = TestServiceContext.create(
         clientSupplier,

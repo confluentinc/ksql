@@ -171,7 +171,8 @@ public class CliTest {
   public static void classSetUp() throws Exception {
     restClient = new KsqlRestClient(REST_APP.getHttpListener().toString());
 
-    commandTopicName = KsqlRestConfig.getCommandTopic(KsqlConfig.KSQL_SERVICE_ID_DEFAULT);
+    commandTopicName = KsqlRestConfig.getCommandTopic(KsqlConfig.KSQL_INTERNAL_TOPIC_PREFIX_DEFAULT,
+        KsqlConfig.KSQL_SERVICE_ID_DEFAULT);
 
     orderDataProvider = new OrderDataProvider();
     CLUSTER.createTopic(orderDataProvider.topicName());

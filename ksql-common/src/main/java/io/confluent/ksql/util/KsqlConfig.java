@@ -80,6 +80,17 @@ public class KsqlConfig extends AbstractConfig {
       KSQL_SERVICE_ID_DEFAULT = "default_";
 
   public static final String
+      KSQL_INTERNAL_TOPIC_PREFIX_CONFIG = "ksql.internal.topic.name.prefix";
+  public static final String
+      KSQL_INTERNAL_TOPIC_PREFIX_DEFAULT = "_confluent-ksql-";
+
+
+  public static final String
+      KSQL_INTERNAL_TOPIC_RETENTION_CONFIG = "ksql.internal.topic.retention";
+  public static final long
+      KSQL_INTERNAL_TOPIC_RETENTION_DEFAULT = Long.MAX_VALUE;
+
+  public static final String
       KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG = "ksql.persistent.prefix";
   public static final String
       KSQL_PERSISTENT_QUERY_NAME_PREFIX_DEFAULT = "query_";
@@ -369,7 +380,21 @@ public class KsqlConfig extends AbstractConfig {
             ConfigDef.Type.STRING,
             KSQL_SERVICE_ID_DEFAULT,
             ConfigDef.Importance.MEDIUM,
-            "Indicates the ID of the ksql service. It will be used as prefix for "
+            "Indicate the ID of the ksql service. It will be used as prefix for "
+        )
+        .define(
+            KSQL_INTERNAL_TOPIC_PREFIX_CONFIG,
+            ConfigDef.Type.STRING,
+            KSQL_INTERNAL_TOPIC_PREFIX_DEFAULT,
+            ConfigDef.Importance.MEDIUM,
+            "Indicates the internal topic prefix of the ksql service."
+        )
+        .define(
+            KSQL_INTERNAL_TOPIC_RETENTION_CONFIG,
+            ConfigDef.Type.LONG,
+            KSQL_INTERNAL_TOPIC_RETENTION_DEFAULT,
+            ConfigDef.Importance.MEDIUM,
+            "Retention for the internal topic prefix of the ksql service."
         )
         .define(
             KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG,

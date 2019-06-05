@@ -31,7 +31,7 @@ import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.metrics.ConsumerCollector;
 import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.metrics.ProducerCollector;
-import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import java.util.ArrayList;
@@ -62,7 +62,7 @@ public class KsqlEngineMetricsTest {
   private static final String METRIC_GROUP = "testGroup";
   private KsqlEngineMetrics engineMetrics;
   private static final String KSQL_SERVICE_ID = "test-ksql-service-id";
-  private static final String metricNamePrefix = KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX + KSQL_SERVICE_ID;
+  private static final String metricNamePrefix = KsqlConfig.KSQL_INTERNAL_TOPIC_PREFIX_DEFAULT + KSQL_SERVICE_ID;
 
   @Mock
   private KsqlEngine ksqlEngine;

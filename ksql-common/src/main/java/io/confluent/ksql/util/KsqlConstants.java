@@ -20,7 +20,6 @@ public final class KsqlConstants {
   private KsqlConstants() {
   }
 
-  public static final String KSQL_INTERNAL_TOPIC_PREFIX = "_confluent-ksql-";
   public static final String CONFLUENT_INTERNAL_TOPIC_PREFIX = "__confluent";
 
   public static final String SINK_NUMBER_OF_PARTITIONS = "PARTITIONS";

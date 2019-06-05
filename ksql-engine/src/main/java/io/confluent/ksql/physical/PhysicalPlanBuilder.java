@@ -41,7 +41,6 @@ import io.confluent.ksql.structured.QueuedSchemaKStream;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryIdGenerator;
@@ -443,7 +442,7 @@ public class PhysicalPlanBuilder {
 
   // Package private because of test
   String getServiceId() {
-    return KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX
+    return ksqlConfig.getString(KsqlConfig.KSQL_INTERNAL_TOPIC_PREFIX_CONFIG)
            + ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
   }
 

@@ -17,7 +17,7 @@ package io.confluent.ksql.internal;
 
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.metrics.MetricCollectors;
-import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.QueryMetadata;
 import java.io.Closeable;
 import java.util.ArrayList;
@@ -69,7 +69,7 @@ public class KsqlEngineMetrics implements Closeable {
       final KsqlEngine ksqlEngine,
       final Metrics metrics) {
     this.ksqlEngine = ksqlEngine;
-    this.ksqlServiceId = KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX + ksqlEngine.getServiceId();
+    this.ksqlServiceId = KsqlConfig.KSQL_INTERNAL_TOPIC_PREFIX_DEFAULT + ksqlEngine.getServiceId();
     this.sensors = new ArrayList<>();
     this.countMetrics = new ArrayList<>();
     this.metricGroupName = metricGroupPrefix + "-query-stats";

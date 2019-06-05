@@ -123,7 +123,7 @@ public class SecureIntegrationTest {
     adminClient = AdminClient
         .create(new KsqlConfig(getKsqlConfig(SUPER_USER)).getKsqlAdminClientConfigProps());
     topicClient = new KafkaTopicClientImpl(
-        adminClient);
+        adminClient, KsqlConfig.KSQL_INTERNAL_TOPIC_PREFIX_DEFAULT);
 
     produceInitData();
   }

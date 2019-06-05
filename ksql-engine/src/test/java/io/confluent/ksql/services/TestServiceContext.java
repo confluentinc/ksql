@@ -77,7 +77,7 @@ public final class TestServiceContext {
     return create(
         kafkaClientSupplier,
         adminClient,
-        new KafkaTopicClientImpl(adminClient),
+        new KafkaTopicClientImpl(adminClient, KsqlConfig.KSQL_INTERNAL_TOPIC_PREFIX_DEFAULT),
         srClientFactory
     );
   }

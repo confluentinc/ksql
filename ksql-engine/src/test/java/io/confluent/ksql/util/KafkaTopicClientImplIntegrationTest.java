@@ -76,7 +76,7 @@ public class KafkaTopicClientImplIntegrationTest {
     adminClient = AdminClient.create(ImmutableMap.of(
         AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA.bootstrapServers()));
 
-    client = new KafkaTopicClientImpl(adminClient);
+    client = new KafkaTopicClientImpl(adminClient, KsqlConfig.KSQL_INTERNAL_TOPIC_PREFIX_DEFAULT);
 
     allowForAsyncTopicCreation();
   }

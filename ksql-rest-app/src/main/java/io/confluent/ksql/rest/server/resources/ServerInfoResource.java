@@ -43,7 +43,7 @@ public class ServerInfoResource {
             getKafkaClusterId(serviceContext),
             ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)
         )
-    );
+    )::get;
   }
 
   private static String getKafkaClusterId(final ServiceContext serviceContext) {

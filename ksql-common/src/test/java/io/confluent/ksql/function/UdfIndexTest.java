@@ -3,11 +3,14 @@ package io.confluent.ksql.function;
 import static io.confluent.ksql.function.KsqlFunction.INTERNAL_PATH;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.function.Function;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -48,7 +51,7 @@ public class UdfIndexTest {
     Arrays.stream(functions).forEach(udfIndex::addFunction);
 
     // When:
-    final KsqlFunction fun = udfIndex.getFunction(Arrays.asList(new Schema[]{}));
+    final KsqlFunction fun = udfIndex.getFunction(ImmutableList.of());
 
     // Then:
     assertThat(fun.getFunctionName(), equalTo(EXPECTED));
@@ -61,7 +64,7 @@ public class UdfIndexTest {
     Arrays.stream(functions).forEach(udfIndex::addFunction);
 
     // When:
-    final KsqlFunction fun = udfIndex.getFunction(Arrays.asList(STRING));
+    final KsqlFunction fun = udfIndex.getFunction(ImmutableList.of(STRING));
 
     // Then:
     assertThat(fun.getFunctionName(), equalTo(EXPECTED));
@@ -74,7 +77,7 @@ public class UdfIndexTest {
     Arrays.stream(functions).forEach(udfIndex::addFunction);
 
     // When:
-    final KsqlFunction fun = udfIndex.getFunction(Arrays.asList(STRING, INT));
+    final KsqlFunction fun = udfIndex.getFunction(ImmutableList.of(STRING, INT));
 
     // Then:
     assertThat(fun.getFunctionName(), equalTo(EXPECTED));
@@ -87,7 +90,7 @@ public class UdfIndexTest {
     Arrays.stream(functions).forEach(udfIndex::addFunction);
 
     // When:
-    final KsqlFunction fun = udfIndex.getFunction(Arrays.asList(STRING, STRING));
+    final KsqlFunction fun = udfIndex.getFunction(ImmutableList.of(STRING, STRING));
 
     // Then:
     assertThat(fun.getFunctionName(), equalTo(EXPECTED));
@@ -101,7 +104,7 @@ public class UdfIndexTest {
     Arrays.stream(functions).forEach(udfIndex::addFunction);
 
     // When:
-    final KsqlFunction fun = udfIndex.getFunction(Arrays.asList(STRING));
+    final KsqlFunction fun = udfIndex.getFunction(ImmutableList.of(STRING));
 
     // Then:
     assertThat(fun.getFunctionName(), equalTo(EXPECTED));
@@ -115,7 +118,7 @@ public class UdfIndexTest {
     Arrays.stream(functions).forEach(udfIndex::addFunction);
 
     // When:
-    final KsqlFunction fun = udfIndex.getFunction(Arrays.asList(STRING, STRING));
+    final KsqlFunction fun = udfIndex.getFunction(ImmutableList.of(STRING, STRING));
 
     // Then:
     assertThat(fun.getFunctionName(), equalTo(EXPECTED));
@@ -129,7 +132,7 @@ public class UdfIndexTest {
     Arrays.stream(functions).forEach(udfIndex::addFunction);
 
     // When:
-    final KsqlFunction fun = udfIndex.getFunction(Arrays.asList(STRUCT1));
+    final KsqlFunction fun = udfIndex.getFunction(ImmutableList.of(STRUCT1));
 
     // Then:
     assertThat(fun.getFunctionName(), equalTo(EXPECTED));
@@ -143,7 +146,7 @@ public class UdfIndexTest {
     Arrays.stream(functions).forEach(udfIndex::addFunction);
 
     // When:
-    final KsqlFunction fun = udfIndex.getFunction(Arrays.asList(MAP1));
+    final KsqlFunction fun = udfIndex.getFunction(ImmutableList.of(MAP1));
 
     // Then:
     assertThat(fun.getFunctionName(), equalTo(EXPECTED));
@@ -158,7 +161,7 @@ public class UdfIndexTest {
     Arrays.stream(functions).forEach(udfIndex::addFunction);
 
     // When:
-    final KsqlFunction fun = udfIndex.getFunction(Arrays.asList(STRUCT3));
+    final KsqlFunction fun = udfIndex.getFunction(ImmutableList.of(STRUCT3));
 
     // Then:
     assertThat(fun.getFunctionName(), equalTo(EXPECTED));
@@ -171,7 +174,7 @@ public class UdfIndexTest {
     Arrays.stream(functions).forEach(udfIndex::addFunction);
 
     // When:
-    final KsqlFunction fun = udfIndex.getFunction(Arrays.asList());
+    final KsqlFunction fun = udfIndex.getFunction(ImmutableList.of());
 
     // Then:
     assertThat(fun.getFunctionName(), equalTo(EXPECTED));
@@ -184,7 +187,7 @@ public class UdfIndexTest {
     Arrays.stream(functions).forEach(udfIndex::addFunction);
 
     // When:
-    final KsqlFunction fun = udfIndex.getFunction(Arrays.asList(STRING));
+    final KsqlFunction fun = udfIndex.getFunction(ImmutableList.of(STRING));
 
     // Then:
     assertThat(fun.getFunctionName(), equalTo(EXPECTED));
@@ -197,7 +200,7 @@ public class UdfIndexTest {
     Arrays.stream(functions).forEach(udfIndex::addFunction);
 
     // When:
-    final KsqlFunction fun = udfIndex.getFunction(Arrays.asList(STRING, STRING));
+    final KsqlFunction fun = udfIndex.getFunction(ImmutableList.of(STRING, STRING));
 
     // Then:
     assertThat(fun.getFunctionName(), equalTo(EXPECTED));
@@ -211,7 +214,7 @@ public class UdfIndexTest {
     Arrays.stream(functions).forEach(udfIndex::addFunction);
 
     // When:
-    final KsqlFunction fun = udfIndex.getFunction(Arrays.asList(STRUCT1, STRUCT1));
+    final KsqlFunction fun = udfIndex.getFunction(ImmutableList.of(STRUCT1, STRUCT1));
 
     // Then:
     assertThat(fun.getFunctionName(), equalTo(EXPECTED));
@@ -224,7 +227,7 @@ public class UdfIndexTest {
     Arrays.stream(functions).forEach(udfIndex::addFunction);
 
     // When:
-    final KsqlFunction fun = udfIndex.getFunction(Arrays.asList(STRING_VARARGS));
+    final KsqlFunction fun = udfIndex.getFunction(ImmutableList.of(STRING_VARARGS));
 
     // Then:
     assertThat(fun.getFunctionName(), equalTo(EXPECTED));
@@ -239,7 +242,7 @@ public class UdfIndexTest {
     Arrays.stream(functions).forEach(udfIndex::addFunction);
 
     // When:
-    final KsqlFunction fun = udfIndex.getFunction(Arrays.asList(STRING));
+    final KsqlFunction fun = udfIndex.getFunction(ImmutableList.of(STRING));
 
     // Then:
     assertThat(fun.getFunctionName(), equalTo(EXPECTED));
@@ -255,7 +258,7 @@ public class UdfIndexTest {
     Arrays.stream(functions).forEach(udfIndex::addFunction);
 
     // When:
-    final KsqlFunction fun = udfIndex.getFunction(Arrays.asList(STRING));
+    final KsqlFunction fun = udfIndex.getFunction(ImmutableList.of(STRING));
 
     // Then:
     assertThat(fun.getFunctionName(), equalTo(EXPECTED));
@@ -269,7 +272,7 @@ public class UdfIndexTest {
     Arrays.stream(functions).forEach(udfIndex::addFunction);
 
     // When:
-    final KsqlFunction fun = udfIndex.getFunction(Arrays.asList(STRING, STRING));
+    final KsqlFunction fun = udfIndex.getFunction(ImmutableList.of(STRING, STRING));
 
     // Then:
     assertThat(fun.getFunctionName(), equalTo(EXPECTED));
@@ -282,7 +285,7 @@ public class UdfIndexTest {
     Arrays.stream(functions).forEach(udfIndex::addFunction);
 
     // When:
-    final KsqlFunction fun = udfIndex.getFunction(Arrays.asList(new Schema[]{null}));
+    final KsqlFunction fun = udfIndex.getFunction(Collections.singletonList(null));
 
     // Then:
     assertThat(fun.getFunctionName(), equalTo(EXPECTED));
@@ -309,7 +312,7 @@ public class UdfIndexTest {
     Arrays.stream(functions).forEach(udfIndex::addFunction);
 
     // When:
-    final KsqlFunction fun = udfIndex.getFunction(Arrays.asList(new Schema[]{null}));
+    final KsqlFunction fun = udfIndex.getFunction(Collections.singletonList(null));
 
     // Then:
     assertThat(fun.getFunctionName(), equalTo(EXPECTED));
@@ -349,7 +352,7 @@ public class UdfIndexTest {
     Arrays.stream(functions).forEach(udfIndex::addFunction);
 
     // When:
-    final KsqlFunction fun = udfIndex.getFunction(Arrays.asList(new Schema[]{null}));
+    final KsqlFunction fun = udfIndex.getFunction(Collections.singletonList(null));
 
     // Then:
     assertThat(fun.getFunctionName(), equalTo(EXPECTED));
@@ -423,10 +426,11 @@ public class UdfIndexTest {
 
     // Expect:
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Function 'name' does not accept parameters");
+    expectedException.expectMessage(is("Function 'name' does not accept parameters of types:"
+        + "[VARCHAR, VARCHAR]"));
 
     // When:
-    udfIndex.getFunction(Arrays.asList(STRING, STRING));
+    udfIndex.getFunction(ImmutableList.of(STRING, STRING));
   }
 
   @Test
@@ -437,10 +441,11 @@ public class UdfIndexTest {
 
     // Expect:
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Function 'name' does not accept parameters");
+    expectedException.expectMessage(is("Function 'name' does not accept parameters of types:"
+        + "[INT]"));
 
     // When:
-    udfIndex.getFunction(Arrays.asList(INT));
+    udfIndex.getFunction(ImmutableList.of(INT));
 
   }
 
@@ -453,10 +458,11 @@ public class UdfIndexTest {
 
     // Expect:
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Function 'name' does not accept parameters");
+    expectedException.expectMessage(is("Function 'name' does not accept parameters of types:"
+        + "[null]"));
 
     // When:
-    udfIndex.getFunction(Arrays.asList(new Schema[]{null}));
+    udfIndex.getFunction(Collections.singletonList(null));
 
   }
 
@@ -469,10 +475,11 @@ public class UdfIndexTest {
 
     // Expect:
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Function 'name' does not accept parameters");
+    expectedException.expectMessage(is("Function 'name' does not accept parameters of types:"
+        + "[null]"));
 
     // When:
-    udfIndex.getFunction(Arrays.asList(new Schema[]{null}));
+    udfIndex.getFunction(Collections.singletonList(null));
 
   }
 
@@ -484,7 +491,8 @@ public class UdfIndexTest {
 
     // Expect:
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Function 'name' does not accept parameters");
+    expectedException.expectMessage(is("Function 'name' does not accept parameters of types:"
+        + "[INT, null]"));
 
     // When:
     udfIndex.getFunction(Arrays.asList(INT, null));
@@ -500,10 +508,11 @@ public class UdfIndexTest {
 
     // Expect:
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Function 'name' does not accept parameters");
+    expectedException.expectMessage(is("Function 'name' does not accept parameters of types:"
+        + "[VARCHAR, INT, VARCHAR]"));
 
     // When:
-    udfIndex.getFunction(Arrays.asList(STRING, INT, STRING));
+    udfIndex.getFunction(ImmutableList.of(STRING, INT, STRING));
 
   }
 
@@ -515,7 +524,8 @@ public class UdfIndexTest {
 
     // Expect:
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Function 'name' does not accept parameters");
+    expectedException.expectMessage(is("Function 'name' does not accept parameters of types:"
+        + "[VARCHAR, null]"));
 
     // When:
     udfIndex.getFunction(Arrays.asList(STRING, null));
@@ -531,10 +541,11 @@ public class UdfIndexTest {
 
     // Expect:
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Function 'name' does not accept parameters");
+    expectedException.expectMessage(is("Function 'name' does not accept parameters of types:"
+        + "[STRUCT<a VARCHAR>, STRUCT<b INT>]"));
 
     // When:
-    udfIndex.getFunction(Arrays.asList(STRUCT1, STRUCT2));
+    udfIndex.getFunction(ImmutableList.of(STRUCT1, STRUCT2));
   }
 
   @Test
@@ -546,10 +557,11 @@ public class UdfIndexTest {
 
     // Expect:
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Function 'name' does not accept parameters");
+    expectedException.expectMessage(is("Function 'name' does not accept parameters of types:"
+        + "[STRUCT<d INT, c INT>]"));
 
     // When:
-    udfIndex.getFunction(Arrays.asList(STRUCT3_PERMUTE));
+    udfIndex.getFunction(ImmutableList.of(STRUCT3_PERMUTE));
   }
 
 

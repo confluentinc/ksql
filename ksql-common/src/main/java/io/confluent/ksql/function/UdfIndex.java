@@ -20,7 +20,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import io.confluent.ksql.schema.connect.SqlSchemaFormatter;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
@@ -178,7 +177,7 @@ public class UdfIndex<T extends IndexedFunction> {
     final String sqlParamTypes = paramTypes.stream()
         .map(schema -> schema == null
             ? null
-            : SchemaUtil.getSchemaTypeAsSqlType(schema.type()))
+            : SqlSchemaFormatter.DEFAULT.format(schema))
         .collect(Collectors.joining(", ", "[", "]"));
 
     return new KsqlException("Function '" + udfName

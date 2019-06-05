@@ -124,6 +124,17 @@
             </dependency>
 
             <dependency>
+                <groupId>org.apache.kafka</groupId>
+                <artifactId>kafka-streams-test-utils</artifactId>
+                <!--
+                 Temporarily pinning KSQL to old Kafka snapshot until issues with breaking change
+                 due to state store name changes in PR https://github.com/apache/kafka/pull/6411,
+                 (part of KIP-307), is fixed.
+                -->
+                <version>5.4.0-ccs-20190531.005419-26</version>
+            </dependency>
+
+            <dependency>
                 <groupId>io.confluent.ksql</groupId>
                 <artifactId>ksql-common</artifactId>
                 <version>${project.version}</version>

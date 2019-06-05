@@ -210,14 +210,19 @@ public class AvroDataTranslator implements DataTranslator {
 
   private static Schema throwOnInvalidSchema(final Schema schema) {
 
-    class SchemaValidator implements Visitor {
+    class SchemaValidator implements Visitor<Void> {
 
       @Override
-      public boolean visitMap(final Schema schema) {
+      public Void visitMap(final Schema schema, final Void key, final Void value) {
         if (schema.keySchema().type() != Type.STRING) {
           throw new IllegalArgumentException("Avro only supports MAPs with STRING keys");
         }
-        return true;
+        return null;
+      }
+
+      @Override
+      public Void visitSchema(final Schema schema) {
+        return null;
       }
     }
 

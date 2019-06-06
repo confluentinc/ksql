@@ -234,6 +234,9 @@ public final class TopologyFileRewriter {
           case '>':
             depth--;
             break;
+
+          default:
+            break;
         }
       }
 

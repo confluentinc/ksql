@@ -211,9 +211,9 @@ public class AvroDataTranslatorTest {
   public void shouldUseExplicitSchemaName() {
     // Given:
     final Schema schema = SchemaBuilder.struct()
-            .field("COLUMN_NAME", Schema.OPTIONAL_INT64_SCHEMA)
-            .optional()
-            .build();
+        .field("COLUMN_NAME", Schema.OPTIONAL_INT64_SCHEMA)
+        .optional()
+        .build();
 
     String schemaFullName = "com.custom.schema";
 

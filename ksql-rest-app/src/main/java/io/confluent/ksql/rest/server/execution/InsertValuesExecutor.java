@@ -29,7 +29,7 @@ import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.parser.tree.Node;
 import io.confluent.ksql.parser.tree.NullLiteral;
 import io.confluent.ksql.rest.entity.KsqlEntity;
-import io.confluent.ksql.schema.ksql.KsqlSchemaWithOptions;
+import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.GenericRowSerDe;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -225,7 +225,7 @@ public class InsertValuesExecutor {
   ) {
     final Serde<GenericRow> rowSerde = GenericRowSerDe.from(
         dataSource.getValueSerdeFactory(),
-        KsqlSchemaWithOptions.of(
+        PhysicalSchema.from(
             dataSource.getSchema().withoutImplicitFields(),
             dataSource.getSerdeOptions()
         ),

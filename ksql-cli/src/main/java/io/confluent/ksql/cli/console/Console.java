@@ -65,6 +65,7 @@ import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.entity.TopicDescription;
+import io.confluent.ksql.schema.SqlType;
 import io.confluent.ksql.util.CmdLineUtil;
 import io.confluent.ksql.util.HandlerMaps;
 import io.confluent.ksql.util.HandlerMaps.ClassHandlerMap1;
@@ -387,23 +388,22 @@ public class Console implements Closeable {
 
   @SuppressWarnings("ConstantConditions")
   private static String schemaToTypeString(final SchemaInfo schema) {
-    // For now just dump the whole type out into 1 string.
-    // In the future we should consider a more readable format
     switch (schema.getType()) {
       case ARRAY:
-        return SchemaInfo.Type.ARRAY.name() + "<"
-               + schemaToTypeString(schema.getMemberSchema().get())
-               + ">";
+        return SqlType.ARRAY + "<"
+            + schemaToTypeString(schema.getMemberSchema().get())
+            + ">";
       case MAP:
-        return SchemaInfo.Type.MAP.name()
-               + "<" + SchemaInfo.Type.STRING + ", "
-               + schemaToTypeString(schema.getMemberSchema().get())
-               + ">";
+        return SqlType.MAP
+            + "<"
+            + SqlType.STRING + ", "
+            + schemaToTypeString(schema.getMemberSchema().get())
+            + ">";
       case STRUCT:
         return schema.getFields().get()
             .stream()
             .map(f -> f.getName() + " " + schemaToTypeString(f.getSchema()))
-            .collect(Collectors.joining(", ", SchemaInfo.Type.STRUCT.name() + "<", ">"));
+            .collect(Collectors.joining(", ", SqlType.STRUCT + "<", ">"));
       case STRING:
         return "VARCHAR(STRING)";
       default:
@@ -453,14 +453,18 @@ public class Console implements Closeable {
     }
   }
 
-  private void printWriteQueries(final SourceDescription source) {
-    if (!source.getWriteQueries().isEmpty()) {
+  private void printQueries(
+      final List<RunningQuery> queries,
+      final String type,
+      final String operation
+  ) {
+    if (!queries.isEmpty()) {
       writer().println(String.format(
           "%n%-20s%n%-20s",
-          "Queries that write into this " + source.getType(),
+          "Queries that " + operation + " from this " + type,
           "-----------------------------------"
       ));
-      for (final RunningQuery writeQuery : source.getWriteQueries()) {
+      for (final RunningQuery writeQuery : queries) {
         writer().println(writeQuery.getId().getId() + " : " + writeQuery.getQueryString());
       }
       writer().println("\nFor query topology and execution plan please run: EXPLAIN <QueryId>");
@@ -526,7 +530,9 @@ public class Console implements Closeable {
 
     printSchema(source.getFields(), source.getKey());
 
-    printWriteQueries(source);
+    printQueries(source.getReadQueries(), source.getType(), "read");
+
+    printQueries(source.getWriteQueries(), source.getType(), "write");
 
     writer().println(String.format(
         "%n%-20s%n%s",

@@ -32,8 +32,8 @@
   "ksql.query.persistent.active.limit" : "2147483647"
 }
 CONFIGS_END
-CSAS_OUTPUT_0.KsqlTopic.source = struct<FOO optional<boolean>>
-CSAS_OUTPUT_0.OUTPUT = struct<FOO optional<boolean>>
+CSAS_OUTPUT_0.KsqlTopic.source = STRUCT<FOO BOOLEAN> NOT NULL
+CSAS_OUTPUT_0.OUTPUT = STRUCT<FOO BOOLEAN> NOT NULL
 SCHEMAS_END
 Topologies:
    Sub-topology: 0

@@ -103,7 +103,7 @@ public class QueryStreamWriterTest {
     expect(kStreams.state()).andReturn(State.RUNNING);
 
     expect(queryMetadata.getRowQueue()).andReturn(rowQueue).anyTimes();
-    expect(queryMetadata.getResultSchema()).andReturn(schema).anyTimes();
+    expect(queryMetadata.getLogicalSchema()).andReturn(schema).anyTimes();
 
     queryMetadata.setLimitHandler(capture(limitHandlerCapture));
     expectLastCall().once();

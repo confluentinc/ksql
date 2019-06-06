@@ -16,7 +16,7 @@ a stream or table and specify the ``VALUE_FORMAT`` in the ``WITH`` clause.
 
 .. code:: sql
 
-    CREATE TABLE x (F0 INT, F1 STRING) WITH (VALUE_FORMAT='JSON', ...);
+    CREATE TABLE ORDERS (F0 INT, F1 STRING) WITH (VALUE_FORMAT='JSON', ...);
 
 For more information on the formats that KSQL supports, see :ref:`ksql_formats`.
 
@@ -33,8 +33,8 @@ Single field (un)wrapping
 Controlling deserializing of single fields
 ==========================================
 
-When KSQL deserializes a Kafka message into a row, the key is deserialized into
-the key field and the message's value is deserialized into the value field(s).
+When KSQL deserializes a Kafka message into a row, the key is deserialized into the key field,
+and the message's value is deserialized into the value field(s).
 
 By default, KSQL expects any value with a single-field schema to have been serialized as a named
 field within a record. However, this is not always the case. KSQL also supports reading data
@@ -59,10 +59,10 @@ named field, for example:
    }
 
 If your data contains only a single field, and that field is not wrapped within a JSON object,
-(or an Avro record if using the ``AVRO`` format), then you can use the ``WRAP_SINGLE_VALUE``
+or an Avro record if using the ``AVRO`` format, then you can use the ``WRAP_SINGLE_VALUE``
 property in the ``WITH`` clause of your :ref:`CREATE TABLE <create-table>` or
-:ref:`CREATE STREAM <create-stream>` statements. Setting the property to ``false`` will inform KSQL
-that the value is not wrapped, i.e. the example above would be a JSON number:
+:ref:`CREATE STREAM <create-stream>` statements. Setting the property to ``false`` tells KSQL
+that the value is not wrapped, so the example above would be a JSON number:
 
 .. code:: json
 
@@ -73,13 +73,12 @@ topic have been serialized as an anonymous JSON number:
 
 .. code:: sql
 
-    CREATE TABLE x (ID INT) WITH (WRAP_SINGLE_VALUE=false, ...);
+    CREATE TABLE TRADES (ID INT) WITH (WRAP_SINGLE_VALUE=false, ...);
 
 
-If a statement does not explicitly set the value wrapping, the system
-default, defined by ``ksql.persistence.wrap.single.values``, will be used.
-The system default can be changed. For more information, see the
-:ref:`ksql-persistence-wrap-single-values` documentation.
+If a statement doesn't set the value wrapping explicitly, KSQL uses the system
+default, defined by ``ksql.persistence.wrap.single.values``. You can change the system default.
+For more information, see :ref:`ksql-persistence-wrap-single-values`.
 
 Controlling serialization of single fields
 ==========================================
@@ -88,10 +87,9 @@ When KSQL serializes a row into a Kafka message, the key field is serialized
 into the message's key, and any value field(s) are serialized into the
 message's value.
 
-By default, if the value has only a single field, KSQL will serialize the
-single field as a named field within a record. However, this does not always match
-the requirements of downstream consumers. KSQL allows the value to also be serialized
-as an anonymous value.
+By default, if the value has only a single field, KSQL serializes the single field as a named field
+within a record. However, this doesn't always match the requirements of downstream consumers,
+so KSQL allows the value to be serialized as an anonymous value.
 
 For example, consider the statements:
 
@@ -103,9 +101,8 @@ For example, consider the statements:
 The second statement defines a stream with only a single field in the value,
 named ``f0``.
 
-When KSQL writes out the result to Kafka it will, by default, persist the
-single field as a named field within a JSON object, (or an Avro record if
-using the ``AVRO`` format):
+By default, when KSQL writes out the result to Kafka, it persists the single field as
+a named field within a JSON object, or an Avro record if using the ``AVRO`` format:
 
 .. code:: json
 
@@ -128,13 +125,12 @@ For example,
 
     CREATE STREAM y WITH(WRAP_SINGLE_VALUE=false) AS SELECT f0 FROM x;
 
-If a statement does not explicitly set the value wrapping, the system
-default, defined by ``ksql.persistence.wrap.single.values``, will be used.
-The system default can be changed. For more information, see the
-:ref:`ksql-persistence-wrap-single-values` documentation.
+If a statement doesn't set the value wrapping explicitly, KSQL uses the system
+default, defined by ``ksql.persistence.wrap.single.values``. You can change the system default.
+For more information, see :ref:`ksql-persistence-wrap-single-values`.
 
-Examples
-========
+Single-field serialization examples
+===================================
 
 .. code:: sql
 
@@ -206,7 +202,7 @@ JSON
 
 The ``JSON`` format supports JSON values.
 
-The JSON format supports all of KSQL's ref:`data types <data-types>`. As JSON does not itself
+The JSON format supports all KSQL ref:`data types <data-types>`. As JSON doesn't itself
 support a map type, KSQL serializes ``MAP``s as JSON objects.  Because of this the JSON format can
 only support ``MAP`` objects that have ``STRING`` keys.
 
@@ -272,8 +268,8 @@ For more information, see :ref:`ksql_single_field_wrapping`.
 Avro
 ----
 
-The ``AVRO`` format supports Avro binary serialization of all of KSQL's ref:`data types <data-types>`
-including records and top-level primitives, arrays and maps.
+The ``AVRO`` format supports Avro binary serialization of all KSQL ref:`data types <data-types>`,
+including records and top-level primitives, arrays, and maps.
 
 The format requires KSQL to be configured to store and retrieve the Avro schemas from the |sr-long|.
 For more information, see :ref:`install_ksql-avro-schema`.

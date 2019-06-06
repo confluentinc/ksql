@@ -22,6 +22,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import io.confluent.ksql.analyzer.Analysis.Into;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.InternalFunctionRegistry;
@@ -506,7 +507,7 @@ public class AnalyzerTest {
 
   @SuppressWarnings("unchecked")
   private <T extends Statement> T parseSingle(final String simpleQuery) {
-    return (T)parse(simpleQuery, jsonMetaStore).get(0);
+    return (T) Iterables.getOnlyElement(parse(simpleQuery, jsonMetaStore));
   }
 
   private static List<Statement> parse(final String simpleQuery, final MetaStore metaStore) {

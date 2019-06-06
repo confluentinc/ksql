@@ -23,7 +23,7 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.metastore.model.DataSource;
-import io.confluent.ksql.schema.ksql.KsqlSchemaWithOptions;
+import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.test.util.TopicTestUtil;
 import io.confluent.ksql.util.ItemDataProvider;
@@ -108,11 +108,10 @@ public class JoinIntTest {
     final DataSource<?> source = ksqlContext.getMetaStore()
         .getSource(testStreamName);
 
-    final KsqlSchemaWithOptions resultSchema = KsqlSchemaWithOptions.of(
+    final PhysicalSchema resultSchema = PhysicalSchema.from(
         source.getSchema().withoutImplicitFields(),
         source.getSerdeOptions()
     );
-
     final Map<String, GenericRow> expectedResults = ImmutableMap.of(
         "ITEM_1",
         new GenericRow(ImmutableList.of("ORDER_1", "ITEM_1", 10.0, "home cinema"))
@@ -177,7 +176,7 @@ public class JoinIntTest {
     final DataSource<?> source = ksqlContext.getMetaStore()
         .getSource(testStreamName);
 
-    final KsqlSchemaWithOptions resultSchema = KsqlSchemaWithOptions.of(
+    final PhysicalSchema resultSchema = PhysicalSchema.from(
         source.getSchema().withoutImplicitFields(),
         source.getSerdeOptions()
     );
@@ -250,7 +249,7 @@ public class JoinIntTest {
     final DataSource<?> source = ksqlContext.getMetaStore()
         .getSource(outputStream);
 
-    final KsqlSchemaWithOptions resultSchema = KsqlSchemaWithOptions.of(
+    final PhysicalSchema resultSchema = PhysicalSchema.from(
         source.getSchema().withoutImplicitFields(),
         source.getSerdeOptions()
     );

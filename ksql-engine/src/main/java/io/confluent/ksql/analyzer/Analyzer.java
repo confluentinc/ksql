@@ -51,7 +51,6 @@ import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.planner.plan.DataSourceNode;
 import io.confluent.ksql.planner.plan.JoinNode;
 import io.confluent.ksql.planner.plan.PlanNodeId;
-import io.confluent.ksql.schema.ksql.Identifiers;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.KsqlSerdeFactories;
@@ -287,7 +286,7 @@ class Analyzer {
 
     private void setSerdeOptions(final Map<String, Expression> properties) {
       final boolean singleField = analysis.getSelectExpressionAlias().stream()
-          .filter(((Predicate<String>)Identifiers::isImplicitColumnName).negate())
+          .filter(((Predicate<String>)KsqlSchema::isImplicitColumnName).negate())
           .count() == 1;
 
       final Expression exp = properties.get(DdlConfig.WRAP_SINGLE_VALUE);
@@ -308,13 +307,13 @@ class Analyzer {
             + " set in the WITH clause must be set to a literal");
       }
 
-      final Set<SerdeOption> options = SerdeOption.none();
+      final ImmutableSet.Builder<SerdeOption> options = ImmutableSet.builder();
 
       if (!LiteralUtil.toBoolean(((Literal) exp), DdlConfig.WRAP_SINGLE_VALUE)) {
         options.add(SerdeOption.UNWRAP_SINGLE_VALUES);
       }
 
-      analysis.setSerdeOptions(options);
+      analysis.setSerdeOptions(options.build());
     }
 
     private void validateWithClause(final Set<String> withClauseVariables) {

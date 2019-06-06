@@ -1897,7 +1897,7 @@ public class KsqlResourceTest {
     final QueryDescriptionEntity queryDescriptionEntity = (QueryDescriptionEntity) entity;
     final QueryDescription queryDescription = queryDescriptionEntity.getQueryDescription();
     assertThat(queryDescription.getFields(), is(
-        EntityUtil.buildSourceSchemaEntity(queryMetadata.getResultSchema())));
+        EntityUtil.buildSourceSchemaEntity(queryMetadata.getLogicalSchema())));
     assertThat(queryDescription.getOverriddenProperties(), is(overriddenProperties));
   }
 

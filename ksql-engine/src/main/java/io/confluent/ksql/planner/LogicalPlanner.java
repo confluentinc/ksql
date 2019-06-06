@@ -118,10 +118,10 @@ public class LogicalPlanner {
         extractionPolicy,
         keyField,
         intoDataSource.getKsqlTopic(),
-        intoDataSource.getKsqlTopic().getKafkaTopicName(),
         partitionByField.isPresent(),
         analysis.getLimitClause(),
-        intoDataSource.isCreate()
+        intoDataSource.isCreate(),
+        analysis.getSerdeOptions()
     );
   }
 

@@ -18,6 +18,7 @@ package io.confluent.ksql.analyzer;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.metastore.SerdeFactory;
 import io.confluent.ksql.metastore.model.DataSource;
@@ -28,6 +29,7 @@ import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.planner.plan.JoinNode;
+import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.ArrayList;
@@ -48,7 +50,7 @@ public class Analysis {
   private Optional<String> timestampColumnName = Optional.empty();
   private Optional<String> timestampFormat = Optional.empty();
   private Optional<String> partitionBy = Optional.empty();
-
+  private ImmutableSet<SerdeOption> serdeOptions = ImmutableSet.of();
   private Expression havingExpression = null;
 
   private Integer limitClause = null;
@@ -166,6 +168,14 @@ public class Analysis {
 
     final Expression baseExpression = new QualifiedNameReference(QualifiedName.of(base));
     return new DereferenceExpression(baseExpression, SchemaUtil.ROWTIME_NAME);
+  }
+
+  void setSerdeOptions(final Set<SerdeOption> serdeOptions) {
+    this.serdeOptions = ImmutableSet.copyOf(serdeOptions);
+  }
+
+  public Set<SerdeOption> getSerdeOptions() {
+    return serdeOptions;
   }
 
   @Immutable

@@ -104,7 +104,7 @@ public class ListQueriesExecutorTest {
     final PersistentQueryMetadata metadata = mock(PersistentQueryMetadata.class);
     when(metadata.getQueryId()).thenReturn(new QueryId(id));
     when(metadata.getSinkNames()).thenReturn(ImmutableSet.of(id));
-    when(metadata.getResultSchema()).thenReturn(TemporaryEngine.SCHEMA);
+    when(metadata.getLogicalSchema()).thenReturn(TemporaryEngine.SCHEMA);
 
     return metadata;
   }

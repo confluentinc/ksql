@@ -66,6 +66,7 @@ public class CreateSourcePropertiesTest {
     assertThat(properties.getValueAvroSchemaName(), is(Optional.empty()));
     assertThat(properties.getReplicas(), is(Optional.empty()));
     assertThat(properties.getPartitions(), is(Optional.empty()));
+    assertThat(properties.getWrapSingleValues(), is(Optional.empty()));
   }
 
   @Test
@@ -199,6 +200,19 @@ public class CreateSourcePropertiesTest {
 
     // Then:
     assertThat(properties.getPartitions(), is(Optional.of(2)));
+  }
+
+  @Test
+  public void shouldSetWrapSingleValues() {
+    // When:
+    final CreateSourceProperties properties = new CreateSourceProperties(
+        ImmutableMap.<String, Literal>builder()
+            .putAll(MINIMUM_VALID_PROPS)
+            .put(DdlConfig.WRAP_SINGLE_VALUE, new BooleanLiteral("true"))
+            .build());
+
+    // Then:
+    assertThat(properties.getWrapSingleValues(), is(Optional.of(true)));
   }
 
   @Test

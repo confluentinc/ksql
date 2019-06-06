@@ -13,32 +13,26 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.serde;
+package io.confluent.ksql.parser;
 
+import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.StringUtil;
 
-public enum Format {
+/**
+ * Utility class for working with {@link Literal} properties.
+ */
+public final class LiteralUtil {
 
-  JSON(true),
-  AVRO(true),
-  DELIMITED(false);
-
-  private final boolean supportsUnwrapping;
-
-  Format(final boolean supportsUnwrapping) {
-    this.supportsUnwrapping = supportsUnwrapping;
+  private LiteralUtil() {
   }
 
-  public boolean supportsUnwrapping() {
-    return supportsUnwrapping;
-  }
-
-  public static Format of(final String value) {
-    try {
-      return valueOf(StringUtil.cleanQuotes(value.toUpperCase()));
-    } catch (final IllegalArgumentException e) {
-      throw new KsqlException("Unknown format: " + value);
+  public static boolean toBoolean(final Literal literal, final String propertyName) {
+    final String value = literal.getValue().toString();
+    final boolean isTrue = value.equalsIgnoreCase("true");
+    final boolean isFalse = value.equalsIgnoreCase("false");
+    if (!isTrue && !isFalse) {
+      throw new KsqlException("Property '" + propertyName + "' is not a boolean value");
     }
+    return isTrue;
   }
 }

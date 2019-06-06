@@ -21,7 +21,9 @@ import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.schema.connect.SchemaFormatter;
+import io.confluent.ksql.schema.persistence.PersistenceSchema;
 import java.util.LinkedHashMap;
+import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Before;
@@ -33,9 +35,14 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class QuerySchemasTest {
 
-  private static final Schema SCHEMA_ONE = Schema.FLOAT64_SCHEMA;
-  private static final Schema SCHEMA_TWO = Schema.OPTIONAL_INT32_SCHEMA;
-  private static final Schema SCHEMA_THREE = Schema.STRING_SCHEMA;
+  private static final PersistenceSchema SCHEMA_ONE =
+      persistenceSchema(Schema.FLOAT64_SCHEMA);
+
+  private static final PersistenceSchema SCHEMA_TWO =
+      persistenceSchema(Schema.OPTIONAL_INT32_SCHEMA);
+
+  private static final PersistenceSchema SCHEMA_THREE =
+      persistenceSchema(Schema.STRING_SCHEMA);
 
   private static final String SCHEMA_ONE_TEXT = "{if you squint, this looks like schema one}";
   private static final String SCHEMA_TWO_TEXT = "{better looking than schema one}";
@@ -48,7 +55,7 @@ public class QuerySchemasTest {
 
   @Before
   public void setUp() {
-    final LinkedHashMap<String, Schema> orderedSchemas = linkedMapOf(
+    final LinkedHashMap<String, PersistenceSchema> orderedSchemas = linkedMapOf(
         "thing one", SCHEMA_ONE,
         "thing two", SCHEMA_TWO,
         "thing three", SCHEMA_THREE
@@ -56,9 +63,9 @@ public class QuerySchemasTest {
 
     schemas = new QuerySchemas(orderedSchemas, schemaFormatter);
 
-    when(schemaFormatter.format(SCHEMA_ONE)).thenReturn(SCHEMA_ONE_TEXT);
-    when(schemaFormatter.format(SCHEMA_TWO)).thenReturn(SCHEMA_TWO_TEXT);
-    when(schemaFormatter.format(SCHEMA_THREE)).thenReturn(SCHEMA_THREE_TEXT);
+    when(schemaFormatter.format(SCHEMA_ONE.getConnectSchema())).thenReturn(SCHEMA_ONE_TEXT);
+    when(schemaFormatter.format(SCHEMA_TWO.getConnectSchema())).thenReturn(SCHEMA_TWO_TEXT);
+    when(schemaFormatter.format(SCHEMA_THREE.getConnectSchema())).thenReturn(SCHEMA_THREE_TEXT);
   }
 
   @Test
@@ -129,22 +136,31 @@ public class QuerySchemasTest {
     ));
   }
 
-  private static LinkedHashMap<String, Schema> linkedMapOf(final Object... e) {
+  private static LinkedHashMap<String, PersistenceSchema> linkedMapOf(final Object... e) {
 
     assertThat("odd param count", e.length % 2, is(0));
 
-    final LinkedHashMap<String, Schema> map = new LinkedHashMap<>();
+    final LinkedHashMap<String, PersistenceSchema> map = new LinkedHashMap<>();
 
     for (int idx = 0; idx < e.length; ) {
       final Object key = e[idx++];
-      final Object value = e[idx++];
+      Object value = e[idx++];
 
       assertThat("key must be String", key, instanceOf(String.class));
-      assertThat("value must be Schema", value, instanceOf(Schema.class));
 
-      map.put((String) key, (Schema) value);
+      if (value instanceof ConnectSchema) {
+        value = persistenceSchema((ConnectSchema) value);
+      }
+
+      assertThat("value must be Schema", value, instanceOf(PersistenceSchema.class));
+
+      map.put((String) key, (PersistenceSchema) value);
     }
 
     return map;
+  }
+
+  private static PersistenceSchema persistenceSchema(final Schema connectSchema) {
+    return PersistenceSchema.of((ConnectSchema) connectSchema);
   }
 }

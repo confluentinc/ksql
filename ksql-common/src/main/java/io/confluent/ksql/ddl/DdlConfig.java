@@ -26,6 +26,7 @@ public final class DdlConfig {
   public static final String TIMESTAMP_NAME_PROPERTY = "TIMESTAMP";
   public static final String PARTITION_BY_PROPERTY = "PARTITION_BY";
   public static final String TIMESTAMP_FORMAT_PROPERTY = "TIMESTAMP_FORMAT";
+  public static final String WRAP_SINGLE_VALUE = "WRAP_SINGLE_VALUE";
 
   private DdlConfig() {
   }

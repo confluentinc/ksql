@@ -24,9 +24,9 @@ import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
+import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
-import java.util.Optional;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -68,10 +68,12 @@ public final class MetaStoreFixture {
         "sqlexpression",
         "TEST0",
         KsqlSchema.of(test1Schema),
+        SerdeOption.none(),
         KeyField.of("COL0", test1Schema.field("COL0")),
         timestampExtractionPolicy,
         ksqlTopic0,
-        Serdes::String);
+        Serdes::String
+    );
 
     metaStore.putTopic(ksqlTopic0);
     metaStore.putSource(ksqlStream0);
@@ -83,10 +85,12 @@ public final class MetaStoreFixture {
     final KsqlStream<?> ksqlStream1 = new KsqlStream<>("sqlexpression",
         "TEST1",
         KsqlSchema.of(test1Schema),
+        SerdeOption.none(),
         KeyField.of("COL0", test1Schema.field("COL0")),
         timestampExtractionPolicy,
         ksqlTopic1,
-        Serdes::String);
+        Serdes::String
+    );
 
     metaStore.putTopic(ksqlTopic1);
     metaStore.putSource(ksqlStream1);
@@ -108,10 +112,12 @@ public final class MetaStoreFixture {
         "sqlexpression",
         "TEST2",
         KsqlSchema.of(test2Schema),
+        SerdeOption.none(),
         KeyField.of("COL0", test2Schema.field("COL0")),
         timestampExtractionPolicy,
         ksqlTopic2,
-        Serdes::String);
+        Serdes::String
+    );
 
     metaStore.putTopic(ksqlTopic2);
     metaStore.putSource(ksqlTable);
@@ -154,10 +160,12 @@ public final class MetaStoreFixture {
         "sqlexpression",
         "ORDERS",
         KsqlSchema.of(ordersSchema),
+        SerdeOption.none(),
         KeyField.of("ORDERTIME", ordersSchema.field("ORDERTIME")),
         timestampExtractionPolicy,
         ksqlTopicOrders,
-        Serdes::String);
+        Serdes::String
+    );
 
     metaStore.putTopic(ksqlTopicOrders);
     metaStore.putSource(ksqlStreamOrders);
@@ -179,10 +187,12 @@ public final class MetaStoreFixture {
         "sqlexpression",
         "TEST3",
         KsqlSchema.of(testTable3),
+        SerdeOption.none(),
         KeyField.of("COL0", testTable3.field("COL0")),
         timestampExtractionPolicy,
         ksqlTopic3,
-        Serdes::String);
+        Serdes::String
+    );
 
     metaStore.putTopic(ksqlTopic3);
     metaStore.putSource(ksqlTable3);
@@ -203,10 +213,12 @@ public final class MetaStoreFixture {
         "sqlexpression",
         "NESTED_STREAM",
         KsqlSchema.of(nestedArrayStructMapSchema),
-        KeyField.of(Optional.empty(), Optional.empty()),
+        SerdeOption.none(),
+        KeyField.none(),
         timestampExtractionPolicy,
         nestedArrayStructMapTopic,
-        Serdes::String);
+        Serdes::String
+    );
 
     metaStore.putTopic(nestedArrayStructMapTopic);
     metaStore.putSource(nestedArrayStructMapOrders);
@@ -218,10 +230,12 @@ public final class MetaStoreFixture {
         "sqlexpression4",
         "TEST4",
         KsqlSchema.of(test1Schema),
-        KeyField.of(Optional.empty(), Optional.empty()),
+        SerdeOption.none(),
+        KeyField.none(),
         timestampExtractionPolicy,
         ksqlTopic4,
-        Serdes::String);
+        Serdes::String
+    );
 
     metaStore.putTopic(ksqlTopic4);
     metaStore.putSource(ksqlStream4);

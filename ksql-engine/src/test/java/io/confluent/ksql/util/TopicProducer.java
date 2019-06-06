@@ -15,15 +15,15 @@
 
 package io.confluent.ksql.util;
 
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.schema.ksql.KsqlSchema;
-import io.confluent.ksql.schema.persistence.PersistenceSchema;
-import io.confluent.ksql.serde.GenericRowSerDe.GenericRowSerializer;
-import io.confluent.ksql.serde.json.KsqlJsonSerializer;
+import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
+import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.serde.GenericRowSerDe;
+import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -37,18 +37,16 @@ import org.apache.kafka.common.serialization.StringSerializer;
 
 public class TopicProducer {
 
-  public static final long TEST_RECORD_FUTURE_TIMEOUT_MS = 5000;
+  private static final long TEST_RECORD_FUTURE_TIMEOUT_MS = 5000;
 
-  private final EmbeddedSingleNodeKafkaCluster cluster;
-  private final Properties producerConfig;
+  private final Map<String, Object> producerConfig;
 
   public TopicProducer(final EmbeddedSingleNodeKafkaCluster cluster) {
-    this.cluster = cluster;
-
-    this.producerConfig = new Properties();
-    producerConfig.putAll(cluster.getClientProperties());
-    producerConfig.put(ProducerConfig.ACKS_CONFIG, "all");
-    producerConfig.put(ProducerConfig.RETRIES_CONFIG, 0);
+    this.producerConfig = ImmutableMap.<String, Object>builder()
+        .putAll(cluster.getClientProperties())
+        .put(ProducerConfig.ACKS_CONFIG, "all")
+        .put(ProducerConfig.RETRIES_CONFIG, 0)
+        .build();
   }
 
   /**
@@ -64,12 +62,17 @@ public class TopicProducer {
   public Map<String, RecordMetadata> produceInputData(
       final String topicName,
       final Map<String, GenericRow> recordsToPublish,
-      final KsqlSchema schema
+      final PhysicalSchema schema
   ) throws InterruptedException, TimeoutException, ExecutionException {
 
-    final Serializer<GenericRow> serializer = new GenericRowSerializer(
-        new KsqlJsonSerializer(PersistenceSchema.of(schema.getSchema())),
-        schema.getSchema());
+    final Serializer<GenericRow> serializer = GenericRowSerDe.from(
+        new KsqlJsonSerdeFactory(),
+        schema,
+        new KsqlConfig(ImmutableMap.of()),
+        () -> null,
+        "ignored",
+        NoopProcessingLogContext.INSTANCE
+    ).serializer();
 
     final KafkaProducer<String, GenericRow> producer =
         new KafkaProducer<>(producerConfig, new StringSerializer(), serializer);

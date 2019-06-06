@@ -16,12 +16,14 @@
 package io.confluent.ksql.physical;
 
 import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
+import static io.confluent.ksql.metastore.model.MetaStoreMatchers.hasSerdeOptions;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.verifyProcessorNode;
 import static io.confluent.ksql.util.KsqlExceptionMatcher.rawMessage;
 import static io.confluent.ksql.util.KsqlExceptionMatcher.statementText;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
@@ -54,6 +56,7 @@ import io.confluent.ksql.planner.plan.PlanTestUtil;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
@@ -154,6 +157,7 @@ public class PhysicalPlanBuilderTest {
   private Consumer<QueryMetadata> queryCloseCallback;
 
   private KsqlConfig ksqlConfig;
+  private MetaStoreImpl engineMetastore;
 
   // Test implementation of KafkaStreamsBuilder that tracks calls and returned values
   private static class TestKafkaStreamsBuilder implements KafkaStreamsBuilder {
@@ -197,9 +201,10 @@ public class PhysicalPlanBuilderTest {
     processingLogContext = ProcessingLogContext.create();
     testKafkaStreamsBuilder = new TestKafkaStreamsBuilder(serviceContext);
     physicalPlanBuilder = buildPhysicalPlanBuilder(Collections.emptyMap());
+    engineMetastore = new MetaStoreImpl(new InternalFunctionRegistry());
     ksqlEngine = KsqlEngineTestUtil.createKsqlEngine(
         serviceContext,
-        new MetaStoreImpl(new InternalFunctionRegistry())
+        engineMetastore
     );
   }
 
@@ -250,7 +255,7 @@ public class PhysicalPlanBuilderTest {
     final QueryMetadata queryMetadata = buildPhysicalPlan(simpleSelectFilter);
 
     // Then:
-    assertThat(queryMetadata.getResultSchema(), is(KsqlSchema.of(
+    assertThat(queryMetadata.getLogicalSchema(), is(KsqlSchema.of(
         SchemaBuilder.struct()
             .field("COL0", Schema.OPTIONAL_INT64_SCHEMA)
             .field("COL2", Schema.OPTIONAL_STRING_SCHEMA)
@@ -266,10 +271,8 @@ public class PhysicalPlanBuilderTest {
         "CREATE STREAM FOO AS " + simpleSelectFilter);
 
     // Then:
-    assertThat(queryMetadata.getResultSchema(), is(KsqlSchema.of(
+    assertThat(queryMetadata.getLogicalSchema(), is(KsqlSchema.of(
         SchemaBuilder.struct()
-            .field("ROWTIME", Schema.OPTIONAL_INT64_SCHEMA)
-            .field("ROWKEY", Schema.OPTIONAL_STRING_SCHEMA)
             .field("COL0", Schema.OPTIONAL_INT64_SCHEMA)
             .field("COL2", Schema.OPTIONAL_STRING_SCHEMA)
             .field("COL3", Schema.OPTIONAL_FLOAT64_SCHEMA)
@@ -742,7 +745,7 @@ public class PhysicalPlanBuilderTest {
     givenKafkaTopicsExist("test1");
     final List<QueryMetadata> queryMetadataList = execute(
         CREATE_STREAM_TEST1 + csasQuery + insertIntoQuery);
-    final KsqlSchema resultSchema = queryMetadataList.get(0).getResultSchema();
+    final KsqlSchema resultSchema = queryMetadataList.get(0).getLogicalSchema();
     resultSchema.fields().forEach(
         field -> Assert.assertTrue(field.schema().isOptional())
     );
@@ -1047,6 +1050,50 @@ public class PhysicalPlanBuilderTest {
         + "ON test4.id = test5.rowkey;");
 
     // Then: did not throw.
+  }
+
+  @Test
+  public void shouldGetSingleValueSchemaWrappingFromPropertiesBeforeConfig() {
+    // Given:
+    givenConfigWith(KsqlConfig.KSQL_WRAP_SINGLE_VALUES, true);
+    givenKafkaTopicsExist("test1");
+    execute(CREATE_STREAM_TEST1);
+
+    // When:
+    execute("CREATE STREAM TEST2 WITH(WRAP_SINGLE_VALUE=false) AS SELECT COL0 FROM TEST1;");
+
+    // Then:
+    assertThat(engineMetastore.getSource("TEST2"),
+        hasSerdeOptions(hasItem(SerdeOption.UNWRAP_SINGLE_VALUES)));
+  }
+
+  @Test
+  public void shouldGetSingleValueSchemaWrappingFromConfig() {
+    // Given:
+    givenConfigWith(KsqlConfig.KSQL_WRAP_SINGLE_VALUES, false);
+    givenKafkaTopicsExist("test4");
+    execute(CREATE_TABLE_TEST4);
+
+    // When:
+    execute("CREATE TABLE TEST5 AS SELECT COL0 FROM TEST4;");
+
+    // Then:
+    assertThat(engineMetastore.getSource("TEST5"),
+        hasSerdeOptions(hasItem(SerdeOption.UNWRAP_SINGLE_VALUES)));
+  }
+
+  @Test
+  public void shouldDefaultToWrappingSingleValueSchemas() {
+    // Given:
+    givenKafkaTopicsExist("test4");
+    execute(CREATE_TABLE_TEST4);
+
+    // When:
+    execute("CREATE TABLE TEST5 AS SELECT COL0 FROM TEST4;");
+
+    // Then:
+    assertThat(engineMetastore.getSource("TEST5"),
+        hasSerdeOptions(not(hasItem(SerdeOption.UNWRAP_SINGLE_VALUES))));
   }
 
   @SuppressWarnings("SameParameterValue")

@@ -21,7 +21,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import io.confluent.ksql.schema.connect.SchemaWalker;
 import io.confluent.ksql.schema.connect.SchemaWalker.Visitor;
-import io.confluent.ksql.schema.persistence.PersistenceSchema;
 import io.confluent.ksql.serde.connect.ConnectDataTranslator;
 import io.confluent.ksql.serde.connect.DataTranslator;
 import java.util.ArrayList;
@@ -30,6 +29,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Schema.Type;
@@ -40,7 +40,7 @@ import org.apache.kafka.connect.data.Struct;
  * Translates KSQL data and schemas to Avro equivalents.
  *
  * <p>Responsible for converting the KSQL schema to a version ready for connect to convert to an
- *  avro schema.
+ * avro schema.
  *
  * <p>This includes ensuring field names are valid Avro field names and that nested types do not
  * have name clashes.
@@ -52,12 +52,11 @@ public class AvroDataTranslator implements DataTranslator {
   private final Schema avroCompatibleSchema;
 
   AvroDataTranslator(
-      final PersistenceSchema schema,
+      final Schema schema,
       final String schemaFullName,
       final boolean useNamedMaps
   ) {
-    this.ksqlSchema =
-        throwOnInvalidSchema(requireNonNull(schema, "schema").getConnectSchema());
+    this.ksqlSchema = throwOnInvalidSchema(Objects.requireNonNull(schema, "schema"));
 
     this.avroCompatibleSchema = buildAvroCompatibleSchema(
         this.ksqlSchema,
@@ -106,6 +105,7 @@ public class AvroDataTranslator implements DataTranslator {
   }
 
   private static final class TypeNameGenerator {
+
     private static final String DELIMITER = "_";
 
     static final String MAP_KEY_NAME = "MapKey";

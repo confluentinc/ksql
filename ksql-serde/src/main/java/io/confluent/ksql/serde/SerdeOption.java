@@ -15,30 +15,24 @@
 
 package io.confluent.ksql.serde;
 
-import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.StringUtil;
+import com.google.common.collect.ImmutableSet;
+import java.util.Set;
 
-public enum Format {
+public enum SerdeOption {
 
-  JSON(true),
-  AVRO(true),
-  DELIMITED(false);
+  /**
+   * If the value schema contains only a single field, persist it as an anonymous value.
+   *
+   * <p>If not set, any single field value schema will be persisted within an outer object, e.g.
+   * JSON Object or Avro Record.
+   */
+  UNWRAP_SINGLE_VALUES;
 
-  private final boolean supportsUnwrapping;
-
-  Format(final boolean supportsUnwrapping) {
-    this.supportsUnwrapping = supportsUnwrapping;
+  public static Set<SerdeOption> none() {
+    return ImmutableSet.of();
   }
 
-  public boolean supportsUnwrapping() {
-    return supportsUnwrapping;
-  }
-
-  public static Format of(final String value) {
-    try {
-      return valueOf(StringUtil.cleanQuotes(value.toUpperCase()));
-    } catch (final IllegalArgumentException e) {
-      throw new KsqlException("Unknown format: " + value);
-    }
+  public static Set<SerdeOption> of(final SerdeOption... options) {
+    return ImmutableSet.copyOf(options);
   }
 }

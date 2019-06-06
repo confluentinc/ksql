@@ -19,6 +19,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
 import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Schema;
@@ -65,11 +66,12 @@ public class StructuredDataSourceTest {
           "some SQL",
           "some name",
           schema,
-          keyField,
+          SerdeOption.none(), keyField,
           mock(TimestampExtractionPolicy.class),
           DataSourceType.KSTREAM,
           mock(KsqlTopic.class),
-          Serdes::String);
+          Serdes::String
+      );
     }
   }
 }

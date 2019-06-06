@@ -410,7 +410,7 @@ public class RecoveryTest {
     PersistentQueryMetadataMatcher(final PersistentQueryMetadata metadata) {
       this.sourcesNamesMatcher = equalTo(metadata.getSourceNames());
       this.sinkNamesMatcher = equalTo(metadata.getSinkNames());
-      this.resultSchemaMatcher = equalTo(metadata.getResultSchema());
+      this.resultSchemaMatcher = equalTo(metadata.getLogicalSchema());
       this.sqlMatcher = equalTo(metadata.getStatementString());
       this.stateMatcher = equalTo(metadata.getState());
     }
@@ -451,7 +451,7 @@ public class RecoveryTest {
       }
       if (!test(
           resultSchemaMatcher,
-          metadata.getResultSchema(),
+          metadata.getLogicalSchema(),
           description,
           "schema mismatch: "
       )) {

@@ -43,7 +43,7 @@ import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
-import io.confluent.ksql.schema.ksql.KsqlSchemaWithOptions;
+import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.persistence.PersistenceSchema;
 import io.confluent.ksql.serde.GenericRowSerDe;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
@@ -131,7 +131,7 @@ public class SchemaKGroupedTableTest {
     final KsqlSerdeFactory ksqlSerdeFactory = new KsqlJsonSerdeFactory();
     final Serde<GenericRow> rowSerde = GenericRowSerDe.from(
         ksqlSerdeFactory,
-        KsqlSchemaWithOptions.of(initialSchemaKTable.getSchema().withoutAlias(), SerdeOption.none()),
+        PhysicalSchema.from(initialSchemaKTable.getSchema().withoutAlias(), SerdeOption.none()),
         null,
         () -> null,
         "test",
@@ -159,7 +159,7 @@ public class SchemaKGroupedTableTest {
           windowExpression,
           GenericRowSerDe.from(
               new KsqlJsonSerdeFactory(),
-              KsqlSchemaWithOptions.of(ksqlTable.getSchema(), SerdeOption.none()),
+              PhysicalSchema.from(ksqlTable.getSchema(), SerdeOption.none()),
               ksqlConfig,
               () -> null,
               "test",
@@ -190,7 +190,7 @@ public class SchemaKGroupedTableTest {
           null,
           GenericRowSerDe.from(
               new KsqlJsonSerdeFactory(),
-              KsqlSchemaWithOptions.of(ksqlTable.getSchema(), SerdeOption.none()),
+              PhysicalSchema.from(ksqlTable.getSchema(), SerdeOption.none()),
               ksqlConfig,
               () -> null,
               "test",

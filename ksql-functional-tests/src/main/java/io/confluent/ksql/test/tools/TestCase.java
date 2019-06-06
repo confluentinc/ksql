@@ -43,7 +43,10 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.serialization.BytesDeserializer;
 import org.apache.kafka.common.serialization.Serializer;
+import org.apache.kafka.common.utils.Bytes;
+import org.apache.kafka.streams.TopologyTestDriver;
 import org.apache.kafka.streams.test.ConsumerRecordFactory;
 import org.apache.kafka.streams.test.OutputVerifier;
 import org.hamcrest.StringDescription;
@@ -177,13 +180,16 @@ public class TestCase implements Test {
   }
 
   @SuppressWarnings({"unchecked", "rawtypes"})
-  public void verifyOutput(final TopologyTestDriverContainer topologyTestDriverContainer,
-      final SchemaRegistryClient schemaRegistryClient) {
+  public void verifyOutput(
+      final TopologyTestDriverContainer topologyTestDriverContainer,
+      final SchemaRegistryClient schemaRegistryClient
+  ) {
     if (isAnyExceptionExpected()) {
       failDueToMissingException();
     }
 
     int idx = -1;
+
     try {
       for (idx = 0; idx < outputRecords.size(); idx++) {
         final Record expectedOutput = outputRecords.get(idx);
@@ -204,15 +210,29 @@ public class TestCase implements Test {
             expectedOutput.value,
             expectedOutput.timestamp);
       }
-    } catch (final AssertionError assertionError) {
+    } catch (final AssertionError e) {
       final String rowMsg = idx == -1 ? "" : " while processing output row " + idx;
       final String topicMsg = idx == -1 ? "" : " topic: " + outputRecords.get(idx).topic.name;
-      throw new AssertionError("TestCase name: "
-          + name
-          + " in file: " + testPath
-          + " failed" + rowMsg + topicMsg + " due to: "
-          + assertionError.getMessage(), assertionError);
+      throw new AssertionError("failed" + rowMsg + topicMsg + " due to: "
+          + e.getMessage(), e);
     }
+
+    throwIfMoreOutputAvailable(topologyTestDriverContainer.getTopologyTestDriver());
+  }
+
+  private void throwIfMoreOutputAvailable(
+      final TopologyTestDriver driver
+  ) {
+    topics.forEach(topic -> {
+      final ProducerRecord<Bytes, Bytes> record = driver.readOutput(
+              topic.getName(),
+              new BytesDeserializer(),
+              new BytesDeserializer());
+
+      if (record != null) {
+        throw new AssertionError("Unexpected records available on topic: " + topic.name);
+      }
+    });
   }
 
   public void initializeTopics(

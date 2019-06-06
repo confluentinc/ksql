@@ -16,7 +16,9 @@
 package io.confluent.ksql.planner.plan;
 
 import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
+import static java.util.Objects.requireNonNull;
 
+import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.model.KeyField;
@@ -24,7 +26,7 @@ import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.physical.KsqlQueryBuilder;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
-import io.confluent.ksql.schema.ksql.KsqlSchemaWithOptions;
+import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.structured.QueryContext;
 import io.confluent.ksql.structured.SchemaKStream;
@@ -33,7 +35,6 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.QueryIdGenerator;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import java.util.Collections;
-import java.util.Objects;
 import java.util.OptionalInt;
 import java.util.Set;
 import org.apache.kafka.common.serialization.Serde;
@@ -60,10 +61,10 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
       final Set<SerdeOption> serdeOptions
   ) {
     super(id, source, schema, limit, timestampExtractionPolicy);
-    this.serdeOptions = Objects.requireNonNull(serdeOptions, "serdeOptions");
-    this.keyField = Objects.requireNonNull(keyField, "keyField")
+    this.serdeOptions = ImmutableSet.copyOf(requireNonNull(serdeOptions, "serdeOptions"));
+    this.keyField = requireNonNull(keyField, "keyField")
         .validateKeyExistsIn(schema);
-    this.ksqlTopic = Objects.requireNonNull(ksqlTopic, "ksqlTopic");
+    this.ksqlTopic = requireNonNull(ksqlTopic, "ksqlTopic");
     this.selectKeyRequired = selectKeyRequired;
     this.doCreateInto = doCreateInto;
 
@@ -119,7 +120,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
 
     final Serde<GenericRow> outputRowSerde = builder.buildGenericRowSerde(
         getKsqlTopic().getValueSerdeFactory(),
-        KsqlSchemaWithOptions.of(getSchema().withoutImplicitFields(), serdeOptions),
+        PhysicalSchema.from(getSchema().withoutImplicitFields(), serdeOptions),
         contextStacker.getQueryContext()
     );
 

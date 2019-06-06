@@ -18,7 +18,7 @@ package io.confluent.ksql.util;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
-import io.confluent.ksql.schema.ksql.KsqlSchemaWithOptions;
+import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.GenericRowSerDe;
 import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
@@ -62,7 +62,7 @@ public class TopicProducer {
   public Map<String, RecordMetadata> produceInputData(
       final String topicName,
       final Map<String, GenericRow> recordsToPublish,
-      final KsqlSchemaWithOptions schema
+      final PhysicalSchema schema
   ) throws InterruptedException, TimeoutException, ExecutionException {
 
     final Serializer<GenericRow> serializer = GenericRowSerDe.from(

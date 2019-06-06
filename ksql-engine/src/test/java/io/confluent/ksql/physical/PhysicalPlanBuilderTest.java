@@ -255,7 +255,7 @@ public class PhysicalPlanBuilderTest {
     final QueryMetadata queryMetadata = buildPhysicalPlan(simpleSelectFilter);
 
     // Then:
-    assertThat(queryMetadata.getResultSchema(), is(KsqlSchema.of(
+    assertThat(queryMetadata.getLogicalSchema(), is(KsqlSchema.of(
         SchemaBuilder.struct()
             .field("COL0", Schema.OPTIONAL_INT64_SCHEMA)
             .field("COL2", Schema.OPTIONAL_STRING_SCHEMA)
@@ -271,7 +271,7 @@ public class PhysicalPlanBuilderTest {
         "CREATE STREAM FOO AS " + simpleSelectFilter);
 
     // Then:
-    assertThat(queryMetadata.getResultSchema(), is(KsqlSchema.of(
+    assertThat(queryMetadata.getLogicalSchema(), is(KsqlSchema.of(
         SchemaBuilder.struct()
             .field("COL0", Schema.OPTIONAL_INT64_SCHEMA)
             .field("COL2", Schema.OPTIONAL_STRING_SCHEMA)
@@ -745,7 +745,7 @@ public class PhysicalPlanBuilderTest {
     givenKafkaTopicsExist("test1");
     final List<QueryMetadata> queryMetadataList = execute(
         CREATE_STREAM_TEST1 + csasQuery + insertIntoQuery);
-    final KsqlSchema resultSchema = queryMetadataList.get(0).getResultSchema();
+    final KsqlSchema resultSchema = queryMetadataList.get(0).getLogicalSchema();
     resultSchema.fields().forEach(
         field -> Assert.assertTrue(field.schema().isOptional())
     );

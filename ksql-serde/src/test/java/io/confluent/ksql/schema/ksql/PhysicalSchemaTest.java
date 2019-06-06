@@ -29,7 +29,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-public class KsqlSchemaWithOptionsTest {
+public class PhysicalSchemaTest {
 
   private static final KsqlSchema SCHEMA_WITH_MULTIPLE_FIELDS = KsqlSchema.of(SchemaBuilder.struct()
       .field("f0", Schema.OPTIONAL_BOOLEAN_SCHEMA)
@@ -47,27 +47,27 @@ public class KsqlSchemaWithOptionsTest {
   public void shouldNPE() {
     new NullPointerTester()
         .setDefault(KsqlSchema.class, SCHEMA_WITH_MULTIPLE_FIELDS)
-        .testAllPublicStaticMethods(KsqlSchemaWithOptions.class);
+        .testAllPublicStaticMethods(PhysicalSchema.class);
   }
 
   @Test
   public void shouldBeImmutable() {
     new ImmutableTester()
-        .test(KsqlSchemaWithOptions.class);
+        .test(PhysicalSchema.class);
   }
 
   @Test
   public void shouldImplementEquals() {
     new EqualsTester()
         .addEqualityGroup(
-            KsqlSchemaWithOptions.of(SCHEMA_WITH_SINGLE_FIELD, SerdeOption.none()),
-            KsqlSchemaWithOptions.of(SCHEMA_WITH_SINGLE_FIELD, SerdeOption.none())
+            PhysicalSchema.from(SCHEMA_WITH_SINGLE_FIELD, SerdeOption.none()),
+            PhysicalSchema.from(SCHEMA_WITH_SINGLE_FIELD, SerdeOption.none())
         )
         .addEqualityGroup(
-            KsqlSchemaWithOptions.of(SCHEMA_WITH_MULTIPLE_FIELDS, SerdeOption.none())
+            PhysicalSchema.from(SCHEMA_WITH_MULTIPLE_FIELDS, SerdeOption.none())
         )
         .addEqualityGroup(
-            KsqlSchemaWithOptions.of(SCHEMA_WITH_SINGLE_FIELD,
+            PhysicalSchema.from(SCHEMA_WITH_SINGLE_FIELD,
                 SerdeOption.of(SerdeOption.UNWRAP_SINGLE_VALUES))
         )
         .testEquals();
@@ -76,11 +76,11 @@ public class KsqlSchemaWithOptionsTest {
   @Test
   public void shouldNotFlattenValueSchemaWithMultipleFields() {
     // When:
-    final KsqlSchemaWithOptions result = KsqlSchemaWithOptions
-        .of(SCHEMA_WITH_MULTIPLE_FIELDS, SerdeOption.none());
+    final PhysicalSchema result = PhysicalSchema
+        .from(SCHEMA_WITH_MULTIPLE_FIELDS, SerdeOption.none());
 
     // Then:
-    assertThat(result.getPhysicalSchema().valueSchema().getConnectSchema(),
+    assertThat(result.valueSchema().getConnectSchema(),
         is(SCHEMA_WITH_MULTIPLE_FIELDS.getSchema()));
   }
 
@@ -92,29 +92,29 @@ public class KsqlSchemaWithOptionsTest {
         "'WRAP_SINGLE_VALUE' is only valid for single-field value schemas");
 
     // When:
-    KsqlSchemaWithOptions
-        .of(SCHEMA_WITH_MULTIPLE_FIELDS, SerdeOption.of(SerdeOption.UNWRAP_SINGLE_VALUES));
+    PhysicalSchema
+        .from(SCHEMA_WITH_MULTIPLE_FIELDS, SerdeOption.of(SerdeOption.UNWRAP_SINGLE_VALUES));
   }
 
   @Test
   public void shouldNotFlattenValueSchemaIfNotConfiguredTo() {
     // When:
-    final KsqlSchemaWithOptions result = KsqlSchemaWithOptions
-        .of(SCHEMA_WITH_SINGLE_FIELD, SerdeOption.none());
+    final PhysicalSchema result = PhysicalSchema
+        .from(SCHEMA_WITH_SINGLE_FIELD, SerdeOption.none());
 
     // Then:
-    assertThat(result.getPhysicalSchema().valueSchema().getConnectSchema(),
+    assertThat(result.valueSchema().getConnectSchema(),
         is(SCHEMA_WITH_SINGLE_FIELD.getSchema()));
   }
 
   @Test
   public void shouldFlattenValueSchemasWithOneFieldAndConfiguredTo() {
     // When:
-    final KsqlSchemaWithOptions result = KsqlSchemaWithOptions
-        .of(SCHEMA_WITH_SINGLE_FIELD, SerdeOption.of(SerdeOption.UNWRAP_SINGLE_VALUES));
+    final PhysicalSchema result = PhysicalSchema
+        .from(SCHEMA_WITH_SINGLE_FIELD, SerdeOption.of(SerdeOption.UNWRAP_SINGLE_VALUES));
 
     // Then:
-    assertThat(result.getPhysicalSchema().valueSchema().getConnectSchema(),
+    assertThat(result.valueSchema().getConnectSchema(),
         is(SCHEMA_WITH_SINGLE_FIELD.fields().get(0).schema()));
   }
 }

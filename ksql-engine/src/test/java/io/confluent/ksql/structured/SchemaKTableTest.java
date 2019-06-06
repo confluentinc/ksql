@@ -48,7 +48,7 @@ import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
-import io.confluent.ksql.schema.ksql.KsqlSchemaWithOptions;
+import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.GenericRowSerDe;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.serde.SerdeOption;
@@ -197,7 +197,7 @@ public class SchemaKTableTest {
   private Serde<GenericRow> getRowSerde(final KsqlTopic topic, final ConnectSchema schema) {
     return GenericRowSerDe.from(
         topic.getValueSerdeFactory(),
-        KsqlSchemaWithOptions.of(KsqlSchema.of(schema), SerdeOption.none()),
+        PhysicalSchema.from(KsqlSchema.of(schema), SerdeOption.none()),
         new KsqlConfig(Collections.emptyMap()),
         MockSchemaRegistryClient::new,
         "test",
@@ -331,7 +331,7 @@ public class SchemaKTableTest {
     final KsqlSerdeFactory ksqlSerdeFactory = new KsqlJsonSerdeFactory();
     final Serde<GenericRow> rowSerde = GenericRowSerDe.from(
         ksqlSerdeFactory,
-        KsqlSchemaWithOptions.of(initialSchemaKTable.getSchema(), SerdeOption.none()),
+        PhysicalSchema.from(initialSchemaKTable.getSchema(), SerdeOption.none()),
         null,
         () -> null,
         "test",
@@ -407,7 +407,7 @@ public class SchemaKTableTest {
     final List<Expression> groupByExpressions = Arrays.asList(TEST_2_COL_2, TEST_2_COL_1);
     final Serde<GenericRow> rowSerde = GenericRowSerDe.from(
         new KsqlJsonSerdeFactory(),
-        KsqlSchemaWithOptions.of(initialSchemaKTable.getSchema(), SerdeOption.none()),
+        PhysicalSchema.from(initialSchemaKTable.getSchema(), SerdeOption.none()),
         null,
         () -> null,
         "test",
@@ -650,7 +650,7 @@ public class SchemaKTableTest {
 
     rowSerde = GenericRowSerDe.from(
         new KsqlJsonSerdeFactory(),
-        KsqlSchemaWithOptions.of(initialSchemaKTable.getSchema(), SerdeOption.none()),
+        PhysicalSchema.from(initialSchemaKTable.getSchema(), SerdeOption.none()),
         null,
         () -> null,
         "test",

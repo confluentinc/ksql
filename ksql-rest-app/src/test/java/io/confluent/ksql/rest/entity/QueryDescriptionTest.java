@@ -28,9 +28,9 @@ import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.physical.LimitHandler;
 import io.confluent.ksql.physical.QuerySchemas;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.rest.entity.SchemaInfo.Type;
+import io.confluent.ksql.schema.SqlType;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
-import io.confluent.ksql.schema.ksql.KsqlSchemaWithOptions;
+import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -66,8 +66,8 @@ public class QueryDescriptionTest {
           .build());
 
   private static final List<FieldInfo> EXPECTED_FIELDS = Arrays.asList(
-      new FieldInfo("field1", new SchemaInfo(Type.INTEGER, null, null)),
-      new FieldInfo("field2", new SchemaInfo(Type.STRING, null, null)));
+      new FieldInfo("field1", new SchemaInfo(SqlType.INTEGER, null, null)),
+      new FieldInfo("field2", new SchemaInfo(SqlType.STRING, null, null)));
 
   private static final String STATEMENT = "statement";
   private static final Map<String, Object> STREAMS_PROPS = Collections.singletonMap("k1", "v1");
@@ -138,7 +138,7 @@ public class QueryDescriptionTest {
     final PersistentQueryMetadata queryMetadata = new PersistentQueryMetadata(
         "test statement",
         queryStreams,
-        KsqlSchemaWithOptions.of(SCHEMA, SerdeOption.none()),
+        PhysicalSchema.from(SCHEMA, SerdeOption.none()),
         Collections.emptySet(),
         fakeSink.getName(),
         "execution plan",

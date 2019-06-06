@@ -41,7 +41,7 @@ import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.physical.KsqlQueryBuilder;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
-import io.confluent.ksql.schema.ksql.KsqlSchemaWithOptions;
+import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
@@ -378,7 +378,7 @@ public class DataSourceNodeTest {
     // Given:
     final DataSourceNode node = nodeWithMockTableSource();
 
-    final KsqlSchemaWithOptions expected = KsqlSchemaWithOptions.of(realSchema, serdeOptions);
+    final PhysicalSchema expected = PhysicalSchema.from(realSchema, serdeOptions);
 
     // When:
     node.buildStream(ksqlStreamBuilder);

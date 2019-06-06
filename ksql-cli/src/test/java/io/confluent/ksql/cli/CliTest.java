@@ -59,7 +59,7 @@ import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.rest.server.computation.CommandId;
 import io.confluent.ksql.rest.server.resources.Errors;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
-import io.confluent.ksql.schema.ksql.KsqlSchemaWithOptions;
+import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
@@ -313,7 +313,7 @@ public class CliTest {
 
   private void testCreateStreamAsSelect(
       String selectQuery,
-      final KsqlSchemaWithOptions resultSchema,
+      final PhysicalSchema resultSchema,
       final Map<String, GenericRow> expectedResults
   ) {
     if (!selectQuery.endsWith(";")) {
@@ -574,7 +574,7 @@ public class CliTest {
             80.0,
             new Double[]{1100.0, 1110.99, 970.0})));
 
-    final KsqlSchemaWithOptions resultSchema = KsqlSchemaWithOptions.of(
+    final PhysicalSchema resultSchema = PhysicalSchema.from(
         KsqlSchema.of(SchemaBuilder.struct()
             .field("ITEMID", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
             .field("ORDERUNITS", SchemaBuilder.OPTIONAL_FLOAT64_SCHEMA)
@@ -645,8 +645,8 @@ public class CliTest {
         orderDataProvider.kstreamName()
     );
 
-    final Schema sourceSchema = orderDataProvider.schema().getLogicalSchema().getSchema();
-    final KsqlSchemaWithOptions resultSchema = KsqlSchemaWithOptions.of(
+    final Schema sourceSchema = orderDataProvider.schema().logicalSchema().getSchema();
+    final PhysicalSchema resultSchema = PhysicalSchema.from(
         KsqlSchema.of(SchemaBuilder.struct()
             .field("ITEMID", sourceSchema.field("ITEMID").schema())
             .field("COL1", sourceSchema.field("ORDERUNITS").schema())

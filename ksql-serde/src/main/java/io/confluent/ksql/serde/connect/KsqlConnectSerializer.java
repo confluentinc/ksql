@@ -15,25 +15,25 @@
 
 package io.confluent.ksql.serde.connect;
 
-import io.confluent.ksql.schema.persistence.PersistenceSchema;
 import java.util.Map;
 import java.util.Objects;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Serializer;
+import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.storage.Converter;
 
 public class KsqlConnectSerializer implements Serializer<Object> {
 
-  private final PersistenceSchema physicalSchema;
+  private final Schema schema;
   private final DataTranslator translator;
   private final Converter converter;
 
   public KsqlConnectSerializer(
-      final PersistenceSchema physicalSchema,
+      final Schema schema,
       final DataTranslator translator,
       final Converter converter
   ) {
-    this.physicalSchema = Objects.requireNonNull(physicalSchema, "physicalSchema");
+    this.schema = Objects.requireNonNull(schema, "schema");
     this.translator = Objects.requireNonNull(translator, "translator");
     this.converter = Objects.requireNonNull(converter, "converter");
   }
@@ -46,7 +46,7 @@ public class KsqlConnectSerializer implements Serializer<Object> {
 
     try {
       final Object connectRow = translator.toConnectRow(data);
-      return converter.fromConnectData(topic, physicalSchema.getConnectSchema(), connectRow);
+      return converter.fromConnectData(topic, schema, connectRow);
     } catch (final Exception e) {
       throw new SerializationException(
           "Error serializing message to topic: " + topic, e);

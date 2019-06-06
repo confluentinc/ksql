@@ -22,7 +22,7 @@ import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.physical.QuerySchemas;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.schema.ksql.KsqlSchemaWithOptions;
+import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.Format;
 import java.util.Map;
 import java.util.Set;
@@ -39,13 +39,13 @@ public class PersistentQueryMetadata extends QueryMetadata {
   private final KsqlTopic resultTopic;
   private final Set<String> sinkNames;
   private final QuerySchemas schemas;
-  private final KsqlSchemaWithOptions resultSchema;
+  private final PhysicalSchema resultSchema;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   public PersistentQueryMetadata(
       final String statementString,
       final KafkaStreams kafkaStreams,
-      final KsqlSchemaWithOptions resultSchema,
+      final PhysicalSchema schema,
       final Set<String> sourceNames,
       final String sinkName,
       final String executionPlan,
@@ -63,7 +63,7 @@ public class PersistentQueryMetadata extends QueryMetadata {
     super(
         statementString,
         kafkaStreams,
-        resultSchema.getLogicalSchema(),
+        schema.logicalSchema(),
         sourceNames,
         executionPlan,
         dataSourceType,
@@ -77,7 +77,7 @@ public class PersistentQueryMetadata extends QueryMetadata {
     this.resultTopic = requireNonNull(resultTopic, "resultTopic");
     this.sinkNames = ImmutableSet.of(sinkName);
     this.schemas = requireNonNull(schemas, "schemas");
-    this.resultSchema = requireNonNull(resultSchema, "resultSchema");
+    this.resultSchema = requireNonNull(schema, "schema");
   }
 
   private PersistentQueryMetadata(
@@ -116,7 +116,7 @@ public class PersistentQueryMetadata extends QueryMetadata {
     return schemas.toString();
   }
 
-  public KsqlSchemaWithOptions getResultSchemaWithOptions() {
+  public PhysicalSchema getPhysicalSchema() {
     return resultSchema;
   }
 }

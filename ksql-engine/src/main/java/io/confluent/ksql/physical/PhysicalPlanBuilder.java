@@ -35,7 +35,7 @@ import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
-import io.confluent.ksql.schema.ksql.KsqlSchemaWithOptions;
+import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.structured.QueuedSchemaKStream;
 import io.confluent.ksql.structured.SchemaKStream;
@@ -284,8 +284,8 @@ public class PhysicalPlanBuilder {
 
     final Topology topology = builder.build();
 
-    final KsqlSchemaWithOptions querySchema = KsqlSchemaWithOptions
-        .of(outputNode.getSchema().withoutImplicitFields(), outputNode.getSerdeOptions());
+    final PhysicalSchema querySchema = PhysicalSchema
+        .from(outputNode.getSchema().withoutImplicitFields(), outputNode.getSerdeOptions());
 
     return new PersistentQueryMetadata(
         sqlExpression,

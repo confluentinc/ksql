@@ -29,7 +29,7 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
-import io.confluent.ksql.schema.ksql.KsqlSchemaWithOptions;
+import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.services.DefaultServiceContext;
 import io.confluent.ksql.services.KafkaTopicClient;
@@ -128,7 +128,7 @@ public class JsonFormatTest {
     final Map<String, GenericRow> records = new HashMap<>();
     records.put("1", messageRow);
 
-    final KsqlSchemaWithOptions schema = KsqlSchemaWithOptions.of(
+    final PhysicalSchema schema = PhysicalSchema.from(
         KsqlSchema.of(messageSchema),
         SerdeOption.none()
     );
@@ -243,7 +243,7 @@ public class JsonFormatTest {
   ) {
     final DataSource<?> source = metaStore.getSource(streamName);
 
-    final KsqlSchemaWithOptions resultSchema = KsqlSchemaWithOptions.of(
+    final PhysicalSchema resultSchema = PhysicalSchema.from(
         source.getSchema().withoutImplicitFields(),
         source.getSerdeOptions()
     );

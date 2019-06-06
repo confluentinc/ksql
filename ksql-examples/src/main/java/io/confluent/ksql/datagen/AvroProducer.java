@@ -21,7 +21,7 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
-import io.confluent.ksql.schema.ksql.KsqlSchemaWithOptions;
+import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.GenericRowSerDe;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.avro.KsqlAvroSerdeFactory;
@@ -56,7 +56,7 @@ public class AvroProducer extends DataGenProducer {
   ) {
     return GenericRowSerDe.from(
         new KsqlAvroSerdeFactory(KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME),
-        KsqlSchemaWithOptions.of(KsqlSchema.of(kafkaSchema), SerdeOption.none()),
+        PhysicalSchema.from(KsqlSchema.of(kafkaSchema), SerdeOption.none()),
         ksqlConfig,
         () -> schemaRegistryClient,
         "",

@@ -32,8 +32,8 @@
   "ksql.query.persistent.active.limit" : "2147483647"
 }
 CONFIGS_END
-CSAS_S3_0.KsqlTopic.source = struct<ID optional<int64>,ARRAY_COL optional<array<optional<array<optional<string>>>>>>
-CSAS_S3_0.S3 = struct<ID optional<int64>,ARRAY_ITEM optional<string>>
+CSAS_S3_0.KsqlTopic.source = STRUCT<ID BIGINT, ARRAY_COL ARRAY<ARRAY<VARCHAR>>> NOT NULL
+CSAS_S3_0.S3 = STRUCT<ID BIGINT, ARRAY_ITEM VARCHAR> NOT NULL
 SCHEMAS_END
 Topologies:
    Sub-topology: 0

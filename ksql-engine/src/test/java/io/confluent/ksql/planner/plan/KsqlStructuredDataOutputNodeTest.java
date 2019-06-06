@@ -40,7 +40,7 @@ import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.physical.KsqlQueryBuilder;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
-import io.confluent.ksql.schema.ksql.KsqlSchemaWithOptions;
+import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.avro.KsqlAvroSerdeFactory;
@@ -310,7 +310,7 @@ public class KsqlStructuredDataOutputNodeTest {
     outputNode.buildStream(ksqlStreamBuilder);
 
     // Then:
-    final KsqlSchemaWithOptions expectedSchema = KsqlSchemaWithOptions.of(schema, serdeOptions);
+    final PhysicalSchema expectedSchema = PhysicalSchema.from(schema, serdeOptions);
     verify(ksqlStreamBuilder).buildGenericRowSerde(
         eq(valueSerdeFactory),
         eq(expectedSchema),

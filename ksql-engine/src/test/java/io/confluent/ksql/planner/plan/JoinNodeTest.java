@@ -26,6 +26,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -43,8 +44,9 @@ import io.confluent.ksql.physical.KsqlQueryBuilder;
 import io.confluent.ksql.planner.plan.JoinNode.JoinType;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
-import io.confluent.ksql.schema.ksql.KsqlSchemaWithOptions;
+import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
+import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.structured.QueryContext;
@@ -1030,8 +1032,8 @@ public class JoinNodeTest {
     joinNode.buildStream(ksqlStreamBuilder);
 
     // Then:
-    final KsqlSchemaWithOptions expected = KsqlSchemaWithOptions
-        .of(leftSchema, leftSource.getSerdeOptions());
+    final PhysicalSchema expected = PhysicalSchema
+        .from(leftSchema, SerdeOption.none());
 
     verify(ksqlStreamBuilder).buildGenericRowSerde(
         any(),
@@ -1062,13 +1064,40 @@ public class JoinNodeTest {
     joinNode.buildStream(ksqlStreamBuilder);
 
     // Then:
-    final KsqlSchemaWithOptions expected = KsqlSchemaWithOptions
-        .of(rightSchema, rightSource.getSerdeOptions());
+    final PhysicalSchema expected = PhysicalSchema
+        .from(rightSchema, SerdeOption.none());
 
     verify(ksqlStreamBuilder).buildGenericRowSerde(
         any(),
         eq(expected),
         any());
+  }
+
+  @Test
+  public void shouldNotUseSourceSerdeOptionsForInternalTopics() {
+    // Given:
+    setupStream(left, leftSchemaKStream, leftSchema);
+    setupStream(right, rightSchemaKStream, rightSchema);
+
+    final JoinNode joinNode = new JoinNode(
+        nodeId,
+        JoinNode.JoinType.LEFT,
+        left,
+        right,
+        LEFT_JOIN_FIELD_NAME,
+        RIGHT_JOIN_FIELD_NAME,
+        leftAlias,
+        rightAlias,
+        WITHIN_EXPRESSION,
+        DataSourceType.KSTREAM,
+        DataSourceType.KSTREAM);
+
+    // When:
+    joinNode.buildStream(ksqlStreamBuilder);
+
+    // Then:
+    verify(leftSource, never()).getSerdeOptions();
+    verify(rightSource, never()).getSerdeOptions();
   }
 
   @SuppressWarnings("unchecked")

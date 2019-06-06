@@ -51,7 +51,8 @@
         {"topic": "COUNT_BY_REGION", "key": "west", "value": {"REGION": "west", "COUNTS": {"carol": 1}}},
         {"topic": "COUNT_BY_REGION", "key": "west", "value": {"REGION": "west", "COUNTS": {"carol": 1, "dave": 1}}},
         {"topic": "COUNT_BY_REGION", "key": "east", "value": {"REGION": "east", "COUNTS": {"alice": 1}}},
-        {"topic": "COUNT_BY_REGION", "key": "west", "value": {"REGION": "west", "COUNTS": {"carol": 1, "dave": 1, "bob": 1}}}
+        {"topic": "COUNT_BY_REGION", "key": "west", "value": {"REGION": "west", "COUNTS": {"carol": 1, "dave": 1, "bob": 1}}},
+        {"topic": "COUNT_BY_REGION", "key": "west", "value": {"REGION": "west", "COUNTS": {"carol": 1, "dave": 1}}}
       ]
     }
   ]

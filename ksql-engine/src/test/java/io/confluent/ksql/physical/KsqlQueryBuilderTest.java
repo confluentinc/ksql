@@ -174,7 +174,7 @@ public class KsqlQueryBuilderTest {
 
     // Then:
     assertThat(ksqlQueryBuilder.getSchemas().toString(),
-        is("fred.context = struct<f0 optional<boolean>>"));
+        is("fred.context = STRUCT<f0 BOOLEAN> NOT NULL"));
   }
 
   @Test
@@ -194,6 +194,6 @@ public class KsqlQueryBuilderTest {
 
     // Then:
     assertThat(ksqlQueryBuilder.getSchemas().toString(),
-        is("fred.context = optional<boolean>"));
+        is("fred.context = BOOLEAN"));
   }
 }

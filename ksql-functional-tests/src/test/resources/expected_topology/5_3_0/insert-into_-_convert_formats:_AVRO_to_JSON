@@ -32,8 +32,8 @@
   "ksql.query.persistent.active.limit" : "2147483647"
 }
 CONFIGS_END
-InsertQuery_0.KsqlTopic.source = struct<A optional<int64>,B optional<string>>
-InsertQuery_0.SINK = struct<A optional<int64>,B optional<string>>
+InsertQuery_0.KsqlTopic.source = STRUCT<A BIGINT, B VARCHAR> NOT NULL
+InsertQuery_0.SINK = STRUCT<A BIGINT, B VARCHAR> NOT NULL
 SCHEMAS_END
 Topologies:
    Sub-topology: 0

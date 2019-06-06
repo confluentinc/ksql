@@ -391,11 +391,12 @@ The WITH clause supports the following properties:
 |                         | If not supplied, the system default, defined by :ref:`ksql-persistence-wrap-single-values` |
 |                         | and defaulting to ``true```, is used.                                                      |
 |                         |                                                                                            |
-|                         | Note: Supplying this property for formats that do not support wrapping, for example        |
-|                         | `DELIMITED`, will result in an error                                                       |
+|                         | Note: ``null`` values have special meaning in KSQL. Care should be taken when dealing with |
+|                         | single-field schemas where the value can be ``null`. For more information, see             |
+|                         | :ref:`ksql_single_field_wrapping`.                                                         |
 |                         |                                                                                            |
-|                         | Note: Supplying this property when the value schema has multiple fields will result in an  |
-|                         | error.                                                                                     |
+|                         | Note: Supplying this property for formats that do not support wrapping, for example        |
+|                         | `DELIMITED`, or when the value schema has multiple fields, will result in an error.        |
 +-------------------------+--------------------------------------------------------------------------------------------+
 | WINDOW_TYPE             | By default, the topic is assumed to contain non-windowed data. If the data is windowed,    |
 |                         | i.e. was created using KSQL using a query that contains a ``WINDOW`` clause, then the      |
@@ -505,11 +506,12 @@ The WITH clause supports the following properties:
 |                         | If not supplied, the system default, defined by :ref:`ksql-persistence-wrap-single-values` |
 |                         | and defaulting to ``true```, is used.                                                      |
 |                         |                                                                                            |
-|                         | Note: Supplying this property for formats that do not support wrapping, for example        |
-|                         | `DELIMITED`, will result in an error                                                       |
+|                         | Note: ``null`` values have special meaning in KSQL. Care should be taken when dealing with |
+|                         | single-field schemas where the value can be ``null`. For more information, see             |
+|                         | :ref:`ksql_single_field_wrapping`.                                                         |
 |                         |                                                                                            |
-|                         | Note: Supplying this property when the value schema has multiple fields will result in an  |
-|                         | error.                                                                                     |
+|                         | Note: Supplying this property for formats that do not support wrapping, for example        |
+|                         | `DELIMITED`, or when the value schema has multiple fields, will result in an error.        |
 +-------------------------+--------------------------------------------------------------------------------------------+
 | WINDOW_TYPE             | By default, the topic is assumed to contain non-windowed data. If the data is windowed,    |
 |                         | i.e. was created using KSQL using a query that contains a ``WINDOW`` clause, then the      |
@@ -638,11 +640,12 @@ The WITH clause for the result supports the following properties:
 |                         | If not supplied, the system default, defined by :ref:`ksql-persistence-wrap-single-values` and       |
 |                         | defaulting to ``true```, is used.                                                                    |
 |                         |                                                                                                      |
-|                         | Note: Supplying this property for formats that do not support wrapping, for example                  |
-|                         | `DELIMITED`, will result in an error                                                                 |
+|                         | Note: ``null`` values have special meaning in KSQL. Care should be taken when dealing with           |
+|                         | single-field schemas where the value can be ``null`. For more information, see                       |
+|                         | :ref:`ksql_single_field_wrapping`.                                                                   |
 |                         |                                                                                                      |
-|                         | Note: Supplying this property when the value schema has multiple fields will result in an            |
-|                         | error.                                                                                               |
+|                         | Note: Supplying this property for formats that do not support wrapping, for example                  |
+|                         | `DELIMITED`, or when the value schema has multiple fields, will result in an error.                  |
 +-------------------------+------------------------------------------------------------------------------------------------------+
 
 .. include:: ../includes/ksql-includes.rst
@@ -742,11 +745,12 @@ The WITH clause supports the following properties:
 |                         | If not supplied, the system default, defined by :ref:`ksql-persistence-wrap-single-values` and       |
 |                         | defaulting to ``true```, is used.                                                                    |
 |                         |                                                                                                      |
-|                         | Note: Supplying this property for formats that do not support wrapping, for example                  |
-|                         | `DELIMITED`, will result in an error                                                                 |
+|                         | Note: ``null`` values have special meaning in KSQL. Care should be taken when dealing with           |
+|                         | single-field schemas where the value can be ``null`. For more information, see                       |
+|                         | :ref:`ksql_single_field_wrapping`.                                                                   |
 |                         |                                                                                                      |
-|                         | Note: Supplying this property when the value schema has multiple fields will result in an            |
-|                         | error.                                                                                               |
+|                         | Note: Supplying this property for formats that do not support wrapping, for example                  |
+|                         | `DELIMITED`, or when the value schema has multiple fields, will result in an error.                  |
 +-------------------------+------------------------------------------------------------------------------------------------------+
 
 .. include:: ../includes/ksql-includes.rst

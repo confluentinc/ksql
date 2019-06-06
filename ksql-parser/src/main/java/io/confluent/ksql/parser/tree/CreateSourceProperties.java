@@ -53,6 +53,7 @@ public final class CreateSourceProperties {
       .add(DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME.toUpperCase())
       .add(KsqlConstants.SOURCE_NUMBER_OF_PARTITIONS.toUpperCase())
       .add(KsqlConstants.SOURCE_NUMBER_OF_REPLICAS.toUpperCase())
+      .add(DdlConfig.WRAP_SINGLE_VALUE.toUpperCase())
       .build();
 
   private static final java.util.Map<String, SerdeFactory<Windowed<String>>> WINDOW_TYPES =
@@ -76,6 +77,7 @@ public final class CreateSourceProperties {
   private final Property<Integer> avroSchemaId;
   private final Property<Integer> partitions;
   private final Property<Short> replicas;
+  private final Property<Boolean> wrapSingleValues;
 
   public CreateSourceProperties(final Map<String, Literal> original) {
     final Map<String, Literal> properties = original
@@ -144,6 +146,12 @@ public final class CreateSourceProperties {
         properties,
         replicas -> Short.parseShort(replicas.toString())
     );
+
+    wrapSingleValues = Property.from(
+        DdlConfig.WRAP_SINGLE_VALUE,
+        properties,
+        v -> Boolean.parseBoolean(v.toString())
+    );
   }
 
   public String toString() {
@@ -159,6 +167,7 @@ public final class CreateSourceProperties {
         .add(avroSchemaName)
         .add(partitions)
         .add(replicas)
+        .add(wrapSingleValues)
         .build()
         .filter(Property::isPresent)
         .map(Object::toString)
@@ -177,7 +186,9 @@ public final class CreateSourceProperties {
       final Property<Integer> avroSchemaId,
       final Property<String> timestampFormat,
       final Property<Integer> partitions,
-      final Property<Short> replicas) {
+      final Property<Short> replicas,
+      final Property<Boolean> wrapSingleValues
+  ) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     this.valueFormat = Objects.requireNonNull(valueFormat, "valueFormat");
     this.kafkaTopic = Objects.requireNonNull(kafkaTopic, "kafkaTopic");
@@ -190,6 +201,7 @@ public final class CreateSourceProperties {
     this.avroSchemaName = Objects.requireNonNull(avroSchemaName, "avroSchemaName");
     this.partitions = Objects.requireNonNull(partitions, "partitions");
     this.replicas = Objects.requireNonNull(replicas, "replicas");
+    this.wrapSingleValues = Objects.requireNonNull(wrapSingleValues, "wrapSingleValues");
   }
 
   public Format getValueFormat() {
@@ -236,6 +248,10 @@ public final class CreateSourceProperties {
     return Optional.ofNullable(replicas.value);
   }
 
+  public Optional<Boolean> getWrapSingleValues() {
+    return Optional.ofNullable(wrapSingleValues.value);
+  }
+
   public CreateSourceProperties withSchemaId(final int id) {
     return new CreateSourceProperties(
         ksqlTopic,
@@ -251,7 +267,8 @@ public final class CreateSourceProperties {
             ignored -> id),
         timestampFormat,
         partitions,
-        replicas
+        replicas,
+        wrapSingleValues
     );
   }
 
@@ -276,7 +293,8 @@ public final class CreateSourceProperties {
         new Property<>(
             KsqlConstants.SOURCE_NUMBER_OF_REPLICAS,
             new IntegerLiteral(replicas), ignored ->
-            replicas)
+            replicas),
+        wrapSingleValues
     );
   }
 
@@ -301,14 +319,26 @@ public final class CreateSourceProperties {
         && Objects.equals(avroSchemaName, that.avroSchemaName)
         && Objects.equals(avroSchemaId, that.avroSchemaId)
         && Objects.equals(partitions, that.partitions)
-        && Objects.equals(replicas, that.replicas);
+        && Objects.equals(replicas, that.replicas)
+        && Objects.equals(wrapSingleValues, that.wrapSingleValues);
   }
 
   @Override
   public int hashCode() {
-    return Objects
-        .hash(kafkaTopic, valueFormat, key, ksqlTopic, windowType, timestampName, timestampFormat,
-            avroSchemaName, avroSchemaId, partitions, replicas);
+    return Objects.hash(
+        kafkaTopic,
+        valueFormat,
+        key,
+        ksqlTopic,
+        windowType,
+        timestampName,
+        timestampFormat,
+        avroSchemaName,
+        avroSchemaId,
+        partitions,
+        replicas,
+        wrapSingleValues
+    );
   }
 
   private static final class Property<T> {

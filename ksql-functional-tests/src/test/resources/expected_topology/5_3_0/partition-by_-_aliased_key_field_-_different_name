@@ -32,8 +32,8 @@
   "ksql.query.persistent.active.limit" : "2147483647"
 }
 CONFIGS_END
-CSAS_REPARTITIONED_0.KsqlTopic.source = struct<ID optional<string>,NAME optional<string>>
-CSAS_REPARTITIONED_0.REPARTITIONED = struct<ID_NEW optional<string>,NAME optional<string>>
+CSAS_REPARTITIONED_0.KsqlTopic.source = STRUCT<ID VARCHAR, NAME VARCHAR> NOT NULL
+CSAS_REPARTITIONED_0.REPARTITIONED = STRUCT<ID_NEW VARCHAR, NAME VARCHAR> NOT NULL
 SCHEMAS_END
 Topologies:
    Sub-topology: 0

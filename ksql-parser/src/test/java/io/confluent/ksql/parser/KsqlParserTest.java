@@ -72,6 +72,7 @@ import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.schema.SqlType;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
@@ -144,33 +145,37 @@ public class KsqlParserTest {
         .field("ADDRESS", addressSchema)
         .build();
 
-    final KsqlTopic
-        ksqlTopicOrders =
+    final KsqlTopic ksqlTopicOrders =
         new KsqlTopic("ADDRESS_TOPIC", "orders_topic", new KsqlJsonSerdeFactory(), false);
 
     final KsqlStream ksqlStreamOrders = new KsqlStream<>(
         "sqlexpression",
         "ADDRESS",
         KsqlSchema.of(schemaBuilderOrders),
+        SerdeOption.none(),
         KeyField.of("ORDERTIME", schemaBuilderOrders.field("ORDERTIME")),
         new MetadataTimestampExtractionPolicy(),
         ksqlTopicOrders,
-        Serdes::String);
+        Serdes::String
+    );
 
     metaStore.putTopic(ksqlTopicOrders);
     metaStore.putSource(ksqlStreamOrders);
 
-    final KsqlTopic
-        ksqlTopicItems =
+    final KsqlTopic ksqlTopicItems =
         new KsqlTopic("ITEMS_TOPIC", "item_topic", new KsqlJsonSerdeFactory(), false);
+
     final KsqlTable<String> ksqlTableOrders = new KsqlTable<>(
         "sqlexpression",
         "ITEMID",
         KsqlSchema.of(itemInfoSchema),
+        SerdeOption.none(),
         KeyField.of("ITEMID", itemInfoSchema.field("ITEMID")),
         new MetadataTimestampExtractionPolicy(),
         ksqlTopicItems,
-        Serdes::String);
+        Serdes::String
+    );
+
     metaStore.putTopic(ksqlTopicItems);
     metaStore.putSource(ksqlTableOrders);
   }

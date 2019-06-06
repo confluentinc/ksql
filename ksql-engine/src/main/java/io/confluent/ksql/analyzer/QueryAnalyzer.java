@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.analyzer;
 
+import static java.util.Objects.requireNonNull;
+
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
@@ -26,10 +28,10 @@ import io.confluent.ksql.parser.tree.FunctionCall;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Sink;
+import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.AggregateExpressionRewriter;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -37,13 +39,17 @@ import java.util.stream.Collectors;
 public class QueryAnalyzer {
   private final MetaStore metaStore;
   private final String outputTopicPrefix;
+  private final Set<SerdeOption> defaultSerdeOptions;
 
   public QueryAnalyzer(
       final MetaStore metaStore,
-      final String outputTopicPrefix
+      final String outputTopicPrefix,
+      final Set<SerdeOption> defaultSerdeOptions
   ) {
-    this.metaStore = Objects.requireNonNull(metaStore, "metaStore");
-    this.outputTopicPrefix = Objects.requireNonNull(outputTopicPrefix, "outputTopicPrefix");
+    this.metaStore = requireNonNull(metaStore, "metaStore");
+    this.outputTopicPrefix = requireNonNull(outputTopicPrefix, "outputTopicPrefix");
+    this.defaultSerdeOptions = ImmutableSet.copyOf(
+        requireNonNull(defaultSerdeOptions, "defaultSerdeOptions"));
   }
 
   public Analysis analyze(
@@ -51,7 +57,7 @@ public class QueryAnalyzer {
       final Query query,
       final Optional<Sink> sink
   ) {
-    return new Analyzer(metaStore, outputTopicPrefix)
+    return new Analyzer(metaStore, outputTopicPrefix, defaultSerdeOptions)
         .analyze(sqlExpression, query, sink);
   }
 

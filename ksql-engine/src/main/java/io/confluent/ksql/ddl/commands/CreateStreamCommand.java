@@ -19,16 +19,18 @@ import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.services.KafkaTopicClient;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 
 public class CreateStreamCommand extends CreateSourceCommand {
 
-  public CreateStreamCommand(
+  CreateStreamCommand(
       final String sqlExpression,
       final CreateStream createStream,
+      final KsqlConfig ksqlConfig,
       final KafkaTopicClient kafkaTopicClient
   ) {
-    super(sqlExpression, createStream, kafkaTopicClient);
+    super(sqlExpression, createStream, ksqlConfig, kafkaTopicClient);
   }
 
   @Override
@@ -48,6 +50,7 @@ public class CreateStreamCommand extends CreateSourceCommand {
         sqlExpression,
         sourceName,
         schema.withImplicitFields(),
+        getSerdeOptions(),
         keyField,
         timestampExtractionPolicy,
         metaStore.getTopic(topicName),

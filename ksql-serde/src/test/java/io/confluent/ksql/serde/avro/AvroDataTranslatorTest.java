@@ -60,7 +60,7 @@ public class AvroDataTranslatorTest {
     );
     assertThat(struct.get("STREAM_NAME_COLUMN_NAME"), equalTo(123));
 
-    final Object translatedRow = dataTranslator.toKsqlRow(struct.schema(), struct);
+    final Struct translatedRow = (Struct) dataTranslator.toKsqlRow(struct.schema(), struct);
     assertThat(translatedRow, equalTo(ksqlRow));
   }
 
@@ -79,6 +79,7 @@ public class AvroDataTranslatorTest {
         .field("STRUCT_INNER", Schema.OPTIONAL_STRING_SCHEMA)
         .optional()
         .build();
+
     final Schema schema = SchemaBuilder.struct()
         .field("ARRAY", SchemaBuilder.array(arrayInner).optional().build())
         .field(
@@ -151,7 +152,7 @@ public class AvroDataTranslatorTest {
         struct.getStruct("STRUCT").getString("STRUCT_INNER"),
         equalTo("foo"));
 
-    final Object translatedRow = dataTranslator.toKsqlRow(struct.schema(), struct);
+    final Struct translatedRow = (Struct) dataTranslator.toKsqlRow(struct.schema(), struct);
     assertThat(translatedRow, equalTo(ksqlRow));
   }
 
@@ -177,7 +178,7 @@ public class AvroDataTranslatorTest {
 
     assertThat(struct.get("COLUMN_NAME"), nullValue());
 
-    final Object translatedRow = dataTranslator.toKsqlRow(struct.schema(), struct);
+    final Struct translatedRow = (Struct) dataTranslator.toKsqlRow(struct.schema(), struct);
     assertThat(translatedRow, equalTo(ksqlRow));
   }
 
@@ -202,7 +203,7 @@ public class AvroDataTranslatorTest {
 
     assertThat(struct.get("COLUMN_NAME"), equalTo(123L));
 
-    final Object translatedRow = dataTranslator.toKsqlRow(struct.schema(), struct);
+    final Struct translatedRow = (Struct) dataTranslator.toKsqlRow(struct.schema(), struct);
     assertThat(translatedRow, equalTo(ksqlRow));
   }
 
@@ -210,9 +211,9 @@ public class AvroDataTranslatorTest {
   public void shouldUseExplicitSchemaName() {
     // Given:
     final Schema schema = SchemaBuilder.struct()
-            .field("COLUMN_NAME", Schema.OPTIONAL_INT64_SCHEMA)
-            .optional()
-            .build();
+        .field("COLUMN_NAME", Schema.OPTIONAL_INT64_SCHEMA)
+        .optional()
+        .build();
 
     String schemaFullName = "com.custom.schema";
 

@@ -19,7 +19,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -28,20 +27,23 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
-import io.confluent.ksql.schema.persistence.PersistenceSchema;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.util.KsqlConfig;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.function.Supplier;
+import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serializer;
-import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -51,14 +53,34 @@ public class GenericRowSerDeTest {
 
   private static final String LOGGER_PREFIX = "bob";
 
-  private static final ConnectSchema ROW_SCHEMA = (ConnectSchema) SchemaBuilder.struct()
-      .field("f0", Schema.OPTIONAL_STRING_SCHEMA)
-      .field("f1", Schema.OPTIONAL_INT32_SCHEMA)
-      .build();
+  private static final PhysicalSchema MUTLI_FIELD_SCHEMA =
+      PhysicalSchema.from(
+          KsqlSchema.of(SchemaBuilder.struct()
+              .field("f0", Schema.OPTIONAL_STRING_SCHEMA)
+              .field("f1", Schema.OPTIONAL_INT32_SCHEMA)
+              .build()),
+          SerdeOption.none());
+
+  private static final PhysicalSchema WRAPPED_SINGLE_FIELD_SCHEMA =
+      PhysicalSchema.from(
+          KsqlSchema.of(SchemaBuilder.struct()
+              .field("f0", Schema.OPTIONAL_STRING_SCHEMA)
+              .build()),
+          SerdeOption.none());
+
+  private static final PhysicalSchema UNWRAPPED_SINGLE_FIELD_SCHEMA =
+      PhysicalSchema.from(
+          KsqlSchema.of(SchemaBuilder.struct()
+              .field("f0", Schema.OPTIONAL_STRING_SCHEMA)
+              .build()),
+          SerdeOption.of(SerdeOption.UNWRAP_SINGLE_VALUES));
 
   private static final String SOME_TOPIC = "fred";
   private static final byte[] SOME_BYTES = "Vic".getBytes(StandardCharsets.UTF_8);
   private static final Map<String, ?> SOME_CONFIG = ImmutableMap.of("some", "thing");
+
+  @Rule
+  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private KsqlSerdeFactory valueSerdeFactory;
@@ -74,6 +96,7 @@ public class GenericRowSerDeTest {
   private Serializer<Object> delegateSerializer;
   @Mock
   private Deserializer<Object> delegateDeserializer;
+
   private Serde<GenericRow> rowSerde;
 
   @Before
@@ -82,25 +105,15 @@ public class GenericRowSerDeTest {
     when(deletageSerde.serializer()).thenReturn(delegateSerializer);
     when(deletageSerde.deserializer()).thenReturn(delegateDeserializer);
 
-    rowSerde = GenericRowSerDe.from(
-        valueSerdeFactory,
-        ROW_SCHEMA,
-        ksqlConfig,
-        srClientFactory,
-        LOGGER_PREFIX,
-        processingContext
-    );
+    when(delegateSerializer.serialize(any(), any())).thenReturn(SOME_BYTES);
   }
 
   @Test
   public void shouldGetStructSerdeOnConstruction() {
-    // Given:
-    clearInvocations(valueSerdeFactory);
-
     // When:
     GenericRowSerDe.from(
         valueSerdeFactory,
-        ROW_SCHEMA,
+        MUTLI_FIELD_SCHEMA,
         ksqlConfig,
         srClientFactory,
         LOGGER_PREFIX,
@@ -109,7 +122,7 @@ public class GenericRowSerDeTest {
 
     // Then:
     verify(valueSerdeFactory).createSerde(
-        PersistenceSchema.of(ROW_SCHEMA),
+        MUTLI_FIELD_SCHEMA.valueSchema(),
         ksqlConfig,
         srClientFactory,
         LOGGER_PREFIX,
@@ -125,7 +138,7 @@ public class GenericRowSerDeTest {
     // When:
     GenericRowSerDe.from(
         valueSerdeFactory,
-        ROW_SCHEMA,
+        MUTLI_FIELD_SCHEMA,
         ksqlConfig,
         srClientFactory,
         LOGGER_PREFIX,
@@ -135,7 +148,8 @@ public class GenericRowSerDeTest {
 
   @Test(expected = NullPointerException.class)
   public void shouldThrowOnNullSchema() {
-     GenericRowSerDe.from(
+    // When:
+    GenericRowSerDe.from(
         valueSerdeFactory,
         null,
         ksqlConfig,
@@ -146,9 +160,10 @@ public class GenericRowSerDeTest {
   }
 
   @Test
-  public void shouldConfigureInnerSerializer() {
+  public void shouldConfigureInnerSerializerForWrapped() {
     // Given:
-    final Serializer<GenericRow> serializer = rowSerde.serializer();
+    final Serializer<GenericRow> serializer = givenSerdeForSchema(MUTLI_FIELD_SCHEMA)
+        .serializer();
 
     // When:
     serializer.configure(SOME_CONFIG, true);
@@ -158,9 +173,36 @@ public class GenericRowSerDeTest {
   }
 
   @Test
-  public void shouldConfigureInnerDeserializer() {
+  public void shouldConfigureInnerSerializerForUnwrapped() {
     // Given:
-    final Deserializer<GenericRow> deserializer = rowSerde.deserializer();
+    final Serializer<GenericRow> serializer = givenSerdeForSchema(UNWRAPPED_SINGLE_FIELD_SCHEMA)
+        .serializer();
+
+    // When:
+    serializer.configure(SOME_CONFIG, true);
+
+    // Then:
+    verify(delegateSerializer).configure(SOME_CONFIG, true);
+  }
+
+  @Test
+  public void shouldConfigureInnerDeserializerForWrapped() {
+    // Given:
+    final Deserializer<GenericRow> deserializer = givenSerdeForSchema(MUTLI_FIELD_SCHEMA)
+        .deserializer();
+
+    // When:
+    deserializer.configure(SOME_CONFIG, true);
+
+    // Then:
+    verify(delegateDeserializer).configure(SOME_CONFIG, true);
+  }
+
+  @Test
+  public void shouldConfigureInnerDeserializerForUnwrapped() {
+    // Given:
+    final Deserializer<GenericRow> deserializer = givenSerdeForSchema(UNWRAPPED_SINGLE_FIELD_SCHEMA)
+        .deserializer();
 
     // When:
     deserializer.configure(SOME_CONFIG, true);
@@ -172,6 +214,8 @@ public class GenericRowSerDeTest {
   @Test
   public void shouldRequestNewSerializerEachTime() {
     // Given:
+    givenSerdeForSchema(MUTLI_FIELD_SCHEMA);
+
     rowSerde.serializer();
 
     // When:
@@ -184,6 +228,8 @@ public class GenericRowSerDeTest {
   @Test
   public void shouldRequestNewDeserializerEachTime() {
     // Given:
+    givenSerdeForSchema(UNWRAPPED_SINGLE_FIELD_SCHEMA);
+
     rowSerde.deserializer();
 
     // When:
@@ -194,13 +240,12 @@ public class GenericRowSerDeTest {
   }
 
   @Test
-  public void shouldSerializeGenericRow() {
+  public void shouldSerializeMultiFieldGenericRow() {
     // Given:
+    final Serializer<GenericRow> serializer = givenSerdeForSchema(MUTLI_FIELD_SCHEMA)
+        .serializer();
+
     final GenericRow row = new GenericRow("str", 10);
-
-    when(delegateSerializer.serialize(any(), any())).thenReturn(SOME_BYTES);
-
-    final Serializer<GenericRow> serializer = rowSerde.serializer();
 
     // When:
     final byte[] bytes = serializer.serialize(SOME_TOPIC, row);
@@ -208,7 +253,7 @@ public class GenericRowSerDeTest {
     // Then:
     verify(delegateSerializer).serialize(
         SOME_TOPIC,
-        new Struct(ROW_SCHEMA)
+        new Struct(MUTLI_FIELD_SCHEMA.logicalSchema().getSchema())
             .put("f0", "str")
             .put("f1", 10)
     );
@@ -217,11 +262,12 @@ public class GenericRowSerDeTest {
   }
 
   @Test
-  public void shouldSerializeNullGenericRow() {
+  public void shouldSerializeNullMultiFieldGenericRow() {
     // Given:
-    when(delegateSerializer.serialize(any(), any())).thenReturn(null);
+    final Serializer<GenericRow> serializer = givenSerdeForSchema(MUTLI_FIELD_SCHEMA)
+        .serializer();
 
-    final Serializer<GenericRow> serializer = rowSerde.serializer();
+    when(delegateSerializer.serialize(any(), any())).thenReturn(null);
 
     // When:
     final byte[] bytes = serializer.serialize(SOME_TOPIC, null);
@@ -233,14 +279,118 @@ public class GenericRowSerDeTest {
   }
 
   @Test
-  public void shouldDeserializeGenericRow() {
+  public void shouldThrowOnSerializationOnTooFewFields() {
     // Given:
+    final Serializer<GenericRow> serializer = givenSerdeForSchema(MUTLI_FIELD_SCHEMA)
+        .serializer();
+
+    final GenericRow tooFew = new GenericRow("str");
+
+    // Then:
+    expectedException.expect(SerializationException.class);
+    expectedException.expectMessage("Field count mismatch. expected: 2, got: 1");
+
+    // When:
+    serializer.serialize(SOME_TOPIC, tooFew);
+  }
+
+  @Test
+  public void shouldThrowOnSerializationOnTooManyFields() {
+    // Given:
+    final Serializer<GenericRow> serializer = givenSerdeForSchema(MUTLI_FIELD_SCHEMA)
+        .serializer();
+
+    final GenericRow tooFew = new GenericRow("str", 10, "extra");
+
+    // Then:
+    expectedException.expect(SerializationException.class);
+    expectedException.expectMessage("Field count mismatch. expected: 2, got: 3");
+
+    // When:
+    serializer.serialize(SOME_TOPIC, tooFew);
+  }
+
+  @Test
+  public void shouldSerializeWrappedSingleFieldGenericRow() {
+    // Given:
+    final Serializer<GenericRow> serializer = givenSerdeForSchema(WRAPPED_SINGLE_FIELD_SCHEMA)
+        .serializer();
+
+    final GenericRow row = new GenericRow("str");
+
+    // When:
+    final byte[] bytes = serializer.serialize(SOME_TOPIC, row);
+
+    // Then:
+    verify(delegateSerializer).serialize(
+        SOME_TOPIC,
+        new Struct(WRAPPED_SINGLE_FIELD_SCHEMA.logicalSchema().getSchema())
+            .put("f0", "str")
+    );
+
+    assertThat(bytes, is(SOME_BYTES));
+  }
+
+  @Test
+  public void shouldSerializeUnwrappedSingleFieldGenericRow() {
+    // Given:
+    final Serializer<GenericRow> serializer = givenSerdeForSchema(UNWRAPPED_SINGLE_FIELD_SCHEMA)
+        .serializer();
+
+    final GenericRow row = new GenericRow("str");
+
+    // When:
+    final byte[] bytes = serializer.serialize(SOME_TOPIC, row);
+
+    // Then:
+    verify(delegateSerializer).serialize(SOME_TOPIC, "str");
+
+    assertThat(bytes, is(SOME_BYTES));
+  }
+
+  @Test
+  public void shouldSerializeNullUnwrappedSingleFieldGenericRow() {
+    // Given:
+    final Serializer<GenericRow> serializer = givenSerdeForSchema(UNWRAPPED_SINGLE_FIELD_SCHEMA)
+        .serializer();
+
+    when(delegateSerializer.serialize(any(), any())).thenReturn(null);
+
+    // When:
+    final byte[] bytes = serializer.serialize(SOME_TOPIC, null);
+
+    // Then:
+    verify(delegateSerializer).serialize(SOME_TOPIC, null);
+
+    assertThat(bytes, is(nullValue()));
+  }
+
+  @Test
+  public void shouldThrowOnMultiFieldRowIfUsingUnwrappedSerializer() {
+    // Given:
+    final Serializer<GenericRow> serializer = givenSerdeForSchema(UNWRAPPED_SINGLE_FIELD_SCHEMA)
+        .serializer();
+
+    final GenericRow row = new GenericRow("str", "too many fields");
+
+    // Then:
+    expectedException.expect(SerializationException.class);
+    expectedException.expectMessage("Expected single-field value. got: 2");
+
+    // When:
+    serializer.serialize(SOME_TOPIC, row);
+  }
+
+  @Test
+  public void shouldDeserializeMultiFieldGenericRow() {
+    // Given:
+    final Deserializer<GenericRow> deserializer = givenSerdeForSchema(MUTLI_FIELD_SCHEMA)
+        .deserializer();
+
     when(delegateDeserializer.deserialize(any(), any()))
-        .thenReturn(new Struct(ROW_SCHEMA)
+        .thenReturn(new Struct(MUTLI_FIELD_SCHEMA.logicalSchema().getSchema())
             .put("f0", "str")
             .put("f1", 10));
-
-    final Deserializer<GenericRow> deserializer = rowSerde.deserializer();
 
     // When:
     final GenericRow row = deserializer.deserialize(SOME_TOPIC, SOME_BYTES);
@@ -252,11 +402,12 @@ public class GenericRowSerDeTest {
   }
 
   @Test
-  public void shouldDeserializeNullGenericRow() {
+  public void shouldDeserializeNullMultiFieldGenericRow() {
     // Given:
-    when(delegateDeserializer.deserialize(any(), any())).thenReturn(null);
+    final Deserializer<GenericRow> deserializer = givenSerdeForSchema(MUTLI_FIELD_SCHEMA)
+        .deserializer();
 
-    final Deserializer<GenericRow> deserializer = rowSerde.deserializer();
+    when(delegateDeserializer.deserialize(any(), any())).thenReturn(null);
 
     // When:
     final GenericRow row = deserializer.deserialize(SOME_TOPIC, null);
@@ -265,5 +416,70 @@ public class GenericRowSerDeTest {
     verify(delegateDeserializer).deserialize(SOME_TOPIC, null);
 
     assertThat(row, is(nullValue()));
+  }
+
+  @Test
+  public void shouldDeserializeWrappedSingleFieldGenericRow() {
+    // Given:
+    final Deserializer<GenericRow> deserializer = givenSerdeForSchema(WRAPPED_SINGLE_FIELD_SCHEMA)
+        .deserializer();
+
+    when(delegateDeserializer.deserialize(any(), any()))
+        .thenReturn(new Struct(WRAPPED_SINGLE_FIELD_SCHEMA.logicalSchema().getSchema())
+            .put("f0", "str"));
+
+    // When:
+    final GenericRow row = deserializer.deserialize(SOME_TOPIC, SOME_BYTES);
+
+    // Then:
+    verify(delegateDeserializer).deserialize(SOME_TOPIC, SOME_BYTES);
+
+    assertThat(row, is(new GenericRow("str")));
+  }
+
+  @Test
+  public void shouldDeserializeUnwrappedSingleFieldGenericRow() {
+    // Given:
+    final Deserializer<GenericRow> deserializer = givenSerdeForSchema(UNWRAPPED_SINGLE_FIELD_SCHEMA)
+        .deserializer();
+
+    when(delegateDeserializer.deserialize(any(), any())).thenReturn("str");
+
+    // When:
+    final GenericRow row = deserializer.deserialize(SOME_TOPIC, SOME_BYTES);
+
+    // Then:
+    verify(delegateDeserializer).deserialize(SOME_TOPIC, SOME_BYTES);
+
+    assertThat(row, is(new GenericRow("str")));
+  }
+
+  @Test
+  public void shouldDeserializeNullUnwrappedSingleFieldGenericRow() {
+    // Given:
+    final Deserializer<GenericRow> deserializer = givenSerdeForSchema(UNWRAPPED_SINGLE_FIELD_SCHEMA)
+        .deserializer();
+
+    when(delegateDeserializer.deserialize(any(), any())).thenReturn(null);
+
+    // When:
+    final GenericRow row = deserializer.deserialize(SOME_TOPIC, SOME_BYTES);
+
+    // Then:
+    verify(delegateDeserializer).deserialize(SOME_TOPIC, SOME_BYTES);
+
+    assertThat(row, is(nullValue()));
+  }
+
+  private Serde<GenericRow> givenSerdeForSchema(final PhysicalSchema schema) {
+    rowSerde = GenericRowSerDe.from(
+        valueSerdeFactory,
+        schema,
+        ksqlConfig,
+        srClientFactory,
+        LOGGER_PREFIX,
+        processingContext
+    );
+    return rowSerde;
   }
 }

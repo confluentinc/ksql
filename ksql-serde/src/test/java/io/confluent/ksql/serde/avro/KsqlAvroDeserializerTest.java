@@ -16,9 +16,13 @@
 package io.confluent.ksql.serde.avro;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.fail;
+import static org.junit.internal.matchers.ThrowableMessageMatcher.hasMessage;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -27,7 +31,7 @@ import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.AbstractKafkaAvroSerDeConfig;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
-import io.confluent.ksql.logging.processing.ProcessingLogContext;
+import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.schema.persistence.PersistenceSchema;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
@@ -35,16 +39,21 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.stream.Collectors;
 import org.apache.avro.LogicalTypes;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
+import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.connect.data.ConnectSchema;
-import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
@@ -53,69 +62,266 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
+import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class KsqlAvroDeserializerTest {
 
-  private static final String AVRO_SCHEMA_STRING = "{"
+  private static final org.apache.avro.Schema BOOLEAN_AVRO_SCHEMA =
+      parseAvroSchema("{\"type\": \"boolean\"}");
+
+  private static final org.apache.avro.Schema INT_AVRO_SCHEMA =
+      parseAvroSchema("{\"type\": \"int\"}");
+
+  private static final org.apache.avro.Schema LONG_AVRO_SCHEMA =
+      parseAvroSchema("{\"type\": \"long\"}");
+
+  private static final org.apache.avro.Schema DOUBLE_AVRO_SCHEMA =
+      parseAvroSchema("{\"type\": \"double\"}");
+
+  private static final org.apache.avro.Schema STRING_AVRO_SCHEMA =
+      parseAvroSchema("{\"type\": \"string\"}");
+
+  private static final org.apache.avro.Schema STRING_ARRAY_AVRO_SCHEMA =
+      parseAvroSchema("{\"type\": \"array\", \"items\": \"string\"}");
+
+  private static final org.apache.avro.Schema INT_MAP_AVRO_SCHEMA =
+      parseAvroSchema("{\"type\": \"map\", \"values\": \"int\"}");
+
+  private static final org.apache.avro.Schema LONG_MAP_AVRO_SCHEMA =
+      parseAvroSchema("{\"type\": \"map\", \"values\": \"long\"}");
+
+  private static final org.apache.avro.Schema ARRAY_OF_MAP_AVRO_SCHEMA =
+      parseAvroSchema("{\"type\": \"array\", \"items\": ["
+          + "\"null\", "
+          + "{\"type\": \"map\", \"values\": \"long\"}"
+          + "]}");
+
+  private static final org.apache.avro.Schema ORDER_AVRO_SCHEMA = parseAvroSchema("{"
       + "\"namespace\": \"kql\","
-      + " \"name\": \"orders\","
-      + " \"type\": \"record\","
-      + " \"fields\": ["
-      + "     {\"name\": \"orderTime\", \"type\": \"long\"},"
-      + "     {\"name\": \"orderId\",  \"type\": \"long\"},"
-      + "     {\"name\": \"itemId\", \"type\": \"string\"},"
-      + "     {\"name\": \"orderUnits\", \"type\": \"double\"},"
-      + "     {\"name\": \"arrayCol\", \"type\": {\"type\": \"array\", \"items\": "
-      + "\"double\"}},"
-      + "     {\"name\": \"mapCol\", \"type\": {\"type\": \"map\", \"values\": "
-      + "\"double\"}}"
+      + "\"name\": \"orders\","
+      + "\"type\": \"record\","
+      + "\"fields\": ["
+      + " {\"name\": \"orderTime\", \"type\": [\"null\",\"long\"]},"
+      + " {\"name\": \"orderId\",  \"type\": [\"null\",\"long\"]},"
+      + " {\"name\": \"itemId\", \"type\": [\"null\",\"string\"]},"
+      + " {\"name\": \"orderUnits\", \"type\": [\"null\",\"double\"]},"
+      + " {\"name\": \"arrayCol\", \"type\": {\"type\": \"array\", \"items\": [\"null\",\"double\"]}},"
+      + " {\"name\": \"mapCol\", \"type\": {\"type\": \"map\", \"values\": [\"null\",\"double\"]}}"
       + " ]"
-      + "}";
+      + "}");
 
-  private static final org.apache.avro.Schema AVRO_SCHEMA = new org.apache.avro.Schema.Parser()
-      .parse(AVRO_SCHEMA_STRING);
+  private static final String SOME_TOPIC = "bob";
 
-  private static final Schema SCHEMA = SchemaBuilder.struct()
-      .field("ORDERTIME", Schema.OPTIONAL_INT64_SCHEMA)
-      .field("ORDERID", Schema.OPTIONAL_INT64_SCHEMA)
-      .field("ITEMID", Schema.OPTIONAL_STRING_SCHEMA)
-      .field("ORDERUNITS", Schema.OPTIONAL_FLOAT64_SCHEMA)
-      .field("ARRAYCOL", SchemaBuilder
-          .array(Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build())
-      .field("MAPCOL", SchemaBuilder
-          .map(Schema.STRING_SCHEMA, Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build())
+  private static final String ORDERTIME = "ORDERTIME";
+  private static final String ORDERID = "ORDERID";
+  private static final String ITEMID = "ITEMID";
+  private static final String ORDERUNITS = "ORDERUNITS";
+  private static final String ARRAYCOL = "ARRAYCOL";
+  private static final String MAPCOL = "MAPCOL";
+
+  private static final Schema ORDER_SCHEMA = SchemaBuilder.struct()
+      .field(ORDERTIME, Schema.OPTIONAL_INT64_SCHEMA)
+      .field(ORDERID, Schema.OPTIONAL_INT64_SCHEMA)
+      .field(ITEMID, Schema.OPTIONAL_STRING_SCHEMA)
+      .field(ORDERUNITS, Schema.OPTIONAL_FLOAT64_SCHEMA)
+      .field(ARRAYCOL, SchemaBuilder
+          .array(Schema.OPTIONAL_FLOAT64_SCHEMA)
+          .optional()
+          .build())
+      .field(MAPCOL, SchemaBuilder
+          .map(Schema.STRING_SCHEMA, Schema.OPTIONAL_FLOAT64_SCHEMA)
+          .optional()
+          .build())
       .optional()
       .build();
 
+  private static final Map<String, Object> AN_ORDER = ImmutableMap.<String, Object>builder()
+      .put("orderTime", 1511897796092L)
+      .put("orderId", 1L)
+      .put("itemId", "Item_1")
+      .put("orderUnits", 10.0)
+      .put("arrayCol", ImmutableList.of(10.0, 20.0))
+      .put("mapCol", Collections.singletonMap("key1", 10.0))
+      .build();
+
   private static final KsqlConfig KSQL_CONFIG = new KsqlConfig(Collections.singletonMap(
-          KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY, "fake-schema-registry-url"));
+      KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY, "fake-schema-registry-url"));
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
 
+  @Mock
+  private ProcessingLogger recordLogger;
 
   private SchemaRegistryClient schemaRegistryClient;
   private AvroConverter converter;
+  private Deserializer<Object> deserializer;
+  private KafkaAvroSerializer serializer;
 
   @Before
   public void setUp() {
-    schemaRegistryClient = new MockSchemaRegistryClient();
-    converter = new AvroConverter(schemaRegistryClient);
-    converter.configure(
-        ImmutableMap.of(
-            AbstractKafkaAvroSerDeConfig.AUTO_REGISTER_SCHEMAS, true,
-            AbstractKafkaAvroSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, ""
-        ),
-        false
+    final ImmutableMap<String, Object> configs = ImmutableMap.of(
+        AbstractKafkaAvroSerDeConfig.AUTO_REGISTER_SCHEMAS, true,
+        AbstractKafkaAvroSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, ""
     );
+
+    schemaRegistryClient = new MockSchemaRegistryClient();
+
+    converter = new AvroConverter(schemaRegistryClient);
+    converter.configure(configs, false);
+
+    serializer = new KafkaAvroSerializer(schemaRegistryClient, configs);
   }
 
   @Test
-  public void shouldDeserializeNull() {
+  public void shouldDeserializeAvroRecordCorrectly() {
     // Given:
-    final Deserializer<?> deserializer = deserializer(SCHEMA);
+    final byte[] bytes = givenAvroSerialized(AN_ORDER, ORDER_AVRO_SCHEMA);
+
+    givenDeserializerForSchema(ORDER_SCHEMA);
+
+    // When:
+    final Object result = deserializer.deserialize(SOME_TOPIC, bytes);
+
+    // Then:
+    final Struct expectedResult = buildExpectedStruct(ORDER_SCHEMA, AN_ORDER);
+    assertThat(result, is(expectedResult));
+  }
+
+  @Test
+  public void shouldCoerceFieldValues() {
+    // Given:
+    final Map<String, Object> anOrder = new HashMap<>(AN_ORDER);
+    anOrder.put("orderId", 1); // <-- int, rather than required long in ORDER_SCHEMA.
+
+    final byte[] bytes = givenAvroSerialized(anOrder,
+        "{"
+            + "\"namespace\": \"kql\","
+            + " \"name\": \"orders\","
+            + " \"type\": \"record\","
+            + " \"fields\": ["
+            + "     {\"name\": \"orderTime\", \"type\": \"long\"},"
+            + "     {\"name\": \"orderId\",  \"type\": \"int\"}," // <-- int, not long
+            + "     {\"name\": \"itemId\", \"type\": \"string\"},"
+            + "     {\"name\": \"orderUnits\", \"type\": \"double\"},"
+            + "     {\"name\": \"arrayCol\", \"type\": {\"type\": \"array\", \"items\": "
+            + "\"double\"}},"
+            + "     {\"name\": \"mapCol\", \"type\": {\"type\": \"map\", \"values\": "
+            + "\"double\"}}"
+            + " ]"
+            + "}");
+
+    givenDeserializerForSchema(ORDER_SCHEMA);
+
+    // When:
+    final Object result = deserializer.deserialize(SOME_TOPIC, bytes);
+
+    // Then:
+    final Struct expectedResult = buildExpectedStruct(ORDER_SCHEMA, AN_ORDER);
+    assertThat(result, is(expectedResult));
+  }
+
+  @Test
+  public void shouldThrowIfNotARecord() {
+    // Given:
+    final byte[] bytes = givenAvroSerialized(10L, LONG_AVRO_SCHEMA);
+
+    givenDeserializerForSchema(ORDER_SCHEMA);
+
+    // Then:
+    expectedException.expect(SerializationException.class);
+    expectedException.expectCause(hasMessage(containsString(
+        "Cannot deserialize type int64 as type struct")));
+
+    // When:
+    deserializer.deserialize(SOME_TOPIC, bytes);
+  }
+
+  @Test
+  public void shouldThrowIfFieldValueCanNotBeCoercedToConnectSchemaType() {
+    // Given:
+    final Map<String, Object> anOrder = new HashMap<>(AN_ORDER);
+    anOrder.put("orderId", true);
+
+    final byte[] bytes = givenAvroSerialized(anOrder, "{"
+        + "\"namespace\": \"kql\","
+        + " \"name\": \"orders\","
+        + " \"type\": \"record\","
+        + " \"fields\": ["
+        + "     {\"name\": \"orderTime\", \"type\": \"long\"},"
+        + "     {\"name\": \"orderId\",  \"type\": \"boolean\"}," // <-- boolean is incompatible
+        + "     {\"name\": \"itemId\", \"type\": \"string\"},"
+        + "     {\"name\": \"orderUnits\", \"type\": \"double\"},"
+        + "     {\"name\": \"arrayCol\", \"type\": {\"type\": \"array\", \"items\": "
+        + "\"double\"}},"
+        + "     {\"name\": \"mapCol\", \"type\": {\"type\": \"map\", \"values\": "
+        + "\"double\"}}"
+        + " ]"
+        + "}");
+
+    givenDeserializerForSchema(ORDER_SCHEMA);
+
+    // Then:
+    expectedException.expect(SerializationException.class);
+    expectedException.expectCause(hasMessage(is(
+        "Cannot deserialize type boolean as type int64 for path: ->ORDERID")));
+
+    // When:
+    deserializer.deserialize(SOME_TOPIC, bytes);
+  }
+
+  @Test
+  public void shouldDeserializeIfThereAreRedundantFields() {
+    // Given:
+    final byte[] bytes = givenAvroSerialized(AN_ORDER, ORDER_AVRO_SCHEMA);
+
+    final Schema reducedSchema = SchemaBuilder.struct()
+        .field(ORDERTIME, Schema.OPTIONAL_INT64_SCHEMA)
+        .field(ORDERID, Schema.OPTIONAL_INT64_SCHEMA)
+        .field(ITEMID, Schema.OPTIONAL_STRING_SCHEMA)
+        .field(ORDERUNITS, Schema.OPTIONAL_FLOAT64_SCHEMA)
+        // <-- ARRAYCOL missing
+        // <-- MAPCOL missing
+        .build();
+
+    givenDeserializerForSchema(reducedSchema);
+
+    // When:
+    final Object result = deserializer.deserialize(SOME_TOPIC, bytes);
+
+    // Then:
+    final Struct expectedResult = buildExpectedStruct(reducedSchema, AN_ORDER);
+    assertThat(result, is(expectedResult));
+  }
+
+  @Test
+  public void shouldDeserializeWithMissingFields() {
+    // Given:
+    final byte[] bytes = givenAvroSerialized(AN_ORDER, ORDER_AVRO_SCHEMA);
+
+    final SchemaBuilder builder = SchemaBuilder.struct();
+    ORDER_SCHEMA.fields().forEach(f -> builder.field(f.name(), f.schema()));
+
+    final Schema expandedSchema = builder
+        .field("EXTRA", Schema.OPTIONAL_INT64_SCHEMA)
+        .build();
+
+    givenDeserializerForSchema(expandedSchema);
+
+    // When:
+    final Object result = deserializer.deserialize(SOME_TOPIC, bytes);
+
+    // Then:
+    final Struct expectedResult = buildExpectedStruct(expandedSchema, AN_ORDER);
+    assertThat(result, is(expectedResult));
+  }
+
+  @Test
+  public void shouldDeserializeNullAsNull() {
+    // Given:
+    givenDeserializerForSchema(ORDER_SCHEMA);
 
     // When:
     final Object row = deserializer.deserialize("topic", null);
@@ -125,164 +331,464 @@ public class KsqlAvroDeserializerTest {
   }
 
   @Test
-  public void shouldDeserializeCorrectly() {
+  public void shouldTreatNullAsNull() {
     // Given:
-    final Struct data = new Struct(SCHEMA)
-        .put("ORDERTIME", 1511897796092L)
-        .put("ORDERID", 1L)
-        .put("ITEMID", "item_1")
-        .put("ORDERUNITS", 10.0)
-        .put("ARRAYCOL", Collections.singletonList(100.0))
-        .put("MAPCOL", Collections.singletonMap("key1", 100.0));
-
-    // When:
-    final Struct row = serializeDeserializeRow(SCHEMA, AVRO_SCHEMA, data);
-
-    // Then:
-    assertThat(row.schema(), is(SCHEMA));
-    assertThat(row.get("ORDERTIME"), equalTo(1511897796092L));
-    assertThat(row.get("ORDERID"), equalTo(1L));
-    assertThat(row.get("ITEMID"), equalTo("item_1"));
-    assertThat(row.get("ORDERUNITS"), equalTo(10.0));
-    assertThat(row.get("ARRAYCOL"), equalTo(ImmutableList.of(100.0)));
-    assertThat(row.get("MAPCOL"), equalTo(ImmutableMap.of("key1", 100.0)));
-  }
-
-  @Test
-  public void shouldDeserializeIfThereAreRedundantFields() {
-    // Given:
-    final Schema newSchema = SchemaBuilder.struct()
-        .field("ORDERTIME", Schema.OPTIONAL_INT64_SCHEMA)
-        .field("ORDERID", Schema.OPTIONAL_INT64_SCHEMA)
-        .field("ITEMID", Schema.OPTIONAL_STRING_SCHEMA)
-        .field("ORDERUNITS", Schema.OPTIONAL_FLOAT64_SCHEMA)
+    final ImmutableMap<String, Object> withNulls = ImmutableMap.<String, Object>builder()
+        .put("arrayCol", Arrays.asList(10.0, null))
+        .put("mapCol", Collections.singletonMap("key1", null))
         .build();
 
-    final Struct data = new Struct(SCHEMA)
-        .put("ORDERTIME", 1511897796092L)
-        .put("ORDERID", 1L)
-        .put("ITEMID", "item_1")
-        .put("ORDERUNITS", 10.0)
-        .put("ARRAYCOL", Collections.singletonList(100.0))
-        .put("MAPCOL", Collections.singletonMap("key1", 100.0));
+    final byte[] bytes = givenAvroSerialized(withNulls, ORDER_AVRO_SCHEMA);
+
+    givenDeserializerForSchema(ORDER_SCHEMA);
 
     // When:
-    final Struct row = serializeDeserializeRow(newSchema, AVRO_SCHEMA, data);
+    final Object result = deserializer.deserialize(SOME_TOPIC, bytes);
 
     // Then:
-    assertThat(row.schema(), is(newSchema));
-    assertThat(row.get("ORDERTIME"), equalTo(1511897796092L));
-    assertThat(row.get("ORDERID"), equalTo(1L));
-    assertThat(row.get("ITEMID"), equalTo("item_1"));
-    assertThat(row.get("ORDERUNITS"), equalTo(10.0));
+    final Struct expectedResult = buildExpectedStruct(ORDER_SCHEMA, withNulls);
+    assertThat(result, is(expectedResult));
   }
 
   @Test
-  public void shouldDeserializeWithMissingFields() {
+  public void shouldDeserializedAvroBoolean() {
     // Given:
-    final String schemaStr1 = "{"
-        + "\"namespace\": \"kql\","
-        + " \"name\": \"orders\","
-        + " \"type\": \"record\","
-        + " \"fields\": ["
-        + "     {\"name\": \"orderTime\", \"type\": \"long\"},"
-        + "     {\"name\": \"orderId\",  \"type\": \"long\"},"
-        + "     {\"name\": \"itemId\", \"type\": \"string\"},"
-        + "     {\"name\": \"orderUnits\", \"type\": \"double\"}"
-        + " ]"
-        + "}";
+    givenDeserializerForSchema(Schema.OPTIONAL_BOOLEAN_SCHEMA);
 
-    final org.apache.avro.Schema avroSchema1 = new org.apache.avro.Schema.Parser()
-        .parse(schemaStr1);
-
-    final Struct data = new Struct(SCHEMA)
-        .put("ORDERTIME", 1511897796092L)
-        .put("ORDERID", 1L)
-        .put("ITEMID", "item_1")
-        .put("ORDERUNITS", 10.0);
+    final byte[] bytes = givenAvroSerialized(true, BOOLEAN_AVRO_SCHEMA);
 
     // When:
-    final Struct row = serializeDeserializeRow(SCHEMA, avroSchema1, data);
+    final Object result = deserializer.deserialize(SOME_TOPIC, bytes);
 
     // Then:
-    assertThat(row.schema(), is(SCHEMA));
-    assertThat(row.get("ORDERTIME"), equalTo(1511897796092L));
-    assertThat(row.get("ORDERID"), equalTo(1L));
-    assertThat(row.get("ITEMID"), equalTo("item_1"));
-    assertThat(row.get("ORDERUNITS"), equalTo(10.0));
-    assertThat(row.get("ARRAYCOL"), is(nullValue()));
-    assertThat(row.get("MAPCOL"), is(nullValue()));
+    assertThat(result, is(true));
   }
 
-  private static Struct serializeDeserializeAvroRecord(
-      final Schema schema,
-      final String topicName,
-      final SchemaRegistryClient schemaRegistryClient,
-      final GenericRecord avroRecord
-  ) {
-    final Map<String, Object> map = new HashMap<>();
-    map.put(AbstractKafkaAvroSerDeConfig.AUTO_REGISTER_SCHEMAS, true);
-    map.put(AbstractKafkaAvroSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, "");
-    final KafkaAvroSerializer kafkaAvroSerializer = new KafkaAvroSerializer(schemaRegistryClient, map);
+  @Test
+  public void shouldThrowIfCanNotCoerceToBoolean() {
+    // Given:
+    givenDeserializerForSchema(Schema.OPTIONAL_BOOLEAN_SCHEMA);
 
-    final byte[] bytes = kafkaAvroSerializer.serialize(topicName, avroRecord);
+    final byte[] bytes = givenAvroSerialized(10, LONG_AVRO_SCHEMA);
 
-    final Deserializer<Object> deserializer =
-        new KsqlAvroSerdeFactory(KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME).createSerde(
-            PersistenceSchema.of((ConnectSchema) schema),
-            KSQL_CONFIG,
-            () -> schemaRegistryClient,
-            "loggerName",
-            ProcessingLogContext.create()).deserializer();
+    // Then:
+    expectedException.expect(SerializationException.class);
+    expectedException.expectCause(hasMessage(containsString(
+        "Cannot deserialize type int32 as type boolean")));
 
-    return (Struct) deserializer.deserialize(topicName, bytes);
+    // When:
+    deserializer.deserialize(SOME_TOPIC, bytes);
   }
 
-  private Struct serializeDeserializeRow(
-      final Schema schema,
-      final org.apache.avro.Schema rowAvroSchema,
-      final Struct row
-  ) {
-    final GenericRecord avroRecord = new GenericData.Record(rowAvroSchema);
+  @Test
+  public void shouldDeserializedAvroInt() {
+    // Given:
+    givenDeserializerForSchema(Schema.OPTIONAL_INT32_SCHEMA);
 
-    final Iterator<Field> ksqlIt = row.schema().fields().iterator();
+    final byte[] bytes = givenAvroSerialized(42, INT_AVRO_SCHEMA);
 
-    for (final org.apache.avro.Schema.Field avroField : rowAvroSchema.getFields()) {
-      final Field ksqlField = ksqlIt.next();
-      avroRecord.put(avroField.name(), row.get(ksqlField));
+    // When:
+    final Object result = deserializer.deserialize(SOME_TOPIC, bytes);
+
+    // Then:
+    assertThat(result, is(42));
+  }
+
+  @Test
+  public void shouldThrowIfCanNotCoerceToInt() {
+    // Given:
+    givenDeserializerForSchema(Schema.OPTIONAL_INT32_SCHEMA);
+
+    final byte[] bytes = givenAvroSerialized(true, BOOLEAN_AVRO_SCHEMA);
+
+    // Then:
+    expectedException.expect(SerializationException.class);
+    expectedException.expectCause(hasMessage(containsString(
+        "Cannot deserialize type boolean as type int32")));
+
+    // When:
+    deserializer.deserialize(SOME_TOPIC, bytes);
+  }
+
+  @Test
+  public void shouldDeserializedAvroBigInt() {
+    // Given:
+    givenDeserializerForSchema(Schema.OPTIONAL_INT64_SCHEMA);
+
+    final Map<org.apache.avro.Schema, Object> validCoercions = ImmutableMap.of(
+        INT_AVRO_SCHEMA, 42,
+        LONG_AVRO_SCHEMA, 42L
+    );
+
+    validCoercions.forEach((schema, value) -> {
+
+      final byte[] bytes = givenAvroSerialized(value, schema);
+
+      // When:
+      final Object result = deserializer.deserialize(SOME_TOPIC, bytes);
+
+      // Then:
+      assertThat(result, is(42L));
+    });
+  }
+
+  @Test
+  public void shouldThrowIfCanNotCoerceToBigInt() {
+    // Given:
+    givenDeserializerForSchema(Schema.OPTIONAL_INT64_SCHEMA);
+
+    final byte[] bytes = givenAvroSerialized(true, BOOLEAN_AVRO_SCHEMA);
+
+    // Then:
+    expectedException.expect(SerializationException.class);
+    expectedException.expectCause(hasMessage(containsString(
+        "Cannot deserialize type boolean as type int64")));
+
+    // When:
+    deserializer.deserialize(SOME_TOPIC, bytes);
+  }
+
+  @Test
+  public void shouldDeserializedAvroDouble() {
+    // Given:
+    givenDeserializerForSchema(Schema.OPTIONAL_FLOAT64_SCHEMA);
+
+    final byte[] bytes = givenAvroSerialized(23.1, DOUBLE_AVRO_SCHEMA);
+
+    // When:
+    final Object result = deserializer.deserialize(SOME_TOPIC, bytes);
+
+    // Then:
+    assertThat(result, is(23.1));
+  }
+
+  @Test
+  public void shouldThrowIfCanNotCoerceToDouble() {
+    // Given:
+    givenDeserializerForSchema(Schema.OPTIONAL_FLOAT64_SCHEMA);
+
+    final byte[] bytes = givenAvroSerialized(true, BOOLEAN_AVRO_SCHEMA);
+
+    // Then:
+    expectedException.expect(SerializationException.class);
+    expectedException.expectCause(hasMessage(containsString(
+        "Cannot deserialize type boolean as type float64")));
+
+    // When:
+    deserializer.deserialize(SOME_TOPIC, bytes);
+  }
+
+  @Test
+  public void shouldDeserializedAvroString() {
+    // Given:
+    givenDeserializerForSchema(Schema.OPTIONAL_STRING_SCHEMA);
+
+    final Map<org.apache.avro.Schema, Object> validCoercions = ImmutableMap.of(
+        BOOLEAN_AVRO_SCHEMA, false,
+        INT_AVRO_SCHEMA, 41,
+        LONG_AVRO_SCHEMA, 42L,
+        DOUBLE_AVRO_SCHEMA, 43.5,
+        STRING_AVRO_SCHEMA, "just a string"
+    );
+
+    validCoercions.forEach((schema, value) -> {
+
+      final byte[] bytes = givenAvroSerialized(value, schema);
+
+      // When:
+      final Object result = deserializer.deserialize(SOME_TOPIC, bytes);
+
+      // Then:
+      assertThat(result, is(value.toString()));
+    });
+  }
+
+  @Test
+  public void shouldThrowIfCanNotCoerceToString() {
+    // Given:
+    givenDeserializerForSchema(Schema.OPTIONAL_STRING_SCHEMA);
+
+    final byte[] bytes = givenAvroSerialized(AN_ORDER, ORDER_AVRO_SCHEMA);
+
+    // Then:
+    expectedException.expect(SerializationException.class);
+    expectedException.expectCause(hasMessage(containsString(
+        "Cannot deserialize type struct as type string")));
+
+    // When:
+    deserializer.deserialize(SOME_TOPIC, bytes);
+  }
+
+  @Test
+  public void shouldDeserializedAvroArray() {
+    // Given:
+    givenDeserializerForSchema(SchemaBuilder
+        .array(Schema.OPTIONAL_STRING_SCHEMA)
+        .build()
+    );
+
+    final List<?> value = ImmutableList.of("look", "ma,", "an", "array!");
+
+    final byte[] bytes = givenAvroSerialized(value, STRING_ARRAY_AVRO_SCHEMA);
+
+    // When:
+    final Object result = deserializer.deserialize(SOME_TOPIC, bytes);
+
+    // Then:
+    assertThat(result, is(value));
+  }
+
+  @Test
+  public void shouldCoerceArrayElements() {
+    // Given:
+    givenDeserializerForSchema(SchemaBuilder
+        .array(Schema.OPTIONAL_STRING_SCHEMA)
+        .build()
+    );
+
+    final Map<String, List<?>> validCoercions = ImmutableMap.of(
+        "{\"type\": \"array\", \"items\": \"boolean\"}", ImmutableList.of(true, false),
+        "{\"type\": \"array\", \"items\": \"int\"}", ImmutableList.of(1, 2),
+        "{\"type\": \"array\", \"items\": \"long\"}", ImmutableList.of(1L, 2L),
+        "{\"type\": \"array\", \"items\": \"double\"}", ImmutableList.of(1.1, 2.2),
+        "{\"type\": \"array\", \"items\": \"string\"}", ImmutableList.of("string", "elements!")
+    );
+
+    validCoercions.forEach((avroSchema, value) -> {
+
+      final byte[] bytes = givenAvroSerialized(value, avroSchema);
+
+      final List<String> expected = value.stream()
+          .map(Object::toString)
+          .collect(Collectors.toList());
+
+      // When:
+      final Object result = deserializer.deserialize(SOME_TOPIC, bytes);
+
+      // Then:
+      assertThat(result, is(expected));
+    });
+  }
+
+  @Test
+  public void shouldThrowIfNotAnArray() {
+    // Given:
+    givenDeserializerForSchema(SchemaBuilder
+        .array(Schema.OPTIONAL_STRING_SCHEMA)
+        .build()
+    );
+
+    final byte[] bytes = givenAvroSerialized(true, BOOLEAN_AVRO_SCHEMA);
+
+    // Then:
+    expectedException.expect(SerializationException.class);
+    expectedException.expectCause(hasMessage(containsString(
+        "Cannot deserialize type boolean as type array")));
+
+    // When:
+    deserializer.deserialize(SOME_TOPIC, bytes);
+  }
+
+  @Test
+  public void shouldThrowIfCanNotCoerceArrayElement() {
+    // Given:
+    givenDeserializerForSchema(SchemaBuilder
+        .array(Schema.OPTIONAL_INT32_SCHEMA)
+        .build()
+    );
+
+    final List<?> value = ImmutableList.of("look", "ma,", "an", "array!");
+
+    final byte[] bytes = givenAvroSerialized(value, STRING_ARRAY_AVRO_SCHEMA);
+
+    // Then:
+    expectedException.expect(SerializationException.class);
+    expectedException.expectCause(hasMessage(containsString(
+        "Cannot deserialize type string as type int32")));
+
+    // When:
+    deserializer.deserialize(SOME_TOPIC, bytes);
+  }
+
+  @Test
+  public void shouldDeserializedAvroArrayOfMap() {
+    // Given:
+    givenDeserializerForSchema(SchemaBuilder
+        .array(SchemaBuilder
+            .map(SchemaBuilder.STRING_SCHEMA, Schema.OPTIONAL_INT64_SCHEMA)
+            .optional()
+            .build())
+        .build()
+    );
+
+    final List<?> value = ImmutableList.of(ImmutableMap.of("a", 1L, "b", 2L));
+
+    final byte[] bytes = givenAvroSerialized(value, ARRAY_OF_MAP_AVRO_SCHEMA);
+
+    // When:
+    final Object result = deserializer.deserialize(SOME_TOPIC, bytes);
+
+    // Then:
+    assertThat(result, is(value));
+  }
+
+  @Test
+  public void shouldDeserializedAvroMap() {
+    // Given:
+    givenDeserializerForSchema(SchemaBuilder
+        .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_INT64_SCHEMA)
+        .build()
+    );
+
+    final Map<org.apache.avro.Schema, Map<String, Number>> validCoercions = ImmutableMap.of(
+        INT_MAP_AVRO_SCHEMA, ImmutableMap.of("a", 1, "b", 2),
+        LONG_MAP_AVRO_SCHEMA, ImmutableMap.of("a", 1L, "b", 2L)
+    );
+
+    validCoercions.forEach((avroSchema, value) -> {
+
+      final byte[] bytes = givenAvroSerialized(value, INT_MAP_AVRO_SCHEMA);
+
+      final Map<String, Long> expected = value.entrySet().stream()
+          .collect(Collectors.toMap(Entry::getKey, e -> e.getValue().longValue()));
+
+      // When:
+      final Object result = deserializer.deserialize(SOME_TOPIC, bytes);
+
+      // Then:
+      assertThat(result, is(expected));
+    });
+  }
+
+  @Test
+  public void shouldThrowIfNotAMap() {
+    // Given:
+    givenDeserializerForSchema(SchemaBuilder
+        .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_INT32_SCHEMA)
+        .build()
+    );
+
+    final byte[] bytes = givenAvroSerialized(true, BOOLEAN_AVRO_SCHEMA);
+
+    // Then:
+    expectedException.expect(SerializationException.class);
+    expectedException.expectCause(hasMessage(containsString(
+        "Cannot deserialize type boolean as type map")));
+
+    // When:
+    deserializer.deserialize(SOME_TOPIC, bytes);
+  }
+
+  @Test
+  public void shouldThrowIfCanNotCoerceMapValue() {
+    // Given:
+    givenDeserializerForSchema(SchemaBuilder
+        .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_BOOLEAN_SCHEMA)
+        .build()
+    );
+
+    final Map<?, ?> value = ImmutableMap.of("a", 1, "b", 2);
+
+    final byte[] bytes = givenAvroSerialized(value, INT_MAP_AVRO_SCHEMA);
+
+    // Then:
+    expectedException.expect(SerializationException.class);
+    expectedException.expectCause(hasMessage(containsString(
+        "Cannot deserialize type int32 as type boolean")));
+
+    // When:
+    deserializer.deserialize(SOME_TOPIC, bytes);
+  }
+
+  @Test
+  public void shouldThrowOnMapSchemaWithNonStringKeys() {
+    // Given:
+    final Schema schema = SchemaBuilder
+        .map(Schema.OPTIONAL_INT32_SCHEMA, Schema.INT32_SCHEMA)
+        .build();
+
+    // Then:
+    expectedException.expect(IllegalArgumentException.class);
+    expectedException.expectMessage("Avro only supports MAPs with STRING keys");
+
+    // When:
+    givenDeserializerForSchema(schema);
+  }
+
+  @Test
+  public void shouldThrowOnNestedMapSchemaWithNonStringKeys() {
+    // Given:
+    final Schema schema = SchemaBuilder
+        .struct()
+        .field("f0", SchemaBuilder
+            .map(Schema.OPTIONAL_INT32_SCHEMA, Schema.INT32_SCHEMA)
+            .optional()
+            .build())
+        .build();
+
+    // Then:
+    expectedException.expect(IllegalArgumentException.class);
+    expectedException.expectMessage("Avro only supports MAPs with STRING keys");
+
+    // When:
+    givenDeserializerForSchema(schema);
+  }
+
+  @Test
+  public void shouldIncludeTopicNameInException() {
+    // Given:
+    givenDeserializerForSchema(Schema.OPTIONAL_INT64_SCHEMA);
+
+    final byte[] bytes = givenAvroSerialized(true, BOOLEAN_AVRO_SCHEMA);
+
+    // Then:
+    expectedException.expectMessage(SOME_TOPIC);
+
+    // When:
+    deserializer.deserialize(SOME_TOPIC, bytes);
+  }
+
+  @Test
+  public void shouldNotIncludeBadValueInExceptionAsThatWouldBeASecurityIssue() {
+    // Given:
+    givenDeserializerForSchema(Schema.OPTIONAL_INT64_SCHEMA);
+
+    final byte[] bytes = givenAvroSerialized("personal info: do not log me", STRING_AVRO_SCHEMA);
+
+    try {
+
+      // When:
+      deserializer.deserialize(SOME_TOPIC, bytes);
+
+      fail("Invalid test: should throw");
+
+    } catch (final Exception e) {
+      assertThat(ExceptionUtils.getStackTrace(e), not(containsString("personal info")));
     }
-
-    return serializeDeserializeAvroRecord(schema, "t1", schemaRegistryClient, avroRecord);
   }
 
-  private void shouldDeserializeTypeCorrectly(final org.apache.avro.Schema avroSchema,
-                                              final Object avroValue,
-                                              final Schema ksqlSchema) {
-    shouldDeserializeTypeCorrectly(avroSchema, avroValue, ksqlSchema, avroValue);
-  }
+  @Test
+  public void shouldDecodeSourceNameIntoFieldName() {
+    // Given:
+    final Schema schema = SchemaBuilder.struct()
+        .field("source.field0", Schema.OPTIONAL_INT32_SCHEMA)
+        .build();
 
-  private void shouldDeserializeTypeCorrectly(final org.apache.avro.Schema avroSchema,
-                                              final Object avroValue,
-                                              final Schema ksqlSchema,
-                                              final Object ksqlValue) {
+    givenDeserializerForSchema(schema);
 
+    final byte[] bytes = givenAvroSerialized(ImmutableMap.of("source_field0", 123),
+        "{"
+            + "\"namespace\": \"kql\","
+            + "\"name\": \"aliased\","
+            + "\"type\": \"record\","
+            + "\"fields\": [{\"name\": \"source_field0\", \"type\": \"int\"}]"
+            + "}");
 
-    final org.apache.avro.Schema avroRecordSchema = org.apache.avro.SchemaBuilder.record("test_row")
-        .fields()
-        .name("field0")
-        .type(avroSchema)
-        .noDefault()
-        .endRecord();
-    final Schema ksqlRecordSchema = SchemaBuilder.struct().field("field0", ksqlSchema).build();
+    // When:
+    final Object result = deserializer.deserialize(SOME_TOPIC, bytes);
 
-    final GenericRecord avroRecord = new GenericData.Record(avroRecordSchema);
-    avroRecord.put("field0", avroValue);
-
-    final Struct row = serializeDeserializeAvroRecord(
-        ksqlRecordSchema, "test-topic", schemaRegistryClient, avroRecord);
-
-    assertThat(row.schema(), is(ksqlRecordSchema));
-    assertThat(row.get("field0"), equalTo(ksqlValue));
+    // Then:
+    assertThat(result, is(new Struct(schema).put("source.field0", 123)));
   }
 
   @Test
@@ -524,7 +1030,7 @@ public class KsqlAvroDeserializerTest {
         .optional()
         .build();
 
-    final Deserializer<Object> deserializer = deserializer(ksqlRecordSchema);
+    givenDeserializerForSchema(ksqlRecordSchema);
 
     final Struct row = (Struct) deserializer.deserialize("topic", bytes);
 
@@ -640,20 +1146,119 @@ public class KsqlAvroDeserializerTest {
     return converter.fromConnectData(topicName, schema, value);
   }
 
-  private Deserializer<Object> deserializer(final Schema schema) {
-    final Deserializer<Object> deserializer =
-        new KsqlAvroSerdeFactory(KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME)
-            .createSerde(
-                PersistenceSchema.of((ConnectSchema) schema),
-                KSQL_CONFIG,
-                () -> schemaRegistryClient,
-                "loggerName",
-                ProcessingLogContext.create())
-            .deserializer();
+  private Struct serializeDeserializeAvroRecord(
+      final Schema schema,
+      final String topicName,
+      final GenericRecord avroRecord
+  ) {
+    final byte[] bytes = serializer.serialize(topicName, avroRecord);
 
-    deserializer
-        .configure(Collections.emptyMap(), false);
+    givenDeserializerForSchema(schema);
 
-    return deserializer;
+    return (Struct) deserializer.deserialize(topicName, bytes);
+  }
+
+  private void shouldDeserializeTypeCorrectly(
+      final org.apache.avro.Schema avroSchema,
+      final Object avroValue,
+      final Schema ksqlSchema
+  ) {
+    shouldDeserializeTypeCorrectly(avroSchema, avroValue, ksqlSchema, avroValue);
+  }
+
+  private void shouldDeserializeTypeCorrectly(
+      final org.apache.avro.Schema avroSchema,
+      final Object avroValue,
+      final Schema ksqlSchema,
+      final Object ksqlValue
+  ) {
+    final org.apache.avro.Schema avroRecordSchema = org.apache.avro.SchemaBuilder.record("test_row")
+        .fields()
+        .name("field0")
+        .type(avroSchema)
+        .noDefault()
+        .endRecord();
+    final Schema ksqlRecordSchema = SchemaBuilder.struct().field("field0", ksqlSchema).build();
+
+    final GenericRecord avroRecord = new GenericData.Record(avroRecordSchema);
+    avroRecord.put("field0", avroValue);
+
+    final Struct row = serializeDeserializeAvroRecord(
+        ksqlRecordSchema, "test-topic", avroRecord);
+
+    assertThat(row.schema(), is(ksqlRecordSchema));
+    assertThat(row.get("field0"), equalTo(ksqlValue));
+  }
+
+  private void givenDeserializerForSchema(final Schema schema) {
+    final KsqlAvroSerdeFactory serdeFactory = new KsqlAvroSerdeFactory(
+        KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME);
+
+    deserializer = serdeFactory.createDeserializer(
+        PersistenceSchema.of((ConnectSchema) schema),
+        KSQL_CONFIG,
+        () -> schemaRegistryClient,
+        recordLogger
+    );
+
+    deserializer.configure(Collections.emptyMap(), false);
+  }
+
+  private static Struct buildExpectedStruct(
+      final Schema connectSchema,
+      final Map<String, Object> fieldVaues
+  ) {
+    final Struct expectedResult = new Struct(connectSchema);
+
+    fieldVaues.entrySet().stream()
+        .filter(e -> expectedResult.schema().field(e.getKey().toUpperCase()) != null)
+        .forEach(e -> expectedResult.put(e.getKey().toUpperCase(), e.getValue()));
+
+    return expectedResult;
+  }
+
+  private byte[] givenAvroSerialized(
+      final Object value,
+      final String avroSchema
+  ) {
+    return givenAvroSerialized(value, parseAvroSchema(avroSchema));
+  }
+
+  private byte[] givenAvroSerialized(
+      final Object value,
+      final org.apache.avro.Schema avroSchema
+  ) {
+    final Object avroValue = givenAvroValue(avroSchema, value);
+    return serializer.serialize(SOME_TOPIC, avroValue);
+  }
+
+  private static org.apache.avro.Schema parseAvroSchema(final String avroSchema) {
+    return new org.apache.avro.Schema.Parser().parse(avroSchema);
+  }
+
+  private static GenericData.Record givenAvroRecord(
+      final org.apache.avro.Schema avroSchema,
+      final Map<String, ?> fieldValues
+  ) {
+    final GenericData.Record record = new GenericData.Record(avroSchema);
+    fieldValues.forEach(record::put);
+    return record;
+  }
+
+  @SuppressWarnings("unchecked")
+  private static Object givenAvroValue(
+      final org.apache.avro.Schema avroSchema,
+      final Object value
+  ) {
+    switch (avroSchema.getType()) {
+      case RECORD:
+        return givenAvroRecord(avroSchema, (Map<String, ?>) value);
+      case ARRAY:
+        return new GenericData.Array<>(avroSchema, (Collection<?>) value);
+      case MAP:
+        return new AvroTestUtil.GenericMap<>(avroSchema, (Map<?, ?>) value);
+      default:
+        return value;
+    }
   }
 }

@@ -79,7 +79,7 @@ class StreamPublisher implements Flow.Publisher<Collection<StreamedRow>> {
         final Subscriber<Collection<StreamedRow>> subscriber,
         final QueuedQueryMetadata queryMetadata
     ) {
-      super(exec, subscriber, queryMetadata.getResultSchema());
+      super(exec, subscriber, queryMetadata.getLogicalSchema());
       this.queryMetadata = queryMetadata;
 
       queryMetadata.setLimitHandler(this::setDone);

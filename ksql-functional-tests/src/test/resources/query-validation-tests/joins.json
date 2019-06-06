@@ -1600,6 +1600,200 @@
           {"name": "OUTPUT", "type": "stream", "keyField": {"name": "S_ID"}}
         ]
       }
+    },
+    {
+      "name": "stream to stream wrapped single field value schema on inputs",
+      "statements": [
+        "CREATE STREAM S1 (ID bigint) WITH (kafka_topic='S1', value_format='JSON');",
+        "CREATE STREAM S2 (ID bigint) WITH (kafka_topic='S2', value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT s1.id id1, s2.id id2 FROM S1 JOIN S2 WITHIN 1 second ON s1.ROWKEY = s2.ROWKEY;"
+      ],
+      "inputs": [
+        {"topic": "S1", "key": 0, "value": {"ID": 1}, "timestamp": 0},
+        {"topic": "S2", "key": 0, "value": {"ID": 2}, "timestamp": 10},
+        {"topic": "S1", "key": 0, "value": {"ID": null}, "timestamp": 20},
+        {"topic": "S2", "key": 0, "value": {"ID": null}, "timestamp": 30}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"ID1": 1, "ID2": 2}, "timestamp": 10},
+        {"topic": "OUTPUT", "key": 0, "value": {"ID1": null, "ID2": 2}, "timestamp": 20},
+        {"topic": "OUTPUT", "key": 0, "value": {"ID1": 1, "ID2": null}, "timestamp": 30},
+        {"topic": "OUTPUT", "key": 0, "value": {"ID1": null, "ID2": null}, "timestamp": 30}
+      ]
+    },
+    {
+      "name": "stream to stream unwrapped single field value schema on inputs",
+      "issues": [
+        "With the current implementation the null values are ignored by KS.",
+        "This is probably not what we want. We could treat null values as a null ID for streams.",
+        "Though this would not make sense for tables, where null is a tombstone"
+      ],
+      "statements": [
+        "CREATE STREAM S1 (ID bigint) WITH (WRAP_SINGLE_VALUE=false, kafka_topic='S1', value_format='JSON');",
+        "CREATE STREAM S2 (ID bigint) WITH (WRAP_SINGLE_VALUE=false, kafka_topic='S2', value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT s1.id id1, s2.id id2 FROM S1 JOIN S2 WITHIN 1 second ON s1.ROWKEY = s2.ROWKEY;"
+      ],
+      "inputs": [
+        {"topic": "S1", "key": 0, "value": 1, "timestamp": 0},
+        {"topic": "S2", "key": 0, "value": 2, "timestamp": 10},
+        {"topic": "S1", "key": 0, "value": null, "timestamp": 20},
+        {"topic": "S2", "key": 0, "value": null, "timestamp": 30}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"ID1": 1, "ID2": 2}, "timestamp": 10}
+      ]
+    },
+    {
+      "name": "stream to stream unwrapped single field value schema on inputs and output",
+      "issues": [
+        "With the current implementation the null values are ignored by KS.",
+        "This is probably not what we want. We could treat null values as a null ID for streams.",
+        "Though this would not make sense for tables, where null is a tombstone"
+      ],
+      "statements": [
+        "CREATE STREAM S1 (ID bigint) WITH (WRAP_SINGLE_VALUE=false, kafka_topic='S1', value_format='JSON');",
+        "CREATE STREAM S2 (ID bigint) WITH (WRAP_SINGLE_VALUE=false, kafka_topic='S2', value_format='JSON');",
+        "CREATE STREAM OUTPUT WITH (WRAP_SINGLE_VALUE=false) AS SELECT s1.id id FROM S1 JOIN S2 WITHIN 1 second ON s1.ROWKEY = s2.ROWKEY;"
+      ],
+      "inputs": [
+        {"topic": "S1", "key": 0, "value": 1, "timestamp": 0},
+        {"topic": "S2", "key": 0, "value": 2, "timestamp": 10},
+        {"topic": "S1", "key": 0, "value": null, "timestamp": 20},
+        {"topic": "S2", "key": 0, "value": null, "timestamp": 30}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": 1, "timestamp": 10}
+      ]
+    },
+    {
+      "name": "stream to table wrapped single field value schema on inputs",
+      "statements": [
+        "CREATE STREAM S (ID bigint) WITH (kafka_topic='S', value_format='JSON');",
+        "CREATE TABLE T (ID bigint) WITH (kafka_topic='T', value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT s.id id1, t.id id2 FROM S JOIN T ON S.ROWKEY = T.ROWKEY;"
+      ],
+      "inputs": [
+        {"topic": "T", "key": 0, "value": {"ID": 2}, "timestamp": 0},
+        {"topic": "S", "key": 0, "value": {"ID": 1}, "timestamp": 10},
+        {"topic": "S", "key": 0, "value": {"ID": null}, "timestamp": 20},
+        {"topic": "T", "key": 0, "value": {"ID": null}, "timestamp": 30},
+        {"topic": "S", "key": 0, "value": {"ID": null}, "timestamp": 40},
+        {"topic": "T", "key": 0, "value": null, "timestamp": 50},
+        {"topic": "S", "key": 0, "value": {"ID": 1}, "timestamp": 60}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"ID1": 1, "ID2": 2}, "timestamp": 10},
+        {"topic": "OUTPUT", "key": 0, "value": {"ID1": null, "ID2": 2}, "timestamp": 20},
+        {"topic": "OUTPUT", "key": 0, "value": {"ID1": null, "ID2": null}, "timestamp": 40}
+      ]
+    },
+    {
+      "name": "stream to table unwrapped single field value schema on inputs",
+      "issues": [
+        "With the current implementation the null values of the stream are ignored by KS.",
+        "This is probably not what we want. We could treat null values as a null ID for streams.",
+        "Though this would not make sense for tables, where null is a tombstone"
+      ],
+      "statements": [
+        "CREATE STREAM S (ID bigint) WITH (WRAP_SINGLE_VALUE=false, kafka_topic='S', value_format='JSON');",
+        "CREATE TABLE T (ID bigint) WITH (WRAP_SINGLE_VALUE=false, kafka_topic='T', value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT s.id id1, t.id id2 FROM S JOIN T ON S.ROWKEY = T.ROWKEY;"
+      ],
+      "inputs": [
+        {"topic": "T", "key": 0, "value": 2, "timestamp": 0},
+        {"topic": "S", "key": 0, "value": 1, "timestamp": 10},
+        {"topic": "S", "key": 0, "value": null, "timestamp": 20},
+        {"topic": "T", "key": 0, "value": null, "timestamp": 30},
+        {"topic": "S", "key": 0, "value": null, "timestamp": 40}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"ID1": 1, "ID2": 2}, "timestamp": 10}
+      ]
+    },
+    {
+      "name": "stream to table unwrapped single field value schema on inputs and output",
+      "issues": [
+        "With the current implementation the null values of the stream are ignored by KS.",
+        "This is probably not what we want. We could treat null values as a null ID for streams.",
+        "Though this would not make sense for tables, where null is a tombstone."
+      ],
+      "statements": [
+        "CREATE STREAM S (ID bigint) WITH (WRAP_SINGLE_VALUE=false, kafka_topic='S', value_format='JSON');",
+        "CREATE TABLE T (ID bigint) WITH (WRAP_SINGLE_VALUE=false, kafka_topic='T', value_format='JSON');",
+        "CREATE STREAM OUTPUT WITH (WRAP_SINGLE_VALUE=false) AS SELECT s.id id FROM S JOIN T ON S.ROWKEY = T.ROWKEY;"
+      ],
+      "inputs": [
+        {"topic": "T", "key": 0, "value": 2, "timestamp": 0},
+        {"topic": "S", "key": 0, "value": 1, "timestamp": 10},
+        {"topic": "S", "key": 0, "value": null, "timestamp": 20},
+        {"topic": "T", "key": 0, "value": null, "timestamp": 30},
+        {"topic": "S", "key": 0, "value": null, "timestamp": 40}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": 1, "timestamp": 10}
+      ]
+    },
+    {
+      "name": "table to table wrapped single field value schema on inputs",
+      "statements": [
+        "CREATE TABLE T1 (ID bigint) WITH (kafka_topic='T1', value_format='JSON');",
+        "CREATE TABLE T2 (ID bigint) WITH (kafka_topic='T2', value_format='JSON');",
+        "CREATE TABLE OUTPUT as SELECT t1.id id1, t2.id id2 FROM T1 JOIN T2 ON T1.ROWKEY = T2.ROWKEY;"
+      ],
+      "inputs": [
+        {"topic": "T1", "key": 0, "value": {"ID": 1}, "timestamp": 0},
+        {"topic": "T2", "key": 0, "value": {"ID": 2}, "timestamp": 10},
+        {"topic": "T1", "key": 0, "value": {"ID": null}, "timestamp": 20},
+        {"topic": "T2", "key": 0, "value": {"ID": null}, "timestamp": 30},
+        {"topic": "T1", "key": 0, "value": {"ID": null}, "timestamp": 40},
+        {"topic": "T1", "key": 0, "value": null, "timestamp": 50},
+        {"topic": "T2", "key": 0, "value": null, "timestamp": 60}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"ID1": 1, "ID2": 2}, "timestamp": 10},
+        {"topic": "OUTPUT", "key": 0, "value": {"ID1": null, "ID2": 2}, "timestamp": 20},
+        {"topic": "OUTPUT", "key": 0, "value": {"ID1": null, "ID2": null}, "timestamp": 30},
+        {"topic": "OUTPUT", "key": 0, "value": {"ID1": null, "ID2": null}, "timestamp": 40},
+        {"topic": "OUTPUT", "key": 0, "value": null, "timestamp": 50}
+      ]
+    },
+    {
+      "name": "table to table unwrapped single field value schema on inputs",
+      "statements": [
+        "CREATE TABLE T1 (ID bigint) WITH (WRAP_SINGLE_VALUE=false, kafka_topic='T1', value_format='JSON');",
+        "CREATE TABLE T2 (ID bigint) WITH (WRAP_SINGLE_VALUE=false, kafka_topic='T2', value_format='JSON');",
+        "CREATE TABLE OUTPUT as SELECT t1.id id1, t2.id id2 FROM T1 JOIN T2 ON T1.ROWKEY = T2.ROWKEY;"
+      ],
+      "inputs": [
+        {"topic": "T1", "key": 0, "value": 1, "timestamp": 0},
+        {"topic": "T2", "key": 0, "value": 2, "timestamp": 10},
+        {"topic": "T1", "key": 0, "value": null, "timestamp": 20},
+        {"topic": "T2", "key": 0, "value": null, "timestamp": 30},
+        {"topic": "T1", "key": 0, "value": null, "timestamp": 40}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"ID1": 1, "ID2": 2}, "timestamp": 10},
+        {"topic": "OUTPUT", "key": 0, "value": null, "timestamp": 20}
+      ]
+    },
+    {
+      "name": "table to table unwrapped single field value schema on inputs and output",
+      "statements": [
+        "CREATE TABLE T1 (ID bigint) WITH (WRAP_SINGLE_VALUE=false, kafka_topic='T1', value_format='JSON');",
+        "CREATE TABLE T2 (ID bigint) WITH (WRAP_SINGLE_VALUE=false, kafka_topic='T2', value_format='JSON');",
+        "CREATE TABLE OUTPUT WITH (WRAP_SINGLE_VALUE=false) AS SELECT t1.id id FROM T1 JOIN T2 ON T1.ROWKEY = T2.ROWKEY;"
+      ],
+      "inputs": [
+        {"topic": "T1", "key": 0, "value": 1, "timestamp": 0},
+        {"topic": "T2", "key": 0, "value": 2, "timestamp": 10},
+        {"topic": "T1", "key": 0, "value": null, "timestamp": 20},
+        {"topic": "T2", "key": 0, "value": null, "timestamp": 30},
+        {"topic": "T1", "key": 0, "value": null, "timestamp": 40}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": 1, "timestamp": 10},
+        {"topic": "OUTPUT", "key": 0, "value": null, "timestamp": 20}
+      ]
     }
   ]
 }

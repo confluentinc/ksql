@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.ddl.commands;
 
+import com.google.common.collect.ImmutableSet;
+import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.SerdeFactory;
 import io.confluent.ksql.metastore.model.KeyField;
@@ -23,19 +25,23 @@ import io.confluent.ksql.parser.tree.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.schema.ksql.LogicalSchemas;
+import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.services.KafkaTopicClient;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.StringUtil;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicyFactory;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.kstream.Windowed;
-
 
 /**
  * Base class of create table/stream command
@@ -51,10 +57,12 @@ abstract class CreateSourceCommand implements DdlCommand {
   private final KafkaTopicClient kafkaTopicClient;
   final SerdeFactory<?> keySerdeFactory;
   final TimestampExtractionPolicy timestampExtractionPolicy;
+  private final Set<SerdeOption> serdeOptions;
 
   CreateSourceCommand(
       final String sqlExpression,
       final CreateSource statement,
+      final KsqlConfig ksqlConfig,
       final KafkaTopicClient kafkaTopicClient
   ) {
     this.sqlExpression = sqlExpression;
@@ -65,7 +73,6 @@ abstract class CreateSourceCommand implements DdlCommand {
 
     if (properties.getKsqlTopic().isPresent()) {
       this.topicName = properties.getKsqlTopic().get().toUpperCase();
-
       this.registerTopicCommand = null;
     } else {
       this.topicName = this.sourceName;
@@ -95,6 +102,11 @@ abstract class CreateSourceCommand implements DdlCommand {
         .create(schema, timestampName, timestampFormat);
 
     this.keySerdeFactory = extractKeySerde(properties);
+    this.serdeOptions = buildSerdeOptions(schema, properties, ksqlConfig);
+  }
+
+  Set<SerdeOption> getSerdeOptions() {
+    return serdeOptions;
   }
 
   private static KsqlSchema getStreamTableSchema(final List<TableElement> tableElements) {
@@ -158,5 +170,35 @@ abstract class CreateSourceCommand implements DdlCommand {
     }
 
     return windowType.get();
+  }
+
+  private static Set<SerdeOption> buildSerdeOptions(
+      final KsqlSchema schema,
+      final CreateSourceProperties properties,
+      final KsqlConfig ksqlConfig
+  ) {
+    final Format valueFormat = properties.getValueFormat();
+
+    final ImmutableSet.Builder<SerdeOption> options = ImmutableSet.builder();
+
+    final boolean singleValueField = schema.getSchema().fields().size() == 1;
+
+    if (properties.getWrapSingleValues().isPresent() && !singleValueField) {
+      throw new KsqlException("'" + DdlConfig.WRAP_SINGLE_VALUE + "' "
+          + "is only valid for single-field value schemas");
+    }
+
+    if (properties.getWrapSingleValues().isPresent() && !valueFormat.supportsUnwrapping()) {
+      throw new KsqlException("'" + DdlConfig.WRAP_SINGLE_VALUE + "' can not be used with format '"
+          + valueFormat + "' as it does not support wrapping");
+    }
+
+    if (singleValueField && !properties.getWrapSingleValues()
+        .orElseGet(() -> ksqlConfig.getBoolean(KsqlConfig.KSQL_WRAP_SINGLE_VALUES))
+    ) {
+      options.add(SerdeOption.UNWRAP_SINGLE_VALUES);
+    }
+
+    return Collections.unmodifiableSet(options.build());
   }
 }

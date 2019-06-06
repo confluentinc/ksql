@@ -29,9 +29,11 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.planner.plan.PlanNodeId;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.schema.persistence.PersistenceSchema;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.GenericRowSerDe;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
+import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.structured.QueryContext;
 import io.confluent.ksql.structured.QueryContext.Stacker;
@@ -39,8 +41,8 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.QueryLoggerUtil;
 import java.util.function.Supplier;
 import org.apache.kafka.common.serialization.Serde;
-import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.junit.Before;
 import org.junit.Test;
@@ -52,7 +54,13 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class KsqlQueryBuilderTest {
 
-  private static final ConnectSchema SOME_SCHEMA = (ConnectSchema)Schema.OPTIONAL_STRING_SCHEMA;
+  private static final PhysicalSchema SOME_SCHEMA = PhysicalSchema.from(
+      KsqlSchema.of(SchemaBuilder.struct()
+          .field("f0", Schema.OPTIONAL_BOOLEAN_SCHEMA)
+          .build()),
+      SerdeOption.none()
+  );
+
   private static final QueryId QUERY_ID = new QueryId("fred");
 
   @Mock
@@ -139,7 +147,7 @@ public class KsqlQueryBuilderTest {
 
     // Then:
     verify(valueSerdeFactory).createSerde(
-        PersistenceSchema.of(SOME_SCHEMA),
+        SOME_SCHEMA.valueSchema(),
         ksqlConfig,
         srClientFactory,
         QueryLoggerUtil.queryLoggerName(queryContext),
@@ -165,6 +173,27 @@ public class KsqlQueryBuilderTest {
     );
 
     // Then:
-    assertThat(ksqlQueryBuilder.getSchemas().toString(), is("fred.context = optional<string>"));
+    assertThat(ksqlQueryBuilder.getSchemas().toString(),
+        is("fred.context = STRUCT<f0 BOOLEAN> NOT NULL"));
+  }
+
+  @Test
+  public void shouldTrackSchemasTakingIntoAccountSerdeOptions() {
+    // Given:
+    final PhysicalSchema schema = PhysicalSchema.from(
+        SOME_SCHEMA.logicalSchema(),
+        SerdeOption.of(SerdeOption.UNWRAP_SINGLE_VALUES)
+    );
+
+    // When:
+    ksqlQueryBuilder.buildGenericRowSerde(
+        valueSerdeFactory,
+        schema,
+        queryContext
+    );
+
+    // Then:
+    assertThat(ksqlQueryBuilder.getSchemas().toString(),
+        is("fred.context = BOOLEAN"));
   }
 }

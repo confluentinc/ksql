@@ -313,7 +313,7 @@ continuously write the result of the SELECT query into the stream and
 its corresponding topic.
 
 If the PARTITION BY clause is present, then the resulting stream will
-have the specified column as its key.
+have the specified column as its key. The colum should be one of the columns in the query result.
 
 The WITH clause for the result supports the following properties:
 

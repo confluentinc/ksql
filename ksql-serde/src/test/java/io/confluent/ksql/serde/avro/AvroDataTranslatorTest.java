@@ -22,9 +22,7 @@ import static org.junit.Assert.assertThat;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.schema.persistence.PersistenceSchema;
 import io.confluent.ksql.util.KsqlConstants;
-import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
@@ -227,9 +225,5 @@ public class AvroDataTranslatorTest {
     final Struct struct = (Struct)dataTranslator.toConnectRow(ksqlRow);
 
     assertThat(struct.schema().name(), equalTo(schemaFullName));
-  }
-
-  private static PersistenceSchema persistenceSchema(final Schema connectSchema) {
-    return PersistenceSchema.of((ConnectSchema)connectSchema);
   }
 }

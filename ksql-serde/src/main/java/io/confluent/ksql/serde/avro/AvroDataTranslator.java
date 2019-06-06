@@ -62,6 +62,7 @@ public class AvroDataTranslator implements DataTranslator {
         this.ksqlSchema,
         new TypeNameGenerator(Collections.singleton(schemaFullName), useNamedMaps)
     );
+
     this.innerTranslator = new ConnectDataTranslator(avroCompatibleSchema);
   }
 

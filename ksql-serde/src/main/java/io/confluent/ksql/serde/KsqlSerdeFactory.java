@@ -72,13 +72,13 @@ public abstract class KsqlSerdeFactory {
   }
 
   protected abstract Serializer<Object> createSerializer(
-      PersistenceSchema logicalSchema,
+      PersistenceSchema schema,
       KsqlConfig ksqlConfig,
       Supplier<SchemaRegistryClient> schemaRegistryClientFactory
   );
 
   protected abstract Deserializer<Object> createDeserializer(
-      PersistenceSchema logicalSchema,
+      PersistenceSchema schema,
       KsqlConfig ksqlConfig,
       Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
       ProcessingLogger processingLogger

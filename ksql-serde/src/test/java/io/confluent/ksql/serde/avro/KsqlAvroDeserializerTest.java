@@ -366,7 +366,7 @@ public class KsqlAvroDeserializerTest {
   }
 
   @Test
-  public void shouldTreatNullAsNull() {
+  public void shouldTreatNullFieldAsNull() {
     // Given:
     final ImmutableMap<String, Object> withNulls = ImmutableMap.<String, Object>builder()
         .put("arrayCol", Arrays.asList(10.0, null))
@@ -458,6 +458,36 @@ public class KsqlAvroDeserializerTest {
   }
 
   @Test
+  public void shouldDeserializeConnectToInt() {
+    /*
+    Note: Connect stores additional metadata in the schema when serializing other types,
+    e.g. Int8, to Avro, which only supports int.
+     */
+
+    final Map<byte[], Integer> validCoercions = ImmutableMap
+        .<byte[], Integer>builder()
+        .put(givenConnectSerialized((byte) 40, Schema.INT8_SCHEMA), 40)
+        .put(givenConnectSerialized((byte) 41, Schema.OPTIONAL_INT8_SCHEMA), 41)
+        .put(givenConnectSerialized((short) 42, Schema.INT16_SCHEMA), 42)
+        .put(givenConnectSerialized((short) 43, Schema.OPTIONAL_INT16_SCHEMA), 43)
+        .put(givenConnectSerialized(44, Schema.INT32_SCHEMA), 44)
+        .put(givenConnectSerialized(45, Schema.OPTIONAL_INT32_SCHEMA), 45)
+        .build();
+
+    validCoercions.forEach((bytes, expcted) -> {
+
+      // Given:
+      givenDeserializerForSchema(Schema.OPTIONAL_INT32_SCHEMA);
+
+      // When:
+      final Object result = deserializer.deserialize(SOME_TOPIC, bytes);
+
+      // Then:
+      assertThat(result, is(expcted));
+    });
+  }
+
+  @Test
   public void shouldThrowIfCanNotCoerceToInt() {
     // Given:
     givenDeserializerForSchema(Schema.OPTIONAL_INT32_SCHEMA);
@@ -498,6 +528,38 @@ public class KsqlAvroDeserializerTest {
   }
 
   @Test
+  public void shouldDeserializeConnectToBigInt() {
+    /*
+    Note: Connect stores additional metadata in the schema when serializing other types,
+    e.g. Int8, to Avro which only supports int and long.
+     */
+
+    // Given:
+    givenDeserializerForSchema(Schema.OPTIONAL_INT64_SCHEMA);
+
+    final Map<byte[], Long> validCoercions = ImmutableMap
+        .<byte[], Long>builder()
+        .put(givenConnectSerialized((byte) 40, Schema.INT8_SCHEMA), 40L)
+        .put(givenConnectSerialized((byte) 41, Schema.OPTIONAL_INT8_SCHEMA), 41L)
+        .put(givenConnectSerialized((short) 42, Schema.INT16_SCHEMA), 42L)
+        .put(givenConnectSerialized((short) 43, Schema.OPTIONAL_INT16_SCHEMA), 43L)
+        .put(givenConnectSerialized(44, Schema.INT32_SCHEMA), 44L)
+        .put(givenConnectSerialized(45, Schema.OPTIONAL_INT32_SCHEMA), 45L)
+        .put(givenConnectSerialized(46L, Schema.INT64_SCHEMA), 46L)
+        .put(givenConnectSerialized(47L, Schema.OPTIONAL_INT64_SCHEMA), 47L)
+        .build();
+
+    validCoercions.forEach((bytes, expcted) -> {
+
+      // When:
+      final Object result = deserializer.deserialize(SOME_TOPIC, bytes);
+
+      // Then:
+      assertThat(result, is(expcted));
+    });
+  }
+
+  @Test
   public void shouldThrowIfCanNotCoerceToBigInt() {
     // Given:
     givenDeserializerForSchema(Schema.OPTIONAL_INT64_SCHEMA);
@@ -518,26 +580,50 @@ public class KsqlAvroDeserializerTest {
     // Given:
     givenDeserializerForSchema(Schema.OPTIONAL_FLOAT64_SCHEMA);
 
-    final byte[] bytes = givenAvroSerialized(23.1, DOUBLE_AVRO_SCHEMA);
+    final Map<org.apache.avro.Schema, Object> validCoercions = ImmutableMap
+        .<org.apache.avro.Schema, Object>builder()
+        .put(DOUBLE_AVRO_SCHEMA, 23.1)
+        .put(OPTIONAL_DOUBLE_AVRO_SCHEMA, 25.4)
+        .build();
 
-    // When:
-    final Object result = deserializer.deserialize(SOME_TOPIC, bytes);
+    validCoercions.forEach((schema, value) -> {
 
-    // Then:
-    assertThat(result, is(23.1));
+      final byte[] bytes = givenAvroSerialized(value, schema);
+
+      // When:
+      final Object result = deserializer.deserialize(SOME_TOPIC, bytes);
+
+      // Then:
+      assertThat(result, is(value));
+    });
   }
 
-  public void shouldDeserializeAvroOptionalDouble() {
+  @Test
+  public void shouldDeserializeConnectToDouble() {
+    /*
+    Note: Connect stores additional metadata in the schema when serializing other types,
+    e.g. Float32, to Avro, which only supports double.
+     */
+
     // Given:
     givenDeserializerForSchema(Schema.OPTIONAL_FLOAT64_SCHEMA);
 
-    final byte[] bytes = givenAvroSerialized(23.1, OPTIONAL_DOUBLE_AVRO_SCHEMA);
+    final Map<byte[], Double> validCoercions = ImmutableMap
+        .<byte[], Double>builder()
+        .put(givenConnectSerialized(10.1f, Schema.FLOAT32_SCHEMA), (double)10.1f)
+        .put(givenConnectSerialized(20.3f, Schema.OPTIONAL_FLOAT32_SCHEMA), (double)20.3f)
+        .put(givenConnectSerialized(30.4, Schema.FLOAT64_SCHEMA), 30.4)
+        .put(givenConnectSerialized(40.5, Schema.OPTIONAL_FLOAT64_SCHEMA), 40.5)
+        .build();
 
-    // When:
-    final Object result = deserializer.deserialize(SOME_TOPIC, bytes);
+    validCoercions.forEach((bytes, expcted) -> {
 
-    // Then:
-    assertThat(result, is(23.1));
+      // When:
+      final Object result = deserializer.deserialize(SOME_TOPIC, bytes);
+
+      // Then:
+      assertThat(result, is(expcted));
+    });
   }
 
   @Test
@@ -584,6 +670,39 @@ public class KsqlAvroDeserializerTest {
 
       // Then:
       assertThat(result, is(value.toString()));
+    });
+  }
+
+  @Test
+  public void shouldDeserializeConnectToString() {
+    // Given:
+    givenDeserializerForSchema(Schema.OPTIONAL_STRING_SCHEMA);
+
+    final Map<byte[], Object> validCoercions = ImmutableMap
+        .<byte[], Object>builder()
+        .put(givenConnectSerialized(true, Schema.BOOLEAN_SCHEMA), true)
+        .put(givenConnectSerialized(false, Schema.OPTIONAL_BOOLEAN_SCHEMA), false)
+        .put(givenConnectSerialized((byte) 40, Schema.INT8_SCHEMA), 40)
+        .put(givenConnectSerialized((byte) 41, Schema.OPTIONAL_INT8_SCHEMA), 41)
+        .put(givenConnectSerialized((short) 42, Schema.INT16_SCHEMA), 42)
+        .put(givenConnectSerialized((short) 43, Schema.OPTIONAL_INT16_SCHEMA), 43)
+        .put(givenConnectSerialized(44, Schema.INT32_SCHEMA), 44)
+        .put(givenConnectSerialized(45, Schema.OPTIONAL_INT32_SCHEMA), 45L)
+        .put(givenConnectSerialized(46L, Schema.INT64_SCHEMA), 46L)
+        .put(givenConnectSerialized(47L, Schema.OPTIONAL_INT64_SCHEMA), 47L)
+        .put(givenConnectSerialized(10.1f, Schema.FLOAT32_SCHEMA), 10.1)
+        .put(givenConnectSerialized(20.3f, Schema.OPTIONAL_FLOAT32_SCHEMA), 20.3)
+        .put(givenConnectSerialized(30.4, Schema.FLOAT64_SCHEMA), 30.4)
+        .put(givenConnectSerialized(40.5, Schema.OPTIONAL_FLOAT64_SCHEMA), 40.5)
+        .build();
+
+    validCoercions.forEach((bytes, expcted) -> {
+
+      // When:
+      final Object result = deserializer.deserialize(SOME_TOPIC, bytes);
+
+      // Then:
+      assertThat(result, is(expcted.toString()));
     });
   }
 
@@ -1359,6 +1478,13 @@ public class KsqlAvroDeserializerTest {
   ) {
     final Object avroValue = givenAvroValue(avroSchema, value);
     return serializer.serialize(SOME_TOPIC, avroValue);
+  }
+
+  private byte[] givenConnectSerialized(
+      final Object value,
+      final Schema connectSchema
+  ) {
+    return serializeAsBinaryAvro(SOME_TOPIC, connectSchema, value);
   }
 
   private static org.apache.avro.Schema parseAvroSchema(final String avroSchema) {

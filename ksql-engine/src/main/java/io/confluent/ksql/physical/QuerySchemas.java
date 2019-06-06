@@ -17,8 +17,8 @@ package io.confluent.ksql.physical;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.schema.connect.DefaultSchemaFormatter;
 import io.confluent.ksql.schema.connect.SchemaFormatter;
+import io.confluent.ksql.schema.connect.SqlSchemaFormatter;
 import java.util.LinkedHashMap;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -30,6 +30,10 @@ import org.apache.kafka.connect.data.Schema;
  *
  * <p>Contains an ordered mapping of 'logger name prefix' to the schema used,
  * where the logger name prefix can be used to map the schema to a stage in the topology.
+ *
+ * <p>This class is predominately used in the {@code QueryTranslationTest} in the
+ * ksql-functional-tests module to ensure the schemas of data persisted to topics doesn't change
+ * between releases.
  */
 @Immutable
 public final class QuerySchemas {
@@ -38,7 +42,7 @@ public final class QuerySchemas {
   private final SchemaFormatter schemaFormatter;
 
   public static QuerySchemas of(final LinkedHashMap<String, Schema> schemas) {
-    return new QuerySchemas(schemas, new DefaultSchemaFormatter());
+    return new QuerySchemas(schemas, SqlSchemaFormatter.STRICT);
   }
 
   @VisibleForTesting

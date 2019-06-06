@@ -16,12 +16,14 @@
 package io.confluent.ksql.physical;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.schema.connect.SchemaFormatter;
 import java.util.LinkedHashMap;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -46,10 +48,11 @@ public class QuerySchemasTest {
 
   @Before
   public void setUp() {
-    final LinkedHashMap<String, Schema> orderedSchemas = new LinkedHashMap<>();
-    orderedSchemas.put("thing one", SCHEMA_ONE);
-    orderedSchemas.put("thing two", SCHEMA_TWO);
-    orderedSchemas.put("thing three", SCHEMA_THREE);
+    final LinkedHashMap<String, Schema> orderedSchemas = linkedMapOf(
+        "thing one", SCHEMA_ONE,
+        "thing two", SCHEMA_TWO,
+        "thing three", SCHEMA_THREE
+    );
 
     schemas = new QuerySchemas(orderedSchemas, schemaFormatter);
 
@@ -69,5 +72,79 @@ public class QuerySchemasTest {
             + "thing two = " + SCHEMA_TWO_TEXT + System.lineSeparator()
             + "thing three = " + SCHEMA_THREE_TEXT
     ));
+  }
+
+  @Test
+  public void shouldBeStrictAboutOptionals() {
+    // When:
+    final QuerySchemas optionals = QuerySchemas.of(linkedMapOf(
+        "a", Schema.OPTIONAL_INT32_SCHEMA,
+        "b", SchemaBuilder
+            .array(Schema.OPTIONAL_STRING_SCHEMA)
+            .optional()
+            .build(),
+        "c", SchemaBuilder
+            .map(Schema.OPTIONAL_FLOAT64_SCHEMA, Schema.OPTIONAL_BOOLEAN_SCHEMA)
+            .optional()
+            .build(),
+        "d", SchemaBuilder
+            .struct()
+            .field("f0", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
+            .optional()
+            .build()
+    ));
+
+    // Then:
+    assertThat(optionals.toString(), is(""
+        + "a = INT" + System.lineSeparator()
+        + "b = ARRAY<VARCHAR>" + System.lineSeparator()
+        + "c = MAP<DOUBLE, BOOLEAN>" + System.lineSeparator()
+        + "d = STRUCT<f0 BIGINT>"
+    ));
+  }
+
+  @Test
+  public void shouldBeStrictAboutNonOptionals() {
+    // When:
+    final QuerySchemas nonOptionals = QuerySchemas.of(linkedMapOf(
+        "a", Schema.INT32_SCHEMA,
+        "b", SchemaBuilder
+            .array(Schema.STRING_SCHEMA)
+            .build(),
+        "c", SchemaBuilder
+            .map(Schema.FLOAT64_SCHEMA, Schema.BOOLEAN_SCHEMA)
+            .build(),
+        "d", SchemaBuilder
+            .struct()
+            .field("f0", SchemaBuilder.INT64_SCHEMA)
+            .build()
+    ));
+
+    // Then:
+    assertThat(nonOptionals.toString(), is(""
+        + "a = INT NOT NULL" + System.lineSeparator()
+        + "b = ARRAY<VARCHAR NOT NULL> NOT NULL" + System.lineSeparator()
+        + "c = MAP<DOUBLE NOT NULL, BOOLEAN NOT NULL> NOT NULL" + System.lineSeparator()
+        + "d = STRUCT<f0 BIGINT NOT NULL> NOT NULL"
+    ));
+  }
+
+  private static LinkedHashMap<String, Schema> linkedMapOf(final Object... e) {
+
+    assertThat("odd param count", e.length % 2, is(0));
+
+    final LinkedHashMap<String, Schema> map = new LinkedHashMap<>();
+
+    for (int idx = 0; idx < e.length; ) {
+      final Object key = e[idx++];
+      final Object value = e[idx++];
+
+      assertThat("key must be String", key, instanceOf(String.class));
+      assertThat("value must be Schema", value, instanceOf(Schema.class));
+
+      map.put((String) key, (Schema) value);
+    }
+
+    return map;
   }
 }

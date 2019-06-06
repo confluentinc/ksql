@@ -32,8 +32,8 @@
   "ksql.query.persistent.active.limit" : "2147483647"
 }
 CONFIGS_END
-InsertQuery_1.KsqlTopic.source = struct<DATA optional<string>>
-InsertQuery_1.OUTPUT = struct<DATA optional<string>>
+InsertQuery_1.KsqlTopic.source = STRUCT<DATA VARCHAR> NOT NULL
+InsertQuery_1.OUTPUT = STRUCT<DATA VARCHAR> NOT NULL
 SCHEMAS_END
 Topologies:
    Sub-topology: 0

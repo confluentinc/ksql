@@ -16,25 +16,25 @@
 
 package io.confluent.ksql.parser.tree;
 
-import java.util.Optional;
-
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
+
+import java.util.Optional;
 
 public final class ShowCatalogs
     extends Statement {
 
   private final Optional<String> likePattern;
 
-  public ShowCatalogs(Optional<String> likePattern) {
+  public ShowCatalogs(final Optional<String> likePattern) {
     this(Optional.empty(), likePattern);
   }
 
-  public ShowCatalogs(NodeLocation location, Optional<String> likePattern) {
+  public ShowCatalogs(final NodeLocation location, final Optional<String> likePattern) {
     this(Optional.of(location), likePattern);
   }
 
-  public ShowCatalogs(Optional<NodeLocation> location, Optional<String> likePattern) {
+  public ShowCatalogs(final Optional<NodeLocation> location, final Optional<String> likePattern) {
     super(location);
     this.likePattern = requireNonNull(likePattern, "likePattern is null");
   }
@@ -44,7 +44,7 @@ public final class ShowCatalogs
   }
 
   @Override
-  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitShowCatalogs(this, context);
   }
 
@@ -54,7 +54,7 @@ public final class ShowCatalogs
   }
 
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(final Object obj) {
     if (this == obj) {
       return true;
     }

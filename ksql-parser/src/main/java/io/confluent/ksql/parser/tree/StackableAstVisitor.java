@@ -16,15 +16,15 @@
 
 package io.confluent.ksql.parser.tree;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.LinkedList;
 import java.util.Optional;
-
-import static java.util.Objects.requireNonNull;
 
 public class StackableAstVisitor<R, C>
     extends AstVisitor<R, StackableAstVisitor.StackableAstVisitorContext<C>> {
 
-  public R process(Node node, StackableAstVisitorContext<C> context) {
+  public R process(final Node node, final StackableAstVisitorContext<C> context) {
     context.push(node);
     try {
       return node.accept(this, context);
@@ -38,7 +38,7 @@ public class StackableAstVisitor<R, C>
     private final LinkedList<Node> stack = new LinkedList<>();
     private final C context;
 
-    public StackableAstVisitorContext(C context) {
+    public StackableAstVisitorContext(final C context) {
       this.context = requireNonNull(context, "context is null");
     }
 
@@ -50,7 +50,7 @@ public class StackableAstVisitor<R, C>
       stack.pop();
     }
 
-    void push(Node node) {
+    void push(final Node node) {
       stack.push(node);
     }
 

@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,39 +16,33 @@
 
 package io.confluent.ksql.rest.server.resources;
 
+import io.confluent.ksql.rest.entity.Versions;
+import java.net.URI;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import java.net.URI;
-import java.net.URISyntaxException;
+import javax.ws.rs.core.UriBuilder;
+import javax.ws.rs.core.UriInfo;
 
 @Path("/")
-@Produces(MediaType.APPLICATION_JSON)
+@Produces({Versions.KSQL_V1_JSON, MediaType.APPLICATION_JSON})
 public class RootDocument {
 
-  private final boolean uiEnabled;
-  private final String uiUrl;
-  private final String infoUrl;
+  private final String postFix;
 
-  public RootDocument(boolean uiEnabled, String baseUrl) {
-    this.uiEnabled = uiEnabled;
-    this.uiUrl = baseUrl + "/index.html";
-    this.infoUrl = baseUrl + "/info";
+  public RootDocument() {
+    this.postFix = "info";
   }
 
   @GET
-  public Response get() {
-    try {
-      if (uiEnabled) {
-        return Response.temporaryRedirect(new URI(uiUrl)).build();
-      } else {
-        return Response.temporaryRedirect(new URI(infoUrl)).build();
-      }
-    } catch (URISyntaxException e) {
-      e.printStackTrace();
-    }
-    return Response.serverError().build();
+  public Response get(@Context final UriInfo uriInfo) {
+    final URI uri = UriBuilder.fromUri(uriInfo.getAbsolutePath())
+        .path(postFix)
+        .build();
+
+    return Response.temporaryRedirect(uri).build();
   }
 }

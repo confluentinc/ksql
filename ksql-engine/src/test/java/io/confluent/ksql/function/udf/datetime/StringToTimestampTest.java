@@ -16,18 +16,16 @@
 
 package io.confluent.ksql.function.udf.datetime;
 
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
 
+import io.confluent.ksql.function.KsqlFunctionException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.stream.IntStream;
-
-import io.confluent.ksql.function.KsqlFunctionException;
-
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
 
 public class StringToTimestampTest {
 
@@ -44,7 +42,7 @@ public class StringToTimestampTest {
     final Object result = udf.evaluate("2021-12-01 12:10:11.123", "yyyy-MM-dd HH:mm:ss.SSS");
 
     // Then:
-    long expectedResult = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS")
+    final long expectedResult = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS")
         .parse("2021-12-01 12:10:11.123").getTime();
     assertThat(result, is(expectedResult));
   }
@@ -55,7 +53,7 @@ public class StringToTimestampTest {
     final Object result = udf.evaluate("2021-12-01T12:10:11.123Fred", "yyyy-MM-dd'T'HH:mm:ss.SSS'Fred'");
 
     // Then:
-    long expectedResult = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Fred'")
+    final long expectedResult = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Fred'")
         .parse("2021-12-01T12:10:11.123Fred").getTime();
     assertThat(result, is(expectedResult));
   }
@@ -92,7 +90,7 @@ public class StringToTimestampTest {
         .forEach(idx -> {
           try {
             shouldCovertStringToTimestamp();
-          } catch (ParseException e) {
+          } catch (final ParseException e) {
             Assert.fail(e.getMessage());
           }
           udf.evaluate("1988-01-12 10:12:13.456", "yyyy-MM-dd HH:mm:ss.SSS");

@@ -16,17 +16,17 @@
 
 package io.confluent.ksql.parser.tree;
 
-import java.util.Objects;
-
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
+
+import java.util.Objects;
 
 public class JoinOn
     extends JoinCriteria {
 
   private final Expression expression;
 
-  public JoinOn(Expression expression) {
+  public JoinOn(final Expression expression) {
     this.expression = requireNonNull(expression, "expression is null");
   }
 
@@ -35,14 +35,14 @@ public class JoinOn
   }
 
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(final Object obj) {
     if (this == obj) {
       return true;
     }
     if ((obj == null) || (getClass() != obj.getClass())) {
       return false;
     }
-    JoinOn o = (JoinOn) obj;
+    final JoinOn o = (JoinOn) obj;
     return Objects.equals(expression, o.expression);
   }
 

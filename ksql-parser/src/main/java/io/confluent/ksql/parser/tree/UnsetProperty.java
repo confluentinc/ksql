@@ -16,17 +16,17 @@
 
 package io.confluent.ksql.parser.tree;
 
-import java.util.Objects;
-import java.util.Optional;
-
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
+
+import java.util.Objects;
+import java.util.Optional;
 
 public class UnsetProperty extends Statement {
 
   private final String propertyName;
 
-  public UnsetProperty(Optional<NodeLocation> location, String propertyName) {
+  public UnsetProperty(final Optional<NodeLocation> location, final String propertyName) {
     super(location);
     requireNonNull(propertyName, "propertyName is null");
     this.propertyName = propertyName;
@@ -37,14 +37,14 @@ public class UnsetProperty extends Statement {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
     if (!(o instanceof UnsetProperty)) {
       return false;
     }
-    UnsetProperty that = (UnsetProperty) o;
+    final UnsetProperty that = (UnsetProperty) o;
     return Objects.equals(getPropertyName(), that.getPropertyName());
   }
 

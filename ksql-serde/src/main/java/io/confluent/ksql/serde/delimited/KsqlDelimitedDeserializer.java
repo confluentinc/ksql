@@ -16,6 +16,12 @@
 
 package io.confluent.ksql.serde.delimited;
 
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.util.KsqlException;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
@@ -23,24 +29,16 @@ import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.connect.data.Schema;
 
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
-import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.util.KsqlException;
-
 public class KsqlDelimitedDeserializer implements Deserializer<GenericRow> {
 
   private final Schema schema;
 
-  public KsqlDelimitedDeserializer(Schema schema) {
+  public KsqlDelimitedDeserializer(final Schema schema) {
     this.schema = schema;
   }
 
   @Override
-  public void configure(Map<String, ?> map, boolean b) {
+  public void configure(final Map<String, ?> map, final boolean b) {
   }
 
   @Override
@@ -48,17 +46,19 @@ public class KsqlDelimitedDeserializer implements Deserializer<GenericRow> {
     if (bytes == null) {
       return null;
     }
-    String recordCsvString = new String(bytes, StandardCharsets.UTF_8);
+    final String recordCsvString = new String(bytes, StandardCharsets.UTF_8);
     try {
-      List<CSVRecord> csvRecords = CSVParser.parse(recordCsvString, CSVFormat.DEFAULT).getRecords();
+      final List<CSVRecord> csvRecords = CSVParser.parse(recordCsvString, CSVFormat.DEFAULT)
+          .getRecords();
+
       if (csvRecords == null || csvRecords.isEmpty()) {
         throw new KsqlException("Deserialization error in the delimited line: " + recordCsvString);
       }
-      CSVRecord csvRecord = csvRecords.get(0);
+      final CSVRecord csvRecord = csvRecords.get(0);
       if (csvRecord == null || csvRecord.size() == 0) {
         throw new KsqlException("Deserialization error in the delimited line: " + recordCsvString);
       }
-      List<Object> columns = new ArrayList<>();
+      final List<Object> columns = new ArrayList<>();
       if (csvRecord.size() != schema.fields().size()) {
         throw new KsqlException(
             String.format(
@@ -78,7 +78,7 @@ public class KsqlDelimitedDeserializer implements Deserializer<GenericRow> {
 
       }
       return new GenericRow(columns);
-    } catch (Exception e) {
+    } catch (final Exception e) {
       throw new SerializationException(
           "Exception in deserializing the delimited row: " + recordCsvString,
           e
@@ -86,7 +86,7 @@ public class KsqlDelimitedDeserializer implements Deserializer<GenericRow> {
     }
   }
 
-  private Object enforceFieldType(Schema fieldSchema, String delimitedField) {
+  private Object enforceFieldType(final Schema fieldSchema, final String delimitedField) {
 
     if (delimitedField.isEmpty()) {
       return null;

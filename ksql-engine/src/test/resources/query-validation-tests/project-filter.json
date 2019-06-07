@@ -1,0 +1,163 @@
+{
+  "comments": [
+    "You can specify multiple statements per test case, i.e., to set up the various streams needed",
+    "for joins etc, but currently only the final topology will be verified. This should be enough",
+    "for most tests as we can simulate the outputs from previous stages into the final stage. If we",
+    "take a modular approach to testing we can still verify that it all works correctly, i.e, if we",
+    "verify the output of a select or aggregate is correct, we can use simulated output to feed into",
+    "a join or another aggregate."
+  ],
+  "tests": [
+    {
+      "name": "project and filter",
+      "statements": [
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE double) WITH (kafka_topic='test_topic', value_format='DELIMITED', key='ID');",
+        "CREATE STREAM S1 as SELECT name FROM test where id > 100;"
+      ],
+      "inputs": [
+        {
+          "topic": "test_topic",
+          "key": 0,
+          "value": "0,zero,0.0",
+          "timestamp": 0
+        },
+        {
+          "topic": "test_topic",
+          "key": 100,
+          "value": "100,100,0.0",
+          "timestamp": 0
+        },
+        {
+          "topic": "test_topic",
+          "key": 101,
+          "value": "101,101,0.0",
+          "timestamp": 0
+        }
+      ],
+      "outputs": [
+        {
+          "topic": "S1",
+          "key": 101,
+          "value": "101",
+          "timestamp": 0
+        }
+      ]
+    },
+    {
+      "name": "WHERE with many comparisons. This tests the fix for #1784",
+      "statements": [
+        "CREATE STREAM events (id int, field0 varchar) WITH (KAFKA_TOPIC='events', VALUE_FORMAT='json');",
+        "CREATE STREAM eventstest AS SELECT id, 'x_0' AS field1, field0 FROM events WHERE ((id=1 OR id=2 OR id=3 OR id=4) AND (field0='0x10' OR field0='0x11' OR field0='0x12' OR field0='0x13' OR field0='0x14' OR field0='0x15' OR field0='0x16' OR field0='0x17' OR field0='0x18' OR field0='0x19' OR field0='0x1A' OR field0='0x1B' OR field0='0x1C' OR field0='0x1D' OR field0='0x1E' OR field0='0x1F' OR field0='0x20' OR field0='0x21' OR field0='0x22' OR field0='0x23' OR field0='0x24' OR field0='0x25' OR field0='0x26' OR field0='0x27' OR field0='0x28' OR field0='0x29' OR field0='0x2A' OR field0='0x2B' OR field0='0x2C' OR field0='0x2D' OR field0='0x2E' OR field0='0x2F' OR field0='0x30' OR field0='0x31' OR field0='0x32' OR field0='0x33' OR field0='0x34' OR field0='0x35' OR field0='0x36' OR field0='0x37' OR field0='0x38' OR field0='0x39' OR field0='0x3A' OR field0='0x3B' OR field0='0x3C' OR field0='0x3D' OR field0='0x3E' OR field0='0x3F'));"
+      ],
+      "inputs": [
+        {
+          "topic": "events",
+          "key": 0,
+          "value": {"id": 1, "field0": "0x10"},
+          "timestamp": 0
+        }
+      ],
+      "outputs": [
+        {
+          "topic": "EVENTSTEST",
+          "key": 0,
+          "value": {"ID": 1, "FIELD1": "x_0", "FIELD0": "0x10"},
+          "timestamp": 0
+        }
+      ]
+    },
+    {
+      "name": "project and negative filter",
+      "statements": [
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE double) WITH (kafka_topic='test_topic', value_format='DELIMITED', key='ID');",
+        "CREATE STREAM S2 as SELECT name, id FROM test where id < -100;"
+      ],
+      "inputs": [
+        {
+          "topic": "test_topic",
+          "key": 0,
+          "value": "0,zero,0.0",
+          "timestamp": 0
+        },
+        {
+          "topic": "test_topic",
+          "key": 100,
+          "value": "100,100,0.0",
+          "timestamp": 0
+        },
+        {
+          "topic": "test_topic",
+          "key": 101,
+          "value": "-101,101,0.0",
+          "timestamp": 0
+        }
+      ],
+      "outputs": [
+        {
+          "topic": "S2",
+          "key": 101,
+          "value": "101,-101",
+          "timestamp": 0
+        }
+      ]
+    },
+    {
+      "name": "Filter on long literal",
+      "statements": [
+        "CREATE STREAM TEST (C1 BIGINT, C2 INTEGER, C3 STRING) WITH (KAFKA_TOPIC='test_topic', value_format='DELIMITED');",
+        "CREATE STREAM S1 AS SELECT * FROM TEST WHERE C1 = 4294967296;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": "123,456,foo", "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": "4294967296,456,foo", "timestamp": 0}
+      ],
+      "outputs": [
+        {"topic": "S1", "key": 0, "value": "4294967296,456,foo", "timestamp": 0}
+      ]
+    },
+    {
+      "name": "CSAS with custom Kafka topic name",
+      "statements": [
+        "CREATE STREAM TEST (C1 BIGINT, C2 INTEGER, C3 STRING) WITH (KAFKA_TOPIC='test_topic', value_format='DELIMITED');",
+        "CREATE STREAM S1 WITH (KAFKA_TOPIC='topic_s') AS SELECT * FROM TEST WHERE C1 = 4294967296;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": "123,456,foo", "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": "4294967296,456,foo", "timestamp": 0}
+      ],
+      "outputs": [
+        {"topic": "topic_s", "key": 0, "value": "4294967296,456,foo", "timestamp": 0}
+      ]
+    },
+    {
+      "name": "Project fields with reserved name",
+      "statements": [
+        "CREATE STREAM TEST (START STRING, `END` STRING) WITH (KAFKA_TOPIC='test_topic', value_format='JSON');",
+        "CREATE STREAM S1 AS SELECT `END` FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"START": "hello", "END": "foo"}, "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": {"START": "world", "END": "bar"}, "timestamp": 0}
+      ],
+      "outputs": [
+        {"topic": "S1", "key": 0, "value": {"END": "foo"}, "timestamp": 0},
+        {"topic": "S1", "key": 0, "value": {"END": "bar"}, "timestamp": 0}
+      ]
+    },
+    {
+      "name": "Project struct fields with reserved name",
+      "statements": [
+        "CREATE STREAM TEST (S STRUCT<START STRING, `END` STRING>) WITH (KAFKA_TOPIC='test_topic', value_format='JSON');",
+        "CREATE STREAM S1 AS SELECT S->`END` FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"S": {"START": "hello", "END": "foo"}}, "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": {"S": {"START": "world", "END": "bar"}}, "timestamp": 0}
+      ],
+      "outputs": [
+        {"topic": "S1", "key": 0, "value": {"S__END": "foo"}, "timestamp": 0},
+        {"topic": "S1", "key": 0, "value": {"S__END": "bar"}, "timestamp": 0}
+      ]
+    }
+  ]
+}

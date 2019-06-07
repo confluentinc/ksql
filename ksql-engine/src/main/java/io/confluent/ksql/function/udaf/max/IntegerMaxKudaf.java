@@ -16,43 +16,38 @@
 
 package io.confluent.ksql.function.udaf.max;
 
+import io.confluent.ksql.function.AggregateFunctionArguments;
+import io.confluent.ksql.function.BaseAggregateFunction;
+import io.confluent.ksql.function.KsqlAggregateFunction;
+import java.util.Collections;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.kstream.Merger;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+public class IntegerMaxKudaf extends BaseAggregateFunction<Integer, Integer> {
 
-import io.confluent.ksql.function.KsqlAggregateFunction;
-import io.confluent.ksql.parser.tree.Expression;
-
-public class IntegerMaxKudaf extends KsqlAggregateFunction<Integer, Integer> {
-
-  public IntegerMaxKudaf(int argIndexInValue) {
-    super(argIndexInValue, () -> Integer.MIN_VALUE, Schema.INT32_SCHEMA,
-          Collections.singletonList(Schema.INT32_SCHEMA)
+  IntegerMaxKudaf(final String functionName, final int argIndexInValue) {
+    super(functionName, argIndexInValue, () -> Integer.MIN_VALUE, Schema.OPTIONAL_INT32_SCHEMA,
+        Collections.singletonList(Schema.OPTIONAL_INT32_SCHEMA),
+        "Computes the maximum integer value for a key."
     );
   }
 
   @Override
-  public Integer aggregate(Integer currentVal, Integer currentAggVal) {
-    if (currentVal == null) {
-      return currentAggVal;
+  public Integer aggregate(final Integer currentValue, final Integer aggregateValue) {
+    if (currentValue == null) {
+      return aggregateValue;
     }
-    return Math.max(currentVal, currentAggVal);
+    return Math.max(currentValue, aggregateValue);
   }
 
   @Override
   public Merger<String, Integer> getMerger() {
-    return (aggKey, aggOne, aggTwo) -> {
-      return Math.max(aggOne, aggTwo);
-    };
+    return (aggKey, aggOne, aggTwo) -> Math.max(aggOne, aggTwo);
   }
 
   @Override
-  public KsqlAggregateFunction<Integer, Integer> getInstance(Map<String, Integer> expressionNames,
-                                                           List<Expression> functionArguments) {
-    int udafIndex = expressionNames.get(functionArguments.get(0).toString());
-    return new IntegerMaxKudaf(udafIndex);
+  public KsqlAggregateFunction<Integer, Integer> getInstance(
+      final AggregateFunctionArguments aggregateFunctionArguments) {
+    return new IntegerMaxKudaf(functionName, aggregateFunctionArguments.udafIndex());
   }
 }

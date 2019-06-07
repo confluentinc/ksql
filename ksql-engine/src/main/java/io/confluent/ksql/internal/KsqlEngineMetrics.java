@@ -16,6 +16,12 @@
 
 package io.confluent.ksql.internal;
 
+import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.metrics.MetricCollectors;
+import java.io.Closeable;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import org.apache.kafka.common.metrics.MeasurableStat;
 import org.apache.kafka.common.metrics.MetricConfig;
 import org.apache.kafka.common.metrics.Metrics;
@@ -24,14 +30,6 @@ import org.apache.kafka.common.metrics.stats.Avg;
 import org.apache.kafka.common.metrics.stats.Max;
 import org.apache.kafka.common.metrics.stats.Min;
 import org.apache.kafka.common.metrics.stats.Value;
-
-import java.io.Closeable;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-
-import io.confluent.ksql.KsqlEngine;
-import io.confluent.ksql.metrics.MetricCollectors;
 
 public class KsqlEngineMetrics implements Closeable {
   private final List<Sensor> sensors;
@@ -48,12 +46,12 @@ public class KsqlEngineMetrics implements Closeable {
 
   private final KsqlEngine ksqlEngine;
 
-  public KsqlEngineMetrics(String metricGroupPrefix, KsqlEngine ksqlEngine) {
+  public KsqlEngineMetrics(final String metricGroupPrefix, final KsqlEngine ksqlEngine) {
     this.ksqlEngine = ksqlEngine;
     this.sensors = new ArrayList<>();
     this.metricGroupName = metricGroupPrefix + "-query-stats";
 
-    Metrics metrics = MetricCollectors.getMetrics();
+    final Metrics metrics = MetricCollectors.getMetrics();
 
     this.numActiveQueries = configureNumActiveQueries(metrics);
     this.messagesIn = configureMessagesIn(metrics);
@@ -67,7 +65,7 @@ public class KsqlEngineMetrics implements Closeable {
 
   @Override
   public void close() {
-    Metrics metrics = MetricCollectors.getMetrics();
+    final Metrics metrics = MetricCollectors.getMetrics();
     sensors.forEach(sensor -> metrics.removeSensor(sensor.name()));
   }
 
@@ -85,33 +83,34 @@ public class KsqlEngineMetrics implements Closeable {
     return sensors;
   }
 
-  private void recordMessageConsumptionByQueryStats(Collection<Double> messagesConsumedByQuery) {
+  private void recordMessageConsumptionByQueryStats(
+      final Collection<Double> messagesConsumedByQuery) {
     numIdleQueries.record(messagesConsumedByQuery.stream().filter(value -> value == 0.0).count());
     messagesConsumedByQuery.forEach(this.messageConsumptionByQuery::record);
   }
 
-  private void recordMessagesProduced(double value) {
+  private void recordMessagesProduced(final double value) {
     this.messagesOut.record(value);
   }
 
-  private void recordMessagesConsumed(double value) {
+  private void recordMessagesConsumed(final double value) {
     this.messagesIn.record(value);
   }
 
-  private void recordTotalBytesConsumed(double value) {
+  private void recordTotalBytesConsumed(final double value) {
     this.totalBytesIn.record(value);
   }
 
-  private void recordTotalMessagesConsumed(double value) {
+  private void recordTotalMessagesConsumed(final double value) {
     this.totalMessagesIn.record(value);
   }
 
-  private void recordErrorRate(double value) {
+  private void recordErrorRate(final double value) {
     this.errorRate.record(value);
   }
 
-  private Sensor configureErrorRate(Metrics metrics) {
-    Sensor sensor = createSensor(metrics, metricGroupName + "-error-rate");
+  private Sensor configureErrorRate(final Metrics metrics) {
+    final Sensor sensor = createSensor(metrics, metricGroupName + "-error-rate");
     sensor.add(
         metrics.metricName("error-rate", this.metricGroupName,
                            "The number of messages which were consumed but not processed. "
@@ -124,8 +123,8 @@ public class KsqlEngineMetrics implements Closeable {
     return sensor;
   }
 
-  private Sensor configureMessagesOut(Metrics metrics) {
-    Sensor sensor = createSensor(metrics, metricGroupName + "-messages-produced");
+  private Sensor configureMessagesOut(final Metrics metrics) {
+    final Sensor sensor = createSensor(metrics, metricGroupName + "-messages-produced");
     sensor.add(
         metrics.metricName("messages-produced-per-sec", this.metricGroupName,
                            "The number of messages produced per second across all queries"),
@@ -134,8 +133,8 @@ public class KsqlEngineMetrics implements Closeable {
     return sensor;
   }
 
-  private Sensor configureMessagesIn(Metrics metrics) {
-    Sensor sensor = createSensor(metrics, metricGroupName + "-messages-consumed");
+  private Sensor configureMessagesIn(final Metrics metrics) {
+    final Sensor sensor = createSensor(metrics, metricGroupName + "-messages-consumed");
     sensor.add(
         metrics.metricName("messages-consumed-per-sec", this.metricGroupName,
                            "The number of messages consumed per second across all queries"),
@@ -143,8 +142,8 @@ public class KsqlEngineMetrics implements Closeable {
     return sensor;
   }
 
-  private Sensor configureTotalMessagesIn(Metrics metrics) {
-    Sensor sensor = createSensor(metrics, metricGroupName + "-total-messages-consumed");
+  private Sensor configureTotalMessagesIn(final Metrics metrics) {
+    final Sensor sensor = createSensor(metrics, metricGroupName + "-total-messages-consumed");
     sensor.add(
         metrics.metricName("messages-consumed-total", this.metricGroupName,
             "The total number of messages consumed across all queries"),
@@ -152,8 +151,8 @@ public class KsqlEngineMetrics implements Closeable {
     return sensor;
   }
 
-  private Sensor configureTotalBytesIn(Metrics metrics) {
-    Sensor sensor = createSensor(metrics, metricGroupName + "-total-bytes-consumed");
+  private Sensor configureTotalBytesIn(final Metrics metrics) {
+    final Sensor sensor = createSensor(metrics, metricGroupName + "-total-bytes-consumed");
     sensor.add(
         metrics.metricName("bytes-consumed-total", this.metricGroupName,
             "The total number of bytes consumed across all queries"),
@@ -161,19 +160,19 @@ public class KsqlEngineMetrics implements Closeable {
     return sensor;
   }
 
-  private Sensor configureNumActiveQueries(Metrics metrics) {
-    Sensor sensor = createSensor(metrics, metricGroupName + "-active-queries");
+  private Sensor configureNumActiveQueries(final Metrics metrics) {
+    final Sensor sensor = createSensor(metrics, metricGroupName + "-active-queries");
     sensor.add(
         metrics.metricName("num-active-queries", this.metricGroupName,
                            "The current number of active queries running in this engine"),
         new MeasurableStat() {
           @Override
-          public double measure(MetricConfig metricConfig, long l) {
+          public double measure(final MetricConfig metricConfig, final long l) {
             return ksqlEngine.numberOfLiveQueries();
           }
 
           @Override
-          public void record(MetricConfig metricConfig, double v, long l) {
+          public void record(final MetricConfig metricConfig, final double v, final long l) {
             // We don't want to record anything, since the live queries anyway.
           }
         });
@@ -183,12 +182,12 @@ public class KsqlEngineMetrics implements Closeable {
                            "The current number of persistent queries running in this engine"),
         new MeasurableStat() {
           @Override
-          public double measure(MetricConfig metricConfig, long l) {
+          public double measure(final MetricConfig metricConfig, final long l) {
             return ksqlEngine.numberOfPersistentQueries();
           }
 
           @Override
-          public void record(MetricConfig metricConfig, double v, long l) {
+          public void record(final MetricConfig metricConfig, final double v, final long l) {
             // No action for record since we can read the desired results directly.
           }
         }
@@ -197,22 +196,22 @@ public class KsqlEngineMetrics implements Closeable {
 
   }
 
-  private Sensor configureIdleQueriesSensor(Metrics metrics) {
-    Sensor sensor = createSensor(metrics, "num-idle-queries");
+  private Sensor configureIdleQueriesSensor(final Metrics metrics) {
+    final Sensor sensor = createSensor(metrics, "num-idle-queries");
     sensor.add(metrics.metricName("num-idle-queries", this.metricGroupName), new Value());
     return sensor;
   }
 
-  private Sensor configureMessageConsumptionByQuerySensor(Metrics metrics) {
-    Sensor sensor = createSensor(metrics, "message-consumption-by-query");
+  private Sensor configureMessageConsumptionByQuerySensor(final Metrics metrics) {
+    final Sensor sensor = createSensor(metrics, "message-consumption-by-query");
     sensor.add(metrics.metricName("messages-consumed-max", this.metricGroupName), new Max());
     sensor.add(metrics.metricName("messages-consumed-min", this.metricGroupName), new Min());
     sensor.add(metrics.metricName("messages-consumed-avg", this.metricGroupName), new Avg());
     return sensor;
   }
 
-  private Sensor createSensor(Metrics metrics, String sensorName) {
-    Sensor sensor = metrics.sensor(sensorName);
+  private Sensor createSensor(final Metrics metrics, final String sensorName) {
+    final Sensor sensor = metrics.sensor(sensorName);
     sensors.add(sensor);
     return sensor;
   }

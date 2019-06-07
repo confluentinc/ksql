@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  **/
+
 package io.confluent.ksql.analyzer;
 
 import io.confluent.ksql.function.FunctionRegistry;
@@ -22,30 +23,35 @@ import io.confluent.ksql.parser.tree.ExpressionTreeRewriter;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QuerySpecification;
 import io.confluent.ksql.util.AggregateExpressionRewriter;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import java.util.Objects;
 
 public class QueryAnalyzer {
-
   private final MetaStore metaStore;
   private final FunctionRegistry functionRegistry;
+  private final KsqlConfig config;
 
-  public QueryAnalyzer(final MetaStore metaStore, final FunctionRegistry functionRegistry) {
-    this.metaStore = metaStore;
-    this.functionRegistry = functionRegistry;
+  public QueryAnalyzer(final MetaStore metaStore,
+                       final FunctionRegistry functionRegistry,
+                       final KsqlConfig config) {
+    this.metaStore = Objects.requireNonNull(metaStore, "metaStore");
+    this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
+    this.config = Objects.requireNonNull(config, "config");
   }
 
   public Analysis analyze(final String sqlExpression, final Query query) {
-    Analysis analysis = new Analysis();
-    Analyzer analyzer = new Analyzer(sqlExpression, analysis, metaStore);
+    final Analysis analysis = new Analysis();
+    final Analyzer analyzer = new Analyzer(sqlExpression, analysis, metaStore, topicPrefix());
     analyzer.process(query, new AnalysisContext());
     return analysis;
   }
 
   public AggregateAnalysis analyzeAggregate(final Query query, final Analysis analysis) {
-    AggregateAnalysis aggregateAnalysis = new AggregateAnalysis();
-    AggregateAnalyzer aggregateAnalyzer = new
+    final AggregateAnalysis aggregateAnalysis = new AggregateAnalysis();
+    final AggregateAnalyzer aggregateAnalyzer = new
         AggregateAnalyzer(aggregateAnalysis, analysis, functionRegistry);
-    AggregateExpressionRewriter aggregateExpressionRewriter =
+    final AggregateExpressionRewriter aggregateExpressionRewriter =
         new AggregateExpressionRewriter(functionRegistry);
 
     processSelectExpressions(
@@ -101,9 +107,8 @@ public class QueryAnalyzer {
       final AggregateAnalyzer aggregateAnalyzer,
       final AggregateExpressionRewriter aggregateExpressionRewriter
   ) {
-    for (Expression expression : analysis.getSelectExpressions()) {
-      aggregateAnalyzer
-          .process(expression, new AnalysisContext());
+    for (final Expression expression : analysis.getSelectExpressions()) {
+      aggregateAnalyzer.process(expression, new AnalysisContext());
       if (!aggregateAnalyzer.isHasAggregateFunction()) {
         aggregateAnalysis.addNonAggResultColumns(expression);
       }
@@ -119,11 +124,15 @@ public class QueryAnalyzer {
     if (!((QuerySpecification) query.getQueryBody()).getGroupBy().isPresent()) {
       return;
     }
-    int numberOfNonAggProjections = aggregateAnalysis.getNonAggResultColumns().size();
-    int groupBySize = ((QuerySpecification) query.getQueryBody()).getGroupBy().get()
+    final int numberOfNonAggProjections = aggregateAnalysis.getNonAggResultColumns().size();
+    final int groupBySize = ((QuerySpecification) query.getQueryBody()).getGroupBy().get()
         .getGroupingElements().size();
     if (numberOfNonAggProjections != groupBySize) {
       throw new KsqlException("Group by elements should match the SELECT expressions.");
     }
+  }
+
+  private String topicPrefix() {
+    return config.getString(KsqlConfig.KSQL_OUTPUT_TOPIC_NAME_PREFIX_CONFIG);
   }
 }

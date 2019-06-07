@@ -21,7 +21,7 @@ import java.util.Map;
 import java.util.Optional;
 
 public abstract class AbstractStreamCreateStatement extends Statement {
-  public AbstractStreamCreateStatement(Optional<NodeLocation> location) {
+  public AbstractStreamCreateStatement(final Optional<NodeLocation> location) {
     super(location);
   }
 

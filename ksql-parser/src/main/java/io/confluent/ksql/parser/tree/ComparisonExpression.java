@@ -16,10 +16,10 @@
 
 package io.confluent.ksql.parser.tree;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.Objects;
 import java.util.Optional;
-
-import static java.util.Objects.requireNonNull;
 
 public class ComparisonExpression
     extends Expression {
@@ -35,7 +35,7 @@ public class ComparisonExpression
 
     private final String value;
 
-    Type(String value) {
+    Type(final String value) {
       this.value = value;
     }
 
@@ -88,16 +88,21 @@ public class ComparisonExpression
   private final Expression left;
   private final Expression right;
 
-  public ComparisonExpression(Type type, Expression left, Expression right) {
+  public ComparisonExpression(final Type type, final Expression left, final Expression right) {
     this(Optional.empty(), type, left, right);
   }
 
-  public ComparisonExpression(NodeLocation location, Type type, Expression left, Expression right) {
+  public ComparisonExpression(
+      final NodeLocation location,
+      final Type type,
+      final Expression left,
+      final Expression right) {
     this(Optional.of(location), type, left, right);
   }
 
-  private ComparisonExpression(Optional<NodeLocation> location, Type type, Expression left,
-                               Expression right) {
+  private ComparisonExpression(
+      final Optional<NodeLocation> location, final Type type, final Expression left,
+                               final Expression right) {
     super(location);
     requireNonNull(type, "type is null");
     requireNonNull(left, "left is null");
@@ -121,12 +126,12 @@ public class ComparisonExpression
   }
 
   @Override
-  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitComparisonExpression(this, context);
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
@@ -134,7 +139,7 @@ public class ComparisonExpression
       return false;
     }
 
-    ComparisonExpression that = (ComparisonExpression) o;
+    final ComparisonExpression that = (ComparisonExpression) o;
     return (type == that.type)
            && Objects.equals(left, that.left)
            && Objects.equals(right, that.right);

@@ -18,7 +18,7 @@ package io.confluent.ksql.exception;
 
 public class KafkaResponseGetFailedException extends KafkaTopicClientException {
 
-  public KafkaResponseGetFailedException(String message, Throwable throwable) {
+  public KafkaResponseGetFailedException(final String message, final Throwable throwable) {
     super(message, throwable);
   }
 }

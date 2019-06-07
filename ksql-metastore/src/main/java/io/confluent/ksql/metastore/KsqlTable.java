@@ -16,14 +16,11 @@
 
 package io.confluent.ksql.metastore;
 
+import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.util.SchemaUtil;
+import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
-
-import java.util.Optional;
-
-import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.SchemaUtil;
 
 public class KsqlTable extends StructuredDataSource {
 
@@ -31,21 +28,21 @@ public class KsqlTable extends StructuredDataSource {
   private final boolean isWindowed;
 
   public KsqlTable(
-      String sqlExpression,
+      final String sqlExpression,
       final String datasourceName,
       final Schema schema,
       final Field keyField,
-      final Field timestampField,
+      final TimestampExtractionPolicy timestampExtractionPolicy,
       final KsqlTopic ksqlTopic,
       final String stateStoreName,
-      boolean isWindowed
+      final boolean isWindowed
   ) {
     super(
         sqlExpression,
         datasourceName,
         schema,
         keyField,
-        timestampField,
+        timestampExtractionPolicy,
         DataSourceType.KTABLE,
         ksqlTopic
     );
@@ -53,23 +50,18 @@ public class KsqlTable extends StructuredDataSource {
     this.isWindowed = isWindowed;
   }
 
-  public String getStateStoreName() {
-    return stateStoreName;
-  }
-
   public boolean isWindowed() {
     return isWindowed;
   }
 
   @Override
-  public StructuredDataSource cloneWithTimeKeyColumns() {
-    Schema newSchema = SchemaUtil.addImplicitRowTimeRowKeyToSchema(schema);
+  public StructuredDataSource copy() {
     return new KsqlTable(
         sqlExpression,
         dataSourceName,
-        newSchema,
+        schema,
         keyField,
-        timestampField,
+        timestampExtractionPolicy,
         ksqlTopic,
         stateStoreName,
         isWindowed
@@ -77,19 +69,29 @@ public class KsqlTable extends StructuredDataSource {
   }
 
   @Override
-  public StructuredDataSource cloneWithTimeField(String timestampfieldName) {
-    Optional<Field> newTimestampField = SchemaUtil.getFieldByName(schema, timestampfieldName);
-    if (newTimestampField.get().schema().type() != Schema.Type.INT64) {
-      throw new KsqlException(
-          "Timestamp column, " + timestampfieldName + ", should be LONG" + "(INT64)."
-      );
-    }
+  public StructuredDataSource cloneWithTimeKeyColumns() {
+    final Schema newSchema = SchemaUtil.addImplicitRowTimeRowKeyToSchema(schema);
+    return new KsqlTable(
+        sqlExpression,
+        dataSourceName,
+        newSchema,
+        keyField,
+        timestampExtractionPolicy,
+        ksqlTopic,
+        stateStoreName,
+        isWindowed
+    );
+  }
+
+  @Override
+  public StructuredDataSource cloneWithTimeExtractionPolicy(
+      final TimestampExtractionPolicy policy) {
     return new KsqlTable(
         sqlExpression,
         dataSourceName,
         schema,
         keyField,
-        newTimestampField.get(),
+        policy,
         ksqlTopic,
         stateStoreName,
         isWindowed

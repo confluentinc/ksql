@@ -21,12 +21,12 @@ import java.util.Optional;
 public abstract class QueryBody
     extends Relation {
 
-  protected QueryBody(Optional<NodeLocation> location) {
+  protected QueryBody(final Optional<NodeLocation> location) {
     super(location);
   }
 
   @Override
-  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitQueryBody(this, context);
   }
 }

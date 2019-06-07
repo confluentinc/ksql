@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2018 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,12 +16,14 @@
 
 package io.confluent.ksql.rest.server;
 
-
-import org.apache.kafka.clients.admin.AdminClient;
-import org.apache.kafka.streams.StreamsConfig;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.function.UdfLoader;
+import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.Version;
+import io.confluent.ksql.util.WelcomeMsgUtils;
 import java.io.BufferedReader;
 import java.io.Console;
 import java.io.FileInputStream;
@@ -31,39 +33,38 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
-
-import io.confluent.ksql.KsqlEngine;
-import io.confluent.ksql.util.KafkaTopicClientImpl;
-import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.PersistentQueryMetadata;
-import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.Version;
-import io.confluent.ksql.util.WelcomeMsgUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class StandaloneExecutor implements Executable {
 
   private static final Logger log = LoggerFactory.getLogger(StandaloneExecutor.class);
 
+  private final KsqlConfig ksqlConfig;
   private final KsqlEngine ksqlEngine;
   private final String queriesFile;
+  private final UdfLoader udfLoader;
   private final CountDownLatch shutdownLatch = new CountDownLatch(1);
 
-  StandaloneExecutor(final KsqlEngine ksqlEngine,
-                     final String queriesFile) {
-    this.ksqlEngine = ksqlEngine;
-    this.queriesFile = queriesFile;
+  StandaloneExecutor(final KsqlConfig ksqlConfig,
+                     final KsqlEngine ksqlEngine,
+                     final String queriesFile,
+                     final UdfLoader udfLoader) {
+    this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig can't be null");
+    this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine can't be null");
+    this.queriesFile = Objects.requireNonNull(queriesFile, "queriesFile can't be null");
+    this.udfLoader = Objects.requireNonNull(udfLoader, "udfLoader can't be null");
   }
 
-
-  public void start() throws Exception {
+  public void start() {
     try {
+      udfLoader.load();
       executeStatements(readQueriesFile(queriesFile));
       showWelcomeMessage();
-    } catch (Exception e) {
+    } catch (final Exception e) {
       log.error("Failed to start KSQL Server with query file: " + queriesFile, e);
       stop();
       throw e;
@@ -73,7 +74,7 @@ public class StandaloneExecutor implements Executable {
   public void stop() {
     try {
       ksqlEngine.close();
-    } catch (Exception e) {
+    } catch (final Exception e) {
       log.warn("Failed to cleanly shutdown the KSQL Engine", e);
     }
     shutdownLatch.countDown();
@@ -84,31 +85,22 @@ public class StandaloneExecutor implements Executable {
     shutdownLatch.await();
   }
 
-  public static StandaloneExecutor create(final Properties properties, final String queriesFile) {
+  public static StandaloneExecutor create(final Properties properties,
+                                          final String queriesFile,
+                                          final String installDir) {
     final KsqlConfig ksqlConfig = new KsqlConfig(properties);
-    Map<String, Object> streamsProperties = ksqlConfig.getKsqlStreamConfigProps();
-    if(!streamsProperties.containsKey(StreamsConfig.APPLICATION_ID_CONFIG)) {
-      streamsProperties.put(
-          StreamsConfig.APPLICATION_ID_CONFIG, KsqlConfig.KSQL_SERVICE_ID_DEFAULT);
-    }
-
-    final KsqlEngine ksqlEngine = new KsqlEngine(
-        ksqlConfig,
-        new KafkaTopicClientImpl(
-            AdminClient.create(ksqlConfig.getKsqlAdminClientConfigProps())));
-
-    return new StandaloneExecutor(
-        ksqlEngine,
-        queriesFile);
+    final KsqlEngine ksqlEngine = new KsqlEngine(ksqlConfig);
+    final UdfLoader udfLoader = UdfLoader.newInstance(ksqlConfig,
+        ksqlEngine.getMetaStore(),
+        installDir);
+    return new StandaloneExecutor(ksqlConfig, ksqlEngine, queriesFile, udfLoader);
   }
-
 
   private void showWelcomeMessage() {
     final Console console = System.console();
     if (console == null) {
       return;
     }
-
     final PrintWriter writer =
         new PrintWriter(new OutputStreamWriter(System.out, StandardCharsets.UTF_8));
 
@@ -120,12 +112,12 @@ public class StandaloneExecutor implements Executable {
     writer.flush();
   }
 
-  private void executeStatements(final String queries) throws Exception {
-    final List<QueryMetadata> queryMetadataList = ksqlEngine.createQueries(queries);
-    for (QueryMetadata queryMetadata : queryMetadataList) {
+  private void executeStatements(final String queries) {
+    final List<QueryMetadata> queryMetadataList = ksqlEngine.createQueries(queries, ksqlConfig);
+    for (final QueryMetadata queryMetadata : queryMetadataList) {
       if (queryMetadata instanceof PersistentQueryMetadata) {
-        PersistentQueryMetadata persistentQueryMetadata = (PersistentQueryMetadata) queryMetadata;
-        persistentQueryMetadata.start();
+        final PersistentQueryMetadata persistentQueryMd = (PersistentQueryMetadata) queryMetadata;
+        persistentQueryMd.start();
       } else {
         final String message = String.format(
             "Ignoring statements: %s"
@@ -138,11 +130,9 @@ public class StandaloneExecutor implements Executable {
     }
   }
 
-
-
   private static String readQueriesFile(final String queryFilePath) {
     final StringBuilder sb = new StringBuilder();
-    try (final BufferedReader br = new BufferedReader(new InputStreamReader(
+    try (BufferedReader br = new BufferedReader(new InputStreamReader(
         new FileInputStream(queryFilePath), StandardCharsets.UTF_8))) {
       String line = br.readLine();
       while (line != null) {
@@ -150,7 +140,7 @@ public class StandaloneExecutor implements Executable {
         sb.append(System.lineSeparator());
         line = br.readLine();
       }
-    } catch (IOException e) {
+    } catch (final IOException e) {
       throw new KsqlException("Could not read the query file. Details: " + e.getMessage(), e);
     }
     return sb.toString();

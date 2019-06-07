@@ -16,40 +16,51 @@
 
 package io.confluent.ksql.function.udaf.topkdistinct;
 
-import org.apache.kafka.connect.data.Schema;
-
-import java.util.Arrays;
-import java.util.List;
-
 import io.confluent.ksql.function.AggregateFunctionFactory;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.util.KsqlException;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import org.apache.kafka.connect.data.Schema;
 
 public class TopkDistinctAggFunctionFactory extends AggregateFunctionFactory {
 
+  private static final String NAME = "TOPKDISTINCT";
+  private final Map<Schema.Type, KsqlAggregateFunction<?, ?>> functions = new HashMap<>();
+
   public TopkDistinctAggFunctionFactory() {
-    super("TOPKDISTINCT", Arrays.asList());
+    super(NAME, createDescriptionFunctions());
+    eachFunction(func -> {
+      functions.put(((TopkDistinctKudaf)func).getOutputSchema().type(), func);
+    });
+  }
+
+  private static List<KsqlAggregateFunction<?, ?>> createDescriptionFunctions() {
+    return Arrays.asList(
+        new TopkDistinctKudaf<>(NAME, -1, 0, Schema.OPTIONAL_INT32_SCHEMA,
+            Integer.class),
+        new TopkDistinctKudaf<>(NAME, -1, 0, Schema.OPTIONAL_INT64_SCHEMA,
+            Long.class),
+        new TopkDistinctKudaf<>(NAME, -1, 0, Schema.OPTIONAL_FLOAT64_SCHEMA,
+            Double.class),
+        new TopkDistinctKudaf<>(NAME, -1, 0, Schema.OPTIONAL_STRING_SCHEMA,
+            String.class)
+    );
   }
 
   @Override
-  public KsqlAggregateFunction getProperAggregateFunction(List<Schema> argTypeList) {
+  public KsqlAggregateFunction getProperAggregateFunction(final List<Schema> argTypeList) {
     if (argTypeList.isEmpty()) {
       throw new KsqlException("TOPKDISTINCT function should have two arguments.");
     }
-    Schema argSchema = argTypeList.get(0);
-    switch (argSchema.type()) {
-      case INT32:
-        return new TopkDistinctKudaf<>(-1, 0, Schema.INT32_SCHEMA, Integer.class);
-      case INT64:
-        return new TopkDistinctKudaf<>(-1, 0, Schema.INT64_SCHEMA, Long.class);
-      case FLOAT64:
-        return new TopkDistinctKudaf<>(-1, 0, Schema.FLOAT64_SCHEMA, Double.class);
-      case STRING:
-        return new TopkDistinctKudaf<>(-1, 0, Schema.STRING_SCHEMA, String.class);
-      default:
-        throw new KsqlException("No TOPKDISTINCT aggregate function with " + argTypeList.get(0)
-                                + " argument type exists!");
-    }
 
+    final KsqlAggregateFunction<?, ?> function = functions.get(argTypeList.get(0).type());
+    if (function == null) {
+      throw new KsqlException("No TOPKDISTINCT aggregate function with " + argTypeList.get(0)
+          + " argument type exists!");
+    }
+    return function;
   }
 }

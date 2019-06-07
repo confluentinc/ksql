@@ -19,10 +19,8 @@ package io.confluent.ksql.rest.entity;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
-
-import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.metastore.KsqlTopic;
-
+import io.confluent.ksql.serde.DataSource;
 import java.util.Objects;
 
 @JsonSubTypes({})
@@ -33,16 +31,16 @@ public class KsqlTopicInfo {
 
   @JsonCreator
   public KsqlTopicInfo(
-      @JsonProperty("name")       String name,
-      @JsonProperty("kafkaTopic") String kafkaTopic,
-      @JsonProperty("format")     DataSource.DataSourceSerDe format
+      @JsonProperty("name") final String name,
+      @JsonProperty("kafkaTopic") final String kafkaTopic,
+      @JsonProperty("format") final DataSource.DataSourceSerDe format
   ) {
     this.name = name;
     this.kafkaTopic = kafkaTopic;
     this.format = format;
   }
 
-  public KsqlTopicInfo(KsqlTopic ksqlTopic) {
+  public KsqlTopicInfo(final KsqlTopic ksqlTopic) {
     this(
         ksqlTopic.getTopicName(),
         ksqlTopic.getKafkaTopicName(),
@@ -63,14 +61,14 @@ public class KsqlTopicInfo {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
     if (!(o instanceof KsqlTopicInfo)) {
       return false;
     }
-    KsqlTopicInfo topicInfo = (KsqlTopicInfo) o;
+    final KsqlTopicInfo topicInfo = (KsqlTopicInfo) o;
     return Objects.equals(getName(), topicInfo.getName())
         && Objects.equals(getKafkaTopic(), topicInfo.getKafkaTopic())
         && getFormat() == topicInfo.getFormat();

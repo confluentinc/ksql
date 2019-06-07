@@ -16,40 +16,66 @@
 
 package io.confluent.ksql.rest.server.computation;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.Assert;
-import org.junit.Test;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.confluent.ksql.rest.util.JsonMapper;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
-
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.is;
+import org.junit.Test;
 
 public class CommandTest {
   @Test
   public void shouldDeserializeCorrectly() throws IOException {
-    String commandStr = "{\"statement\": \"test statement;\", \"streamsProperties\": {\"foo\": \"bar\"}}";
-    ObjectMapper mapper = new ObjectMapper();
-    Command command = mapper.readValue(commandStr, Command.class);
-    Assert.assertThat(command.getStatement(), equalTo("test statement;"));
-    Map<String, Object> expectedKsqlProperties = Collections.singletonMap("foo", "bar");
-    Assert.assertThat(command.getKsqlProperties(), equalTo(expectedKsqlProperties));
+    final String commandStr = "{" +
+        "\"statement\": \"test statement;\", " +
+        "\"streamsProperties\": {\"foo\": \"bar\"}, " +
+        "\"originalProperties\": {\"biz\": \"baz\"} " +
+        "}";
+    final ObjectMapper mapper = JsonMapper.INSTANCE.mapper;
+    final Command command = mapper.readValue(commandStr, Command.class);
+    assertThat(command.getStatement(), equalTo("test statement;"));
+    final Map<String, Object> expecteOverwriteProperties
+        = Collections.singletonMap("foo", "bar");
+    assertThat(command.getOverwriteProperties(), equalTo(expecteOverwriteProperties));
+    final Map<String, Object> expectedOriginalProperties
+        = Collections.singletonMap("biz", "baz");
+    assertThat(command.getOriginalProperties(), equalTo(expectedOriginalProperties));
   }
 
-  void grep(String string, String regex) {
-    Assert.assertThat(string.matches(regex), is(true));
+  @Test
+  public void shouldDeserializeWithoutKsqlConfigCorrectly() throws IOException {
+    final String commandStr = "{" +
+        "\"statement\": \"test statement;\", " +
+        "\"streamsProperties\": {\"foo\": \"bar\"}" +
+        "}";
+    final ObjectMapper mapper = JsonMapper.INSTANCE.mapper;
+    final Command command = mapper.readValue(commandStr, Command.class);
+    assertThat(command.getStatement(), equalTo("test statement;"));
+    final Map<String, Object> expecteOverwriteProperties = Collections.singletonMap("foo", "bar");
+    assertThat(command.getOverwriteProperties(), equalTo(expecteOverwriteProperties));
+    assertThat(command.getOriginalProperties(), equalTo(Collections.emptyMap()));
+  }
+
+  void grep(final String string, final String regex) {
+    assertThat(string.matches(regex), is(true));
   }
 
   @Test
   public void shouldSerializeDeserializeCorrectly() throws IOException {
-    Command command = new Command("test statement;", Collections.singletonMap("foo", "bar"));
-    ObjectMapper mapper = new ObjectMapper();
-    String serialized = mapper.writeValueAsString(command);
+    final Command command = new Command(
+        "test statement;",
+        Collections.singletonMap("foo", "bar"),
+        Collections.singletonMap("biz", "baz"));
+    final ObjectMapper mapper = JsonMapper.INSTANCE.mapper;
+    final String serialized = mapper.writeValueAsString(command);
     grep(serialized, ".*\"streamsProperties\" *: *\\{ *\"foo\" *: *\"bar\" *\\}.*");
     grep(serialized, ".*\"statement\" *: *\"test statement;\".*");
-    Command deserialized = mapper.readValue(serialized, Command.class);
-    Assert.assertThat(deserialized, equalTo(command));
+    grep(serialized, ".*\"originalProperties\" *: *\\{ *\"biz\" *: *\"baz\" *\\}.*");
+    final Command deserialized = mapper.readValue(serialized, Command.class);
+    assertThat(deserialized, equalTo(command));
   }
 }

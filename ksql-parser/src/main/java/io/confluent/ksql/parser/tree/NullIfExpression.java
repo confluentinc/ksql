@@ -28,15 +28,19 @@ public class NullIfExpression
   private final Expression first;
   private final Expression second;
 
-  public NullIfExpression(Expression first, Expression second) {
+  public NullIfExpression(final Expression first, final Expression second) {
     this(Optional.empty(), first, second);
   }
 
-  public NullIfExpression(NodeLocation location, Expression first, Expression second) {
+  public NullIfExpression(
+      final NodeLocation location,
+      final Expression first,
+      final Expression second) {
     this(Optional.of(location), first, second);
   }
 
-  private NullIfExpression(Optional<NodeLocation> location, Expression first, Expression second) {
+  private NullIfExpression(
+      final Optional<NodeLocation> location, final Expression first, final Expression second) {
     super(location);
     this.first = first;
     this.second = second;
@@ -51,12 +55,12 @@ public class NullIfExpression
   }
 
   @Override
-  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitNullIfExpression(this, context);
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
@@ -64,7 +68,7 @@ public class NullIfExpression
       return false;
     }
 
-    NullIfExpression that = (NullIfExpression) o;
+    final NullIfExpression that = (NullIfExpression) o;
     return Objects.equals(first, that.first)
            && Objects.equals(second, that.second);
   }

@@ -22,7 +22,7 @@ import io.confluent.ksql.function.udf.Kudf;
 public class RandomKudf implements Kudf {
 
   @Override
-  public Object evaluate(Object... args) {
+  public Object evaluate(final Object... args) {
     if (args.length != 0) {
       throw new KsqlFunctionException("Random udf should have no input argument.");
     }

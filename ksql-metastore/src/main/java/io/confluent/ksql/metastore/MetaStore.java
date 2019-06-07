@@ -16,32 +16,42 @@
 
 package io.confluent.ksql.metastore;
 
+import io.confluent.ksql.function.FunctionRegistry;
 import java.util.Map;
 import java.util.Set;
 
-public interface MetaStore {
+public interface MetaStore extends FunctionRegistry {
 
-  public KsqlTopic getTopic(String topicName);
+  KsqlTopic getTopic(String topicName);
 
-  public void putTopic(KsqlTopic topic);
+  void putTopic(KsqlTopic topic);
 
-  public StructuredDataSource getSource(String sourceName);
+  StructuredDataSource getSource(String sourceName);
 
-  public void putSource(StructuredDataSource dataSource);
+  void putSource(StructuredDataSource dataSource);
 
-  public void deleteTopic(String topicName);
+  void deleteTopic(String topicName);
 
-  public void deleteSource(String sourceName);
+  void deleteSource(String sourceName);
 
-  public Map<String, StructuredDataSource> getAllStructuredDataSources();
+  Map<String, StructuredDataSource> getAllStructuredDataSources();
 
-  public Set<String> getAllStructuredDataSourceNames();
+  Set<String> getAllStructuredDataSourceNames();
 
-  public Map<String, KsqlTopic> getAllKsqlTopics();
+  Map<String, KsqlTopic> getAllKsqlTopics();
 
-  public Set<String> getAllTopicNames();
+  Set<String> getAllTopicNames();
 
-  public void putAll(MetaStore otherMetaStore);
+  void updateForPersistentQuery(String queryId,
+                                       Set<String> sourceNames,
+                                       Set<String> sinkNames);
 
-  public MetaStore clone();
+  void removePersistentQuery(String queryId);
+
+  Set<String> getQueriesWithSource(String sourceName);
+
+  Set<String> getQueriesWithSink(String sourceName);
+
+  MetaStore clone();
+
 }

@@ -25,15 +25,19 @@ public class InPredicate
   private final Expression value;
   private final Expression valueList;
 
-  public InPredicate(Expression value, Expression valueList) {
+  public InPredicate(final Expression value, final Expression valueList) {
     this(Optional.empty(), value, valueList);
   }
 
-  public InPredicate(NodeLocation location, Expression value, Expression valueList) {
+  public InPredicate(
+      final NodeLocation location,
+      final Expression value,
+      final Expression valueList) {
     this(Optional.of(location), value, valueList);
   }
 
-  private InPredicate(Optional<NodeLocation> location, Expression value, Expression valueList) {
+  private InPredicate(
+      final Optional<NodeLocation> location, final Expression value, final Expression valueList) {
     super(location);
     this.value = value;
     this.valueList = valueList;
@@ -48,12 +52,12 @@ public class InPredicate
   }
 
   @Override
-  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitInPredicate(this, context);
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
@@ -61,7 +65,7 @@ public class InPredicate
       return false;
     }
 
-    InPredicate that = (InPredicate) o;
+    final InPredicate that = (InPredicate) o;
     return Objects.equals(value, that.value)
            && Objects.equals(valueList, that.valueList);
   }

@@ -21,12 +21,12 @@ import java.util.Optional;
 public abstract class ExplainOption
     extends Node {
 
-  protected ExplainOption(Optional<NodeLocation> location) {
+  protected ExplainOption(final Optional<NodeLocation> location) {
     super(location);
   }
 
   @Override
-  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitExplainOption(this, context);
   }
 }

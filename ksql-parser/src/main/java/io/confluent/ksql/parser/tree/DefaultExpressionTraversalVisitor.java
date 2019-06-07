@@ -23,7 +23,7 @@ public abstract class DefaultExpressionTraversalVisitor<R, C>
     extends DefaultTraversalVisitor<R, C> {
 
   @Override
-  protected R visitSubqueryExpression(SubqueryExpression node, C context) {
+  protected R visitSubqueryExpression(final SubqueryExpression node, final C context) {
     // Don't traverse into Subqueries within an Expression
     return null;
   }

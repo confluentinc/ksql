@@ -16,13 +16,17 @@
 
 package io.confluent.ksql.rest.server.mock;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.rest.entity.KsqlRequest;
+import io.confluent.ksql.rest.entity.StreamedRow;
+import io.confluent.ksql.rest.util.JsonMapper;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
-
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -32,12 +36,6 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.StreamingOutput;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.confluent.ksql.rest.entity.KsqlRequest;
-import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.rest.entity.StreamedRow;
-
 @Path("/query")
 @Produces(MediaType.APPLICATION_JSON)
 public class MockStreamedQueryResource {
@@ -45,8 +43,8 @@ public class MockStreamedQueryResource {
 
   @POST
   @Consumes(MediaType.APPLICATION_JSON)
-  public Response streamQuery(KsqlRequest request) throws Exception {
-    TestStreamWriter testStreamWriter = new TestStreamWriter();
+  public Response streamQuery(final KsqlRequest request) throws Exception {
+    final TestStreamWriter testStreamWriter = new TestStreamWriter();
     writers.add(testStreamWriter);
     return Response.ok().entity(testStreamWriter).build();
   }
@@ -55,30 +53,30 @@ public class MockStreamedQueryResource {
 
   public class TestStreamWriter implements StreamingOutput {
     BlockingQueue<String> dataq = new LinkedBlockingQueue<>();
-    ObjectMapper objectMapper = new ObjectMapper().disable(JsonGenerator.Feature.AUTO_CLOSE_TARGET);
+    ObjectMapper objectMapper = JsonMapper.INSTANCE.mapper;
 
-    public void enq(String data) throws InterruptedException { dataq.put(data); }
+    public void enq(final String data) throws InterruptedException { dataq.put(data); }
 
     public void finished() throws InterruptedException { dataq.put(""); }
 
-    private void writeRow(String data, OutputStream out) throws IOException {
-      List<Object> rowColumns = new java.util.LinkedList<Object>();
+    private void writeRow(final String data, final OutputStream out) throws IOException {
+      final List<Object> rowColumns = new java.util.LinkedList<Object>();
       rowColumns.add(data);
-      GenericRow row = new GenericRow(rowColumns);
-      objectMapper.writeValue(out, new StreamedRow(row));
+      final GenericRow row = new GenericRow(rowColumns);
+      objectMapper.writeValue(out, StreamedRow.row(row));
       out.write("\n".getBytes(StandardCharsets.UTF_8));
       out.flush();
     }
 
     @Override
-    public void write(OutputStream out) throws IOException, WebApplicationException {
+    public void write(final OutputStream out) throws IOException, WebApplicationException {
       out.write("\n".getBytes(StandardCharsets.UTF_8));
       out.flush();
       while (true) {
-        String data;
+        final String data;
         try {
           data = dataq.take();
-        } catch (InterruptedException e) {
+        } catch (final InterruptedException e) {
           throw new RuntimeException("take interrupted");
         }
         if (data.equals("")) {

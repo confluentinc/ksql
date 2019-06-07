@@ -24,73 +24,89 @@ import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.DropTopic;
+import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.parser.tree.RunScript;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TerminateQuery;
+import java.util.HashMap;
+import java.util.Map;
 
 public class CommandIdAssigner {
 
-  private final MetaStore metaStore;
-
-  public CommandIdAssigner(MetaStore metaStore) {
-    this.metaStore = metaStore;
+  interface CommandIdSupplier {
+    CommandId apply(Statement command);
   }
 
-  public CommandId getCommandId(Statement command) {
-    if (command instanceof RegisterTopic) {
-      return getTopicCommandId((RegisterTopic) command);
-    } else if (command instanceof CreateStream) {
-      return getTopicStreamCommandId((CreateStream) command);
-    } else if (command instanceof CreateTable) {
-      return getTopicTableCommandId((CreateTable) command);
-    } else if (command instanceof CreateStreamAsSelect) {
-      return getSelectStreamCommandId((CreateStreamAsSelect) command);
-    } else if (command instanceof CreateTableAsSelect) {
-      return getSelectTableCommandId((CreateTableAsSelect) command);
-    } else if (command instanceof TerminateQuery) {
-      return getTerminateCommandId((TerminateQuery) command);
-    } else if (command instanceof DropTopic) {
-      return getDropTopicCommandId((DropTopic) command);
-    } else if (command instanceof DropStream) {
-      return getDropStreamCommandId((DropStream) command);
-    } else if (command instanceof DropTable) {
-      return getDropTableCommandId((DropTable) command);
-    } else if (command instanceof RunScript) {
-      return new CommandId(CommandId.Type.STREAM, "RunScript", CommandId.Action.EXECUTE);
-    } else {
+  private final MetaStore metaStore;
+  private final Map<Class<? extends Statement>, CommandIdSupplier> suppliers = new HashMap<>();
+
+  public CommandIdAssigner(final MetaStore metaStore) {
+    this.metaStore = metaStore;
+    suppliers.put(RegisterTopic.class,
+        command -> getTopicCommandId((RegisterTopic) command));
+    suppliers.put(CreateStream.class,
+        command -> getTopicStreamCommandId((CreateStream) command));
+    suppliers.put(CreateTable.class,
+        command -> getTopicTableCommandId((CreateTable) command));
+    suppliers.put(CreateStreamAsSelect.class,
+        command -> getSelectStreamCommandId((CreateStreamAsSelect) command));
+    suppliers.put(CreateTableAsSelect.class,
+        command -> getSelectTableCommandId((CreateTableAsSelect) command));
+    suppliers.put(InsertInto.class, command -> getInsertIntoCommandId((InsertInto) command));
+    suppliers.put(TerminateQuery.class,
+        command -> getTerminateCommandId((TerminateQuery) command));
+    suppliers.put(DropTopic.class,
+        command -> getDropTopicCommandId((DropTopic) command));
+    suppliers.put(DropStream.class,
+        command -> getDropStreamCommandId((DropStream) command));
+    suppliers.put(DropTable.class,
+        command -> getDropTableCommandId((DropTable) command));
+    suppliers.put(RunScript.class,
+        command -> new CommandId(CommandId.Type.STREAM, "RunScript", CommandId.Action.EXECUTE));
+  }
+
+  public CommandId getCommandId(final Statement command) {
+    final CommandIdSupplier supplier = suppliers.get(command.getClass());
+    if (supplier == null) {
       throw new RuntimeException(String.format(
           "Cannot assign command ID to statement of type %s",
           command.getClass().getCanonicalName()
       ));
     }
+    return supplier.apply(command);
   }
 
-  public CommandId getTopicCommandId(RegisterTopic registerTopic) {
-    String topicName = registerTopic.getName().toString();
+  private CommandId getTopicCommandId(final RegisterTopic registerTopic) {
+    final String topicName = registerTopic.getName().toString();
     if (metaStore.getAllTopicNames().contains(topicName)) {
       throw new RuntimeException(String.format("Topic %s already exists", topicName));
     }
     return new CommandId(CommandId.Type.TOPIC, topicName, CommandId.Action.CREATE);
   }
 
-  private CommandId getTopicStreamCommandId(CreateStream createStream) {
+  private CommandId getTopicStreamCommandId(final CreateStream createStream) {
     return getStreamCommandId(createStream.getName().toString());
   }
 
-  private CommandId getSelectStreamCommandId(CreateStreamAsSelect createStreamAsSelect) {
+  private CommandId getSelectStreamCommandId(final CreateStreamAsSelect createStreamAsSelect) {
     return getStreamCommandId(createStreamAsSelect.getName().toString());
   }
 
-  private CommandId getTopicTableCommandId(CreateTable createTable) {
+  private CommandId getTopicTableCommandId(final CreateTable createTable) {
     return getTableCommandId(createTable.getName().toString());
   }
 
-  private CommandId getSelectTableCommandId(CreateTableAsSelect createTableAsSelect) {
+  private CommandId getSelectTableCommandId(final CreateTableAsSelect createTableAsSelect) {
     return getTableCommandId(createTableAsSelect.getName().toString());
   }
 
-  public CommandId getTerminateCommandId(TerminateQuery terminateQuery) {
+  private CommandId getInsertIntoCommandId(final InsertInto insertInto) {
+    return  new CommandId(CommandId.Type.STREAM, insertInto.getTarget().toString(), CommandId.Action
+        .CREATE);
+  }
+
+  private CommandId getTerminateCommandId(final TerminateQuery terminateQuery) {
     return new CommandId(
         CommandId.Type.TERMINATE,
         terminateQuery.getQueryId().toString(),
@@ -98,7 +114,7 @@ public class CommandIdAssigner {
     );
   }
 
-  public CommandId getDropTopicCommandId(DropTopic dropTopicQuery) {
+  private CommandId getDropTopicCommandId(final DropTopic dropTopicQuery) {
     return new CommandId(
         CommandId.Type.TOPIC,
         dropTopicQuery.getTopicName().getSuffix(),
@@ -106,7 +122,7 @@ public class CommandIdAssigner {
     );
   }
 
-  private CommandId getDropStreamCommandId(DropStream dropStreamQuery) {
+  private CommandId getDropStreamCommandId(final DropStream dropStreamQuery) {
     return new CommandId(
         CommandId.Type.STREAM,
         dropStreamQuery.getName().getSuffix(),
@@ -114,7 +130,7 @@ public class CommandIdAssigner {
     );
   }
 
-  private CommandId getDropTableCommandId(DropTable dropTableQuery) {
+  private CommandId getDropTableCommandId(final DropTable dropTableQuery) {
     return new CommandId(
         CommandId.Type.TABLE,
         dropTableQuery.getName().getSuffix(),
@@ -122,15 +138,15 @@ public class CommandIdAssigner {
     );
   }
 
-  private CommandId getStreamCommandId(String streamName) {
+  private CommandId getStreamCommandId(final String streamName) {
     return getSourceCommandId(CommandId.Type.STREAM, streamName);
   }
 
-  private CommandId getTableCommandId(String tableName) {
+  private CommandId getTableCommandId(final String tableName) {
     return getSourceCommandId(CommandId.Type.TABLE, tableName);
   }
 
-  private CommandId getSourceCommandId(CommandId.Type type, String sourceName) {
+  private CommandId getSourceCommandId(final CommandId.Type type, final String sourceName) {
     if (metaStore.getAllStructuredDataSourceNames().contains(sourceName)) {
       throw new RuntimeException(String.format("Source %s already exists", sourceName));
     }

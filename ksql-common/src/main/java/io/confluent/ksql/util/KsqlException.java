@@ -20,11 +20,11 @@ import org.apache.kafka.streams.errors.StreamsException;
 
 public class KsqlException extends StreamsException {
 
-  public KsqlException(String message) {
+  public KsqlException(final String message) {
     super(message);
   }
 
-  public KsqlException(String message, Throwable throwable) {
+  public KsqlException(final String message, final Throwable throwable) {
     super(message, throwable);
   }
 }

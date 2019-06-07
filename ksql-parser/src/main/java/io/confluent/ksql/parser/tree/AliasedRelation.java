@@ -16,12 +16,12 @@
 
 package io.confluent.ksql.parser.tree;
 
+import static com.google.common.base.MoreObjects.toStringHelper;
+import static java.util.Objects.requireNonNull;
+
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-
-import static com.google.common.base.MoreObjects.toStringHelper;
-import static java.util.Objects.requireNonNull;
 
 public class AliasedRelation
     extends Relation {
@@ -30,17 +30,21 @@ public class AliasedRelation
   private final String alias;
   private final List<String> columnNames;
 
-  public AliasedRelation(Relation relation, String alias, List<String> columnNames) {
+  public AliasedRelation(
+      final Relation relation,
+      final String alias,
+      final List<String> columnNames) {
     this(Optional.empty(), relation, alias, columnNames);
   }
 
-  public AliasedRelation(NodeLocation location, Relation relation, String alias,
-                         List<String> columnNames) {
+  public AliasedRelation(final NodeLocation location, final Relation relation, final String alias,
+                         final List<String> columnNames) {
     this(Optional.of(location), relation, alias, columnNames);
   }
 
-  private AliasedRelation(Optional<NodeLocation> location, Relation relation, String alias,
-                          List<String> columnNames) {
+  private AliasedRelation(
+      final Optional<NodeLocation> location, final Relation relation, final String alias,
+                          final List<String> columnNames) {
     super(location);
     requireNonNull(relation, "relation is null");
     requireNonNull(alias, " is null");
@@ -63,7 +67,7 @@ public class AliasedRelation
   }
 
   @Override
-  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitAliasedRelation(this, context);
   }
 
@@ -78,7 +82,7 @@ public class AliasedRelation
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
@@ -86,7 +90,7 @@ public class AliasedRelation
       return false;
     }
 
-    AliasedRelation that = (AliasedRelation) o;
+    final AliasedRelation that = (AliasedRelation) o;
     return Objects.equals(relation, that.relation)
            && Objects.equals(alias, that.alias)
            && Objects.equals(columnNames, that.columnNames);

@@ -16,6 +16,14 @@
 
 package io.confluent.ksql.version.metrics.collector;
 
+
+/**
+ * Types of Ksql Module.
+ *
+ * <p>Note: If you may any changes to this enum you will also need to make changes to the
+ * {@link io.confluent.support.metrics.validate.KSqlValidModuleType} enum in support-metrics-common,
+ * which stores the full list of module types that have ever been valid.
+ */
 public enum KsqlModuleType {
-  LOCAL_CLI, REMOTE_CLI, EMBEDDED, SERVER;
+  CLI, SERVER
 }

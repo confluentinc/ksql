@@ -16,27 +16,27 @@
 
 package io.confluent.ksql.parser.tree;
 
+import static com.google.common.base.MoreObjects.toStringHelper;
+
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-
-import static com.google.common.base.MoreObjects.toStringHelper;
 
 public class Statements extends Node {
 
   public List<Statement> statementList;
 
-  public Statements(List<Statement> statementList) {
+  public Statements(final List<Statement> statementList) {
     super(Optional.empty());
     this.statementList = statementList;
   }
 
-  protected Statements(Optional<NodeLocation> location, List<Statement> statementList) {
+  protected Statements(final Optional<NodeLocation> location, final List<Statement> statementList) {
     super(location);
   }
 
   @Override
-  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
 
     return visitor.visitStatements(this, context);
   }
@@ -48,14 +48,14 @@ public class Statements extends Node {
   }
 
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(final Object obj) {
     if (this == obj) {
       return true;
     }
     if ((obj == null) || (getClass() != obj.getClass())) {
       return false;
     }
-    Statements o = (Statements) obj;
+    final Statements o = (Statements) obj;
     return Objects.equals(statementList, o.statementList);
   }
 

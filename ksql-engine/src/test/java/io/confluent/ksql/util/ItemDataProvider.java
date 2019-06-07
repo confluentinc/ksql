@@ -17,12 +17,11 @@
 package io.confluent.ksql.util;
 
 import io.confluent.ksql.GenericRow;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
-
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
 
 public class ItemDataProvider extends TestDataProvider {
 
@@ -35,8 +34,8 @@ public class ItemDataProvider extends TestDataProvider {
   private static final String key = "ID";
 
   private static final Schema schema = SchemaBuilder.struct()
-      .field("ID", SchemaBuilder.STRING_SCHEMA)
-      .field("DESCRIPTION", SchemaBuilder.STRING_SCHEMA).build();
+      .field("ID", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
+      .field("DESCRIPTION", SchemaBuilder.OPTIONAL_STRING_SCHEMA).build();
 
   private static final Map<String, GenericRow> data = new ItemDataProvider().buildData();
 
@@ -46,7 +45,7 @@ public class ItemDataProvider extends TestDataProvider {
 
   private Map<String, GenericRow> buildData() {
 
-    Map<String, GenericRow> dataMap = new HashMap<>();
+    final Map<String, GenericRow> dataMap = new HashMap<>();
     dataMap.put("ITEM_1", new GenericRow(Arrays.asList("ITEM_1",  "home cinema")));
     dataMap.put("ITEM_2", new GenericRow(Arrays.asList("ITEM_2",  "clock radio")));
     dataMap.put("ITEM_3", new GenericRow(Arrays.asList("ITEM_3",  "road bike")));

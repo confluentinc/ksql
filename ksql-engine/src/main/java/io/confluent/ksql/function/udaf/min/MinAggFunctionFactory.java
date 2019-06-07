@@ -16,26 +16,27 @@
 
 package io.confluent.ksql.function.udaf.min;
 
-import org.apache.kafka.connect.data.Schema;
-
-import java.util.Arrays;
-import java.util.List;
-
 import io.confluent.ksql.function.AggregateFunctionFactory;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.util.KsqlException;
+import java.util.Arrays;
+import java.util.List;
+import org.apache.kafka.connect.data.Schema;
 
 public class MinAggFunctionFactory extends AggregateFunctionFactory {
+  private static final String FUNCTION_NAME = "MIN";
 
   public MinAggFunctionFactory() {
-    super("MIN", Arrays.asList(new DoubleMinKudaf(-1),
-                               new LongMinKudaf(-1),
-                               new IntegerMinKudaf(-1)));
+    super(
+        FUNCTION_NAME,
+        Arrays.asList(
+            new DoubleMinKudaf(FUNCTION_NAME, -1), new LongMinKudaf(FUNCTION_NAME, -1),
+            new IntegerMinKudaf(FUNCTION_NAME, -1)));
   }
 
   @Override
-  public KsqlAggregateFunction getProperAggregateFunction(List<Schema> argTypeList) {
-    for (KsqlAggregateFunction ksqlAggregateFunction : getAggregateFunctionList()) {
+  public KsqlAggregateFunction getProperAggregateFunction(final List<Schema> argTypeList) {
+    for (final KsqlAggregateFunction ksqlAggregateFunction : getAggregateFunctionList()) {
       if (ksqlAggregateFunction.hasSameArgTypes(argTypeList)) {
         return ksqlAggregateFunction;
       }

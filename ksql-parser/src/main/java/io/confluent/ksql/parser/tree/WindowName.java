@@ -24,28 +24,28 @@ public class WindowName extends Node {
 
   private String windowName;
 
-  public WindowName(String windowName) {
+  public WindowName(final String windowName) {
     this(Optional.empty(), windowName);
   }
 
-  public WindowName(NodeLocation location, String windowName) {
+  public WindowName(final NodeLocation location, final String windowName) {
     this(Optional.of(location), windowName);
   }
 
-  private WindowName(Optional<NodeLocation> location, String windowName) {
+  private WindowName(final Optional<NodeLocation> location, final String windowName) {
     super(location);
     this.windowName = windowName;
   }
 
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(final Object obj) {
     if (this == obj) {
       return true;
     }
     if ((obj == null) || (getClass() != obj.getClass())) {
       return false;
     }
-    WindowName o = (WindowName) obj;
+    final WindowName o = (WindowName) obj;
     return Objects.equals(windowName, o.windowName);
   }
 

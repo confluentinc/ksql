@@ -25,9 +25,10 @@ public class AnalysisContext {
     FROM("from"),
     WHERE("where"),
     GROUPBY("GROUPBY");
+
     private final String value;
 
-    ParentType(String value) {
+    ParentType(final String value) {
       this.value = value;
     }
 
@@ -41,6 +42,7 @@ public class AnalysisContext {
   public AnalysisContext() {
     this(null);
   }
+
   public AnalysisContext(final ParentType parentType) {
     this.parentType = parentType;
   }

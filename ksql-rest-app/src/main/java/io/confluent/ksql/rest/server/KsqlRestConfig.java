@@ -20,7 +20,6 @@ import io.confluent.common.config.ConfigDef;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.rest.RestConfig;
-
 import java.util.Map;
 
 public class KsqlRestConfig extends RestConfig {
@@ -55,22 +54,16 @@ public class KsqlRestConfig extends RestConfig {
           "How long to wait for a distributed command to be executed by the local node before "
               + "returning a response";
 
-  public static final String
-          UI_ENABLED_CONFIG = "ksql.server.ui.enabled";
-  public static final ConfigDef.Type
-          UI_ENABLED_TYPE = ConfigDef.Type.BOOLEAN;
-  public static final String
-          UI_ENABLED_DEFAULT = "true";
-  public static final ConfigDef.Importance
-          UI_ENABLED_IMPORTANCE = ConfigDef.Importance.LOW;
-  public static final String
-          UI_ENABLED_DOC =
-          "Flag to disable the KQL UI. It is enabled by default";
   public static final String INSTALL_DIR_CONFIG = "ksql.server.install.dir";
   public static final String INSTALL_DIR_DOC
       = "The directory that ksql is installed in. This is set in the ksql-server-start script.";
 
   public static final String COMMAND_TOPIC_SUFFIX = "command_topic";
+
+  public static final String KSQL_WEBSOCKETS_NUM_THREADS = "ksql.server.websockets.num.threads";
+
+  private static final int DEFAULT_WEBSOCKETS_THREADS = 5;
+
 
   private static final ConfigDef CONFIG_DEF;
 
@@ -88,21 +81,21 @@ public class KsqlRestConfig extends RestConfig {
         DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_IMPORTANCE,
         DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_DOC
     ).define(
-        UI_ENABLED_CONFIG,
-        UI_ENABLED_TYPE,
-        UI_ENABLED_DEFAULT,
-        UI_ENABLED_IMPORTANCE,
-        UI_ENABLED_DOC
-    ).define(
         INSTALL_DIR_CONFIG,
         ConfigDef.Type.STRING,
         "",
         ConfigDef.Importance.LOW,
         INSTALL_DIR_DOC
+    ).define(
+        KSQL_WEBSOCKETS_NUM_THREADS,
+        ConfigDef.Type.INT,
+        DEFAULT_WEBSOCKETS_THREADS,
+        ConfigDef.Importance.LOW,
+        "The number of websocket threads to handle query results"
     );
   }
 
-  public KsqlRestConfig(Map<?, ?> props) {
+  public KsqlRestConfig(final Map<?, ?> props) {
     super(CONFIG_DEF, props);
     if (getList(RestConfig.LISTENERS_CONFIG).isEmpty()) {
       throw new KsqlException(RestConfig.LISTENERS_CONFIG + " must be supplied.  "
@@ -115,8 +108,8 @@ public class KsqlRestConfig extends RestConfig {
     return originalsWithPrefix("");
   }
 
-  private Map<String, Object> getPropertiesWithOverrides(String prefix) {
-    Map<String, Object> result = getOriginals();
+  private Map<String, Object> getPropertiesWithOverrides(final String prefix) {
+    final Map<String, Object> result = getOriginals();
     result.putAll(originalsWithPrefix(prefix));
     return result;
   }
@@ -133,16 +126,12 @@ public class KsqlRestConfig extends RestConfig {
     return getOriginals();
   }
 
-  public String getCommandTopic(String ksqlServiceId) {
+  public String getCommandTopic(final String ksqlServiceId) {
     return String.format(
         "%s%s_%s",
         KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX,
         ksqlServiceId,
         COMMAND_TOPIC_SUFFIX
     );
-  }
-
-  public boolean isUiEnabled() {
-    return getBoolean(UI_ENABLED_CONFIG);
   }
 }

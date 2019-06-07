@@ -16,10 +16,10 @@
 
 package io.confluent.ksql.parser.tree;
 
+import static com.google.common.base.MoreObjects.toStringHelper;
+
 import java.util.Objects;
 import java.util.Optional;
-
-import static com.google.common.base.MoreObjects.toStringHelper;
 
 public class EmptyStatement extends Statement {
 
@@ -27,16 +27,16 @@ public class EmptyStatement extends Statement {
     this(Optional.empty());
   }
 
-  public EmptyStatement(NodeLocation location) {
+  public EmptyStatement(final NodeLocation location) {
     this(Optional.of(location));
   }
 
-  private EmptyStatement(Optional<NodeLocation> location) {
+  private EmptyStatement(final Optional<NodeLocation> location) {
     super(location);
   }
 
   @Override
-  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return null;
   }
 
@@ -46,7 +46,7 @@ public class EmptyStatement extends Statement {
   }
 
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(final Object obj) {
     return obj instanceof EmptyStatement;
   }
 

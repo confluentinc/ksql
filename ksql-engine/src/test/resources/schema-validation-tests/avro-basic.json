@@ -1,0 +1,31 @@
+{
+  "tests": [
+    {
+      "name": "basic avro schema",
+      "schema": {
+        "type": "record",
+        "name": "test_input_schema",
+        "fields": [
+          {"name": "integer_value", "type": "int"},
+          {"name": "bigint_value", "type": "long"},
+          {"name": "string_value", "type": "string"},
+          {"name": "boolean_value", "type": "boolean"},
+          {"name": "optional_value", "type": ["null", "int"]},
+          {
+            "name": "struct_value",
+            "type": {
+              "type": "record",
+              "name": "inner_struct_schema",
+              "fields": [
+                {"name": "inner_integer_value", "type": "int"},
+                {"name": "inner_bigint_value", "type": "long"}
+              ]
+            }
+          },
+          {"name": "array_value", "type": {"type": "array", "items": "string"}},
+          {"name": "map_value", "type": {"type": "map", "values": "long"}}
+        ]
+      }
+    }
+  ]
+}

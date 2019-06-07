@@ -28,23 +28,43 @@ public class Table
   private final Map<String, Expression> properties  = new HashMap<>();
   private final QualifiedName name;
 
-  public Table(QualifiedName name) {
+  public Table(final QualifiedName name) {
     this(Optional.empty(), name, false);
   }
 
-  public Table(QualifiedName name, boolean isStdOut) {
+  public Table(final QualifiedName name,final  boolean isStdOut) {
     this(Optional.empty(), name, isStdOut);
   }
 
-  public Table(NodeLocation location, QualifiedName name) {
+  public Table(final NodeLocation location, final QualifiedName name) {
     this(Optional.of(location), name, false);
   }
 
-  public Table(NodeLocation location, QualifiedName name, boolean isStdOut) {
+  public Table(final NodeLocation location, final QualifiedName name, final boolean isStdOut) {
     this(Optional.of(location), name, isStdOut);
   }
 
-  private Table(Optional<NodeLocation> location, QualifiedName name, boolean isStdOut) {
+  public Table(
+      final NodeLocation location,
+      final QualifiedName name,
+      final boolean isStdOut,
+      final Map<String, Expression> properties) {
+    this(Optional.ofNullable(location), name, isStdOut);
+    this.setProperties(properties);
+  }
+
+  public Table(
+      final QualifiedName name,
+      final boolean isStdOut,
+      final  Map<String, Expression> properties) {
+    this(Optional.empty(), name, isStdOut);
+    this.setProperties(properties);
+  }
+
+  private Table(
+      final Optional<NodeLocation> location,
+      final QualifiedName name,
+      final boolean isStdOut) {
     super(location);
     this.name = name;
     this.isStdOut = isStdOut;
@@ -63,13 +83,13 @@ public class Table
   }
 
   public void setProperties(
-      Map<String, Expression> properties) {
+      final Map<String, Expression> properties) {
     this.properties.clear();
     this.properties.putAll(properties);
   }
 
   @Override
-  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitTable(this, context);
   }
 
@@ -79,7 +99,7 @@ public class Table
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
@@ -87,7 +107,7 @@ public class Table
       return false;
     }
 
-    Table table = (Table) o;
+    final Table table = (Table) o;
     return Objects.equals(name, table.name);
   }
 

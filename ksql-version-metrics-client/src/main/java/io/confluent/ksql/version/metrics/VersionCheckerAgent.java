@@ -16,9 +16,8 @@
 
 package io.confluent.ksql.version.metrics;
 
-import java.util.Properties;
-
 import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
+import java.util.Properties;
 
 public interface VersionCheckerAgent {
 

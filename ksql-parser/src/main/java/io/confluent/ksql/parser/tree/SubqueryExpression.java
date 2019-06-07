@@ -24,15 +24,15 @@ public class SubqueryExpression
 
   private final Query query;
 
-  public SubqueryExpression(Query query) {
+  public SubqueryExpression(final Query query) {
     this(Optional.empty(), query);
   }
 
-  public SubqueryExpression(NodeLocation location, Query query) {
+  public SubqueryExpression(final NodeLocation location, final Query query) {
     this(Optional.of(location), query);
   }
 
-  private SubqueryExpression(Optional<NodeLocation> location, Query query) {
+  private SubqueryExpression(final Optional<NodeLocation> location, final Query query) {
     super(location);
     this.query = query;
   }
@@ -42,12 +42,12 @@ public class SubqueryExpression
   }
 
   @Override
-  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitSubqueryExpression(this, context);
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
@@ -55,7 +55,7 @@ public class SubqueryExpression
       return false;
     }
 
-    SubqueryExpression that = (SubqueryExpression) o;
+    final SubqueryExpression that = (SubqueryExpression) o;
     return Objects.equals(query, that.query);
   }
 

@@ -16,39 +16,37 @@
 
 package io.confluent.ksql.parser.tree;
 
-import com.google.common.collect.ImmutableMap;
+import static com.google.common.base.MoreObjects.toStringHelper;
+import static java.util.Objects.requireNonNull;
 
+import com.google.common.collect.ImmutableMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
-import static com.google.common.base.MoreObjects.toStringHelper;
-import static java.util.Objects.requireNonNull;
-
-public class CreateTableAsSelect
-    extends Statement implements CreateAsSelect{
+public class CreateTableAsSelect extends Statement implements CreateAsSelect {
 
   private final QualifiedName name;
   private final Query query;
   private final boolean notExists;
   private final Map<String, Expression> properties;
 
-  public CreateTableAsSelect(QualifiedName name, Query query, boolean notExists,
-                             Map<String, Expression> properties) {
+  public CreateTableAsSelect(
+      final QualifiedName name,
+      final Query query,
+      final boolean notExists,
+      final Map<String, Expression> properties
+  ) {
     this(Optional.empty(), name, query, notExists, properties);
   }
 
-  public CreateTableAsSelect(NodeLocation location, QualifiedName name, Query query,
-                             boolean notExists,
-                             Map<String, Expression> properties
-                             ) {
-    this(Optional.of(location), name, query, notExists, properties);
-  }
-
-  private CreateTableAsSelect(Optional<NodeLocation> location, QualifiedName name, Query query,
-                              boolean notExists,
-                              Map<String, Expression> properties
-                              ) {
+  public CreateTableAsSelect(
+      final Optional<NodeLocation> location,
+      final QualifiedName name,
+      final Query query,
+      final boolean notExists,
+      final Map<String, Expression> properties
+  ) {
     super(location);
     this.name = requireNonNull(name, "name is null");
     this.query = requireNonNull(query, "query is null");
@@ -79,7 +77,7 @@ public class CreateTableAsSelect
   }
 
   @Override
-  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitCreateTableAsSelect(this, context);
   }
 
@@ -89,14 +87,14 @@ public class CreateTableAsSelect
   }
 
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(final Object obj) {
     if (this == obj) {
       return true;
     }
     if ((obj == null) || (getClass() != obj.getClass())) {
       return false;
     }
-    CreateTableAsSelect o = (CreateTableAsSelect) obj;
+    final CreateTableAsSelect o = (CreateTableAsSelect) obj;
     return Objects.equals(name, o.name)
            && Objects.equals(query, o.query)
            && Objects.equals(notExists, o.notExists)

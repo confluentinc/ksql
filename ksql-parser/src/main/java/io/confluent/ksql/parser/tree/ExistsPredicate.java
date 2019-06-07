@@ -16,25 +16,25 @@
 
 package io.confluent.ksql.parser.tree;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.Objects;
 import java.util.Optional;
-
-import static java.util.Objects.requireNonNull;
 
 public class ExistsPredicate
     extends Expression {
 
   private final Query subquery;
 
-  public ExistsPredicate(Query subquery) {
+  public ExistsPredicate(final Query subquery) {
     this(Optional.empty(), subquery);
   }
 
-  public ExistsPredicate(NodeLocation location, Query subquery) {
+  public ExistsPredicate(final NodeLocation location, final Query subquery) {
     this(Optional.of(location), subquery);
   }
 
-  private ExistsPredicate(Optional<NodeLocation> location, Query subquery) {
+  private ExistsPredicate(final Optional<NodeLocation> location, final Query subquery) {
     super(location);
     requireNonNull(subquery, "subquery is null");
     this.subquery = subquery;
@@ -45,12 +45,12 @@ public class ExistsPredicate
   }
 
   @Override
-  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitExists(this, context);
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
@@ -58,7 +58,7 @@ public class ExistsPredicate
       return false;
     }
 
-    ExistsPredicate that = (ExistsPredicate) o;
+    final ExistsPredicate that = (ExistsPredicate) o;
     return Objects.equals(subquery, that.subquery);
   }
 

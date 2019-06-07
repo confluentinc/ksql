@@ -16,44 +16,57 @@
 
 package io.confluent.ksql.parser.tree;
 
-import java.util.Objects;
-import java.util.Optional;
-
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
 
+import java.util.Objects;
+import java.util.Optional;
+
 public class Join
     extends Relation {
 
-  public Join(Type type, Relation left, Relation right, Optional<JoinCriteria> criteria) {
-    this(Optional.empty(), type, left, right, criteria);
+  private final Optional<WithinExpression> withinExpression;
+
+  public Join(
+      final Type type,
+      final Relation left,
+      final Relation right,
+      final Optional<JoinCriteria> criteria) {
+    this(Optional.empty(), type, left, right, criteria, null);
   }
 
-  public Join(NodeLocation location, Type type, Relation left, Relation right,
-              Optional<JoinCriteria> criteria) {
-    this(Optional.of(location), type, left, right, criteria);
+  public Join(
+      final NodeLocation location,
+      final Type type,
+      final Relation left,
+      final Relation right,
+      final Optional<JoinCriteria> criteria,
+      final Optional<WithinExpression> withinExpression) {
+    this(Optional.of(location), type, left, right, criteria, withinExpression);
   }
 
-  private Join(Optional<NodeLocation> location, Type type, Relation left, Relation right,
-               Optional<JoinCriteria> criteria) {
+  private Join(
+      final Optional<NodeLocation> location,
+      final Type type,
+      final Relation left,
+      final Relation right,
+      final Optional<JoinCriteria> criteria,
+      final Optional<WithinExpression> withinExpression) {
     super(location);
     requireNonNull(left, "left is null");
     requireNonNull(right, "right is null");
-    if ((type == Type.CROSS) || (type == Type.IMPLICIT)) {
-      checkArgument(!criteria.isPresent(), "%s join cannot have join criteria", type);
-    } else {
-      checkArgument(criteria.isPresent(), "No join criteria specified");
-    }
+    checkArgument(criteria.isPresent(), "No join criteria specified");
 
     this.type = type;
     this.left = left;
     this.right = right;
     this.criteria = criteria;
+    this.withinExpression = withinExpression;
   }
 
   public enum Type {
-    CROSS, INNER, LEFT, RIGHT, FULL, IMPLICIT
+    INNER, LEFT, OUTER
   }
 
   private final Type type;
@@ -63,6 +76,19 @@ public class Join
 
   public Type getType() {
     return type;
+  }
+
+  public String getFormattedType() {
+    switch (type) {
+      case INNER:
+        return "INNER";
+      case LEFT:
+        return "LEFT OUTER";
+      case OUTER:
+        return "FULL OUTER";
+      default:
+        throw new RuntimeException("Unknown join type encountered: " + type.toString());
+    }
   }
 
   public Relation getLeft() {
@@ -77,8 +103,12 @@ public class Join
     return criteria;
   }
 
+  public Optional<WithinExpression> getWithinExpression() {
+    return withinExpression;
+  }
+
   @Override
-  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitJoin(this, context);
   }
 
@@ -94,22 +124,23 @@ public class Join
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
     if ((o == null) || (getClass() != o.getClass())) {
       return false;
     }
-    Join join = (Join) o;
+    final Join join = (Join) o;
     return (type == join.type)
            && Objects.equals(left, join.left)
            && Objects.equals(right, join.right)
-           && Objects.equals(criteria, join.criteria);
+           && Objects.equals(criteria, join.criteria)
+           && Objects.equals(withinExpression, join.withinExpression);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(type, left, right, criteria);
+    return Objects.hash(type, left, right, criteria, withinExpression);
   }
 }

@@ -16,11 +16,11 @@
 
 package io.confluent.ksql.parser.tree;
 
-import java.util.Objects;
-import java.util.Optional;
-
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
+
+import java.util.Objects;
+import java.util.Optional;
 
 public class ShowCreate
     extends Statement {
@@ -33,15 +33,18 @@ public class ShowCreate
   private final Type type;
   private final QualifiedName name;
 
-  public ShowCreate(Type type, QualifiedName name) {
+  public ShowCreate(final Type type, final QualifiedName name) {
     this(Optional.empty(), type, name);
   }
 
-  public ShowCreate(NodeLocation location, Type type, QualifiedName name) {
+  public ShowCreate(final NodeLocation location, final Type type, final QualifiedName name) {
     this(Optional.of(location), type, name);
   }
 
-  private ShowCreate(Optional<NodeLocation> location, Type type, QualifiedName name) {
+  private ShowCreate(
+      final Optional<NodeLocation> location,
+      final Type type,
+      final QualifiedName name) {
     super(location);
     this.type = requireNonNull(type, "type is null");
     this.name = requireNonNull(name, "name is null");
@@ -56,7 +59,7 @@ public class ShowCreate
   }
 
   @Override
-  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitShowCreate(this, context);
   }
 
@@ -66,14 +69,14 @@ public class ShowCreate
   }
 
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(final Object obj) {
     if (this == obj) {
       return true;
     }
     if ((obj == null) || (getClass() != obj.getClass())) {
       return false;
     }
-    ShowCreate o = (ShowCreate) obj;
+    final ShowCreate o = (ShowCreate) obj;
     return Objects.equals(name, o.name) && Objects.equals(type, o.type);
   }
 

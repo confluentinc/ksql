@@ -22,7 +22,7 @@ import io.confluent.ksql.function.udf.Kudf;
 public class AbsKudf implements Kudf {
 
   @Override
-  public Object evaluate(Object... args) {
+  public Object evaluate(final Object... args) {
     if (args.length != 1) {
       throw new KsqlFunctionException("Abs udf should have one input argument.");
     }

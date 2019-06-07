@@ -14,13 +14,28 @@
 
 package io.confluent.ksql.physical;
 
+import java.util.Objects;
+import org.apache.kafka.streams.KafkaClientSupplier;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
+import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
 
 public class KafkaStreamsBuilderImpl implements KafkaStreamsBuilder {
+
+  private final KafkaClientSupplier clientSupplier;
+
+  public KafkaStreamsBuilderImpl() {
+    this(new DefaultKafkaClientSupplier());
+  }
+
+  public KafkaStreamsBuilderImpl(final KafkaClientSupplier clientSupplier) {
+    Objects.requireNonNull(clientSupplier, "clientSupplier can't be null");
+    this.clientSupplier = clientSupplier;
+  }
+
   @Override
-  public KafkaStreams buildKafkaStreams(StreamsBuilder builder, StreamsConfig conf) {
-    return new KafkaStreams(builder.build(), conf);
+  public KafkaStreams buildKafkaStreams(final StreamsBuilder builder, final StreamsConfig conf) {
+    return new KafkaStreams(builder.build(), conf, clientSupplier);
   }
 }

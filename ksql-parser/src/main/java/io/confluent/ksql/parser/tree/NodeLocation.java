@@ -21,7 +21,7 @@ public final class NodeLocation {
   private final int line;
   private final int charPositionInLine;
 
-  public NodeLocation(int line, int charPositionInLine) {
+  public NodeLocation(final int line, final int charPositionInLine) {
     this.line = line;
     this.charPositionInLine = charPositionInLine;
   }

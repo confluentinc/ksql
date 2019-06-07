@@ -24,15 +24,15 @@ public class QualifiedNameReference
 
   private final QualifiedName name;
 
-  public QualifiedNameReference(QualifiedName name) {
+  public QualifiedNameReference(final QualifiedName name) {
     this(Optional.empty(), name);
   }
 
-  public QualifiedNameReference(NodeLocation location, QualifiedName name) {
+  public QualifiedNameReference(final NodeLocation location, final QualifiedName name) {
     this(Optional.of(location), name);
   }
 
-  private QualifiedNameReference(Optional<NodeLocation> location, QualifiedName name) {
+  private QualifiedNameReference(final Optional<NodeLocation> location, final QualifiedName name) {
     super(location);
     this.name = name;
   }
@@ -46,12 +46,12 @@ public class QualifiedNameReference
   }
 
   @Override
-  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitQualifiedNameReference(this, context);
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
@@ -59,7 +59,7 @@ public class QualifiedNameReference
       return false;
     }
 
-    QualifiedNameReference that = (QualifiedNameReference) o;
+    final QualifiedNameReference that = (QualifiedNameReference) o;
     return Objects.equals(name, that.name);
   }
 

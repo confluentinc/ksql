@@ -30,7 +30,7 @@ public class ArithmeticBinaryExpression
     MODULUS("%");
     private final String value;
 
-    Type(String value) {
+    Type(final String value) {
       this.value = value;
     }
 
@@ -43,17 +43,26 @@ public class ArithmeticBinaryExpression
   private final Expression left;
   private final Expression right;
 
-  public ArithmeticBinaryExpression(Type type, Expression left, Expression right) {
+  public ArithmeticBinaryExpression(
+      final Type type,
+      final Expression left,
+      final Expression right) {
     this(Optional.empty(), type, left, right);
   }
 
-  public ArithmeticBinaryExpression(NodeLocation location, Type type, Expression left,
-                                    Expression right) {
+  public ArithmeticBinaryExpression(
+      final NodeLocation location,
+      final Type type,
+      final Expression left,
+      final Expression right) {
     this(Optional.of(location), type, left, right);
   }
 
-  private ArithmeticBinaryExpression(Optional<NodeLocation> location, Type type, Expression left,
-                                     Expression right) {
+  private ArithmeticBinaryExpression(
+      final Optional<NodeLocation> location,
+      final Type type,
+      final Expression left,
+      final Expression right) {
     super(location);
     this.type = type;
     this.left = left;
@@ -73,12 +82,12 @@ public class ArithmeticBinaryExpression
   }
 
   @Override
-  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitArithmeticBinary(this, context);
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
@@ -86,7 +95,7 @@ public class ArithmeticBinaryExpression
       return false;
     }
 
-    ArithmeticBinaryExpression that = (ArithmeticBinaryExpression) o;
+    final ArithmeticBinaryExpression that = (ArithmeticBinaryExpression) o;
     return (type == that.type)
            && Objects.equals(left, that.left)
            && Objects.equals(right, that.right);

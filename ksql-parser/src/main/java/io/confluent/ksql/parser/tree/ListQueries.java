@@ -16,15 +16,21 @@
 
 package io.confluent.ksql.parser.tree;
 
+import static com.google.common.base.MoreObjects.toStringHelper;
+
 import java.util.Objects;
 import java.util.Optional;
 
-import static com.google.common.base.MoreObjects.toStringHelper;
-
 public class ListQueries extends Statement {
+  boolean showExtended;
 
-  public ListQueries(Optional<NodeLocation> location) {
+  public ListQueries(final Optional<NodeLocation> location, final boolean showExtended) {
     super(location);
+    this.showExtended = showExtended;
+  }
+
+  public boolean getShowExtended() {
+    return showExtended;
   }
 
   @Override
@@ -33,7 +39,7 @@ public class ListQueries extends Statement {
   }
 
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(final Object obj) {
     return this == obj;
   }
 

@@ -16,13 +16,12 @@
 
 package io.confluent.ksql.parser.tree;
 
+import static java.util.Objects.requireNonNull;
+
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
-
 import java.util.Objects;
 import java.util.Optional;
-
-import static java.util.Objects.requireNonNull;
 
 public class SingleColumn
     extends SelectItem {
@@ -30,31 +29,32 @@ public class SingleColumn
   private final Optional<String> alias;
   private final Expression expression;
 
-  public SingleColumn(Expression expression) {
+  public SingleColumn(final Expression expression) {
     this(Optional.empty(), expression, Optional.empty());
   }
 
-  public SingleColumn(Expression expression, Optional<String> alias) {
+  public SingleColumn(final Expression expression, final Optional<String> alias) {
     this(Optional.empty(), expression, alias);
   }
 
-  public SingleColumn(Expression expression, String alias) {
+  public SingleColumn(final Expression expression, final String alias) {
     this(Optional.empty(), expression, Optional.of(alias));
   }
 
-  public SingleColumn(NodeLocation location, Expression expression, Optional<String> alias) {
+  public SingleColumn(
+      final NodeLocation location, final Expression expression, final Optional<String> alias) {
     this(Optional.of(location), expression, alias);
   }
 
-  private SingleColumn(Optional<NodeLocation> location, Expression expression,
-                       Optional<String> alias) {
+  private SingleColumn(final Optional<NodeLocation> location, final Expression expression,
+                       final Optional<String> alias) {
     super(location);
     requireNonNull(expression, "expression is null");
     requireNonNull(alias, "alias is null");
 
     if (alias.isPresent()) {
       if (alias.get().equalsIgnoreCase(SchemaUtil.ROWTIME_NAME)) {
-        String expressionStr = expression.toString();
+        final String expressionStr = expression.toString();
         if (!expressionStr.substring(expressionStr.indexOf(".") + 1)
             .equalsIgnoreCase(SchemaUtil.ROWTIME_NAME)) {
           throw new KsqlException(
@@ -63,7 +63,7 @@ public class SingleColumn
         }
       }
       if (alias.get().equalsIgnoreCase(SchemaUtil.ROWKEY_NAME)) {
-        String expressionStr = expression.toString();
+        final String expressionStr = expression.toString();
         if (!expressionStr.substring(expressionStr.indexOf(".") + 1).equalsIgnoreCase(
             SchemaUtil.ROWKEY_NAME)) {
           throw new KsqlException(
@@ -87,14 +87,14 @@ public class SingleColumn
   }
 
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(final Object obj) {
     if (this == obj) {
       return true;
     }
     if (obj == null || getClass() != obj.getClass()) {
       return false;
     }
-    SingleColumn other = (SingleColumn) obj;
+    final SingleColumn other = (SingleColumn) obj;
     return Objects.equals(this.alias, other.alias) && Objects
         .equals(this.expression, other.expression);
   }
@@ -114,7 +114,7 @@ public class SingleColumn
   }
 
   @Override
-  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitSingleColumn(this, context);
   }
 }

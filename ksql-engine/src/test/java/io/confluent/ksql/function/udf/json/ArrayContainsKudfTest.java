@@ -1,9 +1,8 @@
 package io.confluent.ksql.function.udf.json;
 
-import org.junit.Before;
-import org.junit.Test;
-
 import static org.junit.Assert.assertEquals;
+
+import org.junit.Test;
 
 public class ArrayContainsKudfTest
 {
@@ -34,7 +33,7 @@ public class ArrayContainsKudfTest
 
     @Test
     public void shouldFindIntegersInJsonArray() {
-        String json = "[2147483647, {\"ab\":null }, -2147483648, 1, 2, 3, null, [4], 4]";
+        final String json = "[2147483647, {\"ab\":null }, -2147483648, 1, 2, 3, null, [4], 4]";
         assertEquals(true, jsonUdf.evaluate(json, 2147483647));
         assertEquals(true, jsonUdf.evaluate(json, -2147483648));
         assertEquals(true, jsonUdf.evaluate(json, 1));

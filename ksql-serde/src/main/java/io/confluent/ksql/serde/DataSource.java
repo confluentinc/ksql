@@ -25,13 +25,26 @@ public interface DataSource {
 
     private final String kqlType;
 
-    DataSourceType(String ksqlType) {
+    DataSourceType(final String ksqlType) {
       this.kqlType = ksqlType;
     }
 
     public String getKqlType() {
       return kqlType;
     }
+
+    public boolean isStream() {
+      return this.kqlType.equals(KSTREAM.kqlType);
+    }
+
+    public boolean isTable() {
+      return this.kqlType.equals(KTABLE.kqlType);
+    }
+
+    public boolean isTopic() {
+      return this.kqlType.equals(KTOPIC.kqlType);
+    }
+
   }
 
   enum DataSourceSerDe { JSON, AVRO, DELIMITED }
@@ -43,5 +56,6 @@ public interface DataSource {
   String getName();
 
   DataSourceType getDataSourceType();
+
 
 }

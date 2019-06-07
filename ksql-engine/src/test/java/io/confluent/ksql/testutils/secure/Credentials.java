@@ -17,7 +17,6 @@
 package io.confluent.ksql.testutils.secure;
 
 import java.util.Objects;
-
 import javax.annotation.concurrent.Immutable;
 
 /**

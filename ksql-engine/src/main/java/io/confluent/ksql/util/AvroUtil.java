@@ -16,39 +16,38 @@
 
 package io.confluent.ksql.util;
 
-import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.ddl.DdlConfig;
-import io.confluent.ksql.parser.SqlFormatter;
 import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.serde.DataSource;
+import io.confluent.ksql.serde.avro.AvroSchemaTranslator;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import org.apache.http.HttpStatus;
+import org.apache.kafka.connect.data.Field;
+import org.apache.kafka.connect.data.Schema;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class AvroUtil {
 
   private static final Logger log = LoggerFactory.getLogger(AvroUtil.class);
 
-  public Pair<AbstractStreamCreateStatement, String> checkAndSetAvroSchema(
+  public static AbstractStreamCreateStatement checkAndSetAvroSchema(
       final AbstractStreamCreateStatement abstractStreamCreateStatement,
       final Map<String, Object> streamsProperties,
       final SchemaRegistryClient schemaRegistryClient
   ) {
 
-    Map<String, Expression> ddlProperties = abstractStreamCreateStatement.getProperties();
+    final Map<String, Expression> ddlProperties = abstractStreamCreateStatement.getProperties();
     if (!ddlProperties.containsKey(DdlConfig.VALUE_FORMAT_PROPERTY)) {
       throw new KsqlException(String.format(
           "%s should be set in WITH clause of CREATE STREAM/TABLE statement.",
@@ -60,95 +59,115 @@ public class AvroUtil {
         ddlProperties.get(DdlConfig.VALUE_FORMAT_PROPERTY).toString()
     );
     if (!serde.equalsIgnoreCase(DataSource.AVRO_SERDE_NAME)) {
-      return new Pair<>(abstractStreamCreateStatement, null);
+      return abstractStreamCreateStatement;
     }
 
-    String kafkaTopicName = StringUtil.cleanQuotes(
+    final String kafkaTopicName = StringUtil.cleanQuotes(
         ddlProperties.get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY).toString()
     );
     try {
       // If the schema is not specified infer it from the Avro schema in Schema Registry.
       if (abstractStreamCreateStatement.getElements().isEmpty()) {
-        SchemaMetadata schemaMetadata = fetchSchemaMetadata(
+        final SchemaMetadata schemaMetadata = fetchSchemaMetadata(
             abstractStreamCreateStatement,
             schemaRegistryClient,
             kafkaTopicName
         );
 
-        String avroSchemaString = schemaMetadata.getSchema();
+        final String avroSchemaString = schemaMetadata.getSchema();
         streamsProperties.put(DdlConfig.AVRO_SCHEMA, avroSchemaString);
-        Schema schema = SerDeUtil.getSchemaFromAvro(avroSchemaString);
-        AbstractStreamCreateStatement abstractStreamCreateStatementCopy = addAvroFields(
+        final AbstractStreamCreateStatement abstractStreamCreateStatementCopy = addAvroFields(
             abstractStreamCreateStatement,
-            schema,
+            AvroSchemaTranslator.toKsqlSchema(avroSchemaString),
             schemaMetadata.getId()
         );
-        return new Pair<>(
-            abstractStreamCreateStatementCopy,
-            SqlFormatter.formatSql(abstractStreamCreateStatementCopy)
+        return abstractStreamCreateStatementCopy;
+      } else {
+        return abstractStreamCreateStatement;
+      }
+    } catch (final Exception e) {
+      throw new KsqlException("Unable to verify if the Avro schema for topic " + kafkaTopicName
+          + " is compatible with KSQL.\nReason: " + e.getMessage() + "\n\n"
+          + "Please see https://github.com/confluentinc/ksql/issues/ to see if this "
+          + "particular reason is already\n"
+          + "known, and if not log a new issue. Please include the full Avro schema "
+          + "that you are trying to use.");
+    }
+  }
+
+  private static SchemaMetadata fetchSchemaMetadata(
+      final AbstractStreamCreateStatement abstractStreamCreateStatement,
+      final SchemaRegistryClient schemaRegistryClient,
+      final String kafkaTopicName
+  ) throws IOException {
+
+    try {
+      if (abstractStreamCreateStatement.getProperties().containsKey(KsqlConstants.AVRO_SCHEMA_ID)) {
+        final int schemaId;
+        try {
+          schemaId = Integer.parseInt(
+              StringUtil.cleanQuotes(
+                  abstractStreamCreateStatement
+                      .getProperties()
+                      .get(KsqlConstants.AVRO_SCHEMA_ID)
+                      .toString()
+              )
+          );
+        } catch (final NumberFormatException e) {
+          throw new KsqlException(String.format(
+              "Invalid schema id property: %s.",
+              abstractStreamCreateStatement
+                  .getProperties()
+                  .get(KsqlConstants.AVRO_SCHEMA_ID)
+                  .toString()
+          ));
+        }
+        return schemaRegistryClient.getSchemaMetadata(
+            kafkaTopicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX,
+            schemaId
         );
       } else {
-        return new Pair<>(abstractStreamCreateStatement, null);
-      }
-    } catch (Exception e) {
-      String errorMessage = String.format(
-          " Could not fetch the AVRO schema from schema registry. %s ",
-          e.getMessage()
-      );
-      throw new KsqlException(errorMessage);
-    }
-  }
-
-  private SchemaMetadata fetchSchemaMetadata(
-      AbstractStreamCreateStatement abstractStreamCreateStatement,
-      SchemaRegistryClient schemaRegistryClient,
-      String kafkaTopicName
-  ) throws IOException, RestClientException {
-
-    if (abstractStreamCreateStatement.getProperties().containsKey(KsqlConstants.AVRO_SCHEMA_ID)) {
-      int schemaId;
-      try {
-        schemaId = Integer.parseInt(
-            StringUtil.cleanQuotes(
-                abstractStreamCreateStatement
-                    .getProperties()
-                    .get(KsqlConstants.AVRO_SCHEMA_ID)
-                    .toString()
-            )
+        return schemaRegistryClient.getLatestSchemaMetadata(
+            kafkaTopicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX
         );
-      } catch (NumberFormatException e) {
-        throw new KsqlException(String.format(
-            "Invalid schema id property: %s.",
-            abstractStreamCreateStatement
-                .getProperties()
-                .get(KsqlConstants.AVRO_SCHEMA_ID)
-                .toString()
-        ));
       }
-      return schemaRegistryClient.getSchemaMetadata(
-          kafkaTopicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX,
-          schemaId
-      );
-    } else {
-      return schemaRegistryClient.getLatestSchemaMetadata(
-          kafkaTopicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX
-      );
+    } catch (final RestClientException e) {
+      if (e.getStatus() == HttpStatus.SC_NOT_FOUND) {
+        throw new KsqlException("Avro schema for message values on topic " + kafkaTopicName
+            + " does not exist in the Schema Registry.\n"
+            + "Subject: " + kafkaTopicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX + "\n\n"
+            + "Possible causes include:\n"
+            + "- The topic itself does not exist\n"
+            + "\t-> Use SHOW TOPICS; to check\n"
+            + "- Messages on the topic are not Avro serialized\n"
+            + "\t-> Use PRINT '" + kafkaTopicName + "' FROM BEGINNING; to verify\n"
+            + "- Messages on the topic have not been serialized using the Confluent Schema "
+            + "Registry Avro serializer\n"
+            + "\t-> See " + KsqlConstants.DOC_URL_SR_SERIALISER + "\n"
+            + "- The schema is registered on a different instance of the Schema Registry\n"
+            + "\t-> Use the REST API to list available subjects\n\t"
+            + KsqlConstants.DOC_URL_SR_REST_GETSUBJECTS + "\n"
+        );
+      }
+      throw new KsqlException("Schema registry fetch for topic " + kafkaTopicName
+          + " request failed.\n", e);
+
     }
   }
 
-  private AbstractStreamCreateStatement addAvroFields(
+  private static AbstractStreamCreateStatement addAvroFields(
       final AbstractStreamCreateStatement abstractStreamCreateStatement,
       final Schema schema,
-      int schemaId
+      final int schemaId
   ) {
-    List<TableElement> elements = new ArrayList<>();
-    for (Field field : schema.fields()) {
-      TableElement tableElement = new TableElement(field.name().toUpperCase(), SchemaUtil
-          .getSQLTypeName(field.schema()));
+    final List<TableElement> elements = new ArrayList<>();
+    for (final Field field : schema.fields()) {
+      final TableElement tableElement = new TableElement(field.name().toUpperCase(),
+                                                   TypeUtil.getKsqlType(field.schema()));
       elements.add(tableElement);
     }
-    StringLiteral schemaIdLiteral = new StringLiteral(String.format("%d", schemaId));
-    Map<String, Expression> properties =
+    final StringLiteral schemaIdLiteral = new StringLiteral(String.format("%d", schemaId));
+    final Map<String, Expression> properties =
         new HashMap<>(abstractStreamCreateStatement.getProperties());
     if (!abstractStreamCreateStatement.getProperties().containsKey(KsqlConstants.AVRO_SCHEMA_ID)) {
       properties.put(KsqlConstants.AVRO_SCHEMA_ID, schemaIdLiteral);
@@ -158,17 +177,17 @@ public class AvroUtil {
   }
 
 
-  public void validatePersistentQueryResults(
+  public static void validatePersistentQueryResults(
       final PersistentQueryMetadata persistentQueryMetadata,
       final SchemaRegistryClient schemaRegistryClient
   ) {
 
     if (persistentQueryMetadata.getResultTopicSerde() == DataSource.DataSourceSerDe.AVRO) {
-      String avroSchemaString = SchemaUtil.buildAvroSchema(
+      final String avroSchemaString = SchemaUtil.buildAvroSchema(
           persistentQueryMetadata.getResultSchema(),
           persistentQueryMetadata.getResultTopic().getName()
       );
-      boolean isValidSchema = isValidAvroSchemaForTopic(
+      final boolean isValidSchema = isValidAvroSchemaForTopic(
           persistentQueryMetadata.getResultTopic().getTopicName(),
           avroSchemaString,
           schemaRegistryClient
@@ -183,29 +202,28 @@ public class AvroUtil {
   }
 
 
-  private boolean isValidAvroSchemaForTopic(
+  private static boolean isValidAvroSchemaForTopic(
       final String topicName,
       final String avroSchemaString,
       final SchemaRegistryClient schemaRegistryClient
   ) {
 
-    org.apache.avro.Schema.Parser parser = new org.apache.avro.Schema.Parser();
-    org.apache.avro.Schema avroSchema = parser.parse(avroSchemaString);
+    final org.apache.avro.Schema.Parser parser = new org.apache.avro.Schema.Parser();
+    final org.apache.avro.Schema avroSchema = parser.parse(avroSchemaString);
     try {
       return schemaRegistryClient.testCompatibility(topicName, avroSchema);
-    } catch (IOException e) {
-      String errorMessage = String.format(
+    } catch (final IOException e) {
+      final String errorMessage = String.format(
           "Could not check Schema compatibility: %s", e.getMessage()
       );
       log.error(errorMessage, e);
       throw new KsqlException(errorMessage);
-    } catch (RestClientException e) {
-      String errorMessage = String.format(
+    } catch (final RestClientException e) {
+      final String errorMessage = String.format(
           "Could not connect to Schema Registry service: %s", e.getMessage()
       );
       log.error(errorMessage, e);
       throw new KsqlException(errorMessage);
     }
   }
-
 }

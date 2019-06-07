@@ -17,10 +17,9 @@
 package io.confluent.ksql;
 
 import io.confluent.ksql.cli.console.LineReader;
-import org.jline.reader.History;
-
 import java.io.IOException;
 import java.util.ArrayList;
+import org.jline.reader.History;
 
 public class TestLineReader implements LineReader {
 

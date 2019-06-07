@@ -16,106 +16,175 @@
 
 package io.confluent.ksql.util;
 
+import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
-import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
+import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
+import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
-import org.apache.kafka.streams.kstream.Windowed;
-import org.junit.Assert;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.function.Supplier;
 
 public class MetaStoreFixture {
 
-  public static MetaStore getNewMetaStore() {
+  public static MetaStore getNewMetaStore(final FunctionRegistry functionRegistry) {
+    return getNewMetaStore(functionRegistry, KsqlJsonTopicSerDe::new);
+  }
 
-    MetaStore metaStore = new MetaStoreImpl();
+  public static MetaStore getNewMetaStore(final FunctionRegistry functionRegistry,
+                                          final Supplier<KsqlTopicSerDe> serde) {
 
-    SchemaBuilder schemaBuilder1 = SchemaBuilder.struct()
-        .field("COL0", SchemaBuilder.INT64_SCHEMA)
-        .field("COL1", SchemaBuilder.STRING_SCHEMA)
-        .field("COL2", SchemaBuilder.STRING_SCHEMA)
-        .field("COL3", SchemaBuilder.FLOAT64_SCHEMA)
-        .field("COL4", SchemaBuilder.array(SchemaBuilder.FLOAT64_SCHEMA))
-        .field("COL5", SchemaBuilder.map(SchemaBuilder.STRING_SCHEMA, SchemaBuilder.FLOAT64_SCHEMA));
+    final MetadataTimestampExtractionPolicy timestampExtractionPolicy
+        = new MetadataTimestampExtractionPolicy();
+    final MetaStore metaStore = new MetaStoreImpl(functionRegistry);
 
-    KsqlTopic
+    final SchemaBuilder schemaBuilder1 = SchemaBuilder.struct()
+        .field("ROWTIME", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
+        .field("ROWKEY", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
+        .field("COL0", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
+        .field("COL1", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
+        .field("COL2", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
+        .field("COL3", SchemaBuilder.OPTIONAL_FLOAT64_SCHEMA)
+        .field("COL4", SchemaBuilder.array(SchemaBuilder.OPTIONAL_FLOAT64_SCHEMA).optional().build())
+        .field("COL5", SchemaBuilder.map(SchemaBuilder.OPTIONAL_STRING_SCHEMA, SchemaBuilder.OPTIONAL_FLOAT64_SCHEMA).optional().build());
+
+    final KsqlTopic
         ksqlTopic1 =
-        new KsqlTopic("TEST1", "test1", new KsqlJsonTopicSerDe());
+        new KsqlTopic("TEST1", "test1", serde.get());
 
-    KsqlStream ksqlStream = new KsqlStream("sqlexpression", "TEST1", schemaBuilder1, schemaBuilder1.field("COL0"), null,
+    final KsqlStream ksqlStream = new KsqlStream("sqlexpression",
+        "TEST1",
+        schemaBuilder1,
+        schemaBuilder1.field("COL0"),
+        timestampExtractionPolicy,
         ksqlTopic1);
 
     metaStore.putTopic(ksqlTopic1);
     metaStore.putSource(ksqlStream);
 
-    SchemaBuilder schemaBuilder2 = SchemaBuilder.struct()
-        .field("COL0", SchemaBuilder.INT64_SCHEMA)
-        .field("COL1", SchemaBuilder.STRING_SCHEMA)
-        .field("COL2", SchemaBuilder.STRING_SCHEMA)
-        .field("COL3", SchemaBuilder.FLOAT64_SCHEMA)
-        .field("COL4", SchemaBuilder.BOOLEAN_SCHEMA);
+    final SchemaBuilder schemaBuilder2 = SchemaBuilder.struct()
+        .field("ROWTIME", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
+        .field("ROWKEY", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
+        .field("COL0", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
+        .field("COL1", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
+        .field("COL2", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
+        .field("COL3", SchemaBuilder.OPTIONAL_FLOAT64_SCHEMA)
+        .field("COL4", SchemaBuilder.OPTIONAL_BOOLEAN_SCHEMA);
 
-    KsqlTopic
+    final KsqlTopic
         ksqlTopic2 =
-        new KsqlTopic("TEST2", "test2", new KsqlJsonTopicSerDe());
-    KsqlTable ksqlTable = new KsqlTable("sqlexpression", "TEST2", schemaBuilder2, schemaBuilder2.field("COL0"),
-                                        null,
-        ksqlTopic2, "TEST2", false);
+        new KsqlTopic("TEST2", "test2", serde.get());
+    final KsqlTable ksqlTable = new KsqlTable(
+        "sqlexpression",
+        "TEST2",
+        schemaBuilder2,
+        schemaBuilder2.field("COL0"),
+        timestampExtractionPolicy,
+        ksqlTopic2,
+        "TEST2",
+        false);
 
     metaStore.putTopic(ksqlTopic2);
     metaStore.putSource(ksqlTable);
 
-    SchemaBuilder schemaBuilderOrders = SchemaBuilder.struct()
-        .field("ORDERTIME", SchemaBuilder.INT64_SCHEMA)
-        .field("ORDERID", SchemaBuilder.STRING_SCHEMA)
-        .field("ITEMID", SchemaBuilder.STRING_SCHEMA)
-        .field("ORDERUNITS", SchemaBuilder.FLOAT64_SCHEMA);
+    final Schema addressSchema = SchemaBuilder.struct()
+        .field("NUMBER", Schema.OPTIONAL_INT64_SCHEMA)
+        .field("STREET", Schema.OPTIONAL_STRING_SCHEMA)
+        .field("CITY", Schema.OPTIONAL_STRING_SCHEMA)
+        .field("STATE", Schema.OPTIONAL_STRING_SCHEMA)
+        .field("ZIPCODE", Schema.OPTIONAL_INT64_SCHEMA)
+        .optional().build();
 
-    KsqlTopic
+    final Schema categorySchema = SchemaBuilder.struct()
+        .field("ID", Schema.OPTIONAL_INT64_SCHEMA)
+        .field("NAME", Schema.OPTIONAL_STRING_SCHEMA)
+        .optional().build();
+
+    final Schema itemInfoSchema = SchemaBuilder.struct()
+        .field("ITEMID", Schema.OPTIONAL_INT64_SCHEMA)
+        .field("NAME", Schema.OPTIONAL_STRING_SCHEMA)
+        .field("CATEGORY", categorySchema)
+        .optional().build();
+
+    final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
+    final Schema schemaBuilderOrders = schemaBuilder
+        .field("ORDERTIME", Schema.OPTIONAL_INT64_SCHEMA)
+        .field("ORDERID", Schema.OPTIONAL_INT64_SCHEMA)
+        .field("ITEMID", Schema.OPTIONAL_STRING_SCHEMA)
+        .field("ITEMINFO", itemInfoSchema)
+        .field("ORDERUNITS", Schema.INT32_SCHEMA)
+        .field("ARRAYCOL",SchemaBuilder.array(Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build())
+        .field("MAPCOL", SchemaBuilder.map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build())
+        .field("ADDRESS", addressSchema)
+        .optional().build();
+
+    final KsqlTopic
         ksqlTopicOrders =
-        new KsqlTopic("ORDERS_TOPIC", "orders_topic", new KsqlJsonTopicSerDe());
+        new KsqlTopic("ORDERS_TOPIC", "orders_topic", serde.get());
 
-    KsqlStream ksqlStreamOrders = new KsqlStream("sqlexpression", "ORDERS", schemaBuilderOrders,
-                                                 schemaBuilderOrders.field("ORDERTIME"), null,
+    final KsqlStream ksqlStreamOrders = new KsqlStream(
+        "sqlexpression",
+        "ORDERS",
+        schemaBuilderOrders,
+        schemaBuilderOrders.field("ORDERTIME"),
+        timestampExtractionPolicy,
         ksqlTopicOrders);
 
     metaStore.putTopic(ksqlTopicOrders);
     metaStore.putSource(ksqlStreamOrders);
 
+    final SchemaBuilder schemaBuilderTestTable3 = SchemaBuilder.struct()
+        .field("ROWTIME", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
+        .field("ROWKEY", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
+        .field("COL0", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
+        .field("COL1", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
+        .field("COL2", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
+        .field("COL3", SchemaBuilder.OPTIONAL_FLOAT64_SCHEMA)
+        .field("COL4", SchemaBuilder.OPTIONAL_BOOLEAN_SCHEMA);
+
+    final KsqlTopic
+        ksqlTopic3 =
+        new KsqlTopic("TEST3", "test3", serde.get());
+    final KsqlTable ksqlTable3 = new KsqlTable(
+        "sqlexpression",
+        "TEST3",
+        schemaBuilderTestTable3,
+        schemaBuilderTestTable3.field("COL0"),
+        timestampExtractionPolicy,
+        ksqlTopic3,
+        "TEST3",
+        false);
+
+    metaStore.putTopic(ksqlTopic3);
+    metaStore.putSource(ksqlTable3);
+
+    final Schema nestedArrayStructMapSchema = SchemaBuilder.struct()
+        .field("ARRAYCOL", SchemaBuilder.array(itemInfoSchema))
+        .field("MAPCOL", SchemaBuilder.map(Schema.OPTIONAL_STRING_SCHEMA, itemInfoSchema))
+        .field("NESTED_ORDER_COL", schemaBuilderOrders)
+        .field("ITEM", itemInfoSchema)
+        .optional().build();
+
+    final KsqlTopic
+        nestedArrayStructMapTopic =
+        new KsqlTopic("NestedArrayStructMap", "NestedArrayStructMap_topic", serde.get());
+
+    final KsqlStream nestedArrayStructMapOrders = new KsqlStream(
+        "sqlexpression",
+        "NESTED_STREAM",
+        nestedArrayStructMapSchema,
+        null,
+        timestampExtractionPolicy,
+        nestedArrayStructMapTopic);
+
+    metaStore.putTopic(nestedArrayStructMapTopic);
+    metaStore.putSource(nestedArrayStructMapOrders);
+
     return metaStore;
   }
-
-  public static void assertExpectedResults(Map<String, GenericRow> actualResult,
-                                        Map<String, GenericRow> expectedResult) {
-    Assert.assertEquals(actualResult.size(), expectedResult.size());
-
-    for (String k: expectedResult.keySet()) {
-      Assert.assertTrue(actualResult.containsKey(k));
-      Assert.assertEquals(expectedResult.get(k), actualResult.get(k));
-    }
-  }
-
-  public static void assertExpectedWindowedResults(Map<Windowed<String>, GenericRow> actualResult,
-                                                Map<Windowed<String>, GenericRow> expectedResult) {
-    Map<String, GenericRow> actualResultSimplified = new HashMap<>();
-    Map<String, GenericRow> expectedResultSimplified = new HashMap<>();
-    for (Windowed<String> k: expectedResult.keySet()) {
-      expectedResultSimplified.put(k.key(), expectedResult.get(k));
-    }
-
-    for (Windowed<String> k: actualResult.keySet()) {
-      if (actualResult.get(k) != null) {
-        actualResultSimplified.put(k.key(), actualResult.get(k));
-      }
-
-    }
-    assertExpectedResults(actualResultSimplified, expectedResultSimplified);
-  }
-
 }

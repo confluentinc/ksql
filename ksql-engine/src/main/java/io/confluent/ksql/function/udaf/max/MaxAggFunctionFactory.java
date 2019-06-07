@@ -16,27 +16,29 @@
 
 package io.confluent.ksql.function.udaf.max;
 
-import org.apache.kafka.connect.data.Schema;
-
-import java.util.Arrays;
-import java.util.List;
-
 import io.confluent.ksql.function.AggregateFunctionFactory;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.util.KsqlException;
+import java.util.Arrays;
+import java.util.List;
+import org.apache.kafka.connect.data.Schema;
 
 public class MaxAggFunctionFactory extends AggregateFunctionFactory {
+  private static final String FUNCTION_NAME = "MAX";
 
   public MaxAggFunctionFactory() {
-    super("MAX", Arrays.asList(new DoubleMaxKudaf(-1),
-                               new LongMaxKudaf(-1),
-                               new IntegerMaxKudaf(-1)));
+    super(
+        FUNCTION_NAME,
+        Arrays.asList(
+            new DoubleMaxKudaf(FUNCTION_NAME, -1),
+            new LongMaxKudaf(FUNCTION_NAME, -1),
+            new IntegerMaxKudaf(FUNCTION_NAME, -1)));
   }
 
   @Override
-  public KsqlAggregateFunction getProperAggregateFunction(List<Schema> argTypeList) {
+  public KsqlAggregateFunction getProperAggregateFunction(final List<Schema> argTypeList) {
     // For now we only support aggregate functions with one arg.
-    for (KsqlAggregateFunction ksqlAggregateFunction : getAggregateFunctionList()) {
+    for (final KsqlAggregateFunction ksqlAggregateFunction : getAggregateFunctionList()) {
       if (ksqlAggregateFunction.hasSameArgTypes(argTypeList)) {
         return ksqlAggregateFunction;
       }

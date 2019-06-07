@@ -16,22 +16,21 @@
 
 package io.confluent.ksql.planner.plan;
 
+import static java.util.Objects.requireNonNull;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
-import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.streams.StreamsBuilder;
-
-import java.util.List;
-import java.util.Map;
-
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.metastore.MetastoreUtil;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Supplier;
 
-import static java.util.Objects.requireNonNull;
+import org.apache.kafka.connect.data.Field;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.streams.StreamsBuilder;
 
 public abstract class PlanNode {
 
@@ -53,7 +52,7 @@ public abstract class PlanNode {
 
   public abstract List<PlanNode> getSources();
 
-  public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
+  public <C, R> R accept(final PlanVisitor<C, R> visitor, final C context) {
     return visitor.visitPlan(this, context);
   }
 
@@ -66,11 +65,13 @@ public abstract class PlanNode {
     return null;
   }
 
-  public abstract SchemaKStream buildStream(final StreamsBuilder builder,
-                                            final KsqlConfig ksqlConfig,
-                                            final KafkaTopicClient kafkaTopicClient,
-                                            final MetastoreUtil metastoreUtil,
-                                            final FunctionRegistry functionRegistry,
-                                            final Map<String, Object> props,
-                                            final SchemaRegistryClient schemaRegistryClient);
+  protected abstract int getPartitions(KafkaTopicClient kafkaTopicClient);
+
+  public abstract SchemaKStream buildStream(
+      StreamsBuilder builder,
+      KsqlConfig ksqlConfig,
+      KafkaTopicClient kafkaTopicClient,
+      FunctionRegistry functionRegistry,
+      Map<String, Object> props,
+      Supplier<SchemaRegistryClient> schemaRegistryClientFactory);
 }

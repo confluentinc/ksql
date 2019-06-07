@@ -12,8 +12,8 @@ Python. KSQL is scalable, elastic, fault-tolerant, and real-time. It supports a 
 including data filtering, transformations, aggregations, joins, windowing, and sessionization.
 
 .. include:: includes/ksql-includes.rst
-    :start-line: 8
-    :end-line: 17
+    :start-after: demo_start
+    :end-before: demo_end
 
 What Can I Do With KSQL?
 ------------------------
@@ -63,6 +63,14 @@ KSQL CLI
 KSQL servers, clients, queries, and applications run outside of Kafka brokers,
 in separate JVM instances, or in separate clusters entirely. 
 
+KSQL Resources
+--------------
+
+- The `Stream Processing Cookbook <https://www.confluent.io/product/ksql/stream-processing-cookbook>`__
+  contains KSQL recipes that provide in-depth tutorials and recommended deployment scenarios.
+- Check out :ref:`ksql_tutorials` to learn about stream processing with KSQL.
+- Watch the `screencast of What Can I Do With KSQL? <https://www.youtube.com/embed/euz0isNG1SQ>`_ on YouTube.
+
 Supported Versions and Interoperability
 ---------------------------------------
 
@@ -80,9 +88,11 @@ KSQL Documentation
 
     quickstart
     installation/index
+    concepts/index
     developer-guide/index
     operations
     capacity-planning
     tutorials/index
     faq
+    changelog
     troubleshoot-ksql

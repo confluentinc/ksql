@@ -16,33 +16,31 @@
 
 package io.confluent.ksql.planner.plan;
 
+import static io.confluent.ksql.planner.plan.PlanTestUtil.verifyProcessorNode;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.MatcherAssert.assertThat;
+
+import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
+import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.schema.registry.MockSchemaRegistryClientFactory;
+import io.confluent.ksql.structured.LogicalPlanBuilder;
+import io.confluent.ksql.structured.SchemaKStream;
+import io.confluent.ksql.util.FakeKafkaTopicClient;
+import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.MetaStoreFixture;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.TopologyDescription;
 import org.junit.Before;
 import org.junit.Test;
-
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.stream.Collectors;
-
-import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
-import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.metastore.MetastoreUtil;
-import io.confluent.ksql.structured.LogicalPlanBuilder;
-import io.confluent.ksql.structured.SchemaKStream;
-import io.confluent.ksql.util.FakeKafkaTopicClient;
-import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.MetaStoreFixture;
-
-import static io.confluent.ksql.planner.plan.PlanTestUtil.verifyProcessorNode;
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.MatcherAssert.assertThat;
 
 public class KsqlBareOutputNodeTest {
 
@@ -54,7 +52,7 @@ public class KsqlBareOutputNodeTest {
   private static final String FOREACH_NODE = "KSTREAM-FOREACH-0000000005";
   private SchemaKStream stream;
   private StreamsBuilder builder;
-  private MetaStore metaStore = MetaStoreFixture.getNewMetaStore();
+  private MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
   private LogicalPlanBuilder planBuilder;
 
   @Before
@@ -107,9 +105,9 @@ public class KsqlBareOutputNodeTest {
   @Test
   public void shouldCreateCorrectSchema() {
     final Schema schema = stream.getSchema();
-    assertThat(schema.fields(), equalTo(Arrays.asList(new Field("COL0", 0, Schema.INT64_SCHEMA),
-        new Field("COL2", 1, Schema.STRING_SCHEMA),
-        new Field("COL3", 2, Schema.FLOAT64_SCHEMA))));
+    assertThat(schema.fields(), equalTo(Arrays.asList(new Field("COL0", 0, Schema.OPTIONAL_INT64_SCHEMA),
+        new Field("COL2", 1, Schema.OPTIONAL_STRING_SCHEMA),
+        new Field("COL3", 2, Schema.OPTIONAL_FLOAT64_SCHEMA))));
   }
 
   @Test
@@ -122,12 +120,11 @@ public class KsqlBareOutputNodeTest {
     final KsqlBareOutputNode planNode = (KsqlBareOutputNode) planBuilder.buildLogicalPlan(simpleSelectFilter);
     return planNode.buildStream(builder, new KsqlConfig(Collections.emptyMap()),
         new FakeKafkaTopicClient(),
-        new MetastoreUtil(),
-        new FunctionRegistry(),
-        new HashMap<>(), new MockSchemaRegistryClient());
+        new InternalFunctionRegistry(),
+        new HashMap<>(), new MockSchemaRegistryClientFactory()::get);
   }
 
-  private TopologyDescription.Node getNodeByName(String nodeName) {
+  private TopologyDescription.Node getNodeByName(final String nodeName) {
     return PlanTestUtil.getNodeByName(builder.build(), nodeName);
   }
 

@@ -1,0 +1,180 @@
+{
+  "comments": [
+    "Test cases covering WindowStart and WindowEnd UDAFs"
+  ],
+  "tests": [
+    {
+      "name": "table session",
+      "comment": "This version of KSQL reports the end time of the session window incorrectly.",
+      "statements": [
+        "CREATE STREAM TEST (ID bigint) WITH (kafka_topic='test_topic', value_format='DELIMITED', key='ID');",
+        "CREATE TABLE S2 as SELECT id, WindowStart(), WindowEnd() FROM test WINDOW SESSION (30 SECONDS) group by id;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": "0", "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": "0", "timestamp": 10000},
+        {"topic": "test_topic", "key": 1, "value": "1", "timestamp": 10000},
+        {"topic": "test_topic", "key": 1, "value": "1", "timestamp": 40000}
+      ],
+      "outputs": [
+        {"topic": "S2", "key": 0, "value": "0,0,0", "timestamp": 0, "window": {"start": 0, "end": 30000, "type": "session"}},
+        {"topic": "S2", "key": 0, "value": null, "timestamp": 10000, "window": {"start": 0, "end": 30000, "type": "session"}},
+        {"topic": "S2", "key": 0, "value": "0,0,10000", "timestamp": 10000, "window": {"start": 0, "end": 40000, "type": "session"}},
+        {"topic": "S2", "key": 1, "value": "1,10000,10000", "timestamp": 10000, "window": {"start": 10000, "end": 40000, "type": "session"}},
+        {"topic": "S2", "key": 1, "value": null, "timestamp": 40000, "window": {"start": 10000, "end": 40000, "type": "session"}},
+        {"topic": "S2", "key": 1, "value": "1,10000,40000", "timestamp": 40000, "window": {"start": 10000, "end": 70000, "type": "session"}}
+      ]
+    },
+    {
+      "name": "stream session",
+      "comment": "This version of KSQL reports the end time of the session window incorrectly",
+      "statements": [
+        "CREATE STREAM TEST (ID bigint) WITH (kafka_topic='test_topic', value_format='DELIMITED', key='ID');",
+        "CREATE STREAM S2 as SELECT id, WindowStart(), WindowEnd() FROM test WINDOW SESSION (30 SECONDS) group by id;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": "0", "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": "0", "timestamp": 10000},
+        {"topic": "test_topic", "key": 1, "value": "1", "timestamp": 10000},
+        {"topic": "test_topic", "key": 1, "value": "1", "timestamp": 40000}
+      ],
+      "outputs": [
+        {"topic": "S2", "key": 0, "value": "0,0,0", "timestamp": 0, "window": {"start": 0, "end": 30000, "type": "session"}},
+        {"topic": "S2", "key": 0, "value": null, "timestamp": 10000, "window": {"start": 0, "end": 30000, "type": "session"}},
+        {"topic": "S2", "key": 0, "value": "0,0,10000", "timestamp": 10000, "window": {"start": 0, "end": 40000, "type": "session"}},
+        {"topic": "S2", "key": 1, "value": "1,10000,10000", "timestamp": 10000, "window": {"start": 10000, "end": 40000, "type": "session"}},
+        {"topic": "S2", "key": 1, "value": null, "timestamp": 40000, "window": {"start": 10000, "end": 40000, "type": "session"}},
+        {"topic": "S2", "key": 1, "value": "1,10000,40000", "timestamp": 40000, "window": {"start": 10000, "end": 70000, "type": "session"}}
+      ]
+    },
+    {
+      "name": "table tumbling",
+      "statements": [
+        "CREATE STREAM TEST (ID bigint) WITH (kafka_topic='test_topic', value_format='DELIMITED', key='ID');",
+        "CREATE TABLE S2 as SELECT id, WindowStart(), WindowEnd() FROM test WINDOW TUMBLING (SIZE 30 SECONDS) group by id;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": "0", "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": "0", "timestamp": 10000},
+        {"topic": "test_topic", "key": 100, "value": "100", "timestamp": 30000},
+        {"topic": "test_topic", "key": 100, "value": "100", "timestamp": 45000},
+        {"topic": "test_topic", "key": 100, "value": "100", "timestamp": 50000},
+        {"topic": "test_topic", "key": 0, "value": "0", "timestamp": 35000},
+        {"topic": "test_topic", "key": 0, "value": "0", "timestamp": 70000}
+      ],
+      "outputs": [
+        {"topic": "S2", "key": 0, "value": "0,0,30000", "timestamp": 0, "window": {"start": 0, "end": 30000, "type": "time"}},
+        {"topic": "S2", "key": 0, "value": "0,0,30000", "timestamp": 10000, "window": {"start": 0, "end": 30000, "type": "time"}},
+        {"topic": "S2", "key": 100, "value": "100,30000,60000", "timestamp": 30000, "window": {"start": 30000, "end": 60000, "type": "time"}},
+        {"topic": "S2", "key": 100, "value": "100,30000,60000", "timestamp": 45000, "window": {"start": 30000, "end": 60000, "type": "time"}},
+        {"topic": "S2", "key": 100, "value": "100,30000,60000", "timestamp": 50000, "window": {"start": 30000, "end": 60000, "type": "time"}},
+        {"topic": "S2", "key": 0, "value": "0,30000,60000", "timestamp": 35000, "window": {"start": 30000, "end": 60000, "type": "time"}},
+        {"topic": "S2", "key": 0, "value": "0,60000,90000", "timestamp": 70000, "window": {"start": 60000, "end": 90000, "type": "time"}}
+      ]
+    },
+    {
+      "name": "stream tumbling",
+      "statements": [
+        "CREATE STREAM TEST (ID bigint) WITH (kafka_topic='test_topic', value_format='DELIMITED', key='ID');",
+        "CREATE STREAM S2 as SELECT id, WindowStart(), WindowEnd() FROM test WINDOW TUMBLING (SIZE 30 SECONDS) group by id;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": "0", "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": "0", "timestamp": 10000},
+        {"topic": "test_topic", "key": 100, "value": "100", "timestamp": 30000},
+        {"topic": "test_topic", "key": 100, "value": "100", "timestamp": 45000},
+        {"topic": "test_topic", "key": 100, "value": "100", "timestamp": 50000},
+        {"topic": "test_topic", "key": 0, "value": "0", "timestamp": 35000},
+        {"topic": "test_topic", "key": 0, "value": "0", "timestamp": 70000}
+      ],
+      "outputs": [
+        {"topic": "S2", "key": 0, "value": "0,0,30000", "timestamp": 0, "window": {"start": 0, "end": 30000, "type": "time"}},
+        {"topic": "S2", "key": 0, "value": "0,0,30000", "timestamp": 10000, "window": {"start": 0, "end": 30000, "type": "time"}},
+        {"topic": "S2", "key": 100, "value": "100,30000,60000", "timestamp": 30000, "window": {"start": 30000, "end": 60000, "type": "time"}},
+        {"topic": "S2", "key": 100, "value": "100,30000,60000", "timestamp": 45000, "window": {"start": 30000, "end": 60000, "type": "time"}},
+        {"topic": "S2", "key": 100, "value": "100,30000,60000", "timestamp": 50000, "window": {"start": 30000, "end": 60000, "type": "time"}},
+        {"topic": "S2", "key": 0, "value": "0,30000,60000", "timestamp": 35000, "window": {"start": 30000, "end": 60000, "type": "time"}},
+        {"topic": "S2", "key": 0, "value": "0,60000,90000", "timestamp": 70000, "window": {"start": 60000, "end": 90000, "type": "time"}}
+      ]
+    },
+    {
+      "name": "table hopping",
+      "statements": [
+        "CREATE STREAM TEST (ID bigint) WITH (kafka_topic='test_topic', value_format='DELIMITED', key='ID');",
+        "CREATE TABLE S2 as SELECT id, WindowStart(), WindowEnd() FROM test WINDOW HOPPING (SIZE 30 SECONDS, ADVANCE BY 5 SECONDS) group by id;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": "0", "timestamp": 0},
+        {"topic": "test_topic", "key": 100, "value": "100", "timestamp": 2000},
+        {"topic": "test_topic", "key": 0, "value": "0", "timestamp": 4999},
+        {"topic": "test_topic", "key": 0, "value": "0", "timestamp": 5000}
+      ],
+      "outputs": [
+        {"topic": "S2", "key": 0, "value": "0,0,30000", "timestamp": 0, "window": {"start": 0, "end": 30000, "type": "time"}},
+        {"topic": "S2", "key": 100, "value": "100,0,30000", "timestamp": 2000, "window": {"start": 0, "end": 30000, "type": "time"}},
+        {"topic": "S2", "key": 0, "value": "0,0,30000", "timestamp": 4999, "window": {"start": 0, "end": 30000, "type": "time"}},
+        {"topic": "S2", "key": 0, "value": "0,0,30000", "timestamp": 5000, "window": {"start": 0, "end": 30000, "type": "time"}},
+        {"topic": "S2", "key": 0, "value": "0,5000,35000", "timestamp": 5000, "window": {"start": 5000, "end": 35000, "type": "time"}}
+      ]
+    },
+    {
+      "name": "stream hopping",
+      "statements": [
+        "CREATE STREAM TEST (ID bigint) WITH (kafka_topic='test_topic', value_format='DELIMITED', key='ID');",
+        "CREATE STREAM S2 as SELECT id, WindowStart(), WindowEnd() FROM test WINDOW HOPPING (SIZE 30 SECONDS, ADVANCE BY 5 SECONDS) group by id;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": "0", "timestamp": 0},
+        {"topic": "test_topic", "key": 100, "value": "100", "timestamp": 2000},
+        {"topic": "test_topic", "key": 0, "value": "0", "timestamp": 4999},
+        {"topic": "test_topic", "key": 0, "value": "0", "timestamp": 5000}
+      ],
+      "outputs": [
+        {"topic": "S2", "key": 0, "value": "0,0,30000", "timestamp": 0, "window": {"start": 0, "end": 30000, "type": "time"}},
+        {"topic": "S2", "key": 100, "value": "100,0,30000", "timestamp": 2000, "window": {"start": 0, "end": 30000, "type": "time"}},
+        {"topic": "S2", "key": 0, "value": "0,0,30000", "timestamp": 4999, "window": {"start": 0, "end": 30000, "type": "time"}},
+        {"topic": "S2", "key": 0, "value": "0,0,30000", "timestamp": 5000, "window": {"start": 0, "end": 30000, "type": "time"}},
+        {"topic": "S2", "key": 0, "value": "0,5000,35000", "timestamp": 5000, "window": {"start": 5000, "end": 35000, "type": "time"}}
+      ]
+    },
+    {
+      "name": "none",
+      "comment" : "Without a WINDOW statement the methods will return NULL",
+      "statements": [
+        "CREATE STREAM TEST (ID bigint) WITH (kafka_topic='test_topic', value_format='DELIMITED', key='ID');",
+        "CREATE STREAM S2 as SELECT id, WindowStart(), WindowEnd() FROM test group by id;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": "0", "timestamp": 0},
+        {"topic": "test_topic", "key": 100, "value": "100", "timestamp": 2000},
+        {"topic": "test_topic", "key": 0, "value": "0", "timestamp": 4999},
+        {"topic": "test_topic", "key": 0, "value": "0", "timestamp": 5000}
+      ],
+      "outputs": [
+        {"topic": "S2", "key": 0, "value": "0,,", "timestamp": 0},
+        {"topic": "S2", "key": 100, "value": "100,,", "timestamp": 2000},
+        {"topic": "S2", "key": 0, "value": "0,,", "timestamp": 4999},
+        {"topic": "S2", "key": 0, "value": "0,,", "timestamp": 5000}
+      ]
+    },
+    {
+      "name": "in expressions",
+      "statements": [
+        "CREATE STREAM TEST (ID bigint) WITH (kafka_topic='test_topic', value_format='DELIMITED', key='ID');",
+        "CREATE STREAM S2 as SELECT id, WindowStart() / 2, WindowEnd() / 2 FROM test WINDOW TUMBLING (SIZE 30 SECONDS) group by id;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": "0", "timestamp": 0},
+        {"topic": "test_topic", "key": 100, "value": "100", "timestamp": 2000},
+        {"topic": "test_topic", "key": 0, "value": "0", "timestamp": 4999},
+        {"topic": "test_topic", "key": 0, "value": "0", "timestamp": 5000}
+      ],
+      "outputs": [
+        {"topic": "S2", "key": 0, "value": "0,0,15000", "timestamp": 0, "window": {"start": 0, "end": 30000, "type": "time"}},
+        {"topic": "S2", "key": 100, "value": "100,0,15000", "timestamp": 2000, "window": {"start": 0, "end": 30000, "type": "time"}},
+        {"topic": "S2", "key": 0, "value": "0,0,15000", "timestamp": 4999, "window": {"start": 0, "end": 30000, "type": "time"}},
+        {"topic": "S2", "key": 0, "value": "0,0,15000", "timestamp": 5000, "window": {"start": 0, "end": 30000, "type": "time"}}
+      ]
+    }
+  ]
+}

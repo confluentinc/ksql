@@ -16,24 +16,25 @@
 
 package io.confluent.ksql;
 
-import org.apache.kafka.clients.admin.AdminClient;
-import org.apache.kafka.streams.KafkaStreams;
-import org.junit.Test;
+import static org.easymock.EasyMock.anyObject;
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.expectLastCall;
+import static org.easymock.EasyMock.mock;
+import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.verify;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
+import io.confluent.ksql.metastore.StructuredDataSource;
+import io.confluent.ksql.planner.PlanSourceExtractorVisitor;
+import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.DataSource;
-import io.confluent.ksql.util.KafkaTopicClient;
-import io.confluent.ksql.util.KafkaTopicClientImpl;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
-
-import static org.easymock.EasyMock.*;
+import java.util.Collections;
+import java.util.List;
+import org.apache.kafka.streams.KafkaStreams;
+import org.junit.Test;
 
 public class KsqlContextTest {
 
@@ -46,45 +47,50 @@ public class KsqlContextTest {
 
   @Test
   public void shouldRunSimpleStatements() throws Exception {
-    AdminClient adminClient = mock(AdminClient.class);
-    KafkaTopicClient kafkaTopicClient = mock(KafkaTopicClientImpl.class);
-    KsqlEngine ksqlEngine = mock(KsqlEngine.class);
+    final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
+    final KsqlEngine ksqlEngine = mock(KsqlEngine.class);
 
-    Map<QueryId, PersistentQueryMetadata> liveQueryMap = new HashMap<>();
-
-    KsqlContext ksqlContext = new KsqlContext(adminClient, kafkaTopicClient, ksqlEngine);
-
-    expect(ksqlEngine.buildMultipleQueries(statement1, Collections.emptyMap()))
+    expect(ksqlEngine.buildMultipleQueries(statement1, ksqlConfig, Collections.emptyMap()))
         .andReturn
         (Collections.emptyList());
-    expect(ksqlEngine.buildMultipleQueries(statement2, Collections.emptyMap()))
+    expect(ksqlEngine.buildMultipleQueries(statement2, ksqlConfig, Collections.emptyMap()))
         .andReturn(getQueryMetadata(new QueryId("CSAS_BIGORDERS"), DataSource.DataSourceType.KSTREAM));
-    expect(ksqlEngine.getPersistentQueries()).andReturn(liveQueryMap);
     replay(ksqlEngine);
+
+    final KsqlContext ksqlContext = new KsqlContext(ksqlConfig, ksqlEngine);
     ksqlContext.sql(statement1);
     ksqlContext.sql(statement2);
 
     verify(ksqlEngine);
   }
 
-  private List<QueryMetadata> getQueryMetadata(QueryId queryid, DataSource.DataSourceType type) {
-    KafkaStreams queryStreams = mock(KafkaStreams.class);
+  @SuppressWarnings("unchecked")
+  private List<QueryMetadata> getQueryMetadata(final QueryId queryid, final DataSource.DataSourceType type) {
+    final KafkaStreams queryStreams = mock(KafkaStreams.class);
     queryStreams.start();
     expectLastCall();
-    PersistentQueryMetadata persistentQueryMetadata = new PersistentQueryMetadata(queryid.toString(),
+
+    final OutputNode outputNode = mock(OutputNode.class);
+    expect(outputNode.accept(anyObject(PlanSourceExtractorVisitor.class), anyObject())).andReturn(null);
+    replay(outputNode);
+    final StructuredDataSource structuredDataSource = mock(StructuredDataSource.class);
+    expect(structuredDataSource.getName()).andReturn("");
+    replay(structuredDataSource);
+
+    final PersistentQueryMetadata persistentQueryMetadata = new PersistentQueryMetadata(queryid.toString(),
                                                                                    queryStreams,
-                                                                                  null,
+                                                                                   outputNode,
+                                                                                  structuredDataSource,
                                                                                   "",
                                                                                   queryid,
                                                                                   type,
                                                                                   "KSQL_query_" + queryid,
                                                                                   null,
-        null,
+                                                                                  null,
                                                                                   null,
                                                                                   null);
 
-    return Arrays.asList(persistentQueryMetadata);
-
+    return Collections.singletonList(persistentQueryMetadata);
   }
 
 }

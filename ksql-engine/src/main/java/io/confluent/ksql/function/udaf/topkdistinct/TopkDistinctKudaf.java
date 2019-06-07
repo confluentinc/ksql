@@ -16,127 +16,117 @@
 
 package io.confluent.ksql.function.udaf.topkdistinct;
 
+import io.confluent.ksql.function.AggregateFunctionArguments;
+import io.confluent.ksql.function.BaseAggregateFunction;
+import io.confluent.ksql.function.KsqlAggregateFunction;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.kstream.Merger;
 
-import java.lang.reflect.Array;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-
-import io.confluent.ksql.function.KsqlAggregateFunction;
-import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.util.ArrayUtil;
-import io.confluent.ksql.util.KsqlException;
-
 public class TopkDistinctKudaf<T extends Comparable<? super T>>
-    extends KsqlAggregateFunction<T, T[]> {
+    extends BaseAggregateFunction<T, List<T>> {
 
   private final int tkVal;
   private final Class<T> ttClass;
-  private final Comparator<T> comparator;
   private final Schema outputSchema;
 
   @SuppressWarnings("unchecked")
-  TopkDistinctKudaf(final int argIndexInValue,
-                    final int tkVal,
-                    final Schema outputSchema,
-                    final Class<T> ttClass) {
-    super(argIndexInValue,
-        () -> (T[]) Array.newInstance(ttClass, tkVal),
-          SchemaBuilder.array(outputSchema).build(),
-          Collections.singletonList(outputSchema)
+  TopkDistinctKudaf(
+      final String functionName,
+      final int argIndexInValue,
+      final int tkVal,
+      final Schema outputSchema,
+      final Class<T> ttClass
+  ) {
+    super(
+        functionName, argIndexInValue,
+        ArrayList::new,
+        SchemaBuilder.array(outputSchema).optional().build(),
+        Collections.singletonList(outputSchema),
+        "Calculates the Topk distinct values for a column, per key."
     );
 
     this.tkVal = tkVal;
     this.ttClass = ttClass;
     this.outputSchema = outputSchema;
-    this.comparator = (v1, v2) -> {
-      if (v1 == null && v2 == null) {
-        return 0;
-      }
-      if (v1 == null) {
-        return 1;
-      }
-      if (v2 == null) {
-        return -1;
-      }
-
-      return Comparator.<T>reverseOrder().compare(v1, v2);
-    };
   }
 
   @Override
-  public T[] aggregate(T currentVal, T[] currentAggVal) {
-    if (currentVal == null) {
-      return currentAggVal;
-    }
-    if (ArrayUtil.containsValue(currentVal, currentAggVal)) {
-      return currentAggVal;
-    }
-    int nullIndex = ArrayUtil.getNullIndex(currentAggVal);
-    if (nullIndex != -1) {
-      currentAggVal[nullIndex] = currentVal;
-      Arrays.sort(currentAggVal, comparator);
-      return currentAggVal;
+  public List<T> aggregate(final T currentValue, final List<T> aggregateValue) {
+
+    if (currentValue == null) {
+      return aggregateValue;
     }
 
-    final T last = currentAggVal[currentAggVal.length - 1];
-    if (currentVal.compareTo(last) <= 0) {
-      return currentAggVal;
+    final int currentSize = aggregateValue.size();
+    if (currentSize == tkVal && currentValue.compareTo(aggregateValue.get(currentSize - 1)) <= 0) {
+      return aggregateValue;
     }
 
-    currentAggVal[currentAggVal.length - 1] = currentVal;
-    Arrays.sort(currentAggVal, comparator);
-    return currentAggVal;
+    if (aggregateValue.contains(currentValue)) {
+      return aggregateValue;
+    }
+
+    if (currentSize == tkVal) {
+      aggregateValue.set(currentSize - 1, currentValue);
+    } else {
+      aggregateValue.add(currentValue);
+    }
+
+    aggregateValue.sort(Comparator.reverseOrder());
+    return aggregateValue;
   }
 
   @SuppressWarnings("unchecked")
   @Override
-  public Merger<String, T[]> getMerger() {
+  public Merger<String, List<T>> getMerger() {
     return (aggKey, aggOne, aggTwo) -> {
+      final List<T> merged = new ArrayList<>(Math.min(tkVal, aggOne.size() + aggTwo.size()));
 
-      int
-          nullIndex1 =
-          ArrayUtil.getNullIndex(aggOne) == -1 ? tkVal : ArrayUtil.getNullIndex(aggOne);
-      int
-          nullIndex2 =
-          ArrayUtil.getNullIndex(aggTwo) == -1 ? tkVal : ArrayUtil.getNullIndex(aggTwo);
-      T[] tempMergeTopkArray = (T[]) Array.newInstance(ttClass, nullIndex1 + nullIndex2);
+      int idx1 = 0;
+      int idx2 = 0;
+      for (int i = 0; i != tkVal; ++i) {
+        final T v1 = getNextItem(aggOne, idx1);
+        final T v2 = getNextItem(aggTwo, idx2);
 
-      System.arraycopy(aggOne, 0, tempMergeTopkArray, 0, nullIndex1);
+        if (v1 == null && v2 == null) {
+          break;
+        }
 
-      int duplicateCount = 0;
-      for (int i = nullIndex1; i < nullIndex1 + nullIndex2; i++) {
-        if (ArrayUtil.containsValue(aggTwo[i - nullIndex1], aggOne)) {
-          duplicateCount++;
-        } else {
-          tempMergeTopkArray[i - duplicateCount] = aggTwo[i - nullIndex1];
+        if (v1 != null && (v2 == null || v1.compareTo(v2) > 0)) {
+          merged.add(v1);
+          idx1++;
+        } else if (v1 == null || v2.compareTo(v1) > 0) {
+          merged.add(v2);
+          idx2++;
+        } else if (v1.compareTo(v2) == 0) {
+          merged.add(v1);
+          idx1++;
+          idx2++;
         }
       }
-      tempMergeTopkArray = ArrayUtil.getNoNullArray(ttClass, tempMergeTopkArray);
-      Arrays.sort(tempMergeTopkArray, comparator);
-      if (tempMergeTopkArray.length < tkVal) {
-        tempMergeTopkArray = ArrayUtil.padWithNull(ttClass, tempMergeTopkArray, tkVal);
-        return tempMergeTopkArray;
-      }
-      return Arrays.copyOf(tempMergeTopkArray, tkVal);
+      return merged;
     };
   }
 
-  @Override
-  public KsqlAggregateFunction<T, T[]> getInstance(Map<String, Integer> expressionNames,
-                                                   List<Expression> functionArguments) {
-    if (functionArguments.size() != 2) {
-      throw new KsqlException(String.format("Invalid parameter count. Need 2 args, got %d arg(s)"
-                                            + ".", functionArguments.size()));
-    }
+  private static <T> T getNextItem(final List<T> aggList, final int idx) {
+    return idx < aggList.size() ? aggList.get(idx) : null;
+  }
 
-    final int udafIndex = expressionNames.get(functionArguments.get(0).toString());
-    final int tkValFromArg = Integer.parseInt(functionArguments.get(1).toString());
-    return new TopkDistinctKudaf<>(udafIndex, tkValFromArg, outputSchema, ttClass);
+  @Override
+  public KsqlAggregateFunction<T, List<T>> getInstance(
+      final AggregateFunctionArguments aggregateFunctionArguments) {
+    aggregateFunctionArguments.ensureArgCount(2, "TopkDistinct");
+    final int udafIndex = aggregateFunctionArguments.udafIndex();
+    final int tkValFromArg = Integer.parseInt(aggregateFunctionArguments.arg(1));
+    return new TopkDistinctKudaf<>(functionName, udafIndex, tkValFromArg, outputSchema, ttClass);
+  }
+
+  Schema getOutputSchema() {
+    return outputSchema;
   }
 }

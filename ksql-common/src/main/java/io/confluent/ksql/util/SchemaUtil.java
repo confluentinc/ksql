@@ -16,31 +16,63 @@
 
 package io.confluent.ksql.util;
 
-import com.google.common.collect.ImmutableMap;
-
-import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
-
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-
 import static org.apache.avro.Schema.create;
 import static org.apache.avro.Schema.createArray;
 import static org.apache.avro.Schema.createMap;
 import static org.apache.avro.Schema.createUnion;
 
+import com.google.common.collect.ImmutableMap;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import org.apache.kafka.connect.data.Field;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.connect.data.Struct;
+
 public class SchemaUtil {
 
   public static final String ARRAY = "ARRAY";
   public static final String MAP = "MAP";
+  public static final String STRUCT = "STRUCT";
 
   public static final String ROWKEY_NAME = "ROWKEY";
   public static final String ROWTIME_NAME = "ROWTIME";
   public static final int ROWKEY_NAME_INDEX = 1;
+  private static final Map<Type, Supplier<Schema>> typeToSchema
+      = ImmutableMap.<Type, Supplier<Schema>>builder()
+      .put(String.class, () -> Schema.OPTIONAL_STRING_SCHEMA)
+      .put(boolean.class, () -> Schema.BOOLEAN_SCHEMA)
+      .put(Boolean.class, () -> Schema.OPTIONAL_BOOLEAN_SCHEMA)
+      .put(Integer.class, () -> Schema.OPTIONAL_INT32_SCHEMA)
+      .put(int.class, () -> Schema.INT32_SCHEMA)
+      .put(Long.class, () -> Schema.OPTIONAL_INT64_SCHEMA)
+      .put(long.class, () -> Schema.INT64_SCHEMA)
+      .put(Double.class, () -> Schema.OPTIONAL_FLOAT64_SCHEMA)
+      .put(double.class, () -> Schema.FLOAT64_SCHEMA)
+      .build();
+
+  private static Map<Pair<Schema.Type, Schema.Type>, Schema> ARITHMETIC_TYPE_MAPPINGS =
+      ImmutableMap.<Pair<Schema.Type, Schema.Type>, Schema>builder()
+          .put(new Pair<>(Schema.Type.INT64, Schema.Type.INT64), Schema.OPTIONAL_INT64_SCHEMA)
+          .put(new Pair<>(Schema.Type.INT32, Schema.Type.INT64), Schema.OPTIONAL_INT64_SCHEMA)
+          .put(new Pair<>(Schema.Type.INT64, Schema.Type.INT32), Schema.OPTIONAL_INT64_SCHEMA)
+          .put(new Pair<>(Schema.Type.INT32, Schema.Type.INT32), Schema.OPTIONAL_INT32_SCHEMA)
+          .put(new Pair<>(Schema.Type.FLOAT64, Schema.Type.FLOAT64), Schema.OPTIONAL_FLOAT64_SCHEMA)
+          .put(new Pair<>(Schema.Type.FLOAT64, Schema.Type.INT32), Schema.OPTIONAL_FLOAT64_SCHEMA)
+          .put(new Pair<>(Schema.Type.INT32, Schema.Type.FLOAT64), Schema.OPTIONAL_FLOAT64_SCHEMA)
+          .put(new Pair<>(Schema.Type.FLOAT64, Schema.Type.INT64), Schema.OPTIONAL_FLOAT64_SCHEMA)
+          .put(new Pair<>(Schema.Type.INT64, Schema.Type.FLOAT64), Schema.OPTIONAL_FLOAT64_SCHEMA)
+          .put(new Pair<>(Schema.Type.FLOAT32, Schema.Type.FLOAT64), Schema.OPTIONAL_FLOAT64_SCHEMA)
+          .put(new Pair<>(Schema.Type.FLOAT64, Schema.Type.FLOAT32), Schema.OPTIONAL_FLOAT64_SCHEMA)
+          .put(new Pair<>(Schema.Type.STRING, Schema.Type.STRING), Schema.OPTIONAL_STRING_SCHEMA)
+          .build();
 
   public static Class getJavaType(final Schema schema) {
     switch (schema.type()) {
@@ -55,45 +87,48 @@ public class SchemaUtil {
       case FLOAT64:
         return Double.class;
       case ARRAY:
-        Class elementClass = getJavaType(schema.valueSchema());
-        return java.lang.reflect.Array.newInstance(elementClass, 0).getClass();
+        return List.class;
       case MAP:
-        return HashMap.class;
+        return Map.class;
+      case STRUCT:
+        return Struct.class;
       default:
         throw new KsqlException("Type is not supported: " + schema.type());
     }
   }
 
+  public static Schema getSchemaFromType(final Type type) {
+    return typeToSchema.getOrDefault(type, () -> handleParametrizedType(type)).get();
+  }
+
+  public static boolean matchFieldName(final Field field, final String fieldName) {
+    return field.name().equals(fieldName)
+        || field.name().equals(fieldName.substring(fieldName.indexOf(".") + 1));
+  }
 
   public static Optional<Field> getFieldByName(final Schema schema, final String fieldName) {
-    if (schema.fields() != null) {
-      for (Field field : schema.fields()) {
-        if (field.name().equals(fieldName)) {
-          return Optional.of(field);
-        } else if (field.name().equals(fieldName.substring(fieldName.indexOf(".") + 1))) {
-          return Optional.of(field);
-        }
-      }
-    }
-    return Optional.empty();
+    return schema.fields()
+        .stream()
+        .filter(f -> matchFieldName(f, fieldName))
+        .findFirst();
   }
 
   public static Schema getTypeSchema(final String sqlType) {
     switch (sqlType) {
       case "VARCHAR":
       case "STRING":
-        return Schema.STRING_SCHEMA;
+        return Schema.OPTIONAL_STRING_SCHEMA;
       case "BOOLEAN":
       case "BOOL":
-        return Schema.BOOLEAN_SCHEMA;
+        return Schema.OPTIONAL_BOOLEAN_SCHEMA;
       case "INTEGER":
       case "INT":
-        return Schema.INT32_SCHEMA;
+        return Schema.OPTIONAL_INT32_SCHEMA;
       case "BIGINT":
       case "LONG":
-        return Schema.INT64_SCHEMA;
+        return Schema.OPTIONAL_INT64_SCHEMA;
       case "DOUBLE":
-        return Schema.FLOAT64_SCHEMA;
+        return Schema.OPTIONAL_FLOAT64_SCHEMA;
       default:
         return getKsqlComplexType(sqlType);
     }
@@ -108,20 +143,21 @@ public class SchemaUtil {
                   sqlType.length() - 1
               )
           )
-      );
+      ).optional().build();
     } else if (sqlType.startsWith(MAP)) {
       //TODO: For now only primitive data types for map are supported. Will have to add nested
       // types.
-      String[] mapTypesStrs = sqlType
+      final String[] mapTypesStrs = sqlType
           .substring("MAP".length() + 1, sqlType.length() - 1)
           .trim()
           .split(",");
       if (mapTypesStrs.length != 2) {
         throw new KsqlException("Map type is not defined correctly.: " + sqlType);
       }
-      String keyType = mapTypesStrs[0].trim();
-      String valueType = mapTypesStrs[1].trim();
-      return SchemaBuilder.map(getTypeSchema(keyType), getTypeSchema(valueType));
+      final String keyType = mapTypesStrs[0].trim();
+      final String valueType = mapTypesStrs[1].trim();
+      return SchemaBuilder.map(getTypeSchema(keyType), getTypeSchema(valueType))
+          .optional().build();
     }
     throw new KsqlException("Unsupported type: " + sqlType);
   }
@@ -132,15 +168,15 @@ public class SchemaUtil {
       return -1;
     }
     for (int i = 0; i < schema.fields().size(); i++) {
-      Field field = schema.fields().get(i);
-      int dotIndex = field.name().indexOf('.');
+      final Field field = schema.fields().get(i);
+      final int dotIndex = field.name().indexOf('.');
       if (dotIndex == -1) {
         if (field.name().equals(fieldName)) {
           return i;
         }
       } else {
         if (dotIndex < fieldName.length()) {
-          String
+          final String
               fieldNameWithDot =
               fieldName.substring(0, dotIndex) + "." + fieldName.substring(dotIndex + 1);
           if (field.name().equals(fieldNameWithDot)) {
@@ -154,8 +190,8 @@ public class SchemaUtil {
   }
 
   public static Schema buildSchemaWithAlias(final Schema schema, final String alias) {
-    SchemaBuilder newSchema = SchemaBuilder.struct().name(schema.name());
-    for (Field field : schema.fields()) {
+    final SchemaBuilder newSchema = SchemaBuilder.struct().name(schema.name());
+    for (final Field field : schema.fields()) {
       newSchema.field((alias + "." + field.name()), field.schema());
     }
     return newSchema;
@@ -170,20 +206,19 @@ public class SchemaUtil {
           .put("BOOLEAN", "BOOLEAN")
           .put("ARRAY", "ARRAY")
           .put("MAP", "MAP")
+          .put("STRUCT", "STRUCT")
           .build();
 
-  public static String getSchemaFieldName(Field field) {
-    if (field.schema().type() == Schema.Type.ARRAY) {
-      return "ARRAY[" + TYPE_MAP.get(field.schema().valueSchema().type().name()) + "]";
-    } else if (field.schema().type() == Schema.Type.MAP) {
-      return "MAP[" + TYPE_MAP.get(field.schema().keySchema().type().name()) + ","
-          + TYPE_MAP.get(field.schema().valueSchema().type().name()) + "]";
-    } else {
-      return TYPE_MAP.get(field.schema().type().name());
+  public static String getSchemaTypeAsSqlType(final Schema.Type type) {
+    final String sqlType = TYPE_MAP.get(type.name());
+    if (sqlType == null) {
+      throw new IllegalArgumentException("Unknown schema type: " + type);
     }
+
+    return sqlType;
   }
 
-  public static String getJavaCastString(Schema schema) {
+  public static String getJavaCastString(final Schema schema) {
     switch (schema.type()) {
       case INT32:
         return "(Integer)";
@@ -201,11 +236,11 @@ public class SchemaUtil {
     }
   }
 
-  public static Schema addImplicitRowTimeRowKeyToSchema(Schema schema) {
-    SchemaBuilder schemaBuilder = SchemaBuilder.struct();
-    schemaBuilder.field(SchemaUtil.ROWTIME_NAME, Schema.INT64_SCHEMA);
-    schemaBuilder.field(SchemaUtil.ROWKEY_NAME, Schema.STRING_SCHEMA);
-    for (Field field : schema.fields()) {
+  public static Schema addImplicitRowTimeRowKeyToSchema(final Schema schema) {
+    final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
+    schemaBuilder.field(SchemaUtil.ROWTIME_NAME, Schema.OPTIONAL_INT64_SCHEMA);
+    schemaBuilder.field(SchemaUtil.ROWKEY_NAME, Schema.OPTIONAL_STRING_SCHEMA);
+    for (final Field field : schema.fields()) {
       if (!field.name().equals(SchemaUtil.ROWKEY_NAME)
           && !field.name().equals(SchemaUtil.ROWTIME_NAME)) {
         schemaBuilder.field(field.name(), field.schema());
@@ -214,9 +249,9 @@ public class SchemaUtil {
     return schemaBuilder.build();
   }
 
-  public static Schema removeImplicitRowTimeRowKeyFromSchema(Schema schema) {
-    SchemaBuilder schemaBuilder = SchemaBuilder.struct();
-    for (Field field : schema.fields()) {
+  public static Schema removeImplicitRowTimeRowKeyFromSchema(final Schema schema) {
+    final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
+    for (final Field field : schema.fields()) {
       String fieldName = field.name();
       fieldName = fieldName.substring(fieldName.indexOf('.') + 1);
       if (!fieldName.equalsIgnoreCase(SchemaUtil.ROWTIME_NAME)
@@ -227,10 +262,10 @@ public class SchemaUtil {
     return schemaBuilder.build();
   }
 
-  public static Set<Integer> getRowTimeRowKeyIndexes(Schema schema) {
-    Set<Integer> indexSet = new HashSet<>();
+  public static Set<Integer> getRowTimeRowKeyIndexes(final Schema schema) {
+    final Set<Integer> indexSet = new HashSet<>();
     for (int i = 0; i < schema.fields().size(); i++) {
-      Field field = schema.fields().get(i);
+      final Field field = schema.fields().get(i);
       if (field.name().equalsIgnoreCase(SchemaUtil.ROWTIME_NAME)
           || field.name().equalsIgnoreCase(SchemaUtil.ROWKEY_NAME)) {
         indexSet.add(i);
@@ -239,24 +274,13 @@ public class SchemaUtil {
     return indexSet;
   }
 
-  public static String getSchemaDefinitionString(Schema schema) {
-    StringBuilder stringBuilder = new StringBuilder("[");
-    boolean addComma = false;
-    for (Field field : schema.fields()) {
-      if (addComma) {
-        stringBuilder.append(" , ");
-      } else {
-        addComma = true;
-      }
-      stringBuilder.append(field.name())
-          .append(" : ")
-          .append(field.schema().type());
-    }
-    stringBuilder.append("]");
-    return stringBuilder.toString();
+  public static String getSchemaDefinitionString(final Schema schema) {
+    return schema.fields().stream()
+        .map(field -> field.name() + " : " + getSqlTypeName(field.schema()))
+        .collect(Collectors.joining(", ", "[", "]"));
   }
 
-  public static String getSQLTypeName(Schema schema) {
+  public static String getSqlTypeName(final Schema schema) {
     switch (schema.type()) {
       case INT32:
         return "INT";
@@ -270,24 +294,34 @@ public class SchemaUtil {
       case STRING:
         return "VARCHAR";
       case ARRAY:
-        return "ARRAY<" + getSQLTypeName(schema.valueSchema()) + ">";
+        return "ARRAY<" + getSqlTypeName(schema.valueSchema()) + ">";
       case MAP:
         return "MAP<"
-               + getSQLTypeName(schema.keySchema())
-               + ","
-               + getSQLTypeName(schema.valueSchema())
-               + ">";
+            + getSqlTypeName(schema.keySchema())
+            + ","
+            + getSqlTypeName(schema.valueSchema())
+            + ">";
+      case STRUCT:
+        return getStructString(schema);
       default:
         throw new KsqlException(String.format("Invalid type in schema: %s.", schema.toString()));
     }
   }
 
-  public static String buildAvroSchema(final Schema schema, String name) {
+  private static String getStructString(final Schema schema) {
+    return schema.fields().stream()
+        .map(field -> field.name() + " " + getSqlTypeName(field.schema()))
+        .collect(Collectors.joining(", ", "STRUCT <", ">"));
+  }
 
-    org.apache.avro.SchemaBuilder.FieldAssembler fieldAssembler = org.apache.avro.SchemaBuilder
+  public static String buildAvroSchema(final Schema schema, final String name) {
+
+    final org.apache.avro.SchemaBuilder.FieldAssembler fieldAssembler =
+        org.apache.avro.SchemaBuilder
         .record(name).namespace("ksql")
         .fields();
-    for (Field field : schema.fields()) {
+
+    for (final Field field : schema.fields()) {
       fieldAssembler
           .name(field.name().replace(".", "_"))
           .type(getAvroSchemaForField(field.schema()))
@@ -297,7 +331,7 @@ public class SchemaUtil {
     return fieldAssembler.endRecord().toString();
   }
 
-  private static org.apache.avro.Schema getAvroSchemaForField(Schema fieldSchema) {
+  private static org.apache.avro.Schema getAvroSchemaForField(final Schema fieldSchema) {
     switch (fieldSchema.type()) {
       case STRING:
         return unionWithNull(create(org.apache.avro.Schema.Type.STRING));
@@ -321,24 +355,24 @@ public class SchemaUtil {
     }
   }
 
-  private static org.apache.avro.Schema unionWithNull(org.apache.avro.Schema schema) {
+  private static org.apache.avro.Schema unionWithNull(final org.apache.avro.Schema schema) {
     return createUnion(org.apache.avro.Schema.create(org.apache.avro.Schema.Type.NULL), schema);
   }
 
   /**
    * Rename field names to be consistent with the internal column names.
    */
-  public static Schema getAvroSerdeKsqlSchema(Schema schema) {
-    SchemaBuilder schemaBuilder = SchemaBuilder.struct();
-    for (Field field : schema.fields()) {
+  public static Schema getAvroSerdeKsqlSchema(final Schema schema) {
+    final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
+    for (final Field field : schema.fields()) {
       schemaBuilder.field(field.name().replace(".", "_"), field.schema());
     }
 
     return schemaBuilder.build();
   }
 
-  public static String getFieldNameWithNoAlias(Field field) {
-    String name = field.name();
+  public static String getFieldNameWithNoAlias(final Field field) {
+    final String name = field.name();
     if (name.contains(".")) {
       return name.substring(name.indexOf(".") + 1);
     } else {
@@ -349,19 +383,31 @@ public class SchemaUtil {
   /**
    * Remove the alias when reading/writing from outside
    */
-  public static Schema getSchemaWithNoAlias(Schema schema) {
-    SchemaBuilder schemaBuilder = SchemaBuilder.struct();
-    for (Field field : schema.fields()) {
-      String name = getFieldNameWithNoAlias(field);
+  public static Schema getSchemaWithNoAlias(final Schema schema) {
+    final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
+    for (final Field field : schema.fields()) {
+      final String name = getFieldNameWithNoAlias(field);
       schemaBuilder.field(name, field.schema());
     }
     return schemaBuilder.build();
   }
 
+  public static boolean areEqualSchemas(final Schema schema1, final Schema schema2) {
+    if (schema1.fields().size() != schema2.fields().size()) {
+      return false;
+    }
+    for (int i = 0; i < schema1.fields().size(); i++) {
+      if (!schema1.fields().get(i).equals(schema2.fields().get(i))) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   public static int getIndexInSchema(final String fieldName, final Schema schema) {
-    List<Field> fields = schema.fields();
+    final List<Field> fields = schema.fields();
     for (int i = 0; i < fields.size(); i++) {
-      Field field = fields.get(i);
+      final Field field = fields.get(i);
       if (field.name().equals(fieldName)) {
         return i;
       }
@@ -372,5 +418,30 @@ public class SchemaUtil {
             + " in schema. fields="
             + fields
     );
+  }
+
+  static Schema resolveArithmeticType(final Schema.Type left,
+                                      final Schema.Type right) {
+
+    final Schema schema = ARITHMETIC_TYPE_MAPPINGS.get(new Pair<>(left, right));
+    if (schema == null) {
+      throw new KsqlException("Unsupported arithmetic types. " + left + " " + right);
+    }
+    return schema;
+  }
+
+  private static Schema handleParametrizedType(final Type type) {
+    if (type instanceof ParameterizedType) {
+      final ParameterizedType parameterizedType = (ParameterizedType) type;
+      if (parameterizedType.getRawType() == Map.class) {
+        return SchemaBuilder.map(getSchemaFromType(
+            parameterizedType.getActualTypeArguments()[0]),
+            getSchemaFromType(parameterizedType.getActualTypeArguments()[1])).build();
+      } else if (parameterizedType.getRawType() == List.class) {
+        return SchemaBuilder.array(getSchemaFromType(
+            parameterizedType.getActualTypeArguments()[0])).build();
+      }
+    }
+    throw new KsqlException("Type is not supported: " + type);
   }
 }

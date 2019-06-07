@@ -16,25 +16,25 @@
 
 package io.confluent.ksql.parser.tree;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.Objects;
 import java.util.Optional;
-
-import static java.util.Objects.requireNonNull;
 
 public class IsNullPredicate
     extends Expression {
 
   private final Expression value;
 
-  public IsNullPredicate(Expression value) {
+  public IsNullPredicate(final Expression value) {
     this(Optional.empty(), value);
   }
 
-  public IsNullPredicate(NodeLocation location, Expression value) {
+  public IsNullPredicate(final NodeLocation location, final Expression value) {
     this(Optional.of(location), value);
   }
 
-  private IsNullPredicate(Optional<NodeLocation> location, Expression value) {
+  private IsNullPredicate(final Optional<NodeLocation> location, final Expression value) {
     super(location);
     requireNonNull(value, "value is null");
     this.value = value;
@@ -45,12 +45,12 @@ public class IsNullPredicate
   }
 
   @Override
-  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitIsNullPredicate(this, context);
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
@@ -58,7 +58,7 @@ public class IsNullPredicate
       return false;
     }
 
-    IsNullPredicate that = (IsNullPredicate) o;
+    final IsNullPredicate that = (IsNullPredicate) o;
     return Objects.equals(value, that.value);
   }
 

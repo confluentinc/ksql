@@ -39,11 +39,13 @@ statement
     | (LIST | SHOW) PROPERTIES                                              #listProperties
     | (LIST | SHOW) TOPICS                                                  #listTopics
     | (LIST | SHOW) REGISTERED TOPICS                                       #listRegisteredTopics
-    | (LIST | SHOW) STREAMS                                                 #listStreams
-    | (LIST | SHOW) TABLES                                                  #listTables
+    | (LIST | SHOW) STREAMS EXTENDED?                                   #listStreams
+    | (LIST | SHOW) TABLES EXTENDED?                                    #listTables
+    | (LIST | SHOW) FUNCTIONS                                            #listFunctions
     | DESCRIBE EXTENDED? (qualifiedName | TOPIC qualifiedName)              #showColumns
+    | DESCRIBE FUNCTION qualifiedName                                       #describeFunction
     | PRINT (qualifiedName | STRING) (FROM BEGINNING)? ((INTERVAL | SAMPLE) number)?   #printTopic
-    | (LIST | SHOW) QUERIES                                                 #listQueries
+    | (LIST | SHOW) QUERIES EXTENDED?                                   #listQueries
     | TERMINATE QUERY? qualifiedName                                        #terminateQuery
     | SET STRING EQ STRING                                                  #setProperty
     | UNSET STRING                                                          #unsetProperty
@@ -61,9 +63,10 @@ statement
                     (WITH tableProperties)?                                 #createTable
     | CREATE TABLE (IF NOT EXISTS)? qualifiedName
             (WITH tableProperties)? AS query                                #createTableAs
+    | INSERT INTO qualifiedName query (PARTITION BY identifier)?            #insertInto
     | DROP TOPIC (IF EXISTS)? qualifiedName                                 #dropTopic
-    | DROP STREAM (IF EXISTS)? qualifiedName                                #dropStream
-    | DROP TABLE (IF EXISTS)? qualifiedName                                 #dropTable
+    | DROP STREAM (IF EXISTS)? qualifiedName (DELETE TOPIC)?                  #dropStream
+    | DROP TABLE (IF EXISTS)? qualifiedName  (DELETE TOPIC)?                  #dropTable
     | EXPLAIN ANALYZE?
             ('(' explainOption (',' explainOption)* ')')? (statement | qualifiedName)         #explain
     | EXPORT CATALOG TO STRING                                              #exportCatalog
@@ -114,7 +117,7 @@ querySpecification
 
 windowExpression
     : (IDENTIFIER)?
-     ( tumblingWindowExpression | hoppingWindowExpression | sessionWindowExpression)
+     ( tumblingWindowExpression | hoppingWindowExpression | sessionWindowExpression )
     ;
 
 tumblingWindowExpression
@@ -172,24 +175,32 @@ selectItem
 
 
 relation
-    : left=relation
-      ( CROSS JOIN right=aliasedRelation
-      | joinType JOIN rightRelation=relation joinCriteria
-      | NATURAL joinType JOIN right=aliasedRelation
-      )                                           #joinRelation
-    | aliasedRelation                             #relationDefault
+    : left=aliasedRelation joinType JOIN right=aliasedRelation joinWindow? joinCriteria
+    #joinRelation
+    | aliasedRelation #relationDefault
     ;
 
 joinType
-    : INNER?
-    | LEFT OUTER?
-    | RIGHT OUTER?
-    | FULL OUTER?
+    : INNER? #innerJoin
+    | FULL OUTER? #outerJoin
+    | LEFT OUTER? #leftJoin
+    ;
+
+joinWindow
+    : (WITHIN withinExpression)?
+    ;
+
+withinExpression
+    : '(' joinWindowSize ',' joinWindowSize ')' # joinWindowWithBeforeAndAfter
+    | joinWindowSize # singleJoinWindow
+    ;
+
+joinWindowSize
+    : number windowUnit
     ;
 
 joinCriteria
     : ON booleanExpression
-    | USING '(' identifier (',' identifier)* ')'
     ;
 
 
@@ -261,12 +272,8 @@ primaryExpression
     | STRING                                                                         #stringLiteral
     | BINARY_LITERAL                                                                 #binaryLiteral
     | POSITION '(' valueExpression IN valueExpression ')'                            #position
-    | '(' expression (',' expression)+ ')'                                           #rowConstructor
-    | ROW '(' expression (',' expression)* ')'                                       #rowConstructor
     | qualifiedName '(' ASTERISK ')' over?                                           #functionCall
-    | qualifiedName '(' (expression (',' expression)*)? ')' over?     #functionCall
-    | identifier '->' expression                                                     #lambda
-    | '(' identifier (',' identifier)* ')' '->' expression                           #lambda
+    | qualifiedName '(' (expression (',' expression)*)? ')' over?                    #functionCall
     | '(' query ')'                                                                  #subqueryExpression
     // This is an extension to ANSI SQL, which considers EXISTS to be a <boolean expression>
     | EXISTS '(' query ')'                                                           #exists
@@ -277,7 +284,8 @@ primaryExpression
     | ARRAY '[' (expression (',' expression)*)? ']'                                  #arrayConstructor
     | value=primaryExpression '[' index=valueExpression ']'                          #subscript
     | identifier                                                                     #columnReference
-    | base=primaryExpression '.' fieldName=identifier                                #dereference
+    | identifier '.' identifier                                                      #columnReference
+    | base=primaryExpression STRUCT_FIELD_REF fieldName=identifier                   #dereference
     | SUBSTRING '(' valueExpression FROM valueExpression (FOR valueExpression)? ')'  #substring
     | NORMALIZE '(' valueExpression (',' normalForm)? ')'                            #normalize
     | EXTRACT '(' identifier FROM valueExpression ')'                                #extract
@@ -309,7 +317,7 @@ type
     : type ARRAY
     | ARRAY '<' type '>'
     | MAP '<' type ',' type '>'
-    | ROW '(' identifier type (',' identifier type)* ')'
+    | STRUCT '<' identifier type (',' identifier type)* '>'
     | baseType ('(' typeParameter (',' typeParameter)* ')')?
     ;
 
@@ -383,9 +391,9 @@ number
     ;
 
 nonReserved
-    : SHOW | TABLES | COLUMNS | COLUMN | PARTITIONS | FUNCTIONS | SCHEMAS | CATALOGS | SESSION
+    : SHOW | TABLES | COLUMNS | COLUMN | PARTITIONS | FUNCTIONS | FUNCTION | SCHEMAS | CATALOGS | SESSION
     | ADD
-    | OVER | PARTITION | RANGE | ROWS | PRECEDING | FOLLOWING | CURRENT | ROW | MAP | ARRAY
+    | OVER | PARTITION | RANGE | ROWS | PRECEDING | FOLLOWING | CURRENT | ROW | STRUCT | MAP | ARRAY
     | TINYINT | SMALLINT | INTEGER | DATE | TIME | TIMESTAMP | INTERVAL | ZONE
     | YEAR | MONTH | DAY | HOUR | MINUTE | SECOND
     | EXPLAIN | ANALYZE | FORMAT | TYPE | TEXT | GRAPHVIZ | LOGICAL | DISTRIBUTED
@@ -418,6 +426,7 @@ SOME: 'SOME';
 ANY: 'ANY';
 DISTINCT: 'DISTINCT';
 WHERE: 'WHERE';
+WITHIN: 'WITHIN';
 WINDOW: 'WINDOW';
 GROUP: 'GROUP';
 BY: 'BY';
@@ -490,13 +499,11 @@ THEN: 'THEN';
 ELSE: 'ELSE';
 END: 'END';
 JOIN: 'JOIN';
-CROSS: 'CROSS';
+FULL: 'FULL';
 OUTER: 'OUTER';
 INNER: 'INNER';
 LEFT: 'LEFT';
 RIGHT: 'RIGHT';
-FULL: 'FULL';
-NATURAL: 'NATURAL';
 USING: 'USING';
 ON: 'ON';
 OVER: 'OVER';
@@ -508,6 +515,7 @@ PRECEDING: 'PRECEDING';
 FOLLOWING: 'FOLLOWING';
 CURRENT: 'CURRENT';
 ROW: 'ROW';
+STRUCT: 'STRUCT';
 WITH: 'WITH';
 RECURSIVE: 'RECURSIVE';
 VALUES: 'VALUES';
@@ -558,6 +566,7 @@ COLUMN: 'COLUMN';
 USE: 'USE';
 PARTITIONS: 'PARTITIONS';
 FUNCTIONS: 'FUNCTIONS';
+FUNCTION: 'FUNCTION';
 DROP: 'DROP';
 UNION: 'UNION';
 EXCEPT: 'EXCEPT';
@@ -630,6 +639,8 @@ SLASH: '/';
 PERCENT: '%';
 CONCAT: '||';
 
+STRUCT_FIELD_REF: '->';
+
 STRING
     : '\'' ( ~'\'' | '\'\'' )* '\''
     ;
@@ -653,11 +664,11 @@ DECIMAL_VALUE
     ;
 
 IDENTIFIER
-    : (LETTER | '_') (LETTER | DIGIT | '_' | '@' | ':')*
+    : (LETTER | '_') (LETTER | DIGIT | '_' | '@' )*
     ;
 
 DIGIT_IDENTIFIER
-    : DIGIT (LETTER | DIGIT | '_' | '@' | ':')+
+    : DIGIT (LETTER | DIGIT | '_' | '@' )+
     ;
 
 QUOTED_IDENTIFIER

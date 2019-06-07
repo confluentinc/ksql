@@ -7,152 +7,137 @@ These steps will guide you through how to setup your environment and run the cli
 
 .. include:: ../../../quickstart/includes/docker-prereqs.rst
 
----------------------
-Download the Tutorial
----------------------
+- If you are using Linux as your host, for the Elasticsearch container to start successfully you must first run: 
 
-Download and start the KSQL clickstream container. This container
-image is large and contains |cos|, Grafana, and Elasticsearch.
-Depending on your network speed, this may take up to 10-15 minutes.
-The ``-p`` flag will forward the Grafana dashboard to port 33000 on
-your local host.
+.. codewithvars:: bash
 
-.. code:: bash
+      sudo sysctl -w vm.max_map_count=262144
+      
 
-    docker run -p 33000:3000 -it confluentinc/ksql-clickstream-demo:4.1.0 bash
+-----------------------------
+Download and run the tutorial
+-----------------------------
 
-Your output should resemble:
+The tutorial is built using Docker Compose. It brings together several 
+Docker images with the required networking and dependencies. The images
+are quite large and depending on your network connection may take 
+10-15 minutes to download.
 
-::
+#. Clone the Confluent examples repository.
 
-    Unable to find image 'confluentinc/ksql-clickstream-demo:4.1.0' locally
-    latest: Pulling from confluentinc/ksql-clickstream-demo
-    ad74af05f5a2: Already exists
-    d02e292e7b5e: Already exists
-    8de7f5c81ab0: Already exists
-    ed0b76dc2730: Already exists
-    cfc44fa8a002: Already exists
-    d9ece951ea0c: Pull complete
-    f26010779356: Pull complete
-    c9dad5440731: Pull complete
-    935591799d9d: Pull complete
-    696df0f65482: Pull complete
-    14fd98e52325: Pull complete
-    fcbeb94bace2: Pull complete
-    32cca4f1567d: Pull complete
-    5df0d25e7260: Pull complete
-    e16097edc4fc: Pull complete
-    72b33b348958: Pull complete
-    015da01a41b0: Pull complete
-    80e29f47abe0: Pull complete
-    Digest: sha256:f3b2b19668b851d1300f77aa8c2236a126b628b911578cc688c7e0de442c1cd3
-    Status: Downloaded newer image for confluentinc/ksql-clickstream-demo:latest
-    $
+   .. code:: bash
 
-You should now be in the Docker container and the remaining steps are run from within the container.
+       git clone https://github.com/confluentinc/examples.git
+       cd examples
 
-----------------------------------------------
-Configure and Start Elastic, Grafana, and |cp|
-----------------------------------------------
+#. Switch to the correct |cp| release branch:
 
-#.  Start  Elasticsearch.
+   .. codewithvars:: bash
+   
+       git checkout |release_post_branch|
 
-    .. code:: bash
+#. Navigate to the correct directory and launch the tutorial in
+   Docker. Depending on your network speed, this may take up to 5-10 minutes.
 
-       /etc/init.d/elasticsearch start
+   .. code:: bash
 
-    Your output should resemble:
+       cd clickstream
+       docker-compose up -d
 
-    ::
 
-        [....] Starting Elasticsearch Server:sysctl: setting key "vm.max_map_count": Read-only file system
-        . ok
+#. After a minute or so, run the ``docker-compose ps`` status command to ensure that everything has started correctly: 
 
-#.  Start Grafana.
+   .. code:: bash
 
-    .. code:: bash
+        docker-compose ps
 
-        /etc/init.d/grafana-server start
+   Your output should resemble:
 
-    Your output should resemble:
+   ::
 
-    ::
-
-        [ ok ] Starting Grafana Server:.
-
-#.  Start |cp|.
-
-    .. code:: bash
-
-        confluent start
-
-    Your output should resemble:
-
-    ::
-
-        Starting zookeeper
-        zookeeper is [UP]
-        Starting kafka
-        kafka is [UP]
-        Starting schema-registry
-        schema-registry is [UP]
-        Starting kafka-rest
-        kafka-rest is [UP]
-        Starting connect
-        connect is [UP]
-        Starting ksql-server
-        ksql-server is [UP]
-
-    .. tip:: If you receive an out of memory error, see the :ref:`prerequisites <ksql_clickstream-docker>`.
+            Name                    Command               State                Ports
+        -------------------------------------------------------------------------------------------
+        datagen           bash -c echo Waiting for K ...   Up
+        elasticsearch     /usr/local/bin/docker-entr ...   Up      0.0.0.0:9200->9200/tcp, 9300/tcp
+        grafana           /run.sh                          Up      0.0.0.0:3000->3000/tcp
+        kafka             /etc/confluent/docker/run        Up      9092/tcp
+        kafka-connect     /etc/confluent/docker/run        Up      0.0.0.0:8083->8083/tcp, 9092/tcp
+        kafkacat          /bin/sh                          Up
+        ksql-cli          /bin/sh                          Up
+        ksql-server       /etc/confluent/docker/run        Up      0.0.0.0:8088->8088/tcp
+        schema-registry   /etc/confluent/docker/run        Up      8081/tcp
+        zookeeper         /etc/confluent/docker/run        Up      2181/tcp, 2888/tcp, 3888/tcp
 
 ---------------------------
 Create the Clickstream Data
 ---------------------------
 
-#.  Create the clickStream data using the ksql-datagen utility. This stream will run continuously until you terminate.
+A data generator is already running, simulating the stream of clicks. You can sample this stream by 
+using a console consumer such as ``kafkacat``: 
 
-    **Tip:** This command does not print a new line and so it might look like it’s still in the foreground. Because the
-    process is running as a daemon, you can press return again to see the shell prompt.
+.. code:: bash
 
-    .. code:: bash
+    docker-compose exec kafkacat \
+            kafkacat -b kafka:29092 -C -c 10 -K: \
+            -f '\nKey  : %k\t\nValue: %s\n' \
+            -t clickstream
 
-        ksql-datagen -daemon quickstart=clickstream format=json topic=clickstream maxInterval=100 iterations=500000
+*If you get the message `Broker: Leader not available`, try again after a moment, as the demo is still starting up.*
+
+This will stop after ten messages, and your output should resemble: 
+
+::
+
+    Key  : 111.90.225.227
+    Value: {"ip":"111.90.225.227","userid":36,"remote_user":"-","time":"11/Sep/2018:09:53:04 +0000","_time":1536659584702,"request":"GET /images/track.png HTTP/1.1","status":"302","bytes":"2048","referrer":"-","agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36"}
+
+    Key  : 233.173.215.103
+    Value: {"ip":"233.173.215.103","userid":15,"remote_user":"-","time":"11/Sep/2018:09:53:05 +0000","_time":1536659585434,"request":"GET /index.html HTTP/1.1","status":"406","bytes":"278","referrer":"-","agent":"Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)"}
+    [...]
+
+If you remove the ``-c 10`` argument from the previous command you can run it and see a complete 
+stream of all messages on the topic. If you do run this, press Ctrl-C to cancel it and 
+return to the command prompt.
+
+There are two other sets of data in Kafka topics that have been automatically
+populated. They hold information about the HTTP status codes, and users. 
+
+#.  View the status codes data
+
+    .. codewithvars:: bash
+
+    docker-compose exec kafkacat \
+            kafkacat -b kafka:29092 -C -c 3 -K: \
+            -f '\nKey  : %k\tValue: %s' \
+            -t clickstream_codes
 
     Your output should resemble:
 
     ::
 
-        Writing console output to /tmp/ksql-logs/ksql.out
+        Key  : 405      Value: {"code":405,"definition":"Method not allowed"}
+        Key  : 407      Value: {"code":407,"definition":"Proxy authentication required"}
+        Key  : 302      Value: {"code":302,"definition":"Redirect"}⏎
 
-#.  Create the status codes using the ksql-datagen utility. This stream runs once to populate the table.
-
-    .. code:: bash
-
-        ksql-datagen quickstart=clickstream_codes format=json topic=clickstream_codes maxInterval=20 iterations=100
-
-    Your output should resemble:
-
-    ::
-
-        200 --> ([ 200 | 'Successful' ])
-        302 --> ([ 302 | 'Redirect' ])
-        200 --> ([ 200 | 'Successful' ])
-        406 --> ([ 406 | 'Not acceptable' ])
         ...
 
-#.  Create a set of users using ksql-datagen utility. This stream runs once to populate the table.
+#.  View the user data
 
-    .. code:: bash
+    .. codewithvars:: bash
 
-        ksql-datagen quickstart=clickstream_users format=json topic=clickstream_users maxInterval=10 iterations=1000
+        docker-compose exec kafkacat \
+          kafkacat -b kafka:29092 -C -c 3 -K: \
+              -f '\nKey  : %k\tValue: %s' \
+              -t clickstream_users
 
     Your output should resemble:
 
     ::
 
-        1 --> ([ 1 | 'GlenAlan_23344' | 1424796387808 | 'Curran' | 'Lalonde' | 'Palo Alto' | 'Gold' ])
-        2 --> ([ 2 | 'ArlyneW8ter' | 1433932319457 | 'Oriana' | 'Vanyard' | 'London' | 'Platinum' ])
-        3 --> ([ 3 | 'akatz1022' | 1478233258664 | 'Ferd' | 'Trice' | 'Palo Alto' | 'Platinum' ])
+        Key  : 1        Value: {"user_id":1,"username":"DimitriSchenz88","registered_at":1432700187062,"first_name":"Arlyne","last_name":"Garrity","city":"Frankfurt","level":"Gold"}
+        Key  : 2        Value: {"user_id":2,"username":"AbdelKable_86","registered_at":1454795231290,"first_name":"Reeva","last_name":"Pask","city":"San Francisco","level":"Silver"}
+        Key  : 3        Value: {"user_id":3,"username":"Antonio_0966","registered_at":1464740725409,"first_name":"Woodrow","last_name":"Vanyard","city":"Frankfurt","level":"Platinum"}
+
         ...
 
 -------------------------------
@@ -163,15 +148,16 @@ Load the Streaming Data to KSQL
 
     .. code:: bash
 
-        $ ksql
+        docker-compose exec ksql-cli ksql http://ksql-server:8088
 
     You should now be in the KSQL CLI.
 
     .. include:: ../includes/ksql-includes.rst
-         :start-line: 19
-         :end-line: 40
+        :start-after: CLI_welcome_start
+        :end-before: CLI_welcome_end
 
-#.  Load the ``clickstream.sql`` schema file that runs the tutorial app.
+#.  Load the `clickstream-schema.sql <https://github.com/confluentinc/examples/blob/master/clickstream/ksql/ksql-clickstream-demo/demo/clickstream-schema.sql>`__
+    file that runs the tutorial app.
 
     **Important:** Before running this step, you must have already run
     ksql-datagen utility to create the clickstream data, status codes,
@@ -179,15 +165,15 @@ Load the Streaming Data to KSQL
 
     .. code:: sql
 
-        RUN SCRIPT '/usr/share/doc/ksql-clickstream-demo/clickstream-schema.sql';
+        RUN SCRIPT '/usr/share/doc/clickstream/clickstream-schema.sql';
 
-    The output should resemble:
+    The output will show either a blank message, or ``Executing statement``, similar to this: 
 
     ::
 
          Message
         ---------
-
+         Executing statement
         ---------
 
 Verify the data
@@ -200,7 +186,7 @@ Verify the data
 
     .. code:: sql
 
-        list TABLES;
+        LIST TABLES;
 
     Your output should resemble:
 
@@ -215,15 +201,14 @@ Verify the data
          PAGES_PER_MIN              | PAGES_PER_MIN              | JSON   | true
          CLICK_USER_SESSIONS        | CLICK_USER_SESSIONS        | JSON   | true
          ENRICHED_ERROR_CODES_COUNT | ENRICHED_ERROR_CODES_COUNT | JSON   | true
-         EVENTS_PER_MIN_MAX_AVG     | EVENTS_PER_MIN_MAX_AVG     | JSON   | true
          ERRORS_PER_MIN             | ERRORS_PER_MIN             | JSON   | true
          EVENTS_PER_MIN             | EVENTS_PER_MIN             | JSON   | true
 
 #.  Verify that the streams are created.
 
-    .. code:: bash
+    .. code:: text
 
-        list STREAMS;
+        LIST STREAMS;
 
     Your output should resemble:
 
@@ -233,7 +218,6 @@ Verify the data
         ----------------------------------------------------------------
          USER_CLICKSTREAM          | USER_CLICKSTREAM          | JSON
          ENRICHED_ERROR_CODES      | ENRICHED_ERROR_CODES      | JSON
-         CUSTOMER_CLICKSTREAM      | CUSTOMER_CLICKSTREAM      | JSON
          CLICKSTREAM               | clickstream               | JSON
 
 #.  Verify that data is being streamed through
@@ -249,13 +233,14 @@ Verify the data
 
     ::
 
-        1503585407989 | 222.245.174.248 | 1503585407989 | 24/Aug/2017:07:36:47 -0700 | 233.90.225.227 | GET /site/login.html HTTP/1.1 | 407 | 19 | 4096 | Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)
-        1503585407999 | 233.168.257.122 | 1503585407999 | 24/Aug/2017:07:36:47 -0700 | 233.173.215.103 | GET /site/user_status.html HTTP/1.1 | 200 | 15 | 14096 | Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)
-        1503585408009 | 222.168.57.122 | 1503585408009 | 24/Aug/2017:07:36:48 -0700 | 111.249.79.93 | GET /images/track.png HTTP/1.1 | 406 | 22 | 4096 | Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)
-        1503585408019 | 122.145.8.244 | 1503585408019 | 24/Aug/2017:07:36:48 -0700 | 122.249.79.233 | GET /site/user_status.html HTTP/1.1 | 404 | 6 | 4006 | Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)
-        1503585408029 | 222.152.45.45 | 1503585408029 | 24/Aug/2017:07:36:48 -0700 | 222.249.79.93 | GET /images/track.png HTTP/1.1 | 200 | 29 | 14096 | Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36
-        LIMIT reached for the partition.
+        1536662784214 | 111.168.57.122 | 1536662783614 | 11/Sep/2018:10:46:23 +0000 | 111.168.57.122 | GET /images/logo-small.png HTTP/1.1 | 200 | 35 | 1289 | Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36
+        1536662784261 | 222.245.174.248 | 1536662784260 | 11/Sep/2018:10:46:24 +0000 | 222.245.174.248 | GET /index.html HTTP/1.1 | 404 | 7 | 14096 | Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)
+        1536662784335 | 111.90.225.227 | 1536662784335 | 11/Sep/2018:10:46:24 +0000 | 111.90.225.227 | GET /site/login.html HTTP/1.1 | 302 | 36 | 4096 | Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36
+        1536662784351 | 233.245.174.248 | 1536662784351 | 11/Sep/2018:10:46:24 +0000 | 233.245.174.248 | GET /site/user_status.html HTTP/1.1 | 405 | 15 | 2048 | Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36
+        1536662784421 | 222.168.57.122 | 1536662784421 | 11/Sep/2018:10:46:24 +0000 | 222.168.57.122 | GET /images/logo-small.png HTTP/1.1 | 302 | 28 | 14096 | Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36
+        Limit Reached
         Query terminated
+        ksql>
 
     **View the events per minute**
 
@@ -267,13 +252,12 @@ Verify the data
 
     ::
 
-        1521108180000 | 6 : Window{start=1521108180000 end=-} | 6 | 24
-        1521108180000 | 4 : Window{start=1521108180000 end=-} | 4 | 23
-        1521108180000 | 35 : Window{start=1521108180000 end=-} | 35 | 20
-        1521108180000 | 5 : Window{start=1521108180000 end=-} | 5 | 24
-        1521108180000 | 9 : Window{start=1521108180000 end=-} | 9 | 19
-        1521108180000 | 34 : Window{start=1521108180000 end=-} | 34 | 18
-        LIMIT reached for the partition.
+        1536662819576 | 24 : Window{start=1536662760000 end=-} | 24 | 12
+        1536662819685 | 4 : Window{start=1536662760000 end=-} | 4 | 19
+        1536662847582 | 4 : Window{start=1536662820000 end=-} | 4 | 75
+        1536662847586 | 24 : Window{start=1536662820000 end=-} | 24 | 101
+        1536662879959 | 29 : Window{start=1536662820000 end=-} | 29 | 2
+        Limit Reached
         Query terminated
 
     **View pages per minute**
@@ -286,12 +270,12 @@ Verify the data
 
     ::
 
-        1503585475000 | 4 : Window{start=1503585475000 end=-} | 4 | 14
-        1503585480000 | 25 : Window{start=1503585480000 end=-} | 25 | 9
-        1503585480000 | 16 : Window{start=1503585480000 end=-} | 16 | 6
-        1503585475000 | 25 : Window{start=1503585475000 end=-} | 25 | 20
-        1503585480000 | 37 : Window{start=1503585480000 end=-} | 37 | 6
-        LIMIT reached for the partition.
+        1536662784977 | 21 : Window{start=1536662725000 end=-} | 21 | 2
+        1536662789353 | 21 : Window{start=1536662730000 end=-} | 21 | 7
+        1536662793715 | 21 : Window{start=1536662735000 end=-} | 21 | 20
+        1536662799627 | 21 : Window{start=1536662740000 end=-} | 21 | 35
+        1536662804534 | 21 : Window{start=1536662745000 end=-} | 21 | 40
+        Limit Reached
         Query terminated
 
 .. _view-grafana-docker:
@@ -308,55 +292,57 @@ Send the KSQL tables to Elasticsearch and Grafana.
         ksql>
         Exiting KSQL.
 
-2. Navigate to the tutorial directory in the Docker container:
+2. Set up the required Elasticsearch document mapping template
 
    .. code:: bash
 
-       cd /usr/share/doc/ksql-clickstream-demo/
+       docker-compose exec elasticsearch bash -c '/scripts/elastic-dynamic-template.sh'
 
 3. Run this command to send the KSQL tables to Elasticsearch and
    Grafana:
 
    .. code:: bash
 
-       ./ksql-tables-to-grafana.sh
+       docker-compose exec kafka-connect bash -c '/scripts/ksql-tables-to-grafana.sh'
 
    Your output should resemble:
 
    ::
 
-       Loading Clickstream-Demo TABLES to Confluent-Connect => Elastic => Grafana datasource
-       Logging to: /tmp/ksql-connect.log
-       Charting  CLICK_USER_SESSIONS
-       Charting  USER_IP_ACTIVITY
-       Charting  CLICKSTREAM_STATUS_CODES
-       Charting  ENRICHED_ERROR_CODES_COUNT
-       Charting  ERRORS_PER_MIN_ALERT
-       Charting  ERRORS_PER_MIN
-       Charting  EVENTS_PER_MIN_MAX_AVG
-       Charting  EVENTS_PER_MIN
-       Charting  PAGES_PER_MIN
-       Done
+        Loading Clickstream-Demo TABLES to Confluent-Connect => Elastic => Grafana datasource
+
+
+        ==================================================================
+        Charting  CLICK_USER_SESSIONS
+                -> Remove any existing Elastic search config
+                -> Remove any existing Connect config
+                -> Remove any existing Grafana config
+                -> Connecting KSQL->Elastic->Grafana  click_user_sessions
+                -> Connecting: click_user_sessions
+                        -> Adding Kafka Connect Elastic Source es_sink_CLICK_USER_SESSIONS
+                        ->Adding Grafana Source
+
+        [...]
 
 4. Load the dashboard into Grafana.
 
    .. code:: bash
 
-       ./clickstream-analysis-dashboard.sh
+       docker-compose exec grafana bash -c '/scripts/clickstream-analysis-dashboard.sh'
 
    Your output should resemble:
 
    ::
 
-       Loading Grafana ClickStream Dashboard
-       {"id":1,"slug":"click-stream-analysis","status":"success","uid":"VhmK8Mkik","url":"/d/VhmK8Mkik/click-stream-analysis","version":1}
+        Loading Grafana ClickStream Dashboard
+        {"id":1,"slug":"click-stream-analysis","status":"success","uid":"lUHTGDTmz","url":"/d/lUHTGDTmz/click-stream-analysis","version":4}
 
-       Navigate to:
-          http://localhost:3000/d/VhmK8Mkik/click-stream-analysis (non-docker)
-       or
-          http://localhost:33000/d/VhmK8Mkik/click-stream-analysis (docker)
 
-#.  Open your your browser using the second url output from the previous step's command.
+        Navigate to:
+                http://localhost:3000/d/lUHTGDTmz/click-stream-analysis
+        (Default user: admin / password: admin)
+
+#.  Open your your browser using the URL output from the previous step's command.
     You can login with user ID ``admin`` and password ``admin``.
 
     **Important:** If you already have Grafana UI open, you may need to

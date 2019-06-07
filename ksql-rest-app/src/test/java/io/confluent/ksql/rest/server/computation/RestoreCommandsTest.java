@@ -17,23 +17,20 @@
 
 package io.confluent.ksql.rest.server.computation;
 
-import org.junit.Test;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.IsEqual.equalTo;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
+import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.util.Pair;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.util.Pair;
-
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.IsEqual.equalTo;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import org.junit.Test;
 
 public class RestoreCommandsTest {
 
@@ -43,9 +40,12 @@ public class RestoreCommandsTest {
   private final CommandId terminateId = new CommandId(CommandId.Type.TERMINATE,
       "queryId",
       CommandId.Action.EXECUTE);
-  private final Command createCommand = new Command("create table foo", Collections.emptyMap());
-  private final Command dropCommand = new Command("drop table foo", Collections.emptyMap());
-  private final Command terminateCommand = new Command("terminate query 'queryId'", Collections.emptyMap());
+  private final Command createCommand =new Command(
+      "create table foo", Collections.emptyMap(), Collections.emptyMap());
+  private final Command dropCommand = new Command(
+      "drop table foo", Collections.emptyMap(), Collections.emptyMap());
+  private final Command terminateCommand = new Command(
+      "terminate query 'queryId'", Collections.emptyMap(), Collections.emptyMap());
 
   @Test
   public void shouldHaveMapContainingTerminatedQueriesThatWereIssuedAfterCreate() {
@@ -106,7 +106,10 @@ public class RestoreCommandsTest {
         new CommandId(CommandId.Type.STREAM, "stream", CommandId.Action.CREATE);
 
     restoreCommands.addCommand(createStreamOneId,
-        new Command("create stream one", Collections.emptyMap()));
+        new Command(
+            "create stream one",
+            Collections.emptyMap(),
+            Collections.emptyMap()));
 
     final List<CommandId> results = new ArrayList<>();
     restoreCommands.forEach((commandId, command, terminatedQueries, dropped) -> {

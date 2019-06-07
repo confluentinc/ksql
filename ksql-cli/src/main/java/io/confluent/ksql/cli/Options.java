@@ -23,16 +23,13 @@ import com.github.rvesse.airline.annotations.Option;
 import com.github.rvesse.airline.annotations.restrictions.Once;
 import com.github.rvesse.airline.annotations.restrictions.Required;
 import com.github.rvesse.airline.annotations.restrictions.ranges.LongRange;
-
-import java.io.IOException;
-import java.util.Optional;
-
-import javax.inject.Inject;
-
 import io.confluent.common.config.ConfigException;
 import io.confluent.ksql.cli.console.OutputFormat;
 import io.confluent.ksql.rest.util.OptionsParser;
 import io.confluent.ksql.util.Pair;
+import java.io.IOException;
+import java.util.Optional;
+import javax.inject.Inject;
 
 @Command(name = "ksql", description = "KSQL CLI")
 public class Options {

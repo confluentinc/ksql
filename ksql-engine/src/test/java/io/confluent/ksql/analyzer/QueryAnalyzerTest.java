@@ -17,15 +17,13 @@
 
 package io.confluent.ksql.analyzer;
 
-import org.junit.Test;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.StructuredDataSource;
@@ -33,26 +31,30 @@ import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.tree.ComparisonExpression;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.parser.tree.LongLiteral;
+import io.confluent.ksql.parser.tree.InsertInto;
+import io.confluent.ksql.parser.tree.IntegerLiteral;
+import io.confluent.ksql.parser.tree.NodeLocation;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.Pair;
-
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import org.junit.Test;
 
 public class QueryAnalyzerTest {
 
-  private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore();
+  private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
   private final KsqlParser ksqlParser = new KsqlParser();
-  private final QueryAnalyzer queryAnalyzer =  new QueryAnalyzer(metaStore, new FunctionRegistry());
+  private final QueryAnalyzer queryAnalyzer =  new QueryAnalyzer(metaStore, new InternalFunctionRegistry(),
+                                                                 new KsqlConfig(Collections.emptyMap()));
 
   @Test
   public void shouldCreateAnalysisForSimpleQuery() {
@@ -65,6 +67,23 @@ public class QueryAnalyzerTest {
     assertThat(analysis.getFromDataSources().size(), equalTo(1));
     assertThat(fromDataSource.left, instanceOf(KsqlStream.class));
     assertThat(fromDataSource.right, equalTo("ORDERS"));
+  }
+
+  @Test
+  public void shouldCreateAnalysisForInserInto() {
+    final List<Statement> statements = ksqlParser.buildAst("insert into test2 select col1 "
+                                                           + "from test1;",
+                                                           metaStore);
+    final Analysis analysis = queryAnalyzer.analyze("sqlExpression", (Query)((InsertInto)
+                                                                                 statements.get
+                                                                                     (0)).getQuery());
+    final Pair<StructuredDataSource, String> fromDataSource = analysis.getFromDataSource(0);
+    assertThat(analysis.getSelectExpressions(), equalTo(
+        Collections.singletonList(new DereferenceExpression(
+            new QualifiedNameReference(QualifiedName.of("TEST1")), "COL1"))));
+    assertThat(analysis.getFromDataSources().size(), equalTo(1));
+    assertThat(fromDataSource.left, instanceOf(KsqlStream.class));
+    assertThat(fromDataSource.right, equalTo("TEST1"));
   }
 
   @Test
@@ -98,7 +117,7 @@ public class QueryAnalyzerTest {
     try {
       queryAnalyzer.analyzeAggregate(query, analysis);
       fail("should have thrown KsqlException as aggregate query doesn't have a groupby clause");
-    } catch (KsqlException e) {
+    } catch (final KsqlException e) {
       // ok
     }
 
@@ -115,7 +134,7 @@ public class QueryAnalyzerTest {
     try {
       queryAnalyzer.analyzeAggregate(query, analysis);
       fail("should have thrown KsqlException as aggregate query doesn't have a groupby clause");
-    } catch (KsqlException e) {
+    } catch (final KsqlException e) {
       // ok
     }
   }
@@ -133,7 +152,7 @@ public class QueryAnalyzerTest {
     assertThat(havingExpression, equalTo(new ComparisonExpression(
         ComparisonExpression.Type.GREATER_THAN,
         new QualifiedNameReference(QualifiedName.of("KSQL_AGG_VARIABLE_1")),
-        new LongLiteral("10"))));
+        new IntegerLiteral(new NodeLocation(0, 0), 10))));
   }
 
   @Test
@@ -144,8 +163,12 @@ public class QueryAnalyzerTest {
     final Query query = (Query) statements.get(0);
     try {
       queryAnalyzer.analyze("sqlExpression", query);
-    } catch (KsqlException ex) {
-      assertThat(ex.getMessage().trim(), equalTo("Line: 1, Col: 46 : Invalid join criteria (TEST1.COL1 = TEST2.COLL). Key for TEST2 is not set correctly."));
+    } catch (final KsqlException ex) {
+      assertThat(
+          ex.getMessage().trim(),
+          equalTo(
+              "Line: 1, Col: 46 : Invalid join criteria (TEST1.COL1 = TEST2.COLL). "
+                  + "Could not find a join criteria operand for TEST2." ));
     }
   }
 

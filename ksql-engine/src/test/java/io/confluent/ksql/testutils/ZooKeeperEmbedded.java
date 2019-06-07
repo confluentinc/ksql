@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,11 +16,11 @@
 
 package io.confluent.ksql.testutils;
 
+import java.io.IOException;
+import java.net.BindException;
 import org.apache.curator.test.TestingServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
 
 /**
  * Runs an in-memory, "embedded" instance of a ZooKeeper server.
@@ -35,12 +35,10 @@ public class ZooKeeperEmbedded {
 
   /**
    * Creates and starts a ZooKeeper instance.
-   *
-   * @throws Exception
    */
   public ZooKeeperEmbedded() throws Exception {
     log.debug("Starting embedded ZooKeeper server...");
-    this.server = new TestingServer();
+    this.server = createTestingServer();
     log.debug("Embedded ZooKeeper server at {} uses the temp directory at {}",
         server.getConnectString(), server.getTempDirectory());
   }
@@ -69,4 +67,18 @@ public class ZooKeeperEmbedded {
     return connectString().substring(0, connectString().lastIndexOf(':'));
   }
 
+  private static TestingServer createTestingServer() throws Exception {
+    while (true) {
+      try {
+        return new TestingServer();
+      } catch (final BindException e) {
+        /*
+        There is a race condition in TestingServer between the point it picks a random port and
+        the time it binds to the random port.  This occasionally results in a BindException.
+        When this happens... retry!
+         */
+        log.info("Failed to create test ZK instance due to known race condition. Will retry", e);
+      }
+    }
+  }
 }

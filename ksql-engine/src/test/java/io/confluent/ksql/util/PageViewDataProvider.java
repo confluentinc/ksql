@@ -16,12 +16,11 @@
 package io.confluent.ksql.util;
 
 import io.confluent.ksql.GenericRow;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
-
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
 
 public class PageViewDataProvider extends TestDataProvider {
   private static final String namePrefix =
@@ -33,9 +32,9 @@ public class PageViewDataProvider extends TestDataProvider {
   private static final String key = "PAGEID";
 
   private static final Schema schema = SchemaBuilder.struct()
-      .field("VIEWTIME", SchemaBuilder.INT64_SCHEMA)
-      .field("USERID", SchemaBuilder.STRING_SCHEMA)
-      .field("PAGEID", SchemaBuilder.STRING_SCHEMA).build();
+      .field("VIEWTIME", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
+      .field("USERID", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
+      .field("PAGEID", SchemaBuilder.OPTIONAL_STRING_SCHEMA).build();
 
   private static final Map<String, GenericRow> data = new PageViewDataProvider().buildData();
 
@@ -44,20 +43,20 @@ public class PageViewDataProvider extends TestDataProvider {
   }
 
   private Map<String, GenericRow> buildData() {
-    Map<String, GenericRow> dataMap = new HashMap<>();
+    final Map<String, GenericRow> dataMap = new HashMap<>();
 
     // Create page view records with:
     // key = page_id
     // value = (view time, user_id, page_id)
-    dataMap.put("1", new GenericRow(Arrays.asList(1, "USER_1", "PAGE_1")));
-    dataMap.put("2", new GenericRow(Arrays.asList(2, "USER_2", "PAGE_2")));
-    dataMap.put("3", new GenericRow(Arrays.asList(3, "USER_4", "PAGE_3")));
-    dataMap.put("4", new GenericRow(Arrays.asList(4, "USER_3", "PAGE_4")));
-    dataMap.put("5", new GenericRow(Arrays.asList(5, "USER_0", "PAGE_5")));
+    dataMap.put("1", new GenericRow(Arrays.asList(1L, "USER_1", "PAGE_1")));
+    dataMap.put("2", new GenericRow(Arrays.asList(2L, "USER_2", "PAGE_2")));
+    dataMap.put("3", new GenericRow(Arrays.asList(3L, "USER_4", "PAGE_3")));
+    dataMap.put("4", new GenericRow(Arrays.asList(4L, "USER_3", "PAGE_4")));
+    dataMap.put("5", new GenericRow(Arrays.asList(5L, "USER_0", "PAGE_5")));
 
     // Duplicate page views from different users.
-    dataMap.put("6", new GenericRow(Arrays.asList(6, "USER_2", "PAGE_5")));
-    dataMap.put("7", new GenericRow(Arrays.asList(7, "USER_3", "PAGE_5")));
+    dataMap.put("6", new GenericRow(Arrays.asList(6L, "USER_2", "PAGE_5")));
+    dataMap.put("7", new GenericRow(Arrays.asList(7L, "USER_3", "PAGE_5")));
 
     return dataMap;
   }

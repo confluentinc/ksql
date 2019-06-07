@@ -16,9 +16,8 @@
 
 package io.confluent.ksql.cli.console;
 
-import org.jline.reader.History;
-
 import java.io.IOException;
+import org.jline.reader.History;
 
 public interface LineReader {
   Iterable<? extends History.Entry> getHistory();

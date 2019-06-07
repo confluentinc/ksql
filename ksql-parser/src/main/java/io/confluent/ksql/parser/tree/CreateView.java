@@ -16,11 +16,11 @@
 
 package io.confluent.ksql.parser.tree;
 
-import java.util.Objects;
-import java.util.Optional;
-
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
+
+import java.util.Objects;
+import java.util.Optional;
 
 public class CreateView extends Statement {
 
@@ -28,16 +28,23 @@ public class CreateView extends Statement {
   private final Query query;
   private final boolean replace;
 
-  public CreateView(QualifiedName name, Query query, boolean replace) {
+  public CreateView(final QualifiedName name, final Query query, final boolean replace) {
     this(Optional.empty(), name, query, replace);
   }
 
-  public CreateView(NodeLocation location, QualifiedName name, Query query, boolean replace) {
+  public CreateView(
+      final NodeLocation location,
+      final QualifiedName name,
+      final Query query,
+      final boolean replace) {
     this(Optional.of(location), name, query, replace);
   }
 
-  private CreateView(Optional<NodeLocation> location, QualifiedName name, Query query,
-                     boolean replace) {
+  private CreateView(
+      final Optional<NodeLocation> location,
+      final QualifiedName name,
+      final Query query,
+      final boolean replace) {
     super(location);
     this.name = requireNonNull(name, "name is null");
     this.query = requireNonNull(query, "query is null");
@@ -57,7 +64,7 @@ public class CreateView extends Statement {
   }
 
   @Override
-  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitCreateView(this, context);
   }
 
@@ -67,14 +74,14 @@ public class CreateView extends Statement {
   }
 
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(final Object obj) {
     if (this == obj) {
       return true;
     }
     if ((obj == null) || (getClass() != obj.getClass())) {
       return false;
     }
-    CreateView o = (CreateView) obj;
+    final CreateView o = (CreateView) obj;
     return Objects.equals(name, o.name)
            && Objects.equals(query, o.query)
            && Objects.equals(replace, o.replace);

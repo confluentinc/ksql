@@ -23,14 +23,14 @@ import java.util.Set;
 public abstract class GroupingElement
     extends Node {
 
-  public GroupingElement(Optional<NodeLocation> location) {
+  public GroupingElement(final Optional<NodeLocation> location) {
     super(location);
   }
 
   public abstract List<Set<Expression>> enumerateGroupingSets();
 
   @Override
-  protected <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  protected <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitGroupingElement(this, context);
   }
 

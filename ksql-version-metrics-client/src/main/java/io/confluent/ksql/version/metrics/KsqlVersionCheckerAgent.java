@@ -16,17 +16,14 @@
 
 package io.confluent.ksql.version.metrics;
 
+import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
+import io.confluent.support.metrics.BaseSupportConfig;
+import io.confluent.support.metrics.PhoneHomeConfig;
+import java.util.Properties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Properties;
-
-import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
-
-import io.confluent.support.metrics.BaseSupportConfig;
-import io.confluent.support.metrics.PhoneHomeConfig;
-
-public class KsqlVersionCheckerAgent implements VersionCheckerAgent{
+public class KsqlVersionCheckerAgent implements VersionCheckerAgent {
 
   private KsqlVersionChecker ksqlVersionChecker;
 
@@ -38,48 +35,50 @@ public class KsqlVersionCheckerAgent implements VersionCheckerAgent{
     this(true);
   }
 
-  //for testing purposes only
-  public KsqlVersionCheckerAgent(boolean enableSettlingTime) {
+  KsqlVersionCheckerAgent(final boolean enableSettlingTime) {
     this.enableSettlingTime = enableSettlingTime;
   }
 
   @Override
-  public  void start(KsqlModuleType moduleType, Properties ksqlProperties){
-    BaseSupportConfig ksqlVersionCheckerConfig =
+  public void start(final KsqlModuleType moduleType, final Properties ksqlProperties) {
+    final BaseSupportConfig ksqlVersionCheckerConfig =
         new PhoneHomeConfig(ksqlProperties, "ksql");
-    if (ksqlVersionCheckerConfig.isProactiveSupportEnabled()) {
-      try {
-        Runtime serverRuntime = Runtime.getRuntime();
 
-        ksqlVersionChecker =
-            new KsqlVersionChecker(
-                "KsqlVersionCheckerAgent",
-                true,
-                ksqlVersionCheckerConfig,
-                serverRuntime,
-                moduleType,
-                enableSettlingTime
-            );
-        ksqlVersionChecker.init();
-        ksqlVersionChecker.setUncaughtExceptionHandler((t, e)
-            -> log.error("Uncaught exception in thread '{}':", t.getName(), e));
-        ksqlVersionChecker.start();
-        long reportIntervalMs = ksqlVersionCheckerConfig.getReportIntervalMs();
-        long reportIntervalHours = reportIntervalMs / (60 * 60 * 1000);
-        // We log at WARN level to increase the visibility of this information.
-        log.warn(legalDisclaimerProactiveSupportEnabled(reportIntervalHours));
-
-      } catch (Exception e) {
-        // We catch any exceptions to prevent collateral damage to the more important broker
-        // threads that are running in the same JVM.
-        log.error("Failed to start KsqlVersionCheckerAgent: {}", e.getMessage());
-      }
-    } else {
+    if (!ksqlVersionCheckerConfig.isProactiveSupportEnabled()) {
       log.warn(legalDisclaimerProactiveSupportDisabled());
+      return;
     }
+
+    try {
+      final Runtime serverRuntime = Runtime.getRuntime();
+
+      ksqlVersionChecker =
+          new KsqlVersionChecker(
+                  "KsqlVersionCheckerAgent",
+                  true,
+                  ksqlVersionCheckerConfig,
+                  serverRuntime,
+                  moduleType,
+                  enableSettlingTime
+                  );
+      ksqlVersionChecker.init();
+      ksqlVersionChecker.setUncaughtExceptionHandler((t, e)
+          -> log.error("Uncaught exception in thread '{}':", t.getName(), e));
+      ksqlVersionChecker.start();
+      final long reportIntervalMs = ksqlVersionCheckerConfig.getReportIntervalMs();
+      final long reportIntervalHours = reportIntervalMs / (60 * 60 * 1000);
+      // We log at WARN level to increase the visibility of this information.
+      log.warn(legalDisclaimerProactiveSupportEnabled(reportIntervalHours));
+
+    } catch (final Exception e) {
+      // We catch any exceptions to prevent collateral damage to the more important broker
+      // threads that are running in the same JVM.
+      log.error("Failed to start KsqlVersionCheckerAgent: {}", e.getMessage());
+    }
+
   }
 
-  private static String legalDisclaimerProactiveSupportEnabled(long reportIntervalHours) {
+  private static String legalDisclaimerProactiveSupportEnabled(final long reportIntervalHours) {
     return "Please note that the version check feature of KSQL is enabled.  "
         + "With this enabled, this instance is configured to collect and report "
         + "anonymously the version information to Confluent, Inc. "

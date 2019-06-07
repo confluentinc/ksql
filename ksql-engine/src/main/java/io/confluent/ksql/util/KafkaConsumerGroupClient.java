@@ -13,15 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  **/
-package io.confluent.ksql.util;
 
-import org.apache.kafka.common.TopicPartition;
+package io.confluent.ksql.util;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.apache.kafka.common.TopicPartition;
 
 public interface KafkaConsumerGroupClient extends AutoCloseable {
 
@@ -41,7 +41,7 @@ public interface KafkaConsumerGroupClient extends AutoCloseable {
       return consumerSummaries.values();
     }
 
-    public void addConsumerSummary(ConsumerSummary consumerSummary) {
+    public void addConsumerSummary(final ConsumerSummary consumerSummary) {
       this.consumerSummaries.put(consumerSummary.getConsumerId(), consumerSummary);
     }
   }
@@ -50,11 +50,11 @@ public interface KafkaConsumerGroupClient extends AutoCloseable {
     final List<TopicPartition> partitions = new ArrayList<>();
     private final String consumerId;
 
-    public ConsumerSummary(String consumerId) {
+    public ConsumerSummary(final String consumerId) {
       this.consumerId = consumerId;
     }
 
-    public void addPartition(TopicPartition topicPartition) {
+    public void addPartition(final TopicPartition topicPartition) {
       this.partitions.add(topicPartition);
     }
 
@@ -66,6 +66,4 @@ public interface KafkaConsumerGroupClient extends AutoCloseable {
       return partitions;
     }
   }
-
-
 }

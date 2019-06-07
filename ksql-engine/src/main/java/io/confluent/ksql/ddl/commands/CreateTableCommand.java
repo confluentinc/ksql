@@ -16,8 +16,6 @@
 
 package io.confluent.ksql.ddl.commands;
 
-import java.util.Map;
-
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.MetaStore;
@@ -27,25 +25,24 @@ import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.StringUtil;
+import java.util.Map;
 
 public class CreateTableCommand extends AbstractCreateStreamCommand {
 
   private String stateStoreName;
 
   public CreateTableCommand(
-      String sqlExpression,
-      CreateTable createTable,
-      Map<String, Object> overriddenProperties,
-      KafkaTopicClient kafkaTopicClient,
-      boolean enforceTopicExistence
+      final String sqlExpression,
+      final CreateTable createTable,
+      final KafkaTopicClient kafkaTopicClient,
+      final boolean enforceTopicExistence
   ) {
     super(sqlExpression,
           createTable,
-          overriddenProperties,
-          kafkaTopicClient,
+        kafkaTopicClient,
           enforceTopicExistence);
 
-    Map<String, Expression> properties = createTable.getProperties();
+    final Map<String, Expression> properties = createTable.getProperties();
 
     if (!properties.containsKey(DdlConfig.KEY_NAME_PROPERTY)) {
       throw new KsqlException(
@@ -63,21 +60,18 @@ public class CreateTableCommand extends AbstractCreateStreamCommand {
   }
 
   @Override
-  public DDLCommandResult run(MetaStore metaStore) {
+  public DdlCommandResult run(final MetaStore metaStore, final boolean isValidatePhase) {
     if (registerTopicCommand != null) {
-      registerTopicCommand.run(metaStore);
+      registerTopicCommand.run(metaStore, isValidatePhase);
     }
     checkMetaData(metaStore, sourceName, topicName);
-    KsqlTable ksqlTable = new KsqlTable(
+    final KsqlTable ksqlTable = new KsqlTable(
         sqlExpression,
         sourceName,
         schema,
         (keyColumnName.length() == 0)
-        ? null
-        : SchemaUtil.getFieldByName(schema, keyColumnName).orElse(null),
-        (timestampColumnName.length() == 0)
-        ? null
-        : SchemaUtil.getFieldByName(schema, timestampColumnName).orElse(null),
+          ? null : SchemaUtil.getFieldByName(schema, keyColumnName).orElse(null),
+        timestampExtractionPolicy,
         metaStore.getTopic(topicName),
         stateStoreName, isWindowed
     );
@@ -85,7 +79,7 @@ public class CreateTableCommand extends AbstractCreateStreamCommand {
     // TODO: Need to check if the topic exists.
     // Add the topic to the metastore
     metaStore.putSource(ksqlTable.cloneWithTimeKeyColumns());
-    return new DDLCommandResult(true, "Table created");
+    return new DdlCommandResult(true, "Table created");
   }
 
 }

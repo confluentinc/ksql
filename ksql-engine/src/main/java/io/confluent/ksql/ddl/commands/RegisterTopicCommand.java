@@ -17,27 +17,26 @@
 package io.confluent.ksql.ddl.commands;
 
 import io.confluent.ksql.ddl.DdlConfig;
-import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.RegisterTopic;
+import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
 import io.confluent.ksql.serde.delimited.KsqlDelimitedTopicSerDe;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.StringUtil;
-
 import java.util.Map;
 
-public class RegisterTopicCommand implements DDLCommand {
+public class RegisterTopicCommand implements DdlCommand {
   private final String topicName;
   private final String kafkaTopicName;
   private final KsqlTopicSerDe topicSerDe;
   private final boolean notExists;
 
-  public RegisterTopicCommand(RegisterTopic registerTopic) {
+  public RegisterTopicCommand(final RegisterTopic registerTopic) {
     // TODO: find a way to merge overriddenProperties
     this(registerTopic.getName().getSuffix(),
          registerTopic.isNotExists(),
@@ -45,8 +44,8 @@ public class RegisterTopicCommand implements DDLCommand {
     );
   }
 
-  RegisterTopicCommand(String topicName, boolean notExist,
-                       Map<String, Expression> properties) {
+  RegisterTopicCommand(final String topicName, final boolean notExist,
+                       final Map<String, Expression> properties) {
     this.topicName = topicName;
     // TODO: find a way to merge overriddenProperties
     enforceTopicProperties(properties);
@@ -58,7 +57,7 @@ public class RegisterTopicCommand implements DDLCommand {
     this.notExists = notExist;
   }
 
-  private KsqlTopicSerDe extractTopicSerDe(String serde) {
+  private KsqlTopicSerDe extractTopicSerDe(final String serde) {
     // TODO: Find a way to avoid calling toUpperCase() here;
     // if the property can be an unquoted identifier, then capitalization will have already happened
     switch (serde.toUpperCase()) {
@@ -88,11 +87,11 @@ public class RegisterTopicCommand implements DDLCommand {
   }
 
   @Override
-  public DDLCommandResult run(MetaStore metaStore) {
+  public DdlCommandResult run(final MetaStore metaStore, final boolean isValidatePhase) {
     if (metaStore.getTopic(topicName) != null) {
       // Check IF NOT EXIST is set, if set, do not create topic if one exists.
       if (notExists) {
-        return new DDLCommandResult(true,
+        return new DdlCommandResult(true,
                                     "Topic is not registered because it already registered"
                                           + ".");
       } else {
@@ -100,12 +99,12 @@ public class RegisterTopicCommand implements DDLCommand {
       }
     }
 
-    KsqlTopic ksqlTopic = new KsqlTopic(topicName, kafkaTopicName, topicSerDe);
+    final KsqlTopic ksqlTopic = new KsqlTopic(topicName, kafkaTopicName, topicSerDe);
 
     // TODO: Need to check if the topic exists.
     // Add the topic to the metastore
     metaStore.putTopic(ksqlTopic);
 
-    return new DDLCommandResult(true, "Topic registered");
+    return new DdlCommandResult(true, "Topic registered");
   }
 }

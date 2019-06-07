@@ -16,11 +16,11 @@
 
 package io.confluent.ksql.parser.tree;
 
-import java.util.Objects;
-import java.util.Optional;
-
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
+
+import java.util.Objects;
+import java.util.Optional;
 
 public final class RenameTable
     extends Statement {
@@ -28,15 +28,21 @@ public final class RenameTable
   private final QualifiedName source;
   private final QualifiedName target;
 
-  public RenameTable(QualifiedName source, QualifiedName target) {
+  public RenameTable(final QualifiedName source, final QualifiedName target) {
     this(Optional.empty(), source, target);
   }
 
-  public RenameTable(NodeLocation location, QualifiedName source, QualifiedName target) {
+  public RenameTable(
+      final NodeLocation location,
+      final QualifiedName source,
+      final QualifiedName target) {
     this(Optional.of(location), source, target);
   }
 
-  private RenameTable(Optional<NodeLocation> location, QualifiedName source, QualifiedName target) {
+  private RenameTable(
+      final Optional<NodeLocation> location,
+      final QualifiedName source,
+      final QualifiedName target) {
     super(location);
     this.source = requireNonNull(source, "source name is null");
     this.target = requireNonNull(target, "target name is null");
@@ -51,7 +57,7 @@ public final class RenameTable
   }
 
   @Override
-  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitRenameTable(this, context);
   }
 
@@ -61,14 +67,14 @@ public final class RenameTable
   }
 
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(final Object obj) {
     if (this == obj) {
       return true;
     }
     if ((obj == null) || (getClass() != obj.getClass())) {
       return false;
     }
-    RenameTable o = (RenameTable) obj;
+    final RenameTable o = (RenameTable) obj;
     return Objects.equals(source, o.source)
            && Objects.equals(target, o.target);
   }

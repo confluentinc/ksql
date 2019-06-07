@@ -20,7 +20,7 @@ import javax.annotation.Nullable;
 
 public class KsqlPreconditions {
 
-  public static <T> T checkNotNull(T reference, @Nullable Object errorMessage) {
+  public static <T> T checkNotNull(final T reference, @Nullable final Object errorMessage) {
     if (reference == null) {
       throw new KsqlException(String.valueOf(errorMessage));
     } else {
@@ -28,7 +28,7 @@ public class KsqlPreconditions {
     }
   }
 
-  public static void checkArgument(boolean expression, @Nullable Object errorMessage) {
+  public static void checkArgument(final boolean expression, @Nullable final Object errorMessage) {
     if (!expression) {
       throw new KsqlException(String.valueOf(errorMessage));
     }

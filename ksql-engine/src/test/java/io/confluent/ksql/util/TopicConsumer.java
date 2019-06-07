@@ -16,6 +16,18 @@
 
 package io.confluent.ksql.util;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.hasSize;
+
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.serde.json.KsqlJsonDeserializer;
+import io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Properties;
+import java.util.UUID;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -24,19 +36,6 @@ import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.connect.data.Schema;
 import org.hamcrest.Matcher;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
-
-import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.serde.json.KsqlJsonDeserializer;
-import io.confluent.ksql.testutils.EmbeddedSingleNodeKafkaCluster;
-
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.hamcrest.Matchers.hasSize;
-
 public class TopicConsumer {
 
   private static final long RESULTS_POLL_MAX_TIME_MS = 30000;
@@ -44,7 +43,7 @@ public class TopicConsumer {
 
   private final EmbeddedSingleNodeKafkaCluster cluster;
 
-  public TopicConsumer(EmbeddedSingleNodeKafkaCluster cluster) {
+  public TopicConsumer(final EmbeddedSingleNodeKafkaCluster cluster) {
     this.cluster = cluster;
   }
 
@@ -52,21 +51,21 @@ public class TopicConsumer {
                                       final Matcher<Integer> expectedNumMessages,
                                       final Deserializer<V> valueDeserializer,
                                       final Deserializer<K> keyDeserializer) {
-    Map<K, V> result = new HashMap<>();
+    final Map<K, V> result = new HashMap<>();
 
-    Properties consumerConfig = new Properties();
+    final Properties consumerConfig = new Properties();
     consumerConfig.putAll(cluster.getClientProperties());
-    consumerConfig.put(ConsumerConfig.GROUP_ID_CONFIG, "filter-integration-test-standard-consumer");
+    consumerConfig.put(ConsumerConfig.GROUP_ID_CONFIG, UUID.randomUUID().toString());
     consumerConfig.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
 
     try (KafkaConsumer<K, V> consumer =
              new KafkaConsumer<>(consumerConfig, keyDeserializer, valueDeserializer)
     ) {
       consumer.subscribe(Collections.singleton(topic));
-      long pollStart = System.currentTimeMillis();
-      long pollEnd = pollStart + RESULTS_POLL_MAX_TIME_MS;
+      final long pollStart = System.currentTimeMillis();
+      final long pollEnd = pollStart + RESULTS_POLL_MAX_TIME_MS;
       while (System.currentTimeMillis() < pollEnd && !expectedNumMessages.matches(result.size())) {
-        for (ConsumerRecord<K, V> record : consumer
+        for (final ConsumerRecord<K, V> record : consumer
             .poll(Math.max(1, pollEnd - System.currentTimeMillis()))) {
           if (record.value() != null) {
             result.put(record.key(), record.value());
@@ -74,7 +73,7 @@ public class TopicConsumer {
         }
       }
 
-      for (ConsumerRecord<K, V> record : consumer.poll(RESULTS_EXTRA_POLL_TIME_MS)) {
+      for (final ConsumerRecord<K, V> record : consumer.poll(RESULTS_EXTRA_POLL_TIME_MS)) {
         if (record.value() != null) {
           result.put(record.key(), record.value());
         }
@@ -88,7 +87,7 @@ public class TopicConsumer {
                                             final int expectedNumMessages,
                                             final Deserializer<K> keyDeserializer) {
     return readResults(topic, greaterThanOrEqualTo(expectedNumMessages),
-                       new KsqlJsonDeserializer(schema), keyDeserializer
+                       new KsqlJsonDeserializer(schema, false), keyDeserializer
     );
   }
 
@@ -104,7 +103,7 @@ public class TopicConsumer {
                                                       final Matcher<Integer> expectedNumMessages,
                                                       final Deserializer<K> keyDeserializer) {
     return verifyRecordsReceived(topic, expectedNumMessages,
-                                 new KsqlJsonDeserializer(schema), keyDeserializer);
+                                 new KsqlJsonDeserializer(schema, false), keyDeserializer);
   }
 
   public <K, V> Map<K, V> verifyRecordsReceived(final String topic,

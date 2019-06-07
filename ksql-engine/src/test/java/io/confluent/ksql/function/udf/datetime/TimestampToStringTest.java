@@ -16,17 +16,15 @@
 
 package io.confluent.ksql.function.udf.datetime;
 
-import org.junit.Before;
-import org.junit.Test;
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
 
+import io.confluent.ksql.function.KsqlFunctionException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.stream.IntStream;
-
-import io.confluent.ksql.function.KsqlFunctionException;
-
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import org.junit.Before;
+import org.junit.Test;
 
 public class TimestampToStringTest {
 
@@ -43,7 +41,7 @@ public class TimestampToStringTest {
     final Object result = udf.evaluate(1638360611123L, "yyyy-MM-dd HH:mm:ss.SSS");
 
     // Then:
-    String expectedResult = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS")
+    final String expectedResult = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS")
         .format(new Date(1638360611123L));
     assertThat(result, is(expectedResult));
   }
@@ -54,7 +52,7 @@ public class TimestampToStringTest {
     final Object result = udf.evaluate(1638360611123L, "yyyy-MM-dd'T'HH:mm:ss.SSS'Fred'");
 
     // Then:
-    String expectedResult = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Fred'")
+    final String expectedResult = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Fred'")
         .format(new Date(1638360611123L));
     assertThat(result, is(expectedResult));
   }

@@ -19,11 +19,15 @@ package io.confluent.ksql.util;
 public class KsqlConstants {
 
   public static final String KSQL_INTERNAL_TOPIC_PREFIX = "_confluent-ksql-";
+  public static final String CONFLUENT_INTERNAL_TOPIC_PREFIX = "__confluent";
 
   public static final String SINK_NUMBER_OF_PARTITIONS = "PARTITIONS";
   public static final String SINK_NUMBER_OF_REPLICAS = "REPLICAS";
 
   public static final String SINK_TIMESTAMP_COLUMN_NAME = "TIMESTAMP";
+
+  public static final String STREAMS_CHANGELOG_TOPIC_SUFFIX = "-changelog";
+  public static final String STREAMS_REPARTITION_TOPIC_SUFFIX = "-repartition";
 
   public static final String SCHEMA_REGISTRY_VALUE_SUFFIX = "-value";
   public static final String AVRO_SCHEMA_ID = "AVRO_SCHEMA_ID";
@@ -39,4 +43,18 @@ public class KsqlConstants {
   public static final int defaultNumberOfStreamsThreads = 4;
 
   public static final String RUN_SCRIPT_STATEMENTS_CONTENT = "ksql.run.script.statements";
+  public static final String KSQL_TIMESTAMP_COLUMN_INDEX = "ksql.timestamp.column.index";
+  public static final String STRING_TIMESTAMP_FORMAT = "ksq.timestamp.string.format";
+
+  public static final String DOT = ".";
+  public static final String STRUCT_FIELD_REF = "->";
+
+  public static final String AVRO_SCHEMA_NAMESPACE = "io.confluent.ksql.avro_schemas";
+  public static final String AVRO_SCHEMA_NAME = "KsqlDataSourceSchema";
+  public static final String AVRO_SCHEMA_FULL_NAME = AVRO_SCHEMA_NAMESPACE + "." + AVRO_SCHEMA_NAME;
+
+  public static final String DOC_URL_SR_SERIALISER =
+      "https://docs.confluent.io/current/schema-registry/docs/serializer-formatter.html";
+  public static final String DOC_URL_SR_REST_GETSUBJECTS =
+      "https://docs.confluent.io/current/schema-registry/docs/api.html#get--subjects";
 }

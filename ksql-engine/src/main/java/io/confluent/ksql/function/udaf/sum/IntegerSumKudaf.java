@@ -16,30 +16,36 @@
 
 package io.confluent.ksql.function.udaf.sum;
 
+import io.confluent.ksql.function.AggregateFunctionArguments;
+import io.confluent.ksql.function.BaseAggregateFunction;
+import io.confluent.ksql.function.KsqlAggregateFunction;
+import io.confluent.ksql.function.TableAggregationFunction;
+import java.util.Collections;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.kstream.Merger;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+public class IntegerSumKudaf
+    extends BaseAggregateFunction<Integer, Integer>
+    implements TableAggregationFunction<Integer, Integer> {
 
-import io.confluent.ksql.function.KsqlAggregateFunction;
-import io.confluent.ksql.parser.tree.Expression;
-
-public class IntegerSumKudaf extends KsqlAggregateFunction<Integer, Integer> {
-
-  IntegerSumKudaf(int argIndexInValue) {
-    super(argIndexInValue, () -> 0, Schema.INT32_SCHEMA,
-          Collections.singletonList(Schema.INT32_SCHEMA)
+  IntegerSumKudaf(final String functionName, final int argIndexInValue) {
+    super(functionName, argIndexInValue, () -> 0, Schema.OPTIONAL_INT32_SCHEMA,
+        Collections.singletonList(Schema.OPTIONAL_INT32_SCHEMA),
+        "Computes the sum for a key."
     );
   }
 
   @Override
-  public Integer aggregate(Integer currentVal, Integer currentAggVal) {
-    if (currentVal == null) {
-      return currentAggVal;
+  public Integer aggregate(final Integer currentValue, final Integer aggregateValue) {
+    if (currentValue == null) {
+      return aggregateValue;
     }
-    return currentVal + currentAggVal;
+    return currentValue + aggregateValue;
+  }
+
+  @Override
+  public Integer undo(final Integer valueToUndo, final Integer aggregateValue) {
+    return aggregateValue - valueToUndo;
   }
 
   @Override
@@ -48,11 +54,8 @@ public class IntegerSumKudaf extends KsqlAggregateFunction<Integer, Integer> {
   }
 
   @Override
-  public KsqlAggregateFunction<Integer, Integer> getInstance(Map<String, Integer> expressionNames,
-                                                           List<Expression> functionArguments) {
-    int udafIndex = expressionNames.get(functionArguments.get(0).toString());
-    return new IntegerSumKudaf(udafIndex);
+  public KsqlAggregateFunction<Integer, Integer> getInstance(
+      final AggregateFunctionArguments aggregateFunctionArguments) {
+    return new IntegerSumKudaf(functionName, aggregateFunctionArguments.udafIndex());
   }
-
-
 }

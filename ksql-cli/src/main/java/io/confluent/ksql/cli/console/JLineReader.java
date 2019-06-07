@@ -16,6 +16,9 @@
 
 package io.confluent.ksql.cli.console;
 
+import io.confluent.ksql.util.CliUtils;
+import java.io.IOException;
+import java.nio.file.Path;
 import org.jline.reader.Expander;
 import org.jline.reader.History;
 import org.jline.reader.LineReader;
@@ -26,12 +29,6 @@ import org.jline.reader.impl.history.DefaultHistory;
 import org.jline.terminal.Terminal;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-
-import io.confluent.ksql.util.CliUtils;
 
 public class JLineReader implements io.confluent.ksql.cli.console.LineReader {
 
@@ -49,14 +46,14 @@ public class JLineReader implements io.confluent.ksql.cli.console.LineReader {
   private static class NoOpExpander extends DefaultExpander {
 
     @Override
-    public String expandHistory(History history, String line) {
+    public String expandHistory(final History history, final String line) {
       return line;
     }
   }
 
-  public JLineReader(Terminal terminal) {
+  public JLineReader(final Terminal terminal, final Path historyFilePath) {
     // The combination of parser/expander here allow for multiple-line commands connected by '\\'
-    DefaultParser parser = new DefaultParser();
+    final DefaultParser parser = new DefaultParser();
     parser.setEofOnEscapedNewLine(true);
     parser.setQuoteChars(new char[0]);
     parser.setEscapeChars(new char[]{'\\'});
@@ -71,13 +68,8 @@ public class JLineReader implements io.confluent.ksql.cli.console.LineReader {
         .build();
 
     this.lineReader.setOpt(LineReader.Option.HISTORY_IGNORE_DUPS);
-    this.lineReader.setOpt(LineReader.Option.HISTORY_IGNORE_SPACE);
+    this.lineReader.unsetOpt(LineReader.Option.HISTORY_IGNORE_SPACE);
 
-    Path historyFilePath = Paths.get(System.getProperty(
-        "history-file",
-        System.getProperty("user.home")
-        + "/.ksql-history"
-    )).toAbsolutePath();
     if (CliUtils.createFile(historyFilePath)) {
       this.lineReader.setVariable(LineReader.HISTORY_FILE, historyFilePath);
       LOGGER.info("Command history saved at: " + historyFilePath);
@@ -101,7 +93,7 @@ public class JLineReader implements io.confluent.ksql.cli.console.LineReader {
 
   @Override
   public String readLine() throws IOException {
-    String line = lineReader.readLine(prompt);
+    final String line = lineReader.readLine(prompt);
     history.add(line);
     history.save();
     return line;

@@ -13,8 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  **/
+
 package io.confluent.ksql.rest.server.computation;
 
+import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.util.Pair;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -23,9 +26,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.util.Pair;
 
 class RestoreCommands {
 
@@ -48,7 +48,6 @@ class RestoreCommands {
     }
     allCommandIds.add(key);
   }
-
 
   interface ForEach {
 

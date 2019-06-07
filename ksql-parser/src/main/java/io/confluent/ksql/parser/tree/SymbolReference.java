@@ -24,7 +24,7 @@ public class SymbolReference
 
   private final String name;
 
-  public SymbolReference(String name) {
+  public SymbolReference(final String name) {
     super(Optional.empty());
     this.name = name;
   }
@@ -34,19 +34,19 @@ public class SymbolReference
   }
 
   @Override
-  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitSymbolReference(this, context);
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    SymbolReference that = (SymbolReference) o;
+    final SymbolReference that = (SymbolReference) o;
     return Objects.equals(name, that.name);
   }
 

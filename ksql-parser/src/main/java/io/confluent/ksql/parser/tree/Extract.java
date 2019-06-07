@@ -16,11 +16,11 @@
 
 package io.confluent.ksql.parser.tree;
 
-import javax.annotation.concurrent.Immutable;
+import static java.util.Objects.requireNonNull;
+
 import java.util.Objects;
 import java.util.Optional;
-
-import static java.util.Objects.requireNonNull;
+import javax.annotation.concurrent.Immutable;
 
 @Immutable
 public class Extract
@@ -49,15 +49,18 @@ public class Extract
     TIMEZONE_HOUR
   }
 
-  public Extract(Expression expression, Field field) {
+  public Extract(final Expression expression, final Field field) {
     this(Optional.empty(), expression, field);
   }
 
-  public Extract(NodeLocation location, Expression expression, Field field) {
+  public Extract(final NodeLocation location, final Expression expression, final Field field) {
     this(Optional.of(location), expression, field);
   }
 
-  private Extract(Optional<NodeLocation> location, Expression expression, Field field) {
+  private Extract(
+      final Optional<NodeLocation> location,
+      final Expression expression,
+      final Field field) {
     super(location);
     requireNonNull(expression, "expression is null");
     requireNonNull(field, "field is null");
@@ -75,12 +78,12 @@ public class Extract
   }
 
   @Override
-  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitExtract(this, context);
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
@@ -88,7 +91,7 @@ public class Extract
       return false;
     }
 
-    Extract that = (Extract) o;
+    final Extract that = (Extract) o;
     return Objects.equals(expression, that.expression)
            && (field == that.field);
   }

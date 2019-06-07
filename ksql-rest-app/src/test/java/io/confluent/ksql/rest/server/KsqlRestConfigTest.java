@@ -16,26 +16,23 @@
 
 package io.confluent.ksql.rest.server;
 
-import io.confluent.ksql.util.KsqlConfig;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.streams.StreamsConfig;
-import org.junit.Test;
-
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-
-import io.confluent.rest.RestConfig;
-
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertThat;
 
+import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.rest.RestConfig;
+import java.util.HashMap;
+import java.util.Map;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.streams.StreamsConfig;
+import org.junit.Test;
+
 public class KsqlRestConfigTest {
 
   private Map<String, Object> getBaseProperties() {
-    Map<String, Object> result = new HashMap<>();
+    final Map<String, Object> result = new HashMap<>();
     result.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
     result.put(StreamsConfig.APPLICATION_ID_CONFIG, "ksql_config_test");
     result.put(RestConfig.LISTENERS_CONFIG, "http://localhost:8088");
@@ -44,14 +41,14 @@ public class KsqlRestConfigTest {
 
   @Test
   public void testGetKsqlConfigProperties() {
-    Map<String, Object> inputProperties = getBaseProperties();
+    final Map<String, Object> inputProperties = getBaseProperties();
     inputProperties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
     inputProperties.put(KsqlConfig.KSQL_SERVICE_ID_CONFIG, "test");
 
-    KsqlRestConfig config = new KsqlRestConfig(inputProperties);
+    final KsqlRestConfig config = new KsqlRestConfig(inputProperties);
 
-    Map<String, Object> ksqlConfigProperties = config.getKsqlConfigProperties();
-    Map<String, Object> expectedKsqlConfigProperties = new HashMap<>();
+    final Map<String, Object> ksqlConfigProperties = config.getKsqlConfigProperties();
+    final Map<String, Object> expectedKsqlConfigProperties = new HashMap<>();
     expectedKsqlConfigProperties.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
     expectedKsqlConfigProperties.put(StreamsConfig.APPLICATION_ID_CONFIG, "ksql_config_test");
     expectedKsqlConfigProperties.put(RestConfig.LISTENERS_CONFIG, "http://localhost:8088");
@@ -66,9 +63,9 @@ public class KsqlRestConfigTest {
   public void testOriginalsReplicability() {
     final String COMMIT_INTERVAL_MS = "10";
 
-    Map<String, Object> inputProperties = getBaseProperties();
+    final Map<String, Object> inputProperties = getBaseProperties();
     inputProperties.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, COMMIT_INTERVAL_MS);
-    KsqlRestConfig config = new KsqlRestConfig(inputProperties);
+    final KsqlRestConfig config = new KsqlRestConfig(inputProperties);
 
     final Map<String, Object> originals1 = config.getOriginals();
     final Map<String, Object> originals2 = config.getOriginals();
@@ -81,8 +78,8 @@ public class KsqlRestConfigTest {
 
   @Test
   public void ensureCorrectCommandTopicName() {
-    KsqlRestConfig config = new KsqlRestConfig(getBaseProperties());
-    String commandTopicName = config.getCommandTopic("TestKSql");
+    final KsqlRestConfig config = new KsqlRestConfig(getBaseProperties());
+    final String commandTopicName = config.getCommandTopic("TestKSql");
     assertThat(commandTopicName,
                equalTo("_confluent-ksql-TestKSql_" + KsqlRestConfig.COMMAND_TOPIC_SUFFIX));
   }

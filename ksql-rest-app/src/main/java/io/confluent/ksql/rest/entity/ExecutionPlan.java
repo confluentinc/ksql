@@ -18,19 +18,14 @@ package io.confluent.ksql.rest.entity;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonSubTypes;
-import com.fasterxml.jackson.annotation.JsonTypeName;
-
 import java.util.Objects;
 
-@JsonTypeName("executionPlan")
-@JsonSubTypes({})
 public class ExecutionPlan extends KsqlEntity {
 
   private final String executionPlan;
 
   @JsonCreator
-  public ExecutionPlan(@JsonProperty("executionPlanText") String executionPlan) {
+  public ExecutionPlan(@JsonProperty("executionPlanText") final String executionPlan) {
     super(executionPlan);
     this.executionPlan = executionPlan;
   }
@@ -40,14 +35,14 @@ public class ExecutionPlan extends KsqlEntity {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
     if (!(o instanceof ExecutionPlan)) {
       return false;
     }
-    ExecutionPlan executionPlan = (ExecutionPlan) o;
+    final ExecutionPlan executionPlan = (ExecutionPlan) o;
     return Objects.equals(getExecutionPlan(), executionPlan.getExecutionPlan());
   }
 

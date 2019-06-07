@@ -1,5 +1,6 @@
 # KSQL Documentation
-The KSQL documentation is available on the Confluent Platform documentation site at [docs.confluent.io](https://docs.confluent.io/current/ksql/docs/index.html).
+
+Visit [this page](https://docs.confluent.io/current/ksql/docs/index.html) to learn about KSQL.
 
 # Generating KSQL docs for Confluent Platform
 The KSQL docs are imported from this public repo and built along with the rest of the Confluent Platform documentation. 
@@ -32,3 +33,4 @@ The KSQL docs are imported from this public repo and built along with the rest o
 
 # Contributing
 This documentation is built using [Sphinx](http://sphinx-doc.org). For information on how to contribute, see the [contributing guidelines](contributing.md).
+

@@ -1,0 +1,31 @@
+{
+  "comments": [
+    "You can specify multiple statements per test case, i.e., to set up the various streams needed",
+    "for joins etc, but currently only the final topology will be verified. This should be enough",
+    "for most tests as we can simulate the outputs from previous stages into the final stage. If we",
+    "take a modular approach to testing we can still verify that it all works correctly, i.e, if we",
+    "verify the output of a select or aggregate is correct, we can use simulated output to feed into",
+    "a join or another aggregate."
+  ],
+  "tests": [
+    {
+      "name": "timestamp format",
+      "statements": [
+        "CREATE STREAM TEST (ID bigint, event_timestamp VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON', timestamp='event_timestamp', timestamp_format='yyyy-MM-dd''T''HH:mm:ssX');",
+        "CREATE STREAM TS AS select id, stringtotimestamp(event_timestamp, 'yyyy-MM-dd''T''HH:mm:ssX') as ets from test;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"ID": 1, "event_timestamp": "2018-05-11T21:58:33Z"}, "timestamp": 1526075913000},
+        {"topic": "test_topic", "key": 0, "value": {"ID": 1, "event_timestamp": "2019-05-11T21:58:33Z"}, "timestamp": 1557611913000},
+        {"topic": "test_topic", "key": 0, "value": {"ID": 1, "event_timestamp": "2020-05-11T21:58:33Z"}, "timestamp": 1589234313000}
+      ],
+      "outputs": [
+        {"topic": "TS", "key": 0, "value": {"ID": 1, "ETS": 1526075913000}, "timestamp": 1526075913000},
+        {"topic": "TS", "key": 0, "value": {"ID": 1, "ETS": 1557611913000}, "timestamp": 1557611913000},
+        {"topic": "TS", "key": 0, "value": {"ID": 1, "ETS": 1589234313000}, "timestamp": 1589234313000}
+      ]
+    }
+  ]
+}
+
+

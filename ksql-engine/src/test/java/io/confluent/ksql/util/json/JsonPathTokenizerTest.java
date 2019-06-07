@@ -17,23 +17,22 @@
 package io.confluent.ksql.util.json;
 
 
-import com.google.common.collect.ImmutableList;
-import org.junit.Test;
-
-import java.io.IOException;
-import java.util.List;
-
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.junit.Assert.assertThat;
+
+import com.google.common.collect.ImmutableList;
+import java.io.IOException;
+import java.util.List;
+import org.junit.Test;
 
 public class JsonPathTokenizerTest {
 
   @Test
   public void testJsonPathTokenizer() throws IOException {
-    JsonPathTokenizer jsonPathTokenizer = new JsonPathTokenizer("$.logs[0].cloud.region");
-    ImmutableList<String> tokens = ImmutableList.copyOf(jsonPathTokenizer);
-    List<String> tokenList = tokens.asList();
+    final JsonPathTokenizer jsonPathTokenizer = new JsonPathTokenizer("$.logs[0].cloud.region");
+    final ImmutableList<String> tokens = ImmutableList.copyOf(jsonPathTokenizer);
+    final List<String> tokenList = tokens.asList();
     assertThat(tokenList.size(), is(equalTo(4)));
     assertThat(tokenList.get(0), is(equalTo("logs")));
 

@@ -16,26 +16,26 @@
 
 package io.confluent.ksql.parser.tree;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.Objects;
 import java.util.Optional;
-
-import static java.util.Objects.requireNonNull;
 
 public class AllColumns
     extends SelectItem {
 
   private final Optional<QualifiedName> prefix;
 
-  public AllColumns(NodeLocation location) {
+  public AllColumns(final NodeLocation location) {
     super(Optional.of(location));
     prefix = Optional.empty();
   }
 
-  public AllColumns(NodeLocation location, QualifiedName prefix) {
+  public AllColumns(final NodeLocation location, final QualifiedName prefix) {
     this(Optional.of(location), prefix);
   }
 
-  private AllColumns(Optional<NodeLocation> location, QualifiedName prefix) {
+  private AllColumns(final Optional<NodeLocation> location, final QualifiedName prefix) {
     super(location);
     requireNonNull(prefix, "prefix is null");
     this.prefix = Optional.of(prefix);
@@ -46,12 +46,12 @@ public class AllColumns
   }
 
   @Override
-  public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitAllColumns(this, context);
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
@@ -59,7 +59,7 @@ public class AllColumns
       return false;
     }
 
-    AllColumns that = (AllColumns) o;
+    final AllColumns that = (AllColumns) o;
     return Objects.equals(prefix, that.prefix);
   }
 

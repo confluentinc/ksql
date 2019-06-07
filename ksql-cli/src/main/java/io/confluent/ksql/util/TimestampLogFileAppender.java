@@ -25,8 +25,8 @@ public class TimestampLogFileAppender extends FileAppender {
   @Override
   public void setFile(String fileName) {
     if (fileName.contains("%timestamp")) {
-      Date d = new Date();
-      SimpleDateFormat format = new SimpleDateFormat("yyMMdd-HHmmss");
+      final Date d = new Date();
+      final SimpleDateFormat format = new SimpleDateFormat("yyMMdd-HHmmss");
       fileName = fileName.replaceAll("%timestamp", format.format(d));
     }
     super.setFile(fileName);

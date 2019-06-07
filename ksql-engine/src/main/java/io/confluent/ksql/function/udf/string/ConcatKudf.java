@@ -22,7 +22,7 @@ import io.confluent.ksql.function.udf.Kudf;
 public class ConcatKudf implements Kudf {
 
   @Override
-  public Object evaluate(Object... args) {
+  public Object evaluate(final Object... args) {
     if (args.length != 2) {
       throw new KsqlFunctionException("Concat udf should have two input argument.");
     }

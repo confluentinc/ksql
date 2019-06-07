@@ -16,14 +16,14 @@
 
 package io.confluent.ksql.util.json;
 
-import com.google.common.base.VerifyException;
-import com.google.common.collect.AbstractIterator;
-import io.confluent.ksql.util.KsqlException;
-
 import static com.google.common.base.Verify.verify;
 import static java.lang.Character.isLetterOrDigit;
 import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
+
+import com.google.common.base.VerifyException;
+import com.google.common.collect.AbstractIterator;
+import io.confluent.ksql.util.KsqlException;
 
 public class JsonPathTokenizer
     extends AbstractIterator<String> {
@@ -37,7 +37,7 @@ public class JsonPathTokenizer
   private final String path;
   private int index;
 
-  public JsonPathTokenizer(String path) {
+  public JsonPathTokenizer(final String path) {
     this.path = requireNonNull(path, "path is null");
 
     if (path.isEmpty()) {
@@ -59,7 +59,7 @@ public class JsonPathTokenizer
     }
 
     if (tryMatch(OPEN_BRACKET)) {
-      String token = tryMatch(QUOTE) ? matchQuotedSubscript() : matchUnquotedSubscript();
+      final String token = tryMatch(QUOTE) ? matchQuotedSubscript() : matchUnquotedSubscript();
 
       match(CLOSE_BRACKET);
       return token;
@@ -70,13 +70,13 @@ public class JsonPathTokenizer
 
   private String matchPathSegment() {
     // seek until we see a special character or whitespace
-    int start = index;
+    final int start = index;
     while (hasNextCharacter() && isUnquotedPathCharacter(peekCharacter())) {
       nextCharacter();
     }
-    int end = index;
+    final int end = index;
 
-    String token = path.substring(start, end);
+    final String token = path.substring(start, end);
 
     // an empty unquoted token is not allowed
     if (token.isEmpty()) {
@@ -86,19 +86,19 @@ public class JsonPathTokenizer
     return token;
   }
 
-  private static boolean isUnquotedPathCharacter(char c) {
+  private static boolean isUnquotedPathCharacter(final char c) {
     return c == ':' || isUnquotedSubscriptCharacter(c);
   }
 
   private String matchUnquotedSubscript() {
     // seek until we see a special character or whitespace
-    int start = index;
+    final int start = index;
     while (hasNextCharacter() && isUnquotedSubscriptCharacter(peekCharacter())) {
       nextCharacter();
     }
-    int end = index;
+    final int end = index;
 
-    String token = path.substring(start, end);
+    final String token = path.substring(start, end);
 
     // an empty unquoted token is not allowed
     if (token.isEmpty()) {
@@ -108,7 +108,7 @@ public class JsonPathTokenizer
     return token;
   }
 
-  private static boolean isUnquotedSubscriptCharacter(char c) {
+  private static boolean isUnquotedSubscriptCharacter(final char c) {
     return c == '_' || isLetterOrDigit(c);
   }
 
@@ -116,7 +116,7 @@ public class JsonPathTokenizer
     // quote has already been matched
 
     // seek until we see the close quote
-    StringBuilder token = new StringBuilder();
+    final StringBuilder token = new StringBuilder();
     boolean escaped = false;
 
     while (hasNextCharacter() && (escaped || peekCharacter() != QUOTE)) {
@@ -157,13 +157,13 @@ public class JsonPathTokenizer
     return index < path.length();
   }
 
-  private void match(char expected) {
+  private void match(final char expected) {
     if (!tryMatch(expected)) {
       throw invalidJsonPath();
     }
   }
 
-  private boolean tryMatch(char expected) {
+  private boolean tryMatch(final char expected) {
     if (!hasNextCharacter() || peekCharacter() != expected) {
       return false;
     }

@@ -16,17 +16,16 @@
 
 package io.confluent.ksql.serde.delimited;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.MatcherAssert.assertThat;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import io.confluent.ksql.GenericRow;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.MatcherAssert.assertThat;
-
-import io.confluent.ksql.GenericRow;
 
 public class KsqlDelimitedDeserializerTest {
 
@@ -36,20 +35,20 @@ public class KsqlDelimitedDeserializerTest {
   public void before() {
 
     orderSchema = SchemaBuilder.struct()
-        .field("ordertime".toUpperCase(), org.apache.kafka.connect.data.Schema.INT64_SCHEMA)
-        .field("orderid".toUpperCase(), org.apache.kafka.connect.data.Schema.INT64_SCHEMA)
-        .field("itemid".toUpperCase(), org.apache.kafka.connect.data.Schema.STRING_SCHEMA)
-        .field("orderunits".toUpperCase(), org.apache.kafka.connect.data.Schema.FLOAT64_SCHEMA)
+        .field("ordertime".toUpperCase(), org.apache.kafka.connect.data.Schema.OPTIONAL_INT64_SCHEMA)
+        .field("orderid".toUpperCase(), org.apache.kafka.connect.data.Schema.OPTIONAL_INT64_SCHEMA)
+        .field("itemid".toUpperCase(), org.apache.kafka.connect.data.Schema.OPTIONAL_STRING_SCHEMA)
+        .field("orderunits".toUpperCase(), org.apache.kafka.connect.data.Schema.OPTIONAL_FLOAT64_SCHEMA)
         .build();
   }
 
   @Test
   public void shouldDeserializeDelimitedCorrectly() {
-    String rowString = "1511897796092,1,item_1,10.0\r\n";
+    final String rowString = "1511897796092,1,item_1,10.0\r\n";
 
-    KsqlDelimitedDeserializer ksqlJsonDeserializer = new KsqlDelimitedDeserializer(orderSchema);
+    final KsqlDelimitedDeserializer ksqlJsonDeserializer = new KsqlDelimitedDeserializer(orderSchema);
 
-    GenericRow genericRow = ksqlJsonDeserializer.deserialize("", rowString.getBytes());
+    final GenericRow genericRow = ksqlJsonDeserializer.deserialize("", rowString.getBytes());
     assertThat(genericRow.getColumns().size(), equalTo(4));
     assertThat((Long) genericRow.getColumns().get(0), equalTo(1511897796092L));
     assertThat((Long) genericRow.getColumns().get(1), equalTo(1L));
@@ -60,11 +59,11 @@ public class KsqlDelimitedDeserializerTest {
   @Test
   public void shouldDeserializeJsonCorrectlyWithRedundantFields() throws JsonProcessingException {
 
-    String rowString = "1511897796092,1,item_1,\r\n";
+    final String rowString = "1511897796092,1,item_1,\r\n";
 
-    KsqlDelimitedDeserializer ksqlJsonDeserializer = new KsqlDelimitedDeserializer(orderSchema);
+    final KsqlDelimitedDeserializer ksqlJsonDeserializer = new KsqlDelimitedDeserializer(orderSchema);
 
-    GenericRow genericRow = ksqlJsonDeserializer.deserialize("", rowString.getBytes());
+    final GenericRow genericRow = ksqlJsonDeserializer.deserialize("", rowString.getBytes());
     assertThat(genericRow.getColumns().size(), equalTo(4));
     assertThat((Long) genericRow.getColumns().get(0), equalTo(1511897796092L));
     assertThat((Long) genericRow.getColumns().get(1), equalTo(1L));

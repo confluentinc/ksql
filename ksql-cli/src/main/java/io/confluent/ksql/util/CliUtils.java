@@ -18,33 +18,32 @@ package io.confluent.ksql.util;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
-import org.codehaus.jackson.JsonParseException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import io.confluent.ksql.ddl.DdlConfig;
+import io.confluent.ksql.parser.AstBuilder;
+import io.confluent.ksql.parser.SqlBaseParser;
+import io.confluent.ksql.parser.tree.RegisterTopic;
+import io.confluent.ksql.rest.entity.PropertiesList;
+import io.confluent.ksql.rest.util.JsonMapper;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
 import java.util.Optional;
-
-import io.confluent.ksql.ddl.DdlConfig;
-import io.confluent.ksql.parser.AstBuilder;
-import io.confluent.ksql.parser.SqlBaseParser;
-import io.confluent.ksql.parser.tree.RegisterTopic;
-import io.confluent.ksql.rest.entity.PropertiesList;
+import java.util.stream.Collectors;
+import org.codehaus.jackson.JsonParseException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class CliUtils {
 
   private static final Logger log = LoggerFactory.getLogger(CliUtils.class);
 
   public Optional<String> getAvroSchemaIfAvroTopic(
-      SqlBaseParser.RegisterTopicContext registerTopicContext
+      final SqlBaseParser.RegisterTopicContext registerTopicContext
   ) {
-    AstBuilder astBuilder = new AstBuilder(null);
-    RegisterTopic registerTopic =
+    final AstBuilder astBuilder = new AstBuilder(null);
+    final RegisterTopic registerTopic =
         (RegisterTopic) astBuilder.visitRegisterTopic(registerTopicContext);
     if (registerTopic.getProperties().get(DdlConfig.VALUE_FORMAT_PROPERTY) == null) {
       throw new KsqlException("VALUE_FORMAT is not set for the topic.");
@@ -52,7 +51,7 @@ public class CliUtils {
     if (registerTopic.getProperties().get(DdlConfig.VALUE_FORMAT_PROPERTY).toString()
         .equalsIgnoreCase("'AVRO'")) {
       if (registerTopic.getProperties().containsKey(DdlConfig.AVRO_SCHEMA_FILE)) {
-        String avroSchema = getAvroSchema(AstBuilder.unquote(
+        final String avroSchema = getAvroSchema(AstBuilder.unquote(
             registerTopic.getProperties().get(DdlConfig.AVRO_SCHEMA_FILE).toString(), "'")
         );
         return Optional.of(avroSchema);
@@ -66,39 +65,39 @@ public class CliUtils {
 
   public String getAvroSchema(final String schemaFilePath) {
     try {
-      byte[] jsonData = Files.readAllBytes(Paths.get(schemaFilePath));
-      ObjectMapper objectMapper = new ObjectMapper();
-      JsonNode root = objectMapper.readTree(jsonData);
+      final byte[] jsonData = Files.readAllBytes(Paths.get(schemaFilePath));
+      final ObjectMapper objectMapper = JsonMapper.INSTANCE.mapper;
+      final JsonNode root = objectMapper.readTree(jsonData);
       return root.toString();
-    } catch (JsonParseException e) {
+    } catch (final JsonParseException e) {
       throw new KsqlException(
           "Could not parse the avro schema file. Details: " + e.getMessage(),
           e
       );
-    } catch (IOException e) {
+    } catch (final IOException e) {
       throw new KsqlException("Could not read the avro schema file. Details: " + e.getMessage(), e);
     }
   }
 
-  public static PropertiesList propertiesListWithOverrides(
-      PropertiesList propertiesList,
-      Map<String, Object> localProperties
-  ) {
-    Map<String, Object> properties = propertiesList.getProperties();
-    for (Map.Entry<String, Object> localPropertyEntry : localProperties.entrySet()) {
-      properties.put(
-          "(LOCAL OVERRIDE) " + localPropertyEntry.getKey(),
-          localPropertyEntry.getValue()
-      );
-    }
-    return new PropertiesList(propertiesList.getStatementText(), properties);
+  public static Map<String, Object> propertiesListWithOverrides(
+      final PropertiesList propertiesList) {
+    return propertiesList.getProperties().entrySet()
+        .stream()
+        .collect(
+            Collectors.toMap(
+              e ->
+                  propertiesList.getOverwrittenProperties().contains(e.getKey())
+                      ? e.getKey() + " (LOCAL OVERRIDE)" : e.getKey(),
+              e -> e.getValue() == null ? "null" : e.getValue()
+            )
+        );
   }
 
-  public static String getLocalServerAddress(int portNumber) {
+  public static String getLocalServerAddress(final int portNumber) {
     return String.format("http://localhost:%d", portNumber);
   }
 
-  public static boolean createFile(Path path) {
+  public static boolean createFile(final Path path) {
     try {
       final Path parent = path.getParent();
       if (parent == null) {
@@ -110,7 +109,7 @@ public class CliUtils {
         Files.createFile(path);
       }
       return true;
-    } catch (Exception e) {
+    } catch (final Exception e) {
       log.warn("createFile failed, path: {}", path, e);
       return false;
     }

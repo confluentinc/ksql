@@ -13,12 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  **/
+
 package io.confluent.ksql.function;
 
+import io.confluent.ksql.GenericRow;
 import org.apache.kafka.streams.kstream.Aggregator;
 import org.apache.kafka.streams.kstream.Merger;
-
-import io.confluent.ksql.GenericRow;
 
 public interface UdafAggregator extends Aggregator<String, GenericRow, GenericRow> {
   Merger<String, GenericRow> getMerger();

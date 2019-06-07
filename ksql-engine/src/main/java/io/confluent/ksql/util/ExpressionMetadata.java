@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,6 +17,7 @@
 package io.confluent.ksql.util;
 
 import io.confluent.ksql.function.udf.Kudf;
+import java.lang.reflect.InvocationTargetException;
 import org.apache.kafka.connect.data.Schema;
 import org.codehaus.commons.compiler.IExpressionEvaluator;
 
@@ -27,16 +28,15 @@ public class ExpressionMetadata {
   private final Kudf[] udfs;
   private final Schema expressionType;
 
-  public ExpressionMetadata(IExpressionEvaluator expressionEvaluator, int[] indexes, Kudf[] udfs,
-                            Schema expressionType) {
+  public ExpressionMetadata(
+      final IExpressionEvaluator expressionEvaluator,
+      final int[] indexes,
+      final Kudf[] udfs,
+      final Schema expressionType) {
     this.expressionEvaluator = expressionEvaluator;
     this.indexes = indexes;
     this.udfs = udfs;
     this.expressionType = expressionType;
-  }
-
-  public IExpressionEvaluator getExpressionEvaluator() {
-    return expressionEvaluator;
   }
 
   public int[] getIndexes() {
@@ -53,5 +53,13 @@ public class ExpressionMetadata {
 
   public Schema getExpressionType() {
     return expressionType;
+  }
+
+  public Object evaluate(final Object[] parameterObjects) {
+    try {
+      return expressionEvaluator.evaluate(parameterObjects);
+    } catch (final InvocationTargetException e) {
+      throw new KsqlException(e.getMessage(), e);
+    }
   }
 }

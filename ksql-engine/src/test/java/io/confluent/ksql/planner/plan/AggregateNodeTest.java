@@ -16,37 +16,36 @@
 
 package io.confluent.ksql.planner.plan;
 
-import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.streams.StreamsBuilder;
-import org.apache.kafka.streams.TopologyDescription;
-import org.easymock.EasyMock;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.stream.Collectors;
-
-import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
-import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.metastore.MetastoreUtil;
-import io.confluent.ksql.structured.LogicalPlanBuilder;
-import io.confluent.ksql.structured.SchemaKStream;
-import io.confluent.ksql.structured.SchemaKTable;
-import io.confluent.ksql.util.KafkaTopicClient;
-import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.MetaStoreFixture;
-
 import static io.confluent.ksql.planner.plan.PlanTestUtil.MAPVALUES_NODE;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.SOURCE_NODE;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.getNodeByName;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+
+import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.schema.registry.MockSchemaRegistryClientFactory;
+import io.confluent.ksql.structured.LogicalPlanBuilder;
+import io.confluent.ksql.structured.SchemaKStream;
+import io.confluent.ksql.structured.SchemaKTable;
+import io.confluent.ksql.util.KafkaTopicClient;
+import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.MetaStoreFixture;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.stream.Collectors;
+import org.apache.kafka.connect.data.Field;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.streams.StreamsBuilder;
+import org.apache.kafka.streams.TopologyDescription;
+import org.easymock.EasyMock;
+import org.junit.Test;
 
 public class AggregateNodeTest {
   private final KafkaTopicClient topicClient = EasyMock.createNiceMock(KafkaTopicClient.class);
@@ -56,7 +55,12 @@ public class AggregateNodeTest {
 
   @Test
   public void shouldBuildSourceNode() {
-    build();
+    // When:
+    buildQuery("SELECT col0, sum(col3), count(col3) FROM test1 "
+        + "window TUMBLING (size 2 second) "
+        + "WHERE col0 > 100 GROUP BY col0;");
+
+    // Then:
     final TopologyDescription.Source node = (TopologyDescription.Source) getNodeByName(builder.build(), SOURCE_NODE);
     final List<String> successors = node.successors().stream().map(TopologyDescription.Node::name).collect(Collectors.toList());
     assertThat(node.predecessors(), equalTo(Collections.emptySet()));
@@ -66,21 +70,34 @@ public class AggregateNodeTest {
 
   @Test
   public void shouldHaveOneSubTopologyIfGroupByKey() {
-    build();
-    final TopologyDescription description = builder.build().describe();
-    assertThat(description.subtopologies().size(), equalTo(1));
+    // When:
+    buildQuery("SELECT col0, sum(col3), count(col3) FROM test1 "
+        + "window TUMBLING (size 2 second) "
+        + "WHERE col0 > 100 GROUP BY col0;");
+
+    // Then:
+    assertThat(builder.build().describe().subtopologies(), hasSize(1));
   }
 
   @Test
   public void shouldHaveTwoSubTopologies() {
-    buildRequireRekey();
-    final TopologyDescription description = builder.build().describe();
-    assertThat(description.subtopologies().size(), equalTo(2));
+    // When:
+    buildQuery("SELECT col1, sum(col3), count(col3) FROM test1 "
+        + "window TUMBLING (size 2 second) "
+        + "GROUP BY col1;");
+
+    // Then:
+    assertThat(builder.build().describe().subtopologies(), hasSize(2));
   }
 
   @Test
   public void shouldHaveSourceNodeForSecondSubtopolgy() {
-    buildRequireRekey();
+    // When:
+    buildQuery("SELECT col1, sum(col3), count(col3) FROM test1 "
+        + "window TUMBLING (size 2 second) "
+        + "GROUP BY col1;");
+
+    // Then:
     final TopologyDescription.Source node = (TopologyDescription.Source) getNodeByName(builder.build(), "KSTREAM-SOURCE-0000000010");
     final List<String> successors = node.successors().stream().map(TopologyDescription.Node::name).collect(Collectors.toList());
     assertThat(node.predecessors(), equalTo(Collections.emptySet()));
@@ -91,8 +108,13 @@ public class AggregateNodeTest {
 
   @Test
   public void shouldHaveSinkNodeWithSameTopicAsSecondSource() {
-    buildRequireRekey();
-    TopologyDescription.Sink sink = (TopologyDescription.Sink) getNodeByName(builder.build(), "KSTREAM-SINK-0000000008");
+    // When:
+    buildQuery("SELECT col1, sum(col3), count(col3) FROM test1 "
+        + "window TUMBLING (size 2 second) "
+        + "GROUP BY col1;");
+
+    // Then:
+    final TopologyDescription.Sink sink = (TopologyDescription.Sink) getNodeByName(builder.build(), "KSTREAM-SINK-0000000008");
     final TopologyDescription.Source source = (TopologyDescription.Source) getNodeByName(builder.build(), "KSTREAM-SOURCE-0000000010");
     assertThat(sink.successors(), equalTo(Collections.emptySet()));
     assertThat("[" + sink.topic() + "]", equalTo(source.topics()));
@@ -100,58 +122,54 @@ public class AggregateNodeTest {
 
   @Test
   public void shouldBuildCorrectAggregateSchema() {
-    SchemaKStream stream = build();
-    final List<Field> expected = Arrays.asList(
-        new Field("COL0", 0, Schema.INT64_SCHEMA),
-        new Field("KSQL_COL_1", 1, Schema.FLOAT64_SCHEMA),
-        new Field("KSQL_COL_2", 2, Schema.INT64_SCHEMA));
-    assertThat(stream.getSchema().fields(), equalTo(expected));
+    // When:
+    final SchemaKStream stream = buildQuery("SELECT col0, sum(col3), count(col3) FROM test1 "
+        + "window TUMBLING (size 2 second) "
+        + "WHERE col0 > 100 GROUP BY col0;");
+
+    // Then:
+    assertThat(stream.getSchema().fields(), contains(
+        new Field("COL0", 0, Schema.OPTIONAL_INT64_SCHEMA),
+        new Field("KSQL_COL_1", 1, Schema.OPTIONAL_FLOAT64_SCHEMA),
+        new Field("KSQL_COL_2", 2, Schema.OPTIONAL_INT64_SCHEMA)));
   }
 
   @Test
   public void shouldBeSchemaKTableResult() {
-    SchemaKStream stream = build();
-    assertThat(stream.getClass(), equalTo(SchemaKTable.class));
-  }
+    // When:
+    final SchemaKStream stream = buildQuery("SELECT col0, sum(col3), count(col3) FROM test1 "
+        + "WHERE col0 > 100 GROUP BY col0;");
 
+    // Then:
+    assertThat(stream, is(instanceOf(SchemaKTable.class)));
+  }
 
   @Test
-  public void shouldBeWindowedWhenStatementSpecifiesWindowing() {
-    SchemaKStream stream = build();
-    assertTrue(((SchemaKTable)stream).isWindowed());
+  public void shouldBeWindowedTableWhenStatementSpecifiesWindowing() {
+    // Given:
+    final SchemaKStream stream = buildQuery("SELECT col0, sum(col3), count(col3) FROM test1 "
+        + "window TUMBLING (size 2 second) "
+        + "GROUP BY col0;");
+
+    // Then:
+    assertThat(stream, is(instanceOf(SchemaKTable.class)));
+    assertThat(((SchemaKTable)stream).isWindowed(), is(true));
   }
 
-  private SchemaKStream build() {
-    return buildQuery("SELECT col0, sum(col3), count(col3) FROM test1 window TUMBLING ( "
-        + "size 2 "
-        + "second) "
-        + "WHERE col0 > 100 GROUP BY col0;");
+  private SchemaKStream buildQuery(final String queryString) {
+    return buildAggregateNode(queryString)
+        .buildStream(builder,
+            ksqlConfig,
+            topicClient,
+            new InternalFunctionRegistry(),
+            new HashMap<>(), new MockSchemaRegistryClientFactory()::get);
   }
 
-  private SchemaKStream buildRequireRekey() {
-    return buildQuery("SELECT col1, sum(col3), count(col3) FROM test1 window TUMBLING ( "
-        + "size 2 "
-        + "second) "
-        + "GROUP BY col1;");
-  }
+  private static AggregateNode buildAggregateNode(final String queryString) {
+    final MetaStore newMetaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
+    final KsqlBareOutputNode planNode = (KsqlBareOutputNode) new LogicalPlanBuilder(newMetaStore)
+        .buildLogicalPlan(queryString);
 
-  private SchemaKStream buildQuery(String queryString) {
-    AggregateNode aggregateNode = buildAggregateNode(queryString);
-    return buildStream(aggregateNode);
-  }
-
-  private AggregateNode buildAggregateNode(String queryString) {
-    final KsqlBareOutputNode planNode = (KsqlBareOutputNode) new LogicalPlanBuilder(MetaStoreFixture.getNewMetaStore()).buildLogicalPlan(queryString);
     return (AggregateNode) planNode.getSource();
   }
-
-  private SchemaKStream buildStream(AggregateNode aggregateNode) {
-    return aggregateNode.buildStream(builder,
-        ksqlConfig,
-        topicClient,
-        new MetastoreUtil(),
-        new FunctionRegistry(),
-        new HashMap<>(), new MockSchemaRegistryClient());
-  }
-
 }

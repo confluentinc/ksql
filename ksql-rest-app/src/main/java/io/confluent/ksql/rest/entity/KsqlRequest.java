@@ -31,8 +31,8 @@ public class KsqlRequest {
 
   @JsonCreator
   public KsqlRequest(
-      @JsonProperty("ksql") String ksql,
-      @JsonProperty("streamsProperties") Map<String, Object> streamsProperties
+      @JsonProperty("ksql") final String ksql,
+      @JsonProperty("streamsProperties") final Map<String, Object> streamsProperties
   ) {
     this.ksql = ksql;
     this.streamsProperties = Optional.ofNullable(streamsProperties).orElse(Collections.emptyMap());
@@ -47,14 +47,14 @@ public class KsqlRequest {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
     if (!(o instanceof KsqlRequest)) {
       return false;
     }
-    KsqlRequest that = (KsqlRequest) o;
+    final KsqlRequest that = (KsqlRequest) o;
     return Objects.equals(getKsql(), that.getKsql())
         && Objects.equals(getStreamsProperties(), that.getStreamsProperties());
   }

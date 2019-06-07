@@ -16,27 +16,41 @@
 
 package io.confluent.ksql.parser.tree;
 
-import java.util.Optional;
-
 import static java.util.Objects.requireNonNull;
+
+import java.util.Optional;
 
 public abstract class Node {
 
   private final Optional<NodeLocation> location;
 
-  protected Node(Optional<NodeLocation> location) {
+  private Optional<Node> parent = Optional.empty();
+
+  protected Node(final Optional<NodeLocation> location) {
     this.location = requireNonNull(location, "location is null");
   }
 
   /**
    * Accessible for {@link AstVisitor}, use {@link AstVisitor#process(Node, Object)} instead.
    */
-  protected <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+  protected <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitNode(this, context);
   }
 
   public Optional<NodeLocation> getLocation() {
     return location;
+  }
+
+  public Optional<Node> getParent() {
+    return parent;
+  }
+
+  public void setParent(final Optional<Node> parent) {
+    this.parent = parent;
+  }
+  
+  public void setParent(final Node parent) {
+    this.parent = Optional.ofNullable(parent);
   }
 
   // Force subclasses to have a proper equals and hashcode implementation

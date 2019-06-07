@@ -16,12 +16,11 @@
 
 package io.confluent.ksql.planner.plan;
 
+import static java.util.Objects.requireNonNull;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
-
 import javax.annotation.concurrent.Immutable;
-
-import static java.util.Objects.requireNonNull;
 
 @Immutable
 public class PlanNodeId {
@@ -41,7 +40,7 @@ public class PlanNodeId {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
@@ -49,7 +48,7 @@ public class PlanNodeId {
       return false;
     }
 
-    PlanNodeId that = (PlanNodeId) o;
+    final PlanNodeId that = (PlanNodeId) o;
 
     return id.equals(that.id);
   }

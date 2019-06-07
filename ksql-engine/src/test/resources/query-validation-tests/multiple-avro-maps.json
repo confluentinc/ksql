@@ -1,0 +1,25 @@
+{
+  "comments": [
+    "You can specify multiple statements per test case, i.e., to set up the various streams needed",
+    "for joins etc, but currently only the final topology will be verified. This should be enough",
+    "for most tests as we can simulate the outputs from previous stages into the final stage. If we",
+    "take a modular approach to testing we can still verify that it all works correctly, i.e, if we",
+    "verify the output of a select or aggregate is correct, we can use simulated output to feed into",
+    "a join or another aggregate."
+  ],
+  "tests": [
+    {
+      "name": "project multiple avro maps",
+      "statements": [
+        "CREATE STREAM TEST (M1 MAP<STRING, INT>, M2 MAP<STRING, STRING>) WITH (kafka_topic='test_topic', value_format='AVRO');",
+        "CREATE STREAM SINK as SELECT * FROM test;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"M1": {"K1": 123}, "M2": {"K2": "FOO"}}, "timestamp": 0}
+      ],
+      "outputs": [
+        {"topic": "SINK", "key": 0, "value": {"M1": {"K1": 123}, "M2": {"K2": "FOO"}}, "timestamp": 0}
+      ]
+    }
+  ]
+}

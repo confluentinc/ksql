@@ -416,7 +416,7 @@ public class KsqlParserTest {
 
   @Test
   public void testSelectAll() {
-    // Then:
+    // When:
     final Query query = KsqlParserTestUtil.<Query>buildSingleAst(
         "SELECT * FROM test1 t1;",
         metaStore).getStatement();

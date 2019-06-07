@@ -88,7 +88,7 @@ removed. If a table's source topic has an unwrapped single-field key schema and 
 ``null``, it be treated as a tombstone, resulting in any previous value for the key being removed
 from the table.
 
-A ``null`` key or value in a stream's topic will be ignored when the stream is part of a join.
+A ``null`` key or value in a stream's topic is ignored when the stream is part of a join.
 A ``null`` key in a table's topic will be treated as a tombstone and a ``null` value will be
 ignored, when the table is part of a join,
 

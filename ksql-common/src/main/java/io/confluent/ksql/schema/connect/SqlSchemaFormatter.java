@@ -102,7 +102,7 @@ public class SqlSchemaFormatter implements SchemaFormatter {
         .substring(STRUCT_START.length(), suffixStripped.length() - STRUCTURED_END.length());
   }
 
-  private final class Converter implements SchemaWalker.Visitor<String> {
+  private final class Converter implements SchemaWalker.Visitor<String, String> {
 
     public String visitSchema(final Schema schema) {
       throw new KsqlException("Invalid type in schema: " + schema);

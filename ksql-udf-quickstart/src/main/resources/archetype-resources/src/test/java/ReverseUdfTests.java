@@ -27,8 +27,8 @@ public class ReverseUdfTests {
 
   @ParameterizedTest(name = "reverse({0})= {1}")
   @CsvSource({
-    "hello, olleh",
-    "world, dlrow",
+      "hello, olleh",
+      "world, dlrow",
   })
   void reverseString(final String source, final String expectedResult) {
     final ReverseUdf reverse = new ReverseUdf();

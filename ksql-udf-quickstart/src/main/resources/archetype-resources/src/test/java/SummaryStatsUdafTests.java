@@ -19,14 +19,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import io.confluent.ksql.function.udaf.Udaf;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.stream.Stream;
 
 /**
  * Example class that demonstrates how to unit test UDAFs.
@@ -37,9 +37,9 @@ public class SummaryStatsUdafTests {
   void mergeAggregates() {
     final Udaf<Double, Map<String, Double>> udaf = SummaryStatsUdaf.createUdaf();
     final Map<String, Double> mergedAggregate = udaf.merge(
-      // (sample_size, sum, mean)
-      aggregate(3.0, 3300.0, 1100.0),
-      aggregate(7.0, 6700.0, 957.143)
+        // (sample_size, sum, mean)
+        aggregate(3.0, 3300.0, 1100.0),
+        aggregate(7.0, 6700.0, 957.143)
     );
 
     final Map<String, Double> expectedResult = aggregate(10.0, 10000.0, 1000.0);
@@ -52,7 +52,7 @@ public class SummaryStatsUdafTests {
       final Double newValue,
       final Map<String, Double> currentAggregate,
       final Map<String, Double> expectedResult
-    ) {
+  ) {
     final Udaf<Double, Map<String, Double>> udaf = SummaryStatsUdaf.createUdaf();
     assertEquals(expectedResult, udaf.aggregate(newValue, currentAggregate));
   }

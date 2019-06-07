@@ -564,8 +564,8 @@ continuously write the result of the SELECT query into the stream and
 its corresponding topic.
 
 If the PARTITION BY clause is present, then the resulting stream will
-have the specified column as its key. For more information, see
-:ref:`partition-data-to-enable-joins`.
+have the specified column as its key. The `column_name` must be present
+in the `select_expr`. For more information, see :ref:`partition-data-to-enable-joins`.
 
 For joins, the key of the resulting stream will be the value from the column
 from the left stream that was used in the join criteria. This column will be

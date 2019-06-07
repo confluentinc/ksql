@@ -144,7 +144,7 @@ If a statement doesn't set the value wrapping explicitly, KSQL uses the system
 default, defined by ``ksql.persistence.wrap.single.values``. You can change the system default.
 For more information, see :ref:`ksql-persistence-wrap-single-values`.
 
-.. important:: KSQL treats ``null` keys and values as a special case. It is recommended that
+.. important:: KSQL treats ``null` keys and values as a special case. We recommended avoiding
                unwrapped single-field schemas are avoided if the field can have a ``null`` value.
 
 A ``null`` value in a table's topic is treated as a tombstone, used to indicate a row has been

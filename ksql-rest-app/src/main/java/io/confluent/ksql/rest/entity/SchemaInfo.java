@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.entity;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.schema.SqlType;
 import java.util.List;
 import java.util.Objects;
@@ -33,11 +34,13 @@ public class SchemaInfo {
   @JsonCreator
   public SchemaInfo(
       @JsonProperty("type") final SqlType type,
-      @JsonProperty("fields") final List<FieldInfo> fields,
+      @JsonProperty("fields") final List<? extends FieldInfo> fields,
       @JsonProperty("memberSchema") final SchemaInfo memberSchema) {
     Objects.requireNonNull(type);
     this.type = type;
-    this.fields = fields;
+    this.fields = fields == null
+        ? null
+        : ImmutableList.copyOf(fields);
     this.memberSchema = memberSchema;
   }
 

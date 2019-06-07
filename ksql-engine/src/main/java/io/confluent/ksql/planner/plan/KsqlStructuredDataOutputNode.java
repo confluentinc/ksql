@@ -35,7 +35,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.QueryIdGenerator;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import java.util.Collections;
-import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.Set;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Field;
@@ -56,7 +56,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
       final KeyField keyField,
       final KsqlTopic ksqlTopic,
       final boolean selectKeyRequired,
-      final Optional<Integer> limit,
+      final OptionalInt limit,
       final boolean doCreateInto,
       final Set<SerdeOption> serdeOptions
   ) {
@@ -130,7 +130,6 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
         rowkeyIndexes
     );
 
-    result.setOutputNode(this);
     return result;
   }
 

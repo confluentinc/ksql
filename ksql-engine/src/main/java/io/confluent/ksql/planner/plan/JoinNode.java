@@ -56,8 +56,8 @@ public class JoinNode extends PlanNode {
   private static final String RIGHT_SERDE_CONTEXT_NAME = "right";
 
   private final JoinType joinType;
-  private final PlanNode left;
-  private final PlanNode right;
+  private final DataSourceNode left;
+  private final DataSourceNode right;
   private final KsqlSchema schema;
   private final String leftJoinFieldName;
   private final String rightJoinFieldName;
@@ -73,8 +73,8 @@ public class JoinNode extends PlanNode {
   public JoinNode(
       final PlanNodeId id,
       final JoinType joinType,
-      final PlanNode left,
-      final PlanNode right,
+      final DataSourceNode left,
+      final DataSourceNode right,
       final String leftJoinFieldName,
       final String rightJoinFieldName,
       final String leftAlias,
@@ -142,11 +142,11 @@ public class JoinNode extends PlanNode {
     return visitor.visitJoin(this, context);
   }
 
-  public PlanNode getLeft() {
+  public DataSourceNode getLeft() {
     return left;
   }
 
-  public PlanNode getRight() {
+  public DataSourceNode getRight() {
     return right;
   }
 
@@ -207,12 +207,8 @@ public class JoinNode extends PlanNode {
     }
   }
 
-  private static String getSourceName(final PlanNode node) {
-    if (!(node instanceof DataSourceNode)) {
-      throw new RuntimeException("The source for a join must be a Stream or a Table.");
-    }
-    final DataSourceNode dataSource = (DataSourceNode) node;
-    return dataSource.getDataSource().getName();
+  private static String getSourceName(final DataSourceNode node) {
+    return node.getDataSource().getName();
   }
 
   private static Field validateFieldInSchema(final String fieldName, final KsqlSchema schema) {
@@ -339,15 +335,11 @@ public class JoinNode extends PlanNode {
       return stream.selectKey(joinFieldName, true, contextStacker);
     }
 
-    Serde<GenericRow> getSerDeForNode(
-        final PlanNode node,
-        final QueryContext.Stacker contextStacker) {
-      if (!(node instanceof DataSourceNode)) {
-        throw new KsqlException(
-            "The source for Join must be a primitive data source (Stream or Table).");
-      }
-      final DataSourceNode dataSourceNode = (DataSourceNode) node;
-      final DataSource<?> dataSource = dataSourceNode.getDataSource();
+    Serde<GenericRow> getSerDeForSource(
+        final DataSourceNode sourceNode,
+        final QueryContext.Stacker contextStacker
+    ) {
+      final DataSource<?> dataSource = sourceNode.getDataSource();
 
       final KsqlSerdeFactory valueSerdeFactory = dataSource
           .getKsqlTopic()
@@ -427,8 +419,8 @@ public class JoinNode extends PlanNode {
               joinNode.schema,
               getJoinedKeyField(joinNode.leftAlias, leftStream.getKeyField()),
               joinNode.withinExpression.joinWindow(),
-              getSerDeForNode(joinNode.left, contextStacker.push(LEFT_SERDE_CONTEXT_NAME)),
-              getSerDeForNode(joinNode.right, contextStacker.push(RIGHT_SERDE_CONTEXT_NAME)),
+              getSerDeForSource(joinNode.left, contextStacker.push(LEFT_SERDE_CONTEXT_NAME)),
+              getSerDeForSource(joinNode.right, contextStacker.push(RIGHT_SERDE_CONTEXT_NAME)),
               contextStacker);
         case OUTER:
           return leftStream.outerJoin(
@@ -436,8 +428,8 @@ public class JoinNode extends PlanNode {
               joinNode.schema,
               getOuterJoinedKeyField(joinNode.leftAlias, leftStream.getKeyField()),
               joinNode.withinExpression.joinWindow(),
-              getSerDeForNode(joinNode.left, contextStacker.push(LEFT_SERDE_CONTEXT_NAME)),
-              getSerDeForNode(joinNode.right, contextStacker.push(RIGHT_SERDE_CONTEXT_NAME)),
+              getSerDeForSource(joinNode.left, contextStacker.push(LEFT_SERDE_CONTEXT_NAME)),
+              getSerDeForSource(joinNode.right, contextStacker.push(RIGHT_SERDE_CONTEXT_NAME)),
               contextStacker);
         case INNER:
           return leftStream.join(
@@ -445,8 +437,8 @@ public class JoinNode extends PlanNode {
               joinNode.schema,
               getJoinedKeyField(joinNode.leftAlias, leftStream.getKeyField()),
               joinNode.withinExpression.joinWindow(),
-              getSerDeForNode(joinNode.left, contextStacker.push(LEFT_SERDE_CONTEXT_NAME)),
-              getSerDeForNode(joinNode.right, contextStacker.push(RIGHT_SERDE_CONTEXT_NAME)),
+              getSerDeForSource(joinNode.left, contextStacker.push(LEFT_SERDE_CONTEXT_NAME)),
+              getSerDeForSource(joinNode.right, contextStacker.push(RIGHT_SERDE_CONTEXT_NAME)),
               contextStacker);
         default:
           throw new KsqlException("Invalid join type encountered: " + joinNode.joinType);
@@ -484,7 +476,7 @@ public class JoinNode extends PlanNode {
               rightTable,
               joinNode.schema,
               getJoinedKeyField(joinNode.leftAlias, leftStream.getKeyField()),
-              getSerDeForNode(joinNode.left, contextStacker.push(LEFT_SERDE_CONTEXT_NAME)),
+              getSerDeForSource(joinNode.left, contextStacker.push(LEFT_SERDE_CONTEXT_NAME)),
               contextStacker);
 
         case INNER:
@@ -492,7 +484,7 @@ public class JoinNode extends PlanNode {
               rightTable,
               joinNode.schema,
               getJoinedKeyField(joinNode.leftAlias, leftStream.getKeyField()),
-              getSerDeForNode(joinNode.left, contextStacker.push(LEFT_SERDE_CONTEXT_NAME)),
+              getSerDeForSource(joinNode.left, contextStacker.push(LEFT_SERDE_CONTEXT_NAME)),
               contextStacker);
         case OUTER:
           throw new KsqlException("Full outer joins between streams and tables are not supported.");

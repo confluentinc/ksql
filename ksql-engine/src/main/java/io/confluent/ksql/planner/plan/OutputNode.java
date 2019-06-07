@@ -24,7 +24,7 @@ import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.QueryIdGenerator;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import java.util.List;
-import java.util.Optional;
+import java.util.OptionalInt;
 import javax.annotation.concurrent.Immutable;
 
 @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
@@ -34,14 +34,14 @@ public abstract class OutputNode
 
   private final PlanNode source;
   private final KsqlSchema schema;
-  private final Optional<Integer> limit;
+  private final OptionalInt limit;
   private final TimestampExtractionPolicy timestampExtractionPolicy;
 
   protected OutputNode(
       final PlanNodeId id,
       final PlanNode source,
       final KsqlSchema schema,
-      final Optional<Integer> limit,
+      final OptionalInt limit,
       final TimestampExtractionPolicy timestampExtractionPolicy
   ) {
     super(id, source.getNodeOutputType());
@@ -63,7 +63,7 @@ public abstract class OutputNode
     return ImmutableList.of(source);
   }
 
-  public Optional<Integer> getLimit() {
+  public OptionalInt getLimit() {
     return limit;
   }
 

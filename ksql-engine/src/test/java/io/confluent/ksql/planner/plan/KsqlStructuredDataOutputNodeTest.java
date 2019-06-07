@@ -23,7 +23,6 @@ import static io.confluent.ksql.planner.plan.PlanTestUtil.verifyProcessorNode;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -53,10 +52,10 @@ import io.confluent.ksql.util.QueryIdGenerator;
 import io.confluent.ksql.util.QueryLoggerUtil;
 import io.confluent.ksql.util.timestamp.LongColumnTimestampExtractionPolicy;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.serialization.Serdes;
@@ -156,7 +155,7 @@ public class KsqlStructuredDataOutputNodeTest {
         KeyField.of("key", schema.getSchema().field("key")),
         new KsqlTopic(SINK_TOPIC_NAME, SINK_KAFKA_TOPIC_NAME, serde, true),
         partitionBy,
-        Optional.empty(),
+        OptionalInt.empty(),
         createInto,
         SerdeOption.none()
     );
@@ -173,7 +172,7 @@ public class KsqlStructuredDataOutputNodeTest {
         KeyField.none(),
         new KsqlTopic(SINK_TOPIC_NAME, SINK_KAFKA_TOPIC_NAME, new KsqlJsonSerdeFactory(), true),
         true,
-        Optional.empty(),
+        OptionalInt.empty(),
         false,
         SerdeOption.none()
     );
@@ -214,31 +213,6 @@ public class KsqlStructuredDataOutputNodeTest {
     assertThat(sink.successors(), equalTo(Collections.emptySet()));
     assertThat(predecessors, equalTo(Collections.singletonList(MAPVALUES_OUTPUT_NODE)));
     assertThat(sink.topic(), equalTo(SINK_KAFKA_TOPIC_NAME));
-  }
-
-  @Test
-  public void shouldSetOutputNodeOnStream() {
-    // When:
-    stream = outputNode.buildStream(ksqlStreamBuilder);
-
-    // Then:
-    assertThat(stream.outputNode(), instanceOf(KsqlStructuredDataOutputNode.class));
-  }
-
-  @Test
-  public void shouldHaveCorrectOutputNodeSchema() {
-    // When:
-    stream = outputNode.buildStream(ksqlStreamBuilder);
-
-    // Then:
-    final List<Field> expected = Arrays.asList(
-        new Field("field1", 0, Schema.OPTIONAL_STRING_SCHEMA),
-        new Field("field2", 1, Schema.OPTIONAL_STRING_SCHEMA),
-        new Field("field3", 2, Schema.OPTIONAL_STRING_SCHEMA),
-        new Field("timestamp", 3, Schema.OPTIONAL_INT64_SCHEMA),
-        new Field("key", 4, Schema.OPTIONAL_STRING_SCHEMA));
-    final List<Field> fields = stream.outputNode().getSchema().fields();
-    assertThat(fields, equalTo(expected));
   }
 
   @Test
@@ -327,7 +301,7 @@ public class KsqlStructuredDataOutputNodeTest {
         KeyField.of("key", schema.getSchema().field("key")),
         mockTopic(valueSerdeFactory, "output"),
         false,
-        Optional.empty(),
+        OptionalInt.empty(),
         false,
         serdeOptions
     );
@@ -373,7 +347,7 @@ public class KsqlStructuredDataOutputNodeTest {
         KeyField.of("key", schema.getSchema().field("key")),
         new KsqlTopic(SINK_TOPIC_NAME, SINK_KAFKA_TOPIC_NAME, new KsqlJsonSerdeFactory(), true),
         false,
-        Optional.empty(),
+        OptionalInt.empty(),
         true,
         SerdeOption.none()
     );

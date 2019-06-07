@@ -105,10 +105,10 @@ public class PhysicalPlanBuilder {
   }
 
   public QueryMetadata buildPhysicalPlan(final LogicalPlanNode logicalPlanNode) {
-    final OutputNode logicalNode = logicalPlanNode.getNode()
+    final OutputNode outputNode = logicalPlanNode.getNode()
         .orElseThrow(() -> new IllegalArgumentException("Need an output node to build a plan"));
 
-    final QueryId queryId = logicalNode.getQueryId(queryIdGenerator);
+    final QueryId queryId = outputNode.getQueryId(queryIdGenerator);
 
     final KsqlQueryBuilder ksqlQueryBuilder = KsqlQueryBuilder.of(
         builder,
@@ -119,9 +119,7 @@ public class PhysicalPlanBuilder {
         queryId
     );
 
-    final SchemaKStream<?> resultStream = logicalNode.buildStream(ksqlQueryBuilder);
-
-    final OutputNode outputNode = resultStream.outputNode();
+    final SchemaKStream<?> resultStream = outputNode.buildStream(ksqlQueryBuilder);
 
     if (outputNode instanceof KsqlBareOutputNode) {
       if (!(resultStream instanceof QueuedSchemaKStream)) {
@@ -198,7 +196,8 @@ public class PhysicalPlanBuilder {
         processingLogContext
     );
 
-    final TransientQueryQueue<?> queue = new TransientQueryQueue<>(schemaKStream);
+    final TransientQueryQueue<?> queue =
+        new TransientQueryQueue<>(schemaKStream, bareOutputNode.getLimit());
 
     final KafkaStreams streams = kafkaStreamsBuilder.buildKafkaStreams(builder, streamsProperties);
 

@@ -28,7 +28,6 @@ import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
-import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.streams.StreamsFactories;
 import io.confluent.ksql.streams.StreamsUtil;
@@ -73,7 +72,6 @@ public class SchemaKStream<K> {
   final Type type;
   final KsqlConfig ksqlConfig;
   final FunctionRegistry functionRegistry;
-  private OutputNode output;
   final SerdeFactory<K> keySerdeFactory;
   final StreamsFactories streamsFactories;
   final QueryContext queryContext;
@@ -689,14 +687,6 @@ public class SchemaKStream<K> {
           .append(schemaKStream.getExecutionPlan(indent + "\t"));
     }
     return stringBuilder.toString();
-  }
-
-  public OutputNode outputNode() {
-    return output;
-  }
-
-  public void setOutputNode(final OutputNode output) {
-    this.output = output;
   }
 
   public Type getType() {

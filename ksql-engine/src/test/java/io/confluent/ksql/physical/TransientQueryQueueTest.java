@@ -27,9 +27,8 @@ import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.physical.TransientQueryQueue.QueuePopulator;
-import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.structured.QueuedSchemaKStream;
-import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.Queue;
 import java.util.stream.IntStream;
 import org.apache.kafka.streams.KeyValue;
@@ -55,24 +54,29 @@ public class TransientQueryQueueTest {
   @Mock
   private KStream<String, GenericRow> kStreamsApp;
   @Mock
-  private OutputNode outputNode;
-  @Mock
   private QueuedSchemaKStream<String> queuedKStream;
   @Captor
   private ArgumentCaptor<QueuePopulator<String>> queuePopulatorCaptor;
   private Queue<KeyValue<String, GenericRow>> queue;
+  private QueuePopulator<String> queuePopulator;
 
   @Before
   public void setUp() {
-    when(queuedKStream.outputNode()).thenReturn(outputNode);
     when(queuedKStream.getKstream()).thenReturn(kStreamsApp);
+
+    final TransientQueryQueue<String> queuer =
+        new TransientQueryQueue<>(queuedKStream, OptionalInt.of(SOME_LIMIT));
+
+    queuer.setLimitHandler(limitHandler);
+
+    queue = queuer.getQueue();
+
+    verify(kStreamsApp).foreach(queuePopulatorCaptor.capture());
+    queuePopulator = queuePopulatorCaptor.getValue();
   }
 
   @Test
   public void shouldQueue() {
-    // Given:
-    final QueuePopulator<String> queuePopulator = getQueuePopulator();
-
     // When:
     queuePopulator.apply("key1", ROW_ONE);
     queuePopulator.apply("key2", ROW_TWO);
@@ -87,9 +91,6 @@ public class TransientQueryQueueTest {
 
   @Test
   public void shouldNotQueueNullValues() {
-    // Given:
-    final QueuePopulator<String> queuePopulator = getQueuePopulator();
-
     // When:
     queuePopulator.apply("key1", null);
 
@@ -99,10 +100,6 @@ public class TransientQueryQueueTest {
 
   @Test
   public void shouldQueueUntilLimitReached() {
-    // Given:
-    when(outputNode.getLimit()).thenReturn(Optional.of(SOME_LIMIT));
-    final QueuePopulator<String> queuePopulator = getQueuePopulator();
-
     // When:
     IntStream.range(0, SOME_LIMIT + 2)
         .forEach(idx -> queuePopulator.apply("key1", ROW_ONE));
@@ -113,10 +110,6 @@ public class TransientQueryQueueTest {
 
   @Test
   public void shouldNotCallLimitHandlerIfLimitNotReached() {
-    // Given:
-    when(outputNode.getLimit()).thenReturn(Optional.of(SOME_LIMIT));
-    final QueuePopulator<String> queuePopulator = getQueuePopulator();
-
     // When:
     IntStream.range(0, SOME_LIMIT - 1)
         .forEach(idx -> queuePopulator.apply("key1", ROW_ONE));
@@ -127,10 +120,6 @@ public class TransientQueryQueueTest {
 
   @Test
   public void shouldCallLimitHandlerAsLimitReached() {
-    // Given:
-    when(outputNode.getLimit()).thenReturn(Optional.of(SOME_LIMIT));
-    final QueuePopulator<String> queuePopulator = getQueuePopulator();
-
     // When:
     IntStream.range(0, SOME_LIMIT)
         .forEach(idx -> queuePopulator.apply("key1", ROW_ONE));
@@ -141,23 +130,11 @@ public class TransientQueryQueueTest {
 
   @Test
   public void shouldCallLimitHandlerOnlyOnce() {
-    // Given:
-    when(outputNode.getLimit()).thenReturn(Optional.of(SOME_LIMIT));
-    final QueuePopulator<String> queuePopulator = getQueuePopulator();
-
     // When:
     IntStream.range(0, SOME_LIMIT + 1)
         .forEach(idx -> queuePopulator.apply("key1", ROW_ONE));
 
     // Then:
     verify(limitHandler, times(1)).limitReached();
-  }
-
-  private QueuePopulator<String> getQueuePopulator() {
-    final TransientQueryQueue<String> queuer = new TransientQueryQueue<>(queuedKStream);
-    queue = queuer.getQueue();
-    queuer.setLimitHandler(limitHandler);
-    verify(kStreamsApp).foreach(queuePopulatorCaptor.capture());
-    return queuePopulatorCaptor.getValue();
   }
 }

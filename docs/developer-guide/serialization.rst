@@ -154,7 +154,7 @@ from the table.
 
 A ``null`` key or value in a stream's topic is ignored when the stream is part of a join.
 A ``null`` key in a table's topic is treated as a tombstone, and a ``null`` value is
-ignored, when the table is part of a join,
+ignored when the table is part of a join.
 
 Care should be taken when dealing with unwrapped single-field schemas to ensure any ``null`` key or
 value has the desired result.

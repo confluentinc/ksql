@@ -31,9 +31,11 @@ import org.apache.kafka.connect.errors.DataException;
 /**
  * Translates full set of Connect types to the limited subset supported by KSQL.
  *
- * <p>Responsible for the coercion of connect types to the subset KSQL supports.
+ * <p>Responsible for the coercion of connect types to the subset KSQL supports and handling
+ * case-insensitivity of struct field names.
  */
 public class ConnectDataTranslator implements DataTranslator {
+
   private static final String PATH_SEPARATOR = "->";
 
   private final Schema schema;

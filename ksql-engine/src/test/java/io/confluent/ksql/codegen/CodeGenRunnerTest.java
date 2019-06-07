@@ -44,6 +44,7 @@ import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
 import io.confluent.ksql.util.ExpressionMetadata;
 import io.confluent.ksql.util.KsqlConfig;
@@ -177,13 +178,18 @@ public class CodeGenRunnerTest {
             "CODEGEN_TEST",
             "codegen_test",
             new KsqlJsonSerdeFactory(), false);
+
         final KsqlStream ksqlStream = new KsqlStream<>(
             "sqlexpression",
             "CODEGEN_TEST",
             KsqlSchema.of(metaStoreSchema),
+            SerdeOption.none(),
             KeyField.of("COL0", metaStoreSchema.field("COL0")),
             new MetadataTimestampExtractionPolicy(),
-            ksqlTopic,Serdes::String);
+            ksqlTopic,
+            Serdes::String
+        );
+
         metaStore.putTopic(ksqlTopic);
         metaStore.putSource(ksqlStream);
         codeGenRunner = new CodeGenRunner(KsqlSchema.of(schema), ksqlConfig, functionRegistry);

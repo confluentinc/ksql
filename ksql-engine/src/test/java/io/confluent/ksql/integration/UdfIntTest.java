@@ -27,7 +27,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import io.confluent.ksql.util.ItemDataProvider;
@@ -248,11 +249,14 @@ public class UdfIntTest {
 
   private Map<String, GenericRow> consumeOutputMessages() {
 
-    final KsqlSchema resultSchema = ksqlContext
+    final DataSource<?> source = ksqlContext
         .getMetaStore()
-        .getSource(resultStreamName)
-        .getSchema()
-        .withoutImplicitFields();
+        .getSource(resultStreamName);
+
+    final PhysicalSchema resultSchema = PhysicalSchema.from(
+        source.getSchema().withoutImplicitFields(),
+        source.getSerdeOptions()
+    );
 
     return TEST_HARNESS.verifyAvailableUniqueRows(
         resultStreamName,

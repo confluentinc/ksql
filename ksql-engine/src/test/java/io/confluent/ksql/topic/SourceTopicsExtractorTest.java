@@ -30,6 +30,7 @@ import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
@@ -162,10 +163,11 @@ public class SourceTopicsExtractorTest {
             false
         );
 
-    final KsqlStream streamSource = new KsqlStream<>(
+    final KsqlStream<?> streamSource = new KsqlStream<>(
         "",
         streamName.toUpperCase(),
         SCHEMA,
+        SerdeOption.none(),
         KeyField.none(),
         new MetadataTimestampExtractionPolicy(),
         sourceTopic,

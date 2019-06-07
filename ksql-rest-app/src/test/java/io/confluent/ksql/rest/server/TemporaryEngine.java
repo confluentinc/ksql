@@ -30,6 +30,7 @@ import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
@@ -90,16 +91,28 @@ public class TemporaryEngine extends ExternalResource {
       case KSTREAM:
         source =
             new KsqlStream<>(
-                "statement", name, SCHEMA,
+                "statement",
+                name,
+                SCHEMA,
+                SerdeOption.none(),
                 KeyField.of("val", SCHEMA.getSchema().field("val")),
-                new MetadataTimestampExtractionPolicy(), topic, Serdes::String);
+                new MetadataTimestampExtractionPolicy(),
+                topic,
+                Serdes::String
+            );
         break;
       case KTABLE:
         source =
             new KsqlTable<>(
-                "statement", name, SCHEMA,
+                "statement",
+                name,
+                SCHEMA,
+                SerdeOption.none(),
                 KeyField.of("val", SCHEMA.getSchema().field("val")),
-                new MetadataTimestampExtractionPolicy(), topic, Serdes::String);
+                new MetadataTimestampExtractionPolicy(),
+                topic,
+                Serdes::String
+            );
         break;
       default:
         throw new IllegalArgumentException(type.toString());

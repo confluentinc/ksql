@@ -49,6 +49,7 @@ import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Sink;
 import io.confluent.ksql.planner.plan.JoinNode;
 import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.Pair;
@@ -75,7 +76,8 @@ public class QueryAnalyzerTest {
   public final ExpectedException expectedException = ExpectedException.none();
 
   private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
-  private final QueryAnalyzer queryAnalyzer =  new QueryAnalyzer(metaStore, "prefix-~");
+  private final QueryAnalyzer queryAnalyzer =
+      new QueryAnalyzer(metaStore, "prefix-~", SerdeOption.none());
 
   @Test
   public void shouldCreateAnalysisForSimpleQuery() {

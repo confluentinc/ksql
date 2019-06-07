@@ -27,6 +27,7 @@ import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.HandlerMaps;
 import io.confluent.ksql.util.HandlerMaps.ClassHandlerMapR2;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Map;
 import java.util.Objects;
@@ -58,6 +59,7 @@ public class CommandFactories implements DdlCommandFactory {
   public DdlCommand create(
       final String sqlExpression,
       final DdlStatement ddlStatement,
+      final KsqlConfig ksqlConfig,
       final Map<String, Object> properties
   ) {
     return FACTORIES
@@ -71,7 +73,7 @@ public class CommandFactories implements DdlCommandFactory {
         })
         .handle(
             this,
-            new CallInfo(sqlExpression, properties),
+            new CallInfo(sqlExpression, ksqlConfig, properties),
             ddlStatement);
   }
 
@@ -86,6 +88,7 @@ public class CommandFactories implements DdlCommandFactory {
     return new CreateStreamCommand(
         callInfo.sqlExpression,
         statement,
+        callInfo.ksqlConfig,
         serviceContext.getTopicClient());
   }
 
@@ -96,9 +99,11 @@ public class CommandFactories implements DdlCommandFactory {
     return new CreateTableCommand(
         callInfo.sqlExpression,
         statement,
+        callInfo.ksqlConfig,
         serviceContext.getTopicClient());
   }
 
+  @SuppressWarnings("MethodMayBeStatic")
   private DropSourceCommand handleDropStream(final DropStream statement) {
     return new DropSourceCommand(
         statement,
@@ -106,6 +111,7 @@ public class CommandFactories implements DdlCommandFactory {
     );
   }
 
+  @SuppressWarnings("MethodMayBeStatic")
   private DropSourceCommand handleDropTable(final DropTable statement) {
     return new DropSourceCommand(
         statement,
@@ -120,14 +126,18 @@ public class CommandFactories implements DdlCommandFactory {
   private static final class CallInfo {
 
     final String sqlExpression;
+    final KsqlConfig ksqlConfig;
     final Map<String, Object> properties;
 
     private CallInfo(
         final String sqlExpression,
+        final KsqlConfig ksqlConfig,
         final Map<String, Object> properties
     ) {
-      this.sqlExpression = sqlExpression;
-      this.properties = properties;
+      this.sqlExpression = Objects.requireNonNull(sqlExpression, "sqlExpression");
+      this.properties = Objects.requireNonNull(properties, "properties");
+      this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig")
+          .cloneWithPropertyOverwrite(properties);
     }
   }
 }

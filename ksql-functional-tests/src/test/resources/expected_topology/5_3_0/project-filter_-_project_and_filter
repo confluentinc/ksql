@@ -32,8 +32,8 @@
   "ksql.query.persistent.active.limit" : "2147483647"
 }
 CONFIGS_END
-CSAS_S1_0.KsqlTopic.source = struct<ID optional<int64>,NAME optional<string>,VALUE optional<float64>>
-CSAS_S1_0.S1 = struct<NAME optional<string>>
+CSAS_S1_0.KsqlTopic.source = STRUCT<ID BIGINT, NAME VARCHAR, VALUE DOUBLE> NOT NULL
+CSAS_S1_0.S1 = STRUCT<NAME VARCHAR> NOT NULL
 SCHEMAS_END
 Topologies:
    Sub-topology: 0

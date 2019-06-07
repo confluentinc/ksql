@@ -19,8 +19,11 @@ package io.confluent.ksql.datagen;
 import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.logging.processing.ProcessingLogContext;
+import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.GenericRowSerDe;
+import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.avro.KsqlAvroSerdeFactory;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
@@ -53,11 +56,11 @@ public class AvroProducer extends DataGenProducer {
   ) {
     return GenericRowSerDe.from(
         new KsqlAvroSerdeFactory(KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME),
-        kafkaSchema,
+        PhysicalSchema.from(KsqlSchema.of(kafkaSchema), SerdeOption.none()),
         ksqlConfig,
         () -> schemaRegistryClient,
-        "producer",
-        ProcessingLogContext.create()
+        "",
+        NoopProcessingLogContext.INSTANCE
     ).serializer();
   }
 }

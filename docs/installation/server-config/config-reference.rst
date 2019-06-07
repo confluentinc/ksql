@@ -252,6 +252,60 @@ The corresponding environment variable in the
 `KSQL Server image <https://hub.docker.com/r/confluentinc/cp-ksql-server/>`__ is
 ``KSQL_KSQL_FUNCTIONS_SUBSTRING_LEGACY_ARGS``.
 
+.. _ksql_persistence_wrap_single_values:
+
+-----------------------------------
+ksql.persistence.wrap.single.values
+-----------------------------------
+
+Sets the default value for the ``WRAP_SINGLE_VALUE`` property if one is
+not supplied explicitly in :ref:`CREATE TABLE <create-table>`,
+:ref:`CREATE STREAM <create-stream>`, :ref:`CREATE TABLE <create-table-as-select>`
+or :ref:`CREATE STREAM AS SELECT <create-stream-as-select>` statements.
+
+When set to the default value, ``true``, KSQL serializes the column value nested with a JSON object or
+an Avro record, depending on the format in use. When set to ``false``, KSQL persists the column
+value without any nesting.
+
+For example, consider the statement:
+
+.. code:: sql
+
+    CREATE STREAM y AS SELECT f0 FROM x;
+
+The statement selects a single field as the value of stream ``y``. If ``f0`` has the
+integer value ``10``,
+with ``ksql.persistence.wrap.single.values`` set to ``true``, the JSON format persists
+the value within a JSON object, as it would if the value had more fields:
+
+.. code:: json
+
+    {
+       "F0": 10
+    }
+
+With ``ksql.persistence.wrap.single.values`` set to ``false``, the JSON format
+persists the single field's value as a JSON number: ``10``.
+
+.. code:: json
+
+    10
+
+The ``AVRO`` format supports the same properties. The properties control whether or not the field's
+value is written as a named field within an Avro record or as an anonymous value.
+
+This setting can be toggled using the `SET` command
+
+ .. code:: sql
+     SET 'ksql.persistence.wrap.single.values'='false';
+
+For more information, refer to the :ref:`CREATE TABLE <create-table>`,
+:ref:`CREATE STREAM <create-stream>`, :ref:`CREATE TABLE <create-table-as-select>`
+or :ref:`CREATE STREAM AS SELECT <create-stream-as-select>` statements.
+
+.. note:: The ``DELIMITED`` format is  not affected by the `ksql.persistence.ensure.value.is.struct`` setting,
+          because it has no concept of an outer record or structure.
+
 KSQL Server Settings
 --------------------
 

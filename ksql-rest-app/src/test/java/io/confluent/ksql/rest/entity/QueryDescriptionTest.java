@@ -30,8 +30,8 @@ import io.confluent.ksql.physical.QuerySchemas;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.SqlType;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
-import io.confluent.ksql.schema.persistence.PersistenceSchema;
-import io.confluent.ksql.schema.persistence.PersistenceSchemas;
+import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
@@ -64,10 +64,6 @@ public class QueryDescriptionTest {
           .field("field1", Schema.OPTIONAL_INT32_SCHEMA)
           .field("field2", Schema.OPTIONAL_STRING_SCHEMA)
           .build());
-
-  private static final PersistenceSchemas PERSISTED_SCHEMAS = PersistenceSchemas.of(
-      PersistenceSchema.of(SCHEMA.getSchema())
-  );
 
   private static final List<FieldInfo> EXPECTED_FIELDS = Arrays.asList(
       new FieldInfo("field1", new SchemaInfo(SqlType.INTEGER, null, null)),
@@ -129,15 +125,20 @@ public class QueryDescriptionTest {
     // Given:
     final KsqlTopic sinkTopic = new KsqlTopic("fake_sink", "fake_sink", new KsqlJsonSerdeFactory(), true);
     final KsqlStream<?> fakeSink = new KsqlStream<>(
-        STATEMENT, "fake_sink", SCHEMA,
+        STATEMENT,
+        "fake_sink",
+        SCHEMA,
+        SerdeOption.none(),
         KeyField.of(SCHEMA.fields().get(0).name(), SCHEMA.fields().get(0)),
-        new MetadataTimestampExtractionPolicy(), sinkTopic, Serdes::String);
+        new MetadataTimestampExtractionPolicy(),
+        sinkTopic,
+        Serdes::String
+    );
 
     final PersistentQueryMetadata queryMetadata = new PersistentQueryMetadata(
         "test statement",
         queryStreams,
-        SCHEMA,
-        PERSISTED_SCHEMAS,
+        PhysicalSchema.from(SCHEMA, SerdeOption.none()),
         Collections.emptySet(),
         fakeSink.getName(),
         "execution plan",

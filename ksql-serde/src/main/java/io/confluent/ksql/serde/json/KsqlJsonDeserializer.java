@@ -46,7 +46,7 @@ public class KsqlJsonDeserializer implements Deserializer<Object> {
   private final JsonConverter jsonConverter;
   private final ProcessingLogger recordLogger;
 
-  public KsqlJsonDeserializer(
+  KsqlJsonDeserializer(
       final PersistenceSchema physicalSchema,
       final ProcessingLogger recordLogger
   ) {

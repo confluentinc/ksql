@@ -47,7 +47,7 @@ public class SchemaWalkerTest {
   public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
-  private SchemaWalker.Visitor<String> visitor;
+  private SchemaWalker.Visitor<String, Integer> visitor;
 
   @Test
   public void shouldVisitBoolean() {
@@ -220,14 +220,18 @@ public class SchemaWalkerTest {
     // Given:
     final Schema schema = SchemaBuilder
         .struct()
-        .field("f0", Schema.FLOAT64_SCHEMA)
-        .field("f1", Schema.INT32_SCHEMA)
+        .field("0", Schema.FLOAT64_SCHEMA)
+        .field("1", Schema.INT32_SCHEMA)
         .build();
 
-    when(visitor.visitFloat64(any())).thenReturn("Expected-f0");
-    when(visitor.visitInt32(any())).thenReturn("Expected-f1");
-    when(visitor.visitField(any(), any())).thenAnswer(inv ->
-        inv.<Field>getArgument(0).name() + "->" + inv.getArgument(1));
+    when(visitor.visitFloat64(any())).thenReturn("0");
+    when(visitor.visitInt32(any())).thenReturn("1");
+    when(visitor.visitField(any(), any())).thenAnswer(inv -> {
+      final int fieldName = Integer.parseInt(inv.<Field>getArgument(0).name());
+      final int expectedArg = Integer.parseInt(inv.getArgument(1));
+      assertThat(fieldName, is(expectedArg));
+      return fieldName;
+    });
     when(visitor.visitStruct(any(), any())).thenReturn("Expected");
 
     // When:
@@ -236,8 +240,7 @@ public class SchemaWalkerTest {
     // Then:
     verify(visitor).visitFloat64(same(schema.fields().get(0).schema()));
     verify(visitor).visitInt32(same(schema.fields().get(1).schema()));
-    verify(visitor).visitStruct(same(schema),
-        eq(ImmutableList.of("f0->Expected-f0", "f1->Expected-f1")));
+    verify(visitor).visitStruct(same(schema), eq(ImmutableList.of(0, 1)));
     assertThat(result, is("Expected"));
   }
 
@@ -258,7 +261,7 @@ public class SchemaWalkerTest {
   @Test
   public void shouldVisitPrimitives() {
     // Given:
-    visitor = new Visitor<String>() {
+    visitor = new Visitor<String, Integer>() {
       @Override
       public String visitPrimitive(final Schema schema) {
         return "Expected";
@@ -278,7 +281,7 @@ public class SchemaWalkerTest {
   @Test
   public void shouldVisitAll() {
     // Given:
-    visitor = new Visitor<String>() {
+    visitor = new Visitor<String, Integer>() {
       @Override
       public String visitSchema(final Schema schema) {
         return "Expected";
@@ -298,7 +301,7 @@ public class SchemaWalkerTest {
   @Test
   public void shouldThrowByDefaultFromNonStructured() {
     // Given:
-    visitor = new Visitor<String>() {
+    visitor = new Visitor<String, Integer>() {
     };
 
     nonStructuredSchemas().forEach(schema -> {
@@ -319,7 +322,7 @@ public class SchemaWalkerTest {
   @Test
   public void shouldThrowByDefaultFromStructured() {
     // Given:
-    visitor = new Visitor<String>() {
+    visitor = new Visitor<String, Integer>() {
       @Override
       public String visitPrimitive(final Schema schema) {
         return null;

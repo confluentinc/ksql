@@ -44,7 +44,7 @@ public class QueryMetadata {
   private final Map<String, Object> overriddenProperties;
   private final Consumer<QueryMetadata> closeCallback;
   private final Set<String> sourceNames;
-  private final KsqlSchema schema;
+  private final KsqlSchema logicalSchema;
 
   private Optional<QueryStateListener> queryStateListener = Optional.empty();
   private boolean everStarted = false;
@@ -53,7 +53,7 @@ public class QueryMetadata {
   protected QueryMetadata(
       final String statementString,
       final KafkaStreams kafkaStreams,
-      final KsqlSchema schema,
+      final KsqlSchema logicalSchema,
       final Set<String> sourceNames,
       final String executionPlan,
       final DataSourceType dataSourceType,
@@ -78,7 +78,7 @@ public class QueryMetadata {
             Objects.requireNonNull(overriddenProperties, "overriddenProperties"));
     this.closeCallback = Objects.requireNonNull(closeCallback, "closeCallback");
     this.sourceNames = Objects.requireNonNull(sourceNames, "sourceNames");
-    this.schema = Objects.requireNonNull(schema, "schema");
+    this.logicalSchema = Objects.requireNonNull(logicalSchema, "logicalSchema");
   }
 
   protected QueryMetadata(final QueryMetadata other, final Consumer<QueryMetadata> closeCallback) {
@@ -91,7 +91,7 @@ public class QueryMetadata {
     this.streamsProperties = other.streamsProperties;
     this.overriddenProperties = other.overriddenProperties;
     this.sourceNames = other.sourceNames;
-    this.schema = other.schema;
+    this.logicalSchema = other.logicalSchema;
     this.closeCallback = Objects.requireNonNull(closeCallback, "closeCallback");
   }
 
@@ -136,8 +136,8 @@ public class QueryMetadata {
     return streamsProperties;
   }
 
-  public KsqlSchema getResultSchema() {
-    return schema;
+  public KsqlSchema getLogicalSchema() {
+    return logicalSchema;
   }
 
   public Set<String> getSourceNames() {

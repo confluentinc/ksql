@@ -15,13 +15,17 @@
 
 package io.confluent.ksql.datagen;
 
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.schema.persistence.PersistenceSchema;
-import io.confluent.ksql.serde.GenericRowSerDe.GenericRowSerializer;
-import io.confluent.ksql.serde.json.KsqlJsonSerializer;
+import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.serde.GenericRowSerDe;
+import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
+import io.confluent.ksql.util.KsqlConfig;
 import org.apache.avro.Schema;
 import org.apache.kafka.common.serialization.Serializer;
-import org.apache.kafka.connect.data.ConnectSchema;
 
 public class JsonProducer extends DataGenProducer {
 
@@ -31,9 +35,13 @@ public class JsonProducer extends DataGenProducer {
       final org.apache.kafka.connect.data.Schema kafkaSchema,
       final String topicName
   ) {
-    return new GenericRowSerializer(
-        new KsqlJsonSerializer(PersistenceSchema.of((ConnectSchema) kafkaSchema)),
-        kafkaSchema
-    );
+    return GenericRowSerDe.from(
+        new KsqlJsonSerdeFactory(),
+        PhysicalSchema.from(KsqlSchema.of(kafkaSchema), SerdeOption.none()),
+        new KsqlConfig(ImmutableMap.of()),
+        () -> null,
+        "",
+        NoopProcessingLogContext.INSTANCE
+    ).serializer();
   }
 }

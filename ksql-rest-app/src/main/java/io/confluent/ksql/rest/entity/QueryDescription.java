@@ -67,7 +67,7 @@ public class QueryDescription {
     this(
         new EntityQueryId(id),
         queryMetadata.getStatementString(),
-        EntityUtil.buildSourceSchemaEntity(queryMetadata.getResultSchema()),
+        EntityUtil.buildSourceSchemaEntity(queryMetadata.getLogicalSchema()),
         queryMetadata.getSourceNames(),
         sinks,
         queryMetadata.getTopologyDescription(),

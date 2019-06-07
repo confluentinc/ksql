@@ -36,7 +36,9 @@ import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.physical.KsqlQueryBuilder;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
+import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.QueryContext;
 import io.confluent.ksql.structured.SchemaKGroupedStream;
@@ -203,17 +205,18 @@ public class AggregateNode extends PlanNode {
 
     final Serde<GenericRow> genericRowSerde = builder.buildGenericRowSerde(
         valueSerdeFactory,
-        aggregateArgExpanded.getSchema().getSchema(),
+        PhysicalSchema.from(aggregateArgExpanded.getSchema(), SerdeOption.none()),
         groupByContext.getQueryContext()
     );
 
     final List<Expression> internalGroupByColumns = internalSchema.getInternalExpressionList(
         getGroupByExpressions());
 
-    final SchemaKGroupedStream schemaKGroupedStream =
-        aggregateArgExpanded.groupBy(
-            genericRowSerde, internalGroupByColumns,
-            groupByContext);
+    final SchemaKGroupedStream schemaKGroupedStream = aggregateArgExpanded.groupBy(
+        genericRowSerde,
+        internalGroupByColumns,
+        groupByContext
+    );
 
     // Aggregate computations
     final Map<Integer, Integer> aggValToValColumnMap = createAggregateValueToValueColumnMap(
@@ -231,7 +234,7 @@ public class AggregateNode extends PlanNode {
 
     final Serde<GenericRow> aggValueGenericRowSerde = builder.buildGenericRowSerde(
         valueSerdeFactory,
-        aggStageSchema.getSchema(),
+        PhysicalSchema.from(aggStageSchema, SerdeOption.none()),
         aggregationContext.getQueryContext()
     );
 

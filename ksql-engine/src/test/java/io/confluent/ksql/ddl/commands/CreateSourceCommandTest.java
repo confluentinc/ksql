@@ -17,12 +17,15 @@ package io.confluent.ksql.ddl.commands;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.ddl.DdlConfig;
+import io.confluent.ksql.ddl.commands.CreateSourceCommand.SerdeOptionsSupplier;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.parser.tree.BooleanLiteral;
 import io.confluent.ksql.parser.tree.CreateSource;
@@ -34,6 +37,7 @@ import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.schema.SqlType;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.services.KafkaTopicClient;
@@ -43,6 +47,9 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -64,6 +71,9 @@ public class CreateSourceCommandTest {
       new TableElement("hojjat", PrimitiveType.of(SqlType.STRING))
   );
 
+  private static final Set<SerdeOption> SOME_SERDE_OPTIONS = ImmutableSet
+      .of(SerdeOption.UNWRAP_SINGLE_VALUES);
+
   private static final QualifiedName SOME_NAME = QualifiedName.of("bob");
 
   @Rule
@@ -73,6 +83,8 @@ public class CreateSourceCommandTest {
   private CreateSource statement;
   @Mock
   private KafkaTopicClient kafkaTopicClient;
+  @Mock
+  private SerdeOptionsSupplier serdeOptions;
 
   private KsqlConfig ksqlConfig;
   private final Map<String, Literal> withProperties = new HashMap<>();
@@ -103,7 +115,7 @@ public class CreateSourceCommandTest {
         "The statement does not define any columns.");
 
     // When:
-    new TestCmd("look mum, no columns", statement, ksqlConfig, kafkaTopicClient);
+    new TestCmd("look mum, no columns", statement, ksqlConfig, kafkaTopicClient, serdeOptions);
   }
 
   @Test
@@ -112,7 +124,7 @@ public class CreateSourceCommandTest {
     when(statement.getElements()).thenReturn(SOME_ELEMENTS);
 
     // When:
-    new TestCmd("look mum, columns", statement, ksqlConfig, kafkaTopicClient);
+    new TestCmd("look mum, columns", statement, ksqlConfig, kafkaTopicClient, serdeOptions);
 
     // Then: not exception thrown
   }
@@ -127,7 +139,7 @@ public class CreateSourceCommandTest {
     expectedException.expectMessage("Kafka topic does not exist: " + TOPIC_NAME);
 
     // When:
-    new TestCmd("what, no value topic?", statement, ksqlConfig, kafkaTopicClient);
+    new TestCmd("what, no value topic?", statement, ksqlConfig, kafkaTopicClient, serdeOptions);
   }
 
   @Test
@@ -136,7 +148,7 @@ public class CreateSourceCommandTest {
     when(kafkaTopicClient.isTopicExists(TOPIC_NAME)).thenReturn(true);
 
     // When:
-    new TestCmd("what, no value topic?", statement, ksqlConfig, kafkaTopicClient);
+    new TestCmd("what, no value topic?", statement, ksqlConfig, kafkaTopicClient, serdeOptions);
 
     // Then:
     verify(kafkaTopicClient).isTopicExists(TOPIC_NAME);
@@ -155,7 +167,7 @@ public class CreateSourceCommandTest {
             + "'WILL-NOT-FIND-ME'");
 
     // When:
-    new TestCmd("key not in schema!", statement, ksqlConfig, kafkaTopicClient);
+    new TestCmd("key not in schema!", statement, ksqlConfig, kafkaTopicClient, serdeOptions);
   }
 
   @Test
@@ -172,104 +184,28 @@ public class CreateSourceCommandTest {
             + "'WILL-NOT-FIND-ME'");
 
     // When:
-    new TestCmd("key not in schema!", statement, ksqlConfig, kafkaTopicClient);
+    new TestCmd("key not in schema!", statement, ksqlConfig, kafkaTopicClient, serdeOptions);
   }
 
   @Test
-  public void shouldGetSingleValueWrappingFromPropertiesBeforeConfig() {
-    // Given:
-    ksqlConfig = new KsqlConfig(ImmutableMap.of(
-        KsqlConfig.KSQL_WRAP_SINGLE_VALUES, true
-    ));
-
-    withProperties.put(DdlConfig.WRAP_SINGLE_VALUE, new BooleanLiteral("false"));
-
-    final CreateStream statement =
-        new CreateStream(SOME_NAME, ONE_ELEMENT, true, withProperties);
-
-    // When:
-    final TestCmd cmd = new TestCmd("sql", statement, ksqlConfig, kafkaTopicClient);
-
-    // Then:
-    assertThat(cmd.getSerdeOptions(), is(SerdeOption.of(SerdeOption.UNWRAP_SINGLE_VALUES)));
-  }
-
-  @Test
-  public void shouldGetSingleValueWrappingFromConfig() {
-    // Given:
-    ksqlConfig = new KsqlConfig(ImmutableMap.of(
-        KsqlConfig.KSQL_WRAP_SINGLE_VALUES, false
-    ));
-
-    final CreateStream statement =
-        new CreateStream(SOME_NAME, ONE_ELEMENT, true, withProperties);
-
-    // When:
-    final TestCmd cmd = new TestCmd("sql", statement, ksqlConfig, kafkaTopicClient);
-
-    // Then:
-    assertThat(cmd.getSerdeOptions(), is(SerdeOption.of(SerdeOption.UNWRAP_SINGLE_VALUES)));
-  }
-
-  @Test
-  public void shouldGetSingleValueWrappingFromDefaultConfig() {
+  public void shouldBuildSerdeOptions() {
     // Given:
     final CreateStream statement =
         new CreateStream(SOME_NAME, ONE_ELEMENT, true, withProperties);
 
-    // When:
-    final TestCmd cmd = new TestCmd("sql", statement, ksqlConfig, kafkaTopicClient);
+    final KsqlSchema schema = KsqlSchema.of(SchemaBuilder
+        .struct()
+        .field("bob", Schema.OPTIONAL_STRING_SCHEMA)
+        .build());
 
-    // Then:
-    assertThat(cmd.getSerdeOptions(), is(SerdeOption.none()));
-  }
-
-  @Test
-  public void shouldNotGetSingleValueWrappingFromConfigForMultiFields() {
-    // Given:
-    final CreateStream statement =
-        new CreateStream(SOME_NAME, SOME_ELEMENTS, true, withProperties);
+    when(serdeOptions.build(any(), any(), any())).thenReturn(SOME_SERDE_OPTIONS);
 
     // When:
-    final TestCmd cmd = new TestCmd("sql", statement, ksqlConfig, kafkaTopicClient);
+    final TestCmd cmd = new TestCmd("sql", statement, ksqlConfig, kafkaTopicClient, serdeOptions);
 
     // Then:
-    assertThat(cmd.getSerdeOptions(), is(SerdeOption.none()));
-  }
-
-  @Test
-  public void shouldThrowIfWrapSingleValuePresentForMultiField() {
-    // Given:
-    withProperties.put(DdlConfig.WRAP_SINGLE_VALUE, new BooleanLiteral("false"));
-
-    final CreateStream statement =
-        new CreateStream(SOME_NAME, SOME_ELEMENTS, true, withProperties);
-
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "'WRAP_SINGLE_VALUE' is only valid for single-field value schemas");
-
-    // When:
-    new TestCmd("sql", statement, ksqlConfig, kafkaTopicClient);
-  }
-
-  @Test
-  public void shouldThrowIfWrapSingleValuePresentForDelimited() {
-    // Given:
-    withProperties.put(DdlConfig.VALUE_FORMAT_PROPERTY, new StringLiteral(Format.DELIMITED.name()));
-    withProperties.put(DdlConfig.WRAP_SINGLE_VALUE, new BooleanLiteral("false"));
-
-    final CreateStream statement =
-        new CreateStream(SOME_NAME, ONE_ELEMENT, true, withProperties);
-
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "'WRAP_SINGLE_VALUE' can not be used with format 'DELIMITED' as it does not support wrapping");
-
-    // When:
-    new TestCmd("sql", statement, ksqlConfig, kafkaTopicClient);
+    verify(serdeOptions).build(schema, statement.getProperties(), ksqlConfig);
+    assertThat(cmd.getSerdeOptions(), is(SOME_SERDE_OPTIONS));
   }
 
   private static Map<String, Literal> minValidProps() {
@@ -291,9 +227,10 @@ public class CreateSourceCommandTest {
         final String sqlExpression,
         final CreateSource statement,
         final KsqlConfig ksqlConfig,
-        final KafkaTopicClient kafkaTopicClient
+        final KafkaTopicClient kafkaTopicClient,
+        final SerdeOptionsSupplier serdeOptionsSupplier
     ) {
-      super(sqlExpression, statement, ksqlConfig, kafkaTopicClient);
+      super(sqlExpression, statement, ksqlConfig, kafkaTopicClient, serdeOptionsSupplier);
     }
 
     @Override

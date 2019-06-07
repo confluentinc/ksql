@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.engine;
 
-import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.analyzer.AggregateAnalysisResult;
 import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.QueryAnalyzer;
@@ -31,6 +30,7 @@ import io.confluent.ksql.planner.LogicalPlanNode;
 import io.confluent.ksql.planner.LogicalPlanner;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
@@ -149,7 +149,7 @@ class QueryEngine {
   ) {
     final String outputPrefix = config.getString(KsqlConfig.KSQL_OUTPUT_TOPIC_NAME_PREFIX_CONFIG);
 
-    final Set<SerdeOption> defaultSerdeOptions = buildDefaultSerdeOptions(config);
+    final Set<SerdeOption> defaultSerdeOptions = SerdeOptions.buildDefaults(config);
 
     final QueryAnalyzer queryAnalyzer =
         new QueryAnalyzer(metaStore, outputPrefix, defaultSerdeOptions);
@@ -158,15 +158,5 @@ class QueryEngine {
     final AggregateAnalysisResult aggAnalysis = queryAnalyzer.analyzeAggregate(query, analysis);
 
     return new LogicalPlanner(analysis, aggAnalysis, metaStore).buildPlan();
-  }
-
-  private static Set<SerdeOption> buildDefaultSerdeOptions(final KsqlConfig config) {
-    final ImmutableSet.Builder<SerdeOption> options = ImmutableSet.builder();
-
-    if (!config.getBoolean(KsqlConfig.KSQL_WRAP_SINGLE_VALUES)) {
-      options.add(SerdeOption.UNWRAP_SINGLE_VALUES);
-    }
-
-    return ImmutableSet.copyOf(options.build());
   }
 }

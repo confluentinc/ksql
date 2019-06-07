@@ -18,6 +18,8 @@ package io.confluent.ksql.integration;
 import static io.confluent.ksql.serde.Format.AVRO;
 import static io.confluent.ksql.serde.Format.JSON;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.metastore.model.DataSource;
@@ -26,8 +28,6 @@ import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.test.util.TopicTestUtil;
 import io.confluent.ksql.util.ItemDataProvider;
 import io.confluent.ksql.util.OrderDataProvider;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -109,19 +109,13 @@ public class JoinIntTest {
         .getSource(testStreamName);
 
     final PhysicalSchema resultSchema = PhysicalSchema.from(
-        source.getSchema(),
+        source.getSchema().withoutImplicitFields(),
         source.getSerdeOptions()
     );
-
-    final Map<String, GenericRow> expectedResults =
-        Collections.singletonMap("ITEM_1",
-                                 new GenericRow(Arrays.asList(
-                                     null,
-                                     null,
-                                     "ORDER_1",
-                                     "ITEM_1",
-                                     10.0,
-                                     "home cinema")));
+    final Map<String, GenericRow> expectedResults = ImmutableMap.of(
+        "ITEM_1",
+        new GenericRow(ImmutableList.of("ORDER_1", "ITEM_1", 10.0, "home cinema"))
+    );
 
     final Map<String, GenericRow> results = new HashMap<>();
     TestUtils.waitForCondition(() -> {
@@ -183,11 +177,14 @@ public class JoinIntTest {
         .getSource(testStreamName);
 
     final PhysicalSchema resultSchema = PhysicalSchema.from(
-        source.getSchema(),
+        source.getSchema().withoutImplicitFields(),
         source.getSerdeOptions()
     );
 
-    final Map<String, GenericRow> expectedResults = Collections.singletonMap("ITEM_1", new GenericRow(Arrays.asList(null, null, "ORDER_1", "ITEM_1", 10.0, "home cinema")));
+    final Map<String, GenericRow> expectedResults = ImmutableMap.of(
+        "ITEM_1",
+        new GenericRow(ImmutableList.of("ORDER_1", "ITEM_1", 10.0, "home cinema"))
+    );
 
     final Map<String, GenericRow> results = new HashMap<>();
     TestUtils.waitForCondition(() -> {
@@ -253,18 +250,14 @@ public class JoinIntTest {
         .getSource(outputStream);
 
     final PhysicalSchema resultSchema = PhysicalSchema.from(
-        source.getSchema(),
+        source.getSchema().withoutImplicitFields(),
         source.getSerdeOptions()
     );
 
-    final Map<String, GenericRow> expectedResults =
-        Collections.singletonMap("ITEM_1",
-            new GenericRow(Arrays.asList(
-                null,
-                null,
-                "ORDER_1",
-                "home cinema",
-                1)));
+    final Map<String, GenericRow> expectedResults = ImmutableMap.of(
+        "ITEM_1",
+        new GenericRow(ImmutableList.of("ORDER_1", "home cinema", 1))
+    );
 
     final Map<String, GenericRow> results = new HashMap<>();
     TestUtils.waitForCondition(() -> {

@@ -396,7 +396,7 @@ The WITH clause supports the following properties:
 |                         | :ref:`ksql_single_field_wrapping`.                                                         |
 |                         |                                                                                            |
 |                         | Note: Supplying this property for formats that do not support wrapping, for example        |
-|                         | `DELIMITED`, or when the value schema has multiple fields, will result in an error.        |
+|                         | ``DELIMITED``, or when the value schema has multiple fields, will result in an error.      |
 +-------------------------+--------------------------------------------------------------------------------------------+
 | WINDOW_TYPE             | By default, the topic is assumed to contain non-windowed data. If the data is windowed,    |
 |                         | i.e. was created using KSQL using a query that contains a ``WINDOW`` clause, then the      |

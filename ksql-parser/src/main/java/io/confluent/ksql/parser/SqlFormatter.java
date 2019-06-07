@@ -136,14 +136,7 @@ public final class SqlFormatter {
     protected Void visitSelect(final Select node, final Integer indent) {
       append(indent, "SELECT");
 
-      final List<SelectItem> selectItems = node.getSelectItems()
-          .stream()
-          .map(item ->
-              (item instanceof SingleColumn)
-                  ? ((SingleColumn) item).getAllColumns().map(SelectItem.class::cast).orElse(item)
-                  : item)
-          .distinct()
-          .collect(Collectors.toList());
+      final List<SelectItem> selectItems = node.getSelectItems();
 
       if (selectItems.size() > 1) {
         boolean first = true;
@@ -168,13 +161,10 @@ public final class SqlFormatter {
     @Override
     protected Void visitSingleColumn(final SingleColumn node, final Integer indent) {
       builder.append(ExpressionFormatter.formatExpression(node.getExpression()));
-      if (node.getAlias().isPresent()) {
-        builder.append(' ')
+      builder.append(' ')
                 .append('"')
-                .append(node.getAlias().get())
-                .append('"'); // TODO: handle quoting properly
-      }
-
+                .append(node.getAlias())
+                .append('"');
       return null;
     }
 

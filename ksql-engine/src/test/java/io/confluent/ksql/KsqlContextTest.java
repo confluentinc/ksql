@@ -131,8 +131,6 @@ public class KsqlContextTest {
     when(sandbox.prepare(PARSED_STMT_0)).thenReturn((PreparedStatement) PREPARED_STMT_0);
     when(sandbox.prepare(PARSED_STMT_1)).thenReturn((PreparedStatement) PREPARED_STMT_1);
 
-    when(schemaInjector.inject(CFG_STMT_0)).thenReturn((ConfiguredStatement) STMT_0_WITH_SCHEMA);
-    when(schemaInjector.inject(CFG_STMT_1)).thenReturn((ConfiguredStatement) STMT_1_WITH_SCHEMA);
     when(schemaInjector.inject(any())).thenAnswer(inv -> inv.getArgument(0));
 
     when(topicInjector.inject(any())).thenAnswer(inv -> inv.getArgument(0));

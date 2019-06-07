@@ -38,6 +38,7 @@ import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.JoinOn;
 import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.parser.tree.Node;
+import io.confluent.ksql.parser.tree.NodeLocation;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.parser.tree.Query;
@@ -550,44 +551,33 @@ class Analyzer {
         if (selectItem instanceof AllColumns) {
           // expand * and T.*
           final AllColumns allColumns = (AllColumns) selectItem;
-          if ((analysis.getFromDataSources() == null) || (
-              analysis.getFromDataSources().isEmpty())) {
-            throw new KsqlException("FROM clause was not resolved!");
-          }
-          if (analysis.getJoin() != null) {
-            final JoinNode joinNode = analysis.getJoin();
-            for (final Field field : joinNode.getLeft().getSchema().fields()) {
-              final QualifiedNameReference qualifiedNameReference =
-                  new QualifiedNameReference(allColumns.getLocation(), QualifiedName
-                      .of(joinNode.getLeftAlias() + "." + field.name()));
-              analysis.addSelectItem(
-                  qualifiedNameReference,
-                  joinNode.getLeftAlias() + "_" + field.name()
-              );
+          final Optional<NodeLocation> location = allColumns.getLocation();
+
+          final JoinNode join = analysis.getJoin();
+          if (join != null) {
+            final String prefix = allColumns.getPrefix()
+                .map(QualifiedName::toString)
+                .orElse("");
+
+            if (!prefix.equals(join.getRightAlias())) {
+              final KsqlSchema schema = join.getLeft().getSchema().withoutAlias();
+              addSelectItems(location, schema, join.getLeftAlias(), join.getLeftAlias() + "_");
             }
-            for (final Field field : joinNode.getRight().getSchema().fields()) {
-              final QualifiedNameReference qualifiedNameReference =
-                  new QualifiedNameReference(
-                      allColumns.getLocation(),
-                      QualifiedName.of(joinNode.getRightAlias() + "." + field.name())
-                  );
-              analysis.addSelectItem(
-                  qualifiedNameReference,
-                  joinNode.getRightAlias() + "_" + field.name()
-              );
+
+            if (!prefix.equals(join.getLeftAlias())) {
+              final KsqlSchema schema = join.getRight().getSchema().withoutAlias();
+              addSelectItems(location, schema, join.getRightAlias(), join.getRightAlias() + "_");
             }
           } else {
-            final Pair<DataSource<?>, String> leftSource = analysis.getFromDataSources().get(0);
-            for (final Field field : leftSource.getLeft().getSchema().fields()) {
-              final QualifiedNameReference qualifiedNameReference =
-                  new QualifiedNameReference(allColumns.getLocation(), QualifiedName
-                      .of(leftSource.getRight() + "." + field.name()));
-              analysis.addSelectItem(qualifiedNameReference, field.name());
-            }
+            final Pair<DataSource<?>, String> sourceTuple = analysis.getFromDataSources().get(0);
+            final String sourceAlias = sourceTuple.getRight();
+            final KsqlSchema schema = sourceTuple.getLeft().getSchema();
+
+            addSelectItems(location, schema, sourceAlias, "");
           }
         } else if (selectItem instanceof SingleColumn) {
           final SingleColumn column = (SingleColumn) selectItem;
-          analysis.addSelectItem(column.getExpression(), column.getAlias().get());
+          analysis.addSelectItem(column.getExpression(), column.getAlias());
         } else {
           throw new IllegalArgumentException(
               "Unsupported SelectItem type: " + selectItem.getClass().getName());
@@ -626,6 +616,27 @@ class Analyzer {
 
     private void analyzeHaving(final Node node) {
       analysis.setHavingExpression((Expression) node);
+    }
+
+    private void addSelectItems(
+        final Optional<NodeLocation> location,
+        final KsqlSchema schema,
+        final String sourceAlias,
+        final String aliasPrefix
+    ) {
+      for (final Field field : schema.fields()) {
+
+        final QualifiedName name = QualifiedName.of(sourceAlias);
+
+        final QualifiedNameReference nameRef = new QualifiedNameReference(location, name);
+
+        final DereferenceExpression selectItem =
+            new DereferenceExpression(location, nameRef, field.name());
+
+        final String alias = aliasPrefix + field.name();
+
+        analysis.addSelectItem(selectItem, alias);
+      }
     }
   }
 }

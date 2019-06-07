@@ -23,18 +23,25 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
 import io.confluent.ksql.parser.tree.AliasedRelation;
+import io.confluent.ksql.parser.tree.AllColumns;
+import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.QualifiedName;
+import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.parser.tree.Query;
+import io.confluent.ksql.parser.tree.Select;
+import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.List;
+import java.util.Optional;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -179,9 +186,256 @@ public class AstBuilderTest {
     builder.build(stmt);
   }
 
+  @Test
+  public void shouldHandleUnqualifiedSelect() {
+    // Given:
+    final SingleStatementContext stmt = givenQuery("SELECT COL0 FROM TEST1;");
+
+    // When:
+    final Query result = (Query) builder.build(stmt);
+
+    // Then:
+    assertThat(result.getSelect(), is(new Select(ImmutableList.of(
+        new SingleColumn(column("TEST1", "COL0"), "COL0")))));
+  }
+
+  @Test
+  public void shouldHandleQualifiedSelect() {
+    // Given:
+    final SingleStatementContext stmt = givenQuery("SELECT TEST1.COL0 FROM TEST1;");
+
+    // When:
+    final Query result = (Query) builder.build(stmt);
+
+    // Then:
+    assertThat(result.getSelect(), is(new Select(ImmutableList.of(
+        new SingleColumn(column("TEST1", "COL0"), "COL0")))));
+  }
+
+  @Test
+  public void shouldHandleAliasQualifiedSelect() {
+    // Given:
+    final SingleStatementContext stmt = givenQuery("SELECT T.COL0 FROM TEST2 T;");
+
+    // When:
+    final Query result = (Query) builder.build(stmt);
+
+    // Then:
+    assertThat(result.getSelect(), is(new Select(ImmutableList.of(
+        new SingleColumn(column("T", "COL0"), "COL0")))));
+  }
+
+  @Test
+  public void shouldThrowOnUnknownSelectQualifier() {
+    // Given:
+    final SingleStatementContext stmt = givenQuery("SELECT unknown.COL0 FROM TEST1;");
+
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("'UNKNOWN' is not a valid stream/table name or alias.");
+
+    // When:
+    builder.build(stmt);
+  }
+
+  @Test
+  public void shouldHandleAliasedSelect() {
+    // Given:
+    final SingleStatementContext stmt = givenQuery("SELECT COL1 AS BOB FROM TEST1;");
+
+    // When:
+    final Query result = (Query) builder.build(stmt);
+
+    // Then:
+    assertThat(result.getSelect(), is(new Select(ImmutableList.of(
+        new SingleColumn(column("TEST1", "COL1"), "BOB")))));
+  }
+
+  @Test
+  public void shouldHandleUnqualifiedSelectStar() {
+    // Given:
+    final SingleStatementContext stmt = givenQuery("SELECT * FROM TEST1;");
+
+    // When:
+    final Query result = (Query) builder.build(stmt);
+
+    // Then:
+    assertThat(result.getSelect(),
+        is(new Select(ImmutableList.of(new AllColumns(Optional.empty())))));
+  }
+
+  @Test
+  public void shouldHandleQualifiedSelectStar() {
+    // Given:
+    final SingleStatementContext stmt = givenQuery("SELECT TEST1.* FROM TEST1;");
+
+    // When:
+    final Query result = (Query) builder.build(stmt);
+
+    // Then:
+    assertThat(result.getSelect(),
+        is(new Select(ImmutableList.of(new AllColumns(Optional.of(QualifiedName.of("TEST1")))))));
+  }
+
+  @Test
+  public void shouldHandleAliasQualifiedSelectStar() {
+    // Given:
+    final SingleStatementContext stmt = givenQuery("SELECT T.* FROM TEST1 T;");
+
+    // When:
+    final Query result = (Query) builder.build(stmt);
+
+    // Then:
+    assertThat(result.getSelect(),
+        is(new Select(ImmutableList.of(new AllColumns(Optional.of(QualifiedName.of("T")))))));
+  }
+
+  @Test
+  public void shouldThrowOnUnknownStarAlias() {
+    // Given:
+    final SingleStatementContext stmt = givenQuery("SELECT unknown.* FROM TEST1;");
+
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("'UNKNOWN' is not a valid stream/table name or alias.");
+
+    // When:
+    builder.build(stmt);
+  }
+
+  @Test
+  public void shouldHandleUnqualifiedSelectStarOnJoin() {
+    // Given:
+    final SingleStatementContext stmt =
+        givenQuery("SELECT * FROM TEST1 JOIN TEST2 WITHIN 1 SECOND ON TEST1.ID = TEST2.ID;");
+
+    // When:
+    final Query result = (Query) builder.build(stmt);
+
+    // Then:
+    assertThat(result.getSelect(),
+        is(new Select(ImmutableList.of(new AllColumns(Optional.empty())))));
+  }
+
+  @Test
+  public void shouldHandleQualifiedSelectStarOnLeftJoinSource() {
+    // Given:
+    final SingleStatementContext stmt =
+        givenQuery("SELECT TEST1.* FROM TEST1 JOIN TEST2 WITHIN 1 SECOND ON TEST1.ID = TEST2.ID;");
+
+    // When:
+    final Query result = (Query) builder.build(stmt);
+
+    // Then:
+    assertThat(result.getSelect(),
+        is(new Select(ImmutableList.of(new AllColumns(Optional.of(QualifiedName.of("TEST1")))))));
+  }
+
+  @Test
+  public void shouldHandleQualifiedSelectStarOnRightJoinSource() {
+    // Given:
+    final SingleStatementContext stmt =
+        givenQuery("SELECT TEST2.* FROM TEST1 JOIN TEST2 WITHIN 1 SECOND ON TEST1.ID = TEST2.ID;");
+
+    // When:
+    final Query result = (Query) builder.build(stmt);
+
+    // Then:
+    assertThat(result.getSelect(),
+        is(new Select(ImmutableList.of(new AllColumns(Optional.of(QualifiedName.of("TEST2")))))));
+  }
+
+  @Test
+  public void shouldHandleAliasQualifiedSelectStarOnLeftJoinSource() {
+    // Given:
+    final SingleStatementContext stmt =
+        givenQuery("SELECT T1.* FROM TEST1 T1 JOIN TEST2 WITHIN 1 SECOND ON T1.ID = TEST2.ID;");
+
+    // When:
+    final Query result = (Query) builder.build(stmt);
+
+    // Then:
+    assertThat(result.getSelect(),
+        is(new Select(ImmutableList.of(new AllColumns(Optional.of(QualifiedName.of("T1")))))));
+  }
+
+  @Test
+  public void shouldHandleAliasQualifiedSelectStarOnRightJoinSource() {
+    // Given:
+    final SingleStatementContext stmt =
+        givenQuery("SELECT T2.* FROM TEST1 JOIN TEST2 T2 WITHIN 1 SECOND ON TEST1.ID = T2.ID;");
+
+    // When:
+    final Query result = (Query) builder.build(stmt);
+
+    // Then:
+    assertThat(result.getSelect(),
+        is(new Select(ImmutableList.of(new AllColumns(Optional.of(QualifiedName.of("T2")))))));
+  }
+
+  @Test
+  public void shouldThrowOnUnknownStarAliasOnJoin() {
+    // Given:
+    final SingleStatementContext stmt =
+        givenQuery("SELECT unknown.* FROM TEST1 JOIN TEST2 WITHIN 1 SECOND ON TEST1.ID = TEST2.ID;");
+
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("'UNKNOWN' is not a valid stream/table name or alias.");
+
+    // When:
+    builder.build(stmt);
+  }
+
+  @Test
+  public void shouldThrowOnUnknownSource() {
+    // Given:
+    final SingleStatementContext stmt = givenQuery("SELECT * FROM Unknown;");
+
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("UNKNOWN does not exist");
+
+    // When:
+    builder.build(stmt);
+  }
+
+  @Test
+  public void shouldThrowOnUnknownLeftJoinSource() {
+    // Given:
+    final SingleStatementContext stmt =
+        givenQuery("SELECT * FROM UNKNOWN JOIN TEST2 T2 WITHIN 1 SECOND ON UNKNOWN.ID = T2.ID;");
+
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("UNKNOWN does not exist");
+
+    // When:
+    builder.build(stmt);
+  }
+
+  @Test
+  public void shouldThrowOnUnknownRightJoinSource() {
+    // Given:
+    final SingleStatementContext stmt =
+        givenQuery("SELECT * FROM TEST1 T1 JOIN UNKNOWN WITHIN 1 SECOND ON T1.ID = UNKNOWN.ID;");
+
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("UNKNOWN does not exist");
+
+    // When:
+    builder.build(stmt);
+  }
+
   private static SingleStatementContext givenQuery(final String sql) {
     final List<ParsedStatement> statements = KsqlParserTestUtil.parse(sql);
     assertThat(statements, hasSize(1));
     return statements.get(0).getStatement();
+  }
+
+  private static DereferenceExpression column(final String source, final String fieldNamne) {
+    return new DereferenceExpression(
+        new QualifiedNameReference(QualifiedName.of(source)), fieldNamne);
   }
 }

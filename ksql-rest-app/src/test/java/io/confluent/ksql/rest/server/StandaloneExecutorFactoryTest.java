@@ -126,7 +126,7 @@ public class StandaloneExecutorFactoryTest {
     }
   }
 
-  @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
+  @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT") // Not a bug
   @Test
   public void shouldCreateConfigTopicThenGetConfig() {
     // When:

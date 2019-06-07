@@ -645,7 +645,7 @@ The WITH clause for the result supports the following properties:
 |                         | :ref:`ksql_single_field_wrapping`.                                                                   |
 |                         |                                                                                                      |
 |                         | Note: Supplying this property for formats that do not support wrapping, for example                  |
-|                         | `DELIMITED`, or when the value schema has multiple fields, will result in an error.                  |
+|                         | ``DELIMITED``, or when the value schema has multiple fields, will result in an error.                |
 +-------------------------+------------------------------------------------------------------------------------------------------+
 
 .. include:: ../includes/ksql-includes.rst

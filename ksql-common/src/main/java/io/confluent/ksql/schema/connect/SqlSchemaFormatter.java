@@ -15,35 +15,26 @@
 
 package io.confluent.ksql.schema.connect;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.util.KsqlException;
 import java.util.EnumSet;
-import java.util.Map;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.Schema.Type;
 
 /**
  * Format the schema as SQL.
  */
 public class SqlSchemaFormatter implements SchemaFormatter {
 
-  private static final Map<Type, Formatter> SCHEMA_TYPE_TO_SQL_TYPE =
-      ImmutableMap.<Schema.Type, Formatter>builder()
-          .put(Schema.Type.INT32, ignored -> "INT")
-          .put(Schema.Type.INT64, ignored -> "BIGINT")
-          .put(Schema.Type.FLOAT32, ignored -> "DOUBLE")
-          .put(Schema.Type.FLOAT64, ignored -> "DOUBLE")
-          .put(Schema.Type.BOOLEAN, ignored -> "BOOLEAN")
-          .put(Schema.Type.STRING, ignored -> "VARCHAR")
-          .put(Schema.Type.ARRAY, SqlSchemaFormatter::formatArray)
-          .put(Schema.Type.MAP, SqlSchemaFormatter::formatMap)
-          .put(Schema.Type.STRUCT, SqlSchemaFormatter::formatStruct)
-          .build();
+  private static final String MAP_START = "MAP<";
+  private static final String ARRAY_START = "ARRAY<";
+  private static final String STRUCT_START = "STRUCT<";
+  private static final String STRUCTURED_END = ">";
+  private static final String NOT_NULL_SUFFIX = " NOT NULL";
 
   public enum Option {
     /**
@@ -52,9 +43,10 @@ public class SqlSchemaFormatter implements SchemaFormatter {
     APPEND_NOT_NULL,
 
     /**
-     * If the schema is a {@code STRUCT} list the columns in the form {@code [col0 type, ...]}.
+     * If the schema is a {@code STRUCT} list the columns in the form
+     * {@code col0 type, col1 type, ...}.
      *
-     * <p>The default form would be {@code STRUCT<col0 type, ...>}.
+     * <p>The default form would be {@code STRUCT<col0 type, col1 type, ...>}.
      */
     AS_COLUMN_LIST
   }
@@ -78,85 +70,87 @@ public class SqlSchemaFormatter implements SchemaFormatter {
 
   @Override
   public String format(final Schema schema) {
-    return formatSchema(new Context(schema, options, true, reservedWords));
+    final String converted = SchemaWalker.visit(schema, new Converter()) + typePostFix(schema);
+
+    return options.contains(Option.AS_COLUMN_LIST)
+        ? stripTopLevelStruct(converted)
+        : converted;
   }
 
-  private static String formatSchema(final Context context) {
-    final String type = formatSchemaType(context);
-    if (!context.options.contains(Option.APPEND_NOT_NULL) || context.schema.isOptional()) {
-      return type;
-    }
-    return type + " NOT NULL";
-  }
-
-  private static String formatSchemaType(final Context context) {
-    final Formatter formatter = SCHEMA_TYPE_TO_SQL_TYPE.get(context.schema.type());
-    if (formatter == null) {
-      throw new KsqlException("Invalid type in schema: " + context.schema.toString());
-    }
-
-    return formatter.apply(context);
-  }
-
-  private static String formatArray(final Context context) {
-    return "ARRAY<"
-        + formatSchema(context.withSchema(context.schema.valueSchema()))
-        + ">";
-  }
-
-  private static String formatMap(final Context context) {
-    return "MAP<"
-        + formatSchema(context.withSchema(context.schema.keySchema())) + ", "
-        + formatSchema(context.withSchema(context.schema.valueSchema()))
-        + ">";
-  }
-
-  private static String formatStruct(final Context context) {
-    final String prefix;
-    final String postFix;
-    if (context.topLevel && context.options.contains(Option.AS_COLUMN_LIST)) {
-      prefix = "";
-      postFix = "";
-    } else {
-      prefix = "STRUCT<";
-      postFix = ">";
-    }
-
-    return context.schema.fields().stream()
-        .map(field ->
-            quote(field.name(), context.reservedWords)
-                + " " + formatSchema(context.withSchema(field.schema())))
-        .collect(Collectors.joining(", ", prefix, postFix));
-  }
-
-  private static String quote(final String value, final Set<String> reservedWords) {
+  private String quoteIfReserved(final String value) {
     return reservedWords.contains(value) ? "`" + value + "`" : value;
   }
 
-  private static final class Context {
-    final Schema schema;
-    final Set<Option> options;
-    final boolean topLevel;
-    final Set<String> reservedWords;
-
-    private Context(
-        final Schema schema,
-        final Set<Option> options,
-        final boolean topLevel,
-        final Set<String> reservedWords
-    ) {
-      this.schema = schema;
-      this.options = options;
-      this.topLevel = topLevel;
-      this.reservedWords = reservedWords;
+  private String typePostFix(final Schema schema) {
+    if (options.contains(Option.APPEND_NOT_NULL) && !schema.isOptional()) {
+      return NOT_NULL_SUFFIX;
     }
 
-    Context withSchema(final Schema newSchema) {
-      // after changing the schema, it is no longer a top level schema
-      return new Context(newSchema, options, false, reservedWords);
-    }
+    return "";
   }
 
-  private interface Formatter extends Function<Context, String> {
+  private static String stripTopLevelStruct(final String toStrip) {
+    if (!toStrip.startsWith(STRUCT_START)) {
+      return toStrip;
+    }
+
+    final String suffixStripped = toStrip.endsWith(NOT_NULL_SUFFIX)
+        ? toStrip.substring(0, toStrip.length() - NOT_NULL_SUFFIX.length())
+        : toStrip;
+
+    return suffixStripped
+        .substring(STRUCT_START.length(), suffixStripped.length() - STRUCTURED_END.length());
+  }
+
+  private final class Converter implements SchemaWalker.Visitor<String, String> {
+
+    public String visitSchema(final Schema schema) {
+      throw new KsqlException("Invalid type in schema: " + schema);
+    }
+
+    public String visitBoolean(final Schema schema) {
+      return "BOOLEAN";
+    }
+
+    public String visitInt32(final Schema schema) {
+      return "INT";
+    }
+
+    public String visitInt64(final Schema schema) {
+      return "BIGINT";
+    }
+
+    public String visitFloat64(final Schema schema) {
+      return "DOUBLE";
+    }
+
+    public String visitString(final Schema schema) {
+      return "VARCHAR";
+    }
+
+    public String visitArray(final Schema schema, final String element) {
+      return ARRAY_START
+          + element + typePostFix(schema.valueSchema())
+          + STRUCTURED_END;
+    }
+
+    public String visitMap(final Schema schema, final String key, final String value) {
+      return MAP_START
+          + key + typePostFix(schema.keySchema()) + ", "
+          + value + typePostFix(schema.valueSchema())
+          + STRUCTURED_END;
+    }
+
+    public String visitStruct(final Schema schema, final List<? extends String> fields) {
+      return fields.stream()
+          .collect(Collectors.joining(", ", STRUCT_START, STRUCTURED_END));
+    }
+
+    public String visitField(final Field field, final String type) {
+      final Schema schema = field.schema();
+      final String typePostFix = typePostFix(schema);
+
+      return quoteIfReserved(field.name()) + " " + type + typePostFix;
+    }
   }
 }

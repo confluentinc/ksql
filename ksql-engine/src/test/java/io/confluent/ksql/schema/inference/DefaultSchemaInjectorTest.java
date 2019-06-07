@@ -91,7 +91,6 @@ public class DefaultSchemaInjectorTest {
   private static final Schema SUPPORTED_SCHEMA = SchemaBuilder.struct()
       .field("intField", Schema.OPTIONAL_INT32_SCHEMA)
       .field("bigIntField", Schema.OPTIONAL_INT64_SCHEMA)
-      .field("floatField", Schema.OPTIONAL_FLOAT32_SCHEMA)
       .field("doubleField", Schema.OPTIONAL_FLOAT64_SCHEMA)
       .field("stringField", Schema.OPTIONAL_STRING_SCHEMA)
       .field("booleanField", Schema.OPTIONAL_BOOLEAN_SCHEMA)
@@ -106,7 +105,6 @@ public class DefaultSchemaInjectorTest {
       .<TableElement>builder()
       .add(new TableElement("INTFIELD", PrimitiveType.of(SqlType.INTEGER)))
       .add(new TableElement("BIGINTFIELD", PrimitiveType.of(SqlType.BIGINT)))
-      .add(new TableElement("FLOATFIELD", PrimitiveType.of(SqlType.DOUBLE)))
       .add(new TableElement("DOUBLEFIELD", PrimitiveType.of(SqlType.DOUBLE)))
       .add(new TableElement("STRINGFIELD", PrimitiveType.of(SqlType.STRING)))
       .add(new TableElement("BOOLEANFIELD", PrimitiveType.of(SqlType.BOOLEAN)))
@@ -274,7 +272,6 @@ public class DefaultSchemaInjectorTest {
         "CREATE STREAM cs ("
             + "INTFIELD INTEGER, "
             + "BIGINTFIELD BIGINT, "
-            + "FLOATFIELD DOUBLE, "
             + "DOUBLEFIELD DOUBLE, "
             + "STRINGFIELD STRING, "
             + "BOOLEANFIELD BOOLEAN, "
@@ -299,7 +296,6 @@ public class DefaultSchemaInjectorTest {
         "CREATE TABLE ct ("
             + "INTFIELD INTEGER, "
             + "BIGINTFIELD BIGINT, "
-            + "FLOATFIELD DOUBLE, "
             + "DOUBLEFIELD DOUBLE, "
             + "STRINGFIELD STRING, "
             + "BOOLEANFIELD BOOLEAN, "
@@ -326,7 +322,6 @@ public class DefaultSchemaInjectorTest {
         "CREATE STREAM cs ("
             + "INTFIELD INTEGER, "
             + "BIGINTFIELD BIGINT, "
-            + "FLOATFIELD DOUBLE, "
             + "DOUBLEFIELD DOUBLE, "
             + "STRINGFIELD STRING, "
             + "BOOLEANFIELD BOOLEAN, "
@@ -353,7 +348,6 @@ public class DefaultSchemaInjectorTest {
         "CREATE TABLE ct ("
             + "INTFIELD INTEGER, "
             + "BIGINTFIELD BIGINT, "
-            + "FLOATFIELD DOUBLE, "
             + "DOUBLEFIELD DOUBLE, "
             + "STRINGFIELD STRING, "
             + "BOOLEANFIELD BOOLEAN, "

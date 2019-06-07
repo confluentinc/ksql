@@ -225,7 +225,7 @@ public class SqlSchemaFormatterTest {
   }
 
   @Test
-  public void shouldFormatStructAsColumns() {
+  public void shouldFormatOptionalStructAsColumns() {
     // Given:
     final Schema structSchema = SchemaBuilder.struct()
         .field("COL1", Schema.OPTIONAL_STRING_SCHEMA)
@@ -240,7 +240,40 @@ public class SqlSchemaFormatterTest {
         .optional()
         .build();
 
-    final SqlSchemaFormatter formatter = new SqlSchemaFormatter(Option.AS_COLUMN_LIST);
+    final SqlSchemaFormatter formatter = new SqlSchemaFormatter(
+        Option.AS_COLUMN_LIST,
+        Option.APPEND_NOT_NULL
+    );
+
+    // When:
+    final String result = formatter.format(structSchema);
+
+    // Then:
+    assertThat(result, is(
+        "COL1 VARCHAR, "
+            + "COL4 ARRAY<DOUBLE>, "
+            + "COL5 MAP<VARCHAR, DOUBLE>"));
+  }
+
+  @Test
+  public void shouldFormatRequiredStructAsColumns() {
+    // Given:
+    final Schema structSchema = SchemaBuilder.struct()
+        .field("COL1", Schema.OPTIONAL_STRING_SCHEMA)
+        .field("COL4", SchemaBuilder
+            .array(Schema.OPTIONAL_FLOAT64_SCHEMA)
+            .optional()
+            .build())
+        .field("COL5", SchemaBuilder
+            .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_FLOAT64_SCHEMA)
+            .optional()
+            .build())
+        .build();
+
+    final SqlSchemaFormatter formatter = new SqlSchemaFormatter(
+        Option.AS_COLUMN_LIST,
+        Option.APPEND_NOT_NULL
+    );
 
     // When:
     final String result = formatter.format(structSchema);

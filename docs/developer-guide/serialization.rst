@@ -147,7 +147,7 @@ For more information, see :ref:`ksql-persistence-wrap-single-values`.
 .. important:: KSQL treats ``null` keys and values as a special case. We recommended avoiding
                unwrapped single-field schemas if the field can have a ``null`` value.
 
-A ``null`` value in a table's topic is treated as a tombstone, used to indicate a row has been
+A ``null`` value in a table's topic is treated as a tombstone, which indicates that a row has been
 removed. If a table's source topic has an unwrapped single-field key schema and the value is
 ``null``, it be treated as a tombstone, resulting in any previous value for the key being removed
 from the table.

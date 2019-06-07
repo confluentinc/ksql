@@ -32,9 +32,9 @@
   "ksql.query.persistent.active.limit" : "2147483647"
 }
 CONFIGS_END
-CSAS_INNER_JOIN_0.KafkaTopic_Left.source = struct<ID optional<int64>,NAME optional<string>,VALUE optional<int64>>
-CSAS_INNER_JOIN_0.Join.left = struct<ROWTIME optional<int64>,ROWKEY optional<string>,ID optional<int64>,NAME optional<string>,VALUE optional<int64>>
-CSAS_INNER_JOIN_0.INNER_JOIN = struct<ID1 optional<int64>,ID2 optional<int64>,ID3 optional<string>,ID4 optional<int64>,ID5 optional<string>>
+CSAS_INNER_JOIN_0.KafkaTopic_Left.source = STRUCT<ID BIGINT, NAME VARCHAR, VALUE BIGINT> NOT NULL
+CSAS_INNER_JOIN_0.Join.left = STRUCT<ROWTIME BIGINT, ROWKEY VARCHAR, ID BIGINT, NAME VARCHAR, VALUE BIGINT> NOT NULL
+CSAS_INNER_JOIN_0.INNER_JOIN = STRUCT<ID1 BIGINT, ID2 BIGINT, ID3 VARCHAR, ID4 BIGINT, ID5 VARCHAR> NOT NULL
 SCHEMAS_END
 Topologies:
    Sub-topology: 0

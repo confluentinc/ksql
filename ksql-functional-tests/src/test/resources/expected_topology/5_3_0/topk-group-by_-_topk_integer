@@ -32,10 +32,10 @@
   "ksql.query.persistent.active.limit" : "2147483647"
 }
 CONFIGS_END
-CTAS_S2_0.KsqlTopic.source = struct<ID optional<int64>,NAME optional<string>,VALUE optional<int32>>
-CTAS_S2_0.Aggregate.groupby = struct<KSQL_INTERNAL_COL_0 optional<int64>,KSQL_INTERNAL_COL_1 optional<int32>,KSQL_INTERNAL_COL_2 optional<int32>>
-CTAS_S2_0.Aggregate.aggregate = struct<KSQL_INTERNAL_COL_0 optional<int64>,KSQL_INTERNAL_COL_1 optional<int32>,KSQL_AGG_VARIABLE_0 optional<array<optional<int32>>>>
-CTAS_S2_0.S2 = struct<ID optional<int64>,TOPK optional<array<optional<int32>>>>
+CTAS_S2_0.KsqlTopic.source = STRUCT<ID BIGINT, NAME VARCHAR, VALUE INT> NOT NULL
+CTAS_S2_0.Aggregate.groupby = STRUCT<KSQL_INTERNAL_COL_0 BIGINT, KSQL_INTERNAL_COL_1 INT, KSQL_INTERNAL_COL_2 INT> NOT NULL
+CTAS_S2_0.Aggregate.aggregate = STRUCT<KSQL_INTERNAL_COL_0 BIGINT, KSQL_INTERNAL_COL_1 INT, KSQL_AGG_VARIABLE_0 ARRAY<INT>> NOT NULL
+CTAS_S2_0.S2 = STRUCT<ID BIGINT, TOPK ARRAY<INT>> NOT NULL
 SCHEMAS_END
 Topologies:
    Sub-topology: 0

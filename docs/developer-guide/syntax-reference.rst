@@ -381,6 +381,22 @@ The WITH clause supports the following properties:
 |                         | ``''``, for example: ``'yyyy-MM-dd''T''HH:mm:ssX'``. For more information on timestamp     |
 |                         | formats, see `DateTimeFormatter <https://cnfl.io/java-dtf>`__.                             |
 +-------------------------+--------------------------------------------------------------------------------------------+
+| WRAP_SINGLE_VALUE       | Controls how values are deserialized where the value schema contains only a single field.  |
+|                         |                                                                                            |
+|                         | The setting controls how KSQL will deserialize the value of the records in the supplied    |
+|                         | ``KAFKA_TOPIC`` that contain only a single field.                                          |
+|                         | If set to ``true``, KSQL expects the field to have been serialized as a named field        |
+|                         | within a record.                                                                           |
+|                         | If set to ``false``, KSQL expects the field to have been serialized as an anonymous value. |
+|                         | If not supplied, the system default, defined by :ref:`ksql-persistence-wrap-single-values` |
+|                         | and defaulting to ``true```, is used.                                                      |
+|                         |                                                                                            |
+|                         | Note: Supplying this property for formats that do not support wrapping, for example        |
+|                         | `DELIMITED`, will result in an error                                                       |
+|                         |                                                                                            |
+|                         | Note: Supplying this property when the value schema has multiple fields will result in an  |
+|                         | error.                                                                                     |
++-------------------------+--------------------------------------------------------------------------------------------+
 | WINDOW_TYPE             | By default, the topic is assumed to contain non-windowed data. If the data is windowed,    |
 |                         | i.e. was created using KSQL using a query that contains a ``WINDOW`` clause, then the      |
 |                         | ``WINDOW_TYPE`` property can be used to provide the window type. Valid values are          |
@@ -478,6 +494,22 @@ The WITH clause supports the following properties:
 |                         | characters requiring single quotes, you can escape them with two successive single quotes, |
 |                         | ``''``, for example: ``'yyyy-MM-dd''T''HH:mm:ssX'``. For more information on timestamp     |
 |                         | formats, see `DateTimeFormatter <https://cnfl.io/java-dtf>`__.                             |
++-------------------------+--------------------------------------------------------------------------------------------+
+| WRAP_SINGLE_VALUE       | Controls how values are deserialized where the values schema contains only a single field. |
+|                         |                                                                                            |
+|                         | The setting controls how KSQL will deserialize the value of the records in the supplied    |
+|                         | ``KAFKA_TOPIC`` that contain only a single field.                                          |
+|                         | If set to ``true``, KSQL expects the field to have been serialized as named field          |
+|                         | within a record.                                                                           |
+|                         | If set to ``false``, KSQL expects the field to have been serialized as an anonymous value. |
+|                         | If not supplied, the system default, defined by :ref:`ksql-persistence-wrap-single-values` |
+|                         | and defaulting to ``true```, is used.                                                      |
+|                         |                                                                                            |
+|                         | Note: Supplying this property for formats that do not support wrapping, for example        |
+|                         | `DELIMITED`, will result in an error                                                       |
+|                         |                                                                                            |
+|                         | Note: Supplying this property when the value schema has multiple fields will result in an  |
+|                         | error.                                                                                     |
 +-------------------------+--------------------------------------------------------------------------------------------+
 | WINDOW_TYPE             | By default, the topic is assumed to contain non-windowed data. If the data is windowed,    |
 |                         | i.e. was created using KSQL using a query that contains a ``WINDOW`` clause, then the      |
@@ -598,6 +630,20 @@ The WITH clause for the result supports the following properties:
 |                         | ``''``, for example: ``'yyyy-MM-dd''T''HH:mm:ssX'``. For more information on timestamp               |
 |                         | formats, see `DateTimeFormatter <https://cnfl.io/java-dtf>`__.                                       |
 +-------------------------+------------------------------------------------------------------------------------------------------+
+| WRAP_SINGLE_VALUE       | Controls how values are serialized where the values schema contains only a single field.             |
+|                         |                                                                                                      |
+|                         | The setting controls how the query will serialize values with a single-field schema.                 |
+|                         | If set to ``true``, KSQL will serialize the field as a named field within a record.                  |
+|                         | If set to ``false`` KSQL, KSQL will serialize the field as an anonymous value.                       |
+|                         | If not supplied, the system default, defined by :ref:`ksql-persistence-wrap-single-values` and       |
+|                         | defaulting to ``true```, is used.                                                                    |
+|                         |                                                                                                      |
+|                         | Note: Supplying this property for formats that do not support wrapping, for example                  |
+|                         | `DELIMITED`, will result in an error                                                                 |
+|                         |                                                                                                      |
+|                         | Note: Supplying this property when the value schema has multiple fields will result in an            |
+|                         | error.                                                                                               |
++-------------------------+------------------------------------------------------------------------------------------------------+
 
 .. include:: ../includes/ksql-includes.rst
     :start-after: Avro_note_start
@@ -687,6 +733,20 @@ The WITH clause supports the following properties:
 |                         | characters requiring single quotes, you can escape them with two successive single quotes,           |
 |                         | ``''``, for example: ``'yyyy-MM-dd''T''HH:mm:ssX'``. For more information on timestamp               |
 |                         | formats, see `DateTimeFormatter <https://cnfl.io/java-dtf>`__.                                       |
++-------------------------+------------------------------------------------------------------------------------------------------+
+| WRAP_SINGLE_VALUE       | Controls how values are serialized where the values schema contains only a single field.             |
+|                         |                                                                                                      |
+|                         | The setting controls how the query will serialize values with a single-field schema.                 |
+|                         | If set to ``true``, KSQL will serialize the field as a named field within a record.                  |
+|                         | If set to ``false`` KSQL, KSQL will serialize the field as an anonymous value.                       |
+|                         | If not supplied, the system default, defined by :ref:`ksql-persistence-wrap-single-values` and       |
+|                         | defaulting to ``true```, is used.                                                                    |
+|                         |                                                                                                      |
+|                         | Note: Supplying this property for formats that do not support wrapping, for example                  |
+|                         | `DELIMITED`, will result in an error                                                                 |
+|                         |                                                                                                      |
+|                         | Note: Supplying this property when the value schema has multiple fields will result in an            |
+|                         | error.                                                                                               |
 +-------------------------+------------------------------------------------------------------------------------------------------+
 
 .. include:: ../includes/ksql-includes.rst

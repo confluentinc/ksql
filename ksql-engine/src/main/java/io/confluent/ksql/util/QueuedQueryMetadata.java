@@ -42,7 +42,7 @@ public class QueuedQueryMetadata extends QueryMetadata {
   public QueuedQueryMetadata(
       final String statementString,
       final KafkaStreams kafkaStreams,
-      final KsqlSchema resultSchema,
+      final KsqlSchema logicalSchema,
       final Set<String> sourceNames,
       final Consumer<LimitHandler> limitHandlerSetter,
       final String executionPlan,
@@ -57,7 +57,7 @@ public class QueuedQueryMetadata extends QueryMetadata {
     super(
         statementString,
         kafkaStreams,
-        resultSchema,
+        logicalSchema,
         sourceNames,
         executionPlan,
         dataSourceType,

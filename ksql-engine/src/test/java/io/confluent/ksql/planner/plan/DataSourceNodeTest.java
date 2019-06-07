@@ -26,6 +26,7 @@ import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -41,7 +42,9 @@ import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.physical.KsqlQueryBuilder;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
+import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
 import io.confluent.ksql.streams.MaterializedFactory;
 import io.confluent.ksql.structured.QueryContext;
@@ -106,10 +109,13 @@ public class DataSourceNodeTest {
       "sqlExpression",
       "datasource",
       realSchema,
+      SerdeOption.none(),
       KeyField.of("key", realSchema.getSchema().field("key")),
       new LongColumnTimestampExtractionPolicy("timestamp"),
       new KsqlTopic("topic", "topic",
-          new KsqlJsonSerdeFactory(), false), Serdes::String);
+          new KsqlJsonSerdeFactory(), false),
+      Serdes::String
+  );
 
   private final DataSourceNode node = new DataSourceNode(
       PLAN_NODE_ID,
@@ -154,6 +160,8 @@ public class DataSourceNodeTest {
   @Captor
   private ArgumentCaptor<QueryContext> queryContextCaptor;
 
+  private final Set<SerdeOption> serdeOptions = SerdeOption.none();
+
   @Before
   @SuppressWarnings("unchecked")
   public void before() {
@@ -170,13 +178,12 @@ public class DataSourceNodeTest {
     when(rowSerde.serializer()).thenReturn(mock(Serializer.class));
     when(rowSerde.deserializer()).thenReturn(mock(Deserializer.class));
 
-    realStream = node.buildStream(ksqlStreamBuilder);
-
     when(tableSource.getKsqlTopic()).thenReturn(ksqlTopic);
     when(tableSource.isWindowed()).thenReturn(false);
     when(tableSource.getDataSourceType()).thenReturn(DataSourceType.KTABLE);
     when(tableSource.getKeySerdeFactory()).thenReturn(() -> keySerde);
     when(tableSource.getTimestampExtractionPolicy()).thenReturn(timestampExtractionPolicy);
+    when(tableSource.getSerdeOptions()).thenReturn(serdeOptions);
     when(ksqlTopic.getKafkaTopicName()).thenReturn("topic");
     when(ksqlTopic.getValueSerdeFactory()).thenReturn(valueSerDeFactory);
     when(timestampExtractionPolicy.timestampField()).thenReturn(TIMESTAMP_FIELD);
@@ -212,6 +219,10 @@ public class DataSourceNodeTest {
 
   @Test
   public void shouldCreateLoggerForSourceSerde() {
+    // When:
+    node.buildStream(ksqlStreamBuilder);
+
+    // Then:
     verify(ksqlStreamBuilder).buildGenericRowSerde(
         any(),
         any(),
@@ -224,6 +235,10 @@ public class DataSourceNodeTest {
 
   @Test
   public void shouldBuildSourceNode() {
+    // When:
+    realStream = node.buildStream(ksqlStreamBuilder);
+
+    // Then:
     final TopologyDescription.Source node = (TopologyDescription.Source) getNodeByName(realBuilder.build(), PlanTestUtil.SOURCE_NODE);
     final List<String> successors = node.successors().stream().map(TopologyDescription.Node::name).collect(Collectors.toList());
     assertThat(node.predecessors(), equalTo(Collections.emptySet()));
@@ -233,6 +248,10 @@ public class DataSourceNodeTest {
 
   @Test
   public void shouldBuildMapNode() {
+    // When:
+    realStream = node.buildStream(ksqlStreamBuilder);
+
+    // Then:
     verifyProcessorNode((TopologyDescription.Processor) getNodeByName(realBuilder.build(), PlanTestUtil.MAPVALUES_NODE),
         Collections.singletonList(PlanTestUtil.SOURCE_NODE),
         Collections.singletonList(PlanTestUtil.TRANSFORM_NODE));
@@ -240,6 +259,10 @@ public class DataSourceNodeTest {
 
   @Test
   public void shouldBuildTransformNode() {
+    // When:
+    realStream = node.buildStream(ksqlStreamBuilder);
+
+    // Then:
     final TopologyDescription.Processor node = (TopologyDescription.Processor) getNodeByName(
         realBuilder.build(), PlanTestUtil.TRANSFORM_NODE);
     verifyProcessorNode(node, Collections.singletonList(PlanTestUtil.MAPVALUES_NODE), Collections.emptyList());
@@ -247,11 +270,19 @@ public class DataSourceNodeTest {
 
   @Test
   public void shouldHaveNoOutputNode() {
+    // When:
+    realStream = node.buildStream(ksqlStreamBuilder);
+
+    // Then:
     assertThat(realStream.outputNode(), nullValue());
   }
 
   @Test
   public void shouldBeOfTypeSchemaKStreamWhenDataSourceIsKsqlStream() {
+    // When:
+    realStream = node.buildStream(ksqlStreamBuilder);
+
+    // Then:
     assertThat(realStream.getClass(), equalTo(SchemaKStream.class));
   }
 
@@ -268,11 +299,13 @@ public class DataSourceNodeTest {
   public void shouldBuildSchemaKTableWhenKTableSource() {
     final KsqlTable<String> table = new KsqlTable<>("sqlExpression", "datasource",
         realSchema,
+        SerdeOption.none(),
         KeyField.of("field1", realSchema.getSchema().field("field1")),
         new LongColumnTimestampExtractionPolicy("timestamp"),
         new KsqlTopic("topic2", "topic2",
             new KsqlJsonSerdeFactory(), false),
-        Serdes::String);
+        Serdes::String
+    );
 
     final DataSourceNode node = new DataSourceNode(
         PLAN_NODE_ID,
@@ -287,11 +320,13 @@ public class DataSourceNodeTest {
   public void shouldTransformKStreamToKTableCorrectly() {
     final KsqlTable<String> table = new KsqlTable<>("sqlExpression", "datasource",
         realSchema,
+        SerdeOption.none(),
         KeyField.of("field1", realSchema.getSchema().field("field1")),
         new LongColumnTimestampExtractionPolicy("timestamp"),
         new KsqlTopic("topic2", "topic2",
             new KsqlJsonSerdeFactory(), false),
-        Serdes::String);
+        Serdes::String
+    );
 
     final DataSourceNode node = new DataSourceNode(
         PLAN_NODE_ID,
@@ -346,6 +381,23 @@ public class DataSourceNodeTest {
             .field(sourceName + "." + TIMESTAMP_FIELD, Schema.OPTIONAL_INT64_SCHEMA)
             .field(sourceName + ".key", Schema.OPTIONAL_STRING_SCHEMA)
             .build())));
+  }
+
+  @Test
+  public void shouldBuildRowSerdeWithSourceSchema() {
+    // Given:
+    final DataSourceNode node = nodeWithMockTableSource();
+
+    final PhysicalSchema expected = PhysicalSchema.from(realSchema, serdeOptions);
+
+    // When:
+    node.buildStream(ksqlStreamBuilder);
+
+    // Then:
+    verify(ksqlStreamBuilder).buildGenericRowSerde(
+        any(),
+        eq(expected),
+        any());
   }
 
   @SuppressWarnings("unchecked")

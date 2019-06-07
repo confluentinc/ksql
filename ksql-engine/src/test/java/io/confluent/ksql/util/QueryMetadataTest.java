@@ -152,6 +152,6 @@ public class QueryMetadataTest {
 
   @Test
   public void shouldReturnSchema() {
-    assertThat(query.getResultSchema(), is(SOME_SCHEMA));
+    assertThat(query.getLogicalSchema(), is(SOME_SCHEMA));
   }
 }

@@ -59,6 +59,8 @@ import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.rest.server.computation.CommandId;
 import io.confluent.ksql.rest.server.resources.Errors;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
@@ -311,7 +313,7 @@ public class CliTest {
 
   private void testCreateStreamAsSelect(
       String selectQuery,
-      final KsqlSchema resultSchema,
+      final PhysicalSchema resultSchema,
       final Map<String, GenericRow> expectedResults
   ) {
     if (!selectQuery.endsWith(";")) {
@@ -572,11 +574,17 @@ public class CliTest {
             80.0,
             new Double[]{1100.0, 1110.99, 970.0})));
 
-    final KsqlSchema resultSchema = KsqlSchema.of(SchemaBuilder.struct()
-        .field("ITEMID", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
-        .field("ORDERUNITS", SchemaBuilder.OPTIONAL_FLOAT64_SCHEMA)
-        .field("PRICEARRAY", SchemaBuilder.array(SchemaBuilder.OPTIONAL_FLOAT64_SCHEMA).optional().build())
-        .build());
+    final PhysicalSchema resultSchema = PhysicalSchema.from(
+        KsqlSchema.of(SchemaBuilder.struct()
+            .field("ITEMID", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
+            .field("ORDERUNITS", SchemaBuilder.OPTIONAL_FLOAT64_SCHEMA)
+            .field("PRICEARRAY", SchemaBuilder
+                .array(SchemaBuilder.OPTIONAL_FLOAT64_SCHEMA)
+                .optional()
+                .build())
+            .build()),
+        SerdeOption.none()
+    );
 
     testCreateStreamAsSelect(
         "SELECT ITEMID, ORDERUNITS, PRICEARRAY FROM " + orderDataProvider.kstreamName(),
@@ -637,14 +645,17 @@ public class CliTest {
         orderDataProvider.kstreamName()
     );
 
-    final Schema sourceSchema = orderDataProvider.schema().getSchema();
-    final KsqlSchema resultSchema = KsqlSchema.of(SchemaBuilder.struct()
-        .field("ITEMID", sourceSchema.field("ITEMID").schema())
-        .field("COL1", sourceSchema.field("ORDERUNITS").schema())
-        .field("COL2", sourceSchema.field("PRICEARRAY").schema().valueSchema())
-        .field("COL3", sourceSchema.field("KEYVALUEMAP").schema().valueSchema())
-        .field("COL4", SchemaBuilder.OPTIONAL_BOOLEAN_SCHEMA)
-        .build());
+    final Schema sourceSchema = orderDataProvider.schema().logicalSchema().getSchema();
+    final PhysicalSchema resultSchema = PhysicalSchema.from(
+        KsqlSchema.of(SchemaBuilder.struct()
+            .field("ITEMID", sourceSchema.field("ITEMID").schema())
+            .field("COL1", sourceSchema.field("ORDERUNITS").schema())
+            .field("COL2", sourceSchema.field("PRICEARRAY").schema().valueSchema())
+            .field("COL3", sourceSchema.field("KEYVALUEMAP").schema().valueSchema())
+            .field("COL4", SchemaBuilder.OPTIONAL_BOOLEAN_SCHEMA)
+            .build()),
+        SerdeOption.none()
+    );
 
     final Map<String, GenericRow> expectedResults = new HashMap<>();
     expectedResults.put("8", new GenericRow(ImmutableList.of("ITEM_8", 800.0, 1110.0, 12.0, true)));

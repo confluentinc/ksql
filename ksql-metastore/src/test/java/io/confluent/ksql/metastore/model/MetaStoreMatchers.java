@@ -17,7 +17,9 @@ package io.confluent.ksql.metastore.model;
 
 import static org.hamcrest.Matchers.is;
 
+import io.confluent.ksql.serde.SerdeOption;
 import java.util.Optional;
+import java.util.Set;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.hamcrest.Description;
@@ -60,6 +62,20 @@ public final class MetaStoreMatchers {
       @Override
       protected Schema featureValueOf(final DataSource<?> actual) {
         return actual.getSchema().getSchema();
+      }
+    };
+  }
+
+  public static Matcher<DataSource<?>> hasSerdeOptions(
+      final Matcher<Iterable<? super SerdeOption>> expected
+  ) {
+    return new FeatureMatcher<DataSource<?>, Set<SerdeOption>>(
+        expected,
+        "source with serde options",
+        "serde options") {
+      @Override
+      protected Set<SerdeOption> featureValueOf(final DataSource<?> actual) {
+        return actual.getSerdeOptions();
       }
     };
   }

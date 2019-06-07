@@ -43,9 +43,11 @@ import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.persistence.PersistenceSchema;
 import io.confluent.ksql.serde.GenericRowSerDe;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
+import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
 import io.confluent.ksql.streams.MaterializedFactory;
 import io.confluent.ksql.streams.StreamsUtil;
@@ -53,7 +55,6 @@ import io.confluent.ksql.testutils.AnalysisTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
-import io.confluent.ksql.util.SchemaTestUtil;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -130,7 +131,7 @@ public class SchemaKGroupedTableTest {
     final KsqlSerdeFactory ksqlSerdeFactory = new KsqlJsonSerdeFactory();
     final Serde<GenericRow> rowSerde = GenericRowSerDe.from(
         ksqlSerdeFactory,
-        SchemaTestUtil.getSchemaWithNoAlias(initialSchemaKTable.getSchema().getSchema()),
+        PhysicalSchema.from(initialSchemaKTable.getSchema().withoutAlias(), SerdeOption.none()),
         null,
         () -> null,
         "test",
@@ -158,7 +159,7 @@ public class SchemaKGroupedTableTest {
           windowExpression,
           GenericRowSerDe.from(
               new KsqlJsonSerdeFactory(),
-              ksqlTable.getSchema().getSchema(),
+              PhysicalSchema.from(ksqlTable.getSchema(), SerdeOption.none()),
               ksqlConfig,
               () -> null,
               "test",
@@ -189,7 +190,7 @@ public class SchemaKGroupedTableTest {
           null,
           GenericRowSerDe.from(
               new KsqlJsonSerdeFactory(),
-              ksqlTable.getSchema().getSchema(),
+              PhysicalSchema.from(ksqlTable.getSchema(), SerdeOption.none()),
               ksqlConfig,
               () -> null,
               "test",

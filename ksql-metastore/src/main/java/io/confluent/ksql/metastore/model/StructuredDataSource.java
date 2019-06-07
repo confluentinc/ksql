@@ -17,11 +17,14 @@ package io.confluent.ksql.metastore.model;
 
 import static java.util.Objects.requireNonNull;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.metastore.SerdeFactory;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
+import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
+import java.util.Set;
 
 @Immutable
 abstract class StructuredDataSource<K> implements DataSource<K> {
@@ -34,11 +37,13 @@ abstract class StructuredDataSource<K> implements DataSource<K> {
   private final SerdeFactory<K> keySerde;
   private final KsqlTopic ksqlTopic;
   private final String sqlExpression;
+  private final ImmutableSet<SerdeOption> serdeOptions;
 
   StructuredDataSource(
       final String sqlExpression,
       final String dataSourceName,
       final KsqlSchema schema,
+      final Set<SerdeOption> serdeOptions,
       final KeyField keyField,
       final TimestampExtractionPolicy tsExtractionPolicy,
       final DataSourceType dataSourceType,
@@ -54,6 +59,7 @@ abstract class StructuredDataSource<K> implements DataSource<K> {
     this.dataSourceType = requireNonNull(dataSourceType, "dataSourceType");
     this.ksqlTopic = requireNonNull(ksqlTopic, "ksqlTopic");
     this.keySerde = requireNonNull(keySerde, "keySerde");
+    this.serdeOptions = ImmutableSet.copyOf(requireNonNull(serdeOptions, "serdeOptions"));
   }
 
   @Override
@@ -69,6 +75,11 @@ abstract class StructuredDataSource<K> implements DataSource<K> {
   @Override
   public KsqlSchema getSchema() {
     return schema;
+  }
+
+  @Override
+  public Set<SerdeOption> getSerdeOptions() {
+    return serdeOptions;
   }
 
   @Override
@@ -110,5 +121,4 @@ abstract class StructuredDataSource<K> implements DataSource<K> {
   public String getSqlExpression() {
     return sqlExpression;
   }
-
 }

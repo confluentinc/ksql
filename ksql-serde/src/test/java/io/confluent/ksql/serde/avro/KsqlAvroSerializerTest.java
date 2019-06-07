@@ -154,7 +154,6 @@ public class KsqlAvroSerializerTest {
     final ImmutableMap<String, Object> configs = ImmutableMap.of(
         AbstractKafkaAvroSerDeConfig.AUTO_REGISTER_SCHEMAS, true,
         AbstractKafkaAvroSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, ""
-
     );
 
     deserializer = new KafkaAvroDeserializer(schemaRegistryClient, configs);

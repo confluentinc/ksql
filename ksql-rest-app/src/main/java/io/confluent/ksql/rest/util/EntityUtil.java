@@ -15,69 +15,70 @@
 
 package io.confluent.ksql.rest.util;
 
-import avro.shaded.com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.rest.entity.FieldInfo;
 import io.confluent.ksql.rest.entity.SchemaInfo;
+import io.confluent.ksql.schema.SqlType;
+import io.confluent.ksql.schema.connect.SchemaWalker;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
+import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 
 public final class EntityUtil {
-  private static final Map<Schema.Type, SchemaInfo.Type>
-      SCHEMA_TYPE_TO_SCHEMA_INFO_TYPE =
-      ImmutableMap.<Schema.Type, SchemaInfo.Type>builder()
-          .put(Schema.Type.INT32, SchemaInfo.Type.INTEGER)
-          .put(Schema.Type.INT64, SchemaInfo.Type.BIGINT)
-          .put(Schema.Type.FLOAT32, SchemaInfo.Type.DOUBLE)
-          .put(Schema.Type.FLOAT64, SchemaInfo.Type.DOUBLE)
-          .put(Schema.Type.BOOLEAN, SchemaInfo.Type.BOOLEAN)
-          .put(Schema.Type.STRING, SchemaInfo.Type.STRING)
-          .put(Schema.Type.ARRAY, SchemaInfo.Type.ARRAY)
-          .put(Schema.Type.MAP, SchemaInfo.Type.MAP)
-          .put(Schema.Type.STRUCT, SchemaInfo.Type.STRUCT)
-          .build();
 
   private EntityUtil() {
   }
 
   public static List<FieldInfo> buildSourceSchemaEntity(final KsqlSchema schema) {
-    return buildSchemaEntity(schema.getSchema()).getFields()
+    return SchemaWalker.visit(schema.getSchema(), new Converter())
+        .getFields()
         .orElseThrow(() -> new RuntimeException("Root schema should contain fields"));
   }
 
-  private static SchemaInfo buildSchemaEntity(final Schema schema) {
-    switch (schema.type()) {
-      case ARRAY:
-      case MAP:
-        return new SchemaInfo(
-            getSchemaTypeString(schema),
-            null,
-            buildSchemaEntity(schema.valueSchema())
-        );
-      case STRUCT:
-        return new SchemaInfo(
-            getSchemaTypeString(schema),
-            schema.fields()
-                .stream()
-                .map(
-                    f -> new FieldInfo(f.name(), buildSchemaEntity(f.schema())))
-                .collect(Collectors.toList()),
-            null
-        );
-      default:
-        return new SchemaInfo(getSchemaTypeString(schema), null, null);
-    }
-  }
+  private static final class Converter implements SchemaWalker.Visitor<SchemaInfo, FieldInfo> {
 
-  private static SchemaInfo.Type getSchemaTypeString(final Schema schema) {
-    final SchemaInfo.Type type = SCHEMA_TYPE_TO_SCHEMA_INFO_TYPE.get(schema.type());
-    if (type == null) {
-      throw new RuntimeException(String.format("Invalid type in schema: %s.",
-          schema.type().getName()));
+    public SchemaInfo visitSchema(final Schema schema) {
+      throw new IllegalArgumentException("Invalid type in schema: " + schema.type());
     }
 
-    return type;
+    public SchemaInfo visitBoolean(final Schema schema) {
+      return primitive(SqlType.BOOLEAN);
+    }
+
+    public SchemaInfo visitInt32(final Schema schema) {
+      return primitive(SqlType.INTEGER);
+    }
+
+    public SchemaInfo visitInt64(final Schema schema) {
+      return primitive(SqlType.BIGINT);
+    }
+
+    public SchemaInfo visitFloat64(final Schema schema) {
+      return primitive(SqlType.DOUBLE);
+    }
+
+    public SchemaInfo visitString(final Schema schema) {
+      return primitive(SqlType.STRING);
+    }
+
+    public SchemaInfo visitArray(final Schema schema, final SchemaInfo element) {
+      return new SchemaInfo(SqlType.ARRAY, null, element);
+    }
+
+    public SchemaInfo visitMap(final Schema schema, final SchemaInfo key, final SchemaInfo value) {
+      return new SchemaInfo(SqlType.MAP, null, value);
+    }
+
+    public SchemaInfo visitStruct(final Schema schema, final List<? extends FieldInfo> fields) {
+      return new SchemaInfo(SqlType.STRUCT, fields, null);
+    }
+
+    public FieldInfo visitField(final Field field, final SchemaInfo type) {
+      return new FieldInfo(field.name(), type);
+    }
+
+    private static SchemaInfo primitive(final SqlType type) {
+      return new SchemaInfo(type, null, null);
+    }
   }
 }

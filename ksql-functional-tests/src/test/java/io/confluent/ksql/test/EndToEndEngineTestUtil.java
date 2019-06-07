@@ -504,7 +504,8 @@ final class EndToEndEngineTestUtil {
       testCase.handleException(e);
     } catch (final AssertionError e) {
       throw new AssertionError("test: " + testCase.getName() + System.lineSeparator()
-          + e.getMessage(), e);
+          + "file: " + testCase.getTestFile()
+          + "Failed with error:" + e.getMessage(), e);
     }
   }
 

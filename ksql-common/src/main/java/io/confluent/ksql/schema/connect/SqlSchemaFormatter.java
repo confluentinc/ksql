@@ -34,6 +34,7 @@ public class SqlSchemaFormatter implements SchemaFormatter {
   private static final String ARRAY_START = "ARRAY<";
   private static final String STRUCT_START = "STRUCT<";
   private static final String STRUCTURED_END = ">";
+  private static final String NOT_NULL_SUFFIX = " NOT NULL";
 
   public enum Option {
     /**
@@ -42,9 +43,10 @@ public class SqlSchemaFormatter implements SchemaFormatter {
     APPEND_NOT_NULL,
 
     /**
-     * If the schema is a {@code STRUCT} list the columns in the form {@code [col0 type, ...]}.
+     * If the schema is a {@code STRUCT} list the columns in the form
+     * {@code col0 type, col1 type, ...}.
      *
-     * <p>The default form would be {@code STRUCT<col0 type, ...>}.
+     * <p>The default form would be {@code STRUCT<col0 type, col1 type, ...>}.
      */
     AS_COLUMN_LIST
   }
@@ -75,23 +77,29 @@ public class SqlSchemaFormatter implements SchemaFormatter {
         : converted;
   }
 
-  private static String stripTopLevelStruct(final String toStrip) {
-    if (!toStrip.startsWith(STRUCT_START)) {
-      return toStrip;
-    }
-    return toStrip.substring(STRUCT_START.length(), toStrip.length() - STRUCTURED_END.length());
-  }
-
   private String quoteIfReserved(final String value) {
     return reservedWords.contains(value) ? "`" + value + "`" : value;
   }
 
   private String typePostFix(final Schema schema) {
     if (options.contains(Option.APPEND_NOT_NULL) && !schema.isOptional()) {
-      return " NOT NULL";
+      return NOT_NULL_SUFFIX;
     }
 
     return "";
+  }
+
+  private static String stripTopLevelStruct(final String toStrip) {
+    if (!toStrip.startsWith(STRUCT_START)) {
+      return toStrip;
+    }
+
+    final String suffixStripped = toStrip.endsWith(NOT_NULL_SUFFIX)
+        ? toStrip.substring(0, toStrip.length() - NOT_NULL_SUFFIX.length())
+        : toStrip;
+
+    return suffixStripped
+        .substring(STRUCT_START.length(), suffixStripped.length() - STRUCTURED_END.length());
   }
 
   private final class Converter implements SchemaWalker.Visitor<String> {

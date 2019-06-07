@@ -29,7 +29,7 @@ final class JsonSerdeUtils {
 
   static PersistenceSchema validateSchema(final PersistenceSchema schema) {
 
-    class SchemaValidator implements Visitor<Void> {
+    class SchemaValidator implements Visitor<Void, Void> {
 
       @Override
       public Void visitMap(final Schema schema, final Void key, final Void value) {

@@ -29,8 +29,8 @@ import org.apache.kafka.connect.data.Schema.Type;
  */
 public final class SchemaWalker {
 
-  private static final Map<Type, BiFunction<Visitor<?>, Schema, Object>> HANDLER =
-      ImmutableMap.<Type, BiFunction<Visitor<?>, Schema, Object>>builder()
+  private static final Map<Type, BiFunction<Visitor<?, ?>, Schema, Object>> HANDLER =
+      ImmutableMap.<Type, BiFunction<Visitor<?, ?>, Schema, Object>>builder()
           .put(Type.BOOLEAN, Visitor::visitBoolean)
           .put(Type.INT8, Visitor::visitInt8)
           .put(Type.INT16, Visitor::visitInt16)
@@ -48,95 +48,95 @@ public final class SchemaWalker {
   private SchemaWalker() {
   }
 
-  public interface Visitor<T> {
+  public interface Visitor<S, F> {
 
-    default T visitSchema(Schema schema) {
+    default S visitSchema(Schema schema) {
       throw new UnsupportedOperationException("Unsupported schema type: " + schema);
     }
 
-    default T visitPrimitive(Schema schema) {
+    default S visitPrimitive(Schema schema) {
       return visitSchema(schema);
     }
 
-    default T visitBoolean(Schema schema) {
+    default S visitBoolean(Schema schema) {
       return visitPrimitive(schema);
     }
 
-    default T visitInt8(Schema schema) {
+    default S visitInt8(Schema schema) {
       return visitPrimitive(schema);
     }
 
-    default T visitInt16(Schema schema) {
+    default S visitInt16(Schema schema) {
       return visitPrimitive(schema);
     }
 
-    default T visitInt32(Schema schema) {
+    default S visitInt32(Schema schema) {
       return visitPrimitive(schema);
     }
 
-    default T visitInt64(Schema schema) {
+    default S visitInt64(Schema schema) {
       return visitPrimitive(schema);
     }
 
-    default T visitFloat32(Schema schema) {
+    default S visitFloat32(Schema schema) {
       return visitPrimitive(schema);
     }
 
-    default T visitFloat64(Schema schema) {
+    default S visitFloat64(Schema schema) {
       return visitPrimitive(schema);
     }
 
-    default T visitString(Schema schema) {
+    default S visitString(Schema schema) {
       return visitPrimitive(schema);
     }
 
-    default T visitBytes(Schema schema) {
+    default S visitBytes(Schema schema) {
       return visitSchema(schema);
     }
 
-    default T visitArray(Schema schema, T element) {
+    default S visitArray(Schema schema, S element) {
       return visitSchema(schema);
     }
 
-    default T visitMap(Schema schema, T key, T value) {
+    default S visitMap(Schema schema, S key, S value) {
       return visitSchema(schema);
     }
 
-    default T visitStruct(Schema schema, List<? extends T> fields) {
+    default S visitStruct(Schema schema, List<? extends F> fields) {
       return visitSchema(schema);
     }
 
-    default T visitField(Field field, T type) {
+    default F visitField(Field field, S type) {
       return null;
     }
   }
 
   @SuppressWarnings("unchecked")
-  public static <T> T visit(final Schema schema, final Visitor<T> visitor) {
-    final BiFunction<Visitor<?>, Schema, Object> handler = HANDLER.get(schema.type());
+  public static <S, F> S visit(final Schema schema, final Visitor<S, F> visitor) {
+    final BiFunction<Visitor<?, ?>, Schema, Object> handler = HANDLER.get(schema.type());
     if (handler == null) {
       throw new UnsupportedOperationException("Unsupported schema type: " + schema.type());
     }
 
-    return (T) handler.apply(visitor, schema);
+    return (S) handler.apply(visitor, schema);
   }
 
-  private static <T> T visitArray(final Visitor<T> visitor, final Schema schema) {
-    final T element = visit(schema.valueSchema(), visitor);
+  private static <S, F> S visitArray(final Visitor<S, F> visitor, final Schema schema) {
+    final S element = visit(schema.valueSchema(), visitor);
     return visitor.visitArray(schema, element);
   }
 
-  private static <T> T visitMap(final Visitor<T> visitor, final Schema schema) {
-    final T key = visit(schema.keySchema(), visitor);
-    final T value = visit(schema.valueSchema(), visitor);
+  private static <S, F> S visitMap(final Visitor<S, F> visitor, final Schema schema) {
+    final S key = visit(schema.keySchema(), visitor);
+    final S value = visit(schema.valueSchema(), visitor);
     return visitor.visitMap(schema, key, value);
   }
 
-  private static <T> T visitStruct(final Visitor<T> visitor, final Schema schema) {
-    final List<T> fields = schema.fields().stream()
+  private static <S, F> S visitStruct(final Visitor<S, F> visitor, final Schema schema) {
+    final List<F> fields = schema.fields().stream()
         .map(field -> visitor.visitField(
             field,
-            SchemaWalker.<T>visit(field.schema(), visitor))
+            SchemaWalker.<S, F>visit(field.schema(), visitor))
         )
         .collect(Collectors.toList());
 

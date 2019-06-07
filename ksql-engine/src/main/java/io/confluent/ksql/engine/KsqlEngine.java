@@ -66,14 +66,15 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       final ServiceContext serviceContext,
       final ProcessingLogContext processingLogContext,
       final FunctionRegistry functionRegistry,
-      final String serviceId
+      final String serviceId,
+      final String customMetricsTags
   ) {
     this(
         serviceContext,
         processingLogContext,
         serviceId,
         new MetaStoreImpl(functionRegistry),
-        KsqlEngineMetrics::new);
+        (engine) -> new KsqlEngineMetrics(engine, customMetricsTags));
   }
 
   KsqlEngine(

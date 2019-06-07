@@ -111,7 +111,8 @@ public final class StandaloneExecutorFactory {
         serviceContext,
         processingLogContext,
         functionRegistry,
-        ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG));
+        ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG),
+        ksqlConfig.getString(KsqlConfig.KSQL_CUSTOM_METRICS_TAGS));
 
     final UdfLoader udfLoader =
         UdfLoader.newInstance(ksqlConfig, functionRegistry, installDir);

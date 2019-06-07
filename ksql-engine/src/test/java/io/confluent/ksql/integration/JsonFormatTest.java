@@ -97,7 +97,8 @@ public class JsonFormatTest {
         serviceContext,
         ProcessingLogContext.create(),
         new InternalFunctionRegistry(),
-        ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG));
+        ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG),
+        ksqlConfig.getString(KsqlConfig.KSQL_CUSTOM_METRICS_TAGS));
 
     topicClient = serviceContext.getTopicClient();
     metaStore = ksqlEngine.getMetaStore();

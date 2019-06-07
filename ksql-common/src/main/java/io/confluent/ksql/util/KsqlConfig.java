@@ -143,6 +143,11 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_WRAP_SINGLE_VALUES =
       "ksql.persistence.wrap.single.values";
 
+  public static final String KSQL_CUSTOM_METRICS_TAGS = "ksql.metrics.tags.custom";
+  private static final String KSQL_CUSTOM_METRICS_TAGS_DOC =
+      "A list of tags to be included with emitted JMX metrics, formatted as a string of key:value "
+      + "pairs separated by semicolons. For example, 'key1:value1;key2:value2'.";
+
   public static final String
       defaultSchemaRegistryUrl = "http://localhost:8081";
 
@@ -470,6 +475,12 @@ public class KsqlConfig extends AbstractConfig {
                 + "e.g. '{\"FOO\": 10}." + System.lineSeparator()
                 + "Note: the DELIMITED format ignores this setting as it does not support the "
                 + "concept of a STRUCT, record or object."
+        ).define(
+            KSQL_CUSTOM_METRICS_TAGS,
+            ConfigDef.Type.STRING,
+            "",
+            ConfigDef.Importance.LOW,
+            KSQL_CUSTOM_METRICS_TAGS_DOC
         )
         .withClientSslSupport();
     for (final CompatibilityBreakingConfigDef compatibilityBreakingConfigDef

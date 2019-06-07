@@ -48,7 +48,7 @@ public final class KsqlEngineTestUtil {
         ProcessingLogContext.create(),
         "test_instance_",
         metaStore,
-        KsqlEngineMetrics::new
+        (engine) -> new KsqlEngineMetrics(engine, "")
     );
   }
 

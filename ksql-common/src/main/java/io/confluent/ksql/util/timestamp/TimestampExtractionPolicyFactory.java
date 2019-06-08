@@ -16,7 +16,7 @@
 package io.confluent.ksql.util.timestamp;
 
 import io.confluent.ksql.ddl.DdlConfig;
-import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
 import org.apache.kafka.connect.data.Field;
@@ -28,7 +28,7 @@ public final class TimestampExtractionPolicyFactory {
   }
 
   public static TimestampExtractionPolicy create(
-      final KsqlSchema schema,
+      final LogicalSchema schema,
       final Optional<String> timestampColumnName,
       final Optional<String> timestampFormat
   ) {

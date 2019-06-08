@@ -19,7 +19,7 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.QueryIdGenerator;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
@@ -33,14 +33,14 @@ public abstract class OutputNode
     extends PlanNode {
 
   private final PlanNode source;
-  private final KsqlSchema schema;
+  private final LogicalSchema schema;
   private final OptionalInt limit;
   private final TimestampExtractionPolicy timestampExtractionPolicy;
 
   protected OutputNode(
       final PlanNodeId id,
       final PlanNode source,
-      final KsqlSchema schema,
+      final LogicalSchema schema,
       final OptionalInt limit,
       final TimestampExtractionPolicy timestampExtractionPolicy
   ) {
@@ -54,7 +54,7 @@ public abstract class OutputNode
   }
 
   @Override
-  public KsqlSchema getSchema() {
+  public LogicalSchema getSchema() {
     return schema;
   }
 

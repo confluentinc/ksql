@@ -58,7 +58,7 @@ import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.rest.server.computation.CommandId;
 import io.confluent.ksql.rest.server.resources.Errors;
-import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
@@ -575,7 +575,7 @@ public class CliTest {
             new Double[]{1100.0, 1110.99, 970.0})));
 
     final PhysicalSchema resultSchema = PhysicalSchema.from(
-        KsqlSchema.of(SchemaBuilder.struct()
+        LogicalSchema.of(SchemaBuilder.struct()
             .field("ITEMID", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
             .field("ORDERUNITS", SchemaBuilder.OPTIONAL_FLOAT64_SCHEMA)
             .field("PRICEARRAY", SchemaBuilder
@@ -647,7 +647,7 @@ public class CliTest {
 
     final Schema sourceSchema = orderDataProvider.schema().logicalSchema().getSchema();
     final PhysicalSchema resultSchema = PhysicalSchema.from(
-        KsqlSchema.of(SchemaBuilder.struct()
+        LogicalSchema.of(SchemaBuilder.struct()
             .field("ITEMID", sourceSchema.field("ITEMID").schema())
             .field("COL1", sourceSchema.field("ORDERUNITS").schema())
             .field("COL2", sourceSchema.field("PRICEARRAY").schema().valueSchema())

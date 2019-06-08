@@ -19,7 +19,7 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.physical.KsqlQueryBuilder;
-import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.SchemaKStream;
 import java.util.List;
@@ -48,7 +48,7 @@ public class FilterNode extends PlanNode {
   }
 
   @Override
-  public KsqlSchema getSchema() {
+  public LogicalSchema getSchema() {
     return source.getSchema();
   }
 

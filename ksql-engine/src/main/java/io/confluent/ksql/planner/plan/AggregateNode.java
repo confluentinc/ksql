@@ -35,7 +35,7 @@ import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.physical.KsqlQueryBuilder;
-import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.serde.SerdeOption;
@@ -75,7 +75,7 @@ public class AggregateNode extends PlanNode {
   private static final String PROJECT_OP_NAME = "project";
 
   private final PlanNode source;
-  private final KsqlSchema schema;
+  private final LogicalSchema schema;
   private final KeyField keyField;
   private final List<Expression> groupByExpressions;
   private final WindowExpression windowExpression;
@@ -89,7 +89,7 @@ public class AggregateNode extends PlanNode {
   public AggregateNode(
       final PlanNodeId id,
       final PlanNode source,
-      final KsqlSchema schema,
+      final LogicalSchema schema,
       final Optional<String> keyFieldName,
       final List<Expression> groupByExpressions,
       final WindowExpression windowExpression,
@@ -119,7 +119,7 @@ public class AggregateNode extends PlanNode {
   }
 
   @Override
-  public KsqlSchema getSchema() {
+  public LogicalSchema getSchema() {
     return this.schema;
   }
 
@@ -224,7 +224,7 @@ public class AggregateNode extends PlanNode {
         internalSchema
     );
 
-    final KsqlSchema aggStageSchema = buildAggregateSchema(
+    final LogicalSchema aggStageSchema = buildAggregateSchema(
         aggregateArgExpanded.getSchema(),
         builder.getFunctionRegistry(),
         internalSchema
@@ -336,7 +336,7 @@ public class AggregateNode extends PlanNode {
       final FunctionRegistry functionRegistry,
       final InternalSchema internalSchema,
       final FunctionCall functionCall,
-      final KsqlSchema schema
+      final LogicalSchema schema
   ) {
     final ExpressionTypeManager expressionTypeManager =
         new ExpressionTypeManager(schema, functionRegistry);
@@ -355,8 +355,8 @@ public class AggregateNode extends PlanNode {
     return aggregateFunctionInfo.getInstance(new AggregateFunctionArguments(udafIndex, args));
   }
 
-  private KsqlSchema buildAggregateSchema(
-      final KsqlSchema schema,
+  private LogicalSchema buildAggregateSchema(
+      final LogicalSchema schema,
       final FunctionRegistry functionRegistry,
       final InternalSchema internalSchema
   ) {
@@ -379,7 +379,7 @@ public class AggregateNode extends PlanNode {
       );
     }
 
-    return KsqlSchema.of(schemaBuilder.build());
+    return LogicalSchema.of(schemaBuilder.build());
   }
 
   private static class InternalSchema {

@@ -28,8 +28,8 @@ import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.physical.LimitHandler;
 import io.confluent.ksql.physical.QuerySchemas;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.schema.SqlType;
-import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.SqlType;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
@@ -59,7 +59,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class QueryDescriptionTest {
 
-  private static final KsqlSchema SCHEMA = KsqlSchema.of(
+  private static final LogicalSchema SCHEMA = LogicalSchema.of(
       SchemaBuilder.struct()
           .field("field1", Schema.OPTIONAL_INT32_SCHEMA)
           .field("field2", Schema.OPTIONAL_STRING_SCHEMA)

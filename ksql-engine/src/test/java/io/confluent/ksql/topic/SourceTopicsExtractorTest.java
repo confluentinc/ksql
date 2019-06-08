@@ -29,7 +29,7 @@ import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.parser.tree.Statement;
-import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
 import io.confluent.ksql.services.KafkaTopicClient;
@@ -51,7 +51,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class SourceTopicsExtractorTest {
-  private static final KsqlSchema SCHEMA = KsqlSchema.of(SchemaBuilder
+  private static final LogicalSchema SCHEMA = LogicalSchema.of(SchemaBuilder
       .struct()
       .field("F1", Schema.OPTIONAL_STRING_SCHEMA)
       .build());

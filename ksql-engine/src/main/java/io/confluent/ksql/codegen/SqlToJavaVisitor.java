@@ -53,8 +53,8 @@ import io.confluent.ksql.parser.tree.SearchedCaseExpression;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.SubscriptExpression;
 import io.confluent.ksql.parser.tree.Type;
-import io.confluent.ksql.schema.ksql.KsqlSchema;
-import io.confluent.ksql.schema.ksql.LogicalSchemas;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.util.ExpressionTypeManager;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
@@ -83,12 +83,12 @@ public class SqlToJavaVisitor {
       "com.google.common.collect.ImmutableList",
       "java.util.function.Supplier");
 
-  private final KsqlSchema schema;
+  private final LogicalSchema schema;
   private final FunctionRegistry functionRegistry;
 
   private final ExpressionTypeManager expressionTypeManager;
 
-  public SqlToJavaVisitor(final KsqlSchema schema, final FunctionRegistry functionRegistry) {
+  public SqlToJavaVisitor(final LogicalSchema schema, final FunctionRegistry functionRegistry) {
     this.schema = Objects.requireNonNull(schema, "schema");
     this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
     this.expressionTypeManager =
@@ -366,7 +366,7 @@ public class SqlToJavaVisitor {
         throw new KsqlFunctionException("Only casts to primitive types are supported: " + sqlType);
       }
 
-      final Schema returnType = LogicalSchemas.fromSqlTypeConverter().fromSqlType(sqlType);
+      final Schema returnType = SchemaConverters.fromSqlTypeConverter().fromSqlType(sqlType);
       final Schema rightSchema = expr.getRight();
       if (returnType.equals(rightSchema) || rightSchema == null) {
         return new Pair<>(expr.getLeft(), returnType);

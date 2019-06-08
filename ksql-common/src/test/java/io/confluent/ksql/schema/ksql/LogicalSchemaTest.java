@@ -39,7 +39,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-public class KsqlSchemaTest {
+public class LogicalSchemaTest {
 
   private static final Schema IMMUTABLE_SCHEMA = Schema.OPTIONAL_STRING_SCHEMA;
   private static final SchemaBuilder MUTABLE_SCHEMA = SchemaBuilder.struct()
@@ -60,8 +60,8 @@ public class KsqlSchemaTest {
       .field("bob.f1", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
       .build();
 
-  private static final KsqlSchema SOME_SCHEMA = KsqlSchema.of(SOME_CONNECT_SCHEMA);
-  private static final KsqlSchema ALIASED_SCHEMA = KsqlSchema.of(ALIASED_CONNECT_SCHEMA);
+  private static final LogicalSchema SOME_SCHEMA = LogicalSchema.of(SOME_CONNECT_SCHEMA);
+  private static final LogicalSchema ALIASED_SCHEMA = LogicalSchema.of(ALIASED_CONNECT_SCHEMA);
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -70,13 +70,13 @@ public class KsqlSchemaTest {
   public void shouldImplementEqualsProperly() {
     new EqualsTester()
         .addEqualityGroup(
-            KsqlSchema.of(SOME_CONNECT_SCHEMA), KsqlSchema.of(SOME_CONNECT_SCHEMA)
+            LogicalSchema.of(SOME_CONNECT_SCHEMA), LogicalSchema.of(SOME_CONNECT_SCHEMA)
         )
         .addEqualityGroup(
-            KsqlSchema.of(ALIASED_CONNECT_SCHEMA)
+            LogicalSchema.of(ALIASED_CONNECT_SCHEMA)
         )
         .addEqualityGroup(
-            KsqlSchema.of(OTHER_CONNECT_SCHEMA)
+            LogicalSchema.of(OTHER_CONNECT_SCHEMA)
         )
         .testEquals();
   }
@@ -91,7 +91,7 @@ public class KsqlSchemaTest {
 
     ).forEach(schema -> {
       try {
-        KsqlSchema.of(SchemaBuilder.struct().field("test", schema).build());
+        LogicalSchema.of(SchemaBuilder.struct().field("test", schema).build());
         fail();
       } catch (final IllegalArgumentException e) {
         assertThat(schema.toString(), e.getMessage(), containsString("Unsupported schema type"));
@@ -106,7 +106,7 @@ public class KsqlSchemaTest {
     expectedException.expectMessage("Top level schema must be STRUCT");
 
     // When:
-    KsqlSchema.of(Schema.OPTIONAL_INT64_SCHEMA);
+    LogicalSchema.of(Schema.OPTIONAL_INT64_SCHEMA);
   }
 
   @Test
@@ -116,7 +116,7 @@ public class KsqlSchemaTest {
     expectedException.expectMessage("Mutable schema found");
 
     // When:
-    KsqlSchema.of(nested(
+    LogicalSchema.of(nested(
         SchemaBuilder.struct()
             .field("fieldWithMutableSchema", MUTABLE_SCHEMA)
             .optional()
@@ -131,7 +131,7 @@ public class KsqlSchemaTest {
     expectedException.expectMessage("Mutable schema found");
 
     // When:
-    KsqlSchema.of(nested(
+    LogicalSchema.of(nested(
         SchemaBuilder.map(new SchemaBuilder(Type.STRING).optional(), IMMUTABLE_SCHEMA)
             .optional()
             .build()
@@ -145,7 +145,7 @@ public class KsqlSchemaTest {
     expectedException.expectMessage("Mutable schema found");
 
     // When:
-    KsqlSchema.of(nested(
+    LogicalSchema.of(nested(
         SchemaBuilder.map(IMMUTABLE_SCHEMA, MUTABLE_SCHEMA)
             .optional()
             .build()
@@ -159,7 +159,7 @@ public class KsqlSchemaTest {
     expectedException.expectMessage("Mutable schema found");
 
     // When:
-    KsqlSchema.of(nested(
+    LogicalSchema.of(nested(
         SchemaBuilder.array(MUTABLE_SCHEMA)
             .optional()
             .build()
@@ -173,7 +173,7 @@ public class KsqlSchemaTest {
     expectedException.expectMessage("Non-optional field found");
 
     // When:
-    KsqlSchema.of(nested(
+    LogicalSchema.of(nested(
         SchemaBuilder.map(IMMUTABLE_SCHEMA, IMMUTABLE_SCHEMA)
             .build()
     ));
@@ -186,7 +186,7 @@ public class KsqlSchemaTest {
     expectedException.expectMessage("Non-optional field found");
 
     // When:
-    KsqlSchema.of(nested(
+    LogicalSchema.of(nested(
         SchemaBuilder.map(IMMUTABLE_SCHEMA, IMMUTABLE_SCHEMA).build()
     ));
   }
@@ -198,7 +198,7 @@ public class KsqlSchemaTest {
     expectedException.expectMessage("Non-optional field found");
 
     // When:
-    KsqlSchema.of(nested(
+    LogicalSchema.of(nested(
         SchemaBuilder.array(IMMUTABLE_SCHEMA).build()
     ));
   }
@@ -211,7 +211,7 @@ public class KsqlSchemaTest {
         .build();
 
     // When:
-    KsqlSchema.of(schema);
+    LogicalSchema.of(schema);
 
     // Then: did not throw.
   }
@@ -223,7 +223,7 @@ public class KsqlSchemaTest {
     expectedException.expectMessage("MAP only supports STRING keys");
 
     // When:
-    KsqlSchema.of(nested(
+    LogicalSchema.of(nested(
         SchemaBuilder.map(Schema.OPTIONAL_INT64_SCHEMA, IMMUTABLE_SCHEMA)
             .optional()
             .build()
@@ -233,7 +233,7 @@ public class KsqlSchemaTest {
   @Test
   public void shouldBuildSchemaWithAlias() {
     // When:
-    final KsqlSchema result = SOME_SCHEMA.withAlias("bob");
+    final LogicalSchema result = SOME_SCHEMA.withAlias("bob");
 
     // Then:
     assertThat(result, is(ALIASED_SCHEMA));
@@ -242,7 +242,7 @@ public class KsqlSchemaTest {
   @Test
   public void shouldCopySchemaIfSchemaAlreadyAliased() {
     // When:
-    final KsqlSchema result = ALIASED_SCHEMA.withAlias("bob");
+    final LogicalSchema result = ALIASED_SCHEMA.withAlias("bob");
 
     // Then:
     assertThat(result, is(ALIASED_SCHEMA));
@@ -251,7 +251,7 @@ public class KsqlSchemaTest {
   @Test
   public void shouldOnlyAddAliasToTopLevelFields() {
     // Given:
-    final KsqlSchema schema = KsqlSchema.of(
+    final LogicalSchema schema = LogicalSchema.of(
         SchemaBuilder.struct()
             .field("f0", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
             .field("f1", SchemaBuilder.struct()
@@ -262,10 +262,10 @@ public class KsqlSchemaTest {
     );
 
     // When:
-    final KsqlSchema result = schema.withAlias("bob");
+    final LogicalSchema result = schema.withAlias("bob");
 
     // Then:
-    assertThat(result, is(KsqlSchema.of(SchemaBuilder.struct()
+    assertThat(result, is(LogicalSchema.of(SchemaBuilder.struct()
         .field("bob.f0", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
         .field("bob.f1", SchemaBuilder
             .struct()
@@ -278,7 +278,7 @@ public class KsqlSchemaTest {
   @Test
   public void shouldBuildSchemaWithoutAlias() {
     // When:
-    final KsqlSchema result = ALIASED_SCHEMA.withoutAlias();
+    final LogicalSchema result = ALIASED_SCHEMA.withoutAlias();
 
     // Then:
     assertThat(result, is(SOME_SCHEMA));
@@ -287,7 +287,7 @@ public class KsqlSchemaTest {
   @Test
   public void shouldCopySchemaIfSchemaAlreadyUnaliased() {
     // When:
-    final KsqlSchema result = SOME_SCHEMA.withoutAlias();
+    final LogicalSchema result = SOME_SCHEMA.withoutAlias();
 
     // Then:
     assertThat(result, is(SOME_SCHEMA));
@@ -296,7 +296,7 @@ public class KsqlSchemaTest {
   @Test
   public void shouldOnlyRemoveAliasFromTopLevelFields() {
     // Given:
-    final KsqlSchema schema = KsqlSchema.of(
+    final LogicalSchema schema = LogicalSchema.of(
         SchemaBuilder.struct()
             .field("bob.f0", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
             .field("bob.f1", SchemaBuilder.struct()
@@ -307,10 +307,10 @@ public class KsqlSchemaTest {
     );
 
     // When:
-    final KsqlSchema result = schema.withoutAlias();
+    final LogicalSchema result = schema.withoutAlias();
 
     // Then:
-    assertThat(result, is(KsqlSchema.of(SchemaBuilder.struct()
+    assertThat(result, is(LogicalSchema.of(SchemaBuilder.struct()
         .field("f0", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
         .field("f1", SchemaBuilder
             .struct()
@@ -404,7 +404,7 @@ public class KsqlSchemaTest {
   @Test
   public void shouldConvertSchemaToString() {
     // Given:
-    final KsqlSchema schema = KsqlSchema.of(
+    final LogicalSchema schema = LogicalSchema.of(
         SchemaBuilder.struct()
             .field("f0", SchemaBuilder.OPTIONAL_BOOLEAN_SCHEMA)
             .field("f1", SchemaBuilder.OPTIONAL_INT32_SCHEMA)
@@ -452,7 +452,7 @@ public class KsqlSchemaTest {
   @Test
   public void shouldAddImplicitColumns() {
     // When:
-    final KsqlSchema result = KsqlSchema.of(SOME_CONNECT_SCHEMA).withImplicitFields();
+    final LogicalSchema result = LogicalSchema.of(SOME_CONNECT_SCHEMA).withImplicitFields();
 
     // Then:
     assertThat(result.fields(), hasSize(SOME_CONNECT_SCHEMA.fields().size() + 2));
@@ -467,11 +467,11 @@ public class KsqlSchemaTest {
   @Test
   public void shouldAddImplicitColumnsOnlyOnce() {
     // Given:
-    final KsqlSchema ksqlSchema = KsqlSchema.of(SOME_CONNECT_SCHEMA)
+    final LogicalSchema ksqlSchema = LogicalSchema.of(SOME_CONNECT_SCHEMA)
         .withImplicitFields();
 
     // When:
-    final KsqlSchema result = ksqlSchema.withImplicitFields();
+    final LogicalSchema result = ksqlSchema.withImplicitFields();
 
     // Then:
     assertThat(result, is(ksqlSchema));
@@ -480,7 +480,7 @@ public class KsqlSchemaTest {
   @Test
   public void shouldRemoveOtherImplicitsWhenAddingImplicit() {
     // Given:
-    final KsqlSchema ksqlSchema = KsqlSchema.of(SchemaBuilder.struct()
+    final LogicalSchema ksqlSchema = LogicalSchema.of(SchemaBuilder.struct()
         .field("f0", Schema.OPTIONAL_INT64_SCHEMA)
         .field(SchemaUtil.ROWKEY_NAME, Schema.OPTIONAL_FLOAT64_SCHEMA)
         .field("f1", Schema.OPTIONAL_INT64_SCHEMA)
@@ -489,10 +489,10 @@ public class KsqlSchemaTest {
     );
 
     // When:
-    final KsqlSchema result = ksqlSchema.withImplicitFields();
+    final LogicalSchema result = ksqlSchema.withImplicitFields();
 
     // Then:
-    assertThat(result, is(KsqlSchema.of(SchemaBuilder.struct()
+    assertThat(result, is(LogicalSchema.of(SchemaBuilder.struct()
         .field(SchemaUtil.ROWTIME_NAME, Schema.OPTIONAL_INT64_SCHEMA)
         .field(SchemaUtil.ROWKEY_NAME, Schema.OPTIONAL_STRING_SCHEMA)
         .field("f0", Schema.OPTIONAL_INT64_SCHEMA)
@@ -504,7 +504,7 @@ public class KsqlSchemaTest {
   @Test
   public void shouldRemoveImplicitFields() {
     // Given:
-    final KsqlSchema schema = KsqlSchema.of(SchemaBuilder.struct()
+    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
         .field(SchemaUtil.ROWTIME_NAME, Schema.OPTIONAL_INT64_SCHEMA)
         .field(SchemaUtil.ROWKEY_NAME, Schema.OPTIONAL_STRING_SCHEMA)
         .field("f0", Schema.OPTIONAL_INT64_SCHEMA)
@@ -513,10 +513,10 @@ public class KsqlSchemaTest {
     );
 
     // When
-    final KsqlSchema result = schema.withoutImplicitFields();
+    final LogicalSchema result = schema.withoutImplicitFields();
 
     // Then:
-    assertThat(result, is(KsqlSchema.of(SchemaBuilder.struct()
+    assertThat(result, is(LogicalSchema.of(SchemaBuilder.struct()
         .field("f0", Schema.OPTIONAL_INT64_SCHEMA)
         .field("f1", Schema.OPTIONAL_INT64_SCHEMA)
         .build()
@@ -526,7 +526,7 @@ public class KsqlSchemaTest {
   @Test
   public void shouldRemoveImplicitFieldsWhereEverTheyAre() {
     // Given:
-    final KsqlSchema schema = KsqlSchema.of(SchemaBuilder.struct()
+    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
         .field("f0", Schema.OPTIONAL_INT64_SCHEMA)
         .field(SchemaUtil.ROWKEY_NAME, Schema.OPTIONAL_STRING_SCHEMA)
         .field("f1", Schema.OPTIONAL_INT64_SCHEMA)
@@ -535,10 +535,10 @@ public class KsqlSchemaTest {
     );
 
     // When
-    final KsqlSchema result = schema.withoutImplicitFields();
+    final LogicalSchema result = schema.withoutImplicitFields();
 
     // Then:
-    assertThat(result, is(KsqlSchema.of(SchemaBuilder.struct()
+    assertThat(result, is(LogicalSchema.of(SchemaBuilder.struct()
         .field("f0", Schema.OPTIONAL_INT64_SCHEMA)
         .field("f1", Schema.OPTIONAL_INT64_SCHEMA)
         .build()
@@ -548,7 +548,7 @@ public class KsqlSchemaTest {
   @Test
   public void shouldRemoveImplicitFieldsEvenIfAliased() {
     // Given:
-    final KsqlSchema schema = KsqlSchema.of(SchemaBuilder.struct()
+    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
         .field("bob.f0", Schema.OPTIONAL_INT64_SCHEMA)
         .field("bob." + SchemaUtil.ROWKEY_NAME, Schema.OPTIONAL_STRING_SCHEMA)
         .field("bob.f1", Schema.OPTIONAL_INT64_SCHEMA)
@@ -557,10 +557,10 @@ public class KsqlSchemaTest {
     );
 
     // When
-    final KsqlSchema result = schema.withoutImplicitFields();
+    final LogicalSchema result = schema.withoutImplicitFields();
 
     // Then:
-    assertThat(result, is(KsqlSchema.of(SchemaBuilder.struct()
+    assertThat(result, is(LogicalSchema.of(SchemaBuilder.struct()
         .field("bob.f0", Schema.OPTIONAL_INT64_SCHEMA)
         .field("bob.f1", Schema.OPTIONAL_INT64_SCHEMA)
         .build()
@@ -570,7 +570,7 @@ public class KsqlSchemaTest {
   @Test
   public void shouldGetImplicitColumnIndexes() {
     // Given:
-    final KsqlSchema schema = KsqlSchema.of(SchemaBuilder.struct()
+    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
         .field("f0", Schema.OPTIONAL_INT64_SCHEMA)
         .field(SchemaUtil.ROWKEY_NAME, Schema.OPTIONAL_STRING_SCHEMA)
         .field("f1", Schema.OPTIONAL_INT64_SCHEMA)
@@ -588,7 +588,7 @@ public class KsqlSchemaTest {
   @Test
   public void shouldGetNoImplicitColumnIndexesIfImplicitColumnsAsAliased() {
     // Given:
-    final KsqlSchema schema = KsqlSchema.of(SchemaBuilder.struct()
+    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
         .field("bob.f0", Schema.OPTIONAL_INT64_SCHEMA)
         .field("bob." + SchemaUtil.ROWKEY_NAME, Schema.OPTIONAL_STRING_SCHEMA)
         .field("bob.f1", Schema.OPTIONAL_INT64_SCHEMA)
@@ -606,7 +606,7 @@ public class KsqlSchemaTest {
   @Test
   public void shouldGetNoImplicitColumnIndexesIfNoImplicitColumns() {
     // Given:
-    final KsqlSchema schema = KsqlSchema.of(SchemaBuilder.struct()
+    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
         .field("f0", Schema.OPTIONAL_INT64_SCHEMA)
         .field("f1", Schema.OPTIONAL_INT64_SCHEMA)
         .build()
@@ -621,23 +621,23 @@ public class KsqlSchemaTest {
 
   @Test
   public void shouldMarkRowTimeAsImplicit() {
-    assertThat(KsqlSchema.isImplicitColumnName(ROWTIME_NAME), is(true));
+    assertThat(LogicalSchema.isImplicitColumnName(ROWTIME_NAME), is(true));
   }
 
   @Test
   public void shouldMarkRowKeyAsImplicit() {
-    assertThat(KsqlSchema.isImplicitColumnName(ROWKEY_NAME), is(true));
+    assertThat(LogicalSchema.isImplicitColumnName(ROWKEY_NAME), is(true));
   }
 
   @Test
   public void shouldMarkAsImplicitRegardlessOfCase() {
-    assertThat(KsqlSchema.isImplicitColumnName(ROWTIME_NAME.toLowerCase()), is(true));
-    assertThat(KsqlSchema.isImplicitColumnName(ROWTIME_NAME.toUpperCase()), is(true));
+    assertThat(LogicalSchema.isImplicitColumnName(ROWTIME_NAME.toLowerCase()), is(true));
+    assertThat(LogicalSchema.isImplicitColumnName(ROWTIME_NAME.toUpperCase()), is(true));
   }
 
   @Test
   public void shouldNotMarkOtherFieldsAsImplicit() {
-    assertThat(KsqlSchema.isImplicitColumnName("other"), is(false));
+    assertThat(LogicalSchema.isImplicitColumnName("other"), is(false));
   }
 
   private static Schema nested(final Schema schema) {

@@ -20,7 +20,6 @@ import io.confluent.ksql.parser.tree.Array;
 import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.Struct;
 import io.confluent.ksql.parser.tree.Type;
-import io.confluent.ksql.schema.SqlType;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Map;
 import java.util.function.Function;
@@ -28,27 +27,32 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 
 /**
- * Util class for converting to and from KSQL's logical schema.
+ * Util class for converting between KSQL's {@link LogicalSchema} and it's SQL types, i.e. those
+ * derived from {@link Type}.
  *
- * <p>KSQL has four main type systems:
+ * <p>KSQL the following main type systems / schema types:
  *
  * <ul>
- *   <li><b>Physical:</b> - the type system of the physical bytes strored in Kafka.
- *   This may be JSON, Avro, Delimited, etc. Some formats have associated schemas, e.g. Avro.</li>
- *   <li><b>Standardized Physical:</b> - the serde layer in KSQL defines the standardized schema of
- *   the physical data using the Connect {@code Schema} type, e.g. an Avro schema will be converted
- *   into a standardised Connect schema.</li>
- *   <li><b>Logical:</b> - the SQL types converted into the corresponding {@code Schema} type.</li>
- *   <li><b>SQL:</b> - the SQL type system, e.g. INTEGER, BIGINT, ARRAY&lt;something&gt;, etc</li>
+ *   <li>
+ *     <b>SQL {@link Type}:</b>
+ *     - the SQL type system, e.g. INTEGER, BIGINT, ARRAY&lt;something&gt;, etc
+ *   </li>
+ *   <li>
+ *     <b>{@link LogicalSchema}:</b>
+ *     - the set of named {@code SQL} types that represent the schema of one row in a KSQL stream
+ *     or table.
+ *   </li>
+ *   <li>
+ *     <b>{@link PhysicalSchema}:</b>
+ *     - the schema of how all the row's parts, e.g. key, value, are serialized to/from Kafka.
+ *   </li>
+ *   <li>
+ *     <b>{@link PersistenceSchema}:</b>
+ *     - the schema of how one part of the row, e.g. key, value, is serialized to/from Kafka.
+ *   </li>
  * </ul>
- *
- * <p>It can be confusing as both the Logical and Standardized Physical layers make use of the
- * Connect {@code Schema} type. However, the <i>Logical Schema</i> only holds types that can be
- * directly converted to <i>SQL</i> types. Where as the <i>Physical Schema</i> is the
- * <i>actual</i> schema of the Data in Kafka, which may contain types KSQL does not support,
- * or only support once coerced to other types.
  */
-public final class LogicalSchemas {
+public final class SchemaConverters {
 
   public static final Schema BOOLEAN = Schema.OPTIONAL_BOOLEAN_SCHEMA;
   public static final Schema INTEGER = Schema.OPTIONAL_INT32_SCHEMA;
@@ -59,7 +63,7 @@ public final class LogicalSchemas {
   private static final LogicalToSqlTypeConverter TO_SQL_CONVERTER = new ToSqlTypeConverter();
   private static final SqlTypeToLogicalConverter FROM_SQL_CONVERTER = new FromSqlTypeConverter();
 
-  private LogicalSchemas() {
+  private SchemaConverters() {
   }
 
   public interface LogicalToSqlTypeConverter {

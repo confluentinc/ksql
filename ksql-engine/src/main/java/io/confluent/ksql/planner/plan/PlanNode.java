@@ -20,7 +20,7 @@ import static java.util.Objects.requireNonNull;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.physical.KsqlQueryBuilder;
-import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.SchemaKStream;
 import java.util.List;
@@ -46,7 +46,7 @@ public abstract class PlanNode {
     return nodeOutputType;
   }
 
-  public abstract KsqlSchema getSchema();
+  public abstract LogicalSchema getSchema();
 
   public abstract KeyField getKeyField();
 

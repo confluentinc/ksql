@@ -27,7 +27,6 @@ import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.ddl.commands.CreateSourceCommand.SerdeOptionsSupplier;
 import io.confluent.ksql.metastore.MutableMetaStore;
-import io.confluent.ksql.parser.tree.BooleanLiteral;
 import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.CreateStream;
@@ -36,9 +35,8 @@ import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
-import io.confluent.ksql.schema.SqlType;
-import io.confluent.ksql.schema.ksql.KsqlSchema;
-import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.schema.ksql.SqlType;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
@@ -193,7 +191,7 @@ public class CreateSourceCommandTest {
     final CreateStream statement =
         new CreateStream(SOME_NAME, ONE_ELEMENT, true, withProperties);
 
-    final KsqlSchema schema = KsqlSchema.of(SchemaBuilder
+    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder
         .struct()
         .field("bob", Schema.OPTIONAL_STRING_SCHEMA)
         .build());

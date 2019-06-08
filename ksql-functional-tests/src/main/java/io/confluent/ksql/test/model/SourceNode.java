@@ -22,7 +22,7 @@ import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.metastore.model.MetaStoreMatchers;
-import io.confluent.ksql.schema.ksql.LogicalSchemas;
+import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.TypeContextUtil;
 import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;
 import java.util.Objects;
@@ -108,7 +108,7 @@ class SourceNode {
   private static Optional<Schema> parseSchema(final String schema) {
     return Optional.ofNullable(schema)
         .map(TypeContextUtil::getType)
-        .map(LogicalSchemas.fromSqlTypeConverter()::fromSqlType)
+        .map(SchemaConverters.fromSqlTypeConverter()::fromSqlType)
         .map(SourceNode::makeTopLevelStructNoneOptional);
   }
 

@@ -24,7 +24,7 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.EngineProcessingLogMessageFactory;
 import io.confluent.ksql.util.ExpressionMetadata;
 import io.confluent.ksql.util.GenericRowValueTypeEnforcer;
@@ -40,7 +40,7 @@ import org.codehaus.commons.compiler.IExpressionEvaluator;
 class SqlPredicate {
 
   private final Expression filterExpression;
-  private final KsqlSchema schema;
+  private final LogicalSchema schema;
   private final IExpressionEvaluator ee;
   private final int[] columnIndexes;
   private final boolean isWindowedKey;
@@ -51,7 +51,7 @@ class SqlPredicate {
 
   SqlPredicate(
       final Expression filterExpression,
-      final KsqlSchema schema,
+      final LogicalSchema schema,
       final boolean isWindowedKey,
       final KsqlConfig ksqlConfig,
       final FunctionRegistry functionRegistry,

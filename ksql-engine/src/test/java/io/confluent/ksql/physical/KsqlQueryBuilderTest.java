@@ -29,7 +29,7 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.planner.plan.PlanNodeId;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.GenericRowSerDe;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
@@ -55,7 +55,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class KsqlQueryBuilderTest {
 
   private static final PhysicalSchema SOME_SCHEMA = PhysicalSchema.from(
-      KsqlSchema.of(SchemaBuilder.struct()
+      LogicalSchema.of(SchemaBuilder.struct()
           .field("f0", Schema.OPTIONAL_BOOLEAN_SCHEMA)
           .build()),
       SerdeOption.none()

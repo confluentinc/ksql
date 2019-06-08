@@ -19,7 +19,7 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.SelectExpression;
 import java.util.List;
 import java.util.Set;
@@ -72,7 +72,7 @@ public class QueuedSchemaKStream<K> extends SchemaKStream<K> {
   @Override
   public SchemaKStream<K> leftJoin(
       final SchemaKTable<K> schemaKTable,
-      final KsqlSchema joinSchema,
+      final LogicalSchema joinSchema,
       final KeyField keyField,
       final Serde<GenericRow> joinSerde,
       final QueryContext.Stacker contextStacker

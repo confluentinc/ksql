@@ -13,9 +13,9 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.schema.inference;
+package io.confluent.ksql.schema.ksql.inference;
 
-import static io.confluent.ksql.schema.inference.TopicSchemaSupplier.SchemaAndId.schemaAndId;
+import static io.confluent.ksql.schema.ksql.inference.TopicSchemaSupplier.SchemaAndId.schemaAndId;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.instanceOf;
@@ -42,8 +42,8 @@ import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
-import io.confluent.ksql.schema.SqlType;
-import io.confluent.ksql.schema.inference.TopicSchemaSupplier.SchemaResult;
+import io.confluent.ksql.schema.ksql.SqlType;
+import io.confluent.ksql.schema.ksql.inference.TopicSchemaSupplier.SchemaResult;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;

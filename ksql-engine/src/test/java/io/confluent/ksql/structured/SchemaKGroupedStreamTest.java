@@ -36,7 +36,7 @@ import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.parser.tree.KsqlWindowExpression;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.streams.MaterializedFactory;
 import io.confluent.ksql.streams.StreamsUtil;
 import io.confluent.ksql.util.KsqlConfig;
@@ -63,7 +63,7 @@ import org.mockito.junit.MockitoRule;
 @SuppressWarnings("unchecked")
 public class SchemaKGroupedStreamTest {
   @Mock
-  private KsqlSchema schema;
+  private LogicalSchema schema;
   @Mock
   private KGroupedStream groupedStream;
   @Mock

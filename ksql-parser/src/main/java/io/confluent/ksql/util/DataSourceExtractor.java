@@ -25,7 +25,7 @@ import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.Node;
 import io.confluent.ksql.parser.tree.NodeLocation;
 import io.confluent.ksql.parser.tree.Table;
-import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Optional;
@@ -39,8 +39,8 @@ public class DataSourceExtractor {
 
   private final MetaStore metaStore;
 
-  private KsqlSchema joinLeftSchema;
-  private KsqlSchema joinRightSchema;
+  private LogicalSchema joinLeftSchema;
+  private LogicalSchema joinRightSchema;
 
   private String fromAlias;
   private String fromName;

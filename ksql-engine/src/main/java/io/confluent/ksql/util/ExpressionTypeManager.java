@@ -44,8 +44,8 @@ import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.SubscriptExpression;
 import io.confluent.ksql.parser.tree.Type;
 import io.confluent.ksql.parser.tree.WhenClause;
-import io.confluent.ksql.schema.ksql.KsqlSchema;
-import io.confluent.ksql.schema.ksql.LogicalSchemas;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SchemaConverters;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -55,10 +55,13 @@ import org.apache.kafka.connect.data.Schema;
 public class ExpressionTypeManager
     extends DefaultAstVisitor<Expression, ExpressionTypeManager.ExpressionTypeContext> {
 
-  private final KsqlSchema schema;
+  private final LogicalSchema schema;
   private final FunctionRegistry functionRegistry;
 
-  public ExpressionTypeManager(final KsqlSchema schema, final FunctionRegistry functionRegistry) {
+  public ExpressionTypeManager(
+      final LogicalSchema schema,
+      final FunctionRegistry functionRegistry
+  ) {
     this.schema = Objects.requireNonNull(schema, "schema");
     this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
   }
@@ -110,7 +113,7 @@ public class ExpressionTypeManager
       throw new KsqlFunctionException("Only casts to primitive types are supported: " + sqlType);
     }
 
-    final Schema castType = LogicalSchemas.fromSqlTypeConverter().fromSqlType(sqlType);
+    final Schema castType = SchemaConverters.fromSqlTypeConverter().fromSqlType(sqlType);
     expressionTypeContext.setSchema(castType);
     return null;
   }

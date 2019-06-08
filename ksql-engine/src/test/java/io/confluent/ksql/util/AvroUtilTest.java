@@ -28,7 +28,7 @@ import io.confluent.connect.avro.AvroDataConfig;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.metastore.model.KsqlTopic;
-import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.avro.KsqlAvroSerdeFactory;
@@ -69,10 +69,10 @@ public class AvroUtilTest {
       + " ]"
       + "}";
 
-  private static final KsqlSchema MUTLI_FIELD_SCHEMA =
+  private static final LogicalSchema MUTLI_FIELD_SCHEMA =
       toKsqlSchema(AVRO_SCHEMA_STRING);
 
-  private static final KsqlSchema SINGLE_FIELD_SCHEMA =
+  private static final LogicalSchema SINGLE_FIELD_SCHEMA =
       toKsqlSchema(SINGLE_FIELD_AVRO_SCHEMA_STRING);
 
   private static final KsqlTopic RESULT_TOPIC = new KsqlTopic(
@@ -224,11 +224,11 @@ public class AvroUtilTest {
     AvroUtil.isValidSchemaEvolution(persistentQuery, srClient);
   }
 
-  private static KsqlSchema toKsqlSchema(final String avroSchemaString) {
+  private static LogicalSchema toKsqlSchema(final String avroSchemaString) {
     final org.apache.avro.Schema avroSchema =
         new org.apache.avro.Schema.Parser().parse(avroSchemaString);
     final AvroData avroData = new AvroData(new AvroDataConfig(Collections.emptyMap()));
-    return KsqlSchema.of(new ConnectSchemaTranslator()
+    return LogicalSchema.of(new ConnectSchemaTranslator()
         .toKsqlSchema(avroData.toConnectSchema(avroSchema)));
   }
 }

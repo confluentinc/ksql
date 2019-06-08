@@ -31,7 +31,7 @@ import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.parser.tree.BooleanLiteral;
 import io.confluent.ksql.physical.KsqlQueryBuilder;
-import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.structured.QueryContext.Stacker;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.util.KsqlException;
@@ -54,7 +54,7 @@ public class ProjectNodeTest {
   private static final BooleanLiteral TRUE_EXPRESSION = new BooleanLiteral("true");
   private static final BooleanLiteral FALSE_EXPRESSION = new BooleanLiteral("false");
   private static final String KEY_FIELD_NAME = "field1";
-  private static final KsqlSchema SCHEMA = KsqlSchema.of(SchemaBuilder.struct()
+  private static final LogicalSchema SCHEMA = LogicalSchema.of(SchemaBuilder.struct()
       .field("field1", Schema.OPTIONAL_STRING_SCHEMA)
       .field("field2", Schema.OPTIONAL_STRING_SCHEMA)
       .build());

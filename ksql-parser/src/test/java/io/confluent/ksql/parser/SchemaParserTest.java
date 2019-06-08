@@ -22,7 +22,7 @@ import static org.hamcrest.Matchers.empty;
 import io.confluent.ksql.parser.tree.Map;
 import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.TableElement;
-import io.confluent.ksql.schema.SqlType;
+import io.confluent.ksql.schema.ksql.SqlType;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import org.junit.Rule;

@@ -15,7 +15,7 @@
 
 package io.confluent.ksql.rest.server.resources.streaming;
 
-import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 
 /**
  * Flow constructs borrowed from Java 9
@@ -38,7 +38,7 @@ public class Flow {
      * to describe the message format, in case the stream has a schema
      * @param schema schema for upcoming messages
      */
-    void onSchema(KsqlSchema schema);
+    void onSchema(LogicalSchema schema);
 
     void onSubscribe(Subscription subscription);
   }

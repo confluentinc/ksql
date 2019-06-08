@@ -24,7 +24,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.internal.QueryStateListener;
-import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.Collections;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -43,7 +43,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class QueryMetadataTest {
 
   private static final String QUERY_APPLICATION_ID = "Query1";
-  private static final KsqlSchema SOME_SCHEMA = KsqlSchema.of(SchemaBuilder.struct()
+  private static final LogicalSchema SOME_SCHEMA = LogicalSchema.of(SchemaBuilder.struct()
       .field("f0", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
       .build());
   private static final Set<String> SOME_SOURCES = ImmutableSet.of("s1", "s2");

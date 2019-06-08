@@ -24,7 +24,7 @@ import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.function.TestFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.MetaStoreFixture;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -64,7 +64,7 @@ public class SqlToJavaVisitorTest {
         .field("TEST1.COL7", SchemaBuilder.OPTIONAL_INT32_SCHEMA)
         .build();
 
-    sqlToJavaVisitor = new SqlToJavaVisitor(KsqlSchema.of(schema), TestFunctionRegistry.INSTANCE.get());
+    sqlToJavaVisitor = new SqlToJavaVisitor(LogicalSchema.of(schema), TestFunctionRegistry.INSTANCE.get());
   }
 
   @Test

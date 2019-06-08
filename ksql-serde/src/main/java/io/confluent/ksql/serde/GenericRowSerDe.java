@@ -20,7 +20,7 @@ import static java.util.Objects.requireNonNull;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
-import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.ArrayList;
@@ -137,7 +137,7 @@ public final class GenericRowSerDe implements Serde<GenericRow> {
     private final Serializer<Object> inner;
     private final ConnectSchema schema;
 
-    GenericRowSerializer(final Serializer<Object> inner, final KsqlSchema schema) {
+    GenericRowSerializer(final Serializer<Object> inner, final LogicalSchema schema) {
       this.inner = requireNonNull(inner, "inner");
       this.schema = requireNonNull(schema, "schema").getSchema();
     }

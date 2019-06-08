@@ -16,7 +16,7 @@
 package io.confluent.ksql.metastore.model;
 
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.Objects;
@@ -78,7 +78,7 @@ public final class KeyField {
    * @return self, to allow fluid syntax.
    * @throws IllegalArgumentException if the key is not within the supplied schema.
    */
-  public KeyField validateKeyExistsIn(final KsqlSchema schema) {
+  public KeyField validateKeyExistsIn(final LogicalSchema schema) {
     resolveLatest(schema);
     return this;
   }
@@ -107,7 +107,7 @@ public final class KeyField {
    * @return the resolved key field, or {@link Optional#empty()} if no key field is set.
    * @throws IllegalArgumentException if new key field is required but not available in the schema.
    */
-  public Optional<Field> resolve(final KsqlSchema schema, final KsqlConfig ksqlConfig) {
+  public Optional<Field> resolve(final LogicalSchema schema, final KsqlConfig ksqlConfig) {
     if (shouldUseLegacy(ksqlConfig)) {
       return legacyKeyField;
     }
@@ -146,7 +146,7 @@ public final class KeyField {
    * @return the key field, if one is present, or else {@code empty}.
    * @throws IllegalArgumentException is the key field is not in the supplied schema.
    */
-  public Optional<Field> resolveLatest(final KsqlSchema schema) {
+  public Optional<Field> resolveLatest(final LogicalSchema schema) {
     return keyField
         .map(fieldName -> schema.findField(fieldName)
             .orElseThrow(() -> new IllegalArgumentException(

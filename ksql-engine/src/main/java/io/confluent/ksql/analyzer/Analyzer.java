@@ -52,7 +52,7 @@ import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.planner.plan.DataSourceNode;
 import io.confluent.ksql.planner.plan.JoinNode;
 import io.confluent.ksql.planner.plan.PlanNodeId;
-import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.KsqlSerdeFactories;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
@@ -340,7 +340,7 @@ class Analyzer {
     private void analyzeExpressions() {
       final boolean isJoinSchema = analysis.getJoin() != null;
 
-      final KsqlSchema schema = isJoinSchema
+      final LogicalSchema schema = isJoinSchema
           ? analysis.getJoin().getSchema()
           : analysis.getFromDataSources().get(0).getLeft().getSchema();
 
@@ -453,7 +453,7 @@ class Analyzer {
     private Field getJoinField(
         final ComparisonExpression comparisonExpression,
         final String sourceAlias,
-        final KsqlSchema sourceSchema
+        final LogicalSchema sourceSchema
     ) {
       Optional<Field> joinField = getJoinFieldFromExpr(
           comparisonExpression.getLeft(),
@@ -482,7 +482,7 @@ class Analyzer {
     private Optional<Field> getJoinFieldFromExpr(
         final Expression expression,
         final String sourceAlias,
-        final KsqlSchema sourceSchema
+        final LogicalSchema sourceSchema
     ) {
       if (expression instanceof DereferenceExpression) {
         final DereferenceExpression dereferenceExpr = (DereferenceExpression) expression;
@@ -508,7 +508,7 @@ class Analyzer {
     private Optional<Field> getJoinFieldFromSource(
         final String fieldName,
         final String sourceAlias,
-        final KsqlSchema sourceSchema
+        final LogicalSchema sourceSchema
     ) {
       return sourceSchema.findField(fieldName)
           .map(field -> SchemaUtil.buildAliasedField(sourceAlias, field));
@@ -550,18 +550,18 @@ class Analyzer {
                 .orElse("");
 
             if (!prefix.equals(join.getRightAlias())) {
-              final KsqlSchema schema = join.getLeft().getSchema().withoutAlias();
+              final LogicalSchema schema = join.getLeft().getSchema().withoutAlias();
               addSelectItems(location, schema, join.getLeftAlias(), join.getLeftAlias() + "_");
             }
 
             if (!prefix.equals(join.getLeftAlias())) {
-              final KsqlSchema schema = join.getRight().getSchema().withoutAlias();
+              final LogicalSchema schema = join.getRight().getSchema().withoutAlias();
               addSelectItems(location, schema, join.getRightAlias(), join.getRightAlias() + "_");
             }
           } else {
             final Pair<DataSource<?>, String> sourceTuple = analysis.getFromDataSources().get(0);
             final String sourceAlias = sourceTuple.getRight();
-            final KsqlSchema schema = sourceTuple.getLeft().getSchema();
+            final LogicalSchema schema = sourceTuple.getLeft().getSchema();
 
             addSelectItems(location, schema, sourceAlias, "");
           }
@@ -610,7 +610,7 @@ class Analyzer {
 
     private void addSelectItems(
         final Optional<NodeLocation> location,
-        final KsqlSchema schema,
+        final LogicalSchema schema,
         final String sourceAlias,
         final String aliasPrefix
     ) {

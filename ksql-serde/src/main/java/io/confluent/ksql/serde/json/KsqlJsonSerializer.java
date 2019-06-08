@@ -15,7 +15,7 @@
 
 package io.confluent.ksql.serde.json;
 
-import io.confluent.ksql.schema.persistence.PersistenceSchema;
+import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import java.util.Collections;
 import java.util.Map;
 import org.apache.kafka.common.errors.SerializationException;

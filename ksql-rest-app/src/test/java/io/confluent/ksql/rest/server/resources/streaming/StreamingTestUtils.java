@@ -23,7 +23,7 @@ import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.rest.server.resources.streaming.Flow.Subscriber;
 import io.confluent.ksql.rest.server.resources.streaming.Flow.Subscription;
-import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -95,7 +95,7 @@ class StreamingTestUtils {
     CountDownLatch done = new CountDownLatch(1);
     Throwable error = null;
     List<T> elements = Lists.newLinkedList();
-    KsqlSchema schema = null;
+    LogicalSchema schema = null;
     Subscription subscription;
 
     @Override
@@ -125,7 +125,7 @@ class StreamingTestUtils {
     }
 
     @Override
-    public void onSchema(final KsqlSchema s) {
+    public void onSchema(final LogicalSchema s) {
       if (done.getCount() == 0) {
         throw new IllegalStateException("already done");
       }

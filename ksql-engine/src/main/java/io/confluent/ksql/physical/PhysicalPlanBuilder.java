@@ -34,7 +34,7 @@ import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.structured.QueuedSchemaKStream;
@@ -235,7 +235,7 @@ public class PhysicalPlanBuilder {
       metaStore.putTopic(outputNode.getKsqlTopic());
     }
 
-    final KsqlSchema sinkSchema = outputNode.getSchema().withImplicitFields();
+    final LogicalSchema sinkSchema = outputNode.getSchema().withImplicitFields();
 
     final DataSource<?> sinkDataSource;
     if (schemaKStream instanceof SchemaKTable) {
@@ -328,8 +328,8 @@ public class PhysicalPlanBuilder {
           existing.getDataSourceType()));
     }
 
-    final KsqlSchema resultSchema = sinkDataSource.getSchema();
-    final KsqlSchema existingSchema = existing.getSchema();
+    final LogicalSchema resultSchema = sinkDataSource.getSchema();
+    final LogicalSchema existingSchema = existing.getSchema();
 
     if (!resultSchema.equals(existingSchema)) {
       throw new KsqlException("Incompatible schema between results and sink. "

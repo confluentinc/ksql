@@ -23,7 +23,7 @@ import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.TestFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Assert;
@@ -55,7 +55,7 @@ public class ExpressionTypeManagerTest {
         .field("TEST1.COL3", SchemaBuilder.OPTIONAL_FLOAT64_SCHEMA)
         .build();
 
-    expressionTypeManager = new ExpressionTypeManager(KsqlSchema.of(schema), FUNCTION_REGISTRY);
+    expressionTypeManager = new ExpressionTypeManager(LogicalSchema.of(schema), FUNCTION_REGISTRY);
     ordersExpressionTypeManager = new ExpressionTypeManager(
         metaStore.getSource("ORDERS").getSchema(),
         FUNCTION_REGISTRY

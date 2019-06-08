@@ -35,7 +35,7 @@ import io.confluent.ksql.parser.tree.NotExpression;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.parser.tree.SearchedCaseExpression;
 import io.confluent.ksql.parser.tree.SubscriptExpression;
-import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.ExpressionMetadata;
 import io.confluent.ksql.util.ExpressionTypeManager;
 import io.confluent.ksql.util.GenericRowValueTypeEnforcer;
@@ -58,7 +58,7 @@ import org.codehaus.commons.compiler.IExpressionEvaluator;
 
 public class CodeGenRunner {
 
-  private final KsqlSchema schema;
+  private final LogicalSchema schema;
   private final FunctionRegistry functionRegistry;
   private final ExpressionTypeManager expressionTypeManager;
   private final KsqlConfig ksqlConfig;
@@ -66,7 +66,7 @@ public class CodeGenRunner {
   public static List<ExpressionMetadata> compileExpressions(
       final Stream<Expression> expressions,
       final String type,
-      final KsqlSchema schema,
+      final LogicalSchema schema,
       final KsqlConfig ksqlConfig,
       final FunctionRegistry functionRegistry
   ) {
@@ -78,7 +78,7 @@ public class CodeGenRunner {
   }
 
   public CodeGenRunner(
-      final KsqlSchema schema,
+      final LogicalSchema schema,
       final KsqlConfig ksqlConfig,
       final FunctionRegistry functionRegistry
   ) {
@@ -149,7 +149,7 @@ public class CodeGenRunner {
 
   private static final class Visitor extends AstVisitor<Object, Object> {
 
-    private final KsqlSchema schema;
+    private final LogicalSchema schema;
     private final Set<ParameterType> parameters;
     private final FunctionRegistry functionRegistry;
     private final ExpressionTypeManager expressionTypeManager;
@@ -158,7 +158,7 @@ public class CodeGenRunner {
     private int functionCounter = 0;
 
     private Visitor(
-        final KsqlSchema schema,
+        final LogicalSchema schema,
         final FunctionRegistry functionRegistry,
         final ExpressionTypeManager expressionTypeManager,
         final KsqlConfig ksqlConfig

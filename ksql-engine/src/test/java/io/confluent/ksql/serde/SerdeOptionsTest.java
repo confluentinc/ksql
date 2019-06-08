@@ -27,11 +27,10 @@ import io.confluent.ksql.parser.tree.BooleanLiteral;
 import io.confluent.ksql.parser.tree.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.StringLiteral;
-import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
-import io.confluent.ksql.util.StringUtil;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -53,12 +52,12 @@ public class SerdeOptionsTest {
 
   private static final String TOPIC_NAME = "some topic";
 
-  private static final KsqlSchema SINGLE_FIELD_SCHEMA = KsqlSchema.of(SchemaBuilder
+  private static final LogicalSchema SINGLE_FIELD_SCHEMA = LogicalSchema.of(SchemaBuilder
       .struct()
       .field("f0", Schema.OPTIONAL_INT64_SCHEMA)
       .build());
 
-  private static final KsqlSchema MULTI_FIELD_SCHEMA = KsqlSchema.of(SchemaBuilder
+  private static final LogicalSchema MULTI_FIELD_SCHEMA = LogicalSchema.of(SchemaBuilder
       .struct()
       .field("f0", Schema.OPTIONAL_INT64_SCHEMA)
       .field("f1", Schema.OPTIONAL_FLOAT64_SCHEMA)

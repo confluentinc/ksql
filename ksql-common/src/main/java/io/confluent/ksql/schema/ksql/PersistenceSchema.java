@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.schema.persistence;
+package io.confluent.ksql.schema.ksql;
 
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.schema.connect.SqlSchemaFormatter;

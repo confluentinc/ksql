@@ -15,7 +15,7 @@
 package io.confluent.ksql.util;
 
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.SerdeOption;
 import java.util.Arrays;
@@ -30,7 +30,7 @@ public class UserDataProvider extends TestDataProvider {
 
   private static final String key = "USERID";
 
-  private static final KsqlSchema schema = KsqlSchema.of(SchemaBuilder.struct()
+  private static final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
       .field("REGISTERTIME", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
       .field("GENDER", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
       .field("REGIONID", SchemaBuilder.OPTIONAL_STRING_SCHEMA)

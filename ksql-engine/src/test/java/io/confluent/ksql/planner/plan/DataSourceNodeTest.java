@@ -40,7 +40,7 @@ import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.physical.KsqlQueryBuilder;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.serde.SerdeOption;
@@ -96,7 +96,7 @@ public class DataSourceNodeTest {
   private final KsqlConfig realConfig = new KsqlConfig(Collections.emptyMap());
   private SchemaKStream realStream;
   private StreamsBuilder realBuilder;
-  private final KsqlSchema realSchema = KsqlSchema.of(SchemaBuilder.struct()
+  private final LogicalSchema realSchema = LogicalSchema.of(SchemaBuilder.struct()
       .field("field1", Schema.OPTIONAL_STRING_SCHEMA)
       .field("field2", Schema.OPTIONAL_STRING_SCHEMA)
       .field("field3", Schema.OPTIONAL_STRING_SCHEMA)
@@ -360,11 +360,11 @@ public class DataSourceNodeTest {
     final String sourceName = SOME_SOURCE.getName();
 
     // When:
-    final KsqlSchema schema = node.getSchema();
+    final LogicalSchema schema = node.getSchema();
 
     // Then:
     assertThat(schema, is(
-        KsqlSchema.of(SchemaBuilder.struct()
+        LogicalSchema.of(SchemaBuilder.struct()
             .field(sourceName + ".field1", Schema.OPTIONAL_STRING_SCHEMA)
             .field(sourceName + ".field2", Schema.OPTIONAL_STRING_SCHEMA)
             .field(sourceName + ".field3", Schema.OPTIONAL_STRING_SCHEMA)

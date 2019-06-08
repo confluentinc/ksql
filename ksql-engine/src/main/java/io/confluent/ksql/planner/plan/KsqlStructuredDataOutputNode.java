@@ -25,7 +25,7 @@ import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.physical.KsqlQueryBuilder;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.structured.QueryContext;
@@ -51,7 +51,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
   public KsqlStructuredDataOutputNode(
       final PlanNodeId id,
       final PlanNode source,
-      final KsqlSchema schema,
+      final LogicalSchema schema,
       final TimestampExtractionPolicy timestampExtractionPolicy,
       final KeyField keyField,
       final KsqlTopic ksqlTopic,

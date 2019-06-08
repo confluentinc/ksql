@@ -20,7 +20,6 @@ import static java.util.Objects.requireNonNull;
 import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.ddl.DdlConfig;
-import io.confluent.ksql.schema.persistence.PersistenceSchema;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Objects;
@@ -37,12 +36,12 @@ import org.apache.kafka.connect.data.Field;
 @Immutable
 public final class PhysicalSchema {
 
-  private final KsqlSchema logicalSchema;
+  private final LogicalSchema logicalSchema;
   private final ImmutableSet<SerdeOption> serdeOptions;
   private final PersistenceSchema valueSchema;
 
   public static PhysicalSchema from(
-      final KsqlSchema logicalSchema,
+      final LogicalSchema logicalSchema,
       final Set<SerdeOption> serdeOptions
   ) {
     return new PhysicalSchema(logicalSchema, serdeOptions);
@@ -51,7 +50,7 @@ public final class PhysicalSchema {
   /**
    * @return the logical schema used to build this physical schema.
    */
-  public KsqlSchema logicalSchema() {
+  public LogicalSchema logicalSchema() {
     return logicalSchema;
   }
 
@@ -70,7 +69,7 @@ public final class PhysicalSchema {
   }
 
   private PhysicalSchema(
-      final KsqlSchema logicalSchema,
+      final LogicalSchema logicalSchema,
       final Set<SerdeOption> serdeOptions
   ) {
     this.logicalSchema = requireNonNull(logicalSchema, "logicalSchema");

@@ -23,7 +23,7 @@ import static org.junit.Assume.assumeThat;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.testing.NullPointerTester;
 import com.google.common.testing.NullPointerTester.Visibility;
-import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
 import io.confluent.ksql.test.util.ClassFinder;
@@ -51,7 +51,7 @@ public class MetaStoreModelTest {
       .put(org.apache.kafka.connect.data.Field.class,
           new org.apache.kafka.connect.data.Field("bob", 1, Schema.OPTIONAL_STRING_SCHEMA))
       .put(KeyField.class, KeyField.of(Optional.empty(), Optional.empty()))
-      .put(KsqlSchema.class, KsqlSchema.of(SchemaBuilder
+      .put(LogicalSchema.class, LogicalSchema.of(SchemaBuilder
           .struct()
           .optional()
           .field("f0", Schema.OPTIONAL_INT64_SCHEMA)
@@ -72,7 +72,7 @@ public class MetaStoreModelTest {
   @Test
   public void shouldBeImmutable() {
     new ImmutableTester()
-        .withKnownImmutableType(KsqlSchema.class)
+        .withKnownImmutableType(LogicalSchema.class)
         .withKnownImmutableType(org.apache.kafka.connect.data.Field.class)
         .test(modelClass);
   }

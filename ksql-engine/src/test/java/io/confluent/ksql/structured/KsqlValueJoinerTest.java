@@ -18,7 +18,7 @@ package io.confluent.ksql.structured;
 import static org.junit.Assert.assertEquals;
 
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.Arrays;
 import java.util.List;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -27,8 +27,8 @@ import org.junit.Test;
 
 public class KsqlValueJoinerTest {
 
-  private KsqlSchema leftSchema;
-  private KsqlSchema rightSchema;
+  private LogicalSchema leftSchema;
+  private LogicalSchema rightSchema;
   private GenericRow leftRow;
   private GenericRow rightRow;
 
@@ -38,8 +38,8 @@ public class KsqlValueJoinerTest {
         .field("col0", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
         .field("col1", SchemaBuilder.OPTIONAL_STRING_SCHEMA);
 
-    leftSchema = KsqlSchema.of(schemaBuilder.build());
-    rightSchema = KsqlSchema.of(schemaBuilder.build());
+    leftSchema = LogicalSchema.of(schemaBuilder.build());
+    rightSchema = LogicalSchema.of(schemaBuilder.build());
 
     leftRow = new GenericRow(Arrays.asList(12L, "foobar"));
     rightRow = new GenericRow(Arrays.asList(20L, "baz"));

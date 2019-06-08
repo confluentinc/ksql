@@ -24,7 +24,7 @@ import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfMetadata;
 import io.confluent.ksql.function.udf.UdfParameter;
 import io.confluent.ksql.metrics.MetricCollectors;
-import io.confluent.ksql.schema.ksql.LogicalSchemas;
+import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.TypeContextUtil;
 import io.confluent.ksql.security.ExtensionSecurityManager;
 import io.confluent.ksql.util.KsqlConfig;
@@ -276,7 +276,7 @@ public class UdfLoader {
 
       final String doc = annotation.map(UdfParameter::description).orElse("");
       if (annotation.isPresent() && !annotation.get().schema().isEmpty()) {
-        return LogicalSchemas.fromSqlTypeConverter()
+        return SchemaConverters.fromSqlTypeConverter()
             .fromSqlType(
                 TypeContextUtil.getType(annotation.get().schema()),
                 name,
@@ -373,7 +373,7 @@ public class UdfLoader {
     try {
       final Schema returnType = udfAnnotation.schema().isEmpty()
           ? SchemaUtil.getSchemaFromType(method.getGenericReturnType())
-          : LogicalSchemas
+          : SchemaConverters
               .fromSqlTypeConverter()
               .fromSqlType(TypeContextUtil.getType(udfAnnotation.schema()));
 

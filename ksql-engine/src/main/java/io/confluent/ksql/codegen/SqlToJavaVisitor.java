@@ -54,7 +54,7 @@ import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.SubscriptExpression;
 import io.confluent.ksql.parser.tree.Type;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.LogicalSchemas;
+import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.util.ExpressionTypeManager;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
@@ -366,7 +366,7 @@ public class SqlToJavaVisitor {
         throw new KsqlFunctionException("Only casts to primitive types are supported: " + sqlType);
       }
 
-      final Schema returnType = LogicalSchemas.fromSqlTypeConverter().fromSqlType(sqlType);
+      final Schema returnType = SchemaConverters.fromSqlTypeConverter().fromSqlType(sqlType);
       final Schema rightSchema = expr.getRight();
       if (returnType.equals(rightSchema) || rightSchema == null) {
         return new Pair<>(expr.getLeft(), returnType);

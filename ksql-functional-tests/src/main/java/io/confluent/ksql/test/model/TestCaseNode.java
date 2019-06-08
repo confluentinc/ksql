@@ -33,7 +33,7 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.CreateSourceProperties;
-import io.confluent.ksql.schema.ksql.LogicalSchemas;
+import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.test.serde.SerdeSupplier;
 import io.confluent.ksql.test.tools.Record;
@@ -254,7 +254,7 @@ public class TestCaseNode {
         final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
         statement.getElements().forEach(e -> schemaBuilder.field(
             e.getName(),
-            LogicalSchemas.fromSqlTypeConverter().fromSqlType(e.getType()))
+            SchemaConverters.fromSqlTypeConverter().fromSqlType(e.getType()))
         );
         avroSchema = Optional.of(new AvroData(1)
             .fromConnectSchema(addNames(schemaBuilder.build())));

@@ -23,7 +23,7 @@ import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.LogicalSchemas;
+import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.services.KafkaTopicClient;
@@ -141,7 +141,7 @@ abstract class CreateSourceCommand implements DdlCommand {
       }
       tableSchema = tableSchema.field(
           tableElement.getName(),
-          LogicalSchemas.fromSqlTypeConverter().fromSqlType(tableElement.getType())
+          SchemaConverters.fromSqlTypeConverter().fromSqlType(tableElement.getType())
       );
     }
 

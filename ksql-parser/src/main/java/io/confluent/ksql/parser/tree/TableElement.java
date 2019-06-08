@@ -19,8 +19,8 @@ import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.schema.ksql.LogicalSchemas;
-import io.confluent.ksql.schema.ksql.LogicalSchemas.LogicalToSqlTypeConverter;
+import io.confluent.ksql.schema.ksql.SchemaConverters;
+import io.confluent.ksql.schema.ksql.SchemaConverters.LogicalToSqlTypeConverter;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -90,7 +90,7 @@ public final class TableElement extends Node {
   }
 
   public static List<TableElement> fromSchema(final Schema schema) {
-    final LogicalToSqlTypeConverter toSqlTypeConverter = LogicalSchemas
+    final LogicalToSqlTypeConverter toSqlTypeConverter = SchemaConverters
         .toSqlTypeConverter();
 
     return schema.fields().stream()

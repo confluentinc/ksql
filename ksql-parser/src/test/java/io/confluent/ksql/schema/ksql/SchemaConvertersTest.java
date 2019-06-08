@@ -33,7 +33,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-public class LogicalSchemasTest {
+public class SchemaConvertersTest {
 
   private static final Schema LOGICAL_BOOLEAN_SCHEMA = SchemaBuilder.bool().optional().build();
   private static final Schema LOGICAL_INT_SCHEMA = SchemaBuilder.int32().optional().build();
@@ -48,13 +48,13 @@ public class LogicalSchemasTest {
       .put(PrimitiveType.of(SqlType.DOUBLE), LOGICAL_DOUBLE_SCHEMA)
       .put(PrimitiveType.of(SqlType.STRING), LOGICAL_STRING_SCHEMA)
       .put(io.confluent.ksql.parser.tree.Array.of(PrimitiveType.of(SqlType.INTEGER)),
-          SchemaBuilder.array(LogicalSchemas.INTEGER).optional().build())
+          SchemaBuilder.array(SchemaConverters.INTEGER).optional().build())
       .put(io.confluent.ksql.parser.tree.Map.of(PrimitiveType.of(SqlType.INTEGER)),
-          SchemaBuilder.map(LogicalSchemas.STRING, LogicalSchemas.INTEGER).optional().build())
+          SchemaBuilder.map(SchemaConverters.STRING, SchemaConverters.INTEGER).optional().build())
       .put(io.confluent.ksql.parser.tree.Struct.builder()
               .addField("f0", PrimitiveType.of(SqlType.INTEGER))
               .build(),
-          SchemaBuilder.struct().field("f0", LogicalSchemas.INTEGER).optional().build())
+          SchemaBuilder.struct().field("f0", SchemaConverters.INTEGER).optional().build())
       .build();
 
   private static final Schema STRUCT_LOGICAL_TYPE = SchemaBuilder.struct()
@@ -100,7 +100,7 @@ public class LogicalSchemasTest {
     for (Entry<Type, Schema> entry : SQL_TO_LOGICAL.entrySet()) {
       final Type sqlType = entry.getKey();
       final Schema logical = entry.getValue();
-      final Schema result = LogicalSchemas.fromSqlTypeConverter().fromSqlType(sqlType);
+      final Schema result = SchemaConverters.fromSqlTypeConverter().fromSqlType(sqlType);
       assertThat(result, is(logical));
     }
   }
@@ -108,17 +108,17 @@ public class LogicalSchemasTest {
   @Test
   public void shouldGetSqlTypeForEveryLogicalType() {
     SQL_TO_LOGICAL.inverse().forEach((logical, sqlType) ->
-        assertThat(LogicalSchemas.toSqlTypeConverter().toSqlType(logical), is(sqlType)));
+        assertThat(SchemaConverters.toSqlTypeConverter().toSqlType(logical), is(sqlType)));
   }
 
   @Test
   public void shouldConvertNestedComplexToSql() {
-    assertThat(LogicalSchemas.toSqlTypeConverter().toSqlType(NESTED_LOGICAL_TYPE), is(NESTED_SQL_TYPE));
+    assertThat(SchemaConverters.toSqlTypeConverter().toSqlType(NESTED_LOGICAL_TYPE), is(NESTED_SQL_TYPE));
   }
 
   @Test
   public void shouldConvertNestedComplexFromSql() {
-    assertThat(LogicalSchemas.fromSqlTypeConverter().fromSqlType(NESTED_SQL_TYPE), is(NESTED_LOGICAL_TYPE));
+    assertThat(SchemaConverters.fromSqlTypeConverter().fromSqlType(NESTED_SQL_TYPE), is(NESTED_LOGICAL_TYPE));
   }
 
   @Test
@@ -133,7 +133,7 @@ public class LogicalSchemasTest {
     expectedException.expectMessage("Unsupported map key type: Schema{INT64}");
 
     // When:
-    LogicalSchemas.toSqlTypeConverter().toSqlType(mapSchema);
+    SchemaConverters.toSqlTypeConverter().toSqlType(mapSchema);
   }
 
   @Test
@@ -146,6 +146,6 @@ public class LogicalSchemasTest {
     expectedException.expectMessage("Unexpected logical type: Schema{INT8}");
 
     // When:
-    LogicalSchemas.toSqlTypeConverter().toSqlType(unsupported);
+    SchemaConverters.toSqlTypeConverter().toSqlType(unsupported);
   }
 }

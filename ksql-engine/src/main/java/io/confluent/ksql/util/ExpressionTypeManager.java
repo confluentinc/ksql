@@ -45,7 +45,7 @@ import io.confluent.ksql.parser.tree.SubscriptExpression;
 import io.confluent.ksql.parser.tree.Type;
 import io.confluent.ksql.parser.tree.WhenClause;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.LogicalSchemas;
+import io.confluent.ksql.schema.ksql.SchemaConverters;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -113,7 +113,7 @@ public class ExpressionTypeManager
       throw new KsqlFunctionException("Only casts to primitive types are supported: " + sqlType);
     }
 
-    final Schema castType = LogicalSchemas.fromSqlTypeConverter().fromSqlType(sqlType);
+    final Schema castType = SchemaConverters.fromSqlTypeConverter().fromSqlType(sqlType);
     expressionTypeContext.setSchema(castType);
     return null;
   }

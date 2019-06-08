@@ -24,7 +24,7 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.schema.connect.SqlSchemaFormatter;
 import io.confluent.ksql.schema.connect.SqlSchemaFormatter.Option;
-import io.confluent.ksql.schema.ksql.LogicalSchemas;
+import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.inference.TopicSchemaSupplier.SchemaAndId;
 import io.confluent.ksql.schema.ksql.inference.TopicSchemaSupplier.SchemaResult;
 import io.confluent.ksql.serde.Format;
@@ -139,7 +139,7 @@ public class DefaultSchemaInjector implements Injector {
   ) {
     try {
       // throws exception if invalid
-      LogicalSchemas.toSqlTypeConverter().toSqlType(schema);
+      SchemaConverters.toSqlTypeConverter().toSqlType(schema);
       return SchemaParser.parse(FORMATTER.format(schema));
     } catch (final Exception e) {
       throw new KsqlStatementException(

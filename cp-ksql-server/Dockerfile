@@ -1,7 +1,7 @@
 ARG DOCKER_UPSTREAM_REGISTRY
 ARG DOCKER_UPSTREAM_TAG
 
-FROM ${DOCKER_UPSTREAM_REGISTRY}confluentinc/cp-base-new:${DOCKER_UPSTREAM_TAG}
+FROM ${DOCKER_UPSTREAM_REGISTRY}confluentinc/cp-base:${DOCKER_UPSTREAM_TAG}
 
 EXPOSE 8088
 
@@ -24,7 +24,8 @@ ADD target/${ARTIFACT_ID}-${PROJECT_VERSION}-package/etc/* /etc/ksql/
 
 COPY include/etc/confluent/docker /etc/confluent/docker
 
-RUN mkdir -p /etc/${COMPONENT} /etc/${COMPONENT}/secrets
+RUN mkdir -p /etc/${COMPONENT} /etc/${COMPONENT}/secrets \
+    && chmod -R g+w /etc/${COMPONENT}
 
 RUN chmod +x /etc/confluent/docker/run
 RUN chmod +x /etc/confluent/docker/configure

@@ -18,6 +18,7 @@ package io.confluent.ksql.analyzer;
 import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.analyzer.Analysis.Into;
 import io.confluent.ksql.ddl.DdlConfig;
@@ -25,7 +26,6 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.parser.DefaultTraversalVisitor;
-import io.confluent.ksql.parser.LiteralUtil;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.Cast;
@@ -58,16 +58,17 @@ import io.confluent.ksql.serde.KsqlSerdeFactories;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.serde.SerdeFactories;
 import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.StringUtil;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Predicate;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
 
@@ -90,6 +91,7 @@ class Analyzer {
   private final MetaStore metaStore;
   private final String topicPrefix;
   private final SerdeFactories serdeFactories;
+  private final SerdeOptionsSupplier serdeOptionsSupplier;
   private final Set<SerdeOption> defaultSerdeOptions;
 
   /**
@@ -102,20 +104,28 @@ class Analyzer {
       final String topicPrefix,
       final Set<SerdeOption> defaultSerdeOptions
   ) {
-    this(metaStore, topicPrefix, defaultSerdeOptions, new KsqlSerdeFactories());
+    this(
+        metaStore,
+        topicPrefix,
+        defaultSerdeOptions,
+        new KsqlSerdeFactories(),
+        SerdeOptions::buildForCreateAsStatement);
   }
 
-  private Analyzer(
+  @VisibleForTesting
+  Analyzer(
       final MetaStore metaStore,
       final String topicPrefix,
       final Set<SerdeOption> defaultSerdeOptions,
-      final SerdeFactories serdeFactories
+      final SerdeFactories serdeFactories,
+      final SerdeOptionsSupplier serdeOptionsSupplier
   ) {
     this.metaStore = requireNonNull(metaStore, "metaStore");
     this.topicPrefix = requireNonNull(topicPrefix, "topicPrefix");
     this.defaultSerdeOptions = ImmutableSet
         .copyOf(requireNonNull(defaultSerdeOptions, "defaultSerdeOptions"));
     this.serdeFactories = requireNonNull(serdeFactories, "serdeFactories");
+    this.serdeOptionsSupplier = requireNonNull(serdeOptionsSupplier, "serdeOptionsSupplier");
   }
 
   /**
@@ -153,16 +163,16 @@ class Analyzer {
       sink.ifPresent(s -> analyzeNonStdOutSink(s, sqlExpression));
     }
 
-    private void setIntoProperties(final Map<String, Expression> sinkProperties) {
-      validateWithClause(sinkProperties.keySet());
+    private void setIntoProperties(final Sink sink) {
+      validateWithClause(sink.getProperties().keySet());
 
-      setIntoTopicName(sinkProperties);
+      setIntoTopicName(sink.getProperties());
 
-      setPartitionBy(sinkProperties);
+      setPartitionBy(sink.getProperties());
 
-      setIntoTimestampColumnAndFormat(sinkProperties);
+      setIntoTimestampColumnAndFormat(sink.getProperties());
 
-      setSerdeOptions(sinkProperties);
+      setSerdeOptions(sink);
     }
 
     private void setPartitionBy(final Map<String, Expression> properties) {
@@ -182,7 +192,7 @@ class Analyzer {
         final Sink sink,
         final String sqlExpression
     ) {
-      setIntoProperties(sink.getProperties());
+      setIntoProperties(sink);
 
       if (!sink.shouldCreateSink()) {
         final DataSource<?> existing = metaStore.getSource(sink.getName());
@@ -285,36 +295,17 @@ class Analyzer {
       }
     }
 
-    private void setSerdeOptions(final Map<String, Expression> properties) {
-      final boolean singleField = analysis.getSelectExpressionAlias().stream()
-          .filter(((Predicate<String>)KsqlSchema::isImplicitColumnName).negate())
-          .count() == 1;
+    private void setSerdeOptions(final Sink sink) {
+      final List<String> columnNames = analysis.getSelectExpressionAlias();
 
-      final Expression exp = properties.get(DdlConfig.WRAP_SINGLE_VALUE);
-      if (exp == null) {
-        if (singleField) {
-          analysis.setSerdeOptions(defaultSerdeOptions);
-        }
-        return;
-      }
+      final Format valueFormat = getValueFormat(sink);
 
-      if (!singleField) {
-        throw new KsqlException("'" + DdlConfig.WRAP_SINGLE_VALUE
-            + "' is only valid for single-field value schemas");
-      }
-
-      if (!(exp instanceof Literal)) {
-        throw new KsqlException(DdlConfig.WRAP_SINGLE_VALUE
-            + " set in the WITH clause must be set to a literal");
-      }
-
-      final ImmutableSet.Builder<SerdeOption> options = ImmutableSet.builder();
-
-      if (!LiteralUtil.toBoolean(((Literal) exp), DdlConfig.WRAP_SINGLE_VALUE)) {
-        options.add(SerdeOption.UNWRAP_SINGLE_VALUES);
-      }
-
-      analysis.setSerdeOptions(options.build());
+      analysis.setSerdeOptions(serdeOptionsSupplier.build(
+          columnNames,
+          sink.getProperties(),
+          valueFormat,
+          defaultSerdeOptions
+      ));
     }
 
     private void validateWithClause(final Set<String> withClauseVariables) {
@@ -637,5 +628,16 @@ class Analyzer {
         analysis.addSelectItem(selectItem, alias);
       }
     }
+  }
+
+  @FunctionalInterface
+  interface SerdeOptionsSupplier {
+
+    Set<SerdeOption> build(
+        List<String> columnNames,
+        Map<String, Expression> properties,
+        Format valueFormat,
+        Set<SerdeOption> singleFieldDefaults
+    );
   }
 }

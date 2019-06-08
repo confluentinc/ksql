@@ -44,7 +44,7 @@ import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.SubscriptExpression;
 import io.confluent.ksql.parser.tree.Type;
 import io.confluent.ksql.parser.tree.WhenClause;
-import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.LogicalSchemas;
 import java.util.ArrayList;
 import java.util.List;
@@ -55,10 +55,13 @@ import org.apache.kafka.connect.data.Schema;
 public class ExpressionTypeManager
     extends DefaultAstVisitor<Expression, ExpressionTypeManager.ExpressionTypeContext> {
 
-  private final KsqlSchema schema;
+  private final LogicalSchema schema;
   private final FunctionRegistry functionRegistry;
 
-  public ExpressionTypeManager(final KsqlSchema schema, final FunctionRegistry functionRegistry) {
+  public ExpressionTypeManager(
+      final LogicalSchema schema,
+      final FunctionRegistry functionRegistry
+  ) {
     this.schema = Objects.requireNonNull(schema, "schema");
     this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
   }

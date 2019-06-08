@@ -39,7 +39,7 @@ import io.confluent.ksql.parser.tree.IntegerLiteral;
 import io.confluent.ksql.parser.tree.LongLiteral;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.StringLiteral;
-import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.services.ServiceContext;
@@ -74,20 +74,20 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class InsertValuesExecutorTest {
 
-  private static final KsqlSchema SINGLE_FIELD_SCHEMA = KsqlSchema.of(SchemaBuilder.struct()
+  private static final LogicalSchema SINGLE_FIELD_SCHEMA = LogicalSchema.of(SchemaBuilder.struct()
       .field("ROWTIME", Schema.OPTIONAL_INT64_SCHEMA)
       .field("ROWKEY", Schema.OPTIONAL_INT64_SCHEMA)
       .field("COL0", Schema.OPTIONAL_STRING_SCHEMA)
       .build());
 
-  private static final KsqlSchema SCHEMA = KsqlSchema.of(SchemaBuilder.struct()
+  private static final LogicalSchema SCHEMA = LogicalSchema.of(SchemaBuilder.struct()
       .field("ROWTIME", Schema.OPTIONAL_INT64_SCHEMA)
       .field("ROWKEY", Schema.OPTIONAL_STRING_SCHEMA)
       .field("COL0", Schema.OPTIONAL_STRING_SCHEMA)
       .field("COL1", Schema.OPTIONAL_INT64_SCHEMA)
       .build());
 
-  private static final KsqlSchema BIG_SCHEMA = KsqlSchema.of(SchemaBuilder.struct()
+  private static final LogicalSchema BIG_SCHEMA = LogicalSchema.of(SchemaBuilder.struct()
       .field("ROWTIME", Schema.OPTIONAL_INT64_SCHEMA)
       .field("ROWKEY", Schema.OPTIONAL_STRING_SCHEMA)
       .field("COL0", Schema.OPTIONAL_STRING_SCHEMA) // named COL0 for auto-ROWKEY
@@ -569,7 +569,7 @@ public class InsertValuesExecutorTest {
   }
 
   private void givenDataSourceWithSchema(
-      final KsqlSchema schema,
+      final LogicalSchema schema,
       final Set<SerdeOption> serdeOptions,
       final Optional<String> keyField
   ) {
@@ -591,7 +591,7 @@ public class InsertValuesExecutorTest {
     when(engine.getMetaStore()).thenReturn(metaStore);
   }
 
-  private static List<String> fieldNames(final KsqlSchema schema) {
+  private static List<String> fieldNames(final LogicalSchema schema) {
     return schema.fields().stream().map(Field::name).collect(Collectors.toList());
   }
 }

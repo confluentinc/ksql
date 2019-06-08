@@ -115,8 +115,8 @@ import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.QueuedCommandStatus;
 import io.confluent.ksql.rest.util.EntityUtil;
 import io.confluent.ksql.rest.util.TerminateCluster;
-import io.confluent.ksql.schema.SqlType;
-import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.SqlType;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
@@ -181,7 +181,7 @@ public class KsqlResourceTest {
       "CREATE STREAM S AS SELECT * FROM test_stream;",
       ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"),
       0L);
-  private static final KsqlSchema SINGLE_FIELD_SCHEMA = KsqlSchema.of(SchemaBuilder.struct()
+  private static final LogicalSchema SINGLE_FIELD_SCHEMA = LogicalSchema.of(SchemaBuilder.struct()
       .field("val", Schema.OPTIONAL_STRING_SCHEMA)
       .build());
 
@@ -222,7 +222,7 @@ public class KsqlResourceTest {
       new KsqlConfig(getDefaultKsqlConfig())
   );
 
-  private static final KsqlSchema SOME_SCHEMA = KsqlSchema.of(SchemaBuilder.struct()
+  private static final LogicalSchema SOME_SCHEMA = LogicalSchema.of(SchemaBuilder.struct()
       .field("f1", Schema.OPTIONAL_STRING_SCHEMA)
       .build());
 
@@ -382,7 +382,7 @@ public class KsqlResourceTest {
   @Test
   public void shouldShowStreamsExtended() {
     // Given:
-    final KsqlSchema schema = KsqlSchema.of(SchemaBuilder.struct()
+    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
         .field("FIELD1", Schema.OPTIONAL_BOOLEAN_SCHEMA)
         .field("FIELD2", Schema.OPTIONAL_STRING_SCHEMA)
         .build());
@@ -410,7 +410,7 @@ public class KsqlResourceTest {
   @Test
   public void shouldShowTablesExtended() {
     // Given:
-    final KsqlSchema schema = KsqlSchema.of(SchemaBuilder.struct()
+    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
         .field("FIELD1", Schema.OPTIONAL_BOOLEAN_SCHEMA)
         .field("FIELD2", Schema.OPTIONAL_STRING_SCHEMA)
         .build());
@@ -1925,7 +1925,7 @@ public class KsqlResourceTest {
   }
 
   private void addTestTopicAndSources() {
-    final KsqlSchema schema1 = KsqlSchema.of(SchemaBuilder.struct()
+    final LogicalSchema schema1 = LogicalSchema.of(SchemaBuilder.struct()
             .field("S1_F1", Schema.OPTIONAL_BOOLEAN_SCHEMA)
             .build());
 
@@ -1933,7 +1933,7 @@ public class KsqlResourceTest {
         DataSourceType.KTABLE,
         "TEST_TABLE", "KAFKA_TOPIC_1", "KSQL_TOPIC_1", schema1);
 
-    final KsqlSchema schema2 = KsqlSchema.of(SchemaBuilder.struct()
+    final LogicalSchema schema2 = LogicalSchema.of(SchemaBuilder.struct()
         .field("S2_F1", Schema.OPTIONAL_STRING_SCHEMA)
         .build());
 
@@ -1948,7 +1948,7 @@ public class KsqlResourceTest {
       final String sourceName,
       final String topicName,
       final String ksqlTopicName,
-      final KsqlSchema schema
+      final LogicalSchema schema
   ) {
     if (metaStore.getTopic(ksqlTopicName) != null) {
       return;

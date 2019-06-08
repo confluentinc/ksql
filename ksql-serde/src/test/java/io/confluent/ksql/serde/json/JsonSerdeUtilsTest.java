@@ -21,7 +21,7 @@ import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
-import io.confluent.ksql.schema.persistence.PersistenceSchema;
+import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Schema;

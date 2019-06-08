@@ -18,7 +18,7 @@ package io.confluent.ksql.planner.plan;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.physical.KsqlQueryBuilder;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.structured.QueuedSchemaKStream;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.util.QueryIdGenerator;
@@ -35,7 +35,7 @@ public class KsqlBareOutputNode extends OutputNode {
   public KsqlBareOutputNode(
       final PlanNodeId id,
       final PlanNode source,
-      final KsqlSchema schema,
+      final LogicalSchema schema,
       final OptionalInt limit,
       final TimestampExtractionPolicy extractionPolicy
   ) {

@@ -19,7 +19,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
-import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Test;
@@ -33,7 +33,7 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceBoolean() {
-    final KsqlSchema schema = KsqlSchema.of(SchemaBuilder.struct()
+    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
         .field("boolean", Schema.OPTIONAL_BOOLEAN_SCHEMA)
         .build());
     
@@ -51,7 +51,7 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceBooleanReturningBooleanWhereBooleanValueIsFalse() {
-    final KsqlSchema schema = KsqlSchema.of(SchemaBuilder.struct()
+    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
         .field("boolean", Schema.OPTIONAL_BOOLEAN_SCHEMA)
         .build());
 
@@ -63,7 +63,7 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceBooleanReturningBooleanWhereBooleanValueIsTrue() {
-    final KsqlSchema schema = KsqlSchema.of(SchemaBuilder.struct()
+    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
         .field("boolean", Schema.OPTIONAL_BOOLEAN_SCHEMA)
         .build());
 
@@ -75,7 +75,7 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceBooleanReturningNull() {
-    final KsqlSchema schema = KsqlSchema.of(SchemaBuilder.struct()
+    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
         .field("boolean", Schema.OPTIONAL_BOOLEAN_SCHEMA)
         .build());
 
@@ -87,7 +87,7 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceString() {
-    final KsqlSchema schema = KsqlSchema.of(SchemaBuilder.struct()
+    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
         .field("string", Schema.OPTIONAL_STRING_SCHEMA)
         .build());
 
@@ -105,7 +105,7 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceStringReturningNull() {
-    final KsqlSchema schema = KsqlSchema.of(SchemaBuilder.struct()
+    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
         .field("string", Schema.OPTIONAL_STRING_SCHEMA)
         .build());
 
@@ -117,7 +117,7 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceInteger() {
-    final KsqlSchema schema = KsqlSchema.of(SchemaBuilder.struct()
+    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
         .field("int", Schema.OPTIONAL_INT32_SCHEMA)
         .build());
 
@@ -135,7 +135,7 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceIntegerThrowsNumberFormatExceptionOnInvalidCharSequence() {
-    final KsqlSchema schema = KsqlSchema.of(SchemaBuilder.struct()
+    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
         .field("int", Schema.OPTIONAL_INT32_SCHEMA)
         .build());
 
@@ -152,7 +152,7 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceIntegerThrowsNumberFormatExceptionOnInvalidString() {
-    final KsqlSchema schema = KsqlSchema.of(SchemaBuilder.struct()
+    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
         .field("int", Schema.OPTIONAL_INT32_SCHEMA)
         .build());
 
@@ -169,7 +169,7 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceIntegerOnValidCharSequence() {
-    final KsqlSchema schema = KsqlSchema.of(SchemaBuilder.struct()
+    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
         .field("int", Schema.OPTIONAL_INT32_SCHEMA)
         .build());
 
@@ -181,7 +181,7 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceIntegerOnValidString() {
-    final KsqlSchema schema = KsqlSchema.of(SchemaBuilder.struct()
+    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
         .field("int", Schema.OPTIONAL_INT32_SCHEMA)
         .build());
 
@@ -193,7 +193,7 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceIntegerAndEnforceIntegerOne() {
-    final KsqlSchema schema = KsqlSchema.of(SchemaBuilder.struct()
+    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
         .field("int", Schema.OPTIONAL_INT32_SCHEMA)
         .build());
 
@@ -205,7 +205,7 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceIntegerAndEnforceIntegerThree() {
-    final KsqlSchema schema = KsqlSchema.of(SchemaBuilder.struct()
+    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
         .field("int", Schema.OPTIONAL_INT32_SCHEMA)
         .build());
 
@@ -217,7 +217,7 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceIntegerAndEnforceIntegerFour() {
-    final KsqlSchema schema = KsqlSchema.of(SchemaBuilder.struct()
+    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
         .field("int", Schema.OPTIONAL_INT32_SCHEMA)
         .build());
 
@@ -229,7 +229,7 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceIntegerReturningNull() {
-    final KsqlSchema schema = KsqlSchema.of(SchemaBuilder.struct()
+    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
         .field("int", Schema.OPTIONAL_INT32_SCHEMA)
         .build());
 
@@ -241,7 +241,7 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceLong() {
-    final KsqlSchema schema = KsqlSchema.of(SchemaBuilder.struct()
+    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
         .field("long", Schema.OPTIONAL_INT64_SCHEMA)
         .build());
 
@@ -259,7 +259,7 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceLongThrowsNumberFormatExceptionOnInvalidCharSequence() {
-    final KsqlSchema schema = KsqlSchema.of(SchemaBuilder.struct()
+    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
         .field("long", Schema.OPTIONAL_INT64_SCHEMA)
         .build());
 
@@ -276,7 +276,7 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceLongThrowsNumberFormatExceptionOnInvalidString() {
-    final KsqlSchema schema = KsqlSchema.of(SchemaBuilder.struct()
+    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
         .field("long", Schema.OPTIONAL_INT64_SCHEMA)
         .build());
 
@@ -293,7 +293,7 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceLongOnValidCharSequence() {
-    final KsqlSchema schema = KsqlSchema.of(SchemaBuilder.struct()
+    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
         .field("long", Schema.OPTIONAL_INT64_SCHEMA)
         .build());
 
@@ -305,7 +305,7 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceLongOnValidString() {
-    final KsqlSchema schema = KsqlSchema.of(SchemaBuilder.struct()
+    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
         .field("long", Schema.OPTIONAL_INT64_SCHEMA)
         .build());
 
@@ -317,7 +317,7 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceLongAndEnforceLongOne() {
-    final KsqlSchema schema = KsqlSchema.of(SchemaBuilder.struct()
+    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
         .field("long", Schema.OPTIONAL_INT64_SCHEMA)
         .build());
 
@@ -329,7 +329,7 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceLongReturningLongWhereByteValueIsNegative() {
-    final KsqlSchema schema = KsqlSchema.of(SchemaBuilder.struct()
+    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
         .field("long", Schema.OPTIONAL_INT64_SCHEMA)
         .build());
 
@@ -341,7 +341,7 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceLongReturningLongWhereShortValueIsNegative() {
-    final KsqlSchema schema = KsqlSchema.of(SchemaBuilder.struct()
+    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
         .field("long", Schema.OPTIONAL_INT64_SCHEMA)
         .build());
 
@@ -353,7 +353,7 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceLongReturningNull() {
-    final KsqlSchema schema = KsqlSchema.of(SchemaBuilder.struct()
+    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
         .field("long", Schema.OPTIONAL_INT64_SCHEMA)
         .build());
 
@@ -365,7 +365,7 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceDouble() {
-    final KsqlSchema schema = KsqlSchema.of(SchemaBuilder.struct()
+    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
         .field("double", Schema.OPTIONAL_FLOAT64_SCHEMA)
         .build());
 
@@ -384,7 +384,7 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test(expected = NumberFormatException.class)
   public void testEnforceDoubleThrowsNumberFormatExceptionOnInvalidCharSequence() {
-    final KsqlSchema schema = KsqlSchema.of(SchemaBuilder.struct()
+    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
         .field("double", Schema.OPTIONAL_FLOAT64_SCHEMA)
         .build());
 
@@ -396,7 +396,7 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test(expected = NumberFormatException.class)
   public void testEnforceDoubleThrowsNumberFormatExceptionOnInvalidString() {
-    final KsqlSchema schema = KsqlSchema.of(SchemaBuilder.struct()
+    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
         .field("double", Schema.OPTIONAL_FLOAT64_SCHEMA)
         .build());
 
@@ -408,7 +408,7 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceDoubleOnValidCharSequence() {
-    final KsqlSchema schema = KsqlSchema.of(SchemaBuilder.struct()
+    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
         .field("double", Schema.OPTIONAL_FLOAT64_SCHEMA)
         .build());
 
@@ -420,7 +420,7 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceDoubleOnValidString() {
-    final KsqlSchema schema = KsqlSchema.of(SchemaBuilder.struct()
+    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
         .field("double", Schema.OPTIONAL_FLOAT64_SCHEMA)
         .build());
 
@@ -432,7 +432,7 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceDoubleAndEnforceDoubleOne() {
-    final KsqlSchema schema = KsqlSchema.of(SchemaBuilder.struct()
+    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
         .field("double", Schema.OPTIONAL_FLOAT64_SCHEMA)
         .build());
 
@@ -444,7 +444,7 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceDoubleReturningDoubleWhereByteValueIsNegative() {
-    final KsqlSchema schema = KsqlSchema.of(SchemaBuilder.struct()
+    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
         .field("double", Schema.OPTIONAL_FLOAT64_SCHEMA)
         .build());
 
@@ -456,7 +456,7 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceDoubleAndEnforceDoubleTwo() {
-    final KsqlSchema schema = KsqlSchema.of(SchemaBuilder.struct()
+    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
         .field("double", Schema.OPTIONAL_FLOAT64_SCHEMA)
         .build());
 
@@ -468,7 +468,7 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceDoubleReturningDoubleWhereShortValueIsPositive() {
-    final KsqlSchema schema = KsqlSchema.of(SchemaBuilder.struct()
+    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
         .field("double", Schema.OPTIONAL_FLOAT64_SCHEMA)
         .build());
 
@@ -480,7 +480,7 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceDoubleReturningDoubleWhereShortValueIsNegative() {
-    final KsqlSchema schema = KsqlSchema.of(SchemaBuilder.struct()
+    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
         .field("double", Schema.OPTIONAL_FLOAT64_SCHEMA)
         .build());
 
@@ -492,7 +492,7 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceDoubleReturningNull() {
-    final KsqlSchema schema = KsqlSchema.of(SchemaBuilder.struct()
+    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
         .field("double", Schema.OPTIONAL_FLOAT64_SCHEMA)
         .build());
 

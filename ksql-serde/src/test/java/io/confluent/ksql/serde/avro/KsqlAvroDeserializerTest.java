@@ -32,7 +32,7 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.AbstractKafkaAvroSerDeConfig;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
-import io.confluent.ksql.schema.persistence.PersistenceSchema;
+import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import java.time.LocalDate;

@@ -27,7 +27,7 @@ import com.google.common.util.concurrent.MoreExecutors;
 import io.confluent.ksql.rest.server.resources.streaming.Flow.Subscriber;
 import io.confluent.ksql.rest.server.resources.streaming.Flow.Subscription;
 import io.confluent.ksql.rest.server.resources.streaming.StreamingTestUtils.TestSubscriber;
-import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.Queue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -68,7 +68,7 @@ public class PollingSubscriptionTest {
       super(
           MoreExecutors.listeningDecorator(exec),
           subscriber,
-          KsqlSchema.of(SchemaBuilder
+          LogicalSchema.of(SchemaBuilder
               .struct()
               .field("f0", Schema.OPTIONAL_STRING_SCHEMA)
               .build())

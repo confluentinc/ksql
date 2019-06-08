@@ -47,7 +47,7 @@ import io.confluent.ksql.planner.plan.FilterNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.GenericRowSerDe;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
@@ -111,7 +111,7 @@ public class SchemaKTableTest {
   private KTable mockKTable;
   private SchemaKTable firstSchemaKTable;
   private SchemaKTable secondSchemaKTable;
-  private KsqlSchema joinSchema;
+  private LogicalSchema joinSchema;
   private final QueryContext.Stacker queryContext
       = new QueryContext.Stacker(new QueryId("query")).push("node");
   private final QueryContext parentContext = queryContext.push("parent").getQueryContext();
@@ -150,7 +150,7 @@ public class SchemaKTableTest {
   }
 
   private SchemaKTable buildSchemaKTable(
-      final KsqlSchema schema,
+      final LogicalSchema schema,
       final KeyField keyField,
       final KTable kTable,
       final GroupedFactory groupedFactory) {
@@ -175,7 +175,7 @@ public class SchemaKTableTest {
       final KTable kTable,
       final GroupedFactory groupedFactory
   ) {
-    final KsqlSchema schema = ksqlTable.getSchema().withAlias(ksqlTable.getName());
+    final LogicalSchema schema = ksqlTable.getSchema().withAlias(ksqlTable.getName());
 
     final Optional<String> newKeyName = ksqlTable.getKeyField().name()
         .map(name -> SchemaUtil.buildAliasedFieldName(ksqlTable.getName(), name));
@@ -197,7 +197,7 @@ public class SchemaKTableTest {
   private Serde<GenericRow> getRowSerde(final KsqlTopic topic, final ConnectSchema schema) {
     return GenericRowSerDe.from(
         topic.getValueSerdeFactory(),
-        PhysicalSchema.from(KsqlSchema.of(schema), SerdeOption.none()),
+        PhysicalSchema.from(LogicalSchema.of(schema), SerdeOption.none()),
         new KsqlConfig(Collections.emptyMap()),
         MockSchemaRegistryClient::new,
         "test",
@@ -617,8 +617,8 @@ public class SchemaKTableTest {
         is(KeyField.of("TEST2.COL1", new Field("TEST2.COL1", -1, Schema.OPTIONAL_STRING_SCHEMA))));
   }
 
-  private static KsqlSchema getJoinSchema(final KsqlSchema leftSchema,
-      final KsqlSchema rightSchema) {
+  private static LogicalSchema getJoinSchema(final LogicalSchema leftSchema,
+      final LogicalSchema rightSchema) {
     final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
     final String leftAlias = "left";
     final String rightAlias = "right";
@@ -631,7 +631,7 @@ public class SchemaKTableTest {
       final String fieldName = rightAlias + "." + field.name();
       schemaBuilder.field(fieldName, field.schema());
     }
-    return KsqlSchema.of(schemaBuilder.build());
+    return LogicalSchema.of(schemaBuilder.build());
   }
 
   private List<SelectExpression> givenInitialKTableOf(final String selectQuery) {

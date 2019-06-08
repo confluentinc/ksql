@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.schema.inference;
+package io.confluent.ksql.schema.ksql.inference;
 
 import java.util.Objects;
 import java.util.Optional;

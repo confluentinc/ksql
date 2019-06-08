@@ -34,7 +34,7 @@ import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.PlanNodeId;
 import io.confluent.ksql.planner.plan.ProjectNode;
-import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.ExpressionTypeManager;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
@@ -83,7 +83,7 @@ public class LogicalPlanner {
   }
 
   private OutputNode buildOutputNode(final PlanNode sourcePlanNode) {
-    final KsqlSchema inputSchema = sourcePlanNode.getSchema();
+    final LogicalSchema inputSchema = sourcePlanNode.getSchema();
     final TimestampExtractionPolicy extractionPolicy =
         getTimestampExtractionPolicy(inputSchema, analysis);
 
@@ -126,7 +126,7 @@ public class LogicalPlanner {
   }
 
   private static TimestampExtractionPolicy getTimestampExtractionPolicy(
-      final KsqlSchema inputSchema,
+      final LogicalSchema inputSchema,
       final Analysis analysis
   ) {
     return TimestampExtractionPolicyFactory.create(
@@ -163,7 +163,7 @@ public class LogicalPlanner {
     return new AggregateNode(
         new PlanNodeId("Aggregate"),
         sourcePlanNode,
-        KsqlSchema.of(aggregateSchema.build()),
+        LogicalSchema.of(aggregateSchema.build()),
         keyField,
         analysis.getGroupByExpressions(),
         analysis.getWindowExpression(),
@@ -205,7 +205,7 @@ public class LogicalPlanner {
     return new ProjectNode(
         new PlanNodeId("Project"),
         sourcePlanNode,
-        KsqlSchema.of(projectionSchema.build()),
+        LogicalSchema.of(projectionSchema.build()),
         keyFieldName,
         analysis.getSelectExpressions()
     );

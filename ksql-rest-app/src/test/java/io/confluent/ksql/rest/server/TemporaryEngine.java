@@ -29,7 +29,7 @@ import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.parser.DefaultKsqlParser;
-import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
@@ -48,7 +48,7 @@ import org.junit.rules.ExternalResource;
 
 public class TemporaryEngine extends ExternalResource {
 
-  public static final KsqlSchema SCHEMA = KsqlSchema.of(SchemaBuilder.struct()
+  public static final LogicalSchema SCHEMA = LogicalSchema.of(SchemaBuilder.struct()
       .field("val", Schema.OPTIONAL_STRING_SCHEMA)
       .build());
 

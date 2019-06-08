@@ -22,7 +22,7 @@ import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.metastore.model.KsqlTopic;
-import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
@@ -67,7 +67,7 @@ public final class MetaStoreFixture {
     final KsqlStream<?> ksqlStream0 = new KsqlStream<>(
         "sqlexpression",
         "TEST0",
-        KsqlSchema.of(test1Schema),
+        LogicalSchema.of(test1Schema),
         SerdeOption.none(),
         KeyField.of("COL0", test1Schema.field("COL0")),
         timestampExtractionPolicy,
@@ -84,7 +84,7 @@ public final class MetaStoreFixture {
 
     final KsqlStream<?> ksqlStream1 = new KsqlStream<>("sqlexpression",
         "TEST1",
-        KsqlSchema.of(test1Schema),
+        LogicalSchema.of(test1Schema),
         SerdeOption.none(),
         KeyField.of("COL0", test1Schema.field("COL0")),
         timestampExtractionPolicy,
@@ -111,7 +111,7 @@ public final class MetaStoreFixture {
     final KsqlTable<String> ksqlTable = new KsqlTable<>(
         "sqlexpression",
         "TEST2",
-        KsqlSchema.of(test2Schema),
+        LogicalSchema.of(test2Schema),
         SerdeOption.none(),
         KeyField.of("COL0", test2Schema.field("COL0")),
         timestampExtractionPolicy,
@@ -159,7 +159,7 @@ public final class MetaStoreFixture {
     final KsqlStream<?> ksqlStreamOrders = new KsqlStream<>(
         "sqlexpression",
         "ORDERS",
-        KsqlSchema.of(ordersSchema),
+        LogicalSchema.of(ordersSchema),
         SerdeOption.none(),
         KeyField.of("ORDERTIME", ordersSchema.field("ORDERTIME")),
         timestampExtractionPolicy,
@@ -186,7 +186,7 @@ public final class MetaStoreFixture {
     final KsqlTable<String> ksqlTable3 = new KsqlTable<>(
         "sqlexpression",
         "TEST3",
-        KsqlSchema.of(testTable3),
+        LogicalSchema.of(testTable3),
         SerdeOption.none(),
         KeyField.of("COL0", testTable3.field("COL0")),
         timestampExtractionPolicy,
@@ -212,7 +212,7 @@ public final class MetaStoreFixture {
     final KsqlStream<?> nestedArrayStructMapOrders = new KsqlStream<>(
         "sqlexpression",
         "NESTED_STREAM",
-        KsqlSchema.of(nestedArrayStructMapSchema),
+        LogicalSchema.of(nestedArrayStructMapSchema),
         SerdeOption.none(),
         KeyField.none(),
         timestampExtractionPolicy,
@@ -229,7 +229,7 @@ public final class MetaStoreFixture {
     final KsqlStream<?> ksqlStream4 = new KsqlStream<>(
         "sqlexpression4",
         "TEST4",
-        KsqlSchema.of(test1Schema),
+        LogicalSchema.of(test1Schema),
         SerdeOption.none(),
         KeyField.none(),
         timestampExtractionPolicy,

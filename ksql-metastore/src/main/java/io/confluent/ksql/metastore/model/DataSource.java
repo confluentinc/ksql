@@ -16,7 +16,7 @@
 package io.confluent.ksql.metastore.model;
 
 import io.confluent.ksql.metastore.SerdeFactory;
-import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.serde.SerdeOption;
@@ -57,7 +57,7 @@ public interface DataSource<K> {
    *
    * @return the physical schema.
    */
-  KsqlSchema getSchema();
+  LogicalSchema getSchema();
 
   /**
    * Get the physical serde options of the source.

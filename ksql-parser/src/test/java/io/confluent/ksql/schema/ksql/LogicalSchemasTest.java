@@ -23,7 +23,6 @@ import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.Type;
-import io.confluent.ksql.schema.SqlType;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Map.Entry;
 import java.util.Set;

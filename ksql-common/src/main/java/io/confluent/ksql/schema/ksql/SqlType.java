@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.schema;
+package io.confluent.ksql.schema.ksql;
 
 /**
  * The SQL types supported by KSQL.

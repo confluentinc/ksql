@@ -21,7 +21,7 @@ import com.google.errorprone.annotations.Immutable;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
-import io.confluent.ksql.schema.persistence.PersistenceSchema;
+import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Objects;
 import java.util.function.Supplier;

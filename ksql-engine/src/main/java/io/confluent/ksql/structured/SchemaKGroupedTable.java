@@ -23,7 +23,7 @@ import io.confluent.ksql.function.udaf.KudafAggregator;
 import io.confluent.ksql.function.udaf.KudafUndoAggregator;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.parser.tree.WindowExpression;
-import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.streams.MaterializedFactory;
 import io.confluent.ksql.streams.StreamsUtil;
 import io.confluent.ksql.util.KsqlConfig;
@@ -43,7 +43,7 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
   private final KGroupedTable kgroupedTable;
 
   SchemaKGroupedTable(
-      final KsqlSchema schema,
+      final LogicalSchema schema,
       final KGroupedTable kgroupedTable,
       final KeyField keyField,
       final List<SchemaKStream> sourceSchemaKStreams,
@@ -61,7 +61,7 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
   }
 
   SchemaKGroupedTable(
-      final KsqlSchema schema,
+      final LogicalSchema schema,
       final KGroupedTable kgroupedTable,
       final KeyField keyField,
       final List<SchemaKStream> sourceSchemaKStreams,

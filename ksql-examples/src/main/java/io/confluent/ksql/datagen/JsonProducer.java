@@ -18,7 +18,7 @@ package io.confluent.ksql.datagen;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
-import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.GenericRowSerDe;
 import io.confluent.ksql.serde.SerdeOption;
@@ -37,7 +37,7 @@ public class JsonProducer extends DataGenProducer {
   ) {
     return GenericRowSerDe.from(
         new KsqlJsonSerdeFactory(),
-        PhysicalSchema.from(KsqlSchema.of(kafkaSchema), SerdeOption.none()),
+        PhysicalSchema.from(LogicalSchema.of(kafkaSchema), SerdeOption.none()),
         new KsqlConfig(ImmutableMap.of()),
         () -> null,
         "",

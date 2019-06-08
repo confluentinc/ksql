@@ -18,7 +18,7 @@ package io.confluent.ksql.rest.server.resources.streaming;
 import com.google.common.base.Preconditions;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
-import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
@@ -28,7 +28,7 @@ public abstract class PollingSubscription<T> implements Flow.Subscription {
 
   private final Flow.Subscriber<T> subscriber;
   private final ListeningScheduledExecutorService exec;
-  private final KsqlSchema schema;
+  private final LogicalSchema schema;
 
   private boolean needsSchema = true;
   private volatile boolean done = false;
@@ -39,7 +39,7 @@ public abstract class PollingSubscription<T> implements Flow.Subscription {
   public PollingSubscription(
       final ListeningScheduledExecutorService exec,
       final Flow.Subscriber<T> subscriber,
-      final KsqlSchema schema
+      final LogicalSchema schema
   ) {
     this.exec = Objects.requireNonNull(exec, "exec");
     this.subscriber = Objects.requireNonNull(subscriber, "subscriber");

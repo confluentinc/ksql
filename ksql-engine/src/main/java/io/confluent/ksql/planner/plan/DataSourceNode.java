@@ -27,7 +27,7 @@ import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.physical.AddTimestampColumn;
 import io.confluent.ksql.physical.KsqlQueryBuilder;
-import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.serde.SerdeOption;
@@ -90,7 +90,7 @@ public class DataSourceNode
   private static final String REDUCE_OP_NAME = "reduce";
 
   private final DataSource<?> dataSource;
-  private final KsqlSchema schema;
+  private final LogicalSchema schema;
   private final KeyField keyField;
   private final Function<KsqlConfig, MaterializedFactory> materializedFactorySupplier;
 
@@ -130,7 +130,7 @@ public class DataSourceNode
   }
 
   @Override
-  public KsqlSchema getSchema() {
+  public LogicalSchema getSchema() {
     return schema;
   }
 

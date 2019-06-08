@@ -28,7 +28,7 @@ import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
-import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.streams.StreamsFactories;
 import io.confluent.ksql.streams.StreamsUtil;
 import io.confluent.ksql.util.ExpressionMetadata;
@@ -65,7 +65,7 @@ public class SchemaKStream<K> {
 
   public enum Type { SOURCE, PROJECT, FILTER, AGGREGATE, SINK, REKEY, JOIN }
 
-  final KsqlSchema schema;
+  final LogicalSchema schema;
   final KStream<K, GenericRow> kstream;
   final KeyField keyField;
   final List<SchemaKStream> sourceSchemaKStreams;
@@ -77,7 +77,7 @@ public class SchemaKStream<K> {
   final QueryContext queryContext;
 
   public SchemaKStream(
-      final KsqlSchema schema,
+      final LogicalSchema schema,
       final KStream<K, GenericRow> kstream,
       final KeyField keyField,
       final List<SchemaKStream> sourceSchemaKStreams,
@@ -101,7 +101,7 @@ public class SchemaKStream<K> {
   }
 
   SchemaKStream(
-      final KsqlSchema schema,
+      final LogicalSchema schema,
       final KStream<K, GenericRow> kstream,
       final KeyField keyField,
       final List<SchemaKStream> sourceSchemaKStreams,
@@ -212,7 +212,7 @@ public class SchemaKStream<K> {
 
   class Selection {
 
-    private final KsqlSchema schema;
+    private final LogicalSchema schema;
     private final KeyField key;
     private final SelectValueMapper selectValueMapper;
 
@@ -295,7 +295,7 @@ public class SchemaKStream<K> {
       return Optional.empty();
     }
 
-    private KsqlSchema buildSchema(
+    private LogicalSchema buildSchema(
         final List<SelectExpression> selectExpressions,
         final List<ExpressionMetadata> expressionEvaluators) {
       final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
@@ -303,7 +303,7 @@ public class SchemaKStream<K> {
           i -> schemaBuilder.field(
               selectExpressions.get(i).getName(),
               expressionEvaluators.get(i).getExpressionType()));
-      return KsqlSchema.of(schemaBuilder.build());
+      return LogicalSchema.of(schemaBuilder.build());
     }
 
     List<ExpressionMetadata> buildExpressions(final List<SelectExpression> selectExpressions
@@ -315,7 +315,7 @@ public class SchemaKStream<K> {
           expressions, "Select", SchemaKStream.this.getSchema(), ksqlConfig, functionRegistry);
     }
 
-    public KsqlSchema getProjectedSchema() {
+    public LogicalSchema getProjectedSchema() {
       return schema;
     }
 
@@ -331,7 +331,7 @@ public class SchemaKStream<K> {
   @SuppressWarnings("unchecked")
   public SchemaKStream<K> leftJoin(
       final SchemaKTable<K> schemaKTable,
-      final KsqlSchema joinSchema,
+      final LogicalSchema joinSchema,
       final KeyField keyField,
       final Serde<GenericRow> leftValueSerDe,
       final QueryContext.Stacker contextStacker
@@ -363,7 +363,7 @@ public class SchemaKStream<K> {
 
   public SchemaKStream<K> leftJoin(
       final SchemaKStream<K> otherSchemaKStream,
-      final KsqlSchema joinSchema,
+      final LogicalSchema joinSchema,
       final KeyField keyField,
       final JoinWindows joinWindows,
       final Serde<GenericRow> leftSerde,
@@ -399,7 +399,7 @@ public class SchemaKStream<K> {
   @SuppressWarnings("unchecked")
   public SchemaKStream<K> join(
       final SchemaKTable<K> schemaKTable,
-      final KsqlSchema joinSchema,
+      final LogicalSchema joinSchema,
       final KeyField keyField,
       final Serde<GenericRow> joinSerDe,
       final QueryContext.Stacker contextStacker
@@ -430,7 +430,7 @@ public class SchemaKStream<K> {
 
   public SchemaKStream<K> join(
       final SchemaKStream<K> otherSchemaKStream,
-      final KsqlSchema joinSchema,
+      final LogicalSchema joinSchema,
       final KeyField keyField,
       final JoinWindows joinWindows,
       final Serde<GenericRow> leftSerde,
@@ -464,7 +464,7 @@ public class SchemaKStream<K> {
 
   public SchemaKStream<K> outerJoin(
       final SchemaKStream<K> otherSchemaKStream,
-      final KsqlSchema joinSchema,
+      final LogicalSchema joinSchema,
       final KeyField keyField,
       final JoinWindows joinWindows,
       final Serde<GenericRow> leftSerde,
@@ -660,7 +660,7 @@ public class SchemaKStream<K> {
     return keyField;
   }
 
-  public KsqlSchema getSchema() {
+  public LogicalSchema getSchema() {
     return schema;
   }
 
@@ -714,10 +714,10 @@ public class SchemaKStream<K> {
   protected static class KsqlValueJoiner
       implements ValueJoiner<GenericRow, GenericRow, GenericRow> {
 
-    private final KsqlSchema leftSchema;
-    private final KsqlSchema rightSchema;
+    private final LogicalSchema leftSchema;
+    private final LogicalSchema rightSchema;
 
-    KsqlValueJoiner(final KsqlSchema leftSchema, final KsqlSchema rightSchema) {
+    KsqlValueJoiner(final LogicalSchema leftSchema, final LogicalSchema rightSchema) {
       this.leftSchema = Objects.requireNonNull(leftSchema, "leftSchema");
       this.rightSchema = Objects.requireNonNull(rightSchema, "rightSchema");
     }

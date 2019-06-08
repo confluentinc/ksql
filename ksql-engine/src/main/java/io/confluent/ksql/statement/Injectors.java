@@ -16,8 +16,8 @@
 package io.confluent.ksql.statement;
 
 import io.confluent.ksql.KsqlExecutionContext;
-import io.confluent.ksql.schema.inference.DefaultSchemaInjector;
-import io.confluent.ksql.schema.inference.SchemaRegistryTopicSchemaSupplier;
+import io.confluent.ksql.schema.ksql.inference.DefaultSchemaInjector;
+import io.confluent.ksql.schema.ksql.inference.SchemaRegistryTopicSchemaSupplier;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.topic.TopicCreateInjector;
 import io.confluent.ksql.topic.TopicDeleteInjector;

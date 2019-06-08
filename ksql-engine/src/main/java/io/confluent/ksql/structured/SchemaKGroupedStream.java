@@ -25,7 +25,7 @@ import io.confluent.ksql.metastore.SerdeFactory;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.parser.tree.KsqlWindowExpression;
 import io.confluent.ksql.parser.tree.WindowExpression;
-import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.streams.MaterializedFactory;
 import io.confluent.ksql.streams.StreamsUtil;
 import io.confluent.ksql.util.KsqlConfig;
@@ -46,7 +46,7 @@ import org.apache.kafka.streams.state.WindowStore;
 
 public class SchemaKGroupedStream {
 
-  final KsqlSchema schema;
+  final LogicalSchema schema;
   final KGroupedStream kgroupedStream;
   final KeyField keyField;
   final List<SchemaKStream> sourceSchemaKStreams;
@@ -55,7 +55,7 @@ public class SchemaKGroupedStream {
   final MaterializedFactory materializedFactory;
 
   SchemaKGroupedStream(
-      final KsqlSchema schema,
+      final LogicalSchema schema,
       final KGroupedStream kgroupedStream,
       final KeyField keyField,
       final List<SchemaKStream> sourceSchemaKStreams,
@@ -74,7 +74,7 @@ public class SchemaKGroupedStream {
   }
 
   SchemaKGroupedStream(
-      final KsqlSchema schema,
+      final LogicalSchema schema,
       final KGroupedStream kgroupedStream,
       final KeyField keyField,
       final List<SchemaKStream> sourceSchemaKStreams,

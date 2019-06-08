@@ -19,7 +19,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.schema.connect.SchemaFormatter;
 import io.confluent.ksql.schema.connect.SqlSchemaFormatter;
-import io.confluent.ksql.schema.persistence.PersistenceSchema;
+import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import java.util.LinkedHashMap;
 import java.util.Objects;
 import java.util.stream.Collectors;

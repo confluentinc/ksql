@@ -52,7 +52,7 @@ import org.apache.kafka.connect.data.SchemaBuilder;
  * </ul>
  */
 @Immutable
-public final class KsqlSchema {
+public final class LogicalSchema {
 
   private static final SqlSchemaFormatter FORMATTER = new SqlSchemaFormatter(Option.AS_COLUMN_LIST);
 
@@ -71,18 +71,18 @@ public final class KsqlSchema {
           .put(Type.INT64, NO_ADDITIONAL_VALIDATION)
           .put(Type.FLOAT64, NO_ADDITIONAL_VALIDATION)
           .put(Type.STRING, NO_ADDITIONAL_VALIDATION)
-          .put(Type.ARRAY, KsqlSchema::validateArray)
-          .put(Type.MAP, KsqlSchema::validateMap)
-          .put(Type.STRUCT, KsqlSchema::validateStruct)
+          .put(Type.ARRAY, LogicalSchema::validateArray)
+          .put(Type.MAP, LogicalSchema::validateMap)
+          .put(Type.STRUCT, LogicalSchema::validateStruct)
           .build();
 
   private final ConnectSchema schema;
 
-  public static KsqlSchema of(final Schema schema) {
-    return new KsqlSchema(schema);
+  public static LogicalSchema of(final Schema schema) {
+    return new LogicalSchema(schema);
   }
 
-  private KsqlSchema(final Schema schema) {
+  private LogicalSchema(final Schema schema) {
     this.schema = validate(Objects.requireNonNull(schema, "schema"), true);
   }
 
@@ -154,7 +154,7 @@ public final class KsqlSchema {
    * @param alias the alias to add.
    * @return the schema with the alias applied.
    */
-  public KsqlSchema withAlias(final String alias) {
+  public LogicalSchema withAlias(final String alias) {
     final SchemaBuilder newSchema = SchemaBuilder
         .struct()
         .name(schema.name());
@@ -164,7 +164,7 @@ public final class KsqlSchema {
       newSchema.field(aliased, field.schema());
     }
 
-    return KsqlSchema.of(newSchema.build());
+    return LogicalSchema.of(newSchema.build());
   }
 
   /**
@@ -172,7 +172,7 @@ public final class KsqlSchema {
    *
    * @return the schema without any aliases in the field name.
    */
-  public KsqlSchema withoutAlias() {
+  public LogicalSchema withoutAlias() {
     final SchemaBuilder newSchema = SchemaBuilder
         .struct()
         .name(schema.name());
@@ -182,7 +182,7 @@ public final class KsqlSchema {
       newSchema.field(unaliased, field.schema());
     }
 
-    return KsqlSchema.of(newSchema.build());
+    return LogicalSchema.of(newSchema.build());
   }
 
   /**
@@ -200,7 +200,7 @@ public final class KsqlSchema {
    *
    * @return the new schema with the (unaliased) implicit fields added.
    */
-  public KsqlSchema withImplicitFields() {
+  public LogicalSchema withImplicitFields() {
     final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
     schemaBuilder.field(SchemaUtil.ROWTIME_NAME, Schema.OPTIONAL_INT64_SCHEMA);
     schemaBuilder.field(SchemaUtil.ROWKEY_NAME, Schema.OPTIONAL_STRING_SCHEMA);
@@ -209,7 +209,7 @@ public final class KsqlSchema {
         schemaBuilder.field(field.name(), field.schema());
       }
     }
-    return KsqlSchema.of(schemaBuilder.build());
+    return LogicalSchema.of(schemaBuilder.build());
   }
 
   /**
@@ -225,7 +225,7 @@ public final class KsqlSchema {
    *
    * @return the new schema with the implicit fields removed.
    */
-  public KsqlSchema withoutImplicitFields() {
+  public LogicalSchema withoutImplicitFields() {
     final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
 
     for (final Field field : schema.fields()) {
@@ -235,7 +235,7 @@ public final class KsqlSchema {
       }
     }
 
-    return KsqlSchema.of(schemaBuilder.build());
+    return LogicalSchema.of(schemaBuilder.build());
   }
 
   @Override
@@ -246,7 +246,7 @@ public final class KsqlSchema {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    final KsqlSchema that = (KsqlSchema) o;
+    final LogicalSchema that = (LogicalSchema) o;
     return schemasAreEqual(schema, that.schema);
   }
 

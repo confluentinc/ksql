@@ -17,9 +17,9 @@ package io.confluent.ksql.rest.util;
 
 import io.confluent.ksql.rest.entity.FieldInfo;
 import io.confluent.ksql.rest.entity.SchemaInfo;
-import io.confluent.ksql.schema.SqlType;
 import io.confluent.ksql.schema.connect.SchemaWalker;
-import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SqlType;
 import java.util.List;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -29,7 +29,7 @@ public final class EntityUtil {
   private EntityUtil() {
   }
 
-  public static List<FieldInfo> buildSourceSchemaEntity(final KsqlSchema schema) {
+  public static List<FieldInfo> buildSourceSchemaEntity(final LogicalSchema schema) {
     return SchemaWalker.visit(schema.getSchema(), new Converter())
         .getFields()
         .orElseThrow(() -> new RuntimeException("Root schema should contain fields"));

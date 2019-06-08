@@ -53,7 +53,7 @@ import io.confluent.ksql.parser.tree.SearchedCaseExpression;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.SubscriptExpression;
 import io.confluent.ksql.parser.tree.Type;
-import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.LogicalSchemas;
 import io.confluent.ksql.util.ExpressionTypeManager;
 import io.confluent.ksql.util.KsqlException;
@@ -83,12 +83,12 @@ public class SqlToJavaVisitor {
       "com.google.common.collect.ImmutableList",
       "java.util.function.Supplier");
 
-  private final KsqlSchema schema;
+  private final LogicalSchema schema;
   private final FunctionRegistry functionRegistry;
 
   private final ExpressionTypeManager expressionTypeManager;
 
-  public SqlToJavaVisitor(final KsqlSchema schema, final FunctionRegistry functionRegistry) {
+  public SqlToJavaVisitor(final LogicalSchema schema, final FunctionRegistry functionRegistry) {
     this.schema = Objects.requireNonNull(schema, "schema");
     this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
     this.expressionTypeManager =

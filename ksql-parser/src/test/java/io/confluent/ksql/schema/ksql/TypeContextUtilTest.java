@@ -8,7 +8,6 @@ import io.confluent.ksql.parser.tree.Map;
 import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.Struct;
 import io.confluent.ksql.parser.tree.Type;
-import io.confluent.ksql.schema.SqlType;
 import io.confluent.ksql.util.KsqlException;
 import org.junit.Rule;
 import org.junit.Test;

@@ -28,7 +28,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.schema.persistence.PersistenceSchema;
+import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;

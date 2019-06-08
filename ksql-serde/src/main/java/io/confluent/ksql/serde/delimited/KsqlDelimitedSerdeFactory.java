@@ -18,7 +18,7 @@ package io.confluent.ksql.serde.delimited;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
-import io.confluent.ksql.schema.persistence.PersistenceSchema;
+import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.util.KsqlConfig;

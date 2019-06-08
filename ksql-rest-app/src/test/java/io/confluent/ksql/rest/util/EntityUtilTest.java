@@ -19,7 +19,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 
 import io.confluent.ksql.rest.entity.FieldInfo;
-import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.List;
 import java.util.Optional;
 import org.apache.kafka.connect.data.Schema;
@@ -31,7 +31,7 @@ public class EntityUtilTest {
       final Schema primitiveSchema,
       final String schemaName
   ) {
-    final KsqlSchema schema = KsqlSchema.of(SchemaBuilder
+    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder
         .struct()
         .field("field", primitiveSchema)
         .build());
@@ -73,7 +73,7 @@ public class EntityUtilTest {
   @Test
   public void shouldBuildCorrectMapField() {
     // Given:
-    final KsqlSchema schema = KsqlSchema.of(SchemaBuilder
+    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder
         .struct()
         .field("field", SchemaBuilder
             .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_INT32_SCHEMA)
@@ -95,7 +95,7 @@ public class EntityUtilTest {
   @Test
   public void shouldBuildCorrectArrayField() {
     // Given:
-    final KsqlSchema schema = KsqlSchema.of(SchemaBuilder
+    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder
         .struct()
         .field("field", SchemaBuilder
             .array(SchemaBuilder.OPTIONAL_INT64_SCHEMA)
@@ -117,7 +117,7 @@ public class EntityUtilTest {
   @Test
   public void shouldBuildCorrectStructField() {
     // Given:
-    final KsqlSchema schema = KsqlSchema.of(SchemaBuilder
+    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder
         .struct()
         .field(
             "field",
@@ -144,7 +144,7 @@ public class EntityUtilTest {
   @Test
   public void shouldBuildMiltipleFieldsCorrectly() {
     // Given:
-    final KsqlSchema schema = KsqlSchema.of(SchemaBuilder
+    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder
         .struct()
         .field("field1", Schema.OPTIONAL_INT32_SCHEMA)
         .field("field2", Schema.OPTIONAL_INT64_SCHEMA)

@@ -20,7 +20,6 @@ import io.confluent.ksql.parser.tree.Array;
 import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.Struct;
 import io.confluent.ksql.parser.tree.Type;
-import io.confluent.ksql.schema.SqlType;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Map;
 import java.util.function.Function;

@@ -69,8 +69,8 @@ import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.Struct;
 import io.confluent.ksql.parser.tree.WithinExpression;
-import io.confluent.ksql.schema.SqlType;
-import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.SqlType;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
@@ -151,7 +151,7 @@ public class KsqlParserTest {
     final KsqlStream ksqlStreamOrders = new KsqlStream<>(
         "sqlexpression",
         "ADDRESS",
-        KsqlSchema.of(schemaBuilderOrders),
+        LogicalSchema.of(schemaBuilderOrders),
         SerdeOption.none(),
         KeyField.of("ORDERTIME", schemaBuilderOrders.field("ORDERTIME")),
         new MetadataTimestampExtractionPolicy(),
@@ -168,7 +168,7 @@ public class KsqlParserTest {
     final KsqlTable<String> ksqlTableOrders = new KsqlTable<>(
         "sqlexpression",
         "ITEMID",
-        KsqlSchema.of(itemInfoSchema),
+        LogicalSchema.of(itemInfoSchema),
         SerdeOption.none(),
         KeyField.of("ITEMID", itemInfoSchema.field("ITEMID")),
         new MetadataTimestampExtractionPolicy(),

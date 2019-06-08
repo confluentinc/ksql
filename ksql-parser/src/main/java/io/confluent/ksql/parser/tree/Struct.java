@@ -19,7 +19,7 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.schema.SqlType;
+import io.confluent.ksql.schema.ksql.SqlType;
 import io.confluent.ksql.util.KsqlException;
 import java.util.ArrayList;
 import java.util.List;

@@ -18,7 +18,7 @@ package io.confluent.ksql.util;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.physical.LimitHandler;
-import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -42,7 +42,7 @@ public class QueuedQueryMetadata extends QueryMetadata {
   public QueuedQueryMetadata(
       final String statementString,
       final KafkaStreams kafkaStreams,
-      final KsqlSchema logicalSchema,
+      final LogicalSchema logicalSchema,
       final Set<String> sourceNames,
       final Consumer<LimitHandler> limitHandlerSetter,
       final String executionPlan,

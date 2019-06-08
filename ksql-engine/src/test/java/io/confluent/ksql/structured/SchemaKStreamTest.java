@@ -51,7 +51,7 @@ import io.confluent.ksql.planner.plan.FilterNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.GenericRowSerDe;
 import io.confluent.ksql.serde.SerdeOption;
@@ -131,9 +131,9 @@ public class SchemaKStreamTest {
   private SchemaKTable schemaKTable;
   private Serde<GenericRow> leftSerde;
   private Serde<GenericRow> rightSerde;
-  private KsqlSchema joinSchema;
+  private LogicalSchema joinSchema;
   private Serde<GenericRow> rowSerde;
-  private final KsqlSchema simpleSchema = KsqlSchema.of(SchemaBuilder.struct()
+  private final LogicalSchema simpleSchema = LogicalSchema.of(SchemaBuilder.struct()
       .field("key", Schema.OPTIONAL_STRING_SCHEMA)
       .field("val", Schema.OPTIONAL_INT64_SCHEMA)
       .build());
@@ -204,7 +204,7 @@ public class SchemaKStreamTest {
   private static Serde<GenericRow> getRowSerde(final KsqlTopic topic, final Schema schema) {
     return GenericRowSerDe.from(
         topic.getValueSerdeFactory(),
-        PhysicalSchema.from(KsqlSchema.of(schema), SerdeOption.none()),
+        PhysicalSchema.from(LogicalSchema.of(schema), SerdeOption.none()),
         new KsqlConfig(Collections.emptyMap()),
         MockSchemaRegistryClient::new,
         "test",
@@ -848,7 +848,7 @@ public class SchemaKStreamTest {
   }
 
   private SchemaKStream buildSchemaKStream(
-      final KsqlSchema schema,
+      final LogicalSchema schema,
       final KeyField keyField,
       final KStream kStream,
       final StreamsFactories streamsFactories) {
@@ -866,7 +866,7 @@ public class SchemaKStreamTest {
   }
 
   private void givenInitialSchemaKStreamUsesMocks() {
-    final KsqlSchema schema = ksqlStream.getSchema().withAlias(ksqlStream.getName());
+    final LogicalSchema schema = ksqlStream.getSchema().withAlias(ksqlStream.getName());
 
     final Optional<String> newKeyName = ksqlStream.getKeyField().name()
         .map(name -> SchemaUtil.buildAliasedFieldName(ksqlStream.getName(), name));
@@ -903,9 +903,9 @@ public class SchemaKStreamTest {
     );
   }
 
-  private static KsqlSchema getJoinSchema(
-      final KsqlSchema leftSchema,
-      final KsqlSchema rightSchema
+  private static LogicalSchema getJoinSchema(
+      final LogicalSchema leftSchema,
+      final LogicalSchema rightSchema
   ) {
     final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
     final String leftAlias = "left";
@@ -919,7 +919,7 @@ public class SchemaKStreamTest {
       final String fieldName = rightAlias + "." + field.name();
       schemaBuilder.field(fieldName, field.schema());
     }
-    return KsqlSchema.of(schemaBuilder.build());
+    return LogicalSchema.of(schemaBuilder.build());
   }
 
   private PlanNode givenInitialKStreamOf(final String selectQuery) {

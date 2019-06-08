@@ -43,7 +43,7 @@ import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.physical.KsqlQueryBuilder;
 import io.confluent.ksql.planner.plan.JoinNode.JoinType;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.serde.SerdeOption;
@@ -101,9 +101,9 @@ public class JoinNodeTest {
   private static final String leftAlias = "left";
   private static final String rightAlias = "right";
 
-  private final KsqlSchema leftSchema = createSchema(leftAlias);
-  private final KsqlSchema rightSchema = createSchema(rightAlias);
-  private final KsqlSchema joinSchema = joinSchema();
+  private final LogicalSchema leftSchema = createSchema(leftAlias);
+  private final LogicalSchema rightSchema = createSchema(rightAlias);
+  private final LogicalSchema joinSchema = joinSchema();
 
   private static final String LEFT_JOIN_FIELD_NAME = leftAlias + ".COL0";
   private static final String RIGHT_JOIN_FIELD_NAME = rightAlias + ".COL1";
@@ -964,7 +964,7 @@ public class JoinNodeTest {
     );
 
     // When:
-    assertThat(joinNode.getSchema(), is(KsqlSchema.of(
+    assertThat(joinNode.getSchema(), is(LogicalSchema.of(
         SchemaBuilder.struct()
             .field(leftAlias + ".ROWTIME", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
             .field(leftAlias + ".ROWKEY", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
@@ -1104,7 +1104,7 @@ public class JoinNodeTest {
   private void setupTable(
       final DataSourceNode node,
       final SchemaKTable table,
-      final KsqlSchema schema
+      final LogicalSchema schema
   ) {
     when(node.buildStream(ksqlStreamBuilder)).thenReturn(table);
     when(table.getSchema()).thenReturn(schema);
@@ -1113,7 +1113,7 @@ public class JoinNodeTest {
   private void setupTable(
       final DataSourceNode node,
       final SchemaKTable table,
-      final KsqlSchema schema,
+      final LogicalSchema schema,
       final Optional<String> keyFieldName
   ) {
     setupTable(node, table, schema);
@@ -1128,7 +1128,7 @@ public class JoinNodeTest {
   private void setupStream(
       final DataSourceNode node,
       final SchemaKStream stream,
-      final KsqlSchema schema
+      final LogicalSchema schema
   ) {
     when(node.buildStream(ksqlStreamBuilder)).thenReturn(stream);
     when(stream.getSchema()).thenReturn(schema);
@@ -1136,7 +1136,7 @@ public class JoinNodeTest {
   }
 
   @SuppressWarnings("Duplicates")
-  private KsqlSchema joinSchema() {
+  private LogicalSchema joinSchema() {
     final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
 
     for (final Field field : leftSchema.fields()) {
@@ -1147,7 +1147,7 @@ public class JoinNodeTest {
       schemaBuilder.field(field.name(), field.schema());
     }
 
-    return KsqlSchema.of(schemaBuilder.build());
+    return LogicalSchema.of(schemaBuilder.build());
   }
 
   private void buildJoin() {
@@ -1196,7 +1196,7 @@ public class JoinNodeTest {
         .thenReturn(new TopicDescription("test2", false, tablePartitionInfoList));
   }
 
-  private static Optional<String> getColumn(final KsqlSchema schema, final Predicate<String> filter) {
+  private static Optional<String> getColumn(final LogicalSchema schema, final Predicate<String> filter) {
     return schema.fields().stream()
         .map(Field::name)
         .filter(filter)
@@ -1204,7 +1204,7 @@ public class JoinNodeTest {
   }
 
   private static String getNonKeyColumn(
-      final KsqlSchema schema,
+      final LogicalSchema schema,
       final String alias,
       final String keyName
   ) {
@@ -1231,7 +1231,7 @@ public class JoinNodeTest {
   ) {
     when(dataSource.getName()).thenReturn(name);
     when(node.getDataSource()).thenReturn((DataSource)dataSource);
-    final KsqlSchema schema = node.getSchema();
+    final LogicalSchema schema = node.getSchema();
     when(dataSource.getSchema()).thenReturn(schema);
 
     final KsqlTopic ksqlTopic = mock(KsqlTopic.class);
@@ -1241,12 +1241,12 @@ public class JoinNodeTest {
     when(ksqlTopic.getValueSerdeFactory()).thenReturn(valueSerdeFactory);
   }
 
-  private static KsqlSchema createSchema(final String alias) {
+  private static LogicalSchema createSchema(final String alias) {
     final SchemaBuilder schemaBuilder = SchemaBuilder.struct()
         .field(alias + ".ROWTIME", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
         .field(alias + ".ROWKEY", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
         .field(alias + ".COL0", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
         .field(alias + ".COL1", SchemaBuilder.OPTIONAL_STRING_SCHEMA);
-    return KsqlSchema.of(schemaBuilder.build());
+    return LogicalSchema.of(schemaBuilder.build());
   }
 }

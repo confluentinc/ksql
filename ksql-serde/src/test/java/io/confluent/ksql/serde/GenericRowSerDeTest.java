@@ -27,7 +27,7 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
-import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.util.KsqlConfig;
 import java.nio.charset.StandardCharsets;
@@ -55,7 +55,7 @@ public class GenericRowSerDeTest {
 
   private static final PhysicalSchema MUTLI_FIELD_SCHEMA =
       PhysicalSchema.from(
-          KsqlSchema.of(SchemaBuilder.struct()
+          LogicalSchema.of(SchemaBuilder.struct()
               .field("f0", Schema.OPTIONAL_STRING_SCHEMA)
               .field("f1", Schema.OPTIONAL_INT32_SCHEMA)
               .build()),
@@ -63,14 +63,14 @@ public class GenericRowSerDeTest {
 
   private static final PhysicalSchema WRAPPED_SINGLE_FIELD_SCHEMA =
       PhysicalSchema.from(
-          KsqlSchema.of(SchemaBuilder.struct()
+          LogicalSchema.of(SchemaBuilder.struct()
               .field("f0", Schema.OPTIONAL_STRING_SCHEMA)
               .build()),
           SerdeOption.none());
 
   private static final PhysicalSchema UNWRAPPED_SINGLE_FIELD_SCHEMA =
       PhysicalSchema.from(
-          KsqlSchema.of(SchemaBuilder.struct()
+          LogicalSchema.of(SchemaBuilder.struct()
               .field("f0", Schema.OPTIONAL_STRING_SCHEMA)
               .build()),
           SerdeOption.of(SerdeOption.UNWRAP_SINGLE_VALUES));

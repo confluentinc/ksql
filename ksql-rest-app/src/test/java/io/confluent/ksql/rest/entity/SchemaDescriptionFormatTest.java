@@ -21,7 +21,7 @@ import static org.junit.Assert.assertThat;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.json.JsonMapper;
-import io.confluent.ksql.schema.SqlType;
+import io.confluent.ksql.schema.ksql.SqlType;
 import java.io.IOException;
 import java.util.List;
 import java.util.Optional;

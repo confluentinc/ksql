@@ -25,7 +25,7 @@ import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.metrics.ConsumerCollector;
 import io.confluent.ksql.metrics.StreamsErrorCollector;
-import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
@@ -63,7 +63,7 @@ public class SourceDescriptionTest {
   }
 
   private static DataSource<?> buildDataSource(final String kafkaTopicName) {
-    final KsqlSchema schema = KsqlSchema.of(SchemaBuilder.struct()
+    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
         .field("field0", Schema.OPTIONAL_INT32_SCHEMA)
         .build());
     final KsqlTopic topic = new KsqlTopic("internal", kafkaTopicName, new KsqlJsonSerdeFactory(), true);

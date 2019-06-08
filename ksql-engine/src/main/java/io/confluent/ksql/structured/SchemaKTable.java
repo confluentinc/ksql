@@ -22,7 +22,7 @@ import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.SerdeFactory;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.streams.StreamsFactories;
 import io.confluent.ksql.streams.StreamsUtil;
 import io.confluent.ksql.util.KsqlConfig;
@@ -49,7 +49,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
   private final KTable<K, GenericRow> ktable;
 
   public SchemaKTable(
-      final KsqlSchema schema,
+      final LogicalSchema schema,
       final KTable<K, GenericRow> ktable,
       final KeyField keyField,
       final List<SchemaKStream> sourceSchemaKStreams,
@@ -74,7 +74,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
   }
 
   SchemaKTable(
-      final KsqlSchema schema,
+      final LogicalSchema schema,
       final KTable<K, GenericRow> ktable,
       final KeyField keyField,
       final List<SchemaKStream> sourceSchemaKStreams,
@@ -224,7 +224,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
   @SuppressWarnings("unchecked")
   public SchemaKTable<K> join(
       final SchemaKTable<K> schemaKTable,
-      final KsqlSchema joinSchema,
+      final LogicalSchema joinSchema,
       final KeyField keyField,
       final QueryContext.Stacker contextStacker
   ) {
@@ -249,7 +249,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
   @SuppressWarnings("unchecked")
   public SchemaKTable<K> leftJoin(
       final SchemaKTable<K> schemaKTable,
-      final KsqlSchema joinSchema,
+      final LogicalSchema joinSchema,
       final KeyField keyField,
       final QueryContext.Stacker contextStacker
   ) {
@@ -275,7 +275,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
   @SuppressWarnings("unchecked")
   public SchemaKTable<K> outerJoin(
       final SchemaKTable<K> schemaKTable,
-      final KsqlSchema joinSchema,
+      final LogicalSchema joinSchema,
       final KeyField keyField,
       final QueryContext.Stacker contextStacker
   ) {

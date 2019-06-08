@@ -21,7 +21,7 @@ import io.confluent.ksql.parser.LiteralUtil;
 import io.confluent.ksql.parser.tree.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.Literal;
-import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Collections;
@@ -63,7 +63,7 @@ public final class SerdeOptions {
    * @return the set of serde options the statement defines.
    */
   public static Set<SerdeOption> buildForCreateStatement(
-      final KsqlSchema schema,
+      final LogicalSchema schema,
       final CreateSourceProperties properties,
       final KsqlConfig ksqlConfig
   ) {
@@ -111,7 +111,7 @@ public final class SerdeOptions {
       final Set<SerdeOption> singleFieldDefaults
   ) {
     final boolean singleField = columnNames.stream()
-        .filter(((Predicate<String>) KsqlSchema::isImplicitColumnName).negate())
+        .filter(((Predicate<String>) LogicalSchema::isImplicitColumnName).negate())
         .count() == 1;
 
     final Expression exp = properties.get(DdlConfig.WRAP_SINGLE_VALUE);

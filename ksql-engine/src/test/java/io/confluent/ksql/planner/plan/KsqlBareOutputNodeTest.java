@@ -31,7 +31,7 @@ import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.physical.KsqlQueryBuilder;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.structured.QueryContext;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.testutils.AnalysisTestUtil;
@@ -121,7 +121,7 @@ public class KsqlBareOutputNodeTest {
 
   @Test
   public void shouldCreateCorrectSchema() {
-    final KsqlSchema schema = stream.getSchema();
+    final LogicalSchema schema = stream.getSchema();
     assertThat(schema.fields(), contains(
         new Field("COL0", 0, Schema.OPTIONAL_INT64_SCHEMA),
         new Field("COL2", 1, Schema.OPTIONAL_STRING_SCHEMA),

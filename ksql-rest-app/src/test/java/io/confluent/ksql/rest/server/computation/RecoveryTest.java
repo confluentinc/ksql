@@ -42,7 +42,7 @@ import io.confluent.ksql.rest.server.computation.CommandId.Type;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.rest.util.ClusterTerminator;
-import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
@@ -271,7 +271,7 @@ public class RecoveryTest {
     final DataSource<?> source;
     final Matcher<DataSource.DataSourceType> typeMatcher;
     final Matcher<String> nameMatcher;
-    final Matcher<KsqlSchema> schemaMatcher;
+    final Matcher<LogicalSchema> schemaMatcher;
     final Matcher<String> sqlMatcher;
     final Matcher<TimestampExtractionPolicy> extractionPolicyMatcher;
     final Matcher<KsqlTopic> topicMatcher;
@@ -403,7 +403,7 @@ public class RecoveryTest {
       extends TypeSafeDiagnosingMatcher<PersistentQueryMetadata> {
     private final Matcher<Set<String>> sourcesNamesMatcher;
     private final Matcher<Set<String>> sinkNamesMatcher;
-    private final Matcher<KsqlSchema> resultSchemaMatcher;
+    private final Matcher<LogicalSchema> resultSchemaMatcher;
     private final Matcher<String> sqlMatcher;
     private final Matcher<String> stateMatcher;
 

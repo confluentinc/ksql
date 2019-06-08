@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.schema.inference;
+package io.confluent.ksql.schema.ksql.inference;
 
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.SchemaParser;
@@ -24,9 +24,9 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.schema.connect.SqlSchemaFormatter;
 import io.confluent.ksql.schema.connect.SqlSchemaFormatter.Option;
-import io.confluent.ksql.schema.inference.TopicSchemaSupplier.SchemaAndId;
-import io.confluent.ksql.schema.inference.TopicSchemaSupplier.SchemaResult;
 import io.confluent.ksql.schema.ksql.LogicalSchemas;
+import io.confluent.ksql.schema.ksql.inference.TopicSchemaSupplier.SchemaAndId;
+import io.confluent.ksql.schema.ksql.inference.TopicSchemaSupplier.SchemaResult;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;

@@ -28,7 +28,7 @@ import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.services.DefaultServiceContext;
@@ -129,7 +129,7 @@ public class JsonFormatTest {
     records.put("1", messageRow);
 
     final PhysicalSchema schema = PhysicalSchema.from(
-        KsqlSchema.of(messageSchema),
+        LogicalSchema.of(messageSchema),
         SerdeOption.none()
     );
 

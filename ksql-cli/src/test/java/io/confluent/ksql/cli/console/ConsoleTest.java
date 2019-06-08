@@ -57,7 +57,7 @@ import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.entity.TopicDescription;
 import io.confluent.ksql.rest.server.computation.CommandId;
 import io.confluent.ksql.rest.util.EntityUtil;
-import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.Format;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -858,6 +858,6 @@ public class ConsoleTest {
       dataSourceBuilder.field("f_" + idx, fieldTypes[idx]);
     }
 
-    return EntityUtil.buildSourceSchemaEntity(KsqlSchema.of(dataSourceBuilder.build()));
+    return EntityUtil.buildSourceSchemaEntity(LogicalSchema.of(dataSourceBuilder.build()));
   }
 }

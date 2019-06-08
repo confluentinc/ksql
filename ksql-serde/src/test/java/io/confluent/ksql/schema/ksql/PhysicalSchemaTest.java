@@ -31,12 +31,12 @@ import org.junit.rules.ExpectedException;
 
 public class PhysicalSchemaTest {
 
-  private static final KsqlSchema SCHEMA_WITH_MULTIPLE_FIELDS = KsqlSchema.of(SchemaBuilder.struct()
+  private static final LogicalSchema SCHEMA_WITH_MULTIPLE_FIELDS = LogicalSchema.of(SchemaBuilder.struct()
       .field("f0", Schema.OPTIONAL_BOOLEAN_SCHEMA)
       .field("f1", Schema.OPTIONAL_BOOLEAN_SCHEMA)
       .build());
 
-  private static final KsqlSchema SCHEMA_WITH_SINGLE_FIELD = KsqlSchema.of(SchemaBuilder.struct()
+  private static final LogicalSchema SCHEMA_WITH_SINGLE_FIELD = LogicalSchema.of(SchemaBuilder.struct()
       .field("f0", Schema.OPTIONAL_BOOLEAN_SCHEMA)
       .build());
 
@@ -46,7 +46,7 @@ public class PhysicalSchemaTest {
   @Test
   public void shouldNPE() {
     new NullPointerTester()
-        .setDefault(KsqlSchema.class, SCHEMA_WITH_MULTIPLE_FIELDS)
+        .setDefault(LogicalSchema.class, SCHEMA_WITH_MULTIPLE_FIELDS)
         .testAllPublicStaticMethods(PhysicalSchema.class);
   }
 

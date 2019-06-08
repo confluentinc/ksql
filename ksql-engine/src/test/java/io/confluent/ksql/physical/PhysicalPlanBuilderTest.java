@@ -54,7 +54,7 @@ import io.confluent.ksql.planner.LogicalPlanNode;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanTestUtil;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
@@ -255,7 +255,7 @@ public class PhysicalPlanBuilderTest {
     final QueryMetadata queryMetadata = buildPhysicalPlan(simpleSelectFilter);
 
     // Then:
-    assertThat(queryMetadata.getLogicalSchema(), is(KsqlSchema.of(
+    assertThat(queryMetadata.getLogicalSchema(), is(LogicalSchema.of(
         SchemaBuilder.struct()
             .field("COL0", Schema.OPTIONAL_INT64_SCHEMA)
             .field("COL2", Schema.OPTIONAL_STRING_SCHEMA)
@@ -271,7 +271,7 @@ public class PhysicalPlanBuilderTest {
         "CREATE STREAM FOO AS " + simpleSelectFilter);
 
     // Then:
-    assertThat(queryMetadata.getLogicalSchema(), is(KsqlSchema.of(
+    assertThat(queryMetadata.getLogicalSchema(), is(LogicalSchema.of(
         SchemaBuilder.struct()
             .field("COL0", Schema.OPTIONAL_INT64_SCHEMA)
             .field("COL2", Schema.OPTIONAL_STRING_SCHEMA)
@@ -745,7 +745,7 @@ public class PhysicalPlanBuilderTest {
     givenKafkaTopicsExist("test1");
     final List<QueryMetadata> queryMetadataList = execute(
         CREATE_STREAM_TEST1 + csasQuery + insertIntoQuery);
-    final KsqlSchema resultSchema = queryMetadataList.get(0).getLogicalSchema();
+    final LogicalSchema resultSchema = queryMetadataList.get(0).getLogicalSchema();
     resultSchema.fields().forEach(
         field -> Assert.assertTrue(field.schema().isOptional())
     );

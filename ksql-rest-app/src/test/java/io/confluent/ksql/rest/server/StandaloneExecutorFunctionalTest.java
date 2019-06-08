@@ -24,7 +24,7 @@ import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.KsqlConfigTestUtil;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.rest.server.computation.ConfigStore;
-import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.services.ServiceContext;
@@ -158,7 +158,7 @@ public class StandaloneExecutorFunctionalTest {
         + "CREATE STREAM " + s2 + " AS SELECT * FROM S;\n");
 
     final PhysicalSchema dataSchema = PhysicalSchema.from(
-        KsqlSchema.of(SchemaBuilder.struct()
+        LogicalSchema.of(SchemaBuilder.struct()
             .field("ORDERTIME", Schema.OPTIONAL_INT64_SCHEMA)
             .build()),
         SerdeOption.none()
@@ -199,7 +199,7 @@ public class StandaloneExecutorFunctionalTest {
         + "CREATE STREAM " + s2 + " AS SELECT * FROM S;\n");
 
     final PhysicalSchema dataSchema = PhysicalSchema.from(
-        KsqlSchema.of(SchemaBuilder.struct()
+        LogicalSchema.of(SchemaBuilder.struct()
             .field("ORDERTIME", Schema.OPTIONAL_INT64_SCHEMA)
             .build()),
         SerdeOption.none()
@@ -298,7 +298,7 @@ public class StandaloneExecutorFunctionalTest {
   }
 
   private static void givenIncompatibleSchemaExists(final String topicName) {
-    final KsqlSchema logical = KsqlSchema.of(
+    final LogicalSchema logical = LogicalSchema.of(
         SchemaBuilder.struct()
             .field("ORDERID", SchemaBuilder
                 .struct()

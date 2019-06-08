@@ -22,7 +22,7 @@ import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.TableElement;
-import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.LogicalSchemas;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.SerdeOptions;
@@ -49,7 +49,7 @@ abstract class CreateSourceCommand implements DdlCommand {
   final String sqlExpression;
   final String sourceName;
   final String topicName;
-  final KsqlSchema schema;
+  final LogicalSchema schema;
   final KeyField keyField;
   final RegisterTopicCommand registerTopicCommand;
   private final KafkaTopicClient kafkaTopicClient;
@@ -124,7 +124,7 @@ abstract class CreateSourceCommand implements DdlCommand {
     return serdeOptions;
   }
 
-  private static KsqlSchema getStreamTableSchema(final List<TableElement> tableElements) {
+  private static LogicalSchema getStreamTableSchema(final List<TableElement> tableElements) {
     if (tableElements.isEmpty()) {
       throw new KsqlException("The statement does not define any columns.");
     }
@@ -145,7 +145,7 @@ abstract class CreateSourceCommand implements DdlCommand {
       );
     }
 
-    return KsqlSchema.of(tableSchema.build());
+    return LogicalSchema.of(tableSchema.build());
   }
 
   static void checkMetaData(
@@ -191,7 +191,7 @@ abstract class CreateSourceCommand implements DdlCommand {
   interface SerdeOptionsSupplier {
 
     Set<SerdeOption> build(
-        KsqlSchema schema,
+        LogicalSchema schema,
         CreateSourceProperties properties,
         KsqlConfig ksqlConfig
     );

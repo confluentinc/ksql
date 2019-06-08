@@ -22,7 +22,7 @@ import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.physical.KsqlQueryBuilder;
-import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.serde.SerdeOption;
@@ -58,7 +58,7 @@ public class JoinNode extends PlanNode {
   private final JoinType joinType;
   private final DataSourceNode left;
   private final DataSourceNode right;
-  private final KsqlSchema schema;
+  private final LogicalSchema schema;
   private final String leftJoinFieldName;
   private final String rightJoinFieldName;
   private final KeyField keyField;
@@ -105,10 +105,10 @@ public class JoinNode extends PlanNode {
     this.keyField = KeyField.of(leftJoinFieldName, leftKeyField);
   }
 
-  private static KsqlSchema buildSchema(final PlanNode left, final PlanNode right) {
+  private static LogicalSchema buildSchema(final PlanNode left, final PlanNode right) {
 
-    final KsqlSchema leftSchema = left.getSchema();
-    final KsqlSchema rightSchema = right.getSchema();
+    final LogicalSchema leftSchema = left.getSchema();
+    final LogicalSchema rightSchema = right.getSchema();
 
     final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
 
@@ -119,11 +119,11 @@ public class JoinNode extends PlanNode {
     for (final Field field : rightSchema.getSchema().fields()) {
       schemaBuilder.field(field.name(), field.schema());
     }
-    return KsqlSchema.of(schemaBuilder.build());
+    return LogicalSchema.of(schemaBuilder.build());
   }
 
   @Override
-  public KsqlSchema getSchema() {
+  public LogicalSchema getSchema() {
     return schema;
   }
 
@@ -211,7 +211,7 @@ public class JoinNode extends PlanNode {
     return node.getDataSource().getName();
   }
 
-  private static Field validateFieldInSchema(final String fieldName, final KsqlSchema schema) {
+  private static Field validateFieldInSchema(final String fieldName, final LogicalSchema schema) {
     return schema.findField(fieldName)
         .orElseThrow(() -> new IllegalArgumentException(
             "Invalid join field, not found in schema: " + fieldName));
@@ -326,7 +326,7 @@ public class JoinNode extends PlanNode {
         final String joinFieldName,
         final QueryContext.Stacker contextStacker
     ) {
-      final KsqlSchema schema = stream.getSchema();
+      final LogicalSchema schema = stream.getSchema();
 
       schema.findField(joinFieldName)
           .orElseThrow(() ->

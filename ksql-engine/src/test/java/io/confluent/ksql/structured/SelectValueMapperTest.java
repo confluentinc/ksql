@@ -31,7 +31,7 @@ import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
-import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.testutils.AnalysisTestUtil;
 import io.confluent.ksql.util.ExpressionMetadata;
 import io.confluent.ksql.util.KsqlConfig;
@@ -139,7 +139,7 @@ public class SelectValueMapperTest {
   private SelectValueMapper givenSelectMapperFor(final String query) {
     final PlanNode planNode = AnalysisTestUtil.buildLogicalPlan(query, metaStore);
     final ProjectNode projectNode = (ProjectNode) planNode.getSources().get(0);
-    final KsqlSchema schema = planNode.getTheSourceNode().getSchema();
+    final LogicalSchema schema = planNode.getTheSourceNode().getSchema();
     final List<SelectExpression> selectExpressions = projectNode.getProjectSelectExpressions();
     final List<ExpressionMetadata> metadata = createExpressionMetadata(selectExpressions, schema);
     final List<String> selectFieldNames = selectExpressions.stream()
@@ -154,7 +154,7 @@ public class SelectValueMapperTest {
 
   private List<ExpressionMetadata> createExpressionMetadata(
       final List<SelectExpression> selectExpressions,
-      final KsqlSchema schema
+      final LogicalSchema schema
   ) {
     try {
       final CodeGenRunner codeGenRunner = new CodeGenRunner(

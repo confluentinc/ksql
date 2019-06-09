@@ -1,8 +1,11 @@
 # KLIP-5: Internal Schemas for KSQL Engine
 
 **Author**: hjafarpour |
+
 **Release Target**: 5.4 |
+
 **Status**: In Discussion |
+
 **Discussion**:
 
 **tl;dr:** *Introduce the internal schemas for KSQL engine to decouple the internal identifier names from the

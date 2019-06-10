@@ -115,7 +115,7 @@ public class StandaloneExecutor implements Executable {
       processesQueryFile(readQueriesFile(queriesFile));
       showWelcomeMessage();
       final Properties properties = new Properties();
-      properties.putAll(configProperties);
+      ksqlConfig.originals().forEach((key, value) -> properties.put(key, value.toString()));
       versionChecker.start(KsqlModuleType.SERVER, properties);
     } catch (final Exception e) {
       log.error("Failed to start KSQL Server with query file: " + queriesFile, e);

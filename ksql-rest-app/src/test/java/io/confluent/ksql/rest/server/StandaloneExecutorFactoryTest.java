@@ -11,6 +11,7 @@ import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.when;
 import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 
+import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.rest.server.StandaloneExecutorFactory.StandaloneExecutorConstructor;
 import io.confluent.ksql.rest.server.computation.ConfigStore;
 import io.confluent.ksql.rest.util.KsqlInternalTopicUtils;
@@ -27,6 +28,7 @@ import org.hamcrest.TypeSafeMatcher;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -60,6 +62,8 @@ public class StandaloneExecutorFactoryTest {
   @Mock
   private StandaloneExecutor standaloneExecutor;
 
+  private final ArgumentCaptor<KsqlEngine> argumentCaptor = ArgumentCaptor.forClass(KsqlEngine.class);
+
   @Before
   public void setup() {
     when(serviceContextFactory.apply(any())).thenReturn(serviceContext);
@@ -67,7 +71,7 @@ public class StandaloneExecutorFactoryTest {
     when(configStoreFactory.apply(any(), any())).thenReturn(configStore);
     when(topicClient.isTopicExists(configTopicName)).thenReturn(false);
     when(configStore.getKsqlConfig()).thenReturn(mergedConfig);
-    when(constructor.create(any(), any(), any(), any(), anyString(), any(), anyBoolean(), any()))
+    when(constructor.create(any(), any(), any(), argumentCaptor.capture(), anyString(), any(), anyBoolean(), any()))
         .thenReturn(standaloneExecutor);
   }
 
@@ -116,5 +120,8 @@ public class StandaloneExecutorFactoryTest {
     inOrder.verify(configStoreFactory).apply(eq(configTopicName), argThat(sameConfig(baseConfig)));
     inOrder.verify(constructor).create(
         any(), any(), same(mergedConfig), any(), anyString(), any(), anyBoolean(), any());
+
+    argumentCaptor.getValue().close();
+
   }
 }

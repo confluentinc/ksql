@@ -276,7 +276,7 @@ public class UdfLoader {
 
       final String doc = annotation.map(UdfParameter::description).orElse("");
       if (annotation.isPresent() && !annotation.get().schema().isEmpty()) {
-        return SchemaConverters.fromSqlTypeConverter()
+        return SchemaConverters.sqlToLogicalConverter()
             .fromSqlType(
                 TypeContextUtil.getType(annotation.get().schema()),
                 name,
@@ -374,7 +374,7 @@ public class UdfLoader {
       final Schema returnType = udfAnnotation.schema().isEmpty()
           ? SchemaUtil.getSchemaFromType(method.getGenericReturnType())
           : SchemaConverters
-              .fromSqlTypeConverter()
+              .sqlToLogicalConverter()
               .fromSqlType(TypeContextUtil.getType(udfAnnotation.schema()));
 
       return SchemaUtil.ensureOptional(returnType);

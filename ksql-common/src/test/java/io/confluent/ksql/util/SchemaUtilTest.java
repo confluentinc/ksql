@@ -786,66 +786,6 @@ public class SchemaUtilTest {
     ));
   }
 
-  @Test
-  public void shouldUpCastInt() {
-    // Given:
-    final int val = 1;
-
-    // Then:
-    assertThat(SchemaUtil.maybeUpCast(Schema.Type.INT64, Schema.Type.INT32, val), is(of(1L)));
-    assertThat(SchemaUtil.maybeUpCast(Schema.Type.FLOAT32, Schema.Type.INT32, val), is(of(1f)));
-    assertThat(SchemaUtil.maybeUpCast(Schema.Type.FLOAT64, Schema.Type.INT32, val), is(of(1d)));
-  }
-
-  @Test
-  public void shouldUpCastLong() {
-    // Given:
-    final long val = 1L;
-
-    // Then:
-    assertThat(SchemaUtil.maybeUpCast(Schema.Type.FLOAT32, Schema.Type.INT64, val), is(of(1f)));
-    assertThat(SchemaUtil.maybeUpCast(Schema.Type.FLOAT64, Schema.Type.INT64, val), is(of(1d)));
-  }
-
-  @Test
-  public void shouldUpCastFloat() {
-    // Given:
-    final float val = 1f;
-
-    // Then:
-    assertThat(SchemaUtil.maybeUpCast(Schema.Type.FLOAT64, Schema.Type.FLOAT32, val), is(of(1d)));
-  }
-
-  @Test
-  public void shouldNotDownCastLong() {
-    // Given:
-    final long val = 1L;
-
-    // Expect:
-    assertThat(SchemaUtil.maybeUpCast(Schema.Type.INT32, Schema.Type.INT64, val), is(empty()));
-  }
-
-  @Test
-  public void shouldNotDownCastFloat() {
-    // Given:
-    final float val = 1f;
-
-    // Expect:
-    assertThat(SchemaUtil.maybeUpCast(Schema.Type.INT64, Schema.Type.FLOAT32, val), is(empty()));
-    assertThat(SchemaUtil.maybeUpCast(Schema.Type.INT32, Schema.Type.FLOAT32, val), is(empty()));
-  }
-
-  @Test
-  public void shouldNotDownCastDouble() {
-    // Given:
-    final double val = 1d;
-
-    // Expect:
-    assertThat(SchemaUtil.maybeUpCast(Schema.Type.FLOAT32, Schema.Type.FLOAT64, val), is(empty()));
-    assertThat(SchemaUtil.maybeUpCast(Schema.Type.INT64, Schema.Type.FLOAT64, val), is(empty()));
-    assertThat(SchemaUtil.maybeUpCast(Schema.Type.INT32, Schema.Type.FLOAT64, val), is(empty()));
-  }
-
   // Following methods not invoked but used to test conversion from Type -> Schema
   @SuppressWarnings("unused")
   private void mapType(final Map<String, Integer> map) {

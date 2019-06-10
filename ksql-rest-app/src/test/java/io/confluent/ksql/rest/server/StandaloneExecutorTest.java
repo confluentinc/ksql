@@ -17,6 +17,8 @@ package io.confluent.ksql.rest.server;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -66,6 +68,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.Properties;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.apache.kafka.test.TestUtils;
@@ -74,6 +77,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -133,6 +137,7 @@ public class StandaloneExecutorTest {
   private Path queriesFile;
   private StandaloneExecutor standaloneExecutor;
 
+
   @Before
   public void before() throws IOException {
     queriesFile = Paths.get(TestUtils.tempFile().getPath());
@@ -171,6 +176,30 @@ public class StandaloneExecutorTest {
     standaloneExecutor.start();
 
     verify(versionCheckerAgent).start(eq(KsqlModuleType.SERVER), any());
+  }
+
+  @Test
+  public void shouldStartTheVersionCheckerAgentWithCorrectProperties() throws InterruptedException {
+    // Given:
+    final ArgumentCaptor<Properties> captor = ArgumentCaptor.forClass(Properties.class);
+    final StandaloneExecutor standaloneExecutor = new StandaloneExecutor(
+        serviceContext,
+        processingLogConfig,
+        new KsqlConfig(ImmutableMap.of("confluent.support.metrics.enable", false)),
+        ksqlEngine,
+        queriesFile.toString(),
+        udfLoader,
+        false,
+        versionCheckerAgent);
+
+    // When:
+    standaloneExecutor.start();
+
+    // Then:
+    verify(versionCheckerAgent).start(eq(KsqlModuleType.SERVER), captor.capture());
+    assertThat(captor.getValue().getProperty("confluent.support.metrics.enable"), equalTo("false"));
+    standaloneExecutor.stop();
+    standaloneExecutor.join();
   }
 
   @Test

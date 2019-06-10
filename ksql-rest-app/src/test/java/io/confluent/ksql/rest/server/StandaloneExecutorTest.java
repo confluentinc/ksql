@@ -195,6 +195,7 @@ public class StandaloneExecutorTest {
     // When:
     standaloneExecutor.start();
 
+    // Then:
     verify(versionCheckerAgent).start(eq(KsqlModuleType.SERVER), captor.capture());
     assertThat(captor.getValue().getProperty("confluent.support.metrics.enable"), equalTo("false"));
     standaloneExecutor.stop();

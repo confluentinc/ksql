@@ -20,6 +20,7 @@ import static org.junit.Assert.assertThat;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.parser.tree.ArithmeticBinaryExpression;
+import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.parser.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.parser.tree.Array;
 import io.confluent.ksql.parser.tree.BetweenPredicate;
@@ -181,7 +182,7 @@ public class ExpressionFormatterTest {
 
   @Test
   public void shouldFormatArithmeticBinary() {
-    assertThat(ExpressionFormatter.formatExpression(new ArithmeticBinaryExpression(ArithmeticBinaryExpression.Type.ADD,
+    assertThat(ExpressionFormatter.formatExpression(new ArithmeticBinaryExpression(Operator.ADD,
             new LongLiteral(1), new LongLiteral(2))),
         equalTo("(1 + 2)"));
   }

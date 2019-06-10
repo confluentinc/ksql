@@ -19,7 +19,9 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.serde.util.SerdeProcessingLogMessageFactory;
+import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlException;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 import java.util.List;
@@ -129,6 +131,10 @@ public class KsqlDelimitedDeserializer implements Deserializer<Object> {
       return null;
     }
 
+    if (DecimalUtil.isDecimal(fieldSchema)) {
+      return DecimalUtil.ensureFit(new BigDecimal(delimitedField),fieldSchema);
+    }
+
     final Function<String, Object> parser = PARSERS.get(fieldSchema.type());
     if (parser == null) {
       throw new KsqlException("Type is not supported: " + fieldSchema.type());
@@ -144,7 +150,7 @@ public class KsqlDelimitedDeserializer implements Deserializer<Object> {
 
     schema.fields().forEach(field -> {
       final Type type = field.schema().type();
-      if (!PARSERS.keySet().contains(type)) {
+      if (!PARSERS.keySet().contains(type) && !DecimalUtil.isDecimal(field.schema())) {
         throw new UnsupportedOperationException(
             "DELIMITED does not support type: " + type + ", field: " + field.name());
       }

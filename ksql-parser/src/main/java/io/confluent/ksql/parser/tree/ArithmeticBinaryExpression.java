@@ -16,35 +16,19 @@
 package io.confluent.ksql.parser.tree;
 
 import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.schema.Operator;
 import java.util.Objects;
 import java.util.Optional;
 
 @Immutable
 public class ArithmeticBinaryExpression extends Expression {
 
-  public enum Type {
-    ADD("+"),
-    SUBTRACT("-"),
-    MULTIPLY("*"),
-    DIVIDE("/"),
-    MODULUS("%");
-    private final String value;
-
-    Type(final String value) {
-      this.value = value;
-    }
-
-    public String getValue() {
-      return value;
-    }
-  }
-
-  private final Type type;
+  private final Operator type;
   private final Expression left;
   private final Expression right;
 
   public ArithmeticBinaryExpression(
-      final Type type,
+      final Operator type,
       final Expression left,
       final Expression right
   ) {
@@ -53,17 +37,17 @@ public class ArithmeticBinaryExpression extends Expression {
 
   public ArithmeticBinaryExpression(
       final Optional<NodeLocation> location,
-      final Type type,
+      final Operator operator,
       final Expression left,
       final Expression right
   ) {
     super(location);
-    this.type = Objects.requireNonNull(type, "type");
+    this.type = Objects.requireNonNull(operator, "type");
     this.left = Objects.requireNonNull(left, "left");
     this.right = Objects.requireNonNull(right, "right");
   }
 
-  public Type getType() {
+  public Operator getOperator() {
     return type;
   }
 

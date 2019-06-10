@@ -44,6 +44,7 @@ import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.SubscriptExpression;
 import io.confluent.ksql.parser.tree.Type;
 import io.confluent.ksql.parser.tree.WhenClause;
+import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import java.util.ArrayList;
@@ -92,7 +93,7 @@ public class ExpressionTypeManager
     final Schema leftType = expressionTypeContext.getSchema();
     process(node.getRight(), expressionTypeContext);
     final Schema rightType = expressionTypeContext.getSchema();
-    expressionTypeContext.setSchema(resolveArithmeticType(leftType, rightType));
+    expressionTypeContext.setSchema(resolveArithmeticType(leftType, rightType, node.getOperator()));
     return null;
   }
 
@@ -289,9 +290,11 @@ public class ExpressionTypeManager
     return null;
   }
 
-  private static Schema resolveArithmeticType(final Schema leftSchema,
-                                              final Schema rightSchema) {
-    return SchemaUtil.resolveBinaryOperatorResultType(leftSchema.type(), rightSchema.type());
+  private static Schema resolveArithmeticType(
+      final Schema leftSchema,
+      final Schema rightSchema,
+      final Operator operator) {
+    return SchemaUtil.resolveBinaryOperatorResultType(leftSchema, rightSchema, operator);
   }
 
   private void validateSearchedCaseExpression(final SearchedCaseExpression searchedCaseExpression) {

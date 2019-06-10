@@ -33,8 +33,11 @@ import io.confluent.kafka.serializers.AbstractKafkaAvroSerDeConfig;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
+import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.util.KsqlPreconditions;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -47,6 +50,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
+import org.apache.avro.Conversions.DecimalConversion;
 import org.apache.avro.LogicalTypes;
 import org.apache.avro.Schema.Type;
 import org.apache.avro.generic.GenericData;
@@ -93,6 +97,14 @@ public class KsqlAvroDeserializerTest {
 
   private static final org.apache.avro.Schema OPTIONAL_DOUBLE_AVRO_SCHEMA =
       parseAvroSchema("[\"null\", \"double\"]");
+
+  private static final org.apache.avro.Schema DECIMAL_AVRO_SCHEMA =
+      parseAvroSchema("{"
+          + "\"type\": \"bytes\","
+          + "\"logicalType\": \"decimal\","
+          + "\"precision\": 4,"
+          + "\"scale\": 2"
+          + "}");
 
   private static final org.apache.avro.Schema STRING_AVRO_SCHEMA =
       parseAvroSchema("{\"type\": \"string\"}");
@@ -596,6 +608,20 @@ public class KsqlAvroDeserializerTest {
       // Then:
       assertThat(result, is(value));
     });
+  }
+
+  @Test
+  public void shouldDeserializeAvroDecimal() {
+    // Given:
+    givenDeserializerForSchema(DecimalUtil.builder(4, 2).build());
+    final BigDecimal value = new BigDecimal("12.34");
+    final byte[] bytes = givenConnectSerialized(value, DecimalUtil.builder(4, 2).build());
+
+    // When:
+    final Object result = deserializer.deserialize(SOME_TOPIC, bytes);
+
+    // Then:
+    assertThat(result, is(value));
   }
 
   @Test
@@ -1510,6 +1536,11 @@ public class KsqlAvroDeserializerTest {
         : avroSchema;
 
     switch (schema.getType()) {
+      case BYTES:
+        KsqlPreconditions.checkArgument(
+            value instanceof BigDecimal, "expected BigDecimal BYTES value");
+        return new DecimalConversion().toBytes(
+            (BigDecimal) value, avroSchema, LogicalTypes.decimal(4, 2)).array();
       case RECORD:
         return givenAvroRecord(schema, (Map<String, ?>) value);
       case ARRAY:

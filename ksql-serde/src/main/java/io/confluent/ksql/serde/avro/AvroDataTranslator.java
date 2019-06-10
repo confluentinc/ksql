@@ -17,12 +17,14 @@ package io.confluent.ksql.serde.avro;
 
 import static java.util.Objects.requireNonNull;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import io.confluent.ksql.schema.connect.SchemaWalker;
 import io.confluent.ksql.schema.connect.SchemaWalker.Visitor;
 import io.confluent.ksql.serde.connect.ConnectDataTranslator;
 import io.confluent.ksql.serde.connect.DataTranslator;
+import io.confluent.ksql.util.DecimalUtil;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -266,6 +268,14 @@ public class AvroDataTranslator implements DataTranslator {
         if (schema.keySchema().type() != Type.STRING) {
           throw new IllegalArgumentException("Avro only supports MAPs with STRING keys");
         }
+        return null;
+      }
+
+      @Override
+      public Void visitBytes(final Schema schema) {
+        Preconditions.checkArgument(
+            DecimalUtil.isDecimal(schema),
+            "Avro only supports DECIMAL for BYTES type.");
         return null;
       }
 

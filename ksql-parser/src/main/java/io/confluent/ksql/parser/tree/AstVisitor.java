@@ -208,6 +208,11 @@ public abstract class AstVisitor<R, C> {
     return visitNode(node, context);
   }
 
+
+  protected R visitDecimal(final Decimal node, final C context) {
+    return visitNode(node, context);
+  }
+
   protected R visitAliasedRelation(final AliasedRelation node, final C context) {
     return visitRelation(node, context);
   }

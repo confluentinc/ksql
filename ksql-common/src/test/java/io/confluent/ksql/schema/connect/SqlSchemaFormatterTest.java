@@ -20,6 +20,8 @@ import static org.hamcrest.Matchers.is;
 
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.schema.connect.SqlSchemaFormatter.Option;
+import io.confluent.ksql.util.DecimalUtil;
+import org.apache.kafka.connect.data.Decimal;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Test;
@@ -84,6 +86,12 @@ public class SqlSchemaFormatterTest {
   public void shouldFormatOptionalString() {
     assertThat(SqlSchemaFormatter.DEFAULT.format(Schema.OPTIONAL_STRING_SCHEMA), is("VARCHAR"));
     assertThat(SqlSchemaFormatter.STRICT.format(Schema.OPTIONAL_STRING_SCHEMA), is("VARCHAR"));
+  }
+
+  @Test
+  public void shouldFormatDecimal() {
+    assertThat(SqlSchemaFormatter.DEFAULT.format(DecimalUtil.builder(2, 1).build()), is("DECIMAL(2, 1)"));
+    assertThat(SqlSchemaFormatter.STRICT.format(DecimalUtil.builder(2, 1).build()), is("DECIMAL(2, 1)"));
   }
 
   @Test

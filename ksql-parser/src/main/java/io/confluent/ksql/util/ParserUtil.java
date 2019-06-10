@@ -19,8 +19,14 @@ import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toList;
 
 import com.google.common.collect.ImmutableSet;
+import io.confluent.ksql.parser.ParsingException;
 import io.confluent.ksql.parser.SqlBaseLexer;
 import io.confluent.ksql.parser.SqlBaseParser;
+import io.confluent.ksql.parser.SqlBaseParser.IntegerLiteralContext;
+import io.confluent.ksql.parser.SqlBaseParser.NumberContext;
+import io.confluent.ksql.parser.tree.IntegerLiteral;
+import io.confluent.ksql.parser.tree.Literal;
+import io.confluent.ksql.parser.tree.LongLiteral;
 import io.confluent.ksql.parser.tree.NodeLocation;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import java.util.List;
@@ -92,6 +98,30 @@ public final class ParserUtil {
         .collect(toList());
 
     return QualifiedName.of(parts);
+  }
+
+  public static int processIntegerNumber(final NumberContext number, final String context) {
+    if (number instanceof SqlBaseParser.IntegerLiteralContext) {
+      return ((IntegerLiteral) visitIntegerLiteral((IntegerLiteralContext) number)).getValue();
+    }
+    throw new KsqlException("Value must be integer for command: " + context);
+  }
+
+  public static Literal visitIntegerLiteral(final IntegerLiteralContext context) {
+    final long valueAsLong;
+    try {
+      valueAsLong = Long.parseLong(context.getText());
+    } catch (final NumberFormatException e) {
+      throw new ParsingException("Invalid numeric literal: " + context.getText());
+    }
+    if (valueAsLong < 0) {
+      throw new RuntimeException("Unexpected negative value in literal: " + valueAsLong);
+    }
+    if (valueAsLong <= Integer.MAX_VALUE) {
+      return new IntegerLiteral(getLocation(context), (int) valueAsLong);
+    } else {
+      return new LongLiteral(getLocation(context), valueAsLong);
+    }
   }
 
   public static Optional<NodeLocation> getLocation(final TerminalNode terminalNode) {

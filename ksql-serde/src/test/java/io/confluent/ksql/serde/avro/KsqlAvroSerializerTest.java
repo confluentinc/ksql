@@ -34,12 +34,17 @@ import io.confluent.kafka.serializers.AbstractKafkaAvroSerDeConfig;
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
+import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
+import java.math.BigDecimal;
+import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import org.apache.avro.Conversions.DecimalConversion;
+import org.apache.avro.LogicalTypes;
 import org.apache.avro.Schema.Type;
 import org.apache.avro.SchemaBuilder.FieldAssembler;
 import org.apache.avro.generic.GenericArray;
@@ -114,6 +119,15 @@ public class KsqlAvroSerializerTest {
           + "{\"name\":\"key\",\"type\":[\"null\",\"string\"],\"default\":null},"
           + "{\"name\":\"value\",\"type\":[\"null\",\"int\"],\"default\":null}],"
           + "\"connect.internal.type\":\"MapEntry\"}}");
+
+  private static final org.apache.avro.Schema DECIMAL_SCHEMA =
+      parseAvroSchema(
+          "{"
+          + "\"type\": \"bytes\","
+          + "\"logicalType\": \"decimal\","
+          + "\"precision\": 4,"
+          + "\"scale\": 2"
+          + "}");
 
 
   private static final String SOME_TOPIC = "bob";
@@ -805,6 +819,22 @@ public class KsqlAvroSerializerTest {
         Schema.OPTIONAL_FLOAT64_SCHEMA,
         1.23456789012345,
         org.apache.avro.SchemaBuilder.builder().doubleType());
+  }
+
+  @Test
+  public void shouldSerializeDecimalField() {
+    final BigDecimal value = new BigDecimal("12.34");
+    final ByteBuffer bytes = new DecimalConversion().toBytes(
+            new BigDecimal("12.34"),
+            DECIMAL_SCHEMA,
+            LogicalTypes.decimal(4, 2));
+
+    shouldSerializeFieldTypeCorrectly(
+        DecimalUtil.builder(4, 2).build(),
+        new BigDecimal("12.34"),
+        DECIMAL_SCHEMA,
+        bytes
+    );
   }
 
   @Test

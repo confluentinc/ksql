@@ -16,6 +16,7 @@
 package io.confluent.ksql.serde.connect;
 
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Map;
 import java.util.function.Function;
@@ -39,6 +40,7 @@ public class ConnectSchemaTranslator {
       .put(Type.FLOAT64, s -> Schema.OPTIONAL_FLOAT64_SCHEMA)
       .put(Type.STRING, s -> Schema.OPTIONAL_STRING_SCHEMA)
       .put(Type.BOOLEAN, s -> Schema.OPTIONAL_BOOLEAN_SCHEMA)
+      .put(Type.BYTES, ConnectSchemaTranslator::toKsqlBytesSchema)
       .put(Type.ARRAY, ConnectSchemaTranslator::toKsqlArraySchema)
       .put(Type.MAP, ConnectSchemaTranslator::toKsqlMapSchema)
       .put(Type.STRUCT, ConnectSchemaTranslator::toKsqlStructSchema)
@@ -85,6 +87,13 @@ public class ConnectSchemaTranslator {
       default:
         throw new UnsupportedTypeException("Unsupported type for map key: " + type.getName());
     }
+  }
+
+  private static Schema toKsqlBytesSchema(final Schema schema) {
+    if (DecimalUtil.isDecimal(schema)) {
+      return schema;
+    }
+    throw new UnsupportedTypeException("BYTES type must be DECIMAL schema.");
   }
 
   private static Schema toKsqlMapSchema(final Schema schema) {

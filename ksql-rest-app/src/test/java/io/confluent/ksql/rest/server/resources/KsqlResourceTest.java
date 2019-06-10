@@ -1747,7 +1747,6 @@ public class KsqlResourceTest {
 
   private void givenMockEngine() {
     ksqlEngine = mock(KsqlEngine.class);
-    when(ksqlEngine.isAcceptingStatements()).thenReturn(true);
     when(ksqlEngine.parse(any()))
         .thenAnswer(invocation -> realEngine.parse(invocation.getArgument(0)));
     when(ksqlEngine.prepare(any()))

@@ -70,6 +70,8 @@ public class StandaloneExecutorFactoryTest {
   @Captor
   private ArgumentCaptor<KsqlEngine> engineCaptor;
 
+  private final ArgumentCaptor<KsqlEngine> argumentCaptor = ArgumentCaptor.forClass(KsqlEngine.class);
+
   @Before
   public void setup() {
     when(serviceContextFactory.apply(any())).thenReturn(serviceContext);
@@ -77,8 +79,7 @@ public class StandaloneExecutorFactoryTest {
     when(configStoreFactory.apply(any(), any())).thenReturn(configStore);
     when(topicClient.isTopicExists(configTopicName)).thenReturn(false);
     when(configStore.getKsqlConfig()).thenReturn(mergedConfig);
-    when(constructor
-        .create(any(), any(), any(), any(), anyString(), any(), anyBoolean(), any(), any()))
+    when(constructor.create(any(), any(), any(), argumentCaptor.capture(), anyString(), any(), anyBoolean(), any(), any()))
         .thenReturn(standaloneExecutor);
   }
 
@@ -136,5 +137,7 @@ public class StandaloneExecutorFactoryTest {
     inOrder.verify(configStoreFactory).apply(eq(configTopicName), argThat(sameConfig(baseConfig)));
     inOrder.verify(constructor).create(
         any(), any(), same(mergedConfig), any(), anyString(), any(), anyBoolean(), any(), any());
+
+    argumentCaptor.getValue().close();
   }
 }

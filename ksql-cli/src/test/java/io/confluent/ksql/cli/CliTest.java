@@ -482,6 +482,15 @@ public class CliTest {
   }
 
   @Test
+  public void testPersitentSelectStar() {
+    testCreateStreamAsSelect(
+        "SELECT * FROM " + orderDataProvider.kstreamName(),
+        orderDataProvider.schema(),
+        orderDataProvider.data()
+    );
+  }
+
+  @Test
   public void testSelectProject() {
     final Map<String, GenericRow> expectedResults = new HashMap<>();
     expectedResults.put("1", new GenericRow(
@@ -575,7 +584,7 @@ public class CliTest {
   }
 
   @Test
-  public void testSelect() {
+  public void testTransientSelect() {
     final Map<String, GenericRow> streamData = orderDataProvider.data();
     final List<Object> row1 = streamData.get("1").getColumns();
     final List<Object> row2 = streamData.get("2").getColumns();
@@ -592,7 +601,7 @@ public class CliTest {
   }
 
   @Test
-  public void testSelectStar() {
+  public void testTransientSelectStar() {
     final Map<String, GenericRow> streamData = orderDataProvider.data();
     final List<Object> row1 = streamData.get("1").getColumns();
     final List<Object> row2 = streamData.get("2").getColumns();

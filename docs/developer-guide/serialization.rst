@@ -80,6 +80,21 @@ If a statement doesn't set the value wrapping explicitly, KSQL uses the system
 default, defined by ``ksql.persistence.wrap.single.values``. You can change the system default.
 For more information, see :ref:`ksql-persistence-wrap-single-values`.
 
+.. important:: KSQL treats ``null` keys and values as a special case. We recommend avoiding
+               unwrapped single-field schemas if the field can have a ``null`` value.
+
+A ``null`` value in a table's topic is treated as a tombstone, which indicates that a row has been
+removed. If a table's source topic has an unwrapped single-field key schema and the value is
+``null``, it's treated as a tombstone, resulting in any previous value for the key being removed
+from the table.
+
+A ``null`` key or value in a stream's topic is ignored when the stream is part of a join.
+A ``null`` value in a table's topic is treated as a tombstone, and a ``null`` key is
+ignored when the table is part of a join.
+
+When you have an unwrapped single-field schema, ensure that any ``null`` key or
+value has the desired result.
+
 Controlling serialization of single fields
 ==========================================
 
@@ -128,6 +143,21 @@ For example,
 If a statement doesn't set the value wrapping explicitly, KSQL uses the system
 default, defined by ``ksql.persistence.wrap.single.values``. You can change the system default.
 For more information, see :ref:`ksql-persistence-wrap-single-values`.
+
+.. important:: KSQL treats ``null` keys and values as a special case. We recommended avoiding
+               unwrapped single-field schemas if the field can have a ``null`` value.
+
+A ``null`` value in a table's topic is treated as a tombstone, which indicates that a row has been
+removed. If a table's source topic has an unwrapped single-field key schema and the value is
+``null``, it's treated as a tombstone, resulting in any previous value for the key being removed
+from the table.
+
+A ``null`` key or value in a stream's topic is ignored when the stream is part of a join.
+A ``null`` value in a table's topic is treated as a tombstone, and a ``null`` key is
+ignored when the table is part of a join.
+
+When you have an unwrapped single-field schema, ensure that any ``null`` key or
+value has the desired result.
 
 Single-field serialization examples
 ===================================

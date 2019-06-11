@@ -17,14 +17,14 @@ package io.confluent.ksql.cli;
 
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static javax.ws.rs.core.Response.Status.NOT_ACCEPTABLE;
-import static org.hamcrest.CoreMatchers.any;
-import static org.hamcrest.CoreMatchers.anyOf;
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.any;
+import static org.hamcrest.Matchers.anyOf;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -36,7 +36,6 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.TestResult;
 import io.confluent.ksql.TestTerminal;
 import io.confluent.ksql.cli.console.Console;
 import io.confluent.ksql.cli.console.Console.RowCaptor;
@@ -81,6 +80,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import javax.ws.rs.ProcessingException;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -88,18 +88,13 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.StreamsConfig;
-import org.hamcrest.BaseMatcher;
-import org.hamcrest.CoreMatchers;
-import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.AfterClass;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -116,7 +111,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 @SuppressWarnings("SameParameterValue")
 @RunWith(MockitoJUnitRunner.class)
 @Category({IntegrationTest.class})
-@Ignore("flaky test fixed in future KSQL versions - backport effort is too large")
 public class CliTest {
 
   private static final EmbeddedSingleNodeKafkaCluster CLUSTER = EmbeddedSingleNodeKafkaCluster.build();
@@ -153,7 +147,7 @@ public class CliTest {
   private static final long STREAMED_QUERY_ROW_LIMIT = 10000;
   private static final long STREAMED_QUERY_TIMEOUT_MS = 10000;
 
-  private static final TestResult EMPTY_RESULT = new TestResult();
+  private static final List<List<String>> EMPTY_RESULT = ImmutableList.of();
 
   private static String commandTopicName;
   private static TopicProducer topicProducer;
@@ -205,52 +199,21 @@ public class CliTest {
     maybeDropStream("SHOULDRUNSCRIPT");
   }
 
-  @SuppressWarnings("unchecked")
-  private static Matcher<Iterable<List<String>>> hasItems(final TestResult expected) {
-    return CoreMatchers.hasItems(expected.rows().stream()
-        .map(CoreMatchers::equalTo)
-        .toArray(Matcher[]::new));
-  }
-
-  private static class BoundedMatcher extends BaseMatcher<Iterable<List<String>>> {
-    private final Matcher<Iterable<? extends List<String>>> internal;
-
-    private BoundedMatcher(Matcher<Iterable<? extends List<String>>> internal) {
-      this.internal = internal;
-    }
-
-    @Override
-    public boolean matches(Object o) {
-      return internal.matches(o);
-    }
-
-    @Override
-    public void describeTo(Description description) {
-      internal.describeTo(description);
-    }
-  }
-
-  @SuppressWarnings("unchecked")
-  private static Matcher<Iterable<List<String>>> contains(final TestResult expected) {
-    return new BoundedMatcher(
-        Matchers.contains(expected.rows().stream()
-            .map(CoreMatchers::equalTo)
-            .toArray(Matcher[]::new)));
-  }
-
   private void assertRunListCommand(
       final String commandSuffix,
-      final Matcher<Iterable<List<String>>> matcher) {
+      final Matcher<Iterable<? extends Iterable<? extends String>>> matcher
+  ) {
     assertRunCommand("list " + commandSuffix, matcher);
     assertRunCommand("show " + commandSuffix, matcher);
   }
 
   private void assertRunCommand(
       final String command,
-      final Matcher<Iterable<List<String>>> matcher) {
+      final Matcher<Iterable<? extends Iterable<? extends String>>> matcher
+  ) {
     rowCaptor.resetTestResult();
     run(command, localCli);
-    assertThat(rowCaptor.getTestResult(), matcher);
+    assertThat(rowCaptor.getRows(), matcher);
   }
 
   private static void run(String command, final Cli localCli) {
@@ -291,26 +254,6 @@ public class CliTest {
     restClient.close();
   }
 
-  private static List<List<String>> startUpConfigs() {
-    return ImmutableList.of(
-        // SERVER OVERRIDES:
-        ImmutableList.of(
-            KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STREAM_THREADS_CONFIG,
-            SERVER_OVERRIDE, "4"),
-
-        ImmutableList.of(
-            KsqlConfig.SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION_MS_PROPERTY, SERVER_OVERRIDE,
-            "" + (KsqlConstants.defaultSinkWindowChangeLogAdditionalRetention + 1)
-        ),
-
-        // SESSION OVERRIDES:
-        ImmutableList.of(
-            KsqlConfig.KSQL_STREAMS_PREFIX + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG,
-            SESSION_OVERRIDE, "latest")
-
-    );
-  }
-
   private void testCreateStreamAsSelect(
       String selectQuery,
       final PhysicalSchema resultSchema,
@@ -325,9 +268,9 @@ public class CliTest {
     assertRunCommand(
         queryString,
         anyOf(
-            equalTo(new TestResult("Stream created and running")),
-            equalTo(new TestResult("Parsing statement")),
-            equalTo(new TestResult("Executing statement"))));
+            isRow(containsString("Stream created and running")),
+            isRow(is("Parsing statement")),
+            isRow(is("Executing statement"))));
 
     /* Assert Results */
     final Map<String, GenericRow> results = topicConsumer
@@ -340,13 +283,13 @@ public class CliTest {
 
   private static void runStatement(final String statement, final KsqlRestClient restClient) {
     final RestResponse<?> response = restClient.makeKsqlRequest(statement, null);
-    Assert.assertThat(response.isSuccessful(), is(true));
+    assertThat(response.isSuccessful(), is(true));
     final KsqlEntityList entityList = ((KsqlEntityList) response.get());
-    Assert.assertThat(entityList.size(), equalTo(1));
-    Assert.assertThat(entityList.get(0), instanceOf(CommandStatusEntity.class));
+    assertThat(entityList.size(), equalTo(1));
+    assertThat(entityList.get(0), instanceOf(CommandStatusEntity.class));
     final CommandStatusEntity entity = (CommandStatusEntity) entityList.get(0);
     final CommandStatus status = entity.getCommandStatus();
-    Assert.assertThat(status, not(CommandStatus.Status.ERROR));
+    assertThat(status, not(CommandStatus.Status.ERROR));
 
     if (status.getStatus() != Status.SUCCESS) {
       assertThatEventually(
@@ -354,8 +297,8 @@ public class CliTest {
           () -> {
             final RestResponse<?> statusResponse = restClient
                 .makeStatusRequest(entity.getCommandId().toString());
-            Assert.assertThat(statusResponse.isSuccessful(), is(true));
-            Assert.assertThat(statusResponse.get(), instanceOf(CommandStatus.class));
+            assertThat(statusResponse.isSuccessful(), is(true));
+            assertThat(statusResponse.get(), instanceOf(CommandStatus.class));
             return ((CommandStatus) statusResponse.get()).getStatus();
           },
           anyOf(
@@ -405,35 +348,43 @@ public class CliTest {
     dropStream(name);
   }
 
-  private void selectWithLimit(String selectQuery, final int limit, final TestResult expectedResults) {
-    selectQuery += " LIMIT " + limit + ";";
-    assertRunCommand(selectQuery, contains(expectedResults));
+  private void selectWithLimit(
+      final String selectQuery,
+      final int limit,
+      final Matcher<Iterable<? extends Iterable<? extends String>>> expectedResults
+  ) {
+    final String query = selectQuery + " LIMIT " + limit + ";";
+    assertRunCommand(query, expectedResults);
   }
 
   @Test
-  @SuppressWarnings("unchecked")
   public void shouldPrintResultsForListOrShowCommands() {
+
     assertRunListCommand(
         "topics",
-        Matchers.hasItems(
-            Matchers.contains(
-                equalTo(orderDataProvider.topicName()),
-                equalTo("true"), equalTo("1"),
-                equalTo("1"), any(String.class),
-                any(String.class))));
-    assertRunListCommand(
-        "registered topics",
-        hasItems(
-            new TestResult.Builder()
-                .addRow(orderDataProvider.kstreamName(), orderDataProvider.topicName(), "JSON")
-                .addRow(COMMANDS_KSQL_TOPIC_NAME, commandTopicName, "JSON")
-                .build()
+        hasRow(
+            equalTo(orderDataProvider.topicName()),
+            equalTo("true"),
+            equalTo("1"),
+            equalTo("1"),
+            any(String.class),
+            any(String.class)
         )
     );
+
+    assertRunListCommand(
+        "registered topics",
+        hasRows(
+            row(orderDataProvider.kstreamName(), orderDataProvider.topicName(), "JSON"),
+            row(COMMANDS_KSQL_TOPIC_NAME, commandTopicName, "JSON")
+        )
+    );
+
     assertRunListCommand(
         "streams",
-        contains(
-            new TestResult(orderDataProvider.kstreamName(), orderDataProvider.topicName(), "JSON")));
+        isRow(orderDataProvider.kstreamName(), orderDataProvider.topicName(), "JSON")
+    );
+
     assertRunListCommand("tables", is(EMPTY_RESULT));
     assertRunListCommand("queries", is(EMPTY_RESULT));
   }
@@ -483,11 +434,26 @@ public class CliTest {
     assertRunCommand("unset 'ksql.streams.consumer.max.poll.records'", is(EMPTY_RESULT));
     assertRunCommand("unset 'ksql.streams.enable.auto.commit'", is(EMPTY_RESULT));
     assertRunCommand("unset 'ksql.service.id'", is(EMPTY_RESULT));
-    
 
-    final TestResult.Builder builder = new TestResult.Builder();
-    builder.addRows(startUpConfigs());
-    assertRunListCommand("properties", hasItems(builder.build()));
+    assertRunListCommand("properties", hasRows(
+        // SERVER OVERRIDES:
+        row(
+            KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STREAM_THREADS_CONFIG,
+            SERVER_OVERRIDE,
+            "4"
+        ),
+        row(
+            KsqlConfig.SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION_MS_PROPERTY,
+            SERVER_OVERRIDE,
+            "" + (KsqlConstants.defaultSinkWindowChangeLogAdditionalRetention + 1)
+        ),
+        // SESSION OVERRIDES:
+        row(
+            KsqlConfig.KSQL_STREAMS_PREFIX + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG,
+            SESSION_OVERRIDE,
+            "latest"
+        )
+    ));
 
     assertRunCommand("unset 'auto.offset.reset'", is(EMPTY_RESULT));
   }
@@ -495,24 +461,24 @@ public class CliTest {
   @Test
   public void testDescribe() {
     assertRunCommand("describe topic " + COMMANDS_KSQL_TOPIC_NAME,
-        contains(new TestResult(COMMANDS_KSQL_TOPIC_NAME, commandTopicName, "JSON")));
+        isRow(COMMANDS_KSQL_TOPIC_NAME, commandTopicName, "JSON"));
   }
 
   @Test
   public void shouldPrintCorrectSchemaForDescribeStream() {
-    TestResult.Builder builder = new TestResult.Builder();
-    builder.addRow("ROWTIME", "BIGINT           (system)");
-    builder.addRow("ROWKEY", "VARCHAR(STRING)  (system)");
-    builder.addRow("ORDERTIME", "BIGINT");
-    builder.addRow("ORDERID", "VARCHAR(STRING)");
-    builder.addRow("ITEMID", "VARCHAR(STRING)");
-    builder.addRow("ORDERUNITS", "DOUBLE");
-    builder.addRow("TIMESTAMP", "VARCHAR(STRING)");
-    builder.addRow("PRICEARRAY", "ARRAY<DOUBLE>");
-    builder.addRow("KEYVALUEMAP", "MAP<STRING, DOUBLE>");
     assertRunCommand(
         "describe " + orderDataProvider.kstreamName(),
-        contains(builder.build()));
+        containsRows(
+            row("ROWTIME", "BIGINT           (system)"),
+            row("ROWKEY", "VARCHAR(STRING)  (system)"),
+            row("ORDERTIME", "BIGINT"),
+            row("ORDERID", "VARCHAR(STRING)"),
+            row("ITEMID", "VARCHAR(STRING)"),
+            row("ORDERUNITS", "DOUBLE"),
+            row("TIMESTAMP", "VARCHAR(STRING)"),
+            row("PRICEARRAY", "ARRAY<DOUBLE>"),
+            row("KEYVALUEMAP", "MAP<STRING, DOUBLE>")
+        ));
   }
 
   @Test
@@ -619,17 +585,19 @@ public class CliTest {
 
   @Test
   public void testSelectLimit() {
-    final TestResult.Builder builder = new TestResult.Builder();
     final Map<String, GenericRow> streamData = orderDataProvider.data();
-    final int limit = 3;
-    for (int i = 1; i <= limit; i++) {
-      final GenericRow srcRow = streamData.get(Integer.toString(i));
-      final List<Object> columns = srcRow.getColumns();
-      final GenericRow resultRow = new GenericRow(ImmutableList.of(columns.get(1), columns.get(2)));
-      builder.addRow(resultRow);
-    }
+    final List<Object> row1 = streamData.get("1").getColumns();
+    final List<Object> row2 = streamData.get("2").getColumns();
+    final List<Object> row3 = streamData.get("3").getColumns();
+
     selectWithLimit(
-        "SELECT ORDERID, ITEMID FROM " + orderDataProvider.kstreamName(), limit, builder.build());
+        "SELECT ORDERID, ITEMID FROM " + orderDataProvider.kstreamName(),
+        3,
+        containsRows(
+            row(row1.get(1).toString(), row1.get(2).toString()),
+            row(row2.get(1).toString(), row2.get(2).toString()),
+            row(row3.get(1).toString(), row3.get(2).toString())
+        ));
   }
 
   @Test
@@ -722,21 +690,21 @@ public class CliTest {
     new Cli(1L, 1L, mockRestClient, console)
         .runInteractively();
 
-    Assert.assertThat(
+    assertThat(
         terminal.getOutputString(),
         containsString("This CLI version no longer supported"));
-    Assert.assertThat(
+    assertThat(
         terminal.getOutputString(),
         containsString("Minimum supported client version: 1.0"));
   }
 
   @Test
   public void shouldListFunctions() {
-    final TestResult.Builder builder = new TestResult.Builder();
-    builder.addRow("TIMESTAMPTOSTRING", "SCALAR");
-    builder.addRow("EXTRACTJSONFIELD", "SCALAR");
-    builder.addRow("TOPK", "AGGREGATE");
-    assertRunListCommand("functions", hasItems(builder.build()));
+    assertRunListCommand("functions", hasRows(
+        row("TIMESTAMPTOSTRING", "SCALAR"),
+        row("EXTRACTJSONFIELD", "SCALAR"),
+        row("TOPK", "AGGREGATE")
+    ));
   }
 
   @Test
@@ -1056,25 +1024,81 @@ public class CliTest {
     verify(mockRestClient).makeKsqlRequest(statementText, seqNum);
   }
 
-  private static class TestRowCaptor implements RowCaptor {
-    private TestResult.Builder output = new TestResult.Builder();
+  private static Matcher<Iterable<? extends String>> row(final String... expected) {
+    return Matchers.contains(expected);
+  }
 
-    @Override
-    public void addRow(final GenericRow row) {
-      output.addRow(row);
-    }
+  @SafeVarargs
+  @SuppressWarnings("varargs")
+  private static Matcher<Iterable<? extends String>> row(final Matcher<String>... expected) {
+    return Matchers.contains(expected);
+  }
+
+  private static Matcher<Iterable<? extends Iterable<? extends String>>> isRow(
+      final String... expected
+  ) {
+    return Matchers.contains(row(expected));
+  }
+
+  @SafeVarargs
+  @SuppressWarnings("varargs")
+  private static Matcher<Iterable<? extends Iterable<? extends String>>> isRow(
+      final Matcher<String>... expected
+  ) {
+    return Matchers.contains(row(expected));
+  }
+
+  @SafeVarargs
+  @SuppressWarnings({"varargs", "unchecked"})
+  private static Matcher<Iterable<? extends Iterable<? extends String>>> hasRow(
+      final Matcher<String>... expected
+  ) {
+    return (Matcher) Matchers.hasItems(row(expected));
+  }
+
+  @SafeVarargs
+  @SuppressWarnings({"varargs", "unchecked"})
+  private static Matcher<Iterable<? extends Iterable<? extends String>>> hasRows(
+      final Matcher<Iterable<? extends String>>... rows
+  ) {
+    return (Matcher) Matchers.hasItems(rows);
+  }
+
+  @SafeVarargs
+  @SuppressWarnings("varargs")
+  private static Matcher<Iterable<? extends Iterable<? extends String>>> containsRows(
+      final Matcher<Iterable<? extends String>>... rows
+  ) {
+    return Matchers.contains(rows);
+  }
+
+  private static class TestRowCaptor implements RowCaptor {
+
+    private ImmutableList.Builder<List<String>> rows = ImmutableList.builder();
 
     @Override
     public void addRows(final List<List<String>> rows) {
-      output.addRows(rows);
+      rows.forEach(this::addRow);
+    }
+
+    @Override
+    public void addRow(final GenericRow row) {
+      addRow(row.getColumns());
+    }
+
+    private void addRow(final List<?> row) {
+      final List<String> strings = row.stream()
+          .map(Object::toString)
+          .collect(Collectors.toList());
+      rows.add(ImmutableList.copyOf(strings));
     }
 
     private void resetTestResult() {
-      output = new TestResult.Builder();
+      rows = ImmutableList.builder();
     }
 
-    private TestResult getTestResult() {
-      return output.build();
+    private List<List<String>> getRows() {
+      return rows.build();
     }
   }
 }

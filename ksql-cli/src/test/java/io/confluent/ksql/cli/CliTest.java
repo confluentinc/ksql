@@ -482,7 +482,7 @@ public class CliTest {
   }
 
   @Test
-  public void testPersitentSelectStar() {
+  public void testPersistentSelectStar() {
     testCreateStreamAsSelect(
         "SELECT * FROM " + orderDataProvider.kstreamName(),
         orderDataProvider.schema(),

@@ -60,6 +60,11 @@ abstract class StructuredDataSource<K> implements DataSource<K> {
     this.ksqlTopic = requireNonNull(ksqlTopic, "ksqlTopic");
     this.keySerde = requireNonNull(keySerde, "keySerde");
     this.serdeOptions = ImmutableSet.copyOf(requireNonNull(serdeOptions, "serdeOptions"));
+
+    // Todo(ac): Remove.
+    if (!schema.withImplicitFields().equals(schema)) {
+      throw new IllegalArgumentException();
+    }
   }
 
   @Override

@@ -101,12 +101,12 @@ public class JoinNodeTest {
   private static final String leftAlias = "left";
   private static final String rightAlias = "right";
 
-  private final LogicalSchema leftSchema = createSchema(leftAlias);
-  private final LogicalSchema rightSchema = createSchema(rightAlias);
+  private final LogicalSchema leftSchema = createSchema("L1");
+  private final LogicalSchema rightSchema = createSchema("R1");
   private final LogicalSchema joinSchema = joinSchema();
 
-  private static final String LEFT_JOIN_FIELD_NAME = leftAlias + ".COL0";
-  private static final String RIGHT_JOIN_FIELD_NAME = rightAlias + ".COL1";
+  private static final String LEFT_JOIN_FIELD_NAME = leftAlias + ".C0";
+  private static final String RIGHT_JOIN_FIELD_NAME = rightAlias + ".R1";
   private static final KeyField leftJoinField = KeyField
       .of(LEFT_JOIN_FIELD_NAME, new Field(LEFT_JOIN_FIELD_NAME, 1, Schema.OPTIONAL_STRING_SCHEMA));
   private static final KeyField rightJoinField = KeyField
@@ -162,8 +162,8 @@ public class JoinNodeTest {
         new QueryContext.Stacker(queryId)
             .push(inv.getArgument(0).toString()));
 
-    when(left.getSchema()).thenReturn(leftSchema);
-    when(right.getSchema()).thenReturn(rightSchema);
+    when(left.getSchema()).thenReturn(leftSchema.withAlias(leftAlias));
+    when(right.getSchema()).thenReturn(rightSchema.withAlias(rightAlias));
 
     when(left.getPartitions(mockKafkaTopicClient)).thenReturn(2);
     when(right.getPartitions(mockKafkaTopicClient)).thenReturn(2);
@@ -564,10 +564,8 @@ public class JoinNodeTest {
     // Then:
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage(String.format(
-        "Source table (%s) key column (%s) is not the column used in the join criteria (%s). "
+        "Source table (right) key column (R1) is not the column used in the join criteria (%s). "
             + "Only the table's key column or 'ROWKEY' is supported in the join criteria.",
-        rightAlias,
-        RIGHT_JOIN_FIELD_NAME,
         rightCriteriaColumn
     ));
 
@@ -779,10 +777,8 @@ public class JoinNodeTest {
     // Then:
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage(String.format(
-        "Source table (%s) key column (%s) is not the column used in the join criteria (%s). "
+        "Source table (left) key column (C0) is not the column used in the join criteria (%s). "
             + "Only the table's key column or 'ROWKEY' is supported in the join criteria.",
-        leftAlias,
-        LEFT_JOIN_FIELD_NAME,
         leftCriteriaColumn
     ));
 
@@ -815,10 +811,8 @@ public class JoinNodeTest {
     // Then:
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage(String.format(
-        "Source table (%s) key column (%s) is not the column used in the join criteria (%s). "
+        "Source table (right) key column (R1) is not the column used in the join criteria (%s). "
             + "Only the table's key column or 'ROWKEY' is supported in the join criteria.",
-        rightAlias,
-        RIGHT_JOIN_FIELD_NAME,
         rightCriteriaColumn
     ));
 
@@ -968,12 +962,12 @@ public class JoinNodeTest {
         SchemaBuilder.struct()
             .field(leftAlias + ".ROWTIME", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
             .field(leftAlias + ".ROWKEY", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
-            .field(leftAlias + ".COL0", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
-            .field(leftAlias + ".COL1", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
+            .field(leftAlias + ".C0", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
+            .field(leftAlias + ".L1", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
             .field(rightAlias + ".ROWTIME", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
             .field(rightAlias + ".ROWKEY", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
-            .field(rightAlias + ".COL0", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
-            .field(rightAlias + ".COL1", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
+            .field(rightAlias + ".C0", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
+            .field(rightAlias + ".R1", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
             .build()
     )));
   }
@@ -1139,11 +1133,11 @@ public class JoinNodeTest {
   private LogicalSchema joinSchema() {
     final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
 
-    for (final Field field : leftSchema.fields()) {
+    for (final Field field : leftSchema.withAlias(leftAlias).fields()) {
       schemaBuilder.field(field.name(), field.schema());
     }
 
-    for (final Field field : rightSchema.fields()) {
+    for (final Field field : rightSchema.withAlias(rightAlias).fields()) {
       schemaBuilder.field(field.name(), field.schema());
     }
 
@@ -1208,6 +1202,7 @@ public class JoinNodeTest {
       final String alias,
       final String keyName
   ) {
+    final LogicalSchema aliasedSchema = schema.withAlias(alias);
     final String prefix = alias + ".";
     final ImmutableList<String> blackList = ImmutableList.of(
         prefix + SchemaUtil.ROWKEY_NAME,
@@ -1216,10 +1211,10 @@ public class JoinNodeTest {
     );
 
     final String column =
-        getColumn(schema, s -> !blackList.contains(s))
+        getColumn(aliasedSchema, s -> !blackList.contains(s))
             .orElseThrow(AssertionError::new);
 
-    final Field field = schema.findField(column).get();
+    final Field field = aliasedSchema.findField(column).get();
     return field.name();
   }
 
@@ -1231,7 +1226,7 @@ public class JoinNodeTest {
   ) {
     when(dataSource.getName()).thenReturn(name);
     when(node.getDataSource()).thenReturn((DataSource)dataSource);
-    final LogicalSchema schema = node.getSchema();
+    final LogicalSchema schema = node.getSchema().withoutAlias();
     when(dataSource.getSchema()).thenReturn(schema);
 
     final KsqlTopic ksqlTopic = mock(KsqlTopic.class);
@@ -1241,12 +1236,12 @@ public class JoinNodeTest {
     when(ksqlTopic.getValueSerdeFactory()).thenReturn(valueSerdeFactory);
   }
 
-  private static LogicalSchema createSchema(final String alias) {
+  private static LogicalSchema createSchema(final String unique) {
     final SchemaBuilder schemaBuilder = SchemaBuilder.struct()
-        .field(alias + ".ROWTIME", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
-        .field(alias + ".ROWKEY", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
-        .field(alias + ".COL0", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
-        .field(alias + ".COL1", SchemaBuilder.OPTIONAL_STRING_SCHEMA);
+        .field("ROWTIME", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
+        .field("ROWKEY", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
+        .field("C0", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
+        .field(unique, SchemaBuilder.OPTIONAL_STRING_SCHEMA);
     return LogicalSchema.of(schemaBuilder.build());
   }
 }

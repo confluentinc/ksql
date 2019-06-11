@@ -301,7 +301,7 @@ public class SchemaKTableTest {
     // Then:
     assertThat(filteredSchemaKStream.getSchema().fields(), contains(
         new Field("TEST2.ROWTIME", 0, Schema.OPTIONAL_INT64_SCHEMA),
-        new Field("TEST2.ROWKEY", 1, Schema.OPTIONAL_INT64_SCHEMA),
+        new Field("TEST2.ROWKEY", 1, Schema.OPTIONAL_STRING_SCHEMA),
         new Field("TEST2.COL0", 2, Schema.OPTIONAL_INT64_SCHEMA),
         new Field("TEST2.COL1", 3, Schema.OPTIONAL_STRING_SCHEMA),
         new Field("TEST2.COL2", 4, Schema.OPTIONAL_STRING_SCHEMA),

@@ -98,8 +98,9 @@ public class SqlFormatterTest {
       .field("CATEGORY", categorySchema)
       .optional().build();
 
-  private static final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
-  private static final Schema schemaBuilderOrders = schemaBuilder
+  private static final Schema schemaBuilderOrders = SchemaBuilder.struct()
+      .field("ROWTIME", Schema.OPTIONAL_INT64_SCHEMA)
+      .field("ROWKEY", Schema.OPTIONAL_STRING_SCHEMA)
       .field("ORDERTIME", Schema.OPTIONAL_INT64_SCHEMA)
       .field("ORDERID", Schema.OPTIONAL_INT64_SCHEMA)
       .field("ITEMID", Schema.OPTIONAL_STRING_SCHEMA)
@@ -154,7 +155,7 @@ public class SqlFormatterTest {
     final KsqlTable<String> ksqlTableOrders = new KsqlTable<>(
         "sqlexpression",
         "ITEMID",
-        LogicalSchema.of(itemInfoSchema),
+        LogicalSchema.of(itemInfoSchema).withImplicitFields(),
         SerdeOption.none(),
         KeyField.of("ITEMID", itemInfoSchema.field("ITEMID")),
         new MetadataTimestampExtractionPolicy(),

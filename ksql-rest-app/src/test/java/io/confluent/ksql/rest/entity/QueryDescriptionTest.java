@@ -61,11 +61,15 @@ public class QueryDescriptionTest {
 
   private static final LogicalSchema SCHEMA = LogicalSchema.of(
       SchemaBuilder.struct()
+          .field("ROWTIME", Schema.OPTIONAL_INT64_SCHEMA)
+          .field("ROWKEY", Schema.OPTIONAL_STRING_SCHEMA)
           .field("field1", Schema.OPTIONAL_INT32_SCHEMA)
           .field("field2", Schema.OPTIONAL_STRING_SCHEMA)
           .build());
 
   private static final List<FieldInfo> EXPECTED_FIELDS = Arrays.asList(
+      new FieldInfo("ROWTIME", new SchemaInfo(SqlType.BIGINT, null, null)),
+      new FieldInfo("ROWKEY", new SchemaInfo(SqlType.STRING, null, null)),
       new FieldInfo("field1", new SchemaInfo(SqlType.INTEGER, null, null)),
       new FieldInfo("field2", new SchemaInfo(SqlType.STRING, null, null)));
 

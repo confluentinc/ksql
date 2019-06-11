@@ -97,6 +97,8 @@ public class DataSourceNodeTest {
   private SchemaKStream realStream;
   private StreamsBuilder realBuilder;
   private final LogicalSchema realSchema = LogicalSchema.of(SchemaBuilder.struct()
+      .field("ROWTIME", Schema.OPTIONAL_INT64_SCHEMA)
+      .field("ROWKEY", Schema.OPTIONAL_STRING_SCHEMA)
       .field("field1", Schema.OPTIONAL_STRING_SCHEMA)
       .field("field2", Schema.OPTIONAL_STRING_SCHEMA)
       .field("field3", Schema.OPTIONAL_STRING_SCHEMA)
@@ -365,6 +367,8 @@ public class DataSourceNodeTest {
     // Then:
     assertThat(schema, is(
         LogicalSchema.of(SchemaBuilder.struct()
+            .field(sourceName + ".ROWTIME", Schema.OPTIONAL_INT64_SCHEMA)
+            .field(sourceName + ".ROWKEY", Schema.OPTIONAL_STRING_SCHEMA)
             .field(sourceName + ".field1", Schema.OPTIONAL_STRING_SCHEMA)
             .field(sourceName + ".field2", Schema.OPTIONAL_STRING_SCHEMA)
             .field(sourceName + ".field3", Schema.OPTIONAL_STRING_SCHEMA)
@@ -378,7 +382,8 @@ public class DataSourceNodeTest {
     // Given:
     final DataSourceNode node = nodeWithMockTableSource();
 
-    final PhysicalSchema expected = PhysicalSchema.from(realSchema, serdeOptions);
+    final PhysicalSchema expected = PhysicalSchema
+        .from(realSchema.withoutImplicitFields(), serdeOptions);
 
     // When:
     node.buildStream(ksqlStreamBuilder);

@@ -67,27 +67,23 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class RequestValidatorTest {
 
-  private static final LogicalSchema SCHEMA = LogicalSchema.of(SchemaBuilder
-      .struct()
-      .field("val", Schema.OPTIONAL_STRING_SCHEMA)
-      .build());
   private static final String SOME_STREAM_SQL = "CREATE STREAM x WITH (value_format='json', kafka_topic='x');";
 
   @Rule
   public ExpectedException expectedException = ExpectedException.none();
 
   @Mock
-  SandboxEngine ksqlEngine;
+  private SandboxEngine ksqlEngine;
   @Mock
-  KsqlConfig ksqlConfig;
+  private KsqlConfig ksqlConfig;
   @Mock
-  StatementValidator<?> statementValidator;
+  private StatementValidator<?> statementValidator;
   @Mock
-  Injector schemaInjector;
+  private Injector schemaInjector;
   @Mock
-  Injector topicInjector;
+  private Injector topicInjector;
   @Mock
-  TopicAccessValidator topicAccessValidator;
+  private TopicAccessValidator topicAccessValidator;
 
   private ServiceContext serviceContext;
   private MutableMetaStore metaStore;
@@ -112,11 +108,9 @@ public class RequestValidatorTest {
 
     final KsqlStream<?> source = mock(KsqlStream.class);
     when(source.getName()).thenReturn("SOURCE");
-    when(source.getSchema()).thenReturn(SCHEMA);
 
     final KsqlStream<?> sink = mock(KsqlStream.class);
     when(sink.getName()).thenReturn("SINK");
-    when(sink.getSchema()).thenReturn(SCHEMA);
 
     metaStore.putSource(source);
     metaStore.putSource(sink);

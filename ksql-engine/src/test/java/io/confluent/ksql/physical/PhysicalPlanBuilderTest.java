@@ -334,12 +334,12 @@ public class PhysicalPlanBuilderTest {
         "\t\t\t\t > [ PROJECT ] | Schema: [KSQL_INTERNAL_COL_0 BIGINT, "
             + "KSQL_INTERNAL_COL_1 DOUBLE] |"));
     assertThat(lines[3], startsWith(
-        "\t\t\t\t\t\t > [ FILTER ] | Schema: [TEST1.ROWTIME BIGINT, TEST1.ROWKEY BIGINT, "
+        "\t\t\t\t\t\t > [ FILTER ] | Schema: [TEST1.ROWTIME BIGINT, TEST1.ROWKEY VARCHAR, "
             + "TEST1.COL0 BIGINT, TEST1.COL1 VARCHAR, TEST1.COL2 VARCHAR, "
             + "TEST1.COL3 DOUBLE, TEST1.COL4 ARRAY<DOUBLE>, "
             + "TEST1.COL5 MAP<VARCHAR, DOUBLE>] |"));
     assertThat(lines[4], startsWith(
-        "\t\t\t\t\t\t\t\t > [ SOURCE ] | Schema: [TEST1.ROWTIME BIGINT, TEST1.ROWKEY BIGINT, "
+        "\t\t\t\t\t\t\t\t > [ SOURCE ] | Schema: [TEST1.ROWTIME BIGINT, TEST1.ROWKEY VARCHAR, "
             + "TEST1.COL0 BIGINT, TEST1.COL1 VARCHAR, TEST1.COL2 VARCHAR, "
             + "TEST1.COL3 DOUBLE, TEST1.COL4 ARRAY<DOUBLE>, "
             + "TEST1.COL5 MAP<VARCHAR, DOUBLE>] |"));

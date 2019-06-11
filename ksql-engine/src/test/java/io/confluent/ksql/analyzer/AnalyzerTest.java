@@ -113,11 +113,6 @@ public class AnalyzerTest {
         serdeOptiponsSupplier
     );
 
-    final KsqlTopic sinkTopic = mock(KsqlTopic.class);
-    final DataSource<?> sinkSource = mock(DataSource.class);
-    when(sinkSource.getKsqlTopic()).thenReturn(sinkTopic);
-    final SerdeFactory<?> keySerdeFactory = mock(SerdeFactory.class);
-    when(sinkSource.getKeySerdeFactory()).thenReturn((SerdeFactory)keySerdeFactory);
     when(sink.getName()).thenReturn("TEST0");
 
     query = parseSingle("Select COL0, COL1 from TEST1;");
@@ -383,7 +378,7 @@ public class AnalyzerTest {
     final KsqlStream<?> ksqlStream = new KsqlStream<>(
             "create stream s0 with(KAFKA_TOPIC='s0', VALUE_AVRO_SCHEMA_FULL_NAME='org.ac.s1', VALUE_FORMAT='avro');",
             "S0",
-            LogicalSchema.of(schema),
+            LogicalSchema.of(schema).withImplicitFields(),
         SerdeOption.none(),
             KeyField.of("FIELD1", schema.field("FIELD1")),
             new MetadataTimestampExtractionPolicy(),

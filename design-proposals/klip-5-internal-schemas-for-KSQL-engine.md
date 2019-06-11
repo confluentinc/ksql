@@ -41,7 +41,7 @@ As an example, consider we want to declare s stream on a topic with values in JS
 is a sample message value in this topic:
 
 ```json
-{"@ID": 0, "@NAME": "foo", "@AMOUNT": 0.0}
+{"@ID": 0, "@NAME": "foo", "MESSAGE.AMOUNT": 0.0}
 ```
 
 As you can see, two of the field names start with “@” and the third one includes “.” in the field name.
@@ -73,7 +73,8 @@ based on the internal schema. It then will use the rewritten query to process th
 
 ## Scope
 
-* Support for Quoted Identifiers in DDL and DML statements
+* Support for Quoted Identifiers in DDL and DML statements. Only the identifiers for schema fields are in the scope for this KLIP and
+identifiers for Stream/Table names are out of scope.
 * Creation of internal schema for external schemas
 * Query rewrite to use the internal schemas
 * Query processing using the internal schemas
@@ -94,7 +95,7 @@ visible to users and are part of the KSQL engine internals.
 
 The internal schema will only be used in executing DML statements. When the engine receives a DML
 statement (CSAS, CTAS, INSERT INTO, SELECT), it builds an internal schema with valid field names for
-the given source schema(s). This will be done by extending the current KSQLSchema class by adding
+the given source schema(s). This will be done by extending the current LogicalSchema class by adding
 the internal schema to it. The internal schema field names can follow a predefined protocol so that
 KSQL engine would build the same internal schema for a given external schema everytime. As an example,
  let’s consider we use the index of the field in the schema as a prefix to a constant string value to
@@ -129,7 +130,7 @@ As an example, consider the following query again:
 
 ```sql
 CREATE STREAM bar AS
-SELECT “@ID”, lowercase(“@NAME”) AS “@NAME”, “MESSAGE.AMOUNT” * 100 AS “AMOUNT.BY.100”
+SELECT “@ID”, lowercase(foo.“@NAME”) AS “@NAME”, “MESSAGE.AMOUNT” * 100 AS “AMOUNT.BY.100”
 FROM foo
 WHERE “MESSAGE.AMOUNT” < 1;
 ```
@@ -149,6 +150,13 @@ naming requirements in KSQL. Note that KSQL already appends the source name to t
 automatically which will eliminate the ambiguity in case of having multiple sources (such as Join queries)
  with the same field names.
 
+The sink schema for the above query will use the provided aliases for select expression as teh field names.
+So the sink schema will be the following:
+
+```sql
+(“@ID” BIGINT, “@NAME” STRING, “AMOUNT.BY.100” DOUBLE)
+```
+
 The engine will use the generated internal schema to build the streams application. The deserializers
  from the source stream or table will use the external schema to fetch the fields and build the
  GenericRow object, but beyond this point the internal schema will be used to process the records
@@ -158,6 +166,11 @@ Also note that the result schema will be generated from the external schemas whi
 any field from the external schema in the SELECT expressions and user does not specify an alias for
 the result column, the engine will use the same name from the external schema for the corresponding
 field in the result schema.
+
+The engine should verify the result schema field names comply with the requirements of the sink format.
+This verification should be done in query compile time. For instance, if the sink format is Avro, and the
+field names in the result schema do not comply with Avro naming requirments, KSQL engine should not run
+the query.
 
 Note that all the KSQL error or log messages should still use the external schema names since user
 does not know about the internal schemas.

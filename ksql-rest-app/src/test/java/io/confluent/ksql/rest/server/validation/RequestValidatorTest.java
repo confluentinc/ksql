@@ -41,7 +41,6 @@ import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.Explain;
 import io.confluent.ksql.parser.tree.Statement;
-import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.services.SandboxedServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
@@ -54,8 +53,6 @@ import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.Sandbox;
 import java.util.List;
 import java.util.Map;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -67,27 +64,23 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class RequestValidatorTest {
 
-  private static final LogicalSchema SCHEMA = LogicalSchema.of(SchemaBuilder
-      .struct()
-      .field("val", Schema.OPTIONAL_STRING_SCHEMA)
-      .build());
   private static final String SOME_STREAM_SQL = "CREATE STREAM x WITH (value_format='json', kafka_topic='x');";
 
   @Rule
   public ExpectedException expectedException = ExpectedException.none();
 
   @Mock
-  SandboxEngine ksqlEngine;
+  private SandboxEngine ksqlEngine;
   @Mock
-  KsqlConfig ksqlConfig;
+  private KsqlConfig ksqlConfig;
   @Mock
-  StatementValidator<?> statementValidator;
+  private StatementValidator<?> statementValidator;
   @Mock
-  Injector schemaInjector;
+  private Injector schemaInjector;
   @Mock
-  Injector topicInjector;
+  private Injector topicInjector;
   @Mock
-  TopicAccessValidator topicAccessValidator;
+  private TopicAccessValidator topicAccessValidator;
 
   private ServiceContext serviceContext;
   private MutableMetaStore metaStore;
@@ -112,11 +105,9 @@ public class RequestValidatorTest {
 
     final KsqlStream<?> source = mock(KsqlStream.class);
     when(source.getName()).thenReturn("SOURCE");
-    when(source.getSchema()).thenReturn(SCHEMA);
 
     final KsqlStream<?> sink = mock(KsqlStream.class);
     when(sink.getName()).thenReturn("SINK");
-    when(sink.getSchema()).thenReturn(SCHEMA);
 
     metaStore.putSource(source);
     metaStore.putSource(sink);

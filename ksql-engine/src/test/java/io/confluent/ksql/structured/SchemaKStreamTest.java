@@ -17,6 +17,8 @@ package io.confluent.ksql.structured;
 
 import static io.confluent.ksql.metastore.model.MetaStoreMatchers.FieldMatchers.hasIndex;
 import static io.confluent.ksql.metastore.model.MetaStoreMatchers.FieldMatchers.hasName;
+import static io.confluent.ksql.metastore.model.MetaStoreMatchers.KeyFieldMatchers.hasLegacyName;
+import static io.confluent.ksql.metastore.model.MetaStoreMatchers.KeyFieldMatchers.hasLegacySchema;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
@@ -41,6 +43,7 @@ import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.metastore.model.KsqlTopic;
+import io.confluent.ksql.metastore.model.MetaStoreMatchers.KeyFieldMatchers;
 import io.confluent.ksql.metastore.model.MetaStoreMatchers.OptionalMatchers;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.Expression;
@@ -99,9 +102,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 @SuppressWarnings("unchecked")
 @RunWith(MockitoJUnitRunner.class)
 public class SchemaKStreamTest {
-
-  private static final Expression COL0 = new DereferenceExpression(
-      new QualifiedNameReference(QualifiedName.of("TEST1")), "COL0");
 
   private static final Expression COL1 = new DereferenceExpression(
       new QualifiedNameReference(QualifiedName.of("TEST1")), "COL1");
@@ -300,8 +300,9 @@ public class SchemaKStreamTest {
         .select(selectExpressions, childContextStacker, processingLogContext);
 
     // Then:
-    assertThat(result.getKeyField(),
-        is(KeyField.of(Optional.of("COL0"), initialSchemaKStream.keyField.legacy())));
+    assertThat(result.getKeyField(), KeyFieldMatchers.hasName("COL0"));
+    assertThat(result.getKeyField(), hasLegacyName(initialSchemaKStream.keyField.legacy().map(Field::name)));
+    assertThat(result.getKeyField(), hasLegacySchema(initialSchemaKStream.keyField.legacy().map(Field::schema)));
   }
 
   @Test
@@ -389,7 +390,7 @@ public class SchemaKStreamTest {
     // Then:
     assertThat(filteredSchemaKStream.getSchema().fields(), contains(
         new Field("TEST1.ROWTIME", 0, Schema.OPTIONAL_INT64_SCHEMA),
-        new Field("TEST1.ROWKEY", 1, Schema.OPTIONAL_INT64_SCHEMA),
+        new Field("TEST1.ROWKEY", 1, Schema.OPTIONAL_STRING_SCHEMA),
         new Field("TEST1.COL0", 2, Schema.OPTIONAL_INT64_SCHEMA),
         new Field("TEST1.COL1", 3, Schema.OPTIONAL_STRING_SCHEMA),
         new Field("TEST1.COL2", 4, Schema.OPTIONAL_STRING_SCHEMA),
@@ -458,7 +459,6 @@ public class SchemaKStreamTest {
     // Then:
     assertThat(groupedSchemaKStream.getKeyField().name(), is(Optional.of("TEST1.COL0")));
     assertThat(groupedSchemaKStream.getKeyField().legacy(), OptionalMatchers.of(hasName("COL0")));
-    assertThat(groupedSchemaKStream.getKeyField().legacy(), OptionalMatchers.of(hasIndex(2)));
   }
 
   @Test
@@ -482,7 +482,6 @@ public class SchemaKStreamTest {
     // Then:
     assertThat(groupedSchemaKStream.getKeyField().name(), is(Optional.empty()));
     assertThat(groupedSchemaKStream.getKeyField().legacy(), OptionalMatchers.of(hasName("TEST1.COL1|+|TEST1.COL0")));
-    assertThat(groupedSchemaKStream.getKeyField().legacy(), OptionalMatchers.of(hasIndex(-1)));
   }
 
   @Test

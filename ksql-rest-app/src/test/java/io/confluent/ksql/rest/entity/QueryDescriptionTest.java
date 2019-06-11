@@ -28,9 +28,9 @@ import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.physical.LimitHandler;
 import io.confluent.ksql.physical.QuerySchemas;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.schema.ksql.SqlType;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.schema.ksql.SqlType;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -61,11 +61,15 @@ public class QueryDescriptionTest {
 
   private static final LogicalSchema SCHEMA = LogicalSchema.of(
       SchemaBuilder.struct()
+          .field("ROWTIME", Schema.OPTIONAL_INT64_SCHEMA)
+          .field("ROWKEY", Schema.OPTIONAL_STRING_SCHEMA)
           .field("field1", Schema.OPTIONAL_INT32_SCHEMA)
           .field("field2", Schema.OPTIONAL_STRING_SCHEMA)
           .build());
 
   private static final List<FieldInfo> EXPECTED_FIELDS = Arrays.asList(
+      new FieldInfo("ROWTIME", new SchemaInfo(SqlType.BIGINT, null, null)),
+      new FieldInfo("ROWKEY", new SchemaInfo(SqlType.STRING, null, null)),
       new FieldInfo("field1", new SchemaInfo(SqlType.INTEGER, null, null)),
       new FieldInfo("field2", new SchemaInfo(SqlType.STRING, null, null)));
 

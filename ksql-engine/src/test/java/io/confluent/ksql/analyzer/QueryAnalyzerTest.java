@@ -371,8 +371,8 @@ public class QueryAnalyzerTest {
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage(containsString(
         "Non-aggregate SELECT expression(s) not part of GROUP BY: "
-            + "[ORDERS.ORDERTIME, ORDERS.ORDERUNITS, ORDERS.MAPCOL, ORDERS.ORDERID, "
-            + "ORDERS.ITEMINFO, ORDERS.ARRAYCOL, ORDERS.ADDRESS]"
+            + "[ORDERS.ORDERTIME, ORDERS.ROWTIME, ORDERS.ROWKEY, ORDERS.ORDERUNITS, ORDERS.MAPCOL, "
+            + "ORDERS.ORDERID, ORDERS.ITEMINFO, ORDERS.ARRAYCOL, ORDERS.ADDRESS]"
     ));
 
     // When:
@@ -383,7 +383,7 @@ public class QueryAnalyzerTest {
   public void shouldHandleSelectStarWithCorrectGroupBy() {
     // Given:
     final Query query = givenQuery("select *, count() from orders group by "
-        + "ITEMID, ORDERTIME, ORDERUNITS, MAPCOL, ORDERID, ITEMINFO, ARRAYCOL, ADDRESS;");
+        + "ROWTIME, ROWKEY, ITEMID, ORDERTIME, ORDERUNITS, MAPCOL, ORDERID, ITEMINFO, ARRAYCOL, ADDRESS;");
 
     final Analysis analysis = queryAnalyzer.analyze("sqlExpression", query, Optional.empty());
 
@@ -393,8 +393,9 @@ public class QueryAnalyzerTest {
     // Then:
     assertThat(aggregateAnalysis.getNonAggregateSelectExpressions().keySet(), containsInAnyOrder(
         dereferenceExpressions(
-            "ORDERS.ITEMID", "ORDERS.ORDERTIME", "ORDERS.ORDERUNITS", "ORDERS.MAPCOL",
-            "ORDERS.ORDERID", "ORDERS.ITEMINFO", "ORDERS.ARRAYCOL", "ORDERS.ADDRESS")
+            "ORDERS.ROWTIME", "ORDERS.ROWKEY", "ORDERS.ITEMID", "ORDERS.ORDERTIME",
+            "ORDERS.ORDERUNITS", "ORDERS.MAPCOL", "ORDERS.ORDERID", "ORDERS.ITEMINFO",
+            "ORDERS.ARRAYCOL", "ORDERS.ADDRESS")
     ));
   }
 

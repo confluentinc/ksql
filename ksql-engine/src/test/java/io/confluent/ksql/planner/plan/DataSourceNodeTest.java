@@ -51,6 +51,7 @@ import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.QueryLoggerUtil;
+import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.timestamp.LongColumnTimestampExtractionPolicy;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import java.util.Arrays;
@@ -97,6 +98,8 @@ public class DataSourceNodeTest {
   private SchemaKStream realStream;
   private StreamsBuilder realBuilder;
   private final LogicalSchema realSchema = LogicalSchema.of(SchemaBuilder.struct()
+      .field("ROWTIME", Schema.OPTIONAL_INT64_SCHEMA)
+      .field("ROWKEY", Schema.OPTIONAL_STRING_SCHEMA)
       .field("field1", Schema.OPTIONAL_STRING_SCHEMA)
       .field("field2", Schema.OPTIONAL_STRING_SCHEMA)
       .field("field3", Schema.OPTIONAL_STRING_SCHEMA)
@@ -365,6 +368,8 @@ public class DataSourceNodeTest {
     // Then:
     assertThat(schema, is(
         LogicalSchema.of(SchemaBuilder.struct()
+            .field(sourceName + "." + SchemaUtil.ROWTIME_NAME, Schema.OPTIONAL_INT64_SCHEMA)
+            .field(sourceName + "." + SchemaUtil.ROWKEY_NAME, Schema.OPTIONAL_STRING_SCHEMA)
             .field(sourceName + ".field1", Schema.OPTIONAL_STRING_SCHEMA)
             .field(sourceName + ".field2", Schema.OPTIONAL_STRING_SCHEMA)
             .field(sourceName + ".field3", Schema.OPTIONAL_STRING_SCHEMA)
@@ -378,7 +383,8 @@ public class DataSourceNodeTest {
     // Given:
     final DataSourceNode node = nodeWithMockTableSource();
 
-    final PhysicalSchema expected = PhysicalSchema.from(realSchema, serdeOptions);
+    final PhysicalSchema expected = PhysicalSchema
+        .from(realSchema.withoutImplicitFields(), serdeOptions);
 
     // When:
     node.buildStream(ksqlStreamBuilder);

@@ -76,7 +76,7 @@ public class InsertValuesExecutorTest {
 
   private static final LogicalSchema SINGLE_FIELD_SCHEMA = LogicalSchema.of(SchemaBuilder.struct()
       .field("ROWTIME", Schema.OPTIONAL_INT64_SCHEMA)
-      .field("ROWKEY", Schema.OPTIONAL_INT64_SCHEMA)
+      .field("ROWKEY", Schema.OPTIONAL_STRING_SCHEMA)
       .field("COL0", Schema.OPTIONAL_STRING_SCHEMA)
       .build());
 

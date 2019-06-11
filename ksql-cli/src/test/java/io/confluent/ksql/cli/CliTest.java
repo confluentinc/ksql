@@ -482,15 +482,6 @@ public class CliTest {
   }
 
   @Test
-  public void testSelectStar() {
-    testCreateStreamAsSelect(
-        "SELECT * FROM " + orderDataProvider.kstreamName(),
-        orderDataProvider.schema(),
-        orderDataProvider.data()
-    );
-  }
-
-  @Test
   public void testSelectProject() {
     final Map<String, GenericRow> expectedResults = new HashMap<>();
     expectedResults.put("1", new GenericRow(
@@ -584,7 +575,7 @@ public class CliTest {
   }
 
   @Test
-  public void testSelectLimit() {
+  public void testSelect() {
     final Map<String, GenericRow> streamData = orderDataProvider.data();
     final List<Object> row1 = streamData.get("1").getColumns();
     final List<Object> row2 = streamData.get("2").getColumns();
@@ -597,6 +588,23 @@ public class CliTest {
             row(row1.get(1).toString(), row1.get(2).toString()),
             row(row2.get(1).toString(), row2.get(2).toString()),
             row(row3.get(1).toString(), row3.get(2).toString())
+        ));
+  }
+
+  @Test
+  public void testSelectStar() {
+    final Map<String, GenericRow> streamData = orderDataProvider.data();
+    final List<Object> row1 = streamData.get("1").getColumns();
+    final List<Object> row2 = streamData.get("2").getColumns();
+    final List<Object> row3 = streamData.get("3").getColumns();
+
+    selectWithLimit(
+        "SELECT * FROM " + orderDataProvider.kstreamName(),
+        3,
+        containsRows(
+            row(prependWithRowTimeAndKey(row1)),
+            row(prependWithRowTimeAndKey(row2)),
+            row(prependWithRowTimeAndKey(row3))
         ));
   }
 
@@ -1022,6 +1030,20 @@ public class CliTest {
 
     // Then:
     verify(mockRestClient).makeKsqlRequest(statementText, seqNum);
+  }
+
+  @SuppressWarnings({"unchecked", "rawtypes"})
+  private static Matcher<String>[] prependWithRowTimeAndKey(final List<?> values) {
+
+    final Matcher<String>[] allMatchers = new Matcher[values.size() + 2];
+    allMatchers[0] = any(String.class);            // ROWTIME
+    allMatchers[1] = is(values.get(0).toString()); // ROWKEY
+
+    for (int idx = 0; idx != values.size(); ++idx) {
+      allMatchers[idx + 2] = is(values.get(idx).toString());
+    }
+
+    return allMatchers;
   }
 
   private static Matcher<Iterable<? extends String>> row(final String... expected) {

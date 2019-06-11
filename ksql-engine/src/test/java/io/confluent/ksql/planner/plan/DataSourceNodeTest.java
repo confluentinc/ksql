@@ -51,6 +51,7 @@ import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.QueryLoggerUtil;
+import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.timestamp.LongColumnTimestampExtractionPolicy;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import java.util.Arrays;
@@ -367,8 +368,8 @@ public class DataSourceNodeTest {
     // Then:
     assertThat(schema, is(
         LogicalSchema.of(SchemaBuilder.struct()
-            .field(sourceName + ".ROWTIME", Schema.OPTIONAL_INT64_SCHEMA)
-            .field(sourceName + ".ROWKEY", Schema.OPTIONAL_STRING_SCHEMA)
+            .field(sourceName + "." + SchemaUtil.ROWTIME_NAME, Schema.OPTIONAL_INT64_SCHEMA)
+            .field(sourceName + "." + SchemaUtil.ROWKEY_NAME, Schema.OPTIONAL_STRING_SCHEMA)
             .field(sourceName + ".field1", Schema.OPTIONAL_STRING_SCHEMA)
             .field(sourceName + ".field2", Schema.OPTIONAL_STRING_SCHEMA)
             .field(sourceName + ".field3", Schema.OPTIONAL_STRING_SCHEMA)

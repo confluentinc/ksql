@@ -17,11 +17,9 @@ package io.confluent.ksql.analyzer;
 
 import static io.confluent.ksql.testutils.AnalysisTestUtil.analyzeQuery;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -35,8 +33,6 @@ import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MutableMetaStore;
-import io.confluent.ksql.metastore.SerdeFactory;
-import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTopic;
@@ -99,7 +95,6 @@ public class AnalyzerTest {
   private Query query;
   private Analyzer analyzer;
 
-  @SuppressWarnings("unchecked")
   @Before
   public void init() {
     jsonMetaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
@@ -123,11 +118,10 @@ public class AnalyzerTest {
     final String simpleQuery = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
     final Analysis analysis = analyzeQuery(simpleQuery, jsonMetaStore);
     Assert.assertNotNull("INTO is null", analysis.getInto());
-    Assert.assertNotNull("FROM is null", analysis.getFromDataSources());
     Assert.assertNotNull("SELECT is null", analysis.getSelectExpressions());
     Assert.assertNotNull("SELECT alias is null", analysis.getSelectExpressionAlias());
     Assert.assertTrue("FROM was not analyzed correctly.",
-                      analysis.getFromDataSources().get(0).getLeft().getName()
+        analysis.getFromDataSource(0).getDataSource().getName()
                           .equalsIgnoreCase("test1"));
     Assert.assertEquals(analysis.getSelectExpressions().size(),
         analysis.getSelectExpressionAlias().size());
@@ -228,11 +222,10 @@ public class AnalyzerTest {
     final Analysis analysis = analyzeQuery(queryStr, jsonMetaStore);
 
     Assert.assertNotNull("INTO is null", analysis.getInto());
-    Assert.assertNotNull("FROM is null", analysis.getFromDataSources());
     Assert.assertNotNull("SELECT is null", analysis.getSelectExpressions());
     Assert.assertNotNull("SELECT aliacs is null", analysis.getSelectExpressionAlias());
     Assert.assertTrue("FROM was not analyzed correctly.",
-                      analysis.getFromDataSources().get(0).getLeft().getName()
+        analysis.getFromDataSource(0).getDataSource().getName()
                           .equalsIgnoreCase("test1"));
 
     final String
@@ -259,11 +252,10 @@ public class AnalyzerTest {
     final Analysis analysis = analyzeQuery(queryStr, jsonMetaStore);
 
     Assert.assertNotNull("INTO is null", analysis.getInto());
-    Assert.assertNotNull("FROM is null", analysis.getFromDataSources());
     Assert.assertNotNull("SELECT is null", analysis.getSelectExpressions());
     Assert.assertNotNull("SELECT aliacs is null", analysis.getSelectExpressionAlias());
     Assert.assertTrue("FROM was not analyzed correctly.",
-            analysis.getFromDataSources().get(0).getLeft().getName()
+        analysis.getFromDataSource(0).getDataSource().getName()
                     .equalsIgnoreCase("test1"));
 
     final String

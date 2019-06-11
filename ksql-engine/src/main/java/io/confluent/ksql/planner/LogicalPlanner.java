@@ -19,14 +19,10 @@ import io.confluent.ksql.analyzer.AggregateAnalysisResult;
 import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.Analysis.Into;
 import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KeyField;
-import io.confluent.ksql.metastore.model.KsqlStream;
-import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.planner.plan.AggregateNode;
-import io.confluent.ksql.planner.plan.DataSourceNode;
 import io.confluent.ksql.planner.plan.FilterNode;
 import io.confluent.ksql.planner.plan.KsqlBareOutputNode;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
@@ -37,7 +33,6 @@ import io.confluent.ksql.planner.plan.ProjectNode;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.ExpressionTypeManager;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicyFactory;
 import java.util.Optional;
@@ -68,7 +63,7 @@ public class LogicalPlanner {
     if (analysis.getJoin() != null) {
       currentNode = analysis.getJoin();
     } else {
-      currentNode = buildSourceNode();
+      currentNode = analysis.getFromDataSource(0);
     }
     if (analysis.getWhereExpression() != null) {
       currentNode = buildFilterNode(currentNode);
@@ -215,19 +210,5 @@ public class LogicalPlanner {
 
     final Expression filterExpression = analysis.getWhereExpression();
     return new FilterNode(new PlanNodeId("Filter"), sourcePlanNode, filterExpression);
-  }
-
-  private DataSourceNode buildSourceNode() {
-
-    final Pair<DataSource<?>, String> dataSource = analysis.getFromDataSource(0);
-    if (!(dataSource.left instanceof KsqlStream) && !(dataSource.left instanceof KsqlTable)) {
-      throw new RuntimeException("Data source is not supported yet.");
-    }
-
-    return new DataSourceNode(
-        new PlanNodeId("KsqlTopic"),
-        dataSource.left,
-        dataSource.right
-    );
   }
 }

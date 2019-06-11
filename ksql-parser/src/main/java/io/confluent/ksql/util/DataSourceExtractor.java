@@ -17,6 +17,7 @@ package io.confluent.ksql.util;
 
 import static java.util.Objects.requireNonNull;
 
+import com.google.common.collect.Sets;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.parser.SqlBaseBaseVisitor;
@@ -26,6 +27,7 @@ import io.confluent.ksql.parser.tree.Node;
 import io.confluent.ksql.parser.tree.NodeLocation;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Optional;
@@ -33,14 +35,10 @@ import java.util.Set;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
-import org.apache.kafka.connect.data.Field;
 
 public class DataSourceExtractor {
 
   private final MetaStore metaStore;
-
-  private LogicalSchema joinLeftSchema;
-  private LogicalSchema joinRightSchema;
 
   private String fromAlias;
   private String fromName;
@@ -62,17 +60,7 @@ public class DataSourceExtractor {
   public void extractDataSources(final ParseTree node) {
     new Visitor().visit(node);
 
-    if (joinLeftSchema != null) {
-      for (final Field field : joinLeftSchema.fields()) {
-        leftFieldNames.add(field.name());
-      }
-      for (final Field field : joinRightSchema.fields()) {
-        rightFieldNames.add(field.name());
-        if (leftFieldNames.contains(field.name())) {
-          commonFieldNames.add(field.name());
-        }
-      }
-    }
+    commonFieldNames.addAll(Sets.intersection(leftFieldNames, rightFieldNames));
   }
 
   public String getFromAlias() {
@@ -88,15 +76,15 @@ public class DataSourceExtractor {
   }
 
   public Set<String> getCommonFieldNames() {
-    return commonFieldNames;
+    return Collections.unmodifiableSet(commonFieldNames);
   }
 
   public Set<String> getLeftFieldNames() {
-    return leftFieldNames;
+    return Collections.unmodifiableSet(leftFieldNames);
   }
 
   public Set<String> getRightFieldNames() {
-    return rightFieldNames;
+    return Collections.unmodifiableSet(rightFieldNames);
   }
 
   public String getFromName() {
@@ -179,7 +167,7 @@ public class DataSourceExtractor {
         throw new KsqlException(((Table) left.getRelation()).getName().getSuffix() + " does not "
             + "exist.");
       }
-      joinLeftSchema = leftDataSource.getSchema();
+      addFieldNames(leftDataSource.getSchema(), leftFieldNames);
 
       final AliasedRelation right = (AliasedRelation) visit(context.right);
       rightAlias = right.getAlias();
@@ -191,7 +179,7 @@ public class DataSourceExtractor {
         throw new KsqlException(((Table) right.getRelation()).getName().getSuffix() + " does not "
             + "exist.");
       }
-      joinRightSchema = rightDataSource.getSchema();
+      addFieldNames(rightDataSource.getSchema(), rightFieldNames);
 
       return null;
     }
@@ -205,5 +193,9 @@ public class DataSourceExtractor {
   private static Optional<NodeLocation> getLocation(final Token token) {
     requireNonNull(token, "token is null");
     return Optional.of(new NodeLocation(token.getLine(), token.getCharPositionInLine()));
+  }
+
+  private static void addFieldNames(final LogicalSchema schema, final Set<String> collection) {
+    schema.fields().forEach(field -> collection.add(field.name()));
   }
 }

@@ -31,7 +31,6 @@ import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.Objects;
 import java.util.Optional;
-import org.apache.kafka.connect.data.Field;
 
 
 class ExpressionAnalyzer {
@@ -116,7 +115,7 @@ class ExpressionAnalyzer {
       if (isJoinSchema) {
         columnName = node.toString();
       }
-      final Optional<Field> schemaField = schema.findField(columnName);
+      final Optional<?> schemaField = schema.findField(columnName);
       if (!schemaField.isPresent()) {
         throw new RuntimeException(
             String.format("Column %s cannot be resolved.", columnName));
@@ -136,7 +135,7 @@ class ExpressionAnalyzer {
         final QualifiedNameReference node,
         final Object context) {
       final String columnName = node.getName().getSuffix();
-      final Optional<Field> schemaField = schema.findField(columnName);
+      final Optional<?> schemaField = schema.findField(columnName);
       if (!schemaField.isPresent()) {
         throw new RuntimeException(
             String.format("Column %s cannot be resolved.", columnName));

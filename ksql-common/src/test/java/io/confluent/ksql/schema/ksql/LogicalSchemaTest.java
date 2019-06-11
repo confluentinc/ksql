@@ -26,6 +26,7 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.fail;
 
 import com.google.common.testing.EqualsTester;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.Optional;
 import java.util.OptionalInt;
@@ -61,7 +62,7 @@ public class LogicalSchemaTest {
       .build();
 
   private static final LogicalSchema SOME_SCHEMA = LogicalSchema.of(SOME_CONNECT_SCHEMA);
-  private static final LogicalSchema ALIASED_SCHEMA = LogicalSchema.of(ALIASED_CONNECT_SCHEMA);
+  private static final LogicalSchema ALIASED_SCHEMA = SOME_SCHEMA.withAlias("bob");
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -70,10 +71,12 @@ public class LogicalSchemaTest {
   public void shouldImplementEqualsProperly() {
     new EqualsTester()
         .addEqualityGroup(
-            LogicalSchema.of(SOME_CONNECT_SCHEMA), LogicalSchema.of(SOME_CONNECT_SCHEMA)
+            LogicalSchema.of(SOME_CONNECT_SCHEMA),
+            LogicalSchema.of(SOME_CONNECT_SCHEMA),
+            LogicalSchema.of(SOME_CONNECT_SCHEMA).withAlias("bob").withoutAlias()
         )
         .addEqualityGroup(
-            LogicalSchema.of(ALIASED_CONNECT_SCHEMA)
+            LogicalSchema.of(SOME_CONNECT_SCHEMA).withAlias("bob")
         )
         .addEqualityGroup(
             LogicalSchema.of(OTHER_CONNECT_SCHEMA)
@@ -239,13 +242,14 @@ public class LogicalSchemaTest {
     assertThat(result, is(ALIASED_SCHEMA));
   }
 
-  @Test
-  public void shouldCopySchemaIfSchemaAlreadyAliased() {
-    // When:
-    final LogicalSchema result = ALIASED_SCHEMA.withAlias("bob");
+  @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_INFERRED")
+  @Test(expected = IllegalStateException.class)
+  public void shouldThrowIfAlreadyAliased() {
+    // Given:
+    final LogicalSchema aliased = SOME_SCHEMA.withAlias("bob");
 
-    // Then:
-    assertThat(result, is(ALIASED_SCHEMA));
+    // When:
+    aliased.withAlias("bob");
   }
 
   @Test
@@ -284,13 +288,11 @@ public class LogicalSchemaTest {
     assertThat(result, is(SOME_SCHEMA));
   }
 
-  @Test
-  public void shouldCopySchemaIfSchemaAlreadyUnaliased() {
+  @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_INFERRED")
+  @Test(expected = IllegalStateException.class)
+  public void shouldThrowIfNotAliased() {
     // When:
-    final LogicalSchema result = SOME_SCHEMA.withoutAlias();
-
-    // Then:
-    assertThat(result, is(SOME_SCHEMA));
+    SOME_SCHEMA.withoutAlias();
   }
 
   @Test
@@ -298,13 +300,13 @@ public class LogicalSchemaTest {
     // Given:
     final LogicalSchema schema = LogicalSchema.of(
         SchemaBuilder.struct()
-            .field("bob.f0", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
-            .field("bob.f1", SchemaBuilder.struct()
+            .field("f0", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
+            .field("f1", SchemaBuilder.struct()
                 .field("bob.nested", Schema.OPTIONAL_INT64_SCHEMA)
                 .optional()
                 .build())
             .build()
-    );
+    ).withAlias("bob");
 
     // When:
     final LogicalSchema result = schema.withoutAlias();
@@ -446,6 +448,25 @@ public class LogicalSchemaTest {
             + "f6 STRUCT<a BIGINT>, "
             + "f7 ARRAY<VARCHAR>, "
             + "f8 MAP<VARCHAR, VARCHAR>"
+            + "]"));
+  }
+
+  @Test
+  public void shouldConvertAliasedSchemaToString() {
+    // Given:
+    final LogicalSchema schema = LogicalSchema.of(
+        SchemaBuilder.struct()
+            .field("f0", SchemaBuilder.OPTIONAL_BOOLEAN_SCHEMA)
+            .build()
+    ).withAlias("t");
+
+    // When:
+    final String s = schema.toString();
+
+    // Then:
+    assertThat(s, is(
+        "["
+            + "t.f0 BOOLEAN"
             + "]"));
   }
 

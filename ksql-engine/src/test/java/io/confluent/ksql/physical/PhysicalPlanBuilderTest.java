@@ -443,14 +443,14 @@ public class PhysicalPlanBuilderTest {
     final String planText = queries.get(1).getExecutionPlan();
     final String[] lines = planText.split("\n");
     assertThat(lines.length, equalTo(3));
-    assertThat(lines[0], containsString("> [ SINK ] | "
-        + "Schema: [ROWTIME BIGINT, ROWKEY VARCHAR, COL0 INT]"));
+    assertThat(lines[0], containsString(
+        "> [ SINK ] | Schema: [ROWTIME BIGINT, ROWKEY VARCHAR, COL0 INT]"));
 
-    assertThat(lines[1], containsString("> [ PROJECT ] | "
-        + "Schema: [ROWTIME BIGINT, ROWKEY VARCHAR, COL0 INT]"));
+    assertThat(lines[1], containsString(
+        "> [ PROJECT ] | Schema: [ROWTIME BIGINT, ROWKEY VARCHAR, COL0 INT]"));
 
-    assertThat(lines[2], containsString("> [ SOURCE ] | "
-        + "Schema: [TEST1.ROWTIME BIGINT, TEST1.ROWKEY VARCHAR, TEST1.COL0 INT]"));
+    assertThat(lines[2], containsString(
+        "> [ SOURCE ] | Schema: [TEST1.ROWTIME BIGINT, TEST1.ROWKEY VARCHAR, TEST1.COL0 INT]"));
   }
 
   @Test

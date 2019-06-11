@@ -171,8 +171,7 @@ public class SqlToJavaVisitor {
     ) {
       final String fieldName = formatQualifiedName(node.getName());
       final Field schemaField = schema.findField(fieldName)
-          .orElseThrow(() ->
-              new KsqlException("Field not found: " + fieldName));
+          .orElseThrow(() -> new KsqlException("Field not found: " + fieldName));
 
       final Schema schema = schemaField.schema();
       return new Pair<>(fieldName.replace(".", "_"), schema);
@@ -185,8 +184,7 @@ public class SqlToJavaVisitor {
     ) {
       final String fieldName = node.toString();
       final Field schemaField = schema.findField(fieldName)
-          .orElseThrow(() ->
-              new KsqlException("Field not found: " + fieldName));
+          .orElseThrow(() -> new KsqlException("Field not found: " + fieldName));
 
       final Schema schema = schemaField.schema();
       return new Pair<>(fieldName.replace(".", "_"), schema);

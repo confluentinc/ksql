@@ -29,18 +29,24 @@ public final class DefaultSqlValueCoercer implements SqlValueCoercer {
           .put(SqlType.DOUBLE, Number::doubleValue)
           .build();
 
-  public Optional<Object> coerce(final Object value, final SqlType targetSqlType) {
+  public <T> Optional<T> coerce(final Object value, final SqlType targetSqlType) {
     final SqlType valueSqlType = SchemaConverters.javaToSqlConverter()
         .toSqlType(value.getClass());
 
     if (valueSqlType.equals(targetSqlType)) {
-      return Optional.of(value);
+      return optional(value);
     }
 
     if (!(value instanceof Number) || !valueSqlType.canUpCast(targetSqlType)) {
       return Optional.empty();
     }
 
-    return Optional.of(UPCASTER.get(targetSqlType).apply((Number) value));
+    final Number result = UPCASTER.get(targetSqlType).apply((Number) value);
+    return optional(result);
+  }
+
+  @SuppressWarnings("unchecked")
+  private static <T> Optional<T> optional(final Object value) {
+    return Optional.of((T)value);
   }
 }

@@ -29,7 +29,8 @@ public interface SqlValueCoercer {
    *
    * @param value the value to try to coerce.
    * @param targetSqlType the target SQL type.
+   * @param <T> target Java type
    * @return the coerced value if the value could be coerced, {@link Optional#empty()} otherwise.
    */
-  Optional<Object> coerce(Object value, SqlType targetSqlType);
+  <T> Optional<T> coerce(Object value, SqlType targetSqlType);
 }

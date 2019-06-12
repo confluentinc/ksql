@@ -109,7 +109,7 @@ public class JoinIntTest {
         .getSource(testStreamName);
 
     final PhysicalSchema resultSchema = PhysicalSchema.from(
-        source.getSchema().withoutImplicitFields(),
+        source.getSchema().withoutImplicitAndKeyFieldsInValue(),
         source.getSerdeOptions()
     );
     final Map<String, GenericRow> expectedResults = ImmutableMap.of(
@@ -177,7 +177,7 @@ public class JoinIntTest {
         .getSource(testStreamName);
 
     final PhysicalSchema resultSchema = PhysicalSchema.from(
-        source.getSchema().withoutImplicitFields(),
+        source.getSchema().withoutImplicitAndKeyFieldsInValue(),
         source.getSerdeOptions()
     );
 
@@ -250,7 +250,7 @@ public class JoinIntTest {
         .getSource(outputStream);
 
     final PhysicalSchema resultSchema = PhysicalSchema.from(
-        source.getSchema().withoutImplicitFields(),
+        source.getSchema().withoutImplicitAndKeyFieldsInValue(),
         source.getSerdeOptions()
     );
 

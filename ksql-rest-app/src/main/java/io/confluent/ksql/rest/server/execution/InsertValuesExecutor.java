@@ -144,7 +144,7 @@ public class InsertValuesExecutor {
 
     final List<String> columns = insertValues.getColumns().isEmpty()
         ? dataSource.getSchema()
-          .fields()
+          .valueFields()
           .stream()
           .map(Field::name)
           .filter(name -> !SchemaUtil.ROWTIME_NAME.equals(name))
@@ -162,7 +162,7 @@ public class InsertValuesExecutor {
     final Map<String, Object> values = new HashMap<>();
     for (int i = 0; i < columns.size(); i++) {
       final String column = columns.get(i);
-      final Schema columnSchema = dataSource.getSchema().getSchema().field(column).schema();
+      final Schema columnSchema = dataSource.getSchema().valueSchema().field(column).schema();
       final Expression valueExp = insertValues.getValues().get(i);
 
       values.put(column, new ExpressionResolver(columnSchema, column).process(valueExp, null));
@@ -186,7 +186,7 @@ public class InsertValuesExecutor {
 
     values.putIfAbsent(SchemaUtil.ROWTIME_NAME, clock.getAsLong());
 
-    for (final Field field : dataSource.getSchema().fields()) {
+    for (final Field field : dataSource.getSchema().valueFields()) {
       if (!field.schema().isOptional() && values.getOrDefault(field.name(), null) == null) {
         throw new KsqlException("Got null value for nonnull field: " + field);
       }
@@ -194,7 +194,7 @@ public class InsertValuesExecutor {
 
     return new GenericRow(
         dataSource.getSchema()
-            .fields()
+            .valueFields()
             .stream()
             .map(Field::name)
             .map(values::get)
@@ -226,7 +226,7 @@ public class InsertValuesExecutor {
     final Serde<GenericRow> rowSerde = GenericRowSerDe.from(
         dataSource.getValueSerdeFactory(),
         PhysicalSchema.from(
-            dataSource.getSchema().withoutImplicitFields(),
+            dataSource.getSchema().withoutImplicitAndKeyFieldsInValue(),
             dataSource.getSerdeOptions()
         ),
         config,

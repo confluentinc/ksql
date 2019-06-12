@@ -67,7 +67,7 @@ public final class GenericRowSerDe implements Serde<GenericRow> {
   ) {
     this.delegate = requireNonNull(delegate, "delegate");
     this.schema = requireNonNull(schema, "schema");
-    this.unwrapped = schema.logicalSchema().fields().size() == 1
+    this.unwrapped = schema.logicalSchema().valueFields().size() == 1
         && schema.serdeOptions().contains(SerdeOption.UNWRAP_SINGLE_VALUES);
   }
 
@@ -139,7 +139,7 @@ public final class GenericRowSerDe implements Serde<GenericRow> {
 
     GenericRowSerializer(final Serializer<Object> inner, final LogicalSchema schema) {
       this.inner = requireNonNull(inner, "inner");
-      this.schema = requireNonNull(schema, "schema").getSchema();
+      this.schema = requireNonNull(schema, "schema").valueSchema();
     }
 
     @Override

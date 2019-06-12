@@ -115,8 +115,8 @@ import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.QueuedCommandStatus;
 import io.confluent.ksql.rest.util.EntityUtil;
 import io.confluent.ksql.rest.util.TerminateCluster;
-import io.confluent.ksql.schema.ksql.SqlType;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SqlType;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
@@ -1967,7 +1967,7 @@ public class KsqlResourceTest {
               sourceName,
               schema,
               SerdeOption.none(),
-              KeyField.of(schema.fields().get(0).name(), schema.fields().get(0)),
+              KeyField.of(schema.valueFields().get(0).name(), schema.valueFields().get(0)),
               new MetadataTimestampExtractionPolicy(),
               ksqlTopic,
               Serdes::String
@@ -1980,7 +1980,7 @@ public class KsqlResourceTest {
               sourceName,
               schema,
               SerdeOption.none(),
-              KeyField.of(schema.fields().get(0).name(), schema.fields().get(0)),
+              KeyField.of(schema.valueFields().get(0).name(), schema.valueFields().get(0)),
               new MetadataTimestampExtractionPolicy(),
               ksqlTopic,
               Serdes::String

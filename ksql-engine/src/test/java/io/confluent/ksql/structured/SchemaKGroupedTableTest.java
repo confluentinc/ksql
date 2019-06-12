@@ -43,8 +43,8 @@ import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
+import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.GenericRowSerDe;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.serde.SerdeOption;
@@ -101,7 +101,7 @@ public class SchemaKGroupedTableTest {
     kTable = builder
         .table(ksqlTable.getKsqlTopic().getKafkaTopicName(), Consumed.with(Serdes.String()
             , ksqlTable.getKsqlTopic().getValueSerdeFactory().createSerde(
-                PersistenceSchema.of(ksqlTable.getSchema().getSchema()),
+                PersistenceSchema.of(ksqlTable.getSchema().valueSchema()),
                 new KsqlConfig(Collections.emptyMap()),
                 MockSchemaRegistryClient::new,
                 "test",
@@ -212,7 +212,7 @@ public class SchemaKGroupedTableTest {
     return new SchemaKGroupedTable(
         schema,
         kGroupedTable,
-        KeyField.of(schema.fields().get(0).name(), schema.fields().get(0)),
+        KeyField.of(schema.valueFields().get(0).name(), schema.valueFields().get(0)),
         Collections.emptyList(),
         ksqlConfig,
         functionRegistry,

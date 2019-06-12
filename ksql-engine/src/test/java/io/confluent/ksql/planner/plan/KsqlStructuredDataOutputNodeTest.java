@@ -101,7 +101,7 @@ public class KsqlStructuredDataOutputNodeTest {
   private final KsqlStream dataSource = new KsqlStream<>("sqlExpression", "datasource",
       schema,
       SerdeOption.none(),
-      KeyField.of("key", schema.getSchema().field("key")),
+      KeyField.of("key", schema.valueSchema().field("key")),
       new LongColumnTimestampExtractionPolicy("timestamp"),
       new KsqlTopic(SOURCE_TOPIC_NAME, SOURCE_KAFKA_TOPIC_NAME,
           new KsqlJsonSerdeFactory(), false),
@@ -152,7 +152,7 @@ public class KsqlStructuredDataOutputNodeTest {
         sourceNode,
         schema,
         new LongColumnTimestampExtractionPolicy("timestamp"),
-        KeyField.of("key", schema.getSchema().field("key")),
+        KeyField.of("key", schema.valueSchema().field("key")),
         new KsqlTopic(SINK_TOPIC_NAME, SINK_KAFKA_TOPIC_NAME, serde, true),
         partitionBy,
         OptionalInt.empty(),
@@ -230,7 +230,7 @@ public class KsqlStructuredDataOutputNodeTest {
     assertThat(stream.getKeyField().name(), is(Optional.of("key")));
     assertThat(stream.getKeyField().legacy(),
         is(Optional.of(new Field("key", 4, Schema.OPTIONAL_STRING_SCHEMA))));
-    assertThat(stream.getSchema().fields(), equalTo(schema.getSchema().fields()));
+    assertThat(stream.getSchema().valueFields(), equalTo(schema.valueSchema().fields()));
   }
 
   @Test
@@ -298,7 +298,7 @@ public class KsqlStructuredDataOutputNodeTest {
         sourceNode,
         schema,
         new LongColumnTimestampExtractionPolicy("timestamp"),
-        KeyField.of("key", schema.getSchema().field("key")),
+        KeyField.of("key", schema.valueSchema().field("key")),
         mockTopic(valueSerdeFactory, "output"),
         false,
         OptionalInt.empty(),
@@ -327,7 +327,7 @@ public class KsqlStructuredDataOutputNodeTest {
         "sqlExpression", "datasource",
         schema,
         SerdeOption.none(),
-        KeyField.of("key", schema.getSchema().field("key")),
+        KeyField.of("key", schema.valueSchema().field("key")),
         new MetadataTimestampExtractionPolicy(),
         new KsqlTopic(SOURCE_TOPIC_NAME, SOURCE_KAFKA_TOPIC_NAME, new KsqlJsonSerdeFactory(),
             false),
@@ -344,7 +344,7 @@ public class KsqlStructuredDataOutputNodeTest {
         tableSourceNode,
         schema,
         new MetadataTimestampExtractionPolicy(),
-        KeyField.of("key", schema.getSchema().field("key")),
+        KeyField.of("key", schema.valueSchema().field("key")),
         new KsqlTopic(SINK_TOPIC_NAME, SINK_KAFKA_TOPIC_NAME, new KsqlJsonSerdeFactory(), true),
         false,
         OptionalInt.empty(),

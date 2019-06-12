@@ -159,17 +159,17 @@ public class AggregateNode extends PlanNode {
 
   private List<SelectExpression> getFinalSelectExpressions() {
     final List<SelectExpression> finalSelectExpressionList = new ArrayList<>();
-    if (finalSelectExpressions.size() != schema.fields().size()) {
+    if (finalSelectExpressions.size() != schema.valueFields().size()) {
       throw new RuntimeException(
           "Incompatible aggregate schema, field count must match, "
               + "selected field count:"
               + finalSelectExpressions.size()
               + " schema field count:"
-              + schema.fields().size());
+              + schema.valueFields().size());
     }
     for (int i = 0; i < finalSelectExpressions.size(); i++) {
       finalSelectExpressionList.add(SelectExpression.of(
-          schema.fields().get(i).name(),
+          schema.valueFields().get(i).name(),
           finalSelectExpressions.get(i)
       ));
     }
@@ -291,7 +291,7 @@ public class AggregateNode extends PlanNode {
       final String exprStr =
           internalSchema.getInternalColumnForExpression(expression);
 
-      final int index = aggregateArgExpanded.getSchema().fieldIndex(exprStr)
+      final int index = aggregateArgExpanded.getSchema().valueFieldIndex(exprStr)
           .orElseThrow(IllegalStateException::new);
 
       aggValToValColumnMap.put(nonAggColumnIndex, index);
@@ -361,7 +361,7 @@ public class AggregateNode extends PlanNode {
       final InternalSchema internalSchema
   ) {
     final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
-    final List<Field> fields = schema.fields();
+    final List<Field> fields = schema.valueFields();
     for (int i = 0; i < getRequiredColumns().size(); i++) {
       schemaBuilder.field(fields.get(i).name(), fields.get(i).schema());
     }

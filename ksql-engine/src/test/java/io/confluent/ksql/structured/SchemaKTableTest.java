@@ -132,7 +132,7 @@ public class SchemaKTableTest {
         ksqlTable.getKsqlTopic().getKafkaTopicName(),
         Consumed.with(
             Serdes.String(),
-            getRowSerde(ksqlTable.getKsqlTopic(), ksqlTable.getSchema().getSchema())
+            getRowSerde(ksqlTable.getKsqlTopic(), ksqlTable.getSchema().valueSchema())
         ));
 
     final KsqlTable secondKsqlTable = (KsqlTable) metaStore.getSource("TEST3");
@@ -140,7 +140,7 @@ public class SchemaKTableTest {
         secondKsqlTable.getKsqlTopic().getKafkaTopicName(),
         Consumed.with(
             Serdes.String(),
-            getRowSerde(secondKsqlTable.getKsqlTopic(), secondKsqlTable.getSchema().getSchema())
+            getRowSerde(secondKsqlTable.getKsqlTopic(), secondKsqlTable.getSchema().valueSchema())
         ));
 
     mockKTable = EasyMock.niceMock(KTable.class);
@@ -230,7 +230,7 @@ public class SchemaKTableTest {
     );
 
     // Then:
-    assertThat(projectedSchemaKStream.getSchema().fields(), contains(
+    assertThat(projectedSchemaKStream.getSchema().valueFields(), contains(
         new Field("COL0", 0, Schema.OPTIONAL_INT64_SCHEMA),
         new Field("COL2", 1, Schema.OPTIONAL_STRING_SCHEMA),
         new Field("COL3", 2, Schema.OPTIONAL_FLOAT64_SCHEMA)
@@ -264,7 +264,7 @@ public class SchemaKTableTest {
     );
 
     // Then:
-    assertThat(projectedSchemaKStream.getSchema().fields(), contains(
+    assertThat(projectedSchemaKStream.getSchema().valueFields(), contains(
         new Field("COL0", 0, Schema.OPTIONAL_INT64_SCHEMA),
         new Field("KSQL_COL_1", 1, Schema.OPTIONAL_INT32_SCHEMA),
         new Field("KSQL_COL_2", 2, Schema.OPTIONAL_FLOAT64_SCHEMA)
@@ -299,7 +299,7 @@ public class SchemaKTableTest {
     );
 
     // Then:
-    assertThat(filteredSchemaKStream.getSchema().fields(), contains(
+    assertThat(filteredSchemaKStream.getSchema().valueFields(), contains(
         new Field("TEST2.ROWTIME", 0, Schema.OPTIONAL_INT64_SCHEMA),
         new Field("TEST2.ROWKEY", 1, Schema.OPTIONAL_INT64_SCHEMA),
         new Field("TEST2.COL0", 2, Schema.OPTIONAL_INT64_SCHEMA),
@@ -355,7 +355,7 @@ public class SchemaKTableTest {
   public void shouldUseOpNameForGrouped() {
     // Given:
     final Serde<GenericRow> valSerde =
-        getRowSerde(ksqlTable.getKsqlTopic(), ksqlTable.getSchema().getSchema());
+        getRowSerde(ksqlTable.getKsqlTopic(), ksqlTable.getSchema().valueSchema());
     expect(
         groupedFactory.create(
             eq(StreamsUtil.buildOpName(childContextStacker.getQueryContext())),
@@ -622,12 +622,12 @@ public class SchemaKTableTest {
     final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
     final String leftAlias = "left";
     final String rightAlias = "right";
-    for (final Field field : leftSchema.fields()) {
+    for (final Field field : leftSchema.valueFields()) {
       final String fieldName = leftAlias + "." + field.name();
       schemaBuilder.field(fieldName, field.schema());
     }
 
-    for (final Field field : rightSchema.fields()) {
+    for (final Field field : rightSchema.valueFields()) {
       final String fieldName = rightAlias + "." + field.name();
       schemaBuilder.field(fieldName, field.schema());
     }

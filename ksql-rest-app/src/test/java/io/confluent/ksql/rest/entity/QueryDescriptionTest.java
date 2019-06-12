@@ -28,9 +28,9 @@ import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.physical.LimitHandler;
 import io.confluent.ksql.physical.QuerySchemas;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.schema.ksql.SqlType;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.schema.ksql.SqlType;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -129,7 +129,7 @@ public class QueryDescriptionTest {
         "fake_sink",
         SCHEMA,
         SerdeOption.none(),
-        KeyField.of(SCHEMA.fields().get(0).name(), SCHEMA.fields().get(0)),
+        KeyField.of(SCHEMA.valueFields().get(0).name(), SCHEMA.valueFields().get(0)),
         new MetadataTimestampExtractionPolicy(),
         sinkTopic,
         Serdes::String

@@ -120,7 +120,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
 
     final Serde<GenericRow> outputRowSerde = builder.buildGenericRowSerde(
         getKsqlTopic().getValueSerdeFactory(),
-        PhysicalSchema.from(getSchema().withoutImplicitFields(), serdeOptions),
+        PhysicalSchema.from(getSchema().withoutImplicitAndKeyFieldsInValue(), serdeOptions),
         contextStacker.getQueryContext()
     );
 

@@ -376,12 +376,12 @@ public class JoinNodeTest {
         = metaStore.getSource("TEST1");
     final DataSource<?> source2 = metaStore.getSource("TEST2");
     final Set<String> expected = source1.getSchema()
-        .fields().stream()
+        .valueFields().stream()
         .map(field -> "T1." + field.name()).collect(Collectors.toSet());
 
-    expected.addAll(source2.getSchema().fields().stream().map(field -> "T2." + field.name())
+    expected.addAll(source2.getSchema().valueFields().stream().map(field -> "T2." + field.name())
         .collect(Collectors.toSet()));
-    final Set<String> fields = stream.getSchema().fields().stream().map(Field::name)
+    final Set<String> fields = stream.getSchema().valueFields().stream().map(Field::name)
         .collect(Collectors.toSet());
     assertThat(fields, equalTo(expected));
   }
@@ -1119,7 +1119,7 @@ public class JoinNodeTest {
     setupTable(node, table, schema);
 
     final Optional<Field> keyField = keyFieldName
-        .map(key -> schema.findField(key).orElseThrow(AssertionError::new));
+        .map(key -> schema.findValueField(key).orElseThrow(AssertionError::new));
 
     when(table.getKeyField()).thenReturn(KeyField.of(keyFieldName, keyField));
   }
@@ -1139,11 +1139,11 @@ public class JoinNodeTest {
   private LogicalSchema joinSchema() {
     final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
 
-    for (final Field field : leftSchema.fields()) {
+    for (final Field field : leftSchema.valueFields()) {
       schemaBuilder.field(field.name(), field.schema());
     }
 
-    for (final Field field : rightSchema.fields()) {
+    for (final Field field : rightSchema.valueFields()) {
       schemaBuilder.field(field.name(), field.schema());
     }
 
@@ -1197,7 +1197,7 @@ public class JoinNodeTest {
   }
 
   private static Optional<String> getColumn(final LogicalSchema schema, final Predicate<String> filter) {
-    return schema.fields().stream()
+    return schema.valueFields().stream()
         .map(Field::name)
         .filter(filter)
         .findFirst();
@@ -1219,7 +1219,7 @@ public class JoinNodeTest {
         getColumn(schema, s -> !blackList.contains(s))
             .orElseThrow(AssertionError::new);
 
-    final Field field = schema.findField(column).get();
+    final Field field = schema.findValueField(column).get();
     return field.name();
   }
 

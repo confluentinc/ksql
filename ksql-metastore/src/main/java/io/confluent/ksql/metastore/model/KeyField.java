@@ -148,7 +148,7 @@ public final class KeyField {
    */
   public Optional<Field> resolveLatest(final LogicalSchema schema) {
     return keyField
-        .map(fieldName -> schema.findField(fieldName)
+        .map(fieldName -> schema.findValueField(fieldName)
             .orElseThrow(() -> new IllegalArgumentException(
                 "Invalid key field, not found in schema: " + fieldName)));
   }

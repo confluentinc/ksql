@@ -170,7 +170,7 @@ public class SqlToJavaVisitor {
         final Void context
     ) {
       final String fieldName = formatQualifiedName(node.getName());
-      final Field schemaField = schema.findField(fieldName)
+      final Field schemaField = schema.findValueField(fieldName)
           .orElseThrow(() ->
               new KsqlException("Field not found: " + fieldName));
 
@@ -184,7 +184,7 @@ public class SqlToJavaVisitor {
         final Void context
     ) {
       final String fieldName = node.toString();
-      final Field schemaField = schema.findField(fieldName)
+      final Field schemaField = schema.findValueField(fieldName)
           .orElseThrow(() ->
               new KsqlException("Field not found: " + fieldName));
 

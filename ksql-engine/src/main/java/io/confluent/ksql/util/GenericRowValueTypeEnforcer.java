@@ -41,7 +41,7 @@ public class GenericRowValueTypeEnforcer {
           .build();
 
   public GenericRowValueTypeEnforcer(final LogicalSchema schema) {
-    this.fields = schema.fields();
+    this.fields = schema.valueFields();
   }
 
   public Object enforceFieldType(final int index, final Object value) {

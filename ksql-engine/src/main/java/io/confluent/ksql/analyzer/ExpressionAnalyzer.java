@@ -116,7 +116,7 @@ class ExpressionAnalyzer {
       if (isJoinSchema) {
         columnName = node.toString();
       }
-      final Optional<Field> schemaField = schema.findField(columnName);
+      final Optional<Field> schemaField = schema.findValueField(columnName);
       if (!schemaField.isPresent()) {
         throw new RuntimeException(
             String.format("Column %s cannot be resolved.", columnName));
@@ -136,7 +136,7 @@ class ExpressionAnalyzer {
         final QualifiedNameReference node,
         final Object context) {
       final String columnName = node.getName().getSuffix();
-      final Optional<Field> schemaField = schema.findField(columnName);
+      final Optional<Field> schemaField = schema.findValueField(columnName);
       if (!schemaField.isPresent()) {
         throw new RuntimeException(
             String.format("Column %s cannot be resolved.", columnName));

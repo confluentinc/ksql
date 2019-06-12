@@ -76,14 +76,16 @@ public final class LogicalSchema {
           .put(Type.STRUCT, LogicalSchema::validateStruct)
           .build();
 
+  private final Optional<String> alias;
   private final ConnectSchema schema;
 
   public static LogicalSchema of(final Schema schema) {
-    return new LogicalSchema(schema);
+    return new LogicalSchema(schema, Optional.empty());
   }
 
-  private LogicalSchema(final Schema schema) {
+  private LogicalSchema(final Schema schema, final Optional<String> alias) {
     this.schema = validate(Objects.requireNonNull(schema, "schema"), true);
+    this.alias = Objects.requireNonNull(alias, "alias");
   }
 
   public ConnectSchema getSchema() {
@@ -155,6 +157,10 @@ public final class LogicalSchema {
    * @return the schema with the alias applied.
    */
   public LogicalSchema withAlias(final String alias) {
+    if (this.alias.isPresent()) {
+      throw new IllegalStateException("Already aliased");
+    }
+
     final SchemaBuilder newSchema = SchemaBuilder
         .struct()
         .name(schema.name());
@@ -164,7 +170,7 @@ public final class LogicalSchema {
       newSchema.field(aliased, field.schema());
     }
 
-    return LogicalSchema.of(newSchema.build());
+    return new LogicalSchema(newSchema.build(), Optional.of(alias));
   }
 
   /**
@@ -173,6 +179,10 @@ public final class LogicalSchema {
    * @return the schema without any aliases in the field name.
    */
   public LogicalSchema withoutAlias() {
+    if (!alias.isPresent()) {
+      throw new IllegalStateException("Not aliased");
+    }
+
     final SchemaBuilder newSchema = SchemaBuilder
         .struct()
         .name(schema.name());
@@ -182,7 +192,7 @@ public final class LogicalSchema {
       newSchema.field(unaliased, field.schema());
     }
 
-    return LogicalSchema.of(newSchema.build());
+    return new LogicalSchema(newSchema.build(), Optional.empty());
   }
 
   /**
@@ -209,7 +219,7 @@ public final class LogicalSchema {
         schemaBuilder.field(field.name(), field.schema());
       }
     }
-    return LogicalSchema.of(schemaBuilder.build());
+    return new LogicalSchema(schemaBuilder.build(), alias);
   }
 
   /**
@@ -235,7 +245,7 @@ public final class LogicalSchema {
       }
     }
 
-    return LogicalSchema.of(schemaBuilder.build());
+    return new LogicalSchema(schemaBuilder.build(), alias);
   }
 
   @Override

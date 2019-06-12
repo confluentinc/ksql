@@ -1539,8 +1539,11 @@ public class KsqlAvroDeserializerTest {
       case BYTES:
         KsqlPreconditions.checkArgument(
             value instanceof BigDecimal, "expected BigDecimal BYTES value");
+        final BigDecimal decimal = (BigDecimal) value;
         return new DecimalConversion().toBytes(
-            (BigDecimal) value, avroSchema, LogicalTypes.decimal(4, 2)).array();
+            decimal,
+            avroSchema,
+            LogicalTypes.decimal(decimal.precision(), decimal.scale())).array();
       case RECORD:
         return givenAvroRecord(schema, (Map<String, ?>) value);
       case ARRAY:

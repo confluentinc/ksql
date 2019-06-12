@@ -23,16 +23,16 @@ import java.util.Optional;
 @Immutable
 public class ArithmeticBinaryExpression extends Expression {
 
-  private final Operator type;
+  private final Operator operator;
   private final Expression left;
   private final Expression right;
 
   public ArithmeticBinaryExpression(
-      final Operator type,
+      final Operator operator,
       final Expression left,
       final Expression right
   ) {
-    this(Optional.empty(), type, left, right);
+    this(Optional.empty(), operator, left, right);
   }
 
   public ArithmeticBinaryExpression(
@@ -42,13 +42,13 @@ public class ArithmeticBinaryExpression extends Expression {
       final Expression right
   ) {
     super(location);
-    this.type = Objects.requireNonNull(operator, "type");
+    this.operator = Objects.requireNonNull(operator, "operator");
     this.left = Objects.requireNonNull(left, "left");
     this.right = Objects.requireNonNull(right, "right");
   }
 
   public Operator getOperator() {
-    return type;
+    return operator;
   }
 
   public Expression getLeft() {
@@ -74,13 +74,13 @@ public class ArithmeticBinaryExpression extends Expression {
     }
 
     final ArithmeticBinaryExpression that = (ArithmeticBinaryExpression) o;
-    return (type == that.type)
+    return (operator == that.operator)
            && Objects.equals(left, that.left)
            && Objects.equals(right, that.right);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(type, left, right);
+    return Objects.hash(operator, left, right);
   }
 }

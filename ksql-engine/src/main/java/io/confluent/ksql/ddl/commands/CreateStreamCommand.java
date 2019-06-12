@@ -35,9 +35,9 @@ public class CreateStreamCommand extends CreateSourceCommand {
 
   @Override
   public DdlCommandResult run(final MutableMetaStore metaStore) {
-    if (registerTopicCommand != null) {
+    if (needsCreateTopic()) {
       try {
-        registerTopicCommand.run(metaStore);
+        createTopic(metaStore);
       } catch (KsqlException e) {
         final String errorMessage =
                 String.format("Cannot create stream '%s': %s", topicName, e.getMessage());

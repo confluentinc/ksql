@@ -17,13 +17,19 @@ package io.confluent.ksql.ddl.commands;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.SerdeFactory;
+import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KeyField;
+import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
+import io.confluent.ksql.serde.KsqlSerdeFactories;
+import io.confluent.ksql.serde.KsqlSerdeFactory;
+import io.confluent.ksql.serde.SerdeFactories;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.services.KafkaTopicClient;
@@ -51,11 +57,12 @@ abstract class CreateSourceCommand implements DdlCommand {
   final String topicName;
   final LogicalSchema schema;
   final KeyField keyField;
-  final RegisterTopicCommand registerTopicCommand;
   private final KafkaTopicClient kafkaTopicClient;
   final SerdeFactory<?> keySerdeFactory;
   final TimestampExtractionPolicy timestampExtractionPolicy;
   private final Set<SerdeOption> serdeOptions;
+  private final CreateSourceProperties properties;
+  private KsqlSerdeFactory valueSerdeFactory;
 
   CreateSourceCommand(
       final String sqlExpression,
@@ -68,7 +75,8 @@ abstract class CreateSourceCommand implements DdlCommand {
         statement,
         ksqlConfig,
         kafkaTopicClient,
-        SerdeOptions::buildForCreateStatement
+        SerdeOptions::buildForCreateStatement,
+        new KsqlSerdeFactories()
     );
   }
 
@@ -78,20 +86,19 @@ abstract class CreateSourceCommand implements DdlCommand {
       final CreateSource statement,
       final KsqlConfig ksqlConfig,
       final KafkaTopicClient kafkaTopicClient,
-      final SerdeOptionsSupplier serdeOptionsSupplier
+      final SerdeOptionsSupplier serdeOptionsSupplier,
+      final SerdeFactories serdeFactories
   ) {
     this.sqlExpression = sqlExpression;
     this.sourceName = statement.getName().getSuffix();
     this.kafkaTopicClient = kafkaTopicClient;
-
-    final CreateSourceProperties properties = statement.getProperties();
+    this.properties = statement.getProperties();
 
     if (properties.getKsqlTopic().isPresent()) {
       this.topicName = properties.getKsqlTopic().get().toUpperCase();
-      this.registerTopicCommand = null;
     } else {
+      checkTopicExists(properties);
       this.topicName = this.sourceName;
-      this.registerTopicCommand = registerTopicFirst(properties);
     }
 
     this.schema = getStreamTableSchema(statement.getElements());
@@ -117,6 +124,7 @@ abstract class CreateSourceCommand implements DdlCommand {
         .create(schema, timestampName, timestampFormat);
 
     this.keySerdeFactory = extractKeySerde(properties);
+    this.valueSerdeFactory = serdeFactories.create(properties.getValueFormat(), properties);
     this.serdeOptions = serdeOptionsSupplier.build(schema, properties, ksqlConfig);
   }
 
@@ -163,15 +171,49 @@ abstract class CreateSourceCommand implements DdlCommand {
     }
   }
 
-  private RegisterTopicCommand registerTopicFirst(
-      final CreateSourceProperties properties
-  ) {
+  private void checkTopicExists(final CreateSourceProperties properties) {
     final String kafkaTopicName = properties.getKafkaTopic();
     if (!kafkaTopicClient.isTopicExists(kafkaTopicName)) {
       throw new KsqlException("Kafka topic does not exist: " + kafkaTopicName);
     }
+  }
 
-    return new RegisterTopicCommand(this.topicName, false, properties);
+  protected boolean needsCreateTopic() {
+    // ksqlTopic is referenced by the property REGISTERED_TOPIC which uses a topic already
+    // registered
+    return !properties.getKsqlTopic().isPresent();
+  }
+
+  protected void createTopic(final MutableMetaStore metaStore) {
+    if (metaStore.getTopic(topicName) != null) {
+      final String sourceType = getSourceType(metaStore);
+      final String errorMessage =
+          String.format("%s with name '%s' already exists", sourceType, topicName);
+      throw new KsqlException(errorMessage);
+    }
+
+    final String kafkaTopicName = properties.getKafkaTopic();
+    final KsqlTopic ksqlTopic = new KsqlTopic(topicName, kafkaTopicName, valueSerdeFactory, false);
+
+    metaStore.putTopic(ksqlTopic);
+  }
+
+  private String getSourceType(final MetaStore metaStore) {
+    final DataSource<?> source = metaStore.getSource(topicName);
+    if (source == null) {
+      return "A topic";
+    }
+
+    switch (source.getDataSourceType()) {
+      case KSTREAM:
+        return "A stream";
+
+      case KTABLE:
+        return "A table";
+
+      default:
+        return "An entity";
+    }
   }
 
   private static SerdeFactory<?> extractKeySerde(

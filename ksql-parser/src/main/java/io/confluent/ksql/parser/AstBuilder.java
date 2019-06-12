@@ -83,7 +83,6 @@ import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.parser.tree.Query;
-import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.parser.tree.Relation;
 import io.confluent.ksql.parser.tree.RunScript;
 import io.confluent.ksql.parser.tree.SearchedCaseExpression;
@@ -212,16 +211,6 @@ public class AstBuilder {
           getLocation(context),
           ParserUtil.getQualifiedName(context.qualifiedName()),
           elements,
-          context.EXISTS() != null,
-          processTableProperties(context.tableProperties())
-      );
-    }
-
-    @Override
-    public Node visitRegisterTopic(final SqlBaseParser.RegisterTopicContext context) {
-      return new RegisterTopic(
-          getLocation(context),
-          ParserUtil.getQualifiedName(context.qualifiedName()),
           context.EXISTS() != null,
           processTableProperties(context.tableProperties())
       );

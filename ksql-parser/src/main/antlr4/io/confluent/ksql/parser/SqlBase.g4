@@ -46,8 +46,6 @@ statement
     | TERMINATE QUERY? qualifiedName                                        #terminateQuery
     | SET STRING EQ STRING                                                  #setProperty
     | UNSET STRING                                                          #unsetProperty
-    | REGISTER TOPIC (IF NOT EXISTS)? qualifiedName
-            (WITH tableProperties)?                                         #registerTopic
     | CREATE STREAM (IF NOT EXISTS)? qualifiedName
                 (tableElements)?
                 (WITH tableProperties)?                                     #createStream
@@ -385,7 +383,6 @@ STRUCT: 'STRUCT';
 WITH: 'WITH';
 VALUES: 'VALUES';
 CREATE: 'CREATE';
-REGISTER: 'REGISTER';
 TABLE: 'TABLE';
 TOPIC: 'TOPIC';
 STREAM: 'STREAM';

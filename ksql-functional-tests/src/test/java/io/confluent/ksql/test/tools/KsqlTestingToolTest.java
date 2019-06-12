@@ -54,7 +54,7 @@ public class KsqlTestingToolTest {
   @Test
   public void shouldRunCorrectsTest() throws Exception {
     final String testFolderPath = "src/test/resources/test-runner/";
-    for (int i = 1; i <= 3; i++) {
+    for (int i = 1; i <= 4; i++) {
       outContent.reset();
       errContent.reset();
       runTestCaseAndAssertPassed(testFolderPath + "test" + i + "/statements.sql",

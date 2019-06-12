@@ -373,14 +373,6 @@ public class CliTest {
     );
 
     assertRunListCommand(
-        "registered topics",
-        hasRows(
-            row(orderDataProvider.kstreamName(), orderDataProvider.topicName(), "JSON"),
-            row(COMMANDS_KSQL_TOPIC_NAME, commandTopicName, "JSON")
-        )
-    );
-
-    assertRunListCommand(
         "streams",
         isRow(orderDataProvider.kstreamName(), orderDataProvider.topicName(), "JSON")
     );
@@ -659,11 +651,6 @@ public class CliTest {
 
     // When:
     localCli.runInteractively();
-  }
-
-  @Test
-  public void shouldHandleRegisterTopic() throws Exception {
-    localCli.handleLine("REGISTER TOPIC foo WITH (value_format = 'csv', kafka_topic='foo');");
   }
 
   @Test

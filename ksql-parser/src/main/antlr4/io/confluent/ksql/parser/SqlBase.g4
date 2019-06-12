@@ -61,7 +61,6 @@ statement
             (WITH tableProperties)? AS query                                #createTableAs
     | INSERT INTO qualifiedName query (PARTITION BY identifier)?            #insertInto
     | INSERT INTO qualifiedName (columns)? VALUES values                    #insertValues
-    | DROP TOPIC (IF EXISTS)? qualifiedName                                 #dropTopic
     | DROP STREAM (IF EXISTS)? qualifiedName (DELETE TOPIC)?                #dropStream
     | DROP TABLE (IF EXISTS)? qualifiedName  (DELETE TOPIC)?                #dropTable
     | EXPLAIN  (statement | qualifiedName)                                  #explain

@@ -50,7 +50,6 @@ import io.confluent.ksql.parser.tree.DescribeFunction;
 import io.confluent.ksql.parser.tree.DoubleLiteral;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
-import io.confluent.ksql.parser.tree.DropTopic;
 import io.confluent.ksql.parser.tree.Explain;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.FunctionCall;
@@ -308,15 +307,6 @@ public class AstBuilder {
           targetName,
           columns,
           visit(context.values().literal(), Expression.class));
-    }
-
-    @Override
-    public Node visitDropTopic(final SqlBaseParser.DropTopicContext context) {
-      return new DropTopic(
-          getLocation(context),
-          ParserUtil.getQualifiedName(context.qualifiedName()),
-          context.EXISTS() != null
-      );
     }
 
     @Override

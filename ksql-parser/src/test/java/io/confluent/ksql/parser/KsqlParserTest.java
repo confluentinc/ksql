@@ -496,14 +496,13 @@ public class KsqlParserTest {
     final String
         queryStr =
         "CREATE STREAM orders (ordertime bigint, orderid varchar, itemid varchar, orderunits "
-        + "double) WITH (registered_topic = 'orders_topic' , key='ordertime', kafka_topic='foo', value_format='json');";
+        + "double) WITH (key='ordertime', kafka_topic='foo', value_format='json');";
     final Statement statement = KsqlParserTestUtil.buildSingleAst(queryStr, metaStore).getStatement();
     Assert.assertTrue(statement instanceof CreateStream);
     final CreateStream createStream = (CreateStream)statement;
     Assert.assertTrue(createStream.getName().toString().equalsIgnoreCase("ORDERS"));
     Assert.assertTrue(createStream.getElements().size() == 4);
     Assert.assertTrue(createStream.getElements().get(0).getName().toString().equalsIgnoreCase("ordertime"));
-    Assert.assertTrue("testCreateStream failed.", createStream.getProperties().getKsqlTopic().get().equalsIgnoreCase("orders_topic"));
   }
 
   @Test
@@ -513,7 +512,7 @@ public class KsqlParserTest {
         "CREATE STREAM orders (ordertime bigint, orderid varchar, itemid varchar, orderunits "
         + "double, arraycol array<double>, mapcol map<varchar, double>, "
         + "order_address STRUCT< number VARCHAR, street VARCHAR, zip INTEGER, city "
-        + "VARCHAR, state VARCHAR >) WITH (registered_topic = 'orders_topic' , key='ordertime', value_format='json', kafka_topic='foo');";
+        + "VARCHAR, state VARCHAR >) WITH (key='ordertime', value_format='json', kafka_topic='foo');";
     final Statement statement = KsqlParserTestUtil.buildSingleAst(queryStr, metaStore).getStatement();
     Assert.assertTrue(statement instanceof CreateStream);
     final CreateStream createStream = (CreateStream)statement;
@@ -524,7 +523,6 @@ public class KsqlParserTest {
     final Struct struct = (Struct) createStream.getElements().get(6).getType();
     assertThat(struct.getFields(), hasSize(5));
     assertThat(struct.getFields().get(0).getType().getSqlType(), equalTo(SqlType.STRING));
-    assertThat(createStream.getProperties().getKsqlTopic().get().toLowerCase(), equalTo("orders_topic"));
   }
 
   @Test
@@ -549,14 +547,13 @@ public class KsqlParserTest {
     final String
         queryStr =
         "CREATE TABLE users (usertime bigint, userid varchar, regionid varchar, gender varchar) "
-            + "WITH (kafka_topic='foo', value_format='json', registered_topic = 'users_topic', key='userid');";
+            + "WITH (kafka_topic='foo', value_format='json', key='userid');";
     final Statement statement = KsqlParserTestUtil.buildSingleAst(queryStr, metaStore).getStatement();
     Assert.assertTrue(statement instanceof CreateTable);
     final CreateTable createTable = (CreateTable)statement;
     Assert.assertTrue("testCreateTable failed.", createTable.getName().toString().equalsIgnoreCase("USERS"));
     Assert.assertTrue(createTable.getElements().size() == 4);
     Assert.assertTrue(createTable.getElements().get(0).getName().toString().equalsIgnoreCase("usertime"));
-    Assert.assertTrue(createTable.getProperties().getKsqlTopic().get().equalsIgnoreCase("users_topic"));
   }
 
   @Test

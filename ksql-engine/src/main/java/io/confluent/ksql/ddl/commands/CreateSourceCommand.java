@@ -94,12 +94,8 @@ abstract class CreateSourceCommand implements DdlCommand {
     this.kafkaTopicClient = kafkaTopicClient;
     this.properties = statement.getProperties();
 
-    if (properties.getKsqlTopic().isPresent()) {
-      this.topicName = properties.getKsqlTopic().get().toUpperCase();
-    } else {
-      checkTopicExists(properties);
-      this.topicName = this.sourceName;
-    }
+    checkTopicExists(properties);
+    this.topicName = this.sourceName;
 
     this.schema = getStreamTableSchema(statement.getElements());
 
@@ -176,12 +172,6 @@ abstract class CreateSourceCommand implements DdlCommand {
     if (!kafkaTopicClient.isTopicExists(kafkaTopicName)) {
       throw new KsqlException("Kafka topic does not exist: " + kafkaTopicName);
     }
-  }
-
-  protected boolean needsCreateTopic() {
-    // ksqlTopic is referenced by the property REGISTERED_TOPIC which uses a topic already
-    // registered
-    return !properties.getKsqlTopic().isPresent();
   }
 
   protected void createTopic(final MutableMetaStore metaStore) {

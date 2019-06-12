@@ -61,7 +61,6 @@ import io.confluent.ksql.parser.tree.ListTopics;
 import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.parser.tree.LongLiteral;
 import io.confluent.ksql.parser.tree.Query;
-import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.parser.tree.SearchedCaseExpression;
 import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.parser.tree.SetProperty;
@@ -493,20 +492,6 @@ public class KsqlParserTest {
   }
 
   @Test
-  public void testRegisterTopic() {
-    final String
-        queryStr =
-        "REGISTER TOPIC orders_topic WITH (value_format = 'avro',kafka_topic='orders_topic');";
-    final Statement statement = KsqlParserTestUtil.buildSingleAst(queryStr, metaStore).getStatement();
-    Assert.assertTrue(statement instanceof RegisterTopic);
-    final RegisterTopic registerTopic = (RegisterTopic)statement;
-    Assert.assertTrue(registerTopic
-        .getName().toString().equalsIgnoreCase("ORDERS_TOPIC"));
-    Assert.assertTrue(registerTopic.getProperties().size() == 2);
-    Assert.assertTrue(registerTopic.getProperties().get(DdlConfig.VALUE_FORMAT_PROPERTY).toString().equalsIgnoreCase("'avro'"));
-  }
-
-  @Test
   public void testCreateStreamWithTopic() {
     final String
         queryStr =
@@ -605,33 +590,6 @@ public class KsqlParserTest {
     assertThat(query.getSelect().getSelectItems(), is(contains(new AllColumns(Optional.empty()))));
     assertThat(query.getWhere().get().toString().toUpperCase(), equalTo("(ORDERS.ORDERUNITS > 5)"));
     assertThat(((AliasedRelation)query.getFrom()).getAlias().toUpperCase(), equalTo("ORDERS"));
-  }
-
-  @Test
-  /*
-      TODO: Handle so-called identifier expressions as values in table properties (right now, the lack of single quotes
-      around in the variables <format> and <kafkaTopic> cause things to break).
-   */
-  @Ignore
-  public void testCreateTopicFormatWithoutQuotes() {
-    final String ksqlTopic = "unquoted_topic";
-    final String format = "json";
-    final String kafkaTopic = "case_insensitive_kafka_topic";
-
-    final String queryStr = format(
-        "REGISTER TOPIC %s WITH (value_format = %s, kafka_topic = %s);",
-        ksqlTopic,
-        format,
-        kafkaTopic
-    );
-    final Statement statement = KsqlParserTestUtil.buildSingleAst(queryStr, metaStore).getStatement();
-    Assert.assertTrue(statement instanceof RegisterTopic);
-    final RegisterTopic registerTopic = (RegisterTopic) statement;
-    Assert.assertTrue(registerTopic.getName().toString().equalsIgnoreCase(ksqlTopic));
-    Assert.assertTrue(registerTopic.getProperties().size() == 2);
-    Assert.assertTrue(registerTopic
-                          .getProperties().get(DdlConfig.VALUE_FORMAT_PROPERTY).toString().equalsIgnoreCase(format));
-    Assert.assertTrue(registerTopic.getProperties().get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY).toString().equalsIgnoreCase(kafkaTopic));
   }
 
   @Test

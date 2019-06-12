@@ -88,13 +88,13 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class JoinNodeTest {
 
-  private static final LogicalSchema LEFT_SCHEMA = LogicalSchema.of(SchemaBuilder
+  private static final LogicalSchema LEFT_SOURCE_SCHEMA = LogicalSchema.of(SchemaBuilder
       .struct()
       .field("C0", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
       .field("L1", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
       .build()).withImplicitFields();
 
-  private static final LogicalSchema RIGHT_SCHEMA = LogicalSchema.of(SchemaBuilder
+  private static final LogicalSchema RIGHT_SOURCE_SCHEMA = LogicalSchema.of(SchemaBuilder
       .struct()
       .field("C0", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
       .field("R1", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
@@ -102,6 +102,12 @@ public class JoinNodeTest {
 
   private static final String LEFT_ALIAS = "left";
   private static final String RIGHT_ALIAS = "right";
+
+  private static final LogicalSchema LEFT_NODE_SCHEMA = LEFT_SOURCE_SCHEMA
+      .withAlias(LEFT_ALIAS);
+
+  private static final LogicalSchema RIGHT_NODE_SCHEMA = RIGHT_SOURCE_SCHEMA
+      .withAlias(RIGHT_ALIAS);
 
   private static final LogicalSchema JOIN_SCHEMA = joinSchema();
 
@@ -170,11 +176,11 @@ public class JoinNodeTest {
         new QueryContext.Stacker(queryId)
             .push(inv.getArgument(0).toString()));
 
-    when(leftSource.getSchema()).thenReturn(LEFT_SCHEMA);
-    when(rightSource.getSchema()).thenReturn(RIGHT_SCHEMA);
+    when(leftSource.getSchema()).thenReturn(LEFT_SOURCE_SCHEMA);
+    when(rightSource.getSchema()).thenReturn(RIGHT_SOURCE_SCHEMA);
 
-    when(left.getSchema()).thenReturn(LEFT_SCHEMA.withAlias(LEFT_ALIAS));
-    when(right.getSchema()).thenReturn(RIGHT_SCHEMA.withAlias(RIGHT_ALIAS));
+    when(left.getSchema()).thenReturn(LEFT_NODE_SCHEMA);
+    when(right.getSchema()).thenReturn(RIGHT_NODE_SCHEMA);
 
     when(left.getPartitions(mockKafkaTopicClient)).thenReturn(2);
     when(right.getPartitions(mockKafkaTopicClient)).thenReturn(2);
@@ -538,7 +544,7 @@ public class JoinNodeTest {
     setupTable(right, rightSchemaKTable);
 
     final String rightCriteriaColumn =
-        getNonKeyColumn(RIGHT_SCHEMA, RIGHT_ALIAS, RIGHT_JOIN_FIELD_NAME);
+        getNonKeyColumn(RIGHT_SOURCE_SCHEMA, RIGHT_ALIAS, RIGHT_JOIN_FIELD_NAME);
 
     final JoinNode joinNode = new JoinNode(
         nodeId,
@@ -753,7 +759,7 @@ public class JoinNodeTest {
     setupTable(left, leftSchemaKTable);
     setupTable(right, rightSchemaKTable);
 
-    final String leftCriteriaColumn = getNonKeyColumn(LEFT_SCHEMA, LEFT_ALIAS,
+    final String leftCriteriaColumn = getNonKeyColumn(LEFT_SOURCE_SCHEMA, LEFT_ALIAS,
         LEFT_JOIN_FIELD_NAME);
 
     final JoinNode joinNode = new JoinNode(
@@ -790,7 +796,7 @@ public class JoinNodeTest {
     setupTable(right, rightSchemaKTable);
 
     final String rightCriteriaColumn =
-        getNonKeyColumn(RIGHT_SCHEMA, RIGHT_ALIAS, RIGHT_JOIN_FIELD_NAME);
+        getNonKeyColumn(RIGHT_SOURCE_SCHEMA, RIGHT_ALIAS, RIGHT_JOIN_FIELD_NAME);
 
     final JoinNode joinNode = new JoinNode(
         nodeId,
@@ -1026,9 +1032,7 @@ public class JoinNodeTest {
 
     // Then:
     final PhysicalSchema expected = PhysicalSchema
-        .from(LEFT_SCHEMA
-            .withImplicitFields(),
-            SerdeOption.none());
+        .from(LEFT_SOURCE_SCHEMA, SerdeOption.none());
 
     verify(ksqlStreamBuilder).buildGenericRowSerde(
         any(),
@@ -1060,9 +1064,7 @@ public class JoinNodeTest {
 
     // Then:
     final PhysicalSchema expected = PhysicalSchema
-        .from(RIGHT_SCHEMA
-            .withImplicitFields(),
-            SerdeOption.none());
+        .from(RIGHT_SOURCE_SCHEMA, SerdeOption.none());
 
     verify(ksqlStreamBuilder).buildGenericRowSerde(
         any(),
@@ -1137,11 +1139,11 @@ public class JoinNodeTest {
   private static LogicalSchema joinSchema() {
     final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
 
-    for (final Field field : LEFT_SCHEMA.withImplicitFields().withAlias(LEFT_ALIAS).fields()) {
+    for (final Field field : LEFT_NODE_SCHEMA.fields()) {
       schemaBuilder.field(field.name(), field.schema());
     }
 
-    for (final Field field : RIGHT_SCHEMA.withImplicitFields().withAlias(RIGHT_ALIAS).fields()) {
+    for (final Field field : RIGHT_NODE_SCHEMA.fields()) {
       schemaBuilder.field(field.name(), field.schema());
     }
 

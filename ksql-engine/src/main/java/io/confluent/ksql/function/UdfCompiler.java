@@ -149,14 +149,13 @@ public class UdfCompiler {
 
       final Schema argSchema = paramSchema.isEmpty()
           ? SchemaUtil.getSchemaFromType(valueAndAggregateTypes.left)
-          : SchemaConverters.fromSqlTypeConverter()
+          : SchemaConverters.sqlToLogicalConverter()
               .fromSqlType(TypeContextUtil.getType(paramSchema));
-
       final List<Schema> args = Collections.singletonList(argSchema);
 
       final Schema returnValue = returnSchema.isEmpty()
           ? SchemaUtil.ensureOptional(SchemaUtil.getSchemaFromType(valueAndAggregateTypes.right))
-          : SchemaConverters.fromSqlTypeConverter()
+          : SchemaConverters.sqlToLogicalConverter()
               .fromSqlType(TypeContextUtil.getType(returnSchema));
 
       return evaluator.apply(args, returnValue, metrics);

@@ -548,7 +548,7 @@ public class InsertValuesExecutorTest {
 
     // Expect:
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Expected type INT32 for field");
+    expectedException.expectMessage("Expected type INTEGER for field");
 
     // When:
     new InsertValuesExecutor(() -> 1L).execute(statement, engine, serviceContext);

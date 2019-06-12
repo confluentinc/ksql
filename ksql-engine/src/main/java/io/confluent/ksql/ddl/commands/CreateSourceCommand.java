@@ -141,7 +141,7 @@ abstract class CreateSourceCommand implements DdlCommand {
       }
       tableSchema = tableSchema.field(
           tableElement.getName(),
-          SchemaConverters.fromSqlTypeConverter().fromSqlType(tableElement.getType())
+          SchemaConverters.sqlToLogicalConverter().fromSqlType(tableElement.getType())
       );
     }
 

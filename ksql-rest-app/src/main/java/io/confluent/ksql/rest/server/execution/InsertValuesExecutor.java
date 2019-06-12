@@ -30,8 +30,13 @@ import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.parser.tree.Node;
 import io.confluent.ksql.parser.tree.NullLiteral;
 import io.confluent.ksql.rest.entity.KsqlEntity;
+import io.confluent.ksql.schema.ksql.DefaultSqlValueCoercer;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.schema.ksql.SchemaConverters;
+import io.confluent.ksql.schema.ksql.SchemaConverters.LogicalToSqlTypeConverter;
+import io.confluent.ksql.schema.ksql.SqlType;
+import io.confluent.ksql.schema.ksql.SqlValueCoercer;
 import io.confluent.ksql.serde.GenericRowSerDe;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -51,9 +56,9 @@ import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.Serde;
+import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.Schema.Type;
 
 public class InsertValuesExecutor {
 
@@ -197,13 +202,16 @@ public class InsertValuesExecutor {
       final List<String> columns,
       final LogicalSchema schema
   ) {
+    final ConnectSchema valueSchema = schema.getSchema();
+    final LogicalToSqlTypeConverter converter = SchemaConverters.logicalToSqlConverter();
     final Map<String, Object> values = new HashMap<>();
     for (int i = 0; i < columns.size(); i++) {
       final String column = columns.get(i);
-      final Schema columnSchema = columnSchema(column, schema);
+      final Schema columnSchema = valueSchema.field(column).schema();
+      final SqlType columnType = converter.toSqlType(columnSchema).getSqlType();
       final Expression valueExp = insertValues.getValues().get(i);
 
-      final Object value = new ExpressionResolver(columnSchema, column)
+      final Object value = new ExpressionResolver(columnType, column)
           .process(valueExp, null);
 
       values.put(column, value);
@@ -242,10 +250,6 @@ public class InsertValuesExecutor {
         throw new KsqlException("Got null value for nonnull field: " + field);
       }
     }
-  }
-
-  private static Schema columnSchema(final String column, final LogicalSchema schema) {
-    return schema.getSchema().field(column).schema();
   }
 
   @SuppressWarnings("unchecked") // we know that key is String
@@ -298,19 +302,19 @@ public class InsertValuesExecutor {
 
   private static class ExpressionResolver extends AstVisitor<Object, Void> {
 
-    private final Schema schema;
-    private final String field;
+    private final SqlType fieldType;
+    private final String fieldName;
+    private final SqlValueCoercer defaultSqlValueCoercer = new DefaultSqlValueCoercer();
 
-
-    ExpressionResolver(final Schema schema, final String field) {
-      this.schema = Objects.requireNonNull(schema, "schema");
-      this.field = Objects.requireNonNull(field, "field");
+    ExpressionResolver(final SqlType fieldType, final String fieldName) {
+      this.fieldType = Objects.requireNonNull(fieldType, "fieldType");
+      this.fieldName = Objects.requireNonNull(fieldName, "fieldName");
     }
 
     @Override
     protected String visitNode(final Node node, final Void context) {
       throw new KsqlException(
-          "Only Literals are supported for INSERT INTO. Got: " + node + " for field " + field);
+          "Only Literals are supported for INSERT INTO. Got: " + node + " for field " + fieldName);
     }
 
     @Override
@@ -320,17 +324,11 @@ public class InsertValuesExecutor {
         return null;
       }
 
-      final Type valueType = SchemaUtil.getSchemaFromType(value.getClass()).type();
-      if (valueType.equals(schema.type())) {
-        return value;
-      }
-
-      return SchemaUtil.maybeUpCast(schema.type(), valueType, value)
+      return defaultSqlValueCoercer.coerce(value, fieldType)
           .orElseThrow(
               () -> new KsqlException(
-                  "Expected type " + schema.type() + " for field " + field
-                      + " but got " + value + "(" + valueType + ")")
-      );
+                  "Expected type " + fieldType + " for field " + fieldName
+                      + " but got " + value));
     }
   }
 }

@@ -108,7 +108,7 @@ class SourceNode {
   private static Optional<Schema> parseSchema(final String schema) {
     return Optional.ofNullable(schema)
         .map(TypeContextUtil::getType)
-        .map(SchemaConverters.fromSqlTypeConverter()::fromSqlType)
+        .map(SchemaConverters.sqlToLogicalConverter()::fromSqlType)
         .map(SourceNode::makeTopLevelStructNoneOptional);
   }
 

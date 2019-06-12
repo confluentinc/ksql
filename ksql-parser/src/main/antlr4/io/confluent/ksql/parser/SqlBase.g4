@@ -35,7 +35,6 @@ statement
     : query                                                                 #querystatement
     | (LIST | SHOW) PROPERTIES                                              #listProperties
     | (LIST | SHOW) TOPICS                                                  #listTopics
-    | (LIST | SHOW) REGISTERED TOPICS                                       #listRegisteredTopics
     | (LIST | SHOW) STREAMS EXTENDED?                                       #listStreams
     | (LIST | SHOW) TABLES EXTENDED?                                        #listTables
     | (LIST | SHOW) FUNCTIONS                                               #listFunctions
@@ -401,7 +400,6 @@ SHOW: 'SHOW';
 LIST: 'LIST';
 TABLES: 'TABLES';
 TOPICS: 'TOPICS';
-REGISTERED: 'REGISTERED';
 QUERY: 'QUERY';
 QUERIES: 'QUERIES';
 TERMINATE: 'TERMINATE';

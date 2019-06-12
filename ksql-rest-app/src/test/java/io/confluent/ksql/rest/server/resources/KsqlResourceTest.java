@@ -327,21 +327,6 @@ public class KsqlResourceTest {
   }
 
   @Test
-  public void shouldListRegisteredTopics() {
-    // When:
-    final KsqlTopicsList ksqlTopicsList = makeSingleRequest(
-        "LIST REGISTERED TOPICS;", KsqlTopicsList.class);
-
-    // Then:
-    final Collection<KsqlTopicInfo> expectedTopics = ksqlEngine.getMetaStore()
-        .getAllKsqlTopics().values().stream()
-        .map(KsqlTopicInfo::new)
-        .collect(Collectors.toList());
-
-    assertThat(ksqlTopicsList.getTopics(), is(expectedTopics));
-  }
-
-  @Test
   public void shouldShowNoQueries() {
     // When:
     final Queries queries = makeSingleRequest("SHOW QUERIES;", Queries.class);

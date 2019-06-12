@@ -69,7 +69,6 @@ import io.confluent.ksql.parser.tree.LikePredicate;
 import io.confluent.ksql.parser.tree.ListFunctions;
 import io.confluent.ksql.parser.tree.ListProperties;
 import io.confluent.ksql.parser.tree.ListQueries;
-import io.confluent.ksql.parser.tree.ListRegisteredTopics;
 import io.confluent.ksql.parser.tree.ListStreams;
 import io.confluent.ksql.parser.tree.ListTables;
 import io.confluent.ksql.parser.tree.ListTopics;
@@ -533,11 +532,6 @@ public class AstBuilder {
     @Override
     public Node visitRunScript(final SqlBaseParser.RunScriptContext context) {
       return new RunScript(getLocation(context));
-    }
-
-    @Override
-    public Node visitListRegisteredTopics(final SqlBaseParser.ListRegisteredTopicsContext context) {
-      return new ListRegisteredTopics(getLocation(context));
     }
 
     @Override

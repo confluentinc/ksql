@@ -23,7 +23,6 @@ import io.confluent.ksql.parser.tree.InsertValues;
 import io.confluent.ksql.parser.tree.ListFunctions;
 import io.confluent.ksql.parser.tree.ListProperties;
 import io.confluent.ksql.parser.tree.ListQueries;
-import io.confluent.ksql.parser.tree.ListRegisteredTopics;
 import io.confluent.ksql.parser.tree.ListStreams;
 import io.confluent.ksql.parser.tree.ListTables;
 import io.confluent.ksql.parser.tree.ListTopics;
@@ -50,7 +49,6 @@ import java.util.stream.Collectors;
 public enum CustomExecutors {
 
   LIST_TOPICS(ListTopics.class, ListTopicsExecutor::execute),
-  LIST_REGISTERED_TOPICS(ListRegisteredTopics.class, ListRegisteredTopicsExecutor::execute),
   LIST_STREAMS(ListStreams.class, ListSourceExecutor::streams),
   LIST_TABLES(ListTables.class, ListSourceExecutor::tables),
   LIST_FUNCTIONS(ListFunctions.class, ListFunctionsExecutor::execute),

@@ -23,7 +23,6 @@ import io.confluent.ksql.parser.tree.InsertValues;
 import io.confluent.ksql.parser.tree.ListFunctions;
 import io.confluent.ksql.parser.tree.ListProperties;
 import io.confluent.ksql.parser.tree.ListQueries;
-import io.confluent.ksql.parser.tree.ListRegisteredTopics;
 import io.confluent.ksql.parser.tree.ListStreams;
 import io.confluent.ksql.parser.tree.ListTables;
 import io.confluent.ksql.parser.tree.ListTopics;
@@ -60,7 +59,6 @@ public enum CustomValidators {
   PRINT_TOPIC(PrintTopic.class, PrintTopicValidator::validate),
 
   LIST_TOPICS(ListTopics.class, StatementValidator.NO_VALIDATION),
-  LIST_REGISTERED_TOPICS(ListRegisteredTopics.class, StatementValidator.NO_VALIDATION),
   LIST_STREAMS(ListStreams.class, StatementValidator.NO_VALIDATION),
   LIST_TABLES(ListTables.class, StatementValidator.NO_VALIDATION),
   LIST_FUNCTIONS(ListFunctions.class, StatementValidator.NO_VALIDATION),

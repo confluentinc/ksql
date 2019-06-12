@@ -44,6 +44,7 @@ import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;
 import io.confluent.ksql.test.tools.exceptions.KsqlExpectedException;
 import io.confluent.ksql.test.tools.exceptions.MissingFieldException;
 import io.confluent.ksql.test.utils.SerdeUtil;
+import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConstants;
 import java.nio.file.Path;
 import java.util.HashMap;
@@ -304,6 +305,10 @@ public class TestCaseNode {
   private static Schema addNames(final Schema schema) {
     final SchemaBuilder builder;
     switch (schema.type()) {
+      case BYTES:
+        DecimalUtil.requireDecimal(schema);
+        builder = DecimalUtil.builder(schema);
+        break;
       case ARRAY:
         builder = SchemaBuilder.array(addNames(schema.valueSchema()));
         break;

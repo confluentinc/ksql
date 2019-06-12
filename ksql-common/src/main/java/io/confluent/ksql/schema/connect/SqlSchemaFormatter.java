@@ -16,6 +16,7 @@
 package io.confluent.ksql.schema.connect;
 
 import com.google.common.collect.ImmutableSet;
+import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlException;
 import java.util.EnumSet;
 import java.util.List;
@@ -126,6 +127,14 @@ public class SqlSchemaFormatter implements SchemaFormatter {
 
     public String visitString(final Schema schema) {
       return "VARCHAR";
+    }
+
+    @Override
+    public String visitBytes(final Schema schema) {
+      DecimalUtil.requireDecimal(schema);
+      return "DECIMAL("
+          + DecimalUtil.precision(schema) + ", "
+          + DecimalUtil.scale(schema) + ")";
     }
 
     public String visitArray(final Schema schema, final String element) {

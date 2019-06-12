@@ -825,13 +825,13 @@ public class KsqlAvroSerializerTest {
   public void shouldSerializeDecimalField() {
     final BigDecimal value = new BigDecimal("12.34");
     final ByteBuffer bytes = new DecimalConversion().toBytes(
-            new BigDecimal("12.34"),
+            value,
             DECIMAL_SCHEMA,
             LogicalTypes.decimal(4, 2));
 
     shouldSerializeFieldTypeCorrectly(
         DecimalUtil.builder(4, 2).build(),
-        new BigDecimal("12.34"),
+        value,
         DECIMAL_SCHEMA,
         bytes
     );

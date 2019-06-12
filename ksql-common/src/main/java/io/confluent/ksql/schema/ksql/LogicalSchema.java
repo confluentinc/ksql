@@ -28,7 +28,6 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -56,7 +55,9 @@ public final class LogicalSchema {
 
   private static final SqlSchemaFormatter FORMATTER = new SqlSchemaFormatter(Option.AS_COLUMN_LIST);
 
-  private static final Set<String> IMPLICIT_FIELD_NAMES = ImmutableSet.of(
+  // Todo(ac): This is temporary. It's use will be replaced with the new implicitFields() and
+  //   keyFields() methods that sit in another PR at the moment.
+  public static final Set<String> IMPLICIT_FIELD_NAMES = ImmutableSet.of(
       SchemaUtil.ROWTIME_NAME,
       SchemaUtil.ROWKEY_NAME
   );
@@ -97,19 +98,6 @@ public final class LogicalSchema {
    */
   public List<Field> fields() {
     return schema.fields();
-  }
-
-  /**
-   * Get the set of field indexes for the implicit fields, if any.
-   *
-   * @return the set of indexes to the implicit fields.
-   */
-  public Set<Integer> implicitColumnIndexes() {
-    return IMPLICIT_FIELD_NAMES.stream()
-        .map(schema::field)
-        .filter(Objects::nonNull)
-        .map(Field::index)
-        .collect(Collectors.toSet());
   }
 
   /**

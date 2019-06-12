@@ -81,7 +81,7 @@ public class KeyFieldDeserializer extends StdDeserializer<KeyFieldNode> {
     try {
       return Optional.ofNullable(valueSchema)
           .map(TypeContextUtil::getType)
-          .map(SchemaConverters.fromSqlTypeConverter()::fromSqlType);
+          .map(SchemaConverters.sqlToLogicalConverter()::fromSqlType);
     } catch (final Exception e) {
       throw new InvalidFieldException("legacySchema", "Failed to parse: " + valueSchema, e);
     }

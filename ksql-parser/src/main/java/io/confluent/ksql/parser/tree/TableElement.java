@@ -91,7 +91,7 @@ public final class TableElement extends Node {
 
   public static List<TableElement> fromSchema(final Schema schema) {
     final LogicalToSqlTypeConverter toSqlTypeConverter = SchemaConverters
-        .toSqlTypeConverter();
+        .logicalToSqlConverter();
 
     return schema.fields().stream()
         .map(f -> new TableElement(

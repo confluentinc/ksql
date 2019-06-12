@@ -515,7 +515,7 @@ public class DefaultSchemaInjectorFunctionalTest {
     for (final TableElement tableElement : statement.getElements()) {
       builder.field(
           tableElement.getName(),
-          SchemaConverters.fromSqlTypeConverter().fromSqlType(tableElement.getType())
+          SchemaConverters.sqlToLogicalConverter().fromSqlType(tableElement.getType())
       );
     }
     return builder.build();

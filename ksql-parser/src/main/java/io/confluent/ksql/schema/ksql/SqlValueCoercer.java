@@ -15,17 +15,22 @@
 
 package io.confluent.ksql.schema.ksql;
 
+import java.util.Optional;
+
 /**
- * The SQL types supported by KSQL.
+ * Coerces values to {@link SqlType SQL types}.
  */
-public enum SqlType {
-  BOOLEAN, INTEGER, BIGINT, DOUBLE, STRING, ARRAY, MAP, STRUCT;
+public interface SqlValueCoercer {
 
-  public boolean isNumber() {
-    return this == INTEGER || this == BIGINT || this == DOUBLE;
-  }
-
-  public boolean canUpCast(final SqlType to) {
-    return isNumber() && this.ordinal() <= to.ordinal();
-  }
+  /**
+   * Coerce the supplied {@code value} to the supplied {@code sqlType}.
+   *
+   * <p>Complex SQL types are not supported, (yet).
+   *
+   * @param value the value to try to coerce.
+   * @param targetSqlType the target SQL type.
+   * @param <T> target Java type
+   * @return the coerced value if the value could be coerced, {@link Optional#empty()} otherwise.
+   */
+  <T> Optional<T> coerce(Object value, SqlType targetSqlType);
 }

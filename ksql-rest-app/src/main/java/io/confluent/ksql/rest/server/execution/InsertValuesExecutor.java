@@ -29,7 +29,12 @@ import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.parser.tree.Node;
 import io.confluent.ksql.parser.tree.NullLiteral;
 import io.confluent.ksql.rest.entity.KsqlEntity;
+import io.confluent.ksql.schema.ksql.DefaultSqlValueCoercer;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.schema.ksql.SchemaConverters;
+import io.confluent.ksql.schema.ksql.SchemaConverters.LogicalToSqlTypeConverter;
+import io.confluent.ksql.schema.ksql.SqlType;
+import io.confluent.ksql.schema.ksql.SqlValueCoercer;
 import io.confluent.ksql.serde.GenericRowSerDe;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -49,9 +54,9 @@ import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.Serde;
+import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.Schema.Type;
 
 public class InsertValuesExecutor {
 
@@ -159,13 +164,16 @@ public class InsertValuesExecutor {
               + ". Got " + insertValues.getValues());
     }
 
+    final ConnectSchema schema = dataSource.getSchema().valueSchema();
+    final LogicalToSqlTypeConverter converter = SchemaConverters.logicalToSqlConverter();
     final Map<String, Object> values = new HashMap<>();
     for (int i = 0; i < columns.size(); i++) {
       final String column = columns.get(i);
-      final Schema columnSchema = dataSource.getSchema().valueSchema().field(column).schema();
+      final Schema columnSchema = schema.field(column).schema();
+      final SqlType columnType = converter.toSqlType(columnSchema).getSqlType();
       final Expression valueExp = insertValues.getValues().get(i);
 
-      values.put(column, new ExpressionResolver(columnSchema, column).process(valueExp, null));
+      values.put(column, new ExpressionResolver(columnType, column).process(valueExp, null));
     }
 
     if (keyField.isPresent()) {
@@ -248,19 +256,19 @@ public class InsertValuesExecutor {
 
   private static class ExpressionResolver extends AstVisitor<Object, Void> {
 
-    private final Schema schema;
-    private final String field;
+    private final SqlType fieldType;
+    private final String fieldName;
+    private final SqlValueCoercer defaultSqlValueCoercer = new DefaultSqlValueCoercer();
 
-
-    ExpressionResolver(final Schema schema, final String field) {
-      this.schema = Objects.requireNonNull(schema, "schema");
-      this.field = Objects.requireNonNull(field, "field");
+    ExpressionResolver(final SqlType fieldType, final String fieldName) {
+      this.fieldType = Objects.requireNonNull(fieldType, "fieldType");
+      this.fieldName = Objects.requireNonNull(fieldName, "fieldName");
     }
 
     @Override
     protected String visitNode(final Node node, final Void context) {
       throw new KsqlException(
-          "Only Literals are supported for INSERT INTO. Got: " + node + " for field " + field);
+          "Only Literals are supported for INSERT INTO. Got: " + node + " for field " + fieldName);
     }
 
     @Override
@@ -270,17 +278,11 @@ public class InsertValuesExecutor {
         return null;
       }
 
-      final Type valueType = SchemaUtil.getSchemaFromType(value.getClass()).type();
-      if (valueType.equals(schema.type())) {
-        return value;
-      }
-
-      return SchemaUtil.maybeUpCast(schema.type(), valueType, value)
+      return defaultSqlValueCoercer.coerce(value, fieldType)
           .orElseThrow(
               () -> new KsqlException(
-                  "Expected type " + schema.type() + " for field " + field
-                      + " but got " + value + "(" + valueType + ")")
-      );
+                  "Expected type " + fieldType + " for field " + fieldName
+                      + " but got " + value));
     }
   }
 }

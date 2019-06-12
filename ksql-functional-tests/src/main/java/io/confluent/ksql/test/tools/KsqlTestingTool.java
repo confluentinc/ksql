@@ -57,6 +57,11 @@ public final class KsqlTestingTool {
             testOptions.getStatementsFile(),
             testOptions.getInputFile(),
             testOptions.getOutputFile());
+      } else if (testOptions.getStatementsFile() != null
+              && testOptions.getOutputFile() != null) {
+        runWithDoubleFiles(
+                testOptions.getStatementsFile(),
+                testOptions.getOutputFile());
       }
     } catch (final Exception e) {
       System.err.println("Invalid arguments: " + e.getMessage());
@@ -130,6 +135,43 @@ public final class KsqlTestingTool {
     executeTestCase(
         testCase,
         new TestExecutor());
+
+  }
+
+  static void runWithDoubleFiles(
+          final String statementFile,
+          final String outputFile) throws Exception {
+    final OutputRecordsNode outRecordNodes;
+    try {
+      outRecordNodes = OBJECT_MAPPER
+              .readValue(new File(outputFile), OutputRecordsNode.class);
+    } catch (final Exception outputException) {
+      throw new Exception("File name: " + outputFile
+              + " Message: " + outputException.getMessage());
+    }
+
+    final List<String> statements = getSqlStatements(statementFile);
+
+    final TestCaseNode testCaseNode = new TestCaseNode(
+            "KSQL_Test",
+            null,
+            null,
+            outRecordNodes.getOutputRecords(),
+            Collections.emptyList(),
+            statements,
+            null,
+            null,
+            null
+    );
+
+    final TestCase testCase = testCaseNode.buildTests(
+            new File(statementFile).toPath(),
+            TestFunctionRegistry.INSTANCE.get())
+            .get(0);
+
+    executeTestCase(
+            testCase,
+            new TestExecutor());
 
   }
 

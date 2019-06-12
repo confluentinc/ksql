@@ -27,6 +27,7 @@ import java.util.AbstractMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -121,10 +122,13 @@ public class ValueSpecAvroSerdeSupplier implements SerdeSupplier<Object> {
           return new GenericMap(schema, map);
         case RECORD:
           final GenericRecord record = new GenericData.Record(schema);
+          final Map<String, String> caseInsensitiveFieldNames
+              = getCaseInsensitiveMap((Map<String, ?>) spec);
           for (final org.apache.avro.Schema.Field field : schema.getFields()) {
             record.put(
                 field.name(),
-                valueSpecToAvro(((Map<String, ?>) spec).get(field.name()), field.schema())
+                valueSpecToAvro(((Map<String, ?>) spec)
+                    .get(caseInsensitiveFieldNames.get(field.name().toUpperCase())), field.schema())
             );
           }
           return record;
@@ -291,4 +295,11 @@ public class ValueSpecAvroSerdeSupplier implements SerdeSupplier<Object> {
       }
     }
   }
+
+  private static Map<String, String> getCaseInsensitiveMap(final Map<String, ?> record) {
+    return record.entrySet().stream().collect(Collectors.toMap(
+        entry -> entry.getKey().toUpperCase(),
+        Entry::getKey));
+  }
+
 } 

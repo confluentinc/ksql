@@ -234,6 +234,27 @@ public class InsertValuesExecutorTest {
   }
 
   @Test
+  public void shouldHandleRowTimeWithoutRowKey() {
+    // Given:
+    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
+        ImmutableList.of("ROWTIME", "COL0", "COL1"),
+        ImmutableList.of(
+            new LongLiteral(1234L),
+            new StringLiteral("str"),
+            new LongLiteral(2L)
+        )
+    );
+
+    // When:
+    new InsertValuesExecutor(() -> 1L).execute(statement, engine, serviceContext);
+
+    // Then:
+    verify(keySerializer).serialize(TOPIC_NAME, "str");
+    verify(valueSerializer).serialize(TOPIC_NAME, expectedRow);
+    verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1234L, KEY, VALUE));
+  }
+
+  @Test
   public void shouldFillInRowKeyFromSpecifiedKey() {
     // Given:
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
@@ -551,6 +572,27 @@ public class InsertValuesExecutorTest {
 
     // Then:
     verify(keySerializer).serialize(TOPIC_NAME, "key");
+    verify(valueSerializer).serialize(TOPIC_NAME, expectedRow);
+    verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
+  }
+
+  @Test
+  public void shouldHandleSourcesWithNoKeyFieldAndNoRowKeyProvided() {
+    // Given:
+    givenDataSourceWithSchema(SCHEMA, SerdeOption.none(), Optional.empty());
+
+    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
+        ImmutableList.of("COL0", "COL1"),
+        ImmutableList.of(
+            new StringLiteral("str"),
+            new LongLiteral(2L))
+    );
+
+    // When:
+    new InsertValuesExecutor(() -> 1L).execute(statement, engine, serviceContext);
+
+    // Then:
+    verify(keySerializer).serialize(TOPIC_NAME, null);
     verify(valueSerializer).serialize(TOPIC_NAME, expectedRow);
     verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
   }

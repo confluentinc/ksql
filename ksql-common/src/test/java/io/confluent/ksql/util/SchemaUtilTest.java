@@ -15,8 +15,6 @@
 
 package io.confluent.ksql.util;
 
-import static java.util.Optional.empty;
-import static java.util.Optional.of;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;

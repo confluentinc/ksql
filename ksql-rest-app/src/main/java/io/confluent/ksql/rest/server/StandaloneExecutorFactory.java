@@ -17,6 +17,7 @@ package io.confluent.ksql.rest.server;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.KsqlExecutionContext;
+import io.confluent.ksql.ServiceInfo;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.MutableFunctionRegistry;
@@ -111,8 +112,7 @@ public final class StandaloneExecutorFactory {
         serviceContext,
         processingLogContext,
         functionRegistry,
-        ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG),
-        ksqlConfig.getStringAsMap(KsqlConfig.KSQL_CUSTOM_METRICS_TAGS));
+        ServiceInfo.create(ksqlConfig));
 
     final UdfLoader udfLoader =
         UdfLoader.newInstance(ksqlConfig, functionRegistry, installDir);

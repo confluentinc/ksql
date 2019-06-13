@@ -17,6 +17,7 @@ package io.confluent.ksql.engine;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.KsqlExecutionContext;
+import io.confluent.ksql.ServiceInfo;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.internal.KsqlEngineMetrics;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
@@ -39,7 +40,6 @@ import io.confluent.ksql.util.QueryIdGenerator;
 import io.confluent.ksql.util.QueryMetadata;
 import java.io.Closeable;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -67,15 +67,14 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       final ServiceContext serviceContext,
       final ProcessingLogContext processingLogContext,
       final FunctionRegistry functionRegistry,
-      final String serviceId,
-      final Map<String, String> customMetricsTags
+      final ServiceInfo serviceInfo
   ) {
     this(
         serviceContext,
         processingLogContext,
-        serviceId,
+        serviceInfo.serviceId(),
         new MetaStoreImpl(functionRegistry),
-        (engine) -> new KsqlEngineMetrics(engine, customMetricsTags));
+        (engine) -> new KsqlEngineMetrics(engine, serviceInfo.customMetricsTags()));
   }
 
   KsqlEngine(

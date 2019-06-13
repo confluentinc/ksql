@@ -38,6 +38,7 @@ import static org.hamcrest.Matchers.is;
 
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.KsqlConfigTestUtil;
+import io.confluent.ksql.ServiceInfo;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlEngineTestUtil;
 import io.confluent.ksql.function.InternalFunctionRegistry;
@@ -270,8 +271,7 @@ public class SecureIntegrationTest {
         serviceContext,
         ProcessingLogContext.create(),
         new InternalFunctionRegistry(),
-        ksqlConfig.getString(KSQL_SERVICE_ID_CONFIG),
-        ksqlConfig.getStringAsMap(KSQL_CUSTOM_METRICS_TAGS));
+        ServiceInfo.create(ksqlConfig));
 
     execInitCreateStreamQueries();
   }

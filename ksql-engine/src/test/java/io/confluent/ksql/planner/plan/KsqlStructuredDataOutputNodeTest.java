@@ -91,6 +91,8 @@ public class KsqlStructuredDataOutputNodeTest {
   public final ExpectedException expectedException = ExpectedException.none();
 
   private final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
+      .field("ROWTIME", Schema.OPTIONAL_INT64_SCHEMA)
+      .field("ROWKEY", Schema.OPTIONAL_STRING_SCHEMA)
       .field("field1", Schema.OPTIONAL_STRING_SCHEMA)
       .field("field2", Schema.OPTIONAL_STRING_SCHEMA)
       .field("field3", Schema.OPTIONAL_STRING_SCHEMA)
@@ -229,7 +231,7 @@ public class KsqlStructuredDataOutputNodeTest {
     // Then:
     assertThat(stream.getKeyField().name(), is(Optional.of("key")));
     assertThat(stream.getKeyField().legacy(),
-        is(Optional.of(new Field("key", 4, Schema.OPTIONAL_STRING_SCHEMA))));
+        is(Optional.of(new Field("key", 6, Schema.OPTIONAL_STRING_SCHEMA))));
     assertThat(stream.getSchema().fields(), equalTo(schema.getSchema().fields()));
   }
 
@@ -310,7 +312,9 @@ public class KsqlStructuredDataOutputNodeTest {
     outputNode.buildStream(ksqlStreamBuilder);
 
     // Then:
-    final PhysicalSchema expectedSchema = PhysicalSchema.from(schema, serdeOptions);
+    final PhysicalSchema expectedSchema = PhysicalSchema
+        .from(schema.withoutImplicitFields(), serdeOptions);
+
     verify(ksqlStreamBuilder).buildGenericRowSerde(
         eq(valueSerdeFactory),
         eq(expectedSchema),

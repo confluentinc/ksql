@@ -95,6 +95,15 @@ public class KsqlEngineMetricsTest {
   }
 
   @Test
+  public void shouldRecordLivenessIndicator() {
+    final double value = getMetricValue("liveness-indicator");
+    final double legacyValue = getMetricValueLegacy("liveness-indicator");
+
+    assertThat(value, equalTo(1.0));
+    assertThat(legacyValue, equalTo(1.0));
+  }
+
+  @Test
   public void shouldRecordNumberOfActiveQueries() {
     when(ksqlEngine.numberOfLiveQueries()).thenReturn(3);
 

@@ -1,6 +1,13 @@
-CREATE STREAM TEST (ID bigint, NAME varchar, VALUE double) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');
-INSERT INTO TEST VALUES (101, 'abc', 13.54);
-INSERT INTO TEST VALUES (30, 'foo', 4.5);
-INSERT INTO TEST (ID, NAME) VALUES (123, 'bar');
-INSERT INTO TEST VALUES (43245, 'far', 43);
-CREATE STREAM S1 as SELECT name, value FROM test where id > 100;
+-- This test is courtesy of Michael Drogalis (https://gist.github.com/MichaelDrogalis)
+CREATE STREAM all_publications (author VARCHAR, title VARCHAR)
+    WITH (kafka_topic = 'publication_events',
+          partitions = 1,
+          key = 'author',
+          value_format = 'avro');
+
+CREATE STREAM george_martin
+    WITH (kafka_topic = 'george_martin_books',
+          partitions = 1) AS
+    SELECT author, title
+    FROM all_publications
+    WHERE author = 'George R. R. Martin';

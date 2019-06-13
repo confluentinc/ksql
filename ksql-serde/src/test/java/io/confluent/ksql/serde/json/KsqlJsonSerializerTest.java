@@ -30,6 +30,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
@@ -38,6 +39,7 @@ import java.util.Map;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.connect.data.ConnectSchema;
+import org.apache.kafka.connect.data.Decimal;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
@@ -62,6 +64,7 @@ public class KsqlJsonSerializerTest {
   private static final String ORDERUNITS = "ORDERUNITS";
   private static final String ARRAYCOL = "ARRAYCOL";
   private static final String MAPCOL = "MAPCOL";
+  private static final String DECIMALCOL = "DECIMALCOL";
 
   private static final Schema ORDER_SCHEMA = SchemaBuilder.struct()
       .field(ORDERTIME, Schema.OPTIONAL_INT64_SCHEMA)
@@ -76,6 +79,7 @@ public class KsqlJsonSerializerTest {
           .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_FLOAT64_SCHEMA)
           .optional()
           .build())
+      .field(DECIMALCOL, Decimal.builder(5).optional().build())
       .build();
 
   private static final Schema ADDRESS_SCHEMA = SchemaBuilder.struct()
@@ -147,7 +151,8 @@ public class KsqlJsonSerializerTest {
         .put(ITEMID, "item_1")
         .put(ORDERUNITS, 10.0)
         .put(ARRAYCOL, Collections.singletonList(100.0))
-        .put(MAPCOL, Collections.singletonMap("key1", 100.0));
+        .put(MAPCOL, Collections.singletonMap("key1", 100.0))
+        .put(DECIMALCOL, new BigDecimal("1.12345"));
 
     // When:
     final byte[] bytes = serializer.serialize(SOME_TOPIC, struct);
@@ -160,7 +165,8 @@ public class KsqlJsonSerializerTest {
             + "\"ITEMID\":\"item_1\","
             + "\"ORDERUNITS\":10.0,"
             + "\"ARRAYCOL\":[100.0],"
-            + "\"MAPCOL\":{\"key1\":100.0}"
+            + "\"MAPCOL\":{\"key1\":100.0},"
+            + "\"DECIMALCOL\":\"AbbZ\""
             + "}"));
   }
 
@@ -488,7 +494,8 @@ public class KsqlJsonSerializerTest {
         .put(ITEMID, "item_1")
         .put(ORDERUNITS, 10.0)
         .put(ARRAYCOL, null)
-        .put(MAPCOL, null);
+        .put(MAPCOL, null)
+        .put(DECIMALCOL, null);
 
     // When:
     final byte[] bytes = serializer.serialize(SOME_TOPIC, struct);
@@ -501,7 +508,8 @@ public class KsqlJsonSerializerTest {
             + "\"ITEMID\":\"item_1\","
             + "\"ORDERUNITS\":10.0,"
             + "\"ARRAYCOL\":null,"
-            + "\"MAPCOL\":null"
+            + "\"MAPCOL\":null,"
+            + "\"DECIMALCOL\":null"
             + "}"));
   }
 

@@ -32,6 +32,7 @@ import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.schema.connect.SqlSchemaFormatter;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import org.apache.kafka.connect.data.Schema;
@@ -50,6 +51,15 @@ public class DefaultSchemaInjectorFunctionalTest {
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
+
+  private static final org.apache.avro.Schema DECIMAL_SCHEMA =
+      parseAvroSchema(
+          "{"
+              + "\"type\": \"bytes\","
+              + "\"logicalType\": \"decimal\","
+              + "\"precision\": 4,"
+              + "\"scale\": 2"
+              + "}");
 
   @Mock
   private SchemaRegistryClient srClient;
@@ -107,6 +117,14 @@ public class DefaultSchemaInjectorFunctionalTest {
     shouldInferType(
         org.apache.avro.SchemaBuilder.builder().doubleType(),
         Schema.OPTIONAL_FLOAT64_SCHEMA
+    );
+  }
+
+  @Test
+  public void shouldInferDecimalAsDecimal() {
+    shouldInferType(
+        DECIMAL_SCHEMA,
+        DecimalUtil.builder(4, 2).build()
     );
   }
 
@@ -515,9 +533,13 @@ public class DefaultSchemaInjectorFunctionalTest {
     for (final TableElement tableElement : statement.getElements()) {
       builder.field(
           tableElement.getName(),
-          SchemaConverters.fromSqlTypeConverter().fromSqlType(tableElement.getType())
+          SchemaConverters.sqlToLogicalConverter().fromSqlType(tableElement.getType())
       );
     }
     return builder.build();
+  }
+
+  private static org.apache.avro.Schema parseAvroSchema(final String avroSchema) {
+    return new org.apache.avro.Schema.Parser().parse(avroSchema);
   }
 }

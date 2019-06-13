@@ -272,6 +272,7 @@ type
     | ARRAY '<' type '>'
     | MAP '<' type ',' type '>'
     | STRUCT '<' identifier type (',' identifier type)* '>'
+    | DECIMAL '(' number ',' number ')'
     | baseType ('(' typeParameter (',' typeParameter)* ')')?
     ;
 
@@ -430,6 +431,7 @@ BEGINNING: 'BEGINNING';
 UNSET: 'UNSET';
 RUN: 'RUN';
 SCRIPT: 'SCRIPT';
+DECIMAL: 'DECIMAL';
 
 IF: 'IF';
 

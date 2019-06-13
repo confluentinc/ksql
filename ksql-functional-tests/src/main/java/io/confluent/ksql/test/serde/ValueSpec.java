@@ -17,9 +17,12 @@ package io.confluent.ksql.test.serde;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -31,11 +34,13 @@ public class ValueSpec {
     this.spec = spec;
   }
 
-  @SuppressWarnings("ConstantConditions")
-  private static void compare(final Object o1, final Object o2, final String path) {
+  private static boolean compare(final Object o1, final Object o2, final String path) {
     if (o1 == null && o2 == null) {
-      return;
+      return true;
+    } else if (o1 == null || o2 == null) {
+      fail("null mismatch at " + path);
     }
+
     if (o1 instanceof Map) {
       assertThat("type mismatch at " + path, o2, instanceOf(Map.class));
       assertThat("keyset mismatch at " + path,
@@ -44,6 +49,7 @@ public class ValueSpec {
       for (final Object k : ((Map) o1).keySet()) {
         compare(((Map) o1).get(k), ((Map) o2).get(k), path + "." + k);
       }
+      return true;
     } else if (o1 instanceof List) {
       assertThat("type mismatch at " + path, o2, instanceOf(List.class));
       assertThat("list size mismatch at " + path,
@@ -52,9 +58,15 @@ public class ValueSpec {
       for (int i = 0; i < ((List) o1).size(); i++) {
         compare(((List) o1).get(i), ((List) o2).get(i), path + "." + i);
       }
+      return true;
+    } else if (o1 instanceof BigDecimal) {
+      assertThat("type mismatch at " + path, o2, instanceOf(String.class));
+      assertThat("big decimal mismatch at " + path, o1, is(new BigDecimal((String) o2)));
+      return true;
     } else {
-      assertThat("mismatch at path " + path, o1, equalTo(o2));
       assertThat("type mismatch at " + path, o1.getClass(), equalTo(o2.getClass()));
+      assertThat("mismatch at path " + path, o1, equalTo(o2));
+      return true;
     }
   }
 
@@ -64,11 +76,10 @@ public class ValueSpec {
 
   @SuppressFBWarnings("HE_EQUALS_USE_HASHCODE")
   // Hack to make work with OutputVerifier.
-  @SuppressWarnings({"EqualsWhichDoesntCheckParameterClass", "Contract"})
+  @SuppressWarnings({"EqualsWhichDoesntCheckParameterClass"})
   @Override
   public boolean equals(final Object o) {
-    compare(spec, o, "VALUE-SPEC");
-    return Objects.equals(spec, o);
+    return compare(spec, o, "VALUE-SPEC");
   }
 
   @Override

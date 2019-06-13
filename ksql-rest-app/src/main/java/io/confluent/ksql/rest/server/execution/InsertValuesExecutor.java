@@ -20,6 +20,7 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
 import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.parser.tree.AstVisitor;
@@ -29,7 +30,13 @@ import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.parser.tree.Node;
 import io.confluent.ksql.parser.tree.NullLiteral;
 import io.confluent.ksql.rest.entity.KsqlEntity;
+import io.confluent.ksql.schema.ksql.DefaultSqlValueCoercer;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.schema.ksql.SchemaConverters;
+import io.confluent.ksql.schema.ksql.SchemaConverters.LogicalToSqlTypeConverter;
+import io.confluent.ksql.schema.ksql.SqlType;
+import io.confluent.ksql.schema.ksql.SqlValueCoercer;
 import io.confluent.ksql.serde.GenericRowSerDe;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -49,9 +56,9 @@ import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.Serde;
+import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.Schema.Type;
 
 public class InsertValuesExecutor {
 
@@ -96,14 +103,9 @@ public class InsertValuesExecutor {
     final KsqlConfig config = statement.getConfig()
         .cloneWithPropertyOverwrite(statement.getOverrides());
 
-    final GenericRow row = extractRow(insertValues, dataSource);
-    final long timestamp = row.getColumnValue(SchemaUtil.ROWTIME_INDEX);
-    final byte[] key = serializeKey(row.getColumnValue(SchemaUtil.ROWKEY_INDEX), dataSource);
-    final byte[] value = serializeRow(
-        gerRowWithoutRowTimeRowKey(row),
-        dataSource,
-        config,
-        serviceContext);
+    final RowData row = extractRow(insertValues, dataSource);
+    final byte[] key = serializeKey(row.key, dataSource);
+    final byte[] value = serializeRow(row.value, dataSource, config, serviceContext);
 
     final String topicName = dataSource.getKafkaTopicName();
 
@@ -116,7 +118,7 @@ public class InsertValuesExecutor {
         new ProducerRecord<>(
             topicName,
             null,
-            timestamp,
+            row.ts,
             key,
             value
         )
@@ -136,40 +138,94 @@ public class InsertValuesExecutor {
     return Optional.empty();
   }
 
-  private GenericRow extractRow(
+  private RowData extractRow(
       final InsertValues insertValues,
       final DataSource<?> dataSource
   ) {
-    final Optional<String> keyField = dataSource.getKeyField().name();
-
     final List<String> columns = insertValues.getColumns().isEmpty()
-        ? dataSource.getSchema()
-          .fields()
-          .stream()
-          .map(Field::name)
-          .filter(name -> !SchemaUtil.ROWTIME_NAME.equals(name))
-          .collect(Collectors.toList())
+        ? implicitColumns(dataSource, insertValues.getValues())
         : insertValues.getColumns();
 
-    if (columns.size() != insertValues.getValues().size()) {
-      // this will only happen if insertValues.getColumns() is empty, otherwise
-      // the columns/values are verified by the InsertValues constructor
+    final LogicalSchema schema = dataSource.getSchema();
+
+    final Map<String, Object> values = resolveValues(insertValues, columns, schema);
+
+    handleExplicitKeyField(values, dataSource.getKeyField());
+
+    throwOnMissingValue(schema, values);
+
+    final long ts = (long) values.getOrDefault(SchemaUtil.ROWTIME_NAME, clock.getAsLong());
+    final Object key = values.get(SchemaUtil.ROWKEY_NAME);
+
+    final GenericRow value = buildValue(schema, values);
+
+    return new RowData(ts, key == null ? null : key.toString(), value);
+  }
+
+  private static GenericRow buildValue(
+      final LogicalSchema schema,
+      final Map<String, Object> values
+  ) {
+    return new GenericRow(
+          schema.withoutImplicitFields()
+              .fields()
+              .stream()
+              .map(Field::name)
+              .map(values::get)
+              .collect(Collectors.toList())
+      );
+  }
+
+  private static List<String> implicitColumns(
+      final DataSource<?> dataSource,
+      final List<Expression> values
+  ) {
+    final List<String> fieldNames = dataSource.getSchema()
+        .fields()
+        .stream()
+        .map(Field::name)
+        .filter(name -> !SchemaUtil.ROWTIME_NAME.equals(name))
+        .collect(Collectors.toList());
+
+    if (fieldNames.size() != values.size()) {
       throw new KsqlException(
-          "Expected a value for each column. Expected Columns: " + columns
-              + ". Got " + insertValues.getValues());
+          "Expected a value for each column."
+              + " Expected Columns: " + fieldNames
+              + ". Got " + values);
     }
 
+    return fieldNames;
+  }
+
+  private static Map<String, Object> resolveValues(
+      final InsertValues insertValues,
+      final List<String> columns,
+      final LogicalSchema schema
+  ) {
+    final ConnectSchema valueSchema = schema.getSchema();
+    final LogicalToSqlTypeConverter converter = SchemaConverters.logicalToSqlConverter();
     final Map<String, Object> values = new HashMap<>();
     for (int i = 0; i < columns.size(); i++) {
       final String column = columns.get(i);
-      final Schema columnSchema = dataSource.getSchema().getSchema().field(column).schema();
+      final Schema columnSchema = valueSchema.field(column).schema();
+      final SqlType columnType = converter.toSqlType(columnSchema).getSqlType();
       final Expression valueExp = insertValues.getValues().get(i);
 
-      values.put(column, new ExpressionResolver(columnSchema, column).process(valueExp, null));
-    }
+      final Object value = new ExpressionResolver(columnType, column)
+          .process(valueExp, null);
 
-    if (keyField.isPresent()) {
-      final String key = keyField.get();
+      values.put(column, value);
+    }
+    return values;
+  }
+
+  private static void handleExplicitKeyField(
+      final Map<String, Object> values,
+      final KeyField keyField
+  ) {
+    final Optional<String> keyFieldName = keyField.name();
+    if (keyFieldName.isPresent()) {
+      final String key = keyFieldName.get();
       final Object keyValue = values.get(key);
       final Object rowKeyValue = values.get(SchemaUtil.ROWKEY_NAME);
 
@@ -183,35 +239,25 @@ public class InsertValuesExecutor {
                 key, rowKeyValue, keyValue));
       }
     }
+  }
 
-    values.putIfAbsent(SchemaUtil.ROWTIME_NAME, clock.getAsLong());
-
-    for (final Field field : dataSource.getSchema().fields()) {
+  private static void throwOnMissingValue(
+      final LogicalSchema schema,
+      final Map<String, Object> values
+  ) {
+    for (final Field field : schema.fields()) {
       if (!field.schema().isOptional() && values.getOrDefault(field.name(), null) == null) {
         throw new KsqlException("Got null value for nonnull field: " + field);
       }
     }
-
-    return new GenericRow(
-        dataSource.getSchema()
-            .fields()
-            .stream()
-            .map(Field::name)
-            .map(values::get)
-            .collect(Collectors.toList())
-    );
   }
 
   @SuppressWarnings("unchecked") // we know that key is String
-  private static byte[] serializeKey(final Object keyValue, final DataSource<?> dataSource) {
-    if (keyValue == null) {
-      return null;
-    }
-
+  private static byte[] serializeKey(final String keyValue, final DataSource<?> dataSource) {
     try {
       return ((Serde<String>) dataSource.getKeySerdeFactory().create())
           .serializer()
-          .serialize(dataSource.getKafkaTopicName(), keyValue.toString());
+          .serialize(dataSource.getKafkaTopicName(), keyValue);
     } catch (final Exception e) {
       throw new KsqlException("Could not serialize key: " + keyValue, e);
     }
@@ -241,26 +287,34 @@ public class InsertValuesExecutor {
     }
   }
 
-  private static GenericRow gerRowWithoutRowTimeRowKey(final GenericRow genericRow) {
-    final int lastIndex = genericRow.getColumns().size();
-    return new GenericRow(genericRow.getColumns().subList(SchemaUtil.ROWKEY_INDEX + 1, lastIndex));
+  private static final class RowData {
+
+    final long ts;
+    final String key;
+    final GenericRow value;
+
+    private RowData(final long ts, final String key, final GenericRow value) {
+      this.ts = ts;
+      this.key = key;
+      this.value = value;
+    }
   }
 
   private static class ExpressionResolver extends AstVisitor<Object, Void> {
 
-    private final Schema schema;
-    private final String field;
+    private final SqlType fieldType;
+    private final String fieldName;
+    private final SqlValueCoercer defaultSqlValueCoercer = new DefaultSqlValueCoercer();
 
-
-    ExpressionResolver(final Schema schema, final String field) {
-      this.schema = Objects.requireNonNull(schema, "schema");
-      this.field = Objects.requireNonNull(field, "field");
+    ExpressionResolver(final SqlType fieldType, final String fieldName) {
+      this.fieldType = Objects.requireNonNull(fieldType, "fieldType");
+      this.fieldName = Objects.requireNonNull(fieldName, "fieldName");
     }
 
     @Override
     protected String visitNode(final Node node, final Void context) {
       throw new KsqlException(
-          "Only Literals are supported for INSERT INTO. Got: " + node + " for field " + field);
+          "Only Literals are supported for INSERT INTO. Got: " + node + " for field " + fieldName);
     }
 
     @Override
@@ -270,17 +324,11 @@ public class InsertValuesExecutor {
         return null;
       }
 
-      final Type valueType = SchemaUtil.getSchemaFromType(value.getClass()).type();
-      if (valueType.equals(schema.type())) {
-        return value;
-      }
-
-      return SchemaUtil.maybeUpCast(schema.type(), valueType, value)
+      return defaultSqlValueCoercer.coerce(value, fieldType)
           .orElseThrow(
               () -> new KsqlException(
-                  "Expected type " + schema.type() + " for field " + field
-                      + " but got " + value + "(" + valueType + ")")
-      );
+                  "Expected type " + fieldType + " for field " + fieldName
+                      + " but got " + value));
     }
   }
 }

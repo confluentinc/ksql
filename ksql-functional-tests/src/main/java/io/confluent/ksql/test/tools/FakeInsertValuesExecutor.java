@@ -23,7 +23,10 @@ import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.InsertValues;
 import io.confluent.ksql.parser.tree.Literal;
+import io.confluent.ksql.schema.ksql.DefaultSqlValueCoercer;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.schema.ksql.SchemaConverters;
+import io.confluent.ksql.schema.ksql.SqlType;
 import io.confluent.ksql.serde.GenericRowSerDe;
 import io.confluent.ksql.test.serde.string.StringSerdeSupplier;
 import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;
@@ -32,7 +35,6 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -115,18 +117,18 @@ public class FakeInsertValuesExecutor {
       }
       if (index >= 0) {
         final Object value = ((Literal) values.get(index)).getValue();
-        final Schema.Type valueType = SchemaUtil.getSchemaFromType(value.getClass()).type();
-        final Schema.Type expectedType = fields.get(i).schema().type();
-        if (valueType.equals(expectedType)) {
-          row.add(value);
+        final SqlType expectedType = SchemaConverters
+                .logicalToSqlConverter()
+                .toSqlType(fields.get(i).schema())
+                .getSqlType();
+
+        Optional<Number> upcasted = new DefaultSqlValueCoercer().coerce(value, expectedType);
+        if (upcasted.isPresent()) {
+          row.add(upcasted.get());
         } else {
-          Optional<Number> upcasted = SchemaUtil.maybeUpCast(expectedType, valueType, value);
-          if (upcasted.isPresent()) {
-            row.add(upcasted.get());
-          } else {
-            throw new KsqlException("Expected type " + expectedType + " for field "
-                    + columns.get(i) + " but got " + value + "(" + valueType + ")");
-          }
+          throw new KsqlException("Expected type " + expectedType + " for field "
+                  + columns.get(i) + " but got " + value
+                  + "(" + SchemaUtil.getSchemaFromType(value.getClass()).type() + ")");
         }
       } else {
         row.add(null);

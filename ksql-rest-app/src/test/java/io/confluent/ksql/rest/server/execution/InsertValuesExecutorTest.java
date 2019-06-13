@@ -76,7 +76,7 @@ public class InsertValuesExecutorTest {
 
   private static final LogicalSchema SINGLE_FIELD_SCHEMA = LogicalSchema.of(SchemaBuilder.struct()
       .field("ROWTIME", Schema.OPTIONAL_INT64_SCHEMA)
-      .field("ROWKEY", Schema.OPTIONAL_INT64_SCHEMA)
+      .field("ROWKEY", Schema.OPTIONAL_STRING_SCHEMA)
       .field("COL0", Schema.OPTIONAL_STRING_SCHEMA)
       .build());
 
@@ -231,6 +231,27 @@ public class InsertValuesExecutorTest {
     verify(keySerializer).serialize(TOPIC_NAME, "str");
     verify(valueSerializer).serialize(TOPIC_NAME, expectedRow);
     verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
+  }
+
+  @Test
+  public void shouldHandleRowTimeWithoutRowKey() {
+    // Given:
+    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
+        ImmutableList.of("ROWTIME", "COL0", "COL1"),
+        ImmutableList.of(
+            new LongLiteral(1234L),
+            new StringLiteral("str"),
+            new LongLiteral(2L)
+        )
+    );
+
+    // When:
+    new InsertValuesExecutor(() -> 1L).execute(statement, engine, serviceContext);
+
+    // Then:
+    verify(keySerializer).serialize(TOPIC_NAME, "str");
+    verify(valueSerializer).serialize(TOPIC_NAME, expectedRow);
+    verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1234L, KEY, VALUE));
   }
 
   @Test
@@ -527,7 +548,7 @@ public class InsertValuesExecutorTest {
 
     // Expect:
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Expected type INT32 for field");
+    expectedException.expectMessage("Expected type INTEGER for field");
 
     // When:
     new InsertValuesExecutor(() -> 1L).execute(statement, engine, serviceContext);
@@ -551,6 +572,27 @@ public class InsertValuesExecutorTest {
 
     // Then:
     verify(keySerializer).serialize(TOPIC_NAME, "key");
+    verify(valueSerializer).serialize(TOPIC_NAME, expectedRow);
+    verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
+  }
+
+  @Test
+  public void shouldHandleSourcesWithNoKeyFieldAndNoRowKeyProvided() {
+    // Given:
+    givenDataSourceWithSchema(SCHEMA, SerdeOption.none(), Optional.empty());
+
+    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
+        ImmutableList.of("COL0", "COL1"),
+        ImmutableList.of(
+            new StringLiteral("str"),
+            new LongLiteral(2L))
+    );
+
+    // When:
+    new InsertValuesExecutor(() -> 1L).execute(statement, engine, serviceContext);
+
+    // Then:
+    verify(keySerializer).serialize(TOPIC_NAME, null);
     verify(valueSerializer).serialize(TOPIC_NAME, expectedRow);
     verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
   }

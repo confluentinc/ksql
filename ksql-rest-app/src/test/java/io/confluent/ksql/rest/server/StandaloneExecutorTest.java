@@ -18,7 +18,8 @@ package io.confluent.ksql.rest.server;
 import static io.confluent.ksql.parser.ParserMatchers.configured;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
-import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -82,6 +83,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.function.BiFunction;
+import java.util.Properties;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -91,6 +93,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -231,6 +234,7 @@ public class StandaloneExecutorTest {
   private Path queriesFile;
   private StandaloneExecutor standaloneExecutor;
 
+
   @Before
   public void before() throws Exception {
     queriesFile = Paths.get(TestUtils.tempFile().getPath());
@@ -283,6 +287,31 @@ public class StandaloneExecutorTest {
     standaloneExecutor.start();
 
     verify(versionChecker).start(eq(KsqlModuleType.SERVER), any());
+  }
+
+  @Test
+  public void shouldStartTheVersionCheckerAgentWithCorrectProperties() throws InterruptedException {
+    // Given:
+    final ArgumentCaptor<Properties> captor = ArgumentCaptor.forClass(Properties.class);
+    final StandaloneExecutor standaloneExecutor = new StandaloneExecutor(
+        serviceContext,
+        processingLogConfig,
+        new KsqlConfig(ImmutableMap.of("confluent.support.metrics.enable", false)),
+        ksqlEngine,
+        queriesFile.toString(),
+        udfLoader,
+        false,
+        versionChecker,
+        injectorFactory);
+
+    // When:
+    standaloneExecutor.start();
+
+    // Then:
+    verify(versionChecker).start(eq(KsqlModuleType.SERVER), captor.capture());
+    assertThat(captor.getValue().getProperty("confluent.support.metrics.enable"), equalTo("false"));
+    standaloneExecutor.stop();
+    standaloneExecutor.join();
   }
 
   @Test

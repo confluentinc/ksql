@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.structured;
 
+import static io.confluent.ksql.metastore.model.MetaStoreMatchers.KeyFieldMatchers.hasLegacyName;
+import static io.confluent.ksql.metastore.model.MetaStoreMatchers.KeyFieldMatchers.hasLegacySchema;
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.capture;
 import static org.easymock.EasyMock.eq;
@@ -39,6 +41,7 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.metastore.model.KsqlTopic;
+import io.confluent.ksql.metastore.model.MetaStoreMatchers.KeyFieldMatchers;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.QualifiedName;
@@ -301,7 +304,7 @@ public class SchemaKTableTest {
     // Then:
     assertThat(filteredSchemaKStream.getSchema().fields(), contains(
         new Field("TEST2.ROWTIME", 0, Schema.OPTIONAL_INT64_SCHEMA),
-        new Field("TEST2.ROWKEY", 1, Schema.OPTIONAL_INT64_SCHEMA),
+        new Field("TEST2.ROWKEY", 1, Schema.OPTIONAL_STRING_SCHEMA),
         new Field("TEST2.COL0", 2, Schema.OPTIONAL_INT64_SCHEMA),
         new Field("TEST2.COL1", 3, Schema.OPTIONAL_STRING_SCHEMA),
         new Field("TEST2.COL2", 4, Schema.OPTIONAL_STRING_SCHEMA),
@@ -555,8 +558,9 @@ public class SchemaKTableTest {
         .select(selectExpressions, childContextStacker, processingLogContext);
 
     // Then:
-    assertThat(result.getKeyField(),
-        is(KeyField.of(Optional.of("COL0"), initialSchemaKTable.keyField.legacy())));
+    assertThat(result.getKeyField(), KeyFieldMatchers.hasName("COL0"));
+    assertThat(result.getKeyField(), hasLegacyName(initialSchemaKTable.keyField.legacy().map(Field::name)));
+    assertThat(result.getKeyField(), hasLegacySchema(initialSchemaKTable.keyField.legacy().map(Field::schema)));
   }
 
   @Test

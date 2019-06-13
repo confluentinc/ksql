@@ -54,7 +54,7 @@ public class KsqlTestingToolTest {
   @Test
   public void shouldRunCorrectsTest() throws Exception {
     final String testFolderPath = "src/test/resources/test-runner/";
-    for (int i = 1; i <= 3; i++) {
+    for (int i = 1; i <= 4; i++) {
       outContent.reset();
       errContent.reset();
       runTestCaseAndAssertPassed(testFolderPath + "test" + i + "/statements.sql",
@@ -62,7 +62,7 @@ public class KsqlTestingToolTest {
           testFolderPath + "test" + i + "/output.json"
           );
     }
-    for (int i = 4; i <= 5; i++) {
+    for (int i = 5; i <= 6; i++) {
       outContent.reset();
       errContent.reset();
       runTestCaseAndAssertPassed(testFolderPath + "test" + i + "/statements.sql",
@@ -168,7 +168,7 @@ public class KsqlTestingToolTest {
 
     // Then:
     assertThat(errContent.toString("UTF-8"),
-            containsString("Test failed: Expected type INT32 for field ID but got 14.5(FLOAT64)\n"));
+            containsString("Test failed: Expected type INTEGER for field ID but got 14.5(FLOAT64)\n"));
   }
 
   @Test

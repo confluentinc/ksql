@@ -1,7 +1,12 @@
 {
   "outputs": [
-    {"topic": "S1", "key": 101, "value": {"NAME": "abc", "VALUE": 13.54}},
-    {"topic": "S1", "key": 123, "value": {"NAME": "bar", "VALUE": null}},
-    {"topic": "S1", "key": 43245, "value": {"NAME": "far", "VALUE": 43.0}}
+    {
+      "topic": "george_martin_books",
+      "key": "George R. R. Martin",
+      "value": {
+        "AUTHOR": "George R. R. Martin",
+        "TITLE": "A Song of Ice and Fire"
+      }
+    }
   ]
 }

@@ -23,14 +23,23 @@ import io.confluent.kafka.serializers.KafkaAvroSerializer;
 import io.confluent.ksql.test.serde.SerdeSupplier;
 import io.confluent.ksql.test.serde.ValueSpec;
 import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlPreconditions;
+import java.math.BigDecimal;
+import java.nio.ByteBuffer;
 import java.util.AbstractMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
+import org.apache.avro.Conversions.DecimalConversion;
+import org.apache.avro.LogicalType;
+import org.apache.avro.LogicalTypes;
+import org.apache.avro.LogicalTypes.Decimal;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericContainer;
 import org.apache.avro.generic.GenericData;
@@ -50,7 +59,9 @@ public class ValueSpecAvroSerdeSupplier implements SerdeSupplier<Object> {
   }
 
 
+  // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
   private static final class ValueSpecAvroSerializer implements Serializer<Object> {
+    // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
     private final SchemaRegistryClient schemaRegistryClient;
     private final KafkaAvroSerializer avroSerializer;
@@ -99,6 +110,13 @@ public class ValueSpecAvroSerdeSupplier implements SerdeSupplier<Object> {
           return Integer.valueOf(spec.toString());
         case LONG:
           return Long.valueOf(spec.toString());
+        case BYTES:
+          final LogicalType logicalType = LogicalTypes.fromSchemaIgnoreInvalid(schema);
+          if (logicalType instanceof Decimal) {
+            return new DecimalConversion()
+                .toBytes(new BigDecimal(spec.toString()), schema, logicalType);
+          }
+          throw new KsqlException("Unexpected data type seen in schema: " + schema);
         case STRING:
           return spec.toString();
         case DOUBLE:
@@ -121,10 +139,13 @@ public class ValueSpecAvroSerdeSupplier implements SerdeSupplier<Object> {
           return new GenericMap(schema, map);
         case RECORD:
           final GenericRecord record = new GenericData.Record(schema);
+          final Map<String, String> caseInsensitiveFieldNames
+              = getCaseInsensitiveMap((Map<String, ?>) spec);
           for (final org.apache.avro.Schema.Field field : schema.getFields()) {
             record.put(
                 field.name(),
-                valueSpecToAvro(((Map<String, ?>) spec).get(field.name()), field.schema())
+                valueSpecToAvro(((Map<String, ?>) spec)
+                    .get(caseInsensitiveFieldNames.get(field.name().toUpperCase())), field.schema())
             );
           }
           return record;
@@ -232,6 +253,13 @@ public class ValueSpecAvroSerdeSupplier implements SerdeSupplier<Object> {
         case ENUM:
         case STRING:
           return avro.toString();
+        case BYTES:
+          final LogicalType logicalType = LogicalTypes.fromSchemaIgnoreInvalid(schema);
+          KsqlPreconditions.checkArgument(logicalType instanceof Decimal,
+              "BYTES must be of DECIMAL type");
+          KsqlPreconditions.checkArgument(avro instanceof ByteBuffer,
+              "BYTES must be ByteBuffer, got " + avro.getClass());
+          return new DecimalConversion().fromBytes((ByteBuffer) avro, schema, logicalType);
         case ARRAY:
           if (schema.getElementType().getName().equals(AvroData.MAP_ENTRY_TYPE_NAME)
               ||
@@ -291,4 +319,11 @@ public class ValueSpecAvroSerdeSupplier implements SerdeSupplier<Object> {
       }
     }
   }
+
+  private static Map<String, String> getCaseInsensitiveMap(final Map<String, ?> record) {
+    return record.entrySet().stream().collect(Collectors.toMap(
+        entry -> entry.getKey().toUpperCase(),
+        Entry::getKey));
+  }
+
 } 

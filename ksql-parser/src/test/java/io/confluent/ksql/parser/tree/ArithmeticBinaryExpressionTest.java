@@ -15,8 +15,8 @@
 
 package io.confluent.ksql.parser.tree;
 
-import static io.confluent.ksql.parser.tree.ArithmeticBinaryExpression.Type.ADD;
-import static io.confluent.ksql.parser.tree.ArithmeticBinaryExpression.Type.DIVIDE;
+import static io.confluent.ksql.schema.Operator.ADD;
+import static io.confluent.ksql.schema.Operator.DIVIDE;
 import static org.mockito.Mockito.mock;
 
 import com.google.common.testing.EqualsTester;

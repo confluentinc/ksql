@@ -16,55 +16,39 @@
 package io.confluent.ksql.parser.tree;
 
 import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.schema.Operator;
 import java.util.Objects;
 import java.util.Optional;
 
 @Immutable
 public class ArithmeticBinaryExpression extends Expression {
 
-  public enum Type {
-    ADD("+"),
-    SUBTRACT("-"),
-    MULTIPLY("*"),
-    DIVIDE("/"),
-    MODULUS("%");
-    private final String value;
-
-    Type(final String value) {
-      this.value = value;
-    }
-
-    public String getValue() {
-      return value;
-    }
-  }
-
-  private final Type type;
+  private final Operator operator;
   private final Expression left;
   private final Expression right;
 
   public ArithmeticBinaryExpression(
-      final Type type,
+      final Operator operator,
       final Expression left,
       final Expression right
   ) {
-    this(Optional.empty(), type, left, right);
+    this(Optional.empty(), operator, left, right);
   }
 
   public ArithmeticBinaryExpression(
       final Optional<NodeLocation> location,
-      final Type type,
+      final Operator operator,
       final Expression left,
       final Expression right
   ) {
     super(location);
-    this.type = Objects.requireNonNull(type, "type");
+    this.operator = Objects.requireNonNull(operator, "operator");
     this.left = Objects.requireNonNull(left, "left");
     this.right = Objects.requireNonNull(right, "right");
   }
 
-  public Type getType() {
-    return type;
+  public Operator getOperator() {
+    return operator;
   }
 
   public Expression getLeft() {
@@ -90,13 +74,13 @@ public class ArithmeticBinaryExpression extends Expression {
     }
 
     final ArithmeticBinaryExpression that = (ArithmeticBinaryExpression) o;
-    return (type == that.type)
+    return (operator == that.operator)
            && Objects.equals(left, that.left)
            && Objects.equals(right, that.right);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(type, left, right);
+    return Objects.hash(operator, left, right);
   }
 }

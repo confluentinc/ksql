@@ -23,8 +23,13 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.function.TestFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.parser.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.parser.tree.QualifiedName;
+import io.confluent.ksql.parser.tree.QualifiedNameReference;
+import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.MetaStoreFixture;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -62,6 +67,7 @@ public class SqlToJavaVisitorTest {
         .field("TEST1.COL5", SchemaBuilder.map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build())
         .field("TEST1.COL6", addressSchema)
         .field("TEST1.COL7", SchemaBuilder.OPTIONAL_INT32_SCHEMA)
+        .field("TEST1.COL8", DecimalUtil.builder(2, 1).build())
         .build();
 
     sqlToJavaVisitor = new SqlToJavaVisitor(LogicalSchema.of(schema), TestFunctionRegistry.INSTANCE.get());
@@ -245,18 +251,83 @@ public class SqlToJavaVisitorTest {
   }
 
   @Test
-  public void shouldThrowOnDecimal() {
+  public void shouldGenerateCorrectCodeForDecimalAdd() {
     // Given:
-    final Analysis analysis = analyzeQuery(
-        "SELECT DECIMAL 'something' FROM test1;", metaStore);
-
-    final Expression decimal = analysis.getSelectExpressions().get(0);
-
-    // Then:
-    expectedException.expect(UnsupportedOperationException.class);
+    final ArithmeticBinaryExpression binExp = new ArithmeticBinaryExpression(
+        Operator.ADD,
+        new QualifiedNameReference(QualifiedName.of("TEST1.COL8")),
+        new QualifiedNameReference(QualifiedName.of("TEST1.COL8"))
+    );
 
     // When:
-    sqlToJavaVisitor.process(decimal);
+    final String java = sqlToJavaVisitor.process(binExp);
+
+    // Then:
+    assertThat(java, is("(TEST1_COL8.add(TEST1_COL8, new MathContext(3, RoundingMode.UNNECESSARY)).setScale(1))"));
+  }
+
+  @Test
+  public void shouldGenerateCorrectCodeForDecimalSubtract() {
+    // Given:
+    final ArithmeticBinaryExpression binExp = new ArithmeticBinaryExpression(
+        Operator.SUBTRACT,
+        new QualifiedNameReference(QualifiedName.of("TEST1.COL8")),
+        new QualifiedNameReference(QualifiedName.of("TEST1.COL8"))
+    );
+
+    // When:
+    final String java = sqlToJavaVisitor.process(binExp);
+
+    // Then:
+    assertThat(java, is("(TEST1_COL8.subtract(TEST1_COL8, new MathContext(3, RoundingMode.UNNECESSARY)).setScale(1))"));
+  }
+
+  @Test
+  public void shouldGenerateCorrectCodeForDecimalMultiply() {
+    // Given:
+    final ArithmeticBinaryExpression binExp = new ArithmeticBinaryExpression(
+        Operator.MULTIPLY,
+        new QualifiedNameReference(QualifiedName.of("TEST1.COL8")),
+        new QualifiedNameReference(QualifiedName.of("TEST1.COL8"))
+    );
+
+    // When:
+    final String java = sqlToJavaVisitor.process(binExp);
+
+    // Then:
+    assertThat(java, is("(TEST1_COL8.multiply(TEST1_COL8, new MathContext(5, RoundingMode.UNNECESSARY)).setScale(2))"));
+  }
+
+  @Test
+  public void shouldGenerateCorrectCodeForDecimalDivide() {
+    // Given:
+    final ArithmeticBinaryExpression binExp = new ArithmeticBinaryExpression(
+        Operator.DIVIDE,
+        new QualifiedNameReference(QualifiedName.of("TEST1.COL8")),
+        new QualifiedNameReference(QualifiedName.of("TEST1.COL8"))
+    );
+
+    // When:
+    final String java = sqlToJavaVisitor.process(binExp);
+
+    // Then:
+    assertThat(java, is("(TEST1_COL8.divide(TEST1_COL8, new MathContext(8, RoundingMode.UNNECESSARY)).setScale(6))"));
+  }
+
+  @Test
+  public void shouldGenerateCorrectCodeForDecimalMod() {
+    // Given:
+    final ArithmeticBinaryExpression binExp = new ArithmeticBinaryExpression(
+        Operator.MODULUS,
+        new QualifiedNameReference(QualifiedName.of("TEST1.COL8")),
+        new QualifiedNameReference(QualifiedName.of("TEST1.COL8"))
+    );
+
+    // When:
+    final String java = sqlToJavaVisitor.process(binExp);
+
+    // Then:
+    assertThat(java, is("(TEST1_COL8.remainder(TEST1_COL8, new MathContext(2, RoundingMode.UNNECESSARY)).setScale(1))"));
   }
 
   @Test

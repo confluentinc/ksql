@@ -15,8 +15,10 @@
 
 package io.confluent.ksql.serde.delimited;
 
+import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlException;
 import java.io.StringWriter;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 import java.util.Map;
@@ -80,6 +82,9 @@ public class KsqlDelimitedSerializer implements Serializer<Object> {
     public Object next() {
       final Field field = fieldIt.next();
       throwOnUnsupportedType(field.schema());
+      if (DecimalUtil.isDecimal(field.schema())) {
+        return ((BigDecimal) data.get(field)).toPlainString();
+      }
       return data.get(field);
     }
 

@@ -24,6 +24,7 @@ import com.google.common.collect.Streams;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.schema.connect.SqlSchemaFormatter;
 import io.confluent.ksql.schema.connect.SqlSchemaFormatter.Option;
+import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.List;
 import java.util.Map;
@@ -88,6 +89,7 @@ public final class LogicalSchema {
           .put(Type.ARRAY, LogicalSchema::validateArray)
           .put(Type.MAP, LogicalSchema::validateMap)
           .put(Type.STRUCT, LogicalSchema::validateStruct)
+          .put(Type.BYTES, DecimalUtil::requireDecimal)
           .build();
 
   private final Optional<String> alias;

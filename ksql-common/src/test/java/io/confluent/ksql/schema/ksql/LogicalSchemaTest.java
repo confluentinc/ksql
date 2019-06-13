@@ -29,6 +29,7 @@ import static org.junit.Assert.fail;
 import com.google.common.collect.ImmutableList;
 import com.google.common.testing.EqualsTester;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.List;
 import java.util.Optional;
@@ -92,9 +93,7 @@ public class LogicalSchemaTest {
     Stream.of(
         Schema.OPTIONAL_INT8_SCHEMA,
         Schema.OPTIONAL_INT16_SCHEMA,
-        Schema.OPTIONAL_FLOAT32_SCHEMA,
-        Schema.OPTIONAL_BYTES_SCHEMA
-
+        Schema.OPTIONAL_FLOAT32_SCHEMA
     ).forEach(schema -> {
       try {
         LogicalSchema.of(SchemaBuilder.struct().field("test", schema).build());
@@ -234,6 +233,17 @@ public class LogicalSchemaTest {
             .optional()
             .build()
     ));
+  }
+
+  @Test
+  public void shouldThrowOnNonDecimalBytes() {
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(
+        "Expected schema of type DECIMAL but got a schema of type BYTES and name foobar");
+
+    // When:
+    LogicalSchema.of(nested(SchemaBuilder.bytes().name("foobar").optional().build()));
   }
 
   @Test

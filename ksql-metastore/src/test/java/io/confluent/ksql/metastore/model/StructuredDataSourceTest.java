@@ -34,7 +34,9 @@ public class StructuredDataSourceTest {
 
   private static final LogicalSchema SOME_SCHEMA = LogicalSchema.of(
       SchemaBuilder.struct()
-      .field("f0", Schema.OPTIONAL_INT64_SCHEMA)
+          .field("ROWTIME", Schema.OPTIONAL_INT64_SCHEMA)
+          .field("ROWKEY", Schema.OPTIONAL_STRING_SCHEMA)
+          .field("f0", Schema.OPTIONAL_INT64_SCHEMA)
           .build()
   );
 

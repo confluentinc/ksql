@@ -113,6 +113,10 @@ public final class MetaStoreMatchers {
       };
     }
 
+    public static Matcher<KeyField> hasLegacySchema(final Schema schema) {
+      return hasLegacySchema(Optional.of(schema));
+    }
+
     public static Matcher<KeyField> hasLegacySchema(final Optional<? extends Schema> schema) {
       return new FeatureMatcher<KeyField, Optional<Schema>>
           (is(schema), "field with legacy schema", "legacy schema") {

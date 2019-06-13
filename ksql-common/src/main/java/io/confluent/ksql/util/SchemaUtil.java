@@ -25,14 +25,17 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Ordering;
+import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Set;
 import java.util.function.Supplier;
+import org.apache.avro.LogicalTypes;
 import org.apache.avro.SchemaBuilder.FieldAssembler;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -117,6 +120,10 @@ public final class SchemaUtil {
   }
 
   public static Class<?> getJavaType(final Schema schema) {
+    if (DecimalUtil.isDecimal(schema)) {
+      return BigDecimal.class;
+    }
+
     final Class<?> typeClazz = SCHEMA_TYPE_TO_JAVA_TYPE.get(schema.type());
     if (typeClazz == null) {
       throw new KsqlException("Type is not supported: " + schema.type());
@@ -201,6 +208,8 @@ public final class SchemaUtil {
         return create(org.apache.avro.Schema.Type.LONG);
       case FLOAT64:
         return create(org.apache.avro.Schema.Type.DOUBLE);
+      case BYTES:
+        return createBytesSchema(schema);
       case ARRAY:
         return createArray(unionWithNull(buildAvroSchema(namespace, name, schema.valueSchema())));
       case MAP:
@@ -210,6 +219,14 @@ public final class SchemaUtil {
       default:
         throw new KsqlException("Unsupported AVRO type: " + schema.type().name());
     }
+  }
+
+  private static org.apache.avro.Schema createBytesSchema(
+      final Schema schema
+  ) {
+    DecimalUtil.requireDecimal(schema);
+    return LogicalTypes.decimal(DecimalUtil.precision(schema), DecimalUtil.scale(schema))
+        .addToSchema(org.apache.avro.Schema.create(org.apache.avro.Schema.Type.BYTES));
   }
 
   private static org.apache.avro.Schema buildAvroSchemaFromStruct(
@@ -260,17 +277,64 @@ public final class SchemaUtil {
     return fieldName.substring(idx + 1);
   }
 
-  public static Schema resolveBinaryOperatorResultType(final Schema.Type left,
-                                                       final Schema.Type right) {
-    if (left == Schema.Type.STRING && right == Schema.Type.STRING) {
+  public static Schema resolveBinaryOperatorResultType(
+      final Schema left,
+      final Schema right,
+      final Operator operator
+  ) {
+    if (left.type() == Schema.Type.STRING && right.type() == Schema.Type.STRING) {
       return Schema.OPTIONAL_STRING_SCHEMA;
     }
 
-    if (!TYPE_TO_SCHEMA.containsKey(left) || !TYPE_TO_SCHEMA.containsKey(right)) {
-      throw new KsqlException("Unsupported arithmetic types. " + left + " " + right);
+    if (DecimalUtil.isDecimal(left) && DecimalUtil.isDecimal(right)) {
+      return resolveDecimalOperatorResultType(left, right, operator);
     }
 
-    return TYPE_TO_SCHEMA.ceilingEntry(ARITHMETIC_TYPE_ORDERING.max(left, right)).getValue();
+    if (!TYPE_TO_SCHEMA.containsKey(left.type()) || !TYPE_TO_SCHEMA.containsKey(right.type())) {
+      throw new KsqlException("Unsupported arithmetic types. " + left.type() + " " + right.type());
+    }
+
+    return TYPE_TO_SCHEMA.ceilingEntry(
+        ARITHMETIC_TYPE_ORDERING.max(left.type(), right.type())).getValue();
+  }
+
+  private static Schema resolveDecimalOperatorResultType(
+      final Schema left,
+      final Schema right,
+      final Operator operator
+  ) {
+    final int lPrecision = DecimalUtil.precision(left);
+    final int rPrecision = DecimalUtil.precision(right);
+    final int lScale = DecimalUtil.scale(left);
+    final int rScale = DecimalUtil.scale(right);
+
+    final int precision;
+    final int scale;
+    switch (operator) {
+      case ADD:
+      case SUBTRACT:
+        precision = Math.max(lScale, rScale)
+            + Math.max(lPrecision - lScale, rPrecision - rScale)
+            + 1;
+        scale = Math.max(lScale, rScale);
+        break;
+      case MULTIPLY:
+        precision = lPrecision + rPrecision + 1;
+        scale = lScale + rScale;
+        break;
+      case DIVIDE:
+        precision = lPrecision - lScale + rScale + Math.max(6, lScale + rPrecision + 1);
+        scale = Math.max(6, lScale + rPrecision + 1);
+        break;
+      case MODULUS:
+        precision = Math.min(lPrecision - lScale, rPrecision - rScale) + Math.max(lScale, rScale);
+        scale = Math.max(lScale, rScale);
+        break;
+      default:
+        throw new KsqlException("Unexpected operator type: " + operator);
+    }
+
+    return DecimalUtil.builder(precision, scale).build();
   }
 
   public static boolean isNumber(final Schema.Type type) {

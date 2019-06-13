@@ -97,7 +97,7 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
 
     return new ArithmeticBinaryExpression(
         node.getLocation(),
-        node.getType(),
+        node.getOperator(),
         rewrittenLeft,
         rewrittenRight);
   }

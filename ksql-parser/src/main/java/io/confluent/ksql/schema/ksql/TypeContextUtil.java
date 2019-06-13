@@ -42,6 +42,13 @@ public final class TypeContextUtil {
       return PrimitiveType.of(baseTypeToString(type.baseType()));
     }
 
+    if (type.DECIMAL() != null) {
+      return io.confluent.ksql.parser.tree.Decimal.of(
+          ParserUtil.processIntegerNumber(type.number(0), "DECIMAL(PRECISION)"),
+          ParserUtil.processIntegerNumber(type.number(1), "DECIMAL(SCALE)")
+      );
+    }
+
     if (type.ARRAY() != null) {
       return io.confluent.ksql.parser.tree.Array.of(getType(type.type(0)));
     }

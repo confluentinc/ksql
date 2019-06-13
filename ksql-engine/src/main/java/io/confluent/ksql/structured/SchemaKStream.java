@@ -566,6 +566,12 @@ public class SchemaKStream<K> {
   }
 
   private Object extractColumn(final Field newKeyField, final GenericRow value) {
+    if (value.getColumns().size() != schema.fields().size()) {
+      throw new IllegalStateException("Field count mismatch. "
+          + "Schema fields: " + schema
+          + ", row:" + value);
+    }
+
     return value
         .getColumns()
         .get(schema.valueFieldIndex(newKeyField.name()).orElseThrow(IllegalStateException::new));

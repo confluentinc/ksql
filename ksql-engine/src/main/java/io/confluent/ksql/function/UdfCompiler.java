@@ -33,6 +33,7 @@ import java.lang.reflect.AnnotatedParameterizedType;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
@@ -69,6 +70,7 @@ public class UdfCompiler {
       .add(Integer.class)
       .add(Long.class)
       .add(Double.class)
+      .add(BigDecimal.class)
       .add(Boolean.class)
       .add(String.class)
       .add(Struct.class)

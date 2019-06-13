@@ -134,6 +134,49 @@
         {"topic": "S2", "key": 0, "value": {"ID":  0, "MAX":  null}},
         {"topic": "S2", "key": 0, "value": {"ID":  0, "MAX":  1.0}}
       ]
+    },
+    {
+      "name": "min decimal group by",
+      "statements": [
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE decimal(4, 2)) WITH (kafka_topic='test_topic', value_format='DELIMITED', key='ID');",
+        "CREATE TABLE S2 as SELECT id, min(value) FROM test group by id;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": "0,100,21.79"},
+        {"topic": "test_topic", "key": 0, "value": "0,100,1.10"},
+        {"topic": "test_topic", "key": 100, "value": "100,100,10.10"},
+        {"topic": "test_topic", "key": 100, "value": "100,100,06.40"},
+        {"topic": "test_topic", "key": 100, "value": "100,100,30.80"},
+        {"topic": "test_topic", "key": 0, "value": "0,zero,-01.79"},
+        {"topic": "test_topic", "key": 0, "value": "0,100,10.11"}
+
+      ],
+      "outputs": [
+        {"topic": "S2", "key": 0, "value": "0,21.79"},
+        {"topic": "S2", "key": 0, "value": "0,01.10"},
+        {"topic": "S2", "key": 100, "value": "100,10.10"},
+        {"topic": "S2", "key": 100, "value": "100,06.40"},
+        {"topic": "S2", "key": 100, "value": "100,06.40"},
+        {"topic": "S2", "key": 0, "value": "0,-01.79"},
+        {"topic": "S2", "key": 0, "value": "0,-01.79"}
+      ]
+    },
+    {
+      "name": "min decimal group by with nulls",
+      "statements": [
+        "CREATE STREAM TEST (ID bigint, VALUE decimal(4, 2)) WITH (kafka_topic='test_topic',value_format='AVRO', key='ID');",
+        "CREATE TABLE S2 as SELECT id, min(value) as MAX FROM test group by id;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 1, "value": {"id":  1, "value":  null}},
+        {"topic": "test_topic", "key": 0, "value": {"id":  0, "value":  null}},
+        {"topic": "test_topic", "key": 0, "value": {"id":  0, "value":  "01.00"}}
+      ],
+      "outputs": [
+        {"topic": "S2", "key": 1, "value": {"ID":  1, "MAX":  null}},
+        {"topic": "S2", "key": 0, "value": {"ID":  0, "MAX":  null}},
+        {"topic": "S2", "key": 0, "value": {"ID":  0, "MAX":  "01.00"}}
+      ]
     }
   ]
 }

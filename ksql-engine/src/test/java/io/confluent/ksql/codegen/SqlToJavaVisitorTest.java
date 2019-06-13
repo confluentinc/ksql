@@ -25,6 +25,8 @@ import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.function.TestFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.ArithmeticBinaryExpression;
+import io.confluent.ksql.parser.tree.ArithmeticUnaryExpression;
+import io.confluent.ksql.parser.tree.ArithmeticUnaryExpression.Sign;
 import io.confluent.ksql.parser.tree.ComparisonExpression;
 import io.confluent.ksql.parser.tree.ComparisonExpression.Type;
 import io.confluent.ksql.parser.tree.Expression;
@@ -34,6 +36,7 @@ import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.MetaStoreFixture;
+import java.util.Optional;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Before;
@@ -460,6 +463,37 @@ public class SqlToJavaVisitorTest {
 
     // Then:
     assertThat(java, containsString("(new BigDecimal(TEST1_COL3).compareTo(TEST1_COL8) == 0))"));
+  }
+
+  @Test
+  public void shouldGenerateCorrectCodeForDecimalNegation() {
+    // Given:
+    final ArithmeticUnaryExpression binExp = new ArithmeticUnaryExpression(
+        Optional.empty(),
+        Sign.MINUS,
+        new QualifiedNameReference(QualifiedName.of("TEST1.COL8"))
+    );
+
+    // When:
+    final String java = sqlToJavaVisitor.process(binExp);
+
+    // Then:
+    assertThat(java, is("(TEST1_COL8.negate(new MathContext(2, RoundingMode.UNNECESSARY)))"));
+  }
+
+  @Test
+  public void shouldGenerateCorrectCodeForDecimalUnaryPlus() {
+    // Given:
+    final ArithmeticUnaryExpression binExp = new ArithmeticUnaryExpression(
+        Optional.empty(),
+        Sign.PLUS,
+    new QualifiedNameReference(QualifiedName.of("TEST1.COL8")));
+
+      // When:
+    final String java = sqlToJavaVisitor.process(binExp);
+
+    // Then:
+    assertThat(java, is("(TEST1_COL8.plus(new MathContext(2, RoundingMode.UNNECESSARY)))"));
   }
 
   @Test

@@ -70,6 +70,27 @@
         {"topic": "S2", "value": {"ID":0,"TOPK":["c","b","a"]}},
         {"topic": "S2", "value": {"ID":0,"TOPK":["d","c","b"]}}
       ]
+    },
+    {
+      "name": "topk distinct decimal",
+      "statements": [
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE decimal(2,1)) WITH (kafka_topic='test_topic', value_format='AVRO', key='ID');",
+        "CREATE TABLE S2 as SELECT id, topkdistinct(value, 3) as topk FROM test group by id;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": {"ID": 0, "NAME": "zero", "VALUE": "9.8"}},
+        {"topic": "test_topic", "value": {"ID": 0, "NAME": "zero", "VALUE": "8.9"}},
+        {"topic": "test_topic", "value": {"ID": 0, "NAME": "zero", "VALUE": "7.8"}},
+        {"topic": "test_topic", "value": {"ID": 0, "NAME": "zero", "VALUE": "6.5"}},
+        {"topic": "test_topic", "value": {"ID": 0, "NAME": "zero", "VALUE": "9.9"}}
+      ],
+      "outputs": [
+        {"topic": "S2", "value": {"ID":0,"TOPK":["9.8"]}},
+        {"topic": "S2", "value": {"ID":0,"TOPK":["9.8","8.9"]}},
+        {"topic": "S2", "value": {"ID":0,"TOPK":["9.8","8.9","7.8"]}},
+        {"topic": "S2", "value": {"ID":0,"TOPK":["9.8","8.9","7.8"]}},
+        {"topic": "S2", "value": {"ID":0,"TOPK":["9.9","9.8","8.9"]}}
+      ]
     }
 
   ]

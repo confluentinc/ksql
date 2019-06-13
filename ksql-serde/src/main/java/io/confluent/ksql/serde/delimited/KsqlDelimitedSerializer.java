@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.Objects;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.Field;
@@ -83,7 +84,20 @@ public class KsqlDelimitedSerializer implements Serializer<Object> {
       final Field field = fieldIt.next();
       throwOnUnsupportedType(field.schema());
       if (DecimalUtil.isDecimal(field.schema())) {
-        return ((BigDecimal) data.get(field)).toPlainString();
+        final BigDecimal value = (BigDecimal) data.get(field);
+        final int precision = DecimalUtil.precision(field.schema());
+        final int scale = DecimalUtil.scale(field.schema());
+
+        final int leadingZeros = precision - value.precision();
+        if (value.compareTo(BigDecimal.ZERO) < 0) {
+          return "-" + StringUtils.repeat('0', leadingZeros) + value.abs().toPlainString();
+        } else if (value.compareTo(BigDecimal.ZERO) == 0) {
+          // BigDecimal returns precision of 1 no matter the scale for BigDecimal.ZERO
+          final int leading = Math.max(1, precision - scale);
+          return StringUtils.repeat('0', leading) + "." + StringUtils.repeat('0', scale);
+        } else {
+          return StringUtils.repeat('0', leadingZeros) + value.toPlainString();
+        }
       }
       return data.get(field);
     }

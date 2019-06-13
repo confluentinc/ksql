@@ -26,7 +26,8 @@
       "outputs": [
         {"topic": "TEST2", "key": 0, "value": {"DEC": "10.12345"}}
       ]
-    }, {
+    },
+    {
       "name": "JSON in/out",
       "comments": [
         "JSON does not support DECIMAL yet - the integration with Connect would make it require",
@@ -40,6 +41,19 @@
         {"topic": "test", "key": 0, "value": {"DEC": "10.12345"}}
       ],
       "outputs": [
+      ]
+    },
+    {
+      "name": "negation",
+      "statements": [
+        "CREATE STREAM TEST (dec DECIMAL(7,5)) WITH (kafka_topic='test', value_format='AVRO');",
+        "CREATE STREAM TEST2 AS SELECT -dec AS negated FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test", "key": 0, "value": {"DEC": "10.12345"}}
+      ],
+      "outputs": [
+        {"topic": "TEST2", "key": 0, "value": {"NEGATED": "-10.12345"}}
       ]
     },
     {

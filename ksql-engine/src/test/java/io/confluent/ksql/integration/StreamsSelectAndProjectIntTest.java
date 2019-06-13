@@ -21,6 +21,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.metastore.model.DataSource;
@@ -38,7 +39,6 @@ import java.util.concurrent.TimeUnit;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -244,7 +244,7 @@ public class StreamsSelectAndProjectIntTest {
 
     assertThat(results.get(0).key(), is("8"));
     assertThat(results.get(0).value(), is(new GenericRow(
-        Arrays.asList(null, null, "8", recordMetadataMap.get("8").timestamp(), "ITEM_8"))));
+        ImmutableList.of("8", recordMetadataMap.get("8").timestamp(), "ITEM_8"))));
   }
 
   private void testSelectProject(
@@ -261,8 +261,7 @@ public class StreamsSelectAndProjectIntTest {
         getResultSchema());
 
     final GenericRow value = results.get(0).value();
-    // skip over first to values (rowKey, rowTime)
-    Assert.assertEquals( "ITEM_1", value.getColumns().get(2));
+    assertThat(value.getColumns().get(0), is("ITEM_1"));
   }
 
 
@@ -281,8 +280,7 @@ public class StreamsSelectAndProjectIntTest {
         getResultSchema());
 
     final GenericRow value = results.get(0).value();
-    // skip over first to values (rowKey, rowTime)
-    Assert.assertEquals( "ITEM_1", value.getColumns().get(2).toString());
+    assertThat(value.getColumns().get(0), is("ITEM_1"));
   }
 
   private void testSelectStar(
@@ -330,8 +328,7 @@ public class StreamsSelectAndProjectIntTest {
         getResultSchema());
 
     final GenericRow value = results.get(0).value();
-    // skip over first to values (rowKey, rowTime)
-    Assert.assertEquals( "ITEM_1", value.getColumns().get(2).toString());
+    assertThat(value.getColumns().get(0), is("ITEM_1"));
   }
 
   @Test
@@ -349,8 +346,7 @@ public class StreamsSelectAndProjectIntTest {
         getResultSchema());
 
     final GenericRow value = results.get(0).value();
-    // skip over first to values (rowKey, rowTime)
-    Assert.assertEquals( "ITEM_1", value.getColumns().get(2).toString());
+    assertThat(value.getColumns().get(0), is("ITEM_1"));
   }
 
   @Test
@@ -419,7 +415,7 @@ public class StreamsSelectAndProjectIntTest {
         .getSource(resultStream.toUpperCase());
 
     return PhysicalSchema.from(
-        source.getSchema(),
+        source.getSchema().withoutImplicitFields(),
         source.getSerdeOptions()
     );
   }

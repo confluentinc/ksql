@@ -18,6 +18,9 @@ KSQL 5.4.0 includes new features, including:
   Avro record or JSON object, depending on the format in use, or as an anonymous value.
   For more information, refer to :ref:`ksql_single_field_wrapping`.
 
+* A new config `ksql.metrics.tags.custom` for adding custom tags to emitted JMX metrics.
+  See :ref:`ksql-metrics-tags-custom` for usage.
+
 KSQL 5.4.0 includes the following misc. changes:
 
 * Require either the value for a ``@UdfParameter`` or for the UDF JAR to be compiled with

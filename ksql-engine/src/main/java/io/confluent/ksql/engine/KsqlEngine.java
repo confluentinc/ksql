@@ -39,6 +39,7 @@ import io.confluent.ksql.util.QueryIdGenerator;
 import io.confluent.ksql.util.QueryMetadata;
 import java.io.Closeable;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -67,7 +68,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       final ProcessingLogContext processingLogContext,
       final FunctionRegistry functionRegistry,
       final String serviceId,
-      final String customMetricsTags
+      final Map<String, String> customMetricsTags
   ) {
     this(
         serviceContext,

@@ -15,12 +15,9 @@
 
 package io.confluent.ksql.internal;
 
-import com.google.common.base.Splitter;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.metrics.MetricCollectors;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
-import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.QueryMetadata;
 import java.io.Closeable;
 import java.util.ArrayList;
@@ -65,7 +62,9 @@ public class KsqlEngineMetrics implements Closeable {
   private final KsqlEngine ksqlEngine;
   private final Metrics metrics;
 
-  public KsqlEngineMetrics(final KsqlEngine ksqlEngine, final String customMetricsTags) {
+  public KsqlEngineMetrics(
+      final KsqlEngine ksqlEngine,
+      final Map<String, String> customMetricsTags) {
     this(METRIC_GROUP_PREFIX, ksqlEngine, MetricCollectors.getMetrics(), customMetricsTags);
   }
 
@@ -73,13 +72,13 @@ public class KsqlEngineMetrics implements Closeable {
       final String metricGroupPrefix,
       final KsqlEngine ksqlEngine,
       final Metrics metrics,
-      final String customMetricsTags) {
+      final Map<String, String> customMetricsTags) {
     this.ksqlEngine = ksqlEngine;
     this.ksqlServiceId = KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX + ksqlEngine.getServiceId();
     this.sensors = new ArrayList<>();
     this.countMetrics = new ArrayList<>();
     this.metricGroupName = metricGroupPrefix + "-query-stats";
-    this.customMetricsTags = createMetricsTags(customMetricsTags);
+    this.customMetricsTags = customMetricsTags;
 
     this.metrics = metrics;
 
@@ -360,21 +359,6 @@ public class KsqlEngineMetrics implements Closeable {
         customMetricsTags,
         state
     );
-  }
-
-  private static Map<String, String> createMetricsTags(final String tags) {
-    try {
-      return tags.equals("")
-          ? Collections.emptyMap()
-          : Splitter.on(";").trimResults().withKeyValueSeparator(":").split(tags);
-    } catch (IllegalArgumentException e) {
-      throw new KsqlException(
-          String.format(
-              "Invalid config value for '%s'. value: %s. reason: %s",
-              KsqlConfig.KSQL_CUSTOM_METRICS_TAGS,
-              tags,
-              e.getMessage()));
-    }
   }
 
   private static class CountMetric {

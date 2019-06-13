@@ -423,7 +423,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         processingLogContext,
         functionRegistry,
         ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG),
-        ksqlConfig.getString(KsqlConfig.KSQL_CUSTOM_METRICS_TAGS));
+        ksqlConfig.getStringAsMap(KsqlConfig.KSQL_CUSTOM_METRICS_TAGS));
 
     UdfLoader.newInstance(ksqlConfig, functionRegistry, ksqlInstallDir).load();
 

@@ -271,7 +271,7 @@ public class SecureIntegrationTest {
         ProcessingLogContext.create(),
         new InternalFunctionRegistry(),
         ksqlConfig.getString(KSQL_SERVICE_ID_CONFIG),
-        ksqlConfig.getString(KSQL_CUSTOM_METRICS_TAGS));
+        ksqlConfig.getStringAsMap(KSQL_CUSTOM_METRICS_TAGS));
 
     execInitCreateStreamQueries();
   }

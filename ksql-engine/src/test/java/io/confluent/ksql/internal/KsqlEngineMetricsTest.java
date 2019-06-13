@@ -62,8 +62,7 @@ public class KsqlEngineMetricsTest {
   private KsqlEngineMetrics engineMetrics;
   private static final String KSQL_SERVICE_ID = "test-ksql-service-id";
   private static final String metricNamePrefix = KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX + KSQL_SERVICE_ID;
-  private static final String CUSTOM_TAGS = "tag1:value1;tag2:value2";
-  private static final Map<String, String> EXPECTED_TAGS = ImmutableMap.of("tag1", "value1", "tag2", "value2");
+  private static final Map<String, String> CUSTOM_TAGS = ImmutableMap.of("tag1", "value1", "tag2", "value2");
 
   @Mock
   private KsqlEngine ksqlEngine;
@@ -265,7 +264,7 @@ public class KsqlEngineMetricsTest {
     return Double.valueOf(
         metrics.metric(
             metrics.metricName(
-                metricName, metricNamePrefix + METRIC_GROUP + "-query-stats", EXPECTED_TAGS)
+                metricName, metricNamePrefix + METRIC_GROUP + "-query-stats", CUSTOM_TAGS)
         ).metricValue().toString()
     );
   }
@@ -275,7 +274,7 @@ public class KsqlEngineMetricsTest {
     return Long.parseLong(
         metrics.metric(
             metrics.metricName(
-                metricName, metricNamePrefix + METRIC_GROUP + "-query-stats", EXPECTED_TAGS)
+                metricName, metricNamePrefix + METRIC_GROUP + "-query-stats", CUSTOM_TAGS)
         ).metricValue().toString()
     );
   }

@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.util;
 
+import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.config.ConfigItem;
@@ -146,7 +147,7 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_CUSTOM_METRICS_TAGS = "ksql.metrics.tags.custom";
   private static final String KSQL_CUSTOM_METRICS_TAGS_DOC =
       "A list of tags to be included with emitted JMX metrics, formatted as a string of key:value "
-      + "pairs separated by semicolons. For example, 'key1:value1;key2:value2'.";
+      + "pairs separated by commas. For example, 'key1:value1,key2:value2'.";
 
   public static final String
       defaultSchemaRegistryUrl = "http://localhost:8081";
@@ -716,6 +717,22 @@ public class KsqlConfig extends AbstractConfig {
         .forEach(
             k -> mergedStreamConfigProps.put(k, originalConfig.ksqlStreamConfigProps.get(k)));
     return new KsqlConfig(ConfigGeneration.LEGACY, mergedProperties, mergedStreamConfigProps);
+  }
+
+  public Map<String, String> getStringAsMap(final String key) {
+    final String value = getString(key).trim();
+    try {
+      return value.equals("")
+          ? Collections.emptyMap()
+          : Splitter.on(",").trimResults().withKeyValueSeparator(":").split(value);
+    } catch (IllegalArgumentException e) {
+      throw new KsqlException(
+          String.format(
+              "Invalid config value for '%s'. value: %s. reason: %s",
+              key,
+              value,
+              e.getMessage()));
+    }
   }
 
   private static Set<String> sslConfigNames() {

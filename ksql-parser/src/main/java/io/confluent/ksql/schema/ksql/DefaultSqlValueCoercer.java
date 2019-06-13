@@ -16,9 +16,14 @@
 package io.confluent.ksql.schema.ksql;
 
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.util.DecimalUtil;
+import java.math.BigDecimal;
+import java.math.MathContext;
+import java.math.RoundingMode;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
+import org.apache.kafka.connect.data.Schema;
 
 public final class DefaultSqlValueCoercer implements SqlValueCoercer {
 
@@ -29,12 +34,31 @@ public final class DefaultSqlValueCoercer implements SqlValueCoercer {
           .put(SqlType.DOUBLE, Number::doubleValue)
           .build();
 
-  public <T> Optional<T> coerce(final Object value, final SqlType targetSqlType) {
+  public <T> Optional<T> coerce(final Object value, final Schema targetSchema) {
     final SqlType valueSqlType = SchemaConverters.javaToSqlConverter()
         .toSqlType(value.getClass());
+    final SqlType targetSqlType = SchemaConverters.logicalToSqlConverter()
+        .toSqlType(targetSchema)
+        .getSqlType();
 
     if (valueSqlType.equals(targetSqlType)) {
       return optional(value);
+    }
+
+    if (DecimalUtil.isDecimal(targetSchema)) {
+      final int precision = DecimalUtil.precision(targetSchema);
+      final int scale = DecimalUtil.scale(targetSchema);
+      if (value instanceof String) {
+        return optional(new BigDecimal((String) value, new MathContext(precision))
+            .setScale(scale, RoundingMode.UNNECESSARY));
+      }
+      if (value instanceof Number) {
+        return optional(
+            new BigDecimal(
+                ((Number) value).doubleValue(),
+                new MathContext(precision))
+                .setScale(scale, RoundingMode.UNNECESSARY));
+      }
     }
 
     if (!(value instanceof Number) || !valueSqlType.canUpCast(targetSqlType)) {

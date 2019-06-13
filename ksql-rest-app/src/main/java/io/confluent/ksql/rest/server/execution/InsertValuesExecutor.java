@@ -34,9 +34,6 @@ import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.schema.ksql.DefaultSqlValueCoercer;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
-import io.confluent.ksql.schema.ksql.SchemaConverters;
-import io.confluent.ksql.schema.ksql.SchemaConverters.LogicalToSqlTypeConverter;
-import io.confluent.ksql.schema.ksql.SqlType;
 import io.confluent.ksql.schema.ksql.SqlValueCoercer;
 import io.confluent.ksql.serde.GenericRowSerDe;
 import io.confluent.ksql.services.ServiceContext;
@@ -206,15 +203,13 @@ public class InsertValuesExecutor {
       final LogicalSchema schema
   ) {
     final ConnectSchema valueSchema = schema.valueSchema();
-    final LogicalToSqlTypeConverter converter = SchemaConverters.logicalToSqlConverter();
     final Map<String, Object> values = new HashMap<>();
     for (int i = 0; i < columns.size(); i++) {
       final String column = columns.get(i);
       final Schema columnSchema = valueSchema.field(column).schema();
-      final SqlType columnType = converter.toSqlType(columnSchema).getSqlType();
       final Expression valueExp = insertValues.getValues().get(i);
 
-      final Object value = new ExpressionResolver(columnType, column)
+      final Object value = new ExpressionResolver(columnSchema, column)
           .process(valueExp, null);
 
       values.put(column, value);
@@ -305,12 +300,12 @@ public class InsertValuesExecutor {
 
   private static class ExpressionResolver extends AstVisitor<Object, Void> {
 
-    private final SqlType fieldType;
+    private final Schema fieldSchema;
     private final String fieldName;
     private final SqlValueCoercer defaultSqlValueCoercer = new DefaultSqlValueCoercer();
 
-    ExpressionResolver(final SqlType fieldType, final String fieldName) {
-      this.fieldType = Objects.requireNonNull(fieldType, "fieldType");
+    ExpressionResolver(final Schema fieldSchema, final String fieldName) {
+      this.fieldSchema = Objects.requireNonNull(fieldSchema, "fieldSchema");
       this.fieldName = Objects.requireNonNull(fieldName, "fieldName");
     }
 
@@ -327,10 +322,10 @@ public class InsertValuesExecutor {
         return null;
       }
 
-      return defaultSqlValueCoercer.coerce(value, fieldType)
+      return defaultSqlValueCoercer.coerce(value, fieldSchema)
           .orElseThrow(
               () -> new KsqlException(
-                  "Expected type " + fieldType + " for field " + fieldName
+                  "Expected type " + fieldSchema + " for field " + fieldName
                       + " but got " + value));
     }
   }

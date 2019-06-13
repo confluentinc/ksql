@@ -44,9 +44,12 @@ import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
+import java.math.BigDecimal;
+import java.math.MathContext;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -96,6 +99,7 @@ public class InsertValuesExecutorTest {
       .field("DOUBLE", Schema.OPTIONAL_FLOAT64_SCHEMA)
       .field("BOOLEAN", Schema.OPTIONAL_BOOLEAN_SCHEMA)
       .field("VARCHAR", Schema.OPTIONAL_STRING_SCHEMA)
+      .field("DECIMAL", DecimalUtil.builder(2, 1).build())
       .build());
 
   private static final byte[] KEY = new byte[]{1};
@@ -387,7 +391,8 @@ public class InsertValuesExecutorTest {
             new LongLiteral(2),
             new DoubleLiteral("3.0"),
             new BooleanLiteral("TRUE"),
-            new StringLiteral("str"))
+            new StringLiteral("str"),
+            new StringLiteral("1.2"))
     );
 
     // When:
@@ -403,6 +408,7 @@ public class InsertValuesExecutorTest {
         .put("DOUBLE", 3.0)
         .put("BOOLEAN", true)
         .put("VARCHAR", "str")
+        .put("DECIMAL", new BigDecimal(1.2, new MathContext(2)))
     );
 
     verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));

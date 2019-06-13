@@ -76,8 +76,6 @@ public class KsqlStructuredDataOutputNodeTest {
   private static final String SINK_KAFKA_TOPIC_NAME = "output_kafka";
 
   private static final LogicalSchema SCHEMA = LogicalSchema.of(SchemaBuilder.struct()
-      .field("ROWTIME", Schema.OPTIONAL_INT64_SCHEMA)
-      .field("ROWKEY", Schema.OPTIONAL_STRING_SCHEMA)
       .field("field1", Schema.OPTIONAL_STRING_SCHEMA)
       .field("field2", Schema.OPTIONAL_STRING_SCHEMA)
       .field("field3", Schema.OPTIONAL_STRING_SCHEMA)
@@ -126,10 +124,17 @@ public class KsqlStructuredDataOutputNodeTest {
   private final Set<SerdeOption> serdeOptions = SerdeOption.none();
 
   private KsqlStructuredDataOutputNode outputNode;
+  private LogicalSchema schema;
+  private boolean partitionBy;
+  private boolean createInto;
 
   @SuppressWarnings("unchecked")
   @Before
   public void before() {
+    schema = SCHEMA;
+    partitionBy = false;
+    createInto = true;
+
     when(queryIdGenerator.getNextId()).thenReturn(QUERY_ID_STRING);
 
     when(sourceNode.getNodeOutputType()).thenReturn(DataSourceType.KSTREAM);
@@ -156,7 +161,7 @@ public class KsqlStructuredDataOutputNodeTest {
     when(ksqlTopic.getKafkaTopicName()).thenReturn(SINK_KAFKA_TOPIC_NAME);
     when(ksqlTopic.getValueSerdeFactory()).thenReturn(sinkValueSerdeFactory);
 
-    createOutputNode(false, true);
+    buildNode();
   }
 
   @Test(expected = IllegalArgumentException.class)
@@ -222,7 +227,7 @@ public class KsqlStructuredDataOutputNodeTest {
   @Test
   public void shouldPartitionByFieldNameInPartitionByProperty() {
     // Given:
-    createOutputNode(true, true);
+    givenNodePartitioningByKey();
 
     // When:
     final SchemaKStream<?> result = outputNode.buildStream(ksqlStreamBuilder);
@@ -251,7 +256,7 @@ public class KsqlStructuredDataOutputNodeTest {
   public void shouldComputeQueryIdCorrectlyForTable() {
     // Given:
     when(sourceNode.getNodeOutputType()).thenReturn(DataSourceType.KTABLE);
-    createOutputNode(SCHEMA);
+    givenNodeWithSchema(SCHEMA);
 
     // When:
     final QueryId queryId = outputNode.getQueryId(queryIdGenerator);
@@ -264,7 +269,7 @@ public class KsqlStructuredDataOutputNodeTest {
   @Test
   public void shouldComputeQueryIdCorrectlyForInsertInto() {
     // Given:
-    createOutputNode(false, false);
+    givenInsertIntoNode();
 
     // When:
     final QueryId queryId = outputNode.getQueryId(queryIdGenerator);
@@ -277,7 +282,7 @@ public class KsqlStructuredDataOutputNodeTest {
   @Test
   public void shouldBuildOutputNodeForInsertIntoAvroFromNonAvro() {
     // Given:
-    createOutputNode(false, false);
+    givenInsertIntoNode();
 
     final KsqlAvroSerdeFactory avroSerdeFactory = new KsqlAvroSerdeFactory("name");
 
@@ -327,7 +332,7 @@ public class KsqlStructuredDataOutputNodeTest {
   public void shouldCallIntoWithIndexesToRemoveImplicitsAndRowKey() {
     // Given:
     final LogicalSchema schema = SCHEMA.withImplicitFields();
-    createOutputNode(schema);
+    givenNodeWithSchema(schema);
 
     // When:
     outputNode.buildStream(ksqlStreamBuilder);
@@ -353,7 +358,7 @@ public class KsqlStructuredDataOutputNodeTest {
         .field("key", Schema.OPTIONAL_STRING_SCHEMA)
         .build());
 
-    createOutputNode(schema);
+    givenNodeWithSchema(schema);
 
     // When:
     outputNode.buildStream(ksqlStreamBuilder);
@@ -366,28 +371,22 @@ public class KsqlStructuredDataOutputNodeTest {
     );
   }
 
-  private void createOutputNode(
-      final boolean partitionBy,
-      final boolean createInto
-  ) {
-    outputNode = new KsqlStructuredDataOutputNode(
-        PLAN_NODE_ID,
-        sourceNode,
-        SCHEMA,
-        new LongColumnTimestampExtractionPolicy("timestamp"),
-        KEY_FIELD,
-        ksqlTopic,
-        partitionBy,
-        OptionalInt.empty(),
-        createInto,
-        SerdeOption.none(),
-        sinkFactory
-    );
+  private void givenInsertIntoNode() {
+    this.createInto = false;
+    buildNode();
   }
 
-  private void createOutputNode(
-      final LogicalSchema schema
-  ) {
+  private void givenNodePartitioningByKey() {
+    this.partitionBy = true;
+    buildNode();
+  }
+
+  private void givenNodeWithSchema(final LogicalSchema schema) {
+    this.schema = schema;
+    buildNode();
+  }
+
+  private void buildNode() {
     outputNode = new KsqlStructuredDataOutputNode(
         PLAN_NODE_ID,
         sourceNode,
@@ -395,9 +394,9 @@ public class KsqlStructuredDataOutputNodeTest {
         new LongColumnTimestampExtractionPolicy("timestamp"),
         KEY_FIELD,
         ksqlTopic,
-        false,
+        partitionBy,
         OptionalInt.empty(),
-        true,
+        createInto,
         SerdeOption.none(),
         sinkFactory
     );

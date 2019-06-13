@@ -120,7 +120,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     this.ksqlTopic = requireNonNull(ksqlTopic, "ksqlTopic");
     this.selectKeyRequired = selectKeyRequired;
     this.doCreateInto = doCreateInto;
-    this.implicitAndKeyFieldIndexes = implicitAndKeyColumnIndexes(schema);
+    this.implicitAndKeyFieldIndexes = implicitAndKeyColumnIndexesInValueSchema(schema);
     this.sinKFactory = requireNonNull(sinkFactory, "sinkFactory");
 
     if (selectKeyRequired && !keyField.name().isPresent()) {
@@ -225,7 +225,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     return result.selectKey(newKey.name(), false, contextStacker);
   }
 
-  private static Set<Integer> implicitAndKeyColumnIndexes(final LogicalSchema schema) {
+  private static Set<Integer> implicitAndKeyColumnIndexesInValueSchema(final LogicalSchema schema) {
     // Todo(ac): This will be changed to use the new LogicalSchema.implicitFields and keyFields
     //   From the other PR once its merged:
     //

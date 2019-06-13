@@ -18,7 +18,7 @@ package io.confluent.ksql.function.udaf.sum;
 import io.confluent.ksql.function.AggregateFunctionFactory;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.util.KsqlException;
-import java.util.Arrays;
+import io.confluent.ksql.util.KsqlPreconditions;
 import java.util.List;
 import org.apache.kafka.connect.data.Schema;
 
@@ -26,23 +26,33 @@ public class SumAggFunctionFactory extends AggregateFunctionFactory {
   private static final String FUNCTION_NAME = "SUM";
 
   public SumAggFunctionFactory() {
-    super(
-        FUNCTION_NAME,
-        Arrays.asList(
-            new DoubleSumKudaf(FUNCTION_NAME, -1), new LongSumKudaf(FUNCTION_NAME, -1),
-            new IntegerSumKudaf(FUNCTION_NAME,-1)));
+    super(FUNCTION_NAME);
   }
 
   @Override
   public KsqlAggregateFunction getProperAggregateFunction(final List<Schema> argTypeList) {
-    // For now we only support aggregate functions with one arg.
-    for (final KsqlAggregateFunction<?, ?> ksqlAggregateFunction : getAggregateFunctionList()) {
-      if (ksqlAggregateFunction.hasSameArgTypes(argTypeList)) {
-        return ksqlAggregateFunction;
-      }
+    KsqlPreconditions.checkArgument(
+        argTypeList.size() == 1,
+        "expected exactly one argument to aggregate MAX function");
+
+    final Schema argSchema = argTypeList.get(0);
+    switch (argSchema.type()) {
+      case INT32:
+        return new IntegerSumKudaf(FUNCTION_NAME, -1);
+      case INT64:
+        return new LongSumKudaf(FUNCTION_NAME, -1);
+      case FLOAT64:
+        return new DoubleSumKudaf(FUNCTION_NAME, -1);
+      default:
+        throw new KsqlException("No Max aggregate function with " + argTypeList.get(0) + " "
+            + " argument type exists!");
+
     }
-    throw new KsqlException("No SUM aggregate function with " + argTypeList.get(0) + " "
-                           + " argument type exists!");
+  }
+
+  @Override
+  public List<List<Schema>> supportedArgs() {
+    return NUMERICAL_ARGS;
   }
 
 }

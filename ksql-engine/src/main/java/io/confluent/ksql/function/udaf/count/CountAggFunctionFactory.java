@@ -15,9 +15,9 @@
 
 package io.confluent.ksql.function.udaf.count;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.function.AggregateFunctionFactory;
 import io.confluent.ksql.function.KsqlAggregateFunction;
-import java.util.Collections;
 import java.util.List;
 import org.apache.kafka.connect.data.Schema;
 
@@ -25,11 +25,17 @@ public class CountAggFunctionFactory extends AggregateFunctionFactory {
   private static final String FUNCTION_NAME = "COUNT";
 
   public CountAggFunctionFactory() {
-    super(FUNCTION_NAME, Collections.singletonList(new CountKudaf(FUNCTION_NAME, -1)));
+    super(FUNCTION_NAME);
   }
 
   @Override
   public KsqlAggregateFunction getProperAggregateFunction(final List<Schema> argTypeList) {
-    return getAggregateFunctionList().get(0);
+    return new CountKudaf(FUNCTION_NAME, -1);
+  }
+
+  @Override
+  public List<List<Schema>> supportedArgs() {
+    // anything is a supported type
+    return ImmutableList.of(ImmutableList.of());
   }
 }

@@ -15,10 +15,10 @@
 
 package io.confluent.ksql.function.udaf.topk;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.function.AggregateFunctionFactory;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.util.KsqlException;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import org.apache.kafka.connect.data.Schema;
@@ -28,46 +28,22 @@ public class TopKAggregateFunctionFactory extends AggregateFunctionFactory {
   private static final String NAME = "TOPK";
   private final int topKSize;
 
+  private static final List<List<Schema>> SUPPORTED_TYPES = ImmutableList
+      .<List<Schema>>builder()
+      .add(ImmutableList.of(Schema.OPTIONAL_INT32_SCHEMA))
+      .add(ImmutableList.of(Schema.OPTIONAL_INT64_SCHEMA))
+      .add(ImmutableList.of(Schema.OPTIONAL_FLOAT64_SCHEMA))
+      .add(ImmutableList.of(Schema.OPTIONAL_STRING_SCHEMA))
+      .build();
+
   public TopKAggregateFunctionFactory() {
-    super(NAME, createFunctions());
+    super(NAME);
     this.topKSize = 0;
   }
 
   TopKAggregateFunctionFactory(final int topKSize) {
-    super(NAME, Collections.emptyList());
+    super(NAME);
     this.topKSize = topKSize;
-  }
-
-  // Just used to populate the function registry with info on the available functions
-  private static List<KsqlAggregateFunction<?,?>> createFunctions() {
-    return Arrays.asList(new TopkKudaf<>(
-            NAME,
-            -1,
-            0,
-            SchemaBuilder.array(Schema.OPTIONAL_INT32_SCHEMA).optional().build(),
-            Collections.singletonList(Schema.OPTIONAL_INT32_SCHEMA),
-            Integer.class),
-        new TopkKudaf<>(
-            NAME,
-            -1,
-            0,
-            SchemaBuilder.array(Schema.OPTIONAL_INT64_SCHEMA).optional().build(),
-            Collections.singletonList(Schema.OPTIONAL_INT64_SCHEMA),
-            Long.class),
-        new TopkKudaf<>(
-            NAME,
-            -1,
-            0,
-            SchemaBuilder.array(Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build(),
-            Collections.singletonList(Schema.OPTIONAL_FLOAT64_SCHEMA),
-            Double.class),
-        new TopkKudaf<>(
-            NAME,
-            -1,
-            0,
-            SchemaBuilder.array(Schema.OPTIONAL_STRING_SCHEMA).optional().build(),
-            Collections.singletonList(Schema.OPTIONAL_STRING_SCHEMA),
-            String.class));
   }
 
   @Override
@@ -113,5 +89,10 @@ public class TopKAggregateFunctionFactory extends AggregateFunctionFactory {
         throw new KsqlException("No TOPK aggregate function with " + argumentType.get(0)
                                 + " argument type exists!");
     }
+  }
+
+  @Override
+  public List<List<Schema>> supportedArgs() {
+    return SUPPORTED_TYPES;
   }
 }

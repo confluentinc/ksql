@@ -17,7 +17,6 @@ package io.confluent.ksql.test.tools;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
@@ -26,41 +25,34 @@ import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
-import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
-import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.InsertValues;
 import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Relation;
-import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.schema.ksql.inference.DefaultSchemaInjector;
 import io.confluent.ksql.schema.ksql.inference.SchemaRegistryTopicSchemaSupplier;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
-import io.confluent.ksql.test.serde.string.StringSerdeSupplier;
 import io.confluent.ksql.test.utils.SerdeUtil;
 import io.confluent.ksql.test.utils.WindowUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
-import io.confluent.ksql.util.StringUtil;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.LinkedHashMap;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.stream.Collectors;
 
 import org.apache.avro.Schema;
-import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.TopologyTestDriver;
 
@@ -236,64 +228,11 @@ final class TestExecutorUtil {
     final PreparedStatement<?> prepared = executionContext.prepare(stmt);
 
     if (prepared.getStatement() instanceof InsertValues) {
-      InsertValues insertValues = (InsertValues) prepared.getStatement();
-      final String streamName = insertValues.getTarget().toString();
-      final List<Expression> values = insertValues.getValues();
-      final List<String> insertIntoColumns = insertValues.getColumns();
-
-      final DataSource<?> dataSource = executionContext.getMetaStore().getSource(streamName);
-      final List<String> columns = dataSource.getSchema()
-              .withoutImplicitFields()
-              .fields()
-              .stream()
-              .map(field -> field.name())
-              .collect(Collectors.toList());
-      final KsqlTopic ksqlTopic = dataSource.getKsqlTopic();
-      final Topic topic = fakeKafkaService.getTopic(ksqlTopic.getKafkaTopicName());
-      final String keyField = dataSource.getKeyField().name().get();
-      Map<String, String> map = new LinkedHashMap<>();
-
-      for (int i = 0; i < columns.size(); i++) {
-        int index = insertIntoColumns.indexOf(columns.get(i));
-        if (insertIntoColumns.size() == 0) {
-          index = i;
-        }
-
-        if (index >= 0) {
-          String stringVal = values.get(index).toString();
-          map.put(
-              columns.get(i),
-              values.get(index) instanceof StringLiteral
-                      ? stringVal.substring(1, stringVal.length() - 1)
-                      : stringVal);
-        } else {
-          map.put(columns.get(i), null);
-        }
-
-      }
-
-      ObjectMapper objectMapper = new ObjectMapper();
-      Object recordValue;
-
-      if (topic.getValueSerdeSupplier() instanceof StringSerdeSupplier) {
-        recordValue = StringUtil.join(
-                ",",
-                map.values().stream()
-                        .map(s -> s == null ? "" : s)
-                        .collect(Collectors.toList()));
-      } else {
-        recordValue = objectMapper.convertValue(map, Object.class);
-      }
-
-      Record record = new Record(
-              topic,
-              map.get(keyField),
-              recordValue,
-              0,
-              null
-      );
-      fakeKafkaService.writeRecord(ksqlTopic.getKafkaTopicName(), FakeKafkaRecord.of(record, null));
-
+      FakeInsertValuesExecutor.execute(
+              executionContext,
+              ksqlConfig,
+              fakeKafkaService,
+              (InsertValues) prepared.getStatement());
       return null;
     }
 

@@ -23,6 +23,7 @@ import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.Type;
+import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -49,6 +50,7 @@ public class SchemaConvertersTest {
       .put(PrimitiveType.of(SqlType.STRING), LOGICAL_STRING_SCHEMA)
       .put(io.confluent.ksql.parser.tree.Array.of(PrimitiveType.of(SqlType.INTEGER)),
           SchemaBuilder.array(SchemaConverters.INTEGER).optional().build())
+      .put(io.confluent.ksql.parser.tree.Decimal.of(2, 1), DecimalUtil.builder(2, 1).build())
       .put(io.confluent.ksql.parser.tree.Map.of(PrimitiveType.of(SqlType.INTEGER)),
           SchemaBuilder.map(SchemaConverters.STRING, SchemaConverters.INTEGER).optional().build())
       .put(io.confluent.ksql.parser.tree.Struct.builder()
@@ -107,8 +109,11 @@ public class SchemaConvertersTest {
 
   @Test
   public void shouldGetSqlTypeForEveryLogicalType() {
-    SQL_TO_LOGICAL.inverse().forEach((logical, sqlType) ->
-        assertThat(SchemaConverters.logicalToSqlConverter().toSqlType(logical), is(sqlType)));
+    SQL_TO_LOGICAL.inverse().forEach((logical, sqlType) -> {
+      if (!(sqlType instanceof io.confluent.ksql.parser.tree.Decimal)) {
+        assertThat(SchemaConverters.logicalToSqlConverter().toSqlType(logical), is(sqlType));
+      }
+    });
   }
 
   @Test

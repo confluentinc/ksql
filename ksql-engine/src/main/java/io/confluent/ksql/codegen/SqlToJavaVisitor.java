@@ -53,14 +53,19 @@ import io.confluent.ksql.parser.tree.SearchedCaseExpression;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.SubscriptExpression;
 import io.confluent.ksql.parser.tree.Type;
+import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
+import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.ExpressionTypeManager;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.SchemaUtil;
+import java.math.MathContext;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -81,7 +86,18 @@ public class SqlToJavaVisitor {
       "java.util.List",
       "java.util.ArrayList",
       "com.google.common.collect.ImmutableList",
-      "java.util.function.Supplier");
+      "java.util.function.Supplier",
+      MathContext.class.getCanonicalName(),
+      RoundingMode.class.getCanonicalName());
+
+  private static final Map<Operator, String> DECIMAL_OPERATOR_NAME = ImmutableMap
+      .<Operator, String>builder()
+      .put(Operator.ADD, "add")
+      .put(Operator.SUBTRACT, "subtract")
+      .put(Operator.MULTIPLY, "multiply")
+      .put(Operator.DIVIDE, "divide")
+      .put(Operator.MODULUS, "remainder")
+      .build();
 
   private final LogicalSchema schema;
   private final FunctionRegistry functionRegistry;
@@ -460,12 +476,29 @@ public class SqlToJavaVisitor {
 
       final Schema schema =
           SchemaUtil.resolveBinaryOperatorResultType(
-              left.getRight().type(), right.getRight().type());
+              left.getRight(), right.getRight(), node.getOperator());
 
-      return new Pair<>(
-          "(" + left.getLeft() + " " + node.getType().getValue() + " " + right.getLeft() + ")",
-          schema
-      );
+      if (DecimalUtil.isDecimal(schema)) {
+        return new Pair<>(
+            String.format(
+                "(%s.%s(%s, new MathContext(%d, RoundingMode.UNNECESSARY)).setScale(%d))",
+                left.getLeft(),
+                DECIMAL_OPERATOR_NAME.get(node.getOperator()),
+                right.getLeft(),
+                DecimalUtil.precision(schema),
+                DecimalUtil.scale(schema)),
+            schema
+        );
+      } else {
+        return new Pair<>(
+            String.format(
+                "(%s %s %s)",
+                left.getLeft(),
+                node.getOperator().getSymbol(),
+                right.getLeft()),
+            schema
+        );
+      }
     }
 
     @Override

@@ -76,6 +76,8 @@ public class KsqlStructuredDataOutputNodeTest {
   private static final String SINK_KAFKA_TOPIC_NAME = "output_kafka";
 
   private static final LogicalSchema SCHEMA = LogicalSchema.of(SchemaBuilder.struct()
+      .field("ROWTIME", Schema.OPTIONAL_INT64_SCHEMA)
+      .field("ROWKEY", Schema.OPTIONAL_STRING_SCHEMA)
       .field("field1", Schema.OPTIONAL_STRING_SCHEMA)
       .field("field2", Schema.OPTIONAL_STRING_SCHEMA)
       .field("field3", Schema.OPTIONAL_STRING_SCHEMA)

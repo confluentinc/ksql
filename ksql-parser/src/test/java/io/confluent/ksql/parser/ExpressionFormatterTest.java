@@ -51,6 +51,7 @@ import io.confluent.ksql.parser.tree.SubscriptExpression;
 import io.confluent.ksql.parser.tree.TimeLiteral;
 import io.confluent.ksql.parser.tree.TimestampLiteral;
 import io.confluent.ksql.parser.tree.WhenClause;
+import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.schema.ksql.SqlType;
 import java.util.Collections;
 import java.util.Optional;
@@ -181,7 +182,7 @@ public class ExpressionFormatterTest {
 
   @Test
   public void shouldFormatArithmeticBinary() {
-    assertThat(ExpressionFormatter.formatExpression(new ArithmeticBinaryExpression(ArithmeticBinaryExpression.Type.ADD,
+    assertThat(ExpressionFormatter.formatExpression(new ArithmeticBinaryExpression(Operator.ADD,
             new LongLiteral(1), new LongLiteral(2))),
         equalTo("(1 + 2)"));
   }

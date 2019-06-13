@@ -29,6 +29,7 @@ import io.confluent.ksql.parser.tree.BetweenPredicate;
 import io.confluent.ksql.parser.tree.BooleanLiteral;
 import io.confluent.ksql.parser.tree.Cast;
 import io.confluent.ksql.parser.tree.ComparisonExpression;
+import io.confluent.ksql.parser.tree.Decimal;
 import io.confluent.ksql.parser.tree.DecimalLiteral;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.DoubleLiteral;
@@ -107,6 +108,11 @@ public final class ExpressionFormatter {
               ParserUtil.escapeIfLiteral(child.getName())
                   + " " + process(child.getType(), unmangleNames))
           .collect(toList())) + ">";
+    }
+
+    @Override
+    protected String visitDecimal(final Decimal node, final Boolean context) {
+      return String.format("DECIMAL(%d, %d)", node.getPrecision(), node.getScale());
     }
 
     @Override
@@ -265,7 +271,7 @@ public final class ExpressionFormatter {
     protected String visitArithmeticBinary(
         final ArithmeticBinaryExpression node,
         final Boolean unmangleNames) {
-      return formatBinaryExpression(node.getType().getValue(), node.getLeft(), node.getRight(),
+      return formatBinaryExpression(node.getOperator().getSymbol(), node.getLeft(), node.getRight(),
               unmangleNames);
     }
 

@@ -17,11 +17,9 @@ package io.confluent.ksql.analyzer;
 
 import static io.confluent.ksql.testutils.AnalysisTestUtil.analyzeQuery;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -35,8 +33,6 @@ import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MutableMetaStore;
-import io.confluent.ksql.metastore.SerdeFactory;
-import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTopic;
@@ -113,11 +109,6 @@ public class AnalyzerTest {
         serdeOptiponsSupplier
     );
 
-    final KsqlTopic sinkTopic = mock(KsqlTopic.class);
-    final DataSource<?> sinkSource = mock(DataSource.class);
-    when(sinkSource.getKsqlTopic()).thenReturn(sinkTopic);
-    final SerdeFactory<?> keySerdeFactory = mock(SerdeFactory.class);
-    when(sinkSource.getKeySerdeFactory()).thenReturn((SerdeFactory)keySerdeFactory);
     when(sink.getName()).thenReturn("TEST0");
 
     query = parseSingle("Select COL0, COL1 from TEST1;");
@@ -383,7 +374,7 @@ public class AnalyzerTest {
     final KsqlStream<?> ksqlStream = new KsqlStream<>(
             "create stream s0 with(KAFKA_TOPIC='s0', VALUE_AVRO_SCHEMA_FULL_NAME='org.ac.s1', VALUE_FORMAT='avro');",
             "S0",
-            LogicalSchema.of(schema),
+            LogicalSchema.of(schema).withImplicitFields(),
         SerdeOption.none(),
             KeyField.of("FIELD1", schema.field("FIELD1")),
             new MetadataTimestampExtractionPolicy(),

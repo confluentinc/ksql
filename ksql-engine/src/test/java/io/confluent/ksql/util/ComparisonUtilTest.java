@@ -23,24 +23,34 @@ import io.confluent.ksql.parser.tree.ComparisonExpression;
 import java.util.List;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Schema.Type;
+import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 public class ComparisonUtilTest {
 
-  private static final List<Type> typesTable = ImmutableList.of(
-      Schema.Type.BOOLEAN, Schema.Type.INT32, Schema.Type.INT64, Schema.Type.FLOAT64, Schema.Type.STRING, Schema.Type.ARRAY, Schema.Type.MAP, Schema.Type.STRUCT
+  private static final List<Schema> typesTable = ImmutableList.of(
+      Schema.OPTIONAL_BOOLEAN_SCHEMA,
+      Schema.OPTIONAL_INT32_SCHEMA,
+      Schema.OPTIONAL_INT64_SCHEMA,
+      Schema.OPTIONAL_FLOAT64_SCHEMA,
+      DecimalUtil.builder(4, 2).build(),
+      Schema.OPTIONAL_STRING_SCHEMA,
+      SchemaBuilder.array(Schema.OPTIONAL_INT32_SCHEMA).build(),
+      SchemaBuilder.map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_STRING_SCHEMA).build(),
+      SchemaBuilder.struct().field("foo", Schema.OPTIONAL_INT64_SCHEMA).build()
   );
   private static final List<List<Boolean>> expectedResults = ImmutableList.of(
-      ImmutableList.of(true, false, false, false, false, false, false, false), // Boolean
-      ImmutableList.of(false, true, true, true, false, false, false, false), // Int
-      ImmutableList.of(false, true, true, true, false, false, false, false), // BigInt
-      ImmutableList.of(false, true, true, true, false, false, false, false), // Double
-      ImmutableList.of(false, false, false, false, true, false, false, false),  // String
-      ImmutableList.of(false, false, false, false, false, false, false, false), // Array
-      ImmutableList.of(false, false, false, false, false, false, false, false), // Map
-      ImmutableList.of(false, false, false, false, false, false, false, false) // Struct
+      ImmutableList.of(true, false, false, false, false, false, false, false, false), // Boolean
+      ImmutableList.of(false, true, true, true, true, false, false, false, false), // Int
+      ImmutableList.of(false, true, true, true, true, false, false, false, false), // BigInt
+      ImmutableList.of(false, true, true, true, true, false, false, false, false), // Double
+      ImmutableList.of(false, true, true, true, true, false, false, false, false),  // Decimal
+      ImmutableList.of(false, false, false, false, false, true, false, false, false),  // String
+      ImmutableList.of(false, false, false, false, false, false, false, false, false), // Array
+      ImmutableList.of(false, false, false, false, false, false, false, false, false), // Map
+      ImmutableList.of(false, false, false, false, false, false, false, false, false) // Struct
   );
 
   @Rule
@@ -51,8 +61,8 @@ public class ComparisonUtilTest {
     // When:
     int i = 0;
     int j = 0;
-    for (final Schema.Type leftType: typesTable) {
-      for (final Schema.Type rightType: typesTable) {
+    for (final Schema leftType: typesTable) {
+      for (final Schema rightType: typesTable) {
         if (expectedResults.get(i).get(j)) {
           assertThat(
               ComparisonUtil.isValidComparison(leftType, ComparisonExpression.Type.EQUAL, rightType)
@@ -74,8 +84,8 @@ public class ComparisonUtilTest {
     // When:
     int i = 0;
     int j = 0;
-    for (final Schema.Type leftType: typesTable) {
-      for (final Schema.Type rightType: typesTable) {
+    for (final Schema leftType: typesTable) {
+      for (final Schema rightType: typesTable) {
         if (!expectedResults.get(i).get(j)) {
           ComparisonUtil.isValidComparison(leftType, ComparisonExpression.Type.EQUAL, rightType);
         }

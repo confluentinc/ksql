@@ -145,6 +145,183 @@
         {"topic": "TEST2", "key": 0, "value": {"RESULT": "0.10"}},
         {"topic": "TEST2", "key": 0, "value": {"RESULT": null}}
       ]
+    },
+    {
+      "name": "equal - decimal decimal",
+      "statements": [
+        "CREATE STREAM TEST (a DECIMAL(4,2), b DECIMAL(4,2)) WITH (kafka_topic='test', value_format='AVRO');",
+        "CREATE STREAM TEST2 AS SELECT (a = b) AS RESULT FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test", "key": 0, "value": {"A": "10.01", "B":  "10.01"}},
+        {"topic": "test", "key": 0, "value": {"A": "10.01", "B":  "12.01"}},
+        {"topic": "test", "key": 0, "value": {"A": null, "B":  "10.01"}},
+        {"topic": "test", "key": 0, "value": {"A": null, "B":  null}}
+      ],
+      "outputs": [
+        {"topic": "TEST2", "key": 0, "value": {"RESULT": true}},
+        {"topic": "TEST2", "key": 0, "value": {"RESULT": false}},
+        {"topic": "TEST2", "key": 0, "value": {"RESULT": false}},
+        {"topic": "TEST2", "key": 0, "value": {"RESULT": false}}
+      ]
+    },
+    {
+      "name": "not equal - decimal decimal",
+      "statements": [
+        "CREATE STREAM TEST (a DECIMAL(4,2), b DECIMAL(4,2)) WITH (kafka_topic='test', value_format='AVRO');",
+        "CREATE STREAM TEST2 AS SELECT (a <> b) AS RESULT FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test", "key": 0, "value": {"A": "10.01", "B":  "10.01"}},
+        {"topic": "test", "key": 0, "value": {"A": "10.01", "B":  "12.01"}},
+        {"topic": "test", "key": 0, "value": {"A": null, "B":  "10.01"}},
+        {"topic": "test", "key": 0, "value": {"A": null, "B":  null}}
+      ],
+      "outputs": [
+        {"topic": "TEST2", "key": 0, "value": {"RESULT": false}},
+        {"topic": "TEST2", "key": 0, "value": {"RESULT": true}},
+        {"topic": "TEST2", "key": 0, "value": {"RESULT": false}},
+        {"topic": "TEST2", "key": 0, "value": {"RESULT": false}}
+      ]
+    },
+    {
+      "name": "is distinct - decimal decimal",
+      "statements": [
+        "CREATE STREAM TEST (a DECIMAL(4,2), b DECIMAL(4,2)) WITH (kafka_topic='test', value_format='AVRO');",
+        "CREATE STREAM TEST2 AS SELECT (a IS DISTINCT FROM b) AS RESULT FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test", "key": 0, "value": {"A": "10.01", "B":  "10.01"}},
+        {"topic": "test", "key": 0, "value": {"A": "10.01", "B":  "12.01"}},
+        {"topic": "test", "key": 0, "value": {"A": null, "B":  "10.01"}},
+        {"topic": "test", "key": 0, "value": {"A": null, "B":  null}}
+      ],
+      "outputs": [
+        {"topic": "TEST2", "key": 0, "value": {"RESULT": false}},
+        {"topic": "TEST2", "key": 0, "value": {"RESULT": true}},
+        {"topic": "TEST2", "key": 0, "value": {"RESULT": true}},
+        {"topic": "TEST2", "key": 0, "value": {"RESULT": false}}
+      ]
+    },
+    {
+      "name": "less than - decimal decimal",
+      "statements": [
+        "CREATE STREAM TEST (a DECIMAL(4,2), b DECIMAL(4,2)) WITH (kafka_topic='test', value_format='AVRO');",
+        "CREATE STREAM TEST2 AS SELECT (a < b) AS RESULT FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test", "key": 0, "value": {"A": "10.01", "B":  "10.01"}},
+        {"topic": "test", "key": 0, "value": {"A": "10.01", "B":  "12.01"}},
+        {"topic": "test", "key": 0, "value": {"A": null, "B":  "10.01"}},
+        {"topic": "test", "key": 0, "value": {"A": null, "B":  null}}
+      ],
+      "outputs": [
+        {"topic": "TEST2", "key": 0, "value": {"RESULT": false}},
+        {"topic": "TEST2", "key": 0, "value": {"RESULT": true}},
+        {"topic": "TEST2", "key": 0, "value": {"RESULT": false}},
+        {"topic": "TEST2", "key": 0, "value": {"RESULT": false}}
+      ]
+    },
+    {
+      "name": "less than - decimal decimal differing scale",
+      "statements": [
+        "CREATE STREAM TEST (a DECIMAL(4,2), b DECIMAL(5,3)) WITH (kafka_topic='test', value_format='AVRO');",
+        "CREATE STREAM TEST2 AS SELECT (a < b) AS RESULT FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test", "key": 0, "value": {"A": "10.01", "B":  "10.010"}},
+        {"topic": "test", "key": 0, "value": {"A": "10.01", "B":  "10.012"}},
+        {"topic": "test", "key": 0, "value": {"A": null, "B":  "10.010"}},
+        {"topic": "test", "key": 0, "value": {"A": null, "B":  null}}
+      ],
+      "outputs": [
+        {"topic": "TEST2", "key": 0, "value": {"RESULT": false}},
+        {"topic": "TEST2", "key": 0, "value": {"RESULT": true}},
+        {"topic": "TEST2", "key": 0, "value": {"RESULT": false}},
+        {"topic": "TEST2", "key": 0, "value": {"RESULT": false}}
+      ]
+    },
+    {
+      "name": "LEQ - decimal decimal",
+      "statements": [
+        "CREATE STREAM TEST (a DECIMAL(4,2), b DECIMAL(4,2)) WITH (kafka_topic='test', value_format='AVRO');",
+        "CREATE STREAM TEST2 AS SELECT (a <= b) AS RESULT FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test", "key": 0, "value": {"A": "10.01", "B":  "03.01"}},
+        {"topic": "test", "key": 0, "value": {"A": "10.01", "B":  "10.01"}},
+        {"topic": "test", "key": 0, "value": {"A": "10.01", "B":  "12.01"}},
+        {"topic": "test", "key": 0, "value": {"A": null, "B":  "10.01"}},
+        {"topic": "test", "key": 0, "value": {"A": null, "B":  null}}
+      ],
+      "outputs": [
+        {"topic": "TEST2", "key": 0, "value": {"RESULT": false}},
+        {"topic": "TEST2", "key": 0, "value": {"RESULT": true}},
+        {"topic": "TEST2", "key": 0, "value": {"RESULT": true}},
+        {"topic": "TEST2", "key": 0, "value": {"RESULT": false}},
+        {"topic": "TEST2", "key": 0, "value": {"RESULT": false}}
+      ]
+    },
+    {
+      "name": "GEQ - decimal decimal",
+      "statements": [
+        "CREATE STREAM TEST (a DECIMAL(4,2), b DECIMAL(4,2)) WITH (kafka_topic='test', value_format='AVRO');",
+        "CREATE STREAM TEST2 AS SELECT (a >= b) AS RESULT FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test", "key": 0, "value": {"A": "10.01", "B":  "03.01"}},
+        {"topic": "test", "key": 0, "value": {"A": "10.01", "B":  "10.01"}},
+        {"topic": "test", "key": 0, "value": {"A": "10.01", "B":  "12.01"}},
+        {"topic": "test", "key": 0, "value": {"A": null, "B":  "10.01"}},
+        {"topic": "test", "key": 0, "value": {"A": null, "B":  null}}
+      ],
+      "outputs": [
+        {"topic": "TEST2", "key": 0, "value": {"RESULT": true}},
+        {"topic": "TEST2", "key": 0, "value": {"RESULT": true}},
+        {"topic": "TEST2", "key": 0, "value": {"RESULT": false}},
+        {"topic": "TEST2", "key": 0, "value": {"RESULT": false}},
+        {"topic": "TEST2", "key": 0, "value": {"RESULT": false}}
+      ]
+    },
+    {
+      "name": "greater than - decimal decimal",
+      "statements": [
+        "CREATE STREAM TEST (a DECIMAL(4,2), b DECIMAL(4,2)) WITH (kafka_topic='test', value_format='AVRO');",
+        "CREATE STREAM TEST2 AS SELECT (a >= b) AS RESULT FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test", "key": 0, "value": {"A": "10.01", "B":  "03.01"}},
+        {"topic": "test", "key": 0, "value": {"A": "10.01", "B":  "10.01"}},
+        {"topic": "test", "key": 0, "value": {"A": "10.01", "B":  "12.01"}},
+        {"topic": "test", "key": 0, "value": {"A": null, "B":  "10.01"}},
+        {"topic": "test", "key": 0, "value": {"A": null, "B":  null}}
+      ],
+      "outputs": [
+        {"topic": "TEST2", "key": 0, "value": {"RESULT": true}},
+        {"topic": "TEST2", "key": 0, "value": {"RESULT": false}},
+        {"topic": "TEST2", "key": 0, "value": {"RESULT": false}},
+        {"topic": "TEST2", "key": 0, "value": {"RESULT": false}},
+        {"topic": "TEST2", "key": 0, "value": {"RESULT": false}}
+      ]
+    },
+    {
+      "name": "less than - decimal int",
+      "statements": [
+        "CREATE STREAM TEST (a DECIMAL(4,2), b INTEGER) WITH (kafka_topic='test', value_format='AVRO');",
+        "CREATE STREAM TEST2 AS SELECT (a < b) AS RESULT FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test", "key": 0, "value": {"A": "10.01", "B":  1}},
+        {"topic": "test", "key": 0, "value": {"A": "10.01", "B":  12}},
+        {"topic": "test", "key": 0, "value": {"A": null, "B":  12}},
+        {"topic": "test", "key": 0, "value": {"A": null, "B":  null}}
+      ],
+      "outputs": [
+        {"topic": "TEST2", "key": 0, "value": {"RESULT": false}},
+        {"topic": "TEST2", "key": 0, "value": {"RESULT": true}},
+        {"topic": "TEST2", "key": 0, "value": {"RESULT": false}},
+        {"topic": "TEST2", "key": 0, "value": {"RESULT": false}}
+      ]
     }
   ]
 }

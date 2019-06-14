@@ -15,45 +15,35 @@
 
 package io.confluent.ksql.util;
 
-import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.parser.tree.ComparisonExpression;
-import java.util.Map;
-import java.util.function.Function;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Schema.Type;
 
-public final class ComparisonUtil {
-
-  private static final Map<Type, Function<Type, Boolean>> TYPE_COMPARISON_COMPATIBILITY
-      = ImmutableMap.<Schema.Type, Function<Schema.Type, Boolean>>builder()
-      .put(Schema.Type.INT32, SchemaUtil::isNumber)
-      .put(Schema.Type.INT64, SchemaUtil::isNumber)
-      .put(Schema.Type.FLOAT64, SchemaUtil::isNumber)
-      .put(Schema.Type.STRING, type -> type == Schema.Type.STRING)
-      .put(Schema.Type.BOOLEAN, type -> type == Schema.Type.BOOLEAN)
-      .put(Schema.Type.ARRAY, type -> false)
-      .put(Schema.Type.MAP, type -> false)
-      .put(Schema.Type.STRUCT, type -> false)
-      .build();
+final class ComparisonUtil {
 
   private ComparisonUtil() {
 
   }
 
-  public static boolean isValidComparison(
-      final Schema.Type leftType,
+  static boolean isValidComparison(
+      final Schema left,
       final ComparisonExpression.Type operator,
-      final Schema.Type rightType) {
-    if (!TYPE_COMPARISON_COMPATIBILITY.get(leftType).apply(rightType)) {
-      throw new KsqlException("Operator " + operator + " cannot be used to compare " + leftType
-          + " and " + rightType);
+      final Schema right
+  ) {
+    if (SchemaUtil.isNumber(left) && SchemaUtil.isNumber(right)) {
+      return true;
     }
-    if (leftType == Schema.Type.BOOLEAN
-        && operator != ComparisonExpression.Type.EQUAL
-        && operator != ComparisonExpression.Type.NOT_EQUAL) {
-      throw new KsqlException("Operator " + operator + " cannot be used to compare " + leftType
-          + " and " + rightType);
+
+    if (left.type() == Type.STRING && right.type() == Type.STRING) {
+      return  true;
     }
-    return true;
+
+    if (left.type() == Type.BOOLEAN && right.type() == Type.BOOLEAN) {
+      return operator == ComparisonExpression.Type.EQUAL
+          || operator == ComparisonExpression.Type.NOT_EQUAL;
+    }
+
+    throw new KsqlException("Operator " + operator + " cannot be used to compare " + left
+        + " and " + right);
   }
 }

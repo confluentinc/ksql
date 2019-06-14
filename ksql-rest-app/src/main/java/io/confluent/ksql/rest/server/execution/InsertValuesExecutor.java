@@ -325,7 +325,7 @@ public class InsertValuesExecutor {
       return defaultSqlValueCoercer.coerce(value, fieldSchema)
           .orElseThrow(
               () -> new KsqlException(
-                  "Expected type " + fieldSchema + " for field " + fieldName
+                  "Expected type " + fieldSchema.type() + " for field " + fieldName
                       + " but got " + value));
     }
   }

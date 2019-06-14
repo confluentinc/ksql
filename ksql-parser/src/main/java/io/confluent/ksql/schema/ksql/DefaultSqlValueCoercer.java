@@ -17,6 +17,7 @@ package io.confluent.ksql.schema.ksql;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.util.DecimalUtil;
+import io.confluent.ksql.util.KsqlException;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
@@ -49,8 +50,12 @@ public final class DefaultSqlValueCoercer implements SqlValueCoercer {
       final int precision = DecimalUtil.precision(targetSchema);
       final int scale = DecimalUtil.scale(targetSchema);
       if (value instanceof String) {
-        return optional(new BigDecimal((String) value, new MathContext(precision))
-            .setScale(scale, RoundingMode.UNNECESSARY));
+        try {
+          return optional(new BigDecimal((String) value, new MathContext(precision))
+              .setScale(scale, RoundingMode.UNNECESSARY));
+        } catch (final NumberFormatException e) {
+          throw new KsqlException("Cannot coerce value to DECIMAL: " + value, e);
+        }
       }
       if (value instanceof Number) {
         return optional(
@@ -59,6 +64,7 @@ public final class DefaultSqlValueCoercer implements SqlValueCoercer {
                 new MathContext(precision))
                 .setScale(scale, RoundingMode.UNNECESSARY));
       }
+      return Optional.empty();
     }
 
     if (!(value instanceof Number) || !valueSqlType.canUpCast(targetSqlType)) {

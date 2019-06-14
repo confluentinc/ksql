@@ -28,11 +28,16 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 public class DefaultSqlValueCoercerTest {
 
   private DefaultSqlValueCoercer coercer;
+
+  @Rule
+  public final ExpectedException expectedException = ExpectedException.none();
 
   @Before
   public void setUp() {
@@ -133,5 +138,18 @@ public class DefaultSqlValueCoercerTest {
 
     // Expect:
     assertThat(coercer.coerce(val, DecimalUtil.builder(2, 1)), is(Optional.of(new BigDecimal("1.0"))));
+  }
+
+  @Test
+  public void shouldThrowIfInvalidCoercionString() {
+    // Given:
+    final String val = "hello";
+
+    // Expect;
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Cannot coerce value to DECIMAL: hello");
+
+    // When:
+    coercer.coerce(val, DecimalUtil.builder(2, 1));
   }
 }

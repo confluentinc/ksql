@@ -33,6 +33,7 @@ import io.confluent.ksql.parser.tree.BetweenPredicate;
 import io.confluent.ksql.parser.tree.BooleanLiteral;
 import io.confluent.ksql.parser.tree.Cast;
 import io.confluent.ksql.parser.tree.ComparisonExpression;
+import io.confluent.ksql.parser.tree.Decimal;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.DoubleLiteral;
 import io.confluent.ksql.parser.tree.Expression;
@@ -88,6 +89,7 @@ public class SqlToJavaVisitor {
       "java.util.ArrayList",
       "com.google.common.collect.ImmutableList",
       "java.util.function.Supplier",
+      DecimalUtil.class.getCanonicalName(),
       BigDecimal.class.getCanonicalName(),
       MathContext.class.getCanonicalName(),
       RoundingMode.class.getCanonicalName());
@@ -418,12 +420,15 @@ public class SqlToJavaVisitor {
       return new Pair<>(expr, Schema.OPTIONAL_BOOLEAN_SCHEMA);
     }
 
+    // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
     @Override
     protected Pair<String, Schema> visitCast(final Cast node, final Void context) {
+      // CHECKSTYLE_RULES.ON: CyclomaticComplexity
       final Pair<String, Schema> expr = process(node.getExpression(), context);
       final Type sqlType = node.getType();
-      if (!(sqlType instanceof PrimitiveType)) {
-        throw new KsqlFunctionException("Only casts to primitive types are supported: " + sqlType);
+      if (!(sqlType instanceof PrimitiveType) && !(sqlType instanceof Decimal)) {
+        throw new KsqlFunctionException(
+            "Only casts to primitive types and decimal are supported: " + sqlType);
       }
 
       final Schema returnType = SchemaConverters.sqlToLogicalConverter().fromSqlType(sqlType);
@@ -468,6 +473,11 @@ public class SqlToJavaVisitor {
           );
           return new Pair<>(exprStr, returnType);
         }
+
+        case DECIMAL:
+          return new Pair<>(
+              getDecimalCastString(expr.getRight(), expr.getLeft(), sqlType),
+              returnType);
 
         default:
           throw new KsqlFunctionException("Invalid cast operation: " + sqlType);
@@ -796,6 +806,35 @@ public class SqlToJavaVisitor {
               "Invalid cast operation: Cannot cast " + exprStr + " to " + schema.type() + "."
           );
       }
+    }
+  }
+
+  private String getDecimalCastString(
+      final Schema schema,
+      final String exprStr,
+      final Type targetType
+  ) {
+    if (!(targetType instanceof Decimal)) {
+      throw new KsqlFunctionException("Got unexpected type for decimal cast: " + targetType);
+    }
+
+    final Decimal target = (Decimal) targetType;
+
+    switch (schema.type()) {
+      case INT32:
+      case INT64:
+      case FLOAT64:
+      case STRING:
+      case BYTES:
+        return String.format(
+            "(DecimalUtil.cast(%s, %d, %d))",
+            exprStr,
+            target.getPrecision(),
+            target.getScale());
+      default:
+        throw new KsqlFunctionException(
+            "Invalid cast operation: Cannot cast " + exprStr
+                + " to " + SchemaConverters.logicalToSqlConverter().toSqlType(schema));
     }
   }
 

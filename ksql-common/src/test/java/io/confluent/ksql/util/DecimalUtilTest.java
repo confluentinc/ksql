@@ -18,6 +18,7 @@ package io.confluent.ksql.util;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigDecimal;
 import org.apache.kafka.connect.data.Decimal;
 import org.apache.kafka.connect.data.Schema;
@@ -81,6 +82,51 @@ public class DecimalUtilTest {
   }
 
   @Test
+  public void shouldCastDecimal() {
+    // When:
+    final BigDecimal decimal = DecimalUtil.cast(new BigDecimal("1.1"), 3, 2);
+
+    // Then:
+    assertThat(decimal, is(new BigDecimal("1.10")));
+  }
+
+  @Test
+  public void shouldCastInt() {
+    // When:
+    final BigDecimal decimal = DecimalUtil.cast(1, 2, 1);
+
+    // Then:
+    assertThat(decimal, is(new BigDecimal("1.0")));
+  }
+
+  @Test
+  public void shouldCastDouble() {
+    // When:
+    final BigDecimal decimal = DecimalUtil.cast(1.1, 2, 1);
+
+    // Then:
+    assertThat(decimal, is(new BigDecimal("1.1")));
+  }
+
+  @Test
+  public void shouldCastRoundDouble() {
+    // When:
+    final BigDecimal decimal = DecimalUtil.cast(1.09, 2, 1);
+
+    // Then:
+    assertThat(decimal, is(new BigDecimal("1.1")));
+  }
+
+  @Test
+  public void shouldCastString() {
+    // When:
+    final BigDecimal decimal = DecimalUtil.cast("1.1", 2, 1);
+
+    // Then:
+    assertThat(decimal, is(new BigDecimal("1.1")));
+  }
+
+  @Test
   public void shouldEnsureFitIfExactMatch() {
     // No Exception When:
     DecimalUtil.ensureFit(new BigDecimal("1.2"), DECIMAL_SCHEMA);
@@ -134,5 +180,78 @@ public class DecimalUtilTest {
 
     // When:
     DecimalUtil.ensureFit(new BigDecimal("1.23"), DECIMAL_SCHEMA);
+  }
+
+  @Test
+  public void shouldNotCastDecimalTooBig() {
+    // Expect:
+    expectedException.expect(ArithmeticException.class);
+    expectedException.expectMessage("Rounding necessary");
+
+    // When:
+    DecimalUtil.cast(new BigDecimal(10), 2, 1);
+  }
+
+  @SuppressFBWarnings(
+      value = "DMI_BIGDECIMAL_CONSTRUCTED_FROM_DOUBLE",
+      justification = "valid use case test")
+  @Test
+  public void shouldNotCastDecimalTooPrecise() {
+    // Expect:
+    expectedException.expect(ArithmeticException.class);
+    expectedException.expectMessage("Rounding necessary");
+
+    // When:
+    DecimalUtil.cast(new BigDecimal(.10), 2, 1);
+  }
+
+  @Test
+  public void shouldNotCastIntTooBig() {
+    // Expect:
+    expectedException.expect(ArithmeticException.class);
+    expectedException.expectMessage("Rounding necessary");
+
+    // When:
+    DecimalUtil.cast(10, 2, 1);
+  }
+
+  @Test
+  public void shouldNotCastDoubleTooBig() {
+    // Expect:
+    expectedException.expect(ArithmeticException.class);
+    expectedException.expectMessage("Rounding necessary");
+
+    // When:
+    DecimalUtil.cast(10.0, 2, 1);
+  }
+
+  @Test
+  public void shouldNotCastStringTooManyDigits() {
+    // Expect:
+    expectedException.expect(ArithmeticException.class);
+    expectedException.expectMessage("Rounding necessary");
+
+    // When:
+    DecimalUtil.cast("00.1", 2, 1);
+  }
+
+  @Test
+  public void shouldNotCastStringTooPrecise() {
+    // Expect:
+    expectedException.expect(ArithmeticException.class);
+    expectedException.expectMessage("Rounding necessary");
+
+    // When:
+    DecimalUtil.cast(".01", 2, 1);
+  }
+
+  @Test
+  public void shouldNotCastStringTooBig() {
+    // Expect:
+    expectedException.expect(ArithmeticException.class);
+    expectedException.expectMessage("Rounding necessary");
+
+    // When:
+    DecimalUtil.cast("10", 2, 1);
   }
 }

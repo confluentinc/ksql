@@ -27,8 +27,10 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.parser.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.parser.tree.ArithmeticUnaryExpression.Sign;
+import io.confluent.ksql.parser.tree.Cast;
 import io.confluent.ksql.parser.tree.ComparisonExpression;
 import io.confluent.ksql.parser.tree.ComparisonExpression.Type;
+import io.confluent.ksql.parser.tree.Decimal;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
@@ -494,6 +496,21 @@ public class SqlToJavaVisitorTest {
 
     // Then:
     assertThat(java, is("(TEST1_COL8.plus(new MathContext(2, RoundingMode.UNNECESSARY)))"));
+  }
+
+  @Test
+  public void shouldGenerateCorrectCodeForDecimalCast() {
+    // Given:
+    final Cast cast = new Cast(
+        new QualifiedNameReference(QualifiedName.of("TEST1.COL3")),
+        Decimal.of(2, 1)
+    );
+
+    // When:
+    final String java = sqlToJavaVisitor.process(cast);
+
+    // Then:
+    assertThat(java, is("(DecimalUtil.cast(TEST1_COL3, 2, 1))"));
   }
 
   @Test

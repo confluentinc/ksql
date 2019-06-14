@@ -61,6 +61,84 @@
       "outputs": [
         {"topic": "OUTPUT", "value": ",,,,"}
       ]
+    },
+    {
+      "name": "decimal to decimal",
+      "statements": [
+        "CREATE STREAM TEST (foo DECIMAL(4,2)) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE STREAM OUT AS SELECT cast(foo AS DECIMAL(5,3)) FROM TEST;"
+      ],
+      "inputs": [
+        {"topic":  "test_topic", "value": "10.12"},
+        {"topic":  "test_topic", "value": "01.00"},
+        {"topic":  "test_topic", "value": "00.00"}
+      ],
+      "outputs": [
+        {"topic":  "OUT", "value": "10.120"},
+        {"topic":  "OUT", "value": "01.000"},
+        {"topic":  "OUT", "value": "00.000"}
+      ]
+    },
+    {
+      "name": "integer to decimal",
+      "statements": [
+        "CREATE STREAM TEST (foo INTEGER) WITH (kafka_topic='test_topic', value_format='AVRO');",
+        "CREATE STREAM OUT AS SELECT cast(foo AS DECIMAL(2,1)) as VAL FROM TEST;"
+      ],
+      "inputs": [
+        {"topic":  "test_topic", "value": {"foo": 1}},
+        {"topic":  "test_topic", "value": {"foo": 0}},
+        {"topic":  "test_topic", "value": {"foo": -1}},
+        {"topic":  "test_topic", "value": {"foo": 10}}
+      ],
+      "outputs": [
+        {"topic":  "OUT", "value": {"VAL": "1.0"}},
+        {"topic":  "OUT", "value": {"VAL": "0.0"}},
+        {"topic":  "OUT", "value": {"VAL": "-1.0"}},
+        {"topic":  "OUT", "value": {"VAL": null}}
+      ]
+    },
+    {
+      "name": "double to decimal",
+      "statements": [
+        "CREATE STREAM TEST (foo DOUBLE) WITH (kafka_topic='test_topic', value_format='AVRO');",
+        "CREATE STREAM OUT AS SELECT cast(foo AS DECIMAL(2,1)) as VAL FROM TEST;"
+      ],
+      "inputs": [
+        {"topic":  "test_topic", "value": {"foo": 0.1}},
+        {"topic":  "test_topic", "value": {"foo": 1.1}},
+        {"topic":  "test_topic", "value": {"foo": 0.0}},
+        {"topic":  "test_topic", "value": {"foo": 0.10}},
+        {"topic":  "test_topic", "value": {"foo": 0.01}}
+      ],
+      "outputs": [
+        {"topic":  "OUT", "value": {"VAL": "0.1"}},
+        {"topic":  "OUT", "value": {"VAL": "1.1"}},
+        {"topic":  "OUT", "value": {"VAL": "0.0"}},
+        {"topic":  "OUT", "value": {"VAL": "0.1"}},
+        {"topic":  "OUT", "value": {"VAL": null}}
+      ]
+    },
+    {
+      "name": "string to decimal",
+      "statements": [
+        "CREATE STREAM TEST (foo VARCHAR) WITH (kafka_topic='test_topic', value_format='AVRO');",
+        "CREATE STREAM OUT AS SELECT cast(foo AS DECIMAL(2,1)) as VAL FROM TEST;"
+      ],
+      "inputs": [
+        {"topic":  "test_topic", "value": {"foo": "0.1"}},
+        {"topic":  "test_topic", "value": {"foo": "1.1"}},
+        {"topic":  "test_topic", "value": {"foo": "0.0"}},
+        {"topic":  "test_topic", "value": {"foo": "0.10"}},
+        {"topic":  "test_topic", "value": {"foo": "0.01"}}
+      ],
+      "outputs": [
+        {"topic":  "OUT", "value": {"VAL": "0.1"}},
+        {"topic":  "OUT", "value": {"VAL": "1.1"}},
+        {"topic":  "OUT", "value": {"VAL": "0.0"}},
+        {"topic":  "OUT", "value": {"VAL": null}},
+        {"topic":  "OUT", "value": {"VAL": null}}
+      ]
     }
   ]
 }

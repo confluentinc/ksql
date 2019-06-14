@@ -21,6 +21,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlConfigTestUtil;
+import io.confluent.ksql.ServiceInfo;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlEngineTestUtil;
 import io.confluent.ksql.function.InternalFunctionRegistry;
@@ -97,7 +98,7 @@ public class JsonFormatTest {
         serviceContext,
         ProcessingLogContext.create(),
         new InternalFunctionRegistry(),
-        ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG));
+        ServiceInfo.create(ksqlConfig));
 
     topicClient = serviceContext.getTopicClient();
     metaStore = ksqlEngine.getMetaStore();

@@ -62,6 +62,7 @@ public class KsqlEngineMetricsTest {
   private KsqlEngineMetrics engineMetrics;
   private static final String KSQL_SERVICE_ID = "test-ksql-service-id";
   private static final String metricNamePrefix = KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX + KSQL_SERVICE_ID;
+  private static final Map<String, String> CUSTOM_TAGS = ImmutableMap.of("tag1", "value1", "tag2", "value2");
 
   @Mock
   private KsqlEngine ksqlEngine;
@@ -74,7 +75,7 @@ public class KsqlEngineMetricsTest {
     when(ksqlEngine.getServiceId()).thenReturn(KSQL_SERVICE_ID);
     when(query1.getQueryApplicationId()).thenReturn("app-1");
 
-    engineMetrics = new KsqlEngineMetrics(METRIC_GROUP, ksqlEngine, MetricCollectors.getMetrics());
+    engineMetrics = new KsqlEngineMetrics(METRIC_GROUP, ksqlEngine, MetricCollectors.getMetrics(), CUSTOM_TAGS);
   }
 
   @After
@@ -90,15 +91,6 @@ public class KsqlEngineMetricsTest {
     engineMetrics.close();
 
     engineMetrics.registeredSensors().forEach(sensor -> assertThat(engineMetrics.getMetrics().getSensor(sensor.name()), is(nullValue())));
-  }
-
-  private void shouldRecordRate(final String name, final double expected, final double error) {
-    assertThat(
-        Math.floor(getMetricValueLegacy(name)),
-        closeTo(expected, error));
-    assertThat(
-        Math.floor(getMetricValue(name)),
-        closeTo(expected, error));
   }
 
   @Test
@@ -272,7 +264,7 @@ public class KsqlEngineMetricsTest {
     return Double.valueOf(
         metrics.metric(
             metrics.metricName(
-                metricName, metricNamePrefix + METRIC_GROUP + "-query-stats")
+                metricName, metricNamePrefix + METRIC_GROUP + "-query-stats", CUSTOM_TAGS)
         ).metricValue().toString()
     );
   }
@@ -282,7 +274,7 @@ public class KsqlEngineMetricsTest {
     return Long.parseLong(
         metrics.metric(
             metrics.metricName(
-                metricName, metricNamePrefix + METRIC_GROUP + "-query-stats")
+                metricName, metricNamePrefix + METRIC_GROUP + "-query-stats", CUSTOM_TAGS)
         ).metricValue().toString()
     );
   }

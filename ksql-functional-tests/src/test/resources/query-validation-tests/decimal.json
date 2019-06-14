@@ -287,7 +287,7 @@
       "name": "greater than - decimal decimal",
       "statements": [
         "CREATE STREAM TEST (a DECIMAL(4,2), b DECIMAL(4,2)) WITH (kafka_topic='test', value_format='AVRO');",
-        "CREATE STREAM TEST2 AS SELECT (a >= b) AS RESULT FROM TEST;"
+        "CREATE STREAM TEST2 AS SELECT (a > b) AS RESULT FROM TEST;"
       ],
       "inputs": [
         {"topic": "test", "key": 0, "value": {"A": "10.01", "B":  "03.01"}},

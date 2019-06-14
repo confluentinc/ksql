@@ -12,6 +12,8 @@ of the other services it communicates with, like |ak-tm| and |sr|.
   :ref:`SASL for authentication <kafka_sasl_auth>`, and :ref:`authorization with ACLs <kafka_authorization>`.
 - KSQL supports :ref:`Schema Registry security features <schemaregistry_security>` such SSL for encryption
   and mutual authentication for authorization.
+- Starting in |cp| 5.3, KSQL supports role-based access control (RBAC) to
+  cluster resources.
 - Starting in |cp| 5.2, KSQL supports SSL on all network traffic.
 
 To configure security for KSQL, add your configuration settings to the ``<path-to-confluent>/etc/ksql/ksql-server.properties``
@@ -315,6 +317,97 @@ signed by a CA trusted by the default JVM trust store.
 
 The exact settings will vary depending on what SASL mechanism your Kafka cluster is using and how your SSL certificates are
 signed. For more information, see the :ref:`Security Guide <security>`.
+
+
+.. _config-security-ksql-rbac:
+
+-----------------------------------------
+Role-based access control (RBAC) for KSQL 
+-----------------------------------------
+
+Starting in |cp| 5.3, KSQL supports role-based access control (RBAC) to cluster
+resources. For more information, see :ref:`rbac-overview`.
+
+.. note::
+
+   Role-based access control applies only to KSQL clusters that are deployed
+   in interactive mode. RBAC isn't enabled for KSQL clusters that are deployed
+   in headless mode.
+
+Role-based access control affects these actions on a KSQL cluster:
+
+- **Add**: Add a new KSQL cluster resource by using |c3| or the Confluent CLI.
+  When the cluster is created, you set more permissions on the new resources. 
+- **Contribute**: Connect and contribute to a KSQL application or cluster.
+- **Cleanup**: Delete internal data and internal topics of a KSQL application
+  or cluster.
+- **Manage**: Manage access to connect to a KSQL application or cluster. 
+
+The following table shows how RBAC affects KSQL users, applications, and
+clusters.
+
++--------------------+-------------------------+------------------------+-----------+-----------------+
+| Role               | Add a new KSQL cluster  | Connect and contribute | Cleanup   | Manage access   |
++====================+=========================+========================+===========+=================+
+| ClusterAdmin       | Yes                     | Yes                    | Yes       | Yes             |
++--------------------+-------------------------+------------------------+-----------+-----------------+
+| DeveloperManage    | No                      | No                     | Yes       | No              |
++--------------------+-------------------------+------------------------+-----------+-----------------+
+| DeveloperRead      | No                      | No                     | No        | No              |
++--------------------+-------------------------+------------------------+-----------+-----------------+
+| DeveloperWrite     | No                      | Yes                    | No        | No              |
++--------------------+-------------------------+------------------------+-----------+-----------------+
+| Operator           | No                      | No                     | Yes       | No              |
++--------------------+-------------------------+------------------------+-----------+-----------------+
+| ResourceOwner      | Yes                     | Yes                    | Yes       | Yes             |
++--------------------+-------------------------+------------------------+-----------+-----------------+
+| SecurityAdmin      | No                      | No                     | No        | No              |
++--------------------+-------------------------+------------------------+-----------+-----------------+
+| SystemAdmin        | Yes                     | Yes                    | Yes       | Yes             |
++--------------------+-------------------------+------------------------+-----------+-----------------+
+| UserAdmin          | No                      | No                     | No        | Yes             |
++--------------------+-------------------------+------------------------+-----------+-----------------+
+
+.. important::
+
+   Principals who have the ``ClusterAdmin`` role can add and register a new
+   KSQL cluster, but we recommend against giving cluster administrators access
+   to data. As a best practice for security, give cluster administrators only
+   explicit permissions to access specific resources within the KSQL cluster.
+
+Principals who have the ``UserAdmin`` role can set the mapping of roles to
+users and groups, as well as scoping for KSQL applications.
+
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Workflow for developing a new KSQL application
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Use the Confluent CLI to assign roles to principals and users.
+For more information, see :ref:`cli`.
+
+The following steps show a typical workflow that sets up role-based access
+control for a new KSQL cluster and for developing a new KSQL application in
+interactive mode.
+
+#. A principal with the ``SystemAdmin`` role bootstraps a new Kafka cluster
+   and a separate KSQL cluster.
+#. The system administrator assigns the initial roles for the clusters.
+   For example, the system administrator delegates user administration by
+   assigning the ``UserAdmin`` role to a principal on the KSQL cluster.
+   Also, the system administrator assigns the ``ClusterAdmin`` role to a
+   principal who configures the KSQL cluster.
+#. A manager who wants to start developing a new KSQL application sends a
+   request to the user administrator, who assigns the ``ResourceOwner`` role
+   to the manager.
+#. A developer asks for access to the KSQL cluster, to start running queries
+   and creating streams and tables.
+#. The user administrator adds the developer as a user and assigns them the
+   ``DeveloperWrite`` role, which grants them "Contribute" permissions for the
+   KSQL and Kafka clusters.
+#. The manager grants the developer access to specific resources on the KSQL and
+   Kafka clusters.  
+#. The developer connects to the KSQL cluster by using |c3|, the Confluent CLI,
+   or programmatically through the KSQL API.
 
 .. _config-security-ksql-acl:
 

@@ -150,19 +150,6 @@ public final class LogicalSchema {
   }
 
   /**
-   * Get the set of field indexes for the implicit and key fields, if any.
-   *
-   * @return the set of indexes to the implicit fields.
-   */
-  public Set<Integer> implicitColumnIndexes() {
-    return implicitAndKeyFieldNames().stream()
-        .map(valueSchema::field)
-        .filter(Objects::nonNull)
-        .map(Field::index)
-        .collect(Collectors.toSet());
-  }
-
-  /**
    * Search for a field with the supplied {@code fieldName}.
    *
    * <p>If the fieldName and the name of a field are an exact match, it will return that field.

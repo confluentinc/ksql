@@ -19,7 +19,6 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.number.IsCloseTo.closeTo;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -100,6 +99,15 @@ public class KsqlEngineMetricsTest {
     assertThat(
         Math.floor(getMetricValue(name)),
         closeTo(expected, error));
+  }
+
+  @Test
+  public void shouldRecordLivenessIndicator() {
+    final double value = getMetricValue("liveness-indicator");
+    final double legacyValue = getMetricValueLegacy("liveness-indicator");
+
+    assertThat(value, equalTo(1.0));
+    assertThat(legacyValue, equalTo(1.0));
   }
 
   @Test

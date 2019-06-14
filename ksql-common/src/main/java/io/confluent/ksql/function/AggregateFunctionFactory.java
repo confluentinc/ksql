@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.function;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.function.udf.UdfMetadata;
 import java.util.List;
 import java.util.Objects;
@@ -24,23 +25,27 @@ import org.apache.kafka.connect.data.Schema;
 
 public abstract class AggregateFunctionFactory {
 
-  private final List<KsqlAggregateFunction<?, ?>> aggregateFunctionList;
   private final UdfMetadata metadata;
 
-  public AggregateFunctionFactory(final String functionName,
-                                  final List<KsqlAggregateFunction<?, ?>> aggregateFunctionList) {
-    this(new UdfMetadata(functionName, "", "confluent", "", KsqlFunction.INTERNAL_PATH, false),
-        aggregateFunctionList);
+  // used in most numeric functions
+  protected static final List<List<Schema>> NUMERICAL_ARGS = ImmutableList
+      .<List<Schema>>builder()
+      .add(ImmutableList.of(Schema.OPTIONAL_INT32_SCHEMA))
+      .add(ImmutableList.of(Schema.OPTIONAL_INT64_SCHEMA))
+      .add(ImmutableList.of(Schema.OPTIONAL_FLOAT64_SCHEMA))
+      .build();
+
+  public AggregateFunctionFactory(final String functionName) {
+    this(new UdfMetadata(functionName, "", "confluent", "", KsqlFunction.INTERNAL_PATH, false));
   }
 
-  public AggregateFunctionFactory(final UdfMetadata metadata,
-                                  final List<KsqlAggregateFunction<?, ?>> aggregateFunctionList) {
+  public AggregateFunctionFactory(final UdfMetadata metadata) {
     this.metadata = Objects.requireNonNull(metadata, "metadata can't be null");
-    this.aggregateFunctionList = Objects.requireNonNull(aggregateFunctionList,
-        "aggregateFunctionList can't be null");
   }
 
   public abstract KsqlAggregateFunction<?, ?> getProperAggregateFunction(List<Schema> argTypeList);
+
+  protected abstract List<List<Schema>> supportedArgs();
 
   public String getName() {
     return metadata.getName();
@@ -63,11 +68,7 @@ public abstract class AggregateFunctionFactory {
   }
 
   public void eachFunction(final Consumer<KsqlAggregateFunction<?, ?>> consumer) {
-    aggregateFunctionList.forEach(consumer);
-  }
-
-  protected List<KsqlAggregateFunction<?, ?>> getAggregateFunctionList() {
-    return aggregateFunctionList;
+    supportedArgs().forEach(args -> consumer.accept(getProperAggregateFunction(args)));
   }
 
   public boolean isInternal() {

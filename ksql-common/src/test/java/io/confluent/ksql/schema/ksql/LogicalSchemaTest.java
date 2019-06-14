@@ -18,9 +18,7 @@ package io.confluent.ksql.schema.ksql;
 import static io.confluent.ksql.util.SchemaUtil.ROWKEY_NAME;
 import static io.confluent.ksql.util.SchemaUtil.ROWTIME_NAME;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
@@ -34,7 +32,6 @@ import io.confluent.ksql.util.SchemaUtil;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
-import java.util.Set;
 import java.util.stream.Stream;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -744,58 +741,6 @@ public class LogicalSchemaTest {
         .field("bob.f1", Schema.OPTIONAL_INT64_SCHEMA)
         .build()
     )));
-  }
-
-  @Test
-  public void shouldGetImplicitColumnIndexes() {
-    // Given:
-    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
-        .field("f0", Schema.OPTIONAL_INT64_SCHEMA)
-        .field(SchemaUtil.ROWKEY_NAME, Schema.OPTIONAL_STRING_SCHEMA)
-        .field("f1", Schema.OPTIONAL_INT64_SCHEMA)
-        .field(SchemaUtil.ROWTIME_NAME, Schema.OPTIONAL_INT64_SCHEMA)
-        .build()
-    );
-
-    // When
-    final Set<Integer> result = schema.implicitColumnIndexes();
-
-    // Then:
-    assertThat(result, containsInAnyOrder(1, 3));
-  }
-
-  @Test
-  public void shouldGetNoImplicitColumnIndexesIfImplicitColumnsAsAliased() {
-    // Given:
-    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
-        .field("bob.f0", Schema.OPTIONAL_INT64_SCHEMA)
-        .field("bob." + SchemaUtil.ROWKEY_NAME, Schema.OPTIONAL_STRING_SCHEMA)
-        .field("bob.f1", Schema.OPTIONAL_INT64_SCHEMA)
-        .field("bob." + SchemaUtil.ROWTIME_NAME, Schema.OPTIONAL_INT64_SCHEMA)
-        .build()
-    );
-
-    // When
-    final Set<Integer> result = schema.implicitColumnIndexes();
-
-    // Then:
-    assertThat(result, is(empty()));
-  }
-
-  @Test
-  public void shouldGetNoImplicitColumnIndexesIfNoImplicitColumns() {
-    // Given:
-    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
-        .field("f0", Schema.OPTIONAL_INT64_SCHEMA)
-        .field("f1", Schema.OPTIONAL_INT64_SCHEMA)
-        .build()
-    );
-
-    // When
-    final Set<Integer> result = schema.implicitColumnIndexes();
-
-    // Then:
-    assertThat(result, is(empty()));
   }
 
   @Test

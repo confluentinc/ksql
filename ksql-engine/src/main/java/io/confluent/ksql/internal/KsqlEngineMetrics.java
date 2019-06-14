@@ -16,6 +16,7 @@
 package io.confluent.ksql.internal;
 
 import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.internal.KsqlMetricsExtension.Metric;
 import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.QueryMetadata;
@@ -27,6 +28,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Supplier;
 import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.metrics.Gauge;
@@ -58,27 +60,36 @@ public class KsqlEngineMetrics implements Closeable {
 
   private final String ksqlServiceId;
   private final Map<String, String> customMetricsTags;
+  private final Optional<KsqlMetricsExtension> metricsExtension;
 
   private final KsqlEngine ksqlEngine;
   private final Metrics metrics;
 
   public KsqlEngineMetrics(
       final KsqlEngine ksqlEngine,
-      final Map<String, String> customMetricsTags) {
-    this(METRIC_GROUP_PREFIX, ksqlEngine, MetricCollectors.getMetrics(), customMetricsTags);
+      final Map<String, String> customMetricsTags,
+      final Optional<KsqlMetricsExtension> metricsExtension) {
+    this(
+        METRIC_GROUP_PREFIX,
+        ksqlEngine,
+        MetricCollectors.getMetrics(),
+        customMetricsTags,
+        metricsExtension);
   }
 
   KsqlEngineMetrics(
       final String metricGroupPrefix,
       final KsqlEngine ksqlEngine,
       final Metrics metrics,
-      final Map<String, String> customMetricsTags) {
+      final Map<String, String> customMetricsTags,
+      final Optional<KsqlMetricsExtension> metricsExtension) {
     this.ksqlEngine = ksqlEngine;
     this.ksqlServiceId = KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX + ksqlEngine.getServiceId();
     this.sensors = new ArrayList<>();
     this.countMetrics = new ArrayList<>();
     this.metricGroupName = metricGroupPrefix + "-query-stats";
     this.customMetricsTags = customMetricsTags;
+    this.metricsExtension = metricsExtension;
 
     this.metrics = metrics;
 
@@ -94,6 +105,7 @@ public class KsqlEngineMetrics implements Closeable {
     this.errorRate = configureErrorRate(metrics);
     Arrays.stream(State.values())
         .forEach(state -> configureNumActiveQueriesForGivenState(metrics, state));
+    configureCustomMetrics();
   }
 
   @Override
@@ -359,6 +371,17 @@ public class KsqlEngineMetrics implements Closeable {
         customMetricsTags,
         state
     );
+  }
+
+  private void configureCustomMetrics() {
+    if (!metricsExtension.isPresent()) {
+      return;
+    }
+
+    final List<Metric> customMetrics = metricsExtension.get().getCustomMetrics();
+    for (final Metric metric : customMetrics) {
+      createSensor(metrics, metric.name(), metric.description(), metric.statSupplier());
+    }
   }
 
   private static class CountMetric {

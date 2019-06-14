@@ -174,6 +174,44 @@ public class KsqlDelimitedSerializerTest {
   }
 
   @Test
+  public void shouldSerializeOneHalfDecimalWithPaddedZeros() {
+    // Given:
+    final Schema schema = SchemaBuilder.struct()
+        .field("id", DecimalUtil.builder(4, 2).build())
+        .build();
+
+    final Serializer<Object> serializer = new KsqlDelimitedSerializer();
+
+    final Struct value = new Struct(schema)
+        .put("id", new BigDecimal(0.5));
+
+    // When:
+    final byte[] bytes = serializer.serialize("", value);
+
+    // Then:
+    assertThat(new String(bytes, StandardCharsets.UTF_8), is("00.50"));
+  }
+
+  @Test
+  public void shouldSerializeNegativeOneHalfDecimalWithPaddedZeros() {
+    // Given:
+    final Schema schema = SchemaBuilder.struct()
+        .field("id", DecimalUtil.builder(4, 2).build())
+        .build();
+
+    final Serializer<Object> serializer = new KsqlDelimitedSerializer();
+
+    final Struct value = new Struct(schema)
+        .put("id", new BigDecimal(-0.5));
+
+    // When:
+    final byte[] bytes = serializer.serialize("", value);
+
+    // Then:
+    assertThat(new String(bytes, StandardCharsets.UTF_8), is("\"-00.50\""));
+  }
+
+  @Test
   public void shouldSerializeNegativeDecimalWithPaddedZeros() {
     // Given:
     final Schema schema = SchemaBuilder.struct()

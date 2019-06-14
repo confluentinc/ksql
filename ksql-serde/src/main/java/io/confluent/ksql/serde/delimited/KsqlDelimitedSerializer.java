@@ -20,6 +20,7 @@ import io.confluent.ksql.util.KsqlException;
 import java.io.StringWriter;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.text.DecimalFormat;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
@@ -88,16 +89,11 @@ public class KsqlDelimitedSerializer implements Serializer<Object> {
         final int precision = DecimalUtil.precision(field.schema());
         final int scale = DecimalUtil.scale(field.schema());
 
-        final int leadingZeros = precision - value.precision();
-        if (value.compareTo(BigDecimal.ZERO) < 0) {
-          return "-" + StringUtils.repeat('0', leadingZeros) + value.abs().toPlainString();
-        } else if (value.compareTo(BigDecimal.ZERO) == 0) {
-          // BigDecimal returns precision of 1 no matter the scale for BigDecimal.ZERO
-          final int leading = Math.max(1, precision - scale);
-          return StringUtils.repeat('0', leading) + "." + StringUtils.repeat('0', scale);
-        } else {
-          return StringUtils.repeat('0', leadingZeros) + value.toPlainString();
-        }
+        final DecimalFormat format = new DecimalFormat();
+        format.setMinimumIntegerDigits(precision - scale);
+        format.setMinimumFractionDigits(scale);
+
+        return format.format(value);
       }
       return data.get(field);
     }

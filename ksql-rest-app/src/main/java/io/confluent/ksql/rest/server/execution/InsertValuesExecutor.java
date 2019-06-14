@@ -34,6 +34,7 @@ import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.schema.ksql.DefaultSqlValueCoercer;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SqlValueCoercer;
 import io.confluent.ksql.serde.GenericRowSerDe;
 import io.confluent.ksql.services.ServiceContext;
@@ -325,7 +326,9 @@ public class InsertValuesExecutor {
       return defaultSqlValueCoercer.coerce(value, fieldSchema)
           .orElseThrow(
               () -> new KsqlException(
-                  "Expected type " + fieldSchema.type() + " for field " + fieldName
+                  "Expected type "
+                      + SchemaConverters.logicalToSqlConverter().toSqlType(fieldSchema)
+                      + " for field " + fieldName
                       + " but got " + value));
     }
   }

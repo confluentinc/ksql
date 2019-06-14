@@ -183,7 +183,7 @@ public class KsqlResourceTest {
       0L);
   private static final LogicalSchema SINGLE_FIELD_SCHEMA = LogicalSchema.of(SchemaBuilder.struct()
       .field("val", Schema.OPTIONAL_STRING_SCHEMA)
-      .build()).withImplicitFields();
+      .build()).withImplicitAndKeyFieldsInValue();
 
   private static final ClusterTerminateRequest VALID_TERMINATE_REQUEST =
       new ClusterTerminateRequest(ImmutableList.of("Foo"));
@@ -387,7 +387,7 @@ public class KsqlResourceTest {
     final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
         .field("FIELD1", Schema.OPTIONAL_BOOLEAN_SCHEMA)
         .field("FIELD2", Schema.OPTIONAL_STRING_SCHEMA)
-        .build()).withImplicitFields();
+        .build()).withImplicitAndKeyFieldsInValue();
 
     givenSource(
         DataSourceType.KSTREAM, "new_stream", "new_topic",
@@ -415,7 +415,7 @@ public class KsqlResourceTest {
     final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
         .field("FIELD1", Schema.OPTIONAL_BOOLEAN_SCHEMA)
         .field("FIELD2", Schema.OPTIONAL_STRING_SCHEMA)
-        .build()).withImplicitFields();
+        .build()).withImplicitAndKeyFieldsInValue();
 
     givenSource(
         DataSourceType.KTABLE, "new_table", "new_topic",
@@ -1928,7 +1928,7 @@ public class KsqlResourceTest {
   private void addTestTopicAndSources() {
     final LogicalSchema schema1 = LogicalSchema.of(SchemaBuilder.struct()
             .field("S1_F1", Schema.OPTIONAL_BOOLEAN_SCHEMA)
-            .build()).withImplicitFields();
+            .build()).withImplicitAndKeyFieldsInValue();
 
     givenSource(
         DataSourceType.KTABLE,
@@ -1936,7 +1936,7 @@ public class KsqlResourceTest {
 
     final LogicalSchema schema2 = LogicalSchema.of(SchemaBuilder.struct()
         .field("S2_F1", Schema.OPTIONAL_STRING_SCHEMA)
-        .build()).withImplicitFields();
+        .build()).withImplicitAndKeyFieldsInValue();
 
     givenSource(
         DataSourceType.KSTREAM,
@@ -1969,7 +1969,7 @@ public class KsqlResourceTest {
               sourceName,
               schema,
               SerdeOption.none(),
-              KeyField.of(schema.fields().get(0).name(), schema.fields().get(0)),
+              KeyField.of(schema.valueFields().get(0).name(), schema.valueFields().get(0)),
               new MetadataTimestampExtractionPolicy(),
               ksqlTopic,
               Serdes::String
@@ -1982,7 +1982,7 @@ public class KsqlResourceTest {
               sourceName,
               schema,
               SerdeOption.none(),
-              KeyField.of(schema.fields().get(0).name(), schema.fields().get(0)),
+              KeyField.of(schema.valueFields().get(0).name(), schema.valueFields().get(0)),
               new MetadataTimestampExtractionPolicy(),
               ksqlTopic,
               Serdes::String

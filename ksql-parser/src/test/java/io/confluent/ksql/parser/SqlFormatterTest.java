@@ -155,7 +155,7 @@ public class SqlFormatterTest {
     final KsqlTable<String> ksqlTableOrders = new KsqlTable<>(
         "sqlexpression",
         "ITEMID",
-        LogicalSchema.of(itemInfoSchema).withImplicitFields(),
+        LogicalSchema.of(itemInfoSchema).withImplicitAndKeyFieldsInValue(),
         SerdeOption.none(),
         KeyField.of("ITEMID", itemInfoSchema.field("ITEMID")),
         new MetadataTimestampExtractionPolicy(),

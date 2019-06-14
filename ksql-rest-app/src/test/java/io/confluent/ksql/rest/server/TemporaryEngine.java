@@ -97,7 +97,7 @@ public class TemporaryEngine extends ExternalResource {
                 name,
                 SCHEMA,
                 SerdeOption.none(),
-                KeyField.of("val", SCHEMA.getSchema().field("val")),
+                KeyField.of("val", SCHEMA.valueSchema().field("val")),
                 new MetadataTimestampExtractionPolicy(),
                 topic,
                 Serdes::String
@@ -110,7 +110,7 @@ public class TemporaryEngine extends ExternalResource {
                 name,
                 SCHEMA,
                 SerdeOption.none(),
-                KeyField.of("val", SCHEMA.getSchema().field("val")),
+                KeyField.of("val", SCHEMA.valueSchema().field("val")),
                 new MetadataTimestampExtractionPolicy(),
                 topic,
                 Serdes::String

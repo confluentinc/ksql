@@ -145,7 +145,7 @@ public class InsertValuesExecutorTest {
 
     givenDataSourceWithSchema(SCHEMA, SerdeOption.none(), Optional.of("COL0"));
 
-    expectedRow = new Struct(SCHEMA.withoutImplicitFields().getSchema())
+    expectedRow = new Struct(SCHEMA.withoutImplicitAndKeyFieldsInValue().valueSchema())
         .put("COL0", "str")
         .put("COL1", 2L);
   }
@@ -154,7 +154,7 @@ public class InsertValuesExecutorTest {
   public void shouldHandleFullRow() {
     // Given:
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
-        fieldNames(SCHEMA.withoutImplicitFields()),
+        fieldNames(SCHEMA.withoutImplicitAndKeyFieldsInValue()),
         ImmutableList.of(
             new StringLiteral("str"),
             new LongLiteral(2L)
@@ -176,11 +176,11 @@ public class InsertValuesExecutorTest {
     givenDataSourceWithSchema(SINGLE_FIELD_SCHEMA, SerdeOption.none(), Optional.of("COL0"));
 
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
-        fieldNames(SINGLE_FIELD_SCHEMA.withoutImplicitFields()),
+        fieldNames(SINGLE_FIELD_SCHEMA.withoutImplicitAndKeyFieldsInValue()),
         ImmutableList.of(new StringLiteral("new"))
     );
 
-    expectedRow = new Struct(SINGLE_FIELD_SCHEMA.withoutImplicitFields().getSchema())
+    expectedRow = new Struct(SINGLE_FIELD_SCHEMA.withoutImplicitAndKeyFieldsInValue().valueSchema())
         .put("COL0", "new");
 
     // When:
@@ -199,7 +199,7 @@ public class InsertValuesExecutorTest {
         SerdeOption.of(SerdeOption.UNWRAP_SINGLE_VALUES), Optional.of("COL0"));
 
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
-        fieldNames(SINGLE_FIELD_SCHEMA.withoutImplicitFields()),
+        fieldNames(SINGLE_FIELD_SCHEMA.withoutImplicitAndKeyFieldsInValue()),
         ImmutableList.of(new StringLiteral("new"))
     );
 
@@ -396,7 +396,7 @@ public class InsertValuesExecutorTest {
     // Then:
     verify(keySerializer).serialize(TOPIC_NAME, "str");
     verify(valueSerializer)
-        .serialize(TOPIC_NAME, new Struct(BIG_SCHEMA.withoutImplicitFields().getSchema())
+        .serialize(TOPIC_NAME, new Struct(BIG_SCHEMA.withoutImplicitAndKeyFieldsInValue().valueSchema())
         .put("COL0", "str")
         .put("INT", 0)
         .put("BIGINT", 2L)
@@ -621,7 +621,7 @@ public class InsertValuesExecutorTest {
         "TOPIC",
         schema,
         serdeOptions,
-        KeyField.of(keyField, keyField.map(f -> schema.getSchema().field(f))),
+        KeyField.of(keyField, keyField.map(f -> schema.valueSchema().field(f))),
         new MetadataTimestampExtractionPolicy(),
         topic,
         () -> keySerDe
@@ -634,6 +634,6 @@ public class InsertValuesExecutorTest {
   }
 
   private static List<String> fieldNames(final LogicalSchema schema) {
-    return schema.fields().stream().map(Field::name).collect(Collectors.toList());
+    return schema.valueFields().stream().map(Field::name).collect(Collectors.toList());
   }
 }

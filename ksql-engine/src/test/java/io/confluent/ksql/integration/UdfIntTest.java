@@ -254,7 +254,7 @@ public class UdfIntTest {
         .getSource(resultStreamName);
 
     final PhysicalSchema resultSchema = PhysicalSchema.from(
-        source.getSchema().withoutImplicitFields(),
+        source.getSchema().withoutImplicitAndKeyFieldsInValue(),
         source.getSerdeOptions()
     );
 

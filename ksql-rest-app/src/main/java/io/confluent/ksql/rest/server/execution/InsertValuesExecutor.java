@@ -16,6 +16,7 @@
 package io.confluent.ksql.rest.server.execution;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Streams;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
@@ -167,8 +168,8 @@ public class InsertValuesExecutor {
       final Map<String, Object> values
   ) {
     return new GenericRow(
-          schema.withoutImplicitFields()
-              .fields()
+          schema.withoutImplicitAndKeyFieldsInValue()
+              .valueFields()
               .stream()
               .map(Field::name)
               .map(values::get)
@@ -176,15 +177,17 @@ public class InsertValuesExecutor {
       );
   }
 
+  @SuppressWarnings("UnstableApiUsage")
   private static List<String> implicitColumns(
       final DataSource<?> dataSource,
       final List<Expression> values
   ) {
-    final List<String> fieldNames = dataSource.getSchema()
-        .fields()
-        .stream()
+    final LogicalSchema schema = dataSource.getSchema().withoutImplicitAndKeyFieldsInValue();
+
+    final List<String> fieldNames = Streams.concat(
+        schema.keyFields().stream(),
+        schema.valueFields().stream())
         .map(Field::name)
-        .filter(name -> !SchemaUtil.ROWTIME_NAME.equals(name))
         .collect(Collectors.toList());
 
     if (fieldNames.size() != values.size()) {
@@ -202,7 +205,7 @@ public class InsertValuesExecutor {
       final List<String> columns,
       final LogicalSchema schema
   ) {
-    final ConnectSchema valueSchema = schema.getSchema();
+    final ConnectSchema valueSchema = schema.valueSchema();
     final LogicalToSqlTypeConverter converter = SchemaConverters.logicalToSqlConverter();
     final Map<String, Object> values = new HashMap<>();
     for (int i = 0; i < columns.size(); i++) {
@@ -245,7 +248,7 @@ public class InsertValuesExecutor {
       final LogicalSchema schema,
       final Map<String, Object> values
   ) {
-    for (final Field field : schema.fields()) {
+    for (final Field field : schema.valueFields()) {
       if (!field.schema().isOptional() && values.getOrDefault(field.name(), null) == null) {
         throw new KsqlException("Got null value for nonnull field: " + field);
       }
@@ -272,7 +275,7 @@ public class InsertValuesExecutor {
     final Serde<GenericRow> rowSerde = GenericRowSerDe.from(
         dataSource.getValueSerdeFactory(),
         PhysicalSchema.from(
-            dataSource.getSchema().withoutImplicitFields(),
+            dataSource.getSchema().withoutImplicitAndKeyFieldsInValue(),
             dataSource.getSerdeOptions()
         ),
         config,

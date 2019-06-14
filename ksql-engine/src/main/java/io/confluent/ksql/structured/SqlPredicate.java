@@ -76,7 +76,7 @@ class SqlPredicate {
     for (final CodeGenRunner.ParameterType param : parameters) {
       parameterNames[index] = param.getParamName();
       parameterTypes[index] = param.getType();
-      columnIndexes[index] = schema.fieldIndex(param.getFieldName()).orElse(-1);
+      columnIndexes[index] = schema.valueFieldIndex(param.getFieldName()).orElse(-1);
       index++;
     }
 

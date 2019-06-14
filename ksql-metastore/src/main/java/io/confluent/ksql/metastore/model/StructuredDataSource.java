@@ -61,7 +61,7 @@ abstract class StructuredDataSource<K> implements DataSource<K> {
     this.keySerde = requireNonNull(keySerde, "keySerde");
     this.serdeOptions = ImmutableSet.copyOf(requireNonNull(serdeOptions, "serdeOptions"));
 
-    if (!schema.withImplicitFields().equals(schema)) {
+    if (!schema.withImplicitAndKeyFieldsInValue().equals(schema)) {
       throw new IllegalArgumentException();
     }
   }

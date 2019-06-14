@@ -253,7 +253,7 @@ public class GenericRowSerDeTest {
     // Then:
     verify(delegateSerializer).serialize(
         SOME_TOPIC,
-        new Struct(MUTLI_FIELD_SCHEMA.logicalSchema().getSchema())
+        new Struct(MUTLI_FIELD_SCHEMA.logicalSchema().valueSchema())
             .put("f0", "str")
             .put("f1", 10)
     );
@@ -324,7 +324,7 @@ public class GenericRowSerDeTest {
     // Then:
     verify(delegateSerializer).serialize(
         SOME_TOPIC,
-        new Struct(WRAPPED_SINGLE_FIELD_SCHEMA.logicalSchema().getSchema())
+        new Struct(WRAPPED_SINGLE_FIELD_SCHEMA.logicalSchema().valueSchema())
             .put("f0", "str")
     );
 
@@ -388,7 +388,7 @@ public class GenericRowSerDeTest {
         .deserializer();
 
     when(delegateDeserializer.deserialize(any(), any()))
-        .thenReturn(new Struct(MUTLI_FIELD_SCHEMA.logicalSchema().getSchema())
+        .thenReturn(new Struct(MUTLI_FIELD_SCHEMA.logicalSchema().valueSchema())
             .put("f0", "str")
             .put("f1", 10));
 
@@ -425,7 +425,7 @@ public class GenericRowSerDeTest {
         .deserializer();
 
     when(delegateDeserializer.deserialize(any(), any()))
-        .thenReturn(new Struct(WRAPPED_SINGLE_FIELD_SCHEMA.logicalSchema().getSchema())
+        .thenReturn(new Struct(WRAPPED_SINGLE_FIELD_SCHEMA.logicalSchema().valueSchema())
             .put("f0", "str"));
 
     // When:

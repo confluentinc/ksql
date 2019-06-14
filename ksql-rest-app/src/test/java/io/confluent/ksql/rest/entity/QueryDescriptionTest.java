@@ -133,7 +133,7 @@ public class QueryDescriptionTest {
         "fake_sink",
         SCHEMA,
         SerdeOption.none(),
-        KeyField.of(SCHEMA.fields().get(0).name(), SCHEMA.fields().get(0)),
+        KeyField.of(SCHEMA.valueFields().get(0).name(), SCHEMA.valueFields().get(0)),
         new MetadataTimestampExtractionPolicy(),
         sinkTopic,
         Serdes::String

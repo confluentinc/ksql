@@ -112,11 +112,11 @@ public class JoinNode extends PlanNode {
 
     final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
 
-    for (final Field field : leftSchema.getSchema().fields()) {
+    for (final Field field : leftSchema.valueSchema().fields()) {
       schemaBuilder.field(field.name(), field.schema());
     }
 
-    for (final Field field : rightSchema.getSchema().fields()) {
+    for (final Field field : rightSchema.valueSchema().fields()) {
       schemaBuilder.field(field.name(), field.schema());
     }
     return LogicalSchema.of(schemaBuilder.build());
@@ -212,7 +212,7 @@ public class JoinNode extends PlanNode {
   }
 
   private static Field validateFieldInSchema(final String fieldName, final LogicalSchema schema) {
-    return schema.findField(fieldName)
+    return schema.findValueField(fieldName)
         .orElseThrow(() -> new IllegalArgumentException(
             "Invalid join field, not found in schema: " + fieldName));
   }
@@ -328,7 +328,7 @@ public class JoinNode extends PlanNode {
     ) {
       final LogicalSchema schema = stream.getSchema();
 
-      schema.findField(joinFieldName)
+      schema.findValueField(joinFieldName)
           .orElseThrow(() ->
               new KsqlException("couldn't find key field: " + joinFieldName + " in schema"));
 

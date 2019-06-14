@@ -76,6 +76,7 @@ public class KsqlEngineMetrics implements Closeable {
 
     this.metrics = metrics;
 
+    configureLivenessIndicator(metrics);
     configureNumActiveQueries(metrics);
     configureNumPersistentQueries(metrics);
     this.messagesIn = configureMessagesIn(metrics);
@@ -229,6 +230,28 @@ public class KsqlEngineMetrics implements Closeable {
     final String description = "Number of inactive queries";
     final Sensor sensor = createSensor(metrics, metricName, description, Value::new);
     return sensor;
+  }
+
+  private void configureLivenessIndicator(final Metrics metrics) {
+    final String metricName = "liveness-indicator";
+    final String description =
+        "A metric with constant value 1 indicating the server is up and emitting metrics";
+    createSensor(
+        metrics,
+        metricName,
+        description,
+        () -> new MeasurableStat() {
+          @Override
+          public double measure(final MetricConfig metricConfig, final long l) {
+            return 1;
+          }
+
+          @Override
+          public void record(final MetricConfig metricConfig, final double v, final long l) {
+            // Nothing to record
+          }
+        }
+    );
   }
 
   private Sensor configureMessageConsumptionByQuerySensor(final Metrics metrics) {

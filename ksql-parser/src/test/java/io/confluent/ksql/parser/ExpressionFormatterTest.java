@@ -20,7 +20,6 @@ import static org.junit.Assert.assertThat;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.parser.tree.ArithmeticBinaryExpression;
-import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.parser.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.parser.tree.Array;
 import io.confluent.ksql.parser.tree.BetweenPredicate;
@@ -52,6 +51,7 @@ import io.confluent.ksql.parser.tree.SubscriptExpression;
 import io.confluent.ksql.parser.tree.TimeLiteral;
 import io.confluent.ksql.parser.tree.TimestampLiteral;
 import io.confluent.ksql.parser.tree.WhenClause;
+import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.schema.ksql.SqlType;
 import java.util.Collections;
 import java.util.Optional;

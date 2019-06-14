@@ -21,7 +21,6 @@ import static org.hamcrest.Matchers.is;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.schema.connect.SqlSchemaFormatter.Option;
 import io.confluent.ksql.util.DecimalUtil;
-import org.apache.kafka.connect.data.Decimal;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Test;

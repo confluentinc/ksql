@@ -39,11 +39,13 @@ final class ComparisonUtil {
     }
 
     if (left.type() == Type.BOOLEAN && right.type() == Type.BOOLEAN) {
-      return operator == ComparisonExpression.Type.EQUAL
-          || operator == ComparisonExpression.Type.NOT_EQUAL;
+      if (operator == ComparisonExpression.Type.EQUAL
+          || operator == ComparisonExpression.Type.NOT_EQUAL) {
+        return true;
+      }
     }
 
-    throw new KsqlException("Operator " + operator + " cannot be used to compare " + left
-        + " and " + right);
+    throw new KsqlException("Operator " + operator + " cannot be used to compare " + left.type()
+        + " and " + right.type());
   }
 }

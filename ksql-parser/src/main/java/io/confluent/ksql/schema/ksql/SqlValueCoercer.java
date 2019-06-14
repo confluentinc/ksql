@@ -16,6 +16,7 @@
 package io.confluent.ksql.schema.ksql;
 
 import java.util.Optional;
+import org.apache.kafka.connect.data.Schema;
 
 /**
  * Coerces values to {@link SqlType SQL types}.
@@ -28,9 +29,9 @@ public interface SqlValueCoercer {
    * <p>Complex SQL types are not supported, (yet).
    *
    * @param value the value to try to coerce.
-   * @param targetSqlType the target SQL type.
+   * @param targetSchema the target SQL type.
    * @param <T> target Java type
    * @return the coerced value if the value could be coerced, {@link Optional#empty()} otherwise.
    */
-  <T> Optional<T> coerce(Object value, SqlType targetSqlType);
+  <T> Optional<T> coerce(Object value, Schema targetSchema);
 }

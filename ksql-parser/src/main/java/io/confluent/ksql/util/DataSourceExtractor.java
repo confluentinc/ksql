@@ -18,13 +18,14 @@ package io.confluent.ksql.util;
 import static java.util.Objects.requireNonNull;
 
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.metastore.model.StructuredDataSource;
+import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.parser.SqlBaseBaseVisitor;
 import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.Node;
 import io.confluent.ksql.parser.tree.NodeLocation;
 import io.confluent.ksql.parser.tree.Table;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Optional;
@@ -33,14 +34,13 @@ import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
 
 public class DataSourceExtractor {
 
   private final MetaStore metaStore;
 
-  private Schema joinLeftSchema;
-  private Schema joinRightSchema;
+  private LogicalSchema joinLeftSchema;
+  private LogicalSchema joinRightSchema;
 
   private String fromAlias;
   private String fromName;
@@ -63,20 +63,16 @@ public class DataSourceExtractor {
     new Visitor().visit(node);
 
     if (joinLeftSchema != null) {
-      for (final Field field : joinLeftSchema.fields()) {
+      for (final Field field : joinLeftSchema.valueFields()) {
         leftFieldNames.add(field.name());
       }
-      for (final Field field : joinRightSchema.fields()) {
+      for (final Field field : joinRightSchema.valueFields()) {
         rightFieldNames.add(field.name());
         if (leftFieldNames.contains(field.name())) {
           commonFieldNames.add(field.name());
         }
       }
     }
-  }
-
-  public MetaStore getMetaStore() {
-    return metaStore;
   }
 
   public String getFromAlias() {
@@ -136,12 +132,25 @@ public class DataSourceExtractor {
     public Node visitAliasedRelation(final SqlBaseParser.AliasedRelationContext context) {
       final Table table = (Table) visit(context.relationPrimary());
 
-      String alias = null;
-      if (context.children.size() == 1) {
-        alias = table.getName().getSuffix().toUpperCase();
+      final String alias;
+      switch (context.children.size()) {
+        case 1:
+          alias = table.getName().getSuffix().toUpperCase();
+          break;
 
-      } else if (context.children.size() == 2) {
-        alias = context.children.get(1).getText().toUpperCase();
+        case 2:
+          alias = context.children.get(1).getText().toUpperCase();
+          break;
+
+        case 3:
+          alias = context.children.get(2).getText().toUpperCase();
+          break;
+
+        default:
+          throw new IllegalArgumentException(
+              "AliasedRelationContext must have between 1 and 3 children, but has:"
+                  + context.children.size()
+          );
       }
 
       if (!isJoin) {
@@ -163,7 +172,7 @@ public class DataSourceExtractor {
       final AliasedRelation left = (AliasedRelation) visit(context.left);
       leftAlias = left.getAlias();
       leftName = ((Table) left.getRelation()).getName().getSuffix();
-      final StructuredDataSource
+      final DataSource
           leftDataSource =
           metaStore.getSource(((Table) left.getRelation()).getName().getSuffix());
       if (leftDataSource == null) {
@@ -175,7 +184,7 @@ public class DataSourceExtractor {
       final AliasedRelation right = (AliasedRelation) visit(context.right);
       rightAlias = right.getAlias();
       rightName = ((Table) right.getRelation()).getName().getSuffix();
-      final StructuredDataSource
+      final DataSource
           rightDataSource =
           metaStore.getSource(((Table) right.getRelation()).getName().getSuffix());
       if (rightDataSource == null) {

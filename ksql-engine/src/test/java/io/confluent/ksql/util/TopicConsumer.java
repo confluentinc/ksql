@@ -19,9 +19,12 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasSize;
 
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
-import io.confluent.ksql.serde.json.KsqlJsonDeserializer;
+import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.serde.GenericRowSerDe;
+import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import java.time.Duration;
 import java.util.Collections;
@@ -34,7 +37,6 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.kafka.common.serialization.Deserializer;
-import org.apache.kafka.connect.data.Schema;
 import org.hamcrest.Matcher;
 
 public class TopicConsumer {
@@ -49,10 +51,12 @@ public class TopicConsumer {
     this.cluster = cluster;
   }
 
-  public <K, V> Map<K, V> readResults(final String topic,
-                                      final Matcher<Integer> expectedNumMessages,
-                                      final Deserializer<V> valueDeserializer,
-                                      final Deserializer<K> keyDeserializer) {
+  public <K, V> Map<K, V> readResults(
+      final String topic,
+      final Matcher<Integer> expectedNumMessages,
+      final Deserializer<V> valueDeserializer,
+      final Deserializer<K> keyDeserializer
+  ) {
     final Map<K, V> result = new HashMap<>();
 
     final Properties consumerConfig = new Properties();
@@ -84,16 +88,25 @@ public class TopicConsumer {
     return result;
   }
 
-  public <K> Map<K, GenericRow> readResults(final String topic,
-                                            final Schema schema,
-                                            final int expectedNumMessages,
-                                            final Deserializer<K> keyDeserializer) {
+  public <K> Map<K, GenericRow> readResults(
+      final String topic,
+      final PhysicalSchema schema,
+      final int expectedNumMessages,
+      final Deserializer<K> keyDeserializer
+  ) {
+    final Deserializer<GenericRow> deserializer = GenericRowSerDe.from(
+        new KsqlJsonSerdeFactory(),
+        schema,
+        new KsqlConfig(ImmutableMap.of()),
+        () -> null,
+        "consumer",
+        processingLogContext
+    ).deserializer();
+
     return readResults(
         topic,
         greaterThanOrEqualTo(expectedNumMessages),
-        new KsqlJsonDeserializer(
-            schema,
-            processingLogContext.getLoggerFactory().getLogger("consumer")),
+        deserializer,
         keyDeserializer
     );
   }

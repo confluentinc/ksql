@@ -24,7 +24,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.serde.SerdeTestUtils;
@@ -34,6 +33,7 @@ import java.util.Collections;
 import java.util.Optional;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaAndValue;
+import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.storage.Converter;
 import org.junit.Before;
 import org.junit.Rule;
@@ -57,7 +57,7 @@ public class KsqlConnectDeserializerTest {
   @Mock
   private Object value;
   @Mock
-  private GenericRow genericRow;
+  private Struct ksqlStruct;
 
   private final ProcessingLogConfig processingLogConfig
       = new ProcessingLogConfig(Collections.emptyMap());
@@ -75,18 +75,18 @@ public class KsqlConnectDeserializerTest {
         recordLogger
     );
     when(converter.toConnectData(any(), any())).thenReturn(new SchemaAndValue(schema, value));
-    when(dataTranslator.toKsqlRow(any(), any())).thenReturn(genericRow);
+    when(dataTranslator.toKsqlRow(any(), any())).thenReturn(ksqlStruct);
   }
 
   @Test
   public void shouldDeserializeRecordsCorrectly() {
     // When:
-    final GenericRow deserialized = connectDeserializer.deserialize(TOPIC, BYTES);
+    final Struct deserialized = (Struct) connectDeserializer.deserialize(TOPIC, BYTES);
 
     // Then:
     verify(converter, times(1)).toConnectData(TOPIC, BYTES);
     verify(dataTranslator, times(1)).toKsqlRow(schema, value);
-    assertThat(deserialized, sameInstance(genericRow));
+    assertThat(deserialized, sameInstance(ksqlStruct));
   }
 
   @Test
@@ -101,14 +101,13 @@ public class KsqlConnectDeserializerTest {
      connectDeserializer.deserialize(TOPIC, BYTES);
      fail("deserialize should have thrown");
    } catch (final RuntimeException caught) {
-     assertThat(caught, sameInstance(error));
+     SerdeTestUtils.shouldLogError(
+         recordLogger,
+         SerdeProcessingLogMessageFactory.deserializationErrorMsg(
+             error,
+             Optional.ofNullable(BYTES)).apply(processingLogConfig),
+         processingLogConfig
+     );
    }
-    SerdeTestUtils.shouldLogError(
-        recordLogger,
-        SerdeProcessingLogMessageFactory.deserializationErrorMsg(
-            error,
-            Optional.ofNullable(BYTES)).apply(processingLogConfig),
-        processingLogConfig
-    );
   }
 }

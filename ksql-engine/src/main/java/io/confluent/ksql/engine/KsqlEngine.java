@@ -17,7 +17,6 @@ package io.confluent.ksql.engine;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.KsqlExecutionContext;
-import io.confluent.ksql.ddl.commands.DdlCommandExec;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.internal.KsqlEngineMetrics;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
@@ -61,7 +60,6 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   private final KsqlEngineMetrics engineMetrics;
   private final ScheduledExecutorService aggregateMetricsCollector;
   private final String serviceId;
-  private final ServiceContext serviceContext;
   private final EngineContext primaryContext;
 
   public KsqlEngine(
@@ -91,7 +89,6 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
         metaStore,
         new QueryIdGenerator(),
         this::unregisterQuery);
-    this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
     this.serviceId = Objects.requireNonNull(serviceId, "serviceId");
     this.engineMetrics = engineMetricsFactory.apply(this);
     this.aggregateMetricsCollector = Executors.newSingleThreadScheduledExecutor();
@@ -133,11 +130,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
 
   @Override
   public ServiceContext getServiceContext() {
-    return serviceContext;
-  }
-
-  public DdlCommandExec getDdlCommandExec() {
-    return primaryContext.getDdlCommandExec();
+    return primaryContext.getServiceContext();
   }
 
   public String getServiceId() {
@@ -153,8 +146,8 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   }
 
   @Override
-  public KsqlExecutionContext createSandbox() {
-    return new SandboxedExecutionContext(primaryContext);
+  public KsqlExecutionContext createSandbox(final ServiceContext serviceContext) {
+    return new SandboxedExecutionContext(primaryContext, serviceContext);
   }
 
   @Override
@@ -171,8 +164,16 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   public ExecuteResult execute(
       final ConfiguredStatement<?> statement
   ) {
+    return execute(primaryContext.getServiceContext(), statement);
+  }
+
+  @Override
+  public ExecuteResult execute(
+      final ServiceContext serviceContext,
+      final ConfiguredStatement<?> statement
+  ) {
     final ExecuteResult result = EngineExecutor
-        .create(primaryContext, statement.getConfig(), statement.getOverrides())
+        .create(primaryContext, serviceContext, statement.getConfig(), statement.getOverrides())
         .execute(statement);
 
     result.getQuery().ifPresent(this::registerQuery);
@@ -204,7 +205,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
     engineMetrics.registerQuery(query);
   }
 
-  private void unregisterQuery(final QueryMetadata query) {
+  private void unregisterQuery(final ServiceContext serviceContext, final QueryMetadata query) {
     final String applicationId = query.getQueryApplicationId();
 
     if (!query.getState().equalsIgnoreCase("NOT_RUNNING")) {

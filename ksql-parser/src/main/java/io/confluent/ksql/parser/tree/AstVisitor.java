@@ -208,6 +208,11 @@ public abstract class AstVisitor<R, C> {
     return visitNode(node, context);
   }
 
+
+  protected R visitDecimal(final Decimal node, final C context) {
+    return visitNode(node, context);
+  }
+
   protected R visitAliasedRelation(final AliasedRelation node, final C context) {
     return visitRelation(node, context);
   }
@@ -269,6 +274,10 @@ public abstract class AstVisitor<R, C> {
   }
 
   protected R visitInsertInto(final InsertInto node, final C context) {
+    return visitStatement(node, context);
+  }
+
+  protected R visitInsertValues(final InsertValues node, final C context) {
     return visitStatement(node, context);
   }
 

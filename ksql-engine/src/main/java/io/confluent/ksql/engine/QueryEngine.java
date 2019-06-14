@@ -29,6 +29,8 @@ import io.confluent.ksql.physical.PhysicalPlanBuilder;
 import io.confluent.ksql.planner.LogicalPlanNode;
 import io.confluent.ksql.planner.LogicalPlanner;
 import io.confluent.ksql.planner.plan.OutputNode;
+import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
@@ -37,8 +39,8 @@ import io.confluent.ksql.util.QueryMetadata;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Consumer;
-import org.apache.kafka.streams.KafkaClientSupplier;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -105,7 +107,6 @@ class QueryEngine {
       final LogicalPlanNode logicalPlanNode,
       final KsqlConfig ksqlConfig,
       final Map<String, Object> overriddenProperties,
-      final KafkaClientSupplier clientSupplier,
       final MutableMetaStore metaStore
   ) {
 
@@ -121,7 +122,7 @@ class QueryEngine {
         overriddenProperties,
         metaStore,
         queryIdGenerator,
-        new KafkaStreamsBuilderImpl(clientSupplier),
+        new KafkaStreamsBuilderImpl(serviceContext.getKafkaClientSupplier()),
         queryCloseCallback
     );
 
@@ -147,7 +148,11 @@ class QueryEngine {
       final KsqlConfig config
   ) {
     final String outputPrefix = config.getString(KsqlConfig.KSQL_OUTPUT_TOPIC_NAME_PREFIX_CONFIG);
-    final QueryAnalyzer queryAnalyzer = new QueryAnalyzer(metaStore, outputPrefix);
+
+    final Set<SerdeOption> defaultSerdeOptions = SerdeOptions.buildDefaults(config);
+
+    final QueryAnalyzer queryAnalyzer =
+        new QueryAnalyzer(metaStore, outputPrefix, defaultSerdeOptions);
 
     final Analysis analysis = queryAnalyzer.analyze(sqlExpression, query, sink);
     final AggregateAnalysisResult aggAnalysis = queryAnalyzer.analyzeAggregate(query, analysis);

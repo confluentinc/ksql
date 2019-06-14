@@ -6,8 +6,8 @@ KSQL Syntax Reference
 KSQL has similar semantics to SQL:
 
 - Terminate KSQL statements with a semicolon ``;``.
-- Escape ``'`` characters inside string literals by using ``''``. For example,
-  to escape ``'T'``, write ``''T''``.
+- Escape single-quote characters (``'``) inside string literals by using two successive
+  single quotes (``''``). For example, to escape ``'T'``, write ``''T''``.
 
 ===========
 Terminology
@@ -98,6 +98,8 @@ WITHIN clauses.
 
 For more information, see :ref:`windows_in_ksql_queries`.
 
+.. _ksql-timestamp-formats:
+
 KSQL Timestamp Formats
 ----------------------
 
@@ -143,9 +145,7 @@ in KSQL statements.
             timestamp='event_timestamp',
             timestamp_format='hh ''o''clock'' a, zzzz');
 
-For more information on timestamp formats, see
-`DateTimeFormatter <https://docs.oracle.com/javase/8/docs/api/java/time/format/DateTimeFormatter.html>`__.
-
+For more information on timestamp formats, see `DateTimeFormatter <https://cnfl.io/java-dtf>`__.
 
 =================
 KSQL CLI Commands
@@ -232,18 +232,88 @@ RUN SCRIPT can also be used from the command line, for instance when writing she
 For more information, see :ref:`running-ksql-command-line`.
 
 
+.. _data-types:
+
+===============
+KSQL data types
+===============
+
+KSQL supports the following data types:
+
+Primitive Types
+---------------
+
+KSQL supports the following primitive data types:
+
+-  ``BOOLEAN``
+-  ``INTEGER`` or [``INT``]
+-  ``BIGINT``
+-  ``DOUBLE``
+-  ``VARCHAR`` (or ``STRING``)
+
+
+Array
+-----
+
+``ARRAY<ElementType>``
+
+.. note:: The ``DELIMITED`` format doesn't support arrays.
+
+KSQL supports fields that are arrays of another type. All the elements in the array must be of the
+same type. The element type can be any valid KSQL type.
+
+You can define arrays within a ``CREATE TABLE`` or ``CREATE STREAM`` statement by using the syntax
+``ARRAY<ElementType>``. For example, ``ARRAY<INT>`` defines an array of integers.
+
+The elements of an array are zero-indexed and can be accessed by using the ``[]`` operator passing
+in the index. For example, ``SOME_ARRAY[0]`` retrieves the first element from the array.
+For more information, see :ref:`operators`.
+
+Map
+---
+
+``MAP<KeyType, ValueType>``
+
+.. note:: The ``DELIMITED`` format doesn't support maps.
+
+KSQL supports fields that are maps. A map has a key and value type. All of the keys must be of the
+same type, and all of the values must be also be of the same type. Currently only ``STRING`` keys are supported. The value type can be any valid KSQL type.
+
+You can define maps within a ``CREATE TABLE`` or ``CREATE STREAM`` statement by using the syntax
+``MAP<KeyType, ValueType>``. For example, ``MAP<STRING, INT>`` defines a map with string keys and
+integer values.
+
+Access the values of a map by using the ``[]`` operator and passing in the key. For example,
+``SOME_MAP['cost']`` retrieves the value for the entry with key ``cost``, or ``null``
+For more information, see :ref:`operators`.
+
+Struct
+------
+
+``STRUCT<FieldName FieldType, ...>``
+
+.. note:: The ``DELIMITED`` format doesn't support structs.
+
+KSQL supports fields that are structs. A struct represents strongly typed structured data. A struct
+is an ordered collection of named fields that have a specific type. The field types can be any valid
+KSQL type.
+
+You can define a structs within a ``CREATE TABLE`` or ``CREATE STREAM`` statement by using the syntax
+``STRUCT<FieldName FieldType, ...>``. For example, ``STRUCT<ID BIGINT, NAME STRING, AGE INT>``
+defines a struct with three fields, with the supplied name and type.
+
+Access the fields of a struct by using the ``->`` operator. For example, ``SOME_STRUCT->ID``
+retrieves the value of the struct's ``ID`` field. For more information, see :ref:`operators`.
+
+
 ===============
 KSQL statements
 ===============
 
 .. tip::
 
-    -  KSQL statements must be terminated with a semicolon (``;``).
-    -  Multi-line statements:
-
-       -  In the CLI you must use a backslash (``\``) to indicate
-          continuation of a statement on the next line.
-       -  Do not use ``\`` for multi-line statements in ``.sql`` files.
+    - KSQL statements must be terminated with a semicolon (``;``).
+    - Statements can be spread over multiple lines.
     - The hyphen character, ``-``, isn't supported in names for streams, tables,
       topics, and columns.
     - Don't use quotes around stream names or table names when you CREATE them.
@@ -262,21 +332,8 @@ CREATE STREAM
 
 **Description**
 
-Create a new stream with the specified columns and properties.
-
-The supported column data types are:
-
--  ``BOOLEAN``
--  ``INTEGER``
--  ``BIGINT``
--  ``DOUBLE``
--  ``VARCHAR`` (or ``STRING``)
--  ``ARRAY<ArrayType>`` (JSON and AVRO only. Index starts from 0)
--  ``MAP<VARCHAR, ValueType>`` (JSON and AVRO only)
--  ``STRUCT<FieldName FieldType, ...>`` (JSON and AVRO only) The STRUCT type requires you to specify a list of fields.
-   For each field you must specify the field name (FieldName) and field type (FieldType). The field type can be any of
-   the supported KSQL types, including the complex types ``MAP``, ``ARRAY``, and ``STRUCT``. ``STRUCT`` fields can be
-   accessed in expressions using the struct dereference (``->``) operator. See :ref:`operators` for more details.
+Create a new stream with the specified columns and properties. Columns can be any of the
+:ref:`data types <data-types>` supported by KSQL.
 
 KSQL adds the implicit columns ``ROWTIME`` and ``ROWKEY`` to every
 stream and table, which represent the corresponding Kafka message
@@ -287,10 +344,20 @@ The WITH clause supports the following properties:
 +-------------------------+--------------------------------------------------------------------------------------------+
 | Property                | Description                                                                                |
 +=========================+============================================================================================+
-| KAFKA_TOPIC (required)  | The name of the Kafka topic that backs this stream. The topic must already exist in Kafka. |
+| KAFKA_TOPIC (required)  | The name of the Kafka topic that backs this source. The topic must either already exist in |
+|                         | Kafka, or PARTITIONS must be specified to create the topic. Command will fail if the topic |
+|                         | exists with different partition/replica counts.                                            |
 +-------------------------+--------------------------------------------------------------------------------------------+
 | VALUE_FORMAT (required) | Specifies the serialization format of the message value in the topic. Supported formats:   |
 |                         | ``JSON``, ``DELIMITED`` (comma-separated value), and ``AVRO``.                             |
+|                         | For more information, see :ref:`ksql_serialization`.                                       |
++-------------------------+--------------------------------------------------------------------------------------------+
+| PARTITIONS              | The number of partitions in the backing topic. This property must be set if creating a     |
+|                         | STREAM without an existing topic (the command will fail if the topic does not exist).      |
++-------------------------+--------------------------------------------------------------------------------------------+
+| REPLICAS                | The number of replicas in the backing topic. If this property is not set but PARTITIONS is |
+|                         | set, then the default Kafka cluster configuration for replicas will be used for creating a |
+|                         | new topic.                                                                                 |
 +-------------------------+--------------------------------------------------------------------------------------------+
 | KEY                     | Optimization hint: If the Kafka message key is also present as a field/column in the Kafka |
 |                         | message value, you may set this property to associate the corresponding field/column with  |
@@ -311,7 +378,25 @@ The WITH clause supports the following properties:
 |                         | bigint. If it is set, then the TIMESTAMP field must be of type varchar and have a format   |
 |                         | that can be parsed with the java ``DateTimeFormatter``. If your timestamp format has       |
 |                         | characters requiring single quotes, you can escape them with successive single quotes,     |
-|                         | ``''``, for example: ``'yyyy-MM-dd''T''HH:mm:ssX'``.                                       |
+|                         | ``''``, for example: ``'yyyy-MM-dd''T''HH:mm:ssX'``. For more information on timestamp     |
+|                         | formats, see `DateTimeFormatter <https://cnfl.io/java-dtf>`__.                             |
++-------------------------+--------------------------------------------------------------------------------------------+
+| WRAP_SINGLE_VALUE       | Controls how values are deserialized where the value schema contains only a single field.  |
+|                         |                                                                                            |
+|                         | The setting controls how KSQL will deserialize the value of the records in the supplied    |
+|                         | ``KAFKA_TOPIC`` that contain only a single field.                                          |
+|                         | If set to ``true``, KSQL expects the field to have been serialized as a named field        |
+|                         | within a record.                                                                           |
+|                         | If set to ``false``, KSQL expects the field to have been serialized as an anonymous value. |
+|                         | If not supplied, the system default, defined by :ref:`ksql-persistence-wrap-single-values` |
+|                         | and defaulting to ``true```, is used.                                                      |
+|                         |                                                                                            |
+|                         | Note: ``null`` values have special meaning in KSQL. Care should be taken when dealing with |
+|                         | single-field schemas where the value can be ``null`. For more information, see             |
+|                         | :ref:`ksql_single_field_wrapping`.                                                         |
+|                         |                                                                                            |
+|                         | Note: Supplying this property for formats that do not support wrapping, for example        |
+|                         | ``DELIMITED``, or when the value schema has multiple fields, will result in an error.      |
 +-------------------------+--------------------------------------------------------------------------------------------+
 | WINDOW_TYPE             | By default, the topic is assumed to contain non-windowed data. If the data is windowed,    |
 |                         | i.e. was created using KSQL using a query that contains a ``WINDOW`` clause, then the      |
@@ -319,6 +404,8 @@ The WITH clause supports the following properties:
 |                         | ``SESSION``, ``HOPPING`, and ``TUMBLING``.                                                 |
 +-------------------------+--------------------------------------------------------------------------------------------+
 
+For more information on timestamp formats, see
+`DateTimeFormatter <https://docs.oracle.com/javase/8/docs/api/java/time/format/DateTimeFormatter.html>`__.
 
 .. include:: ../includes/ksql-includes.rst
     :start-after: Avro_note_start
@@ -357,52 +444,44 @@ CREATE TABLE
 
 **Description**
 
-Create a new table with the specified columns and properties.
-
-The supported column data types are:
-
--  ``BOOLEAN``
--  ``INTEGER``
--  ``BIGINT``
--  ``DOUBLE``
--  ``VARCHAR`` (or ``STRING``)
--  ``ARRAY<ArrayType>`` (JSON and AVRO only. Index starts from 0)
--  ``MAP<VARCHAR, ValueType>`` (JSON and AVRO only)
--  ``STRUCT<FieldName FieldType, ...>`` (JSON and AVRO only) The STRUCT type requires you to specify a list of fields.
-   For each field you must specify the field name (FieldName) and field type (FieldType). The field type can be any of
-   the supported KSQL types, including the complex types ``MAP``, ``ARRAY``, and ``STRUCT``. ``STRUCT`` fields can be
-   accessed in expressions using the struct dereference (``->``) operator. See :ref:`operators` for more details.
+Create a new table with the specified columns and properties. Columns can be any of the
+:ref:`data types <data-types>` supported by KSQL.
 
 KSQL adds the implicit columns ``ROWTIME`` and ``ROWKEY`` to every
 stream and table, which represent the corresponding Kafka message
 timestamp and message key, respectively. The timestamp has milliseconds accuracy.
 
-KSQL has currently the following requirements for creating a table from a Kafka topic:
-
-1. The Kafka message key must also be present as a field/column in the Kafka message value. The ``KEY`` property (see
-   below) must be defined to inform KSQL which field/column in the message value represents the key. If the message key
-   is not present in the message value, follow the instructions in :ref:`ksql_key_requirements`.
-2. The message key must be in ``VARCHAR`` aka ``STRING`` format. If the message key is not in this format, follow the
-   instructions in :ref:`ksql_key_requirements`.
+When creating a table from a Kafka topic, KSQL requries the message key to be a ``VARCHAR`` aka ``STRING``. If the message
+key is not of this type follow the instructions in :ref:`ksql_key_requirements`.
 
 The WITH clause supports the following properties:
 
 +-------------------------+--------------------------------------------------------------------------------------------+
 | Property                | Description                                                                                |
 +=========================+============================================================================================+
-| KAFKA_TOPIC (required)  | The name of the Kafka topic that backs this table. The topic must already exist in Kafka.  |
+| KAFKA_TOPIC (required)  | The name of the Kafka topic that backs this source. The topic must either already exist in |
+|                         | Kafka, or PARTITIONS must be specified to create the topic. Command will fail if the topic |
+|                         | exists with different partition/replica counts.                                            |
 +-------------------------+--------------------------------------------------------------------------------------------+
 | VALUE_FORMAT (required) | Specifies the serialization format of message values in the topic. Supported formats:      |
 |                         | ``JSON``, ``DELIMITED`` (comma-separated value), and ``AVRO``.                             |
+|                         | For more information, see :ref:`ksql_serialization`.                                       |
 +-------------------------+--------------------------------------------------------------------------------------------+
-| KEY (required)          | Associates a field/column within the Kafka message value with the implicit ``ROWKEY``      |
-|                         | column (message key) in the KSQL table.                                                    |
-|                         |                                                                                            |
-|                         | KSQL currently requires that the Kafka message key, which will be available as the         |
-|                         | implicit ``ROWKEY`` column in the table, must also be present as a field/column in the     |
-|                         | message value. You must set the KEY property to this corresponding field/column in the     |
-|                         | message value, and this column must be in ``VARCHAR`` aka ``STRING`` format.               |
-|                         | See :ref:`ksql_key_requirements` for more information.                                     |
+| PARTITIONS              | The number of partitions in the backing topic. This property must be set if creating a     |
+|                         | TABLE without an existing topic (the command will fail if the topic does not exist).       |
++-------------------------+--------------------------------------------------------------------------------------------+
+| REPLICAS                | The number of replicas in the backing topic. If this property is not set but PARTITIONS is |
+|                         | set, then the default Kafka cluster configuration for replicas will be used for creating a |
+|                         | new topic.                                                                                 |
++-------------------------+--------------------------------------------------------------------------------------------+
+| KEY                     | Optimization hint: If the Kafka message key is also present as a field/column in the Kafka |
+|                         | message value, you may set this property to associate the corresponding field/column with  |
+|                         | the implicit ``ROWKEY`` column (message key).                                              |
+|                         | If set, KSQL uses it as an optimization hint to determine if repartitioning can be avoided |
+|                         | when performing aggregations and joins.                                                    |
+|                         | You can only use this if the key format in kafka is ``VARCHAR`` or ``STRING``. Do not use  |
+|                         | this hint if the message key format in kafka is AVRO or JSON.                              |
+|                         | For more information, see :ref:`ksql_key_requirements`.                                    |
 +-------------------------+--------------------------------------------------------------------------------------------+
 | TIMESTAMP               | By default, the implicit ``ROWTIME`` column is the timestamp of the message in the Kafka   |
 |                         | topic. The TIMESTAMP property can be used to override ``ROWTIME`` with the contents of the |
@@ -414,7 +493,25 @@ The WITH clause supports the following properties:
 |                         | bigint. If it is set, then the TIMESTAMP field must be of type varchar and have a format   |
 |                         | that can be parsed with the Java ``DateTimeFormatter``. If your timestamp format has       |
 |                         | characters requiring single quotes, you can escape them with two successive single quotes, |
-|                         | ``''``, for example: ``'yyyy-MM-dd''T''HH:mm:ssX'``.                                       |
+|                         | ``''``, for example: ``'yyyy-MM-dd''T''HH:mm:ssX'``. For more information on timestamp     |
+|                         | formats, see `DateTimeFormatter <https://cnfl.io/java-dtf>`__.                             |
++-------------------------+--------------------------------------------------------------------------------------------+
+| WRAP_SINGLE_VALUE       | Controls how values are deserialized where the values schema contains only a single field. |
+|                         |                                                                                            |
+|                         | The setting controls how KSQL will deserialize the value of the records in the supplied    |
+|                         | ``KAFKA_TOPIC`` that contain only a single field.                                          |
+|                         | If set to ``true``, KSQL expects the field to have been serialized as named field          |
+|                         | within a record.                                                                           |
+|                         | If set to ``false``, KSQL expects the field to have been serialized as an anonymous value. |
+|                         | If not supplied, the system default, defined by :ref:`ksql-persistence-wrap-single-values` |
+|                         | and defaulting to ``true```, is used.                                                      |
+|                         |                                                                                            |
+|                         | Note: ``null`` values have special meaning in KSQL. Care should be taken when dealing with |
+|                         | single-field schemas where the value can be ``null`. For more information, see             |
+|                         | :ref:`ksql_single_field_wrapping`.                                                         |
+|                         |                                                                                            |
+|                         | Note: Supplying this property for formats that do not support wrapping, for example        |
+|                         | ``DELIMITED``, or when the value schema has multiple fields, will result in an error.      |
 +-------------------------+--------------------------------------------------------------------------------------------+
 | WINDOW_TYPE             | By default, the topic is assumed to contain non-windowed data. If the data is windowed,    |
 |                         | i.e. was created using KSQL using a query that contains a ``WINDOW`` clause, then the      |
@@ -430,7 +527,7 @@ Example:
 
 .. code:: sql
 
-    CREATE TABLE users (usertimestamp BIGINT, user_id VARCHAR, gender VARCHAR, region_id VARCHAR)
+    CREATE TABLE users (usertimestamp BIGINT, user_id VARCHAR, gender VARCHAR, region_id VARCHAR) WITH (
         KAFKA_TOPIC = 'my-users-topic',
         KEY = 'user_id');
 
@@ -441,7 +538,7 @@ use the following statement to declare your table:
 
 .. code:: sql
 
-    CREATE TABLE users (usertimestamp BIGINT, user_id VARCHAR, gender VARCHAR, region_id VARCHAR, `Properties` VARCHAR)
+    CREATE TABLE users (usertimestamp BIGINT, user_id VARCHAR, gender VARCHAR, region_id VARCHAR, `Properties` VARCHAR) WITH (
             KAFKA_TOPIC = 'my-users-topic',
             KEY = 'user_id');
 
@@ -469,8 +566,8 @@ continuously write the result of the SELECT query into the stream and
 its corresponding topic.
 
 If the PARTITION BY clause is present, then the resulting stream will
-have the specified column as its key. For more information, see
-:ref:`partition-data-to-enable-joins`.
+have the specified column as its key. The `column_name` must be present
+in the `select_expr`. For more information, see :ref:`partition-data-to-enable-joins`.
 
 For joins, the key of the resulting stream will be the value from the column
 from the left stream that was used in the join criteria. This column will be
@@ -479,6 +576,10 @@ columns.
 
 For stream-table joins, the column used in the join criteria for the table
 must be the table key.
+
+For stream-stream joins, you can specify an optional WITHIN clause for matching
+records that both occur within a specified time interval. For valid time units,
+see :ref:`ksql-time-units`.
 
 For more information, see :ref:`join-streams-and-tables`.
 
@@ -528,14 +629,30 @@ The WITH clause for the result supports the following properties:
 |                         | bigint. If it is set, then the TIMESTAMP field must be of type varchar and have a format             |
 |                         | that can be parsed with the Java ``DateTimeFormatter``. If your timestamp format has                 |
 |                         | characters requiring single quotes, you can escape them with two successive single quotes,           |
-|                         | ``''``, for example: ``'yyyy-MM-dd''T''HH:mm:ssX'``.                                                 |
+|                         | ``''``, for example: ``'yyyy-MM-dd''T''HH:mm:ssX'``. For more information on timestamp               |
+|                         | formats, see `DateTimeFormatter <https://cnfl.io/java-dtf>`__.                                       |
++-------------------------+------------------------------------------------------------------------------------------------------+
+| WRAP_SINGLE_VALUE       | Controls how values are serialized where the values schema contains only a single field.             |
+|                         |                                                                                                      |
+|                         | The setting controls how the query will serialize values with a single-field schema.                 |
+|                         | If set to ``true``, KSQL will serialize the field as a named field within a record.                  |
+|                         | If set to ``false`` KSQL, KSQL will serialize the field as an anonymous value.                       |
+|                         | If not supplied, the system default, defined by :ref:`ksql-persistence-wrap-single-values` and       |
+|                         | defaulting to ``true```, is used.                                                                    |
+|                         |                                                                                                      |
+|                         | Note: ``null`` values have special meaning in KSQL. Care should be taken when dealing with           |
+|                         | single-field schemas where the value can be ``null`. For more information, see                       |
+|                         | :ref:`ksql_single_field_wrapping`.                                                                   |
+|                         |                                                                                                      |
+|                         | Note: Supplying this property for formats that do not support wrapping, for example                  |
+|                         | ``DELIMITED``, or when the value schema has multiple fields, will result in an error.                |
 +-------------------------+------------------------------------------------------------------------------------------------------+
 
 .. include:: ../includes/ksql-includes.rst
     :start-after: Avro_note_start
     :end-before: Avro_note_end
 
-Note: The ``KEY`` property is not supported – use PARTITION BY instead.
+.. note:: The ``KEY`` property is not supported – use PARTITION BY instead.
 
 .. _create-table-as-select:
 
@@ -617,7 +734,23 @@ The WITH clause supports the following properties:
 |                         | bigint. If it is set, then the TIMESTAMP field must be of type varchar and have a format             |
 |                         | that can be parsed with the Java ``DateTimeFormatter``. If your timestamp format has                 |
 |                         | characters requiring single quotes, you can escape them with two successive single quotes,           |
-|                         | ``''``, for example: ``'yyyy-MM-dd''T''HH:mm:ssX'``.                                                 |
+|                         | ``''``, for example: ``'yyyy-MM-dd''T''HH:mm:ssX'``. For more information on timestamp               |
+|                         | formats, see `DateTimeFormatter <https://cnfl.io/java-dtf>`__.                                       |
++-------------------------+------------------------------------------------------------------------------------------------------+
+| WRAP_SINGLE_VALUE       | Controls how values are serialized where the values schema contains only a single field.             |
+|                         |                                                                                                      |
+|                         | The setting controls how the query will serialize values with a single-field schema.                 |
+|                         | If set to ``true``, KSQL will serialize the field as a named field within a record.                  |
+|                         | If set to ``false`` KSQL, KSQL will serialize the field as an anonymous value.                       |
+|                         | If not supplied, the system default, defined by :ref:`ksql-persistence-wrap-single-values` and       |
+|                         | defaulting to ``true```, is used.                                                                    |
+|                         |                                                                                                      |
+|                         | Note: ``null`` values have special meaning in KSQL. Care should be taken when dealing with           |
+|                         | single-field schemas where the value can be ``null`. For more information, see                       |
+|                         | :ref:`ksql_single_field_wrapping`.                                                                   |
+|                         |                                                                                                      |
+|                         | Note: Supplying this property for formats that do not support wrapping, for example                  |
+|                         | ``DELIMITED``, or when the value schema has multiple fields, will result in an error.                |
 +-------------------------+------------------------------------------------------------------------------------------------------+
 
 .. include:: ../includes/ksql-includes.rst
@@ -653,6 +786,54 @@ Records written into the stream are not timestamp-ordered with respect to other 
 Therefore, the topic partitions of the output stream may contain out-of-order records even
 if the source stream for the query is ordered by timestamp.
 
+
+INSERT VALUES
+-----------
+
+**Synopsis**
+
+.. code:: sql
+
+    INSERT INTO <stream_name|table_name> [(column_name [, ...]])]
+      VALUES (value [,...]);
+
+**Description**
+
+Produce a row into an existing stream or table and its underlying topic based on
+explicitly specified values. The first ``column_name`` of every schema is ``ROWKEY``, which
+defines the corresponding Kafka key. If the source specifies a ``key`` and that column is present
+in the column names for this INSERT statement then that value and the ``ROWKEY`` value are expected
+to match, otherwise the value from ``ROWKEY`` will be copied into the value of the key column (or
+conversely from the key column into the ``ROWKEY`` column).
+
+Any column not explicitly given a value is set to ``null``.  If no columns are specified, a value
+for every column is expected in the same order as the schema with ``ROWKEY`` as the first column.
+If columns are specified, the order does not matter.
+
+.. note:: ``ROWTIME`` may be specified as an explicit column, but is not required when omitting the
+  column specifications.
+
+For example, the statements below would all be valid for a source with schema
+``<KEY_COL VARCHAR, COL_A VARCHAR>`` with ``KEY=KEY_COL``:
+
+  .. code:: sql
+
+      // inserts (1234, "key", "key", "A")
+      INSERT INTO foo (ROWTIME, ROWKEY, KEY_COL, COL_A) VALUES (1234, "key", "key", "A");
+
+      // inserts (current_time(), "key", "key", "A")
+      INSERT INTO foo VALUES ("key", "key", "A");
+
+      // inserts (current_time(), "key", "key", "A")
+      INSERT INTO foo (KEY_COL, COL_A) VALUES ("key", "A");
+
+      // inserts (current_time(), "key", "key", null)
+      INSERT INTO foo (KEY_COL) VALUES ("key");
+
+The values will serialize using the ``value_format`` specified in the original `CREATE` statement.
+The key will always be serialized as a String.
+
+
 DESCRIBE
 --------
 
@@ -668,18 +849,32 @@ DESCRIBE
 * DESCRIBE EXTENDED: Display DESCRIBE information with additional runtime statistics, Kafka topic details, and the
   set of queries that populate the table or stream.
 
-Extended descriptions provide the following metrics for the topic backing the source being described:
+Extended descriptions provide the following metrics for the topic backing the source being described.
 
-* messages-per-sec: The number of messages produced per second into the topic by the server
-* total-messages: Total number of messages produced into the topic by the server
-* total-message-bytes: Total number of bytes produced into the topic by the server
-* consumer-messages-per-sec: The number of messages consumed per second from the topic by the server
-* consumer-total-messages: Total number of messages consumed from the topic by the server
-* consumer-total-message-bytes: Total number of bytes consumed from the topic by the server
-* last-message: The time that the last message was produced to or consumed from the topic by the server
-* failed-messages-per-sec: The number of failures during message consumption (for example, deserialization failures) per second on the server
-* consumer-failed-messages: The total number of failures during message consumption on the server
-* last-failed: The time that the last failure occured when a message was consumed from the topic by the server
++------------------------------+------------------------------------------------------------------------------------------------------+
+| KSQL Metric                  | Description                                                                                          |
++==============================+======================================================================================================+
+| consumer-failed-messages     | Total number of failures during message consumption on the server.                                   |
++------------------------------+------------------------------------------------------------------------------------------------------+
+| consumer-messages-per-sec    | The number of messages consumed per second from the topic by the server.                             |
++------------------------------+------------------------------------------------------------------------------------------------------+
+| consumer-total-message-bytes | Total number of bytes consumed from the topic by the server.                                         |
++------------------------------+------------------------------------------------------------------------------------------------------+
+| consumer-total-messages      | Total number of messages consumed from the topic by the server.                                      |
++------------------------------+------------------------------------------------------------------------------------------------------+
+| failed-messages-per-sec      | Number of failures during message consumption (for example, deserialization failures)                |
+|                              | per second on the server.                                                                            |
++------------------------------+------------------------------------------------------------------------------------------------------+
+| last-failed                  | Time that the last failure occured when a message was consumed from the topic by the server.         |
++------------------------------+------------------------------------------------------------------------------------------------------+
+| last-message                 | Time that the last message was produced to or consumed from the topic by the server.                 |
++------------------------------+------------------------------------------------------------------------------------------------------+
+| messages-per-sec             | Number of messages produced per second into the topic by the server.                                 |
++------------------------------+------------------------------------------------------------------------------------------------------+
+| total-messages               | Total number of messages produced into the topic by the server.                                      |
++------------------------------+------------------------------------------------------------------------------------------------------+
+| total-message-bytes          | Total number of bytes produced into the topic by the server.                                         |
++------------------------------+------------------------------------------------------------------------------------------------------+
 
 Example of describing a table:
 
@@ -825,6 +1020,11 @@ for deletion, and if the topic format is AVRO, the corresponding Avro schema is
 deleted, too. Topic deletion is asynchronous, and actual removal from brokers
 may take some time to complete.
 
+.. note:: DELETE TOPIC will not necessarily work if your kafka cluster is configured
+  to create topics automatically with ``auto.create.topics.enable=true``. We
+  recommended checking after a few minutes to ensure that the topic was
+  deleted.
+
 If the IF EXISTS clause is present, the statement doesn't fail if the table
 doesn't exist.
 
@@ -844,9 +1044,14 @@ DROP TABLE [IF EXISTS] [DELETE TOPIC];
 Drops an existing table.
 
 If the DELETE TOPIC clause is present, the corresponding Kafka topic is marked
-for deletion and if the topic format is AVRO, delete the corresponding Avro schema is
-deleted, too. Topic deletion is asynchronous, and actual removal from brokers
+for deletion and if the topic format is AVRO, the corresponding Avro schema is
+deleted in the schema registry. Topic deletion is asynchronous, and actual removal from brokers
 may take some time to complete.
+
+.. note:: DELETE TOPIC will not necessarily work if your kafka cluster is configured
+  to create topics automatically with ``auto.create.topics.enable=true``. We
+  recommended checking after a few minutes to ensure that the topic was
+  deleted.
 
 If the IF EXISTS clause is present, the statement doesn't fail if the table
 doesn't exist.
@@ -1179,38 +1384,19 @@ SHOW PROPERTIES
 List the :ref:`configuration settings <ksql-param-reference>` that are
 currently in effect.
 
-SET/UNSET property
-------------------
+SPOOL
+_____
 **Synopsis**
 
 .. code:: sql
 
-    [SET] 'property_name' = 'property_value';
-    [UNSET] 'property_name';
+    SPOOL <file_name|OFF>
 
 **Description**
 
-Set or unset the session properties in the CLI. The session properties that have been set will be sent to the server along with the subsequent KSQL statements.
-The properties that are set using these commands are session properties, meaning they will be only available in the current CLI session.
-The following are the properties that you can configure with SET/UNSET commands, in release 5.2 and above:
-
-+---------------------------------------------------+--------------------------------------------------------------------------------------------+
-| Property                                          | Description                                                                                |
-+===================================================+============================================================================================+
-| ksql.sink.window.change.log.additional.retention  | The default window change log additional retention time. This is a streams config value    |
-|                                                   | which will be added to a windows maintainMs to ensure data is not deleted from the log     |
-|                                                   | prematurely. Allows for clock drift. The default is 1 day.                                 |
-+---------------------------------------------------+--------------------------------------------------------------------------------------------+
-| ksql.streams.commit.interval.ms                   | The frequency with which to save the position (offsets in source topics) of tasks.         |
-|                                                   | The default is 30000 milliseconds (at-least-once) / 100 milliseconds (exactly-once).       |
-+---------------------------------------------------+--------------------------------------------------------------------------------------------+
-| auto.offset.reset                                 | Configure the KSQL queries to read the source topics from earliest or latest offset.       |
-|                                                   | The default in KSQL is ``latest``.                                                         |
-+---------------------------------------------------+--------------------------------------------------------------------------------------------+
-| group.id                                          | A unique string that identifies the consumer group this consumer belongs to.               |
-|                                                   | This can be set for PRINT TOPIC command when ACLs are enabled in Kafka.                    |
-|                                                   | The default in KSQL is ````.                                                               |
-+---------------------------------------------------+--------------------------------------------------------------------------------------------+
+Stores issued commands and their results into a file. Only one spool may be active at a time and can
+be closed by issuing ``SPOOL OFF``. Commands are prefixed with ``ksql> `` to differentiate from
+output.
 
 
 .. _ksql-terminate:
@@ -1450,9 +1636,10 @@ Scalar functions
 |                        |                                                                           | two successive single quotes, ``''``, for         |
 |                        |                                                                           | example: ``'yyyy-MM-dd''T''HH:mm:ssX'``.          |
 |                        |                                                                           | TIMEZONE is an optional parameter and it is a     |
-|                        |                                                                           | ``java.util.TimeZone`` ID format, for example:    |
-|                        |                                                                           | "UTC", "America/Los_Angeles", "PDT",              |
-|                        |                                                                           | "Europe/London".                                  |
+|                        |                                                                           | java.util.TimeZone ID format, for example: "UTC", |
+|                        |                                                                           | "America/Los_Angeles", "PDT", "Europe/London". For|
+|                        |                                                                           | more information on timestamp formats, see        |
+|                        |                                                                           | `DateTimeFormatter <https://cnfl.io/java-dtf>`__. |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | SUBSTRING              |  ``SUBSTRING(col1, 2, 5)``                                                | ``SUBSTRING(str, pos, [len]``.                    |
 |                        |                                                                           | Returns a substring of ``str`` that starts at     |
@@ -1484,9 +1671,10 @@ Scalar functions
 |                        |                                                                           | successive single quotes, ``''``, for example:    |
 |                        |                                                                           | ``'yyyy-MM-dd''T''HH:mm:ssX'``.                   |
 |                        |                                                                           | TIMEZONE is an optional parameter and it is a     |
-|                        |                                                                           | ``java.util.TimeZone`` ID format, for example:    |
-|                        |                                                                           | "UTC", "America/Los_Angeles", "PDT",              |
-|                        |                                                                           | "Europe/London".                                  |
+|                        |                                                                           | java.util.TimeZone ID format, for example: "UTC", |
+|                        |                                                                           | "America/Los_Angeles", "PDT", "Europe/London". For|
+|                        |                                                                           | more information on timestamp formats, see        |
+|                        |                                                                           | `DateTimeFormatter <https://cnfl.io/java-dtf>`__. |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | TRIM                   |  ``TRIM(col1)``                                                           | Trim the spaces from the beginning and end of     |
 |                        |                                                                           | a string.                                         |
@@ -1662,7 +1850,8 @@ Key Requirements
 Message Keys
 ------------
 
-The ``CREATE STREAM`` and ``CREATE TABLE`` statements, which read data from a Kafka topic into a stream or table, allow you to specify a field/column in the Kafka message value that corresponds to the Kafka message key by setting the ``KEY`` property of the ``WITH`` clause.
+The ``CREATE STREAM`` and ``CREATE TABLE`` statements, which read data from a Kafka topic into a stream or table,
+allow you to specify a field/column in the Kafka message value that corresponds to the Kafka message key by setting the ``KEY`` property of the ``WITH`` clause.
 
 Example:
 
@@ -1672,10 +1861,7 @@ Example:
       WITH (KAFKA_TOPIC='users', VALUE_FORMAT='JSON', KEY = 'userid');
 
 
-The ``KEY`` property is:
-
-- Required for tables.
-- Optional for streams. Here, KSQL uses it as an optimization hint to determine if repartitioning can be avoided when performing aggregations and joins.
+The ``KEY`` property is optional. KSQL uses it as an optimization hint to determine if repartitioning can be avoided when performing aggregations and joins.
   
   .. important::
      Don't set the KEY property, unless you have validated that your stream doesn't need to be re-partitioned for future joins.
@@ -1688,6 +1874,9 @@ In either case, when setting ``KEY`` you must be sure that *both* of the followi
 2. ``KEY`` must be set to a column of type ``VARCHAR`` aka ``STRING``.
 
 If these conditions are not met, then the results of aggregations and joins may be incorrect. However, if your data doesn't meet these requirements, you can still use KSQL with a few extra steps. The following section explains how.
+
+Table-table joins can be joined only on the ``KEY`` field, and one-to-many
+(1:N) joins aren't supported.
 
 What To Do If Your Key Is Not Set or Is In A Different Format
 -------------------------------------------------------------

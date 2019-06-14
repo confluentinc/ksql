@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.server.resources.streaming;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.rest.server.resources.streaming.TopicStream.RecordFormatter;
+import io.confluent.ksql.services.ServiceContext;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -27,13 +28,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.OptionalInt;
-import java.util.stream.Collectors;
 import javax.ws.rs.core.StreamingOutput;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.common.TopicPartition;
-import org.apache.kafka.common.serialization.BytesDeserializer;
-import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.utils.Bytes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,22 +48,23 @@ public class TopicStreamWriter implements StreamingOutput {
   private long messagesWritten;
   private long messagesPolled;
 
-  public TopicStreamWriter(
-      final SchemaRegistryClient schemaRegistryClient,
+  public static TopicStreamWriter create(
+      final ServiceContext serviceContext,
       final Map<String, Object> consumerProperties,
       final PrintTopic printTopic,
       final Duration disconnectCheckInterval
   ) {
-    this(
-        schemaRegistryClient,
-        createTopicConsumer(
-            consumerProperties, printTopic.getTopic().toString(), printTopic.getFromBeginning()),
+    return new TopicStreamWriter(
+        serviceContext.getSchemaRegistryClient(),
+        PrintTopicUtil.createTopicConsumer(
+            serviceContext,
+            consumerProperties,
+            printTopic),
         printTopic.getTopic().toString(),
         printTopic.getIntervalValue(),
         disconnectCheckInterval,
         printTopic.getLimit());
   }
-
 
   TopicStreamWriter(
       final SchemaRegistryClient schemaRegistryClient,
@@ -136,28 +134,5 @@ public class TopicStreamWriter implements StreamingOutput {
     } catch (final IOException e) {
       log.debug("Client disconnected while attempting to write an error message");
     }
-  }
-
-  private static KafkaConsumer<String, Bytes> createTopicConsumer(
-      final Map<String, Object> consumerProperties,
-      final String topicName,
-      final boolean fromBeginning) {
-
-    final KafkaConsumer<String, Bytes> topicConsumer = new KafkaConsumer<>(
-        consumerProperties,
-        new StringDeserializer(),
-        new BytesDeserializer()
-    );
-
-    final List<TopicPartition> topicPartitions = topicConsumer.partitionsFor(topicName)
-        .stream()
-        .map(partitionInfo -> new TopicPartition(partitionInfo.topic(), partitionInfo.partition()))
-        .collect(Collectors.toList());
-    topicConsumer.assign(topicPartitions);
-
-    if (fromBeginning) {
-      topicConsumer.seekToBeginning(topicPartitions);
-    }
-    return topicConsumer;
   }
 }

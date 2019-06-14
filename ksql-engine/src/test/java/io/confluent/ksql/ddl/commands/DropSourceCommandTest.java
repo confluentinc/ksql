@@ -15,25 +15,16 @@
 
 package io.confluent.ksql.ddl.commands;
 
+import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.metastore.MutableMetaStore;
-import io.confluent.ksql.metastore.model.StructuredDataSource;
+import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.QualifiedName;
-import io.confluent.ksql.serde.DataSource.DataSourceSerDe;
-import io.confluent.ksql.serde.DataSource.DataSourceType;
-import io.confluent.ksql.services.KafkaTopicClient;
-import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
-import java.util.Collections;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -46,20 +37,13 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class DropSourceCommandTest {
 
   private static final String STREAM_NAME = "foo";
-  private static final String TOPIC_NAME = "foo_topic";
-  private static final boolean WITH_DELETE_TOPIC = true;
-  private static final boolean WITHOUT_DELETE_TOPIC = false;
   private static final boolean IF_EXISTS = true;
   private static final boolean ALWAYS = false;
 
   @Mock
   private MutableMetaStore metaStore;
   @Mock
-  private KafkaTopicClient kafkaTopicClient;
-  @Mock
-  private SchemaRegistryClient schemaRegistryClient;
-  @Mock
-  private StructuredDataSource<?> dataSource;
+  private DataSource<?> dataSource;
 
   private DropSourceCommand dropSourceCommand;
 
@@ -69,15 +53,14 @@ public class DropSourceCommandTest {
   @SuppressWarnings("unchecked")
   @Before
   public void setUp() {
-    when(metaStore.getSource(STREAM_NAME)).thenReturn((StructuredDataSource)dataSource);
+    when(metaStore.getSource(STREAM_NAME)).thenReturn((DataSource)dataSource);
     when(dataSource.getDataSourceType()).thenReturn(DataSourceType.KSTREAM);
-    when(dataSource.getKafkaTopicName()).thenReturn(TOPIC_NAME);
   }
 
   @Test
   public void shouldSucceedOnMissingSourceWithIfExists() {
     // Given:
-    givenDropSourceCommand(IF_EXISTS, WITH_DELETE_TOPIC);
+    givenDropSourceCommand(IF_EXISTS);
     givenSourceDoesNotExist();
 
     // When:
@@ -90,7 +73,7 @@ public class DropSourceCommandTest {
   @Test
   public void shouldFailOnMissingSourceWithNoIfExists() {
     // Given:
-    givenDropSourceCommand(ALWAYS, WITH_DELETE_TOPIC);
+    givenDropSourceCommand(ALWAYS);
     givenSourceDoesNotExist();
 
     expectedException.expect(KsqlException.class);
@@ -113,73 +96,18 @@ public class DropSourceCommandTest {
     dropSourceCommand.run(metaStore);
   }
 
-  @Test
-  public void shouldDeleteTopicIfDeleteTopicTrue() {
-    // Given:
-    givenDropSourceCommand(ALWAYS, WITH_DELETE_TOPIC);
-
-    // When:
-    dropSourceCommand.run(metaStore);
-
-    // Then:
-    verify(kafkaTopicClient).deleteTopics(Collections.singletonList(TOPIC_NAME));
-  }
-
-  @Test
-  public void shouldNotDeleteTopicIfDeleteTopicFalse() {
-    // Given:
-    givenDropSourceCommand(ALWAYS, WITHOUT_DELETE_TOPIC);
-
-    // When:
-    dropSourceCommand.run(metaStore);
-
-    // Then:
-    verify(kafkaTopicClient, never()).deleteTopics(any());
-  }
-
-  @Test
-  public void shouldCleanUpSchemaIfAvroTopic() throws Exception {
-    // Given:
-    when(dataSource.isSerdeFormat(DataSourceSerDe.AVRO)).thenReturn(true);
-    givenDropSourceCommand(ALWAYS, WITH_DELETE_TOPIC);
-
-    // When:
-    dropSourceCommand.run(metaStore);
-
-    // Then:
-    verify(schemaRegistryClient)
-        .deleteSubject(TOPIC_NAME + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
-  }
-
-  @Test
-  public void shouldNotCleanUpSchemaIfNonAvroTopic() throws Exception {
-    // Given:
-    when(dataSource.isSerdeFormat(DataSourceSerDe.AVRO)).thenReturn(false);
-    givenDropSourceCommand(ALWAYS, WITH_DELETE_TOPIC);
-
-    // When:
-    dropSourceCommand.run(metaStore);
-
-    // Then:
-    verify(schemaRegistryClient, never()).deleteSubject(anyString());
-  }
-
-  private void givenDropSourceCommand(final boolean ifExists, final boolean deleteTopic) {
+  private void givenDropSourceCommand(final boolean ifExists) {
     dropSourceCommand = new DropSourceCommand(
-        new DropStream(QualifiedName.of(STREAM_NAME), ifExists, deleteTopic),
-        StructuredDataSource.DataSourceType.KSTREAM,
-        kafkaTopicClient,
-        schemaRegistryClient,
-        deleteTopic);
+        new DropStream(QualifiedName.of(STREAM_NAME), ifExists, false),
+        DataSourceType.KSTREAM
+    );
   }
 
   private void givenIncompatibleDropSourceCommand() {
     dropSourceCommand = new DropSourceCommand(
         new DropStream(QualifiedName.of(STREAM_NAME), true, true),
-        DataSourceType.KTABLE,
-        kafkaTopicClient,
-        schemaRegistryClient,
-        true);
+        DataSourceType.KTABLE
+    );
   }
 
   private void givenSourceDoesNotExist() {

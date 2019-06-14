@@ -25,8 +25,12 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.datagen.RowGenerator;
 import io.confluent.ksql.datagen.SessionManager;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
-import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
-import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.serde.GenericRowSerDe;
+import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.avro.KsqlAvroSerdeFactory;
+import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.Pair;
 import java.io.InputStream;
@@ -159,9 +163,11 @@ public class SerdeBenchmark {
     }
 
     private static Serde<GenericRow> getJsonSerdeHelper(
-        final org.apache.kafka.connect.data.Schema schema) {
-      return new KsqlJsonTopicSerDe().getGenericRowSerde(
-          schema,
+        final org.apache.kafka.connect.data.Schema schema
+    ) {
+      return GenericRowSerDe.from(
+          new KsqlJsonSerdeFactory(),
+          PhysicalSchema.from(LogicalSchema.of(schema), SerdeOption.none()),
           new KsqlConfig(Collections.emptyMap()),
           () -> null,
           "benchmark",
@@ -169,10 +175,12 @@ public class SerdeBenchmark {
     }
 
     private static Serde<GenericRow> getAvroSerde(
-        final org.apache.kafka.connect.data.Schema schema) {
+        final org.apache.kafka.connect.data.Schema schema
+    ) {
       final SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
-      return new KsqlAvroTopicSerDe("benchmarkSchema").getGenericRowSerde(
-          schema,
+      return GenericRowSerDe.from(
+          new KsqlAvroSerdeFactory("benchmarkSchema"),
+          PhysicalSchema.from(LogicalSchema.of(schema), SerdeOption.none()),
           new KsqlConfig(Collections.emptyMap()),
           () -> schemaRegistryClient,
           "benchmark",

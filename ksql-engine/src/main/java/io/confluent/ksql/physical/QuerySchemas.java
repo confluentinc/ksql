@@ -17,33 +17,37 @@ package io.confluent.ksql.physical;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.schema.connect.DefaultSchemaFormatter;
 import io.confluent.ksql.schema.connect.SchemaFormatter;
+import io.confluent.ksql.schema.connect.SqlSchemaFormatter;
+import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import java.util.LinkedHashMap;
 import java.util.Objects;
 import java.util.stream.Collectors;
-import org.apache.kafka.connect.data.Schema;
 
 /**
- * Pojo for holding data about the schemas in use at the different states within a topology of a
- * query.
+ * Pojo for holding data about the persistence schemas in use at the different stages within a
+ * topology of a query.
  *
  * <p>Contains an ordered mapping of 'logger name prefix' to the schema used,
  * where the logger name prefix can be used to map the schema to a stage in the topology.
+ *
+ * <p>This class is predominately used in the {@code QueryTranslationTest} in the
+ * ksql-functional-tests module to ensure the schemas of data persisted to topics doesn't change
+ * between releases.
  */
 @Immutable
 public final class QuerySchemas {
 
-  private final LinkedHashMap<String, Schema> schemas;
+  private final LinkedHashMap<String, PersistenceSchema> schemas;
   private final SchemaFormatter schemaFormatter;
 
-  public static QuerySchemas of(final LinkedHashMap<String, Schema> schemas) {
-    return new QuerySchemas(schemas, new DefaultSchemaFormatter());
+  public static QuerySchemas of(final LinkedHashMap<String, PersistenceSchema> schemas) {
+    return new QuerySchemas(schemas, SqlSchemaFormatter.STRICT);
   }
 
   @VisibleForTesting
   QuerySchemas(
-      final LinkedHashMap<String, Schema> schemas,
+      final LinkedHashMap<String, PersistenceSchema> schemas,
       final SchemaFormatter schemaFormatter
   ) {
     this.schemas = new LinkedHashMap<>(Objects.requireNonNull(schemas, "schemas"));
@@ -70,7 +74,7 @@ public final class QuerySchemas {
   @Override
   public String toString() {
     return schemas.entrySet().stream()
-        .map(e -> e.getKey() + " = " + schemaFormatter.format(e.getValue()))
+        .map(e -> e.getKey() + " = " + schemaFormatter.format(e.getValue().getConnectSchema()))
         .collect(Collectors.joining(System.lineSeparator()));
   }
 }

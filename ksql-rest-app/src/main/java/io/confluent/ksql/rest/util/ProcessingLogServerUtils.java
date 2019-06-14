@@ -25,7 +25,7 @@ import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.SqlFormatter;
-import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
+import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
@@ -50,7 +50,7 @@ public final class ProcessingLogServerUtils {
         .schema();
   }
 
-  private static String getTopicName(
+  public static String getTopicName(
       final ProcessingLogConfig config,
       final KsqlConfig ksqlConfig) {
     final String topicNameConfig = config.getString(ProcessingLogConfig.TOPIC_NAME);
@@ -85,7 +85,7 @@ public final class ProcessingLogServerUtils {
     return Optional.of(topicName);
   }
 
-  public static PreparedStatement<?> processingLogStreamCreateStatement(
+  public static PreparedStatement<CreateSource> processingLogStreamCreateStatement(
       final ProcessingLogConfig config,
       final KsqlConfig ksqlConfig
   ) {
@@ -95,7 +95,7 @@ public final class ProcessingLogServerUtils {
     );
   }
 
-  private static PreparedStatement<?> processingLogStreamCreateStatement(
+  private static PreparedStatement<CreateSource> processingLogStreamCreateStatement(
       final String name,
       final String topicName
   ) {
@@ -108,9 +108,9 @@ public final class ProcessingLogServerUtils {
     final PreparedStatement<?> preparedStatement = parser
         .prepare(parsed, new MetaStoreImpl(new InternalFunctionRegistry()));
 
-    final AbstractStreamCreateStatement streamCreateStatement
-        = (AbstractStreamCreateStatement) preparedStatement.getStatement();
-    final AbstractStreamCreateStatement streamCreateStatementWithSchema =
+    final CreateSource streamCreateStatement
+        = (CreateSource) preparedStatement.getStatement();
+    final CreateSource streamCreateStatementWithSchema =
         streamCreateStatement.copyWith(
             TableElement.fromSchema(schema),
             streamCreateStatement.getProperties());

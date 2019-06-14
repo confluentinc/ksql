@@ -24,7 +24,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.testing.NullPointerTester;
 import com.google.common.testing.NullPointerTester.Visibility;
-import io.confluent.ksql.parser.tree.Type.SqlType;
+import io.confluent.ksql.ddl.DdlConfig;
+import io.confluent.ksql.schema.ksql.SqlType;
 import io.confluent.ksql.test.util.ClassFinder;
 import io.confluent.ksql.test.util.ImmutableTester;
 import java.lang.reflect.Modifier;
@@ -68,6 +69,11 @@ public class ParserModelTest {
           Optional.empty(),
           Optional.empty(),
           OptionalInt.empty()))
+      .put(java.util.Map.class,
+          ImmutableMap.of(
+              DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral("topic_test"),
+              DdlConfig.VALUE_FORMAT_PROPERTY, new StringLiteral("avro")
+          ))
       .build();
 
   private final Class<?> modelClass;

@@ -242,8 +242,10 @@ about the method when, for example, they execute ``DESCRIBE FUNCTION`` on the me
 +------------+------------------------------+------------------------+
 | Field      | Description                  | Required               |
 +============+==============================+========================+
-| value      | The case-insensitive name of | No                     |
-|            | the parameter                |                        |
+| value      | The case-insensitive name of | Required if the UDF JAR|
+|            | the parameter                | was not compiled with  |
+|            |                              | the ``-parameters``    |
+|            |                              | javac argument.        |
 +------------+------------------------------+------------------------+
 | description| A string describing generally| No                     |
 |            | what the parameter represents|                        |
@@ -268,7 +270,7 @@ about the method when, for example, they execute ``DESCRIBE FUNCTION`` on the me
        @UdfParameter(value = "zipcode", description = "a US postal code") final String zipcode,
        @UdfParameter(schema = "STRUCT<ZIP STRING, NAME STRING>") final Struct employee)
 
-If your Java8 class is compiled with the ``-parameter`` compiler flag, the name of the parameter
+If your Java8 class is compiled with the ``-parameters`` compiler flag, the name of the parameter
 will be inferred from the method declaration.
 
 Configurable UDF
@@ -320,6 +322,8 @@ used to call the UDAF. The UDAF can be invoked in four ways:
 - with a Double column, returning the aggregated value as Double.
 - with a String (VARCHAR) and an initializer that is a String (VARCHAR), returning the aggregated String (VARCHAR) length
   as a Long (BIGINT).
+- with a Struct (STRUCT<A INTEGER, B INTEGER>) that wraps two integers, returning an aggregate that
+  sums each value independently
 
 .. code:: java
 
@@ -419,6 +423,38 @@ used to call the UDAF. The UDAF can be invoked in four ways:
         };
       }
 
+      @UdafFactory(
+            description = "returns a struct with {SUM(in->A), SUM(in->B)}",
+            paramSchema = "STRUCT<A INTEGER, B INTEGER>",
+            returnSchema = "STRUCT<A INTEGER, B INTEGER>")
+        public static Udaf<Struct, Struct> createStructUdaf() {
+          return new Udaf<Struct, Struct>() {
+
+            @Override
+            public Struct initialize() {
+              return new Struct(SchemaBuilder.struct()
+                  .field("A", Schema.OPTIONAL_INT32_SCHEMA)
+                  .field("B", Schema.OPTIONAL_INT32_SCHEMA)
+                  .optional()
+                  .build())
+                  .put("A", 0)
+                  .put("B", 0);
+            }
+
+            @Override
+            public Struct aggregate(final Struct current, final Struct aggregate) {
+              aggregate.put("A", current.getInt32("A") + aggregate.getInt32("A"));
+              aggregate.put("B", current.getInt32("B") + aggregate.getInt32("B"));
+              return aggregate;
+            }
+
+            @Override
+            public Struct merge(final Struct aggOne, final Struct aggTwo) {
+              return aggregate(aggOne, aggTwo);
+            }
+          };
+        }
+
     }
 
 UdafDescription Annotation
@@ -448,9 +484,28 @@ UdafFactory Annotation
 
 The ``@UdafFactory`` annotation is applied to public static methods of a class annotated with ``@UdafDescription``.
 The method must return either ``Udaf``, or, if it supports table aggregations, ``TableUdaf``.
-Each annotated method is a factory for an invocable aggregate function in KSQL. The annotation only has a single
-field ``description`` that is required. You can use this to better describe what a particular version
-of the UDF does, for example:
+Each annotated method is a factory for an invocable aggregate function in KSQL. The annotation supports
+the following fields:
+
++-------------+------------------------------+------------------------+
+| Field       | Description                  | Required               |
++=============+==============================+========================+
+| description | A string describing generally| Yes                    |
+|             | what the function(s) in this |                        |
+|             | class do.                    |                        |
++-------------+------------------------------+------------------------+
+| paramSchema | The KSQL schema for the      | For complex types      |
+|             | parameter.                   | such as STRUCT         |
++-------------+------------------------------+------------------------+
+| returnSchema| The KSQL schema for the      | For complex types      |
+|             | return value.                | such as STRUCT         |
++-------------+------------------------------+------------------------+
+
+.. note:: If ``paramSchema`` or ``returnSchema`` is supplied in the ``@UdfParameter`` annotation for
+          a ``STRUCT`` it is considered "strict" - any inputs must match exactly, including order
+          and names of the fields.
+
+You can use this to better describe what a particular version of the UDF does, for example:
 
 .. code:: java
 
@@ -458,7 +513,13 @@ of the UDF does, for example:
     public static TableUdaf<Long, Long> createSumLong(){...}
 
     @UdafFactory(description = "Sums the length of VARCHAR columns".)
-    public static Udaf<String, Long> createSumLengthString(final String initialString)
+    public static Udaf<String, Long> createSumLengthString(final String initialString){...}
+
+    @UdafFactory(
+          description = "returns a struct with {SUM(in->A), SUM(in->B)}",
+          paramSchema = "STRUCT<A INTEGER, B INTEGER>",
+          returnSchema = "STRUCT<A INTEGER, B INTEGER>")
+    public static Udaf<Struct, Struct> createStructUdaf(){...}
 
 
 ===============
@@ -495,7 +556,7 @@ The types supported by UDFs are currently limited to:
 | Struct       | STRUCT           |
 +--------------+------------------+
 
-Note: Structs, Lists and Maps are not supported in UDAFs
+Note: Lists and Maps are not supported in UDAFs
 
 .. _deploying-udf:
 

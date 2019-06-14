@@ -31,9 +31,9 @@ import static org.junit.Assert.assertTrue;
 import io.confluent.ksql.analyzer.Analysis.Into;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
-import io.confluent.ksql.metastore.model.StructuredDataSource;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.KsqlParserTestUtil;
 import io.confluent.ksql.parser.tree.ComparisonExpression;
@@ -47,7 +47,9 @@ import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Sink;
-import io.confluent.ksql.serde.DataSource.DataSourceSerDe;
+import io.confluent.ksql.planner.plan.JoinNode;
+import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.Pair;
@@ -58,7 +60,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-@SuppressWarnings({"unchecked", "OptionalGetWithoutIsPresent"})
+@SuppressWarnings("OptionalGetWithoutIsPresent")
 public class QueryAnalyzerTest {
 
   private static final DereferenceExpression ITEM_ID = new DereferenceExpression(
@@ -74,7 +76,8 @@ public class QueryAnalyzerTest {
   public final ExpectedException expectedException = ExpectedException.none();
 
   private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
-  private final QueryAnalyzer queryAnalyzer =  new QueryAnalyzer(metaStore, "prefix-~");
+  private final QueryAnalyzer queryAnalyzer =
+      new QueryAnalyzer(metaStore, "prefix-~", SerdeOption.none());
 
   @Test
   public void shouldCreateAnalysisForSimpleQuery() {
@@ -85,7 +88,7 @@ public class QueryAnalyzerTest {
     final Analysis analysis = queryAnalyzer.analyze("sqlExpression", query, Optional.empty());
 
     // Then:
-    final Pair<StructuredDataSource, String> fromDataSource = analysis.getFromDataSource(0);
+    final Pair<DataSource<?>, String> fromDataSource = analysis.getFromDataSource(0);
     assertThat(analysis.getSelectExpressions(), equalTo(Collections.singletonList(ORDER_ID)));
     assertThat(analysis.getFromDataSources().size(), equalTo(1));
     assertThat(fromDataSource.left, instanceOf(KsqlStream.class));
@@ -109,7 +112,7 @@ public class QueryAnalyzerTest {
 
     assertThat(analysis.getFromDataSources(), hasSize(1));
 
-    final Pair<StructuredDataSource, String> fromDataSource = analysis.getFromDataSource(0);
+    final Pair<DataSource<?>, String> fromDataSource = analysis.getFromDataSource(0);
     assertThat(fromDataSource.left, instanceOf(KsqlStream.class));
     assertThat(fromDataSource.right, equalTo("TEST1"));
     assertThat(analysis.getInto().get().getName(), is("S"));
@@ -132,7 +135,7 @@ public class QueryAnalyzerTest {
 
     assertThat(analysis.getFromDataSources(), hasSize(1));
 
-    final Pair<StructuredDataSource, String> fromDataSource = analysis.getFromDataSource(0);
+    final Pair<DataSource<?>, String> fromDataSource = analysis.getFromDataSource(0);
     assertThat(fromDataSource.left, instanceOf(KsqlTable.class));
     assertThat(fromDataSource.right, equalTo("TEST2"));
     assertThat(analysis.getInto().get().getName(), is("T"));
@@ -155,12 +158,12 @@ public class QueryAnalyzerTest {
 
     assertThat(analysis.getFromDataSources(), hasSize(1));
 
-    final Pair<StructuredDataSource, String> fromDataSource = analysis.getFromDataSource(0);
+    final Pair<DataSource<?>, String> fromDataSource = analysis.getFromDataSource(0);
     assertThat(fromDataSource.left, instanceOf(KsqlStream.class));
     assertThat(fromDataSource.right, equalTo("TEST1"));
     assertThat(analysis.getInto(), is(not(Optional.empty())));
     final Into into = analysis.getInto().get();
-    final StructuredDataSource<?> test0 = metaStore.getSource("TEST0");
+    final DataSource<?> test0 = metaStore.getSource("TEST0");
     assertThat(into.getName(), is(test0.getName()));
     assertThat(into.getKsqlTopic(), is(test0.getKsqlTopic()));
     assertThat(into.getKeySerdeFactory().create(),
@@ -353,9 +356,10 @@ public class QueryAnalyzerTest {
     final Analysis analysis = queryAnalyzer.analyze("sqlExpression", query, Optional.empty());
 
     // Then:
-    assertTrue(analysis.getJoin().isLeftJoin());
-    assertThat(analysis.getJoin().getLeftKeyFieldName(), equalTo("COL1"));
-    assertThat(analysis.getJoin().getRightKeyFieldName(), equalTo("COL2"));
+    final JoinNode join = analysis.getJoin();
+    assertTrue(join.isLeftJoin());
+    assertThat(join.getLeftJoinFieldName(), is("TEST1.COL1"));
+    assertThat(join.getRightJoinFieldName(), is("TEST2.COL2"));
   }
 
   @Test
@@ -367,8 +371,8 @@ public class QueryAnalyzerTest {
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage(containsString(
         "Non-aggregate SELECT expression(s) not part of GROUP BY: "
-            + "[ORDERS.ORDERTIME, ORDERS.ORDERUNITS, ORDERS.MAPCOL, ORDERS.ORDERID, "
-            + "ORDERS.ITEMINFO, ORDERS.ARRAYCOL, ORDERS.ADDRESS]"
+            + "[ORDERS.ORDERTIME, ORDERS.ROWTIME, ORDERS.ROWKEY, ORDERS.ORDERUNITS, ORDERS.MAPCOL, "
+            + "ORDERS.ORDERID, ORDERS.ITEMINFO, ORDERS.ARRAYCOL, ORDERS.ADDRESS]"
     ));
 
     // When:
@@ -379,7 +383,7 @@ public class QueryAnalyzerTest {
   public void shouldHandleSelectStarWithCorrectGroupBy() {
     // Given:
     final Query query = givenQuery("select *, count() from orders group by "
-        + "ITEMID, ORDERTIME, ORDERUNITS, MAPCOL, ORDERID, ITEMINFO, ARRAYCOL, ADDRESS;");
+        + "ROWTIME, ROWKEY, ITEMID, ORDERTIME, ORDERUNITS, MAPCOL, ORDERID, ITEMINFO, ARRAYCOL, ADDRESS;");
 
     final Analysis analysis = queryAnalyzer.analyze("sqlExpression", query, Optional.empty());
 
@@ -389,8 +393,9 @@ public class QueryAnalyzerTest {
     // Then:
     assertThat(aggregateAnalysis.getNonAggregateSelectExpressions().keySet(), containsInAnyOrder(
         dereferenceExpressions(
-            "ORDERS.ITEMID", "ORDERS.ORDERTIME", "ORDERS.ORDERUNITS", "ORDERS.MAPCOL",
-            "ORDERS.ORDERID", "ORDERS.ITEMINFO", "ORDERS.ARRAYCOL", "ORDERS.ADDRESS")
+            "ORDERS.ROWTIME", "ORDERS.ROWKEY", "ORDERS.ITEMID", "ORDERS.ORDERTIME",
+            "ORDERS.ORDERUNITS", "ORDERS.MAPCOL", "ORDERS.ORDERID", "ORDERS.ITEMINFO",
+            "ORDERS.ARRAYCOL", "ORDERS.ADDRESS")
     ));
   }
 
@@ -491,8 +496,8 @@ public class QueryAnalyzerTest {
     final Analysis analysis = queryAnalyzer.analyze("sqlExpression", query, sink);
 
     // Then:
-    assertThat(analysis.getInto().get().getKsqlTopic().getKsqlTopicSerDe().getSerDe(),
-        is(DataSourceSerDe.DELIMITED));
+    assertThat(analysis.getInto().get().getKsqlTopic().getValueSerdeFactory().getFormat(),
+        is(Format.DELIMITED));
   }
 
   private Query givenQuery(final String sql) {

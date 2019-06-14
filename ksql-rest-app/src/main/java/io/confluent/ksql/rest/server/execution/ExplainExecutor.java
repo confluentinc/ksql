@@ -48,6 +48,7 @@ public final class ExplainExecutor {
   ) {
     return Optional
         .of(ExplainExecutor.explain(
+            serviceContext,
             statement,
             executionContext));
   }
@@ -59,6 +60,7 @@ public final class ExplainExecutor {
    * @return explains the given statement contextualized by the parameters
    */
   private static QueryDescriptionEntity explain(
+      final ServiceContext serviceContext,
       final ConfiguredStatement<Explain> statement,
       final KsqlExecutionContext executionContext
   ) {
@@ -67,7 +69,7 @@ public final class ExplainExecutor {
     try {
       final QueryDescription queryDescription = queryId
           .map(s -> explainQuery(s, executionContext))
-          .orElseGet(() -> explainStatement(statement, executionContext));
+          .orElseGet(() -> explainStatement(statement, executionContext, serviceContext));
 
       return new QueryDescriptionEntity(statement.getStatementText(), queryDescription);
     } catch (final KsqlException e) {
@@ -77,7 +79,8 @@ public final class ExplainExecutor {
 
   private static QueryDescription explainStatement(
       final ConfiguredStatement<Explain> explain,
-      final KsqlExecutionContext executionContext
+      final KsqlExecutionContext executionContext,
+      final ServiceContext serviceContext
   ) {
     final Statement statement = explain.getStatement()
         .getStatement()
@@ -93,8 +96,9 @@ public final class ExplainExecutor {
         explain.getStatementText().substring("EXPLAIN ".length()),
         statement);
 
-    final QueryMetadata metadata = executionContext.createSandbox()
+    final QueryMetadata metadata = executionContext.createSandbox(serviceContext)
         .execute(
+            serviceContext,
             ConfiguredStatement.of(preparedStatement, explain.getOverrides(), explain.getConfig()))
         .getQuery()
         .orElseThrow(() ->

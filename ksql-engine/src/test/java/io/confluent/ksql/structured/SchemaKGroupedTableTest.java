@@ -42,22 +42,25 @@ import io.confluent.ksql.parser.tree.TumblingWindowExpression;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.serde.KsqlTopicSerDe;
-import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.PersistenceSchema;
+import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.serde.GenericRowSerDe;
+import io.confluent.ksql.serde.KsqlSerdeFactory;
+import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
 import io.confluent.ksql.streams.MaterializedFactory;
 import io.confluent.ksql.streams.StreamsUtil;
 import io.confluent.ksql.testutils.AnalysisTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
-import io.confluent.ksql.util.SchemaTestUtil;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.serialization.Serde;
@@ -79,10 +82,10 @@ public class SchemaKGroupedTableTest {
   private final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
   private final ProcessingLogContext processingLogContext = ProcessingLogContext.create();
   private final KGroupedTable mockKGroupedTable = mock(KGroupedTable.class);
-  private final Schema schema = SchemaBuilder.struct()
+  private final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
       .field("GROUPING_COLUMN", Schema.OPTIONAL_STRING_SCHEMA)
       .field("AGG_VALUE", Schema.OPTIONAL_INT32_SCHEMA)
-      .build();
+      .build());
   private final MaterializedFactory materializedFactory = mock(MaterializedFactory.class);
   private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
   private final QueryContext.Stacker queryContext
@@ -97,8 +100,8 @@ public class SchemaKGroupedTableTest {
     final StreamsBuilder builder = new StreamsBuilder();
     kTable = builder
         .table(ksqlTable.getKsqlTopic().getKafkaTopicName(), Consumed.with(Serdes.String()
-            , ksqlTable.getKsqlTopic().getKsqlTopicSerDe().getGenericRowSerde(
-                ksqlTable.getSchema(),
+            , ksqlTable.getKsqlTopic().getValueSerdeFactory().createSerde(
+                PersistenceSchema.of(ksqlTable.getSchema().valueSchema()),
                 new KsqlConfig(Collections.emptyMap()),
                 MockSchemaRegistryClient::new,
                 "test",
@@ -125,9 +128,10 @@ public class SchemaKGroupedTableTest {
         Arrays.stream(groupByColumns)
             .map(c -> new DereferenceExpression(new QualifiedNameReference(QualifiedName.of("TEST1")), c))
             .collect(Collectors.toList());
-    final KsqlTopicSerDe ksqlTopicSerDe = new KsqlJsonTopicSerDe();
-    final Serde<GenericRow> rowSerde = ksqlTopicSerDe.getGenericRowSerde(
-        SchemaTestUtil.getSchemaWithNoAlias(initialSchemaKTable.getSchema()),
+    final KsqlSerdeFactory ksqlSerdeFactory = new KsqlJsonSerdeFactory();
+    final Serde<GenericRow> rowSerde = GenericRowSerDe.from(
+        ksqlSerdeFactory,
+        PhysicalSchema.from(initialSchemaKTable.getSchema().withoutAlias(), SerdeOption.none()),
         null,
         () -> null,
         "test",
@@ -153,8 +157,9 @@ public class SchemaKGroupedTableTest {
               functionRegistry.getAggregate("SUM", Schema.OPTIONAL_INT64_SCHEMA)),
           Collections.singletonMap(0, 0),
           windowExpression,
-          new KsqlJsonTopicSerDe().getGenericRowSerde(
-              ksqlTable.getSchema(),
+          GenericRowSerDe.from(
+              new KsqlJsonSerdeFactory(),
+              PhysicalSchema.from(ksqlTable.getSchema(), SerdeOption.none()),
               ksqlConfig,
               () -> null,
               "test",
@@ -183,8 +188,9 @@ public class SchemaKGroupedTableTest {
           aggValToFunctionMap,
           Collections.singletonMap(0, 0),
           null,
-          new KsqlJsonTopicSerDe().getGenericRowSerde(
-              ksqlTable.getSchema(),
+          GenericRowSerDe.from(
+              new KsqlJsonSerdeFactory(),
+              PhysicalSchema.from(ksqlTable.getSchema(), SerdeOption.none()),
               ksqlConfig,
               () -> null,
               "test",
@@ -206,7 +212,7 @@ public class SchemaKGroupedTableTest {
     return new SchemaKGroupedTable(
         schema,
         kGroupedTable,
-        KeyField.of(schema.fields().get(0).name(), schema.fields().get(0)),
+        KeyField.of(schema.valueFields().get(0).name(), schema.valueFields().get(0)),
         Collections.emptyList(),
         ksqlConfig,
         functionRegistry,

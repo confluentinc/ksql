@@ -20,6 +20,7 @@ These topics show how to develop KSQL applications for |cp|.
     implement-a-udf
     partition-data
     syntax-reference
+    serialization
     api
     udf
     processing-log

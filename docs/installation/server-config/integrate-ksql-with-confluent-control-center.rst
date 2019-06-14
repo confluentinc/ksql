@@ -28,6 +28,14 @@ properties in the KSQL Server and |c3-short| configuration files.
 Secure Communication with KSQL Server
 =====================================
 
+When you use Basic authentication in KSQL, |c3-short| allows passing credentials
+as part of the KSQL Server URL in |c3-short| configuration.
+
+::
+
+    # KSQL cluster URL
+    confluent.controlcenter.ksql.<name>.url=http://<username>:<password>@localhost:8088
+
 You can set up KSQL Server to communicate securely with other components in
 |cp|. For more information, see :ref:`ksql-security`.
 
@@ -79,6 +87,7 @@ Assign the following configuration properties to integrate KSQL Server with
 |c3-short| when they run on separate hosts.
 
 KSQL Server Configuration
+=========================
 
 In the KSQL Server configuration file, set ``listeners`` to bind to all
 interfaces:

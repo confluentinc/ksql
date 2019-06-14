@@ -31,6 +31,7 @@ import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.entity.SourceInfo;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
+import io.confluent.ksql.rest.server.context.KsqlRestServiceContextBinder;
 import io.confluent.ksql.services.DefaultServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
@@ -49,12 +50,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.eclipse.jetty.websocket.api.util.WSURI;
+import org.glassfish.hk2.utilities.Binder;
 import org.junit.rules.ExternalResource;
 
 /**
@@ -79,17 +82,21 @@ public class TestKsqlRestApp extends ExternalResource {
   private final Map<String, ?> baseConfig;
   private final Supplier<String> bootstrapServers;
   private final Supplier<ServiceContext> serviceContext;
+  private final Function<KsqlConfig, Binder> serviceContextBinderFactory;
   private final List<URL> listeners = new ArrayList<>();
   private KsqlRestApplication restServer;
 
   private TestKsqlRestApp(
       final Supplier<String> bootstrapServers,
       final Map<String, Object> additionalProps,
-      final Supplier<ServiceContext> serviceContext) {
+      final Supplier<ServiceContext> serviceContext,
+      final Function<KsqlConfig, Binder> serviceContextBinderFactory) {
 
     this.baseConfig = buildBaseConfig(additionalProps);
     this.bootstrapServers = Objects.requireNonNull(bootstrapServers, "bootstrapServers");
     this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
+    this.serviceContextBinderFactory = Objects
+        .requireNonNull(serviceContextBinderFactory, "serviceContextBinderFactory");
   }
 
   public List<URL> getListeners() {
@@ -181,6 +188,10 @@ public class TestKsqlRestApp extends ExternalResource {
     return ClientBuilder.newBuilder().register(jsonProvider).build();
   }
 
+  public ServiceContext getServiceContext() {
+    return serviceContext.get();
+  }
+
   @Override
   protected void before() {
     if (restServer != null) {
@@ -192,7 +203,8 @@ public class TestKsqlRestApp extends ExternalResource {
           buildConfig(bootstrapServers, baseConfig),
           (booleanSupplier) -> niceMock(VersionCheckerAgent.class),
           3,
-          serviceContext.get()
+          serviceContext.get(),
+          serviceContextBinderFactory
       );
     } catch (final Exception e) {
       throw new RuntimeException("Failed to initialise", e);
@@ -360,6 +372,7 @@ public class TestKsqlRestApp extends ExternalResource {
     private final Map<String, Object> additionalProps = new HashMap<>();
 
     private Supplier<ServiceContext> serviceContext;
+    private Function<KsqlConfig, Binder> serviceContextBinder = KsqlRestServiceContextBinder::new;
 
     private Builder(final Supplier<String> bootstrapServers) {
       this.bootstrapServers = Objects.requireNonNull(bootstrapServers, "bootstrapServers");
@@ -384,8 +397,17 @@ public class TestKsqlRestApp extends ExternalResource {
       return this;
     }
 
+    public Builder withServiceContextBinder(final Function<KsqlConfig, Binder> binder) {
+      serviceContextBinder = binder;
+      return this;
+    }
+
     public TestKsqlRestApp build() {
-      return new TestKsqlRestApp(bootstrapServers, additionalProps, serviceContext);
+      return new TestKsqlRestApp(
+          bootstrapServers,
+          additionalProps,
+          serviceContext,
+          serviceContextBinder);
     }
   }
 }

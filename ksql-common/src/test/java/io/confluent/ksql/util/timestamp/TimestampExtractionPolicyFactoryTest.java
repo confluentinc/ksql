@@ -19,7 +19,9 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.KsqlException;
+import java.util.Optional;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Test;
@@ -32,68 +34,90 @@ public class TimestampExtractionPolicyFactoryTest {
 
   @Test
   public void shouldCreateMetadataPolicyWhenTimestampFieldNotProvided() {
-    assertThat(TimestampExtractionPolicyFactory.create(schemaBuilder.build(), null, null),
-        instanceOf(MetadataTimestampExtractionPolicy.class));
+    // When:
+    final TimestampExtractionPolicy result = TimestampExtractionPolicyFactory
+        .create(LogicalSchema.of(schemaBuilder.build()), Optional.empty(), Optional.empty());
+
+    // Then:
+    assertThat(result, instanceOf(MetadataTimestampExtractionPolicy.class));
   }
 
   @Test
   public void shouldCreateLongTimestampPolicyWhenTimestampFieldIsOfTypeLong() {
+    // Given:
     final String timestamp = "timestamp";
     final Schema schema = schemaBuilder
         .field(timestamp.toUpperCase(), Schema.OPTIONAL_INT64_SCHEMA)
         .build();
-    final TimestampExtractionPolicy extractionPolicy
-        = TimestampExtractionPolicyFactory.create(schema, timestamp, null);
-    assertThat(extractionPolicy, instanceOf(LongColumnTimestampExtractionPolicy.class));
-    assertThat(extractionPolicy.timestampField(), equalTo(timestamp.toUpperCase()));
+
+    // When:
+    final TimestampExtractionPolicy result = TimestampExtractionPolicyFactory
+        .create(LogicalSchema.of(schema), Optional.of(timestamp), Optional.empty());
+
+    // Then:
+    assertThat(result, instanceOf(LongColumnTimestampExtractionPolicy.class));
+    assertThat(result.timestampField(), equalTo(timestamp.toUpperCase()));
   }
 
   @Test(expected = KsqlException.class)
   public void shouldFailIfCantFindTimestampField() {
-    TimestampExtractionPolicyFactory.create(schemaBuilder.build(), "whateva", null);
+    TimestampExtractionPolicyFactory
+        .create(LogicalSchema.of(schemaBuilder.build()), Optional.of("whateva"), Optional.empty());
   }
 
   @Test
   public void shouldCreateStringTimestampPolicyWhenTimestampFieldIsStringTypeAndFormatProvided() {
+    // Given:
     final String field = "my_string_field";
     final Schema schema = schemaBuilder
         .field(field.toUpperCase(), Schema.OPTIONAL_STRING_SCHEMA)
         .build();
-    final TimestampExtractionPolicy extractionPolicy
-        = TimestampExtractionPolicyFactory.create(schema, field, "yyyy-MM-DD");
-    assertThat(extractionPolicy, instanceOf(StringTimestampExtractionPolicy.class));
-    assertThat(extractionPolicy.timestampField(), equalTo(field.toUpperCase()));
+
+    // When:
+    final TimestampExtractionPolicy result = TimestampExtractionPolicyFactory
+        .create(LogicalSchema.of(schema), Optional.of(field), Optional.of("yyyy-MM-DD"));
+
+    // Then:
+    assertThat(result, instanceOf(StringTimestampExtractionPolicy.class));
+    assertThat(result.timestampField(), equalTo(field.toUpperCase()));
   }
 
   @Test(expected = KsqlException.class)
   public void shouldFailIfStringTimestampTypeAndFormatNotSupplied() {
+    // Given:
     final String field = "my_string_field";
     final Schema schema = schemaBuilder
         .field(field.toUpperCase(), Schema.OPTIONAL_STRING_SCHEMA)
         .build();
 
-    TimestampExtractionPolicyFactory.create(schema, field, null);
+    // When:
+    TimestampExtractionPolicyFactory
+        .create(LogicalSchema.of(schema), Optional.of(field), Optional.empty());
   }
 
-  @Test
-  public void shouldSupportFieldsWithQuotedStrings() {
-    final String field = "my_string_field";
+  @Test(expected = KsqlException.class)
+  public void shouldThorwIfLongTimestampTypeAndFormatIsSupplied() {
+    // Given:
+    final String timestamp = "timestamp";
     final Schema schema = schemaBuilder
-        .field(field.toUpperCase(), Schema.OPTIONAL_STRING_SCHEMA)
+        .field(timestamp.toUpperCase(), Schema.OPTIONAL_INT64_SCHEMA)
         .build();
-    final TimestampExtractionPolicy extractionPolicy
-        = TimestampExtractionPolicyFactory.create(schema, "'"+ field+ "'", "'yyyy-MM-DD'");
-    assertThat(extractionPolicy, instanceOf(StringTimestampExtractionPolicy.class));
-    assertThat(extractionPolicy.timestampField(), equalTo(field.toUpperCase()));
+
+    // When:
+    TimestampExtractionPolicyFactory
+        .create(LogicalSchema.of(schema), Optional.of(timestamp), Optional.of("b"));
   }
 
   @Test(expected = KsqlException.class)
   public void shouldThrowIfTimestampFieldTypeIsNotLongOrString() {
+    // Given:
     final String field = "blah";
     final Schema schema = schemaBuilder
         .field(field.toUpperCase(), Schema.OPTIONAL_FLOAT64_SCHEMA)
         .build();
-    TimestampExtractionPolicyFactory.create(schema, "'"+ field+ "'", null);
-  }
 
+    // When:
+    TimestampExtractionPolicyFactory
+        .create(LogicalSchema.of(schema), Optional.of(field), Optional.empty());
+  }
 }

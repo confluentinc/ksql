@@ -123,5 +123,13 @@ Level Up Your KSQL Videos
 | `Taking KSQL to Production <https://www.youtube.com/embed/f3wV8W_zjwE>`_                     | How to use KSQL in streaming ETL pipelines, scale query processing, isolate      |
 |                                                                                              | workloads, and secure your entire deployment.                                    |
 +----------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------+
+| `Insert Into <https://www.youtube.com/watch?v=z508VDdtp_M>`_                                 | A brief tutorial on how to use INSERT INTO in KSQL by Confluent.                 |
++----------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------+
+| `Struct (Nested Data) <https://www.youtube.com/watch?v=TQd5rfFmbhw>`_                        | A brief tutorial on how to use STRUCT in KSQL by Confluent.                      |
++----------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------+
+| `Stream-Stream Joins <https://www.youtube.com/watch?v=51yLu5FnPYo>`_                         | A short tutorial on stream-stream joins in KSQL by Confluent.                    |
++----------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------+
+| `Table-Table Joins <https://www.youtube.com/watch?v=-eMXWeBfK7U>`_                           | A short tutorial on table-table joins in KSQL by Confluent.                      |
++----------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------+
 | `Monitoring KSQL in Confluent Control Center <https://www.youtube.com/watch?v=3o7MzCri4e4>`_ | Monitor performance and end-to-end message delivery of your KSQL queries.        |
 +----------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------+

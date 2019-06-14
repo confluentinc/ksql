@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.structured;
 
+import static java.util.Objects.requireNonNull;
+
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.codegen.CodeGenRunner;
@@ -26,7 +28,7 @@ import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
-import io.confluent.ksql.planner.plan.OutputNode;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.streams.StreamsFactories;
 import io.confluent.ksql.streams.StreamsUtil;
 import io.confluent.ksql.util.ExpressionMetadata;
@@ -63,20 +65,19 @@ public class SchemaKStream<K> {
 
   public enum Type { SOURCE, PROJECT, FILTER, AGGREGATE, SINK, REKEY, JOIN }
 
-  final Schema schema;
+  final LogicalSchema schema;
   final KStream<K, GenericRow> kstream;
   final KeyField keyField;
   final List<SchemaKStream> sourceSchemaKStreams;
   final Type type;
   final KsqlConfig ksqlConfig;
   final FunctionRegistry functionRegistry;
-  private OutputNode output;
   final SerdeFactory<K> keySerdeFactory;
   final StreamsFactories streamsFactories;
   final QueryContext queryContext;
 
   public SchemaKStream(
-      final Schema schema,
+      final LogicalSchema schema,
       final KStream<K, GenericRow> kstream,
       final KeyField keyField,
       final List<SchemaKStream> sourceSchemaKStreams,
@@ -100,7 +101,7 @@ public class SchemaKStream<K> {
   }
 
   SchemaKStream(
-      final Schema schema,
+      final LogicalSchema schema,
       final KStream<K, GenericRow> kstream,
       final KeyField keyField,
       final List<SchemaKStream> sourceSchemaKStreams,
@@ -111,17 +112,17 @@ public class SchemaKStream<K> {
       final StreamsFactories streamsFactories,
       final QueryContext queryContext
   ) {
-    this.schema = schema;
+    this.schema = requireNonNull(schema, "schema");
     this.kstream = kstream;
-    this.keyField = Objects.requireNonNull(keyField, "keyField")
+    this.keyField = requireNonNull(keyField, "keyField")
         .validateKeyExistsIn(schema);
-    this.sourceSchemaKStreams = sourceSchemaKStreams;
-    this.type = type;
-    this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
-    this.functionRegistry = functionRegistry;
-    this.keySerdeFactory = Objects.requireNonNull(keySerdeFactory, "keySerdeFactory");
-    this.streamsFactories = Objects.requireNonNull(streamsFactories);
-    this.queryContext = Objects.requireNonNull(queryContext);
+    this.sourceSchemaKStreams = requireNonNull(sourceSchemaKStreams, "sourceSchemaKStreams");
+    this.type = requireNonNull(type, "type");
+    this.ksqlConfig = requireNonNull(ksqlConfig, "ksqlConfig");
+    this.functionRegistry = requireNonNull(functionRegistry, "functionRegistry");
+    this.keySerdeFactory = requireNonNull(keySerdeFactory, "keySerdeFactory");
+    this.streamsFactories = requireNonNull(streamsFactories);
+    this.queryContext = requireNonNull(queryContext);
   }
 
   public SerdeFactory<K> getKeySerdeFactory() {
@@ -210,7 +211,8 @@ public class SchemaKStream<K> {
   }
 
   class Selection {
-    private final Schema schema;
+
+    private final LogicalSchema schema;
     private final KeyField key;
     private final SelectValueMapper selectValueMapper;
 
@@ -238,38 +240,11 @@ public class SchemaKStream<K> {
         return Optional.empty();
       }
 
-      final String keyField = getKeyField().name().get();
+      final Field keyField = new Field(
+          getKeyField().name().get(), -1, Schema.OPTIONAL_STRING_SCHEMA);
 
-      for (SelectExpression selectExpression : selectExpressions) {
-        final String toName = selectExpression.getName();
-        final Expression toExpression = selectExpression.getExpression();
-
-        /*
-         * Sometimes a column reference is a DereferenceExpression, and sometimes its
-         * a QualifiedNameReference. We have an issue
-         * (https://github.com/confluentinc/ksql/issues/1695)
-         * to track cleaning this up and using DereferenceExpression for all column references.
-         * Until then, we have to check for both here.
-         */
-        if (toExpression instanceof DereferenceExpression) {
-          final DereferenceExpression dereferenceExpression =
-              (DereferenceExpression) toExpression;
-
-          if (keyField.equals(dereferenceExpression.toString())) {
-            return Optional.of(toName);
-          }
-        } else if (toExpression instanceof QualifiedNameReference) {
-          final QualifiedNameReference qualifiedNameReference =
-              (QualifiedNameReference) toExpression;
-
-          if (keyField.equals(qualifiedNameReference.getName().getSuffix())) {
-            return Optional.of(toName);
-          }
-        }
-      }
-
-      // Source key is not in selection:
-      return Optional.empty();
+      return doFindKeyField(selectExpressions, keyField)
+          .map(Field::name);
     }
 
     private Optional<Field> findLegacyKeyField(final List<SelectExpression> selectExpressions) {
@@ -282,6 +257,14 @@ public class SchemaKStream<K> {
         // The key "field" isn't an actual field in the schema
         return Optional.of(keyField);
       }
+
+      return doFindKeyField(selectExpressions, keyField);
+    }
+
+    private Optional<Field> doFindKeyField(
+        final List<SelectExpression> selectExpressions,
+        final Field keyField
+    ) {
       for (int i = 0; i < selectExpressions.size(); i++) {
         final String toName = selectExpressions.get(i).getName();
         final Expression toExpression = selectExpressions.get(i).getExpression();
@@ -296,15 +279,15 @@ public class SchemaKStream<K> {
         if (toExpression instanceof DereferenceExpression) {
           final DereferenceExpression dereferenceExpression
               = (DereferenceExpression) toExpression;
+
           if (SchemaUtil.matchFieldName(keyField, dereferenceExpression.toString())) {
             return Optional.of(new Field(toName, i, keyField.schema()));
           }
         } else if (toExpression instanceof QualifiedNameReference) {
           final QualifiedNameReference qualifiedNameReference
               = (QualifiedNameReference) toExpression;
-          if (SchemaUtil.matchFieldName(
-              keyField,
-              qualifiedNameReference.getName().getSuffix())) {
+
+          if (SchemaUtil.matchFieldName(keyField, qualifiedNameReference.getName().getSuffix())) {
             return Optional.of(new Field(toName, i, keyField.schema()));
           }
         }
@@ -312,7 +295,7 @@ public class SchemaKStream<K> {
       return Optional.empty();
     }
 
-    private Schema buildSchema(
+    private LogicalSchema buildSchema(
         final List<SelectExpression> selectExpressions,
         final List<ExpressionMetadata> expressionEvaluators) {
       final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
@@ -320,7 +303,7 @@ public class SchemaKStream<K> {
           i -> schemaBuilder.field(
               selectExpressions.get(i).getName(),
               expressionEvaluators.get(i).getExpressionType()));
-      return schemaBuilder.build();
+      return LogicalSchema.of(schemaBuilder.build());
     }
 
     List<ExpressionMetadata> buildExpressions(final List<SelectExpression> selectExpressions
@@ -332,7 +315,7 @@ public class SchemaKStream<K> {
           expressions, "Select", SchemaKStream.this.getSchema(), ksqlConfig, functionRegistry);
     }
 
-    public Schema getProjectedSchema() {
+    public LogicalSchema getProjectedSchema() {
       return schema;
     }
 
@@ -348,8 +331,8 @@ public class SchemaKStream<K> {
   @SuppressWarnings("unchecked")
   public SchemaKStream<K> leftJoin(
       final SchemaKTable<K> schemaKTable,
-      final Schema joinSchema,
-      final Field joinKey,
+      final LogicalSchema joinSchema,
+      final KeyField keyField,
       final Serde<GenericRow> leftValueSerDe,
       final QueryContext.Stacker contextStacker
   ) {
@@ -368,7 +351,7 @@ public class SchemaKStream<K> {
     return new SchemaKStream<>(
         joinSchema,
         joinedKStream,
-        KeyField.of(joinKey.name(), joinKey),
+        keyField,
         ImmutableList.of(this, schemaKTable),
         keySerdeFactory,
         Type.JOIN,
@@ -380,8 +363,8 @@ public class SchemaKStream<K> {
 
   public SchemaKStream<K> leftJoin(
       final SchemaKStream<K> otherSchemaKStream,
-      final Schema joinSchema,
-      final Field joinKey,
+      final LogicalSchema joinSchema,
+      final KeyField keyField,
       final JoinWindows joinWindows,
       final Serde<GenericRow> leftSerde,
       final Serde<GenericRow> rightSerde,
@@ -403,7 +386,7 @@ public class SchemaKStream<K> {
     return new SchemaKStream<>(
         joinSchema,
         joinStream,
-        KeyField.of(joinKey.name(), joinKey),
+        keyField,
         ImmutableList.of(this, otherSchemaKStream),
         keySerdeFactory,
         Type.JOIN,
@@ -416,15 +399,15 @@ public class SchemaKStream<K> {
   @SuppressWarnings("unchecked")
   public SchemaKStream<K> join(
       final SchemaKTable<K> schemaKTable,
-      final Schema joinSchema,
-      final Field joinKey,
+      final LogicalSchema joinSchema,
+      final KeyField keyField,
       final Serde<GenericRow> joinSerDe,
       final QueryContext.Stacker contextStacker
   ) {
     final KStream<K, GenericRow> joinedKStream =
         kstream.join(
             schemaKTable.getKtable(),
-            new KsqlValueJoiner(this.getSchema(), schemaKTable.getSchema()),
+            new KsqlValueJoiner(getSchema(), schemaKTable.getSchema()),
             streamsFactories.getJoinedFactory().create(
                 keySerdeFactory.create(),
                 joinSerDe,
@@ -435,7 +418,7 @@ public class SchemaKStream<K> {
     return new SchemaKStream<>(
         joinSchema,
         joinedKStream,
-        KeyField.of(joinKey.name(), joinKey),
+        keyField,
         ImmutableList.of(this, schemaKTable),
         keySerdeFactory,
         Type.JOIN,
@@ -447,8 +430,8 @@ public class SchemaKStream<K> {
 
   public SchemaKStream<K> join(
       final SchemaKStream<K> otherSchemaKStream,
-      final Schema joinSchema,
-      final Field joinKey,
+      final LogicalSchema joinSchema,
+      final KeyField keyField,
       final JoinWindows joinWindows,
       final Serde<GenericRow> leftSerde,
       final Serde<GenericRow> rightSerde,
@@ -469,7 +452,7 @@ public class SchemaKStream<K> {
     return new SchemaKStream<>(
         joinSchema,
         joinStream,
-        KeyField.of(joinKey.name(), joinKey),
+        keyField,
         ImmutableList.of(this, otherSchemaKStream),
         keySerdeFactory,
         Type.JOIN,
@@ -481,8 +464,8 @@ public class SchemaKStream<K> {
 
   public SchemaKStream<K> outerJoin(
       final SchemaKStream<K> otherSchemaKStream,
-      final Schema joinSchema,
-      final Field joinKey,
+      final LogicalSchema joinSchema,
+      final KeyField keyField,
       final JoinWindows joinWindows,
       final Serde<GenericRow> leftSerde,
       final Serde<GenericRow> rightSerde,
@@ -502,7 +485,7 @@ public class SchemaKStream<K> {
     return new SchemaKStream<>(
         joinSchema,
         joinStream,
-        KeyField.of(joinKey.name(), joinKey),
+        keyField,
         ImmutableList.of(this, otherSchemaKStream),
         keySerdeFactory,
         Type.JOIN,
@@ -515,21 +498,33 @@ public class SchemaKStream<K> {
 
   @SuppressWarnings("unchecked")
   public SchemaKStream<?> selectKey(
-      final Field newKeyField,
+      final String fieldName,
       final boolean updateRowKey,
       final QueryContext.Stacker contextStacker
   ) {
-    final Optional<Field> resolved = keyField.resolve(schema, ksqlConfig);
+    final Optional<Field> existingKey = keyField.resolve(schema, ksqlConfig);
 
-    final boolean namesMatch = resolved
-        .map(kf -> SchemaUtil.matchFieldName(kf, newKeyField.name()))
+    final Field proposedKey = schema.findValueField(fieldName)
+        .orElseThrow(IllegalArgumentException::new);
+
+    final KeyField resultantKeyField = isRowKey(fieldName)
+            ? keyField.withLegacy(proposedKey)
+            : KeyField.of(fieldName, proposedKey);
+
+    final boolean namesMatch = existingKey
+        .map(kf -> SchemaUtil.matchFieldName(kf, proposedKey.name()))
         .orElse(false);
 
-    if (namesMatch) {
+    // Note: Prior to v5.3 a selectKey(ROWKEY) would result in a repartition.
+    // To maintain compatibility, old queries, started prior to v5.3, must have repartition step.
+    // So we only handle rowkey for new queries:
+    final boolean treatAsRowKey = usingNewKeyFields() && isRowKey(proposedKey.name());
+
+    if (namesMatch || treatAsRowKey) {
       return new SchemaKStream<>(
           schema,
           kstream,
-          KeyField.of(newKeyField.name(), newKeyField),
+          resultantKeyField,
           sourceSchemaKStreams,
           keySerdeFactory,
           type,
@@ -540,12 +535,11 @@ public class SchemaKStream<K> {
     }
 
     final KStream keyedKStream = kstream
-        .filter((key, value) -> value != null
-            && extractColumn(newKeyField, value) != null)
-        .selectKey((key, value) -> extractColumn(newKeyField, value).toString())
+        .filter((key, value) -> value != null && extractColumn(proposedKey, value) != null)
+        .selectKey((key, value) -> extractColumn(proposedKey, value).toString())
         .mapValues((key, row) -> {
           if (updateRowKey) {
-            row.getColumns().set(SchemaUtil.ROWKEY_NAME_INDEX, key);
+            row.getColumns().set(SchemaUtil.ROWKEY_INDEX, key);
           }
           return row;
         });
@@ -553,7 +547,7 @@ public class SchemaKStream<K> {
     return new SchemaKStream<>(
         schema,
         keyedKStream,
-        KeyField.of(newKeyField.name(), newKeyField),
+        resultantKeyField,
         Collections.singletonList(this),
         Serdes::String,
         Type.REKEY,
@@ -563,10 +557,24 @@ public class SchemaKStream<K> {
     );
   }
 
+  private boolean usingNewKeyFields() {
+    return !ksqlConfig.getBoolean(KsqlConfig.KSQL_USE_LEGACY_KEY_FIELD);
+  }
+
+  private static boolean isRowKey(final String fieldName) {
+    return SchemaUtil.isFieldName(fieldName, SchemaUtil.ROWKEY_NAME);
+  }
+
   private Object extractColumn(final Field newKeyField, final GenericRow value) {
+    if (value.getColumns().size() != schema.valueFields().size()) {
+      throw new IllegalStateException("Field count mismatch. "
+          + "Schema fields: " + schema
+          + ", row:" + value);
+    }
+
     return value
         .getColumns()
-        .get(SchemaUtil.getFieldIndexByName(schema, newKeyField.name()));
+        .get(schema.valueFieldIndex(newKeyField.name()).orElseThrow(IllegalStateException::new));
   }
 
   private static String fieldNameFromExpression(final Expression expression) {
@@ -641,7 +649,7 @@ public class SchemaKStream<K> {
     final Field legacyKeyField = new Field(
         groupBy.aggregateKeyName, -1, Schema.OPTIONAL_STRING_SCHEMA);
 
-    final Optional<String> newKeyField = SchemaUtil.getFieldByName(schema, groupBy.aggregateKeyName)
+    final Optional<String> newKeyField = schema.findValueField(groupBy.aggregateKeyName)
         .map(Field::name);
 
     return new SchemaKGroupedStream(
@@ -658,7 +666,7 @@ public class SchemaKStream<K> {
     return keyField;
   }
 
-  public Schema getSchema() {
+  public LogicalSchema getSchema() {
     return schema;
   }
 
@@ -675,7 +683,7 @@ public class SchemaKStream<K> {
     stringBuilder.append(indent)
         .append(" > [ ")
         .append(type).append(" ] | Schema: ")
-        .append(SchemaUtil.getSchemaDefinitionString(schema))
+        .append(schema)
         .append(" | Logger: ").append(QueryLoggerUtil.queryLoggerName(queryContext))
         .append("\n");
     for (final SchemaKStream schemaKStream : sourceSchemaKStreams) {
@@ -685,14 +693,6 @@ public class SchemaKStream<K> {
           .append(schemaKStream.getExecutionPlan(indent + "\t"));
     }
     return stringBuilder.toString();
-  }
-
-  public OutputNode outputNode() {
-    return output;
-  }
-
-  public void setOutputNode(final OutputNode output) {
-    this.output = output;
   }
 
   public Type getType() {
@@ -719,12 +719,13 @@ public class SchemaKStream<K> {
 
   protected static class KsqlValueJoiner
       implements ValueJoiner<GenericRow, GenericRow, GenericRow> {
-    private final Schema leftSchema;
-    private final Schema rightSchema;
 
-    KsqlValueJoiner(final Schema leftSchema, final Schema rightSchema) {
-      this.leftSchema = leftSchema;
-      this.rightSchema = rightSchema;
+    private final LogicalSchema leftSchema;
+    private final LogicalSchema rightSchema;
+
+    KsqlValueJoiner(final LogicalSchema leftSchema, final LogicalSchema rightSchema) {
+      this.leftSchema = Objects.requireNonNull(leftSchema, "leftSchema");
+      this.rightSchema = Objects.requireNonNull(rightSchema, "rightSchema");
     }
 
     @Override
@@ -733,13 +734,13 @@ public class SchemaKStream<K> {
       if (left != null) {
         columns.addAll(left.getColumns());
       } else {
-        fillWithNulls(columns, leftSchema.fields().size());
+        fillWithNulls(columns, leftSchema.valueFields().size());
       }
 
       if (right != null) {
         columns.addAll(right.getColumns());
       } else {
-        fillWithNulls(columns, rightSchema.fields().size());
+        fillWithNulls(columns, rightSchema.valueFields().size());
       }
 
       return new GenericRow(columns);

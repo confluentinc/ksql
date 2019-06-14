@@ -17,14 +17,13 @@ package io.confluent.ksql.planner.plan;
 
 import static java.util.Objects.requireNonNull;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
+import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.physical.KsqlQueryBuilder;
-import io.confluent.ksql.serde.DataSource.DataSourceType;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.SchemaKStream;
 import java.util.List;
-import org.apache.kafka.connect.data.Schema;
 
 
 public abstract class PlanNode {
@@ -39,7 +38,6 @@ public abstract class PlanNode {
     this.nodeOutputType = nodeOutputType;
   }
 
-  @JsonProperty("id")
   public PlanNodeId getId() {
     return id;
   }
@@ -48,7 +46,7 @@ public abstract class PlanNode {
     return nodeOutputType;
   }
 
-  public abstract Schema getSchema();
+  public abstract LogicalSchema getSchema();
 
   public abstract KeyField getKeyField();
 
@@ -58,9 +56,9 @@ public abstract class PlanNode {
     return visitor.visitPlan(this, context);
   }
 
-  public StructuredDataSourceNode getTheSourceNode() {
-    if (this instanceof StructuredDataSourceNode) {
-      return (StructuredDataSourceNode) this;
+  public DataSourceNode getTheSourceNode() {
+    if (this instanceof DataSourceNode) {
+      return (DataSourceNode) this;
     } else if (this.getSources() != null && !this.getSources().isEmpty()) {
       return this.getSources().get(0).getTheSourceNode();
     }

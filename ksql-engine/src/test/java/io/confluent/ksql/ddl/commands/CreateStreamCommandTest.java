@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.ddl.commands;
 
+import static io.confluent.ksql.metastore.model.MetaStoreMatchers.KeyFieldMatchers.hasLegacyName;
+import static io.confluent.ksql.metastore.model.MetaStoreMatchers.KeyFieldMatchers.hasName;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
@@ -26,21 +28,23 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MutableMetaStore;
-import io.confluent.ksql.parser.tree.BooleanLiteral;
+import io.confluent.ksql.parser.tree.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.CreateStream;
-import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
-import io.confluent.ksql.parser.tree.Type.SqlType;
+import io.confluent.ksql.schema.ksql.SqlType;
 import io.confluent.ksql.services.KafkaTopicClient;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.kstream.WindowedSerdes;
 import org.junit.Before;
@@ -54,13 +58,18 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class CreateStreamCommandTest {
 
+  private static final String STREAM_NAME = "s1";
   private static final List<TableElement> SOME_ELEMENTS = ImmutableList.of(
-      new TableElement("bob", PrimitiveType.of(SqlType.STRING)));
+      new TableElement("ID", PrimitiveType.of(SqlType.BIGINT)),
+      new TableElement("bob", PrimitiveType.of(SqlType.STRING))
+  );
 
   @Mock
   private KafkaTopicClient topicClient;
   @Mock
   private CreateStream createStreamStatement;
+  @Mock
+  private KsqlConfig ksqlConfig;
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -71,7 +80,7 @@ public class CreateStreamCommandTest {
   @Before
   public void setUp() {
     givenPropertiesWith((Collections.emptyMap()));
-    when(createStreamStatement.getName()).thenReturn(QualifiedName.of("name"));
+    when(createStreamStatement.getName()).thenReturn(QualifiedName.of(STREAM_NAME));
     when(createStreamStatement.getElements()).thenReturn(SOME_ELEMENTS);
     when(topicClient.isTopicExists(any())).thenReturn(true);
   }
@@ -128,36 +137,6 @@ public class CreateStreamCommandTest {
   }
 
   @Test
-  public void shouldThrowOnUnknownWindowType() {
-    // Given:
-    givenPropertiesWith(ImmutableMap.of(
-        DdlConfig.WINDOW_TYPE_PROPERTY, new StringLiteral("Unknown")));
-
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("WINDOW_TYPE property is not set correctly. "
-        + "value: UNKNOWN, validValues: [SESSION, TUMBLING, HOPPING]");
-
-    // When:
-    createCmd();
-  }
-
-  @Test
-  public void shouldThrowOnOldWindowProperty() {
-    // Given:
-    givenPropertiesWith(ImmutableMap.of(
-        "WINDOWED", new BooleanLiteral("true")));
-
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "Invalid config variable in the WITH clause: WINDOWED");
-
-    // When:
-    createCmd();
-  }
-
-  @Test
   public void shouldThrowIfTopicDoesNotExist() {
     // Given:
     when(topicClient.isTopicExists(any())).thenReturn(false);
@@ -172,27 +151,60 @@ public class CreateStreamCommandTest {
   }
 
   @Test
-  public void testCreateAlreadyRegisteredStreamThrowsException() {
+  public void shouldThrowIfAlreadyRegistered() {
     // Given:
     final CreateStreamCommand cmd = createCmd();
     cmd.run(metaStore);
 
     // Then:
-    expectedException.expectMessage("Cannot create stream 'name': A stream " +
-            "with name 'name' already exists");
+    expectedException.expectMessage("Cannot create stream 's1': A stream " +
+            "with name 's1' already exists");
 
     // When:
     cmd.run(metaStore);
   }
 
-  private CreateStreamCommand createCmd() {
-    return new CreateStreamCommand("some sql", createStreamStatement, topicClient);
+  @Test
+  public void shouldAddSourceWithKeyField() {
+    // Given:
+    givenPropertiesWith(ImmutableMap.of(
+        "KEY", new StringLiteral("id")));
+    final CreateStreamCommand cmd = createCmd();
+
+    // When:
+    cmd.run(metaStore);
+
+    // Then:
+    assertThat(metaStore.getSource(STREAM_NAME).getKeyField(), hasName("ID"));
+    assertThat(metaStore.getSource(STREAM_NAME).getKeyField(), hasLegacyName("ID"));
   }
 
-  private void givenPropertiesWith(final Map<String, Expression> props) {
-    final Map<String, Expression> allProps = new HashMap<>(props);
+  @Test
+  public void shouldAddSourceWithNoKeyField() {
+    // Given:
+    final CreateStreamCommand cmd = createCmd();
+
+    // When:
+    cmd.run(metaStore);
+
+    // Then:
+    assertThat(metaStore.getSource(STREAM_NAME).getKeyField(), hasName(Optional.empty()));
+    assertThat(metaStore.getSource(STREAM_NAME).getKeyField(), hasLegacyName(Optional.empty()));
+  }
+
+  private CreateStreamCommand createCmd() {
+    return new CreateStreamCommand(
+        "some sql",
+        createStreamStatement,
+        ksqlConfig,
+        topicClient
+    );
+  }
+
+  private void givenPropertiesWith(final Map<String, Literal> props) {
+    final Map<String, Literal> allProps = new HashMap<>(props);
     allProps.putIfAbsent(DdlConfig.VALUE_FORMAT_PROPERTY, new StringLiteral("Json"));
     allProps.putIfAbsent(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral("some-topic"));
-    when(createStreamStatement.getProperties()).thenReturn(allProps);
+    when(createStreamStatement.getProperties()).thenReturn(new CreateSourceProperties(allProps));
   }
 }

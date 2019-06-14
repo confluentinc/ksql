@@ -30,6 +30,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Sets;
 import io.confluent.ksql.exception.KafkaTopicExistsException;
 import io.confluent.ksql.test.util.TestMethods;
 import io.confluent.ksql.test.util.TestMethods.TestCase;
@@ -43,6 +44,7 @@ import java.util.stream.IntStream;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.Node;
 import org.apache.kafka.common.TopicPartitionInfo;
+import org.apache.kafka.common.acl.AclOperation;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -159,10 +161,11 @@ public class SandboxedKafkaTopicClientTest {
           .describeTopic("some topic");
 
       // Then:
-      assertThat(result, is(new TopicDescription(
+      assertThat(result, is(new SandboxedTopicDescription(
           "some topic",
           false,
-          topicPartitions(2, 3))));
+          topicPartitions(2, 3),
+          Sets.newHashSet(AclOperation.READ, AclOperation.WRITE))));
     }
 
     @Test
@@ -176,10 +179,11 @@ public class SandboxedKafkaTopicClientTest {
 
       // Then:
       assertThat(result.keySet(), contains("some topic"));
-      assertThat(result.get("some topic"), is(new TopicDescription(
+      assertThat(result.get("some topic"), is(new SandboxedTopicDescription(
           "some topic",
           false,
-          topicPartitions(2, 3))));
+          topicPartitions(2, 3),
+          Sets.newHashSet(AclOperation.READ, AclOperation.WRITE))));
     }
 
     @Test

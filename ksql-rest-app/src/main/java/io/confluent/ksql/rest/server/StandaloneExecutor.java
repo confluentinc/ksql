@@ -22,7 +22,7 @@ import io.confluent.ksql.function.UdfLoader;
 import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
-import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
+import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
@@ -32,6 +32,7 @@ import io.confluent.ksql.parser.tree.QueryContainer;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.UnsetProperty;
+import io.confluent.ksql.properties.PropertyOverrider;
 import io.confluent.ksql.rest.util.ProcessingLogServerUtils;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -115,7 +116,7 @@ public class StandaloneExecutor implements Executable {
       processesQueryFile(readQueriesFile(queriesFile));
       showWelcomeMessage();
       final Properties properties = new Properties();
-      properties.putAll(configProperties);
+      ksqlConfig.originals().forEach((key, value) -> properties.put(key, value.toString()));
       versionChecker.start(KsqlModuleType.SERVER, properties);
     } catch (final Exception e) {
       log.error("Failed to start KSQL Server with query file: " + queriesFile, e);
@@ -173,7 +174,7 @@ public class StandaloneExecutor implements Executable {
   }
 
   private void validateStatements(final List<ParsedStatement> statements) {
-    final KsqlExecutionContext sandboxEngine = ksqlEngine.createSandbox();
+    final KsqlExecutionContext sandboxEngine = ksqlEngine.createSandbox(serviceContext);
     final Injector injector = injectorFactory.apply(
         sandboxEngine, sandboxEngine.getServiceContext());
 
@@ -187,7 +188,9 @@ public class StandaloneExecutor implements Executable {
     final boolean hasQueries = executeStatements(statements, sandboxExecutor);
 
     if (failOnNoQueries && !hasQueries) {
-      throw new KsqlException("The SQL file did not contain any queries");
+      throw new KsqlException("The SQL file does not contain any persistent queries. "
+              + "i.e. it contains no 'INSERT INTO', 'CREATE TABLE x AS SELECT' or "
+              + "'CREATE STREAM x AS SELECT' style statements.");
     }
   }
 
@@ -303,11 +306,11 @@ public class StandaloneExecutor implements Executable {
     }
 
     private static void throwOnMissingSchema(final ConfiguredStatement<?> statement) {
-      if (!(statement.getStatement() instanceof AbstractStreamCreateStatement)) {
+      if (!(statement.getStatement() instanceof CreateSource)) {
         return;
       }
 
-      if (!((AbstractStreamCreateStatement) statement.getStatement()).getElements().isEmpty()) {
+      if (!((CreateSource) statement.getStatement()).getElements().isEmpty()) {
         return;
       }
 
@@ -317,12 +320,11 @@ public class StandaloneExecutor implements Executable {
     }
 
     private void handleSetProperty(final ConfiguredStatement<SetProperty> statement) {
-      final SetProperty setProperty = statement.getStatement();
-      configProperties.put(setProperty.getPropertyName(), setProperty.getPropertyValue());
+      PropertyOverrider.set(statement);
     }
 
     private void handleUnsetProperty(final ConfiguredStatement<UnsetProperty> statement) {
-      configProperties.remove(statement.getStatement().getPropertyName());
+      PropertyOverrider.unset(statement);
     }
 
     private void handleExecutableDdl(final ConfiguredStatement<?> statement) {

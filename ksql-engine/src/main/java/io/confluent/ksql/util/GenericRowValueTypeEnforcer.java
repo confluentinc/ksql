@@ -17,10 +17,10 @@ package io.confluent.ksql.util;
 
 import com.google.common.collect.ImmutableMap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
-
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 
@@ -30,18 +30,19 @@ public class GenericRowValueTypeEnforcer {
 
   private static final Map<Schema.Type, Function<Object, Object>> SCHEMA_TYPE_TO_ENFORCE =
       ImmutableMap.<Schema.Type, Function<Object, Object>>builder()
-          .put(Schema.Type.INT32, v -> enforceInteger(v))
-          .put(Schema.Type.INT64, v -> enforceLong(v))
-          .put(Schema.Type.FLOAT64, v -> enforceDouble(v))
-          .put(Schema.Type.STRING, v -> enforceString(v))
-          .put(Schema.Type.BOOLEAN, v -> enforceBoolean(v))
+          .put(Schema.Type.INT32, GenericRowValueTypeEnforcer::enforceInteger)
+          .put(Schema.Type.INT64, GenericRowValueTypeEnforcer::enforceLong)
+          .put(Schema.Type.FLOAT64, GenericRowValueTypeEnforcer::enforceDouble)
+          .put(Schema.Type.STRING, GenericRowValueTypeEnforcer::enforceString)
+          .put(Schema.Type.BOOLEAN, GenericRowValueTypeEnforcer::enforceBoolean)
+          .put(Schema.Type.BYTES, v -> v)
           .put(Schema.Type.ARRAY, v -> v)
           .put(Schema.Type.MAP, v -> v)
           .put(Schema.Type.STRUCT, v -> v)
           .build();
 
-  public GenericRowValueTypeEnforcer(final Schema schema) {
-    this.fields = schema.fields();
+  public GenericRowValueTypeEnforcer(final LogicalSchema schema) {
+    this.fields = schema.valueFields();
   }
 
   public Object enforceFieldType(final int index, final Object value) {
@@ -49,7 +50,7 @@ public class GenericRowValueTypeEnforcer {
     return enforceFieldType(field.schema(), value);
   }
 
-  private Object enforceFieldType(final Schema schema, final Object value) {
+  private static Object enforceFieldType(final Schema schema, final Object value) {
     final Function<Object, Object> handler = SCHEMA_TYPE_TO_ENFORCE.get(schema.type());
     if (handler == null) {
       throw new KsqlException("Type is not supported: " + schema);
@@ -71,7 +72,7 @@ public class GenericRowValueTypeEnforcer {
       return ((Short) value).doubleValue();
     } else if (value instanceof Byte) {
       return ((Byte) value).doubleValue();
-    } else if (value instanceof String || value instanceof CharSequence) {
+    } else if (value instanceof CharSequence) {
       return Double.parseDouble(value.toString());
     } else if (value == null) {
       return null;
@@ -91,7 +92,7 @@ public class GenericRowValueTypeEnforcer {
       return ((Short) value).longValue();
     } else if (value instanceof Byte) {
       return ((Byte) value).longValue();
-    } else if (value instanceof String || value instanceof CharSequence) {
+    } else if (value instanceof CharSequence) {
       return Long.parseLong(value.toString());
     } else if (value == null) {
       return null;
@@ -112,7 +113,7 @@ public class GenericRowValueTypeEnforcer {
       return ((Short) value).intValue();
     } else if (value instanceof Byte) {
       return ((Byte) value).intValue();
-    } else if (value instanceof String || value instanceof CharSequence) {
+    } else if (value instanceof CharSequence) {
       return Integer.parseInt(value.toString());
     } else if (value == null) {
       return null;
@@ -122,7 +123,7 @@ public class GenericRowValueTypeEnforcer {
   }
 
   private static String enforceString(final Object value) {
-    if (value instanceof String || value instanceof CharSequence) {
+    if (value instanceof CharSequence) {
       return value.toString();
     } else if (value == null) {
       return null;

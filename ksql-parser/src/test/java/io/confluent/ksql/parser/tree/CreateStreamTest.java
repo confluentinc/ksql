@@ -18,7 +18,8 @@ package io.confluent.ksql.parser.tree;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.testing.EqualsTester;
-import io.confluent.ksql.parser.tree.Type.SqlType;
+import io.confluent.ksql.ddl.DdlConfig;
+import io.confluent.ksql.schema.ksql.SqlType;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -32,9 +33,14 @@ public class CreateStreamTest {
   private static final List<TableElement> SOME_ELEMENTS = ImmutableList.of(
       new TableElement("Bob", PrimitiveType.of(SqlType.STRING))
   );
-  private static final Map<String, Expression> SOME_PROPS = ImmutableMap.of(
-      "key", new StringLiteral("value")
+  private static final Map<String, Literal> SOME_PROPS = ImmutableMap.of(
+      "value_format", new StringLiteral("json"),
+      "kafka_topic", new StringLiteral("foo")
   );
+  private static final Map<String, Literal> OTHER_PROPS = ImmutableMap.<String, Literal>builder()
+      .putAll(SOME_PROPS)
+      .put(DdlConfig.TIMESTAMP_NAME_PROPERTY, new StringLiteral("foo"))
+      .build();
 
   @Test
   public void shouldImplementHashCodeAndEqualsProperty() {
@@ -58,7 +64,7 @@ public class CreateStreamTest {
             new CreateStream(SOME_NAME, SOME_ELEMENTS, false, SOME_PROPS)
         )
         .addEqualityGroup(
-            new CreateStream(SOME_NAME, SOME_ELEMENTS, true, ImmutableMap.of())
+            new CreateStream(SOME_NAME, SOME_ELEMENTS, true, OTHER_PROPS)
         )
         .testEquals();
   }

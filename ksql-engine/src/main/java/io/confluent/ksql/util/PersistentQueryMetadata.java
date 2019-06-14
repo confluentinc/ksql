@@ -15,16 +15,18 @@
 
 package io.confluent.ksql.util;
 
+import static java.util.Objects.requireNonNull;
+
 import com.google.common.collect.ImmutableSet;
+import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.physical.QuerySchemas;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.serde.DataSource;
+import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.serde.Format;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
-import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.Topology;
 
@@ -37,17 +39,18 @@ public class PersistentQueryMetadata extends QueryMetadata {
   private final KsqlTopic resultTopic;
   private final Set<String> sinkNames;
   private final QuerySchemas schemas;
+  private final PhysicalSchema resultSchema;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   public PersistentQueryMetadata(
       final String statementString,
       final KafkaStreams kafkaStreams,
-      final Schema resultSchema,
+      final PhysicalSchema schema,
       final Set<String> sourceNames,
       final String sinkName,
       final String executionPlan,
       final QueryId id,
-      final DataSource.DataSourceType dataSourceType,
+      final DataSourceType dataSourceType,
       final String queryApplicationId,
       final KsqlTopic resultTopic,
       final Topology topology,
@@ -60,7 +63,7 @@ public class PersistentQueryMetadata extends QueryMetadata {
     super(
         statementString,
         kafkaStreams,
-        resultSchema,
+        schema.logicalSchema(),
         sourceNames,
         executionPlan,
         dataSourceType,
@@ -69,15 +72,12 @@ public class PersistentQueryMetadata extends QueryMetadata {
         streamsProperties,
         overriddenProperties,
         closeCallback);
-    this.id = Objects.requireNonNull(id, "id");
-    this.resultTopic = Objects.requireNonNull(resultTopic, "resultTopic");
-    this.sinkNames = ImmutableSet.of(sinkName);
-    this.schemas = Objects.requireNonNull(schemas, "schemas");
 
-    if (resultTopic.getKsqlTopicSerDe() == null) {
-      throw new KsqlException(String.format("Invalid result topic: %s. Serde cannot be null.",
-          resultTopic.getName()));
-    }
+    this.id = requireNonNull(id, "id");
+    this.resultTopic = requireNonNull(resultTopic, "resultTopic");
+    this.sinkNames = ImmutableSet.of(sinkName);
+    this.schemas = requireNonNull(schemas, "schemas");
+    this.resultSchema = requireNonNull(schema, "schema");
   }
 
   private PersistentQueryMetadata(
@@ -89,6 +89,7 @@ public class PersistentQueryMetadata extends QueryMetadata {
     this.resultTopic = other.resultTopic;
     this.sinkNames = other.sinkNames;
     this.schemas = other.schemas;
+    this.resultSchema = other.resultSchema;
   }
 
   public PersistentQueryMetadata copyWith(final Consumer<QueryMetadata> closeCallback) {
@@ -107,11 +108,15 @@ public class PersistentQueryMetadata extends QueryMetadata {
     return sinkNames;
   }
 
-  public DataSource.DataSourceSerDe getResultTopicSerde() {
-    return resultTopic.getKsqlTopicSerDe().getSerDe();
+  public Format getResultTopicFormat() {
+    return resultTopic.getValueSerdeFactory().getFormat();
   }
 
   public String getSchemasDescription() {
     return schemas.toString();
+  }
+
+  public PhysicalSchema getPhysicalSchema() {
+    return resultSchema;
   }
 }

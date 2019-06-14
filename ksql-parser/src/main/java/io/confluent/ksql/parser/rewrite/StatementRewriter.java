@@ -97,7 +97,7 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
 
     return new ArithmeticBinaryExpression(
         node.getLocation(),
-        node.getType(),
+        node.getOperator(),
         rewrittenLeft,
         rewrittenRight);
   }
@@ -397,16 +397,7 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
         .map(tableElement -> (TableElement) process(tableElement, context))
         .collect(Collectors.toList());
 
-    final Map<String, Expression> rewrittenProps = node
-        .getProperties()
-        .entrySet()
-        .stream()
-        .collect(Collectors.toMap(
-            Entry::getKey,
-            e -> (Expression) process(e.getValue(), context)
-        ));
-
-    return node.copyWith(rewrittenElements, rewrittenProps);
+    return node.copyWith(rewrittenElements, node.getProperties());
   }
 
   protected Node visitCreateStreamAsSelect(final CreateStreamAsSelect node, final Object context) {
@@ -418,7 +409,7 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
         node.getProperties().entrySet().stream()
             .collect(Collectors.toMap(
                 Map.Entry::getKey,
-                e -> (Expression) process(e.getValue(), context)
+                e -> (Literal) process(e.getValue(), context)
             )),
         node.getPartitionByColumn().isPresent()
             ? Optional.ofNullable(
@@ -433,16 +424,7 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
         .map(tableElement -> (TableElement) process(tableElement, context))
         .collect(Collectors.toList());
 
-    final Map<String, Expression> rewrittenProps = node
-        .getProperties()
-        .entrySet()
-        .stream()
-        .collect(Collectors.toMap(
-            Entry::getKey,
-            e -> (Expression) process(e.getValue(), context)
-        ));
-
-    return node.copyWith(rewrittenElements, rewrittenProps);
+    return node.copyWith(rewrittenElements, node.getProperties());
   }
 
   protected Node visitCreateTableAsSelect(final CreateTableAsSelect node, final Object context) {
@@ -453,7 +435,7 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
         node.getProperties().entrySet().stream()
             .collect(Collectors.toMap(
                 Entry::getKey,
-                e -> (Expression) process(e.getValue(), context)
+                e -> (Literal) process(e.getValue(), context)
             )));
   }
 

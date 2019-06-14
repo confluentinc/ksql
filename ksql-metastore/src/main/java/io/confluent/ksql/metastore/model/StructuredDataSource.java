@@ -17,30 +17,33 @@ package io.confluent.ksql.metastore.model;
 
 import static java.util.Objects.requireNonNull;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.metastore.SerdeFactory;
-import io.confluent.ksql.schema.ksql.KsqlSchema;
-import io.confluent.ksql.serde.DataSource;
-import io.confluent.ksql.serde.KsqlTopicSerDe;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.serde.KsqlSerdeFactory;
+import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
-import org.apache.kafka.connect.data.Schema;
+import java.util.Set;
 
 @Immutable
-public abstract class StructuredDataSource<K> implements DataSource {
+abstract class StructuredDataSource<K> implements DataSource<K> {
 
   private final String dataSourceName;
   private final DataSourceType dataSourceType;
-  private final KsqlSchema schema;
+  private final LogicalSchema schema;
   private final KeyField keyField;
   private final TimestampExtractionPolicy timestampExtractionPolicy;
   private final SerdeFactory<K> keySerde;
   private final KsqlTopic ksqlTopic;
   private final String sqlExpression;
+  private final ImmutableSet<SerdeOption> serdeOptions;
 
-  public StructuredDataSource(
+  StructuredDataSource(
       final String sqlExpression,
       final String dataSourceName,
-      final Schema schema,
+      final LogicalSchema schema,
+      final Set<SerdeOption> serdeOptions,
       final KeyField keyField,
       final TimestampExtractionPolicy tsExtractionPolicy,
       final DataSourceType dataSourceType,
@@ -49,13 +52,18 @@ public abstract class StructuredDataSource<K> implements DataSource {
   ) {
     this.sqlExpression = requireNonNull(sqlExpression, "sqlExpression");
     this.dataSourceName = requireNonNull(dataSourceName, "dataSourceName");
-    this.schema = KsqlSchema.of(schema);
+    this.schema = requireNonNull(schema, "schema");
     this.keyField = requireNonNull(keyField, "keyField")
         .validateKeyExistsIn(schema);
     this.timestampExtractionPolicy = requireNonNull(tsExtractionPolicy, "tsExtractionPolicy");
     this.dataSourceType = requireNonNull(dataSourceType, "dataSourceType");
     this.ksqlTopic = requireNonNull(ksqlTopic, "ksqlTopic");
     this.keySerde = requireNonNull(keySerde, "keySerde");
+    this.serdeOptions = ImmutableSet.copyOf(requireNonNull(serdeOptions, "serdeOptions"));
+
+    if (!schema.withImplicitAndKeyFieldsInValue().equals(schema)) {
+      throw new IllegalArgumentException();
+    }
   }
 
   @Override
@@ -68,42 +76,52 @@ public abstract class StructuredDataSource<K> implements DataSource {
     return this.dataSourceType;
   }
 
-  public Schema getSchema() {
-    return schema.getSchema();
+  @Override
+  public LogicalSchema getSchema() {
+    return schema;
   }
 
+  @Override
+  public Set<SerdeOption> getSerdeOptions() {
+    return serdeOptions;
+  }
+
+  @Override
   public KeyField getKeyField() {
     return keyField;
   }
 
+  @Override
   public KsqlTopic getKsqlTopic() {
     return ksqlTopic;
   }
 
+  @Override
   public SerdeFactory<K> getKeySerdeFactory() {
     return keySerde;
   }
 
-  public KsqlTopicSerDe getKsqlTopicSerde() {
-    return ksqlTopic.getKsqlTopicSerDe();
+  @Override
+  public KsqlSerdeFactory getValueSerdeFactory() {
+    return ksqlTopic.getValueSerdeFactory();
   }
 
-  public boolean isSerdeFormat(final DataSource.DataSourceSerDe format) {
-    return getKsqlTopicSerde() != null && getKsqlTopicSerde().getSerDe() == format;
-  }
-
+  @Override
   public TimestampExtractionPolicy getTimestampExtractionPolicy() {
     return timestampExtractionPolicy;
   }
 
+  @Override
   public String getKsqlTopicName() {
     return ksqlTopic.getKsqlTopicName();
   }
 
+  @Override
   public String getKafkaTopicName() {
     return ksqlTopic.getKafkaTopicName();
   }
 
+  @Override
   public String getSqlExpression() {
     return sqlExpression;
   }

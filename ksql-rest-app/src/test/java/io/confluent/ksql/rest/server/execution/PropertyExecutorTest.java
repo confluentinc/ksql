@@ -15,15 +15,16 @@
 
 package io.confluent.ksql.rest.server.execution;
 
+import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.not;
 
 import io.confluent.ksql.rest.server.TemporaryEngine;
-import io.confluent.ksql.serde.DataSource.DataSourceType;
 import java.util.HashMap;
 import java.util.Map;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -42,13 +43,14 @@ public class PropertyExecutorTest {
 
     // When:
     CustomExecutors.SET_PROPERTY.execute(
-        engine.configure("SET 'property' = 'value';").withProperties(properties),
+        engine.configure("SET '" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "' = 'none';")
+            .withProperties(properties),
         engine.getEngine(),
         engine.getServiceContext()
     );
 
     // Then:
-    assertThat(properties, hasEntry("property", "value"));
+    assertThat(properties, hasEntry(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "none"));
   }
 
   @Test
@@ -56,17 +58,18 @@ public class PropertyExecutorTest {
     // Given:
     engine.givenSource(DataSourceType.KSTREAM, "stream");
     final Map<String, Object> properties = new HashMap<>();
-    properties.put("property", "value");
+    properties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "none");
 
     // When:
     CustomExecutors.UNSET_PROPERTY.execute(
-        engine.configure("UNSET 'property';").withProperties(properties),
+        engine.configure("UNSET '" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "';")
+            .withProperties(properties),
         engine.getEngine(),
         engine.getServiceContext()
     );
 
     // Then:
-    assertThat(properties, not(hasKey("property")));
+    assertThat(properties, not(hasKey(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG)));
   }
 
 

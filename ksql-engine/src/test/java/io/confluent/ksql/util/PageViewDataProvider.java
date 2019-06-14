@@ -15,10 +15,12 @@
 package io.confluent.ksql.util;
 
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.serde.SerdeOption;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
-import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 
 public class PageViewDataProvider extends TestDataProvider {
@@ -30,15 +32,16 @@ public class PageViewDataProvider extends TestDataProvider {
 
   private static final String key = "PAGEID";
 
-  private static final Schema schema = SchemaBuilder.struct()
+  private static final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
       .field("VIEWTIME", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
       .field("USERID", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
-      .field("PAGEID", SchemaBuilder.OPTIONAL_STRING_SCHEMA).build();
+      .field("PAGEID", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
+      .build());
 
   private static final Map<String, GenericRow> data = buildData();
 
   public PageViewDataProvider() {
-    super(namePrefix, ksqlSchemaString, key, schema, data);
+    super(namePrefix, ksqlSchemaString, key, PhysicalSchema.from(schema, SerdeOption.none()), data);
   }
 
   private static Map<String, GenericRow> buildData() {

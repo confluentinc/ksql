@@ -4,11 +4,11 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 import io.confluent.ksql.parser.tree.Array;
+import io.confluent.ksql.parser.tree.Decimal;
 import io.confluent.ksql.parser.tree.Map;
 import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.Struct;
 import io.confluent.ksql.parser.tree.Type;
-import io.confluent.ksql.parser.tree.Type.SqlType;
 import io.confluent.ksql.util.KsqlException;
 import org.junit.Rule;
 import org.junit.Test;
@@ -29,6 +29,18 @@ public class TypeContextUtilTest {
 
     // Then:
     assertThat(type, is(PrimitiveType.of(SqlType.STRING)));
+  }
+
+  @Test
+  public void shouldGetTypeFromDecimal() {
+    // Given:
+    final String schemaString = "DECIMAL(1, 2)";
+
+    // When:
+    final Type type = TypeContextUtil.getType(schemaString);
+
+    // Then:
+    assertThat(type, is(Decimal.of(1, 2)));
   }
 
   @Test
@@ -102,6 +114,33 @@ public class TypeContextUtilTest {
     // Expect:
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage("Unknown primitive type: SHAKESPEARE");
+
+    // When:
+    TypeContextUtil.getType(schemaString);
+  }
+
+  @Test
+  public void shouldThrowOnNonIntegerPrecision() {
+    // Given:
+    final String schemaString = "DECIMAL(.1, 1)";
+
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Value must be integer for command: DECIMAL(PRECISION)");
+
+    // When:
+    TypeContextUtil.getType(schemaString);
+  }
+
+
+  @Test
+  public void shouldThrowOnNonIntegerScale() {
+    // Given:
+    final String schemaString = "DECIMAL(1, 1.1)";
+
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Value must be integer for command: DECIMAL(SCALE)");
 
     // When:
     TypeContextUtil.getType(schemaString);

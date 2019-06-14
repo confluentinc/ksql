@@ -21,6 +21,7 @@ import static org.junit.Assert.assertThat;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.json.JsonMapper;
+import io.confluent.ksql.schema.ksql.SqlType;
 import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
@@ -86,22 +87,22 @@ public class SchemaDescriptionFormatTest {
     assertThat(
         deserialized.get(0).getSchema(),
         equalTo(
-            new SchemaInfo(SchemaInfo.Type.INTEGER, null, null)));
+            new SchemaInfo(SqlType.INTEGER, null, null)));
     assertThat(deserialized.get(1).getName(), equalTo("l1struct"));
     final SchemaInfo structSchema = deserialized.get(1).getSchema();
-    assertThat(structSchema.getType(), equalTo(SchemaInfo.Type.STRUCT));
+    assertThat(structSchema.getType(), equalTo(SqlType.STRUCT));
     assertThat(structSchema.getMemberSchema(), equalTo(Optional.empty()));
     assertThat(structSchema.getFields().get().size(), equalTo(2));
     assertThat(structSchema.getFields().get().get(0).getName(), equalTo("l2string"));
     assertThat(
         structSchema.getFields().get().get(0).getSchema(),
         equalTo(
-            new SchemaInfo(SchemaInfo.Type.STRING, null, null)));
+            new SchemaInfo(SqlType.STRING, null, null)));
     assertThat(structSchema.getFields().get().get(1).getName(), equalTo("l2integer"));
     assertThat(
         structSchema.getFields().get().get(1).getSchema(),
         equalTo(
-            new SchemaInfo(SchemaInfo.Type.INTEGER, null, null)));
+            new SchemaInfo(SqlType.INTEGER, null, null)));
 
     shouldSerializeCorrectly(descriptionString, deserialized);
   }
@@ -134,9 +135,9 @@ public class SchemaDescriptionFormatTest {
         deserialized.get(0).getSchema(),
         equalTo(
             new SchemaInfo(
-                SchemaInfo.Type.MAP,
+                SqlType.MAP,
                 null,
-                new SchemaInfo(SchemaInfo.Type.STRING, null, null))));
+                new SchemaInfo(SqlType.STRING, null, null))));
 
     shouldSerializeCorrectly(descriptionString, deserialized);
   }
@@ -169,9 +170,9 @@ public class SchemaDescriptionFormatTest {
         deserialized.get(0).getSchema(),
         equalTo(
             new SchemaInfo(
-                SchemaInfo.Type.ARRAY,
+                SqlType.ARRAY,
                 null,
-                new SchemaInfo(SchemaInfo.Type.STRING, null, null))));
+                new SchemaInfo(SqlType.STRING, null, null))));
 
     shouldSerializeCorrectly(descriptionString, deserialized);
   }

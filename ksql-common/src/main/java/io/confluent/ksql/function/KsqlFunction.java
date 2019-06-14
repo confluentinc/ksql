@@ -29,7 +29,7 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Schema.Type;
 
 @Immutable
-public final class KsqlFunction {
+public final class KsqlFunction implements IndexedFunction {
 
   static final String INTERNAL_PATH = "internal";
 
@@ -122,6 +122,10 @@ public final class KsqlFunction {
             "KSQL variadic functions must have ARRAY type as their last parameter");
       }
     }
+
+    if (!returnType.isOptional()) {
+      throw new IllegalArgumentException("KSQL only supports optional field types");
+    }
   }
 
 
@@ -133,7 +137,7 @@ public final class KsqlFunction {
     return arguments;
   }
 
-  String getFunctionName() {
+  public String getFunctionName() {
     return functionName;
   }
 

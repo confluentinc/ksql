@@ -16,10 +16,10 @@
 package io.confluent.ksql.rest.server.execution;
 
 import io.confluent.ksql.KsqlExecutionContext;
+import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.metastore.model.KsqlTopic;
-import io.confluent.ksql.metastore.model.StructuredDataSource;
 import io.confluent.ksql.parser.tree.ListStreams;
 import io.confluent.ksql.parser.tree.ListTables;
 import io.confluent.ksql.parser.tree.ShowColumns;
@@ -116,7 +116,7 @@ public final class ListSourceExecutor {
           statement.getStatementText(),
           name,
           ksqlTopic.getKafkaTopicName(),
-          ksqlTopic.getKsqlTopicSerDe().getSerDe().toString(),
+          ksqlTopic.getValueSerdeFactory().getFormat().toString(),
           null
       ));
     }
@@ -135,7 +135,7 @@ public final class ListSourceExecutor {
   private static List<KsqlTable<?>> getSpecificTables(
       final KsqlExecutionContext executionContext
   ) {
-    return executionContext.getMetaStore().getAllStructuredDataSources().values().stream()
+    return executionContext.getMetaStore().getAllDataSources().values().stream()
         .filter(KsqlTable.class::isInstance)
         .filter(structuredDataSource -> !structuredDataSource.getName().equalsIgnoreCase(
             KsqlRestApplication.getCommandsStreamName()))
@@ -146,7 +146,7 @@ public final class ListSourceExecutor {
   private static List<KsqlStream<?>> getSpecificStreams(
       final KsqlExecutionContext executionContext
   ) {
-    return executionContext.getMetaStore().getAllStructuredDataSources().values().stream()
+    return executionContext.getMetaStore().getAllDataSources().values().stream()
         .filter(KsqlStream.class::isInstance)
         .filter(structuredDataSource -> !structuredDataSource.getName().equalsIgnoreCase(
             KsqlRestApplication.getCommandsStreamName()))
@@ -160,7 +160,7 @@ public final class ListSourceExecutor {
       final String name,
       final boolean extended,
       final String statementText) {
-    final StructuredDataSource<?> dataSource = ksqlEngine.getMetaStore().getSource(name);
+    final DataSource<?> dataSource = ksqlEngine.getMetaStore().getSource(name);
     if (dataSource == null) {
       throw new KsqlStatementException(String.format(
           "Could not find STREAM/TABLE '%s' in the Metastore",
@@ -171,7 +171,7 @@ public final class ListSourceExecutor {
     return new SourceDescription(
         dataSource,
         extended,
-        dataSource.getKsqlTopic().getKsqlTopicSerDe().getSerDe().name(),
+        dataSource.getKsqlTopic().getValueSerdeFactory().getFormat().name(),
         getQueries(ksqlEngine, q -> q.getSourceNames().contains(dataSource.getName())),
         getQueries(ksqlEngine, q -> q.getSinkNames().contains(dataSource.getName())),
         serviceContext.getTopicClient()

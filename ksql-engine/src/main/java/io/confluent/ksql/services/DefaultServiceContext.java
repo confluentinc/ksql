@@ -18,6 +18,7 @@ package io.confluent.ksql.services;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.schema.registry.KsqlSchemaRegistryClientFactory;
 import io.confluent.ksql.util.KsqlConfig;
+import java.util.Collections;
 import java.util.Objects;
 import java.util.function.Supplier;
 import org.apache.kafka.clients.admin.AdminClient;
@@ -36,15 +37,27 @@ public class DefaultServiceContext implements ServiceContext {
   private final SchemaRegistryClient srClient;
 
   public static DefaultServiceContext create(final KsqlConfig ksqlConfig) {
-    final DefaultKafkaClientSupplier kafkaClientSupplier = new DefaultKafkaClientSupplier();
-    final AdminClient adminClient = kafkaClientSupplier
-        .getAdminClient(ksqlConfig.getKsqlAdminClientConfigProps());
+    return create(
+        ksqlConfig,
+        new DefaultKafkaClientSupplier(),
+        new KsqlSchemaRegistryClientFactory(ksqlConfig, Collections.emptyMap())::get
+    );
+  }
+
+  public static DefaultServiceContext create(
+      final KsqlConfig ksqlConfig,
+      final KafkaClientSupplier kafkaClientSupplier,
+      final Supplier<SchemaRegistryClient> srClientFactory
+  ) {
+    final AdminClient adminClient = kafkaClientSupplier.getAdminClient(
+        ksqlConfig.getKsqlAdminClientConfigProps()
+    );
 
     return new DefaultServiceContext(
         kafkaClientSupplier,
         adminClient,
         new KafkaTopicClientImpl(adminClient),
-        new KsqlSchemaRegistryClientFactory(ksqlConfig)::get
+        srClientFactory
     );
   }
 

@@ -22,14 +22,16 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.planner.plan.PlanNodeId;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.serde.KsqlTopicSerDe;
+import io.confluent.ksql.schema.ksql.PersistenceSchema;
+import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.serde.GenericRowSerDe;
+import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.structured.QueryContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.QueryLoggerUtil;
 import java.util.LinkedHashMap;
 import org.apache.kafka.common.serialization.Serde;
-import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.StreamsBuilder;
 
 public final class KsqlQueryBuilder {
@@ -40,7 +42,7 @@ public final class KsqlQueryBuilder {
   private final ProcessingLogContext processingLogContext;
   private final FunctionRegistry functionRegistry;
   private final QueryId queryId;
-  private final LinkedHashMap<String, Schema> schemas = new LinkedHashMap<>();
+  private final LinkedHashMap<String, PersistenceSchema> schemas = new LinkedHashMap<>();
 
   public static KsqlQueryBuilder of(
       final StreamsBuilder streamsBuilder,
@@ -117,15 +119,16 @@ public final class KsqlQueryBuilder {
   }
 
   public Serde<GenericRow> buildGenericRowSerde(
-      final KsqlTopicSerDe topicSerDe,
-      final Schema schema,
+      final KsqlSerdeFactory valueSerdeFactory,
+      final PhysicalSchema schema,
       final QueryContext queryContext
   ) {
     final String loggerNamePrefix = QueryLoggerUtil.queryLoggerName(queryContext);
 
-    track(loggerNamePrefix, schema);
+    track(loggerNamePrefix, schema.valueSchema());
 
-    return topicSerDe.getGenericRowSerde(
+    return GenericRowSerDe.from(
+        valueSerdeFactory,
         schema,
         ksqlConfig,
         serviceContext.getSchemaRegistryClientFactory(),
@@ -134,7 +137,7 @@ public final class KsqlQueryBuilder {
     );
   }
 
-  private void track(final String loggerNamePrefix, final Schema schema) {
+  private void track(final String loggerNamePrefix, final PersistenceSchema schema) {
     if (schemas.containsKey(loggerNamePrefix)) {
       throw new IllegalStateException("Schema with tracked:" + loggerNamePrefix);
     }

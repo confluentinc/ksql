@@ -15,31 +15,29 @@
 
 package io.confluent.ksql.planner.plan;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.physical.KsqlQueryBuilder;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.structured.QueuedSchemaKStream;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.util.QueryIdGenerator;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.concurrent.ThreadLocalRandom;
-import org.apache.kafka.connect.data.Schema;
 
 @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
 public class KsqlBareOutputNode extends OutputNode {
 
   private final KeyField keyField;
 
-  @JsonCreator
   public KsqlBareOutputNode(
-      @JsonProperty("id") final PlanNodeId id,
-      @JsonProperty("source") final PlanNode source,
-      @JsonProperty("schema") final Schema schema,
-      @JsonProperty("limit") final Optional<Integer> limit,
-      @JsonProperty("timestampExtraction") final TimestampExtractionPolicy extractionPolicy
+      final PlanNodeId id,
+      final PlanNode source,
+      final LogicalSchema schema,
+      final OptionalInt limit,
+      final TimestampExtractionPolicy extractionPolicy
   ) {
     super(id, source, schema, limit, extractionPolicy);
     this.keyField = KeyField.of(source.getKeyField().name(), Optional.empty())
@@ -61,12 +59,9 @@ public class KsqlBareOutputNode extends OutputNode {
     final SchemaKStream<?> schemaKStream = getSource()
         .buildStream(builder);
 
-    final QueuedSchemaKStream<?> queued = new QueuedSchemaKStream<>(
+    return new QueuedSchemaKStream<>(
         schemaKStream,
         builder.buildNodeContext(getId()).getQueryContext()
     );
-
-    queued.setOutputNode(this);
-    return queued;
   }
 }

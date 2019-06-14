@@ -16,15 +16,15 @@
 package io.confluent.ksql.util;
 
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.physical.LimitHandler;
-import io.confluent.ksql.serde.DataSource;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
-import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.Topology;
@@ -42,12 +42,12 @@ public class QueuedQueryMetadata extends QueryMetadata {
   public QueuedQueryMetadata(
       final String statementString,
       final KafkaStreams kafkaStreams,
-      final Schema resultSchema,
+      final LogicalSchema logicalSchema,
       final Set<String> sourceNames,
       final Consumer<LimitHandler> limitHandlerSetter,
       final String executionPlan,
       final BlockingQueue<KeyValue<String, GenericRow>> rowQueue,
-      final DataSource.DataSourceType dataSourceType,
+      final DataSourceType dataSourceType,
       final String queryApplicationId,
       final Topology topology,
       final Map<String, Object> streamsProperties,
@@ -57,7 +57,7 @@ public class QueuedQueryMetadata extends QueryMetadata {
     super(
         statementString,
         kafkaStreams,
-        resultSchema,
+        logicalSchema,
         sourceNames,
         executionPlan,
         dataSourceType,

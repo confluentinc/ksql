@@ -20,7 +20,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import io.confluent.ksql.config.PropertyParser;
-import io.confluent.ksql.rest.client.properties.LocalPropertyParser;
+import io.confluent.ksql.properties.LocalPropertyParser;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Collections;
 import java.util.HashMap;

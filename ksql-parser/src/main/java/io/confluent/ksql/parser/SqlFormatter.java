@@ -28,10 +28,13 @@ import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
+import io.confluent.ksql.parser.tree.DropStatement;
+import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.Explain;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.InsertInto;
+import io.confluent.ksql.parser.tree.InsertValues;
 import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.JoinCriteria;
 import io.confluent.ksql.parser.tree.JoinOn;
@@ -47,7 +50,6 @@ import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.util.ParserUtil;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -134,14 +136,7 @@ public final class SqlFormatter {
     protected Void visitSelect(final Select node, final Integer indent) {
       append(indent, "SELECT");
 
-      final List<SelectItem> selectItems = node.getSelectItems()
-          .stream()
-          .map(item ->
-              (item instanceof SingleColumn)
-                  ? ((SingleColumn) item).getAllColumns().map(SelectItem.class::cast).orElse(item)
-                  : item)
-          .distinct()
-          .collect(Collectors.toList());
+      final List<SelectItem> selectItems = node.getSelectItems();
 
       if (selectItems.size() > 1) {
         boolean first = true;
@@ -166,13 +161,10 @@ public final class SqlFormatter {
     @Override
     protected Void visitSingleColumn(final SingleColumn node, final Integer indent) {
       builder.append(ExpressionFormatter.formatExpression(node.getExpression()));
-      if (node.getAlias().isPresent()) {
-        builder.append(' ')
+      builder.append(' ')
                 .append('"')
-                .append(node.getAlias().get())
-                .append('"'); // TODO: handle quoting properly
-      }
-
+                .append(node.getAlias())
+                .append('"');
       return null;
     }
 
@@ -243,20 +235,9 @@ public final class SqlFormatter {
         }
         builder.append(")");
       }
-      if (!node.getProperties().isEmpty()) {
-        builder.append(" WITH (");
-        boolean addComma = false;
-        for (final Map.Entry property: node.getProperties().entrySet()) {
-          if (addComma) {
-            builder.append(", ");
-          } else {
-            addComma = true;
-          }
-          builder.append(property.getKey().toString()).append("=").append(property.getValue()
-                                                                              .toString());
-        }
-        builder.append(");");
-      }
+      builder.append(" WITH (");
+      builder.append(node.getProperties());
+      builder.append(");");
       return null;
     }
 
@@ -282,16 +263,7 @@ public final class SqlFormatter {
               .append(tableElement.getType());
         }
         builder.append(")").append(" WITH (");
-        addComma = false;
-        for (final Map.Entry property: node.getProperties().entrySet()) {
-          if (addComma) {
-            builder.append(", ");
-          } else {
-            addComma = true;
-          }
-          builder.append(property.getKey().toString()).append("=").append(property.getValue()
-                                                                              .toString());
-        }
+        builder.append(node.getProperties());
         builder.append(");");
       }
       return null;
@@ -371,8 +343,6 @@ public final class SqlFormatter {
       return null;
     }
 
-
-
     private static String formatName(final String name) {
       if (NAME_PATTERN.matcher(name).matches()) {
         return name;
@@ -391,14 +361,51 @@ public final class SqlFormatter {
     }
 
     @Override
+    protected Void visitDropStream(final DropStream node, final Integer context) {
+      visitDrop(node, "STREAM");
+      return null;
+    }
+
+    @Override
+    protected Void visitInsertValues(final InsertValues node, final Integer context) {
+      builder.append("INSERT INTO ");
+      builder.append(node.getTarget());
+      builder.append(" ");
+
+      if (!node.getColumns().isEmpty()) {
+        builder.append(node.getColumns().stream().collect(Collectors.joining(", ", "(", ") ")));
+      }
+
+      builder.append("VALUES ");
+
+      builder.append("(");
+      builder.append(
+          node.getValues()
+              .stream()
+              .map(SqlFormatter::formatSql)
+              .collect(Collectors.joining(", ")));
+      builder.append(")");
+
+      return null;
+    }
+
+    @Override
     protected Void visitDropTable(final DropTable node, final Integer context) {
-      builder.append("DROP TABLE ");
+      visitDrop(node, "TABLE");
+      return null;
+    }
+
+    private void visitDrop(final DropStatement node, final String sourceType) {
+      builder.append("DROP ");
+      builder.append(sourceType);
+      builder.append(" ");
       if (node.getIfExists()) {
         builder.append("IF EXISTS ");
       }
       builder.append(node.getName());
-
-      return null;
+      if (node.isDeleteTopic()) {
+        builder.append(" DELETE TOPIC");
+      }
     }
 
     private void processRelation(final Relation relation, final Integer indent) {

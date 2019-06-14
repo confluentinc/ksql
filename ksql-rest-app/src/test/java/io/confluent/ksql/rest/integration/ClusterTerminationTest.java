@@ -15,16 +15,16 @@
 
 package io.confluent.ksql.rest.integration;
 
-import static io.confluent.ksql.serde.DataSource.DataSourceSerDe.JSON;
+import static io.confluent.ksql.serde.Format.JSON;
 import static org.junit.Assert.assertEquals;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
-import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
+import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.PageViewDataProvider;
 import java.util.List;
@@ -34,15 +34,15 @@ import javax.ws.rs.client.Entity;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import kafka.zookeeper.ZooKeeperClientException;
-import org.junit.After;
-import org.junit.Before;
+import org.glassfish.hk2.api.Factory;
+import org.glassfish.hk2.utilities.binding.AbstractBinder;
+import org.glassfish.jersey.process.internal.RequestScoped;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 
-@SuppressWarnings("unchecked")
 @Category({IntegrationTest.class})
 public class ClusterTerminationTest {
 
@@ -58,6 +58,25 @@ public class ClusterTerminationTest {
   private static final TestKsqlRestApp REST_APP = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
       .withServiceContext(TEST_HARNESS::getServiceContext)
+      .withServiceContextBinder(config -> new AbstractBinder() {
+        @Override
+        protected void configure() {
+          bindFactory(new Factory<ServiceContext>() {
+            @Override
+            public ServiceContext provide() {
+              return TEST_HARNESS.getServiceContext();
+            }
+
+            @Override
+            public void dispose(final ServiceContext serviceContext) {
+              // do nothing because TEST_HARNESS#getServiceContext always
+              // returns the same instance
+            }
+          })
+              .to(ServiceContext.class)
+              .in(RequestScoped.class);
+        }
+      })
       .build();
 
   @ClassRule
@@ -66,8 +85,6 @@ public class ClusterTerminationTest {
       .around(TEST_HARNESS)
       .around(REST_APP);
 
-  private KsqlRestClient restClient;
-
   @BeforeClass
   public static void setUpClass() {
     TEST_HARNESS.ensureTopics(PAGE_VIEW_TOPIC);
@@ -75,22 +92,11 @@ public class ClusterTerminationTest {
     RestIntegrationTestUtil.createStreams(REST_APP, PAGE_VIEW_STREAM, PAGE_VIEW_TOPIC);
   }
 
-  @Before
-  public void setUp() {
-    restClient = REST_APP.buildKsqlClient();
-  }
-
-  @After
-  public void cleanUp() {
-    restClient.close();
-  }
-
   @Test
   public void shouldCleanUpSinkTopicsAndSchemasDuringClusterTermination() throws Exception {
     // Given:
     RestIntegrationTestUtil.makeKsqlRequest(
         REST_APP,
-        restClient,
         "CREATE STREAM " + SINK_STREAM
             + " WITH (kafka_topic='" + SINK_TOPIC + "',value_format='avro')"
             + " AS SELECT * FROM " + PAGE_VIEW_STREAM + ";"

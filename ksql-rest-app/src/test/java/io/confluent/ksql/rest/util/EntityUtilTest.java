@@ -19,6 +19,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 
 import io.confluent.ksql.rest.entity.FieldInfo;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.List;
 import java.util.Optional;
 import org.apache.kafka.connect.data.Schema;
@@ -26,12 +27,14 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Test;
 
 public class EntityUtilTest {
-  private void shouldBuildCorrectPrimitiveField(final Schema primitiveSchema,
-                                                final String schemaName) {
-    final Schema schema = SchemaBuilder
+  private static void shouldBuildCorrectPrimitiveField(
+      final Schema primitiveSchema,
+      final String schemaName
+  ) {
+    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder
         .struct()
         .field("field", primitiveSchema)
-        .build();
+        .build());
 
     final List<FieldInfo> entity = EntityUtil.buildSourceSchemaEntity(schema);
 
@@ -44,38 +47,44 @@ public class EntityUtilTest {
 
   @Test
   public void shouldBuildCorrectIntegerField() {
-    shouldBuildCorrectPrimitiveField(Schema.INT32_SCHEMA, "INTEGER");
+    shouldBuildCorrectPrimitiveField(Schema.OPTIONAL_INT32_SCHEMA, "INTEGER");
   }
 
   @Test
   public void shouldBuildCorrectBigintField() {
-    shouldBuildCorrectPrimitiveField(Schema.INT64_SCHEMA, "BIGINT");
+    shouldBuildCorrectPrimitiveField(Schema.OPTIONAL_INT64_SCHEMA, "BIGINT");
   }
 
   @Test
   public void shouldBuildCorrectDoubleField() {
-    shouldBuildCorrectPrimitiveField(Schema.FLOAT64_SCHEMA, "DOUBLE");
+    shouldBuildCorrectPrimitiveField(Schema.OPTIONAL_FLOAT64_SCHEMA, "DOUBLE");
   }
 
   @Test
   public void shouldBuildCorrectStringField() {
-    shouldBuildCorrectPrimitiveField(Schema.STRING_SCHEMA, "STRING");
+    shouldBuildCorrectPrimitiveField(Schema.OPTIONAL_STRING_SCHEMA, "STRING");
   }
 
   @Test
   public void shouldBuildCorrectBooleanField() {
-    shouldBuildCorrectPrimitiveField(Schema.BOOLEAN_SCHEMA, "BOOLEAN");
+    shouldBuildCorrectPrimitiveField(Schema.OPTIONAL_BOOLEAN_SCHEMA, "BOOLEAN");
   }
 
   @Test
   public void shouldBuildCorrectMapField() {
-    final Schema schema = SchemaBuilder
+    // Given:
+    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder
         .struct()
-        .field("field", SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.INT32_SCHEMA))
-        .build();
+        .field("field", SchemaBuilder
+            .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_INT32_SCHEMA)
+            .optional()
+            .build())
+        .build());
 
+    // When:
     final List<FieldInfo> entity = EntityUtil.buildSourceSchemaEntity(schema);
 
+    // Then:
     assertThat(entity.size(), equalTo(1));
     assertThat(entity.get(0).getName(), equalTo("field"));
     assertThat(entity.get(0).getSchema().getTypeName(), equalTo("MAP"));
@@ -85,13 +94,19 @@ public class EntityUtilTest {
 
   @Test
   public void shouldBuildCorrectArrayField() {
-    final Schema schema = SchemaBuilder
+    // Given:
+    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder
         .struct()
-        .field("field", SchemaBuilder.array(SchemaBuilder.INT64_SCHEMA))
-        .build();
+        .field("field", SchemaBuilder
+            .array(SchemaBuilder.OPTIONAL_INT64_SCHEMA)
+            .optional()
+            .build())
+        .build());
 
+    // When:
     final List<FieldInfo> entity = EntityUtil.buildSourceSchemaEntity(schema);
 
+    // Then:
     assertThat(entity.size(), equalTo(1));
     assertThat(entity.get(0).getName(), equalTo("field"));
     assertThat(entity.get(0).getSchema().getTypeName(), equalTo("ARRAY"));
@@ -101,19 +116,22 @@ public class EntityUtilTest {
 
   @Test
   public void shouldBuildCorrectStructField() {
-    final Schema schema = SchemaBuilder
+    // Given:
+    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder
         .struct()
         .field(
             "field",
             SchemaBuilder.
                 struct()
-                .field("innerField", Schema.STRING_SCHEMA)
+                .field("innerField", Schema.OPTIONAL_STRING_SCHEMA)
+                .optional()
                 .build())
-        .build();
+        .build());
 
-
+    // When:
     final List<FieldInfo> entity = EntityUtil.buildSourceSchemaEntity(schema);
 
+    // Then:
     assertThat(entity.size(), equalTo(1));
     assertThat(entity.get(0).getName(), equalTo("field"));
     assertThat(entity.get(0).getSchema().getTypeName(), equalTo("STRUCT"));
@@ -125,15 +143,17 @@ public class EntityUtilTest {
 
   @Test
   public void shouldBuildMiltipleFieldsCorrectly() {
-    final Schema schema = SchemaBuilder
+    // Given:
+    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder
         .struct()
-        .field("field1", Schema.INT32_SCHEMA)
-        .field("field2", Schema.INT64_SCHEMA)
-        .build();
+        .field("field1", Schema.OPTIONAL_INT32_SCHEMA)
+        .field("field2", Schema.OPTIONAL_INT64_SCHEMA)
+        .build());
 
-
+    // When:
     final List<FieldInfo> entity = EntityUtil.buildSourceSchemaEntity(schema);
 
+    // Then:
     assertThat(entity.size(), equalTo(2));
     assertThat(entity.get(0).getName(), equalTo("field1"));
     assertThat(entity.get(0).getSchema().getTypeName(), equalTo("INTEGER"));

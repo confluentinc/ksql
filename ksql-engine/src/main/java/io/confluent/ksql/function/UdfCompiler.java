@@ -15,10 +15,14 @@
 
 package io.confluent.ksql.function;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
+import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.function.udaf.TableUdaf;
 import io.confluent.ksql.function.udaf.Udaf;
 import io.confluent.ksql.function.udaf.UdfArgSupplier;
+import io.confluent.ksql.schema.ksql.SchemaConverters;
+import io.confluent.ksql.schema.ksql.TypeContextUtil;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.SchemaUtil;
@@ -38,6 +42,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import org.apache.kafka.common.metrics.Metrics;
+import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
 import org.codehaus.commons.compiler.CompilerFactoryFactory;
 import org.codehaus.commons.compiler.IScriptEvaluator;
@@ -52,6 +57,7 @@ import org.slf4j.LoggerFactory;
  * Each method gets a class generated for it. For Udfs it is an {@link UdfInvoker}.
  * For UDAFs it is a {@link KsqlAggregateFunction}
  */
+@Immutable
 public class UdfCompiler {
   private static final Logger LOGGER = LoggerFactory.getLogger(UdfCompiler.class);
 
@@ -65,13 +71,13 @@ public class UdfCompiler {
       .add(Double.class)
       .add(Boolean.class)
       .add(String.class)
+      .add(Struct.class)
       .build();
 
   private static final Set<Class<?>> SUPPORTED_UDF_TYPES = ImmutableSet.<Class<?>>builder()
       .addAll(SUPPORTED_UDAF_TYPES)
       .add(List.class)
       .add(Map.class)
-      .add(Struct.class)
       .build();
 
   private static final String UDAF_PACKAGE = "io.confluent.ksql.function.udaf.";
@@ -84,7 +90,8 @@ public class UdfCompiler {
     this.metrics = Objects.requireNonNull(metrics, "metrics can't be null");
   }
 
-  UdfInvoker compile(final Method method, final ClassLoader loader) {
+  @VisibleForTesting
+  public static UdfInvoker compile(final Method method, final ClassLoader loader) {
     try {
       final IScriptEvaluator scriptEvaluator = createScriptEvaluator(method,
           loader,
@@ -100,12 +107,23 @@ public class UdfCompiler {
     }
   }
 
-  KsqlAggregateFunction<?, ?> compileAggregate(final Method method,
-                                               final ClassLoader loader,
-                                               final String functionName,
-                                               final String description) {
+  KsqlAggregateFunction<?, ?> compileAggregate(
+      final Method method,
+      final ClassLoader loader,
+      final String functionName,
+      final String description,
+      final String paramSchema,
+      final String returnSchema
+  ) {
     final Pair<Type, Type> valueAndAggregateTypes
         = getValueAndAggregateTypes(method, functionName);
+    if (valueAndAggregateTypes.left.equals(Struct.class) && paramSchema.isEmpty()) {
+      throw new KsqlException("Must specify 'paramSchema' for STRUCT parameter in @UdafFactory.");
+    }
+    if (valueAndAggregateTypes.right.equals(Struct.class) && returnSchema.isEmpty()) {
+      throw new KsqlException("Must specify 'returnSchema' to return STRUCT from @UdafFactory.");
+    }
+
     try {
       final String generatedClassName
           = method.getDeclaringClass().getSimpleName() + "_" + method.getName() + "_Aggregate";
@@ -128,18 +146,29 @@ public class UdfCompiler {
           scriptEvaluator.createFastEvaluator("return new " + generatedClassName
                   + "(args, returnType, metrics);",
               UdfArgSupplier.class, new String[]{"args", "returnType", "metrics"});
-      return evaluator.apply(Collections.singletonList(
-          SchemaUtil.getSchemaFromType(valueAndAggregateTypes.left)),
-          SchemaUtil.getSchemaFromType(valueAndAggregateTypes.right), metrics);
+
+      final Schema argSchema = paramSchema.isEmpty()
+          ? SchemaUtil.getSchemaFromType(valueAndAggregateTypes.left)
+          : SchemaConverters.sqlToLogicalConverter()
+              .fromSqlType(TypeContextUtil.getType(paramSchema));
+      final List<Schema> args = Collections.singletonList(argSchema);
+
+      final Schema returnValue = returnSchema.isEmpty()
+          ? SchemaUtil.ensureOptional(SchemaUtil.getSchemaFromType(valueAndAggregateTypes.right))
+          : SchemaConverters.sqlToLogicalConverter()
+              .fromSqlType(TypeContextUtil.getType(returnSchema));
+
+      return evaluator.apply(args, returnValue, metrics);
     } catch (final Exception e) {
       throw new KsqlException("Failed to compile KSqlAggregateFunction for method='"
           + method.getName() + "' in class='" + method.getDeclaringClass() + "'", e);
     }
   }
 
-  private Pair<Type, Type> getValueAndAggregateTypes(final Method method,
-                                                       final String functionName) {
-
+  private static Pair<Type, Type> getValueAndAggregateTypes(
+      final Method method,
+      final String functionName
+  ) {
     final String functionInfo = "method='" + method.getName()
         + "', functionName='" + functionName + "' UDFClass='" + method.getDeclaringClass() + "'";
     final String invalidClass = "class='%s'"
@@ -166,16 +195,18 @@ public class UdfCompiler {
     return new Pair<>(valueType, aggregateType);
   }
 
-  private Type getRawType(final Type type) {
+  private static Type getRawType(final Type type) {
     if (type instanceof ParameterizedType) {
       return ((ParameterizedType) type).getRawType();
     }
     return type;
   }
 
-  private JavaSourceClassLoader createJavaSourceClassLoader(final ClassLoader loader,
-                                                            final String generatedClassName,
-                                                            final String udafClass) {
+  private static JavaSourceClassLoader createJavaSourceClassLoader(
+      final ClassLoader loader,
+      final String generatedClassName,
+      final String udafClass
+  ) {
     final long lastMod = System.currentTimeMillis();
     return new JavaSourceClassLoader(loader, new ResourceFinder() {
       @Override
@@ -203,10 +234,12 @@ public class UdfCompiler {
     }, StandardCharsets.UTF_8.name());
   }
 
-  private String generateUdafClass(final String generatedClassName,
-                                   final Method method,
-                                   final String functionName,
-                                   final String description) {
+  private static String generateUdafClass(
+      final String generatedClassName,
+      final Method method,
+      final String functionName,
+      final String description
+  ) {
     validateMethodSignature(method);
     Arrays.stream(method.getParameterTypes())
         .filter(type -> !UdfCompiler.isTypeSupported(type, SUPPORTED_UDAF_TYPES))
@@ -272,9 +305,11 @@ public class UdfCompiler {
         || supportedTypes.stream().anyMatch(supported -> supported.isAssignableFrom(type));
   }
 
-  private static IScriptEvaluator createScriptEvaluator(final Method method,
-                                                        final ClassLoader loader,
-                                                        final String udfClass) throws Exception {
+  private static IScriptEvaluator createScriptEvaluator(
+      final Method method,
+      final ClassLoader loader,
+      final String udfClass
+  ) throws Exception {
     final IScriptEvaluator scriptEvaluator
         = CompilerFactoryFactory.getDefaultCompilerFactory().newScriptEvaluator();
     scriptEvaluator.setClassName(method.getDeclaringClass().getName() + "_" + method.getName());
@@ -286,5 +321,4 @@ public class UdfCompiler {
     scriptEvaluator.setParentClassLoader(loader);
     return scriptEvaluator;
   }
-
 }

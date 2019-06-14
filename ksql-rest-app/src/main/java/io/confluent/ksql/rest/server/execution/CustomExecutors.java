@@ -19,6 +19,7 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.parser.tree.DescribeFunction;
 import io.confluent.ksql.parser.tree.Explain;
+import io.confluent.ksql.parser.tree.InsertValues;
 import io.confluent.ksql.parser.tree.ListFunctions;
 import io.confluent.ksql.parser.tree.ListProperties;
 import io.confluent.ksql.parser.tree.ListQueries;
@@ -60,7 +61,8 @@ public enum CustomExecutors {
   EXPLAIN(Explain.class, ExplainExecutor::execute),
   DESCRIBE_FUNCTION(DescribeFunction.class, DescribeFunctionExecutor::execute),
   SET_PROPERTY(SetProperty.class, PropertyExecutor::set),
-  UNSET_PROPERTY(UnsetProperty.class, PropertyExecutor::unset);
+  UNSET_PROPERTY(UnsetProperty.class, PropertyExecutor::unset),
+  INSERT_VALUES(InsertValues.class, new InsertValuesExecutor()::execute);
 
   public static final Map<Class<? extends Statement>, StatementExecutor<?>> EXECUTOR_MAP =
       ImmutableMap.copyOf(

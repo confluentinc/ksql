@@ -15,11 +15,12 @@
 
 package io.confluent.ksql.serde.json;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.gson.Gson;
-import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
+import io.confluent.ksql.schema.connect.SqlSchemaFormatter;
+import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.serde.util.SerdeProcessingLogMessageFactory;
-import io.confluent.ksql.serde.util.SerdeUtils;
 import io.confluent.ksql.util.KsqlException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -28,31 +29,45 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Function;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
-import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.Schema.Type;
 import org.apache.kafka.connect.data.SchemaAndValue;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.json.JsonConverter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
+public class KsqlJsonDeserializer implements Deserializer<Object> {
 
   private static final Logger LOG = LoggerFactory.getLogger(KsqlJsonDeserializer.class);
 
+  private static final Map<Schema.Type, Function<JsonValueContext, Object>> HANDLERS = ImmutableMap
+      .<Schema.Type, Function<JsonValueContext, Object>>builder()
+      .put(Type.BOOLEAN, context -> JsonSerdeUtils.toBoolean(context.val))
+      .put(Type.INT32, context -> JsonSerdeUtils.toInteger(context.val))
+      .put(Type.INT64, context -> JsonSerdeUtils.toLong(context.val))
+      .put(Type.FLOAT64, context -> JsonSerdeUtils.toDouble(context.val))
+      .put(Type.STRING, KsqlJsonDeserializer::processString)
+      .put(Type.ARRAY, KsqlJsonDeserializer::enforceElementTypeForArray)
+      .put(Type.MAP, KsqlJsonDeserializer::enforceKeyAndValueTypeForMap)
+      .put(Type.STRUCT, KsqlJsonDeserializer::enforceFieldTypesForStruct)
+      .put(Type.BYTES, KsqlJsonDeserializer::enforceValidBytes)
+      .build();
+
   private final Gson gson;
-  private final Schema schema;
+  private final PersistenceSchema physicalSchema;
   private final JsonConverter jsonConverter;
   private final ProcessingLogger recordLogger;
 
-  public KsqlJsonDeserializer(
-      final Schema schema,
+  KsqlJsonDeserializer(
+      final PersistenceSchema physicalSchema,
       final ProcessingLogger recordLogger
   ) {
     this.gson = new Gson();
-    this.schema = Objects.requireNonNull(schema, "schema");
+    this.physicalSchema = JsonSerdeUtils.validateSchema(physicalSchema);
     this.jsonConverter = new JsonConverter();
     this.jsonConverter.configure(Collections.singletonMap("schemas.enable", false), false);
     this.recordLogger = Objects.requireNonNull(recordLogger, "recordLogger");
@@ -63,13 +78,13 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
   }
 
   @Override
-  public GenericRow deserialize(final String topic, final byte[] bytes) {
+  public Object deserialize(final String topic, final byte[] bytes) {
     try {
-      final GenericRow row = getGenericRow(bytes);
+      final Object value = deserialize(bytes);
       if (LOG.isTraceEnabled()) {
-        LOG.trace("Deserialized row. topic:{}, row:{}", topic, row);
+        LOG.trace("Deserialized value. topic:{}, row:{}", topic, value);
       }
-      return row;
+      return value;
     } catch (final Exception e) {
       recordLogger.error(
           SerdeProcessingLogMessageFactory.deserializationErrorMsg(
@@ -77,119 +92,150 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
               Optional.ofNullable(bytes))
       );
       throw new SerializationException(
-          "KsqlJsonDeserializer failed to deserialize data for topic: " + topic, e);
+          "Error deserializing JSON message from topic: " + topic, e);
     }
   }
 
-  @SuppressWarnings("unchecked")
-  private GenericRow getGenericRow(final byte[] rowJsonBytes) {
-    final SchemaAndValue schemaAndValue = jsonConverter.toConnectData("topic", rowJsonBytes);
-    final Map<String, Object> valueMap = (Map) schemaAndValue.value();
-    if (valueMap == null) {
+  private Object deserialize(final byte[] bytes) {
+    final SchemaAndValue schemaAndValue = jsonConverter.toConnectData("topic", bytes);
+    return enforceFieldType(this, physicalSchema.getConnectSchema(), schemaAndValue.value(), true);
+  }
+
+  private static Object enforceFieldType(
+      final KsqlJsonDeserializer deserializer,
+      final Schema schema,
+      final Object columnVal,
+      final boolean topLevel
+  ) {
+    return enforceFieldType(new JsonValueContext(deserializer, schema, columnVal, topLevel));
+  }
+
+  private static Object enforceFieldType(final JsonValueContext context) {
+    if (context.val == null) {
       return null;
     }
 
-    final Map<String, String> caseInsensitiveFieldNameMap =
-        getCaseInsensitiveFieldNameMap(valueMap, true);
-
-    final List<Object> columns = new ArrayList<>(schema.fields().size());
-    for (final Field field : schema.fields()) {
-      final Object columnVal = valueMap.get(caseInsensitiveFieldNameMap.get(field.name()));
-      columns.add(enforceFieldType(field.schema(), columnVal));
-    }
-    return new GenericRow(columns);
+    final Function<JsonValueContext, Object> handler = HANDLERS.getOrDefault(
+        context.schema.type(),
+        type -> {
+          throw new KsqlException("Type is not supported: " + type);
+        });
+    return handler.apply(context);
   }
 
-  // This is a temporary requirement until we can ensure that the types that Connect JSON
-  // convertor creates are supported in KSQL.
-  @SuppressWarnings("unchecked")
-  private Object enforceFieldType(final Schema fieldSchema, final Object columnVal) {
-    if (columnVal == null) {
-      return null;
+  private static String processString(final JsonValueContext context) {
+    if (context.val instanceof Map) {
+      return context.deserializer.gson.toJson(context.val);
     }
-    switch (fieldSchema.type()) {
-      case BOOLEAN:
-        return SerdeUtils.toBoolean(columnVal);
-      case INT32:
-        return SerdeUtils.toInteger(columnVal);
-      case INT64:
-        return SerdeUtils.toLong(columnVal);
-      case FLOAT64:
-        return SerdeUtils.toDouble(columnVal);
-      case STRING:
-        return processString(columnVal);
-      case ARRAY:
-        return enforceFieldTypeForArray(fieldSchema, (List<?>) columnVal);
-      case MAP:
-        return enforceFieldTypeForMap(fieldSchema, (Map<String, Object>) columnVal);
-      case STRUCT:
-        return enforceFieldTypeForStruct(fieldSchema, (Map<String, Object>) columnVal);
-      default:
-        throw new KsqlException("Type is not supported: " + fieldSchema.type());
-    }
+    return context.val.toString();
   }
 
-  private String processString(final Object columnVal) {
-    if (columnVal instanceof Map) {
-      return gson.toJson(columnVal);
-    }
-    return columnVal.toString();
+  private static Object enforceValidBytes(final JsonValueContext context) {
+    // before we implement JSON Decimal support, we need to update Connect
+    throw invalidConversionException(context.val, context.schema);
   }
 
-  private List<?> enforceFieldTypeForArray(final Schema fieldSchema, final List<?> arrayList) {
-    final List<Object> array = new ArrayList<>(arrayList.size());
-    for (final Object item : arrayList) {
-      array.add(enforceFieldType(fieldSchema.valueSchema(), item));
+  private static List<?> enforceElementTypeForArray(final JsonValueContext context) {
+    if (!(context.val instanceof List)) {
+      throw invalidConversionException(context.val, context.schema);
+    }
+
+    final List<?> list = (List<?>) context.val;
+    final List<Object> array = new ArrayList<>(list.size());
+    for (final Object item : list) {
+      array.add(enforceFieldType(context.deserializer, context.schema.valueSchema(), item, false));
     }
     return array;
   }
 
-  private Map<String, Object> enforceFieldTypeForMap(
-      final Schema fieldSchema,
-      final Map<String, ?> columnMap) {
-    final Map<String, Object> ksqlMap = new HashMap<>();
-    for (final Map.Entry<String, ?> e : columnMap.entrySet()) {
+  private static Map<String, Object> enforceKeyAndValueTypeForMap(final JsonValueContext context) {
+    if (!(context.val instanceof Map)) {
+      throw invalidConversionException(context.val, context.schema);
+    }
+
+    final Map<?, ?> map = (Map<?, ?>) context.val;
+    final Map<String, Object> ksqlMap = new HashMap<>(map.size());
+    for (final Map.Entry<?, ?> e : map.entrySet()) {
       ksqlMap.put(
-          enforceFieldType(Schema.OPTIONAL_STRING_SCHEMA, e.getKey()).toString(),
-          enforceFieldType(fieldSchema.valueSchema(), e.getValue())
+          enforceFieldType(
+              context.deserializer, Schema.OPTIONAL_STRING_SCHEMA, e.getKey(), false).toString(),
+          enforceFieldType(
+              context.deserializer, context.schema.valueSchema(), e.getValue(), false)
       );
     }
     return ksqlMap;
   }
 
-  private Struct enforceFieldTypeForStruct(
-      final Schema fieldSchema,
-      final Map<String, ?> structMap) {
-    final Struct columnStruct = new Struct(fieldSchema);
-    final Map<String, String> caseInsensitiveStructFieldNameMap =
-        getCaseInsensitiveFieldNameMap(structMap, false);
-    fieldSchema.fields()
-        .forEach(
-            field -> columnStruct.put(field.name(),
-                enforceFieldType(
-                    field.schema(), structMap.get(
-                        caseInsensitiveStructFieldNameMap.get(field.name().toUpperCase())
-                    ))));
+  @SuppressWarnings("unchecked")
+  private static Struct enforceFieldTypesForStruct(final JsonValueContext context) {
+    if (!(context.val instanceof Map)) {
+      throw invalidConversionException(context.val, context.schema);
+    }
+
+    final Struct columnStruct = new Struct(context.schema);
+    final Map<String, ?> fields =
+        toCaseInsensitiveFieldNameMap((Map<String, ?>) context.val, context.topLevel);
+
+    context.schema.fields().forEach(
+        field -> {
+          final Object fieldValue = fields.get(field.name().toUpperCase());
+          final Object coerced = enforceFieldType(
+              context.deserializer, field.schema(), fieldValue, false);
+          columnStruct.put(field.name(), coerced);
+        });
+
     return columnStruct;
   }
 
-  private Map<String, String> getCaseInsensitiveFieldNameMap(final Map<String, ?> map,
-                                                             final boolean omitAt) {
-    final Map<String, String> keyMap = new HashMap<>();
+  private static Map<String, ?> toCaseInsensitiveFieldNameMap(
+      final Map<String, ?> map,
+      final boolean omitAt
+  ) {
+    final Map<String, Object> result = new HashMap<>(map.size());
     for (final Map.Entry<String, ?> entry : map.entrySet()) {
       if (omitAt && entry.getKey().startsWith("@")) {
         if (entry.getKey().length() == 1) {
           throw new KsqlException("Field name cannot be '@'.");
         }
-        keyMap.put(entry.getKey().toUpperCase().substring(1), entry.getKey());
+        result.put(entry.getKey().toUpperCase().substring(1), entry.getValue());
       } else {
-        keyMap.put(entry.getKey().toUpperCase(), entry.getKey());
+        result.put(entry.getKey().toUpperCase(), entry.getValue());
       }
     }
-    return keyMap;
+    return result;
   }
 
   @Override
   public void close() {
+  }
+
+  private static IllegalArgumentException invalidConversionException(
+      final Object value,
+      final Schema schema
+  ) {
+    throw JsonSerdeUtils.invalidConversionException(
+        value,
+        SqlSchemaFormatter.DEFAULT.format(schema)
+    );
+  }
+
+  private static class JsonValueContext {
+
+    private final KsqlJsonDeserializer deserializer;
+    private final Schema schema;
+    private final Object val;
+    private final boolean topLevel;
+
+    JsonValueContext(
+        final KsqlJsonDeserializer deserializer,
+        final Schema schema,
+        final Object val,
+        final boolean topLevel
+    ) {
+      this.deserializer = Objects.requireNonNull(deserializer);
+      this.schema = Objects.requireNonNull(schema, "schema");
+      this.val = val;
+      this.topLevel = topLevel;
+    }
   }
 }

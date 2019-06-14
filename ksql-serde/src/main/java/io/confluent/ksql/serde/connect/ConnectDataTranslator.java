@@ -15,13 +15,17 @@
 
 package io.confluent.ksql.serde.connect;
 
-import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.DecimalUtil;
+import io.confluent.ksql.util.KsqlPreconditions;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.function.Predicate;
 import org.apache.kafka.connect.data.Date;
+import org.apache.kafka.connect.data.Decimal;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
@@ -29,48 +33,54 @@ import org.apache.kafka.connect.data.Time;
 import org.apache.kafka.connect.data.Timestamp;
 import org.apache.kafka.connect.errors.DataException;
 
+/**
+ * Translates full set of Connect types to the limited subset supported by KSQL.
+ *
+ * <p>Responsible for the coercion of connect types to the subset KSQL supports and handling
+ * case-insensitivity of struct field names.
+ */
 public class ConnectDataTranslator implements DataTranslator {
+
   private static final String PATH_SEPARATOR = "->";
 
   private final Schema schema;
 
   public ConnectDataTranslator(final Schema schema) {
-    this.schema = schema;
+    this.schema = Objects.requireNonNull(schema, "schema");
   }
 
   @Override
-  public GenericRow toKsqlRow(final Schema connectSchema,
-                              final Object connectData) {
-    if (!schema.type().equals(Schema.Type.STRUCT)) {
-      throw new KsqlException("Schema for a KSQL row should be a struct");
-    }
-
-    final Struct rowStruct = (Struct) toKsqlValue(schema, connectSchema, connectData, "");
-    if (rowStruct == null) {
+  public Object toKsqlRow(final Schema connectSchema, final Object connectData) {
+    if (connectData == null) {
       return null;
     }
 
-    // streams are expensive, so we don't use them from serdes. build the row using forEach
-    final List<Object> fields = new ArrayList<>(schema.fields().size());
-    schema.fields().forEach(field -> fields.add(rowStruct.get(field)));
-    return new GenericRow(fields);
+    return toKsqlValue(schema, connectSchema, connectData, "");
   }
 
-  private void throwTypeMismatchException(final String pathStr,
-                                          final Schema schema,
-                                          final Schema connectSchema) {
+  public Object toConnectRow(final Object ksqlData) {
+    return ksqlData;
+  }
+
+  private static void throwTypeMismatchException(
+      final String pathStr,
+      final Schema schema,
+      final Schema connectSchema
+  ) {
     throw new DataException(
         String.format(
-            "Cannot deserialize type %s as type %s for field %s",
+            "Cannot deserialize type %s as type %s for path: %s",
             connectSchema.type().getName(),
             schema.type().getName(),
             pathStr));
   }
 
-  private void validateType(final String pathStr,
-                            final Schema schema,
-                            final Schema connectSchema,
-                            final Schema.Type[] validTypes) {
+  private static void validateType(
+      final String pathStr,
+      final Schema schema,
+      final Schema connectSchema,
+      final Schema.Type[] validTypes
+  ) {
     // don't use stream here
     for (final Schema.Type type : validTypes) {
       if (connectSchema.type().equals(type)) {
@@ -80,9 +90,23 @@ public class ConnectDataTranslator implements DataTranslator {
     throwTypeMismatchException(pathStr, schema, connectSchema);
   }
 
-  private void validateType(final String pathStr,
-                            final Schema schema,
-                            final Schema connectSchema) {
+  private static void validateType(
+      final String pathStr,
+      final Schema schema,
+      final Schema connectSchema,
+      final Predicate<Schema> requirement
+  ) {
+    if (requirement.test(connectSchema)) {
+      return;
+    }
+    throwTypeMismatchException(pathStr, schema, connectSchema);
+  }
+
+  private static void validateType(
+      final String pathStr,
+      final Schema schema,
+      final Schema connectSchema
+  ) {
     if (!connectSchema.type().equals(schema.type())) {
       throwTypeMismatchException(pathStr, schema, connectSchema);
     }
@@ -113,13 +137,17 @@ public class ConnectDataTranslator implements DataTranslator {
       Schema.Type.INT16,
       Schema.Type.INT32,
       Schema.Type.INT64,
+      Schema.Type.FLOAT32,
+      Schema.Type.FLOAT64,
       Schema.Type.BOOLEAN,
       Schema.Type.STRING
   };
 
-  private void validateSchema(final String pathStr,
-                              final Schema schema,
-                              final Schema connectSchema) {
+  private static void validateSchema(
+      final String pathStr,
+      final Schema schema,
+      final Schema connectSchema
+  ) {
     switch (schema.type()) {
       case BOOLEAN:
       case ARRAY:
@@ -139,17 +167,25 @@ public class ConnectDataTranslator implements DataTranslator {
       case FLOAT64:
         validateType(pathStr, schema, connectSchema, FLOAT64_ACCEPTABLE_TYPES);
         break;
+      case BYTES:
+        validateType(pathStr, schema, connectSchema, s -> Decimal.LOGICAL_NAME.equals(s.name()));
+        break;
       default:
         throw new RuntimeException(
             "Unexpected data type seen in schema: " + schema.type().getName());
     }
   }
 
-  private Object maybeConvertLogicalType(final Schema connectSchema, final Object connectValue) {
+  private static Object maybeConvertLogicalType(
+      final Schema connectSchema,
+      final Object connectValue
+  ) {
     if (connectSchema.name() == null) {
       return connectValue;
     }
     switch  (connectSchema.name()) {
+      case Decimal.LOGICAL_NAME:
+        return connectValue;
       case Date.LOGICAL_NAME:
         return Date.fromLogical(connectSchema, (java.util.Date) connectValue);
       case Time.LOGICAL_NAME:
@@ -161,11 +197,15 @@ public class ConnectDataTranslator implements DataTranslator {
     }
   }
 
+  // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
   @SuppressWarnings("unchecked")
-  private Object toKsqlValue(final Schema schema,
-                             final Schema connectSchema,
-                             final Object connectValue,
-                             final String pathStr) {
+  private Object toKsqlValue(
+      final Schema schema,
+      final Schema connectSchema,
+      final Object connectValue,
+      final String pathStr
+  ) {
+    // CHECKSTYLE_RULES.ON: CyclomaticComplexity
     // Map a connect value+schema onto the schema expected by KSQL. For now this involves:
     // - handling case insensitivity for struct field names
     // - setting missing values to null
@@ -184,6 +224,8 @@ public class ConnectDataTranslator implements DataTranslator {
         return ((Number) convertedValue).intValue();
       case FLOAT64:
         return ((Number) convertedValue).doubleValue();
+      case BYTES:
+        return toKsqlBytes(convertedValue, connectSchema);
       case ARRAY:
         return toKsqlArray(
             schema.valueSchema(), connectSchema.valueSchema(), (List) convertedValue, pathStr);
@@ -201,8 +243,23 @@ public class ConnectDataTranslator implements DataTranslator {
     }
   }
 
-  private List<?> toKsqlArray(final Schema valueSchema, final Schema connectValueSchema,
-                           final List<Object> connectArray, final String pathStr) {
+  private Object toKsqlBytes(
+      final Object convertedValue,
+      final Schema schema
+  ) {
+    KsqlPreconditions.checkArgument(DecimalUtil.isDecimal(schema), "BYTES type must be DECIMAL");
+    KsqlPreconditions.checkArgument(convertedValue instanceof BigDecimal,
+        "must serialize decimal type as BigDecimal. Got: " + convertedValue.getClass());
+
+    return convertedValue;
+  }
+
+  private List<?> toKsqlArray(
+      final Schema valueSchema,
+      final Schema connectValueSchema,
+      final List<Object> connectArray,
+      final String pathStr
+  ) {
     final List<Object> ksqlArray = new ArrayList<>(connectArray.size());
     // streams are expensive, so we don't use them from serdes.
     // build the array using forEach instead.
@@ -213,9 +270,14 @@ public class ConnectDataTranslator implements DataTranslator {
     return ksqlArray;
   }
 
-  private Map<?, ?> toKsqlMap(final Schema keySchema, final Schema connectKeySchema,
-                        final Schema valueSchema, final Schema connectValueSchema,
-                        final Map<Object, Object> connectMap, final String pathStr) {
+  private Map<?, ?> toKsqlMap(
+      final Schema keySchema,
+      final Schema connectKeySchema,
+      final Schema valueSchema,
+      final Schema connectValueSchema,
+      final Map<Object, Object> connectMap,
+      final String pathStr
+  ) {
     final Map<Object, Object> ksqlMap = new HashMap<>();
     // streams are expensive, so we don't use them from serdes.
     // build the map using forEach instead.
@@ -236,18 +298,18 @@ public class ConnectDataTranslator implements DataTranslator {
     return ksqlMap;
   }
 
-  private Struct toKsqlStruct(final Schema schema,
-                              final Schema connectSchema,
-                              final Struct connectStruct,
-                              final String pathStr) {
-    // todo: check name here? e.g. what if the struct gets changed to a union?
+  private Struct toKsqlStruct(
+      final Schema schema,
+      final Schema connectSchema,
+      final Struct connectStruct,
+      final String pathStr
+  ) {
     final Struct ksqlStruct = new Struct(schema);
     final Map<String, Field> caseInsensitiveFieldMap =
         getCaseInsensitiveFieldMap(connectSchema);
+
     schema.fields().forEach(field -> {
       final String fieldNameUppercase = field.name().toUpperCase();
-      // TODO: should we throw an exception if this is not true? this means the schema changed
-      //       or the user declared the source with a schema incompatible with the registry schema
       if (caseInsensitiveFieldMap.containsKey(fieldNameUppercase)) {
         final Field connectField = caseInsensitiveFieldMap.get(fieldNameUppercase);
         // make sure to get/put the field using the Field object to avoid a lookup in Struct
@@ -265,19 +327,11 @@ public class ConnectDataTranslator implements DataTranslator {
     return ksqlStruct;
   }
 
-  private Map<String, Field> getCaseInsensitiveFieldMap(final Schema schema) {
+  private static Map<String, Field> getCaseInsensitiveFieldMap(final Schema schema) {
     final Map<String, Field> fieldsByName = new HashMap<>();
     schema.fields().forEach(
         field -> fieldsByName.put(field.name().toUpperCase(), field)
     );
     return fieldsByName;
-  }
-
-  public Struct toConnectRow(final GenericRow row) {
-    final Struct struct = new Struct(schema);
-    schema.fields().forEach(
-        field -> struct.put(field, row.getColumns().get(field.index()))
-    );
-    return struct;
   }
 }

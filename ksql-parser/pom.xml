@@ -22,7 +22,7 @@
     <parent>
         <groupId>io.confluent.ksql</groupId>
         <artifactId>ksql-parent</artifactId>
-        <version>5.3.0-SNAPSHOT</version>
+        <version>5.4.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>ksql-parser</artifactId>
@@ -40,7 +40,7 @@
         <dependency>
             <groupId>io.confluent.ksql</groupId>
             <artifactId>ksql-metastore</artifactId>
-            <version>5.3.0-SNAPSHOT</version>
+            <version>5.4.0-SNAPSHOT</version>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
@@ -86,7 +86,7 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
                     <compilerArgs>
-                        <arg>-Xlint:all,-options,-path,-serial,-rawtypes,-processing</arg>
+                        <arg>-Xlint:all,-serial,-rawtypes</arg>
                         <arg>-Werror</arg>
                     </compilerArgs>
                 </configuration>
@@ -97,8 +97,6 @@
                 <artifactId>antlr4-maven-plugin</artifactId>
                 <version>${antlr.version}</version>
                 <configuration>
-                    <!--<sourceDirectory>src/main/antlr4/io/confluent/kql/parser</sourceDirectory>-->
-                    <!--<outputDirectory>src/main/java/io/confluent/kql/parser</outputDirectory>-->
                     <visitor>true</visitor>
                 </configuration>
                 <executions>

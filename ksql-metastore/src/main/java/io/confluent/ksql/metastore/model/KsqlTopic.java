@@ -18,31 +18,30 @@ package io.confluent.ksql.metastore.model;
 import static java.util.Objects.requireNonNull;
 
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.serde.DataSource;
-import io.confluent.ksql.serde.KsqlTopicSerDe;
+import io.confluent.ksql.serde.KsqlSerdeFactory;
 
 @Immutable
-public class KsqlTopic implements DataSource {
+public class KsqlTopic {
 
   private final String ksqlTopicName;
   private final String kafkaTopicName;
-  private final KsqlTopicSerDe ksqlTopicSerDe;
+  private final KsqlSerdeFactory valueSerdeFactory;
   private final boolean isKsqlSink;
 
   public KsqlTopic(
       final String ksqlTopicName,
       final String kafkaTopicName,
-      final KsqlTopicSerDe ksqlTopicSerDe,
+      final KsqlSerdeFactory valueSerdeFactory,
       final boolean isKsqlSink
   ) {
     this.ksqlTopicName = requireNonNull(ksqlTopicName, "ksqlTopicName");
     this.kafkaTopicName = requireNonNull(kafkaTopicName, "kafkaTopicName");
-    this.ksqlTopicSerDe = requireNonNull(ksqlTopicSerDe, "ksqlTopicSerDe");
+    this.valueSerdeFactory = requireNonNull(valueSerdeFactory, "valueSerdeFactory");
     this.isKsqlSink = isKsqlSink;
   }
 
-  public KsqlTopicSerDe getKsqlTopicSerDe() {
-    return ksqlTopicSerDe;
+  public KsqlSerdeFactory getValueSerdeFactory() {
+    return valueSerdeFactory;
   }
 
   public String getKafkaTopicName() {
@@ -55,15 +54,5 @@ public class KsqlTopic implements DataSource {
 
   public boolean isKsqlSink() {
     return isKsqlSink;
-  }
-
-  @Override
-  public String getName() {
-    return ksqlTopicName;
-  }
-
-  @Override
-  public DataSourceType getDataSourceType() {
-    return DataSourceType.KTOPIC;
   }
 }

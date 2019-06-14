@@ -17,17 +17,20 @@ package io.confluent.ksql.integration;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.hasSize;
 
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.KsqlContextTestUtil;
+import io.confluent.ksql.KsqlConfigTestUtil;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlEngineTestUtil;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.services.DefaultServiceContext;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
@@ -36,7 +39,6 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.OrderDataProvider;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.TopicConsumer;
 import io.confluent.ksql.util.TopicProducer;
 import java.util.Arrays;
@@ -49,7 +51,6 @@ import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
-import org.apache.kafka.test.TestUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -78,7 +79,6 @@ public class JsonFormatTest {
   private KsqlConfig ksqlConfig;
   private KsqlEngine ksqlEngine;
   private ServiceContext serviceContext;
-  private ProcessingLogContext processingLogContext;
   private final TopicProducer topicProducer = new TopicProducer(CLUSTER);
   private final TopicConsumer topicConsumer = new TopicConsumer(CLUSTER);
 
@@ -90,13 +90,12 @@ public class JsonFormatTest {
   public void before() throws Exception {
     streamName = "STREAM_" + COUNTER.getAndIncrement();
 
-    ksqlConfig = KsqlContextTestUtil.createKsqlConfig(CLUSTER);
+    ksqlConfig = KsqlConfigTestUtil.create(CLUSTER);
     serviceContext = DefaultServiceContext.create(ksqlConfig);
-    processingLogContext = ProcessingLogContext.create();
 
     ksqlEngine = new KsqlEngine(
         serviceContext,
-        processingLogContext,
+        ProcessingLogContext.create(),
         new InternalFunctionRegistry(),
         ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG));
 
@@ -129,7 +128,12 @@ public class JsonFormatTest {
     final Map<String, GenericRow> records = new HashMap<>();
     records.put("1", messageRow);
 
-    topicProducer.produceInputData(messageLogTopic, records, messageSchema);
+    final PhysicalSchema schema = PhysicalSchema.from(
+        LogicalSchema.of(messageSchema),
+        SerdeOption.none()
+    );
+
+    topicProducer.produceInputData(messageLogTopic, records, schema);
   }
 
   private void execInitCreateStreamQueries() {
@@ -181,15 +185,12 @@ public class JsonFormatTest {
 
     executePersistentQuery(queryString);
 
-    final Schema resultSchema = SchemaUtil
-        .removeImplicitRowTimeRowKeyFromSchema(metaStore.getSource(streamName).getSchema());
-
     final Map<String, GenericRow> expectedResults = new HashMap<>();
     expectedResults.put("8", new GenericRow(Arrays.asList(1500962514814L,
         "2017-07-24 23:01:54.814",
         1500962514814L)));
 
-    final Map<String, GenericRow> results = readNormalResults(streamName, resultSchema, expectedResults.size());
+    final Map<String, GenericRow> results = readNormalResults(streamName, expectedResults.size());
 
     assertThat(results, equalTo(expectedResults));
   }
@@ -203,13 +204,10 @@ public class JsonFormatTest {
 
     executePersistentQuery(queryString);
 
-    final Schema resultSchema = SchemaUtil
-            .removeImplicitRowTimeRowKeyFromSchema(metaStore.getSource(streamName).getSchema());
-
     final Map<String, GenericRow> expectedResults = new HashMap<>();
     expectedResults.put("1", new GenericRow(Collections.singletonList("aws")));
 
-    final Map<String, GenericRow> results = readNormalResults(streamName, resultSchema, expectedResults.size());
+    final Map<String, GenericRow> results = readNormalResults(streamName, expectedResults.size());
 
     assertThat(results, equalTo(expectedResults));
   }
@@ -223,13 +221,10 @@ public class JsonFormatTest {
 
     executePersistentQuery(queryString);
 
-    final Schema resultSchema = SchemaUtil
-            .removeImplicitRowTimeRowKeyFromSchema(metaStore.getSource(streamName).getSchema());
-
     final Map<String, GenericRow> expectedResults = new HashMap<>();
     expectedResults.put("1", new GenericRow(Collections.singletonList("first")));
 
-    final Map<String, GenericRow> results = readNormalResults(streamName, resultSchema, expectedResults.size());
+    final Map<String, GenericRow> results = readNormalResults(streamName, expectedResults.size());
 
     assertThat(results, equalTo(expectedResults));
   }
@@ -242,7 +237,17 @@ public class JsonFormatTest {
     queryId = ((PersistentQueryMetadata)queryMetadata).getQueryId();
   }
 
-  private Map<String, GenericRow> readNormalResults(final String resultTopic, final Schema resultSchema, final int expectedNumMessages) {
+  private Map<String, GenericRow> readNormalResults(
+      final String resultTopic,
+      final int expectedNumMessages
+  ) {
+    final DataSource<?> source = metaStore.getSource(streamName);
+
+    final PhysicalSchema resultSchema = PhysicalSchema.from(
+        source.getSchema().withoutImplicitAndKeyFieldsInValue(),
+        source.getSerdeOptions()
+    );
+
     return topicConsumer.readResults(resultTopic, resultSchema, expectedNumMessages, new StringDeserializer());
   }
 

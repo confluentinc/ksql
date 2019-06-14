@@ -43,7 +43,9 @@ import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
 import io.confluent.ksql.util.ExpressionMetadata;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -54,7 +56,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Schema;
@@ -128,7 +129,7 @@ public class CodeGenRunnerTest {
         // load substring function
         UdfLoaderUtil.load(functionRegistry);
 
-        final Schema arraySchema = SchemaBuilder.array(Schema.STRING_SCHEMA).optional().build();
+        final Schema arraySchema = SchemaBuilder.array(Schema.OPTIONAL_STRING_SCHEMA).optional().build();
 
 
         final Schema schema = SchemaBuilder.struct()
@@ -149,8 +150,12 @@ public class CodeGenRunnerTest {
                    SchemaBuilder.map(SchemaBuilder.OPTIONAL_STRING_SCHEMA, SchemaBuilder.OPTIONAL_INT32_SCHEMA).optional().build())
             .field("CODEGEN_TEST.COL13", SchemaBuilder.array(SchemaBuilder.OPTIONAL_STRING_SCHEMA).optional().build())
             .field("CODEGEN_TEST.COL14", SchemaBuilder.array(arraySchema).optional().build())
-            .field("CODEGEN_TEST.COL15", STRUCT_SCHEMA);
+            .field("CODEGEN_TEST.COL15", STRUCT_SCHEMA)
+            .build();
+
         final Schema metaStoreSchema = SchemaBuilder.struct()
+            .field("ROWTIME", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
+            .field("ROWKEY", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
             .field("COL0", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
             .field("COL1", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
             .field("COL2", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
@@ -168,21 +173,28 @@ public class CodeGenRunnerTest {
                 SchemaBuilder.map(SchemaBuilder.OPTIONAL_STRING_SCHEMA, SchemaBuilder.OPTIONAL_INT32_SCHEMA).optional().build())
             .field("COL13", SchemaBuilder.array(SchemaBuilder.OPTIONAL_STRING_SCHEMA).optional().build())
             .field("CODEGEN_TEST.COL14", SchemaBuilder.array(arraySchema).optional().build())
-            .field("COL15", STRUCT_SCHEMA);
+            .field("COL15", STRUCT_SCHEMA)
+            .build();
+
         final KsqlTopic ksqlTopic = new KsqlTopic(
             "CODEGEN_TEST",
             "codegen_test",
-            new KsqlJsonTopicSerDe(), false);
+            new KsqlJsonSerdeFactory(), false);
+
         final KsqlStream ksqlStream = new KsqlStream<>(
             "sqlexpression",
             "CODEGEN_TEST",
-            metaStoreSchema,
+            LogicalSchema.of(metaStoreSchema),
+            SerdeOption.none(),
             KeyField.of("COL0", metaStoreSchema.field("COL0")),
             new MetadataTimestampExtractionPolicy(),
-            ksqlTopic,Serdes::String);
+            ksqlTopic,
+            Serdes::String
+        );
+
         metaStore.putTopic(ksqlTopic);
         metaStore.putSource(ksqlStream);
-        codeGenRunner = new CodeGenRunner(schema, ksqlConfig, functionRegistry);
+        codeGenRunner = new CodeGenRunner(LogicalSchema.of(schema), ksqlConfig, functionRegistry);
     }
 
     @Test

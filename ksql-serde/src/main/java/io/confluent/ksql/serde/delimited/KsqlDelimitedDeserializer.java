@@ -15,34 +15,52 @@
 
 package io.confluent.ksql.serde.delimited;
 
-import io.confluent.ksql.GenericRow;
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
+import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.serde.util.SerdeProcessingLogMessageFactory;
+import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlException;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Function;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
+import org.apache.kafka.connect.data.ConnectSchema;
+import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.Schema.Type;
+import org.apache.kafka.connect.data.Struct;
 
-public class KsqlDelimitedDeserializer implements Deserializer<GenericRow> {
+public class KsqlDelimitedDeserializer implements Deserializer<Object> {
 
-  private final Schema schema;
+  private static final Map<Type, Function<String, Object>> PARSERS = ImmutableMap.of(
+      Type.BOOLEAN, Boolean::parseBoolean,
+      Type.INT32, Integer::parseInt,
+      Type.INT64, Long::parseLong,
+      Type.FLOAT64, Double::parseDouble,
+      Type.STRING, s -> s
+  );
+
+  private final ConnectSchema schema;
   private final ProcessingLogger recordLogger;
 
   KsqlDelimitedDeserializer(
-      final Schema schema,
+      final PersistenceSchema schema,
       final ProcessingLogger recordLogger
   ) {
-    this.schema = Objects.requireNonNull(schema, "schema").schema();
+    this.schema = Objects.requireNonNull(schema, "schema").getConnectSchema();
     this.recordLogger = Objects.requireNonNull(recordLogger, "recordLogger");
+
+    throwOnUnsupported(this.schema);
   }
 
   @Override
@@ -50,77 +68,92 @@ public class KsqlDelimitedDeserializer implements Deserializer<GenericRow> {
   }
 
   @Override
-  public GenericRow deserialize(final String topic, final byte[] bytes) {
+  public Struct deserialize(final String topic, final byte[] bytes) {
     if (bytes == null) {
       return null;
     }
-    final String recordCsvString = new String(bytes, StandardCharsets.UTF_8);
+
     try {
+      final String recordCsvString = new String(bytes, StandardCharsets.UTF_8);
       final List<CSVRecord> csvRecords = CSVParser.parse(recordCsvString, CSVFormat.DEFAULT)
           .getRecords();
 
-      if (csvRecords == null || csvRecords.isEmpty()) {
-        throw new KsqlException("Deserialization error in the delimited line: " + recordCsvString);
+      if (csvRecords.isEmpty()) {
+        throw new KsqlException("No fields in record");
       }
+
       final CSVRecord csvRecord = csvRecords.get(0);
       if (csvRecord == null || csvRecord.size() == 0) {
-        throw new KsqlException("Deserialization error in the delimited line: " + recordCsvString);
+        throw new KsqlException("No fields in record.");
       }
-      final List<Object> columns = new ArrayList<>();
+
       if (csvRecord.size() != schema.fields().size()) {
         throw new KsqlException(
             String.format(
-              "Unexpected field count, csvFields:%d schemaFields:%d line: %s",
+                "Unexpected field count, csvFields:%d schemaFields:%d",
               csvRecord.size(),
-              schema.fields().size(),
-              recordCsvString
+                schema.fields().size()
           )
         );
       }
+
+      final Struct struct = new Struct(schema);
+
+      final Iterator<Field> it = schema.fields().iterator();
+
       for (int i = 0; i < csvRecord.size(); i++) {
+        final Field field = it.next();
         if (csvRecord.get(i) == null) {
-          columns.add(null);
+          struct.put(field, null);
         } else {
-          columns.add(enforceFieldType(schema.fields().get(i).schema(), csvRecord.get(i)));
+          final Object coerced = enforceFieldType(field.schema(), csvRecord.get(i));
+          struct.put(field, coerced);
         }
 
       }
-      return new GenericRow(columns);
+      return struct;
     } catch (final Exception e) {
-      recordLogger.error(
-          SerdeProcessingLogMessageFactory.deserializationErrorMsg(
-              e,
-              Optional.ofNullable(bytes))
-      );
+      recordLogger.error(SerdeProcessingLogMessageFactory
+          .deserializationErrorMsg(e, Optional.of(bytes)));
       throw new SerializationException("Error deserializing delimited row", e);
-    }
-  }
-
-  private Object enforceFieldType(final Schema fieldSchema, final String delimitedField) {
-
-    if (delimitedField.isEmpty()) {
-      return null;
-    }
-    switch (fieldSchema.type()) {
-      case BOOLEAN:
-        return Boolean.parseBoolean(delimitedField);
-      case INT32:
-        return Integer.parseInt(delimitedField);
-      case INT64:
-        return Long.parseLong(delimitedField);
-      case FLOAT64:
-        return Double.parseDouble(delimitedField);
-      case STRING:
-        return delimitedField;
-      case ARRAY:
-      case MAP:
-      default:
-        throw new KsqlException("Type is not supported: " + fieldSchema.type());
     }
   }
 
   @Override
   public void close() {
+  }
 
+  private static Object enforceFieldType(
+      final Schema fieldSchema,
+      final String delimitedField
+  ) {
+    if (delimitedField.isEmpty()) {
+      return null;
+    }
+
+    if (DecimalUtil.isDecimal(fieldSchema)) {
+      return DecimalUtil.ensureFit(new BigDecimal(delimitedField),fieldSchema);
+    }
+
+    final Function<String, Object> parser = PARSERS.get(fieldSchema.type());
+    if (parser == null) {
+      throw new KsqlException("Type is not supported: " + fieldSchema.type());
+    }
+
+    return parser.apply(delimitedField);
+  }
+
+  private static void throwOnUnsupported(final Schema schema) {
+    if (schema.type() != Type.STRUCT) {
+      throw new IllegalArgumentException("DELIMITED expects all top level schemas to be STRUCTs");
+    }
+
+    schema.fields().forEach(field -> {
+      final Type type = field.schema().type();
+      if (!PARSERS.keySet().contains(type) && !DecimalUtil.isDecimal(field.schema())) {
+        throw new UnsupportedOperationException(
+            "DELIMITED does not support type: " + type + ", field: " + field.name());
+      }
+    });
   }
 }

@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.function;
 
-import io.confluent.ksql.function.udaf.UdafAggregateFunctionFactory;
 import io.confluent.ksql.function.udaf.UdafDescription;
 import io.confluent.ksql.function.udaf.UdafFactory;
 import io.confluent.ksql.function.udf.Kudf;
@@ -25,7 +24,7 @@ import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfMetadata;
 import io.confluent.ksql.function.udf.UdfParameter;
 import io.confluent.ksql.metrics.MetricCollectors;
-import io.confluent.ksql.schema.ksql.LogicalSchemas;
+import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.TypeContextUtil;
 import io.confluent.ksql.security.ExtensionSecurityManager;
 import io.confluent.ksql.util.KsqlConfig;
@@ -174,7 +173,9 @@ public class UdfLoader {
               return Optional.of(compiler.compileAggregate(method,
                   loader,
                   udafAnnotation.name(),
-                  annotation.description()
+                  annotation.description(),
+                  annotation.paramSchema(),
+                  annotation.returnSchema()
               ));
             } catch (final Exception e) {
               LOGGER.warn("Failed to create UDAF name={}, method={}, class={}, path={}",
@@ -213,7 +214,7 @@ public class UdfLoader {
       LOGGER.info("Adding UDF name='{}' from path={}", annotation.name(), path);
       final Method method = (Method) executable;
       try {
-        final UdfInvoker udf = compiler.compile(method, loader);
+        final UdfInvoker udf = UdfCompiler.compile(method, loader);
         addFunction(annotation, method, udf, path);
       } catch (final KsqlException e) {
         if (parentClassLoader == loader) {
@@ -265,9 +266,17 @@ public class UdfLoader {
           .filter(val -> !val.isEmpty())
           .orElse(param.isNamePresent() ? param.getName() : "");
 
+      if (name.trim().isEmpty()) {
+        throw new KsqlFunctionException(
+            String.format("Cannot resolve parameter name for param at index %d for udf %s:%s. "
+                + "Please specify a name in @UdfParameter or compile your JAR with -parameters "
+                + "to infer the name from the parameter name.",
+                idx, classLevelAnnotation.name(), method.getName()));
+      }
+
       final String doc = annotation.map(UdfParameter::description).orElse("");
       if (annotation.isPresent() && !annotation.get().schema().isEmpty()) {
-        return LogicalSchemas.fromSqlTypeConverter()
+        return SchemaConverters.sqlToLogicalConverter()
             .fromSqlType(
                 TypeContextUtil.getType(annotation.get().schema()),
                 name,
@@ -277,15 +286,7 @@ public class UdfLoader {
       return SchemaUtil.getSchemaFromType(type, name, doc);
     }).collect(Collectors.toList());
 
-    final Schema returnType;
-    try {
-      returnType = udfAnnotation.schema().isEmpty()
-          ? SchemaUtil.getSchemaFromType(method.getGenericReturnType())
-          : LogicalSchemas.fromSqlTypeConverter().fromSqlType(
-              TypeContextUtil.getType(udfAnnotation.schema()));
-    } catch (final KsqlException e) {
-      throw new KsqlException("Could not load UDF method with signature: " + method, e);
-    }
+    final Schema returnType = getReturnType(method, udfAnnotation);
 
     functionRegistry.addFunction(KsqlFunction.create(
         returnType,
@@ -366,5 +367,19 @@ public class UdfLoader {
         metrics,
         loadCustomerUdfs
     );
+  }
+
+  private static Schema getReturnType(final Method method, final Udf udfAnnotation) {
+    try {
+      final Schema returnType = udfAnnotation.schema().isEmpty()
+          ? SchemaUtil.getSchemaFromType(method.getGenericReturnType())
+          : SchemaConverters
+              .sqlToLogicalConverter()
+              .fromSqlType(TypeContextUtil.getType(udfAnnotation.schema()));
+
+      return SchemaUtil.ensureOptional(returnType);
+    } catch (final KsqlException e) {
+      throw new KsqlException("Could not load UDF method with signature: " + method, e);
+    }
   }
 }

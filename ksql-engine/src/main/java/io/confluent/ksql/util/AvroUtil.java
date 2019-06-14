@@ -17,7 +17,7 @@ package io.confluent.ksql.util;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
-import io.confluent.ksql.serde.DataSource;
+import io.confluent.ksql.serde.Format;
 import java.io.IOException;
 import org.apache.http.HttpStatus;
 
@@ -27,19 +27,19 @@ public final class AvroUtil {
   }
 
   public static boolean isValidSchemaEvolution(
-      final PersistentQueryMetadata persistentQueryMetadata,
+      final PersistentQueryMetadata queryMetadata,
       final SchemaRegistryClient schemaRegistryClient
   ) {
-    if (persistentQueryMetadata.getResultTopicSerde() != DataSource.DataSourceSerDe.AVRO) {
+    if (queryMetadata.getResultTopicFormat() != Format.AVRO) {
       return true;
     }
 
     final org.apache.avro.Schema avroSchema = SchemaUtil.buildAvroSchema(
-        persistentQueryMetadata.getResultSchema(),
-        persistentQueryMetadata.getResultTopic().getName()
+        queryMetadata.getPhysicalSchema().valueSchema(),
+        queryMetadata.getResultTopic().getKsqlTopicName()
     );
 
-    final String topicName = persistentQueryMetadata.getResultTopic().getKafkaTopicName();
+    final String topicName = queryMetadata.getResultTopic().getKafkaTopicName();
 
     return isValidAvroSchemaForTopic(topicName, avroSchema, schemaRegistryClient);
   }

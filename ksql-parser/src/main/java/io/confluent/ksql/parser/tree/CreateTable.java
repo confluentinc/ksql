@@ -23,13 +23,13 @@ import java.util.Map;
 import java.util.Optional;
 
 @Immutable
-public class CreateTable extends AbstractStreamCreateStatement implements ExecutableDdlStatement {
+public class CreateTable extends CreateSource implements ExecutableDdlStatement {
 
   public CreateTable(
       final QualifiedName name,
       final List<TableElement> elements,
       final boolean notExists,
-      final Map<String, Expression> properties
+      final Map<String, Literal> properties
   ) {
     this(Optional.empty(), name, elements, notExists, properties);
   }
@@ -39,15 +39,25 @@ public class CreateTable extends AbstractStreamCreateStatement implements Execut
       final QualifiedName name,
       final List<TableElement> elements,
       final boolean notExists,
-      final Map<String, Expression> properties
+      final Map<String, Literal> properties
+  ) {
+    this(location, name, elements, notExists, new CreateSourceProperties(properties));
+  }
+
+  private CreateTable(
+      final Optional<NodeLocation> location,
+      final QualifiedName name,
+      final List<TableElement> elements,
+      final boolean notExists,
+      final CreateSourceProperties properties
   ) {
     super(location, name, elements, notExists, properties);
   }
 
   @Override
-  public AbstractStreamCreateStatement copyWith(
+  public CreateSource copyWith(
       final List<TableElement> elements,
-      final Map<String, Expression> properties
+      final CreateSourceProperties properties
   ) {
     return new CreateTable(
         getLocation(),

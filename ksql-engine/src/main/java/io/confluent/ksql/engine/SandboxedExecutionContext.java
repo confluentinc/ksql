@@ -37,8 +37,11 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
 
   private final EngineContext engineContext;
 
-  SandboxedExecutionContext(final EngineContext sourceContext) {
-    this.engineContext = sourceContext.createSandbox();
+  SandboxedExecutionContext(
+      final EngineContext sourceContext,
+      final ServiceContext serviceContext
+  ) {
+    this.engineContext = sourceContext.createSandbox(serviceContext);
   }
 
   @Override
@@ -52,8 +55,8 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
   }
 
   @Override
-  public KsqlExecutionContext createSandbox() {
-    return new SandboxedExecutionContext(engineContext);
+  public KsqlExecutionContext createSandbox(final ServiceContext serviceContext) {
+    return new SandboxedExecutionContext(engineContext, serviceContext);
   }
 
   @Override
@@ -80,8 +83,16 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
   public ExecuteResult execute(
       final ConfiguredStatement<?> statement
   ) {
+    return execute(engineContext.getServiceContext(), statement);
+  }
+
+  @Override
+  public ExecuteResult execute(
+      final ServiceContext serviceContext,
+      final ConfiguredStatement<?> statement
+  ) {
     final EngineExecutor executor = EngineExecutor
-        .create(engineContext, statement.getConfig(), statement.getOverrides());
+        .create(engineContext, serviceContext, statement.getConfig(), statement.getOverrides());
 
     return executor.execute(statement);
   }

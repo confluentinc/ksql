@@ -18,7 +18,9 @@ package io.confluent.ksql.topic;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
 import io.confluent.ksql.ddl.DdlConfig;
+import io.confluent.ksql.parser.tree.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
@@ -37,9 +39,10 @@ import org.apache.kafka.clients.admin.TopicDescription;
  */
 public final class TopicProperties {
 
+  public static final short DEFAULT_REPLICAS = -1;
+
   private static final String INVALID_TOPIC_NAME = ":INVALID:";
   private static final int INVALID_PARTITIONS = -1;
-  private static final short INVALID_REPLICAS = -1;
 
   private final String topicName;
   private final Integer partitions;
@@ -73,7 +76,7 @@ public final class TopicProperties {
   }
 
   public short getReplicas() {
-    return replicas == null ? INVALID_REPLICAS : replicas;
+    return replicas == null ? DEFAULT_REPLICAS : replicas;
   }
 
   /**
@@ -106,7 +109,16 @@ public final class TopicProperties {
       return this;
     }
 
-    public Builder withWithClause(final Map<String, Expression> withClause) {
+    public Builder withWithClause(final CreateSourceProperties properties) {
+      final String name = properties.getKafkaTopic();
+      final Integer partitions = properties.getPartitions().orElse(null);
+      final Short replicas = properties.getReplicas().orElse(null);
+
+      fromWithClause = new TopicProperties(name, partitions, replicas);
+      return this;
+    }
+
+    public Builder withWithClause(final Map<String, Literal> withClause) {
       final Expression nameExpression = withClause.get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY);
       final String name = nameExpression == null
           ? null
@@ -185,7 +197,9 @@ public final class TopicProperties {
           .filter(Objects::nonNull)
           .findFirst()
           .orElseGet(() -> fromSource.get().partitions);
-      Objects.requireNonNull(partitions, "Was not supplied with any valid source for partitions!");
+      if (partitions == null) {
+        throw new KsqlException("Cannot determine partitions for creating topic " + name);
+      }
 
       final Short replicas = Stream.of(
           fromWithClause.replicas,
@@ -194,7 +208,6 @@ public final class TopicProperties {
           .filter(Objects::nonNull)
           .findFirst()
           .orElseGet(() -> fromSource.get().replicas);
-      Objects.requireNonNull(replicas, "Was not supplied with any valid source for replicas!");
 
       return new TopicProperties(name, partitions, replicas);
     }

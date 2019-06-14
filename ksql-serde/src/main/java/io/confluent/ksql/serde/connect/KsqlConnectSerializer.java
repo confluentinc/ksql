@@ -15,34 +15,41 @@
 
 package io.confluent.ksql.serde.connect;
 
-import io.confluent.ksql.GenericRow;
 import java.util.Map;
+import java.util.Objects;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Serializer;
-import org.apache.kafka.connect.data.Struct;
+import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.storage.Converter;
 
-public class KsqlConnectSerializer implements Serializer<GenericRow> {
+public class KsqlConnectSerializer implements Serializer<Object> {
+
+  private final Schema schema;
   private final DataTranslator translator;
   private final Converter converter;
 
-  public KsqlConnectSerializer(final DataTranslator translator,
-                               final Converter converter) {
-    this.translator = translator;
-    this.converter = converter;
+  public KsqlConnectSerializer(
+      final Schema schema,
+      final DataTranslator translator,
+      final Converter converter
+  ) {
+    this.schema = Objects.requireNonNull(schema, "schema");
+    this.translator = Objects.requireNonNull(translator, "translator");
+    this.converter = Objects.requireNonNull(converter, "converter");
   }
 
   @Override
-  public byte[] serialize(final String topic, final GenericRow genericRow) {
-    if (genericRow == null) {
+  public byte[] serialize(final String topic, final Object data) {
+    if (data == null) {
       return null;
     }
-    final Struct struct = translator.toConnectRow(genericRow);
+
     try {
-      return converter.fromConnectData(topic, struct.schema(), struct);
+      final Object connectRow = translator.toConnectRow(data);
+      return converter.fromConnectData(topic, schema, connectRow);
     } catch (final Exception e) {
       throw new SerializationException(
-          "Error serializing row to topic " + topic + " using Converter API", e);
+          "Error serializing message to topic: " + topic, e);
     }
   }
 

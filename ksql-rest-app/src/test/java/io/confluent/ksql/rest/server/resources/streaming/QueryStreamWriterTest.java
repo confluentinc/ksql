@@ -32,6 +32,7 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.physical.LimitHandler;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.QueuedQueryMetadata;
 import java.io.ByteArrayOutputStream;
@@ -91,7 +92,9 @@ public class QueryStreamWriterTest {
     drainCapture = newCapture();
     limitHandlerCapture = newCapture();
 
-    final Schema schema = SchemaBuilder.struct().field("col1", Schema.OPTIONAL_STRING_SCHEMA).build();
+    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
+        .field("col1", Schema.OPTIONAL_STRING_SCHEMA)
+        .build());
 
     final KafkaStreams kStreams = niceMock(KafkaStreams.class);
 
@@ -100,7 +103,7 @@ public class QueryStreamWriterTest {
     expect(kStreams.state()).andReturn(State.RUNNING);
 
     expect(queryMetadata.getRowQueue()).andReturn(rowQueue).anyTimes();
-    expect(queryMetadata.getResultSchema()).andReturn(schema).anyTimes();
+    expect(queryMetadata.getLogicalSchema()).andReturn(schema).anyTimes();
 
     queryMetadata.setLimitHandler(capture(limitHandlerCapture));
     expectLastCall().once();

@@ -75,6 +75,8 @@ KSQL currently supports formats:
 -  Avro message values are supported. Avro keys are not yet supported. Requires |sr| and ``ksql.schema.registry.url`` in the
    KSQL server configuration file. For more information, see :ref:`install_ksql-avro-schema`.
 
+See :ref:`data-types` for more details.
+
 ====================================
 Is KSQL fully compliant to ANSI SQL?
 ====================================
@@ -85,46 +87,38 @@ notion of “windowing” for use cases such as performing aggregations on
 data grouped into 5-minute windows, which is a commonly required
 functionality in the streaming world.
 
-=====================================
-How do I shutdown a KSQL environment?
-=====================================
+======================================
+How do I shut down a KSQL environment?
+======================================
 
--  To stop DataGen tasks that were started with the ``-daemon`` flag:
+Exit KSQL CLI:
 
-   .. code:: bash
+.. code:: bash
 
-       jps | grep DataGen
+   ksql> exit
 
-   Your output should resemble:
+If you're running with Confluent CLI, use the ``confluent stop`` command:
 
-   .. code:: text
+.. code:: bash
 
-       25379 DataGen
-       
-   Stop the DataGen JVM by using the specified process ID:   
-       
-   .. code:: bash
+   confluent stop KSQL
 
-       kill 25379
+If you're running KSQL in Docker containers, stop the
+``cp-ksql-server`` container:
 
--  Exit KSQL.
+.. code:: bash
 
-   .. code:: bash
+   docker stop <cp-ksql-server-container-name>
 
-       ksql> exit
+If you're running KSQL as a system service, use the ``systemctl stop``
+command:
 
--  Stop Confluent Platform by shutting down all services including
-   Kafka.
+.. code:: bash
 
-   .. code:: bash
+   sudo systemctl stop confluent-ksql
 
-       confluent stop
-
--  To remove all data, topics, and streams:
-
-   .. code:: bash
-
-       confluent destroy
+For more information on shutting down |cp|, see
+:ref:`installation-overview`.
 
 ============================================
 How do I configure the target Kafka cluster?
@@ -142,7 +136,8 @@ You can add or remove KSQL servers during live operations. KSQL servers that hav
 Kafka cluster (``bootstrap.servers``) and the same KSQL service ID (``ksql.service.id``) form a given KSQL cluster.
 
 To add a KSQL server to an existing KSQL cluster the server must be configured with the same ``bootstrap.servers`` and
-``ksql.service.id`` settings as the KSQL cluster it should join. For more information, see :ref:`ksql-server-config`.
+``ksql.service.id`` settings as the KSQL cluster it should join. For more information, see :ref:`ksql-server-config`
+and :ref:`ksql-capacity-planning-scaling`.
 
 ======================================================================================
 How can I lock-down KSQL servers for production and prevent interactive client access?

@@ -15,9 +15,9 @@
 
 package io.confluent.ksql.integration;
 
-import static io.confluent.ksql.serde.DataSource.DataSourceSerDe.AVRO;
-import static io.confluent.ksql.serde.DataSource.DataSourceSerDe.DELIMITED;
-import static io.confluent.ksql.serde.DataSource.DataSourceSerDe.JSON;
+import static io.confluent.ksql.serde.Format.AVRO;
+import static io.confluent.ksql.serde.Format.DELIMITED;
+import static io.confluent.ksql.serde.Format.JSON;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -27,12 +27,12 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.serde.DataSource;
-import io.confluent.ksql.serde.DataSource.DataSourceSerDe;
+import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import io.confluent.ksql.util.ItemDataProvider;
 import io.confluent.ksql.util.OrderDataProvider;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -40,7 +40,6 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.clients.producer.RecordMetadata;
-import org.apache.kafka.connect.data.Schema;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -83,7 +82,7 @@ public class UdfIntTest {
 
 
   @Parameterized.Parameters(name = "{0}")
-  public static Collection<DataSource.DataSourceSerDe> formats() {
+  public static Collection<Format> formats() {
     return ImmutableList.of(AVRO, JSON, DELIMITED);
   }
 
@@ -103,7 +102,7 @@ public class UdfIntTest {
     TEST_HARNESS.produceRows(DELIMITED_TOPIC_NAME, itemDataProvider, DELIMITED);
   }
 
-  public UdfIntTest(final DataSource.DataSourceSerDe format) {
+  public UdfIntTest(final Format format) {
     switch (format) {
       case AVRO:
         this.testData =
@@ -249,8 +248,15 @@ public class UdfIntTest {
   }
 
   private Map<String, GenericRow> consumeOutputMessages() {
-    final Schema resultSchema = SchemaUtil.removeImplicitRowTimeRowKeyFromSchema(
-        ksqlContext.getMetaStore().getSource(resultStreamName).getSchema());
+
+    final DataSource<?> source = ksqlContext
+        .getMetaStore()
+        .getSource(resultStreamName);
+
+    final PhysicalSchema resultSchema = PhysicalSchema.from(
+        source.getSchema().withoutImplicitAndKeyFieldsInValue(),
+        source.getSerdeOptions()
+    );
 
     return TEST_HARNESS.verifyAvailableUniqueRows(
         resultStreamName,
@@ -261,13 +267,13 @@ public class UdfIntTest {
 
   private static class TestData {
 
-    private final DataSourceSerDe format;
+    private final Format format;
     private final String sourceStreamName;
     private final String sourceTopicName;
     private final Map<String, RecordMetadata> recordMetadata;
 
     private TestData(
-        final DataSourceSerDe format,
+        final Format format,
         final String sourceTopicName,
         final String sourceStreamName,
         final Map<String, RecordMetadata> recordMetadata) {

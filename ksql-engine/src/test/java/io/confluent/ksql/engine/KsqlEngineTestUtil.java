@@ -23,8 +23,8 @@ import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
-import io.confluent.ksql.schema.inference.DefaultSchemaInjector;
-import io.confluent.ksql.schema.inference.SchemaRegistryTopicSchemaSupplier;
+import io.confluent.ksql.schema.ksql.inference.DefaultSchemaInjector;
+import io.confluent.ksql.schema.ksql.inference.SchemaRegistryTopicSchemaSupplier;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
@@ -90,10 +90,6 @@ public final class KsqlEngineTestUtil {
     final Optional<DefaultSchemaInjector> schemaInjector = srClient
         .map(SchemaRegistryTopicSchemaSupplier::new)
         .map(DefaultSchemaInjector::new);
-
-    final KsqlExecutionContext sandbox = engine.createSandbox();
-    statements
-        .forEach(stmt -> execute(sandbox, stmt, ksqlConfig, overriddenProperties, schemaInjector));
 
     return statements.stream()
         .map(stmt -> execute(engine, stmt, ksqlConfig, overriddenProperties, schemaInjector))

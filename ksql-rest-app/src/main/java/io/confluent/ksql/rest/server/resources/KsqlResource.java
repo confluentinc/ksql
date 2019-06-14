@@ -20,6 +20,7 @@ import static java.util.regex.Pattern.compile;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.engine.TopicAccessValidator;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.tree.DescribeFunction;
@@ -59,6 +60,7 @@ import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
@@ -93,11 +95,11 @@ public class KsqlResource {
   public KsqlResource(
       final KsqlConfig ksqlConfig,
       final KsqlEngine ksqlEngine,
-      final ServiceContext serviceContext,
       final CommandQueue commandQueue,
       final Duration distributedCmdResponseTimeout,
       final ActivenessRegistrar activenessRegistrar,
-      final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory
+      final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory,
+      final TopicAccessValidator topicAccessValidator
   ) {
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
     this.commandQueue = Objects.requireNonNull(commandQueue, "commandQueue");
@@ -110,8 +112,8 @@ public class KsqlResource {
         CustomValidators.VALIDATOR_MAP,
         injectorFactory,
         ksqlEngine::createSandbox,
-        SandboxedServiceContext.create(serviceContext),
-        ksqlConfig);
+        ksqlConfig,
+        topicAccessValidator);
     this.handler = new RequestHandler(
         CustomExecutors.EXECUTOR_MAP,
         new DistributingExecutor(
@@ -120,7 +122,6 @@ public class KsqlResource {
             injectorFactory),
         ksqlEngine,
         ksqlConfig,
-        serviceContext,
         new DefaultCommandQueueSync(
             commandQueue,
             KsqlResource::shouldSynchronize,
@@ -130,11 +131,14 @@ public class KsqlResource {
 
   @POST
   @Path("/terminate")
-  public Response terminateCluster(final ClusterTerminateRequest request) {
+  public Response terminateCluster(
+      @Context final ServiceContext serviceContext,
+      final ClusterTerminateRequest request
+  ) {
     ensureValidPatterns(request.getDeleteTopicList());
     try {
       return Response.ok(
-          handler.execute(TERMINATE_CLUSTER, request.getStreamsProperties())
+          handler.execute(serviceContext, TERMINATE_CLUSTER, request.getStreamsProperties())
       ).build();
     } catch (final Exception e) {
       return Errors.serverErrorForStatement(
@@ -143,15 +147,12 @@ public class KsqlResource {
   }
 
   @POST
-  public Response handleKsqlStatements(final KsqlRequest request) {
-    if (!ksqlEngine.isAcceptingStatements()) {
-      return Errors.serverErrorForStatement(
-          new KsqlException("The cluster has been terminated. No new request will be accepted."),
-          request.getKsql(),
-          new KsqlEntityList()
-      );
-    }
+  public Response handleKsqlStatements(
+      @Context final ServiceContext serviceContext,
+      final KsqlRequest request
+  ) {
     activenessRegistrar.updateLastRequestTime();
+
     try {
       CommandStoreUtil.httpWaitForCommandSequenceNumber(
           commandQueue,
@@ -159,9 +160,18 @@ public class KsqlResource {
           distributedCmdResponseTimeout);
 
       final List<ParsedStatement> statements = ksqlEngine.parse(request.getKsql());
-      validator.validate(statements, request.getStreamsProperties(), request.getKsql());
+      validator.validate(
+          SandboxedServiceContext.create(serviceContext),
+          statements,
+          request.getStreamsProperties(),
+          request.getKsql()
+      );
 
-      final KsqlEntityList entities = handler.execute(statements, request.getStreamsProperties());
+      final KsqlEntityList entities = handler.execute(
+          serviceContext,
+          statements,
+          request.getStreamsProperties()
+      );
       return Response.ok(entities).build();
     } catch (final KsqlRestException e) {
       throw e;

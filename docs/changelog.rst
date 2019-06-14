@@ -1,10 +1,36 @@
 Changelog
 =========
 
+Version 5.4.0
+-------------
+
+KSQL 5.4.0 includes new features, including:
+
+* UDAFs support STRUCTs as parameters and return values.
+
+* KSQL now supports working with source data where the value is an anonymous Avro or JSON serialized
+  `ARRAY`, `MAP` or primitive type, for example `STRING` or `BIGINT`. Previously KSQL required all
+  Avro values to be Avro records, and all JSON values to be JSON objects.
+  For more information, refer to :ref:`ksql_single_field_wrapping`.
+
+* KSQL now allows users to control how results containing only a single value field are serialized
+  to Kafka. Users can now choose to serialize the single value as a named field within an outer
+  Avro record or JSON object, depending on the format in use, or as an anonymous value.
+  For more information, refer to :ref:`ksql_single_field_wrapping`.
+
+KSQL 5.4.0 includes the following misc. changes:
+
+* Require either the value for a ``@UdfParameter`` or for the UDF JAR to be compiled with
+  the Java8 ``-parameters`` compilation option. The UDF archetype now includes this flag.
+
 Version 5.3.0
 -------------
 
 KSQL 5.3.0 includes new features, including:
+
+* Drop the requirement that ``CREATE TABLE`` statements must have a ``KEY`` set in their ``WITH`` clause.
+  This is now an optional optimization to avoid unnecessary repartition steps.
+  See `Github issue #2745 <https://github.com/confluentinc/ksql/pull/2745>`_ for more info.
 
 * Improved handling of ``KEY`` fields. The ``KEY`` field is an optional copy of the Kafka record's key held
   within the record's value. Users can supply the name of the field that holds the copy of the key within
@@ -13,7 +39,34 @@ KSQL 5.3.0 includes new features, including:
   Please note that preexisting persistent queries, e.g. those created via ``CREATE TABLE AS SELECT ...`` or
   ``CREATE STREAM AS SELECT ...`` or ``INSERT INTO ...``, will continue to have the unnecessary repartition step.
   This is required to avoid the potential for data loss should this step be dropped.
-  See `#2280 <https://github.com/confluentinc/ksql/pull/2636>`_ for more info.
+  See `Github issue #2636 <https://github.com/confluentinc/ksql/pull/2636>`_ for more info.
+
+* ``INSERT INTO ... VALUES`` is now supported, with standard SQL syntax to insert rows to existing
+  KSQL streams/tables. To disable this functionality, set ``ksql.insert.into.values.enabled`` to
+  ``false`` in the server properties.
+
+* ``CREATE STREAM`` and ``CREATE TABLE`` will now allow you to create the topic if it is missing.
+  To do this, specify the ``PARTITIONS`` and optionally ``REPLICAS`` in the ``WITH`` clause.
+
+KSQL 5.3.0 includes bug fixes, including:
+
+* The ``ROWTIME`` of the row generated when a ``JOIN`` encounters late data was previous the ``ROWTIME`` of the late event,
+  where as now it is the max of ``ROWTIME`` of the rows involved in the join.  This provides more deterministic join semantics.
+
+* Return values of UDF and UDAFs are now correctly marked as optional, where previously there was
+  potential for non-optional fields, which would result in serialization issues in the presence
+  of ``null`` values.
+
+  This is a forward compatible change in Avro, i.e. after upgrading, KSQL will be able to
+  read old values using the new schema. However, it is important to ensure downstream
+  consumers of the data are using the updated schema before upgrading KSQL, as otherwise
+  deserialization may fail. The updated schema is best obtained from running the query in
+  another KSQL cluster, running version 5.3.
+
+  See `Github issue #2769 <https://github.com/confluentinc/ksql/pull/2769>`_ for more info.
+
+* Fixed issues with using ``AS`` keyword when aliasing sources.
+  See `#2732 <https://github.com/confluentinc/ksql/issues/2732>`_ for more info.
 
 
 Version 5.2.0

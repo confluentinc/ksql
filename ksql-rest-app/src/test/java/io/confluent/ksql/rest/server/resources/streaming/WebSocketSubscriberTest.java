@@ -22,6 +22,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.rest.server.resources.streaming.Flow.Subscription;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.io.IOException;
 import java.util.Map;
 import javax.websocket.CloseReason;
@@ -118,11 +119,11 @@ public class WebSocketSubscriberTest {
 
     EasyMock.replay(subscription, session, basic);
 
-    subscriber.onSchema(SchemaBuilder
-                            .struct()
-        .field("currency", Schema.STRING_SCHEMA)
-        .field("amount", Schema.OPTIONAL_FLOAT32_SCHEMA)
-                            .build());
+    subscriber.onSchema(LogicalSchema.of(SchemaBuilder.struct()
+        .field("currency", Schema.OPTIONAL_STRING_SCHEMA)
+        .field("amount", Schema.OPTIONAL_FLOAT64_SCHEMA)
+        .build()));
+
     subscriber.close();
 
     assertEquals(

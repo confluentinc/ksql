@@ -16,10 +16,14 @@
 package io.confluent.ksql;
 
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.testing.EqualsTester;
+import java.util.LinkedList;
+import java.util.List;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
@@ -120,6 +124,34 @@ public class GenericRowTest {
     assertThat(rowString, equalTo(
         "[ Struct{NUMBER=101,STREET=University Ave.,CITY=Palo Alto,STATE=CA,ZIPCODE=94301} ]"));
 
+  }
+
+  @Test
+  public void shouldHandleRowWithNoElements() {
+      List<Object> linkedList = new LinkedList<>();
+      GenericRow genericRow = new GenericRow(linkedList);
+
+      assertThat(genericRow.getColumns().size(), is(0) );
+  }
+
+  @Test
+  public void testEquals(){
+
+    List<Object> columnListWithString = ImmutableList.of("nr");
+
+      new EqualsTester().
+              addEqualityGroup(
+                      new GenericRow(),
+                      new GenericRow()
+              ).
+              addEqualityGroup(
+                      new GenericRow(new Object())
+              ).
+              addEqualityGroup(
+                      new GenericRow(columnListWithString),
+                      new GenericRow(columnListWithString)
+              ).
+              testEquals();
   }
 
 }

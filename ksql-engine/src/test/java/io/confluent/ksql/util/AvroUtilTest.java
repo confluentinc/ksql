@@ -28,11 +28,13 @@ import io.confluent.connect.avro.AvroDataConfig;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.metastore.model.KsqlTopic;
-import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.avro.KsqlAvroSerdeFactory;
 import io.confluent.ksql.serde.connect.ConnectSchemaTranslator;
 import java.io.IOException;
 import java.util.Collections;
-import org.apache.kafka.connect.data.Schema;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -58,10 +60,26 @@ public class AvroUtilTest {
       + " ]"
       + "}";
 
-  private static final Schema RESULT_SCHEMA = toKsqlSchema(AVRO_SCHEMA_STRING);
+  private static final String SINGLE_FIELD_AVRO_SCHEMA_STRING = "{"
+      + "\"namespace\": \"some.namespace\","
+      + " \"name\": \"orders\","
+      + " \"type\": \"record\","
+      + " \"fields\": ["
+      + "     {\"name\": \"ordertime\", \"type\": \"long\"}"
+      + " ]"
+      + "}";
 
-  private static final KsqlTopic RESULT_TOPIC =
-      new KsqlTopic("registered-name", "actual-name", new KsqlAvroTopicSerDe(KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME), false);
+  private static final LogicalSchema MUTLI_FIELD_SCHEMA =
+      toKsqlSchema(AVRO_SCHEMA_STRING);
+
+  private static final LogicalSchema SINGLE_FIELD_SCHEMA =
+      toKsqlSchema(SINGLE_FIELD_AVRO_SCHEMA_STRING);
+
+  private static final KsqlTopic RESULT_TOPIC = new KsqlTopic(
+      "registered-name",
+      "actual-name",
+      new KsqlAvroSerdeFactory(KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME),
+      false);
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -73,17 +91,16 @@ public class AvroUtilTest {
 
   @Before
   public void setUp() {
-    when(persistentQuery.getResultSchema()).thenReturn(RESULT_SCHEMA);
+    when(persistentQuery.getPhysicalSchema())
+        .thenReturn(PhysicalSchema.from(MUTLI_FIELD_SCHEMA, SerdeOption.none()));
+
     when(persistentQuery.getResultTopic()).thenReturn(RESULT_TOPIC);
-    when(persistentQuery.getResultTopicSerde())
-        .thenReturn(RESULT_TOPIC.getKsqlTopicSerDe().getSerDe());
+    when(persistentQuery.getResultTopicFormat())
+        .thenReturn(RESULT_TOPIC.getValueSerdeFactory().getFormat());
   }
 
   @Test
   public void shouldValidateSchemaEvolutionWithCorrectSubject() throws Exception {
-    // Given:
-    when(persistentQuery.getResultTopic()).thenReturn(RESULT_TOPIC);
-
     // When:
     AvroUtil.isValidSchemaEvolution(persistentQuery, srClient);
 
@@ -94,10 +111,46 @@ public class AvroUtilTest {
   @Test
   public void shouldValidateSchemaEvolutionWithCorrectSchema() throws Exception {
     // Given:
-    when(persistentQuery.getResultSchema()).thenReturn(RESULT_SCHEMA);
+    final PhysicalSchema schema = PhysicalSchema.from(MUTLI_FIELD_SCHEMA, SerdeOption.none());
 
     final org.apache.avro.Schema expectedAvroSchema = SchemaUtil
-        .buildAvroSchema(RESULT_SCHEMA, RESULT_TOPIC.getName());
+        .buildAvroSchema(schema.valueSchema(), RESULT_TOPIC.getKsqlTopicName());
+
+    // When:
+    AvroUtil.isValidSchemaEvolution(persistentQuery, srClient);
+
+    // Then:
+    verify(srClient).testCompatibility(any(), eq(expectedAvroSchema));
+  }
+
+  @Test
+  public void shouldValidateWrappedSingleFieldSchemaEvolution() throws Exception {
+    // Given:
+    final PhysicalSchema schema = PhysicalSchema
+        .from(SINGLE_FIELD_SCHEMA, SerdeOption.none());
+
+    when(persistentQuery.getPhysicalSchema()).thenReturn(schema);
+
+    final org.apache.avro.Schema expectedAvroSchema = SchemaUtil
+        .buildAvroSchema(schema.valueSchema(), RESULT_TOPIC.getKsqlTopicName());
+
+    // When:
+    AvroUtil.isValidSchemaEvolution(persistentQuery, srClient);
+
+    // Then:
+    verify(srClient).testCompatibility(any(), eq(expectedAvroSchema));
+  }
+
+  @Test
+  public void shouldValidateUnwrappedSingleFieldSchemaEvolution() throws Exception {
+    // Given:
+    final PhysicalSchema schema = PhysicalSchema
+        .from(SINGLE_FIELD_SCHEMA, SerdeOption.of(SerdeOption.UNWRAP_SINGLE_VALUES));
+
+    when(persistentQuery.getPhysicalSchema()).thenReturn(schema);
+
+    final org.apache.avro.Schema expectedAvroSchema = SchemaUtil
+        .buildAvroSchema(schema.valueSchema(), RESULT_TOPIC.getKsqlTopicName());
 
     // When:
     AvroUtil.isValidSchemaEvolution(persistentQuery, srClient);
@@ -171,10 +224,11 @@ public class AvroUtilTest {
     AvroUtil.isValidSchemaEvolution(persistentQuery, srClient);
   }
 
-  private static Schema toKsqlSchema(final String avroSchemaString) {
+  private static LogicalSchema toKsqlSchema(final String avroSchemaString) {
     final org.apache.avro.Schema avroSchema =
         new org.apache.avro.Schema.Parser().parse(avroSchemaString);
     final AvroData avroData = new AvroData(new AvroDataConfig(Collections.emptyMap()));
-    return new ConnectSchemaTranslator().toKsqlSchema(avroData.toConnectSchema(avroSchema));
+    return LogicalSchema.of(new ConnectSchemaTranslator()
+        .toKsqlSchema(avroData.toConnectSchema(avroSchema)));
   }
 }

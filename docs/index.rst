@@ -92,6 +92,7 @@ KSQL Documentation
     developer-guide/index
     operations
     capacity-planning
+    ksql-testing-tool
     tutorials/index
     faq
     changelog

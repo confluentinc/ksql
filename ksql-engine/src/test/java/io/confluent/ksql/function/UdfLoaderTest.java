@@ -43,12 +43,12 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-
 import org.apache.kafka.common.Configurable;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.connect.data.Struct;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -58,24 +58,30 @@ import org.junit.Test;
  */
 public class UdfLoaderTest {
 
-  private final MutableFunctionRegistry functionRegistry = new InternalFunctionRegistry();
-  private final UdfCompiler compiler = new UdfCompiler(Optional.empty());
-  private final ClassLoader parentClassLoader = UdfLoaderTest.class.getClassLoader();
-  private final Metrics metrics = new Metrics();
-  private final UdfLoader pluginLoader = createUdfLoader(functionRegistry, true, false);
+  private static final ClassLoader PARENT_CLASS_LOADER = UdfLoaderTest.class.getClassLoader();
+  private static final UdfCompiler COMPILER = new UdfCompiler(Optional.empty());
+  private static final Metrics METRICS = new Metrics();
+
+  private static final FunctionRegistry FUNC_REG =
+      initializeFunctionRegistry(true, Optional.empty());
+
+  private static final FunctionRegistry FUNC_REG_WITH_METRICS =
+      initializeFunctionRegistry(true, Optional.of(METRICS));
+
+  private static final FunctionRegistry FUNC_REG_WITHOUT_CUSTOM =
+      initializeFunctionRegistry(false, Optional.empty());
 
   private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
 
   @SuppressFBWarnings("ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD")
   @Before
   public void before() {
-    pluginLoader.load();
     PASSED_CONFIG = null;
   }
 
   @Test
   public void shouldLoadFunctionsInKsqlEngine() {
-    final UdfFactory function = functionRegistry.getUdfFactory("substring");
+    final UdfFactory function = FUNC_REG.getUdfFactory("substring");
     assertThat(function, not(nullValue()));
 
     final Kudf substring1 = function.getFunction(
@@ -90,8 +96,8 @@ public class UdfLoaderTest {
   @SuppressWarnings("unchecked")
   @Test
   public void shouldLoadUdafs() {
-    final KsqlAggregateFunction aggregate
-        = functionRegistry.getAggregate("test_udaf", Schema.OPTIONAL_INT64_SCHEMA);
+    final KsqlAggregateFunction aggregate = FUNC_REG
+        .getAggregate("test_udaf", Schema.OPTIONAL_INT64_SCHEMA);
     final KsqlAggregateFunction<Long, Long> instance = aggregate.getInstance(
         new AggregateFunctionArguments(0, Collections.singletonList("udfIndex")));
     assertThat(instance.getInitialValueSupplier().get(), equalTo(0L));
@@ -99,99 +105,128 @@ public class UdfLoaderTest {
     assertThat(instance.getMerger().apply("k", 2L, 3L), equalTo(5L));
   }
 
+  @SuppressWarnings("unchecked")
+  @Test
+  public void shouldLoadStructUdafs() {
+    final Schema schema = SchemaBuilder.struct()
+        .field("A", Schema.OPTIONAL_INT32_SCHEMA)
+        .field("B", Schema.OPTIONAL_INT32_SCHEMA)
+        .optional()
+        .build();
+
+    final KsqlAggregateFunction aggregate = FUNC_REG
+        .getAggregate("test_udaf", schema);
+    final KsqlAggregateFunction<Struct, Struct> instance = aggregate.getInstance(
+        new AggregateFunctionArguments(0, Collections.singletonList("udfIndex")));
+
+    assertThat(instance.getInitialValueSupplier().get(),
+        equalTo(new Struct(schema).put("A", 0).put("B", 0)));
+    assertThat(instance.aggregate(
+          new Struct(schema).put("A", 0).put("B", 0),
+          new Struct(schema).put("A", 1).put("B", 2)
+        ),
+        equalTo(new Struct(schema).put("A", 1).put("B", 2)));
+    assertThat(instance.getMerger().apply("foo",
+        new Struct(schema).put("A", 0).put("B", 0),
+        new Struct(schema).put("A", 1).put("B", 2)
+        ),
+        equalTo(new Struct(schema).put("A", 1).put("B", 2)));
+  }
+
   @Test
   public void shouldLoadFunctionsFromJarsInPluginDir() {
-    final UdfFactory toString = functionRegistry.getUdfFactory("tostring");
-    final UdfFactory multi = functionRegistry.getUdfFactory("multiply");
+    final UdfFactory toString = FUNC_REG.getUdfFactory("tostring");
+    final UdfFactory multi = FUNC_REG.getUdfFactory("multiply");
     assertThat(toString, not(nullValue()));
     assertThat(multi, not(nullValue()));
   }
 
   @Test
   public void shouldLoadFunctionWithListReturnType() {
-    // When:
-    final UdfFactory toList = functionRegistry.getUdfFactory("tolist");
+    // Given:
+    final UdfFactory toList = FUNC_REG.getUdfFactory("tolist");
 
-    // Then:
-    assertThat(toList, not(nullValue()));
+    // When:
     final KsqlFunction function
         = toList.getFunction(Collections.singletonList(Schema.OPTIONAL_STRING_SCHEMA));
-    assertThat(
-        function.getReturnType(),
-        equalTo(
-            SchemaBuilder.array(Schema.OPTIONAL_STRING_SCHEMA).build())
+
+    assertThat(function.getReturnType(),
+        is(SchemaBuilder
+            .array(Schema.OPTIONAL_STRING_SCHEMA)
+            .optional()
+            .build())
     );
   }
 
   @Test
   public void shouldLoadFunctionWithMapReturnType() {
-    // When:
-    final UdfFactory toMap = functionRegistry.getUdfFactory("tomap");
+    // Given:
+    final UdfFactory toMap = FUNC_REG.getUdfFactory("tomap");
 
-    // Then:
-    assertThat(toMap, not(nullValue()));
+    // When:
     final KsqlFunction function
         = toMap.getFunction(Collections.singletonList(Schema.OPTIONAL_STRING_SCHEMA));
+
+    // Then:
     assertThat(
         function.getReturnType(),
-        equalTo(
-            SchemaBuilder.map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_STRING_SCHEMA)
-                .build()
+        equalTo(SchemaBuilder
+            .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_STRING_SCHEMA)
+            .optional()
+            .build()
         )
     );
   }
 
   @Test
   public void shouldLoadFunctionWithStructReturnType() {
-    // When:
-    final UdfFactory toStruct = functionRegistry.getUdfFactory("tostruct");
+    // Given:
+    final UdfFactory toStruct = FUNC_REG.getUdfFactory("tostruct");
 
-    // Then:
-    assertThat(toStruct, not(nullValue()));
+    // When:
     final KsqlFunction function
         = toStruct.getFunction(Collections.singletonList(Schema.OPTIONAL_STRING_SCHEMA));
 
-    final Schema expected = SchemaBuilder.struct()
-        .optional()
+    // Then:
+    assertThat(function.getReturnType(), equalTo(SchemaBuilder.struct()
         .field("A", Schema.OPTIONAL_STRING_SCHEMA)
-        .build();
-    assertThat(function.getReturnType(), equalTo(expected)
+        .optional()
+        .build())
     );
   }
 
   @Test
-  public void shouldPutJarUdfsInClassLoaderForJar()
-      throws NoSuchFieldException, IllegalAccessException {
-    final UdfFactory toString = functionRegistry.getUdfFactory("tostring");
-    final UdfFactory multiply = functionRegistry.getUdfFactory("multiply");
+  public void shouldPutJarUdfsInClassLoaderForJar() throws Exception {
+    final UdfFactory toString = FUNC_REG.getUdfFactory("tostring");
+    final UdfFactory multiply = FUNC_REG.getUdfFactory("multiply");
 
-
-    final Kudf toStringUdf = toString.getFunction(Collections.singletonList(Schema.STRING_SCHEMA))
+    final Kudf toStringUdf = toString.getFunction(ImmutableList.of(Schema.STRING_SCHEMA))
         .newInstance(ksqlConfig);
+
     final Kudf multiplyUdf = multiply.getFunction(
         Arrays.asList(Schema.INT32_SCHEMA, Schema.INT32_SCHEMA))
         .newInstance(ksqlConfig);
 
     final ClassLoader multiplyLoader = getActualUdfClassLoader(multiplyUdf);
     assertThat(multiplyLoader, equalTo(getActualUdfClassLoader(toStringUdf)));
-    assertThat(multiplyLoader, not(equalTo(parentClassLoader)));
+    assertThat(multiplyLoader, not(equalTo(PARENT_CLASS_LOADER)));
   }
 
   @Test
   public void shouldCreateUdfFactoryWithJarPathWhenExternal() {
-    final UdfFactory tostring = functionRegistry.getUdfFactory("tostring");
+    final UdfFactory tostring = FUNC_REG.getUdfFactory("tostring");
     assertThat(tostring.getPath(), equalTo("src/test/resources/udf-example.jar"));
   }
 
   @Test
   public void shouldCreateUdfFactoryWithInternalPathWhenInternal() {
-    final UdfFactory substring = functionRegistry.getUdfFactory("substring");
+    final UdfFactory substring = FUNC_REG.getUdfFactory("substring");
     assertThat(substring.getPath(), equalTo(KsqlFunction.INTERNAL_PATH));
   }
 
   @Test
   public void shouldSupportUdfParameterAnnotation() {
-    final UdfFactory substring = functionRegistry.getUdfFactory("somefunction");
+    final UdfFactory substring = FUNC_REG.getUdfFactory("somefunction");
     final KsqlFunction function = substring.getFunction(
         ImmutableList.of(
             Schema.OPTIONAL_STRING_SCHEMA,
@@ -205,65 +240,58 @@ public class UdfLoaderTest {
     assertThat(arguments.get(1).name(), is("valueAndDescription"));
     assertThat(arguments.get(1).doc(), is("Some description"));
     // NB: Is the below failing?
-    // Then you need to add `-parameter` to your IDE's java compiler settings.
+    // Then you need to add `-parameters` to your IDE's java compiler settings.
     assertThat(arguments.get(2).name(), is("noValue"));
     assertThat(arguments.get(2).doc(), is(""));
   }
 
   @Test
-  public void shouldPutKsqlFunctionsInParentClassLoader()
-      throws NoSuchFieldException, IllegalAccessException {
-    final UdfFactory substring = functionRegistry.getUdfFactory("substring");
+  public void shouldPutKsqlFunctionsInParentClassLoader() throws Exception {
+    final UdfFactory substring = FUNC_REG.getUdfFactory("substring");
     final Kudf kudf = substring.getFunction(
         Arrays.asList(Schema.STRING_SCHEMA, Schema.INT32_SCHEMA))
         .newInstance(ksqlConfig);
-    assertThat(getActualUdfClassLoader(kudf), equalTo(parentClassLoader));
+    assertThat(getActualUdfClassLoader(kudf), equalTo(PARENT_CLASS_LOADER));
   }
 
   @Test
   public void shouldLoadUdfsInKSQLIfLoadCustomerUdfsFalse() {
     // udf in ksql-engine will throw if not found
-    loadKsqlUdfsOnly().getUdfFactory("substring");
+    FUNC_REG_WITHOUT_CUSTOM.getUdfFactory("substring");
   }
 
   @Test
   public void shouldNotLoadCustomUDfsIfLoadCustomUdfsFalse() {
     // udf in udf-example.jar
     try {
-      loadKsqlUdfsOnly().getUdfFactory("tostring");
+      FUNC_REG_WITHOUT_CUSTOM.getUdfFactory("tostring");
       fail("Should have thrown as function doesn't exist");
     } catch (final KsqlException e) {
       // pass
     }
   }
 
-  private FunctionRegistry loadKsqlUdfsOnly() {
-    final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
-    final UdfLoader pluginLoader = createUdfLoader(functionRegistry, false, false);
-    pluginLoader.load();
-    return functionRegistry;
-  }
-
   @Test
   public void shouldCollectMetricsWhenMetricCollectionEnabled() {
-    final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
-    final UdfLoader pluginLoader = createUdfLoader(functionRegistry, true, true);
+    // Given:
+    final UdfFactory substring = FUNC_REG_WITH_METRICS.getUdfFactory("substring");
+    final KsqlFunction function = substring
+        .getFunction(Arrays.asList(Schema.STRING_SCHEMA, Schema.INT32_SCHEMA));
 
-    pluginLoader.load();
-    final UdfFactory substring = functionRegistry.getUdfFactory("substring");
-    final KsqlFunction function
-        = substring.getFunction(Arrays.asList(Schema.STRING_SCHEMA, Schema.INT32_SCHEMA));
+    // When:
     final Kudf kudf = function.newInstance(ksqlConfig);
+
+    // Then:
     assertThat(kudf, instanceOf(UdfMetricProducer.class));
-    final Sensor sensor = metrics.getSensor("ksql-udf-substring");
+    final Sensor sensor = METRICS.getSensor("ksql-udf-substring");
     assertThat(sensor, not(nullValue()));
-    assertThat(metrics.metric(metrics.metricName("ksql-udf-substring-count", "ksql-udf")),
+    assertThat(METRICS.metric(METRICS.metricName("ksql-udf-substring-count", "ksql-udf")),
         not(nullValue()));
-    assertThat(metrics.metric(metrics.metricName("ksql-udf-substring-max", "ksql-udf")),
+    assertThat(METRICS.metric(METRICS.metricName("ksql-udf-substring-max", "ksql-udf")),
         not(nullValue()));
-    assertThat(metrics.metric(metrics.metricName("ksql-udf-substring-avg", "ksql-udf")),
+    assertThat(METRICS.metric(METRICS.metricName("ksql-udf-substring-avg", "ksql-udf")),
         not(nullValue()));
-    assertThat(metrics.metric(metrics.metricName("ksql-udf-substring-rate", "ksql-udf")),
+    assertThat(METRICS.metric(METRICS.metricName("ksql-udf-substring-rate", "ksql-udf")),
         not(nullValue()));
   }
 
@@ -302,7 +330,7 @@ public class UdfLoaderTest {
         KSQL_FUNCTIONS_PROPERTY_PREFIX + "_global_.expected-param", "expected-value"
     ));
 
-    final KsqlFunction udf = functionRegistry.getUdfFactory("ConfigurableUdf")
+    final KsqlFunction udf = FUNC_REG.getUdfFactory("ConfigurableUdf")
         .getFunction(ImmutableList.of(Schema.INT32_SCHEMA));
 
     // When:
@@ -317,31 +345,72 @@ public class UdfLoaderTest {
         is("expected-value"));
   }
 
-  private UdfLoader createUdfLoader(final MutableFunctionRegistry functionRegistry,
-                                    final boolean loadCustomerUdfs,
-                                    final boolean collectMetrics) {
-    final Optional<Metrics> optionalMetrics = collectMetrics
-        ? Optional.of(metrics)
-        : Optional.empty();
+  @Test
+  public void shouldEnsureFunctionReturnTypeIsOptional() throws Exception {
+    // Given:
+    assertThat("Invalid test: return type must be primitive",
+        SomeFunctionUdf.class
+            .getDeclaredMethod("foo", String.class, String.class, String.class)
+            .getReturnType(),
+        equalTo(int.class));
+
+    // Then:
+    final KsqlFunction someFunction = FUNC_REG
+        .getUdfFactory("SomeFunction")
+        .getFunction(ImmutableList.of(
+            Schema.STRING_SCHEMA, Schema.STRING_SCHEMA, Schema.STRING_SCHEMA
+        ));
+
+    assertThat(someFunction.getReturnType().isOptional(), is(true));
+  }
+
+  @Test
+  public void shouldEnsureFunctionReturnTypeIsDeepOptional() {
+    final KsqlFunction complexFunction = FUNC_REG
+        .getUdfFactory("ComplexFunction")
+        .getFunction(ImmutableList.of(Schema.STRING_SCHEMA));
+
+    assertThat(complexFunction.getReturnType(), is(
+        SchemaBuilder
+            .struct()
+            .field("F0", SchemaBuilder
+                .struct()
+                .field("F1", Schema.OPTIONAL_INT32_SCHEMA)
+                .optional()
+                .build())
+            .optional()
+            .build()));
+  }
+
+  private static FunctionRegistry initializeFunctionRegistry(
+      final boolean loadCustomUdfs,
+      final Optional<Metrics> metrics
+  ) {
+    final MutableFunctionRegistry functionRegistry = new InternalFunctionRegistry();
+    final UdfLoader pluginLoader = createUdfLoader(functionRegistry, loadCustomUdfs, metrics);
+    pluginLoader.load();
+    return functionRegistry;
+  }
+
+  private static UdfLoader createUdfLoader(
+      final MutableFunctionRegistry functionRegistry,
+      final boolean loadCustomerUdfs,
+      final Optional<Metrics> metrics
+  ) {
     return new UdfLoader(functionRegistry,
         new File("src/test/resources"),
-        parentClassLoader,
+        PARENT_CLASS_LOADER,
         value -> false,
-        compiler,
-        optionalMetrics,
+        COMPILER,
+        metrics,
         loadCustomerUdfs
     );
   }
 
-  private static ClassLoader getActualUdfClassLoader(final Kudf udf)
-      throws NoSuchFieldException, IllegalAccessException {
+  private static ClassLoader getActualUdfClassLoader(final Kudf udf) throws Exception {
     final Field actualUdf = PluggableUdf.class.getDeclaredField("actualUdf");
     actualUdf.setAccessible(true);
-    try {
-      return actualUdf.get(udf).getClass().getClassLoader();
-    } finally{
-      actualUdf.setAccessible(false);
-    }
+    return actualUdf.get(udf).getClass().getClassLoader();
   }
 
   @SuppressWarnings({"unused", "MethodMayBeStatic"}) // Invoked via reflection in test.
@@ -374,13 +443,25 @@ public class UdfLoaderTest {
   @SuppressWarnings({"unused", "MethodMayBeStatic"}) // Invoked via reflection in test.
   @UdfDescription(
       name = "SomeFunction",
-      description = "A test-only UDF for testing configure() is called")
+      description = "A test-only UDF for testing 'UdfParameter'")
   public static class SomeFunctionUdf {
     @Udf
     public int foo(
         @UdfParameter("justValue") final String v0,
         @UdfParameter(value = "valueAndDescription", description = "Some description") final String v1,
         @UdfParameter final String noValue) {
+      return 0;
+    }
+  }
+
+  @SuppressWarnings({"unused", "MethodMayBeStatic"}) // Invoked via reflection in test.
+  @UdfDescription(
+      name = "ComplexFunction",
+      description = "A test-only UDF that uses the 'schema' parameter")
+  public static class ComplexUdf {
+
+    @Udf(schema = "STRUCT<f0 STRUCT<f1 INT>>")
+    public Object foo(final String noValue) {
       return 0;
     }
   }

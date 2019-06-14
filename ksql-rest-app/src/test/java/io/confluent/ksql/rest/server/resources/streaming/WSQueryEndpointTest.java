@@ -34,24 +34,31 @@ import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.engine.TopicAccessValidator;
 import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Relation;
 import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint.PrintTopicPublisher;
 import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint.QueryPublisher;
+import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint.ServiceContextFactory;
+import io.confluent.ksql.rest.server.security.KsqlAuthorizer;
+import io.confluent.ksql.rest.server.security.KsqlSecurityExtension;
+import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import java.io.IOException;
+import java.security.Principal;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
@@ -59,11 +66,14 @@ import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.concurrent.TimeoutException;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import javax.websocket.CloseReason;
 import javax.websocket.CloseReason.CloseCodes;
 import javax.websocket.Session;
+import javax.ws.rs.core.Response;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.streams.KafkaClientSupplier;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -99,11 +109,13 @@ public class WSQueryEndpointTest {
   @Mock
   private KsqlEngine ksqlEngine;
   @Mock
-  private ServiceContext serviceContext;
+  private Supplier<SchemaRegistryClient> schemaRegistryClientSupplier;
   @Mock
-  private SchemaRegistryClient schemaRegistryClient;
+  private KafkaClientSupplier topicClientSupplier;
   @Mock
   private KafkaTopicClient topicClient;
+  @Mock
+  private Principal principal;
   @Mock
   private StatementParser statementParser;
   @Mock
@@ -118,6 +130,18 @@ public class WSQueryEndpointTest {
   private PrintTopicPublisher topicPublisher;
   @Mock
   private ActivenessRegistrar activenessRegistrar;
+  @Mock
+  private TopicAccessValidator topicAccessValidator;
+  @Mock
+  private KsqlSecurityExtension securityExtension;
+  @Mock
+  private KsqlAuthorizer authorizer;
+  @Mock
+  private ServiceContext serviceContext;
+  @Mock
+  private ServiceContextFactory serviceContextFactory;
+  @Mock
+  private ServerState serverState;
   @Captor
   private ArgumentCaptor<CloseReason> closeReasonCaptor;
   private Query query;
@@ -130,28 +154,24 @@ public class WSQueryEndpointTest {
         Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), OptionalInt.empty()
     );
     when(session.getId()).thenReturn("session-id");
+    when(session.getUserPrincipal()).thenReturn(principal);
     when(statementParser.parseSingleStatement(anyString()))
         .thenAnswer(invocation -> PreparedStatement.of(invocation.getArgument(0).toString(), query));
-    when(serviceContext.getSchemaRegistryClient()).thenReturn(schemaRegistryClient);
+    when(securityExtension.getSchemaRegistryClientSupplier(principal))
+        .thenReturn(schemaRegistryClientSupplier);
+    when(securityExtension.getKafkaClientSupplier(principal)).thenReturn(topicClientSupplier);
+    when(securityExtension.getAuthorizer()).thenReturn(authorizer);
+    when(authorizer.hasAccess(any(), any(), any())).thenReturn(true);
+    when(serviceContextFactory.create(ksqlConfig, topicClientSupplier, schemaRegistryClientSupplier))
+        .thenReturn(serviceContext);
     when(serviceContext.getTopicClient()).thenReturn(topicClient);
-    when(ksqlEngine.isAcceptingStatements()).thenReturn(true);
+    when(serverState.checkReady()).thenReturn(Optional.empty());
     givenRequest(VALID_REQUEST);
 
     wsQueryEndpoint = new WSQueryEndpoint(
-        ksqlConfig, OBJECT_MAPPER, statementParser, ksqlEngine, serviceContext, commandQueue, exec,
-        queryPublisher, topicPublisher, activenessRegistrar, COMMAND_QUEUE_CATCHUP_TIMEOUT);
-  }
-
-  @Test
-  public void shouldReturnErrorIfClusterWasTerminated() throws Exception {
-    // Given:
-    when(ksqlEngine.isAcceptingStatements()).thenReturn(false);
-
-    // When:
-    wsQueryEndpoint.onOpen(session, null);
-
-    // Then:
-    verifyClosedWithReason("The cluster has been terminated. No new request will be accepted.", CloseCodes.CANNOT_ACCEPT);
+        ksqlConfig, OBJECT_MAPPER, statementParser, ksqlEngine, commandQueue, exec,
+        queryPublisher, topicPublisher, activenessRegistrar, COMMAND_QUEUE_CATCHUP_TIMEOUT,
+        topicAccessValidator, securityExtension, serviceContextFactory, serverState);
   }
 
   @Test
@@ -298,6 +318,25 @@ public class WSQueryEndpointTest {
   }
 
   @Test
+  public void shouldReturnErrorOnFailedStateCheck() throws Exception {
+    // Given:
+    when(serverState.checkReady()).thenReturn(
+        Optional.of(
+            Response.status(503)
+                .entity(new KsqlErrorMessage(50300, "error"))
+                .build()
+        )
+    );
+    givenRequest("");
+
+    // When:
+    wsQueryEndpoint.onOpen(session, null);
+
+    // Then:
+    verifyClosedWithReason("error", CloseCodes.TRY_AGAIN_LATER);
+  }
+
+  @Test
   public void shouldHandleQuery() {
     // Given:
     givenRequestIs(query);
@@ -313,6 +352,7 @@ public class WSQueryEndpointTest {
 
     verify(queryPublisher).start(
         eq(ksqlEngine),
+        eq(serviceContext),
         eq(exec),
         eq(configuredStatement),
         any());
@@ -331,10 +371,37 @@ public class WSQueryEndpointTest {
     // Then:
     verify(topicPublisher).start(
         eq(exec),
-        eq(schemaRegistryClient),
+        eq(serviceContext),
         eq(ImmutableMap.of("this", "that")),
         eq(StreamingTestUtils.printTopic("bob", true, null, null)),
         any());
+  }
+
+  @Test
+  public void shouldCreateImpersonatedServiceContext() {
+    // Given:
+    givenRequestIs(query);
+
+    // When:
+    wsQueryEndpoint.onOpen(session, null);
+
+    // Then:
+    verify(securityExtension).getKafkaClientSupplier(eq(principal));
+    verify(securityExtension).getSchemaRegistryClientSupplier(eq(principal));
+    verify(serviceContextFactory).create(ksqlConfig, topicClientSupplier, schemaRegistryClientSupplier);
+  }
+
+  @Test
+  public void shouldCloseImpersonatedServiceContextOnClose() {
+    // Given:
+    givenRequestIs(query);
+
+    // When:
+    wsQueryEndpoint.onOpen(session, null);
+    wsQueryEndpoint.onClose(session, new CloseReason(CloseCodes.NO_STATUS_CODE, ""));
+
+    // Then:
+    verify(serviceContext).close();
   }
 
   @Test
@@ -389,6 +456,31 @@ public class WSQueryEndpointTest {
     // Then:
     verifyClosedWithReason("yikes", CloseCodes.TRY_AGAIN_LATER);
     verify(statementParser, never()).parseSingleStatement(any());
+  }
+
+  @Test
+  public void shouldReturnErrorIfEndpointAuthorizationIsDenied() throws Exception {
+    // Given:
+    givenRequest(REQUEST_WITH_SEQUENCE_NUMBER);
+    when(authorizer.hasAccess(any(), eq(WSQueryEndpoint.class), eq("onOpen")))
+        .thenReturn(false);
+
+    // When:
+    wsQueryEndpoint.onOpen(session, null);
+
+    // Then:
+    verifyClosedWithReason(
+        "User:null is denied to access this cluster.",
+        CloseCodes.CANNOT_ACCEPT);
+  }
+
+  @Test
+  public void shouldCloseSessionOnError() throws Exception {
+    // When:
+    wsQueryEndpoint.onError(session, new Throwable("ahh scary"));
+
+    // Then:
+    verifyClosedWithReason("ahh scary", CloseCodes.UNEXPECTED_CONDITION);
   }
 
   private void givenVersions(final String... versions) {

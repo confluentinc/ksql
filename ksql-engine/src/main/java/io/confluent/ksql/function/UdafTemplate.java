@@ -31,6 +31,7 @@ import javax.lang.model.element.Modifier;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.Struct;
 
 @SuppressWarnings("unused") // Used from generated code
 public final class UdafTemplate {
@@ -99,7 +100,7 @@ public final class UdafTemplate {
             .addStatement("args.ensureArgCount($L, $S)", udaf.getParameters().length + 1, udafName)
             .returns(KsqlAggregateFunction.class)
             .addStatement(
-                "return new $L($T.$L($L), args.udafIndex(), getArgTypes(), getReturnType(), "
+                "return new $L($T.$L($L), args.udafIndex(), getArguments(), getReturnType(), "
                     + "aggregateSensor, mergeSensor)",
                 className,
                 udaf.getDeclaringClass(),
@@ -133,6 +134,8 @@ public final class UdafTemplate {
     } else if (Boolean.class.isAssignableFrom(Primitives.wrap(clazz))) {
       return (T) Boolean.valueOf(args.arg(index + 1));
     } else if (String.class.isAssignableFrom(clazz)) {
+      return (T) args.arg(index + 1);
+    } else if (Struct.class.isAssignableFrom(clazz)) {
       return (T) args.arg(index + 1);
     }
 

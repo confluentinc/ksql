@@ -16,15 +16,13 @@
 package io.confluent.ksql.serde.avro;
 
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.GenericRow;
-import java.util.Collections;
-
 import io.confluent.ksql.util.KsqlConstants;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -34,6 +32,7 @@ import org.junit.Test;
 public class AvroDataTranslatorTest {
   @Test
   public void shoudRenameSourceDereference() {
+    // Given:
     final Schema schema = SchemaBuilder.struct()
         .field("STREAM_NAME.COLUMN_NAME", Schema.OPTIONAL_INT32_SCHEMA)
         .optional()
@@ -43,27 +42,31 @@ public class AvroDataTranslatorTest {
         schema,
         KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME,
         true);
-    final GenericRow ksqlRow = new GenericRow(ImmutableList.of(123));
-    final Struct struct = dataTranslator.toConnectRow(ksqlRow);
 
-    assertThat(
-        struct.schema(),
-        equalTo(
-            SchemaBuilder.struct()
-                .name(struct.schema().name())
-                .field("STREAM_NAME_COLUMN_NAME", Schema.OPTIONAL_INT32_SCHEMA)
-                .optional()
-                .build()
+    final Struct ksqlRow = new Struct(schema)
+        .put("STREAM_NAME.COLUMN_NAME", 123);
+
+    // When:
+    final Struct struct = (Struct)dataTranslator.toConnectRow(ksqlRow);
+
+    // Then:
+    assertThat(struct.schema(),
+        equalTo(SchemaBuilder
+            .struct()
+            .name(struct.schema().name())
+            .field("STREAM_NAME_COLUMN_NAME", Schema.OPTIONAL_INT32_SCHEMA)
+            .build()
         )
     );
     assertThat(struct.get("STREAM_NAME_COLUMN_NAME"), equalTo(123));
 
-    final GenericRow translatedRow = dataTranslator.toKsqlRow(struct.schema(), struct);
+    final Struct translatedRow = (Struct) dataTranslator.toKsqlRow(struct.schema(), struct);
     assertThat(translatedRow, equalTo(ksqlRow));
   }
 
   @Test
   public void shouldAddNamesToSchema() {
+    // Given:
     final Schema arrayInner = SchemaBuilder.struct()
         .field("ARRAY_INNER", Schema.OPTIONAL_INT32_SCHEMA)
         .optional()
@@ -76,6 +79,7 @@ public class AvroDataTranslatorTest {
         .field("STRUCT_INNER", Schema.OPTIONAL_STRING_SCHEMA)
         .optional()
         .build();
+
     final Schema schema = SchemaBuilder.struct()
         .field("ARRAY", SchemaBuilder.array(arrayInner).optional().build())
         .field(
@@ -96,12 +100,14 @@ public class AvroDataTranslatorTest {
         schema,
         KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME,
         true);
-    final GenericRow ksqlRow = new GenericRow(
-        ImmutableList.of(arrayInnerStruct),
-        ImmutableMap.of("bar", mapInnerStruct),
-        structInnerStruct
-    );
-    final Struct struct = dataTranslator.toConnectRow(ksqlRow);
+
+    final Struct ksqlRow = new Struct(schema)
+        .put("ARRAY", ImmutableList.of(arrayInnerStruct))
+        .put("MAP", ImmutableMap.of("bar", mapInnerStruct))
+        .put("STRUCT", structInnerStruct);
+
+    // When:
+    final Struct struct = (Struct)dataTranslator.toConnectRow(ksqlRow);
     final Schema namedSchema = struct.schema();
 
     assertThat(namedSchema.type(), equalTo(Schema.Type.STRUCT));
@@ -146,12 +152,13 @@ public class AvroDataTranslatorTest {
         struct.getStruct("STRUCT").getString("STRUCT_INNER"),
         equalTo("foo"));
 
-    final GenericRow translatedRow = dataTranslator.toKsqlRow(struct.schema(), struct);
+    final Struct translatedRow = (Struct) dataTranslator.toKsqlRow(struct.schema(), struct);
     assertThat(translatedRow, equalTo(ksqlRow));
   }
 
   @Test
   public void shouldReplaceNullWithNull() {
+    // Given:
     final Schema schema = SchemaBuilder.struct()
         .field(
             "COLUMN_NAME",
@@ -163,17 +170,21 @@ public class AvroDataTranslatorTest {
         schema,
         KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME,
         true);
-    final GenericRow ksqlRow = new GenericRow(Collections.singletonList(null));
-    final Struct struct = dataTranslator.toConnectRow(ksqlRow);
+
+    final Struct ksqlRow = new Struct(schema);
+
+    // When:
+    final Struct struct = (Struct)dataTranslator.toConnectRow(ksqlRow);
 
     assertThat(struct.get("COLUMN_NAME"), nullValue());
 
-    final GenericRow translatedRow = dataTranslator.toKsqlRow(struct.schema(), struct);
+    final Struct translatedRow = (Struct) dataTranslator.toKsqlRow(struct.schema(), struct);
     assertThat(translatedRow, equalTo(ksqlRow));
   }
 
   @Test
   public void shoudlReplacePrimitivesCorrectly() {
+    // Given:
     final Schema schema = SchemaBuilder.struct()
         .field("COLUMN_NAME", Schema.OPTIONAL_INT64_SCHEMA)
         .optional()
@@ -183,28 +194,99 @@ public class AvroDataTranslatorTest {
         schema,
         KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME,
         true);
-    final GenericRow ksqlRow = new GenericRow(Collections.singletonList(123L));
-    final Struct struct = dataTranslator.toConnectRow(ksqlRow);
+
+    final Struct ksqlRow = new Struct(schema)
+        .put("COLUMN_NAME", 123L);
+
+    // When:
+    final Struct struct = (Struct)dataTranslator.toConnectRow(ksqlRow);
 
     assertThat(struct.get("COLUMN_NAME"), equalTo(123L));
 
-    final GenericRow translatedRow = dataTranslator.toKsqlRow(struct.schema(), struct);
+    final Struct translatedRow = (Struct) dataTranslator.toKsqlRow(struct.schema(), struct);
     assertThat(translatedRow, equalTo(ksqlRow));
   }
 
   @Test
   public void shouldUseExplicitSchemaName() {
+    // Given:
     final Schema schema = SchemaBuilder.struct()
-            .field("COLUMN_NAME", Schema.OPTIONAL_INT64_SCHEMA)
-            .optional()
-            .build();
+        .field("COLUMN_NAME", Schema.OPTIONAL_INT64_SCHEMA)
+        .optional()
+        .build();
 
     String schemaFullName = "com.custom.schema";
 
     final AvroDataTranslator dataTranslator = new AvroDataTranslator(schema, schemaFullName, true);
-    final GenericRow ksqlRow = new GenericRow(Collections.singletonList(123L));
-    final Struct struct = dataTranslator.toConnectRow(ksqlRow);
+    final Struct ksqlRow = new Struct(schema)
+        .put("COLUMN_NAME", 123L);
 
+    // When:
+    final Struct struct = (Struct)dataTranslator.toConnectRow(ksqlRow);
+
+    // Then:
     assertThat(struct.schema().name(), equalTo(schemaFullName));
+  }
+
+  @Test
+  public void shouldDropOptionalFromRootPrimitiveSchema() {
+    // Given:
+    final Schema schema = Schema.OPTIONAL_INT64_SCHEMA;
+
+    // When:
+    final AvroDataTranslator translator =
+        new AvroDataTranslator(schema, KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME, true);
+
+    // Then:
+    assertThat("Root required", translator.getAvroCompatibleSchema().isOptional(), is(false));
+  }
+
+  @Test
+  public void shouldDropOptionalFromRootArraySchema() {
+    // Given:
+    final Schema schema = SchemaBuilder
+        .array(Schema.OPTIONAL_INT64_SCHEMA)
+        .optional()
+        .build();
+
+    // When:
+    final AvroDataTranslator translator =
+        new AvroDataTranslator(schema, KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME, true);
+
+    // Then:
+    assertThat("Root required", translator.getAvroCompatibleSchema().isOptional(), is(false));
+  }
+
+  @Test
+  public void shouldDropOptionalFromRootMapSchema() {
+    // Given:
+    final Schema schema = SchemaBuilder
+        .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_INT64_SCHEMA)
+        .optional()
+        .build();
+
+    // When:
+    final AvroDataTranslator translator =
+        new AvroDataTranslator(schema, KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME, true);
+
+    // Then:
+    assertThat("Root required", translator.getAvroCompatibleSchema().isOptional(), is(false));
+  }
+
+  @Test
+  public void shouldDropOptionalFromRootStructSchema() {
+    // Given:
+    final Schema schema = SchemaBuilder
+        .struct()
+        .field("COLUMN_NAME", Schema.OPTIONAL_INT64_SCHEMA)
+        .optional()
+        .build();
+
+    // When:
+    final AvroDataTranslator translator =
+        new AvroDataTranslator(schema, KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME, true);
+
+    // Then:
+    assertThat("Root required", translator.getAvroCompatibleSchema().isOptional(), is(false));
   }
 }

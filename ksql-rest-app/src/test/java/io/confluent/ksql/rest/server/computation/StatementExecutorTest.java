@@ -34,6 +34,7 @@ import static org.hamcrest.Matchers.notNullValue;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import io.confluent.ksql.KsqlConfigTestUtil;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlEngineTestUtil;
@@ -41,7 +42,7 @@ import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
-import io.confluent.ksql.metastore.model.StructuredDataSource;
+import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
@@ -67,7 +68,6 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -85,7 +85,6 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 
-@SuppressWarnings("ConstantConditions")
 public class StatementExecutorTest extends EasyMockSupport {
 
   private static final Map<String, String> PRE_VERSION_5_NULL_ORIGINAL_PROPS = null;
@@ -104,10 +103,7 @@ public class StatementExecutorTest extends EasyMockSupport {
 
   @Before
   public void setUp() {
-    final Map<String, Object> props = new HashMap<>();
-    props.put("bootstrap.servers", CLUSTER.bootstrapServers());
-
-    ksqlConfig = new KsqlConfig(props);
+    ksqlConfig = KsqlConfigTestUtil.create(CLUSTER);
     final FakeKafkaTopicClient fakeKafkaTopicClient = new FakeKafkaTopicClient();
     fakeKafkaTopicClient.createTopic("pageview_topic", 1, (short) 1, emptyMap());
     fakeKafkaTopicClient.createTopic("foo", 1, (short) 1, emptyMap());
@@ -284,7 +280,7 @@ public class StatementExecutorTest extends EasyMockSupport {
 
     final Command csCommand = new Command("CREATE STREAM pageview "
         + "(viewtime bigint, pageid varchar, userid varchar) "
-        + "WITH (registered_topic = 'pageview_topic');",
+        + "WITH (kafka_topic='pageview_topic_json', value_format='json', registered_topic = 'pageview_topic');",
         emptyMap(),
         ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
     final CommandId csCommandId =  new CommandId(CommandId.Type.STREAM,
@@ -333,6 +329,8 @@ public class StatementExecutorTest extends EasyMockSupport {
     assertThat(statusStore.get(topicCommandId).getStatus(), equalTo(CommandStatus.Status.SUCCESS));
     assertThat(statusStore.get(csCommandId).getStatus(), equalTo(CommandStatus.Status.SUCCESS));
     assertThat(statusStore.get(csasCommandId).getStatus(), equalTo(CommandStatus.Status.SUCCESS));
+    assertThat(statusStore.get(csasCommandId).getMessage(),
+        equalTo("Stream created and running. Created by query with query ID: CSAS_USER1PV_0"));
     assertThat(statusStore.get(ctasCommandId).getStatus(), equalTo(CommandStatus.Status.ERROR));
     assertThat(statusStore.get(terminateCmdId).getStatus(), equalTo(CommandStatus.Status.SUCCESS));
   }
@@ -584,7 +582,7 @@ public class StatementExecutorTest extends EasyMockSupport {
     // Given:
     final DropStream mockDropStream = mockDropStream("foo");
     expect(mockMetaStore.getSource("foo"))
-        .andStubReturn(mock(StructuredDataSource.class));
+        .andStubReturn(mock(DataSource.class));
     expect(mockMetaStore.getQueriesWithSink("foo"))
         .andStubReturn(ImmutableSet.of("query-id"));
     expect(mockEngine.getMetaStore()).andStubReturn(mockMetaStore);

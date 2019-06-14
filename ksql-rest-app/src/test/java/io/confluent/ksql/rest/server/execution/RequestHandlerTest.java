@@ -63,6 +63,8 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class RequestHandlerTest {
 
+  private static final String SOME_STREAM_SQL = "CREATE STREAM x WITH (value_format='json', kafka_topic='x');";
+
   @Mock KsqlEngine ksqlEngine;
   @Mock KsqlConfig ksqlConfig;
   @Mock ServiceContext serviceContext;
@@ -95,8 +97,8 @@ public class RequestHandlerTest {
 
     // When
     final List<ParsedStatement> statements =
-        new DefaultKsqlParser().parse("CREATE STREAM x WITH (kafka_topic='x');");
-    final KsqlEntityList entities = handler.execute(statements, ImmutableMap.of());
+        new DefaultKsqlParser().parse(SOME_STREAM_SQL);
+    final KsqlEntityList entities = handler.execute(serviceContext, statements, ImmutableMap.of());
 
     // Then
     assertThat(entities, contains(entity));
@@ -117,8 +119,8 @@ public class RequestHandlerTest {
 
     // When
     final List<ParsedStatement> statements =
-        new DefaultKsqlParser().parse("CREATE STREAM x WITH (kafka_topic='x');");
-    final KsqlEntityList entities = handler.execute(statements, ImmutableMap.of());
+        new DefaultKsqlParser().parse(SOME_STREAM_SQL);
+    final KsqlEntityList entities = handler.execute(serviceContext, statements, ImmutableMap.of());
 
     // Then
     assertThat(entities, contains(entity));
@@ -139,8 +141,12 @@ public class RequestHandlerTest {
 
     // When
     final List<ParsedStatement> statements =
-        new DefaultKsqlParser().parse("CREATE STREAM x WITH (kafka_topic='x');");
-    final KsqlEntityList entities = handler.execute(statements, ImmutableMap.of("x", "y"));
+        new DefaultKsqlParser().parse(SOME_STREAM_SQL);
+    final KsqlEntityList entities = handler.execute(
+        serviceContext,
+        statements,
+        ImmutableMap.of("x", "y")
+    );
 
     // Then
     assertThat(entities, contains(entity));
@@ -169,13 +175,13 @@ public class RequestHandlerTest {
 
     final List<ParsedStatement> statements =
         new DefaultKsqlParser().parse(
-            "CREATE STREAM x WITH (kafka_topic='x');"
-                + "CREATE STREAM y WITH (kafka_topic='y');"
-                + "CREATE STREAM z WITH (kafka_topic='z');"
+            "CREATE STREAM x WITH (value_format='json', kafka_topic='x');"
+                + "CREATE STREAM y WITH (value_format='json', kafka_topic='y');"
+                + "CREATE STREAM z WITH (value_format='json', kafka_topic='z');"
         );
 
     // When
-    handler.execute(statements, ImmutableMap.of());
+    handler.execute(serviceContext, statements, ImmutableMap.of());
 
     // Then
     verify(sync).waitFor(argThat(hasItems(entity1, entity2)), any());
@@ -189,7 +195,7 @@ public class RequestHandlerTest {
     // Given:
     final Map<String, Object> props = ImmutableMap.of(
         KsqlConstants.LEGACY_RUN_SCRIPT_STATEMENTS_CONTENT,
-        "CREATE STREAM X WITH (kafka_topic='x');");
+        SOME_STREAM_SQL);
 
     final StatementExecutor<CreateStream> customExecutor = givenReturningExecutor(
         CreateStream.class,
@@ -199,13 +205,13 @@ public class RequestHandlerTest {
     // When:
     final List<ParsedStatement> statements = new DefaultKsqlParser()
         .parse("RUN SCRIPT '/some/script.sql';" );
-    handler.execute(statements, props);
+    handler.execute(serviceContext, statements, props);
 
     // Then:
     verify(customExecutor, times(1))
         .execute(
             argThat(is(
-                configured(preparedStatementText("CREATE STREAM X WITH (kafka_topic='x');")))),
+                configured(preparedStatementText(SOME_STREAM_SQL)))),
             eq(ksqlEngine),
             eq(serviceContext)
         );
@@ -219,8 +225,8 @@ public class RequestHandlerTest {
 
     final Map<String, Object> props = ImmutableMap.of(
         KsqlConstants.LEGACY_RUN_SCRIPT_STATEMENTS_CONTENT,
-        "CREATE STREAM X WITH (kafka_topic='x');"
-            + "CREATE STREAM Y WITH (kafka_topic='y');");
+            SOME_STREAM_SQL
+            + "CREATE STREAM Y WITH (value_format='json', kafka_topic='y');");
 
     final StatementExecutor<CreateStream> customExecutor = givenReturningExecutor(
         CreateStream.class, entity1, entity2);
@@ -229,7 +235,7 @@ public class RequestHandlerTest {
     // When:
     final List<ParsedStatement> statements = new DefaultKsqlParser()
         .parse("RUN SCRIPT '/some/script.sql';" );
-    final KsqlEntityList result = handler.execute(statements, props);
+    final KsqlEntityList result = handler.execute(serviceContext, statements, props);
 
     // Then:
     assertThat(result, contains(entity2));
@@ -242,7 +248,6 @@ public class RequestHandlerTest {
         distributor,
         ksqlEngine,
         ksqlConfig,
-        serviceContext,
         sync
     );
   }

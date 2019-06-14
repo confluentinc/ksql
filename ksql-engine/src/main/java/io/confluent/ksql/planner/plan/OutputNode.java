@@ -17,17 +17,15 @@ package io.confluent.ksql.planner.plan;
 
 import static java.util.Objects.requireNonNull;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.QueryIdGenerator;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import java.util.List;
-import java.util.Optional;
+import java.util.OptionalInt;
 import javax.annotation.concurrent.Immutable;
-import org.apache.kafka.connect.data.Schema;
 
 @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
 @Immutable
@@ -35,17 +33,16 @@ public abstract class OutputNode
     extends PlanNode {
 
   private final PlanNode source;
-  private final Schema schema;
-  private final Optional<Integer> limit;
+  private final LogicalSchema schema;
+  private final OptionalInt limit;
   private final TimestampExtractionPolicy timestampExtractionPolicy;
 
-  @JsonCreator
   protected OutputNode(
-      @JsonProperty("id") final PlanNodeId id,
-      @JsonProperty("source") final PlanNode source,
-      @JsonProperty("schema") final Schema schema,
-      @JsonProperty("limit") final Optional<Integer> limit,
-      @JsonProperty("timestamp_policy") final TimestampExtractionPolicy timestampExtractionPolicy
+      final PlanNodeId id,
+      final PlanNode source,
+      final LogicalSchema schema,
+      final OptionalInt limit,
+      final TimestampExtractionPolicy timestampExtractionPolicy
   ) {
     super(id, source.getNodeOutputType());
 
@@ -57,8 +54,8 @@ public abstract class OutputNode
   }
 
   @Override
-  public Schema getSchema() {
-    return this.schema;
+  public LogicalSchema getSchema() {
+    return schema;
   }
 
   @Override
@@ -66,11 +63,10 @@ public abstract class OutputNode
     return ImmutableList.of(source);
   }
 
-  public Optional<Integer> getLimit() {
+  public OptionalInt getLimit() {
     return limit;
   }
 
-  @JsonProperty
   public PlanNode getSource() {
     return source;
   }

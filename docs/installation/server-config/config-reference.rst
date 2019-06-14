@@ -3,7 +3,18 @@
 KSQL Configuration Parameter Reference
 ======================================
 
-Here are some common configuration properties that you can customize.
+Here are some common configuration properties that you can customize. Refer to
+:ref:`ksql-server-config` and :ref:`install_cli-config` for details of how to set properties.
+
+.. tip::
+
+   Each property has a corresponding environment variable in the Docker image
+   for `KSQL Server <https://hub.docker.com/r/confluentinc/cp-ksql-server/>`__.
+   The environment variable name is constructed from the configuration property
+   name by converting to uppercase, replacing periods with underscores, and
+   prepending with ``KSQL_``. For example, the name of the ``ksql.service.id``
+   environment variable is ``KSQL_KSQL_SERVICE_ID``. For more information, see
+   :ref:`install-ksql-with-docker`.
 
 Kafka Streams and Kafka Client Settings
 ---------------------------------------
@@ -30,6 +41,10 @@ to change it to earliest by using the KSQL command line:
 
 For more information, see :ref:`kafka_consumer` and the :cp-javadoc:`Javadoc|clients/javadocs/org/apache/kafka/clients/consumer/ConsumerConfig.html#AUTO_OFFSET_RESET_CONFIG`.
 
+The corresponding environment variable in the
+`KSQL Server image <https://hub.docker.com/r/confluentinc/cp-ksql-server/>`__ is
+``KSQL_KSQL_STREAMS_AUTO_OFFSET_RESET``.
+
 .. _ksql-bootstrap-servers:
 
 ------------------------------
@@ -46,6 +61,11 @@ by using the KSQL command line:
 
 For more information, see :ref:`Streams parameter reference <streams_developer-guide_required-configs>` and the :cp-javadoc:`Javadoc|clients/javadocs/org/apache/kafka/clients/consumer/ConsumerConfig.html#BOOTSTRAP_SERVERS_CONFIG`.
 
+The corresponding environment variable in the
+`KSQL Server image <https://hub.docker.com/r/confluentinc/cp-ksql-server/>`__ is
+``KSQL_KSQL_STREAMS_BOOTSTRAP_SERVERS`` or ``KSQL_BOOTSTRAP_SERVERS``.
+For more information, see :ref:`install-ksql-with-docker`.
+
 .. _ksql-commit-interval-ms:
 
 -------------------------------
@@ -60,6 +80,10 @@ the value to ``5000`` by using the KSQL command line:
     SET 'commit.interval.ms'='5000';
 
 For more information, see the :ref:`Streams parameter reference <streams_developer-guide_optional-configs>` and the :cp-javadoc:`Javadoc|streams/javadocs/org/apache/kafka/streams/StreamsConfig.html#COMMIT_INTERVAL_MS_CONFIG`,
+
+The corresponding environment variable in the
+`KSQL Server image <https://hub.docker.com/r/confluentinc/cp-ksql-server/>`__ is
+``KSQL_KSQL_STREAMS_COMMIT_INTERVAL_MS``.
 
 .. _ksql-cache-max-bytes-buffering:
 
@@ -76,6 +100,10 @@ Here is an example to change the value to ``20000000`` by using the KSQL command
 
 For more information, see the :ref:`Streams parameter reference <streams_developer-guide_optional-configs>` and :cp-javadoc:`Javadoc|streams/javadocs/org/apache/kafka/streams/StreamsConfig.html#CACHE_MAX_BYTES_BUFFERING_CONFIG`.
 
+The corresponding environment variable in the
+`KSQL Server image <https://hub.docker.com/r/confluentinc/cp-ksql-server/>`__ is
+``KSQL_KSQL_STREAMS_CACHE_MAX_BYTES_BUFFERING``.
+
 .. _ksql-streams-num-streams-threads:
 
 -------------------------------
@@ -84,6 +112,10 @@ ksql.streams.num.stream.threads
 
 This number of stream threads in an instance of the Kafka Streams application. The stream processing code runs in these
 threads. For more information about Kafka Streams threading model, see :ref:`streams_architecture_threads`.
+
+The corresponding environment variable in the
+`KSQL Server image <https://hub.docker.com/r/confluentinc/cp-ksql-server/>`__ is
+``KSQL_KSQL_STREAMS_NUM_STREAM_THREADS``.
 
 -----------------------------
 ksql.output.topic.name.prefix
@@ -96,12 +128,15 @@ topics. For example, you might use "ksql-interactive-" to name output topics
 in a KSQL Server cluster that's deployed in interactive mode. For more information, see
 :ref:`Configuring Security for KSQL <config-security-ksql-acl-interactive_post_ak_2_0>`.
 
+The corresponding environment variable in the
+`KSQL Server image <https://hub.docker.com/r/confluentinc/cp-ksql-server/>`__ is
+``KSQL_KSQL_OUTPUT_TOPIC_NAME_PREFIX``.
+
 KSQL Query Settings
 -------------------
 
 These configurations control how KSQL executes queries. These configurations can be specified via the ``ksql-server.properties``
 file or via ``SET`` in a KSQL CLI. For example, ``ksql.service.id`` and ``ksql.persistent.prefix``.
-
 
 .. _ksql-fail-on-deserialization-error:
 
@@ -136,6 +171,10 @@ encountered the error will shut down. To log the error message to the
 
     ksql.fail.on.production.error=false
 
+The corresponding environment variable in the
+`KSQL Server image <https://hub.docker.com/r/confluentinc/cp-ksql-server/>`__ is
+``KSQL_KSQL_FAIL_ON_DESERIALIZATION_ERROR``.
+
 .. _ksql-schema-registry-url:
 
 ------------------------
@@ -144,6 +183,10 @@ ksql.schema.registry.url
 
 The |sr| URL path to connect KSQL to. To communicate with |sr| over a secure
 connection, see :ref:`config-security-ksql-sr`.
+
+The corresponding environment variable in the
+`KSQL Server image <https://hub.docker.com/r/confluentinc/cp-ksql-server/>`__ is
+``KSQL_KSQL_SCHEMA_REGISTRY_URL``.
 
 .. _ksql-service-id:
 
@@ -160,28 +203,37 @@ will be prefixed as ``_confluent-ksql-default_`` (e.g. ``_command_topic`` become
 
 .. _ksql-internal-topic-replicas:
 
---------------------
+----------------------------
 ksql.internal.topic.replicas
---------------------
+----------------------------
 
-The number of replicas for the internal topics created by KSQL Server. The default is one.
-This config parameter works in KSQL 5.3 and later.
-Note that replicas for record processing log topic should be configrued separately. For more info refer to :ref:`KSQL Processing Log <ksql_processing_log>`.
+The number of replicas for the internal topics created by KSQL Server. The default is 1.
+This configuration parameter works in KSQL 5.3 and later.
+Replicas for the record processing log topic should be configured separately.
+For more information, see :ref:`KSQL Processing Log <ksql_processing_log>`.
+
+The corresponding environment variable in the
+`KSQL Server image <https://hub.docker.com/r/confluentinc/cp-ksql-server/>`__ is
+``KSQL_KSQL_INTERNAL_TOPIC_REPLICAS``.
 
 .. _ksql-sink-partitions:
 
---------------------
+---------------------------------
 ksql.sink.partitions (Deprecated)
---------------------
+---------------------------------
 
 The default number of partitions for the topics created by KSQL. The default is four.
 This property has been deprecated since 5.3 release. For more info see the WITH clause properties in :ref:`CREATE STREAM AS SELECT <create-stream-as-select>` and :ref:`CREATE TABLE AS SELECT <create-table-as-select>`.
 
+The corresponding environment variable in the
+`KSQL Server image <https://hub.docker.com/r/confluentinc/cp-ksql-server/>`__ is
+``KSQL_KSQL_SINK_PARTITIONS``.
+
 .. _ksql-sink-replicas:
 
-------------------
+-------------------------------
 ksql.sink.replicas (Deprecated)
-------------------
+-------------------------------
 
 The default number of replicas for the topics created by KSQL. The default is one.
 This property has been deprecated since 5.3 release. For more info see the WITH clause properties in :ref:`CREATE STREAM AS SELECT <create-stream-as-select>` and :ref:`CREATE TABLE AS SELECT <create-table-as-select>`.
@@ -195,6 +247,64 @@ Controls the semantics of the SUBSTRING UDF. Refer to the SUBSTRING documentatio
 When upgrading headless mode KSQL applications from versions 5.0.x or earlier without updating your queries that use SUBSTRING to match 
 the new 5.1 behavior, you must set this config to ``true`` to enforce the previous SUBSTRING behavior. If possible, however, we recommend
 that you update your queries accordingly instead of enabling this configuration setting.
+
+The corresponding environment variable in the
+`KSQL Server image <https://hub.docker.com/r/confluentinc/cp-ksql-server/>`__ is
+``KSQL_KSQL_FUNCTIONS_SUBSTRING_LEGACY_ARGS``.
+
+.. _ksql_persistence_wrap_single_values:
+
+-----------------------------------
+ksql.persistence.wrap.single.values
+-----------------------------------
+
+Sets the default value for the ``WRAP_SINGLE_VALUE`` property if one is
+not supplied explicitly in :ref:`CREATE TABLE <create-table>`,
+:ref:`CREATE STREAM <create-stream>`, :ref:`CREATE TABLE <create-table-as-select>`
+or :ref:`CREATE STREAM AS SELECT <create-stream-as-select>` statements.
+
+When set to the default value, ``true``, KSQL serializes the column value nested with a JSON object or
+an Avro record, depending on the format in use. When set to ``false``, KSQL persists the column
+value without any nesting.
+
+For example, consider the statement:
+
+.. code:: sql
+
+    CREATE STREAM y AS SELECT f0 FROM x;
+
+The statement selects a single field as the value of stream ``y``. If ``f0`` has the
+integer value ``10``,
+with ``ksql.persistence.wrap.single.values`` set to ``true``, the JSON format persists
+the value within a JSON object, as it would if the value had more fields:
+
+.. code:: json
+
+    {
+       "F0": 10
+    }
+
+With ``ksql.persistence.wrap.single.values`` set to ``false``, the JSON format
+persists the single field's value as a JSON number: ``10``.
+
+.. code:: json
+
+    10
+
+The ``AVRO`` format supports the same properties. The properties control whether or not the field's
+value is written as a named field within an Avro record or as an anonymous value.
+
+This setting can be toggled using the `SET` command
+
+ .. code:: sql
+     SET 'ksql.persistence.wrap.single.values'='false';
+
+For more information, refer to the :ref:`CREATE TABLE <create-table>`,
+:ref:`CREATE STREAM <create-stream>`, :ref:`CREATE TABLE <create-table-as-select>`
+or :ref:`CREATE STREAM AS SELECT <create-stream-as-select>` statements.
+
+.. note:: The ``DELIMITED`` format is  not affected by the `ksql.persistence.ensure.value.is.struct`` setting,
+          because it has no concept of an outer record or structure.
 
 KSQL Server Settings
 --------------------
@@ -230,6 +340,10 @@ ksql.queries.file
 A file that specifies a predefined set of queries for the KSQL and KSQL server.
 For an example, see :ref:`restrict-ksql-interactive`.
 
+The corresponding environment variable in the
+`KSQL Server image <https://hub.docker.com/r/confluentinc/cp-ksql-server/>`__ is
+``KSQL_KSQL_QUERIES_FILE``.
+
 .. _ksql-listeners:
 
 ---------
@@ -252,6 +366,10 @@ to a specific interface to bind only to a single interface. For example:
 
 You can configure KSQL Server to use HTTPS. For more information, see
 :ref:`config-ksql-for-https`.
+
+The corresponding environment variable in the
+`KSQL Server image <https://hub.docker.com/r/confluentinc/cp-ksql-server/>`__ is
+``KSQL_LISTENERS``.
 
 .. _ksql-c3-settings:
 
@@ -289,9 +407,9 @@ to create a processing log topic at startup. The name of the topic is the value 
 
 .. _ksql-processing-log-topic-name:
 
-------------------------------
+----------------------------------
 ksql.logging.processing.topic.name
-------------------------------
+----------------------------------
 
 If automatic processing log topic creation is enabled, KSQL sets the name of the topic to the value of
 this property. If automatic processing log stream creation is enabled, KSQL uses this topic to back the
@@ -300,27 +418,27 @@ is the value of the :ref:`ksql-service-id` property.
 
 .. _ksql-processing-log-topic-partitions:
 
-------------------------------------
+----------------------------------------
 ksql.logging.processing.topic.partitions
-------------------------------------
+----------------------------------------
 
 If automatic processing log topic creation is enabled, KSQL creates the topic with number of partitions set
 to the value of this property. By default, this property has the value ``1``.
 
 .. _ksql-processing-log-replication-factor:
 
---------------------------------------------
+------------------------------------------------
 ksql.logging.processing.topic.replication.factor
---------------------------------------------
+------------------------------------------------
 
 If automatic processing log topic creation is enabled, KSQL creates the topic with  number of replicas set
 to the value of this property. By default, this property has the value ``1``.
 
 .. _ksql-processing-log-stream-auto-create:
 
---------------------------------------
+------------------------------------------
 ksql.logging.processing.stream.auto.create
---------------------------------------
+------------------------------------------
 
 Toggles automatic processing log stream creation. If set to true, and KSQL is running in interactive mode on a new cluster,
 KSQL automatically creates a processing log stream when it starts up. The name for the stream is the
@@ -329,18 +447,18 @@ the :ref:`ksql-processing-log-topic-name` property. By default, this property ha
 
 .. _ksql-processing-log-stream-name:
 
--------------------------------
+-----------------------------------
 ksql.logging.processing.stream.name
--------------------------------
+-----------------------------------
 
 If automatic processing log stream creation is enabled, KSQL sets the name of the stream to the value of this
 property. By default, this property has the value ``KSQL_PROCESSING_LOG``.
 
 .. _ksql-processing-log-include-rows:
 
---------------------------------
+------------------------------------
 ksql.logging.processing.rows.include
---------------------------------
+------------------------------------
 
 Toggles whether or not the processing log should include rows in log messages. By default, this property has the
 value ``false``.

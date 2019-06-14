@@ -15,9 +15,10 @@
 package io.confluent.ksql.internal;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertEquals;
+import static org.hamcrest.number.IsCloseTo.closeTo;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -91,11 +92,33 @@ public class KsqlEngineMetricsTest {
     engineMetrics.registeredSensors().forEach(sensor -> assertThat(engineMetrics.getMetrics().getSensor(sensor.name()), is(nullValue())));
   }
 
+  private void shouldRecordRate(final String name, final double expected, final double error) {
+    assertThat(
+        Math.floor(getMetricValueLegacy(name)),
+        closeTo(expected, error));
+    assertThat(
+        Math.floor(getMetricValue(name)),
+        closeTo(expected, error));
+  }
+
+  @Test
+  public void shouldRecordLivenessIndicator() {
+    final double value = getMetricValue("liveness-indicator");
+    final double legacyValue = getMetricValueLegacy("liveness-indicator");
+
+    assertThat(value, equalTo(1.0));
+    assertThat(legacyValue, equalTo(1.0));
+  }
+
   @Test
   public void shouldRecordNumberOfActiveQueries() {
     when(ksqlEngine.numberOfLiveQueries()).thenReturn(3);
-    final double value = getMetricValue(engineMetrics.getMetrics(), metricNamePrefix + "num-active-queries");
-    assertEquals(3.0, value, 0.0);
+
+    final double value = getMetricValue("num-active-queries");
+    final double legacyValue = getMetricValueLegacy("num-active-queries");
+
+    assertThat(value, equalTo(3.0));
+    assertThat(legacyValue, equalTo(3.0));
   }
 
   @Test
@@ -103,8 +126,11 @@ public class KsqlEngineMetricsTest {
     when(ksqlEngine.getPersistentQueries())
         .then(returnQueriesInState(3, State.CREATED));
 
-    final long value = getLongMetricValue(engineMetrics.getMetrics(), metricNamePrefix + "testGroup-query-stats-CREATED-queries");
-    assertEquals(3L, value);
+    final long value = getLongMetricValue("CREATED-queries");
+    final long legacyValue = getLongMetricValueLegacy("testGroup-query-stats-CREATED-queries");
+
+    assertThat(value, equalTo(3L));
+    assertThat(legacyValue, equalTo(3L));
   }
 
   @Test
@@ -112,8 +138,11 @@ public class KsqlEngineMetricsTest {
     when(ksqlEngine.getPersistentQueries())
         .then(returnQueriesInState(3, State.RUNNING));
 
-    final long value = getLongMetricValue(engineMetrics.getMetrics(), metricNamePrefix + "testGroup-query-stats-RUNNING-queries");
-    assertEquals(3L, value);
+    final long value = getLongMetricValue("RUNNING-queries");
+    final long legacyValue = getLongMetricValueLegacy("testGroup-query-stats-RUNNING-queries");
+
+    assertThat(value, equalTo(3L));
+    assertThat(legacyValue, equalTo(3L));
   }
 
   @Test
@@ -121,8 +150,11 @@ public class KsqlEngineMetricsTest {
     when(ksqlEngine.getPersistentQueries())
         .then(returnQueriesInState(3, State.REBALANCING));
 
-    final long value = getLongMetricValue(engineMetrics.getMetrics(), metricNamePrefix + "testGroup-query-stats-REBALANCING-queries");
-    assertEquals(3L, value);
+    final long value = getLongMetricValue("REBALANCING-queries");
+    final long legacyValue = getLongMetricValueLegacy("testGroup-query-stats-REBALANCING-queries");
+
+    assertThat(value, equalTo(3L));
+    assertThat(legacyValue, equalTo(3L));
   }
 
   @Test
@@ -130,8 +162,11 @@ public class KsqlEngineMetricsTest {
     when(ksqlEngine.getPersistentQueries())
         .then(returnQueriesInState(3, State.PENDING_SHUTDOWN));
 
-    final long value = getLongMetricValue(engineMetrics.getMetrics(), metricNamePrefix + "testGroup-query-stats-PENDING_SHUTDOWN-queries");
-    assertEquals(3L, value);
+    final long value = getLongMetricValue("PENDING_SHUTDOWN-queries");
+    final long legacyValue = getLongMetricValueLegacy("testGroup-query-stats-PENDING_SHUTDOWN-queries");
+
+    assertThat(value, equalTo(3L));
+    assertThat(legacyValue, equalTo(3L));
   }
 
   @Test
@@ -139,8 +174,11 @@ public class KsqlEngineMetricsTest {
     when(ksqlEngine.getPersistentQueries())
         .then(returnQueriesInState(3, State.ERROR));
 
-    final long value = getLongMetricValue(engineMetrics.getMetrics(), metricNamePrefix + "testGroup-query-stats-ERROR-queries");
-    assertEquals(3L, value);
+    final long value = getLongMetricValue("ERROR-queries");
+    final long legacyValue = getLongMetricValueLegacy("testGroup-query-stats-ERROR-queries");
+
+    assertThat(value, equalTo(3L));
+    assertThat(legacyValue, equalTo(3L));
   }
 
   @Test
@@ -148,16 +186,22 @@ public class KsqlEngineMetricsTest {
     when(ksqlEngine.getPersistentQueries())
         .then(returnQueriesInState(4, State.NOT_RUNNING));
 
-    final long value = getLongMetricValue(engineMetrics.getMetrics(), metricNamePrefix + "testGroup-query-stats-NOT_RUNNING-queries");
-    assertEquals(4L, value);
+    final long value = getLongMetricValue("NOT_RUNNING-queries");
+    final long legacyValue = getLongMetricValueLegacy("testGroup-query-stats-NOT_RUNNING-queries");
+
+    assertThat(value, equalTo(4L));
+    assertThat(legacyValue, equalTo(4L));
   }
 
   @Test
   public void shouldRecordNumberOfPersistentQueries() {
     when(ksqlEngine.getPersistentQueries()).then(returnQueriesInState(3, State.RUNNING));
 
-    final double value = getMetricValue(engineMetrics.getMetrics(), metricNamePrefix + "num-persistent-queries");
-    assertEquals(3.0, value, 0.0);
+    final double value = getMetricValue("num-persistent-queries");
+    final double legacyValue = getMetricValueLegacy("num-persistent-queries");
+
+    assertThat(value, equalTo(3.0));
+    assertThat(legacyValue, equalTo(3.0));
   }
 
   @Test
@@ -165,8 +209,12 @@ public class KsqlEngineMetricsTest {
     final int numMessagesConsumed = 500;
     consumeMessages(numMessagesConsumed, "group1");
     engineMetrics.updateMetrics();
-    final double value = getMetricValue(engineMetrics.getMetrics(), metricNamePrefix + "messages-consumed-per-sec");
-    assertEquals(numMessagesConsumed / 100, Math.floor(value), 0.01);
+
+    final double value = getMetricValue("messages-consumed-per-sec");
+    final double legacyValue = getMetricValueLegacy("messages-consumed-per-sec");
+
+    assertThat(Math.floor(value), closeTo(numMessagesConsumed / 100, 0.01));
+    assertThat(Math.floor(legacyValue), closeTo(numMessagesConsumed / 100, 0.01));
   }
 
   @Test
@@ -174,20 +222,40 @@ public class KsqlEngineMetricsTest {
     final int numMessagesProduced = 500;
     produceMessages(numMessagesProduced);
     engineMetrics.updateMetrics();
-    final double value = getMetricValue(engineMetrics.getMetrics(), metricNamePrefix + "messages-produced-per-sec");
-    assertEquals(numMessagesProduced / 100, Math.floor(value), 0.01);
+
+    final double value = getMetricValue("messages-produced-per-sec");
+    final double legacyValue = getMetricValueLegacy("messages-produced-per-sec");
+
+    assertThat(Math.floor(value), closeTo(numMessagesProduced / 100, 0.01));
+    assertThat(Math.floor(legacyValue), closeTo(numMessagesProduced / 100, 0.01));
   }
 
   @Test
-  public void shouldRecordMessagesConsumedByQuery() {
+  public void shouldRecordMaxMessagesConsumedByQuery() {
     final int numMessagesConsumed = 500;
     consumeMessages(numMessagesConsumed, "group1");
     consumeMessages(numMessagesConsumed * 100, "group2");
     engineMetrics.updateMetrics();
-    final double maxValue = getMetricValue(engineMetrics.getMetrics(), metricNamePrefix + "messages-consumed-max");
-    assertEquals(numMessagesConsumed, Math.floor(maxValue), 5.0);
-    final double minValue = getMetricValue(engineMetrics.getMetrics(), metricNamePrefix + "messages-consumed-min");
-    assertEquals(numMessagesConsumed / 100, Math.floor(minValue), 0.01);
+
+    final double value = getMetricValue("messages-consumed-max");
+    final double legacyValue = getMetricValueLegacy("messages-consumed-max");
+
+    assertThat(Math.floor(value), closeTo(numMessagesConsumed, 5.0));
+    assertThat(Math.floor(legacyValue), closeTo(numMessagesConsumed, 5.0));
+  }
+
+  @Test
+  public void shouldRecordMinMessagesConsumedByQuery() {
+    final int numMessagesConsumed = 500;
+    consumeMessages(numMessagesConsumed, "group1");
+    consumeMessages(numMessagesConsumed * 100, "group2");
+    engineMetrics.updateMetrics();
+
+    final double value = getMetricValue("messages-consumed-min");
+    final double legacyValue = getMetricValueLegacy("messages-consumed-min");
+
+    assertThat(Math.floor(value), closeTo(numMessagesConsumed / 100, 0.01));
+    assertThat(Math.floor(legacyValue), closeTo(numMessagesConsumed / 100, 0.01));
   }
 
   @Test
@@ -199,16 +267,44 @@ public class KsqlEngineMetricsTest {
     verify(query1).registerQueryStateListener(any());
   }
 
-  private static double getMetricValue(final Metrics metrics, final String metricName) {
+  private double getMetricValue(final String metricName) {
+    final Metrics metrics = engineMetrics.getMetrics();
     return Double.valueOf(
-        metrics.metric(metrics.metricName(metricName, METRIC_GROUP + "-query-stats"))
-            .metricValue().toString());
+        metrics.metric(
+            metrics.metricName(
+                metricName, metricNamePrefix + METRIC_GROUP + "-query-stats")
+        ).metricValue().toString()
+    );
   }
 
-  private static long getLongMetricValue(final Metrics metrics, final String metricName) {
+  private long getLongMetricValue(final String metricName) {
+    final Metrics metrics = engineMetrics.getMetrics();
     return Long.parseLong(
-        metrics.metric(metrics.metricName(metricName, METRIC_GROUP + "-query-stats"))
-            .metricValue().toString());
+        metrics.metric(
+            metrics.metricName(
+                metricName, metricNamePrefix + METRIC_GROUP + "-query-stats")
+        ).metricValue().toString()
+    );
+  }
+
+  private double getMetricValueLegacy(final String metricName) {
+    final Metrics metrics = engineMetrics.getMetrics();
+    return Double.valueOf(
+        metrics.metric(
+            metrics.metricName(
+                metricNamePrefix + metricName, METRIC_GROUP + "-query-stats")
+        ).metricValue().toString()
+    );
+  }
+
+  private long getLongMetricValueLegacy(final String metricName) {
+    final Metrics metrics = engineMetrics.getMetrics();
+    return Long.parseLong(
+        metrics.metric(
+            metrics.metricName(
+                metricNamePrefix + metricName, METRIC_GROUP + "-query-stats")
+        ).metricValue().toString()
+    );
   }
 
   private static void consumeMessages(final int numMessages, final String groupId) {

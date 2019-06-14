@@ -31,6 +31,7 @@ import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.testutils.AnalysisTestUtil;
 import io.confluent.ksql.util.ExpressionMetadata;
 import io.confluent.ksql.util.KsqlConfig;
@@ -42,7 +43,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaAndValue;
 import org.apache.kafka.connect.data.Struct;
 import org.junit.Rule;
@@ -139,7 +139,7 @@ public class SelectValueMapperTest {
   private SelectValueMapper givenSelectMapperFor(final String query) {
     final PlanNode planNode = AnalysisTestUtil.buildLogicalPlan(query, metaStore);
     final ProjectNode projectNode = (ProjectNode) planNode.getSources().get(0);
-    final Schema schema = planNode.getTheSourceNode().getSchema();
+    final LogicalSchema schema = planNode.getTheSourceNode().getSchema();
     final List<SelectExpression> selectExpressions = projectNode.getProjectSelectExpressions();
     final List<ExpressionMetadata> metadata = createExpressionMetadata(selectExpressions, schema);
     final List<String> selectFieldNames = selectExpressions.stream()
@@ -154,7 +154,7 @@ public class SelectValueMapperTest {
 
   private List<ExpressionMetadata> createExpressionMetadata(
       final List<SelectExpression> selectExpressions,
-      final Schema schema
+      final LogicalSchema schema
   ) {
     try {
       final CodeGenRunner codeGenRunner = new CodeGenRunner(

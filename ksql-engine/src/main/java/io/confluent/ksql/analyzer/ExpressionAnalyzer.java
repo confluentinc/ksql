@@ -28,18 +28,19 @@ import io.confluent.ksql.parser.tree.LikePredicate;
 import io.confluent.ksql.parser.tree.LogicalBinaryExpression;
 import io.confluent.ksql.parser.tree.NotExpression;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
-import io.confluent.ksql.util.SchemaUtil;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
+import java.util.Objects;
 import java.util.Optional;
 import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
 
 
-public class ExpressionAnalyzer {
-  private final Schema schema;
+class ExpressionAnalyzer {
+
+  private final LogicalSchema schema;
   private final boolean isJoinSchema;
 
-  ExpressionAnalyzer(final Schema schema, final boolean isJoinSchema) {
-    this.schema = schema;
+  ExpressionAnalyzer(final LogicalSchema schema, final boolean isJoinSchema) {
+    this.schema = Objects.requireNonNull(schema, "schema");
     this.isJoinSchema = isJoinSchema;
   }
 
@@ -51,10 +52,10 @@ public class ExpressionAnalyzer {
   private class Visitor
       extends AstVisitor<Object, Object> {
 
-    final Schema schema;
+    private final LogicalSchema schema;
 
-    Visitor(final Schema schema) {
-      this.schema = schema;
+    Visitor(final LogicalSchema schema) {
+      this.schema = Objects.requireNonNull(schema, "schema");
     }
 
     protected Object visitLikePredicate(final LikePredicate node, final Object context) {
@@ -115,7 +116,7 @@ public class ExpressionAnalyzer {
       if (isJoinSchema) {
         columnName = node.toString();
       }
-      final Optional<Field> schemaField = SchemaUtil.getFieldByName(schema, columnName);
+      final Optional<Field> schemaField = schema.findValueField(columnName);
       if (!schemaField.isPresent()) {
         throw new RuntimeException(
             String.format("Column %s cannot be resolved.", columnName));
@@ -135,7 +136,7 @@ public class ExpressionAnalyzer {
         final QualifiedNameReference node,
         final Object context) {
       final String columnName = node.getName().getSuffix();
-      final Optional<Field> schemaField = SchemaUtil.getFieldByName(schema, columnName);
+      final Optional<Field> schemaField = schema.findValueField(columnName);
       if (!schemaField.isPresent()) {
         throw new RuntimeException(
             String.format("Column %s cannot be resolved.", columnName));

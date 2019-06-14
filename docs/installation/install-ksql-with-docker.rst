@@ -36,6 +36,13 @@ by using shell scripts and Docker Compose files.
 * :ref:`ksql-run-custom-code-before-launch`
 * :ref:`ksql-execute-script-in-cli`
 
+Scale Your KSQL Server Deployment
+*********************************
+
+You can scale KSQL by adding more capacity per server (vertically) or by adding
+more servers (horizontally). Also, you can scale KSQL clusters during live operations
+without loss of data. For more information, see :ref:`ksql-capacity-planning-scaling`.
+
 Assign Configuration Settings in the Docker Run Command 
 *******************************************************
 

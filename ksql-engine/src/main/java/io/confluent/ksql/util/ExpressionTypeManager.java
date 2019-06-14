@@ -44,36 +44,38 @@ import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.SubscriptExpression;
 import io.confluent.ksql.parser.tree.Type;
 import io.confluent.ksql.parser.tree.WhenClause;
-import io.confluent.ksql.schema.ksql.LogicalSchemas;
+import io.confluent.ksql.schema.Operator;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SchemaConverters;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
+import java.util.Objects;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 
 public class ExpressionTypeManager
     extends DefaultAstVisitor<Expression, ExpressionTypeManager.ExpressionTypeContext> {
 
-  private final Schema schema;
+  private final LogicalSchema schema;
   private final FunctionRegistry functionRegistry;
 
-  public ExpressionTypeManager(final Schema schema, final FunctionRegistry functionRegistry) {
-    this.schema = schema;
-    this.functionRegistry = functionRegistry;
+  public ExpressionTypeManager(
+      final LogicalSchema schema,
+      final FunctionRegistry functionRegistry
+  ) {
+    this.schema = Objects.requireNonNull(schema, "schema");
+    this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
   }
 
   public Schema getExpressionSchema(final Expression expression) {
     final ExpressionTypeContext expressionTypeContext = new ExpressionTypeContext();
     process(expression, expressionTypeContext);
-    if (expressionTypeContext.getSchema() == null) {
-      return null;
-    }
     return expressionTypeContext.getSchema();
   }
 
   static class ExpressionTypeContext {
 
-    Schema schema;
+    private Schema schema;
 
     public Schema getSchema() {
       return schema;
@@ -91,7 +93,7 @@ public class ExpressionTypeManager
     final Schema leftType = expressionTypeContext.getSchema();
     process(node.getRight(), expressionTypeContext);
     final Schema rightType = expressionTypeContext.getSchema();
-    expressionTypeContext.setSchema(resolveArithmeticType(leftType, rightType));
+    expressionTypeContext.setSchema(resolveArithmeticType(leftType, rightType, node.getOperator()));
     return null;
   }
 
@@ -112,7 +114,7 @@ public class ExpressionTypeManager
       throw new KsqlFunctionException("Only casts to primitive types are supported: " + sqlType);
     }
 
-    final Schema castType = LogicalSchemas.fromSqlTypeConverter().fromSqlType(sqlType);
+    final Schema castType = SchemaConverters.sqlToLogicalConverter().fromSqlType(sqlType);
     expressionTypeContext.setSchema(castType);
     return null;
   }
@@ -138,25 +140,28 @@ public class ExpressionTypeManager
 
   @Override
   protected Expression visitQualifiedNameReference(
-      final QualifiedNameReference node, final ExpressionTypeContext expressionTypeContext) {
-    final Optional<Field> schemaField =
-        SchemaUtil.getFieldByName(schema, node.getName().getSuffix());
-    if (!schemaField.isPresent()) {
-      throw new KsqlException(String.format("Invalid Expression %s.", node.toString()));
-    }
-    final Schema qualifiedNameReferenceSchema = schemaField.get().schema();
+      final QualifiedNameReference node,
+      final ExpressionTypeContext expressionTypeContext
+  ) {
+    final Field schemaField = schema.findValueField(node.getName().getSuffix())
+        .orElseThrow(() ->
+            new KsqlException(String.format("Invalid Expression %s.", node.toString())));
+
+    final Schema qualifiedNameReferenceSchema = schemaField.schema();
     expressionTypeContext.setSchema(qualifiedNameReferenceSchema);
     return null;
   }
 
   @Override
   protected Expression visitDereferenceExpression(
-      final DereferenceExpression node, final ExpressionTypeContext expressionTypeContext) {
-    final Optional<Field> schemaField = SchemaUtil.getFieldByName(schema, node.toString());
-    if (!schemaField.isPresent()) {
-      throw new KsqlException(String.format("Invalid Expression %s.", node.toString()));
-    }
-    final Schema dereferenceExpressionSchema = schemaField.get().schema();
+      final DereferenceExpression node,
+      final ExpressionTypeContext expressionTypeContext
+  ) {
+    final Field schemaField = schema.findValueField(node.toString())
+        .orElseThrow(() ->
+            new KsqlException(String.format("Invalid Expression %s.", node.toString())));
+
+    final Schema dereferenceExpressionSchema = schemaField.schema();
     expressionTypeContext.setSchema(dereferenceExpressionSchema);
     return null;
   }
@@ -285,9 +290,11 @@ public class ExpressionTypeManager
     return null;
   }
 
-  private static Schema resolveArithmeticType(final Schema leftSchema,
-                                              final Schema rightSchema) {
-    return SchemaUtil.resolveBinaryOperatorResultType(leftSchema.type(), rightSchema.type());
+  private static Schema resolveArithmeticType(
+      final Schema leftSchema,
+      final Schema rightSchema,
+      final Operator operator) {
+    return SchemaUtil.resolveBinaryOperatorResultType(leftSchema, rightSchema, operator);
   }
 
   private void validateSearchedCaseExpression(final SearchedCaseExpression searchedCaseExpression) {

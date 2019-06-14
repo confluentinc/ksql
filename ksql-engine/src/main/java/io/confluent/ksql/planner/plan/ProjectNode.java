@@ -17,12 +17,11 @@ package io.confluent.ksql.planner.plan;
 
 import static java.util.Objects.requireNonNull;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.physical.KsqlQueryBuilder;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.util.KsqlException;
@@ -31,23 +30,21 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import javax.annotation.concurrent.Immutable;
-import org.apache.kafka.connect.data.Schema;
 
 @Immutable
 public class ProjectNode extends PlanNode {
 
   private final PlanNode source;
-  private final Schema schema;
+  private final LogicalSchema schema;
   private final List<Expression> projectExpressions;
   private final KeyField keyField;
 
-  @JsonCreator
   public ProjectNode(
-      @JsonProperty("id") final PlanNodeId id,
-      @JsonProperty("source") final PlanNode source,
-      @JsonProperty("schema") final Schema schema,
-      @JsonProperty("key") final Optional<String> keyFieldName,
-      @JsonProperty("projectExpressions") final List<Expression> projectExpressions
+      final PlanNodeId id,
+      final PlanNode source,
+      final LogicalSchema schema,
+      final Optional<String> keyFieldName,
+      final List<Expression> projectExpressions
   ) {
     super(id, source.getNodeOutputType());
 
@@ -59,7 +56,7 @@ public class ProjectNode extends PlanNode {
         source.getKeyField().legacy())
         .validateKeyExistsIn(schema);
 
-    if (schema.fields().size() != projectExpressions.size()) {
+    if (schema.valueFields().size() != projectExpressions.size()) {
       throw new KsqlException("Error in projection. Schema fields and expression list are not "
           + "compatible.");
     }
@@ -70,13 +67,12 @@ public class ProjectNode extends PlanNode {
     return ImmutableList.of(source);
   }
 
-  @JsonProperty
   public PlanNode getSource() {
     return source;
   }
 
   @Override
-  public Schema getSchema() {
+  public LogicalSchema getSchema() {
     return schema;
   }
 
@@ -93,7 +89,10 @@ public class ProjectNode extends PlanNode {
   public List<SelectExpression> getProjectSelectExpressions() {
     final List<SelectExpression> selects = new ArrayList<>();
     for (int i = 0; i < projectExpressions.size(); i++) {
-      selects.add(SelectExpression.of(schema.fields().get(i).name(), projectExpressions.get(i)));
+      final SelectExpression selectExp = SelectExpression
+          .of(schema.valueFields().get(i).name(), projectExpressions.get(i));
+
+      selects.add(selectExp);
     }
     return selects;
   }

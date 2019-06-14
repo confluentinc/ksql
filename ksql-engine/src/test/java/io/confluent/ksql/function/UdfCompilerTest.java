@@ -21,6 +21,7 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.function.udaf.TestUdaf;
 import io.confluent.ksql.function.udaf.Udaf;
 import io.confluent.ksql.util.KsqlException;
@@ -51,85 +52,97 @@ public class UdfCompilerTest {
 
   @Test
   public void shouldCompileFunctionWithMapArgument() throws Exception {
-    final UdfInvoker udf = udfCompiler.compile(getClass().getMethod("udf", Map.class), classLoader);
+    final UdfInvoker udf = UdfCompiler.compile(getClass().getMethod("udf", Map.class), classLoader);
     assertThat(udf.eval(this, Collections.emptyMap()), equalTo("{}"));
   }
 
   @Test
   public void shouldCompileFunctionWithListArgument() throws Exception {
-    final UdfInvoker udf = udfCompiler.compile(getClass().getMethod("udf", List.class), classLoader);
+    final UdfInvoker udf = UdfCompiler
+        .compile(getClass().getMethod("udf", List.class), classLoader);
     assertThat(udf.eval(this, Collections.emptyList()), equalTo("[]"));
   }
 
   @Test
   public void shouldCompileFunctionWithDoubleArgument() throws Exception {
-    final UdfInvoker udf = udfCompiler.compile(getClass().getMethod("udf", Double.class), classLoader);
+    final UdfInvoker udf = UdfCompiler
+        .compile(getClass().getMethod("udf", Double.class), classLoader);
     assertThat(udf.eval(this, 1), equalTo(1.0));
   }
 
   @Test
   public void shouldCompileFunctionWithIntegerArgument() throws Exception {
-    final UdfInvoker udf = udfCompiler.compile(getClass().getMethod("udf", Integer.class), classLoader);
+    final UdfInvoker udf = UdfCompiler
+        .compile(getClass().getMethod("udf", Integer.class), classLoader);
     assertThat(udf.eval(this, 1), equalTo(1));
   }
 
   @Test
   public void shouldCompileFunctionWithLongArgument() throws Exception {
-    final UdfInvoker udf = udfCompiler.compile(getClass().getMethod("udf", Long.class), classLoader);
+    final UdfInvoker udf = UdfCompiler
+        .compile(getClass().getMethod("udf", Long.class), classLoader);
     assertThat(udf.eval(this, 1), equalTo(1L));
   }
 
   @Test
   public void shouldCompileFunctionWithBooleanArgument() throws Exception {
-    final UdfInvoker udf = udfCompiler.compile(getClass().getMethod("udf", Boolean.class), classLoader);
+    final UdfInvoker udf = UdfCompiler
+        .compile(getClass().getMethod("udf", Boolean.class), classLoader);
     assertThat(udf.eval(this, true), equalTo(true));
   }
 
   @Test
   public void shouldCompileFunctionWithIntArgument() throws Exception {
-    final UdfInvoker udf = udfCompiler.compile(getClass().getMethod("udfPrimitive", int.class), classLoader);
+    final UdfInvoker udf = UdfCompiler
+        .compile(getClass().getMethod("udfPrimitive", int.class), classLoader);
     assertThat(udf.eval(this, 1), equalTo(1));
   }
 
   @Test
   public void shouldCompileFunctionWithIntVarArgs() throws Exception {
-    final UdfInvoker udf = udfCompiler.compile(getClass().getMethod("udfPrimitive", int[].class), classLoader);
+    final UdfInvoker udf = UdfCompiler
+        .compile(getClass().getMethod("udfPrimitive", int[].class), classLoader);
     assertThat(udf.eval(this, (Object) new int[]{1, 1}), equalTo(2));
   }
 
   @Test
   public void shouldCompileFunctionWithPrimitiveLongArgument() throws Exception {
-    final UdfInvoker udf = udfCompiler.compile(getClass().getMethod("udfPrimitive", long.class), classLoader);
+    final UdfInvoker udf = UdfCompiler
+        .compile(getClass().getMethod("udfPrimitive", long.class), classLoader);
     assertThat(udf.eval(this, 1), equalTo(1L));
   }
 
   @Test
   public void shouldCompileFunctionWithPrimitiveDoubleArgument() throws Exception {
-    final UdfInvoker udf = udfCompiler.compile(getClass().getMethod("udfPrimitive", double.class), classLoader);
+    final UdfInvoker udf = UdfCompiler
+        .compile(getClass().getMethod("udfPrimitive", double.class), classLoader);
     assertThat(udf.eval(this, 1), equalTo(1.0));
   }
 
   @Test
   public void shouldCompileFunctionWithPrimitiveBooleanArgument() throws Exception {
-    final UdfInvoker udf = udfCompiler.compile(getClass().getMethod("udfPrimitive", boolean.class), classLoader);
+    final UdfInvoker udf = UdfCompiler
+        .compile(getClass().getMethod("udfPrimitive", boolean.class), classLoader);
     assertThat(udf.eval(this, true), equalTo(true));
   }
 
   @Test
   public void shouldCompileFunctionWithStringArgument() throws Exception {
-    final UdfInvoker udf = udfCompiler.compile(getClass().getMethod("udf", String.class), classLoader);
+    final UdfInvoker udf = UdfCompiler
+        .compile(getClass().getMethod("udf", String.class), classLoader);
     assertThat(udf.eval(this, "foo"), equalTo("foo"));
   }
 
   @Test
   public void shouldCompileFunctionWithStringVarArgs() throws Exception {
-    final UdfInvoker udf = udfCompiler.compile(getClass().getMethod("udf", String[].class), classLoader);
+    final UdfInvoker udf = UdfCompiler
+        .compile(getClass().getMethod("udf", String[].class), classLoader);
     assertThat(udf.eval(this, (Object) new String[]{"foo", "bar"}), equalTo("foobar"));
   }
 
   @Test
   public void shouldHandleMethodsWithMultipleArguments() throws Exception {
-    final UdfInvoker udf = udfCompiler.compile(
+    final UdfInvoker udf = UdfCompiler.compile(
         getClass().getMethod("multi", int.class, long.class, double.class),
         classLoader);
 
@@ -142,8 +155,9 @@ public class UdfCompilerTest {
         = udfCompiler.compileAggregate(TestUdaf.class.getMethod("createSumLong"),
         classLoader,
         "test-udf",
-        "desc"
-    );
+        "desc",
+        "",
+        "");
     assertThat(function.getInstance(
         new AggregateFunctionArguments(0, Collections.singletonList("udfIndex"))),
         not(nullValue()));
@@ -151,13 +165,15 @@ public class UdfCompilerTest {
 
   @Test
   public void shouldCompileFunctionWithStructReturnValue() throws Exception {
-    final UdfInvoker udf = udfCompiler.compile(getClass().getMethod("udfStruct", String.class), classLoader);
+    final UdfInvoker udf = UdfCompiler
+        .compile(getClass().getMethod("udfStruct", String.class), classLoader);
     assertThat(udf.eval(this, "val"), equalTo(new Struct(STRUCT_SCHEMA).put("a", "val")));
   }
 
   @Test
   public void shouldCompileFunctionWithStructParameter() throws Exception {
-    final UdfInvoker udf = udfCompiler.compile(getClass().getMethod("udfStruct", Struct.class), classLoader);
+    final UdfInvoker udf = UdfCompiler
+        .compile(getClass().getMethod("udfStruct", Struct.class), classLoader);
     assertThat(udf.eval(this, new Struct(STRUCT_SCHEMA).put("a", "val")), equalTo("val"));
   }
 
@@ -167,8 +183,9 @@ public class UdfCompilerTest {
         = udfCompiler.compileAggregate(TestUdaf.class.getMethod("createSumLong"),
         classLoader,
         "test-udf",
-        "desc"
-    );
+        "desc",
+        "",
+        "");
     assertThat(function, instanceOf(TableAggregationFunction.class));
   }
 
@@ -179,8 +196,9 @@ public class UdfCompilerTest {
         String.class),
         classLoader,
         "test-udf",
-        "desc"
-    );
+        "desc",
+        "",
+        "");
     final KsqlAggregateFunction instance = function.getInstance(
         new AggregateFunctionArguments(0, Arrays.asList("udfIndex", "some string")));
     assertThat(instance,
@@ -188,6 +206,7 @@ public class UdfCompilerTest {
     assertThat(instance, not(instanceOf(TableAggregationFunction.class)));
   }
 
+  @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
   @SuppressWarnings("unchecked")
   @Test
   public void shouldCollectMetricsForUdafsWhenEnabled() throws Exception {
@@ -197,8 +216,9 @@ public class UdfCompilerTest {
         = udfCompiler.compileAggregate(TestUdaf.class.getMethod("createSumLong"),
         classLoader,
         "test-udf",
-        "desc"
-    );
+        "desc",
+        "",
+        "");
 
     final KsqlAggregateFunction<Long, Long> executable = function.getInstance(
         new AggregateFunctionArguments(0, Collections.singletonList("udfIndex")));
@@ -213,7 +233,7 @@ public class UdfCompilerTest {
 
   @Test(expected = KsqlException.class)
   public void shouldThrowIfUnsupportedArgumentType() throws Exception {
-    udfCompiler.compile(
+    UdfCompiler.compile(
         getClass().getMethod("udf", Set.class),
         classLoader);
   }
@@ -222,7 +242,7 @@ public class UdfCompilerTest {
   public void shouldThrowIfArrayWithoutVarArgs() throws Exception {
     expectedException.expect(KsqlFunctionException.class);
     expectedException.expectMessage("Invalid UDF method signature (contains non var-arg array)");
-    udfCompiler.compile(
+    UdfCompiler.compile(
         getClass().getMethod("invalidUdf", int[].class),
         classLoader);
   }
@@ -231,7 +251,7 @@ public class UdfCompilerTest {
   public void shouldThrowIfArrayAndVarArgs() throws Exception {
     expectedException.expect(KsqlFunctionException.class);
     expectedException.expectMessage("Invalid UDF method signature (contains non var-arg array):");
-    udfCompiler.compile(
+    UdfCompiler.compile(
         getClass().getMethod("invalidUdf", int[].class, int[].class),
         classLoader);
   }
@@ -242,7 +262,7 @@ public class UdfCompilerTest {
     expectedException.expect(KsqlFunctionException.class);
     expectedException.expectMessage("Can't coerce argument at index 0 from null to a primitive type");
     final UdfInvoker udf =
-        udfCompiler.compile(getClass().getMethod("udfPrimitive", double.class), classLoader);
+        UdfCompiler.compile(getClass().getMethod("udfPrimitive", double.class), classLoader);
     udf.eval(this, new Object[]{null});
   }
 
@@ -255,8 +275,9 @@ public class UdfCompilerTest {
     udfCompiler.compileAggregate(UdfCompilerTest.class.getMethod("createBlah"),
         classLoader,
         "test",
-        "desc"
-    );
+        "desc",
+        "",
+        "");
   }
 
   @Test
@@ -264,8 +285,9 @@ public class UdfCompilerTest {
     udfCompiler.compileAggregate(UdfCompilerTest.class.getMethod("createLongDouble"),
         classLoader,
         "test",
-        "desc"
-    );
+        "desc",
+        "",
+        "");
   }
 
   @Test
@@ -273,8 +295,9 @@ public class UdfCompilerTest {
     udfCompiler.compileAggregate(UdfCompilerTest.class.getMethod("createDoubleLong"),
         classLoader,
         "test",
-        "desc"
-    );
+        "desc",
+        "",
+        "");
   }
 
   @Test
@@ -282,8 +305,9 @@ public class UdfCompilerTest {
     udfCompiler.compileAggregate(UdfCompilerTest.class.getMethod("createIntegerString"),
         classLoader,
         "test",
-        "desc"
-    );
+        "desc",
+        "",
+        "");
   }
 
   @Test
@@ -291,8 +315,9 @@ public class UdfCompilerTest {
     udfCompiler.compileAggregate(UdfCompilerTest.class.getMethod("createStringInteger"),
         classLoader,
         "test",
-        "desc"
-    );
+        "desc",
+        "",
+        "");
   }
 
   @Test
@@ -300,8 +325,9 @@ public class UdfCompilerTest {
     udfCompiler.compileAggregate(UdfCompilerTest.class.getMethod("createBooleanList"),
         classLoader,
         "test",
-        "desc"
-    );
+        "desc",
+        "",
+        "");
   }
 
   @Test
@@ -309,8 +335,9 @@ public class UdfCompilerTest {
     udfCompiler.compileAggregate(UdfCompilerTest.class.getMethod("createListBoolean"),
         classLoader,
         "test",
-        "desc"
-    );
+        "desc",
+        "",
+        "");
   }
 
   @Test
@@ -318,17 +345,29 @@ public class UdfCompilerTest {
     udfCompiler.compileAggregate(UdfCompilerTest.class.getMethod("createMapMap"),
         classLoader,
         "test",
-        "desc"
-    );
+        "desc",
+        "",
+        "");
   }
 
   @Test
   public void shouldHandleUdafsWithMapValMapAggTypesAndFactoryArg() throws Exception {
     udfCompiler.compileAggregate(UdfCompilerTest.class.getMethod("createMapMap", int.class),
-                                 classLoader,
-                                 "test",
-                                 "desc"
-    );
+        classLoader,
+        "test",
+        "desc",
+        "",
+        "");
+  }
+
+  @Test
+  public void shouldHandleUdafsWithStructStructTypes() throws Exception {
+    udfCompiler.compileAggregate(UdfCompilerTest.class.getMethod("createStructStruct"),
+        classLoader,
+        "test",
+        "desc",
+        "STRUCT<A VARCHAR>",
+        "STRUCT<B VARCHAR>");
   }
 
   @Test(expected = KsqlException.class)
@@ -336,8 +375,9 @@ public class UdfCompilerTest {
     udfCompiler.compileAggregate(UdfCompilerTest.class.getMethod("createBad"),
         classLoader,
         "test",
-        "desc"
-    );
+        "desc",
+        "",
+        "");
   }
 
   @Test(expected = KsqlException.class)
@@ -345,8 +385,9 @@ public class UdfCompilerTest {
     udfCompiler.compileAggregate(UdfCompilerTest.class.getMethod("createNonStatic"),
         classLoader,
         "test",
-        "desc"
-    );
+        "desc",
+        "",
+        "");
   }
 
   public String udf(final Set val) {
@@ -454,6 +495,10 @@ public class UdfCompilerTest {
   }
 
   public static Udaf<Map<String, Integer>, Map<Long, Boolean>> createMapMap(int ignored) {
+    return null;
+  }
+
+  public static Udaf<Struct, Struct> createStructStruct() {
     return null;
   }
 

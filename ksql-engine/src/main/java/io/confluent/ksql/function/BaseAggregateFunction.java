@@ -19,6 +19,7 @@ import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.function.Supplier;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.Struct;
 
 public abstract class BaseAggregateFunction<V, A> implements KsqlAggregateFunction<V, A> {
   /** An index of the function argument in the row that is used for computing the aggregate.
@@ -33,10 +34,6 @@ public abstract class BaseAggregateFunction<V, A> implements KsqlAggregateFuncti
   protected final String functionName;
   private final String description;
 
-  public BaseAggregateFunction(final String functionName, final Integer argIndexInValue) {
-    this(functionName, argIndexInValue, null, null, null, "");
-  }
-
   public BaseAggregateFunction(
       final String functionName,
       final int argIndexInValue,
@@ -46,11 +43,22 @@ public abstract class BaseAggregateFunction<V, A> implements KsqlAggregateFuncti
       final String description
   ) {
     this.argIndexInValue = argIndexInValue;
-    this.initialValueSupplier = initialValueSupplier;
+    this.initialValueSupplier = () -> {
+      final A val = initialValueSupplier.get();
+      if (val instanceof Struct && !((Struct) val).schema().isOptional()) {
+        throw new KsqlException("Initialize function for " + functionName
+            + " must return struct with optional schema");
+      }
+      return val;
+    };
     this.returnType = returnType;
     this.arguments = arguments;
     this.functionName = functionName;
     this.description = description;
+
+    if (!returnType.isOptional()) {
+      throw new IllegalArgumentException("KSQL only supports optional field types");
+    }
   }
 
   public boolean hasSameArgTypes(final List<Schema> argTypeList) {
@@ -76,7 +84,7 @@ public abstract class BaseAggregateFunction<V, A> implements KsqlAggregateFuncti
     return returnType;
   }
 
-  public List<Schema> getArgTypes() {
+  public List<Schema> getArguments() {
     return arguments;
   }
 

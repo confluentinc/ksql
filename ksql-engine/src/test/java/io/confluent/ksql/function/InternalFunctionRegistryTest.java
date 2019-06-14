@@ -28,6 +28,7 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.Collections2;
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Arrays;
@@ -230,7 +231,7 @@ public class InternalFunctionRegistryTest {
   @Test
   public void shouldAddAggregateFunction() {
     functionRegistry.addAggregateFunctionFactory(
-        new AggregateFunctionFactory("my_aggregate", Collections.emptyList()) {
+        new AggregateFunctionFactory("my_aggregate") {
           @Override
           public KsqlAggregateFunction getProperAggregateFunction(final List<Schema> argTypeList) {
             return new KsqlAggregateFunction() {
@@ -275,7 +276,7 @@ public class InternalFunctionRegistryTest {
               }
 
               @Override
-              public List<Schema> getArgTypes() {
+              public List<Schema> getArguments() {
                 return argTypeList;
               }
 
@@ -284,6 +285,11 @@ public class InternalFunctionRegistryTest {
                 return null;
               }
             };
+          }
+
+          @Override
+          public List<List<Schema>> supportedArgs() {
+            return ImmutableList.of();
           }
         });
     assertThat(functionRegistry.getAggregate("my_aggregate", Schema.OPTIONAL_INT32_SCHEMA), not(nullValue()));
@@ -352,8 +358,6 @@ public class InternalFunctionRegistryTest {
         "LCASE", "UCASE", "CONCAT", "TRIM", "IFNULL", "LEN",
         // Math UDF
         "ABS", "CEIL", "FLOOR", "ROUND", "RANDOM",
-        // Geo UDF
-        "GEO_DISTANCE",
         // JSON UDF
         "EXTRACTJSONFIELD", "ARRAYCONTAINS",
         // Struct UDF

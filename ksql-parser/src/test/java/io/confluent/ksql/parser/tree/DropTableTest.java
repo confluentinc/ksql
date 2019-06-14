@@ -15,6 +15,9 @@
 
 package io.confluent.ksql.parser.tree;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+
 import com.google.common.testing.EqualsTester;
 import java.util.Optional;
 import org.junit.Test;
@@ -45,5 +48,17 @@ public class DropTableTest {
             new DropTable(SOME_NAME, true, false)
         )
         .testEquals();
+  }
+
+  @Test
+  public void shouldCopyWithoutDeleteTopic() {
+    // Given:
+    final DropTable table = new DropTable(SOME_NAME, true, true);
+
+    // When:
+    final DropTable result = (DropTable) table.withoutDeleteClause();
+
+    // Then:
+    assertThat(result, is(new DropTable(SOME_NAME, true, false)));
   }
 }

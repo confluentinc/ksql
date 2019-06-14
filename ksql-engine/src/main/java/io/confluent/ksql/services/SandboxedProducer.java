@@ -17,7 +17,9 @@ package io.confluent.ksql.services;
 
 import static io.confluent.ksql.util.LimitedProxyBuilder.anyParams;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.util.LimitedProxyBuilder;
+import java.util.concurrent.CompletableFuture;
 import org.apache.kafka.clients.producer.Producer;
 
 /**
@@ -30,8 +32,10 @@ import org.apache.kafka.clients.producer.Producer;
  */
 final class SandboxedProducer<K, V> {
 
+  @SuppressFBWarnings("NP_NONNULL_PARAM_VIOLATION") // `null` is valid for `completedFuture`.
   static <K, V> Producer<K, V> createProxy() {
     return LimitedProxyBuilder.forClass(Producer.class)
+        .swallow("send", anyParams(), CompletableFuture.completedFuture(null))
         .swallow("close", anyParams())
         .build();
   }

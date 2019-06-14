@@ -15,8 +15,15 @@
 
 package io.confluent.ksql.datagen;
 
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.serde.delimited.KsqlDelimitedSerializer;
+import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.serde.GenericRowSerDe;
+import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.delimited.KsqlDelimitedSerdeFactory;
+import io.confluent.ksql.util.KsqlConfig;
 import org.apache.avro.Schema;
 import org.apache.kafka.common.serialization.Serializer;
 
@@ -28,6 +35,13 @@ public class DelimitedProducer extends DataGenProducer {
       final org.apache.kafka.connect.data.Schema kafkaSchema,
       final String topicName
   ) {
-    return new KsqlDelimitedSerializer();
+    return GenericRowSerDe.from(
+        new KsqlDelimitedSerdeFactory(),
+        PhysicalSchema.from(LogicalSchema.of(kafkaSchema), SerdeOption.none()),
+        new KsqlConfig(ImmutableMap.of()),
+        () -> null,
+        "",
+        NoopProcessingLogContext.INSTANCE
+    ).serializer();
   }
 }

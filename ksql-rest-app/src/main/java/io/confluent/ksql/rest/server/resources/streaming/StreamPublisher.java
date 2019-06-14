@@ -22,6 +22,7 @@ import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.resources.streaming.Flow.Subscriber;
+import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.QueuedQueryMetadata;
 import java.util.Collection;
@@ -37,15 +38,18 @@ class StreamPublisher implements Flow.Publisher<Collection<StreamedRow>> {
   private static final Logger log = LoggerFactory.getLogger(StreamPublisher.class);
 
   private final KsqlEngine ksqlEngine;
+  private final ServiceContext serviceContext;
   private final ConfiguredStatement<Query> query;
   private final ListeningScheduledExecutorService exec;
 
   StreamPublisher(
       final KsqlEngine ksqlEngine,
+      final ServiceContext serviceContext,
       final ListeningScheduledExecutorService exec,
       final ConfiguredStatement<Query> query
   ) {
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
+    this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
     this.exec = Objects.requireNonNull(exec, "exec");
     this.query = Objects.requireNonNull(query, "query");
   }
@@ -53,9 +57,10 @@ class StreamPublisher implements Flow.Publisher<Collection<StreamedRow>> {
   @SuppressWarnings("ConstantConditions")
   @Override
   public synchronized void subscribe(final Flow.Subscriber<Collection<StreamedRow>> subscriber) {
-    final QueuedQueryMetadata queryMetadata = (QueuedQueryMetadata) ksqlEngine.execute(query)
-        .getQuery()
-        .get();
+    final QueuedQueryMetadata queryMetadata =
+        (QueuedQueryMetadata) ksqlEngine.execute(serviceContext, query)
+            .getQuery()
+            .get();
 
     final StreamSubscription subscription = new StreamSubscription(subscriber, queryMetadata);
 
@@ -74,7 +79,7 @@ class StreamPublisher implements Flow.Publisher<Collection<StreamedRow>> {
         final Subscriber<Collection<StreamedRow>> subscriber,
         final QueuedQueryMetadata queryMetadata
     ) {
-      super(exec, subscriber, queryMetadata.getResultSchema());
+      super(exec, subscriber, queryMetadata.getLogicalSchema());
       this.queryMetadata = queryMetadata;
 
       queryMetadata.setLimitHandler(this::setDone);

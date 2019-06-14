@@ -15,14 +15,18 @@
 
 package io.confluent.ksql.rest.server;
 
-import static io.confluent.ksql.serde.DataSource.DataSourceSerDe.AVRO;
-import static io.confluent.ksql.serde.DataSource.DataSourceSerDe.JSON;
+import static io.confluent.ksql.serde.Format.AVRO;
+import static io.confluent.ksql.serde.Format.JSON;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.common.utils.IntegrationTest;
+import io.confluent.ksql.KsqlConfigTestUtil;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.rest.server.computation.ConfigStore;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
@@ -69,7 +73,7 @@ public class StandaloneExecutorFunctionalTest {
   private static final String AVRO_TOPIC = "avro-topic";
   private static final String JSON_TOPIC = "json-topic";
   private static int DATA_SIZE;
-  private static Schema DATA_SCHEMA;
+  private static PhysicalSchema DATA_SCHEMA;
 
   @Mock
   private VersionCheckerAgent versionChecker;
@@ -90,13 +94,15 @@ public class StandaloneExecutorFunctionalTest {
     DATA_SCHEMA = provider.schema();
   }
 
+  @SuppressWarnings("unchecked")
   @Before
   public void setUp() throws Exception {
     queryFile = TMP.newFile().toPath();
 
-    final Map<String, String> properties = ImmutableMap.of(
-        CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, TEST_HARNESS.kafkaBootstrapServers()
-    );
+    final Map<String, Object> properties = ImmutableMap.<String, Object>builder()
+        .putAll(KsqlConfigTestUtil.baseTestConfig())
+        .put(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, TEST_HARNESS.kafkaBootstrapServers())
+        .build();
 
     final KsqlConfig ksqlConfig = new KsqlConfig(properties);
 
@@ -109,7 +115,7 @@ public class StandaloneExecutorFunctionalTest {
         );
 
     standalone = StandaloneExecutorFactory.create(
-        properties,
+        (Map)properties,
         queryFile.toString(),
         ".",
         serviceContextFactory,
@@ -151,16 +157,23 @@ public class StandaloneExecutorFunctionalTest {
         + "\n"
         + "CREATE STREAM " + s2 + " AS SELECT * FROM S;\n");
 
+    final PhysicalSchema dataSchema = PhysicalSchema.from(
+        LogicalSchema.of(SchemaBuilder.struct()
+            .field("ORDERTIME", Schema.OPTIONAL_INT64_SCHEMA)
+            .build()),
+        SerdeOption.none()
+    );
+
     // When:
     standalone.start();
 
     // Then:
     // CSAS and INSERT INTO both input into S1:
-    TEST_HARNESS.verifyAvailableRows(s1, DATA_SIZE * 2, JSON, DATA_SCHEMA);
+    TEST_HARNESS.verifyAvailableRows(s1, DATA_SIZE * 2, JSON, dataSchema);
     // CTAS only into T1:
-    TEST_HARNESS.verifyAvailableUniqueRows(t1, DATA_SIZE, JSON, DATA_SCHEMA);
+    TEST_HARNESS.verifyAvailableUniqueRows(t1, DATA_SIZE, JSON, dataSchema);
     // S2 should be empty as 'auto.offset.reset' unset:
-    TEST_HARNESS.verifyAvailableUniqueRows(s2, 0, JSON, DATA_SCHEMA);
+    TEST_HARNESS.verifyAvailableUniqueRows(s2, 0, JSON, dataSchema);
   }
 
   @Test
@@ -185,16 +198,23 @@ public class StandaloneExecutorFunctionalTest {
         + "\n"
         + "CREATE STREAM " + s2 + " AS SELECT * FROM S;\n");
 
+    final PhysicalSchema dataSchema = PhysicalSchema.from(
+        LogicalSchema.of(SchemaBuilder.struct()
+            .field("ORDERTIME", Schema.OPTIONAL_INT64_SCHEMA)
+            .build()),
+        SerdeOption.none()
+    );
+
     // When:
     standalone.start();
 
     // Then:
     // CSAS and INSERT INTO both input into S1:
-    TEST_HARNESS.verifyAvailableRows(s1, DATA_SIZE * 2, AVRO, DATA_SCHEMA);
+    TEST_HARNESS.verifyAvailableRows(s1, DATA_SIZE * 2, AVRO, dataSchema);
     // CTAS only into T1:
-    TEST_HARNESS.verifyAvailableUniqueRows(t1, DATA_SIZE, AVRO, DATA_SCHEMA);
+    TEST_HARNESS.verifyAvailableUniqueRows(t1, DATA_SIZE, AVRO, dataSchema);
     // S2 should be empty as 'auto.offset.reset' unset:
-    TEST_HARNESS.verifyAvailableUniqueRows(s2, 0, AVRO, DATA_SCHEMA);
+    TEST_HARNESS.verifyAvailableUniqueRows(s2, 0, AVRO, dataSchema);
   }
 
   @Test
@@ -278,11 +298,23 @@ public class StandaloneExecutorFunctionalTest {
   }
 
   private static void givenIncompatibleSchemaExists(final String topicName) {
-    final Schema incompatible = SchemaBuilder.struct()
-        .field("ORDERID", Schema.INT64_SCHEMA)
-        .build();
+    final LogicalSchema logical = LogicalSchema.of(
+        SchemaBuilder.struct()
+            .field("ORDERID", SchemaBuilder
+                .struct()
+                .field("fred", Schema.OPTIONAL_INT32_SCHEMA)
+                .optional()
+                .build())
+            .field("Other", Schema.OPTIONAL_INT64_SCHEMA)
+            .build()
+    );
 
-    TEST_HARNESS.ensureSchema(topicName, incompatible);
+    final PhysicalSchema incompatiblePhysical = PhysicalSchema.from(
+        logical,
+        SerdeOption.none()
+    );
+
+    TEST_HARNESS.ensureSchema(topicName, incompatiblePhysical);
   }
 
   private void givenScript(final String contents) {

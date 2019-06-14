@@ -53,14 +53,20 @@ import io.confluent.ksql.parser.tree.SearchedCaseExpression;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.SubscriptExpression;
 import io.confluent.ksql.parser.tree.Type;
-import io.confluent.ksql.schema.ksql.LogicalSchemas;
+import io.confluent.ksql.schema.Operator;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SchemaConverters;
+import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.ExpressionTypeManager;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.SchemaUtil;
+import java.math.MathContext;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
+import java.util.Map;
+import java.util.Objects;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringEscapeUtils;
@@ -80,16 +86,27 @@ public class SqlToJavaVisitor {
       "java.util.List",
       "java.util.ArrayList",
       "com.google.common.collect.ImmutableList",
-      "java.util.function.Supplier");
+      "java.util.function.Supplier",
+      MathContext.class.getCanonicalName(),
+      RoundingMode.class.getCanonicalName());
 
-  private final Schema schema;
+  private static final Map<Operator, String> DECIMAL_OPERATOR_NAME = ImmutableMap
+      .<Operator, String>builder()
+      .put(Operator.ADD, "add")
+      .put(Operator.SUBTRACT, "subtract")
+      .put(Operator.MULTIPLY, "multiply")
+      .put(Operator.DIVIDE, "divide")
+      .put(Operator.MODULUS, "remainder")
+      .build();
+
+  private final LogicalSchema schema;
   private final FunctionRegistry functionRegistry;
 
   private final ExpressionTypeManager expressionTypeManager;
 
-  public SqlToJavaVisitor(final Schema schema, final FunctionRegistry functionRegistry) {
-    this.schema = schema;
-    this.functionRegistry = functionRegistry;
+  public SqlToJavaVisitor(final LogicalSchema schema, final FunctionRegistry functionRegistry) {
+    this.schema = Objects.requireNonNull(schema, "schema");
+    this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
     this.expressionTypeManager =
         new ExpressionTypeManager(schema, functionRegistry);
   }
@@ -169,11 +186,11 @@ public class SqlToJavaVisitor {
         final Void context
     ) {
       final String fieldName = formatQualifiedName(node.getName());
-      final Optional<Field> schemaField = SchemaUtil.getFieldByName(schema, fieldName);
-      if (!schemaField.isPresent()) {
-        throw new KsqlException("Field not found: " + fieldName);
-      }
-      final Schema schema = schemaField.get().schema();
+      final Field schemaField = schema.findValueField(fieldName)
+          .orElseThrow(() ->
+              new KsqlException("Field not found: " + fieldName));
+
+      final Schema schema = schemaField.schema();
       return new Pair<>(fieldName.replace(".", "_"), schema);
     }
 
@@ -183,11 +200,11 @@ public class SqlToJavaVisitor {
         final Void context
     ) {
       final String fieldName = node.toString();
-      final Optional<Field> schemaField = SchemaUtil.getFieldByName(schema, fieldName);
-      if (!schemaField.isPresent()) {
-        throw new KsqlException("Field not found: " + fieldName);
-      }
-      final Schema schema = schemaField.get().schema();
+      final Field schemaField = schema.findValueField(fieldName)
+          .orElseThrow(() ->
+              new KsqlException("Field not found: " + fieldName));
+
+      final Schema schema = schemaField.schema();
       return new Pair<>(fieldName.replace(".", "_"), schema);
     }
 
@@ -365,7 +382,7 @@ public class SqlToJavaVisitor {
         throw new KsqlFunctionException("Only casts to primitive types are supported: " + sqlType);
       }
 
-      final Schema returnType = LogicalSchemas.fromSqlTypeConverter().fromSqlType(sqlType);
+      final Schema returnType = SchemaConverters.sqlToLogicalConverter().fromSqlType(sqlType);
       final Schema rightSchema = expr.getRight();
       if (returnType.equals(rightSchema) || rightSchema == null) {
         return new Pair<>(expr.getLeft(), returnType);
@@ -459,12 +476,29 @@ public class SqlToJavaVisitor {
 
       final Schema schema =
           SchemaUtil.resolveBinaryOperatorResultType(
-              left.getRight().type(), right.getRight().type());
+              left.getRight(), right.getRight(), node.getOperator());
 
-      return new Pair<>(
-          "(" + left.getLeft() + " " + node.getType().getValue() + " " + right.getLeft() + ")",
-          schema
-      );
+      if (DecimalUtil.isDecimal(schema)) {
+        return new Pair<>(
+            String.format(
+                "(%s.%s(%s, new MathContext(%d, RoundingMode.UNNECESSARY)).setScale(%d))",
+                left.getLeft(),
+                DECIMAL_OPERATOR_NAME.get(node.getOperator()),
+                right.getLeft(),
+                DecimalUtil.precision(schema),
+                DecimalUtil.scale(schema)),
+            schema
+        );
+      } else {
+        return new Pair<>(
+            String.format(
+                "(%s %s %s)",
+                left.getLeft(),
+                node.getOperator().getSymbol(),
+                right.getLeft()),
+            schema
+        );
+      }
     }
 
     @Override

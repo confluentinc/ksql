@@ -18,14 +18,11 @@ package io.confluent.ksql.parser.tree;
 import static java.util.Objects.requireNonNull;
 
 import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.schema.ksql.SqlType;
 import java.util.Optional;
 
 @Immutable
 public abstract class Type extends Expression {
-
-  public enum SqlType {
-    BOOLEAN, INTEGER, BIGINT, DOUBLE, STRING, ARRAY, MAP, STRUCT
-  }
 
   private final SqlType sqlType;
 

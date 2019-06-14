@@ -93,9 +93,11 @@ semantics.
 
 .. important::
 
-    If you use the WITH(timestamp=...) clause, this timestamp must be expressible
+    If you use the WITH(TIMESTAMP=...) clause, this timestamp must be expressible
     as a Unix epoch time in milliseconds, which is the number of milliseconds
-    that have elapsed since 1 January 1970 at midnight UTC/GMT.
+    that have elapsed since 1 January 1970 at midnight UTC/GMT. Also, you can 
+    specify the timestamp as a string when you provide a TIMESTAMP_FORMAT.
+    For more information, see :ref:`ksql-timestamp-formats`. 
 
     When working with time you should also make sure that additional
     aspects of time, like time zones and calendars, are correctly synchronized – or
@@ -165,6 +167,13 @@ are named *windows*.
 A window has a start time and an end time, which you access in your queries by
 using the WINDOWSTART() and WINDOWEND() functions.
 
+.. important::
+
+    KSQL is based on the Unix epoch time in the UTC timezone, and this can affect
+    time windows. For example, if you define a 24-hour tumbling time window, it will
+    be in the UTC timezone, which may not be appropriate if you want to have daily
+    windows in your timezone.
+
 Windowing lets you control how to group records that have the same key for
 stateful operations, like aggregations or joins, into time spans. KSQL tracks
 windows per record key.
@@ -178,36 +187,8 @@ windows per record key.
 
 When using windows in your KSQL queries, aggregate functions are applied only
 to the records that occur within a specific time window. Records that arrive
-late are handled as you might expect: although the time window they belong to
-has expired, the late records are still associated with the correct window.
-
-You can specify a retention period for the window in your KSQL queries. This
-retention period controls how long KSQL waits for out-of-order or late-arriving
-records for a given window. If a record arrives after the retention period of a
-window has passed, the record is discarded and isn't processed in that window.
-
-.. note::
-
-    Starting in KSQL 5.1, a *grace period* configuration determines how long
-    to wait before closing a window. This enables accessing the window with
-    interactive queries, even if it's closed. Retention time is still a valid
-    parameter that defines for how long the potentially closed window is stored. 
-
-In the real world, late-arriving records are always possible, and your KSQL
-applications must account for them properly. The system's time semantics
-determine how late records are handled. For processing-time, the semantics are
-“when the record is being processed”, which means that the notion of late records
-isn't applicable because, by definition, no record can be late.
-
-Late-arriving records are considered “late” only for event-time and ingestion-time
-semantics. In both cases, KSQL is able to handle late-arriving records properly.
-
-.. important::
-
-    KSQL is based on the Unix epoch time in the UTC timezone, and this can affect
-    time windows. For example, if you define a 24-hour tumbling time window, it will
-    be in the UTC timezone, which may not be appropriate if you want to have daily
-    windows in your timezone.
+out-of-order are handled as you might expect: although the window end time has
+passed, the out-of-order records are still associated with the correct window.
 
 Window Types
 ============

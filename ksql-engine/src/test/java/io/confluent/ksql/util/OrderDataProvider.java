@@ -16,6 +16,9 @@
 package io.confluent.ksql.util;
 
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.serde.SerdeOption;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -32,19 +35,27 @@ public class OrderDataProvider extends TestDataProvider {
 
   private static final String key = "ORDERTIME";
 
-  private static final Schema schema = SchemaBuilder.struct()
+  private static final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
       .field("ORDERTIME", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
       .field("ORDERID", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
       .field("ITEMID", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
       .field("ORDERUNITS", SchemaBuilder.OPTIONAL_FLOAT64_SCHEMA)
       .field("TIMESTAMP", Schema.OPTIONAL_STRING_SCHEMA)
-      .field("PRICEARRAY", SchemaBuilder.array(SchemaBuilder.OPTIONAL_FLOAT64_SCHEMA).optional().build())
-      .field("KEYVALUEMAP", SchemaBuilder.map(SchemaBuilder.OPTIONAL_STRING_SCHEMA, SchemaBuilder.OPTIONAL_FLOAT64_SCHEMA)).optional().build();
+      .field("PRICEARRAY", SchemaBuilder
+          .array(SchemaBuilder.OPTIONAL_FLOAT64_SCHEMA)
+          .optional()
+          .build())
+      .field("KEYVALUEMAP", SchemaBuilder
+          .map(SchemaBuilder.OPTIONAL_STRING_SCHEMA, SchemaBuilder.OPTIONAL_FLOAT64_SCHEMA)
+          .optional()
+          .build())
+      .optional()
+      .build());
 
   private static final Map<String, GenericRow> data = buildData();
 
   public OrderDataProvider() {
-    super(namePrefix, ksqlSchemaString, key, schema, data);
+    super(namePrefix, ksqlSchemaString, key, PhysicalSchema.from(schema, SerdeOption.none()), data);
   }
 
   private static Map<String, GenericRow> buildData() {

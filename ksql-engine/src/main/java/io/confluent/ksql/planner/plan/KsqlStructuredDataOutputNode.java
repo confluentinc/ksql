@@ -15,78 +15,130 @@
 
 package io.confluent.ksql.planner.plan;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
+import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
+import static java.util.Objects.requireNonNull;
+
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Streams;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.metastore.SerdeFactory;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.physical.KsqlQueryBuilder;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.serde.DataSource.DataSourceType;
-import io.confluent.ksql.serde.KsqlTopicSerDe;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.structured.QueryContext;
 import io.confluent.ksql.structured.SchemaKStream;
+import io.confluent.ksql.structured.SchemaKStream.Type;
 import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.QueryIdGenerator;
-import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import java.util.Collections;
-import java.util.Map;
+import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.apache.kafka.common.serialization.Serde;
+import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.streams.kstream.KStream;
 
 public class KsqlStructuredDataOutputNode extends OutputNode {
-  private final String kafkaTopicName;
+
   private final KsqlTopic ksqlTopic;
   private final KeyField keyField;
   private final boolean doCreateInto;
-  private final Map<String, Object> outputProperties;
+  private final boolean selectKeyRequired;
+  private final Set<SerdeOption> serdeOptions;
+  private final SinKFactory sinKFactory;
+  private final Set<Integer> implicitAndKeyFieldIndexes;
 
-  @JsonCreator
   public KsqlStructuredDataOutputNode(
-      @JsonProperty("id") final PlanNodeId id,
-      @JsonProperty("source") final PlanNode source,
-      @JsonProperty("schema") final Schema schema,
-      @JsonProperty("timestamp") final TimestampExtractionPolicy timestampExtractionPolicy,
-      @JsonProperty("key") final KeyField keyField,
-      @JsonProperty("ksqlTopic") final KsqlTopic ksqlTopic,
-      @JsonProperty("topicName") final String kafkaTopicName,
-      @JsonProperty("outputProperties") final Map<String, Object> outputProperties,
-      @JsonProperty("limit") final Optional<Integer> limit,
-      @JsonProperty("doCreateInto") final boolean doCreateInto
+      final PlanNodeId id,
+      final PlanNode source,
+      final LogicalSchema schema,
+      final TimestampExtractionPolicy timestampExtractionPolicy,
+      final KeyField keyField,
+      final KsqlTopic ksqlTopic,
+      final boolean selectKeyRequired,
+      final OptionalInt limit,
+      final boolean doCreateInto,
+      final Set<SerdeOption> serdeOptions
   ) {
-    super(id, source, schema, limit, timestampExtractionPolicy);
-    this.kafkaTopicName = Objects.requireNonNull(kafkaTopicName, "kafkaTopicName");
-    this.keyField = Objects.requireNonNull(keyField, "keyField")
-        .validateKeyExistsIn(schema);
-    this.ksqlTopic = Objects.requireNonNull(ksqlTopic, "ksqlTopic");
-    this.outputProperties = Objects.requireNonNull(outputProperties, "outputProperties");
-    this.doCreateInto = doCreateInto;
-
-    final Optional<Field> partitionBy = getPartitionByField(schema);
-    if (partitionBy.isPresent()
-        && !partitionBy.get().name().equals(keyField.name().orElse(null))) {
-      throw new IllegalArgumentException(
-          "keyField does not match partition by field. "
-              + "keyField: " + keyField.name() + ", "
-              + "partitionByField:" + partitionBy.get());
-    }
+    this(
+        id,
+        source,
+        schema,
+        timestampExtractionPolicy,
+        keyField,
+        ksqlTopic,
+        selectKeyRequired,
+        limit,
+        doCreateInto,
+        serdeOptions,
+        SchemaKStream::new
+    );
   }
 
-  public String getKafkaTopicName() {
-    return kafkaTopicName;
+  // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
+  @VisibleForTesting
+  KsqlStructuredDataOutputNode(
+      final PlanNodeId id,
+      final PlanNode source,
+      final LogicalSchema schema,
+      final TimestampExtractionPolicy timestampExtractionPolicy,
+      final KeyField keyField,
+      final KsqlTopic ksqlTopic,
+      final boolean selectKeyRequired,
+      final OptionalInt limit,
+      final boolean doCreateInto,
+      final Set<SerdeOption> serdeOptions,
+      final SinKFactory<?> sinkFactory
+  ) {
+    // CHECKSTYLE_RULES.ON: ParameterNumberCheck
+    super(
+        id,
+        source,
+        // KSQL internally copies the implicit and key fields into the value schema.
+        // This is done by DataSourceNode
+        // Hence, they must be removed again here if they are still in the sink schema.
+        // This leads to strange behaviour, but changing it is a breaking change.
+        schema.withoutImplicitAndKeyFieldsInValue(),
+        limit,
+        timestampExtractionPolicy
+    );
+
+    this.serdeOptions = ImmutableSet.copyOf(requireNonNull(serdeOptions, "serdeOptions"));
+    this.keyField = requireNonNull(keyField, "keyField")
+        .validateKeyExistsIn(schema);
+    this.ksqlTopic = requireNonNull(ksqlTopic, "ksqlTopic");
+    this.selectKeyRequired = selectKeyRequired;
+    this.doCreateInto = doCreateInto;
+    this.implicitAndKeyFieldIndexes = implicitAndKeyColumnIndexesInValueSchema(schema);
+    this.sinKFactory = requireNonNull(sinkFactory, "sinkFactory");
+
+    if (selectKeyRequired && !keyField.name().isPresent()) {
+      throw new IllegalArgumentException("keyField must be provided when performing partition by");
+    }
   }
 
   public boolean isDoCreateInto() {
     return doCreateInto;
+  }
+
+  public KsqlTopic getKsqlTopic() {
+    return ksqlTopic;
+  }
+
+  public Set<SerdeOption> getSerdeOptions() {
+    return serdeOptions;
   }
 
   @Override
@@ -113,9 +165,6 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
 
     final QueryContext.Stacker contextStacker = builder.buildNodeContext(getId());
 
-    final Set<Integer> rowkeyIndexes = SchemaUtil.getRowTimeRowKeyIndexes(getSchema());
-    final Schema schema = SchemaUtil.removeImplicitRowTimeRowKeyFromSchema(getSchema());
-
     final SchemaKStream<?> result = createOutputStream(
         schemaKStream,
         builder.getKsqlConfig(),
@@ -123,21 +172,18 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
         contextStacker
     );
 
-    final KsqlTopicSerDe ksqlTopicSerDe = getKsqlTopic()
-        .getKsqlTopicSerDe();
-
     final Serde<GenericRow> outputRowSerde = builder.buildGenericRowSerde(
-        ksqlTopicSerDe,
-        schema,
-        contextStacker.getQueryContext());
-
-    result.into(
-        getKafkaTopicName(),
-        outputRowSerde,
-        rowkeyIndexes
+        getKsqlTopic().getValueSerdeFactory(),
+        PhysicalSchema.from(getSchema(), serdeOptions),
+        contextStacker.getQueryContext()
     );
 
-    result.setOutputNode(this);
+    result.into(
+        getKsqlTopic().getKafkaTopicName(),
+        outputRowSerde,
+        implicitAndKeyFieldIndexes
+    );
+
     return result;
   }
 
@@ -158,8 +204,8 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
         getKeyField().legacy()
     );
 
-    final SchemaKStream result = new SchemaKStream(
-        getSchema(),
+    final SchemaKStream result = sinKFactory.create(
+        schemaKStream.getSchema(),
         schemaKStream.getKstream(),
         resultKeyField,
         Collections.singletonList(schemaKStream),
@@ -170,26 +216,44 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
         contextStacker.getQueryContext()
     );
 
-    final Optional<Field> partitionByField = getPartitionByField(result.getSchema());
-    if (!partitionByField.isPresent()) {
+    if (!selectKeyRequired) {
       return result;
     }
 
-    final Field field = partitionByField.get();
-    return result.selectKey(field, false, contextStacker);
+    final Field newKey = keyField.resolveLatest(getSchema())
+        .orElseThrow(IllegalStateException::new);
+
+    return result.selectKey(newKey.name(), false, contextStacker);
   }
 
-  private Optional<Field> getPartitionByField(final Schema schema) {
-    return Optional.ofNullable(outputProperties.get(DdlConfig.PARTITION_BY_PROPERTY))
-        .map(Object::toString)
-        .map(keyName -> SchemaUtil.getFieldByName(schema, keyName)
-            .orElseThrow(() -> new KsqlException(
-                "Column " + keyName + " does not exist in the result schema. "
-                    + "Error in Partition By clause.")
-            ));
+  private static Set<Integer> implicitAndKeyColumnIndexesInValueSchema(final LogicalSchema schema) {
+    final ConnectSchema valueSchema = schema.valueSchema();
+
+    @SuppressWarnings("UnstableApiUsage") final Stream<Field> fields = Streams.concat(
+        schema.implicitFields().stream(),
+        schema.keyFields().stream()
+    );
+
+    return fields
+        .map(Field::name)
+        .map(valueSchema::field)
+        .filter(Objects::nonNull)
+        .map(Field::index)
+        .collect(Collectors.toSet());
   }
 
-  public KsqlTopic getKsqlTopic() {
-    return ksqlTopic;
+  interface SinKFactory<K> {
+
+    SchemaKStream create(
+        LogicalSchema schema,
+        KStream<K, GenericRow> kstream,
+        KeyField keyField,
+        List<SchemaKStream> sourceSchemaKStreams,
+        SerdeFactory<K> keySerdeFactory,
+        Type type,
+        KsqlConfig ksqlConfig,
+        FunctionRegistry functionRegistry,
+        QueryContext queryContext
+    );
   }
 }

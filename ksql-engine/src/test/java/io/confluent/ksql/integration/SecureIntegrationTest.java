@@ -21,6 +21,7 @@ import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.VALID_U
 import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.ops;
 import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.prefixedResource;
 import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.resource;
+import static io.confluent.ksql.util.KsqlConfig.KSQL_CUSTOM_METRICS_TAGS;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_SERVICE_ID_CONFIG;
 import static org.apache.kafka.common.acl.AclOperation.ALL;
 import static org.apache.kafka.common.acl.AclOperation.CREATE;
@@ -37,6 +38,7 @@ import static org.hamcrest.Matchers.is;
 
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.KsqlConfigTestUtil;
+import io.confluent.ksql.ServiceInfo;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlEngineTestUtil;
 import io.confluent.ksql.function.InternalFunctionRegistry;
@@ -269,7 +271,7 @@ public class SecureIntegrationTest {
         serviceContext,
         ProcessingLogContext.create(),
         new InternalFunctionRegistry(),
-        ksqlConfig.getString(KSQL_SERVICE_ID_CONFIG));
+        ServiceInfo.create(ksqlConfig));
 
     execInitCreateStreamQueries();
   }

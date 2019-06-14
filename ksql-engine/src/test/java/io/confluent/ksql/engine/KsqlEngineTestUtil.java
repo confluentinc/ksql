@@ -29,6 +29,8 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.QueryMetadata;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -48,7 +50,7 @@ public final class KsqlEngineTestUtil {
         ProcessingLogContext.create(),
         "test_instance_",
         metaStore,
-        KsqlEngineMetrics::new
+        (engine) -> new KsqlEngineMetrics(engine, Collections.emptyMap())
     );
   }
 

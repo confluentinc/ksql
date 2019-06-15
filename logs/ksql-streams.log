@@ -1,0 +1,365 @@
+[2019-06-14 15:16:58,271] INFO StreamsConfig values: 
+	application.id = _confluent-ksql-default_transient_107548325350613394_1560550618256
+	application.server = 
+	bootstrap.servers = [localhost:9092]
+	buffered.records.per.partition = 1000
+	cache.max.bytes.buffering = 10000000
+	client.id = 
+	commit.interval.ms = 2000
+	connections.max.idle.ms = 540000
+	default.deserialization.exception.handler = class io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler
+	default.key.serde = class org.apache.kafka.common.serialization.Serdes$ByteArraySerde
+	default.production.exception.handler = class io.confluent.ksql.errors.ProductionExceptionHandlerUtil$LogAndFailProductionExceptionHandler
+	default.timestamp.extractor = class org.apache.kafka.streams.processor.FailOnInvalidTimestamp
+	default.value.serde = class org.apache.kafka.common.serialization.Serdes$ByteArraySerde
+	max.task.idle.ms = 0
+	metadata.max.age.ms = 300000
+	metric.reporters = []
+	metrics.num.samples = 2
+	metrics.recording.level = INFO
+	metrics.sample.window.ms = 30000
+	num.standby.replicas = 0
+	num.stream.threads = 4
+	partition.grouper = class org.apache.kafka.streams.processor.DefaultPartitionGrouper
+	poll.ms = 100
+	processing.guarantee = at_least_once
+	receive.buffer.bytes = 32768
+	reconnect.backoff.max.ms = 1000
+	reconnect.backoff.ms = 50
+	replication.factor = 1
+	request.timeout.ms = 40000
+	retries = 0
+	retry.backoff.ms = 100
+	rocksdb.config.setter = null
+	security.protocol = PLAINTEXT
+	send.buffer.bytes = 131072
+	state.cleanup.delay.ms = 600000
+	state.dir = /var/lib/kafka-streams
+	topology.optimization = all
+	upgrade.from = null
+	windowstore.changelog.additional.retention.ms = 86400000
+ (org.apache.kafka.streams.StreamsConfig:347)
+[2019-06-14 15:16:58,290] INFO stream-thread [_confluent-ksql-default_transient_107548325350613394_1560550618256-f651aa6c-1586-4621-985f-7ea27ddb7fbf-StreamThread-1] Creating restore consumer client (org.apache.kafka.streams.processor.internals.StreamThread:609)
+[2019-06-14 15:16:58,297] INFO stream-thread [_confluent-ksql-default_transient_107548325350613394_1560550618256-f651aa6c-1586-4621-985f-7ea27ddb7fbf-StreamThread-1] Creating shared producer client (org.apache.kafka.streams.processor.internals.StreamThread:619)
+[2019-06-14 15:16:58,315] INFO stream-thread [_confluent-ksql-default_transient_107548325350613394_1560550618256-f651aa6c-1586-4621-985f-7ea27ddb7fbf-StreamThread-1] Creating consumer client (org.apache.kafka.streams.processor.internals.StreamThread:662)
+[2019-06-14 15:16:58,356] INFO stream-thread [_confluent-ksql-default_transient_107548325350613394_1560550618256-f651aa6c-1586-4621-985f-7ea27ddb7fbf-StreamThread-2] Creating restore consumer client (org.apache.kafka.streams.processor.internals.StreamThread:609)
+[2019-06-14 15:16:58,360] INFO stream-thread [_confluent-ksql-default_transient_107548325350613394_1560550618256-f651aa6c-1586-4621-985f-7ea27ddb7fbf-StreamThread-2] Creating shared producer client (org.apache.kafka.streams.processor.internals.StreamThread:619)
+[2019-06-14 15:16:58,368] INFO stream-thread [_confluent-ksql-default_transient_107548325350613394_1560550618256-f651aa6c-1586-4621-985f-7ea27ddb7fbf-StreamThread-2] Creating consumer client (org.apache.kafka.streams.processor.internals.StreamThread:662)
+[2019-06-14 15:16:58,376] INFO stream-thread [_confluent-ksql-default_transient_107548325350613394_1560550618256-f651aa6c-1586-4621-985f-7ea27ddb7fbf-StreamThread-3] Creating restore consumer client (org.apache.kafka.streams.processor.internals.StreamThread:609)
+[2019-06-14 15:16:58,383] INFO stream-thread [_confluent-ksql-default_transient_107548325350613394_1560550618256-f651aa6c-1586-4621-985f-7ea27ddb7fbf-StreamThread-3] Creating shared producer client (org.apache.kafka.streams.processor.internals.StreamThread:619)
+[2019-06-14 15:16:58,391] INFO stream-thread [_confluent-ksql-default_transient_107548325350613394_1560550618256-f651aa6c-1586-4621-985f-7ea27ddb7fbf-StreamThread-3] Creating consumer client (org.apache.kafka.streams.processor.internals.StreamThread:662)
+[2019-06-14 15:16:58,397] INFO stream-thread [_confluent-ksql-default_transient_107548325350613394_1560550618256-f651aa6c-1586-4621-985f-7ea27ddb7fbf-StreamThread-4] Creating restore consumer client (org.apache.kafka.streams.processor.internals.StreamThread:609)
+[2019-06-14 15:16:58,404] INFO stream-thread [_confluent-ksql-default_transient_107548325350613394_1560550618256-f651aa6c-1586-4621-985f-7ea27ddb7fbf-StreamThread-4] Creating shared producer client (org.apache.kafka.streams.processor.internals.StreamThread:619)
+[2019-06-14 15:16:58,412] INFO stream-thread [_confluent-ksql-default_transient_107548325350613394_1560550618256-f651aa6c-1586-4621-985f-7ea27ddb7fbf-StreamThread-4] Creating consumer client (org.apache.kafka.streams.processor.internals.StreamThread:662)
+[2019-06-14 15:16:58,432] INFO stream-client [_confluent-ksql-default_transient_107548325350613394_1560550618256-f651aa6c-1586-4621-985f-7ea27ddb7fbf] State transition from CREATED to REBALANCING (org.apache.kafka.streams.KafkaStreams:263)
+[2019-06-14 15:16:58,432] INFO stream-thread [_confluent-ksql-default_transient_107548325350613394_1560550618256-f651aa6c-1586-4621-985f-7ea27ddb7fbf-StreamThread-1] Starting (org.apache.kafka.streams.processor.internals.StreamThread:767)
+[2019-06-14 15:16:58,433] INFO stream-thread [_confluent-ksql-default_transient_107548325350613394_1560550618256-f651aa6c-1586-4621-985f-7ea27ddb7fbf-StreamThread-3] Starting (org.apache.kafka.streams.processor.internals.StreamThread:767)
+[2019-06-14 15:16:58,433] INFO stream-thread [_confluent-ksql-default_transient_107548325350613394_1560550618256-f651aa6c-1586-4621-985f-7ea27ddb7fbf-StreamThread-1] State transition from CREATED to STARTING (org.apache.kafka.streams.processor.internals.StreamThread:212)
+[2019-06-14 15:16:58,433] INFO stream-thread [_confluent-ksql-default_transient_107548325350613394_1560550618256-f651aa6c-1586-4621-985f-7ea27ddb7fbf-StreamThread-4] Starting (org.apache.kafka.streams.processor.internals.StreamThread:767)
+[2019-06-14 15:16:58,433] INFO stream-thread [_confluent-ksql-default_transient_107548325350613394_1560550618256-f651aa6c-1586-4621-985f-7ea27ddb7fbf-StreamThread-2] Starting (org.apache.kafka.streams.processor.internals.StreamThread:767)
+[2019-06-14 15:16:58,434] INFO stream-thread [_confluent-ksql-default_transient_107548325350613394_1560550618256-f651aa6c-1586-4621-985f-7ea27ddb7fbf-StreamThread-4] State transition from CREATED to STARTING (org.apache.kafka.streams.processor.internals.StreamThread:212)
+[2019-06-14 15:16:58,433] INFO stream-thread [_confluent-ksql-default_transient_107548325350613394_1560550618256-f651aa6c-1586-4621-985f-7ea27ddb7fbf-StreamThread-3] State transition from CREATED to STARTING (org.apache.kafka.streams.processor.internals.StreamThread:212)
+[2019-06-14 15:16:58,434] INFO stream-thread [_confluent-ksql-default_transient_107548325350613394_1560550618256-f651aa6c-1586-4621-985f-7ea27ddb7fbf-StreamThread-2] State transition from CREATED to STARTING (org.apache.kafka.streams.processor.internals.StreamThread:212)
+[2019-06-14 15:16:58,444] INFO stream-thread [_confluent-ksql-default_transient_107548325350613394_1560550618256-f651aa6c-1586-4621-985f-7ea27ddb7fbf-StreamThread-1] State transition from STARTING to PARTITIONS_REVOKED (org.apache.kafka.streams.processor.internals.StreamThread:212)
+[2019-06-14 15:16:58,444] INFO stream-thread [_confluent-ksql-default_transient_107548325350613394_1560550618256-f651aa6c-1586-4621-985f-7ea27ddb7fbf-StreamThread-4] State transition from STARTING to PARTITIONS_REVOKED (org.apache.kafka.streams.processor.internals.StreamThread:212)
+[2019-06-14 15:16:58,444] INFO stream-thread [_confluent-ksql-default_transient_107548325350613394_1560550618256-f651aa6c-1586-4621-985f-7ea27ddb7fbf-StreamThread-3] State transition from STARTING to PARTITIONS_REVOKED (org.apache.kafka.streams.processor.internals.StreamThread:212)
+[2019-06-14 15:16:58,444] INFO stream-thread [_confluent-ksql-default_transient_107548325350613394_1560550618256-f651aa6c-1586-4621-985f-7ea27ddb7fbf-StreamThread-2] State transition from STARTING to PARTITIONS_REVOKED (org.apache.kafka.streams.processor.internals.StreamThread:212)
+[2019-06-14 15:16:58,445] INFO stream-thread [_confluent-ksql-default_transient_107548325350613394_1560550618256-f651aa6c-1586-4621-985f-7ea27ddb7fbf-StreamThread-3] partition revocation took 0 ms.
+	suspended active tasks: []
+	suspended standby tasks: [] (org.apache.kafka.streams.processor.internals.StreamThread:328)
+[2019-06-14 15:16:58,445] INFO stream-thread [_confluent-ksql-default_transient_107548325350613394_1560550618256-f651aa6c-1586-4621-985f-7ea27ddb7fbf-StreamThread-1] partition revocation took 1 ms.
+	suspended active tasks: []
+	suspended standby tasks: [] (org.apache.kafka.streams.processor.internals.StreamThread:328)
+[2019-06-14 15:16:58,445] INFO stream-thread [_confluent-ksql-default_transient_107548325350613394_1560550618256-f651aa6c-1586-4621-985f-7ea27ddb7fbf-StreamThread-4] partition revocation took 0 ms.
+	suspended active tasks: []
+	suspended standby tasks: [] (org.apache.kafka.streams.processor.internals.StreamThread:328)
+[2019-06-14 15:16:58,445] INFO stream-thread [_confluent-ksql-default_transient_107548325350613394_1560550618256-f651aa6c-1586-4621-985f-7ea27ddb7fbf-StreamThread-2] partition revocation took 0 ms.
+	suspended active tasks: []
+	suspended standby tasks: [] (org.apache.kafka.streams.processor.internals.StreamThread:328)
+[2019-06-14 15:16:58,471] INFO stream-thread [_confluent-ksql-default_transient_107548325350613394_1560550618256-f651aa6c-1586-4621-985f-7ea27ddb7fbf-StreamThread-2-consumer] Assigned tasks to clients as {f651aa6c-1586-4621-985f-7ea27ddb7fbf=[activeTasks: ([0_0]) standbyTasks: ([]) assignedTasks: ([0_0]) prevActiveTasks: ([]) prevStandbyTasks: ([]) prevAssignedTasks: ([]) capacity: 4]}. (org.apache.kafka.streams.processor.internals.StreamsPartitionAssignor:636)
+[2019-06-14 15:16:58,479] INFO stream-thread [_confluent-ksql-default_transient_107548325350613394_1560550618256-f651aa6c-1586-4621-985f-7ea27ddb7fbf-StreamThread-4] State transition from PARTITIONS_REVOKED to PARTITIONS_ASSIGNED (org.apache.kafka.streams.processor.internals.StreamThread:212)
+[2019-06-14 15:16:58,479] INFO stream-thread [_confluent-ksql-default_transient_107548325350613394_1560550618256-f651aa6c-1586-4621-985f-7ea27ddb7fbf-StreamThread-3] State transition from PARTITIONS_REVOKED to PARTITIONS_ASSIGNED (org.apache.kafka.streams.processor.internals.StreamThread:212)
+[2019-06-14 15:16:58,479] INFO stream-thread [_confluent-ksql-default_transient_107548325350613394_1560550618256-f651aa6c-1586-4621-985f-7ea27ddb7fbf-StreamThread-2] State transition from PARTITIONS_REVOKED to PARTITIONS_ASSIGNED (org.apache.kafka.streams.processor.internals.StreamThread:212)
+[2019-06-14 15:16:58,480] INFO stream-thread [_confluent-ksql-default_transient_107548325350613394_1560550618256-f651aa6c-1586-4621-985f-7ea27ddb7fbf-StreamThread-3] partition assignment took 1 ms.
+	current active tasks: []
+	current standby tasks: []
+	previous active tasks: []
+ (org.apache.kafka.streams.processor.internals.StreamThread:288)
+[2019-06-14 15:16:58,480] INFO stream-thread [_confluent-ksql-default_transient_107548325350613394_1560550618256-f651aa6c-1586-4621-985f-7ea27ddb7fbf-StreamThread-1] State transition from PARTITIONS_REVOKED to PARTITIONS_ASSIGNED (org.apache.kafka.streams.processor.internals.StreamThread:212)
+[2019-06-14 15:16:58,479] INFO stream-thread [_confluent-ksql-default_transient_107548325350613394_1560550618256-f651aa6c-1586-4621-985f-7ea27ddb7fbf-StreamThread-4] partition assignment took 0 ms.
+	current active tasks: []
+	current standby tasks: []
+	previous active tasks: []
+ (org.apache.kafka.streams.processor.internals.StreamThread:288)
+[2019-06-14 15:16:58,481] INFO stream-thread [_confluent-ksql-default_transient_107548325350613394_1560550618256-f651aa6c-1586-4621-985f-7ea27ddb7fbf-StreamThread-1] partition assignment took 1 ms.
+	current active tasks: []
+	current standby tasks: []
+	previous active tasks: []
+ (org.apache.kafka.streams.processor.internals.StreamThread:288)
+[2019-06-14 15:16:58,512] INFO stream-thread [_confluent-ksql-default_transient_107548325350613394_1560550618256-f651aa6c-1586-4621-985f-7ea27ddb7fbf-StreamThread-2] partition assignment took 33 ms.
+	current active tasks: [0_0]
+	current standby tasks: []
+	previous active tasks: []
+ (org.apache.kafka.streams.processor.internals.StreamThread:288)
+[2019-06-14 15:16:58,539] INFO stream-thread [_confluent-ksql-default_transient_107548325350613394_1560550618256-f651aa6c-1586-4621-985f-7ea27ddb7fbf-StreamThread-3] State transition from PARTITIONS_ASSIGNED to RUNNING (org.apache.kafka.streams.processor.internals.StreamThread:212)
+[2019-06-14 15:16:58,540] INFO stream-thread [_confluent-ksql-default_transient_107548325350613394_1560550618256-f651aa6c-1586-4621-985f-7ea27ddb7fbf-StreamThread-1] State transition from PARTITIONS_ASSIGNED to RUNNING (org.apache.kafka.streams.processor.internals.StreamThread:212)
+[2019-06-14 15:16:58,543] INFO stream-thread [_confluent-ksql-default_transient_107548325350613394_1560550618256-f651aa6c-1586-4621-985f-7ea27ddb7fbf-StreamThread-4] State transition from PARTITIONS_ASSIGNED to RUNNING (org.apache.kafka.streams.processor.internals.StreamThread:212)
+[2019-06-14 15:16:58,548] INFO stream-thread [_confluent-ksql-default_transient_107548325350613394_1560550618256-f651aa6c-1586-4621-985f-7ea27ddb7fbf-StreamThread-2] State transition from PARTITIONS_ASSIGNED to RUNNING (org.apache.kafka.streams.processor.internals.StreamThread:212)
+[2019-06-14 15:16:58,549] INFO stream-client [_confluent-ksql-default_transient_107548325350613394_1560550618256-f651aa6c-1586-4621-985f-7ea27ddb7fbf] State transition from REBALANCING to RUNNING (org.apache.kafka.streams.KafkaStreams:263)
+[2019-06-14 15:16:58,659] INFO stream-client [_confluent-ksql-default_transient_107548325350613394_1560550618256-f651aa6c-1586-4621-985f-7ea27ddb7fbf] State transition from RUNNING to PENDING_SHUTDOWN (org.apache.kafka.streams.KafkaStreams:263)
+[2019-06-14 15:16:58,660] INFO stream-thread [_confluent-ksql-default_transient_107548325350613394_1560550618256-f651aa6c-1586-4621-985f-7ea27ddb7fbf-StreamThread-1] Informed to shut down (org.apache.kafka.streams.processor.internals.StreamThread:1192)
+[2019-06-14 15:16:58,661] INFO stream-thread [_confluent-ksql-default_transient_107548325350613394_1560550618256-f651aa6c-1586-4621-985f-7ea27ddb7fbf-StreamThread-1] State transition from RUNNING to PENDING_SHUTDOWN (org.apache.kafka.streams.processor.internals.StreamThread:212)
+[2019-06-14 15:16:58,661] INFO stream-thread [_confluent-ksql-default_transient_107548325350613394_1560550618256-f651aa6c-1586-4621-985f-7ea27ddb7fbf-StreamThread-2] Informed to shut down (org.apache.kafka.streams.processor.internals.StreamThread:1192)
+[2019-06-14 15:16:58,661] INFO stream-thread [_confluent-ksql-default_transient_107548325350613394_1560550618256-f651aa6c-1586-4621-985f-7ea27ddb7fbf-StreamThread-2] State transition from RUNNING to PENDING_SHUTDOWN (org.apache.kafka.streams.processor.internals.StreamThread:212)
+[2019-06-14 15:16:58,661] INFO stream-thread [_confluent-ksql-default_transient_107548325350613394_1560550618256-f651aa6c-1586-4621-985f-7ea27ddb7fbf-StreamThread-3] Informed to shut down (org.apache.kafka.streams.processor.internals.StreamThread:1192)
+[2019-06-14 15:16:58,661] INFO stream-thread [_confluent-ksql-default_transient_107548325350613394_1560550618256-f651aa6c-1586-4621-985f-7ea27ddb7fbf-StreamThread-3] State transition from RUNNING to PENDING_SHUTDOWN (org.apache.kafka.streams.processor.internals.StreamThread:212)
+[2019-06-14 15:16:58,661] INFO stream-thread [_confluent-ksql-default_transient_107548325350613394_1560550618256-f651aa6c-1586-4621-985f-7ea27ddb7fbf-StreamThread-4] Informed to shut down (org.apache.kafka.streams.processor.internals.StreamThread:1192)
+[2019-06-14 15:16:58,661] INFO stream-thread [_confluent-ksql-default_transient_107548325350613394_1560550618256-f651aa6c-1586-4621-985f-7ea27ddb7fbf-StreamThread-4] State transition from RUNNING to PENDING_SHUTDOWN (org.apache.kafka.streams.processor.internals.StreamThread:212)
+[2019-06-14 15:16:58,745] INFO stream-thread [_confluent-ksql-default_transient_107548325350613394_1560550618256-f651aa6c-1586-4621-985f-7ea27ddb7fbf-StreamThread-3] Shutting down (org.apache.kafka.streams.processor.internals.StreamThread:1206)
+[2019-06-14 15:16:58,745] INFO stream-thread [_confluent-ksql-default_transient_107548325350613394_1560550618256-f651aa6c-1586-4621-985f-7ea27ddb7fbf-StreamThread-4] Shutting down (org.apache.kafka.streams.processor.internals.StreamThread:1206)
+[2019-06-14 15:16:58,745] INFO stream-thread [_confluent-ksql-default_transient_107548325350613394_1560550618256-f651aa6c-1586-4621-985f-7ea27ddb7fbf-StreamThread-1] Shutting down (org.apache.kafka.streams.processor.internals.StreamThread:1206)
+[2019-06-14 15:16:58,748] INFO stream-thread [_confluent-ksql-default_transient_107548325350613394_1560550618256-f651aa6c-1586-4621-985f-7ea27ddb7fbf-StreamThread-2] Shutting down (org.apache.kafka.streams.processor.internals.StreamThread:1206)
+[2019-06-14 15:16:58,775] INFO stream-thread [_confluent-ksql-default_transient_107548325350613394_1560550618256-f651aa6c-1586-4621-985f-7ea27ddb7fbf-StreamThread-1] State transition from PENDING_SHUTDOWN to DEAD (org.apache.kafka.streams.processor.internals.StreamThread:212)
+[2019-06-14 15:16:58,775] INFO stream-thread [_confluent-ksql-default_transient_107548325350613394_1560550618256-f651aa6c-1586-4621-985f-7ea27ddb7fbf-StreamThread-1] Shutdown complete (org.apache.kafka.streams.processor.internals.StreamThread:1226)
+[2019-06-14 15:16:58,779] INFO stream-thread [_confluent-ksql-default_transient_107548325350613394_1560550618256-f651aa6c-1586-4621-985f-7ea27ddb7fbf-StreamThread-4] State transition from PENDING_SHUTDOWN to DEAD (org.apache.kafka.streams.processor.internals.StreamThread:212)
+[2019-06-14 15:16:58,779] INFO stream-thread [_confluent-ksql-default_transient_107548325350613394_1560550618256-f651aa6c-1586-4621-985f-7ea27ddb7fbf-StreamThread-4] Shutdown complete (org.apache.kafka.streams.processor.internals.StreamThread:1226)
+[2019-06-14 15:16:58,781] INFO stream-thread [_confluent-ksql-default_transient_107548325350613394_1560550618256-f651aa6c-1586-4621-985f-7ea27ddb7fbf-StreamThread-3] State transition from PENDING_SHUTDOWN to DEAD (org.apache.kafka.streams.processor.internals.StreamThread:212)
+[2019-06-14 15:16:58,781] INFO stream-thread [_confluent-ksql-default_transient_107548325350613394_1560550618256-f651aa6c-1586-4621-985f-7ea27ddb7fbf-StreamThread-3] Shutdown complete (org.apache.kafka.streams.processor.internals.StreamThread:1226)
+[2019-06-14 15:16:58,785] INFO stream-thread [_confluent-ksql-default_transient_107548325350613394_1560550618256-f651aa6c-1586-4621-985f-7ea27ddb7fbf-StreamThread-2] State transition from PENDING_SHUTDOWN to DEAD (org.apache.kafka.streams.processor.internals.StreamThread:212)
+[2019-06-14 15:16:58,785] INFO stream-thread [_confluent-ksql-default_transient_107548325350613394_1560550618256-f651aa6c-1586-4621-985f-7ea27ddb7fbf-StreamThread-2] Shutdown complete (org.apache.kafka.streams.processor.internals.StreamThread:1226)
+[2019-06-14 15:16:58,787] INFO stream-client [_confluent-ksql-default_transient_107548325350613394_1560550618256-f651aa6c-1586-4621-985f-7ea27ddb7fbf] State transition from PENDING_SHUTDOWN to NOT_RUNNING (org.apache.kafka.streams.KafkaStreams:263)
+[2019-06-14 15:16:58,788] INFO stream-client [_confluent-ksql-default_transient_107548325350613394_1560550618256-f651aa6c-1586-4621-985f-7ea27ddb7fbf] Streams client stopped completely (org.apache.kafka.streams.KafkaStreams:898)
+[2019-06-14 15:17:37,986] INFO StreamsConfig values: 
+	application.id = _confluent-ksql-default_transient_4212260853090427845_1560550657986
+	application.server = 
+	bootstrap.servers = [localhost:9092]
+	buffered.records.per.partition = 1000
+	cache.max.bytes.buffering = 10000000
+	client.id = 
+	commit.interval.ms = 2000
+	connections.max.idle.ms = 540000
+	default.deserialization.exception.handler = class io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler
+	default.key.serde = class org.apache.kafka.common.serialization.Serdes$ByteArraySerde
+	default.production.exception.handler = class io.confluent.ksql.errors.ProductionExceptionHandlerUtil$LogAndFailProductionExceptionHandler
+	default.timestamp.extractor = class org.apache.kafka.streams.processor.FailOnInvalidTimestamp
+	default.value.serde = class org.apache.kafka.common.serialization.Serdes$ByteArraySerde
+	max.task.idle.ms = 0
+	metadata.max.age.ms = 300000
+	metric.reporters = []
+	metrics.num.samples = 2
+	metrics.recording.level = INFO
+	metrics.sample.window.ms = 30000
+	num.standby.replicas = 0
+	num.stream.threads = 4
+	partition.grouper = class org.apache.kafka.streams.processor.DefaultPartitionGrouper
+	poll.ms = 100
+	processing.guarantee = at_least_once
+	receive.buffer.bytes = 32768
+	reconnect.backoff.max.ms = 1000
+	reconnect.backoff.ms = 50
+	replication.factor = 1
+	request.timeout.ms = 40000
+	retries = 0
+	retry.backoff.ms = 100
+	rocksdb.config.setter = null
+	security.protocol = PLAINTEXT
+	send.buffer.bytes = 131072
+	state.cleanup.delay.ms = 600000
+	state.dir = /var/lib/kafka-streams
+	topology.optimization = all
+	upgrade.from = null
+	windowstore.changelog.additional.retention.ms = 86400000
+ (org.apache.kafka.streams.StreamsConfig:347)
+[2019-06-14 15:17:37,989] INFO stream-thread [_confluent-ksql-default_transient_4212260853090427845_1560550657986-45a68eb5-3144-4e01-8949-4c102ea6411e-StreamThread-1] Creating restore consumer client (org.apache.kafka.streams.processor.internals.StreamThread:609)
+[2019-06-14 15:17:37,994] INFO stream-thread [_confluent-ksql-default_transient_4212260853090427845_1560550657986-45a68eb5-3144-4e01-8949-4c102ea6411e-StreamThread-1] Creating shared producer client (org.apache.kafka.streams.processor.internals.StreamThread:619)
+[2019-06-14 15:17:38,001] INFO stream-thread [_confluent-ksql-default_transient_4212260853090427845_1560550657986-45a68eb5-3144-4e01-8949-4c102ea6411e-StreamThread-1] Creating consumer client (org.apache.kafka.streams.processor.internals.StreamThread:662)
+[2019-06-14 15:17:38,005] INFO stream-thread [_confluent-ksql-default_transient_4212260853090427845_1560550657986-45a68eb5-3144-4e01-8949-4c102ea6411e-StreamThread-2] Creating restore consumer client (org.apache.kafka.streams.processor.internals.StreamThread:609)
+[2019-06-14 15:17:38,008] INFO stream-thread [_confluent-ksql-default_transient_4212260853090427845_1560550657986-45a68eb5-3144-4e01-8949-4c102ea6411e-StreamThread-2] Creating shared producer client (org.apache.kafka.streams.processor.internals.StreamThread:619)
+[2019-06-14 15:17:38,015] INFO stream-thread [_confluent-ksql-default_transient_4212260853090427845_1560550657986-45a68eb5-3144-4e01-8949-4c102ea6411e-StreamThread-2] Creating consumer client (org.apache.kafka.streams.processor.internals.StreamThread:662)
+[2019-06-14 15:17:38,023] INFO stream-thread [_confluent-ksql-default_transient_4212260853090427845_1560550657986-45a68eb5-3144-4e01-8949-4c102ea6411e-StreamThread-3] Creating restore consumer client (org.apache.kafka.streams.processor.internals.StreamThread:609)
+[2019-06-14 15:17:38,028] INFO stream-thread [_confluent-ksql-default_transient_4212260853090427845_1560550657986-45a68eb5-3144-4e01-8949-4c102ea6411e-StreamThread-3] Creating shared producer client (org.apache.kafka.streams.processor.internals.StreamThread:619)
+[2019-06-14 15:17:38,035] INFO stream-thread [_confluent-ksql-default_transient_4212260853090427845_1560550657986-45a68eb5-3144-4e01-8949-4c102ea6411e-StreamThread-3] Creating consumer client (org.apache.kafka.streams.processor.internals.StreamThread:662)
+[2019-06-14 15:17:38,039] INFO stream-thread [_confluent-ksql-default_transient_4212260853090427845_1560550657986-45a68eb5-3144-4e01-8949-4c102ea6411e-StreamThread-4] Creating restore consumer client (org.apache.kafka.streams.processor.internals.StreamThread:609)
+[2019-06-14 15:17:38,042] INFO stream-thread [_confluent-ksql-default_transient_4212260853090427845_1560550657986-45a68eb5-3144-4e01-8949-4c102ea6411e-StreamThread-4] Creating shared producer client (org.apache.kafka.streams.processor.internals.StreamThread:619)
+[2019-06-14 15:17:38,048] INFO stream-thread [_confluent-ksql-default_transient_4212260853090427845_1560550657986-45a68eb5-3144-4e01-8949-4c102ea6411e-StreamThread-4] Creating consumer client (org.apache.kafka.streams.processor.internals.StreamThread:662)
+[2019-06-14 15:17:38,055] INFO stream-client [_confluent-ksql-default_transient_4212260853090427845_1560550657986-45a68eb5-3144-4e01-8949-4c102ea6411e] State transition from CREATED to REBALANCING (org.apache.kafka.streams.KafkaStreams:263)
+[2019-06-14 15:17:38,055] INFO stream-thread [_confluent-ksql-default_transient_4212260853090427845_1560550657986-45a68eb5-3144-4e01-8949-4c102ea6411e-StreamThread-1] Starting (org.apache.kafka.streams.processor.internals.StreamThread:767)
+[2019-06-14 15:17:38,056] INFO stream-thread [_confluent-ksql-default_transient_4212260853090427845_1560550657986-45a68eb5-3144-4e01-8949-4c102ea6411e-StreamThread-1] State transition from CREATED to STARTING (org.apache.kafka.streams.processor.internals.StreamThread:212)
+[2019-06-14 15:17:38,056] INFO stream-thread [_confluent-ksql-default_transient_4212260853090427845_1560550657986-45a68eb5-3144-4e01-8949-4c102ea6411e-StreamThread-2] Starting (org.apache.kafka.streams.processor.internals.StreamThread:767)
+[2019-06-14 15:17:38,056] INFO stream-thread [_confluent-ksql-default_transient_4212260853090427845_1560550657986-45a68eb5-3144-4e01-8949-4c102ea6411e-StreamThread-2] State transition from CREATED to STARTING (org.apache.kafka.streams.processor.internals.StreamThread:212)
+[2019-06-14 15:17:38,056] INFO stream-thread [_confluent-ksql-default_transient_4212260853090427845_1560550657986-45a68eb5-3144-4e01-8949-4c102ea6411e-StreamThread-3] Starting (org.apache.kafka.streams.processor.internals.StreamThread:767)
+[2019-06-14 15:17:38,056] INFO stream-thread [_confluent-ksql-default_transient_4212260853090427845_1560550657986-45a68eb5-3144-4e01-8949-4c102ea6411e-StreamThread-3] State transition from CREATED to STARTING (org.apache.kafka.streams.processor.internals.StreamThread:212)
+[2019-06-14 15:17:38,056] INFO stream-thread [_confluent-ksql-default_transient_4212260853090427845_1560550657986-45a68eb5-3144-4e01-8949-4c102ea6411e-StreamThread-4] Starting (org.apache.kafka.streams.processor.internals.StreamThread:767)
+[2019-06-14 15:17:38,056] INFO stream-thread [_confluent-ksql-default_transient_4212260853090427845_1560550657986-45a68eb5-3144-4e01-8949-4c102ea6411e-StreamThread-4] State transition from CREATED to STARTING (org.apache.kafka.streams.processor.internals.StreamThread:212)
+[2019-06-14 15:17:38,067] INFO stream-thread [_confluent-ksql-default_transient_4212260853090427845_1560550657986-45a68eb5-3144-4e01-8949-4c102ea6411e-StreamThread-2] State transition from STARTING to PARTITIONS_REVOKED (org.apache.kafka.streams.processor.internals.StreamThread:212)
+[2019-06-14 15:17:38,067] INFO stream-thread [_confluent-ksql-default_transient_4212260853090427845_1560550657986-45a68eb5-3144-4e01-8949-4c102ea6411e-StreamThread-2] partition revocation took 0 ms.
+	suspended active tasks: []
+	suspended standby tasks: [] (org.apache.kafka.streams.processor.internals.StreamThread:328)
+[2019-06-14 15:17:38,070] INFO stream-thread [_confluent-ksql-default_transient_4212260853090427845_1560550657986-45a68eb5-3144-4e01-8949-4c102ea6411e-StreamThread-1] State transition from STARTING to PARTITIONS_REVOKED (org.apache.kafka.streams.processor.internals.StreamThread:212)
+[2019-06-14 15:17:38,070] INFO stream-thread [_confluent-ksql-default_transient_4212260853090427845_1560550657986-45a68eb5-3144-4e01-8949-4c102ea6411e-StreamThread-1] partition revocation took 0 ms.
+	suspended active tasks: []
+	suspended standby tasks: [] (org.apache.kafka.streams.processor.internals.StreamThread:328)
+[2019-06-14 15:17:38,071] INFO stream-thread [_confluent-ksql-default_transient_4212260853090427845_1560550657986-45a68eb5-3144-4e01-8949-4c102ea6411e-StreamThread-4] State transition from STARTING to PARTITIONS_REVOKED (org.apache.kafka.streams.processor.internals.StreamThread:212)
+[2019-06-14 15:17:38,071] INFO stream-thread [_confluent-ksql-default_transient_4212260853090427845_1560550657986-45a68eb5-3144-4e01-8949-4c102ea6411e-StreamThread-4] partition revocation took 0 ms.
+	suspended active tasks: []
+	suspended standby tasks: [] (org.apache.kafka.streams.processor.internals.StreamThread:328)
+[2019-06-14 15:17:38,074] INFO stream-thread [_confluent-ksql-default_transient_4212260853090427845_1560550657986-45a68eb5-3144-4e01-8949-4c102ea6411e-StreamThread-3] State transition from STARTING to PARTITIONS_REVOKED (org.apache.kafka.streams.processor.internals.StreamThread:212)
+[2019-06-14 15:17:38,074] INFO stream-thread [_confluent-ksql-default_transient_4212260853090427845_1560550657986-45a68eb5-3144-4e01-8949-4c102ea6411e-StreamThread-3] partition revocation took 0 ms.
+	suspended active tasks: []
+	suspended standby tasks: [] (org.apache.kafka.streams.processor.internals.StreamThread:328)
+[2019-06-14 15:17:38,080] INFO stream-thread [_confluent-ksql-default_transient_4212260853090427845_1560550657986-45a68eb5-3144-4e01-8949-4c102ea6411e-StreamThread-4-consumer] Assigned tasks to clients as {45a68eb5-3144-4e01-8949-4c102ea6411e=[activeTasks: ([0_0]) standbyTasks: ([]) assignedTasks: ([0_0]) prevActiveTasks: ([]) prevStandbyTasks: ([]) prevAssignedTasks: ([]) capacity: 3]}. (org.apache.kafka.streams.processor.internals.StreamsPartitionAssignor:636)
+[2019-06-14 15:17:38,082] INFO stream-thread [_confluent-ksql-default_transient_4212260853090427845_1560550657986-45a68eb5-3144-4e01-8949-4c102ea6411e-StreamThread-1] State transition from PARTITIONS_REVOKED to PARTITIONS_ASSIGNED (org.apache.kafka.streams.processor.internals.StreamThread:212)
+[2019-06-14 15:17:38,082] INFO stream-thread [_confluent-ksql-default_transient_4212260853090427845_1560550657986-45a68eb5-3144-4e01-8949-4c102ea6411e-StreamThread-2] State transition from PARTITIONS_REVOKED to PARTITIONS_ASSIGNED (org.apache.kafka.streams.processor.internals.StreamThread:212)
+[2019-06-14 15:17:38,082] INFO stream-thread [_confluent-ksql-default_transient_4212260853090427845_1560550657986-45a68eb5-3144-4e01-8949-4c102ea6411e-StreamThread-4] State transition from PARTITIONS_REVOKED to PARTITIONS_ASSIGNED (org.apache.kafka.streams.processor.internals.StreamThread:212)
+[2019-06-14 15:17:38,082] INFO stream-thread [_confluent-ksql-default_transient_4212260853090427845_1560550657986-45a68eb5-3144-4e01-8949-4c102ea6411e-StreamThread-2] partition assignment took 0 ms.
+	current active tasks: []
+	current standby tasks: []
+	previous active tasks: []
+ (org.apache.kafka.streams.processor.internals.StreamThread:288)
+[2019-06-14 15:17:38,082] INFO stream-thread [_confluent-ksql-default_transient_4212260853090427845_1560550657986-45a68eb5-3144-4e01-8949-4c102ea6411e-StreamThread-1] partition assignment took 0 ms.
+	current active tasks: []
+	current standby tasks: []
+	previous active tasks: []
+ (org.apache.kafka.streams.processor.internals.StreamThread:288)
+[2019-06-14 15:17:38,084] INFO stream-thread [_confluent-ksql-default_transient_4212260853090427845_1560550657986-45a68eb5-3144-4e01-8949-4c102ea6411e-StreamThread-4] partition assignment took 2 ms.
+	current active tasks: [0_0]
+	current standby tasks: []
+	previous active tasks: []
+ (org.apache.kafka.streams.processor.internals.StreamThread:288)
+[2019-06-14 15:17:38,163] INFO stream-thread [_confluent-ksql-default_transient_4212260853090427845_1560550657986-45a68eb5-3144-4e01-8949-4c102ea6411e-StreamThread-1] State transition from PARTITIONS_ASSIGNED to RUNNING (org.apache.kafka.streams.processor.internals.StreamThread:212)
+[2019-06-14 15:17:38,163] INFO stream-thread [_confluent-ksql-default_transient_4212260853090427845_1560550657986-45a68eb5-3144-4e01-8949-4c102ea6411e-StreamThread-2] State transition from PARTITIONS_ASSIGNED to RUNNING (org.apache.kafka.streams.processor.internals.StreamThread:212)
+[2019-06-14 15:17:38,168] INFO stream-thread [_confluent-ksql-default_transient_4212260853090427845_1560550657986-45a68eb5-3144-4e01-8949-4c102ea6411e-StreamThread-4] State transition from PARTITIONS_ASSIGNED to RUNNING (org.apache.kafka.streams.processor.internals.StreamThread:212)
+[2019-06-14 15:17:38,251] INFO stream-client [_confluent-ksql-default_transient_4212260853090427845_1560550657986-45a68eb5-3144-4e01-8949-4c102ea6411e] State transition from REBALANCING to PENDING_SHUTDOWN (org.apache.kafka.streams.KafkaStreams:263)
+[2019-06-14 15:17:38,252] INFO stream-thread [_confluent-ksql-default_transient_4212260853090427845_1560550657986-45a68eb5-3144-4e01-8949-4c102ea6411e-StreamThread-1] Informed to shut down (org.apache.kafka.streams.processor.internals.StreamThread:1192)
+[2019-06-14 15:17:38,252] INFO stream-thread [_confluent-ksql-default_transient_4212260853090427845_1560550657986-45a68eb5-3144-4e01-8949-4c102ea6411e-StreamThread-1] State transition from RUNNING to PENDING_SHUTDOWN (org.apache.kafka.streams.processor.internals.StreamThread:212)
+[2019-06-14 15:17:38,252] INFO stream-thread [_confluent-ksql-default_transient_4212260853090427845_1560550657986-45a68eb5-3144-4e01-8949-4c102ea6411e-StreamThread-2] Informed to shut down (org.apache.kafka.streams.processor.internals.StreamThread:1192)
+[2019-06-14 15:17:38,254] INFO stream-thread [_confluent-ksql-default_transient_4212260853090427845_1560550657986-45a68eb5-3144-4e01-8949-4c102ea6411e-StreamThread-2] State transition from RUNNING to PENDING_SHUTDOWN (org.apache.kafka.streams.processor.internals.StreamThread:212)
+[2019-06-14 15:17:38,254] INFO stream-thread [_confluent-ksql-default_transient_4212260853090427845_1560550657986-45a68eb5-3144-4e01-8949-4c102ea6411e-StreamThread-3] Informed to shut down (org.apache.kafka.streams.processor.internals.StreamThread:1192)
+[2019-06-14 15:17:38,254] INFO stream-thread [_confluent-ksql-default_transient_4212260853090427845_1560550657986-45a68eb5-3144-4e01-8949-4c102ea6411e-StreamThread-3] State transition from PARTITIONS_REVOKED to PENDING_SHUTDOWN (org.apache.kafka.streams.processor.internals.StreamThread:212)
+[2019-06-14 15:17:38,254] INFO stream-thread [_confluent-ksql-default_transient_4212260853090427845_1560550657986-45a68eb5-3144-4e01-8949-4c102ea6411e-StreamThread-4] Informed to shut down (org.apache.kafka.streams.processor.internals.StreamThread:1192)
+[2019-06-14 15:17:38,254] INFO stream-thread [_confluent-ksql-default_transient_4212260853090427845_1560550657986-45a68eb5-3144-4e01-8949-4c102ea6411e-StreamThread-4] State transition from RUNNING to PENDING_SHUTDOWN (org.apache.kafka.streams.processor.internals.StreamThread:212)
+[2019-06-14 15:17:38,266] INFO stream-thread [_confluent-ksql-default_transient_4212260853090427845_1560550657986-45a68eb5-3144-4e01-8949-4c102ea6411e-StreamThread-3] Shutting down (org.apache.kafka.streams.processor.internals.StreamThread:1206)
+[2019-06-14 15:17:38,266] INFO stream-thread [_confluent-ksql-default_transient_4212260853090427845_1560550657986-45a68eb5-3144-4e01-8949-4c102ea6411e-StreamThread-2] Shutting down (org.apache.kafka.streams.processor.internals.StreamThread:1206)
+[2019-06-14 15:17:38,266] INFO stream-thread [_confluent-ksql-default_transient_4212260853090427845_1560550657986-45a68eb5-3144-4e01-8949-4c102ea6411e-StreamThread-1] Shutting down (org.apache.kafka.streams.processor.internals.StreamThread:1206)
+[2019-06-14 15:17:38,285] INFO stream-thread [_confluent-ksql-default_transient_4212260853090427845_1560550657986-45a68eb5-3144-4e01-8949-4c102ea6411e-StreamThread-1] State transition from PENDING_SHUTDOWN to DEAD (org.apache.kafka.streams.processor.internals.StreamThread:212)
+[2019-06-14 15:17:38,286] INFO stream-thread [_confluent-ksql-default_transient_4212260853090427845_1560550657986-45a68eb5-3144-4e01-8949-4c102ea6411e-StreamThread-1] Shutdown complete (org.apache.kafka.streams.processor.internals.StreamThread:1226)
+[2019-06-14 15:17:38,286] INFO stream-thread [_confluent-ksql-default_transient_4212260853090427845_1560550657986-45a68eb5-3144-4e01-8949-4c102ea6411e-StreamThread-2] State transition from PENDING_SHUTDOWN to DEAD (org.apache.kafka.streams.processor.internals.StreamThread:212)
+[2019-06-14 15:17:38,286] INFO stream-thread [_confluent-ksql-default_transient_4212260853090427845_1560550657986-45a68eb5-3144-4e01-8949-4c102ea6411e-StreamThread-2] Shutdown complete (org.apache.kafka.streams.processor.internals.StreamThread:1226)
+[2019-06-14 15:17:38,322] INFO stream-thread [_confluent-ksql-default_transient_4212260853090427845_1560550657986-45a68eb5-3144-4e01-8949-4c102ea6411e-StreamThread-4] Shutting down (org.apache.kafka.streams.processor.internals.StreamThread:1206)
+[2019-06-14 15:17:38,334] INFO stream-thread [_confluent-ksql-default_transient_4212260853090427845_1560550657986-45a68eb5-3144-4e01-8949-4c102ea6411e-StreamThread-4] State transition from PENDING_SHUTDOWN to DEAD (org.apache.kafka.streams.processor.internals.StreamThread:212)
+[2019-06-14 15:17:38,334] INFO stream-thread [_confluent-ksql-default_transient_4212260853090427845_1560550657986-45a68eb5-3144-4e01-8949-4c102ea6411e-StreamThread-4] Shutdown complete (org.apache.kafka.streams.processor.internals.StreamThread:1226)
+[2019-06-14 15:17:48,329] INFO stream-thread [_confluent-ksql-default_transient_4212260853090427845_1560550657986-45a68eb5-3144-4e01-8949-4c102ea6411e-StreamThread-3-consumer] Assigned tasks to clients as {45a68eb5-3144-4e01-8949-4c102ea6411e=[activeTasks: ([0_0]) standbyTasks: ([]) assignedTasks: ([0_0]) prevActiveTasks: ([]) prevStandbyTasks: ([]) prevAssignedTasks: ([]) capacity: 1]}. (org.apache.kafka.streams.processor.internals.StreamsPartitionAssignor:636)
+[2019-06-14 15:17:48,334] INFO stream-thread [_confluent-ksql-default_transient_4212260853090427845_1560550657986-45a68eb5-3144-4e01-8949-4c102ea6411e-StreamThread-3] State transition from PENDING_SHUTDOWN to DEAD (org.apache.kafka.streams.processor.internals.StreamThread:212)
+[2019-06-14 15:17:48,334] INFO stream-thread [_confluent-ksql-default_transient_4212260853090427845_1560550657986-45a68eb5-3144-4e01-8949-4c102ea6411e-StreamThread-3] Shutdown complete (org.apache.kafka.streams.processor.internals.StreamThread:1226)
+[2019-06-14 15:17:48,336] INFO stream-client [_confluent-ksql-default_transient_4212260853090427845_1560550657986-45a68eb5-3144-4e01-8949-4c102ea6411e] State transition from PENDING_SHUTDOWN to NOT_RUNNING (org.apache.kafka.streams.KafkaStreams:263)
+[2019-06-14 15:17:48,336] INFO stream-client [_confluent-ksql-default_transient_4212260853090427845_1560550657986-45a68eb5-3144-4e01-8949-4c102ea6411e] Streams client stopped completely (org.apache.kafka.streams.KafkaStreams:898)
+[2019-06-14 15:17:55,858] INFO StreamsConfig values: 
+	application.id = _confluent-ksql-default_transient_6251399726718651787_1560550675858
+	application.server = 
+	bootstrap.servers = [localhost:9092]
+	buffered.records.per.partition = 1000
+	cache.max.bytes.buffering = 10000000
+	client.id = 
+	commit.interval.ms = 2000
+	connections.max.idle.ms = 540000
+	default.deserialization.exception.handler = class io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler
+	default.key.serde = class org.apache.kafka.common.serialization.Serdes$ByteArraySerde
+	default.production.exception.handler = class io.confluent.ksql.errors.ProductionExceptionHandlerUtil$LogAndFailProductionExceptionHandler
+	default.timestamp.extractor = class org.apache.kafka.streams.processor.FailOnInvalidTimestamp
+	default.value.serde = class org.apache.kafka.common.serialization.Serdes$ByteArraySerde
+	max.task.idle.ms = 0
+	metadata.max.age.ms = 300000
+	metric.reporters = []
+	metrics.num.samples = 2
+	metrics.recording.level = INFO
+	metrics.sample.window.ms = 30000
+	num.standby.replicas = 0
+	num.stream.threads = 4
+	partition.grouper = class org.apache.kafka.streams.processor.DefaultPartitionGrouper
+	poll.ms = 100
+	processing.guarantee = at_least_once
+	receive.buffer.bytes = 32768
+	reconnect.backoff.max.ms = 1000
+	reconnect.backoff.ms = 50
+	replication.factor = 1
+	request.timeout.ms = 40000
+	retries = 0
+	retry.backoff.ms = 100
+	rocksdb.config.setter = null
+	security.protocol = PLAINTEXT
+	send.buffer.bytes = 131072
+	state.cleanup.delay.ms = 600000
+	state.dir = /var/lib/kafka-streams
+	topology.optimization = all
+	upgrade.from = null
+	windowstore.changelog.additional.retention.ms = 86400000
+ (org.apache.kafka.streams.StreamsConfig:347)
+[2019-06-14 15:17:55,861] INFO stream-thread [_confluent-ksql-default_transient_6251399726718651787_1560550675858-b2598d90-1859-445d-819d-417508cc339b-StreamThread-1] Creating restore consumer client (org.apache.kafka.streams.processor.internals.StreamThread:609)
+[2019-06-14 15:17:55,867] INFO stream-thread [_confluent-ksql-default_transient_6251399726718651787_1560550675858-b2598d90-1859-445d-819d-417508cc339b-StreamThread-1] Creating shared producer client (org.apache.kafka.streams.processor.internals.StreamThread:619)
+[2019-06-14 15:17:55,874] INFO stream-thread [_confluent-ksql-default_transient_6251399726718651787_1560550675858-b2598d90-1859-445d-819d-417508cc339b-StreamThread-1] Creating consumer client (org.apache.kafka.streams.processor.internals.StreamThread:662)
+[2019-06-14 15:17:55,880] INFO stream-thread [_confluent-ksql-default_transient_6251399726718651787_1560550675858-b2598d90-1859-445d-819d-417508cc339b-StreamThread-2] Creating restore consumer client (org.apache.kafka.streams.processor.internals.StreamThread:609)
+[2019-06-14 15:17:55,883] INFO stream-thread [_confluent-ksql-default_transient_6251399726718651787_1560550675858-b2598d90-1859-445d-819d-417508cc339b-StreamThread-2] Creating shared producer client (org.apache.kafka.streams.processor.internals.StreamThread:619)
+[2019-06-14 15:17:55,890] INFO stream-thread [_confluent-ksql-default_transient_6251399726718651787_1560550675858-b2598d90-1859-445d-819d-417508cc339b-StreamThread-2] Creating consumer client (org.apache.kafka.streams.processor.internals.StreamThread:662)
+[2019-06-14 15:17:55,895] INFO stream-thread [_confluent-ksql-default_transient_6251399726718651787_1560550675858-b2598d90-1859-445d-819d-417508cc339b-StreamThread-3] Creating restore consumer client (org.apache.kafka.streams.processor.internals.StreamThread:609)
+[2019-06-14 15:17:55,900] INFO stream-thread [_confluent-ksql-default_transient_6251399726718651787_1560550675858-b2598d90-1859-445d-819d-417508cc339b-StreamThread-3] Creating shared producer client (org.apache.kafka.streams.processor.internals.StreamThread:619)
+[2019-06-14 15:17:55,906] INFO stream-thread [_confluent-ksql-default_transient_6251399726718651787_1560550675858-b2598d90-1859-445d-819d-417508cc339b-StreamThread-3] Creating consumer client (org.apache.kafka.streams.processor.internals.StreamThread:662)
+[2019-06-14 15:17:55,910] INFO stream-thread [_confluent-ksql-default_transient_6251399726718651787_1560550675858-b2598d90-1859-445d-819d-417508cc339b-StreamThread-4] Creating restore consumer client (org.apache.kafka.streams.processor.internals.StreamThread:609)
+[2019-06-14 15:17:55,915] INFO stream-thread [_confluent-ksql-default_transient_6251399726718651787_1560550675858-b2598d90-1859-445d-819d-417508cc339b-StreamThread-4] Creating shared producer client (org.apache.kafka.streams.processor.internals.StreamThread:619)
+[2019-06-14 15:17:55,923] INFO stream-thread [_confluent-ksql-default_transient_6251399726718651787_1560550675858-b2598d90-1859-445d-819d-417508cc339b-StreamThread-4] Creating consumer client (org.apache.kafka.streams.processor.internals.StreamThread:662)
+[2019-06-14 15:17:55,929] INFO stream-client [_confluent-ksql-default_transient_6251399726718651787_1560550675858-b2598d90-1859-445d-819d-417508cc339b] State transition from CREATED to REBALANCING (org.apache.kafka.streams.KafkaStreams:263)
+[2019-06-14 15:17:55,929] INFO stream-thread [_confluent-ksql-default_transient_6251399726718651787_1560550675858-b2598d90-1859-445d-819d-417508cc339b-StreamThread-1] Starting (org.apache.kafka.streams.processor.internals.StreamThread:767)
+[2019-06-14 15:17:55,930] INFO stream-thread [_confluent-ksql-default_transient_6251399726718651787_1560550675858-b2598d90-1859-445d-819d-417508cc339b-StreamThread-1] State transition from CREATED to STARTING (org.apache.kafka.streams.processor.internals.StreamThread:212)
+[2019-06-14 15:17:55,930] INFO stream-thread [_confluent-ksql-default_transient_6251399726718651787_1560550675858-b2598d90-1859-445d-819d-417508cc339b-StreamThread-2] Starting (org.apache.kafka.streams.processor.internals.StreamThread:767)
+[2019-06-14 15:17:55,930] INFO stream-thread [_confluent-ksql-default_transient_6251399726718651787_1560550675858-b2598d90-1859-445d-819d-417508cc339b-StreamThread-2] State transition from CREATED to STARTING (org.apache.kafka.streams.processor.internals.StreamThread:212)
+[2019-06-14 15:17:55,936] INFO stream-thread [_confluent-ksql-default_transient_6251399726718651787_1560550675858-b2598d90-1859-445d-819d-417508cc339b-StreamThread-1] State transition from STARTING to PARTITIONS_REVOKED (org.apache.kafka.streams.processor.internals.StreamThread:212)
+[2019-06-14 15:17:55,936] INFO stream-thread [_confluent-ksql-default_transient_6251399726718651787_1560550675858-b2598d90-1859-445d-819d-417508cc339b-StreamThread-2] State transition from STARTING to PARTITIONS_REVOKED (org.apache.kafka.streams.processor.internals.StreamThread:212)
+[2019-06-14 15:17:55,937] INFO stream-thread [_confluent-ksql-default_transient_6251399726718651787_1560550675858-b2598d90-1859-445d-819d-417508cc339b-StreamThread-1] partition revocation took 0 ms.
+	suspended active tasks: []
+	suspended standby tasks: [] (org.apache.kafka.streams.processor.internals.StreamThread:328)
+[2019-06-14 15:17:55,936] INFO stream-thread [_confluent-ksql-default_transient_6251399726718651787_1560550675858-b2598d90-1859-445d-819d-417508cc339b-StreamThread-3] Starting (org.apache.kafka.streams.processor.internals.StreamThread:767)
+[2019-06-14 15:17:55,937] INFO stream-thread [_confluent-ksql-default_transient_6251399726718651787_1560550675858-b2598d90-1859-445d-819d-417508cc339b-StreamThread-2] partition revocation took 0 ms.
+	suspended active tasks: []
+	suspended standby tasks: [] (org.apache.kafka.streams.processor.internals.StreamThread:328)
+[2019-06-14 15:17:55,937] INFO stream-thread [_confluent-ksql-default_transient_6251399726718651787_1560550675858-b2598d90-1859-445d-819d-417508cc339b-StreamThread-3] State transition from CREATED to STARTING (org.apache.kafka.streams.processor.internals.StreamThread:212)
+[2019-06-14 15:17:55,937] INFO stream-thread [_confluent-ksql-default_transient_6251399726718651787_1560550675858-b2598d90-1859-445d-819d-417508cc339b-StreamThread-4] Starting (org.apache.kafka.streams.processor.internals.StreamThread:767)
+[2019-06-14 15:17:55,937] INFO stream-thread [_confluent-ksql-default_transient_6251399726718651787_1560550675858-b2598d90-1859-445d-819d-417508cc339b-StreamThread-4] State transition from CREATED to STARTING (org.apache.kafka.streams.processor.internals.StreamThread:212)
+[2019-06-14 15:17:55,943] INFO stream-thread [_confluent-ksql-default_transient_6251399726718651787_1560550675858-b2598d90-1859-445d-819d-417508cc339b-StreamThread-3] State transition from STARTING to PARTITIONS_REVOKED (org.apache.kafka.streams.processor.internals.StreamThread:212)
+[2019-06-14 15:17:55,943] INFO stream-thread [_confluent-ksql-default_transient_6251399726718651787_1560550675858-b2598d90-1859-445d-819d-417508cc339b-StreamThread-3] partition revocation took 0 ms.
+	suspended active tasks: []
+	suspended standby tasks: [] (org.apache.kafka.streams.processor.internals.StreamThread:328)
+[2019-06-14 15:17:55,944] INFO stream-thread [_confluent-ksql-default_transient_6251399726718651787_1560550675858-b2598d90-1859-445d-819d-417508cc339b-StreamThread-4] State transition from STARTING to PARTITIONS_REVOKED (org.apache.kafka.streams.processor.internals.StreamThread:212)
+[2019-06-14 15:17:55,945] INFO stream-thread [_confluent-ksql-default_transient_6251399726718651787_1560550675858-b2598d90-1859-445d-819d-417508cc339b-StreamThread-4] partition revocation took 0 ms.
+	suspended active tasks: []
+	suspended standby tasks: [] (org.apache.kafka.streams.processor.internals.StreamThread:328)
+[2019-06-14 15:17:55,946] INFO stream-thread [_confluent-ksql-default_transient_6251399726718651787_1560550675858-b2598d90-1859-445d-819d-417508cc339b-StreamThread-1-consumer] Assigned tasks to clients as {b2598d90-1859-445d-819d-417508cc339b=[activeTasks: ([0_0]) standbyTasks: ([]) assignedTasks: ([0_0]) prevActiveTasks: ([]) prevStandbyTasks: ([]) prevAssignedTasks: ([]) capacity: 1]}. (org.apache.kafka.streams.processor.internals.StreamsPartitionAssignor:636)
+[2019-06-14 15:17:55,948] INFO stream-thread [_confluent-ksql-default_transient_6251399726718651787_1560550675858-b2598d90-1859-445d-819d-417508cc339b-StreamThread-1] State transition from PARTITIONS_REVOKED to PARTITIONS_ASSIGNED (org.apache.kafka.streams.processor.internals.StreamThread:212)
+[2019-06-14 15:17:55,951] INFO stream-thread [_confluent-ksql-default_transient_6251399726718651787_1560550675858-b2598d90-1859-445d-819d-417508cc339b-StreamThread-1] partition assignment took 3 ms.
+	current active tasks: [0_0]
+	current standby tasks: []
+	previous active tasks: []
+ (org.apache.kafka.streams.processor.internals.StreamThread:288)
+[2019-06-14 15:17:56,034] INFO stream-thread [_confluent-ksql-default_transient_6251399726718651787_1560550675858-b2598d90-1859-445d-819d-417508cc339b-StreamThread-1] State transition from PARTITIONS_ASSIGNED to RUNNING (org.apache.kafka.streams.processor.internals.StreamThread:212)
+[2019-06-14 15:17:56,117] INFO stream-client [_confluent-ksql-default_transient_6251399726718651787_1560550675858-b2598d90-1859-445d-819d-417508cc339b] State transition from REBALANCING to PENDING_SHUTDOWN (org.apache.kafka.streams.KafkaStreams:263)
+[2019-06-14 15:17:56,117] INFO stream-thread [_confluent-ksql-default_transient_6251399726718651787_1560550675858-b2598d90-1859-445d-819d-417508cc339b-StreamThread-1] Informed to shut down (org.apache.kafka.streams.processor.internals.StreamThread:1192)
+[2019-06-14 15:17:56,118] INFO stream-thread [_confluent-ksql-default_transient_6251399726718651787_1560550675858-b2598d90-1859-445d-819d-417508cc339b-StreamThread-1] State transition from RUNNING to PENDING_SHUTDOWN (org.apache.kafka.streams.processor.internals.StreamThread:212)
+[2019-06-14 15:17:56,118] INFO stream-thread [_confluent-ksql-default_transient_6251399726718651787_1560550675858-b2598d90-1859-445d-819d-417508cc339b-StreamThread-2] Informed to shut down (org.apache.kafka.streams.processor.internals.StreamThread:1192)
+[2019-06-14 15:17:56,118] INFO stream-thread [_confluent-ksql-default_transient_6251399726718651787_1560550675858-b2598d90-1859-445d-819d-417508cc339b-StreamThread-2] State transition from PARTITIONS_REVOKED to PENDING_SHUTDOWN (org.apache.kafka.streams.processor.internals.StreamThread:212)
+[2019-06-14 15:17:56,118] INFO stream-thread [_confluent-ksql-default_transient_6251399726718651787_1560550675858-b2598d90-1859-445d-819d-417508cc339b-StreamThread-3] Informed to shut down (org.apache.kafka.streams.processor.internals.StreamThread:1192)
+[2019-06-14 15:17:56,118] INFO stream-thread [_confluent-ksql-default_transient_6251399726718651787_1560550675858-b2598d90-1859-445d-819d-417508cc339b-StreamThread-3] State transition from PARTITIONS_REVOKED to PENDING_SHUTDOWN (org.apache.kafka.streams.processor.internals.StreamThread:212)
+[2019-06-14 15:17:56,118] INFO stream-thread [_confluent-ksql-default_transient_6251399726718651787_1560550675858-b2598d90-1859-445d-819d-417508cc339b-StreamThread-4] Informed to shut down (org.apache.kafka.streams.processor.internals.StreamThread:1192)
+[2019-06-14 15:17:56,118] INFO stream-thread [_confluent-ksql-default_transient_6251399726718651787_1560550675858-b2598d90-1859-445d-819d-417508cc339b-StreamThread-4] State transition from PARTITIONS_REVOKED to PENDING_SHUTDOWN (org.apache.kafka.streams.processor.internals.StreamThread:212)
+[2019-06-14 15:17:56,136] INFO stream-thread [_confluent-ksql-default_transient_6251399726718651787_1560550675858-b2598d90-1859-445d-819d-417508cc339b-StreamThread-2] Shutting down (org.apache.kafka.streams.processor.internals.StreamThread:1206)
+[2019-06-14 15:17:56,137] INFO stream-thread [_confluent-ksql-default_transient_6251399726718651787_1560550675858-b2598d90-1859-445d-819d-417508cc339b-StreamThread-3] Shutting down (org.apache.kafka.streams.processor.internals.StreamThread:1206)
+[2019-06-14 15:17:56,142] INFO stream-thread [_confluent-ksql-default_transient_6251399726718651787_1560550675858-b2598d90-1859-445d-819d-417508cc339b-StreamThread-4] Shutting down (org.apache.kafka.streams.processor.internals.StreamThread:1206)
+[2019-06-14 15:17:56,164] INFO stream-thread [_confluent-ksql-default_transient_6251399726718651787_1560550675858-b2598d90-1859-445d-819d-417508cc339b-StreamThread-1] Shutting down (org.apache.kafka.streams.processor.internals.StreamThread:1206)
+[2019-06-14 15:17:56,173] INFO stream-thread [_confluent-ksql-default_transient_6251399726718651787_1560550675858-b2598d90-1859-445d-819d-417508cc339b-StreamThread-1] State transition from PENDING_SHUTDOWN to DEAD (org.apache.kafka.streams.processor.internals.StreamThread:212)
+[2019-06-14 15:17:56,173] INFO stream-thread [_confluent-ksql-default_transient_6251399726718651787_1560550675858-b2598d90-1859-445d-819d-417508cc339b-StreamThread-1] Shutdown complete (org.apache.kafka.streams.processor.internals.StreamThread:1226)
+[2019-06-14 15:18:06,170] INFO stream-thread [_confluent-ksql-default_transient_6251399726718651787_1560550675858-b2598d90-1859-445d-819d-417508cc339b-StreamThread-4-consumer] Assigned tasks to clients as {b2598d90-1859-445d-819d-417508cc339b=[activeTasks: ([0_0]) standbyTasks: ([]) assignedTasks: ([0_0]) prevActiveTasks: ([]) prevStandbyTasks: ([]) prevAssignedTasks: ([]) capacity: 3]}. (org.apache.kafka.streams.processor.internals.StreamsPartitionAssignor:636)
+[2019-06-14 15:18:06,187] INFO stream-thread [_confluent-ksql-default_transient_6251399726718651787_1560550675858-b2598d90-1859-445d-819d-417508cc339b-StreamThread-4] State transition from PENDING_SHUTDOWN to DEAD (org.apache.kafka.streams.processor.internals.StreamThread:212)
+[2019-06-14 15:18:06,187] INFO stream-thread [_confluent-ksql-default_transient_6251399726718651787_1560550675858-b2598d90-1859-445d-819d-417508cc339b-StreamThread-4] Shutdown complete (org.apache.kafka.streams.processor.internals.StreamThread:1226)
+[2019-06-14 15:18:06,188] INFO stream-thread [_confluent-ksql-default_transient_6251399726718651787_1560550675858-b2598d90-1859-445d-819d-417508cc339b-StreamThread-3] State transition from PENDING_SHUTDOWN to DEAD (org.apache.kafka.streams.processor.internals.StreamThread:212)
+[2019-06-14 15:18:06,189] INFO stream-thread [_confluent-ksql-default_transient_6251399726718651787_1560550675858-b2598d90-1859-445d-819d-417508cc339b-StreamThread-3] Shutdown complete (org.apache.kafka.streams.processor.internals.StreamThread:1226)
+[2019-06-14 15:18:06,189] INFO stream-thread [_confluent-ksql-default_transient_6251399726718651787_1560550675858-b2598d90-1859-445d-819d-417508cc339b-StreamThread-2] State transition from PENDING_SHUTDOWN to DEAD (org.apache.kafka.streams.processor.internals.StreamThread:212)
+[2019-06-14 15:18:06,189] INFO stream-thread [_confluent-ksql-default_transient_6251399726718651787_1560550675858-b2598d90-1859-445d-819d-417508cc339b-StreamThread-2] Shutdown complete (org.apache.kafka.streams.processor.internals.StreamThread:1226)
+[2019-06-14 15:18:06,191] INFO stream-client [_confluent-ksql-default_transient_6251399726718651787_1560550675858-b2598d90-1859-445d-819d-417508cc339b] State transition from PENDING_SHUTDOWN to NOT_RUNNING (org.apache.kafka.streams.KafkaStreams:263)
+[2019-06-14 15:18:06,191] INFO stream-client [_confluent-ksql-default_transient_6251399726718651787_1560550675858-b2598d90-1859-445d-819d-417508cc339b] Streams client stopped completely (org.apache.kafka.streams.KafkaStreams:898)

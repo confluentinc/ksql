@@ -226,18 +226,18 @@ final class TestExecutorUtil {
       final FakeKafkaService fakeKafkaService
   ) {
     final PreparedStatement<?> prepared = executionContext.prepare(stmt);
+    final ConfiguredStatement<?> configured = ConfiguredStatement.of(
+            prepared, overriddenProperties, ksqlConfig);
 
     if (prepared.getStatement() instanceof InsertValues) {
-      FakeInsertValuesExecutor.execute(
+      new FakeInsertValuesExecutor(fakeKafkaService).run(
+              (ConfiguredStatement<InsertValues>) configured,
               executionContext,
-              ksqlConfig,
-              fakeKafkaService,
-              (InsertValues) prepared.getStatement());
+              executionContext.getServiceContext()
+      );
       return null;
     }
 
-    final ConfiguredStatement<?> configured = ConfiguredStatement.of(
-        prepared, overriddenProperties, ksqlConfig);
     final ConfiguredStatement<?> withSchema =
         schemaInjector
             .map(injector -> injector.inject(configured))

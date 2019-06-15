@@ -168,7 +168,7 @@ public class KsqlTestingToolTest {
 
     // Then:
     assertThat(errContent.toString("UTF-8"),
-            containsString("Test failed: Expected type INTEGER for field ID but got 14.5(FLOAT64)\n"));
+            containsString("Test failed: Expected type INTEGER for field ID but got 14.5\n"));
   }
 
   @Test
@@ -180,7 +180,7 @@ public class KsqlTestingToolTest {
 
     // Then:
     assertThat(errContent.toString("UTF-8"),
-            containsString("Test failed: Inserting 4 values into 3 columns\n"));
+            containsString("Test failed: Expected a value for each column. Expected Columns: [ROWKEY, ID, NAME, VALUE]. Got ['abc', 101, 'abc', 13.54, 'extra string']\n"));
   }
 
   @Test

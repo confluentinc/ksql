@@ -21,9 +21,9 @@ import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.notNullValue;
 
-import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.schema.Operator;
+import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.util.List;

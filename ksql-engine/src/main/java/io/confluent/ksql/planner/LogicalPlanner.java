@@ -100,7 +100,7 @@ public class LogicalPlanner {
     final Into intoDataSource = analysis.getInto().get();
 
     final Optional<Field> partitionByField = analysis.getPartitionBy()
-        .map(keyName -> inputSchema.findField(keyName)
+        .map(keyName -> inputSchema.findValueField(keyName)
             .orElseThrow(() -> new KsqlException(
                 "Column " + keyName + " does not exist in the result schema. "
                     + "Error in Partition By clause.")

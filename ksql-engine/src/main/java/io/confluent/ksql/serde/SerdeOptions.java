@@ -71,7 +71,7 @@ public final class SerdeOptions {
 
     final ImmutableSet.Builder<SerdeOption> options = ImmutableSet.builder();
 
-    final boolean singleValueField = schema.getSchema().fields().size() == 1;
+    final boolean singleValueField = schema.valueSchema().fields().size() == 1;
 
     if (properties.getWrapSingleValues().isPresent() && !singleValueField) {
       throw new KsqlException("'" + DdlConfig.WRAP_SINGLE_VALUE + "' "

@@ -63,10 +63,10 @@ public class DataSourceExtractor {
     new Visitor().visit(node);
 
     if (joinLeftSchema != null) {
-      for (final Field field : joinLeftSchema.fields()) {
+      for (final Field field : joinLeftSchema.valueFields()) {
         leftFieldNames.add(field.name());
       }
-      for (final Field field : joinRightSchema.fields()) {
+      for (final Field field : joinRightSchema.valueFields()) {
         rightFieldNames.add(field.name());
         if (leftFieldNames.contains(field.name())) {
           commonFieldNames.add(field.name());

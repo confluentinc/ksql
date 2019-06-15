@@ -112,7 +112,7 @@ public class DataSourceNodeTest {
       "datasource",
       realSchema,
       SerdeOption.none(),
-      KeyField.of("key", realSchema.getSchema().field("key")),
+      KeyField.of("key", realSchema.valueSchema().field("key")),
       new LongColumnTimestampExtractionPolicy("timestamp"),
       new KsqlTopic("topic", "topic",
           new KsqlJsonSerdeFactory(), false),
@@ -293,7 +293,7 @@ public class DataSourceNodeTest {
     final KsqlTable<String> table = new KsqlTable<>("sqlExpression", "datasource",
         realSchema,
         SerdeOption.none(),
-        KeyField.of("field1", realSchema.getSchema().field("field1")),
+        KeyField.of("field1", realSchema.valueSchema().field("field1")),
         new LongColumnTimestampExtractionPolicy("timestamp"),
         new KsqlTopic("topic2", "topic2",
             new KsqlJsonSerdeFactory(), false),
@@ -314,7 +314,7 @@ public class DataSourceNodeTest {
     final KsqlTable<String> table = new KsqlTable<>("sqlExpression", "datasource",
         realSchema,
         SerdeOption.none(),
-        KeyField.of("field1", realSchema.getSchema().field("field1")),
+        KeyField.of("field1", realSchema.valueSchema().field("field1")),
         new LongColumnTimestampExtractionPolicy("timestamp"),
         new KsqlTopic("topic2", "topic2",
             new KsqlJsonSerdeFactory(), false),
@@ -384,7 +384,7 @@ public class DataSourceNodeTest {
     final DataSourceNode node = nodeWithMockTableSource();
 
     final PhysicalSchema expected = PhysicalSchema
-        .from(realSchema.withoutImplicitFields(), serdeOptions);
+        .from(realSchema.withoutImplicitAndKeyFieldsInValue(), serdeOptions);
 
     // When:
     node.buildStream(ksqlStreamBuilder);
@@ -402,7 +402,7 @@ public class DataSourceNodeTest {
     when(streamsBuilder.stream(anyString(), any())).thenReturn((KStream)kStream);
     when(tableSource.getSchema()).thenReturn(realSchema);
     when(tableSource.getKeyField())
-        .thenReturn(KeyField.of("field1", realSchema.getSchema().field("field1")));
+        .thenReturn(KeyField.of("field1", realSchema.valueSchema().field("field1")));
 
     return new DataSourceNode(
         realNodeId,

@@ -15,8 +15,12 @@
 
 package io.confluent.ksql.schema.ksql;
 
+import static java.util.Objects.requireNonNull;
+
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Streams;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.schema.connect.SqlSchemaFormatter;
 import io.confluent.ksql.schema.connect.SqlSchemaFormatter.Option;
@@ -62,6 +66,16 @@ public final class LogicalSchema {
       SchemaUtil.ROWKEY_NAME
   );
 
+  private static final Schema IMPLICIT_SCHEMA = SchemaBuilder
+      .struct()
+      .field(SchemaUtil.ROWTIME_NAME, Schema.OPTIONAL_INT64_SCHEMA)
+      .build();
+
+  private static final Schema KEY_SCHEMA = SchemaBuilder
+      .struct()
+      .field(SchemaUtil.ROWKEY_NAME, Schema.OPTIONAL_STRING_SCHEMA)
+      .build();
+
   private static final Consumer<Schema> NO_ADDITIONAL_VALIDATION = schema -> {
   };
 
@@ -78,40 +92,61 @@ public final class LogicalSchema {
           .put(Type.BYTES, DecimalUtil::requireDecimal)
           .build();
 
-  private final ConnectSchema schema;
+  private final Optional<String> alias;
+  private final ConnectSchema implicitSchema;
+  private final ConnectSchema keySchema;
+  private final ConnectSchema valueSchema;
 
-  public static LogicalSchema of(final Schema schema) {
-    return new LogicalSchema(schema);
+  public static LogicalSchema of(final Schema valueSchema) {
+    return new LogicalSchema(IMPLICIT_SCHEMA, KEY_SCHEMA, valueSchema, Optional.empty());
   }
 
-  private LogicalSchema(final Schema schema) {
-    this.schema = validate(Objects.requireNonNull(schema, "schema"), true);
+  private LogicalSchema(
+      final Schema implicitSchema,
+      final Schema keySchema,
+      final Schema valueSchema,
+      final Optional<String> alias
+  ) {
+    this.implicitSchema = validate(requireNonNull(implicitSchema, "implicitSchema"), true);
+    this.keySchema = validate(requireNonNull(keySchema, "keySchema"), true);
+    this.valueSchema = validate(requireNonNull(valueSchema, "valueSchema"), true);
+    this.alias = requireNonNull(alias, "alias");
   }
 
-  public ConnectSchema getSchema() {
-    return schema;
+  public ConnectSchema valueSchema() {
+    return valueSchema;
   }
 
   /**
-   * Get all the fields in the schema.
-   *
-   * @return all the fields in the schema.
+   * @return the implicit fields in the schema.
+   */
+  public List<Field> implicitFields() {
+    return ImmutableList.copyOf(implicitSchema.fields());
+  }
+
+  /**
+   * @return the key fields in the schema.
+   */
+  public List<Field> keyFields() {
+    return ImmutableList.copyOf(keySchema.fields());
+  }
+
+  /**
+   * @return the value fields in the schema.
+   */
+  public List<Field> valueFields() {
+    return ImmutableList.copyOf(valueSchema.fields());
+  }
+
+  /**
+   * @return all fields in the schema.
    */
   public List<Field> fields() {
-    return schema.fields();
-  }
-
-  /**
-   * Get the set of field indexes for the implicit fields, if any.
-   *
-   * @return the set of indexes to the implicit fields.
-   */
-  public Set<Integer> implicitColumnIndexes() {
-    return IMPLICIT_FIELD_NAMES.stream()
-        .map(schema::field)
-        .filter(Objects::nonNull)
-        .map(Field::index)
-        .collect(Collectors.toSet());
+    return ImmutableList.<Field>builder()
+        .addAll(implicitFields())
+        .addAll(keyFields())
+        .addAll(valueFields())
+        .build();
   }
 
   /**
@@ -123,12 +158,35 @@ public final class LogicalSchema {
    * before attempting to find a match again.
    *
    * @param fieldName the field name, where any alias is ignored.
+   * @return the field if found, else {@code Optiona.empty()}.
    */
   public Optional<Field> findField(final String fieldName) {
-    return schema.fields()
-        .stream()
-        .filter(f -> SchemaUtil.matchFieldName(f, fieldName))
-        .findFirst();
+    Optional<Field> found = findSchemaField(fieldName, implicitSchema);
+    if (found.isPresent()) {
+      return found;
+    }
+
+    found = findSchemaField(fieldName, keySchema);
+    if (found.isPresent()) {
+      return found;
+    }
+
+    return findSchemaField(fieldName, valueSchema);
+  }
+
+  /**
+   * Search for a value field with the supplied {@code fieldName}.
+   *
+   * <p>If the fieldName and the name of a field are an exact match, it will return that field.
+   *
+   * <p>If not exact match is found, any alias is stripped from the supplied  {@code fieldName}
+   * before attempting to find a match again.
+   *
+   * @param fieldName the field name, where any alias is ignored.
+   * @return the value field if found, else {@code Optiona.empty()}.
+   */
+  public Optional<Field> findValueField(final String fieldName) {
+    return findSchemaField(fieldName, valueSchema);
   }
 
   /**
@@ -137,8 +195,8 @@ public final class LogicalSchema {
    * @param fieldName the exact name of the field to get the index of.
    * @return the index if it exists or else {@code empty()}.
    */
-  public OptionalInt fieldIndex(final String fieldName) {
-    final Field field = schema.field(fieldName);
+  public OptionalInt valueFieldIndex(final String fieldName) {
+    final Field field = valueSchema.field(fieldName);
     if (field == null) {
       return OptionalInt.empty();
     }
@@ -157,16 +215,16 @@ public final class LogicalSchema {
    * @return the schema with the alias applied.
    */
   public LogicalSchema withAlias(final String alias) {
-    final SchemaBuilder newSchema = SchemaBuilder
-        .struct()
-        .name(schema.name());
-
-    for (final Field field : schema.fields()) {
-      final String aliased = SchemaUtil.buildAliasedFieldName(alias, field.name());
-      newSchema.field(aliased, field.schema());
+    if (this.alias.isPresent()) {
+      throw new IllegalStateException("Already aliased");
     }
 
-    return LogicalSchema.of(newSchema.build());
+    return new LogicalSchema(
+        addAlias(alias, implicitSchema),
+        addAlias(alias, keySchema),
+        addAlias(alias, valueSchema),
+        Optional.of(alias)
+    );
   }
 
   /**
@@ -175,69 +233,64 @@ public final class LogicalSchema {
    * @return the schema without any aliases in the field name.
    */
   public LogicalSchema withoutAlias() {
-    final SchemaBuilder newSchema = SchemaBuilder
-        .struct()
-        .name(schema.name());
-
-    for (final Field field : schema.fields()) {
-      final String unaliased = SchemaUtil.getFieldNameWithNoAlias(field.name());
-      newSchema.field(unaliased, field.schema());
+    if (!alias.isPresent()) {
+      throw new IllegalStateException("Not aliased");
     }
 
-    return LogicalSchema.of(newSchema.build());
+    return new LogicalSchema(
+        removeAlias(implicitSchema),
+        removeAlias(keySchema),
+        removeAlias(valueSchema),
+        Optional.empty()
+    );
   }
 
   /**
-   * Add implicit fields to the schema.
+   * Copies implicit and key fields to the value schema.
    *
-   * <p>Implicit fields are:
-   * <ol>
-   * <li>{@link SchemaUtil#ROWTIME_NAME}</li>
-   * <li>{@link SchemaUtil#ROWKEY_NAME}</li>
-   * </ol>
+   * <p>If the fields already exist in the value schema the function returns the same schema.
    *
-   * <p>If the implicit fields already exist, the function returns the same schema.
-   *
-   * <p><b>NOTE:</b> the function does NOT take any aliases in the fields into account
-   *
-   * @return the new schema with the (unaliased) implicit fields added.
+   * @return the new schema.
    */
-  public LogicalSchema withImplicitFields() {
+  public LogicalSchema withImplicitAndKeyFieldsInValue() {
     final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
-    schemaBuilder.field(SchemaUtil.ROWTIME_NAME, Schema.OPTIONAL_INT64_SCHEMA);
-    schemaBuilder.field(SchemaUtil.ROWKEY_NAME, Schema.OPTIONAL_STRING_SCHEMA);
-    for (final Field field : ((Schema) schema).fields()) {
-      if (!isImplicitColumnName(field.name())) {
-        schemaBuilder.field(field.name(), field.schema());
+
+    implicitFields().forEach(f -> schemaBuilder.field(f.name(), f.schema()));
+
+    keyFields().forEach(f -> schemaBuilder.field(f.name(), f.schema()));
+
+    valueFields().forEach(f -> {
+      if (!findSchemaField(f.name(), schemaBuilder).isPresent()) {
+        schemaBuilder.field(f.name(), f.schema());
       }
-    }
-    return LogicalSchema.of(schemaBuilder.build());
+    });
+
+    return new LogicalSchema(
+        implicitSchema,
+        keySchema,
+        schemaBuilder.build(),
+        alias);
   }
 
   /**
-   * Remove implicit fields to the schema.
+   * Remove implicit and key fields from the value schema.
    *
-   * <p>Implicit fields are:
-   * <ol>
-   * <li>{@link SchemaUtil#ROWTIME_NAME}</li>
-   * <li>{@link SchemaUtil#ROWKEY_NAME}</li>
-   * </ol>
-   *
-   * <p><b>NOTE:</b> the function DOES take any aliases in the fields into account.
-   *
-   * @return the new schema with the implicit fields removed.
+   * @return the new schema with the fields removed.
    */
-  public LogicalSchema withoutImplicitFields() {
+  public LogicalSchema withoutImplicitAndKeyFieldsInValue() {
     final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
 
-    for (final Field field : schema.fields()) {
-      final String fieldName = SchemaUtil.getFieldNameWithNoAlias(field.name());
-      if (!isImplicitColumnName(fieldName)) {
-        schemaBuilder.field(field.name(), field.schema());
-      }
-    }
+    final Set<String> excluded = implicitAndKeyFieldNames();
 
-    return LogicalSchema.of(schemaBuilder.build());
+    valueSchema.fields().stream()
+        .filter(f -> !excluded.contains(f.name()))
+        .forEach(f -> schemaBuilder.field(f.name(), f.schema()));
+
+    return new LogicalSchema(
+        implicitSchema,
+        keySchema,
+        schemaBuilder.build(),
+        alias);
   }
 
   @Override
@@ -249,21 +302,59 @@ public final class LogicalSchema {
       return false;
     }
     final LogicalSchema that = (LogicalSchema) o;
-    return schemasAreEqual(schema, that.schema);
+    return schemasAreEqual(valueSchema, that.valueSchema);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(schema);
+    return Objects.hash(valueSchema);
   }
 
   @Override
   public String toString() {
-    return "[" + FORMATTER.format(schema) + "]";
+    return "[" + FORMATTER.format(valueSchema) + "]";
   }
 
   public static boolean isImplicitColumnName(final String fieldName) {
     return IMPLICIT_FIELD_NAMES.contains(fieldName.toUpperCase());
+  }
+
+  @SuppressWarnings("UnstableApiUsage")
+  private Set<String> implicitAndKeyFieldNames() {
+    return Streams.concat(implicitFields().stream(), keyFields().stream())
+        .map(Field::name)
+        .collect(Collectors.toSet());
+  }
+
+  private static Schema addAlias(final String alias, final ConnectSchema schema) {
+    final SchemaBuilder newSchema = SchemaBuilder
+        .struct()
+        .name(schema.name());
+
+    for (final Field field : schema.fields()) {
+      final String aliased = SchemaUtil.buildAliasedFieldName(alias, field.name());
+      newSchema.field(aliased, field.schema());
+    }
+    return newSchema.build();
+  }
+
+  private static Schema removeAlias(final Schema schema) {
+    final SchemaBuilder newSchema = SchemaBuilder
+        .struct()
+        .name(schema.name());
+
+    for (final Field field : schema.fields()) {
+      final String unaliased = SchemaUtil.getFieldNameWithNoAlias(field.name());
+      newSchema.field(unaliased, field.schema());
+    }
+    return newSchema.build();
+  }
+
+  private static Optional<Field> findSchemaField(final String fieldName, final Schema schema) {
+    return schema.fields()
+        .stream()
+        .filter(f -> SchemaUtil.matchFieldName(f, fieldName))
+        .findFirst();
   }
 
   private static ConnectSchema validate(final Schema schema, final boolean topLevel) {

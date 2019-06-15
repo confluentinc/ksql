@@ -143,7 +143,7 @@ public class ExpressionTypeManager
       final QualifiedNameReference node,
       final ExpressionTypeContext expressionTypeContext
   ) {
-    final Field schemaField = schema.findField(node.getName().getSuffix())
+    final Field schemaField = schema.findValueField(node.getName().getSuffix())
         .orElseThrow(() ->
             new KsqlException(String.format("Invalid Expression %s.", node.toString())));
 
@@ -157,7 +157,7 @@ public class ExpressionTypeManager
       final DereferenceExpression node,
       final ExpressionTypeContext expressionTypeContext
   ) {
-    final Field schemaField = schema.findField(node.toString())
+    final Field schemaField = schema.findValueField(node.toString())
         .orElseThrow(() ->
             new KsqlException(String.format("Invalid Expression %s.", node.toString())));
 

@@ -81,7 +81,7 @@ public class PhysicalSchemaTest {
 
     // Then:
     assertThat(result.valueSchema().getConnectSchema(),
-        is(SCHEMA_WITH_MULTIPLE_FIELDS.getSchema()));
+        is(SCHEMA_WITH_MULTIPLE_FIELDS.valueSchema()));
   }
 
   @Test
@@ -104,7 +104,7 @@ public class PhysicalSchemaTest {
 
     // Then:
     assertThat(result.valueSchema().getConnectSchema(),
-        is(SCHEMA_WITH_SINGLE_FIELD.getSchema()));
+        is(SCHEMA_WITH_SINGLE_FIELD.valueSchema()));
   }
 
   @Test
@@ -115,6 +115,6 @@ public class PhysicalSchemaTest {
 
     // Then:
     assertThat(result.valueSchema().getConnectSchema(),
-        is(SCHEMA_WITH_SINGLE_FIELD.fields().get(0).schema()));
+        is(SCHEMA_WITH_SINGLE_FIELD.valueFields().get(0).schema()));
   }
 }

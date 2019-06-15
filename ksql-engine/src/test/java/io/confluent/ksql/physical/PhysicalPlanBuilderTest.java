@@ -746,7 +746,7 @@ public class PhysicalPlanBuilderTest {
     final List<QueryMetadata> queryMetadataList = execute(
         CREATE_STREAM_TEST1 + csasQuery + insertIntoQuery);
     final LogicalSchema resultSchema = queryMetadataList.get(0).getLogicalSchema();
-    resultSchema.fields().forEach(
+    resultSchema.valueFields().forEach(
         field -> Assert.assertTrue(field.schema().isOptional())
     );
   }

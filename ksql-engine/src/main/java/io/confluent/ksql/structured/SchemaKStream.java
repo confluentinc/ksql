@@ -504,7 +504,7 @@ public class SchemaKStream<K> {
   ) {
     final Optional<Field> existingKey = keyField.resolve(schema, ksqlConfig);
 
-    final Field proposedKey = schema.findField(fieldName)
+    final Field proposedKey = schema.findValueField(fieldName)
         .orElseThrow(IllegalArgumentException::new);
 
     final KeyField resultantKeyField = isRowKey(fieldName)
@@ -566,7 +566,7 @@ public class SchemaKStream<K> {
   }
 
   private Object extractColumn(final Field newKeyField, final GenericRow value) {
-    if (value.getColumns().size() != schema.fields().size()) {
+    if (value.getColumns().size() != schema.valueFields().size()) {
       throw new IllegalStateException("Field count mismatch. "
           + "Schema fields: " + schema
           + ", row:" + value);
@@ -574,7 +574,7 @@ public class SchemaKStream<K> {
 
     return value
         .getColumns()
-        .get(schema.fieldIndex(newKeyField.name()).orElseThrow(IllegalStateException::new));
+        .get(schema.valueFieldIndex(newKeyField.name()).orElseThrow(IllegalStateException::new));
   }
 
   private static String fieldNameFromExpression(final Expression expression) {
@@ -649,7 +649,7 @@ public class SchemaKStream<K> {
     final Field legacyKeyField = new Field(
         groupBy.aggregateKeyName, -1, Schema.OPTIONAL_STRING_SCHEMA);
 
-    final Optional<String> newKeyField = schema.findField(groupBy.aggregateKeyName)
+    final Optional<String> newKeyField = schema.findValueField(groupBy.aggregateKeyName)
         .map(Field::name);
 
     return new SchemaKGroupedStream(
@@ -734,13 +734,13 @@ public class SchemaKStream<K> {
       if (left != null) {
         columns.addAll(left.getColumns());
       } else {
-        fillWithNulls(columns, leftSchema.fields().size());
+        fillWithNulls(columns, leftSchema.valueFields().size());
       }
 
       if (right != null) {
         columns.addAll(right.getColumns());
       } else {
-        fillWithNulls(columns, rightSchema.fields().size());
+        fillWithNulls(columns, rightSchema.valueFields().size());
       }
 
       return new GenericRow(columns);

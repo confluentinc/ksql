@@ -30,7 +30,7 @@ public final class EntityUtil {
   }
 
   public static List<FieldInfo> buildSourceSchemaEntity(final LogicalSchema schema) {
-    return SchemaWalker.visit(schema.getSchema(), new Converter())
+    return SchemaWalker.visit(schema.valueSchema(), new Converter())
         .getFields()
         .orElseThrow(() -> new RuntimeException("Root schema should contain fields"));
   }

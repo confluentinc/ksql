@@ -16,6 +16,7 @@
 package io.confluent.ksql.engine;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Streams;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
@@ -33,7 +34,6 @@ import io.confluent.ksql.schema.ksql.DefaultSqlValueCoercer;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
-import io.confluent.ksql.schema.ksql.SqlType;
 import io.confluent.ksql.schema.ksql.SqlValueCoercer;
 import io.confluent.ksql.serde.GenericRowSerDe;
 import io.confluent.ksql.services.ServiceContext;
@@ -138,8 +138,8 @@ public abstract class InsertValuesEngine {
           final Map<String, Object> values
   ) {
     return new GenericRow(
-            schema.withoutImplicitFields()
-                    .fields()
+            schema.withoutImplicitAndKeyFieldsInValue()
+                    .valueFields()
                     .stream()
                     .map(Field::name)
                     .map(values::get)
@@ -147,15 +147,17 @@ public abstract class InsertValuesEngine {
     );
   }
 
+  @SuppressWarnings("UnstableApiUsage")
   private static List<String> implicitColumns(
           final DataSource<?> dataSource,
           final List<Expression> values
   ) {
-    final List<String> fieldNames = dataSource.getSchema()
-            .fields()
-            .stream()
+    final LogicalSchema schema = dataSource.getSchema().withoutImplicitAndKeyFieldsInValue();
+
+    final List<String> fieldNames = Streams.concat(
+            schema.keyFields().stream(),
+            schema.valueFields().stream())
             .map(Field::name)
-            .filter(name -> !SchemaUtil.ROWTIME_NAME.equals(name))
             .collect(Collectors.toList());
 
     if (fieldNames.size() != values.size()) {
@@ -173,17 +175,14 @@ public abstract class InsertValuesEngine {
           final List<String> columns,
           final LogicalSchema schema
   ) {
-    final ConnectSchema valueSchema = schema.getSchema();
-    final SchemaConverters.LogicalToSqlTypeConverter converter
-            = SchemaConverters.logicalToSqlConverter();
+    final ConnectSchema valueSchema = schema.valueSchema();
     final Map<String, Object> values = new HashMap<>();
     for (int i = 0; i < columns.size(); i++) {
       final String column = columns.get(i);
       final Schema columnSchema = valueSchema.field(column).schema();
-      final SqlType columnType = converter.toSqlType(columnSchema).getSqlType();
       final Expression valueExp = insertValues.getValues().get(i);
 
-      final Object value = new ExpressionResolver(columnType, column)
+      final Object value = new ExpressionResolver(columnSchema, column)
               .process(valueExp, null);
 
       values.put(column, value);
@@ -217,7 +216,7 @@ public abstract class InsertValuesEngine {
           final LogicalSchema schema,
           final Map<String, Object> values
   ) {
-    for (final Field field : schema.fields()) {
+    for (final Field field : schema.valueFields()) {
       if (!field.schema().isOptional() && values.getOrDefault(field.name(), null) == null) {
         throw new KsqlException("Got null value for nonnull field: " + field);
       }
@@ -244,7 +243,7 @@ public abstract class InsertValuesEngine {
     final Serde<GenericRow> rowSerde = GenericRowSerDe.from(
             dataSource.getValueSerdeFactory(),
             PhysicalSchema.from(
-                    dataSource.getSchema().withoutImplicitFields(),
+                    dataSource.getSchema().withoutImplicitAndKeyFieldsInValue(),
                     dataSource.getSerdeOptions()
             ),
             config,
@@ -274,20 +273,19 @@ public abstract class InsertValuesEngine {
 
   private static class ExpressionResolver extends AstVisitor<Object, Void> {
 
-    private final SqlType fieldType;
+    private final Schema fieldSchema;
     private final String fieldName;
     private final SqlValueCoercer defaultSqlValueCoercer = new DefaultSqlValueCoercer();
 
-    ExpressionResolver(final SqlType fieldType, final String fieldName) {
-      this.fieldType = Objects.requireNonNull(fieldType, "fieldType");
+    ExpressionResolver(final Schema fieldSchema, final String fieldName) {
+      this.fieldSchema = Objects.requireNonNull(fieldSchema, "fieldSchema");
       this.fieldName = Objects.requireNonNull(fieldName, "fieldName");
     }
 
     @Override
     protected String visitNode(final Node node, final Void context) {
       throw new KsqlException(
-              "Only Literals are supported for INSERT INTO. Got: "
-                      + node + " for field " + fieldName);
+              "Only Literals are supported for INSERT INTO. Got: " + node + " for field " + fieldName);
     }
 
     @Override
@@ -297,11 +295,13 @@ public abstract class InsertValuesEngine {
         return null;
       }
 
-      return defaultSqlValueCoercer.coerce(value, fieldType)
+      return defaultSqlValueCoercer.coerce(value, fieldSchema)
               .orElseThrow(
-                  () -> new KsqlException(
-                         "Expected type " + fieldType + " for field " + fieldName
-                                 + " but got " + value));
+                      () -> new KsqlException(
+                              "Expected type "
+                                      + SchemaConverters.logicalToSqlConverter().toSqlType(fieldSchema)
+                                      + " for field " + fieldName
+                                      + " but got " + value));
     }
   }
 }

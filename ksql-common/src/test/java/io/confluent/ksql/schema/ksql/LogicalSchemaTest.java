@@ -18,21 +18,21 @@ package io.confluent.ksql.schema.ksql;
 import static io.confluent.ksql.util.SchemaUtil.ROWKEY_NAME;
 import static io.confluent.ksql.util.SchemaUtil.ROWTIME_NAME;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.fail;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.testing.EqualsTester;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
+import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
-import java.util.Set;
 import java.util.stream.Stream;
-import org.apache.kafka.connect.data.Decimal;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Schema.Type;
@@ -63,7 +63,7 @@ public class LogicalSchemaTest {
       .build();
 
   private static final LogicalSchema SOME_SCHEMA = LogicalSchema.of(SOME_CONNECT_SCHEMA);
-  private static final LogicalSchema ALIASED_SCHEMA = LogicalSchema.of(ALIASED_CONNECT_SCHEMA);
+  private static final LogicalSchema ALIASED_SCHEMA = SOME_SCHEMA.withAlias("bob");
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -72,10 +72,12 @@ public class LogicalSchemaTest {
   public void shouldImplementEqualsProperly() {
     new EqualsTester()
         .addEqualityGroup(
-            LogicalSchema.of(SOME_CONNECT_SCHEMA), LogicalSchema.of(SOME_CONNECT_SCHEMA)
+            LogicalSchema.of(SOME_CONNECT_SCHEMA),
+            LogicalSchema.of(SOME_CONNECT_SCHEMA),
+            LogicalSchema.of(SOME_CONNECT_SCHEMA).withAlias("bob").withoutAlias()
         )
         .addEqualityGroup(
-            LogicalSchema.of(ALIASED_CONNECT_SCHEMA)
+            LogicalSchema.of(SOME_CONNECT_SCHEMA).withAlias("bob")
         )
         .addEqualityGroup(
             LogicalSchema.of(OTHER_CONNECT_SCHEMA)
@@ -234,7 +236,8 @@ public class LogicalSchemaTest {
   public void shouldThrowOnNonDecimalBytes() {
     // Then:
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Expected schema of type DECIMAL but got a schema of type BYTES and name foobar");
+    expectedException.expectMessage(
+        "Expected schema of type DECIMAL but got a schema of type BYTES and name foobar");
 
     // When:
     LogicalSchema.of(nested(SchemaBuilder.bytes().name("foobar").optional().build()));
@@ -249,13 +252,14 @@ public class LogicalSchemaTest {
     assertThat(result, is(ALIASED_SCHEMA));
   }
 
-  @Test
-  public void shouldCopySchemaIfSchemaAlreadyAliased() {
-    // When:
-    final LogicalSchema result = ALIASED_SCHEMA.withAlias("bob");
+  @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_INFERRED")
+  @Test(expected = IllegalStateException.class)
+  public void shouldThrowIfAlreadyAliased() {
+    // Given:
+    final LogicalSchema aliased = SOME_SCHEMA.withAlias("bob");
 
-    // Then:
-    assertThat(result, is(ALIASED_SCHEMA));
+    // When:
+    aliased.withAlias("bob");
   }
 
   @Test
@@ -294,13 +298,11 @@ public class LogicalSchemaTest {
     assertThat(result, is(SOME_SCHEMA));
   }
 
-  @Test
-  public void shouldCopySchemaIfSchemaAlreadyUnaliased() {
+  @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_INFERRED")
+  @Test(expected = IllegalStateException.class)
+  public void shouldThrowIfNotAliased() {
     // When:
-    final LogicalSchema result = SOME_SCHEMA.withoutAlias();
-
-    // Then:
-    assertThat(result, is(SOME_SCHEMA));
+    SOME_SCHEMA.withoutAlias();
   }
 
   @Test
@@ -308,13 +310,13 @@ public class LogicalSchemaTest {
     // Given:
     final LogicalSchema schema = LogicalSchema.of(
         SchemaBuilder.struct()
-            .field("bob.f0", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
-            .field("bob.f1", SchemaBuilder.struct()
+            .field("f0", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
+            .field("f1", SchemaBuilder.struct()
                 .field("bob.nested", Schema.OPTIONAL_INT64_SCHEMA)
                 .optional()
                 .build())
             .build()
-    );
+    ).withAlias("bob");
 
     // When:
     final LogicalSchema result = schema.withoutAlias();
@@ -333,7 +335,7 @@ public class LogicalSchemaTest {
   @Test
   public void shouldGetFieldByName() {
     // When:
-    final Optional<Field> result = SOME_SCHEMA.findField("f0");
+    final Optional<Field> result = SOME_SCHEMA.findValueField("f0");
 
     // Then:
     assertThat(result, is(Optional.of(SOME_CONNECT_SCHEMA.field("f0"))));
@@ -342,7 +344,7 @@ public class LogicalSchemaTest {
   @Test
   public void shouldGetFieldByAliasedName() {
     // When:
-    final Optional<Field> result = SOME_SCHEMA.findField("SomeAlias.f0");
+    final Optional<Field> result = SOME_SCHEMA.findValueField("SomeAlias.f0");
 
     // Then:
     assertThat(result, is(Optional.of(SOME_CONNECT_SCHEMA.field("f0"))));
@@ -351,7 +353,7 @@ public class LogicalSchemaTest {
   @Test
   public void shouldNotGetFieldByNameIfWrongCase() {
     // When:
-    final Optional<Field> result = SOME_SCHEMA.findField("F0");
+    final Optional<Field> result = SOME_SCHEMA.findValueField("F0");
 
     // Then:
     assertThat(result, is(Optional.empty()));
@@ -360,7 +362,7 @@ public class LogicalSchemaTest {
   @Test
   public void shouldNotGetFieldByNameIfFieldIsAliasedAndNameIsNot() {
     // When:
-    final Optional<Field> result = ALIASED_SCHEMA.findField("f0");
+    final Optional<Field> result = ALIASED_SCHEMA.findValueField("f0");
 
     // Then:
     assertThat(result, is(Optional.empty()));
@@ -369,46 +371,170 @@ public class LogicalSchemaTest {
   @Test
   public void shouldGetFieldByNameIfBothFieldAndNameAreAliased() {
     // When:
-    final Optional<Field> result = ALIASED_SCHEMA.findField("bob.f0");
+    final Optional<Field> result = ALIASED_SCHEMA.findValueField("bob.f0");
 
     // Then:
     assertThat(result, is(Optional.of(ALIASED_CONNECT_SCHEMA.field("bob.f0"))));
   }
 
   @Test
+  public void shouldNotGetImplicitFieldFromValue() {
+    assertThat(SOME_SCHEMA.findValueField("ROWTIME"), is(Optional.empty()));
+  }
+
+  @Test
+  public void shouldNotGetKeyFieldFromValue() {
+    assertThat(SOME_SCHEMA.findValueField("ROWKEY"), is(Optional.empty()));
+  }
+
+  @Test
+  public void shouldGetImplicitFieldFromValueIfAdded() {
+    assertThat(SOME_SCHEMA.withImplicitAndKeyFieldsInValue().findValueField("ROWTIME"),
+        is(not(Optional.empty())));
+  }
+
+  @Test
+  public void shouldGetKeyFieldFromValueIfAdded() {
+    assertThat(SOME_SCHEMA.withImplicitAndKeyFieldsInValue().findValueField("ROWKEY"),
+        is(not(Optional.empty())));
+  }
+
+  @Test
+  public void shouldGetImplicitFields() {
+    assertThat(SOME_SCHEMA.findField("ROWTIME"), is(Optional.of(
+        new Field("ROWTIME", 0, Schema.OPTIONAL_INT64_SCHEMA)
+    )));
+  }
+
+  @Test
+  public void shouldGetFields() {
+    assertThat(SOME_SCHEMA.findField("ROWKEY"), is(Optional.of(
+        new Field("ROWKEY", 0, Schema.OPTIONAL_STRING_SCHEMA)
+    )));
+  }
+
+  @Test
+  public void shouldGetValueFields() {
+    assertThat(SOME_SCHEMA.findField("f0"), is(Optional.of(
+        new Field("f0", 0, Schema.OPTIONAL_STRING_SCHEMA)
+    )));
+  }
+
+  @Test
   public void shouldGetFieldIndex() {
-    assertThat(SOME_SCHEMA.fieldIndex("f0"), is(OptionalInt.of(0)));
-    assertThat(SOME_SCHEMA.fieldIndex("f1"), is(OptionalInt.of(1)));
+    assertThat(SOME_SCHEMA.valueFieldIndex("f0"), is(OptionalInt.of(0)));
+    assertThat(SOME_SCHEMA.valueFieldIndex("f1"), is(OptionalInt.of(1)));
   }
 
   @Test
   public void shouldReturnMinusOneForIndexIfFieldNotFound() {
-    assertThat(SOME_SCHEMA.fieldIndex("wontfindme"), is(OptionalInt.empty()));
+    assertThat(SOME_SCHEMA.valueFieldIndex("wontfindme"), is(OptionalInt.empty()));
   }
 
   @Test
   public void shouldNotFindFieldIfDifferentCase() {
-    assertThat(SOME_SCHEMA.fieldIndex("F0"), is(OptionalInt.empty()));
+    assertThat(SOME_SCHEMA.valueFieldIndex("F0"), is(OptionalInt.empty()));
   }
 
   @Test
   public void shouldGetAliasedFieldIndex() {
-    assertThat(ALIASED_SCHEMA.fieldIndex("bob.f1"), is(OptionalInt.of(1)));
+    assertThat(ALIASED_SCHEMA.valueFieldIndex("bob.f1"), is(OptionalInt.of(1)));
   }
 
   @Test
   public void shouldNotFindUnaliasedFieldIndexInAliasedSchema() {
-    assertThat(ALIASED_SCHEMA.fieldIndex("f1"), is(OptionalInt.empty()));
+    assertThat(ALIASED_SCHEMA.valueFieldIndex("f1"), is(OptionalInt.empty()));
   }
 
   @Test
   public void shouldNotFindAliasedFieldIndexInUnaliasedSchema() {
-    assertThat(SOME_SCHEMA.fieldIndex("bob.f1"), is(OptionalInt.empty()));
+    assertThat(SOME_SCHEMA.valueFieldIndex("bob.f1"), is(OptionalInt.empty()));
   }
 
   @Test
-  public void shouldExposeFields() {
-    assertThat(SOME_SCHEMA.fields(), is(SOME_CONNECT_SCHEMA.fields()));
+  public void shouldExposeImplicitFields() {
+    assertThat(SOME_SCHEMA.implicitFields(), is(ImmutableList.of(
+        new Field(ROWTIME_NAME, 0, Schema.OPTIONAL_INT64_SCHEMA)
+    )));
+  }
+
+  @Test
+  public void shouldExposeAliasedImplicitFields() {
+    // Given:
+    final LogicalSchema schema = SOME_SCHEMA.withAlias("fred");
+
+    // When:
+    final List<Field> fields = schema.implicitFields();
+
+    // Then:
+    assertThat(fields, is(ImmutableList.of(
+        new Field("fred." + ROWTIME_NAME, 0, Schema.OPTIONAL_INT64_SCHEMA)
+    )));
+  }
+
+  @Test
+  public void shouldExposeKeyFields() {
+    assertThat(SOME_SCHEMA.keyFields(), is(ImmutableList.of(
+        new Field(ROWKEY_NAME, 0, Schema.OPTIONAL_STRING_SCHEMA)
+    )));
+  }
+
+  @Test
+  public void shouldExposeAliasedKeyFields() {
+    // Given:
+    final LogicalSchema schema = SOME_SCHEMA.withAlias("fred");
+
+    // When:
+    final List<Field> fields = schema.keyFields();
+
+    // Then:
+    assertThat(fields, is(ImmutableList.of(
+        new Field("fred." + ROWKEY_NAME, 0, Schema.OPTIONAL_STRING_SCHEMA)
+    )));
+  }
+
+  @Test
+  public void shouldExposeValueFields() {
+    assertThat(SOME_SCHEMA.valueFields(), is(SOME_CONNECT_SCHEMA.fields()));
+  }
+
+  @Test
+  public void shouldExposeAliasedValueFields() {
+    // Given:
+    final LogicalSchema schema = SOME_SCHEMA.withAlias("bob");
+
+    // When:
+    final List<Field> fields = schema.valueFields();
+
+    // Then:
+    assertThat(fields, is(ALIASED_CONNECT_SCHEMA.fields()));
+  }
+
+  @Test
+  public void shouldExposeAllFields() {
+    assertThat(SOME_SCHEMA.fields(), is(ImmutableList.of(
+        new Field(ROWTIME_NAME, 0, Schema.OPTIONAL_INT64_SCHEMA),
+        new Field(ROWKEY_NAME, 0, Schema.OPTIONAL_STRING_SCHEMA),
+        new Field("f0", 0, SchemaBuilder.OPTIONAL_STRING_SCHEMA),
+        new Field("f1", 1, SchemaBuilder.OPTIONAL_INT64_SCHEMA)
+    )));
+  }
+
+  @Test
+  public void shouldExposeAliasedAllFields() {
+    // Given:
+    final LogicalSchema schema = SOME_SCHEMA.withAlias("bob");
+
+    // When:
+    final List<Field> fields = schema.fields();
+
+    // Then:
+    assertThat(fields, is(ImmutableList.of(
+        new Field("bob." + ROWTIME_NAME, 0, Schema.OPTIONAL_INT64_SCHEMA),
+        new Field("bob." + ROWKEY_NAME, 0, Schema.OPTIONAL_STRING_SCHEMA),
+        new Field("bob.f0", 0, SchemaBuilder.OPTIONAL_STRING_SCHEMA),
+        new Field("bob.f1", 1, SchemaBuilder.OPTIONAL_INT64_SCHEMA)
+    )));
   }
 
   @Test
@@ -460,35 +586,78 @@ public class LogicalSchemaTest {
   }
 
   @Test
-  public void shouldAddImplicitColumns() {
+  public void shouldConvertAliasedSchemaToString() {
+    // Given:
+    final LogicalSchema schema = LogicalSchema.of(
+        SchemaBuilder.struct()
+            .field("f0", SchemaBuilder.OPTIONAL_BOOLEAN_SCHEMA)
+            .build()
+    ).withAlias("t");
+
     // When:
-    final LogicalSchema result = LogicalSchema.of(SOME_CONNECT_SCHEMA).withImplicitFields();
+    final String s = schema.toString();
 
     // Then:
-    assertThat(result.fields(), hasSize(SOME_CONNECT_SCHEMA.fields().size() + 2));
-    assertThat(result.fields().get(0).name(), is(SchemaUtil.ROWTIME_NAME));
-    assertThat(result.fields().get(0).index(), is(0));
-    assertThat(result.fields().get(0).schema(), is(Schema.OPTIONAL_INT64_SCHEMA));
-    assertThat(result.fields().get(1).name(), is(SchemaUtil.ROWKEY_NAME));
-    assertThat(result.fields().get(1).index(), is(1));
-    assertThat(result.fields().get(1).schema(), is(Schema.OPTIONAL_STRING_SCHEMA));
+    assertThat(s, is(
+        "["
+            + "t.f0 BOOLEAN"
+            + "]"));
   }
 
   @Test
-  public void shouldAddImplicitColumnsOnlyOnce() {
+  public void shouldAddImplicitAndKeyColumns() {
     // Given:
-    final LogicalSchema ksqlSchema = LogicalSchema.of(SOME_CONNECT_SCHEMA)
-        .withImplicitFields();
+    final LogicalSchema schema = LogicalSchema.of(SOME_CONNECT_SCHEMA);
 
     // When:
-    final LogicalSchema result = ksqlSchema.withImplicitFields();
+    final LogicalSchema result = schema
+        .withImplicitAndKeyFieldsInValue();
+
+    // Then:
+    assertThat(result.valueFields(), hasSize(SOME_CONNECT_SCHEMA.fields().size() + 2));
+    assertThat(result.valueFields().get(0).name(), is(SchemaUtil.ROWTIME_NAME));
+    assertThat(result.valueFields().get(0).index(), is(0));
+    assertThat(result.valueFields().get(0).schema(), is(Schema.OPTIONAL_INT64_SCHEMA));
+    assertThat(result.valueFields().get(1).name(), is(SchemaUtil.ROWKEY_NAME));
+    assertThat(result.valueFields().get(1).index(), is(1));
+    assertThat(result.valueFields().get(1).schema(), is(Schema.OPTIONAL_STRING_SCHEMA));
+  }
+
+  @Test
+  public void shouldAddImplicitAndKeyColumnsWhenAliased() {
+    // Given:
+    final LogicalSchema schema = LogicalSchema.of(SOME_CONNECT_SCHEMA)
+        .withAlias("bob");
+
+    // When:
+    final LogicalSchema result = schema
+        .withImplicitAndKeyFieldsInValue();
+
+    // Then:
+    assertThat(result.valueFields(), hasSize(SOME_CONNECT_SCHEMA.fields().size() + 2));
+    assertThat(result.valueFields().get(0).name(), is("bob." + SchemaUtil.ROWTIME_NAME));
+    assertThat(result.valueFields().get(0).index(), is(0));
+    assertThat(result.valueFields().get(0).schema(), is(Schema.OPTIONAL_INT64_SCHEMA));
+    assertThat(result.valueFields().get(1).name(), is("bob." + SchemaUtil.ROWKEY_NAME));
+    assertThat(result.valueFields().get(1).index(), is(1));
+    assertThat(result.valueFields().get(1).schema(), is(Schema.OPTIONAL_STRING_SCHEMA));
+  }
+
+  @Test
+  public void shouldAddImplicitAndKeyColumnsOnlyOnce() {
+    // Given:
+    final LogicalSchema ksqlSchema = LogicalSchema.of(SOME_CONNECT_SCHEMA)
+        .withImplicitAndKeyFieldsInValue();
+
+    // When:
+    final LogicalSchema result = ksqlSchema.withImplicitAndKeyFieldsInValue();
 
     // Then:
     assertThat(result, is(ksqlSchema));
   }
 
   @Test
-  public void shouldRemoveOtherImplicitsWhenAddingImplicit() {
+  public void shouldRemoveOthersWhenAddingImplicitsAndKeyFields() {
     // Given:
     final LogicalSchema ksqlSchema = LogicalSchema.of(SchemaBuilder.struct()
         .field("f0", Schema.OPTIONAL_INT64_SCHEMA)
@@ -499,7 +668,7 @@ public class LogicalSchemaTest {
     );
 
     // When:
-    final LogicalSchema result = ksqlSchema.withImplicitFields();
+    final LogicalSchema result = ksqlSchema.withImplicitAndKeyFieldsInValue();
 
     // Then:
     assertThat(result, is(LogicalSchema.of(SchemaBuilder.struct()
@@ -515,15 +684,13 @@ public class LogicalSchemaTest {
   public void shouldRemoveImplicitFields() {
     // Given:
     final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
-        .field(SchemaUtil.ROWTIME_NAME, Schema.OPTIONAL_INT64_SCHEMA)
-        .field(SchemaUtil.ROWKEY_NAME, Schema.OPTIONAL_STRING_SCHEMA)
         .field("f0", Schema.OPTIONAL_INT64_SCHEMA)
         .field("f1", Schema.OPTIONAL_INT64_SCHEMA)
         .build()
-    );
+    ).withImplicitAndKeyFieldsInValue();
 
     // When
-    final LogicalSchema result = schema.withoutImplicitFields();
+    final LogicalSchema result = schema.withoutImplicitAndKeyFieldsInValue();
 
     // Then:
     assertThat(result, is(LogicalSchema.of(SchemaBuilder.struct()
@@ -545,7 +712,7 @@ public class LogicalSchemaTest {
     );
 
     // When
-    final LogicalSchema result = schema.withoutImplicitFields();
+    final LogicalSchema result = schema.withoutImplicitAndKeyFieldsInValue();
 
     // Then:
     assertThat(result, is(LogicalSchema.of(SchemaBuilder.struct()
@@ -559,15 +726,14 @@ public class LogicalSchemaTest {
   public void shouldRemoveImplicitFieldsEvenIfAliased() {
     // Given:
     final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
-        .field("bob.f0", Schema.OPTIONAL_INT64_SCHEMA)
-        .field("bob." + SchemaUtil.ROWKEY_NAME, Schema.OPTIONAL_STRING_SCHEMA)
-        .field("bob.f1", Schema.OPTIONAL_INT64_SCHEMA)
-        .field("bob." + SchemaUtil.ROWTIME_NAME, Schema.OPTIONAL_INT64_SCHEMA)
-        .build()
-    );
+        .field("f0", Schema.OPTIONAL_INT64_SCHEMA)
+        .field("f1", Schema.OPTIONAL_INT64_SCHEMA)
+        .build())
+        .withImplicitAndKeyFieldsInValue()
+        .withAlias("bob");
 
     // When
-    final LogicalSchema result = schema.withoutImplicitFields();
+    final LogicalSchema result = schema.withoutImplicitAndKeyFieldsInValue();
 
     // Then:
     assertThat(result, is(LogicalSchema.of(SchemaBuilder.struct()
@@ -575,58 +741,6 @@ public class LogicalSchemaTest {
         .field("bob.f1", Schema.OPTIONAL_INT64_SCHEMA)
         .build()
     )));
-  }
-
-  @Test
-  public void shouldGetImplicitColumnIndexes() {
-    // Given:
-    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
-        .field("f0", Schema.OPTIONAL_INT64_SCHEMA)
-        .field(SchemaUtil.ROWKEY_NAME, Schema.OPTIONAL_STRING_SCHEMA)
-        .field("f1", Schema.OPTIONAL_INT64_SCHEMA)
-        .field(SchemaUtil.ROWTIME_NAME, Schema.OPTIONAL_INT64_SCHEMA)
-        .build()
-    );
-
-    // When
-    final Set<Integer> result = schema.implicitColumnIndexes();
-
-    // Then:
-    assertThat(result, containsInAnyOrder(1, 3));
-  }
-
-  @Test
-  public void shouldGetNoImplicitColumnIndexesIfImplicitColumnsAsAliased() {
-    // Given:
-    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
-        .field("bob.f0", Schema.OPTIONAL_INT64_SCHEMA)
-        .field("bob." + SchemaUtil.ROWKEY_NAME, Schema.OPTIONAL_STRING_SCHEMA)
-        .field("bob.f1", Schema.OPTIONAL_INT64_SCHEMA)
-        .field("bob." + SchemaUtil.ROWTIME_NAME, Schema.OPTIONAL_INT64_SCHEMA)
-        .build()
-    );
-
-    // When
-    final Set<Integer> result = schema.implicitColumnIndexes();
-
-    // Then:
-    assertThat(result, is(empty()));
-  }
-
-  @Test
-  public void shouldGetNoImplicitColumnIndexesIfNoImplicitColumns() {
-    // Given:
-    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
-        .field("f0", Schema.OPTIONAL_INT64_SCHEMA)
-        .field("f1", Schema.OPTIONAL_INT64_SCHEMA)
-        .build()
-    );
-
-    // When
-    final Set<Integer> result = schema.implicitColumnIndexes();
-
-    // Then:
-    assertThat(result, is(empty()));
   }
 
   @Test

@@ -1525,6 +1525,12 @@ Scalar functions
 |                        |                                                                           | The integer represents days since epoch           |
 |                        |                                                                           | matching the encoding used by Kafka Connect dates.|
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| ELT                    | ``ELT(n INTEGER, args VARCHAR[])``                                        | Returns element ``n`` in the ``args`` list of     |
+|                        |                                                                           | strings, or NULL if ``n`` is less than 1 or       |
+|                        |                                                                           | greater than the number of arguments. This        |
+|                        |                                                                           | function is 1-indexed. ELT is the complement to   |
+|                        |                                                                           | FIELD.                                            |
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | EXTRACTJSONFIELD       |  ``EXTRACTJSONFIELD(message, '$.log.cloud')``                             | Given a string column in JSON format, extract     |
 |                        |                                                                           | the field that matches.                           |
 |                        |                                                                           |                                                   |
@@ -1539,6 +1545,12 @@ Scalar functions
 |                        |                                                                           | Example where ``STRUCT`` will work:               |
 |                        |                                                                           |                                                   |
 |                        |                                                                           | ``{"foo": {"bar": "quux"}}``                      |
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| FIELD                  | ``FIELD(str VARCHAR, args VARCHAR[])``                                    | Returns the 1-indexed position of ``str`` in      |
+|                        |                                                                           | ``args``, or 0 if not found. If ``str`` is NULL,  |
+|                        |                                                                           | the return value is 0, because NULL is not        |
+|                        |                                                                           | considered to be equal to any value. FIELD is the |
+|                        |                                                                           | complement to ELT.                                |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | FLOOR                  |  ``FLOOR(col1)``                                                          | The floor of a value.                             |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+

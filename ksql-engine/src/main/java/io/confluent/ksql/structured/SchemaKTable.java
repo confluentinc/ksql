@@ -209,7 +209,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
     final Field legacyKeyField = new Field(
         groupBy.aggregateKeyName, -1, Schema.OPTIONAL_STRING_SCHEMA);
 
-    final Optional<String> newKeyField = schema.findField(groupBy.aggregateKeyName)
+    final Optional<String> newKeyField = schema.findValueField(groupBy.aggregateKeyName)
         .map(Field::name);
 
     return new SchemaKGroupedTable(

@@ -64,15 +64,18 @@ public class SourceDescriptionTest {
 
   private static DataSource<?> buildDataSource(final String kafkaTopicName) {
     final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
+        .field("ROWTIME", Schema.OPTIONAL_INT64_SCHEMA)
+        .field("ROWKEY", Schema.OPTIONAL_STRING_SCHEMA)
         .field("field0", Schema.OPTIONAL_INT32_SCHEMA)
         .build());
+
     final KsqlTopic topic = new KsqlTopic("internal", kafkaTopicName, new KsqlJsonSerdeFactory(), true);
     return new KsqlStream<>(
         "query",
         "stream",
         schema,
         SerdeOption.none(),
-        KeyField.of(schema.fields().get(0).name(), schema.fields().get(0)),
+        KeyField.of(schema.valueFields().get(0).name(), schema.valueFields().get(0)),
         new MetadataTimestampExtractionPolicy(),
         topic,
         Serdes::String

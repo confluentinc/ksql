@@ -27,7 +27,7 @@ import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import io.confluent.ksql.metastore.model.MetaStoreMatchers.FieldMatchers;
 import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
-import io.confluent.ksql.schema.ksql.SchemaConverters.SqlTypeToLogicalConverter;
+import io.confluent.ksql.schema.ksql.SchemaConverters.SqlToLogicalTypeConverter;
 import io.confluent.ksql.test.tools.DataSourceMatchers.OptionalMatchers;
 import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;
 import io.confluent.ksql.test.tools.exceptions.MissingFieldException;
@@ -83,8 +83,8 @@ final class FieldNode {
   private static final class ConnectSchemaDeserializer
       extends StdDeserializer<Optional<ConnectSchema>> {
 
-    private final SqlTypeToLogicalConverter sqlTypeToLogicalConverter =
-        SchemaConverters.fromSqlTypeConverter();
+    private final SqlToLogicalTypeConverter sqlTypeToLogicalConverter =
+        SchemaConverters.sqlToLogicalConverter();
 
     ConnectSchemaDeserializer() {
       super(ConnectSchema.class);

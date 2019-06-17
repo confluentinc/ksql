@@ -23,6 +23,7 @@ import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.Type;
+import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -49,6 +50,7 @@ public class SchemaConvertersTest {
       .put(PrimitiveType.of(SqlType.STRING), LOGICAL_STRING_SCHEMA)
       .put(io.confluent.ksql.parser.tree.Array.of(PrimitiveType.of(SqlType.INTEGER)),
           SchemaBuilder.array(SchemaConverters.INTEGER).optional().build())
+      .put(io.confluent.ksql.parser.tree.Decimal.of(2, 1), DecimalUtil.builder(2, 1).build())
       .put(io.confluent.ksql.parser.tree.Map.of(PrimitiveType.of(SqlType.INTEGER)),
           SchemaBuilder.map(SchemaConverters.STRING, SchemaConverters.INTEGER).optional().build())
       .put(io.confluent.ksql.parser.tree.Struct.builder()
@@ -100,25 +102,28 @@ public class SchemaConvertersTest {
     for (Entry<Type, Schema> entry : SQL_TO_LOGICAL.entrySet()) {
       final Type sqlType = entry.getKey();
       final Schema logical = entry.getValue();
-      final Schema result = SchemaConverters.fromSqlTypeConverter().fromSqlType(sqlType);
+      final Schema result = SchemaConverters.sqlToLogicalConverter().fromSqlType(sqlType);
       assertThat(result, is(logical));
     }
   }
 
   @Test
   public void shouldGetSqlTypeForEveryLogicalType() {
-    SQL_TO_LOGICAL.inverse().forEach((logical, sqlType) ->
-        assertThat(SchemaConverters.toSqlTypeConverter().toSqlType(logical), is(sqlType)));
+    SQL_TO_LOGICAL.inverse().forEach((logical, sqlType) -> {
+      if (!(sqlType instanceof io.confluent.ksql.parser.tree.Decimal)) {
+        assertThat(SchemaConverters.logicalToSqlConverter().toSqlType(logical), is(sqlType));
+      }
+    });
   }
 
   @Test
   public void shouldConvertNestedComplexToSql() {
-    assertThat(SchemaConverters.toSqlTypeConverter().toSqlType(NESTED_LOGICAL_TYPE), is(NESTED_SQL_TYPE));
+    assertThat(SchemaConverters.logicalToSqlConverter().toSqlType(NESTED_LOGICAL_TYPE), is(NESTED_SQL_TYPE));
   }
 
   @Test
   public void shouldConvertNestedComplexFromSql() {
-    assertThat(SchemaConverters.fromSqlTypeConverter().fromSqlType(NESTED_SQL_TYPE), is(NESTED_LOGICAL_TYPE));
+    assertThat(SchemaConverters.sqlToLogicalConverter().fromSqlType(NESTED_SQL_TYPE), is(NESTED_LOGICAL_TYPE));
   }
 
   @Test
@@ -133,7 +138,7 @@ public class SchemaConvertersTest {
     expectedException.expectMessage("Unsupported map key type: Schema{INT64}");
 
     // When:
-    SchemaConverters.toSqlTypeConverter().toSqlType(mapSchema);
+    SchemaConverters.logicalToSqlConverter().toSqlType(mapSchema);
   }
 
   @Test
@@ -146,6 +151,41 @@ public class SchemaConvertersTest {
     expectedException.expectMessage("Unexpected logical type: Schema{INT8}");
 
     // When:
-    SchemaConverters.toSqlTypeConverter().toSqlType(unsupported);
+    SchemaConverters.logicalToSqlConverter().toSqlType(unsupported);
+  }
+
+  @Test
+  public void shouldConvertJavaBooleanToSqlBoolean() {
+    assertThat(SchemaConverters.javaToSqlConverter().toSqlType(Boolean.class), is(SqlType.BOOLEAN));
+  }
+
+  @Test
+  public void shouldConvertJavaIntegerToSqlInteger() {
+    assertThat(SchemaConverters.javaToSqlConverter().toSqlType(Integer.class), is(SqlType.INTEGER));
+  }
+
+  @Test
+  public void shouldConvertJavaLongToSqlBigInt() {
+    assertThat(SchemaConverters.javaToSqlConverter().toSqlType(Long.class), is(SqlType.BIGINT));
+  }
+
+  @Test
+  public void shouldConvertJavaDoubleToSqlDouble() {
+    assertThat(SchemaConverters.javaToSqlConverter().toSqlType(Double.class), is(SqlType.DOUBLE));
+  }
+
+  @Test
+  public void shouldConvertJavaStringToSqlString() {
+    assertThat(SchemaConverters.javaToSqlConverter().toSqlType(String.class), is(SqlType.STRING));
+  }
+
+  @Test
+  public void shouldThrowOnUnknownJavaType() {
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Unexpected java type: " + double.class);
+
+    // When:
+    SchemaConverters.javaToSqlConverter().toSqlType(double.class);
   }
 }

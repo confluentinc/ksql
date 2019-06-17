@@ -61,7 +61,7 @@ public final class MetaStoreMatchers {
         (schemaMatcher, "source with value schema", "value schema") {
       @Override
       protected Schema featureValueOf(final DataSource<?> actual) {
-        return actual.getSchema().getSchema();
+        return actual.getSchema().valueSchema();
       }
     };
   }
@@ -111,6 +111,10 @@ public final class MetaStoreMatchers {
           return actual.legacy().map(Field::name);
         }
       };
+    }
+
+    public static Matcher<KeyField> hasLegacySchema(final Schema schema) {
+      return hasLegacySchema(Optional.of(schema));
     }
 
     public static Matcher<KeyField> hasLegacySchema(final Optional<? extends Schema> schema) {

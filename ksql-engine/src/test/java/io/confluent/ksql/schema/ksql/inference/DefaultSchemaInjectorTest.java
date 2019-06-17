@@ -45,6 +45,7 @@ import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.schema.ksql.SqlType;
 import io.confluent.ksql.schema.ksql.inference.TopicSchemaSupplier.SchemaResult;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
@@ -99,6 +100,7 @@ public class DefaultSchemaInjectorTest {
           .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_INT64_SCHEMA))
       .field("structField", SchemaBuilder.struct()
           .field("s0", Schema.OPTIONAL_INT64_SCHEMA).build())
+      .field("decimalField", DecimalUtil.builder(4, 2).build())
       .build();
 
   private static final List<TableElement> EXPECTED_KSQL_SCHEMA = ImmutableList
@@ -115,6 +117,7 @@ public class DefaultSchemaInjectorTest {
       .add(new TableElement("STRUCTFIELD", io.confluent.ksql.parser.tree.Struct.builder()
           .addField("S0", PrimitiveType.of(SqlType.BIGINT))
           .build()))
+      .add(new TableElement("DECIMALFIELD", io.confluent.ksql.parser.tree.Decimal.of(4, 2)))
       .build();
   private static final int SCHEMA_ID = 5;
 
@@ -277,7 +280,8 @@ public class DefaultSchemaInjectorTest {
             + "BOOLEANFIELD BOOLEAN, "
             + "ARRAYFIELD ARRAY<INTEGER>, "
             + "MAPFIELD MAP<VARCHAR, BIGINT>, "
-            + "STRUCTFIELD STRUCT<S0 BIGINT>) "
+            + "STRUCTFIELD STRUCT<S0 BIGINT>, "
+            + "DECIMALFIELD DECIMAL(4, 2)) "
             + "WITH (VALUE_FORMAT='avro', KAFKA_TOPIC='some-topic', AVRO_SCHEMA_ID='5');"
     ));
   }
@@ -301,7 +305,8 @@ public class DefaultSchemaInjectorTest {
             + "BOOLEANFIELD BOOLEAN, "
             + "ARRAYFIELD ARRAY<INTEGER>, "
             + "MAPFIELD MAP<VARCHAR, BIGINT>, "
-            + "STRUCTFIELD STRUCT<S0 BIGINT>) "
+            + "STRUCTFIELD STRUCT<S0 BIGINT>, "
+            + "DECIMALFIELD DECIMAL(4, 2)) "
             + "WITH (VALUE_FORMAT='avro', KAFKA_TOPIC='some-topic', AVRO_SCHEMA_ID='5');"
     ));
   }
@@ -327,7 +332,8 @@ public class DefaultSchemaInjectorTest {
             + "BOOLEANFIELD BOOLEAN, "
             + "ARRAYFIELD ARRAY<INTEGER>, "
             + "MAPFIELD MAP<VARCHAR, BIGINT>, "
-            + "STRUCTFIELD STRUCT<S0 BIGINT>) "
+            + "STRUCTFIELD STRUCT<S0 BIGINT>, "
+            + "DECIMALFIELD DECIMAL(4, 2)) "
             + "WITH (VALUE_FORMAT='avro', KAFKA_TOPIC='some-topic', AVRO_SCHEMA_ID='42');"
     ));
   }
@@ -353,7 +359,8 @@ public class DefaultSchemaInjectorTest {
             + "BOOLEANFIELD BOOLEAN, "
             + "ARRAYFIELD ARRAY<INTEGER>, "
             + "MAPFIELD MAP<VARCHAR, BIGINT>, "
-            + "STRUCTFIELD STRUCT<S0 BIGINT>) "
+            + "STRUCTFIELD STRUCT<S0 BIGINT>, "
+            + "DECIMALFIELD DECIMAL(4, 2)) "
             + "WITH (VALUE_FORMAT='avro', KAFKA_TOPIC='some-topic', AVRO_SCHEMA_ID='42');"
     ));
   }

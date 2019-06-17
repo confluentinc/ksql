@@ -112,7 +112,7 @@ public class CodeGenRunner {
       for (final ParameterType param : parameters) {
         parameterNames[index] = param.paramName;
         parameterTypes[index] = param.type;
-        columnIndexes.add(schema.fieldIndex(param.fieldName).orElse(-1));
+        columnIndexes.add(schema.valueFieldIndex(param.fieldName).orElse(-1));
         kudfObjects.add(param.getKudf());
         index++;
       }
@@ -304,11 +304,11 @@ public class CodeGenRunner {
     }
 
     private Field getRequiredField(final String fieldName) {
-      return schema.findField(fieldName)
+      return schema.findValueField(fieldName)
           .orElseThrow(() -> new RuntimeException(
               "Cannot find the select field in the available fields."
                   + " field: " + fieldName
-                  + ", schema: " + schema.fields()));
+                  + ", schema: " + schema.valueFields()));
     }
   }
 

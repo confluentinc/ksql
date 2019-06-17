@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.structured;
 
+import static io.confluent.ksql.metastore.model.MetaStoreMatchers.KeyFieldMatchers.hasLegacyName;
+import static io.confluent.ksql.metastore.model.MetaStoreMatchers.KeyFieldMatchers.hasLegacySchema;
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.capture;
 import static org.easymock.EasyMock.eq;
@@ -39,6 +41,7 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.metastore.model.KsqlTopic;
+import io.confluent.ksql.metastore.model.MetaStoreMatchers.KeyFieldMatchers;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.QualifiedName;
@@ -132,7 +135,7 @@ public class SchemaKTableTest {
         ksqlTable.getKsqlTopic().getKafkaTopicName(),
         Consumed.with(
             Serdes.String(),
-            getRowSerde(ksqlTable.getKsqlTopic(), ksqlTable.getSchema().getSchema())
+            getRowSerde(ksqlTable.getKsqlTopic(), ksqlTable.getSchema().valueSchema())
         ));
 
     final KsqlTable secondKsqlTable = (KsqlTable) metaStore.getSource("TEST3");
@@ -140,7 +143,7 @@ public class SchemaKTableTest {
         secondKsqlTable.getKsqlTopic().getKafkaTopicName(),
         Consumed.with(
             Serdes.String(),
-            getRowSerde(secondKsqlTable.getKsqlTopic(), secondKsqlTable.getSchema().getSchema())
+            getRowSerde(secondKsqlTable.getKsqlTopic(), secondKsqlTable.getSchema().valueSchema())
         ));
 
     mockKTable = EasyMock.niceMock(KTable.class);
@@ -230,7 +233,7 @@ public class SchemaKTableTest {
     );
 
     // Then:
-    assertThat(projectedSchemaKStream.getSchema().fields(), contains(
+    assertThat(projectedSchemaKStream.getSchema().valueFields(), contains(
         new Field("COL0", 0, Schema.OPTIONAL_INT64_SCHEMA),
         new Field("COL2", 1, Schema.OPTIONAL_STRING_SCHEMA),
         new Field("COL3", 2, Schema.OPTIONAL_FLOAT64_SCHEMA)
@@ -264,7 +267,7 @@ public class SchemaKTableTest {
     );
 
     // Then:
-    assertThat(projectedSchemaKStream.getSchema().fields(), contains(
+    assertThat(projectedSchemaKStream.getSchema().valueFields(), contains(
         new Field("COL0", 0, Schema.OPTIONAL_INT64_SCHEMA),
         new Field("KSQL_COL_1", 1, Schema.OPTIONAL_INT32_SCHEMA),
         new Field("KSQL_COL_2", 2, Schema.OPTIONAL_FLOAT64_SCHEMA)
@@ -299,9 +302,9 @@ public class SchemaKTableTest {
     );
 
     // Then:
-    assertThat(filteredSchemaKStream.getSchema().fields(), contains(
+    assertThat(filteredSchemaKStream.getSchema().valueFields(), contains(
         new Field("TEST2.ROWTIME", 0, Schema.OPTIONAL_INT64_SCHEMA),
-        new Field("TEST2.ROWKEY", 1, Schema.OPTIONAL_INT64_SCHEMA),
+        new Field("TEST2.ROWKEY", 1, Schema.OPTIONAL_STRING_SCHEMA),
         new Field("TEST2.COL0", 2, Schema.OPTIONAL_INT64_SCHEMA),
         new Field("TEST2.COL1", 3, Schema.OPTIONAL_STRING_SCHEMA),
         new Field("TEST2.COL2", 4, Schema.OPTIONAL_STRING_SCHEMA),
@@ -355,7 +358,7 @@ public class SchemaKTableTest {
   public void shouldUseOpNameForGrouped() {
     // Given:
     final Serde<GenericRow> valSerde =
-        getRowSerde(ksqlTable.getKsqlTopic(), ksqlTable.getSchema().getSchema());
+        getRowSerde(ksqlTable.getKsqlTopic(), ksqlTable.getSchema().valueSchema());
     expect(
         groupedFactory.create(
             eq(StreamsUtil.buildOpName(childContextStacker.getQueryContext())),
@@ -555,8 +558,9 @@ public class SchemaKTableTest {
         .select(selectExpressions, childContextStacker, processingLogContext);
 
     // Then:
-    assertThat(result.getKeyField(),
-        is(KeyField.of(Optional.of("COL0"), initialSchemaKTable.keyField.legacy())));
+    assertThat(result.getKeyField(), KeyFieldMatchers.hasName("COL0"));
+    assertThat(result.getKeyField(), hasLegacyName(initialSchemaKTable.keyField.legacy().map(Field::name)));
+    assertThat(result.getKeyField(), hasLegacySchema(initialSchemaKTable.keyField.legacy().map(Field::schema)));
   }
 
   @Test
@@ -622,12 +626,12 @@ public class SchemaKTableTest {
     final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
     final String leftAlias = "left";
     final String rightAlias = "right";
-    for (final Field field : leftSchema.fields()) {
+    for (final Field field : leftSchema.valueFields()) {
       final String fieldName = leftAlias + "." + field.name();
       schemaBuilder.field(fieldName, field.schema());
     }
 
-    for (final Field field : rightSchema.fields()) {
+    for (final Field field : rightSchema.valueFields()) {
       final String fieldName = rightAlias + "." + field.name();
       schemaBuilder.field(fieldName, field.schema());
     }

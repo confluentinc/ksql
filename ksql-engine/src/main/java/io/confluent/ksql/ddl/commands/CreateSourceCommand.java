@@ -100,7 +100,7 @@ abstract class CreateSourceCommand implements DdlCommand {
       final String name = properties.getKeyField().get().toUpperCase();
 
       final String keyFieldName = StringUtil.cleanQuotes(name);
-      final Field keyField = schema.findField(keyFieldName)
+      final Field keyField = schema.findValueField(keyFieldName)
           .orElseThrow(() -> new KsqlException(
               "The KEY column set in the WITH clause does not exist in the schema: '"
                   + keyFieldName + "'"
@@ -141,7 +141,7 @@ abstract class CreateSourceCommand implements DdlCommand {
       }
       tableSchema = tableSchema.field(
           tableElement.getName(),
-          SchemaConverters.fromSqlTypeConverter().fromSqlType(tableElement.getType())
+          SchemaConverters.sqlToLogicalConverter().fromSqlType(tableElement.getType())
       );
     }
 

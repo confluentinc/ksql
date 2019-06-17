@@ -244,7 +244,7 @@ public class JsonFormatTest {
     final DataSource<?> source = metaStore.getSource(streamName);
 
     final PhysicalSchema resultSchema = PhysicalSchema.from(
-        source.getSchema().withoutImplicitFields(),
+        source.getSchema().withoutImplicitAndKeyFieldsInValue(),
         source.getSerdeOptions()
     );
 

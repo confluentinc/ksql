@@ -28,7 +28,7 @@ public class UdafAggregateFunctionFactory extends AggregateFunctionFactory {
       final UdfMetadata metadata,
       final List<KsqlAggregateFunction<?, ?>> functionList
   ) {
-    super(metadata, functionList);
+    super(metadata);
     udfIndex = new UdfIndex<>(metadata.getName());
     functionList.forEach(udfIndex::addFunction);
   }
@@ -43,5 +43,13 @@ public class UdafAggregateFunctionFactory extends AggregateFunctionFactory {
           .collect(Collectors.joining(",")));
     }
     return ksqlAggregateFunction;
+  }
+
+  @Override
+  public List<List<Schema>> supportedArgs() {
+    return udfIndex.values()
+        .stream()
+        .map(KsqlAggregateFunction::getArguments)
+        .collect(Collectors.toList());
   }
 }

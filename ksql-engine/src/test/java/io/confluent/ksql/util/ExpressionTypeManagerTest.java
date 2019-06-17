@@ -279,7 +279,7 @@ public class ExpressionTypeManagerTest {
     assertThat(caseSchema, equalTo(metaStore
         .getSource("ORDERS")
         .getSchema()
-        .findField("ADDRESS")
+        .findValueField("ADDRESS")
         .get()
         .schema()));
   }

@@ -509,7 +509,7 @@ class Analyzer {
         final String sourceAlias,
         final LogicalSchema sourceSchema
     ) {
-      return sourceSchema.findField(fieldName)
+      return sourceSchema.findValueField(fieldName)
           .map(field -> SchemaUtil.buildAliasedFieldName(sourceAlias, field.name()));
     }
 
@@ -615,7 +615,7 @@ class Analyzer {
         final String sourceAlias,
         final String aliasPrefix
     ) {
-      for (final Field field : schema.withoutAlias().fields()) {
+      for (final Field field : schema.withoutAlias().valueFields()) {
 
         final QualifiedName name = QualifiedName.of(sourceAlias);
 

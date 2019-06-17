@@ -139,7 +139,7 @@ public class DefaultSchemaInjector implements Injector {
   ) {
     try {
       // throws exception if invalid
-      SchemaConverters.toSqlTypeConverter().toSqlType(schema);
+      SchemaConverters.logicalToSqlConverter().toSqlType(schema);
       return SchemaParser.parse(FORMATTER.format(schema));
     } catch (final Exception e) {
       throw new KsqlStatementException(

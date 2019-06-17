@@ -183,7 +183,7 @@ public class DataSourceNode
     final Serde<GenericRow> streamSerde = builder.buildGenericRowSerde(
         valueSerdeFactory,
         PhysicalSchema.from(
-            dataSource.getSchema().withoutImplicitFields(),
+            dataSource.getSchema().withoutImplicitAndKeyFieldsInValue(),
             dataSource.getSerdeOptions()
         ),
         contextStacker.push(SOURCE_OP_NAME).getQueryContext()
@@ -264,8 +264,8 @@ public class DataSourceNode
         return index;
       }
     } else {
-      for (int i = 2; i < schema.fields().size(); i++) {
-        final Field field = schema.fields().get(i);
+      for (int i = 2; i < schema.valueFields().size(); i++) {
+        final Field field = schema.valueFields().get(i);
         if (field.name().contains(".")) {
           if (timestampFieldName.equals(field.name().substring(field.name().indexOf(".") + 1))) {
             return i - 2;
@@ -281,8 +281,8 @@ public class DataSourceNode
   }
 
   private Integer findMatchingTimestampField(final String timestampFieldName) {
-    for (int i = 2; i < schema.fields().size(); i++) {
-      final Field field = schema.fields().get(i);
+    for (int i = 2; i < schema.valueFields().size(); i++) {
+      final Field field = schema.valueFields().get(i);
       if (field.name().contains(".")) {
         if (timestampFieldName.equals(field.name())) {
           return i - 2;

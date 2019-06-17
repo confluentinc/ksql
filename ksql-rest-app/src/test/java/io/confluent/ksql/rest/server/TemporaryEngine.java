@@ -49,6 +49,8 @@ import org.junit.rules.ExternalResource;
 public class TemporaryEngine extends ExternalResource {
 
   public static final LogicalSchema SCHEMA = LogicalSchema.of(SchemaBuilder.struct()
+      .field("ROWTIME", Schema.OPTIONAL_INT64_SCHEMA)
+      .field("ROWKEY", Schema.OPTIONAL_STRING_SCHEMA)
       .field("val", Schema.OPTIONAL_STRING_SCHEMA)
       .build());
 
@@ -95,7 +97,7 @@ public class TemporaryEngine extends ExternalResource {
                 name,
                 SCHEMA,
                 SerdeOption.none(),
-                KeyField.of("val", SCHEMA.getSchema().field("val")),
+                KeyField.of("val", SCHEMA.valueSchema().field("val")),
                 new MetadataTimestampExtractionPolicy(),
                 topic,
                 Serdes::String
@@ -108,7 +110,7 @@ public class TemporaryEngine extends ExternalResource {
                 name,
                 SCHEMA,
                 SerdeOption.none(),
-                KeyField.of("val", SCHEMA.getSchema().field("val")),
+                KeyField.of("val", SCHEMA.valueSchema().field("val")),
                 new MetadataTimestampExtractionPolicy(),
                 topic,
                 Serdes::String

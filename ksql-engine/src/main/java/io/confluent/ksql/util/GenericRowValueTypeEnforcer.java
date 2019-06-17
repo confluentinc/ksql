@@ -35,13 +35,14 @@ public class GenericRowValueTypeEnforcer {
           .put(Schema.Type.FLOAT64, GenericRowValueTypeEnforcer::enforceDouble)
           .put(Schema.Type.STRING, GenericRowValueTypeEnforcer::enforceString)
           .put(Schema.Type.BOOLEAN, GenericRowValueTypeEnforcer::enforceBoolean)
+          .put(Schema.Type.BYTES, v -> v)
           .put(Schema.Type.ARRAY, v -> v)
           .put(Schema.Type.MAP, v -> v)
           .put(Schema.Type.STRUCT, v -> v)
           .build();
 
   public GenericRowValueTypeEnforcer(final LogicalSchema schema) {
-    this.fields = schema.fields();
+    this.fields = schema.valueFields();
   }
 
   public Object enforceFieldType(final int index, final Object value) {

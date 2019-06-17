@@ -51,6 +51,7 @@ import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.QueryLoggerUtil;
+import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.timestamp.LongColumnTimestampExtractionPolicy;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import java.util.Arrays;
@@ -97,6 +98,8 @@ public class DataSourceNodeTest {
   private SchemaKStream realStream;
   private StreamsBuilder realBuilder;
   private final LogicalSchema realSchema = LogicalSchema.of(SchemaBuilder.struct()
+      .field("ROWTIME", Schema.OPTIONAL_INT64_SCHEMA)
+      .field("ROWKEY", Schema.OPTIONAL_STRING_SCHEMA)
       .field("field1", Schema.OPTIONAL_STRING_SCHEMA)
       .field("field2", Schema.OPTIONAL_STRING_SCHEMA)
       .field("field3", Schema.OPTIONAL_STRING_SCHEMA)
@@ -109,7 +112,7 @@ public class DataSourceNodeTest {
       "datasource",
       realSchema,
       SerdeOption.none(),
-      KeyField.of("key", realSchema.getSchema().field("key")),
+      KeyField.of("key", realSchema.valueSchema().field("key")),
       new LongColumnTimestampExtractionPolicy("timestamp"),
       new KsqlTopic("topic", "topic",
           new KsqlJsonSerdeFactory(), false),
@@ -290,7 +293,7 @@ public class DataSourceNodeTest {
     final KsqlTable<String> table = new KsqlTable<>("sqlExpression", "datasource",
         realSchema,
         SerdeOption.none(),
-        KeyField.of("field1", realSchema.getSchema().field("field1")),
+        KeyField.of("field1", realSchema.valueSchema().field("field1")),
         new LongColumnTimestampExtractionPolicy("timestamp"),
         new KsqlTopic("topic2", "topic2",
             new KsqlJsonSerdeFactory(), false),
@@ -311,7 +314,7 @@ public class DataSourceNodeTest {
     final KsqlTable<String> table = new KsqlTable<>("sqlExpression", "datasource",
         realSchema,
         SerdeOption.none(),
-        KeyField.of("field1", realSchema.getSchema().field("field1")),
+        KeyField.of("field1", realSchema.valueSchema().field("field1")),
         new LongColumnTimestampExtractionPolicy("timestamp"),
         new KsqlTopic("topic2", "topic2",
             new KsqlJsonSerdeFactory(), false),
@@ -365,6 +368,8 @@ public class DataSourceNodeTest {
     // Then:
     assertThat(schema, is(
         LogicalSchema.of(SchemaBuilder.struct()
+            .field(sourceName + "." + SchemaUtil.ROWTIME_NAME, Schema.OPTIONAL_INT64_SCHEMA)
+            .field(sourceName + "." + SchemaUtil.ROWKEY_NAME, Schema.OPTIONAL_STRING_SCHEMA)
             .field(sourceName + ".field1", Schema.OPTIONAL_STRING_SCHEMA)
             .field(sourceName + ".field2", Schema.OPTIONAL_STRING_SCHEMA)
             .field(sourceName + ".field3", Schema.OPTIONAL_STRING_SCHEMA)
@@ -378,7 +383,8 @@ public class DataSourceNodeTest {
     // Given:
     final DataSourceNode node = nodeWithMockTableSource();
 
-    final PhysicalSchema expected = PhysicalSchema.from(realSchema, serdeOptions);
+    final PhysicalSchema expected = PhysicalSchema
+        .from(realSchema.withoutImplicitAndKeyFieldsInValue(), serdeOptions);
 
     // When:
     node.buildStream(ksqlStreamBuilder);
@@ -396,7 +402,7 @@ public class DataSourceNodeTest {
     when(streamsBuilder.stream(anyString(), any())).thenReturn((KStream)kStream);
     when(tableSource.getSchema()).thenReturn(realSchema);
     when(tableSource.getKeyField())
-        .thenReturn(KeyField.of("field1", realSchema.getSchema().field("field1")));
+        .thenReturn(KeyField.of("field1", realSchema.valueSchema().field("field1")));
 
     return new DataSourceNode(
         realNodeId,

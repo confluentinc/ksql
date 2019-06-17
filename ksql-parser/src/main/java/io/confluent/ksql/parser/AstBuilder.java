@@ -18,6 +18,7 @@ package io.confluent.ksql.parser;
 import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import static io.confluent.ksql.schema.ksql.TypeContextUtil.getType;
 import static io.confluent.ksql.util.ParserUtil.getLocation;
+import static io.confluent.ksql.util.ParserUtil.processIntegerNumber;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toList;
 
@@ -26,10 +27,8 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.parser.SqlBaseParser.InsertValuesContext;
-import io.confluent.ksql.parser.SqlBaseParser.IntegerLiteralContext;
 import io.confluent.ksql.parser.SqlBaseParser.IntervalClauseContext;
 import io.confluent.ksql.parser.SqlBaseParser.LimitClauseContext;
-import io.confluent.ksql.parser.SqlBaseParser.NumberContext;
 import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
 import io.confluent.ksql.parser.SqlBaseParser.TablePropertiesContext;
 import io.confluent.ksql.parser.SqlBaseParser.TablePropertyContext;
@@ -62,7 +61,6 @@ import io.confluent.ksql.parser.tree.InListExpression;
 import io.confluent.ksql.parser.tree.InPredicate;
 import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.InsertValues;
-import io.confluent.ksql.parser.tree.IntegerLiteral;
 import io.confluent.ksql.parser.tree.IsNotNullPredicate;
 import io.confluent.ksql.parser.tree.IsNullPredicate;
 import io.confluent.ksql.parser.tree.Join;
@@ -78,7 +76,6 @@ import io.confluent.ksql.parser.tree.ListTables;
 import io.confluent.ksql.parser.tree.ListTopics;
 import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.parser.tree.LogicalBinaryExpression;
-import io.confluent.ksql.parser.tree.LongLiteral;
 import io.confluent.ksql.parser.tree.Node;
 import io.confluent.ksql.parser.tree.NodeLocation;
 import io.confluent.ksql.parser.tree.NotExpression;
@@ -113,6 +110,7 @@ import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.parser.tree.WhenClause;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.parser.tree.WithinExpression;
+import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.util.DataSourceExtractor;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
@@ -651,13 +649,6 @@ public class AstBuilder {
       );
     }
 
-    private int processIntegerNumber(final NumberContext number, final String context) {
-      if (number instanceof SqlBaseParser.IntegerLiteralContext) {
-        return ((IntegerLiteral) visitIntegerLiteral((IntegerLiteralContext) number)).getValue();
-      }
-      throw new KsqlException("Value must be integer in for command: " + context);
-    }
-
     @Override
     public Node visitNumericLiteral(final SqlBaseParser.NumericLiteralContext ctx) {
       return visitChildren(ctx);
@@ -1075,20 +1066,7 @@ public class AstBuilder {
 
     @Override
     public Node visitIntegerLiteral(final SqlBaseParser.IntegerLiteralContext context) {
-      final Long valueAsLong;
-      try {
-        valueAsLong = Long.parseLong(context.getText());
-      } catch (final NumberFormatException e) {
-        throw new ParsingException("Invalid numeric literal: " + context.getText());
-      }
-      if (valueAsLong < 0) {
-        throw new RuntimeException("Unexpected negative value in literal: " + valueAsLong);
-      }
-      if (valueAsLong <= Integer.MAX_VALUE) {
-        return new IntegerLiteral(getLocation(context), valueAsLong.intValue());
-      } else {
-        return new LongLiteral(getLocation(context), valueAsLong);
-      }
+      return ParserUtil.visitIntegerLiteral(context);
     }
 
     @Override
@@ -1168,19 +1146,19 @@ public class AstBuilder {
       return Optional.of(new QualifiedNameReference(location, name));
     }
 
-    private static ArithmeticBinaryExpression.Type getArithmeticBinaryOperator(
+    private static Operator getArithmeticBinaryOperator(
         final Token operator) {
       switch (operator.getType()) {
         case SqlBaseLexer.PLUS:
-          return ArithmeticBinaryExpression.Type.ADD;
+          return Operator.ADD;
         case SqlBaseLexer.MINUS:
-          return ArithmeticBinaryExpression.Type.SUBTRACT;
+          return Operator.SUBTRACT;
         case SqlBaseLexer.ASTERISK:
-          return ArithmeticBinaryExpression.Type.MULTIPLY;
+          return Operator.MULTIPLY;
         case SqlBaseLexer.SLASH:
-          return ArithmeticBinaryExpression.Type.DIVIDE;
+          return Operator.DIVIDE;
         case SqlBaseLexer.PERCENT:
-          return ArithmeticBinaryExpression.Type.MODULUS;
+          return Operator.MODULUS;
         default:
           throw new UnsupportedOperationException("Unsupported operator: " + operator.getText());
       }

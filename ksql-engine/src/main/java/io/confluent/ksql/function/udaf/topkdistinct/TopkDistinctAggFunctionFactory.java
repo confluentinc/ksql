@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.function.udaf.topkdistinct;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.function.AggregateFunctionFactory;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.util.KsqlException;
@@ -29,9 +30,20 @@ public class TopkDistinctAggFunctionFactory extends AggregateFunctionFactory {
   private static final String NAME = "TOPKDISTINCT";
   private final Map<Schema.Type, KsqlAggregateFunction<?, ?>> functions = new HashMap<>();
 
+
+  private static final List<List<Schema>> SUPPORTED_TYPES = ImmutableList
+      .<List<Schema>>builder()
+      .add(ImmutableList.of(Schema.OPTIONAL_INT32_SCHEMA))
+      .add(ImmutableList.of(Schema.OPTIONAL_INT64_SCHEMA))
+      .add(ImmutableList.of(Schema.OPTIONAL_FLOAT64_SCHEMA))
+      .add(ImmutableList.of(Schema.OPTIONAL_STRING_SCHEMA))
+      .build();
+
   public TopkDistinctAggFunctionFactory() {
-    super(NAME, createDescriptionFunctions());
-    eachFunction(func -> functions.put(((TopkDistinctKudaf)func).getOutputSchema().type(), func));
+    super(NAME);
+    for (KsqlAggregateFunction<?, ?> func : createDescriptionFunctions()) {
+      functions.put(((TopkDistinctKudaf) func).getOutputSchema().type(), func);
+    }
   }
 
   private static List<KsqlAggregateFunction<?, ?>> createDescriptionFunctions() {
@@ -59,5 +71,10 @@ public class TopkDistinctAggFunctionFactory extends AggregateFunctionFactory {
           + " argument type exists!");
     }
     return function;
+  }
+
+  @Override
+  public List<List<Schema>> supportedArgs() {
+    return SUPPORTED_TYPES;
   }
 }

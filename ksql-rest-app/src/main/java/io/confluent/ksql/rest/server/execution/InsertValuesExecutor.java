@@ -30,6 +30,7 @@ import java.util.concurrent.Future;
 import java.util.function.LongSupplier;
 
 import org.apache.kafka.clients.producer.Producer;
+import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 
 public class InsertValuesExecutor extends InsertValuesEngine {
@@ -44,7 +45,9 @@ public class InsertValuesExecutor extends InsertValuesEngine {
     super(clock);
   }
 
+  @Override
   protected void sendRecord(
+          ProducerRecord<?,?> record,
           final InsertValues insertValues,
           final KsqlConfig config,
           final KsqlExecutionContext executionContext,
@@ -61,8 +64,8 @@ public class InsertValuesExecutor extends InsertValuesEngine {
             .getKafkaClientSupplier()
             .getProducer(config.getProducerClientConfigProps());
 
-    final Future<RecordMetadata> producerCallResult = producer.send(
-            buildProducerRecord(insertValues, config, executionContext, serviceContext));
+    final Future<RecordMetadata> producerCallResult = producer
+            .send((ProducerRecord<byte[], byte[]>) record);
 
     producer.close(Duration.ofSeconds(MAX_SEND_TIMEOUT_SECONDS));
 

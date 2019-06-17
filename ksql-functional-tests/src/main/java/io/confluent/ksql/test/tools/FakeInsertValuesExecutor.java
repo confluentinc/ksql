@@ -34,23 +34,18 @@ public class FakeInsertValuesExecutor extends InsertValuesEngine {
   private final FakeKafkaService fakeKafkaService;
 
   public FakeInsertValuesExecutor(FakeKafkaService fakeKafkaService) {
-    super();
+    super(() -> 0);
     this.fakeKafkaService = Objects.requireNonNull(fakeKafkaService, "fakeKafkaService");
   }
 
+  @Override
   protected void sendRecord(
+          ProducerRecord<?,?> record,
           final InsertValues insertValues,
           final KsqlConfig config,
           final KsqlExecutionContext executionContext,
           final ServiceContext serviceContext
   ) {
-    ProducerRecord<?, ?> record = buildProducerRecord(
-            insertValues,
-            config,
-            executionContext,
-            serviceContext
-    );
-
     Topic topic = this.fakeKafkaService.getTopic(record.topic());
     Object value;
     if (topic.getValueSerdeSupplier() instanceof StringSerdeSupplier) {
@@ -69,7 +64,7 @@ public class FakeInsertValuesExecutor extends InsertValuesEngine {
                     topic,
                     new String((byte[]) record.key(), StandardCharsets.UTF_8),
                     value,
-                    0,
+                    record.timestamp(),
                     null
             ),null));
   }

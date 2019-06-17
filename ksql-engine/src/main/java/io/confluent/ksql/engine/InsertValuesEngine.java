@@ -77,17 +77,24 @@ public abstract class InsertValuesEngine {
     final KsqlConfig config = statement.getConfig()
             .cloneWithPropertyOverwrite(statement.getOverrides());
 
-    sendRecord(insertValues, config, executionContext, serviceContext);
+    sendRecord(
+            buildProducerRecord(insertValues, config, executionContext, serviceContext),
+            insertValues,
+            config,
+            executionContext,
+            serviceContext
+    );
   }
 
   protected abstract void sendRecord(
+          final ProducerRecord<?,?> record,
           final InsertValues insertValues,
           final KsqlConfig config,
           final KsqlExecutionContext executionContext,
           final ServiceContext serviceContext
   );
 
-  protected ProducerRecord<byte[],byte[]> buildProducerRecord(
+  private ProducerRecord<byte[],byte[]> buildProducerRecord(
           final InsertValues insertValues,
           final KsqlConfig config,
           final KsqlExecutionContext executionContext,

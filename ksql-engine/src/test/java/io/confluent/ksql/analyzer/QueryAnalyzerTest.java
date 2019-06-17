@@ -23,7 +23,6 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertTrue;
@@ -47,12 +46,12 @@ import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Sink;
+import io.confluent.ksql.planner.plan.DataSourceNode;
 import io.confluent.ksql.planner.plan.JoinNode;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
-import io.confluent.ksql.util.Pair;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Optional;
@@ -88,11 +87,11 @@ public class QueryAnalyzerTest {
     final Analysis analysis = queryAnalyzer.analyze("sqlExpression", query, Optional.empty());
 
     // Then:
-    final Pair<DataSource<?>, String> fromDataSource = analysis.getFromDataSource(0);
+    final DataSourceNode fromDataSource = analysis.getFromDataSource(0);
     assertThat(analysis.getSelectExpressions(), equalTo(Collections.singletonList(ORDER_ID)));
-    assertThat(analysis.getFromDataSources().size(), equalTo(1));
-    assertThat(fromDataSource.left, instanceOf(KsqlStream.class));
-    assertThat(fromDataSource.right, equalTo("ORDERS"));
+    assertThat(analysis.getFromDataSourceCount(), is(1));
+    assertThat(fromDataSource.getDataSource(), instanceOf(KsqlStream.class));
+    assertThat(fromDataSource.getAlias(), equalTo("ORDERS"));
   }
 
   @Test
@@ -110,11 +109,11 @@ public class QueryAnalyzerTest {
     assertThat(analysis.getSelectExpressions(), contains(new DereferenceExpression(
         new QualifiedNameReference(QualifiedName.of("TEST1")), "COL1")));
 
-    assertThat(analysis.getFromDataSources(), hasSize(1));
+    assertThat(analysis.getFromDataSourceCount(), is(1));
 
-    final Pair<DataSource<?>, String> fromDataSource = analysis.getFromDataSource(0);
-    assertThat(fromDataSource.left, instanceOf(KsqlStream.class));
-    assertThat(fromDataSource.right, equalTo("TEST1"));
+    final DataSourceNode fromDataSource = analysis.getFromDataSource(0);
+    assertThat(fromDataSource.getDataSource(), instanceOf(KsqlStream.class));
+    assertThat(fromDataSource.getAlias(), equalTo("TEST1"));
     assertThat(analysis.getInto().get().getName(), is("S"));
   }
 
@@ -133,11 +132,11 @@ public class QueryAnalyzerTest {
     assertThat(analysis.getSelectExpressions(), contains(new DereferenceExpression(
         new QualifiedNameReference(QualifiedName.of("TEST2")), "COL1")));
 
-    assertThat(analysis.getFromDataSources(), hasSize(1));
+    assertThat(analysis.getFromDataSourceCount(), is(1));
 
-    final Pair<DataSource<?>, String> fromDataSource = analysis.getFromDataSource(0);
-    assertThat(fromDataSource.left, instanceOf(KsqlTable.class));
-    assertThat(fromDataSource.right, equalTo("TEST2"));
+    final DataSourceNode fromDataSource = analysis.getFromDataSource(0);
+    assertThat(fromDataSource.getDataSource(), instanceOf(KsqlTable.class));
+    assertThat(fromDataSource.getAlias(), equalTo("TEST2"));
     assertThat(analysis.getInto().get().getName(), is("T"));
   }
 
@@ -156,11 +155,11 @@ public class QueryAnalyzerTest {
     assertThat(analysis.getSelectExpressions(), contains(new DereferenceExpression(
         new QualifiedNameReference(QualifiedName.of("TEST1")), "COL1")));
 
-    assertThat(analysis.getFromDataSources(), hasSize(1));
+    assertThat(analysis.getFromDataSourceCount(), is(1));
 
-    final Pair<DataSource<?>, String> fromDataSource = analysis.getFromDataSource(0);
-    assertThat(fromDataSource.left, instanceOf(KsqlStream.class));
-    assertThat(fromDataSource.right, equalTo("TEST1"));
+    final DataSourceNode fromDataSource = analysis.getFromDataSource(0);
+    assertThat(fromDataSource.getDataSource(), instanceOf(KsqlStream.class));
+    assertThat(fromDataSource.getAlias(), equalTo("TEST1"));
     assertThat(analysis.getInto(), is(not(Optional.empty())));
     final Into into = analysis.getInto().get();
     final DataSource<?> test0 = metaStore.getSource("TEST0");

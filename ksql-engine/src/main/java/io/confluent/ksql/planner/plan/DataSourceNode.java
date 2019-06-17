@@ -90,6 +90,7 @@ public class DataSourceNode
   private static final String REDUCE_OP_NAME = "reduce";
 
   private final DataSource<?> dataSource;
+  private final String alias;
   private final LogicalSchema schema;
   private final KeyField keyField;
   private final Function<KsqlConfig, MaterializedFactory> materializedFactorySupplier;
@@ -111,6 +112,7 @@ public class DataSourceNode
   ) {
     super(id, dataSource.getDataSourceType());
     this.dataSource = requireNonNull(dataSource, "dataSource");
+    this.alias = requireNonNull(alias, "alias");
     this.schema = dataSource.getSchema()
       .withAlias(alias);
 
@@ -141,6 +143,10 @@ public class DataSourceNode
 
   public DataSource<?> getDataSource() {
     return dataSource;
+  }
+
+  public String getAlias() {
+    return alias;
   }
 
   @Override

@@ -362,7 +362,7 @@ public class KsqlEngineMetricsTest {
     }
 
     @Override
-    public List<Metric> getCustomMetrics() {
+    public List<KsqlMetric> getCustomMetrics() {
       final String name = "my-custom-metric";
       final String description = "";
       final Supplier<MeasurableStat> statSupplier =
@@ -377,7 +377,7 @@ public class KsqlEngineMetricsTest {
               // Nothing to record
             }
           };
-      return ImmutableList.of(new Metric(name, description, statSupplier));
+      return ImmutableList.of(KsqlMetric.of(name, description, statSupplier));
     }
   }
 }

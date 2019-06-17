@@ -17,10 +17,7 @@ package io.confluent.ksql.internal;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.function.Supplier;
 import org.apache.kafka.common.Configurable;
-import org.apache.kafka.common.metrics.MeasurableStat;
 
 /**
  * This interface provides a way for users to provide custom metrics that will be emitted alongside
@@ -36,32 +33,5 @@ public interface KsqlMetricsExtension extends Configurable {
    *
    * @return list of metrics
    */
-  List<Metric> getCustomMetrics();
-
-  class Metric {
-    private String name;
-    private String description;
-    private Supplier<MeasurableStat> statSupplier;
-
-    public Metric(
-        final String name,
-        final String description,
-        final Supplier<MeasurableStat> statSupplier) {
-      this.name = Objects.requireNonNull(name, "name cannot be null");
-      this.description = Objects.requireNonNull(description, "description cannot be null");
-      this.statSupplier = Objects.requireNonNull(statSupplier, "statSupplier cannot be null");
-    }
-
-    public String name() {
-      return name;
-    }
-
-    public String description() {
-      return description;
-    }
-
-    public Supplier<MeasurableStat> statSupplier() {
-      return statSupplier;
-    }
-  }
+  List<KsqlMetric> getCustomMetrics();
 }

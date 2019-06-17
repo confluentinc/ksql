@@ -203,8 +203,7 @@ final class TestExecutorUtil {
         .map(stmt -> execute(
                 engine, stmt, ksqlConfig, overriddenProperties, schemaInjector, fakeKafkaService))
         .filter(executeResultAndSortedSources ->
-                executeResultAndSortedSources != null
-                        && executeResultAndSortedSources.getSources() != null)
+                executeResultAndSortedSources.getSources() != null)
         .map(
             executeResultAndSortedSources -> new PersistentQueryAndSortedSources(
                 (PersistentQueryMetadata) executeResultAndSortedSources
@@ -235,7 +234,7 @@ final class TestExecutorUtil {
               executionContext,
               executionContext.getServiceContext()
       );
-      return null;
+      return new ExecuteResultAndSortedSources(null, null, null);
     }
 
     final ConfiguredStatement<?> withSchema =

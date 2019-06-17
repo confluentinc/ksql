@@ -62,6 +62,11 @@ public class KsqlTestingToolTest {
           testFolderPath + "test" + i + "/output.json"
           );
     }
+  }
+
+  @Test
+  public void shouldRunTestWithTwoFileInput() throws Exception {
+    final String testFolderPath = "src/test/resources/test-runner/";
     for (int i = 5; i <= 6; i++) {
       outContent.reset();
       errContent.reset();
@@ -160,39 +165,16 @@ public class KsqlTestingToolTest {
   }
 
   @Test
-  public void shouldFailWhenInsertingWrongType() throws Exception {
+  public void shouldPropegateInsertValuesExecutorError() throws Exception {
     // When:
-    KsqlTestingTool.runWithDoubleFiles(
+    KsqlTestingTool.runWithTripleFiles(
             "src/test/resources/test-runner/incorrect-test6/statements.sql",
+            null,
             "src/test/resources/test-runner/incorrect-test6/output.json");
 
     // Then:
     assertThat(errContent.toString("UTF-8"),
             containsString("Test failed: Expected type INTEGER for field ID but got 14.5\n"));
-  }
-
-  @Test
-  public void shouldFailWhenInsertingTooManyValues() throws Exception {
-    // When:
-    KsqlTestingTool.runWithDoubleFiles(
-            "src/test/resources/test-runner/incorrect-test7/statements.sql",
-            "src/test/resources/test-runner/incorrect-test7/output.json");
-
-    // Then:
-    assertThat(errContent.toString("UTF-8"),
-            containsString("Test failed: Expected a value for each column. Expected Columns: [ROWKEY, ID, NAME, VALUE]. Got ['abc', 101, 'abc', 13.54, 'extra string']\n"));
-  }
-
-  @Test
-  public void shouldFailWhenInsertingIntoNonexistentStream() throws Exception {
-    // When:
-    KsqlTestingTool.runWithDoubleFiles(
-            "src/test/resources/test-runner/incorrect-test8/statements.sql",
-            "src/test/resources/test-runner/incorrect-test8/output.json");
-
-    // Then:
-    assertThat(errContent.toString("UTF-8"),
-            containsString("Test failed: Cannot insert values into an unknown stream/table: TEST2\n"));
   }
 
   private void runTestCaseAndAssertPassed(
@@ -212,7 +194,7 @@ public class KsqlTestingToolTest {
           final String outputFilePath
   ) throws Exception {
     // When:
-    KsqlTestingTool.runWithDoubleFiles(statementsFilePath, outputFilePath);
+    KsqlTestingTool.runWithTripleFiles(statementsFilePath, null, outputFilePath);
 
     // Then:
     assertThat(outContent.toString("UTF-8"), containsString("Test passed!"));

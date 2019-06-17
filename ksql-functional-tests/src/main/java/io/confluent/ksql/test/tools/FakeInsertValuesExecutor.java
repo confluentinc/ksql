@@ -20,29 +20,33 @@ import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.engine.InsertValuesEngine;
 import io.confluent.ksql.parser.tree.InsertValues;
 import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.test.serde.string.StringSerdeSupplier;
 import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;
-import org.apache.kafka.clients.producer.ProducerRecord;
+import io.confluent.ksql.util.KsqlConfig;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.Objects;
+
+import org.apache.kafka.clients.producer.ProducerRecord;
 
 public class FakeInsertValuesExecutor extends InsertValuesEngine {
-  private FakeKafkaService fakeKafkaService;
+  private final FakeKafkaService fakeKafkaService;
 
   public FakeInsertValuesExecutor(FakeKafkaService fakeKafkaService) {
     super();
-    this.fakeKafkaService = fakeKafkaService;
+    this.fakeKafkaService = Objects.requireNonNull(fakeKafkaService, "fakeKafkaService");
   }
 
-  public void run(
-          final ConfiguredStatement<InsertValues> statement,
+  protected void sendRecord(
+          final InsertValues insertValues,
+          final KsqlConfig config,
           final KsqlExecutionContext executionContext,
           final ServiceContext serviceContext
   ) {
     ProducerRecord<?, ?> record = buildProducerRecord(
-            statement.getStatement(),
-            statement.getConfig().cloneWithPropertyOverwrite(statement.getOverrides()),
+            insertValues,
+            config,
             executionContext,
             serviceContext
     );
@@ -50,7 +54,7 @@ public class FakeInsertValuesExecutor extends InsertValuesEngine {
     Topic topic = this.fakeKafkaService.getTopic(record.topic());
     Object value;
     if (topic.getValueSerdeSupplier() instanceof StringSerdeSupplier) {
-      value = new String((byte[]) record.value());
+      value = new String((byte[]) record.value(), StandardCharsets.UTF_8);
     } else {
       try {
         value = new ObjectMapper().readValue((byte[]) record.value(), Object.class);
@@ -63,7 +67,7 @@ public class FakeInsertValuesExecutor extends InsertValuesEngine {
             FakeKafkaRecord.of(
             new Record(
                     topic,
-                    new String((byte[]) record.key()),
+                    new String((byte[]) record.key(), StandardCharsets.UTF_8),
                     value,
                     0,
                     null

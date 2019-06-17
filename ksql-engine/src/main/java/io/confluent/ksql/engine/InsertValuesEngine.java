@@ -68,8 +68,21 @@ public abstract class InsertValuesEngine {
     this.clock = Objects.requireNonNull(clock, "clock");
   }
 
-  public abstract void run(
+  public void run(
           final ConfiguredStatement<InsertValues> statement,
+          final KsqlExecutionContext executionContext,
+          final ServiceContext serviceContext
+  ) {
+    final InsertValues insertValues = statement.getStatement();
+    final KsqlConfig config = statement.getConfig()
+            .cloneWithPropertyOverwrite(statement.getOverrides());
+
+    sendRecord(insertValues, config, executionContext, serviceContext);
+  }
+
+  protected abstract void sendRecord(
+          final InsertValues insertValues,
+          final KsqlConfig config,
           final KsqlExecutionContext executionContext,
           final ServiceContext serviceContext
   );
@@ -285,7 +298,8 @@ public abstract class InsertValuesEngine {
     @Override
     protected String visitNode(final Node node, final Void context) {
       throw new KsqlException(
-              "Only Literals are supported for INSERT INTO. Got: " + node + " for field " + fieldName);
+              "Only Literals are supported for INSERT INTO. Got: "
+                      + node + " for field " + fieldName);
     }
 
     @Override
@@ -297,11 +311,11 @@ public abstract class InsertValuesEngine {
 
       return defaultSqlValueCoercer.coerce(value, fieldSchema)
               .orElseThrow(
-                      () -> new KsqlException(
-                              "Expected type "
-                                      + SchemaConverters.logicalToSqlConverter().toSqlType(fieldSchema)
-                                      + " for field " + fieldName
-                                      + " but got " + value));
+                  () -> new KsqlException(
+                          "Expected type "
+                                  + SchemaConverters.logicalToSqlConverter().toSqlType(fieldSchema)
+                                  + " for field " + fieldName
+                                  + " but got " + value));
     }
   }
 }

@@ -44,18 +44,17 @@ public class InsertValuesExecutor extends InsertValuesEngine {
     super(clock);
   }
 
-  public void run(
-          final ConfiguredStatement<InsertValues> statement,
+  protected void sendRecord(
+          final InsertValues insertValues,
+          final KsqlConfig config,
           final KsqlExecutionContext executionContext,
           final ServiceContext serviceContext
   ) {
-    if (!statement.getConfig().getBoolean(KsqlConfig.KSQL_INSERT_INTO_VALUES_ENABLED)) {
+    if (!config.getBoolean(KsqlConfig.KSQL_INSERT_INTO_VALUES_ENABLED)) {
       throw new KsqlException("The server has disabled INSERT INTO ... VALUES functionality. "
-              + "To enable it, restart your KSQL-server with 'ksql.insert.into.values.enabled'=true");
+              + "To enable it, restart your KSQL-server with"
+              + "'ksql.insert.into.values.enabled'=true");
     }
-    final InsertValues insertValues = statement.getStatement();
-    final KsqlConfig config = statement.getConfig()
-            .cloneWithPropertyOverwrite(statement.getOverrides());
 
     // for now, just create a new producer each time
     final Producer<byte[], byte[]> producer = serviceContext

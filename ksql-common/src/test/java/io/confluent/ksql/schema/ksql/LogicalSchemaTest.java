@@ -767,13 +767,13 @@ public class LogicalSchemaTest {
   @Test
   public void shouldMatchImplicitFieldName() {
     assertThat(SOME_SCHEMA.isImplicitField(ROWTIME_NAME), is(true));
-    assertThat(SOME_SCHEMA.isImplicitOrKeyField(ROWTIME_NAME), is(true));
+    assertThat(SOME_SCHEMA.isKeyField(ROWTIME_NAME), is(false));
   }
 
   @Test
   public void shouldMatchKeyFieldName() {
     assertThat(SOME_SCHEMA.isImplicitField(ROWKEY_NAME), is(false));
-    assertThat(SOME_SCHEMA.isImplicitOrKeyField(ROWKEY_NAME), is(true));
+    assertThat(SOME_SCHEMA.isKeyField(ROWKEY_NAME), is(true));
   }
 
   @Test
@@ -781,14 +781,14 @@ public class LogicalSchemaTest {
     SOME_SCHEMA.valueFields().forEach(field ->
     {
       assertThat(SOME_SCHEMA.isImplicitField(field.name()), is(false));
-      assertThat(SOME_SCHEMA.isImplicitOrKeyField(field.name()), is(false));
+      assertThat(SOME_SCHEMA.isKeyField(field.name()), is(false));
     });
   }
 
   @Test
   public void shouldNotMatchRandomFieldNameAsBeingImplicitOrKeyFields() {
     assertThat(SOME_SCHEMA.isImplicitField("well_this_ain't_in_the_schema"), is(false));
-    assertThat(SOME_SCHEMA.isImplicitOrKeyField("well_this_ain't_in_the_schema"), is(false));
+    assertThat(SOME_SCHEMA.isKeyField("well_this_ain't_in_the_schema"), is(false));
   }
 
   private static Schema nested(final Schema schema) {

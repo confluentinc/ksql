@@ -102,12 +102,7 @@ public class LogicalPlanner {
                     + "Error in Partition By clause.")
             ));
 
-    final KeyField keyField = partitionByField
-        .map(fieldName -> inputSchema.isImplicitOrKeyField(fieldName)
-            ? Optional.<String>empty()
-            : Optional.of(fieldName))
-        .map(newKeyField -> sourcePlanNode.getKeyField().withName(newKeyField))
-        .orElse(sourcePlanNode.getKeyField());
+    final KeyField keyField = buildOutputKeyField(sourcePlanNode);
 
     return new KsqlStructuredDataOutputNode(
         new PlanNodeId(intoDataSource.getName()),
@@ -121,6 +116,30 @@ public class LogicalPlanner {
         intoDataSource.isCreate(),
         analysis.getSerdeOptions()
     );
+  }
+
+  private KeyField buildOutputKeyField(
+      final PlanNode sourcePlanNode
+  ) {
+    final KeyField sourceKeyField = sourcePlanNode.getKeyField();
+
+    final Optional<String> partitionByField = analysis.getPartitionBy();
+    if (!partitionByField.isPresent()) {
+      return sourceKeyField;
+    }
+
+    final String partitionBy = partitionByField.get();
+    final LogicalSchema schema = sourcePlanNode.getSchema();
+
+    if (schema.isImplicitField(partitionBy)) {
+      return sourceKeyField.withName(Optional.empty());
+    }
+
+    if (schema.isKeyField(partitionBy)) {
+      return sourceKeyField;
+    }
+
+    return sourceKeyField.withName(partitionBy);
   }
 
   private static TimestampExtractionPolicy getTimestampExtractionPolicy(

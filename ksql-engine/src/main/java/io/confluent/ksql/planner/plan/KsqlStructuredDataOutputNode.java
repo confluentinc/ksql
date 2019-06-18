@@ -229,7 +229,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
 
     final String fieldName = partitionByField.get();
 
-    if (getSchema().isImplicitOrKeyField(fieldName)) {
+    if (getSchema().isImplicitField(fieldName) || getSchema().isKeyField(fieldName)) {
       return;
     }
 

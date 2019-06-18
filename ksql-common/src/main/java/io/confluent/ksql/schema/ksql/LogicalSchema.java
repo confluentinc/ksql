@@ -295,7 +295,7 @@ public final class LogicalSchema {
 
   /**
    * @param fieldName the field name to check
-   * @return {@code true} if the field matches the name of any implicit fields.
+   * @return {@code true} if the field matches the name of any implicit field.
    */
   public boolean isImplicitField(final String fieldName) {
     return implicitFieldNames().contains(fieldName);
@@ -303,10 +303,10 @@ public final class LogicalSchema {
 
   /**
    * @param fieldName the field name to check
-   * @return {@code true} if the field matches the name of any implicit or key fields.
+   * @return {@code true} if the field matches the name of any key field.
    */
-  public boolean isImplicitOrKeyField(final String fieldName) {
-    return implicitAndKeyFieldNames().contains(fieldName);
+  public boolean isKeyField(final String fieldName) {
+    return keyFieldNames().contains(fieldName);
   }
 
   @Override
@@ -339,9 +339,13 @@ public final class LogicalSchema {
     return fieldNames(implicitFields());
   }
 
+  private Set<String> keyFieldNames() {
+    return fieldNames(keyFields());
+  }
+
   private Set<String> implicitAndKeyFieldNames() {
-    final Set<String> names = fieldNames(keyFields());
-    names.addAll(implicitFieldNames());
+    final Set<String> names = implicitFieldNames();
+    names.addAll(keyFieldNames());
     return names;
   }
 

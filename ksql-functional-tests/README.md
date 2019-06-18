@@ -86,6 +86,20 @@ The following is a template test file:
       ]
     },
     {
+      "name": "test using insert statements",
+      "description": "an example positive test that uses insert into values statements instead of inputs",
+      "statements": [
+        "CREATE STREAM test (ID name) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "INSERT INTO test (name, number) VALUES ('foo', 45)",
+        "INSERT INTO test (name, number) VALUES ('bar', 646)",
+        "CREATE STREAM output AS SELECT value FROM test;"
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "foo", "value": {"number": 45}},
+        {"topic": "OUTPUT", "key": 0, "value": {"number": 646}}
+      ]
+    },
+    {
       "name": "my first negative test",
       "description": "an example negative test where the statement will fail to parse",
       "statements": [
@@ -116,7 +130,7 @@ Each test case can have the following attributes:
 | statements       | (Required) The list of statements to execute as this test case |
 | properties       | (Optional) A map of property name to value. Can contain any valid Ksql config. The config is passed to the engine when executing the statements in the test case |
 | topics           | (Optional) An array of the topics this test case needs. Allows more information about the topic to be supplied, e.g. an existing Avro schema (See below for more info) |
-| inputs           | (Required if `expectedException` not supplied) The set of input messages to be produced to Kafka topic(s), (See below for more info) |
+| inputs           | (Required if `expectedException` not supplied and statements do not include `INSERT INTO` statements) The set of input messages to be produced to Kafka topic(s), (See below for more info) |
 | outputs          | (Required if `expectedException` not supplied) The set of output messages expected in the output topic(s), (See below for more info) |
 | expectedException| (Required in `inputs` and `outputs` not supplied) The exception that should be thrown when executing the supplied statements, (See below for more info) |
 | post             | (Optional) Defines post conditions that must exist after the statements have run, (See below for more info) |

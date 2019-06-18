@@ -17,7 +17,7 @@ package io.confluent.ksql.rest.server.execution;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.KsqlExecutionContext;
-import io.confluent.ksql.engine.InsertValuesEngine;
+import io.confluent.ksql.engine.InsertValuesHandler;
 import io.confluent.ksql.parser.tree.InsertValues;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.services.ServiceContext;
@@ -33,7 +33,7 @@ import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 
-public class InsertValuesExecutor extends InsertValuesEngine {
+public class InsertValuesExecutor extends InsertValuesHandler {
   private static final long MAX_SEND_TIMEOUT_SECONDS = 5;
 
   public InsertValuesExecutor() {
@@ -47,7 +47,7 @@ public class InsertValuesExecutor extends InsertValuesEngine {
 
   @Override
   protected void sendRecord(
-          ProducerRecord<?,?> record,
+          final ProducerRecord<byte[], byte[]> record,
           final InsertValues insertValues,
           final KsqlConfig config,
           final KsqlExecutionContext executionContext,
@@ -65,7 +65,7 @@ public class InsertValuesExecutor extends InsertValuesEngine {
             .getProducer(config.getProducerClientConfigProps());
 
     final Future<RecordMetadata> producerCallResult = producer
-            .send((ProducerRecord<byte[], byte[]>) record);
+            .send(record);
 
     producer.close(Duration.ofSeconds(MAX_SEND_TIMEOUT_SECONDS));
 

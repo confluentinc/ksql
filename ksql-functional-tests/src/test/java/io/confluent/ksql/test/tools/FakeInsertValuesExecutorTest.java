@@ -37,7 +37,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 @RunWith(MockitoJUnitRunner.class)
-public class FakeInsertValuesExecutorTest {
+public final class FakeInsertValuesExecutorTest {
   private ServiceContext serviceContext;
   private KsqlEngine ksqlEngine;
   private KsqlConfig ksqlConfig;
@@ -93,7 +93,7 @@ public class FakeInsertValuesExecutorTest {
     InsertValues insertValues = new InsertValues(QualifiedName.of("TEST"), columns, values);
     Map<String, Object> overrides = new HashMap<>();
     // When:
-    new FakeInsertValuesExecutor(fakeKafkaService)
+    FakeInsertValuesExecutor.of(fakeKafkaService)
             .run(ConfiguredStatement.of(KsqlParser.PreparedStatement.of(insertValues.toString(), insertValues), overrides, ksqlConfig), ksqlEngine, serviceContext);
 
     // Then:

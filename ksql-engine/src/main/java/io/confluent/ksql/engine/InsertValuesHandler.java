@@ -56,15 +56,15 @@ import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 
-public abstract class InsertValuesEngine {
+public abstract class InsertValuesHandler {
   private final LongSupplier clock;
 
-  public InsertValuesEngine() {
+  public InsertValuesHandler() {
     this(System::currentTimeMillis);
   }
 
   @VisibleForTesting
-  protected InsertValuesEngine(final LongSupplier clock) {
+  private InsertValuesHandler(final LongSupplier clock) {
     this.clock = Objects.requireNonNull(clock, "clock");
   }
 
@@ -87,11 +87,11 @@ public abstract class InsertValuesEngine {
   }
 
   protected abstract void sendRecord(
-          final ProducerRecord<?,?> record,
-          final InsertValues insertValues,
-          final KsqlConfig config,
-          final KsqlExecutionContext executionContext,
-          final ServiceContext serviceContext
+          ProducerRecord<byte[],byte[]> record,
+          InsertValues insertValues,
+          KsqlConfig config,
+          KsqlExecutionContext executionContext,
+          ServiceContext serviceContext
   );
 
   private ProducerRecord<byte[],byte[]> buildProducerRecord(

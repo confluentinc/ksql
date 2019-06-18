@@ -229,7 +229,7 @@ final class TestExecutorUtil {
             prepared, overriddenProperties, ksqlConfig);
 
     if (prepared.getStatement() instanceof InsertValues) {
-      new FakeInsertValuesExecutor(fakeKafkaService).run(
+      FakeInsertValuesExecutor.of(fakeKafkaService).run(
               (ConfiguredStatement<InsertValues>) configured,
               executionContext,
               executionContext.getServiceContext()

@@ -47,9 +47,9 @@ final class ComparisonUtil {
     }
 
     throw new KsqlException("Operator " + operator + " cannot be used to compare "
-        + SchemaConverters.logicalToSqlConverter().toSqlType(left)
+        + SchemaConverters.logicalToSqlConverter().toSqlType(left).getSqlType()
         + " and "
-        + SchemaConverters.logicalToSqlConverter().toSqlType(right)
+        + SchemaConverters.logicalToSqlConverter().toSqlType(right).getSqlType()
     );
   }
 }

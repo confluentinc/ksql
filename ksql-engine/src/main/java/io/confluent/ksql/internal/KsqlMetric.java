@@ -20,9 +20,9 @@ import java.util.function.Supplier;
 import org.apache.kafka.common.metrics.MeasurableStat;
 
 public final class KsqlMetric {
-  private String name;
-  private String description;
-  private Supplier<MeasurableStat> statSupplier;
+  private final String name;
+  private final String description;
+  private final Supplier<MeasurableStat> statSupplier;
 
   public static KsqlMetric of(
       final String name,

@@ -30,7 +30,7 @@ import java.util.Objects;
 
 import org.apache.kafka.clients.producer.ProducerRecord;
 
-public class FakeInsertValuesExecutor extends InsertValuesHandler {
+public final class FakeInsertValuesExecutor extends InsertValuesHandler {
   private final FakeKafkaService fakeKafkaService;
 
   private FakeInsertValuesExecutor(final FakeKafkaService fakeKafkaService) {

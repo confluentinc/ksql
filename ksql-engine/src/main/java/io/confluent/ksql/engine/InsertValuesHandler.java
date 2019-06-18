@@ -64,7 +64,7 @@ public abstract class InsertValuesHandler {
   }
 
   @VisibleForTesting
-  private InsertValuesHandler(final LongSupplier clock) {
+  protected InsertValuesHandler(final LongSupplier clock) {
     this.clock = Objects.requireNonNull(clock, "clock");
   }
 

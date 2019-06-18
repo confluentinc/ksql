@@ -384,7 +384,8 @@ public class TestCase implements Test {
   ) {
     final boolean bothValuesNull = (actualProducerRecord.value() == null
         && expectedProducerRecord.value() == null);
-    final boolean validTimestamps = (ranWithInsertStatements && expectedProducerRecord.timestamp() == 0)
+    final boolean validTimestamps =
+            (ranWithInsertStatements && expectedProducerRecord.timestamp() == 0)
             || actualProducerRecord.timestamp().equals(expectedProducerRecord.timestamp());
     if (
             !validTimestamps

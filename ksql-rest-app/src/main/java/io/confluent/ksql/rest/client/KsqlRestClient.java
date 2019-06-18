@@ -429,7 +429,8 @@ public class KsqlRestClient implements Closeable {
       final SslClientConfigurer sslClientConfigurer,
       final Map<String, String> props
   ) {
-    final ObjectMapper objectMapper = JsonMapper.INSTANCE.mapper.copy();
+    final ObjectMapper objectMapper = JsonMapper.INSTANCE.mapper;
+    objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     objectMapper.configure(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES, false);
     final JacksonMessageBodyProvider jsonProvider = new JacksonMessageBodyProvider(objectMapper);
 

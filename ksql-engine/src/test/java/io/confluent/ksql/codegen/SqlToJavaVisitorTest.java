@@ -16,6 +16,7 @@
 package io.confluent.ksql.codegen;
 
 import static io.confluent.ksql.testutils.AnalysisTestUtil.analyzeQuery;
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -24,6 +25,8 @@ import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.function.TestFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.ArithmeticBinaryExpression;
+import io.confluent.ksql.parser.tree.ComparisonExpression;
+import io.confluent.ksql.parser.tree.ComparisonExpression.Type;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
@@ -68,6 +71,7 @@ public class SqlToJavaVisitorTest {
         .field("TEST1.COL6", addressSchema)
         .field("TEST1.COL7", SchemaBuilder.OPTIONAL_INT32_SCHEMA)
         .field("TEST1.COL8", DecimalUtil.builder(2, 1).build())
+        .field("TEST1.COL9", DecimalUtil.builder(2, 1).build())
         .build();
 
     sqlToJavaVisitor = new SqlToJavaVisitor(LogicalSchema.of(schema), TestFunctionRegistry.INSTANCE.get());
@@ -328,6 +332,134 @@ public class SqlToJavaVisitorTest {
 
     // Then:
     assertThat(java, is("(TEST1_COL8.remainder(TEST1_COL8, new MathContext(2, RoundingMode.UNNECESSARY)).setScale(1))"));
+  }
+
+  @Test
+  public void shouldGenerateCorrectCodeForDecimalDecimalEQ() {
+    // Given:
+    final ComparisonExpression compExp = new ComparisonExpression(
+        Type.EQUAL,
+        new QualifiedNameReference(QualifiedName.of("TEST1.COL8")),
+        new QualifiedNameReference(QualifiedName.of("TEST1.COL9"))
+    );
+
+    // When:
+    final String java = sqlToJavaVisitor.process(compExp);
+
+    // Then:
+    assertThat(java, containsString("(TEST1_COL8.compareTo(TEST1_COL9) == 0))"));
+  }
+
+  @Test
+  public void shouldGenerateCorrectCodeForDecimalDecimalGT() {
+    // Given:
+    final ComparisonExpression compExp = new ComparisonExpression(
+        Type.GREATER_THAN,
+        new QualifiedNameReference(QualifiedName.of("TEST1.COL8")),
+        new QualifiedNameReference(QualifiedName.of("TEST1.COL9"))
+    );
+
+    // When:
+    final String java = sqlToJavaVisitor.process(compExp);
+
+    // Then:
+    assertThat(java, containsString("(TEST1_COL8.compareTo(TEST1_COL9) > 0))"));
+  }
+
+  @Test
+  public void shouldGenerateCorrectCodeForDecimalDecimalGEQ() {
+    // Given:
+    final ComparisonExpression compExp = new ComparisonExpression(
+        Type.GREATER_THAN_OR_EQUAL,
+        new QualifiedNameReference(QualifiedName.of("TEST1.COL8")),
+        new QualifiedNameReference(QualifiedName.of("TEST1.COL9"))
+    );
+
+    // When:
+    final String java = sqlToJavaVisitor.process(compExp);
+
+    // Then:
+    assertThat(java, containsString("(TEST1_COL8.compareTo(TEST1_COL9) >= 0))"));
+  }
+
+  @Test
+  public void shouldGenerateCorrectCodeForDecimalDecimalLT() {
+    // Given:
+    final ComparisonExpression compExp = new ComparisonExpression(
+        Type.LESS_THAN,
+        new QualifiedNameReference(QualifiedName.of("TEST1.COL8")),
+        new QualifiedNameReference(QualifiedName.of("TEST1.COL9"))
+    );
+
+    // When:
+    final String java = sqlToJavaVisitor.process(compExp);
+
+    // Then:
+    assertThat(java, containsString("(TEST1_COL8.compareTo(TEST1_COL9) < 0))"));
+  }
+
+  @Test
+  public void shouldGenerateCorrectCodeForDecimalDecimalLEQ() {
+    // Given:
+    final ComparisonExpression compExp = new ComparisonExpression(
+        Type.LESS_THAN_OR_EQUAL,
+        new QualifiedNameReference(QualifiedName.of("TEST1.COL8")),
+        new QualifiedNameReference(QualifiedName.of("TEST1.COL9"))
+    );
+
+    // When:
+    final String java = sqlToJavaVisitor.process(compExp);
+
+    // Then:
+    assertThat(java, containsString("(TEST1_COL8.compareTo(TEST1_COL9) <= 0))"));
+  }
+
+  @Test
+  public void shouldGenerateCorrectCodeForDecimalDecimalIsDistinct() {
+    // Given:
+    final ComparisonExpression compExp = new ComparisonExpression(
+        Type.IS_DISTINCT_FROM,
+        new QualifiedNameReference(QualifiedName.of("TEST1.COL8")),
+        new QualifiedNameReference(QualifiedName.of("TEST1.COL9"))
+    );
+
+    // When:
+    final String java = sqlToJavaVisitor.process(compExp);
+
+    // Then:
+    assertThat(java, containsString("(TEST1_COL8.compareTo(TEST1_COL9) != 0))"));
+  }
+
+  @Test
+  public void shouldGenerateCorrectCodeForDecimalDoubleEQ() {
+    // Given:
+    final ComparisonExpression compExp = new ComparisonExpression(
+        Type.EQUAL,
+        new QualifiedNameReference(QualifiedName.of("TEST1.COL8")),
+        new QualifiedNameReference(QualifiedName.of("TEST1.COL3"))
+    );
+
+    // When:
+    final String java = sqlToJavaVisitor.process(compExp);
+
+    // Then:
+    assertThat(java, containsString("(TEST1_COL8.compareTo(new BigDecimal(TEST1_COL3)) == 0))"));
+  }
+
+  @Test
+  public void shouldGenerateCorrectCodeForDoubleDecimalEQ() {
+    // Given:
+    final ComparisonExpression compExp = new ComparisonExpression(
+        Type.EQUAL,
+        new QualifiedNameReference(QualifiedName.of("TEST1.COL3")),
+        new QualifiedNameReference(QualifiedName.of("TEST1.COL8"))
+    );
+
+    // When:
+    final String java = sqlToJavaVisitor.process(compExp);
+
+    // Then:
+    assertThat(java, containsString("(new BigDecimal(TEST1_COL3).compareTo(TEST1_COL8) == 0))"));
   }
 
   @Test

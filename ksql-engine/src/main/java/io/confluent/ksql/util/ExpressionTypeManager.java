@@ -126,7 +126,7 @@ public class ExpressionTypeManager
     final Schema leftSchema = expressionTypeContext.getSchema();
     process(node.getRight(), expressionTypeContext);
     final Schema rightSchema = expressionTypeContext.getSchema();
-    ComparisonUtil.isValidComparison(leftSchema.type(), node.getType(), rightSchema.type());
+    ComparisonUtil.isValidComparison(leftSchema, node.getType(), rightSchema);
     expressionTypeContext.setSchema(Schema.OPTIONAL_BOOLEAN_SCHEMA);
     return null;
   }

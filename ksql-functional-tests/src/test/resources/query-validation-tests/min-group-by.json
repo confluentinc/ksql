@@ -37,7 +37,7 @@
       "name": "min integer group by with nulls",
       "statements": [
         "CREATE STREAM TEST (ID bigint, VALUE integer) WITH (kafka_topic='test_topic',value_format='JSON', key='ID');",
-        "CREATE TABLE S2 as SELECT id, min(value) as MIN FROM test group by id;"
+        "CREATE TABLE S2 as SELECT id, min(value) as MAX FROM test group by id;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 1, "value": {"id":  1, "value":  null}},
@@ -45,9 +45,9 @@
         {"topic": "test_topic", "key": 0, "value": {"id":  0, "value":  1}}
       ],
       "outputs": [
-        {"topic": "S2", "key": 1, "value": {"ID":  1, "MIN":  null}},
-        {"topic": "S2", "key": 0, "value": {"ID":  0, "MIN":  null}},
-        {"topic": "S2", "key": 0, "value": {"ID":  0, "MIN":  1}}
+        {"topic": "S2", "key": 1, "value": {"ID":  1, "MAX":  null}},
+        {"topic": "S2", "key": 0, "value": {"ID":  0, "MAX":  null}},
+        {"topic": "S2", "key": 0, "value": {"ID":  0, "MAX":  1}}
       ]
     },
     {
@@ -165,7 +165,7 @@
       "name": "min decimal group by with nulls",
       "statements": [
         "CREATE STREAM TEST (ID bigint, VALUE decimal(4, 2)) WITH (kafka_topic='test_topic',value_format='AVRO', key='ID');",
-        "CREATE TABLE S2 as SELECT id, min(value) as MAX FROM test group by id;"
+        "CREATE TABLE S2 as SELECT id, min(value) as MIN FROM test group by id;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 1, "value": {"id":  1, "value":  null}},
@@ -173,9 +173,9 @@
         {"topic": "test_topic", "key": 0, "value": {"id":  0, "value":  "01.00"}}
       ],
       "outputs": [
-        {"topic": "S2", "key": 1, "value": {"ID":  1, "MAX":  null}},
-        {"topic": "S2", "key": 0, "value": {"ID":  0, "MAX":  null}},
-        {"topic": "S2", "key": 0, "value": {"ID":  0, "MAX":  "01.00"}}
+        {"topic": "S2", "key": 1, "value": {"ID":  1, "MIN":  null}},
+        {"topic": "S2", "key": 0, "value": {"ID":  0, "MIN":  null}},
+        {"topic": "S2", "key": 0, "value": {"ID":  0, "MIN":  "01.00"}}
       ]
     }
   ]

@@ -345,12 +345,8 @@ public class JoinNode extends PlanNode {
           .getKsqlTopic()
           .getValueSerdeFactory();
 
-      // Joins currently copy the implicit and key fields into the value schema.
-      // The actual copying of data is done by the DataSourceNode.
-      // This schema is used for repartition and change-store topics
-      // Removing this duplication would be a breaking change.
-      final LogicalSchema logicalSchema = dataSource.getSchema()
-          .withImplicitAndKeyFieldsInValue();
+      final LogicalSchema logicalSchema = sourceNode.getSchema()
+          .withoutAlias();
 
       return builder.buildGenericRowSerde(
           valueSerdeFactory,

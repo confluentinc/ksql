@@ -36,7 +36,6 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicyFactory;
 import java.util.Optional;
-import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 
@@ -94,15 +93,19 @@ public class LogicalPlanner {
 
     final Into intoDataSource = analysis.getInto().get();
 
-    final Optional<Field> partitionByField = analysis.getPartitionBy()
-        .map(keyName -> inputSchema.findValueField(keyName)
+    final Optional<String> partitionByField = analysis.getPartitionBy();
+
+    partitionByField.ifPresent(keyName ->
+        inputSchema.findValueField(keyName)
             .orElseThrow(() -> new KsqlException(
                 "Column " + keyName + " does not exist in the result schema. "
                     + "Error in Partition By clause.")
             ));
 
     final KeyField keyField = partitionByField
-        .map(Field::name)
+        .map(fieldName -> inputSchema.isImplicitOrKeyField(fieldName)
+            ? Optional.<String>empty()
+            : Optional.of(fieldName))
         .map(newKeyField -> sourcePlanNode.getKeyField().withName(newKeyField))
         .orElse(sourcePlanNode.getKeyField());
 
@@ -113,7 +116,7 @@ public class LogicalPlanner {
         extractionPolicy,
         keyField,
         intoDataSource.getKsqlTopic(),
-        partitionByField.isPresent(),
+        partitionByField,
         analysis.getLimitClause(),
         intoDataSource.isCreate(),
         analysis.getSerdeOptions()

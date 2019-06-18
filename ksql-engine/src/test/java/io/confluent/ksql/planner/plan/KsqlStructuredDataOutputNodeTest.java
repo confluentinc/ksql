@@ -125,14 +125,14 @@ public class KsqlStructuredDataOutputNodeTest {
 
   private KsqlStructuredDataOutputNode outputNode;
   private LogicalSchema schema;
-  private boolean partitionBy;
+  private Optional<String> partitionBy;
   private boolean createInto;
 
   @SuppressWarnings("unchecked")
   @Before
   public void before() {
     schema = SCHEMA;
-    partitionBy = false;
+    partitionBy = Optional.empty();
     createInto = true;
 
     when(queryIdGenerator.getNextId()).thenReturn(QUERY_ID_STRING);
@@ -174,7 +174,24 @@ public class KsqlStructuredDataOutputNodeTest {
         new LongColumnTimestampExtractionPolicy("timestamp"),
         KeyField.none(),
         ksqlTopic,
-        true,
+        Optional.of("something"),
+        OptionalInt.empty(),
+        false,
+        SerdeOption.none()
+    );
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void shouldThrowIfPartitionByDoesNotMatchKeyField() {
+    // When:
+    new KsqlStructuredDataOutputNode(
+        new PlanNodeId("0"),
+        sourceNode,
+        SCHEMA,
+        new LongColumnTimestampExtractionPolicy("timestamp"),
+        KeyField.of(Optional.of("something else"), Optional.empty()),
+        ksqlTopic,
+        Optional.of("something"),
         OptionalInt.empty(),
         false,
         SerdeOption.none()
@@ -227,7 +244,7 @@ public class KsqlStructuredDataOutputNodeTest {
   @Test
   public void shouldPartitionByFieldNameInPartitionByProperty() {
     // Given:
-    givenNodePartitioningByKey();
+    givenNodePartitioningByKey("key");
 
     // When:
     final SchemaKStream<?> result = outputNode.buildStream(ksqlStreamBuilder);
@@ -235,6 +252,42 @@ public class KsqlStructuredDataOutputNodeTest {
     // Then:
     verify(resultStream).selectKey(
         KEY_FIELD.name().get(),
+        false,
+        new QueryContext.Stacker(QUERY_ID).push(PLAN_NODE_ID.toString())
+    );
+
+    assertThat(result, is(sameInstance(resultWithKeySelected)));
+  }
+
+  @Test
+  public void shouldPartitionByRowKey() {
+    // Given:
+    givenNodePartitioningByKey("ROWKEY");
+
+    // When:
+    final SchemaKStream<?> result = outputNode.buildStream(ksqlStreamBuilder);
+
+    // Then:
+    verify(resultStream).selectKey(
+        "ROWKEY",
+        false,
+        new QueryContext.Stacker(QUERY_ID).push(PLAN_NODE_ID.toString())
+    );
+
+    assertThat(result, is(sameInstance(resultWithKeySelected)));
+  }
+
+  @Test
+  public void shouldPartitionByRowTime() {
+    // Given:
+    givenNodePartitioningByKey("ROWTIME");
+
+    // When:
+    final SchemaKStream<?> result = outputNode.buildStream(ksqlStreamBuilder);
+
+    // Then:
+    verify(resultStream).selectKey(
+        "ROWTIME",
         false,
         new QueryContext.Stacker(QUERY_ID).push(PLAN_NODE_ID.toString())
     );
@@ -376,8 +429,8 @@ public class KsqlStructuredDataOutputNodeTest {
     buildNode();
   }
 
-  private void givenNodePartitioningByKey() {
-    this.partitionBy = true;
+  private void givenNodePartitioningByKey(final String field) {
+    this.partitionBy = Optional.of(field);
     buildNode();
   }
 

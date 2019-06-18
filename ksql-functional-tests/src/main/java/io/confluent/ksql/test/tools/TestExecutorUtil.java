@@ -30,6 +30,7 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.InsertInto;
+import io.confluent.ksql.parser.tree.InsertValues;
 import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Relation;
@@ -50,13 +51,16 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.stream.Collectors;
+
 import org.apache.avro.Schema;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.TopologyTestDriver;
 
 final class TestExecutorUtil {
 
-  private TestExecutorUtil() {}
+  private TestExecutorUtil() {
+
+  }
 
   static List<TopologyTestDriverContainer> buildStreamsTopologyTestDrivers(
       final TestCase testCase,
@@ -170,7 +174,8 @@ final class TestExecutorUtil {
         sql,
         ksqlConfig,
         testCase.properties(),
-        Optional.of(serviceContext.getSchemaRegistryClient())
+        Optional.of(serviceContext.getSchemaRegistryClient()),
+        fakeKafkaService
     );
 
     assertThat("test did not generate any queries.", !queries.isEmpty());
@@ -185,7 +190,8 @@ final class TestExecutorUtil {
       final String sql,
       final KsqlConfig ksqlConfig,
       final Map<String, Object> overriddenProperties,
-      final Optional<SchemaRegistryClient> srClient
+      final Optional<SchemaRegistryClient> srClient,
+      final FakeKafkaService fakeKafkaService
   ) {
     final List<ParsedStatement> statements = engine.parse(sql);
 
@@ -194,8 +200,10 @@ final class TestExecutorUtil {
         .map(DefaultSchemaInjector::new);
 
     return statements.stream()
-        .map(stmt -> execute(engine, stmt, ksqlConfig, overriddenProperties, schemaInjector))
-        .filter(executeResultAndSortedSources -> executeResultAndSortedSources.getSources() != null)
+        .map(stmt -> execute(
+                engine, stmt, ksqlConfig, overriddenProperties, schemaInjector, fakeKafkaService))
+        .filter(executeResultAndSortedSources ->
+                executeResultAndSortedSources.getSources() != null)
         .map(
             executeResultAndSortedSources -> new PersistentQueryAndSortedSources(
                 (PersistentQueryMetadata) executeResultAndSortedSources
@@ -213,11 +221,22 @@ final class TestExecutorUtil {
       final ParsedStatement stmt,
       final KsqlConfig ksqlConfig,
       final Map<String, Object> overriddenProperties,
-      final Optional<DefaultSchemaInjector> schemaInjector
+      final Optional<DefaultSchemaInjector> schemaInjector,
+      final FakeKafkaService fakeKafkaService
   ) {
     final PreparedStatement<?> prepared = executionContext.prepare(stmt);
     final ConfiguredStatement<?> configured = ConfiguredStatement.of(
-        prepared, overriddenProperties, ksqlConfig);
+            prepared, overriddenProperties, ksqlConfig);
+
+    if (prepared.getStatement() instanceof InsertValues) {
+      FakeInsertValuesExecutor.of(fakeKafkaService).run(
+              (ConfiguredStatement<InsertValues>) configured,
+              executionContext,
+              executionContext.getServiceContext()
+      );
+      return new ExecuteResultAndSortedSources(null, null, null);
+    }
+
     final ConfiguredStatement<?> withSchema =
         schemaInjector
             .map(injector -> injector.inject(configured))

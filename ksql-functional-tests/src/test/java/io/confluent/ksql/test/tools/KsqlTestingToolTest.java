@@ -65,6 +65,18 @@ public class KsqlTestingToolTest {
   }
 
   @Test
+  public void shouldRunTestWithTwoFileInput() throws Exception {
+    final String testFolderPath = "src/test/resources/test-runner/";
+    for (int i = 5; i <= 6; i++) {
+      outContent.reset();
+      errContent.reset();
+      runTestCaseAndAssertPassed(testFolderPath + "test" + i + "/statements.sql",
+              testFolderPath + "test" + i + "/output.json"
+      );
+    }
+  }
+
+  @Test
   public void shouldUseAndCloseTestExecutor() throws Exception {
     // Given:
     final TestCase testCase = mock(TestCase.class);
@@ -152,6 +164,19 @@ public class KsqlTestingToolTest {
 
   }
 
+  @Test
+  public void shouldPropegateInsertValuesExecutorError() throws Exception {
+    // When:
+    KsqlTestingTool.runWithTripleFiles(
+            "src/test/resources/test-runner/incorrect-test6/statements.sql",
+            null,
+            "src/test/resources/test-runner/incorrect-test6/output.json");
+
+    // Then:
+    assertThat(errContent.toString("UTF-8"),
+            containsString("Test failed: Expected type INTEGER for field ID but got 14.5\n"));
+  }
+
   private void runTestCaseAndAssertPassed(
       final String statementsFilePath,
       final String inputFilePath,
@@ -159,6 +184,17 @@ public class KsqlTestingToolTest {
       ) throws Exception {
     // When:
     KsqlTestingTool.runWithTripleFiles(statementsFilePath, inputFilePath, outputFilePath);
+
+    // Then:
+    assertThat(outContent.toString("UTF-8"), containsString("Test passed!"));
+  }
+
+  private void runTestCaseAndAssertPassed(
+          final String statementsFilePath,
+          final String outputFilePath
+  ) throws Exception {
+    // When:
+    KsqlTestingTool.runWithTripleFiles(statementsFilePath, null, outputFilePath);
 
     // Then:
     assertThat(outContent.toString("UTF-8"), containsString("Test passed!"));

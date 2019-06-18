@@ -172,11 +172,13 @@
       "inputs": [
         {"topic": "test_topic", "key": 1, "value": {"id":  1, "value":  null}},
         {"topic": "test_topic", "key": 0, "value": {"id":  0, "value":  null}},
-        {"topic": "test_topic", "key": 0, "value": {"id":  0, "value":  "01.00"}}
+        {"topic": "test_topic", "key": 0, "value": {"id":  0, "value":  "01.00"}},
+        {"topic": "test_topic", "key": 0, "value": {"id":  0, "value":  null}}
       ],
       "outputs": [
         {"topic": "S2", "key": 1, "value": {"ID":  1, "MAX":  null}},
         {"topic": "S2", "key": 0, "value": {"ID":  0, "MAX":  null}},
+        {"topic": "S2", "key": 0, "value": {"ID":  0, "MAX":  "01.00"}},
         {"topic": "S2", "key": 0, "value": {"ID":  0, "MAX":  "01.00"}}
       ]
     }

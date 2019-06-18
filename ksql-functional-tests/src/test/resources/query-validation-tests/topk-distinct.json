@@ -80,12 +80,14 @@
       "inputs": [
         {"topic": "test_topic", "value": {"ID": 0, "NAME": "zero", "VALUE": "9.8"}},
         {"topic": "test_topic", "value": {"ID": 0, "NAME": "zero", "VALUE": "8.9"}},
+        {"topic": "test_topic", "value": {"ID": 0, "NAME": "zero", "VALUE": null}},
         {"topic": "test_topic", "value": {"ID": 0, "NAME": "zero", "VALUE": "7.8"}},
         {"topic": "test_topic", "value": {"ID": 0, "NAME": "zero", "VALUE": "6.5"}},
         {"topic": "test_topic", "value": {"ID": 0, "NAME": "zero", "VALUE": "9.9"}}
       ],
       "outputs": [
         {"topic": "S2", "value": {"ID":0,"TOPK":["9.8"]}},
+        {"topic": "S2", "value": {"ID":0,"TOPK":["9.8","8.9"]}},
         {"topic": "S2", "value": {"ID":0,"TOPK":["9.8","8.9"]}},
         {"topic": "S2", "value": {"ID":0,"TOPK":["9.8","8.9","7.8"]}},
         {"topic": "S2", "value": {"ID":0,"TOPK":["9.8","8.9","7.8"]}},

@@ -84,17 +84,21 @@ public class KsqlDelimitedSerializer implements Serializer<Object> {
       final Field field = fieldIt.next();
       throwOnUnsupportedType(field.schema());
       if (DecimalUtil.isDecimal(field.schema())) {
-        final BigDecimal value = (BigDecimal) data.get(field);
-        final int precision = DecimalUtil.precision(field.schema());
-        final int scale = DecimalUtil.scale(field.schema());
-
-        final DecimalFormat format = new DecimalFormat();
-        format.setMinimumIntegerDigits(precision - scale);
-        format.setMinimumFractionDigits(scale);
-
-        return format.format(value);
+        return getDecimal(field);
       }
       return data.get(field);
+    }
+
+    private String getDecimal(final Field field) {
+      final BigDecimal value = (BigDecimal) data.get(field);
+      final int precision = DecimalUtil.precision(field.schema());
+      final int scale = DecimalUtil.scale(field.schema());
+
+      final DecimalFormat format = new DecimalFormat();
+      format.setMinimumIntegerDigits(precision - scale);
+      format.setMinimumFractionDigits(scale);
+
+      return format.format(value);
     }
 
     private static void throwOnUnsupportedType(final Schema schema) {

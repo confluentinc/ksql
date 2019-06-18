@@ -850,6 +850,11 @@ public class SchemaUtilTest {
   }
 
   @Test
+  public void shouldPassIsNumberForDecimal() {
+    assertThat(SchemaUtil.isNumber(DecimalUtil.builder(2, 1)), is(true));
+  }
+
+  @Test
   public void shouldFailIsNumberForBoolean() {
     assertThat(SchemaUtil.isNumber(Schema.Type.BOOLEAN), is(false));
     assertThat(SchemaUtil.isNumber(Schema.OPTIONAL_BOOLEAN_SCHEMA), is(false));

@@ -71,6 +71,7 @@ public class SqlToJavaVisitorTest {
         .field("TEST1.COL6", addressSchema)
         .field("TEST1.COL7", SchemaBuilder.OPTIONAL_INT32_SCHEMA)
         .field("TEST1.COL8", DecimalUtil.builder(2, 1).build())
+        .field("TEST1.COL9", DecimalUtil.builder(2, 1).build())
         .build();
 
     sqlToJavaVisitor = new SqlToJavaVisitor(LogicalSchema.of(schema), TestFunctionRegistry.INSTANCE.get());
@@ -339,14 +340,14 @@ public class SqlToJavaVisitorTest {
     final ComparisonExpression compExp = new ComparisonExpression(
         Type.EQUAL,
         new QualifiedNameReference(QualifiedName.of("TEST1.COL8")),
-        new QualifiedNameReference(QualifiedName.of("TEST1.COL8"))
+        new QualifiedNameReference(QualifiedName.of("TEST1.COL9"))
     );
 
     // When:
     final String java = sqlToJavaVisitor.process(compExp);
 
     // Then:
-    assertThat(java, containsString("(TEST1_COL8.compareTo(TEST1_COL8) == 0))"));
+    assertThat(java, containsString("(TEST1_COL8.compareTo(TEST1_COL9) == 0))"));
   }
 
   @Test
@@ -355,14 +356,14 @@ public class SqlToJavaVisitorTest {
     final ComparisonExpression compExp = new ComparisonExpression(
         Type.GREATER_THAN,
         new QualifiedNameReference(QualifiedName.of("TEST1.COL8")),
-        new QualifiedNameReference(QualifiedName.of("TEST1.COL8"))
+        new QualifiedNameReference(QualifiedName.of("TEST1.COL9"))
     );
 
     // When:
     final String java = sqlToJavaVisitor.process(compExp);
 
     // Then:
-    assertThat(java, containsString("(TEST1_COL8.compareTo(TEST1_COL8) > 0))"));
+    assertThat(java, containsString("(TEST1_COL8.compareTo(TEST1_COL9) > 0))"));
   }
 
   @Test
@@ -371,14 +372,14 @@ public class SqlToJavaVisitorTest {
     final ComparisonExpression compExp = new ComparisonExpression(
         Type.GREATER_THAN_OR_EQUAL,
         new QualifiedNameReference(QualifiedName.of("TEST1.COL8")),
-        new QualifiedNameReference(QualifiedName.of("TEST1.COL8"))
+        new QualifiedNameReference(QualifiedName.of("TEST1.COL9"))
     );
 
     // When:
     final String java = sqlToJavaVisitor.process(compExp);
 
     // Then:
-    assertThat(java, containsString("(TEST1_COL8.compareTo(TEST1_COL8) >= 0))"));
+    assertThat(java, containsString("(TEST1_COL8.compareTo(TEST1_COL9) >= 0))"));
   }
 
   @Test
@@ -387,14 +388,14 @@ public class SqlToJavaVisitorTest {
     final ComparisonExpression compExp = new ComparisonExpression(
         Type.LESS_THAN,
         new QualifiedNameReference(QualifiedName.of("TEST1.COL8")),
-        new QualifiedNameReference(QualifiedName.of("TEST1.COL8"))
+        new QualifiedNameReference(QualifiedName.of("TEST1.COL9"))
     );
 
     // When:
     final String java = sqlToJavaVisitor.process(compExp);
 
     // Then:
-    assertThat(java, containsString("(TEST1_COL8.compareTo(TEST1_COL8) < 0))"));
+    assertThat(java, containsString("(TEST1_COL8.compareTo(TEST1_COL9) < 0))"));
   }
 
   @Test
@@ -403,14 +404,14 @@ public class SqlToJavaVisitorTest {
     final ComparisonExpression compExp = new ComparisonExpression(
         Type.LESS_THAN_OR_EQUAL,
         new QualifiedNameReference(QualifiedName.of("TEST1.COL8")),
-        new QualifiedNameReference(QualifiedName.of("TEST1.COL8"))
+        new QualifiedNameReference(QualifiedName.of("TEST1.COL9"))
     );
 
     // When:
     final String java = sqlToJavaVisitor.process(compExp);
 
     // Then:
-    assertThat(java, containsString("(TEST1_COL8.compareTo(TEST1_COL8) <= 0))"));
+    assertThat(java, containsString("(TEST1_COL8.compareTo(TEST1_COL9) <= 0))"));
   }
 
   @Test
@@ -419,14 +420,14 @@ public class SqlToJavaVisitorTest {
     final ComparisonExpression compExp = new ComparisonExpression(
         Type.IS_DISTINCT_FROM,
         new QualifiedNameReference(QualifiedName.of("TEST1.COL8")),
-        new QualifiedNameReference(QualifiedName.of("TEST1.COL8"))
+        new QualifiedNameReference(QualifiedName.of("TEST1.COL9"))
     );
 
     // When:
     final String java = sqlToJavaVisitor.process(compExp);
 
     // Then:
-    assertThat(java, containsString("(TEST1_COL8.compareTo(TEST1_COL8) != 0))"));
+    assertThat(java, containsString("(TEST1_COL8.compareTo(TEST1_COL9) != 0))"));
   }
 
   @Test

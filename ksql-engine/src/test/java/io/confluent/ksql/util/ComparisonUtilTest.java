@@ -16,6 +16,7 @@
 package io.confluent.ksql.util;
 
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.google.common.collect.ImmutableList;
@@ -41,6 +42,12 @@ public class ComparisonUtilTest {
       SchemaBuilder.map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_STRING_SCHEMA).build(),
       SchemaBuilder.struct().field("foo", Schema.OPTIONAL_INT64_SCHEMA).build()
   );
+
+  private static final String[] SCHEMA_TO_SQL_NAME = new String[] {
+      "BOOLEAN", "INTEGER", "BIGINT", "DOUBLE", "DECIMAL(4, 2)",
+      "STRING", "ARRAY<INTEGER>", "MAP<VARCHAR, STRING>", "STRUCT<foo BIGINT>"
+  };
+
   private static final List<List<Boolean>> expectedResults = ImmutableList.of(
       ImmutableList.of(true, false, false, false, false, false, false, false, false), // Boolean
       ImmutableList.of(false, true, true, true, true, false, false, false, false), // Int
@@ -78,16 +85,22 @@ public class ComparisonUtilTest {
 
   @Test
   public void shouldThrowForInvalidComparisons() {
-    // Given:
-    expectedException.expect(KsqlException.class);
-
     // When:
     int i = 0;
     int j = 0;
     for (final Schema leftType: typesTable) {
       for (final Schema rightType: typesTable) {
         if (!expectedResults.get(i).get(j)) {
-          ComparisonUtil.isValidComparison(leftType, ComparisonExpression.Type.EQUAL, rightType);
+          try {
+            ComparisonUtil.isValidComparison(leftType, ComparisonExpression.Type.EQUAL, rightType);
+            assertThat("fail", false);
+          } catch (final KsqlException e) {
+            assertThat(e.getMessage(), is("Operator EQUAL cannot be used to compare "
+                + SCHEMA_TO_SQL_NAME[i]
+                + " and "
+                + SCHEMA_TO_SQL_NAME[j])
+            );
+          }
         }
 
         j++;

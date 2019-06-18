@@ -109,6 +109,15 @@
       ]
     },
     {
+      "name": "non-join with only ROWKEY and ROWTIME in projection",
+      "statements": [
+        "CREATE STREAM INPUT (F0 INT) WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ROWTIME, ROWKEY FROM INPUT;"
+      ],
+      "inputs": [{"topic": "input", "value": {"F0": 4}}],
+      "outputs": [{"topic": "OUTPUT", "value": {}}]
+    },
+    {
       "name": "non-join removes ROWKEY and ROWTIME from output's value schema",
       "statements": [
         "CREATE STREAM INPUT (F0 INT) WITH (kafka_topic='input', value_format='JSON');",

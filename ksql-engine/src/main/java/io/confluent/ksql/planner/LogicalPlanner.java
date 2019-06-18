@@ -151,7 +151,9 @@ public class LogicalPlanner {
 
       aggregateSchema.field(alias, expressionType);
 
-      if (expression.equals(groupBy) && !SchemaUtil.isFieldName(alias, SchemaUtil.ROWKEY_NAME)) {
+      if (expression.equals(groupBy)
+          && !SchemaUtil.isFieldName(alias, SchemaUtil.ROWTIME_NAME)
+          && !SchemaUtil.isFieldName(alias, SchemaUtil.ROWKEY_NAME)) {
         keyField = Optional.of(alias);
       }
     }

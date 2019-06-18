@@ -297,7 +297,9 @@ public class SchemaKStream<K> {
         }
       }
 
-      return found.filter(f -> !SchemaUtil.isFieldName(f.name(), SchemaUtil.ROWKEY_NAME));
+      return found
+          .filter(f -> !SchemaUtil.isFieldName(f.name(), SchemaUtil.ROWTIME_NAME))
+          .filter(f -> !SchemaUtil.isFieldName(f.name(), SchemaUtil.ROWKEY_NAME));
     }
 
     private LogicalSchema buildSchema(

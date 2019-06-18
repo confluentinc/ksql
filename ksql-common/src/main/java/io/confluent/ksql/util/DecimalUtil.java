@@ -94,13 +94,13 @@ public final class DecimalUtil {
    */
   public static int precision(final Schema schema) {
     requireDecimal(schema);
-    final String scaleString = schema.parameters().get(PRECISION_FIELD);
-    if (scaleString == null) {
+    final String precisionString = schema.parameters().get(PRECISION_FIELD);
+    if (precisionString == null) {
       throw new DataException("Invalid Decimal schema: precision parameter not found.");
     }
 
     try {
-      return Integer.parseInt(scaleString);
+      return Integer.parseInt(precisionString);
     } catch (NumberFormatException e) {
       throw new DataException("Invalid precision parameter found in Decimal schema: ", e);
     }

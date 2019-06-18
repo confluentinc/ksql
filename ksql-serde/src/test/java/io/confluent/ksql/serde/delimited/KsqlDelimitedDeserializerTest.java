@@ -211,6 +211,26 @@ public class KsqlDelimitedDeserializerTest {
   }
 
   @Test
+  public void shouldDeserializeDecimalWithoutLeadingZeros() {
+    // Given:
+    final PersistenceSchema schema = persistenceSchema(
+        SchemaBuilder.struct()
+            .field("cost", DecimalUtil.builder(4, 2))
+            .build()
+    );
+    final KsqlDelimitedDeserializer deserializer =
+        new KsqlDelimitedDeserializer(schema, recordLogger);
+
+    final byte[] bytes = "1.12".getBytes(StandardCharsets.UTF_8);
+
+    // When:
+    final Struct result = deserializer.deserialize("", bytes);
+
+    // Then:
+    assertThat(result.get("cost"), is(new BigDecimal("01.12")));
+  }
+
+  @Test
   public void shouldThrowOnDeserializedTopLevelPrimitiveWhenSchemaHasMoreThanOneField() {
     // Given:
     final PersistenceSchema schema = persistenceSchema(

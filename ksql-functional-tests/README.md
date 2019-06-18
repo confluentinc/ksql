@@ -192,8 +192,10 @@ They can define the following attributes:
 | topic     | (Required) the name of the topic |
 | key       | (Optional) the key of the message. If absent the key will be an empty string |
 | value     | (Required) the value of the message |
-| timestamp | (Optional) the timestamp of the message. If not supplied it will be 0. |
+| timestamp | (Optional) the timestamp of the message. If not supplied it will be set using the system clock if it was from an `INSERT INTO VALUES` statement, and 0 otherwise.\* |
 | window    | (Optional) the window information for the message. (See below for more info) |
+
+\* If the timestamp was set using the system clock, it will not verify the timestamp against outputs with no defined timestamp.
 
 #### Windowed messages
 A message in either inputs or outputs can be windowed.

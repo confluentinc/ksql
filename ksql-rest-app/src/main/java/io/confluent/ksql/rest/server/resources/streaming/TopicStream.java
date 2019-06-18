@@ -152,13 +152,7 @@ public final class TopicStream {
           final KafkaAvroDeserializer avroDeserializer,
           final DateFormat dateFormat) {
         try {
-          final JsonNode jsonNode = JsonMapper.INSTANCE.mapper.readTree(record.value().toString());
-
-          // If the JsonNode is not structured like 'key:value', then do not use JSON to print
-          // this value
-          if (!(jsonNode instanceof ObjectNode)) {
-            return Optional.empty();
-          }
+          JsonMapper.INSTANCE.mapper.readTree(record.value().toString());
 
           return Optional.of(createFormatter());
         } catch (final Throwable t) {

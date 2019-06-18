@@ -68,7 +68,7 @@ public class CliUtils {
   public String getAvroSchema(final String schemaFilePath) {
     try {
       final byte[] jsonData = Files.readAllBytes(Paths.get(schemaFilePath));
-      final ObjectMapper objectMapper = JsonMapper.INSTANCE.mapper;
+      final ObjectMapper objectMapper = new ObjectMapper();
       final JsonNode root = objectMapper.readTree(jsonData);
       return root.toString();
     } catch (final JsonParseException e) {

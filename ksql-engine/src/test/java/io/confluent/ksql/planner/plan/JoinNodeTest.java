@@ -92,21 +92,23 @@ public class JoinNodeTest {
       .struct()
       .field("C0", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
       .field("L1", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
-      .build()).withImplicitAndKeyFieldsInValue();
+      .build());
 
   private static final LogicalSchema RIGHT_SOURCE_SCHEMA = LogicalSchema.of(SchemaBuilder
       .struct()
       .field("C0", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
       .field("R1", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
-      .build()).withImplicitAndKeyFieldsInValue();
+      .build());
 
   private static final String LEFT_ALIAS = "left";
   private static final String RIGHT_ALIAS = "right";
 
   private static final LogicalSchema LEFT_NODE_SCHEMA = LEFT_SOURCE_SCHEMA
+      .withImplicitAndKeyFieldsInValue()
       .withAlias(LEFT_ALIAS);
 
   private static final LogicalSchema RIGHT_NODE_SCHEMA = RIGHT_SOURCE_SCHEMA
+      .withImplicitAndKeyFieldsInValue()
       .withAlias(RIGHT_ALIAS);
 
   private static final LogicalSchema JOIN_SCHEMA = joinSchema();
@@ -1032,7 +1034,9 @@ public class JoinNodeTest {
 
     // Then:
     final PhysicalSchema expected = PhysicalSchema
-        .from(LEFT_SOURCE_SCHEMA, SerdeOption.none());
+        .from(LEFT_SOURCE_SCHEMA
+            .withImplicitAndKeyFieldsInValue(),
+            SerdeOption.none());
 
     verify(ksqlStreamBuilder).buildGenericRowSerde(
         any(),
@@ -1064,7 +1068,9 @@ public class JoinNodeTest {
 
     // Then:
     final PhysicalSchema expected = PhysicalSchema
-        .from(RIGHT_SOURCE_SCHEMA, SerdeOption.none());
+        .from(RIGHT_SOURCE_SCHEMA
+            .withImplicitAndKeyFieldsInValue(),
+            SerdeOption.none());
 
     verify(ksqlStreamBuilder).buildGenericRowSerde(
         any(),

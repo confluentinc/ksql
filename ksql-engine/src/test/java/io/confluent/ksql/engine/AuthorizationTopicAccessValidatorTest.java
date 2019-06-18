@@ -50,10 +50,9 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class AuthorizationTopicAccessValidatorTest {
+
   private static final LogicalSchema SCHEMA = LogicalSchema.of(SchemaBuilder
       .struct()
-      .field("ROWTIME", Schema.OPTIONAL_INT64_SCHEMA)
-      .field("ROWKEY", Schema.OPTIONAL_STRING_SCHEMA)
       .field("F1", Schema.OPTIONAL_STRING_SCHEMA)
       .build());
 

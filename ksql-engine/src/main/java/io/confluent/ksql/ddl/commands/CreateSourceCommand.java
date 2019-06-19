@@ -19,7 +19,6 @@ import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.SerdeFactory;
-import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.parser.tree.CreateSource;
@@ -174,11 +173,12 @@ abstract class CreateSourceCommand implements DdlCommand {
     }
   }
 
-  protected void createTopic(final MutableMetaStore metaStore) {
+  protected void registerTopic(final MutableMetaStore metaStore, final String entity) {
     if (metaStore.getTopic(topicName) != null) {
-      final String sourceType = getSourceType(metaStore);
       final String errorMessage =
-          String.format("%s with name '%s' already exists", sourceType, topicName);
+          String.format("Cannot create %s '%s': A %s with name '%s' already exists",
+              entity, topicName, entity, topicName);
+
       throw new KsqlException(errorMessage);
     }
 
@@ -186,24 +186,6 @@ abstract class CreateSourceCommand implements DdlCommand {
     final KsqlTopic ksqlTopic = new KsqlTopic(topicName, kafkaTopicName, valueSerdeFactory, false);
 
     metaStore.putTopic(ksqlTopic);
-  }
-
-  private String getSourceType(final MetaStore metaStore) {
-    final DataSource<?> source = metaStore.getSource(topicName);
-    if (source == null) {
-      return "A topic";
-    }
-
-    switch (source.getDataSourceType()) {
-      case KSTREAM:
-        return "A stream";
-
-      case KTABLE:
-        return "A table";
-
-      default:
-        return "An entity";
-    }
   }
 
   private static SerdeFactory<?> extractKeySerde(

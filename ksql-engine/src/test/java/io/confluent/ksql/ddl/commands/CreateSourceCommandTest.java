@@ -195,7 +195,7 @@ public class CreateSourceCommandTest {
   }
 
   @Test
-  public void shouldThrowIfTopicToCreateDoesExist() {
+  public void shouldThrowIfTopicWithSameNameAlreadyRegistered() {
     // Given:
     when(metaStore.getTopic("bob")).thenReturn(topic);
 
@@ -205,17 +205,17 @@ public class CreateSourceCommandTest {
 
     // When:
     new TestCmd(
-        "what, no value topic?",
+        "topic does exist",
         statement,
         ksqlConfig,
         kafkaTopicClient,
         serdeOptions,
         serdeFactories
-    ).createTopic(metaStore);
+    ).registerTopic(metaStore, "topic");
   }
 
   @Test
-  public void shouldNotThrowIfTopicToCreateDoesNotExist() {
+  public void shouldRegisterTopic() {
     // Given:
     when(metaStore.getTopic("bob")).thenReturn(null);
 
@@ -227,7 +227,7 @@ public class CreateSourceCommandTest {
         kafkaTopicClient,
         serdeOptions,
         serdeFactories
-    ).createTopic(metaStore);
+    ).registerTopic(metaStore, "topic");
 
     // Then:
     verify(metaStore).putTopic(argThat(ksqlTopic ->

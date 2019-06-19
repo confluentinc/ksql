@@ -20,7 +20,6 @@ import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlException;
 
 public class CreateTableCommand extends CreateSourceCommand {
 
@@ -35,13 +34,7 @@ public class CreateTableCommand extends CreateSourceCommand {
 
   @Override
   public DdlCommandResult run(final MutableMetaStore metaStore) {
-    try {
-      createTopic(metaStore);
-    } catch (KsqlException e) {
-      final String errorMessage =
-              String.format("Cannot create table '%s': %s", topicName, e.getMessage());
-      throw new KsqlException(errorMessage, e);
-    }
+    registerTopic(metaStore, "table");
 
     checkMetaData(metaStore, sourceName, topicName);
 

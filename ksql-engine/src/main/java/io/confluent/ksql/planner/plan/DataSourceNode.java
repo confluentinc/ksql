@@ -90,6 +90,7 @@ public class DataSourceNode
   private static final String REDUCE_OP_NAME = "reduce";
 
   private final DataSource<?> dataSource;
+  private final String alias;
   private final LogicalSchema schema;
   private final KeyField keyField;
   private final Function<KsqlConfig, MaterializedFactory> materializedFactorySupplier;
@@ -111,6 +112,7 @@ public class DataSourceNode
   ) {
     super(id, dataSource.getDataSourceType());
     this.dataSource = requireNonNull(dataSource, "dataSource");
+    this.alias = requireNonNull(alias, "alias");
     this.schema = dataSource.getSchema()
       .withAlias(alias);
 
@@ -141,6 +143,10 @@ public class DataSourceNode
 
   public DataSource<?> getDataSource() {
     return dataSource;
+  }
+
+  public String getAlias() {
+    return alias;
   }
 
   @Override
@@ -177,7 +183,7 @@ public class DataSourceNode
     final Serde<GenericRow> streamSerde = builder.buildGenericRowSerde(
         valueSerdeFactory,
         PhysicalSchema.from(
-            dataSource.getSchema().withoutImplicitFields(),
+            dataSource.getSchema().withoutImplicitAndKeyFieldsInValue(),
             dataSource.getSerdeOptions()
         ),
         contextStacker.push(SOURCE_OP_NAME).getQueryContext()
@@ -258,8 +264,8 @@ public class DataSourceNode
         return index;
       }
     } else {
-      for (int i = 2; i < schema.fields().size(); i++) {
-        final Field field = schema.fields().get(i);
+      for (int i = 2; i < schema.valueFields().size(); i++) {
+        final Field field = schema.valueFields().get(i);
         if (field.name().contains(".")) {
           if (timestampFieldName.equals(field.name().substring(field.name().indexOf(".") + 1))) {
             return i - 2;
@@ -275,8 +281,8 @@ public class DataSourceNode
   }
 
   private Integer findMatchingTimestampField(final String timestampFieldName) {
-    for (int i = 2; i < schema.fields().size(); i++) {
-      final Field field = schema.fields().get(i);
+    for (int i = 2; i < schema.valueFields().size(); i++) {
+      final Field field = schema.valueFields().get(i);
       if (field.name().contains(".")) {
         if (timestampFieldName.equals(field.name())) {
           return i - 2;

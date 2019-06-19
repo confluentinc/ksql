@@ -356,13 +356,15 @@ public class TestCase implements Test {
     );
     expectedOutput.keySet().forEach(kafkaTopic -> validateTopicData(
         expectedOutput.get(kafkaTopic),
-        outputRecordsFromKafka.get(kafkaTopic)
+        outputRecordsFromKafka.get(kafkaTopic),
+        inputRecords.size() == 0
     ));
   }
 
   private static void validateTopicData(
       final List<FakeKafkaRecord> expected,
-      final List<FakeKafkaRecord> actual) {
+      final List<FakeKafkaRecord> actual,
+      final boolean ranWithInsertStatements) {
     if (actual.size() != expected.size()) {
       throw new KsqlException("Expected <" + expected.size()
           + "> records but it was <" + actual.size() + ">");
@@ -371,18 +373,22 @@ public class TestCase implements Test {
       final ProducerRecord<?, ?> actualProducerRecord = actual.get(i).getProducerRecord();
       final ProducerRecord<?, ?> expectedProducerRecord = expected.get(i).getProducerRecord();
 
-      validateCreatedMessage(actualProducerRecord, expectedProducerRecord);
+      validateCreatedMessage(actualProducerRecord, expectedProducerRecord, ranWithInsertStatements);
     }
   }
 
   private static void validateCreatedMessage(
       final ProducerRecord<?,?> actualProducerRecord,
-      final ProducerRecord<?,?> expectedProducerRecord
+      final ProducerRecord<?,?> expectedProducerRecord,
+      final boolean ranWithInsertStatements
   ) {
     final boolean bothValuesNull = (actualProducerRecord.value() == null
         && expectedProducerRecord.value() == null);
+    final boolean validTimestamps =
+            (ranWithInsertStatements && expectedProducerRecord.timestamp() == 0)
+            || actualProducerRecord.timestamp().equals(expectedProducerRecord.timestamp());
     if (
-        !actualProducerRecord.timestamp().equals(expectedProducerRecord.timestamp())
+            !validTimestamps
             || !actualProducerRecord.key().equals(expectedProducerRecord.key())
             || (!bothValuesNull
             && !actualProducerRecord.value().equals(expectedProducerRecord.value()))) {

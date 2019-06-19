@@ -76,7 +76,7 @@ public class LogicalPlannerTest {
     assertThat(logicalPlan.getSources().get(0).getSources().get(0).getSources().get(0),
         instanceOf(DataSourceNode.class));
 
-    assertThat(logicalPlan.getSchema().fields().size(), equalTo( 3));
+    assertThat(logicalPlan.getSchema().valueFields().size(), equalTo( 3));
     Assert.assertNotNull(((FilterNode) logicalPlan.getSources().get(0).getSources().get(0)).getPredicate());
   }
 
@@ -92,7 +92,7 @@ public class LogicalPlannerTest {
     assertThat(logicalPlan.getSources().get(0).getSources().get(0).getSources()
                           .get(1), instanceOf(DataSourceNode.class));
 
-    assertThat(logicalPlan.getSchema().fields().size(), equalTo(4));
+    assertThat(logicalPlan.getSchema().valueFields().size(), equalTo(4));
 
   }
 
@@ -109,7 +109,7 @@ public class LogicalPlannerTest {
 
     assertThat(projectNode.getKeyField().name(), is(Optional.of("T1_COL1")));
     assertThat(projectNode.getKeyField().legacy(), OptionalMatchers.of(hasName("T1.COL1")));
-    assertThat(projectNode.getSchema().fields().size(), equalTo(5));
+    assertThat(projectNode.getSchema().valueFields().size(), equalTo(5));
 
     assertThat(projectNode.getSources().get(0), instanceOf(FilterNode.class));
     final FilterNode filterNode = (FilterNode) projectNode.getSources().get(0);
@@ -137,9 +137,9 @@ public class LogicalPlannerTest {
     assertThat(aggregateNode.getGroupByExpressions().size(), equalTo(1));
     assertThat(aggregateNode.getGroupByExpressions().get(0).toString(), equalTo("TEST1.COL0"));
     assertThat(aggregateNode.getRequiredColumns().size(), equalTo(2));
-    assertThat(aggregateNode.getSchema().fields().get(1).schema().type(), equalTo(Schema.Type.FLOAT64));
-    assertThat(aggregateNode.getSchema().fields().get(2).schema().type(), equalTo(Schema.Type.INT64));
-    assertThat(logicalPlan.getSources().get(0).getSchema().fields().size(), equalTo(3));
+    assertThat(aggregateNode.getSchema().valueFields().get(1).schema().type(), equalTo(Schema.Type.FLOAT64));
+    assertThat(aggregateNode.getSchema().valueFields().get(2).schema().type(), equalTo(Schema.Type.INT64));
+    assertThat(logicalPlan.getSources().get(0).getSchema().valueFields().size(), equalTo(3));
 
   }
 
@@ -159,8 +159,8 @@ public class LogicalPlannerTest {
     assertThat(aggregateNode.getGroupByExpressions().size(), equalTo(1));
     assertThat(aggregateNode.getGroupByExpressions().get(0).toString(), equalTo("TEST1.COL0"));
     assertThat(aggregateNode.getRequiredColumns().size(), equalTo(2));
-    assertThat(aggregateNode.getSchema().fields().get(1).schema().type(), equalTo(Schema.Type.FLOAT64));
-    assertThat(logicalPlan.getSources().get(0).getSchema().fields().size(), equalTo(2));
+    assertThat(aggregateNode.getSchema().valueFields().get(1).schema().type(), equalTo(Schema.Type.FLOAT64));
+    assertThat(logicalPlan.getSources().get(0).getSchema().valueFields().size(), equalTo(2));
 
   }
 

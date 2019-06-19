@@ -41,7 +41,7 @@ public class CreateStreamCommand extends CreateSourceCommand {
     final KsqlStream ksqlStream = new KsqlStream<>(
         sqlExpression,
         sourceName,
-        schema.withImplicitFields(),
+        schema.withImplicitAndKeyFieldsInValue(),
         getSerdeOptions(),
         keyField,
         timestampExtractionPolicy,

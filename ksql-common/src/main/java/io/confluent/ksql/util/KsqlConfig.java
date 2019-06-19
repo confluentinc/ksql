@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.util;
 
+import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.config.ConfigItem;
@@ -142,6 +143,11 @@ public class KsqlConfig extends AbstractConfig {
 
   public static final String KSQL_WRAP_SINGLE_VALUES =
       "ksql.persistence.wrap.single.values";
+
+  public static final String KSQL_CUSTOM_METRICS_TAGS = "ksql.metrics.tags.custom";
+  private static final String KSQL_CUSTOM_METRICS_TAGS_DOC =
+      "A list of tags to be included with emitted JMX metrics, formatted as a string of key:value "
+      + "pairs separated by commas. For example, 'key1:value1,key2:value2'.";
 
   public static final String
       defaultSchemaRegistryUrl = "http://localhost:8081";
@@ -470,6 +476,12 @@ public class KsqlConfig extends AbstractConfig {
                 + "e.g. '{\"FOO\": 10}." + System.lineSeparator()
                 + "Note: the DELIMITED format ignores this setting as it does not support the "
                 + "concept of a STRUCT, record or object."
+        ).define(
+            KSQL_CUSTOM_METRICS_TAGS,
+            ConfigDef.Type.STRING,
+            "",
+            ConfigDef.Importance.LOW,
+            KSQL_CUSTOM_METRICS_TAGS_DOC
         )
         .withClientSslSupport();
     for (final CompatibilityBreakingConfigDef compatibilityBreakingConfigDef
@@ -705,6 +717,22 @@ public class KsqlConfig extends AbstractConfig {
         .forEach(
             k -> mergedStreamConfigProps.put(k, originalConfig.ksqlStreamConfigProps.get(k)));
     return new KsqlConfig(ConfigGeneration.LEGACY, mergedProperties, mergedStreamConfigProps);
+  }
+
+  public Map<String, String> getStringAsMap(final String key) {
+    final String value = getString(key).trim();
+    try {
+      return value.equals("")
+          ? Collections.emptyMap()
+          : Splitter.on(",").trimResults().withKeyValueSeparator(":").split(value);
+    } catch (IllegalArgumentException e) {
+      throw new KsqlException(
+          String.format(
+              "Invalid config value for '%s'. value: %s. reason: %s",
+              key,
+              value,
+              e.getMessage()));
+    }
   }
 
   private static Set<String> sslConfigNames() {

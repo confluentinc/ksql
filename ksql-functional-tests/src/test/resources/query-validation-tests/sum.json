@@ -90,6 +90,25 @@
       ]
     },
     {
+      "name": "sum decimal",
+      "statements": [
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE decimal(4,1)) WITH (kafka_topic='test_topic', value_format='DELIMITED', key='ID');",
+        "CREATE TABLE S2 as SELECT id, sum(value) FROM test group by id;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": "0,zero,5.4"},
+        {"topic": "test_topic", "key": 0, "value": "0,100,100.1"},
+        {"topic": "test_topic", "key": 100, "value": "100,100,500.9"},
+        {"topic": "test_topic", "key": 100, "value": "100,100,300.8"}
+      ],
+      "outputs": [
+        {"topic": "S2", "key": 0, "value": "0,005.4"},
+        {"topic": "S2", "key": 0, "value": "0,105.5"},
+        {"topic": "S2", "key": 100, "value": "100,500.9"},
+        {"topic": "S2", "key": 100, "value": "100,801.7"}
+      ]
+    },
+    {
       "name": "sum double map",
       "statements": [
         "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE map<varchar, double>) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",

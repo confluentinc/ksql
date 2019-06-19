@@ -44,9 +44,12 @@ import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
+import java.math.BigDecimal;
+import java.math.MathContext;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -96,6 +99,7 @@ public class InsertValuesExecutorTest {
       .field("DOUBLE", Schema.OPTIONAL_FLOAT64_SCHEMA)
       .field("BOOLEAN", Schema.OPTIONAL_BOOLEAN_SCHEMA)
       .field("VARCHAR", Schema.OPTIONAL_STRING_SCHEMA)
+      .field("DECIMAL", DecimalUtil.builder(2, 1).build())
       .build());
 
   private static final byte[] KEY = new byte[]{1};
@@ -145,7 +149,7 @@ public class InsertValuesExecutorTest {
 
     givenDataSourceWithSchema(SCHEMA, SerdeOption.none(), Optional.of("COL0"));
 
-    expectedRow = new Struct(SCHEMA.withoutImplicitFields().getSchema())
+    expectedRow = new Struct(SCHEMA.withoutImplicitAndKeyFieldsInValue().valueSchema())
         .put("COL0", "str")
         .put("COL1", 2L);
   }
@@ -154,7 +158,7 @@ public class InsertValuesExecutorTest {
   public void shouldHandleFullRow() {
     // Given:
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
-        fieldNames(SCHEMA.withoutImplicitFields()),
+        fieldNames(SCHEMA.withoutImplicitAndKeyFieldsInValue()),
         ImmutableList.of(
             new StringLiteral("str"),
             new LongLiteral(2L)
@@ -176,11 +180,11 @@ public class InsertValuesExecutorTest {
     givenDataSourceWithSchema(SINGLE_FIELD_SCHEMA, SerdeOption.none(), Optional.of("COL0"));
 
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
-        fieldNames(SINGLE_FIELD_SCHEMA.withoutImplicitFields()),
+        fieldNames(SINGLE_FIELD_SCHEMA.withoutImplicitAndKeyFieldsInValue()),
         ImmutableList.of(new StringLiteral("new"))
     );
 
-    expectedRow = new Struct(SINGLE_FIELD_SCHEMA.withoutImplicitFields().getSchema())
+    expectedRow = new Struct(SINGLE_FIELD_SCHEMA.withoutImplicitAndKeyFieldsInValue().valueSchema())
         .put("COL0", "new");
 
     // When:
@@ -199,7 +203,7 @@ public class InsertValuesExecutorTest {
         SerdeOption.of(SerdeOption.UNWRAP_SINGLE_VALUES), Optional.of("COL0"));
 
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
-        fieldNames(SINGLE_FIELD_SCHEMA.withoutImplicitFields()),
+        fieldNames(SINGLE_FIELD_SCHEMA.withoutImplicitAndKeyFieldsInValue()),
         ImmutableList.of(new StringLiteral("new"))
     );
 
@@ -387,7 +391,8 @@ public class InsertValuesExecutorTest {
             new LongLiteral(2),
             new DoubleLiteral("3.0"),
             new BooleanLiteral("TRUE"),
-            new StringLiteral("str"))
+            new StringLiteral("str"),
+            new StringLiteral("1.2"))
     );
 
     // When:
@@ -396,13 +401,14 @@ public class InsertValuesExecutorTest {
     // Then:
     verify(keySerializer).serialize(TOPIC_NAME, "str");
     verify(valueSerializer)
-        .serialize(TOPIC_NAME, new Struct(BIG_SCHEMA.withoutImplicitFields().getSchema())
+        .serialize(TOPIC_NAME, new Struct(BIG_SCHEMA.withoutImplicitAndKeyFieldsInValue().valueSchema())
         .put("COL0", "str")
         .put("INT", 0)
         .put("BIGINT", 2L)
         .put("DOUBLE", 3.0)
         .put("BOOLEAN", true)
         .put("VARCHAR", "str")
+        .put("DECIMAL", new BigDecimal(1.2, new MathContext(2)))
     );
 
     verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
@@ -621,7 +627,7 @@ public class InsertValuesExecutorTest {
         "TOPIC",
         schema,
         serdeOptions,
-        KeyField.of(keyField, keyField.map(f -> schema.getSchema().field(f))),
+        KeyField.of(keyField, keyField.map(f -> schema.valueSchema().field(f))),
         new MetadataTimestampExtractionPolicy(),
         topic,
         () -> keySerDe
@@ -634,6 +640,6 @@ public class InsertValuesExecutorTest {
   }
 
   private static List<String> fieldNames(final LogicalSchema schema) {
-    return schema.fields().stream().map(Field::name).collect(Collectors.toList());
+    return schema.valueFields().stream().map(Field::name).collect(Collectors.toList());
   }
 }

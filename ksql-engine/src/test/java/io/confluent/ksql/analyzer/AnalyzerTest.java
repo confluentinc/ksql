@@ -119,11 +119,10 @@ public class AnalyzerTest {
     final String simpleQuery = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
     final Analysis analysis = analyzeQuery(simpleQuery, jsonMetaStore);
     Assert.assertNotNull("INTO is null", analysis.getInto());
-    Assert.assertNotNull("FROM is null", analysis.getFromDataSources());
     Assert.assertNotNull("SELECT is null", analysis.getSelectExpressions());
     Assert.assertNotNull("SELECT alias is null", analysis.getSelectExpressionAlias());
     Assert.assertTrue("FROM was not analyzed correctly.",
-                      analysis.getFromDataSources().get(0).getLeft().getName()
+        analysis.getFromDataSource(0).getDataSource().getName()
                           .equalsIgnoreCase("test1"));
     Assert.assertEquals(analysis.getSelectExpressions().size(),
         analysis.getSelectExpressionAlias().size());
@@ -224,11 +223,10 @@ public class AnalyzerTest {
     final Analysis analysis = analyzeQuery(queryStr, jsonMetaStore);
 
     Assert.assertNotNull("INTO is null", analysis.getInto());
-    Assert.assertNotNull("FROM is null", analysis.getFromDataSources());
     Assert.assertNotNull("SELECT is null", analysis.getSelectExpressions());
     Assert.assertNotNull("SELECT aliacs is null", analysis.getSelectExpressionAlias());
     Assert.assertTrue("FROM was not analyzed correctly.",
-                      analysis.getFromDataSources().get(0).getLeft().getName()
+        analysis.getFromDataSource(0).getDataSource().getName()
                           .equalsIgnoreCase("test1"));
 
     final String
@@ -255,11 +253,10 @@ public class AnalyzerTest {
     final Analysis analysis = analyzeQuery(queryStr, jsonMetaStore);
 
     Assert.assertNotNull("INTO is null", analysis.getInto());
-    Assert.assertNotNull("FROM is null", analysis.getFromDataSources());
     Assert.assertNotNull("SELECT is null", analysis.getSelectExpressions());
     Assert.assertNotNull("SELECT aliacs is null", analysis.getSelectExpressionAlias());
     Assert.assertTrue("FROM was not analyzed correctly.",
-            analysis.getFromDataSources().get(0).getLeft().getName()
+        analysis.getFromDataSource(0).getDataSource().getName()
                     .equalsIgnoreCase("test1"));
 
     final String
@@ -374,7 +371,7 @@ public class AnalyzerTest {
     final KsqlStream<?> ksqlStream = new KsqlStream<>(
             "create stream s0 with(KAFKA_TOPIC='s0', VALUE_AVRO_SCHEMA_FULL_NAME='org.ac.s1', VALUE_FORMAT='avro');",
             "S0",
-            LogicalSchema.of(schema).withImplicitFields(),
+            LogicalSchema.of(schema).withImplicitAndKeyFieldsInValue(),
         SerdeOption.none(),
             KeyField.of("FIELD1", schema.field("FIELD1")),
             new MetadataTimestampExtractionPolicy(),

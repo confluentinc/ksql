@@ -20,6 +20,7 @@ import io.confluent.ksql.function.KsqlFunction;
 import io.confluent.ksql.function.UdfFactory;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.parser.tree.ArithmeticBinaryExpression;
+import io.confluent.ksql.parser.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.parser.tree.AstVisitor;
 import io.confluent.ksql.parser.tree.BetweenPredicate;
 import io.confluent.ksql.parser.tree.Cast;
@@ -112,7 +113,7 @@ public class CodeGenRunner {
       for (final ParameterType param : parameters) {
         parameterNames[index] = param.paramName;
         parameterTypes[index] = param.type;
-        columnIndexes.add(schema.fieldIndex(param.fieldName).orElse(-1));
+        columnIndexes.add(schema.valueFieldIndex(param.fieldName).orElse(-1));
         kudfObjects.add(param.getKudf());
         index++;
       }
@@ -211,6 +212,13 @@ public class CodeGenRunner {
       return null;
     }
 
+    protected Object visitArithmeticUnary(
+        final ArithmeticUnaryExpression node,
+        final Object context) {
+      process(node.getValue(), null);
+      return null;
+    }
+
     protected Object visitIsNotNullPredicate(final IsNotNullPredicate node, final Object context) {
       return process(node.getValue(), context);
     }
@@ -304,11 +312,11 @@ public class CodeGenRunner {
     }
 
     private Field getRequiredField(final String fieldName) {
-      return schema.findField(fieldName)
+      return schema.findValueField(fieldName)
           .orElseThrow(() -> new RuntimeException(
               "Cannot find the select field in the available fields."
                   + " field: " + fieldName
-                  + ", schema: " + schema.fields()));
+                  + ", schema: " + schema.valueFields()));
     }
   }
 

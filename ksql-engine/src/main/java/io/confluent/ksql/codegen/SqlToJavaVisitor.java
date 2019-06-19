@@ -61,6 +61,7 @@ import io.confluent.ksql.util.ExpressionTypeManager;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.SchemaUtil;
+import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
 import java.util.ArrayList;
@@ -87,6 +88,7 @@ public class SqlToJavaVisitor {
       "java.util.ArrayList",
       "com.google.common.collect.ImmutableList",
       "java.util.function.Supplier",
+      BigDecimal.class.getCanonicalName(),
       MathContext.class.getCanonicalName(),
       RoundingMode.class.getCanonicalName());
 
@@ -97,6 +99,17 @@ public class SqlToJavaVisitor {
       .put(Operator.MULTIPLY, "multiply")
       .put(Operator.DIVIDE, "divide")
       .put(Operator.MODULUS, "remainder")
+      .build();
+
+  private static final Map<ComparisonExpression.Type, String> SQL_COMPARE_TO_JAVA = ImmutableMap
+      .<ComparisonExpression.Type, String>builder()
+      .put(ComparisonExpression.Type.EQUAL, "==")
+      .put(ComparisonExpression.Type.NOT_EQUAL, "!=")
+      .put(ComparisonExpression.Type.IS_DISTINCT_FROM, "!=")
+      .put(ComparisonExpression.Type.GREATER_THAN_OR_EQUAL, ">=")
+      .put(ComparisonExpression.Type.GREATER_THAN, ">")
+      .put(ComparisonExpression.Type.LESS_THAN_OR_EQUAL, "<=")
+      .put(ComparisonExpression.Type.LESS_THAN, "<")
       .build();
 
   private final LogicalSchema schema;
@@ -186,7 +199,7 @@ public class SqlToJavaVisitor {
         final Void context
     ) {
       final String fieldName = formatQualifiedName(node.getName());
-      final Field schemaField = schema.findField(fieldName)
+      final Field schemaField = schema.findValueField(fieldName)
           .orElseThrow(() ->
               new KsqlException("Field not found: " + fieldName));
 
@@ -200,7 +213,7 @@ public class SqlToJavaVisitor {
         final Void context
     ) {
       final String fieldName = node.toString();
-      final Field schemaField = schema.findField(fieldName)
+      final Field schemaField = schema.findValueField(fieldName)
           .orElseThrow(() ->
               new KsqlException("Field not found: " + fieldName));
 
@@ -334,6 +347,31 @@ public class SqlToJavaVisitor {
       }
     }
 
+    private String visitBytesComparisonExpression(
+        final ComparisonExpression.Type type,
+        final Schema left,
+        final Schema right
+    ) {
+      final String comparator = SQL_COMPARE_TO_JAVA.get(type);
+      if (comparator == null) {
+        throw new KsqlException("Unexpected scalar comparison: " + type.getValue());
+      }
+
+      return String.format(
+          "(%s.compareTo(%s) %s 0)",
+          toDecimal(left, 1),
+          toDecimal(right, 2),
+          comparator);
+    }
+
+    private String toDecimal(final Schema schema, final int index) {
+      if (DecimalUtil.isDecimal(schema)) {
+        return "%" + index + "$s";
+      }
+
+      return "new BigDecimal(%" + index + "$s)";
+    }
+
     private String visitBooleanComparisonExpression(final ComparisonExpression.Type type) {
       switch (type) {
         case EQUAL:
@@ -355,20 +393,26 @@ public class SqlToJavaVisitor {
       final Pair<String, Schema> right = process(node.getRight(), context);
 
       String exprFormat = nullCheckPrefix(node.getType());
-      switch (left.getRight().type()) {
-        case STRING:
-          exprFormat += visitStringComparisonExpression(node.getType());
-          break;
-        case MAP:
-          throw new KsqlException("Cannot compare MAP values");
-        case ARRAY:
-          throw new KsqlException("Cannot compare ARRAY values");
-        case BOOLEAN:
-          exprFormat += visitBooleanComparisonExpression(node.getType());
-          break;
-        default:
-          exprFormat += visitScalarComparisonExpression(node.getType());
-          break;
+
+      if (DecimalUtil.isDecimal(left.getRight()) || DecimalUtil.isDecimal(right.getRight())) {
+        exprFormat += visitBytesComparisonExpression(
+            node.getType(), left.getRight(), right.getRight());
+      } else {
+        switch (left.getRight().type()) {
+          case STRING:
+            exprFormat += visitStringComparisonExpression(node.getType());
+            break;
+          case MAP:
+            throw new KsqlException("Cannot compare MAP values");
+          case ARRAY:
+            throw new KsqlException("Cannot compare ARRAY values");
+          case BOOLEAN:
+            exprFormat += visitBooleanComparisonExpression(node.getType());
+            break;
+          default:
+            exprFormat += visitScalarComparisonExpression(node.getType());
+            break;
+        }
       }
       final String expr = "(" + String.format(exprFormat, left.getLeft(), right.getLeft()) + ")";
       return new Pair<>(expr, Schema.OPTIONAL_BOOLEAN_SCHEMA);
@@ -455,14 +499,41 @@ public class SqlToJavaVisitor {
     ) {
       final Pair<String, Schema> value = process(node.getValue(), context);
       switch (node.getSign()) {
-        case MINUS:
-          // this is to avoid turning a sequence of "-" into a comment (i.e., "-- comment")
-          final String separator = value.getLeft().startsWith("-") ? " " : "";
-          return new Pair<>("-" + separator + value.getLeft(), value.getRight());
-        case PLUS:
-          return new Pair<>("+" + value.getLeft(), value.getRight());
-        default:
-          throw new UnsupportedOperationException("Unsupported sign: " + node.getSign());
+        case MINUS: return visitArithmeticMinus(value);
+        case PLUS:  return visitArithmeticPlus(value);
+        default:    throw new UnsupportedOperationException("Unsupported sign: " + node.getSign());
+      }
+    }
+
+    private Pair<String, Schema> visitArithmeticMinus(
+        final Pair<String, Schema> value) {
+      if (DecimalUtil.isDecimal(value.getRight())) {
+        return new Pair<>(
+            String.format(
+                "(%s.negate(new MathContext(%d, RoundingMode.UNNECESSARY)))",
+                value.getLeft(),
+                DecimalUtil.precision(value.getRight())),
+            value.getRight()
+        );
+      } else {
+        // this is to avoid turning a sequence of "-" into a comment (i.e., "-- comment")
+        final String separator = value.getLeft().startsWith("-") ? " " : "";
+        return new Pair<>("-" + separator + value.getLeft(), value.getRight());
+      }
+    }
+
+    private Pair<String, Schema> visitArithmeticPlus(
+        final Pair<String, Schema> value) {
+      if (DecimalUtil.isDecimal(value.getRight())) {
+        return new Pair<>(
+            String.format(
+                "(%s.plus(new MathContext(%d, RoundingMode.UNNECESSARY)))",
+                value.getLeft(),
+                DecimalUtil.precision(value.getRight())),
+            value.getRight()
+        );
+      } else {
+        return new Pair<>("+" + value.getLeft(), value.getRight());
       }
     }
 

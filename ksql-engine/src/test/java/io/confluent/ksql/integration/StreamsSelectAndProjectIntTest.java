@@ -415,7 +415,7 @@ public class StreamsSelectAndProjectIntTest {
         .getSource(resultStream.toUpperCase());
 
     return PhysicalSchema.from(
-        source.getSchema().withoutImplicitFields(),
+        source.getSchema().withoutImplicitAndKeyFieldsInValue(),
         source.getSerdeOptions()
     );
   }

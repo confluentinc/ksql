@@ -18,7 +18,9 @@ package io.confluent.ksql.cli.console.table.builder;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.cli.console.table.Table;
 import io.confluent.ksql.cli.console.table.Table.Builder;
+import io.confluent.ksql.rest.entity.SourceInfo;
 import io.confluent.ksql.rest.entity.TablesList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -29,7 +31,9 @@ public class TablesListTableBuilder implements TableBuilder<TablesList> {
 
   @Override
   public Table buildTable(final TablesList entity) {
-    final Stream<List<String>> rows = entity.getTables().stream()
+    final Stream<List<String>> rows = entity.getTables()
+        .stream()
+        .sorted(Comparator.comparing(SourceInfo::getName))
         .map(t -> ImmutableList.of(t.getName(), t.getTopic(), t.getFormat(),
             Boolean.toString(t.getIsWindowed())));
 

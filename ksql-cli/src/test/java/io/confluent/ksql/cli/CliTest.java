@@ -622,7 +622,7 @@ public class CliTest {
         orderDataProvider.kstreamName()
     );
 
-    final Schema sourceSchema = orderDataProvider.schema().logicalSchema().getSchema();
+    final Schema sourceSchema = orderDataProvider.schema().logicalSchema().valueSchema();
     final PhysicalSchema resultSchema = PhysicalSchema.from(
         LogicalSchema.of(SchemaBuilder.struct()
             .field("ITEMID", sourceSchema.field("ITEMID").schema())

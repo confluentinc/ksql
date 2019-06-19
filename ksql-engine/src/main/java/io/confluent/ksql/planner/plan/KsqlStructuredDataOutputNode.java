@@ -20,6 +20,7 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Streams;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.SerdeFactory;
@@ -109,7 +110,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
         // This is done by DataSourceNode
         // Hence, they must be removed again here if they are still in the sink schema.
         // This leads to strange behaviour, but changing it is a breaking change.
-        schema.withoutImplicitFields(),
+        schema.withoutImplicitAndKeyFieldsInValue(),
         limit,
         timestampExtractionPolicy
     );
@@ -226,19 +227,15 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
   }
 
   private static Set<Integer> implicitAndKeyColumnIndexesInValueSchema(final LogicalSchema schema) {
-    // Todo(ac): This will be changed to use the new LogicalSchema.implicitFields and keyFields
-    //   From the other PR once its merged:
-    //
-    //    final Stream<String> fieldNames = Streams.concat(
-    //        LogicalSchema.implicitFields().stream(),
-    //        LogicalSchema.keyFields().stream())
-    //        .map(Field::name);
+    final ConnectSchema valueSchema = schema.valueSchema();
 
-    final Stream<String> fieldNames = LogicalSchema.IMPLICIT_FIELD_NAMES.stream();
+    @SuppressWarnings("UnstableApiUsage") final Stream<Field> fields = Streams.concat(
+        schema.implicitFields().stream(),
+        schema.keyFields().stream()
+    );
 
-    final ConnectSchema valueSchema = schema.getSchema();
-
-    return fieldNames
+    return fields
+        .map(Field::name)
         .map(valueSchema::field)
         .filter(Objects::nonNull)
         .map(Field::index)

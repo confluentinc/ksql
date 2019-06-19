@@ -155,7 +155,7 @@ public class ProcessingLogServerUtilsTest {
     assertThat(stream.getValueSerdeFactory(), instanceOf(KsqlJsonSerdeFactory.class));
     assertThat(stream.getKsqlTopic().getKafkaTopicName(), equalTo(topicName));
     assertThat(
-        stream.getSchema().fields().stream().map(Field::name).collect(toList()),
+        stream.getSchema().valueFields().stream().map(Field::name).collect(toList()),
         equalTo(
             new ImmutableList.Builder<String>()
                 .add("ROWTIME")
@@ -170,7 +170,7 @@ public class ProcessingLogServerUtilsTest {
     expected.fields().forEach(
         f -> assertLogSchema(
             f.schema(),
-            stream.getSchema().getSchema().field(f.name().toUpperCase()).schema(),
+            stream.getSchema().valueSchema().field(f.name().toUpperCase()).schema(),
             ImmutableList.of(f.name())));
   }
 

@@ -216,7 +216,7 @@ public class WindowingIntTest {
     ksqlContext.sql(String.format(sql, resultStream0));
     final DataSource<?> source = ksqlContext.getMetaStore().getSource(resultStream0);
     resultSchema = PhysicalSchema.from(
-        source.getSchema().withoutImplicitFields(),
+        source.getSchema().withoutImplicitAndKeyFieldsInValue(),
         source.getSerdeOptions()
     );
   }
@@ -243,7 +243,7 @@ public class WindowingIntTest {
     final DataSource<?> source = ksqlContext.getMetaStore().getSource(resultStream1);
 
     resultSchema = PhysicalSchema.from(
-        source.getSchema().withoutImplicitFields(),
+        source.getSchema().withoutImplicitAndKeyFieldsInValue(),
         source.getSerdeOptions()
     );
 

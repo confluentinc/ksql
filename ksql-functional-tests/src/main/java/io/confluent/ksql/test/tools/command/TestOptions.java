@@ -24,7 +24,6 @@ import java.io.IOException;
 @Command(name = "ksql-test-runner", description = "The KSQL testing tool")
 public class TestOptions {
 
-  @Required
   @Once
   @Option(
       name = {"--input-file", "-i"},

@@ -111,7 +111,10 @@ public final class Errors {
     return Response
         .status(BAD_REQUEST)
         .entity(new KsqlStatementErrorMessage(
-                ERROR_CODE_QUERY_ENDPOINT, "SELECT and PRINT queries must use the /query endpoint",
+                ERROR_CODE_QUERY_ENDPOINT,
+                "RUN SCRIPT cannot be used with the following statements: \n"
+                        + "* PRINT\n"
+                        + "* SELECT",
             statementText, new KsqlEntityList()))
         .build();
   }

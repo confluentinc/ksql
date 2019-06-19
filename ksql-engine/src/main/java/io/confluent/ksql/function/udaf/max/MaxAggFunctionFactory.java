@@ -17,6 +17,7 @@ package io.confluent.ksql.function.udaf.max;
 
 import io.confluent.ksql.function.AggregateFunctionFactory;
 import io.confluent.ksql.function.KsqlAggregateFunction;
+import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlPreconditions;
 import java.util.List;
@@ -43,6 +44,9 @@ public class MaxAggFunctionFactory extends AggregateFunctionFactory {
         return new LongMaxKudaf(FUNCTION_NAME, -1);
       case FLOAT64:
         return new DoubleMaxKudaf(FUNCTION_NAME, -1);
+      case BYTES:
+        DecimalUtil.requireDecimal(argSchema);
+        return new DecimalMaxKudaf(FUNCTION_NAME, -1, argSchema);
       default:
         throw new KsqlException("No Max aggregate function with " + argTypeList.get(0) + " "
             + " argument type exists!");

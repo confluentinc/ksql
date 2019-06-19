@@ -92,13 +92,13 @@ public class JoinNodeTest {
       .struct()
       .field("C0", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
       .field("L1", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
-      .build()).withImplicitFields();
+      .build()).withImplicitAndKeyFieldsInValue();
 
   private static final LogicalSchema RIGHT_SOURCE_SCHEMA = LogicalSchema.of(SchemaBuilder
       .struct()
       .field("C0", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
       .field("R1", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
-      .build()).withImplicitFields();
+      .build()).withImplicitAndKeyFieldsInValue();
 
   private static final String LEFT_ALIAS = "left";
   private static final String RIGHT_ALIAS = "right";
@@ -1119,7 +1119,7 @@ public class JoinNodeTest {
     final LogicalSchema schema = node.getSchema();
 
     final Optional<Field> keyField = keyFieldName
-        .map(key -> schema.findField(key).orElseThrow(AssertionError::new));
+        .map(key -> schema.findValueField(key).orElseThrow(AssertionError::new));
 
     when(table.getKeyField()).thenReturn(KeyField.of(keyFieldName, keyField));
   }
@@ -1139,11 +1139,11 @@ public class JoinNodeTest {
   private static LogicalSchema joinSchema() {
     final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
 
-    for (final Field field : LEFT_NODE_SCHEMA.fields()) {
+    for (final Field field : LEFT_NODE_SCHEMA.valueFields()) {
       schemaBuilder.field(field.name(), field.schema());
     }
 
-    for (final Field field : RIGHT_NODE_SCHEMA.fields()) {
+    for (final Field field : RIGHT_NODE_SCHEMA.valueFields()) {
       schemaBuilder.field(field.name(), field.schema());
     }
 
@@ -1197,7 +1197,7 @@ public class JoinNodeTest {
   }
 
   private static Optional<String> getColumn(final LogicalSchema schema, final Predicate<String> filter) {
-    return schema.fields().stream()
+    return schema.valueFields().stream()
         .map(Field::name)
         .filter(filter)
         .findFirst();
@@ -1218,7 +1218,7 @@ public class JoinNodeTest {
         getColumn(schema, s -> !blackList.contains(s))
             .orElseThrow(AssertionError::new);
 
-    final Field field = schema.findField(column).get();
+    final Field field = schema.findValueField(column).get();
     return SchemaUtil.buildAliasedFieldName(alias, field.name());
   }
 

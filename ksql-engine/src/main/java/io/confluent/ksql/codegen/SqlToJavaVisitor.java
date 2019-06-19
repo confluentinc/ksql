@@ -499,14 +499,41 @@ public class SqlToJavaVisitor {
     ) {
       final Pair<String, Schema> value = process(node.getValue(), context);
       switch (node.getSign()) {
-        case MINUS:
-          // this is to avoid turning a sequence of "-" into a comment (i.e., "-- comment")
-          final String separator = value.getLeft().startsWith("-") ? " " : "";
-          return new Pair<>("-" + separator + value.getLeft(), value.getRight());
-        case PLUS:
-          return new Pair<>("+" + value.getLeft(), value.getRight());
-        default:
-          throw new UnsupportedOperationException("Unsupported sign: " + node.getSign());
+        case MINUS: return visitArithmeticMinus(value);
+        case PLUS:  return visitArithmeticPlus(value);
+        default:    throw new UnsupportedOperationException("Unsupported sign: " + node.getSign());
+      }
+    }
+
+    private Pair<String, Schema> visitArithmeticMinus(
+        final Pair<String, Schema> value) {
+      if (DecimalUtil.isDecimal(value.getRight())) {
+        return new Pair<>(
+            String.format(
+                "(%s.negate(new MathContext(%d, RoundingMode.UNNECESSARY)))",
+                value.getLeft(),
+                DecimalUtil.precision(value.getRight())),
+            value.getRight()
+        );
+      } else {
+        // this is to avoid turning a sequence of "-" into a comment (i.e., "-- comment")
+        final String separator = value.getLeft().startsWith("-") ? " " : "";
+        return new Pair<>("-" + separator + value.getLeft(), value.getRight());
+      }
+    }
+
+    private Pair<String, Schema> visitArithmeticPlus(
+        final Pair<String, Schema> value) {
+      if (DecimalUtil.isDecimal(value.getRight())) {
+        return new Pair<>(
+            String.format(
+                "(%s.plus(new MathContext(%d, RoundingMode.UNNECESSARY)))",
+                value.getLeft(),
+                DecimalUtil.precision(value.getRight())),
+            value.getRight()
+        );
+      } else {
+        return new Pair<>("+" + value.getLeft(), value.getRight());
       }
     }
 

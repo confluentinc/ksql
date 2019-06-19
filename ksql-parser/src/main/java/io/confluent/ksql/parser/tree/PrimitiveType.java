@@ -85,4 +85,9 @@ public final class PrimitiveType extends Type {
   public int hashCode() {
     return Objects.hash(getSqlType());
   }
+
+  @Override
+  public boolean supportsCast() {
+    return true;
+  }
 }

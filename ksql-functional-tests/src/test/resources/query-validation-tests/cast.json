@@ -108,6 +108,7 @@
         {"topic":  "test_topic", "value": {"foo": 0.1}},
         {"topic":  "test_topic", "value": {"foo": 1.1}},
         {"topic":  "test_topic", "value": {"foo": 0.0}},
+        {"topic":  "test_topic", "value": {"foo": 0.99}},
         {"topic":  "test_topic", "value": {"foo": 0.10}},
         {"topic":  "test_topic", "value": {"foo": 0.01}}
       ],
@@ -115,8 +116,9 @@
         {"topic":  "OUT", "value": {"VAL": "0.1"}},
         {"topic":  "OUT", "value": {"VAL": "1.1"}},
         {"topic":  "OUT", "value": {"VAL": "0.0"}},
+        {"topic":  "OUT", "value": {"VAL": "1.0"}},
         {"topic":  "OUT", "value": {"VAL": "0.1"}},
-        {"topic":  "OUT", "value": {"VAL": null}}
+        {"topic":  "OUT", "value": {"VAL": "0.0"}}
       ]
     },
     {
@@ -129,6 +131,7 @@
         {"topic":  "test_topic", "value": {"foo": "0.1"}},
         {"topic":  "test_topic", "value": {"foo": "1.1"}},
         {"topic":  "test_topic", "value": {"foo": "0.0"}},
+        {"topic":  "test_topic", "value": {"foo": "0.99"}},
         {"topic":  "test_topic", "value": {"foo": "0.10"}},
         {"topic":  "test_topic", "value": {"foo": "0.01"}}
       ],
@@ -136,8 +139,9 @@
         {"topic":  "OUT", "value": {"VAL": "0.1"}},
         {"topic":  "OUT", "value": {"VAL": "1.1"}},
         {"topic":  "OUT", "value": {"VAL": "0.0"}},
-        {"topic":  "OUT", "value": {"VAL": null}},
-        {"topic":  "OUT", "value": {"VAL": null}}
+        {"topic":  "OUT", "value": {"VAL": "1.0"}},
+        {"topic":  "OUT", "value": {"VAL": "0.1"}},
+        {"topic":  "OUT", "value": {"VAL": "0.0"}}
       ]
     }
   ]

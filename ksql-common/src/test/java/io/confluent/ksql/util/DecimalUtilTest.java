@@ -91,6 +91,24 @@ public class DecimalUtilTest {
   }
 
   @Test
+  public void shouldCastDecimalRoundingDown() {
+    // When:
+    final BigDecimal decimal = DecimalUtil.cast(new BigDecimal("1.12"), 2, 1);
+
+    // Then:
+    assertThat(decimal, is(new BigDecimal("1.1")));
+  }
+
+  @Test
+  public void shouldCastDecimalRoundingUp() {
+    // When:
+    final BigDecimal decimal = DecimalUtil.cast(new BigDecimal("1.19"), 2, 1);
+
+    // Then:
+    assertThat(decimal, is(new BigDecimal("1.2")));
+  }
+
+  @Test
   public void shouldCastInt() {
     // When:
     final BigDecimal decimal = DecimalUtil.cast(1, 2, 1);
@@ -109,21 +127,48 @@ public class DecimalUtilTest {
   }
 
   @Test
-  public void shouldCastRoundDouble() {
+  public void shouldCastDoubleRoundDown() {
     // When:
-    final BigDecimal decimal = DecimalUtil.cast(1.09, 2, 1);
+    final BigDecimal decimal = DecimalUtil.cast(1.11, 2, 1);
 
     // Then:
     assertThat(decimal, is(new BigDecimal("1.1")));
   }
 
   @Test
+  public void shouldCastDoubleRoundUp() {
+    // When:
+    final BigDecimal decimal = DecimalUtil.cast(1.19, 2, 1);
+
+    // Then:
+    assertThat(decimal, is(new BigDecimal("1.2")));
+  }
+
+  @Test
   public void shouldCastString() {
     // When:
-    final BigDecimal decimal = DecimalUtil.cast("1.1", 2, 1);
+    final BigDecimal decimal = DecimalUtil.cast("1.1", 3, 2);
+
+    // Then:
+    assertThat(decimal, is(new BigDecimal("1.10")));
+  }
+
+  @Test
+  public void shouldCastStringRoundDown() {
+    // When:
+    final BigDecimal decimal = DecimalUtil.cast("1.12", 2, 1);
 
     // Then:
     assertThat(decimal, is(new BigDecimal("1.1")));
+  }
+
+  @Test
+  public void shouldCastStringRoundUp() {
+    // When:
+    final BigDecimal decimal = DecimalUtil.cast("1.19", 2, 1);
+
+    // Then:
+    assertThat(decimal, is(new BigDecimal("1.2")));
   }
 
   @Test
@@ -165,8 +210,9 @@ public class DecimalUtilTest {
   @Test
   public void shouldFailFitIfNotExactMatchMoreDigits() {
     // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Cannot fit decimal '12' into DECIMAL(2, 1)");
+    expectedException.expect(ArithmeticException.class);
+    expectedException.expectMessage("Numeric field overflow: A field with precision 2 and "
+        + "scale 1 must round to an absolute value less than 10^1. Got 12");
 
     // When:
     DecimalUtil.ensureFit(new BigDecimal("12"), DECIMAL_SCHEMA);
@@ -186,30 +232,17 @@ public class DecimalUtilTest {
   public void shouldNotCastDecimalTooBig() {
     // Expect:
     expectedException.expect(ArithmeticException.class);
-    expectedException.expectMessage("Rounding necessary");
+    expectedException.expectMessage("Numeric field overflow");
 
     // When:
     DecimalUtil.cast(new BigDecimal(10), 2, 1);
-  }
-
-  @SuppressFBWarnings(
-      value = "DMI_BIGDECIMAL_CONSTRUCTED_FROM_DOUBLE",
-      justification = "valid use case test")
-  @Test
-  public void shouldNotCastDecimalTooPrecise() {
-    // Expect:
-    expectedException.expect(ArithmeticException.class);
-    expectedException.expectMessage("Rounding necessary");
-
-    // When:
-    DecimalUtil.cast(new BigDecimal(.10), 2, 1);
   }
 
   @Test
   public void shouldNotCastIntTooBig() {
     // Expect:
     expectedException.expect(ArithmeticException.class);
-    expectedException.expectMessage("Rounding necessary");
+    expectedException.expectMessage("Numeric field overflow");
 
     // When:
     DecimalUtil.cast(10, 2, 1);
@@ -219,37 +252,17 @@ public class DecimalUtilTest {
   public void shouldNotCastDoubleTooBig() {
     // Expect:
     expectedException.expect(ArithmeticException.class);
-    expectedException.expectMessage("Rounding necessary");
+    expectedException.expectMessage("Numeric field overflow");
 
     // When:
     DecimalUtil.cast(10.0, 2, 1);
   }
 
   @Test
-  public void shouldNotCastStringTooManyDigits() {
-    // Expect:
-    expectedException.expect(ArithmeticException.class);
-    expectedException.expectMessage("Rounding necessary");
-
-    // When:
-    DecimalUtil.cast("00.1", 2, 1);
-  }
-
-  @Test
-  public void shouldNotCastStringTooPrecise() {
-    // Expect:
-    expectedException.expect(ArithmeticException.class);
-    expectedException.expectMessage("Rounding necessary");
-
-    // When:
-    DecimalUtil.cast(".01", 2, 1);
-  }
-
-  @Test
   public void shouldNotCastStringTooBig() {
     // Expect:
     expectedException.expect(ArithmeticException.class);
-    expectedException.expectMessage("Rounding necessary");
+    expectedException.expectMessage("Numeric field overflow");
 
     // When:
     DecimalUtil.cast("10", 2, 1);

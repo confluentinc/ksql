@@ -121,13 +121,8 @@ public final class DecimalUtil {
     final int precision = precision(schema);
     final int scale = scale(schema);
 
-    validateParameters(precision(schema), scale(schema));
-
-    final int leftDigits = value.precision() - value.scale();
-    final int fitLeftDigits = precision - scale;
-    KsqlPreconditions.checkArgument(leftDigits <= fitLeftDigits,
-        String.format("Cannot fit decimal '%s' into DECIMAL(%d, %d) as it would truncate left "
-            + "digits to %d.", value.toPlainString(), precision, scale, fitLeftDigits));
+    validateParameters(precision, scale);
+    ensureMax(value, precision, scale);
 
     // we only support exact decimal conversions for now - in the future, we can
     // encode the rounding mode in the decimal type
@@ -143,70 +138,45 @@ public final class DecimalUtil {
     }
   }
 
-  public static BigDecimal cast(final BigDecimal val, final int precision, final int scale) {
-    if (val.scale() > scale || val.precision() - val.scale() > precision - scale) {
-      throw new ArithmeticException(
-          String.format("Rounding necessary to fit %s into DECIMAL(%d, %d)", val, precision, scale)
-      );
-    }
-
-    return val.setScale(scale, RoundingMode.UNNECESSARY);
+  public static BigDecimal cast(final long value, final int precision, final int scale) {
+    validateParameters(precision, scale);
+    final BigDecimal decimal = new BigDecimal(value, new MathContext(precision));
+    ensureMax(decimal, precision, scale);
+    return decimal.setScale(scale, RoundingMode.UNNECESSARY);
   }
 
-  public static BigDecimal cast(final long val, final int precision, final int scale) {
-    if (val >= maxFit(precision, scale)) {
-      throw new ArithmeticException(
-          String.format("Rounding necessary to fit %d into DECIMAL(%d, %d)", val, precision, scale)
-      );
-    }
-
-    return new BigDecimal(val, new MathContext(precision - scale, RoundingMode.UNNECESSARY))
-        .setScale(scale, RoundingMode.UNNECESSARY);
+  public static BigDecimal cast(final double value, final int precision, final int scale) {
+    validateParameters(precision, scale);
+    final BigDecimal decimal = new BigDecimal(value, new MathContext(precision));
+    ensureMax(decimal, precision, scale);
+    return decimal.setScale(scale, RoundingMode.HALF_UP);
   }
 
-  public static BigDecimal cast(final double val, final int precision, final int scale) {
-    if (val >= maxFit(precision, scale)) {
-      throw new ArithmeticException(
-          String.format("Rounding necessary to fit %f into DECIMAL(%d, %d)", val, precision, scale)
-      );
-    }
-
-    // since decimals are floating point numbers, we always need to round decimals
-    return new BigDecimal(val, new MathContext(precision, RoundingMode.HALF_UP))
-        .setScale(scale, RoundingMode.UNNECESSARY);
+  public static BigDecimal cast(final BigDecimal value, final int precision, final int scale) {
+    validateParameters(precision, scale);
+    ensureMax(value, precision, scale);
+    return value.setScale(scale, RoundingMode.HALF_UP);
   }
 
-  public static BigDecimal cast(final String val, final int precision, final int scale) {
-    int numDigits = 0;
-    for (int i = 0; i < val.length(); i++) {
-      numDigits += Character.isDigit(val.charAt(i)) ? 1 : 0;
-    }
-
-    if (numDigits > precision) {
-      throw new ArithmeticException(
-          String.format("Rounding necessary to fit %s into DECIMAL(%d, %d)", val, precision, scale)
-      );
-    }
-
-    final BigDecimal decimal =
-        new BigDecimal(val, new MathContext(precision, RoundingMode.UNNECESSARY))
-            .setScale(scale, RoundingMode.UNNECESSARY);
-
-    if (decimal.compareTo(new BigDecimal(maxFit(precision, scale))) >= 0) {
-      throw new ArithmeticException(
-          String.format("Rounding necessary to fit %s into DECIMAL(%d, %d)", val, precision, scale)
-      );
-    }
-
-    return decimal;
+  public static BigDecimal cast(final String value, final int precision, final int scale) {
+    validateParameters(precision, scale);
+    final BigDecimal decimal = new BigDecimal(value);
+    ensureMax(decimal, precision, scale);
+    return decimal.setScale(scale, RoundingMode.HALF_UP);
   }
 
-  private static double maxFit(final int precision, final int scale) {
-    // BigDecimal allows storing values with negative scale - this means that storing
-    // the number 10 in 1 precision is possible. Since KSQL does not allow negative scales,
-    // we need to manually check to make sure that the val is smaller than 10^precision-scale
-    final int digitsLeftOfZero = precision - scale;
-    return Math.pow(10, digitsLeftOfZero);
+  private static void ensureMax(final BigDecimal value, final int precision, final int scale) {
+    final int digits = precision - scale;
+    final BigDecimal maxValue = new BigDecimal(Math.pow(10, digits));
+    if (maxValue.compareTo(value) < 1) {
+      throw new ArithmeticException(
+          String.format("Numeric field overflow: A field with precision %d and scale %d "
+              + "must round to an absolute value less than 10^%d. Got %s",
+              precision,
+              scale,
+              digits,
+              value.toPlainString()));
+    }
   }
 
   private static void validateParameters(final int precision, final int scale) {

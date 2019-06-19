@@ -475,8 +475,12 @@ public class SqlToJavaVisitor {
         }
 
         case DECIMAL:
+          if (!(sqlType instanceof Decimal)) {
+            throw new KsqlException("Expected decimal type: " + sqlType);
+          }
+
           return new Pair<>(
-              getDecimalCastString(expr.getRight(), expr.getLeft(), sqlType),
+              getDecimalCastString(expr.getRight(), expr.getLeft(), (Decimal) sqlType),
               returnType);
 
         default:
@@ -812,13 +816,8 @@ public class SqlToJavaVisitor {
   private String getDecimalCastString(
       final Schema schema,
       final String exprStr,
-      final Type targetType
+      final Decimal target
   ) {
-    if (!(targetType instanceof Decimal)) {
-      throw new KsqlFunctionException("Got unexpected type for decimal cast: " + targetType);
-    }
-
-    final Decimal target = (Decimal) targetType;
 
     switch (schema.type()) {
       case INT32:

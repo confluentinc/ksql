@@ -74,7 +74,8 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
         processingLogContext,
         serviceInfo.serviceId(),
         new MetaStoreImpl(functionRegistry),
-        (engine) -> new KsqlEngineMetrics(engine, serviceInfo.customMetricsTags()));
+        (engine) -> new KsqlEngineMetrics(
+            engine, serviceInfo.customMetricsTags(), serviceInfo.metricsExtension()));
   }
 
   KsqlEngine(

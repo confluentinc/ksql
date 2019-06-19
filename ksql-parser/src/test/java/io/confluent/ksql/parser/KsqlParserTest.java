@@ -61,7 +61,6 @@ import io.confluent.ksql.parser.tree.ListTopics;
 import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.parser.tree.LongLiteral;
 import io.confluent.ksql.parser.tree.Query;
-import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.parser.tree.SearchedCaseExpression;
 import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.parser.tree.SetProperty;
@@ -493,32 +492,17 @@ public class KsqlParserTest {
   }
 
   @Test
-  public void testRegisterTopic() {
-    final String
-        queryStr =
-        "REGISTER TOPIC orders_topic WITH (value_format = 'avro',kafka_topic='orders_topic');";
-    final Statement statement = KsqlParserTestUtil.buildSingleAst(queryStr, metaStore).getStatement();
-    Assert.assertTrue(statement instanceof RegisterTopic);
-    final RegisterTopic registerTopic = (RegisterTopic)statement;
-    Assert.assertTrue(registerTopic
-        .getName().toString().equalsIgnoreCase("ORDERS_TOPIC"));
-    Assert.assertTrue(registerTopic.getProperties().size() == 2);
-    Assert.assertTrue(registerTopic.getProperties().get(DdlConfig.VALUE_FORMAT_PROPERTY).toString().equalsIgnoreCase("'avro'"));
-  }
-
-  @Test
   public void testCreateStreamWithTopic() {
     final String
         queryStr =
         "CREATE STREAM orders (ordertime bigint, orderid varchar, itemid varchar, orderunits "
-        + "double) WITH (registered_topic = 'orders_topic' , key='ordertime', kafka_topic='foo', value_format='json');";
+        + "double) WITH (key='ordertime', kafka_topic='foo', value_format='json');";
     final Statement statement = KsqlParserTestUtil.buildSingleAst(queryStr, metaStore).getStatement();
     Assert.assertTrue(statement instanceof CreateStream);
     final CreateStream createStream = (CreateStream)statement;
     Assert.assertTrue(createStream.getName().toString().equalsIgnoreCase("ORDERS"));
     Assert.assertTrue(createStream.getElements().size() == 4);
     Assert.assertTrue(createStream.getElements().get(0).getName().toString().equalsIgnoreCase("ordertime"));
-    Assert.assertTrue("testCreateStream failed.", createStream.getProperties().getKsqlTopic().get().equalsIgnoreCase("orders_topic"));
   }
 
   @Test
@@ -528,7 +512,7 @@ public class KsqlParserTest {
         "CREATE STREAM orders (ordertime bigint, orderid varchar, itemid varchar, orderunits "
         + "double, arraycol array<double>, mapcol map<varchar, double>, "
         + "order_address STRUCT< number VARCHAR, street VARCHAR, zip INTEGER, city "
-        + "VARCHAR, state VARCHAR >) WITH (registered_topic = 'orders_topic' , key='ordertime', value_format='json', kafka_topic='foo');";
+        + "VARCHAR, state VARCHAR >) WITH (key='ordertime', value_format='json', kafka_topic='foo');";
     final Statement statement = KsqlParserTestUtil.buildSingleAst(queryStr, metaStore).getStatement();
     Assert.assertTrue(statement instanceof CreateStream);
     final CreateStream createStream = (CreateStream)statement;
@@ -539,7 +523,6 @@ public class KsqlParserTest {
     final Struct struct = (Struct) createStream.getElements().get(6).getType();
     assertThat(struct.getFields(), hasSize(5));
     assertThat(struct.getFields().get(0).getType().getSqlType(), equalTo(SqlType.STRING));
-    assertThat(createStream.getProperties().getKsqlTopic().get().toLowerCase(), equalTo("orders_topic"));
   }
 
   @Test
@@ -564,14 +547,13 @@ public class KsqlParserTest {
     final String
         queryStr =
         "CREATE TABLE users (usertime bigint, userid varchar, regionid varchar, gender varchar) "
-            + "WITH (kafka_topic='foo', value_format='json', registered_topic = 'users_topic', key='userid');";
+            + "WITH (kafka_topic='foo', value_format='json', key='userid');";
     final Statement statement = KsqlParserTestUtil.buildSingleAst(queryStr, metaStore).getStatement();
     Assert.assertTrue(statement instanceof CreateTable);
     final CreateTable createTable = (CreateTable)statement;
     Assert.assertTrue("testCreateTable failed.", createTable.getName().toString().equalsIgnoreCase("USERS"));
     Assert.assertTrue(createTable.getElements().size() == 4);
     Assert.assertTrue(createTable.getElements().get(0).getName().toString().equalsIgnoreCase("usertime"));
-    Assert.assertTrue(createTable.getProperties().getKsqlTopic().get().equalsIgnoreCase("users_topic"));
   }
 
   @Test
@@ -605,33 +587,6 @@ public class KsqlParserTest {
     assertThat(query.getSelect().getSelectItems(), is(contains(new AllColumns(Optional.empty()))));
     assertThat(query.getWhere().get().toString().toUpperCase(), equalTo("(ORDERS.ORDERUNITS > 5)"));
     assertThat(((AliasedRelation)query.getFrom()).getAlias().toUpperCase(), equalTo("ORDERS"));
-  }
-
-  @Test
-  /*
-      TODO: Handle so-called identifier expressions as values in table properties (right now, the lack of single quotes
-      around in the variables <format> and <kafkaTopic> cause things to break).
-   */
-  @Ignore
-  public void testCreateTopicFormatWithoutQuotes() {
-    final String ksqlTopic = "unquoted_topic";
-    final String format = "json";
-    final String kafkaTopic = "case_insensitive_kafka_topic";
-
-    final String queryStr = format(
-        "REGISTER TOPIC %s WITH (value_format = %s, kafka_topic = %s);",
-        ksqlTopic,
-        format,
-        kafkaTopic
-    );
-    final Statement statement = KsqlParserTestUtil.buildSingleAst(queryStr, metaStore).getStatement();
-    Assert.assertTrue(statement instanceof RegisterTopic);
-    final RegisterTopic registerTopic = (RegisterTopic) statement;
-    Assert.assertTrue(registerTopic.getName().toString().equalsIgnoreCase(ksqlTopic));
-    Assert.assertTrue(registerTopic.getProperties().size() == 2);
-    Assert.assertTrue(registerTopic
-                          .getProperties().get(DdlConfig.VALUE_FORMAT_PROPERTY).toString().equalsIgnoreCase(format));
-    Assert.assertTrue(registerTopic.getProperties().get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY).toString().equalsIgnoreCase(kafkaTopic));
   }
 
   @Test

@@ -58,7 +58,6 @@ public class CreateSourcePropertiesTest {
 
     // Then:
     assertThat(properties.getKeyField(), is(Optional.empty()));
-    assertThat(properties.getKsqlTopic(), is(Optional.empty()));
     assertThat(properties.getTimestampName(), is(Optional.empty()));
     assertThat(properties.getTimestampFormat(), is(Optional.empty()));
     assertThat(properties.getWindowType(), is(Optional.empty()));
@@ -80,19 +79,6 @@ public class CreateSourcePropertiesTest {
 
     // Then:
     assertThat(properties.getKeyField(), is(Optional.of("key")));
-  }
-
-  @Test
-  public void shouldSetValidKsqlTopic() {
-    // When:
-    final CreateSourceProperties properties = new CreateSourceProperties(
-        ImmutableMap.<String, Literal>builder()
-            .putAll(MINIMUM_VALID_PROPS)
-            .put(DdlConfig.TOPIC_NAME_PROPERTY, new StringLiteral("bar"))
-            .build());
-
-    // Then:
-    assertThat(properties.getKsqlTopic(), is(Optional.of("bar")));
   }
 
   @Test

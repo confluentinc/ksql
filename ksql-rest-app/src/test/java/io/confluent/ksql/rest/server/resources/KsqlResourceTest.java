@@ -327,34 +327,6 @@ public class KsqlResourceTest {
   }
 
   @Test
-  public void shouldInstantRegisterTopic() {
-    // When:
-    final CommandStatusEntity result = makeSingleRequest(
-        "REGISTER TOPIC FOO WITH (kafka_topic='bar', value_format='json');",
-        CommandStatusEntity.class);
-
-    // Then:
-    assertThat(result, is(new CommandStatusEntity(
-        "REGISTER TOPIC FOO WITH (kafka_topic='bar', value_format='json');",
-        commandStatus.getCommandId(), commandStatus.getStatus(), 0L)));
-  }
-
-  @Test
-  public void shouldListRegisteredTopics() {
-    // When:
-    final KsqlTopicsList ksqlTopicsList = makeSingleRequest(
-        "LIST REGISTERED TOPICS;", KsqlTopicsList.class);
-
-    // Then:
-    final Collection<KsqlTopicInfo> expectedTopics = ksqlEngine.getMetaStore()
-        .getAllKsqlTopics().values().stream()
-        .map(KsqlTopicInfo::new)
-        .collect(Collectors.toList());
-
-    assertThat(ksqlTopicsList.getTopics(), is(expectedTopics));
-  }
-
-  @Test
   public void shouldShowNoQueries() {
     // When:
     final Queries queries = makeSingleRequest("SHOW QUERIES;", Queries.class);
@@ -1594,22 +1566,6 @@ public class KsqlResourceTest {
 
     // Then:
     verify(commandStore, never()).enqueueCommand(any());
-  }
-
-  @Test
-  public void shouldFailIfRegisterTopicAlreadyExists() {
-    // Given:
-    final String registerSql = "REGISTER TOPIC FOO WITH (kafka_topic='bar', value_format='json');";
-    givenKsqlTopicRegistered("foo");
-
-    // Then:
-    expectedException.expect(KsqlRestException.class);
-    expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
-    expectedException.expect(exceptionErrorMessage(
-        errorMessage(is("A topic with name 'FOO' already exists"))));
-
-    // When:
-    makeSingleRequest(registerSql, CommandStatusEntity.class);
   }
 
   @Test

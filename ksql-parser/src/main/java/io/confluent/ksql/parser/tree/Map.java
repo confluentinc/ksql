@@ -61,4 +61,9 @@ public final class Map extends Type {
   public int hashCode() {
     return Objects.hash(valueType);
   }
+
+  @Override
+  public boolean supportsCast() {
+    return false;
+  }
 }

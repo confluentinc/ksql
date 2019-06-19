@@ -61,4 +61,9 @@ public final class Array extends Type {
   public int hashCode() {
     return Objects.hash(itemType);
   }
+
+  @Override
+  public boolean supportsCast() {
+    return false;
+  }
 }

@@ -66,6 +66,11 @@ public final class Struct extends Type {
     return Objects.equals(this.fields, other.fields);
   }
 
+  @Override
+  public boolean supportsCast() {
+    return false;
+  }
+
   @Immutable
   public static final class Field {
 

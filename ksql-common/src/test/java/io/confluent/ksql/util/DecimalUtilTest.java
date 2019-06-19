@@ -17,6 +17,7 @@ package io.confluent.ksql.util;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.sameInstance;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigDecimal;
@@ -91,12 +92,39 @@ public class DecimalUtilTest {
   }
 
   @Test
+  public void shouldCastDecimalNoOp() {
+    // When:
+    final BigDecimal decimal = DecimalUtil.cast(new BigDecimal("1.1"), 2, 1);
+
+    // Then:
+    assertThat(decimal, sameInstance(decimal));
+  }
+
+  @Test
+  public void shouldCastDecimalNegative() {
+    // When:
+    final BigDecimal decimal = DecimalUtil.cast(new BigDecimal("-1.1"), 3, 2);
+
+    // Then:
+    assertThat(decimal, is(new BigDecimal("-1.10")));
+  }
+
+  @Test
   public void shouldCastDecimalRoundingDown() {
     // When:
     final BigDecimal decimal = DecimalUtil.cast(new BigDecimal("1.12"), 2, 1);
 
     // Then:
     assertThat(decimal, is(new BigDecimal("1.1")));
+  }
+
+  @Test
+  public void shouldCastDecimalRoundingUpNegative() {
+    // When:
+    final BigDecimal decimal = DecimalUtil.cast(new BigDecimal("-1.12"), 2, 1);
+
+    // Then:
+    assertThat(decimal, is(new BigDecimal("-1.1")));
   }
 
   @Test
@@ -109,6 +137,15 @@ public class DecimalUtilTest {
   }
 
   @Test
+  public void shouldCastDecimalRoundingDownNegative() {
+    // When:
+    final BigDecimal decimal = DecimalUtil.cast(new BigDecimal("-1.19"), 2, 1);
+
+    // Then:
+    assertThat(decimal, is(new BigDecimal("-1.2")));
+  }
+
+  @Test
   public void shouldCastInt() {
     // When:
     final BigDecimal decimal = DecimalUtil.cast(1, 2, 1);
@@ -118,12 +155,30 @@ public class DecimalUtilTest {
   }
 
   @Test
+  public void shouldCastIntNegative() {
+    // When:
+    final BigDecimal decimal = DecimalUtil.cast(-1, 2, 1);
+
+    // Then:
+    assertThat(decimal, is(new BigDecimal("-1.0")));
+  }
+
+  @Test
   public void shouldCastDouble() {
     // When:
     final BigDecimal decimal = DecimalUtil.cast(1.1, 2, 1);
 
     // Then:
     assertThat(decimal, is(new BigDecimal("1.1")));
+  }
+
+  @Test
+  public void shouldCastDoubleNegative() {
+    // When:
+    final BigDecimal decimal = DecimalUtil.cast(-1.1, 2, 1);
+
+    // Then:
+    assertThat(decimal, is(new BigDecimal("-1.1")));
   }
 
   @Test
@@ -151,6 +206,15 @@ public class DecimalUtilTest {
 
     // Then:
     assertThat(decimal, is(new BigDecimal("1.10")));
+  }
+
+  @Test
+  public void shouldCastStringNegative() {
+    // When:
+    final BigDecimal decimal = DecimalUtil.cast("-1.1", 3, 2);
+
+    // Then:
+    assertThat(decimal, is(new BigDecimal("-1.10")));
   }
 
   @Test
@@ -239,6 +303,16 @@ public class DecimalUtilTest {
   }
 
   @Test
+  public void shouldNotCastDecimalTooNegative() {
+    // Expect:
+    expectedException.expect(ArithmeticException.class);
+    expectedException.expectMessage("Numeric field overflow");
+
+    // When:
+    DecimalUtil.cast(new BigDecimal(-10), 2, 1);
+  }
+
+  @Test
   public void shouldNotCastIntTooBig() {
     // Expect:
     expectedException.expect(ArithmeticException.class);
@@ -246,6 +320,16 @@ public class DecimalUtilTest {
 
     // When:
     DecimalUtil.cast(10, 2, 1);
+  }
+
+  @Test
+  public void shouldNotCastIntTooNegative() {
+    // Expect:
+    expectedException.expect(ArithmeticException.class);
+    expectedException.expectMessage("Numeric field overflow");
+
+    // When:
+    DecimalUtil.cast(-10, 2, 1);
   }
 
   @Test
@@ -259,6 +343,16 @@ public class DecimalUtilTest {
   }
 
   @Test
+  public void shouldNotCastDoubleTooNegative() {
+    // Expect:
+    expectedException.expect(ArithmeticException.class);
+    expectedException.expectMessage("Numeric field overflow");
+
+    // When:
+    DecimalUtil.cast(-10.0, 2, 1);
+  }
+
+  @Test
   public void shouldNotCastStringTooBig() {
     // Expect:
     expectedException.expect(ArithmeticException.class);
@@ -266,5 +360,24 @@ public class DecimalUtilTest {
 
     // When:
     DecimalUtil.cast("10", 2, 1);
+  }
+
+  @Test
+  public void shouldNotCastStringTooNegative() {
+    // Expect:
+    expectedException.expect(ArithmeticException.class);
+    expectedException.expectMessage("Numeric field overflow");
+
+    // When:
+    DecimalUtil.cast("-10", 2, 1);
+  }
+
+  @Test
+  public void shouldNotCastStringNonNumber() {
+    // Expect:
+    expectedException.expect(NumberFormatException.class);
+
+    // When:
+    DecimalUtil.cast("abc", 2, 1);
   }
 }

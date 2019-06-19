@@ -153,6 +153,10 @@ public final class DecimalUtil {
   }
 
   public static BigDecimal cast(final BigDecimal value, final int precision, final int scale) {
+    if (precision == value.precision() && scale == value.scale()) {
+      return value;
+    }
+
     validateParameters(precision, scale);
     ensureMax(value, precision, scale);
     return value.setScale(scale, RoundingMode.HALF_UP);
@@ -168,7 +172,7 @@ public final class DecimalUtil {
   private static void ensureMax(final BigDecimal value, final int precision, final int scale) {
     final int digits = precision - scale;
     final BigDecimal maxValue = new BigDecimal(Math.pow(10, digits));
-    if (maxValue.compareTo(value) < 1) {
+    if (maxValue.compareTo(value.abs()) < 1) {
       throw new ArithmeticException(
           String.format("Numeric field overflow: A field with precision %d and scale %d "
               + "must round to an absolute value less than 10^%d. Got %s",

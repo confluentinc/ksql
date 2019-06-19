@@ -25,7 +25,6 @@ import io.confluent.ksql.parser.tree.BetweenPredicate;
 import io.confluent.ksql.parser.tree.BooleanLiteral;
 import io.confluent.ksql.parser.tree.Cast;
 import io.confluent.ksql.parser.tree.ComparisonExpression;
-import io.confluent.ksql.parser.tree.Decimal;
 import io.confluent.ksql.parser.tree.DefaultAstVisitor;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.DoubleLiteral;
@@ -38,7 +37,6 @@ import io.confluent.ksql.parser.tree.LikePredicate;
 import io.confluent.ksql.parser.tree.LongLiteral;
 import io.confluent.ksql.parser.tree.NotExpression;
 import io.confluent.ksql.parser.tree.NullLiteral;
-import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.parser.tree.SearchedCaseExpression;
 import io.confluent.ksql.parser.tree.StringLiteral;
@@ -111,8 +109,9 @@ public class ExpressionTypeManager
       final ExpressionTypeContext expressionTypeContext
   ) {
     final Type sqlType = node.getType();
-    if (!(sqlType instanceof PrimitiveType) && !(sqlType instanceof Decimal)) {
-      throw new KsqlFunctionException("Only casts to primitive types are supported: " + sqlType);
+    if (!sqlType.supportsCast()) {
+      throw new KsqlFunctionException("Only casts to primitive types or decimals "
+          + "are supported: " + sqlType);
     }
 
     final Schema castType = SchemaConverters.sqlToLogicalConverter().fromSqlType(sqlType);

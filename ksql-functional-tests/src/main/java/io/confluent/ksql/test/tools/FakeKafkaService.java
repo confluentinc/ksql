@@ -46,7 +46,7 @@ public final class FakeKafkaService {
     this.topicData.put(topic.getName(), new ArrayList<>());
   }
 
-  void writeRecord(final String topicName, final FakeKafkaRecord record) {
+  public void writeRecord(final String topicName, final FakeKafkaRecord record) {
     Objects.requireNonNull(topicName, "Topic");
     Objects.requireNonNull(record, "Record");
     requireTopicExists(topicName);

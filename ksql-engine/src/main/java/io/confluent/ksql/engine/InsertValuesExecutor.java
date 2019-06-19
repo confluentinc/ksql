@@ -81,7 +81,7 @@ public class InsertValuesExecutor {
   }
 
   @VisibleForTesting
-  public InsertValuesExecutor(
+  InsertValuesExecutor(
       final boolean canBeDisabledByConfig,
       final RecordProducer producer
   ) {

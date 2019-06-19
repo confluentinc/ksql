@@ -51,7 +51,6 @@ public final class KsqlTestingTool {
         return;
       }
       if (testOptions.getStatementsFile() != null
-          && testOptions.getInputFile() != null
           && testOptions.getOutputFile() != null) {
         runWithTripleFiles(
             testOptions.getStatementsFile(),
@@ -95,7 +94,7 @@ public final class KsqlTestingTool {
     final InputRecordsNode inputRecordNodes;
     final OutputRecordsNode outRecordNodes;
     try {
-      inputRecordNodes = OBJECT_MAPPER
+      inputRecordNodes = (inputFile == null) ? null : OBJECT_MAPPER
           .readValue(new File(inputFile), InputRecordsNode.class);
     } catch (final Exception inputException) {
       throw new Exception("File name: " + inputFile + " Message: " + inputException.getMessage());
@@ -113,7 +112,7 @@ public final class KsqlTestingTool {
     final TestCaseNode testCaseNode = new TestCaseNode(
         "KSQL_Test",
         null,
-        inputRecordNodes.getInputRecords(),
+        (inputFile == null) ? null : inputRecordNodes.getInputRecords(),
         outRecordNodes.getOutputRecords(),
         Collections.emptyList(),
         statements,

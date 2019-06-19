@@ -483,6 +483,62 @@ public class ConsoleTest {
   }
 
   @Test
+  public void testSortedPrintStreamsList() throws IOException {
+    // Given:
+    final KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(
+            new StreamsList("e",
+                    ImmutableList.of(
+                            new SourceInfo.Stream("B", "TestTopic", "AVRO"),
+                            new SourceInfo.Stream("A", "TestTopic", "AVRO"),
+                            new SourceInfo.Stream("Z", "TestTopic", "AVRO"),
+                            new SourceInfo.Stream("C", "TestTopic", "AVRO")
+                    ))
+    ));
+
+    // When:
+    console.printKsqlEntityList(entityList);
+
+    // Then:
+    final String output = terminal.getOutputString();
+    if (console.getOutputFormat() == OutputFormat.JSON) {
+      assertThat(output, is("[ {\n"
+               + "  \"@type\" : \"streams\",\n"
+               + "  \"statementText\" : \"e\",\n"
+               + "  \"streams\" : [ {\n"
+               + "    \"type\" : \"STREAM\",\n"
+               + "    \"name\" : \"B\",\n"
+               + "    \"topic\" : \"TestTopic\",\n"
+               + "    \"format\" : \"AVRO\"\n"
+               + "  }, {\n"
+               + "    \"type\" : \"STREAM\",\n"
+               + "    \"name\" : \"A\",\n"
+               + "    \"topic\" : \"TestTopic\",\n"
+               + "    \"format\" : \"AVRO\"\n"
+               + "  }, {\n"
+               + "    \"type\" : \"STREAM\",\n"
+               + "    \"name\" : \"Z\",\n"
+               + "    \"topic\" : \"TestTopic\",\n"
+               + "    \"format\" : \"AVRO\"\n"
+               + "  }, {\n"
+               + "    \"type\" : \"STREAM\",\n"
+               + "    \"name\" : \"C\",\n"
+               + "    \"topic\" : \"TestTopic\",\n"
+               + "    \"format\" : \"AVRO\"\n"
+               + "  } ]\n"
+               +"} ]\n"));
+    } else {
+      assertThat(output, is("\n"
+              + " Stream Name | Kafka Topic | Format \n"
+              + "------------------------------------\n"
+              + " A           | TestTopic   | AVRO   \n"
+              + " B           | TestTopic   | AVRO   \n"
+              + " C           | TestTopic   | AVRO   \n"
+              + " Z           | TestTopic   | AVRO   \n"
+              + "------------------------------------\n"));
+    }
+  }
+
+  @Test
   public void testPrintTablesList() throws IOException {
     // Given:
     final KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(
@@ -513,6 +569,67 @@ public class ConsoleTest {
           + "----------------------------------------------\n"
           + " TestTable  | TestTopic   | JSON   | false    \n"
           + "----------------------------------------------\n"));
+    }
+  }
+
+  @Test
+  public void testSortedPrintTablesList() throws IOException {
+    // Given:
+    final KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(
+            new TablesList("e",
+                    ImmutableList.of(
+                            new SourceInfo.Table("B", "TestTopic", "JSON", false),
+                            new SourceInfo.Table("A", "TestTopic", "JSON", false),
+                            new SourceInfo.Table("Z", "TestTopic", "JSON", false),
+                            new SourceInfo.Table("C", "TestTopic", "JSON", false)
+                    )
+            )
+    ));
+
+    // When:
+    console.printKsqlEntityList(entityList);
+
+    // Then:
+    final String output = terminal.getOutputString();
+    if (console.getOutputFormat() == OutputFormat.JSON) {
+      assertThat(output, is("[ {\n"
+              + "  \"@type\" : \"tables\",\n"
+              + "  \"statementText\" : \"e\",\n"
+              + "  \"tables\" : [ {\n"
+              + "    \"type\" : \"TABLE\",\n"
+              + "    \"name\" : \"B\",\n"
+              + "    \"topic\" : \"TestTopic\",\n"
+              + "    \"format\" : \"JSON\",\n"
+              + "    \"isWindowed\" : false\n"
+              + "  }, {\n"
+              + "    \"type\" : \"TABLE\",\n"
+              + "    \"name\" : \"A\",\n"
+              + "    \"topic\" : \"TestTopic\",\n"
+              + "    \"format\" : \"JSON\",\n"
+              + "    \"isWindowed\" : false\n"
+              + "  }, {\n"
+              + "    \"type\" : \"TABLE\",\n"
+              + "    \"name\" : \"Z\",\n"
+              + "    \"topic\" : \"TestTopic\",\n"
+              + "    \"format\" : \"JSON\",\n"
+              + "    \"isWindowed\" : false\n"
+              + "  }, {\n"
+              + "    \"type\" : \"TABLE\",\n"
+              + "    \"name\" : \"C\",\n"
+              + "    \"topic\" : \"TestTopic\",\n"
+              + "    \"format\" : \"JSON\",\n"
+              + "    \"isWindowed\" : false\n"
+              + "  } ]\n"
+              + "} ]\n"));
+    } else {
+      assertThat(output, is("\n"
+              + " Table Name | Kafka Topic | Format | Windowed \n"
+              + "----------------------------------------------\n"
+              + " A          | TestTopic   | JSON   | false    \n"
+              + " B          | TestTopic   | JSON   | false    \n"
+              + " C          | TestTopic   | JSON   | false    \n"
+              + " Z          | TestTopic   | JSON   | false    \n"
+              + "----------------------------------------------\n"));
     }
   }
 

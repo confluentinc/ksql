@@ -579,7 +579,9 @@ public class KsqlResourceTest {
     expectedException.expect(KsqlRestException.class);
     expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
     expectedException.expect(exceptionStatementErrorMessage(errorMessage(is(
-            "SELECT and PRINT queries must use the /query endpoint"))));
+            "RUN SCRIPT cannot be used with the following statements: \n"
+                    + "* PRINT\n"
+                    + "* SELECT"))));
     expectedException.expect(exceptionStatementErrorMessage(statement(is(
         "SELECT * FROM test_table;"))));
 
@@ -593,7 +595,9 @@ public class KsqlResourceTest {
     expectedException.expect(KsqlRestException.class);
     expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
     expectedException.expect(exceptionStatementErrorMessage(errorMessage(is(
-        "SELECT and PRINT queries must use the /query endpoint"))));
+            "RUN SCRIPT cannot be used with the following statements: \n"
+                    + "* PRINT\n"
+                    + "* SELECT"))));
     expectedException.expect(exceptionStatementErrorMessage(statement(is(
         "PRINT 'orders-topic';"))));
 

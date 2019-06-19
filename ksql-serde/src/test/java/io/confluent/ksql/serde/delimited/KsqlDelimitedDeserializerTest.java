@@ -27,7 +27,9 @@ import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.serde.SerdeTestUtils;
 import io.confluent.ksql.serde.util.SerdeProcessingLogMessageFactory;
+import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlException;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.Optional;
@@ -54,6 +56,7 @@ public class KsqlDelimitedDeserializerTest {
       .field("ORDERID", Schema.OPTIONAL_INT64_SCHEMA)
       .field("ITEMID", Schema.OPTIONAL_STRING_SCHEMA)
       .field("ORDERUNITS", Schema.OPTIONAL_FLOAT64_SCHEMA)
+      .field("COST", DecimalUtil.builder(4, 2).build())
       .build()
   );
 
@@ -76,7 +79,7 @@ public class KsqlDelimitedDeserializerTest {
   @Test
   public void shouldDeserializeDelimitedCorrectly() {
     // Given:
-    final byte[] bytes = "1511897796092,1,item_1,10.0\r\n".getBytes(StandardCharsets.UTF_8);
+    final byte[] bytes = "1511897796092,1,item_1,10.0,10.10\r\n".getBytes(StandardCharsets.UTF_8);
 
     // When:
     final Struct struct = deserializer.deserialize("", bytes);
@@ -87,6 +90,7 @@ public class KsqlDelimitedDeserializerTest {
     assertThat(struct.get("ORDERID"), is(1L));
     assertThat(struct.get("ITEMID"), is("item_1"));
     assertThat(struct.get("ORDERUNITS"), is(10.0));
+    assertThat(struct.get("COST"), is(new BigDecimal("10.10")));
   }
 
   @Test
@@ -113,7 +117,7 @@ public class KsqlDelimitedDeserializerTest {
   @Test
   public void shouldDeserializeJsonCorrectlyWithEmptyFields() {
     // Given:
-    final byte[] bytes = "1511897796092,1,item_1,\r\n".getBytes(StandardCharsets.UTF_8);
+    final byte[] bytes = "1511897796092,1,item_1,,\r\n".getBytes(StandardCharsets.UTF_8);
 
     // When:
     final Struct struct = deserializer.deserialize("", bytes);
@@ -124,17 +128,18 @@ public class KsqlDelimitedDeserializerTest {
     assertThat(struct.get("ORDERID"), is(1L));
     assertThat(struct.get("ITEMID"), is("item_1"));
     assertThat(struct.get("ORDERUNITS"), is(nullValue()));
+    assertThat(struct.get("COST"), is(nullValue()));
   }
 
   @Test
   public void shouldThrowIfRowHasTooFewColumns() {
     // Given:
-    final byte[] bytes = "1511897796092,1,item_1\r\n".getBytes(StandardCharsets.UTF_8);
+    final byte[] bytes = "1511897796092,1,item_1,\r\n".getBytes(StandardCharsets.UTF_8);
 
     // Then:
     expectedException.expect(SerializationException.class);
     expectedException
-        .expectCause(hasMessage(is("Unexpected field count, csvFields:3 schemaFields:4")));
+        .expectCause(hasMessage(is("Unexpected field count, csvFields:4 schemaFields:5")));
 
     // When:
     deserializer.deserialize("", bytes);
@@ -143,12 +148,12 @@ public class KsqlDelimitedDeserializerTest {
   @Test
   public void shouldThrowIfRowHasTooMayColumns() {
     // Given:
-    final byte[] bytes = "1511897796092,1,item_1,10.0,extra\r\n".getBytes(StandardCharsets.UTF_8);
+    final byte[] bytes = "1511897796092,1,item_1,10.0,10.10,extra\r\n".getBytes(StandardCharsets.UTF_8);
 
     // Then:
     expectedException.expect(SerializationException.class);
     expectedException
-        .expectCause(hasMessage(is("Unexpected field count, csvFields:5 schemaFields:4")));
+        .expectCause(hasMessage(is("Unexpected field count, csvFields:6 schemaFields:5")));
 
     // When:
     deserializer.deserialize("", bytes);
@@ -183,6 +188,46 @@ public class KsqlDelimitedDeserializerTest {
 
     // Then:
     assertThat(result.get("id"), CoreMatchers.is(10));
+  }
+
+  @Test
+  public void shouldDeserializeDecimal() {
+    // Given:
+    final PersistenceSchema schema = persistenceSchema(
+        SchemaBuilder.struct()
+          .field("cost", DecimalUtil.builder(4, 2))
+          .build()
+    );
+    final KsqlDelimitedDeserializer deserializer =
+        new KsqlDelimitedDeserializer(schema, recordLogger);
+
+    final byte[] bytes = "01.12".getBytes(StandardCharsets.UTF_8);
+
+    // When:
+    final Struct result = deserializer.deserialize("", bytes);
+
+    // Then:
+    assertThat(result.get("cost"), is(new BigDecimal("01.12")));
+  }
+
+  @Test
+  public void shouldDeserializeDecimalWithoutLeadingZeros() {
+    // Given:
+    final PersistenceSchema schema = persistenceSchema(
+        SchemaBuilder.struct()
+            .field("cost", DecimalUtil.builder(4, 2))
+            .build()
+    );
+    final KsqlDelimitedDeserializer deserializer =
+        new KsqlDelimitedDeserializer(schema, recordLogger);
+
+    final byte[] bytes = "1.12".getBytes(StandardCharsets.UTF_8);
+
+    // When:
+    final Struct result = deserializer.deserialize("", bytes);
+
+    // Then:
+    assertThat(result.get("cost"), is(new BigDecimal("01.12")));
   }
 
   @Test

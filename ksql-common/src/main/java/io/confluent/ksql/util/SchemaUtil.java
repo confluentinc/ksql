@@ -341,6 +341,10 @@ public final class SchemaUtil {
     return ARITHMETIC_TYPES.contains(type);
   }
 
+  public static boolean isNumber(final Schema schema) {
+    return isNumber(schema.type()) || DecimalUtil.isDecimal(schema);
+  }
+
   public static Schema ensureOptional(final Schema schema) {
     final SchemaBuilder builder;
     switch (schema.type()) {

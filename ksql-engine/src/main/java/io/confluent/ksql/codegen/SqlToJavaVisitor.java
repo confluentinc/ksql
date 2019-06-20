@@ -760,7 +760,16 @@ public class SqlToJavaVisitor {
         final Pair<String, Schema> expr,
         final Type type,
         final Schema returnType) {
-      return new Pair<>("String.valueOf(" + expr.getLeft() + ")", returnType);
+      final Schema schema = expr.getRight();
+      final String exprStr;
+      if (DecimalUtil.isDecimal(schema)) {
+        final int precision = DecimalUtil.precision(schema);
+        final int scale = DecimalUtil.scale(schema);
+        exprStr = String.format("DecimalUtil.format(%d, %d, %s)", precision, scale, expr.getLeft());
+      } else {
+        exprStr = "String.valueOf(" + expr.getLeft() + ")";
+      }
+      return new Pair<>(exprStr, returnType);
     }
 
     private static Pair<String, Schema> castBoolean(
@@ -777,7 +786,7 @@ public class SqlToJavaVisitor {
       final String exprStr = getCastString(
           expr.getRight(),
           expr.getLeft(),
-          "intValue",
+          "intValue()",
           "Integer.parseInt"
       );
       return new Pair<>(exprStr, returnType);
@@ -790,7 +799,7 @@ public class SqlToJavaVisitor {
       final String exprStr = getCastString(
           expr.getRight(),
           expr.getLeft(),
-          "longValue",
+          "longValue()",
           "Long.parseLong"
       );
       return new Pair<>(exprStr, returnType);
@@ -803,7 +812,7 @@ public class SqlToJavaVisitor {
       final String exprStr = getCastString(
           expr.getRight(),
           expr.getLeft(),
-          "doubleValue",
+          "doubleValue()",
           "Double.parseDouble"
       );
       return new Pair<>(exprStr, returnType);
@@ -837,13 +846,17 @@ public class SqlToJavaVisitor {
         final String javaTypeMethod,
         final String javaStringParserMethod
     ) {
+      if (DecimalUtil.isDecimal(schema)) {
+        return "((" + exprStr + ")." + javaTypeMethod + ")";
+      }
+
       switch (schema.type()) {
         case INT32:
-          return "(new Integer(" + exprStr + ")." + javaTypeMethod + "())";
+          return "(new Integer(" + exprStr + ")." + javaTypeMethod + ")";
         case INT64:
-          return "(new Long(" + exprStr + ")." + javaTypeMethod + "())";
+          return "(new Long(" + exprStr + ")." + javaTypeMethod + ")";
         case FLOAT64:
-          return "(new Double(" + exprStr + ")." + javaTypeMethod + "())";
+          return "(new Double(" + exprStr + ")." + javaTypeMethod + ")";
         case STRING:
           return javaStringParserMethod + "(" + exprStr + ")";
 

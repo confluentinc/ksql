@@ -20,7 +20,6 @@ import io.confluent.ksql.util.KsqlException;
 import java.io.StringWriter;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
-import java.text.DecimalFormat;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
@@ -94,11 +93,7 @@ public class KsqlDelimitedSerializer implements Serializer<Object> {
       final int precision = DecimalUtil.precision(field.schema());
       final int scale = DecimalUtil.scale(field.schema());
 
-      final DecimalFormat format = new DecimalFormat();
-      format.setMinimumIntegerDigits(precision - scale);
-      format.setMinimumFractionDigits(scale);
-
-      return format.format(value);
+      return DecimalUtil.format(precision, scale, value);
     }
 
     private static void throwOnUnsupportedType(final Schema schema) {

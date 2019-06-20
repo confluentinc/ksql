@@ -143,6 +143,25 @@
         {"topic":  "OUT", "value": {"VAL": "0.1"}},
         {"topic":  "OUT", "value": {"VAL": "0.0"}}
       ]
+    },
+    {
+      "name": "decimal to other",
+      "statements": [
+        "CREATE STREAM TEST (val DECIMAL(4,2)) WITH (kafka_topic='test_topic', value_format='AVRO');",
+        "CREATE STREAM OUT AS SELECT cast(val AS INT) as i, cast(val AS BIGINT) as l, cast(val as DOUBLE) as d, cast(val AS STRING) as s FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": {"val": "00.00"}},
+        {"topic": "test_topic", "value": {"val": "00.01"}},
+        {"topic": "test_topic", "value": {"val": "10.00"}},
+        {"topic": "test_topic", "value": {"val": "10.01"}}
+      ],
+      "outputs": [
+        {"topic": "OUT", "value": {"I":  0, "L": 0, "D": 0.00, "S": "00.00"}},
+        {"topic": "OUT", "value": {"I":  0, "L": 0, "D": 0.01, "S": "00.01"}},
+        {"topic": "OUT", "value": {"I":  10, "L": 10, "D": 10.00, "S": "10.00"}},
+        {"topic": "OUT", "value": {"I":  10, "L": 10, "D": 10.01, "S": "10.01"}}
+      ]
     }
   ]
 }

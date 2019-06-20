@@ -1,34 +1,6 @@
 Changelog
 =========
 
-<<<<<<< HEAD
-=======
-Version 5.4.0
--------------
-
-KSQL 5.4.0 includes new features, including:
-
-* UDAFs support STRUCTs as parameters and return values.
-
-* KSQL now supports working with source data where the value is an anonymous Avro or JSON serialized
-  ``ARRAY``, ``MAP`` or primitive type, for example ``STRING`` or ``BIGINT``. Previously KSQL required all
-  Avro values to be Avro records, and all JSON values to be JSON objects.
-  For more information, refer to :ref:`ksql_single_field_wrapping`.
-
-* KSQL now allows users to control how results containing only a single value field are serialized
-  to Kafka. Users can now choose to serialize the single value as a named field within an outer
-  Avro record or JSON object, depending on the format in use, or as an anonymous value.
-  For more information, refer to :ref:`ksql_single_field_wrapping`.
-
-* A new config ``ksql.metrics.tags.custom`` for adding custom tags to emitted JMX metrics.
-  See :ref:`ksql-metrics-tags-custom` for usage.
-
-KSQL 5.4.0 includes the following misc. changes:
-
-* Require either the value for a ``@UdfParameter`` or for the UDF JAR to be compiled with
-  the Java8 ``-parameters`` compilation option. The UDF archetype now includes this flag.
-
->>>>>>> a0cd791c8... Add config for custom metrics tags (#2971)
 Version 5.3.0
 -------------
 

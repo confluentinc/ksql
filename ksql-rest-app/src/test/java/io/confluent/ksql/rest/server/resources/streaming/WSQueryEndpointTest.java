@@ -470,7 +470,8 @@ public class WSQueryEndpointTest {
     wsQueryEndpoint.onOpen(session, null);
 
     // Then:
-    verifyClosedWithReason("access denied", CloseCodes.CANNOT_ACCEPT);
+    verifyClosedWithReason("io.confluent.ksql.util.KsqlException: access denied",
+        CloseCodes.CANNOT_ACCEPT);
   }
 
   @Test

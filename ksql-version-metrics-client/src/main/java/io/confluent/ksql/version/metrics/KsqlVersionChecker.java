@@ -50,6 +50,9 @@ public class KsqlVersionChecker extends BaseMetricsReporter {
     this.metricsCollector = new BasicCollector(moduleType, activenessStatusSupplier);
   }
 
+  // This is used when collecting metrics in a kafka topic. Since KSQL isn't aware of ZK, we are
+  // returning null here to disable KafkaSubmitter and also turning off topic metrics collection in
+  // KsqlVersionCheckerConfig.
   @Override
   protected Submitter createKafkaSubmitter(final String supportTopic) {
     return null;

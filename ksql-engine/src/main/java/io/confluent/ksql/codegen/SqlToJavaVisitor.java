@@ -633,15 +633,30 @@ public class SqlToJavaVisitor {
           SchemaUtil.getJavaType(internalSchema).getCanonicalName();
       switch (internalSchema.type()) {
         case ARRAY:
-          return new Pair<>(
-              String.format("((%s) ((%s)%s).get((int)(%s)))",
-                  SchemaUtil.getJavaType(internalSchema.valueSchema()).getSimpleName(),
-                  internalSchemaJavaType,
-                  process(node.getBase(), context).getLeft(),
-                  process(node.getIndex(), context).getLeft()
-              ),
-              internalSchema.valueSchema()
-          );
+          final String listName = process(node.getBase(), context).getLeft();
+          if (node.getIndex().toString().startsWith("-")) {
+            return new Pair<>(
+                    String.format("((%s) ((%s)%s).get((int)((%s)%s).size()%s))",
+                            SchemaUtil.getJavaType(internalSchema.valueSchema()).getSimpleName(),
+                            internalSchemaJavaType,
+                            listName,
+                            internalSchemaJavaType,
+                            listName,
+                            process(node.getIndex(), context).getLeft()
+                    ),
+                    internalSchema.valueSchema()
+            );
+          } else {
+            return new Pair<>(
+                    String.format("((%s) ((%s)%s).get((int)(%s)))",
+                            SchemaUtil.getJavaType(internalSchema.valueSchema()).getSimpleName(),
+                            internalSchemaJavaType,
+                            listName,
+                            process(node.getIndex(), context).getLeft()
+                    ),
+                    internalSchema.valueSchema()
+            );
+          }
         case MAP:
           return new Pair<>(
               String.format("((%s) ((%s)%s).get(%s))",

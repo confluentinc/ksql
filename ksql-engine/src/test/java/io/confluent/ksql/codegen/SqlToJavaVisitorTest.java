@@ -108,6 +108,18 @@ public class SqlToJavaVisitorTest {
   }
 
   @Test
+  public void shouldProcessArrayNegativeIndexExpressionCorrectly() {
+    final String simpleQuery = "SELECT col4[-1] FROM test1 WHERE col0 > 100;";
+    final Analysis analysis = analyzeQuery(simpleQuery, metaStore);
+
+    final String javaExpression = sqlToJavaVisitor
+            .process(analysis.getSelectExpressions().get(0));
+
+    assertThat(javaExpression,
+            equalTo("((Double) ((java.util.List)TEST1_COL4).get((int)((java.util.List)TEST1_COL4).size()-Integer.parseInt(\"1\")))"));
+  }
+
+  @Test
   public void shouldProcessMapExpressionCorrectly() {
     final String simpleQuery = "SELECT col5['key1'] FROM test1 WHERE col0 > 100;";
     final Analysis analysis = analyzeQuery(simpleQuery, metaStore);

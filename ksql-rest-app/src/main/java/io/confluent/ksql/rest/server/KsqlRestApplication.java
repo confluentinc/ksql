@@ -41,6 +41,7 @@ import io.confluent.ksql.rest.server.computation.CommandRunner;
 import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.StatementExecutor;
 import io.confluent.ksql.rest.server.context.KsqlRestServiceContextBinder;
+import io.confluent.ksql.rest.server.filters.KsqlAuthorizationFilter;
 import io.confluent.ksql.rest.server.resources.KsqlExceptionMapper;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.rest.server.resources.RootDocument;
@@ -330,8 +331,13 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
     config.property(ServerProperties.OUTBOUND_CONTENT_LENGTH_BUFFER, 0);
     config.property(ServerProperties.WADL_FEATURE_DISABLE, true);
 
-    // Registers the REST security extensions
-    securityExtension.register(config, ksqlConfig);
+    // Controls the access to all REST endpoints
+    securityExtension.getAuthorizationProvider().ifPresent(
+        ac -> config.register(new KsqlAuthorizationFilter(ac))
+    );
+
+    // Registers any other security filters (i.e. user context impersonation)
+    securityExtension.register(config);
   }
 
   @Override
@@ -531,10 +537,14 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
   }
 
   private static KsqlSecurityExtension loadSecurityExtension(final KsqlConfig ksqlConfig) {
-    return Optional.ofNullable(ksqlConfig.getConfiguredInstance(
-        KsqlConfig.KSQL_SECURITY_EXTENSION_CLASS,
-        KsqlSecurityExtension.class
-    )).orElse(new KsqlDefaultSecurityExtension());
+    final KsqlSecurityExtension securityExtension = Optional.ofNullable(
+        ksqlConfig.getConfiguredInstance(
+            KsqlConfig.KSQL_SECURITY_EXTENSION_CLASS,
+            KsqlSecurityExtension.class
+        )).orElse(new KsqlDefaultSecurityExtension());
+
+    securityExtension.initialize(ksqlConfig);
+    return securityExtension;
   }
 
   private void displayWelcomeMessage() {

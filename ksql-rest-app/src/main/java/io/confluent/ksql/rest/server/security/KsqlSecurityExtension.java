@@ -19,6 +19,7 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.security.Principal;
+import java.util.Optional;
 import java.util.function.Supplier;
 import javax.ws.rs.core.Configurable;
 import org.apache.kafka.streams.KafkaClientSupplier;
@@ -33,21 +34,32 @@ import org.apache.kafka.streams.KafkaClientSupplier;
  */
 public interface KsqlSecurityExtension extends AutoCloseable {
   /**
-   * @return The {@code KsqlAuthorizer} used to authorize access to KSQL resources.
+   * Initializes any implementation-specific resources for the security extension.
+   *
+   * @param ksqlConfig The KSQL configuration object
    */
-  KsqlAuthorizer getAuthorizer();
+  void initialize(KsqlConfig ksqlConfig);
 
   /**
-   * Registers the security extension.
+   * Returns the authorization provider used to verify access permissions on KSQL resources.
    * </p>
-   * A {@link Configurable} is passed so that the extension can register REST filters to
-   * secure KSQL REST endpoints (i.e. Authorization filters).
+   * If no authorization is required/enabled for KSQL, then an {@code Optional.empty()} object must
+   * be returned.
+   *
+   * @return The (Optional) provider used for authorization requests.
+   */
+  Optional<KsqlAuthorizationProvider> getAuthorizationProvider();
+
+  /**
+   * Registers other security extension filters.
+   * </p>
+   * A {@link Configurable} is passed so that the extension can register other REST filters to
+   * to the KSQL REST endpoints (i.e. Impersonation context).
    *
    * @param configurable The {@link Configurable} object where to register the security plugins.
-   * @param ksqlConfig The KSQL configuration containing security required configs.
    * @throws KsqlException If an error occurs while registering the REST security plugin.
    */
-  void register(Configurable<?> configurable, KsqlConfig ksqlConfig);
+  void register(Configurable<?> configurable);
 
   /**
    * Constructs a {@link org.apache.kafka.streams.KafkaClientSupplier} with the user's credentials.

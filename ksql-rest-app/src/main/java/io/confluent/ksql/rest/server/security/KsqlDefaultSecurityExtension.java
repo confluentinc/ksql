@@ -20,6 +20,7 @@ import io.confluent.ksql.schema.registry.KsqlSchemaRegistryClientFactory;
 import io.confluent.ksql.util.KsqlConfig;
 import java.security.Principal;
 import java.util.Collections;
+import java.util.Optional;
 import java.util.function.Supplier;
 import javax.ws.rs.core.Configurable;
 import org.apache.kafka.streams.KafkaClientSupplier;
@@ -33,14 +34,17 @@ public class KsqlDefaultSecurityExtension implements KsqlSecurityExtension {
   private KsqlConfig ksqlConfig;
 
   @Override
-  public KsqlAuthorizer getAuthorizer() {
-    // Return a dummy authorizer that authorizes any request
-    return (user, resourceClass, resourceMethod) -> true;
+  public void initialize(final KsqlConfig ksqlConfig) {
+    this.ksqlConfig = ksqlConfig;
   }
 
   @Override
-  public void register(final Configurable<?> configurable, final KsqlConfig ksqlConfig) {
-    this.ksqlConfig = ksqlConfig;
+  public Optional<KsqlAuthorizationProvider> getAuthorizationProvider() {
+    return Optional.empty();
+  }
+
+  @Override
+  public void register(final Configurable<?> configurable) {
   }
 
   @Override

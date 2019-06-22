@@ -34,13 +34,6 @@
             <artifactId>support-metrics-common</artifactId>
         </dependency>
 
-        <!-- We use `BaseMetricsReporter` in support-metrics-common that depends on classes from the
-        kafka core jar. We can remove this once `BaseMetricsReporter` is fixed not to do that. -->
-        <dependency>
-            <groupId>org.apache.kafka</groupId>
-            <artifactId>kafka_${kafka.scala.version}</artifactId>
-        </dependency>
-
         <dependency>
             <groupId>io.confluent.ksql</groupId>
             <artifactId>ksql-common</artifactId>

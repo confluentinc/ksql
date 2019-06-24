@@ -56,8 +56,7 @@ Any attempts to register the same type twice without a corresponding `DROP TYPE`
 DROP TYPE <type_name>;
 ```
 
-The `DROP TYPE` syntax will allow KSQL users to remove a type alias from KSQL. This statement
-will fail if the type is being used in any active query or UDF.
+The `DROP TYPE` syntax will allow KSQL users to remove a type alias from KSQL.
 
 ### SHOW TYPES
 
@@ -91,11 +90,16 @@ the annotation will lookup the schema directly and compile the UDF using the ful
 are no restrictions on what types can be added as custom types, and custom types can be composite.
 
 This rewriting will be done _before_ enqueuing the command on the command topic to make sure that
-if the types change the existing statements will already be resolved.
+if the types change the existing statements will already be resolved. The user will see a success
+message that contains the rewritten schema.
+
+If a type is already registered via CLI, but is then added to the extensions directory, the value
+in the directory will take precedence over the CLI registered value. The CLI will reject calls to
+register types that are already 
 
 ## Future Work
-* in v1, `DESCRIBE` commands would show the flattened types (resolved) - it is better to keep the
-original type structure and map it back for `DESCRIBE` commands
+* in v1, `DESCRIBE`/`Explian` commands would show the flattened types (resolved) - it is better to 
+keep the original type structure and map it back for `DESCRIBE`/`Explain` commands
 * SchemaRegistry integration is not in scope
 
 ## Test plan

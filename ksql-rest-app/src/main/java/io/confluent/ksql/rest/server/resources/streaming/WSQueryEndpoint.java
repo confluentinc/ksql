@@ -274,7 +274,8 @@ public class WSQueryEndpoint {
           try {
             provider.checkEndpointAccess(user, method, path);
           } catch (final Throwable t) {
-            log.warn(String.format("User:%s is denied access \"%s %s\"", user, method, path), t);
+            log.warn(String.format("User:%s is denied access to Websocket "
+                + "%s endpoint", user, path), t);
             throw new KsqlException(t);
           }
         }

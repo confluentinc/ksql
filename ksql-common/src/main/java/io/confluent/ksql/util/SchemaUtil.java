@@ -282,8 +282,12 @@ public final class SchemaUtil {
       return Schema.OPTIONAL_STRING_SCHEMA;
     }
 
-    if (DecimalUtil.isDecimal(left) && DecimalUtil.isDecimal(right)) {
-      return resolveDecimalOperatorResultType(left, right, operator);
+    if (DecimalUtil.isDecimal(left) || DecimalUtil.isDecimal(right)) {
+      if (left.type() != Schema.Type.FLOAT64 && right.type() != Schema.Type.FLOAT64) {
+        return resolveDecimalOperatorResultType(
+            DecimalUtil.toDecimal(left), DecimalUtil.toDecimal(right), operator);
+      }
+      return Schema.OPTIONAL_FLOAT64_SCHEMA;
     }
 
     if (!TYPE_TO_SCHEMA.containsKey(left.type()) || !TYPE_TO_SCHEMA.containsKey(right.type())) {

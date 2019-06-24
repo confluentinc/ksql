@@ -278,6 +278,38 @@ public class SqlToJavaVisitorTest {
   }
 
   @Test
+  public void shouldGenerateCastLongToDecimalInBinaryExpression() {
+    // Given:
+    final ArithmeticBinaryExpression binExp = new ArithmeticBinaryExpression(
+        Operator.ADD,
+        new QualifiedNameReference(QualifiedName.of("TEST1.COL8")),
+        new QualifiedNameReference(QualifiedName.of("TEST1.COL0"))
+    );
+
+    // When:
+    final String java = sqlToJavaVisitor.process(binExp);
+
+    // Then:
+    assertThat(java, containsString("DecimalUtil.cast(TEST1_COL0, 19, 0)"));
+  }
+
+  @Test
+  public void shouldGenerateCastDecimalToDoubleInBinaryExpression() {
+    // Given:
+    final ArithmeticBinaryExpression binExp = new ArithmeticBinaryExpression(
+        Operator.ADD,
+        new QualifiedNameReference(QualifiedName.of("TEST1.COL8")),
+        new QualifiedNameReference(QualifiedName.of("TEST1.COL3"))
+    );
+
+    // When:
+    final String java = sqlToJavaVisitor.process(binExp);
+
+    // Then:
+    assertThat(java, containsString("(TEST1_COL8).doubleValue()"));
+  }
+
+  @Test
   public void shouldGenerateCorrectCodeForDecimalSubtract() {
     // Given:
     final ArithmeticBinaryExpression binExp = new ArithmeticBinaryExpression(
@@ -513,6 +545,21 @@ public class SqlToJavaVisitorTest {
 
     // Then:
     assertThat(java, is("(DecimalUtil.cast(TEST1_COL3, 2, 1))"));
+  }
+
+  @Test
+  public void shouldGenerateCorrectCodeForDecimalCastNoOp() {
+    // Given:
+    final Cast cast = new Cast(
+        new QualifiedNameReference(QualifiedName.of("TEST1.COL8")),
+        Decimal.of(2, 1)
+    );
+
+    // When:
+    final String java = sqlToJavaVisitor.process(cast);
+
+    // Then:
+    assertThat(java, is("TEST1_COL8"));
   }
 
   @Test

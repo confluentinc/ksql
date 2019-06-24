@@ -92,6 +92,35 @@ You can set up IntelliJ for CheckStyle. First install the CheckStyle IDEA plugin
 
 'Confluent Checks' will now be available in the CheckStyle tool window in the IDE and will auto-highlight issues in the code editor.
 
+#### Commit messages
+
+The project uses [Conventional Commits][https://www.conventionalcommits.org/en/v1.0.0-beta.4/] for commit messages
+in order to aid in automatic generation of changelogs. As described in the Conventional Commmits specification,
+commit messages should be of the form:
+
+    <type>[optional scope]: <description>
+
+    [optional body]
+
+    [optional footer]
+
+where the `type` is one of
+ * "fix": for bug fixes
+ * "feat": for new features
+ * "refactor": for refactors
+ * "test": for test-only changes
+ * "docs": for docs-only changes
+ * "revert": for reverting other changes
+ * "perf", "style", "build", "ci", or "chore": as described in the [Angular specification][https://github.com/angular/angular/blob/22b96b9/CONTRIBUTING.md#type] for Conventional Commits.
+
+The (optional) scope is a noun describing the section of the codebase affected by the change.
+Examples that could make sense for KSQL include "parser", "analyzer", "rest server", "testing tool",
+"cli", "processing log", and "metrics", to name a few.
+
+The optional body and footer are for specifying additional information, such as linking to issues fixed by the commit
+or drawing attention to breaking changes.
+Breaking changes must include a line starting with "BREAKING CHANGE: " followed by an explanation of what the breaking change was.
+
 ### GitHub Workflow
 
 1. Fork the `confluentinc/ksql` repository into your GitHub account: https://github.com/confluentinc/ksql/fork.
@@ -164,7 +193,8 @@ You can set up IntelliJ for CheckStyle. First install the CheckStyle IDEA plugin
 
    If you recently pushed your changes GitHub will automatically pop up a `Compare & pull request` button for any branches you recently pushed to. If you click that button it will automatically offer you to submit your pull-request to the `confluentinc/ksql` repository.
 
-   - Give your pull-request a meaningful title.
+   - Give your pull-request a meaningful title that conforms to the Conventional Commits specification
+     as described [above](#commit-messages) for commit messages.
    - In the description, explain your changes and the problem they are solving.
 
 9. Addressing code review comments

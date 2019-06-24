@@ -94,7 +94,7 @@ public class ExpressionTypeManagerTest {
     final String simpleQuery = "SELECT col1 > 10 FROM test1;";
     final Analysis analysis = analyzeQuery(simpleQuery, metaStore);
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Operator GREATER_THAN cannot be used to compare STRING and INT32");
+    expectedException.expectMessage("Operator GREATER_THAN cannot be used to compare STRING and INTEGER");
 
     // When:
     expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(0));

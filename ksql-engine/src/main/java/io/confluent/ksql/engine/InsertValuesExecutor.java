@@ -1,8 +1,8 @@
 /*
  * Copyright 2019 Confluent Inc.
  *
- * Licensed under the Confluent Community License (the "License"; you may not use
- * this file except in compliance with the License. You may obtain a copy of the
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
  * License at
  *
  * http://www.confluent.io/confluent-community-license
@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.rest.server.execution;
+package io.confluent.ksql.engine;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Streams;
@@ -30,7 +30,6 @@ import io.confluent.ksql.parser.tree.InsertValues;
 import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.parser.tree.Node;
 import io.confluent.ksql.parser.tree.NullLiteral;
-import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.schema.ksql.DefaultSqlValueCoercer;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
@@ -48,6 +47,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.function.LongSupplier;
 import java.util.stream.Collectors;
@@ -61,28 +61,54 @@ import org.apache.kafka.connect.data.Schema;
 
 public class InsertValuesExecutor {
 
-  private static final long MAX_SEND_TIMEOUT_SECONDS = 5;
+  private static final Duration MAX_SEND_TIMEOUT = Duration.ofSeconds(5);
 
   private final LongSupplier clock;
+  private final boolean canBeDisabledByConfig;
+  private final RecordProducer producer;
 
   public InsertValuesExecutor() {
-    this(System::currentTimeMillis);
+    this(true, InsertValuesExecutor::sendRecord);
+  }
+
+  public interface RecordProducer {
+
+    void sendRecord(
+        ProducerRecord<byte[], byte[]> record,
+        ServiceContext serviceContext,
+        Map<String, Object> producerProps
+    );
+  }
+
+  @VisibleForTesting
+  InsertValuesExecutor(
+      final boolean canBeDisabledByConfig,
+      final RecordProducer producer
+  ) {
+    this(producer, canBeDisabledByConfig, System::currentTimeMillis);
   }
 
   @VisibleForTesting
   InsertValuesExecutor(final LongSupplier clock) {
+    this(InsertValuesExecutor::sendRecord, true, clock);
+  }
+
+  private InsertValuesExecutor(
+      final RecordProducer producer,
+      final boolean canBeDisabledByConfig,
+      final LongSupplier clock
+  ) {
+    this.canBeDisabledByConfig = canBeDisabledByConfig;
+    this.producer = Objects.requireNonNull(producer, "producer");
     this.clock = Objects.requireNonNull(clock, "clock");
   }
 
-  public Optional<KsqlEntity> execute(
+  public void execute(
       final ConfiguredStatement<InsertValues> statement,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext
   ) {
-    if (!statement.getConfig().getBoolean(KsqlConfig.KSQL_INSERT_INTO_VALUES_ENABLED)) {
-      throw new KsqlException("The server has disabled INSERT INTO ... VALUES functionality. "
-          + "To enable it, restart your KSQL-server with 'ksql.insert.into.values.enabled'=true");
-    }
+    throwIfDisabled(statement.getConfig());
 
     final InsertValues insertValues = statement.getStatement();
     final DataSource<?> dataSource = executionContext
@@ -108,33 +134,29 @@ public class InsertValuesExecutor {
 
     final String topicName = dataSource.getKafkaTopicName();
 
-    // for now, just create a new producer each time
-    final Producer<byte[], byte[]> producer = serviceContext
-        .getKafkaClientSupplier()
-        .getProducer(config.getProducerClientConfigProps());
-
-    final Future<RecordMetadata> producerCallResult = producer.send(
-        new ProducerRecord<>(
-            topicName,
-            null,
-            row.ts,
-            key,
-            value
-        )
+    final ProducerRecord<byte[], byte[]> record = new ProducerRecord<>(
+        topicName,
+        null,
+        row.ts,
+        key,
+        value
     );
 
-    producer.close(Duration.ofSeconds(MAX_SEND_TIMEOUT_SECONDS));
-
     try {
-      // Check if the producer failed to write to the topic. This can happen if the
-      // ServiceContext does not have write permissions.
-      producerCallResult.get();
+      producer.sendRecord(record, serviceContext, config.getProducerClientConfigProps());
     } catch (final Exception e) {
       throw new KsqlException("Failed to insert values into stream/table: "
           + insertValues.getTarget().getSuffix(), e);
     }
+  }
 
-    return Optional.empty();
+  private void throwIfDisabled(final KsqlConfig config) {
+    final boolean isEnabled = config.getBoolean(KsqlConfig.KSQL_INSERT_INTO_VALUES_ENABLED);
+
+    if (canBeDisabledByConfig && !isEnabled) {
+      throw new KsqlException("The server has disabled INSERT INTO ... VALUES functionality. "
+          + "To enable it, restart your KSQL-server with 'ksql.insert.into.values.enabled'=true");
+    }
   }
 
   private RowData extractRow(
@@ -166,13 +188,13 @@ public class InsertValuesExecutor {
       final Map<String, Object> values
   ) {
     return new GenericRow(
-          schema.withoutImplicitAndKeyFieldsInValue()
-              .valueFields()
-              .stream()
-              .map(Field::name)
-              .map(values::get)
-              .collect(Collectors.toList())
-      );
+        schema.withoutImplicitAndKeyFieldsInValue()
+            .valueFields()
+            .stream()
+            .map(Field::name)
+            .map(values::get)
+            .collect(Collectors.toList())
+    );
   }
 
   @SuppressWarnings("UnstableApiUsage")
@@ -286,6 +308,38 @@ public class InsertValuesExecutor {
     }
   }
 
+  private static void sendRecord(
+      final ProducerRecord<byte[], byte[]> record,
+      final ServiceContext serviceContext,
+      final Map<String, Object> producerProps
+  ) {
+    // for now, just create a new producer each time
+    final Producer<byte[], byte[]> producer = serviceContext
+        .getKafkaClientSupplier()
+        .getProducer(producerProps);
+
+    final Future<RecordMetadata> producerCallResult;
+    try {
+      producerCallResult = producer.send(record);
+    } finally {
+      producer.close(MAX_SEND_TIMEOUT);
+    }
+
+    try {
+      // Check if the producer failed to write to the topic. This can happen if the
+      // ServiceContext does not have write permissions.
+      producerCallResult.get();
+    } catch (final ExecutionException e) {
+      if (e.getCause() instanceof RuntimeException) {
+        throw (RuntimeException) e.getCause();
+      }
+      throw new RuntimeException(e);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new RuntimeException(e);
+    }
+  }
+
   private static final class RowData {
 
     final long ts;
@@ -324,12 +378,11 @@ public class InsertValuesExecutor {
       }
 
       return defaultSqlValueCoercer.coerce(value, fieldSchema)
-          .orElseThrow(
-              () -> new KsqlException(
-                  "Expected type "
-                      + SchemaConverters.logicalToSqlConverter().toSqlType(fieldSchema)
-                      + " for field " + fieldName
-                      + " but got " + value));
+          .orElseThrow(() -> new KsqlException(
+              "Expected type "
+                  + SchemaConverters.logicalToSqlConverter().toSqlType(fieldSchema)
+                  + " for field " + fieldName
+                  + " but got " + value));
     }
   }
 }

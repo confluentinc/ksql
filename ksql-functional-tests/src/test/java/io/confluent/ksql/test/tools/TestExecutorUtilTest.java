@@ -94,5 +94,4 @@ public class TestExecutorUtilTest {
     assertThat(topologyTestDriverContainer.getSinkTopic().getName(), equalTo("S1"));
     assertThat(topologyTestDriverContainer.getTopologyTestDriver(), notNullValue());
   }
-
 }

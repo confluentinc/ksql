@@ -33,6 +33,7 @@ import io.confluent.ksql.parser.tree.BetweenPredicate;
 import io.confluent.ksql.parser.tree.BooleanLiteral;
 import io.confluent.ksql.parser.tree.Cast;
 import io.confluent.ksql.parser.tree.ComparisonExpression;
+import io.confluent.ksql.parser.tree.Decimal;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.DoubleLiteral;
 import io.confluent.ksql.parser.tree.Expression;
@@ -46,7 +47,6 @@ import io.confluent.ksql.parser.tree.LongLiteral;
 import io.confluent.ksql.parser.tree.Node;
 import io.confluent.ksql.parser.tree.NotExpression;
 import io.confluent.ksql.parser.tree.NullLiteral;
-import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.parser.tree.SearchedCaseExpression;
@@ -56,11 +56,13 @@ import io.confluent.ksql.parser.tree.Type;
 import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
+import io.confluent.ksql.schema.ksql.SqlType;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.ExpressionTypeManager;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.SchemaUtil;
+import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
 import java.util.ArrayList;
@@ -87,6 +89,8 @@ public class SqlToJavaVisitor {
       "java.util.ArrayList",
       "com.google.common.collect.ImmutableList",
       "java.util.function.Supplier",
+      DecimalUtil.class.getCanonicalName(),
+      BigDecimal.class.getCanonicalName(),
       MathContext.class.getCanonicalName(),
       RoundingMode.class.getCanonicalName());
 
@@ -97,6 +101,17 @@ public class SqlToJavaVisitor {
       .put(Operator.MULTIPLY, "multiply")
       .put(Operator.DIVIDE, "divide")
       .put(Operator.MODULUS, "remainder")
+      .build();
+
+  private static final Map<ComparisonExpression.Type, String> SQL_COMPARE_TO_JAVA = ImmutableMap
+      .<ComparisonExpression.Type, String>builder()
+      .put(ComparisonExpression.Type.EQUAL, "==")
+      .put(ComparisonExpression.Type.NOT_EQUAL, "!=")
+      .put(ComparisonExpression.Type.IS_DISTINCT_FROM, "!=")
+      .put(ComparisonExpression.Type.GREATER_THAN_OR_EQUAL, ">=")
+      .put(ComparisonExpression.Type.GREATER_THAN, ">")
+      .put(ComparisonExpression.Type.LESS_THAN_OR_EQUAL, "<=")
+      .put(ComparisonExpression.Type.LESS_THAN, "<")
       .build();
 
   private final LogicalSchema schema;
@@ -334,6 +349,31 @@ public class SqlToJavaVisitor {
       }
     }
 
+    private String visitBytesComparisonExpression(
+        final ComparisonExpression.Type type,
+        final Schema left,
+        final Schema right
+    ) {
+      final String comparator = SQL_COMPARE_TO_JAVA.get(type);
+      if (comparator == null) {
+        throw new KsqlException("Unexpected scalar comparison: " + type.getValue());
+      }
+
+      return String.format(
+          "(%s.compareTo(%s) %s 0)",
+          toDecimal(left, 1),
+          toDecimal(right, 2),
+          comparator);
+    }
+
+    private String toDecimal(final Schema schema, final int index) {
+      if (DecimalUtil.isDecimal(schema)) {
+        return "%" + index + "$s";
+      }
+
+      return "new BigDecimal(%" + index + "$s)";
+    }
+
     private String visitBooleanComparisonExpression(final ComparisonExpression.Type type) {
       switch (type) {
         case EQUAL:
@@ -355,20 +395,26 @@ public class SqlToJavaVisitor {
       final Pair<String, Schema> right = process(node.getRight(), context);
 
       String exprFormat = nullCheckPrefix(node.getType());
-      switch (left.getRight().type()) {
-        case STRING:
-          exprFormat += visitStringComparisonExpression(node.getType());
-          break;
-        case MAP:
-          throw new KsqlException("Cannot compare MAP values");
-        case ARRAY:
-          throw new KsqlException("Cannot compare ARRAY values");
-        case BOOLEAN:
-          exprFormat += visitBooleanComparisonExpression(node.getType());
-          break;
-        default:
-          exprFormat += visitScalarComparisonExpression(node.getType());
-          break;
+
+      if (DecimalUtil.isDecimal(left.getRight()) || DecimalUtil.isDecimal(right.getRight())) {
+        exprFormat += visitBytesComparisonExpression(
+            node.getType(), left.getRight(), right.getRight());
+      } else {
+        switch (left.getRight().type()) {
+          case STRING:
+            exprFormat += visitStringComparisonExpression(node.getType());
+            break;
+          case MAP:
+            throw new KsqlException("Cannot compare MAP values");
+          case ARRAY:
+            throw new KsqlException("Cannot compare ARRAY values");
+          case BOOLEAN:
+            exprFormat += visitBooleanComparisonExpression(node.getType());
+            break;
+          default:
+            exprFormat += visitScalarComparisonExpression(node.getType());
+            break;
+        }
       }
       final String expr = "(" + String.format(exprFormat, left.getLeft(), right.getLeft()) + ")";
       return new Pair<>(expr, Schema.OPTIONAL_BOOLEAN_SCHEMA);
@@ -377,57 +423,7 @@ public class SqlToJavaVisitor {
     @Override
     protected Pair<String, Schema> visitCast(final Cast node, final Void context) {
       final Pair<String, Schema> expr = process(node.getExpression(), context);
-      final Type sqlType = node.getType();
-      if (!(sqlType instanceof PrimitiveType)) {
-        throw new KsqlFunctionException("Only casts to primitive types are supported: " + sqlType);
-      }
-
-      final Schema returnType = SchemaConverters.sqlToLogicalConverter().fromSqlType(sqlType);
-      final Schema rightSchema = expr.getRight();
-      if (returnType.equals(rightSchema) || rightSchema == null) {
-        return new Pair<>(expr.getLeft(), returnType);
-      }
-
-      switch (sqlType.getSqlType()) {
-
-        case STRING:
-          return new Pair<>("String.valueOf(" + expr.getLeft() + ")", returnType);
-
-        case BOOLEAN:
-          return new Pair<>(getCastToBooleanString(rightSchema, expr.getLeft()), returnType);
-
-        case INTEGER: {
-          final String exprStr = getCastString(
-              rightSchema,
-              expr.getLeft(),
-              "intValue",
-              "Integer.parseInt"
-          );
-          return new Pair<>(exprStr, returnType);
-        }
-
-        case BIGINT: {
-          final String exprStr = getCastString(
-              rightSchema, expr.getLeft(),
-              "longValue",
-              "Long.parseLong"
-          );
-          return new Pair<>(exprStr, returnType);
-        }
-
-        case DOUBLE: {
-          final String exprStr = getCastString(
-              rightSchema,
-              expr.getLeft(),
-              "doubleValue",
-              "Double.parseDouble"
-          );
-          return new Pair<>(exprStr, returnType);
-        }
-
-        default:
-          throw new KsqlFunctionException("Invalid cast operation: " + sqlType);
-      }
+      return CastVisitor.getCast(expr, node.getType());
     }
 
     @Override
@@ -455,14 +451,41 @@ public class SqlToJavaVisitor {
     ) {
       final Pair<String, Schema> value = process(node.getValue(), context);
       switch (node.getSign()) {
-        case MINUS:
-          // this is to avoid turning a sequence of "-" into a comment (i.e., "-- comment")
-          final String separator = value.getLeft().startsWith("-") ? " " : "";
-          return new Pair<>("-" + separator + value.getLeft(), value.getRight());
-        case PLUS:
-          return new Pair<>("+" + value.getLeft(), value.getRight());
-        default:
-          throw new UnsupportedOperationException("Unsupported sign: " + node.getSign());
+        case MINUS: return visitArithmeticMinus(value);
+        case PLUS:  return visitArithmeticPlus(value);
+        default:    throw new UnsupportedOperationException("Unsupported sign: " + node.getSign());
+      }
+    }
+
+    private Pair<String, Schema> visitArithmeticMinus(
+        final Pair<String, Schema> value) {
+      if (DecimalUtil.isDecimal(value.getRight())) {
+        return new Pair<>(
+            String.format(
+                "(%s.negate(new MathContext(%d, RoundingMode.UNNECESSARY)))",
+                value.getLeft(),
+                DecimalUtil.precision(value.getRight())),
+            value.getRight()
+        );
+      } else {
+        // this is to avoid turning a sequence of "-" into a comment (i.e., "-- comment")
+        final String separator = value.getLeft().startsWith("-") ? " " : "";
+        return new Pair<>("-" + separator + value.getLeft(), value.getRight());
+      }
+    }
+
+    private Pair<String, Schema> visitArithmeticPlus(
+        final Pair<String, Schema> value) {
+      if (DecimalUtil.isDecimal(value.getRight())) {
+        return new Pair<>(
+            String.format(
+                "(%s.plus(new MathContext(%d, RoundingMode.UNNECESSARY)))",
+                value.getLeft(),
+                DecimalUtil.precision(value.getRight())),
+            value.getRight()
+        );
+      } else {
+        return new Pair<>("+" + value.getLeft(), value.getRight());
       }
     }
 
@@ -694,8 +717,121 @@ public class SqlToJavaVisitor {
     private String trimQuotes(final String s) {
       return s.substring(1, s.length() - 1);
     }
+  }
 
-    private String getCastToBooleanString(final Schema schema, final String exprStr) {
+  private static final class CastVisitor {
+
+    private static final Map<SqlType, CastVisitor.CastFunction> CASTERS = ImmutableMap
+        .<SqlType, CastVisitor.CastFunction>builder()
+        .put(SqlType.STRING, CastVisitor::castString)
+        .put(SqlType.BOOLEAN, CastVisitor::castBoolean)
+        .put(SqlType.INTEGER, CastVisitor::castInteger)
+        .put(SqlType.BIGINT, CastVisitor::castLong)
+        .put(SqlType.DOUBLE, CastVisitor::castDouble)
+        .put(SqlType.DECIMAL, CastVisitor::castDecimal)
+        .build();
+
+    private CastVisitor() {
+    }
+
+    static Pair<String, Schema> getCast(
+        final Pair<String, Schema> expr,
+        final Type type) {
+      if (!type.supportsCast()) {
+        throw new KsqlFunctionException(
+            "Only casts to primitive types and decimal are supported: " + type);
+      }
+
+      final Schema returnType = SchemaConverters.sqlToLogicalConverter().fromSqlType(type);
+      final Schema rightSchema = expr.getRight();
+      if (returnType.equals(rightSchema) || rightSchema == null) {
+        return new Pair<>(expr.getLeft(), returnType);
+      }
+
+      return CASTERS.getOrDefault(
+          type.getSqlType(),
+          (e, t, r) -> {
+            throw new KsqlException("Invalid cast operation: " + t);
+          })
+          .cast(expr, type, returnType);
+    }
+
+    private static Pair<String, Schema> castString(
+        final Pair<String, Schema> expr,
+        final Type type,
+        final Schema returnType) {
+      final Schema schema = expr.getRight();
+      final String exprStr;
+      if (DecimalUtil.isDecimal(schema)) {
+        final int precision = DecimalUtil.precision(schema);
+        final int scale = DecimalUtil.scale(schema);
+        exprStr = String.format("DecimalUtil.format(%d, %d, %s)", precision, scale, expr.getLeft());
+      } else {
+        exprStr = "String.valueOf(" + expr.getLeft() + ")";
+      }
+      return new Pair<>(exprStr, returnType);
+    }
+
+    private static Pair<String, Schema> castBoolean(
+        final Pair<String, Schema> expr,
+        final Type type,
+        final Schema returnType) {
+      return new Pair<>(getCastToBooleanString(expr.getRight(), expr.getLeft()), returnType);
+    }
+
+    private static Pair<String, Schema> castInteger(
+        final Pair<String, Schema> expr,
+        final Type type,
+        final Schema returnType) {
+      final String exprStr = getCastString(
+          expr.getRight(),
+          expr.getLeft(),
+          "intValue()",
+          "Integer.parseInt"
+      );
+      return new Pair<>(exprStr, returnType);
+    }
+
+    private static Pair<String, Schema> castLong(
+        final Pair<String, Schema> expr,
+        final Type type,
+        final Schema returnType) {
+      final String exprStr = getCastString(
+          expr.getRight(),
+          expr.getLeft(),
+          "longValue()",
+          "Long.parseLong"
+      );
+      return new Pair<>(exprStr, returnType);
+    }
+
+    private static Pair<String, Schema> castDouble(
+        final Pair<String, Schema> expr,
+        final Type type,
+        final Schema returnType) {
+      final String exprStr = getCastString(
+          expr.getRight(),
+          expr.getLeft(),
+          "doubleValue()",
+          "Double.parseDouble"
+      );
+      return new Pair<>(exprStr, returnType);
+    }
+
+    private static Pair<String, Schema> castDecimal(
+        final Pair<String, Schema> expr,
+        final Type type,
+        final Schema returnType) {
+      if (!(type instanceof Decimal)) {
+        throw new KsqlException("Expected decimal type: " + type);
+      }
+
+      return new Pair<>(
+          getDecimalCastString(expr.getRight(), expr.getLeft(), (Decimal) type),
+          returnType);
+    }
+
+    private static String getCastToBooleanString(final Schema schema, final String exprStr) {
       if (schema.type() == Schema.Type.STRING) {
         return "Boolean.parseBoolean(" + exprStr + ")";
       } else {
@@ -704,19 +840,23 @@ public class SqlToJavaVisitor {
       }
     }
 
-    private String getCastString(
+    private static String getCastString(
         final Schema schema,
         final String exprStr,
         final String javaTypeMethod,
         final String javaStringParserMethod
     ) {
+      if (DecimalUtil.isDecimal(schema)) {
+        return "((" + exprStr + ")." + javaTypeMethod + ")";
+      }
+
       switch (schema.type()) {
         case INT32:
-          return "(new Integer(" + exprStr + ")." + javaTypeMethod + "())";
+          return "(new Integer(" + exprStr + ")." + javaTypeMethod + ")";
         case INT64:
-          return "(new Long(" + exprStr + ")." + javaTypeMethod + "())";
+          return "(new Long(" + exprStr + ")." + javaTypeMethod + ")";
         case FLOAT64:
-          return "(new Double(" + exprStr + ")." + javaTypeMethod + "())";
+          return "(new Double(" + exprStr + ")." + javaTypeMethod + ")";
         case STRING:
           return javaStringParserMethod + "(" + exprStr + ")";
 
@@ -725,6 +865,40 @@ public class SqlToJavaVisitor {
               "Invalid cast operation: Cannot cast " + exprStr + " to " + schema.type() + "."
           );
       }
+    }
+
+    private static String getDecimalCastString(
+        final Schema schema,
+        final String exprStr,
+        final Decimal target
+    ) {
+
+      switch (schema.type()) {
+        case INT32:
+        case INT64:
+        case FLOAT64:
+        case STRING:
+        case BYTES:
+          return String.format(
+              "(DecimalUtil.cast(%s, %d, %d))",
+              exprStr,
+              target.getPrecision(),
+              target.getScale());
+        default:
+          throw new KsqlFunctionException(
+              "Invalid cast operation: Cannot cast " + exprStr
+                  + " to " + SchemaConverters.logicalToSqlConverter().toSqlType(schema));
+      }
+    }
+
+    @FunctionalInterface
+    private interface CastFunction {
+
+      Pair<String, Schema> cast(
+          Pair<String, Schema> expr,
+          Type type,
+          Schema returnType
+      );
     }
   }
 

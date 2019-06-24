@@ -18,18 +18,15 @@ package io.confluent.ksql.function.udaf.topkdistinct;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.function.AggregateFunctionFactory;
 import io.confluent.ksql.function.KsqlAggregateFunction;
+import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlException;
-import java.util.Arrays;
-import java.util.HashMap;
+import io.confluent.ksql.util.SchemaUtil;
 import java.util.List;
-import java.util.Map;
 import org.apache.kafka.connect.data.Schema;
 
 public class TopkDistinctAggFunctionFactory extends AggregateFunctionFactory {
 
   private static final String NAME = "TOPKDISTINCT";
-  private final Map<Schema.Type, KsqlAggregateFunction<?, ?>> functions = new HashMap<>();
-
 
   private static final List<List<Schema>> SUPPORTED_TYPES = ImmutableList
       .<List<Schema>>builder()
@@ -37,40 +34,34 @@ public class TopkDistinctAggFunctionFactory extends AggregateFunctionFactory {
       .add(ImmutableList.of(Schema.OPTIONAL_INT64_SCHEMA))
       .add(ImmutableList.of(Schema.OPTIONAL_FLOAT64_SCHEMA))
       .add(ImmutableList.of(Schema.OPTIONAL_STRING_SCHEMA))
+      .add(ImmutableList.of(DecimalUtil.builder(1, 1)))
       .build();
 
   public TopkDistinctAggFunctionFactory() {
     super(NAME);
-    for (KsqlAggregateFunction<?, ?> func : createDescriptionFunctions()) {
-      functions.put(((TopkDistinctKudaf) func).getOutputSchema().type(), func);
-    }
   }
 
-  private static List<KsqlAggregateFunction<?, ?>> createDescriptionFunctions() {
-    return Arrays.asList(
-        new TopkDistinctKudaf<>(NAME, -1, 0, Schema.OPTIONAL_INT32_SCHEMA,
-            Integer.class),
-        new TopkDistinctKudaf<>(NAME, -1, 0, Schema.OPTIONAL_INT64_SCHEMA,
-            Long.class),
-        new TopkDistinctKudaf<>(NAME, -1, 0, Schema.OPTIONAL_FLOAT64_SCHEMA,
-            Double.class),
-        new TopkDistinctKudaf<>(NAME, -1, 0, Schema.OPTIONAL_STRING_SCHEMA,
-            String.class)
-    );
-  }
-
+  @SuppressWarnings("unchecked")
   @Override
   public KsqlAggregateFunction getProperAggregateFunction(final List<Schema> argTypeList) {
     if (argTypeList.isEmpty()) {
       throw new KsqlException("TOPKDISTINCT function should have two arguments.");
     }
 
-    final KsqlAggregateFunction<?, ?> function = functions.get(argTypeList.get(0).type());
-    if (function == null) {
-      throw new KsqlException("No TOPKDISTINCT aggregate function with " + argTypeList.get(0)
-          + " argument type exists!");
+    final Schema argSchema = argTypeList.get(0);
+    switch (argSchema.type()) {
+      case INT32:
+      case INT64:
+      case FLOAT64:
+      case STRING:
+        return new TopkDistinctKudaf(NAME, 0, -1, argSchema, SchemaUtil.getJavaType(argSchema));
+      case BYTES:
+        DecimalUtil.requireDecimal(argSchema);
+        return new TopkDistinctKudaf(NAME, 0, -1, argSchema, SchemaUtil.getJavaType(argSchema));
+      default:
+        throw new KsqlException("No TOPKDISTINCT aggregate function with " + argTypeList.get(0)
+            + " argument type exists!");
     }
-    return function;
   }
 
   @Override

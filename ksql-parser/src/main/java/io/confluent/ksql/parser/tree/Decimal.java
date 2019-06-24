@@ -72,4 +72,9 @@ public final class Decimal extends Type {
   public int hashCode() {
     return Objects.hash(precision, scale);
   }
+
+  @Override
+  public boolean supportsCast() {
+    return true;
+  }
 }

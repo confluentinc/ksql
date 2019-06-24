@@ -17,6 +17,7 @@ package io.confluent.ksql.function;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.function.udf.UdfMetadata;
+import io.confluent.ksql.util.DecimalUtil;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
@@ -33,6 +34,7 @@ public abstract class AggregateFunctionFactory {
       .add(ImmutableList.of(Schema.OPTIONAL_INT32_SCHEMA))
       .add(ImmutableList.of(Schema.OPTIONAL_INT64_SCHEMA))
       .add(ImmutableList.of(Schema.OPTIONAL_FLOAT64_SCHEMA))
+      .add(ImmutableList.of(DecimalUtil.builder(1, 1).build()))
       .build();
 
   public AggregateFunctionFactory(final String functionName) {

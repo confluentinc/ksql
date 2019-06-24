@@ -46,10 +46,6 @@ public final class SchemaUtil {
 
   private static final String DEFAULT_NAMESPACE = "ksql";
 
-  public static final String ARRAY = "ARRAY";
-  public static final String MAP = "MAP";
-  public static final String STRUCT = "STRUCT";
-
   public static final String ROWKEY_NAME = "ROWKEY";
   public static final String ROWTIME_NAME = "ROWTIME";
 
@@ -339,6 +335,10 @@ public final class SchemaUtil {
 
   public static boolean isNumber(final Schema.Type type) {
     return ARITHMETIC_TYPES.contains(type);
+  }
+
+  public static boolean isNumber(final Schema schema) {
+    return isNumber(schema.type()) || DecimalUtil.isDecimal(schema);
   }
 
   public static Schema ensureOptional(final Schema schema) {

@@ -158,6 +158,7 @@ public class Console implements Closeable {
   private final KsqlTerminal terminal;
   private final RowCaptor rowCaptor;
   private OutputFormat outputFormat;
+  private Optional<File> spoolFile = Optional.empty();
 
 
   public interface RowCaptor {
@@ -211,6 +212,9 @@ public class Console implements Closeable {
   public void setSpool(final File file) {
     try {
       terminal.setSpool(new PrintWriter(file, Charset.defaultCharset().name()));
+      spoolFile = Optional.of(file);
+      terminal.writer().println("Session will be spooled to " + file.getAbsolutePath());
+      terminal.writer().println("Enter SPOOL OFF to disable");
     } catch (IOException e) {
       throw new KsqlException("Cannot SPOOL to file: " + file, e);
     }
@@ -218,6 +222,8 @@ public class Console implements Closeable {
 
   public void unsetSpool() {
     terminal.unsetSpool();
+    spoolFile.ifPresent(f -> terminal.writer().println("Spool written to " + f.getAbsolutePath()));
+    spoolFile = Optional.empty();
   }
 
   public int getWidth() {

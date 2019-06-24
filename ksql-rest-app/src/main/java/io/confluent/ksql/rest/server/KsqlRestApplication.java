@@ -262,12 +262,6 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
   @Override
   public void stop() {
     try {
-      super.stop();
-    } catch (final Exception e) {
-      log.error("Exception while stopping rest server", e);
-    }
-
-    try {
       ksqlEngine.close();
     } catch (final Exception e) {
       log.error("Exception while waiting for Ksql Engine to close", e);
@@ -289,6 +283,12 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
       securityExtension.close();
     } catch (final Exception e) {
       log.error("Exception while closing security extension", e);
+    }
+
+    try {
+      super.stop();
+    } catch (final Exception e) {
+      log.error("Exception while stopping rest server", e);
     }
   }
 

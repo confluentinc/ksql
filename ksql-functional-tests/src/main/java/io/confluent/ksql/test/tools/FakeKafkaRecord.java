@@ -69,7 +69,7 @@ public final class FakeKafkaRecord {
     return null;
   }
 
-  Record getTestRecord() {
+  public Record getTestRecord() {
     return testRecord;
   }
 

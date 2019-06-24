@@ -17,13 +17,13 @@ package io.confluent.ksql.rest.server.execution;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext;
+import io.confluent.ksql.engine.InsertValuesExecutor;
 import io.confluent.ksql.parser.tree.DescribeFunction;
 import io.confluent.ksql.parser.tree.Explain;
 import io.confluent.ksql.parser.tree.InsertValues;
 import io.confluent.ksql.parser.tree.ListFunctions;
 import io.confluent.ksql.parser.tree.ListProperties;
 import io.confluent.ksql.parser.tree.ListQueries;
-import io.confluent.ksql.parser.tree.ListRegisteredTopics;
 import io.confluent.ksql.parser.tree.ListStreams;
 import io.confluent.ksql.parser.tree.ListTables;
 import io.confluent.ksql.parser.tree.ListTopics;
@@ -50,7 +50,6 @@ import java.util.stream.Collectors;
 public enum CustomExecutors {
 
   LIST_TOPICS(ListTopics.class, ListTopicsExecutor::execute),
-  LIST_REGISTERED_TOPICS(ListRegisteredTopics.class, ListRegisteredTopicsExecutor::execute),
   LIST_STREAMS(ListStreams.class, ListSourceExecutor::streams),
   LIST_TABLES(ListTables.class, ListSourceExecutor::tables),
   LIST_FUNCTIONS(ListFunctions.class, ListFunctionsExecutor::execute),
@@ -62,7 +61,7 @@ public enum CustomExecutors {
   DESCRIBE_FUNCTION(DescribeFunction.class, DescribeFunctionExecutor::execute),
   SET_PROPERTY(SetProperty.class, PropertyExecutor::set),
   UNSET_PROPERTY(UnsetProperty.class, PropertyExecutor::unset),
-  INSERT_VALUES(InsertValues.class, new InsertValuesExecutor()::execute);
+  INSERT_VALUES(InsertValues.class, insertValuesExecutor());
 
   public static final Map<Class<? extends Statement>, StatementExecutor<?>> EXECUTOR_MAP =
       ImmutableMap.copyOf(
@@ -96,5 +95,14 @@ public enum CustomExecutors {
       final KsqlExecutionContext executionCtx,
       final ServiceContext serviceCtx) {
     return executor.execute(statement, executionCtx, serviceCtx);
+  }
+
+  private static StatementExecutor insertValuesExecutor() {
+    final InsertValuesExecutor executor = new InsertValuesExecutor();
+
+    return (statement, executionContext, serviceContext) -> {
+      executor.execute(statement, executionContext, serviceContext);
+      return Optional.empty();
+    };
   }
 }

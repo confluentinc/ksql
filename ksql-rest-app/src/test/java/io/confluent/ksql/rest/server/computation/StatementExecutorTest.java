@@ -27,10 +27,8 @@ import static org.easymock.EasyMock.verify;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.notNullValue;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -150,37 +148,6 @@ public class StatementExecutorTest extends EasyMockSupport {
   }
 
   @Test
-  public void shouldHandleCorrectDDLStatement() {
-    final Command command = new Command("REGISTER TOPIC users_topic "
-        + "WITH (value_format = 'json', kafka_topic='user_topic_json');",
-        emptyMap(), ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
-    final CommandId commandId =  new CommandId(CommandId.Type.TOPIC,
-        "_CorrectTopicGen",
-        CommandId.Action.CREATE);
-    handleStatement(command, commandId, Optional.empty());
-    final Map<CommandId, CommandStatus> statusStore = statementExecutor.getStatuses();
-    Assert.assertNotNull(statusStore);
-    Assert.assertEquals(statusStore.size(), 1);
-    Assert.assertEquals(statusStore.get(commandId).getStatus(), CommandStatus.Status.SUCCESS);
-
-  }
-
-  @Test
-  public void shouldHandleIncorrectDDLStatement() {
-    final Command command = new Command("REGIST ER TOPIC users_topic "
-        + "WITH (value_format = 'json', kafka_topic='user_topic_json');",
-        emptyMap(), ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
-    final CommandId commandId =  new CommandId(CommandId.Type.TOPIC,
-        "_IncorrectTopicGen",
-        CommandId.Action.CREATE);
-    handleStatement(command, commandId, Optional.empty());
-    final Map<CommandId, CommandStatus> statusStore = statementExecutor.getStatuses();
-    Assert.assertNotNull(statusStore);
-    Assert.assertEquals(statusStore.size(), 1);
-    Assert.assertEquals(statusStore.get(commandId).getStatus(), CommandStatus.Status.ERROR);
-  }
-
-  @Test
   public void shouldThrowOnUnexpectedException() {
     // Given:
     final String statementText = "mama said knock you out";
@@ -264,75 +231,6 @@ public class StatementExecutorTest extends EasyMockSupport {
     handleStatement(statementExecutor, csasCommand, csasCommandId, Optional.empty());
 
     verify(mockParser, mockEngine, mockMetaStore, mockQueryMetadata);
-  }
-
-  @Test
-  public void shouldHandleCSAS_CTASStatement() {
-
-    final Command topicCommand = new Command("REGISTER TOPIC pageview_topic WITH "
-        + "(value_format = 'json', "
-        + "kafka_topic='pageview_topic_json');", emptyMap(),
-        ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
-    final CommandId topicCommandId =  new CommandId(CommandId.Type.TOPIC,
-        "_CSASTopicGen",
-        CommandId.Action.CREATE);
-    handleStatement(topicCommand, topicCommandId, Optional.empty());
-
-    final Command csCommand = new Command("CREATE STREAM pageview "
-        + "(viewtime bigint, pageid varchar, userid varchar) "
-        + "WITH (kafka_topic='pageview_topic_json', value_format='json', registered_topic = 'pageview_topic');",
-        emptyMap(),
-        ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
-    final CommandId csCommandId =  new CommandId(CommandId.Type.STREAM,
-        "_CSASStreamGen",
-        CommandId.Action.CREATE);
-    handleStatement(csCommand, csCommandId, Optional.empty());
-
-    final Command csasCommand = new Command("CREATE STREAM user1pv "
-        + " AS select * from pageview WHERE userid = 'user1';",
-        emptyMap(),
-        ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
-
-    final CommandId csasCommandId =  new CommandId(CommandId.Type.STREAM,
-        "_CSASGen",
-        CommandId.Action.CREATE);
-    handleStatement(csasCommand, csasCommandId, Optional.empty());
-
-    final Command badCtasCommand = new Command("CREATE TABLE user1pvtb "
-        + " AS select * from pageview window tumbling(size 5 "
-        + "second) WHERE userid = "
-        + "'user1' group by pageid;",
-        emptyMap(),
-        ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
-
-    final CommandId ctasCommandId =  new CommandId(CommandId.Type.TABLE,
-        "_CTASGen",
-        CommandId.Action.CREATE);
-
-    handleStatement(badCtasCommand, ctasCommandId, Optional.empty());
-
-    final Command terminateCommand = new Command(
-        "TERMINATE CSAS_USER1PV_0;",
-        emptyMap(),
-        ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
-
-    final CommandId terminateCmdId =  new CommandId(CommandId.Type.TABLE,
-        "_TerminateGen",
-        CommandId.Action.CREATE);
-    handleStatement(terminateCommand, terminateCmdId, Optional.empty());
-
-    final Map<CommandId, CommandStatus> statusStore = statementExecutor.getStatuses();
-    assertThat(statusStore, is(notNullValue()));
-    assertThat(statusStore.keySet(),
-        containsInAnyOrder(topicCommandId, csCommandId, csasCommandId, ctasCommandId, terminateCmdId));
-
-    assertThat(statusStore.get(topicCommandId).getStatus(), equalTo(CommandStatus.Status.SUCCESS));
-    assertThat(statusStore.get(csCommandId).getStatus(), equalTo(CommandStatus.Status.SUCCESS));
-    assertThat(statusStore.get(csasCommandId).getStatus(), equalTo(CommandStatus.Status.SUCCESS));
-    assertThat(statusStore.get(csasCommandId).getMessage(),
-        equalTo("Stream created and running. Created by query with query ID: CSAS_USER1PV_0"));
-    assertThat(statusStore.get(ctasCommandId).getStatus(), equalTo(CommandStatus.Status.ERROR));
-    assertThat(statusStore.get(terminateCmdId).getStatus(), equalTo(CommandStatus.Status.SUCCESS));
   }
 
   private static class StatusMatcher implements IArgumentMatcher {
@@ -420,9 +318,6 @@ public class StatementExecutorTest extends EasyMockSupport {
   public void shouldHandlePriorStatements() {
     final TestUtils testUtils = new TestUtils();
     final List<Pair<CommandId, Command>> priorCommands = testUtils.getAllPriorCommandRecords();
-    final CommandId topicCommandId =  new CommandId(CommandId.Type.TOPIC,
-        "_CSASTopicGen",
-        CommandId.Action.CREATE);
     final CommandId csCommandId =  new CommandId(CommandId.Type.STREAM,
         "_CSASStreamGen",
         CommandId.Action.CREATE);
@@ -441,8 +336,7 @@ public class StatementExecutorTest extends EasyMockSupport {
 
     final Map<CommandId, CommandStatus> statusStore = statementExecutor.getStatuses();
     Assert.assertNotNull(statusStore);
-    Assert.assertEquals(4, statusStore.size());
-    Assert.assertEquals(CommandStatus.Status.SUCCESS, statusStore.get(topicCommandId).getStatus());
+    Assert.assertEquals(3, statusStore.size());
     Assert.assertEquals(CommandStatus.Status.SUCCESS, statusStore.get(csCommandId).getStatus());
     Assert.assertEquals(CommandStatus.Status.SUCCESS, statusStore.get(csasCommandId).getStatus());
     Assert.assertEquals(CommandStatus.Status.ERROR, statusStore.get(ctasCommandId).getStatus());

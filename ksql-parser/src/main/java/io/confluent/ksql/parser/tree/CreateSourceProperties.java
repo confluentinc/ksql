@@ -47,7 +47,6 @@ public final class CreateSourceProperties {
       .add(DdlConfig.KEY_NAME_PROPERTY.toUpperCase())
       .add(DdlConfig.WINDOW_TYPE_PROPERTY.toUpperCase())
       .add(DdlConfig.TIMESTAMP_NAME_PROPERTY.toUpperCase())
-      .add(DdlConfig.TOPIC_NAME_PROPERTY.toUpperCase())
       .add(KsqlConstants.AVRO_SCHEMA_ID.toUpperCase())
       .add(DdlConfig.TIMESTAMP_FORMAT_PROPERTY.toUpperCase())
       .add(DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME.toUpperCase())
@@ -69,7 +68,6 @@ public final class CreateSourceProperties {
 
   // optional
   private final Property<String> key;
-  private final Property<String> ksqlTopic;
   private final Property<String> windowType;
   private final Property<String> timestampName;
   private final Property<String> timestampFormat;
@@ -109,7 +107,6 @@ public final class CreateSourceProperties {
     }
 
     key = Property.from(DdlConfig.KEY_NAME_PROPERTY, properties);
-    ksqlTopic = Property.from(DdlConfig.TOPIC_NAME_PROPERTY, properties);
     timestampName = Property.from(
         DdlConfig.TIMESTAMP_NAME_PROPERTY,
         properties,
@@ -159,7 +156,6 @@ public final class CreateSourceProperties {
         .add(valueFormat)
         .add(kafkaTopic)
         .add(key)
-        .add(ksqlTopic)
         .add(timestampName)
         .add(timestampFormat)
         .add(windowType)
@@ -176,7 +172,6 @@ public final class CreateSourceProperties {
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   private CreateSourceProperties(
-      final Property<String> ksqlTopic,
       final Property<String> timestampName,
       final Property<String> windowType,
       final Property<String> key,
@@ -193,7 +188,6 @@ public final class CreateSourceProperties {
     this.valueFormat = Objects.requireNonNull(valueFormat, "valueFormat");
     this.kafkaTopic = Objects.requireNonNull(kafkaTopic, "kafkaTopic");
     this.key = Objects.requireNonNull(key, "key");
-    this.ksqlTopic = Objects.requireNonNull(ksqlTopic, "ksqlTopic");
     this.timestampName = Objects.requireNonNull(timestampName, "timestampName");
     this.timestampFormat = Objects.requireNonNull(timestampFormat, "timestampFormat");
     this.windowType = Objects.requireNonNull(windowType, "windowType");
@@ -224,10 +218,6 @@ public final class CreateSourceProperties {
     return Optional.ofNullable(timestampName.value);
   }
 
-  public Optional<String> getKsqlTopic() {
-    return Optional.ofNullable(ksqlTopic.value);
-  }
-
   public Optional<Integer> getAvroSchemaId() {
     return Optional.ofNullable(avroSchemaId.value);
   }
@@ -254,7 +244,6 @@ public final class CreateSourceProperties {
 
   public CreateSourceProperties withSchemaId(final int id) {
     return new CreateSourceProperties(
-        ksqlTopic,
         timestampName,
         windowType,
         key,
@@ -277,7 +266,6 @@ public final class CreateSourceProperties {
       final short replicas
   ) {
     return new CreateSourceProperties(
-        ksqlTopic,
         timestampName,
         windowType,
         key,
@@ -312,7 +300,6 @@ public final class CreateSourceProperties {
     return Objects.equals(kafkaTopic, that.kafkaTopic)
         && Objects.equals(valueFormat, that.valueFormat)
         && Objects.equals(key, that.key)
-        && Objects.equals(ksqlTopic, that.ksqlTopic)
         && Objects.equals(windowType, that.windowType)
         && Objects.equals(timestampName, that.timestampName)
         && Objects.equals(timestampFormat, that.timestampFormat)
@@ -329,7 +316,6 @@ public final class CreateSourceProperties {
         kafkaTopic,
         valueFormat,
         key,
-        ksqlTopic,
         windowType,
         timestampName,
         timestampFormat,

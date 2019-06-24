@@ -22,9 +22,7 @@ import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
-import io.confluent.ksql.parser.tree.DropTopic;
 import io.confluent.ksql.parser.tree.InsertInto;
-import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.rest.server.computation.CommandId.Action;
@@ -40,8 +38,6 @@ public class CommandIdAssigner {
 
   private static final Map<Class<? extends Statement>, CommandIdSupplier> SUPPLIERS =
       ImmutableMap.<Class<? extends Statement>, CommandIdSupplier>builder()
-          .put(RegisterTopic.class,
-            command -> getTopicCommandId((RegisterTopic) command))
           .put(CreateStream.class,
             command -> getTopicStreamCommandId((CreateStream) command))
           .put(CreateTable.class,
@@ -54,8 +50,6 @@ public class CommandIdAssigner {
             command -> getInsertIntoCommandId((InsertInto) command))
           .put(TerminateQuery.class,
             command -> getTerminateCommandId((TerminateQuery) command))
-          .put(DropTopic.class,
-            command -> getDropTopicCommandId((DropTopic) command))
           .put(DropStream.class,
             command -> getDropStreamCommandId((DropStream) command))
           .put(DropTable.class,
@@ -76,11 +70,6 @@ public class CommandIdAssigner {
       ));
     }
     return supplier.apply(command);
-  }
-
-  private static CommandId getTopicCommandId(final RegisterTopic registerTopic) {
-    final String topicName = registerTopic.getName().toString();
-    return new CommandId(CommandId.Type.TOPIC, topicName, CommandId.Action.CREATE);
   }
 
   private static CommandId getTopicStreamCommandId(final CreateStream createStream) {
@@ -110,14 +99,6 @@ public class CommandIdAssigner {
         CommandId.Type.TERMINATE,
         terminateQuery.getQueryId().toString(),
         CommandId.Action.EXECUTE
-    );
-  }
-
-  private static CommandId getDropTopicCommandId(final DropTopic dropTopicQuery) {
-    return new CommandId(
-        CommandId.Type.TOPIC,
-        dropTopicQuery.getTopicName().getSuffix(),
-        CommandId.Action.DROP
     );
   }
 

@@ -15,14 +15,17 @@
 
 package io.confluent.ksql;
 
+import io.confluent.ksql.internal.KsqlMetricsExtension;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 public final class ServiceInfo {
 
   private final String serviceId;
   private final Map<String, String> customMetricsTags;
+  private final Optional<KsqlMetricsExtension> metricsExtension;
 
   /**
    * Create an object to be passed from the KSQL context down to the KSQL engine.
@@ -33,16 +36,23 @@ public final class ServiceInfo {
     final String serviceId = ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
     final Map<String, String> customMetricsTags =
         ksqlConfig.getStringAsMap(KsqlConfig.KSQL_CUSTOM_METRICS_TAGS);
+    final Optional<KsqlMetricsExtension> metricsExtension = Optional.ofNullable(
+        ksqlConfig.getConfiguredInstance(
+            KsqlConfig.KSQL_CUSTOM_METRICS_EXTENSION,
+            KsqlMetricsExtension.class
+        ));
 
-    return new ServiceInfo(serviceId, customMetricsTags);
+    return new ServiceInfo(serviceId, customMetricsTags, metricsExtension);
   }
 
   private ServiceInfo(
       final String serviceId,
-      final Map<String, String> customMetricsTags
+      final Map<String, String> customMetricsTags,
+      final Optional<KsqlMetricsExtension> metricsExtension
   ) {
     this.serviceId = Objects.requireNonNull(serviceId, "serviceId");
     this.customMetricsTags = Objects.requireNonNull(customMetricsTags, "customMetricsTags");
+    this.metricsExtension = Objects.requireNonNull(metricsExtension, "metricsExtension");
   }
 
   public String serviceId() {
@@ -51,5 +61,9 @@ public final class ServiceInfo {
 
   public Map<String, String> customMetricsTags() {
     return customMetricsTags;
+  }
+
+  public Optional<KsqlMetricsExtension> metricsExtension() {
+    return metricsExtension;
   }
 }

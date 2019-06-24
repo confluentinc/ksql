@@ -25,6 +25,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.metrics.ConsumerCollector;
@@ -37,12 +38,16 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.function.Supplier;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.metrics.MeasurableStat;
+import org.apache.kafka.common.metrics.MetricConfig;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.record.TimestampType;
 import org.apache.kafka.streams.KafkaStreams;
@@ -75,7 +80,12 @@ public class KsqlEngineMetricsTest {
     when(ksqlEngine.getServiceId()).thenReturn(KSQL_SERVICE_ID);
     when(query1.getQueryApplicationId()).thenReturn("app-1");
 
-    engineMetrics = new KsqlEngineMetrics(METRIC_GROUP, ksqlEngine, MetricCollectors.getMetrics(), CUSTOM_TAGS);
+    engineMetrics = new KsqlEngineMetrics(
+        METRIC_GROUP,
+        ksqlEngine,
+        MetricCollectors.getMetrics(),
+        CUSTOM_TAGS,
+        Optional.of(new TestKsqlMetricsExtension()));
   }
 
   @After
@@ -251,6 +261,15 @@ public class KsqlEngineMetricsTest {
   }
 
   @Test
+  public void shouldRecordCustomMetric() {
+    final double value = getMetricValue("my-custom-metric");
+    final double legacyValue = getMetricValueLegacy("my-custom-metric");
+
+    assertThat(value, equalTo(123.0));
+    assertThat(legacyValue, equalTo(123.0));
+  }
+
+  @Test
   public void shouldRegisterQueries() {
     // When:
     engineMetrics.registerQuery(query1);
@@ -334,5 +353,31 @@ public class KsqlEngineMetricsTest {
       }
       return queryMetadataList;
     };
+  }
+
+  private static class TestKsqlMetricsExtension implements KsqlMetricsExtension {
+
+    @Override
+    public void configure(Map<String, ?> config) {
+    }
+
+    @Override
+    public List<KsqlMetric> getCustomMetrics() {
+      final String name = "my-custom-metric";
+      final String description = "";
+      final Supplier<MeasurableStat> statSupplier =
+          () -> new MeasurableStat() {
+            @Override
+            public double measure(final MetricConfig metricConfig, final long l) {
+              return 123;
+            }
+
+            @Override
+            public void record(final MetricConfig metricConfig, final double v, final long l) {
+              // Nothing to record
+            }
+          };
+      return ImmutableList.of(KsqlMetric.of(name, description, statSupplier));
+    }
   }
 }

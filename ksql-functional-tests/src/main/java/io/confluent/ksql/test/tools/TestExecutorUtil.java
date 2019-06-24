@@ -22,6 +22,7 @@ import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
+import io.confluent.ksql.engine.FakeInsertValuesExecutor;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
@@ -228,7 +229,7 @@ final class TestExecutorUtil {
             prepared, overriddenProperties, ksqlConfig);
 
     if (prepared.getStatement() instanceof InsertValues) {
-      FakeInsertValuesExecutor.of(fakeKafkaService).run(
+      FakeInsertValuesExecutor.of(fakeKafkaService).execute(
               (ConfiguredStatement<InsertValues>) configured,
               executionContext,
               executionContext.getServiceContext()

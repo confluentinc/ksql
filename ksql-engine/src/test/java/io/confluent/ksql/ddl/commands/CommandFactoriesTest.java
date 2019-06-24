@@ -32,12 +32,10 @@ import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.DdlStatement;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
-import io.confluent.ksql.parser.tree.DropTopic;
 import io.confluent.ksql.parser.tree.ExecutableDdlStatement;
 import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.QualifiedName;
-import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.schema.ksql.SqlType;
@@ -87,19 +85,6 @@ public class CommandFactoriesTest {
     when(topicClient.isTopicExists(any())).thenReturn(true);
 
     commandFactories = new CommandFactories(serviceContext);
-  }
-
-  @Test
-  public void shouldCreateDDLCommandForRegisterTopic() {
-    // Given:
-    final RegisterTopic ddlStatement = new RegisterTopic(SOME_NAME, true, withProperties);
-
-    // When:
-    final DdlCommand result = commandFactories
-        .create(sqlExpression, ddlStatement, ksqlConfig, NO_PROPS);
-
-    // Then:
-    assertThat(result, instanceOf(RegisterTopicCommand.class));
   }
 
   @Test
@@ -158,19 +143,6 @@ public class CommandFactoriesTest {
 
     // Then:
     assertThat(result, instanceOf(DropSourceCommand.class));
-  }
-
-  @Test
-  public void shouldCreateCommandForDropTopic() {
-    // Given:
-    final DropTopic ddlStatement = new DropTopic(SOME_NAME, true);
-
-    // When:
-    final DdlCommand result = commandFactories
-        .create(sqlExpression, ddlStatement, ksqlConfig, NO_PROPS);
-
-    // Then:
-    assertThat(result, instanceOf(DropTopicCommand.class));
   }
 
   @Test(expected = KsqlException.class)

@@ -46,10 +46,6 @@ public final class SchemaUtil {
 
   private static final String DEFAULT_NAMESPACE = "ksql";
 
-  public static final String ARRAY = "ARRAY";
-  public static final String MAP = "MAP";
-  public static final String STRUCT = "STRUCT";
-
   public static final String ROWKEY_NAME = "ROWKEY";
   public static final String ROWTIME_NAME = "ROWTIME";
 

@@ -27,13 +27,17 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.parser.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.parser.tree.ArithmeticUnaryExpression.Sign;
+import io.confluent.ksql.parser.tree.Cast;
 import io.confluent.ksql.parser.tree.ComparisonExpression;
 import io.confluent.ksql.parser.tree.ComparisonExpression.Type;
+import io.confluent.ksql.parser.tree.Decimal;
 import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SqlType;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.Optional;
@@ -494,6 +498,81 @@ public class SqlToJavaVisitorTest {
 
     // Then:
     assertThat(java, is("(TEST1_COL8.plus(new MathContext(2, RoundingMode.UNNECESSARY)))"));
+  }
+
+  @Test
+  public void shouldGenerateCorrectCodeForDecimalCast() {
+    // Given:
+    final Cast cast = new Cast(
+        new QualifiedNameReference(QualifiedName.of("TEST1.COL3")),
+        Decimal.of(2, 1)
+    );
+
+    // When:
+    final String java = sqlToJavaVisitor.process(cast);
+
+    // Then:
+    assertThat(java, is("(DecimalUtil.cast(TEST1_COL3, 2, 1))"));
+  }
+
+  @Test
+  public void shouldGenerateCorrectCodeForDecimalToIntCast() {
+    // Given:
+    final Cast cast = new Cast(
+        new QualifiedNameReference(QualifiedName.of("TEST1.COL8")),
+        PrimitiveType.of(SqlType.INTEGER)
+    );
+
+    // When:
+    final String java = sqlToJavaVisitor.process(cast);
+
+    // Then:
+    assertThat(java, is("((TEST1_COL8).intValue())"));
+  }
+
+  @Test
+  public void shouldGenerateCorrectCodeForDecimalToLongCast() {
+    // Given:
+    final Cast cast = new Cast(
+        new QualifiedNameReference(QualifiedName.of("TEST1.COL8")),
+        PrimitiveType.of(SqlType.BIGINT)
+    );
+
+    // When:
+    final String java = sqlToJavaVisitor.process(cast);
+
+    // Then:
+    assertThat(java, is("((TEST1_COL8).longValue())"));
+  }
+
+  @Test
+  public void shouldGenerateCorrectCodeForDecimalToDoubleCast() {
+    // Given:
+    final Cast cast = new Cast(
+        new QualifiedNameReference(QualifiedName.of("TEST1.COL8")),
+        PrimitiveType.of(SqlType.DOUBLE)
+    );
+
+    // When:
+    final String java = sqlToJavaVisitor.process(cast);
+
+    // Then:
+    assertThat(java, is("((TEST1_COL8).doubleValue())"));
+  }
+
+  @Test
+  public void shouldGenerateCorrectCodeForDecimalToStringCast() {
+    // Given:
+    final Cast cast = new Cast(
+        new QualifiedNameReference(QualifiedName.of("TEST1.COL8")),
+        PrimitiveType.of(SqlType.STRING)
+    );
+
+    // When:
+    final String java = sqlToJavaVisitor.process(cast);
+
+    // Then:
+    assertThat(java, is("DecimalUtil.format(2, 1, TEST1_COL8)"));
   }
 
   @Test

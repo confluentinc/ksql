@@ -41,75 +41,91 @@ import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.function.LongSupplier;
 import java.util.stream.Collectors;
+import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 
-public abstract class InsertValuesHandler {
+public class InsertValuesExecutor {
+
+  private static final Duration MAX_SEND_TIMEOUT = Duration.ofSeconds(5);
+
   private final LongSupplier clock;
+  private final boolean canBeDisabledByConfig;
+  private final RecordProducer producer;
 
-  public InsertValuesHandler() {
-    this(System::currentTimeMillis);
+  public InsertValuesExecutor() {
+    this(true, InsertValuesExecutor::sendRecord);
   }
 
-  @VisibleForTesting
-  protected InsertValuesHandler(final LongSupplier clock) {
-    this.clock = Objects.requireNonNull(clock, "clock");
-  }
+  public interface RecordProducer {
 
-  public void run(
-          final ConfiguredStatement<InsertValues> statement,
-          final KsqlExecutionContext executionContext,
-          final ServiceContext serviceContext
-  ) {
-    final InsertValues insertValues = statement.getStatement();
-    final KsqlConfig config = statement.getConfig()
-            .cloneWithPropertyOverwrite(statement.getOverrides());
-
-    sendRecord(
-            buildProducerRecord(insertValues, config, executionContext, serviceContext),
-            insertValues,
-            config,
-            executionContext,
-            serviceContext
+    void sendRecord(
+        ProducerRecord<byte[], byte[]> record,
+        ServiceContext serviceContext,
+        Map<String, Object> producerProps
     );
   }
 
-  protected abstract void sendRecord(
-          ProducerRecord<byte[],byte[]> record,
-          InsertValues insertValues,
-          KsqlConfig config,
-          KsqlExecutionContext executionContext,
-          ServiceContext serviceContext
-  );
-
-  private ProducerRecord<byte[],byte[]> buildProducerRecord(
-          final InsertValues insertValues,
-          final KsqlConfig config,
-          final KsqlExecutionContext executionContext,
-          final ServiceContext serviceContext
+  @VisibleForTesting
+  InsertValuesExecutor(
+      final boolean canBeDisabledByConfig,
+      final RecordProducer producer
   ) {
+    this(producer, canBeDisabledByConfig, System::currentTimeMillis);
+  }
+
+  @VisibleForTesting
+  InsertValuesExecutor(final LongSupplier clock) {
+    this(InsertValuesExecutor::sendRecord, true, clock);
+  }
+
+  private InsertValuesExecutor(
+      final RecordProducer producer,
+      final boolean canBeDisabledByConfig,
+      final LongSupplier clock
+  ) {
+    this.canBeDisabledByConfig = canBeDisabledByConfig;
+    this.producer = Objects.requireNonNull(producer, "producer");
+    this.clock = Objects.requireNonNull(clock, "clock");
+  }
+
+  public void execute(
+      final ConfiguredStatement<InsertValues> statement,
+      final KsqlExecutionContext executionContext,
+      final ServiceContext serviceContext
+  ) {
+    throwIfDisabled(statement.getConfig());
+
+    final InsertValues insertValues = statement.getStatement();
     final DataSource<?> dataSource = executionContext
-            .getMetaStore()
-            .getSource(insertValues.getTarget().getSuffix());
+        .getMetaStore()
+        .getSource(insertValues.getTarget().getSuffix());
 
     if (dataSource == null) {
       throw new KsqlException("Cannot insert values into an unknown stream/table: "
-              + insertValues.getTarget().getSuffix());
+          + insertValues.getTarget().getSuffix());
     }
 
     if (dataSource instanceof KsqlTable && ((KsqlTable<?>) dataSource).isWindowed()
-            || dataSource instanceof KsqlStream && ((KsqlStream<?>) dataSource).hasWindowedKey()) {
+        || dataSource instanceof KsqlStream && ((KsqlStream<?>) dataSource).hasWindowedKey()) {
       throw new KsqlException("Cannot insert values into windowed stream/table!");
     }
+
+    final KsqlConfig config = statement.getConfig()
+        .cloneWithPropertyOverwrite(statement.getOverrides());
 
     final RowData row = extractRow(insertValues, dataSource);
     final byte[] key = serializeKey(row.key, dataSource);
@@ -117,22 +133,38 @@ public abstract class InsertValuesHandler {
 
     final String topicName = dataSource.getKafkaTopicName();
 
-    return new ProducerRecord<>(
-            topicName,
-            null,
-            row.ts,
-            key,
-            value
+    final ProducerRecord<byte[], byte[]> record = new ProducerRecord<>(
+        topicName,
+        null,
+        row.ts,
+        key,
+        value
     );
+
+    try {
+      producer.sendRecord(record, serviceContext, config.getProducerClientConfigProps());
+    } catch (final Exception e) {
+      throw new KsqlException("Failed to insert values into stream/table: "
+          + insertValues.getTarget().getSuffix(), e);
+    }
+  }
+
+  private void throwIfDisabled(final KsqlConfig config) {
+    final boolean isEnabled = config.getBoolean(KsqlConfig.KSQL_INSERT_INTO_VALUES_ENABLED);
+
+    if (canBeDisabledByConfig && !isEnabled) {
+      throw new KsqlException("The server has disabled INSERT INTO ... VALUES functionality. "
+          + "To enable it, restart your KSQL-server with 'ksql.insert.into.values.enabled'=true");
+    }
   }
 
   private RowData extractRow(
-          final InsertValues insertValues,
-          final DataSource<?> dataSource
+      final InsertValues insertValues,
+      final DataSource<?> dataSource
   ) {
     final List<String> columns = insertValues.getColumns().isEmpty()
-            ? implicitColumns(dataSource, insertValues.getValues())
-            : insertValues.getColumns();
+        ? implicitColumns(dataSource, insertValues.getValues())
+        : insertValues.getColumns();
 
     final LogicalSchema schema = dataSource.getSchema();
 
@@ -151,8 +183,8 @@ public abstract class InsertValuesHandler {
   }
 
   private static GenericRow buildValue(
-          final LogicalSchema schema,
-          final Map<String, Object> values
+      final LogicalSchema schema,
+      final Map<String, Object> values
   ) {
     return new GenericRow(
         schema
@@ -166,31 +198,31 @@ public abstract class InsertValuesHandler {
 
   @SuppressWarnings("UnstableApiUsage")
   private static List<String> implicitColumns(
-          final DataSource<?> dataSource,
-          final List<Expression> values
+      final DataSource<?> dataSource,
+      final List<Expression> values
   ) {
     final LogicalSchema schema = dataSource.getSchema();
 
     final List<String> fieldNames = Streams.concat(
-            schema.keyFields().stream(),
-            schema.valueFields().stream())
-            .map(Field::name)
-            .collect(Collectors.toList());
+        schema.keyFields().stream(),
+        schema.valueFields().stream())
+        .map(Field::name)
+        .collect(Collectors.toList());
 
     if (fieldNames.size() != values.size()) {
       throw new KsqlException(
-              "Expected a value for each column."
-                      + " Expected Columns: " + fieldNames
-                      + ". Got " + values);
+          "Expected a value for each column."
+              + " Expected Columns: " + fieldNames
+              + ". Got " + values);
     }
 
     return fieldNames;
   }
 
   private static Map<String, Object> resolveValues(
-          final InsertValues insertValues,
-          final List<String> columns,
-          final LogicalSchema schema
+      final InsertValues insertValues,
+      final List<String> columns,
+      final LogicalSchema schema
   ) {
     final Map<String, Object> values = new HashMap<>();
     for (int i = 0; i < columns.size(); i++) {
@@ -199,7 +231,7 @@ public abstract class InsertValuesHandler {
       final Expression valueExp = insertValues.getValues().get(i);
 
       final Object value = new ExpressionResolver(columnSchema, column)
-              .process(valueExp, null);
+          .process(valueExp, null);
 
       values.put(column, value);
     }
@@ -207,8 +239,8 @@ public abstract class InsertValuesHandler {
   }
 
   private static void handleExplicitKeyField(
-          final Map<String, Object> values,
-          final KeyField keyField
+      final Map<String, Object> values,
+      final KeyField keyField
   ) {
     final Optional<String> keyFieldName = keyField.name();
     if (keyFieldName.isPresent()) {
@@ -221,16 +253,16 @@ public abstract class InsertValuesHandler {
         values.putIfAbsent(SchemaUtil.ROWKEY_NAME, keyValue);
       } else if (!Objects.equals(keyValue, rowKeyValue)) {
         throw new KsqlException(
-                String.format(
-                        "Expected ROWKEY and %s to match but got %s and %s respectively.",
-                        key, rowKeyValue, keyValue));
+            String.format(
+                "Expected ROWKEY and %s to match but got %s and %s respectively.",
+                key, rowKeyValue, keyValue));
       }
     }
   }
 
   private static void throwOnMissingValue(
-          final LogicalSchema schema,
-          final Map<String, Object> values
+      final LogicalSchema schema,
+      final Map<String, Object> values
   ) {
     for (final Field field : schema.fields()) {
       if (!field.schema().isOptional() && values.getOrDefault(field.name(), null) == null) {
@@ -249,34 +281,66 @@ public abstract class InsertValuesHandler {
   private static byte[] serializeKey(final String keyValue, final DataSource<?> dataSource) {
     try {
       return ((Serde<String>) dataSource.getKeySerdeFactory().create())
-              .serializer()
-              .serialize(dataSource.getKafkaTopicName(), keyValue);
+          .serializer()
+          .serialize(dataSource.getKafkaTopicName(), keyValue);
     } catch (final Exception e) {
       throw new KsqlException("Could not serialize key: " + keyValue, e);
     }
   }
 
   private static byte[] serializeRow(
-          final GenericRow row,
-          final DataSource<?> dataSource,
-          final KsqlConfig config,
-          final ServiceContext serviceContext
+      final GenericRow row,
+      final DataSource<?> dataSource,
+      final KsqlConfig config,
+      final ServiceContext serviceContext
   ) {
     final Serde<GenericRow> rowSerde = GenericRowSerDe.from(
-            dataSource.getValueSerdeFactory(),
-            PhysicalSchema.from(
-                    dataSource.getSchema(),
-                    dataSource.getSerdeOptions()
-            ),
-            config,
-            serviceContext.getSchemaRegistryClientFactory(),
-            "",
-            NoopProcessingLogContext.INSTANCE);
+        dataSource.getValueSerdeFactory(),
+        PhysicalSchema.from(
+            dataSource.getSchema(),
+            dataSource.getSerdeOptions()
+        ),
+        config,
+        serviceContext.getSchemaRegistryClientFactory(),
+        "",
+        NoopProcessingLogContext.INSTANCE);
 
     try {
       return rowSerde.serializer().serialize(dataSource.getKafkaTopicName(), row);
     } catch (final Exception e) {
       throw new KsqlException("Could not serialize row: " + row, e);
+    }
+  }
+
+  private static void sendRecord(
+      final ProducerRecord<byte[], byte[]> record,
+      final ServiceContext serviceContext,
+      final Map<String, Object> producerProps
+  ) {
+    // for now, just create a new producer each time
+    final Producer<byte[], byte[]> producer = serviceContext
+        .getKafkaClientSupplier()
+        .getProducer(producerProps);
+
+    final Future<RecordMetadata> producerCallResult;
+    try {
+      producerCallResult = producer.send(record);
+    } finally {
+      producer.close(MAX_SEND_TIMEOUT);
+    }
+
+    try {
+      // Check if the producer failed to write to the topic. This can happen if the
+      // ServiceContext does not have write permissions.
+      producerCallResult.get();
+    } catch (final ExecutionException e) {
+      if (e.getCause() instanceof RuntimeException) {
+        throw (RuntimeException) e.getCause();
+      }
+      throw new RuntimeException(e);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new RuntimeException(e);
     }
   }
 
@@ -307,8 +371,7 @@ public abstract class InsertValuesHandler {
     @Override
     protected String visitNode(final Node node, final Void context) {
       throw new KsqlException(
-              "Only Literals are supported for INSERT INTO. Got: "
-                      + node + " for field " + fieldName);
+          "Only Literals are supported for INSERT INTO. Got: " + node + " for field " + fieldName);
     }
 
     @Override
@@ -319,12 +382,11 @@ public abstract class InsertValuesHandler {
       }
 
       return defaultSqlValueCoercer.coerce(value, fieldSchema)
-              .orElseThrow(
-                  () -> new KsqlException(
-                          "Expected type "
-                                  + SchemaConverters.logicalToSqlConverter().toSqlType(fieldSchema)
-                                  + " for field " + fieldName
-                                  + " but got " + value));
+          .orElseThrow(() -> new KsqlException(
+              "Expected type "
+                  + SchemaConverters.logicalToSqlConverter().toSqlType(fieldSchema)
+                  + " for field " + fieldName
+                  + " but got " + value));
     }
   }
 }

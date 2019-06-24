@@ -34,4 +34,6 @@ public abstract class Type extends Expression {
   public SqlType getSqlType() {
     return sqlType;
   }
+
+  public abstract boolean supportsCast();
 }

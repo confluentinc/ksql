@@ -15,6 +15,10 @@
 
 package io.confluent.ksql.analyzer;
 
+import static java.util.Objects.requireNonNull;
+
+import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.analyzer.Analysis.AliasedDataSource;
 import io.confluent.ksql.parser.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.parser.tree.AstVisitor;
 import io.confluent.ksql.parser.tree.Cast;
@@ -29,33 +33,73 @@ import io.confluent.ksql.parser.tree.LogicalBinaryExpression;
 import io.confluent.ksql.parser.tree.NotExpression;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import java.util.Objects;
+import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.SchemaUtil;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
-
+/**
+ * Searches through the AST for any column references and throws if they are unknown fields.
+ */
 class ExpressionAnalyzer {
 
-  private final LogicalSchema schema;
-  private final boolean isJoinSchema;
+  private final boolean isJoin;
+  private final Map<String, LogicalSchema> dataSources;
 
-  ExpressionAnalyzer(final LogicalSchema schema, final boolean isJoinSchema) {
-    this.schema = Objects.requireNonNull(schema, "schema");
-    this.isJoinSchema = isJoinSchema;
+  ExpressionAnalyzer(final List<AliasedDataSource> dataSources) {
+    this.dataSources = ImmutableMap.copyOf(requireNonNull(dataSources, "dataSources")
+        .stream()
+        .collect(Collectors.toMap(
+            AliasedDataSource::getAlias,
+            s -> s.getDataSource().getSchema()
+        )));
+
+    this.isJoin = dataSources.size() > 1;
   }
 
   void analyzeExpression(final Expression expression) {
-    final Visitor visitor = new Visitor(schema);
+    final Visitor visitor = new Visitor();
     visitor.process(expression, null);
   }
 
-  private class Visitor
-      extends AstVisitor<Object, Object> {
+  private void throwOnUnknownField(final String columnName) {
 
-    private final LogicalSchema schema;
+    final Optional<String> maybeAlias = SchemaUtil.getFieldNameAlias(columnName);
+    if (maybeAlias.isPresent()) {
+      final String alias = maybeAlias.get();
+      final String fieldName = SchemaUtil.getFieldNameWithNoAlias(columnName);
 
-    Visitor(final LogicalSchema schema) {
-      this.schema = Objects.requireNonNull(schema, "schema");
+      final LogicalSchema sourceSchema = dataSources.get(alias);
+      if (sourceSchema == null) {
+        throw new KsqlException("Unknown source name or alias: " + alias);
+      }
+
+      final boolean knownField = sourceSchema.findField(fieldName).isPresent();
+      if (!knownField) {
+        throw new KsqlException("Field '" + fieldName + "' not a field of source '" + alias + "'");
+      }
+    } else {
+      final List<String> sourceWithField = dataSources.entrySet().stream()
+          .filter(e -> e.getValue().findField(columnName).isPresent())
+          .map(Entry::getKey)
+          .map(alias -> SchemaUtil.buildAliasedFieldName(alias, columnName))
+          .collect(Collectors.toList());
+
+      if (sourceWithField.isEmpty()) {
+        throw new KsqlException("Field '" + columnName + "' cannot be resolved.");
+      }
+
+      if (sourceWithField.size() > 1) {
+        throw new KsqlException("Field '" + columnName + "' is ambiguous. "
+            + "Could be any of: " + sourceWithField);
+      }
     }
+  }
+
+  private class Visitor extends AstVisitor<Object, Object> {
 
     protected Object visitLikePredicate(final LikePredicate node, final Object context) {
       process(node.getValue(), null);
@@ -108,40 +152,32 @@ class ExpressionAnalyzer {
     }
 
     @Override
-    protected Object visitDereferenceExpression(
-        final DereferenceExpression node,
-        final Object context) {
-      String columnName = node.getFieldName();
-      if (isJoinSchema) {
-        columnName = node.toString();
-      }
-      final Optional<?> schemaField = schema.findValueField(columnName);
-      if (!schemaField.isPresent()) {
-        throw new RuntimeException(
-            String.format("Column %s cannot be resolved.", columnName));
-      }
+    protected Object visitCast(final Cast node, final Object context) {
+      process(node.getExpression(), context);
       return null;
     }
 
     @Override
-    protected Object visitCast(final Cast node, final Object context) {
+    protected Object visitDereferenceExpression(
+        final DereferenceExpression node,
+        final Object context
+    ) {
+      final String columnName = isJoin
+          ? node.toString()
+          : node.getFieldName();
 
-      process(node.getExpression(), context);
+      throwOnUnknownField(columnName);
       return null;
     }
 
     @Override
     protected Object visitQualifiedNameReference(
         final QualifiedNameReference node,
-        final Object context) {
+        final Object context
+    ) {
       final String columnName = node.getName().getSuffix();
-      final Optional<?> schemaField = schema.findValueField(columnName);
-      if (!schemaField.isPresent()) {
-        throw new RuntimeException(
-            String.format("Column %s cannot be resolved.", columnName));
-      }
+      throwOnUnknownField(columnName);
       return null;
     }
   }
-
 }

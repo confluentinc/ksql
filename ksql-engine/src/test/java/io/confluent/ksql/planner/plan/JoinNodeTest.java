@@ -129,8 +129,8 @@ public class JoinNodeTest {
       .of(RIGHT_JOIN_FIELD_NAME,
           new Field(RIGHT_JOIN_FIELD_NAME, 1, Schema.OPTIONAL_STRING_SCHEMA));
 
-  private static final WithinExpression WITHIN_EXPRESSION =
-      new WithinExpression(10, TimeUnit.SECONDS);
+  private static final Optional<WithinExpression> WITHIN_EXPRESSION =
+      Optional.of(new WithinExpression(10, TimeUnit.SECONDS));
 
   private static final PlanNodeId nodeId = new PlanNodeId("join");
   private static final QueryId queryId = new QueryId("join-query");
@@ -178,6 +178,12 @@ public class JoinNodeTest {
         new QueryContext.Stacker(queryId)
             .push(inv.getArgument(0).toString()));
 
+    when(left.getAlias()).thenReturn(LEFT_ALIAS);
+    when(right.getAlias()).thenReturn(RIGHT_ALIAS);
+
+    when(left.getDataSourceType()).thenReturn(DataSourceType.KSTREAM);
+    when(right.getDataSourceType()).thenReturn(DataSourceType.KTABLE);
+
     when(left.getSchema()).thenReturn(LEFT_NODE_SCHEMA);
     when(right.getSchema()).thenReturn(RIGHT_NODE_SCHEMA);
 
@@ -206,11 +212,8 @@ public class JoinNodeTest {
         right,
         "won't find me",
         RIGHT_JOIN_FIELD_NAME,
-        LEFT_ALIAS,
-        RIGHT_ALIAS,
-        null,
-        DataSource.DataSourceType.KSTREAM,
-        DataSource.DataSourceType.KSTREAM);
+        Optional.empty()
+    );
   }
 
   @Test
@@ -227,11 +230,8 @@ public class JoinNodeTest {
         right,
         LEFT_JOIN_FIELD_NAME,
         "won't find me",
-        LEFT_ALIAS,
-        RIGHT_ALIAS,
-        null,
-        DataSource.DataSourceType.KSTREAM,
-        DataSource.DataSourceType.KSTREAM);
+        Optional.empty()
+    );
   }
 
   @Test
@@ -244,76 +244,11 @@ public class JoinNodeTest {
         right,
         LEFT_JOIN_FIELD_NAME,
         RIGHT_JOIN_FIELD_NAME,
-        LEFT_ALIAS,
-        RIGHT_ALIAS,
-        null,
-        DataSourceType.KSTREAM,
-        DataSourceType.KSTREAM);
+        Optional.empty()
+    );
 
     // Then:
     assertThat(joinNode.getKeyField().name(), is(Optional.of(LEFT_JOIN_FIELD_NAME)));
-  }
-
-  @Test
-  public void shouldReturnJoinKeyNames() {
-    // When:
-    final JoinNode joinNode = new JoinNode(
-        nodeId,
-        JoinType.LEFT,
-        left,
-        right,
-        LEFT_JOIN_FIELD_NAME,
-        RIGHT_JOIN_FIELD_NAME,
-        LEFT_ALIAS,
-        RIGHT_ALIAS,
-        null,
-        DataSourceType.KSTREAM,
-        DataSourceType.KSTREAM);
-
-    // Then:
-    assertThat(joinNode.getLeftJoinFieldName(), is(LEFT_JOIN_FIELD_NAME));
-    assertThat(joinNode.getRightJoinFieldName(), is(RIGHT_JOIN_FIELD_NAME));
-  }
-
-  @Test
-  public void shouldReturnAliases() {
-    // When:
-    final JoinNode joinNode = new JoinNode(
-        nodeId,
-        JoinType.LEFT,
-        left,
-        right,
-        LEFT_JOIN_FIELD_NAME,
-        RIGHT_JOIN_FIELD_NAME,
-        LEFT_ALIAS,
-        RIGHT_ALIAS,
-        null,
-        DataSourceType.KSTREAM,
-        DataSourceType.KSTREAM);
-
-    // Then:
-    assertThat(joinNode.getLeftAlias(), is(LEFT_ALIAS));
-    assertThat(joinNode.getRightAlias(), is(RIGHT_ALIAS));
-  }
-
-  @Test
-  public void shouldReturnJoinType() {
-    // When:
-    final JoinNode joinNode = new JoinNode(
-        nodeId,
-        JoinType.LEFT,
-        left,
-        right,
-        LEFT_JOIN_FIELD_NAME,
-        RIGHT_JOIN_FIELD_NAME,
-        LEFT_ALIAS,
-        RIGHT_ALIAS,
-        null,
-        DataSourceType.KSTREAM,
-        DataSourceType.KSTREAM);
-
-    // Then:
-    assertThat(joinNode.getJoinType(), is(JoinType.LEFT));
   }
 
   @Test
@@ -396,11 +331,8 @@ public class JoinNodeTest {
         right,
         LEFT_JOIN_FIELD_NAME,
         RIGHT_JOIN_FIELD_NAME,
-        LEFT_ALIAS,
-        RIGHT_ALIAS,
-        WITHIN_EXPRESSION,
-        DataSourceType.KSTREAM,
-        DataSourceType.KSTREAM);
+        WITHIN_EXPRESSION
+    );
 
     // When:
     joinNode.buildStream(ksqlStreamBuilder);
@@ -410,7 +342,7 @@ public class JoinNodeTest {
         eq(rightSchemaKStream),
         eq(JOIN_SCHEMA),
         eq(leftJoinField),
-        eq(WITHIN_EXPRESSION.joinWindow()),
+        eq(WITHIN_EXPRESSION.get().joinWindow()),
         any(),
         any(),
         eq(CONTEXT_STACKER));
@@ -429,11 +361,8 @@ public class JoinNodeTest {
         right,
         LEFT_JOIN_FIELD_NAME,
         RIGHT_JOIN_FIELD_NAME,
-        LEFT_ALIAS,
-        RIGHT_ALIAS,
-        WITHIN_EXPRESSION,
-        DataSourceType.KSTREAM,
-        DataSourceType.KSTREAM);
+        WITHIN_EXPRESSION
+    );
 
     // When:
     joinNode.buildStream(ksqlStreamBuilder);
@@ -443,7 +372,7 @@ public class JoinNodeTest {
         eq(rightSchemaKStream),
         eq(JOIN_SCHEMA),
         eq(leftJoinField),
-        eq(WITHIN_EXPRESSION.joinWindow()),
+        eq(WITHIN_EXPRESSION.get().joinWindow()),
         any(),
         any(),
         eq(CONTEXT_STACKER));
@@ -462,11 +391,8 @@ public class JoinNodeTest {
         right,
         LEFT_JOIN_FIELD_NAME,
         RIGHT_JOIN_FIELD_NAME,
-        LEFT_ALIAS,
-        RIGHT_ALIAS,
-        WITHIN_EXPRESSION,
-        DataSourceType.KSTREAM,
-        DataSourceType.KSTREAM);
+        WITHIN_EXPRESSION
+    );
 
     // When:
     joinNode.buildStream(ksqlStreamBuilder);
@@ -476,7 +402,7 @@ public class JoinNodeTest {
         eq(rightSchemaKStream),
         eq(JOIN_SCHEMA),
         eq(leftJoinField.withName(Optional.empty())),
-        eq(WITHIN_EXPRESSION.joinWindow()),
+        eq(WITHIN_EXPRESSION.get().joinWindow()),
         any(),
         any(),
         eq(CONTEXT_STACKER));
@@ -485,6 +411,9 @@ public class JoinNodeTest {
   @Test
   public void shouldNotPerformStreamStreamJoinWithoutJoinWindow() {
     // Given:
+    when(left.getDataSourceType()).thenReturn(DataSourceType.KSTREAM);
+    when(right.getDataSourceType()).thenReturn(DataSourceType.KSTREAM);
+
     final JoinNode joinNode = new JoinNode(
         nodeId,
         JoinNode.JoinType.INNER,
@@ -492,11 +421,8 @@ public class JoinNodeTest {
         right,
         LEFT_JOIN_FIELD_NAME,
         RIGHT_JOIN_FIELD_NAME,
-        LEFT_ALIAS,
-        RIGHT_ALIAS,
-        null,
-        DataSourceType.KSTREAM,
-        DataSourceType.KSTREAM);
+        Optional.empty()
+    );
 
     // Then:
     expectedException.expect(KsqlException.class);
@@ -520,11 +446,8 @@ public class JoinNodeTest {
         right,
         LEFT_JOIN_FIELD_NAME,
         RIGHT_JOIN_FIELD_NAME,
-        LEFT_ALIAS,
-        RIGHT_ALIAS,
-        WITHIN_EXPRESSION,
-        DataSourceType.KSTREAM,
-        DataSourceType.KSTREAM);
+        WITHIN_EXPRESSION
+    );
 
     // Then:
     expectedException.expect(KsqlException.class);
@@ -552,11 +475,8 @@ public class JoinNodeTest {
         right,
         LEFT_JOIN_FIELD_NAME,
         rightCriteriaColumn,
-        LEFT_ALIAS,
-        RIGHT_ALIAS,
-        null,
-        DataSourceType.KSTREAM,
-        DataSourceType.KTABLE);
+        Optional.empty()
+    );
 
     // Then:
     expectedException.expect(KsqlException.class);
@@ -585,11 +505,8 @@ public class JoinNodeTest {
         right,
         LEFT_JOIN_FIELD_NAME,
         RIGHT_JOIN_FIELD_NAME,
-        LEFT_ALIAS,
-        RIGHT_ALIAS,
-        null,
-        DataSource.DataSourceType.KSTREAM,
-        DataSource.DataSourceType.KTABLE);
+        Optional.empty()
+    );
 
     // Then:
     expectedException.expect(KsqlException.class);
@@ -615,11 +532,8 @@ public class JoinNodeTest {
         right,
         LEFT_JOIN_FIELD_NAME,
         "right.ROWKEY",
-        LEFT_ALIAS,
-        RIGHT_ALIAS,
-        null,
-        DataSource.DataSourceType.KSTREAM,
-        DataSource.DataSourceType.KTABLE);
+        Optional.empty()
+    );
 
     // When:
     joinNode.buildStream(ksqlStreamBuilder);
@@ -646,11 +560,8 @@ public class JoinNodeTest {
         right,
         LEFT_JOIN_FIELD_NAME,
         RIGHT_JOIN_FIELD_NAME,
-        LEFT_ALIAS,
-        RIGHT_ALIAS,
-        null,
-        DataSourceType.KSTREAM,
-        DataSourceType.KTABLE);
+        Optional.empty()
+    );
 
     // When:
     joinNode.buildStream(ksqlStreamBuilder);
@@ -677,11 +588,8 @@ public class JoinNodeTest {
         right,
         LEFT_JOIN_FIELD_NAME,
         RIGHT_JOIN_FIELD_NAME,
-        LEFT_ALIAS,
-        RIGHT_ALIAS,
-        null,
-        DataSourceType.KSTREAM,
-        DataSourceType.KTABLE);
+        Optional.empty()
+    );
 
     // When:
     joinNode.buildStream(ksqlStreamBuilder);
@@ -708,11 +616,8 @@ public class JoinNodeTest {
         right,
         LEFT_JOIN_FIELD_NAME,
         RIGHT_JOIN_FIELD_NAME,
-        LEFT_ALIAS,
-        RIGHT_ALIAS,
-        null,
-        DataSourceType.KSTREAM,
-        DataSourceType.KTABLE);
+        Optional.empty()
+    );
 
     // Then:
     expectedException.expect(KsqlException.class);
@@ -727,6 +632,9 @@ public class JoinNodeTest {
   @Test
   public void shouldNotPerformStreamToTableJoinIfJoinWindowIsSpecified() {
     // Given:
+    when(left.getDataSourceType()).thenReturn(DataSourceType.KSTREAM);
+    when(right.getDataSourceType()).thenReturn(DataSourceType.KTABLE);
+
     final WithinExpression withinExpression = new WithinExpression(10, TimeUnit.SECONDS);
 
     final JoinNode joinNode = new JoinNode(
@@ -736,11 +644,8 @@ public class JoinNodeTest {
         right,
         LEFT_JOIN_FIELD_NAME,
         RIGHT_JOIN_FIELD_NAME,
-        LEFT_ALIAS,
-        RIGHT_ALIAS,
-        withinExpression,
-        DataSourceType.KSTREAM,
-        DataSourceType.KTABLE);
+        Optional.of(withinExpression)
+    );
 
     // Then:
     expectedException.expect(KsqlException.class);
@@ -768,11 +673,8 @@ public class JoinNodeTest {
         right,
         leftCriteriaColumn,
         RIGHT_JOIN_FIELD_NAME,
-        LEFT_ALIAS,
-        RIGHT_ALIAS,
-        null,
-        DataSourceType.KTABLE,
-        DataSourceType.KTABLE);
+        Optional.empty()
+    );
 
     // Then:
     expectedException.expect(KsqlException.class);
@@ -804,11 +706,8 @@ public class JoinNodeTest {
         right,
         LEFT_JOIN_FIELD_NAME,
         rightCriteriaColumn,
-        LEFT_ALIAS,
-        RIGHT_ALIAS,
-        null,
-        DataSourceType.KTABLE,
-        DataSourceType.KTABLE);
+        Optional.empty()
+    );
 
     // Then:
     expectedException.expect(KsqlException.class);
@@ -837,11 +736,8 @@ public class JoinNodeTest {
         right,
         LEFT_JOIN_FIELD_NAME,
         RIGHT_JOIN_FIELD_NAME,
-        LEFT_ALIAS,
-        RIGHT_ALIAS,
-        null,
-        DataSourceType.KTABLE,
-        DataSourceType.KTABLE);
+        Optional.empty()
+    );
 
     // When:
     joinNode.buildStream(ksqlStreamBuilder);
@@ -867,11 +763,7 @@ public class JoinNodeTest {
         right,
         LEFT_JOIN_FIELD_NAME,
         RIGHT_JOIN_FIELD_NAME,
-        LEFT_ALIAS,
-        RIGHT_ALIAS,
-        null,
-        DataSourceType.KTABLE,
-        DataSourceType.KTABLE
+        Optional.empty()
     );
 
     // When:
@@ -898,11 +790,7 @@ public class JoinNodeTest {
         right,
         LEFT_JOIN_FIELD_NAME,
         RIGHT_JOIN_FIELD_NAME,
-        LEFT_ALIAS,
-        RIGHT_ALIAS,
-        null,
-        DataSourceType.KTABLE,
-        DataSourceType.KTABLE
+        Optional.empty()
     );
 
     // When:
@@ -919,6 +807,9 @@ public class JoinNodeTest {
   @Test
   public void shouldNotPerformTableToTableJoinIfJoinWindowIsSpecified() {
     // Given:
+    when(left.getDataSourceType()).thenReturn(DataSourceType.KTABLE);
+    when(right.getDataSourceType()).thenReturn(DataSourceType.KTABLE);
+
     final WithinExpression withinExpression = new WithinExpression(10, TimeUnit.SECONDS);
 
     final JoinNode joinNode = new JoinNode(
@@ -928,11 +819,8 @@ public class JoinNodeTest {
         right,
         LEFT_JOIN_FIELD_NAME,
         RIGHT_JOIN_FIELD_NAME,
-        LEFT_ALIAS,
-        RIGHT_ALIAS,
-        withinExpression,
-        DataSourceType.KTABLE,
-        DataSourceType.KTABLE);
+        Optional.of(withinExpression)
+    );
 
     // Then:
     expectedException.expect(KsqlException.class);
@@ -954,11 +842,7 @@ public class JoinNodeTest {
         right,
         LEFT_JOIN_FIELD_NAME,
         RIGHT_JOIN_FIELD_NAME,
-        LEFT_ALIAS,
-        RIGHT_ALIAS,
-        null,
-        DataSourceType.KTABLE,
-        DataSourceType.KTABLE
+        Optional.empty()
     );
 
     // When:
@@ -989,11 +873,7 @@ public class JoinNodeTest {
         right,
         LEFT_JOIN_FIELD_NAME,
         RIGHT_JOIN_FIELD_NAME,
-        LEFT_ALIAS,
-        RIGHT_ALIAS,
-        WITHIN_EXPRESSION,
-        DataSourceType.KSTREAM,
-        DataSourceType.KSTREAM
+        WITHIN_EXPRESSION
     );
 
     // When:
@@ -1020,11 +900,8 @@ public class JoinNodeTest {
         right,
         LEFT_JOIN_FIELD_NAME,
         RIGHT_JOIN_FIELD_NAME,
-        LEFT_ALIAS,
-        RIGHT_ALIAS,
-        WITHIN_EXPRESSION,
-        DataSourceType.KSTREAM,
-        DataSourceType.KSTREAM);
+        WITHIN_EXPRESSION
+    );
 
     // When:
     joinNode.buildStream(ksqlStreamBuilder);
@@ -1052,11 +929,8 @@ public class JoinNodeTest {
         right,
         LEFT_JOIN_FIELD_NAME,
         RIGHT_JOIN_FIELD_NAME,
-        LEFT_ALIAS,
-        RIGHT_ALIAS,
-        WITHIN_EXPRESSION,
-        DataSourceType.KSTREAM,
-        DataSourceType.KSTREAM);
+        WITHIN_EXPRESSION
+    );
 
     // When:
     joinNode.buildStream(ksqlStreamBuilder);
@@ -1084,11 +958,8 @@ public class JoinNodeTest {
         right,
         LEFT_JOIN_FIELD_NAME,
         RIGHT_JOIN_FIELD_NAME,
-        LEFT_ALIAS,
-        RIGHT_ALIAS,
-        WITHIN_EXPRESSION,
-        DataSourceType.KSTREAM,
-        DataSourceType.KSTREAM);
+        WITHIN_EXPRESSION
+    );
 
     // When:
     joinNode.buildStream(ksqlStreamBuilder);
@@ -1106,6 +977,7 @@ public class JoinNodeTest {
     when(node.buildStream(ksqlStreamBuilder)).thenReturn(table);
     final LogicalSchema schema = node.getSchema();
     when(table.getSchema()).thenReturn(schema);
+    when(node.getDataSourceType()).thenReturn(DataSourceType.KTABLE);
   }
 
   private void setupTable(
@@ -1132,6 +1004,7 @@ public class JoinNodeTest {
     final LogicalSchema schema = node.getSchema();
     when(stream.getSchema()).thenReturn(schema);
     when(stream.selectKey(any(), eq(true), any())).thenReturn(stream);
+    when(node.getDataSourceType()).thenReturn(DataSourceType.KSTREAM);
   }
 
   @SuppressWarnings("Duplicates")

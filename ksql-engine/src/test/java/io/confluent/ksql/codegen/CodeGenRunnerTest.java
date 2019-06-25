@@ -170,7 +170,7 @@ public class CodeGenRunnerTest {
             .field("COL12",
                 SchemaBuilder.map(SchemaBuilder.OPTIONAL_STRING_SCHEMA, SchemaBuilder.OPTIONAL_INT32_SCHEMA).optional().build())
             .field("COL13", SchemaBuilder.array(SchemaBuilder.OPTIONAL_STRING_SCHEMA).optional().build())
-            .field("CODEGEN_TEST.COL14", SchemaBuilder.array(arraySchema).optional().build())
+            .field("COL14", SchemaBuilder.array(arraySchema).optional().build())
             .field("COL15", STRUCT_SCHEMA)
             .build();
 
@@ -924,9 +924,9 @@ public class CodeGenRunnerTest {
         return evalBetweenClause(simpleQuery, col, val);
     }
 
-    private boolean evalNotBetweenClauseObject(final int col, final Object val, final String min, final String max) {
+    private void evalNotBetweenClauseObject(final int col, final Object val, final String min, final String max) {
         final String simpleQuery = String.format("SELECT * FROM CODEGEN_TEST WHERE col%d NOT BETWEEN %s AND %s;", col, min, max);
-        return evalBetweenClause(simpleQuery, col, val);
+        evalBetweenClause(simpleQuery, col, val);
     }
 
     private boolean evalBetweenClause(final String simpleQuery, final int col, final Object val) {
@@ -943,7 +943,7 @@ public class CodeGenRunnerTest {
         return (Boolean)result0;
     }
 
-    private GenericRow buildRow(final Map<Integer, Object> overrides) {
+    private static GenericRow buildRow(final Map<Integer, Object> overrides) {
         final List<Object> columns = new ArrayList<>(ONE_ROW);
         overrides.forEach(columns::set);
         return genericRow(columns);

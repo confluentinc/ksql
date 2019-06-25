@@ -154,8 +154,6 @@ public class CodeGenRunnerTest {
             .build();
 
         final Schema metaStoreSchema = SchemaBuilder.struct()
-            .field("ROWTIME", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
-            .field("ROWKEY", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
             .field("COL0", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
             .field("COL1", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
             .field("COL2", SchemaBuilder.OPTIONAL_STRING_SCHEMA)

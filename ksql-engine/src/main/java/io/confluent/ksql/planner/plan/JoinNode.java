@@ -345,10 +345,13 @@ public class JoinNode extends PlanNode {
           .getKsqlTopic()
           .getValueSerdeFactory();
 
+      final LogicalSchema logicalSchema = sourceNode.getSchema()
+          .withoutAlias();
+
       return builder.buildGenericRowSerde(
           valueSerdeFactory,
           PhysicalSchema.from(
-              dataSource.getSchema(),
+              logicalSchema,
               SerdeOption.none()
           ),
           contextStacker.getQueryContext()

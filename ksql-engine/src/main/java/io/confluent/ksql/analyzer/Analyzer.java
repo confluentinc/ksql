@@ -509,7 +509,7 @@ class Analyzer {
         final String sourceAlias,
         final LogicalSchema sourceSchema
     ) {
-      return sourceSchema.findValueField(fieldName)
+      return sourceSchema.findField(fieldName)
           .map(field -> SchemaUtil.buildAliasedFieldName(sourceAlias, field.name()));
     }
 

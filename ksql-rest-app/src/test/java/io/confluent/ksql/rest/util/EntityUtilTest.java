@@ -16,34 +16,36 @@
 package io.confluent.ksql.rest.util;
 
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
 import io.confluent.ksql.rest.entity.FieldInfo;
+import io.confluent.ksql.rest.entity.SchemaInfo;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SqlType;
+import io.confluent.ksql.util.SchemaUtil;
 import java.util.List;
 import java.util.Optional;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Test;
 
+@SuppressWarnings("unchecked")
 public class EntityUtilTest {
-  private static void shouldBuildCorrectPrimitiveField(
-      final Schema primitiveSchema,
-      final String schemaName
-  ) {
-    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder
-        .struct()
-        .field("field", primitiveSchema)
-        .build());
 
-    final List<FieldInfo> entity = EntityUtil.buildSourceSchemaEntity(schema);
+  private static final FieldInfo ROWTIME_FIELD =
+      new FieldInfo(
+          SchemaUtil.ROWTIME_NAME,
+          new SchemaInfo(SqlType.BIGINT, null, null)
+      );
 
-    assertThat(entity.size(), equalTo(1));
-    assertThat(entity.get(0).getName(), equalTo("field"));
-    assertThat(entity.get(0).getSchema().getTypeName(), equalTo(schemaName));
-    assertThat(entity.get(0).getSchema().getFields(), equalTo(Optional.empty()));
-    assertThat(entity.get(0).getSchema().getMemberSchema(), equalTo(Optional.empty()));
-  }
+  private static final FieldInfo ROWKEY_FIELD =
+      new FieldInfo(
+          SchemaUtil.ROWKEY_NAME,
+          new SchemaInfo(SqlType.STRING, null, null)
+      );
 
   @Test
   public void shouldBuildCorrectIntegerField() {
@@ -85,11 +87,13 @@ public class EntityUtilTest {
     final List<FieldInfo> entity = EntityUtil.buildSourceSchemaEntity(schema);
 
     // Then:
-    assertThat(entity.size(), equalTo(1));
-    assertThat(entity.get(0).getName(), equalTo("field"));
-    assertThat(entity.get(0).getSchema().getTypeName(), equalTo("MAP"));
-    assertThat(entity.get(0).getSchema().getFields(), equalTo(Optional.empty()));
-    assertThat(entity.get(0).getSchema().getMemberSchema().get().getTypeName(), equalTo("INTEGER"));
+    final List<FieldInfo> valueFields = getValueFields(entity);
+    assertThat(valueFields, hasSize(1));
+    assertThat(valueFields.get(0).getName(), equalTo("field"));
+    assertThat(valueFields.get(0).getSchema().getTypeName(), equalTo("MAP"));
+    assertThat(valueFields.get(0).getSchema().getFields(), equalTo(Optional.empty()));
+    assertThat(valueFields.get(0).getSchema().getMemberSchema().get().getTypeName(),
+        equalTo("INTEGER"));
   }
 
   @Test
@@ -107,11 +111,13 @@ public class EntityUtilTest {
     final List<FieldInfo> entity = EntityUtil.buildSourceSchemaEntity(schema);
 
     // Then:
-    assertThat(entity.size(), equalTo(1));
-    assertThat(entity.get(0).getName(), equalTo("field"));
-    assertThat(entity.get(0).getSchema().getTypeName(), equalTo("ARRAY"));
-    assertThat(entity.get(0).getSchema().getFields(), equalTo(Optional.empty()));
-    assertThat(entity.get(0).getSchema().getMemberSchema().get().getTypeName(), equalTo("BIGINT"));
+    final List<FieldInfo> valueFields = getValueFields(entity);
+    assertThat(valueFields, hasSize(1));
+    assertThat(valueFields.get(0).getName(), equalTo("field"));
+    assertThat(valueFields.get(0).getSchema().getTypeName(), equalTo("ARRAY"));
+    assertThat(valueFields.get(0).getSchema().getFields(), equalTo(Optional.empty()));
+    assertThat(valueFields.get(0).getSchema().getMemberSchema().get().getTypeName(),
+        equalTo("BIGINT"));
   }
 
   @Test
@@ -132,13 +138,14 @@ public class EntityUtilTest {
     final List<FieldInfo> entity = EntityUtil.buildSourceSchemaEntity(schema);
 
     // Then:
-    assertThat(entity.size(), equalTo(1));
-    assertThat(entity.get(0).getName(), equalTo("field"));
-    assertThat(entity.get(0).getSchema().getTypeName(), equalTo("STRUCT"));
-    assertThat(entity.get(0).getSchema().getFields().get().size(), equalTo(1));
-    final FieldInfo inner = entity.get(0).getSchema().getFields().get().get(0);
+    final List<FieldInfo> valueFields = getValueFields(entity);
+    assertThat(valueFields, hasSize(1));
+    assertThat(valueFields.get(0).getName(), equalTo("field"));
+    assertThat(valueFields.get(0).getSchema().getTypeName(), equalTo("STRUCT"));
+    assertThat(valueFields.get(0).getSchema().getFields().get().size(), equalTo(1));
+    final FieldInfo inner = valueFields.get(0).getSchema().getFields().get().get(0);
     assertThat(inner.getSchema().getTypeName(), equalTo("STRING"));
-    assertThat(entity.get(0).getSchema().getMemberSchema(), equalTo(Optional.empty()));
+    assertThat(valueFields.get(0).getSchema().getMemberSchema(), equalTo(Optional.empty()));
   }
 
   @Test
@@ -154,10 +161,40 @@ public class EntityUtilTest {
     final List<FieldInfo> entity = EntityUtil.buildSourceSchemaEntity(schema);
 
     // Then:
-    assertThat(entity.size(), equalTo(2));
-    assertThat(entity.get(0).getName(), equalTo("field1"));
-    assertThat(entity.get(0).getSchema().getTypeName(), equalTo("INTEGER"));
-    assertThat(entity.get(1).getName(), equalTo("field2"));
-    assertThat(entity.get(1).getSchema().getTypeName(), equalTo("BIGINT"));
+    final List<FieldInfo> valueFields = getValueFields(entity);
+    assertThat(valueFields, hasSize(2));
+    assertThat(valueFields.get(0).getName(), equalTo("field1"));
+    assertThat(valueFields.get(0).getSchema().getTypeName(), equalTo("INTEGER"));
+    assertThat(valueFields.get(1).getName(), equalTo("field2"));
+    assertThat(valueFields.get(1).getSchema().getTypeName(), equalTo("BIGINT"));
+  }
+
+  private static void shouldBuildCorrectPrimitiveField(
+      final Schema primitiveSchema,
+      final String schemaName
+  ) {
+    // Given:
+    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder
+        .struct()
+        .field("field", primitiveSchema)
+        .build());
+
+    // When:
+    final List<FieldInfo> entity = EntityUtil.buildSourceSchemaEntity(schema);
+
+    // Then:
+    final List<FieldInfo> valueFields = getValueFields(entity);
+    assertThat(valueFields.get(0).getName(), equalTo("field"));
+    assertThat(valueFields.get(0).getSchema().getTypeName(), equalTo(schemaName));
+    assertThat(valueFields.get(0).getSchema().getFields(), equalTo(Optional.empty()));
+    assertThat(valueFields.get(0).getSchema().getMemberSchema(), equalTo(Optional.empty()));
+  }
+
+  private static List<FieldInfo> getValueFields(final List<FieldInfo> entity) {
+    assertThat(entity, hasSize(greaterThan(2)));
+    assertThat(entity.get(0), is(ROWTIME_FIELD));
+    assertThat(entity.get(1), is(ROWKEY_FIELD));
+    return entity.subList(2, entity.size());
   }
 }
+

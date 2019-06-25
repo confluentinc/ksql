@@ -265,6 +265,8 @@ public class SchemaKStream<K> {
         final List<SelectExpression> selectExpressions,
         final Field keyField
     ) {
+      Optional<Field> found = Optional.empty();
+
       for (int i = 0; i < selectExpressions.size(); i++) {
         final String toName = selectExpressions.get(i).getName();
         final Expression toExpression = selectExpressions.get(i).getExpression();
@@ -281,18 +283,23 @@ public class SchemaKStream<K> {
               = (DereferenceExpression) toExpression;
 
           if (SchemaUtil.matchFieldName(keyField, dereferenceExpression.toString())) {
-            return Optional.of(new Field(toName, i, keyField.schema()));
+            found = Optional.of(new Field(toName, i, keyField.schema()));
+            break;
           }
         } else if (toExpression instanceof QualifiedNameReference) {
           final QualifiedNameReference qualifiedNameReference
               = (QualifiedNameReference) toExpression;
 
           if (SchemaUtil.matchFieldName(keyField, qualifiedNameReference.getName().getSuffix())) {
-            return Optional.of(new Field(toName, i, keyField.schema()));
+            found = Optional.of(new Field(toName, i, keyField.schema()));
+            break;
           }
         }
       }
-      return Optional.empty();
+
+      return found
+          .filter(f -> !SchemaUtil.isFieldName(f.name(), SchemaUtil.ROWTIME_NAME))
+          .filter(f -> !SchemaUtil.isFieldName(f.name(), SchemaUtil.ROWKEY_NAME));
     }
 
     private LogicalSchema buildSchema(

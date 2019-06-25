@@ -95,7 +95,6 @@ public class AnalyzerTest {
   private Query query;
   private Analyzer analyzer;
 
-  @SuppressWarnings("unchecked")
   @Before
   public void init() {
     jsonMetaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
@@ -371,7 +370,7 @@ public class AnalyzerTest {
     final KsqlStream<?> ksqlStream = new KsqlStream<>(
             "create stream s0 with(KAFKA_TOPIC='s0', VALUE_AVRO_SCHEMA_FULL_NAME='org.ac.s1', VALUE_FORMAT='avro');",
             "S0",
-            LogicalSchema.of(schema).withImplicitAndKeyFieldsInValue(),
+            LogicalSchema.of(schema),
         SerdeOption.none(),
             KeyField.of("FIELD1", schema.field("FIELD1")),
             new MetadataTimestampExtractionPolicy(),

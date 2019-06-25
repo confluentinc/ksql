@@ -236,7 +236,7 @@
           {
             "name": "INPUT",
             "type": "stream",
-            "valueSchema": "STRUCT<ROWTIME BIGINT, ROWKEY STRING, FOO MAP<STRING, INT>>"
+            "valueSchema": "STRUCT<FOO MAP<STRING, INT>>"
           }
         ]
       }
@@ -270,7 +270,7 @@
           {
             "name": "INPUT",
             "type": "stream",
-            "valueSchema": "STRUCT<ROWTIME BIGINT, ROWKEY STRING, FOO MAP<STRING, STRING>>"
+            "valueSchema": "STRUCT<FOO MAP<STRING, STRING>>"
           }
         ]
       }
@@ -311,7 +311,7 @@
           {
             "name": "INPUT",
             "type": "stream",
-            "valueSchema": "STRUCT<ROWTIME BIGINT, ROWKEY STRING, FOO MAP<STRING, INT>>"
+            "valueSchema": "STRUCT<FOO MAP<STRING, INT>>"
           }
         ]
       }
@@ -340,7 +340,7 @@
           {
             "name": "INPUT",
             "type": "stream",
-            "valueSchema": "STRUCT<ROWTIME BIGINT, ROWKEY STRING, FOO MAP<STRING, INT>>"
+            "valueSchema": "STRUCT<FOO MAP<STRING, INT>>"
           }
         ]
       }

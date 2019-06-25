@@ -15,8 +15,6 @@
 
 package io.confluent.ksql.rest.server.security;
 
-import io.confluent.ksql.util.KsqlException;
-
 import java.security.Principal;
 
 /**
@@ -28,8 +26,7 @@ public interface KsqlAuthorizationProvider {
    *
    * @param user The user who is requesting access to the endpoint
    * @param method The endpoint method used, i.e. POST, GET, DELETE
-   * @param path The endpoint path to access, i.e. "/ksql", "/ksql/terminate", "/query"
-   * @throws KsqlException for access denied or any other authorization error
+   * @param path The endpoint path to access, i.e. "/ksql", "/ksql/terminate", "/query"*
    */
-  void checkEndpointAccess(Principal user, String method, String path) throws KsqlException;
+  void checkEndpointAccess(Principal user, String method, String path);
 }

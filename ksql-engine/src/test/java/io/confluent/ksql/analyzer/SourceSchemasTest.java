@@ -59,7 +59,7 @@ public class SourceSchemasTest {
   }
 
   @Test
-  public void shouldNotBeJoinIfSingleSchemas() {
+  public void shouldNotBeJoinIfSingleSchema() {
     // When:
     sourceSchemas = new SourceSchemas(ImmutableMap.of(ALIAS_1, SCHEMA_1));
 

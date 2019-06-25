@@ -104,11 +104,11 @@ public class JoinNodeTest {
   private static final String RIGHT_ALIAS = "right";
 
   private static final LogicalSchema LEFT_NODE_SCHEMA = LEFT_SOURCE_SCHEMA
-      .withImplicitAndKeyFieldsInValue()
+      .withMetaAndKeyFieldsInValue()
       .withAlias(LEFT_ALIAS);
 
   private static final LogicalSchema RIGHT_NODE_SCHEMA = RIGHT_SOURCE_SCHEMA
-      .withImplicitAndKeyFieldsInValue()
+      .withMetaAndKeyFieldsInValue()
       .withAlias(RIGHT_ALIAS);
 
   private static final LogicalSchema JOIN_SCHEMA = joinSchema();

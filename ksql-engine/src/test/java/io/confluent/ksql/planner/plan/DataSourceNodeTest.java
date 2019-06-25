@@ -382,7 +382,7 @@ public class DataSourceNodeTest {
     final DataSourceNode node = nodeWithMockTableSource();
 
     final PhysicalSchema expected = PhysicalSchema
-        .from(realSchema.withoutImplicitAndKeyFieldsInValue(), serdeOptions);
+        .from(realSchema.withoutMetaAndKeyFieldsInValue(), serdeOptions);
 
     // When:
     node.buildStream(ksqlStreamBuilder);

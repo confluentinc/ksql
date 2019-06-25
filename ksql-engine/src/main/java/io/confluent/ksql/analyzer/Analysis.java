@@ -33,14 +33,17 @@ import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.planner.plan.JoinNode;
 import io.confluent.ksql.planner.plan.JoinNode.JoinType;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class Analysis {
 
@@ -162,6 +165,16 @@ public class Analysis {
 
   public List<AliasedDataSource> getFromDataSources() {
     return ImmutableList.copyOf(fromDataSources);
+  }
+
+  public SourceSchemas getFromSourceSchemas() {
+    final Map<String, LogicalSchema> schemaBySource = fromDataSources.stream()
+        .collect(Collectors.toMap(
+            AliasedDataSource::getAlias,
+            s -> s.getDataSource().getSchema()
+        ));
+
+    return new SourceSchemas(schemaBySource);
   }
 
   void addDataSource(final String alias, final DataSource<?> dataSource) {

@@ -15,10 +15,6 @@
 
 package io.confluent.ksql.analyzer;
 
-import static java.util.Objects.requireNonNull;
-
-import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.analyzer.Analysis.AliasedDataSource;
 import io.confluent.ksql.parser.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.parser.tree.AstVisitor;
 import io.confluent.ksql.parser.tree.Cast;
@@ -32,32 +28,19 @@ import io.confluent.ksql.parser.tree.LikePredicate;
 import io.confluent.ksql.parser.tree.LogicalBinaryExpression;
 import io.confluent.ksql.parser.tree.NotExpression;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
-import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.SchemaUtil;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Optional;
-import java.util.stream.Collectors;
+import java.util.Objects;
+import java.util.Set;
 
 /**
  * Searches through the AST for any column references and throws if they are unknown fields.
  */
 class ExpressionAnalyzer {
 
-  private final boolean isJoin;
-  private final Map<String, LogicalSchema> dataSources;
+  private final SourceSchemas sourceSchemas;
 
-  ExpressionAnalyzer(final List<AliasedDataSource> dataSources) {
-    this.dataSources = ImmutableMap.copyOf(requireNonNull(dataSources, "dataSources")
-        .stream()
-        .collect(Collectors.toMap(
-            AliasedDataSource::getAlias,
-            s -> s.getDataSource().getSchema()
-        )));
-
-    this.isJoin = dataSources.size() > 1;
+  ExpressionAnalyzer(final SourceSchemas sourceSchemas) {
+    this.sourceSchemas = Objects.requireNonNull(sourceSchemas, "sourceSchemas");
   }
 
   void analyzeExpression(final Expression expression) {
@@ -66,36 +49,14 @@ class ExpressionAnalyzer {
   }
 
   private void throwOnUnknownField(final String columnName) {
+    final Set<String> sourcesWithField = sourceSchemas.sourcesWithField(columnName);
+    if (sourcesWithField.isEmpty()) {
+      throw new KsqlException("Field '" + columnName + "' cannot be resolved.");
+    }
 
-    final Optional<String> maybeAlias = SchemaUtil.getFieldNameAlias(columnName);
-    if (maybeAlias.isPresent()) {
-      final String alias = maybeAlias.get();
-      final String fieldName = SchemaUtil.getFieldNameWithNoAlias(columnName);
-
-      final LogicalSchema sourceSchema = dataSources.get(alias);
-      if (sourceSchema == null) {
-        throw new KsqlException("Unknown source name or alias: " + alias);
-      }
-
-      final boolean knownField = sourceSchema.findField(fieldName).isPresent();
-      if (!knownField) {
-        throw new KsqlException("Field '" + fieldName + "' not a field of source '" + alias + "'");
-      }
-    } else {
-      final List<String> sourceWithField = dataSources.entrySet().stream()
-          .filter(e -> e.getValue().findField(columnName).isPresent())
-          .map(Entry::getKey)
-          .map(alias -> SchemaUtil.buildAliasedFieldName(alias, columnName))
-          .collect(Collectors.toList());
-
-      if (sourceWithField.isEmpty()) {
-        throw new KsqlException("Field '" + columnName + "' cannot be resolved.");
-      }
-
-      if (sourceWithField.size() > 1) {
-        throw new KsqlException("Field '" + columnName + "' is ambiguous. "
-            + "Could be any of: " + sourceWithField);
-      }
+    if (sourcesWithField.size() > 1) {
+      throw new KsqlException("Field '" + columnName + "' is ambiguous. "
+          + "Could be any of: " + sourcesWithField);
     }
   }
 
@@ -162,7 +123,7 @@ class ExpressionAnalyzer {
         final DereferenceExpression node,
         final Object context
     ) {
-      final String columnName = isJoin
+      final String columnName = sourceSchemas.isJoin()
           ? node.toString()
           : node.getFieldName();
 

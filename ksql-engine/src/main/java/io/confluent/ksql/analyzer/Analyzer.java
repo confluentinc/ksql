@@ -338,7 +338,7 @@ class Analyzer {
     private void throwOnUnknownColumnReference() {
 
       final ExpressionAnalyzer expressionAnalyzer =
-          new ExpressionAnalyzer(analysis.getFromDataSources());
+          new ExpressionAnalyzer(analysis.getFromSourceSchemas());
 
       for (final Expression selectExpression : analysis.getSelectExpressions()) {
         expressionAnalyzer.analyzeExpression(selectExpression);

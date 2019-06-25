@@ -132,7 +132,7 @@ public class LogicalPlanner {
     final String partitionBy = partitionByField.get();
     final LogicalSchema schema = sourcePlanNode.getSchema();
 
-    if (schema.isImplicitField(partitionBy)) {
+    if (schema.isMetaField(partitionBy)) {
       return sourceKeyField.withName(Optional.empty());
     }
 

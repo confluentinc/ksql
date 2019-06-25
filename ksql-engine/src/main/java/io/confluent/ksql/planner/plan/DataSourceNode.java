@@ -118,7 +118,7 @@ public class DataSourceNode
     // It users a KS valueMapper to add the key fields
     // and a KS transformValues to add the implicit fields
     this.schema = dataSource.getSchema()
-        .withImplicitAndKeyFieldsInValue()
+        .withMetaAndKeyFieldsInValue()
         .withAlias(alias);
 
     final Optional<String> keyFieldName = dataSource.getKeyField()

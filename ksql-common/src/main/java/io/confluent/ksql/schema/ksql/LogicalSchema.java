@@ -66,7 +66,7 @@ public final class LogicalSchema {
       SchemaUtil.ROWKEY_NAME
   );
 
-  private static final Schema IMPLICIT_SCHEMA = SchemaBuilder
+  private static final Schema METADATA_SCHEMA = SchemaBuilder
       .struct()
       .field(SchemaUtil.ROWTIME_NAME, Schema.OPTIONAL_INT64_SCHEMA)
       .build();
@@ -93,21 +93,21 @@ public final class LogicalSchema {
           .build();
 
   private final Optional<String> alias;
-  private final ConnectSchema implicitSchema;
+  private final ConnectSchema metaSchema;
   private final ConnectSchema keySchema;
   private final ConnectSchema valueSchema;
 
   public static LogicalSchema of(final Schema valueSchema) {
-    return new LogicalSchema(IMPLICIT_SCHEMA, KEY_SCHEMA, valueSchema, Optional.empty());
+    return new LogicalSchema(METADATA_SCHEMA, KEY_SCHEMA, valueSchema, Optional.empty());
   }
 
   private LogicalSchema(
-      final Schema implicitSchema,
+      final Schema metaSchema,
       final Schema keySchema,
       final Schema valueSchema,
       final Optional<String> alias
   ) {
-    this.implicitSchema = validate(requireNonNull(implicitSchema, "implicitSchema"), true);
+    this.metaSchema = validate(requireNonNull(metaSchema, "metaSchema"), true);
     this.keySchema = validate(requireNonNull(keySchema, "keySchema"), true);
     this.valueSchema = validate(requireNonNull(valueSchema, "valueSchema"), true);
     this.alias = requireNonNull(alias, "alias");
@@ -118,10 +118,10 @@ public final class LogicalSchema {
   }
 
   /**
-   * @return the implicit fields in the schema.
+   * @return the metadata fields in the schema.
    */
-  public List<Field> implicitFields() {
-    return ImmutableList.copyOf(implicitSchema.fields());
+  public List<Field> metaFields() {
+    return ImmutableList.copyOf(metaSchema.fields());
   }
 
   /**
@@ -143,7 +143,7 @@ public final class LogicalSchema {
    */
   public List<Field> fields() {
     return ImmutableList.<Field>builder()
-        .addAll(implicitFields())
+        .addAll(metaFields())
         .addAll(keyFields())
         .addAll(valueFields())
         .build();
@@ -161,7 +161,7 @@ public final class LogicalSchema {
    * @return the field if found, else {@code Optiona.empty()}.
    */
   public Optional<Field> findField(final String fieldName) {
-    Optional<Field> found = findSchemaField(fieldName, implicitSchema);
+    Optional<Field> found = findSchemaField(fieldName, metaSchema);
     if (found.isPresent()) {
       return found;
     }
@@ -220,7 +220,7 @@ public final class LogicalSchema {
     }
 
     return new LogicalSchema(
-        addAlias(alias, implicitSchema),
+        addAlias(alias, metaSchema),
         addAlias(alias, keySchema),
         addAlias(alias, valueSchema),
         Optional.of(alias)
@@ -238,7 +238,7 @@ public final class LogicalSchema {
     }
 
     return new LogicalSchema(
-        removeAlias(implicitSchema),
+        removeAlias(metaSchema),
         removeAlias(keySchema),
         removeAlias(valueSchema),
         Optional.empty()
@@ -246,16 +246,16 @@ public final class LogicalSchema {
   }
 
   /**
-   * Copies implicit and key fields to the value schema.
+   * Copies metadata and key fields to the value schema.
    *
    * <p>If the fields already exist in the value schema the function returns the same schema.
    *
    * @return the new schema.
    */
-  public LogicalSchema withImplicitAndKeyFieldsInValue() {
+  public LogicalSchema withMetaAndKeyFieldsInValue() {
     final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
 
-    implicitFields().forEach(f -> schemaBuilder.field(f.name(), f.schema()));
+    metaFields().forEach(f -> schemaBuilder.field(f.name(), f.schema()));
 
     keyFields().forEach(f -> schemaBuilder.field(f.name(), f.schema()));
 
@@ -266,28 +266,28 @@ public final class LogicalSchema {
     });
 
     return new LogicalSchema(
-        implicitSchema,
+        metaSchema,
         keySchema,
         schemaBuilder.build(),
         alias);
   }
 
   /**
-   * Remove implicit and key fields from the value schema.
+   * Remove metadata and key fields from the value schema.
    *
    * @return the new schema with the fields removed.
    */
-  public LogicalSchema withoutImplicitAndKeyFieldsInValue() {
+  public LogicalSchema withoutMetaAndKeyFieldsInValue() {
     final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
 
-    final Set<String> excluded = implicitAndKeyFieldNames();
+    final Set<String> excluded = metaAndKeyFieldNames();
 
     valueSchema.fields().stream()
         .filter(f -> !excluded.contains(f.name()))
         .forEach(f -> schemaBuilder.field(f.name(), f.schema()));
 
     return new LogicalSchema(
-        implicitSchema,
+        metaSchema,
         keySchema,
         schemaBuilder.build(),
         alias);
@@ -295,10 +295,10 @@ public final class LogicalSchema {
 
   /**
    * @param fieldName the field name to check
-   * @return {@code true} if the field matches the name of any implicit field.
+   * @return {@code true} if the field matches the name of any metadata field.
    */
-  public boolean isImplicitField(final String fieldName) {
-    return implicitFieldNames().contains(fieldName);
+  public boolean isMetaField(final String fieldName) {
+    return metaFieldNames().contains(fieldName);
   }
 
   /**
@@ -335,16 +335,16 @@ public final class LogicalSchema {
     return IMPLICIT_FIELD_NAMES.contains(fieldName.toUpperCase());
   }
 
-  private Set<String> implicitFieldNames() {
-    return fieldNames(implicitFields());
+  private Set<String> metaFieldNames() {
+    return fieldNames(metaFields());
   }
 
   private Set<String> keyFieldNames() {
     return fieldNames(keyFields());
   }
 
-  private Set<String> implicitAndKeyFieldNames() {
-    final Set<String> names = implicitFieldNames();
+  private Set<String> metaAndKeyFieldNames() {
+    final Set<String> names = metaFieldNames();
     names.addAll(keyFieldNames());
     return names;
   }

@@ -34,7 +34,7 @@ public final class EntityUtil {
   public static List<FieldInfo> buildSourceSchemaEntity(final LogicalSchema schema) {
 
     final List<FieldInfo> allFields = new ArrayList<>();
-    allFields.addAll(getFields(schema.implicitFields(), "implicit"));
+    allFields.addAll(getFields(schema.metaFields(), "implicit"));
     allFields.addAll(getFields(schema.keyFields(), "key"));
     allFields.addAll(getFields(schema.valueFields(), "value"));
 

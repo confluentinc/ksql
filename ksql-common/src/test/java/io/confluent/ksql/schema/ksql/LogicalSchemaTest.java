@@ -389,13 +389,13 @@ public class LogicalSchemaTest {
 
   @Test
   public void shouldGetImplicitFieldFromValueIfAdded() {
-    assertThat(SOME_SCHEMA.withImplicitAndKeyFieldsInValue().findValueField("ROWTIME"),
+    assertThat(SOME_SCHEMA.withMetaAndKeyFieldsInValue().findValueField("ROWTIME"),
         is(not(Optional.empty())));
   }
 
   @Test
   public void shouldGetKeyFieldFromValueIfAdded() {
-    assertThat(SOME_SCHEMA.withImplicitAndKeyFieldsInValue().findValueField("ROWKEY"),
+    assertThat(SOME_SCHEMA.withMetaAndKeyFieldsInValue().findValueField("ROWKEY"),
         is(not(Optional.empty())));
   }
 
@@ -453,7 +453,7 @@ public class LogicalSchemaTest {
 
   @Test
   public void shouldExposeImplicitFields() {
-    assertThat(SOME_SCHEMA.implicitFields(), is(ImmutableList.of(
+    assertThat(SOME_SCHEMA.metaFields(), is(ImmutableList.of(
         new Field(ROWTIME_NAME, 0, Schema.OPTIONAL_INT64_SCHEMA)
     )));
   }
@@ -464,7 +464,7 @@ public class LogicalSchemaTest {
     final LogicalSchema schema = SOME_SCHEMA.withAlias("fred");
 
     // When:
-    final List<Field> fields = schema.implicitFields();
+    final List<Field> fields = schema.metaFields();
 
     // Then:
     assertThat(fields, is(ImmutableList.of(
@@ -611,7 +611,7 @@ public class LogicalSchemaTest {
 
     // When:
     final LogicalSchema result = schema
-        .withImplicitAndKeyFieldsInValue();
+        .withMetaAndKeyFieldsInValue();
 
     // Then:
     assertThat(result.valueFields(), hasSize(SOME_CONNECT_SCHEMA.fields().size() + 2));
@@ -631,7 +631,7 @@ public class LogicalSchemaTest {
 
     // When:
     final LogicalSchema result = schema
-        .withImplicitAndKeyFieldsInValue();
+        .withMetaAndKeyFieldsInValue();
 
     // Then:
     assertThat(result.valueFields(), hasSize(SOME_CONNECT_SCHEMA.fields().size() + 2));
@@ -647,10 +647,10 @@ public class LogicalSchemaTest {
   public void shouldAddImplicitAndKeyColumnsOnlyOnce() {
     // Given:
     final LogicalSchema ksqlSchema = LogicalSchema.of(SOME_CONNECT_SCHEMA)
-        .withImplicitAndKeyFieldsInValue();
+        .withMetaAndKeyFieldsInValue();
 
     // When:
-    final LogicalSchema result = ksqlSchema.withImplicitAndKeyFieldsInValue();
+    final LogicalSchema result = ksqlSchema.withMetaAndKeyFieldsInValue();
 
     // Then:
     assertThat(result, is(ksqlSchema));
@@ -668,7 +668,7 @@ public class LogicalSchemaTest {
     );
 
     // When:
-    final LogicalSchema result = ksqlSchema.withImplicitAndKeyFieldsInValue();
+    final LogicalSchema result = ksqlSchema.withMetaAndKeyFieldsInValue();
 
     // Then:
     assertThat(result, is(LogicalSchema.of(SchemaBuilder.struct()
@@ -687,10 +687,10 @@ public class LogicalSchemaTest {
         .field("f0", Schema.OPTIONAL_INT64_SCHEMA)
         .field("f1", Schema.OPTIONAL_INT64_SCHEMA)
         .build()
-    ).withImplicitAndKeyFieldsInValue();
+    ).withMetaAndKeyFieldsInValue();
 
     // When
-    final LogicalSchema result = schema.withoutImplicitAndKeyFieldsInValue();
+    final LogicalSchema result = schema.withoutMetaAndKeyFieldsInValue();
 
     // Then:
     assertThat(result, is(LogicalSchema.of(SchemaBuilder.struct()
@@ -712,7 +712,7 @@ public class LogicalSchemaTest {
     );
 
     // When
-    final LogicalSchema result = schema.withoutImplicitAndKeyFieldsInValue();
+    final LogicalSchema result = schema.withoutMetaAndKeyFieldsInValue();
 
     // Then:
     assertThat(result, is(LogicalSchema.of(SchemaBuilder.struct()
@@ -729,11 +729,11 @@ public class LogicalSchemaTest {
         .field("f0", Schema.OPTIONAL_INT64_SCHEMA)
         .field("f1", Schema.OPTIONAL_INT64_SCHEMA)
         .build())
-        .withImplicitAndKeyFieldsInValue()
+        .withMetaAndKeyFieldsInValue()
         .withAlias("bob");
 
     // When
-    final LogicalSchema result = schema.withoutImplicitAndKeyFieldsInValue();
+    final LogicalSchema result = schema.withoutMetaAndKeyFieldsInValue();
 
     // Then:
     assertThat(result, is(LogicalSchema.of(SchemaBuilder.struct()
@@ -766,13 +766,13 @@ public class LogicalSchemaTest {
 
   @Test
   public void shouldMatchImplicitFieldName() {
-    assertThat(SOME_SCHEMA.isImplicitField(ROWTIME_NAME), is(true));
+    assertThat(SOME_SCHEMA.isMetaField(ROWTIME_NAME), is(true));
     assertThat(SOME_SCHEMA.isKeyField(ROWTIME_NAME), is(false));
   }
 
   @Test
   public void shouldMatchKeyFieldName() {
-    assertThat(SOME_SCHEMA.isImplicitField(ROWKEY_NAME), is(false));
+    assertThat(SOME_SCHEMA.isMetaField(ROWKEY_NAME), is(false));
     assertThat(SOME_SCHEMA.isKeyField(ROWKEY_NAME), is(true));
   }
 
@@ -780,14 +780,14 @@ public class LogicalSchemaTest {
   public void shouldNotMatchValueFieldsAsBeingImplicitOrKeyFields() {
     SOME_SCHEMA.valueFields().forEach(field ->
     {
-      assertThat(SOME_SCHEMA.isImplicitField(field.name()), is(false));
+      assertThat(SOME_SCHEMA.isMetaField(field.name()), is(false));
       assertThat(SOME_SCHEMA.isKeyField(field.name()), is(false));
     });
   }
 
   @Test
   public void shouldNotMatchRandomFieldNameAsBeingImplicitOrKeyFields() {
-    assertThat(SOME_SCHEMA.isImplicitField("well_this_ain't_in_the_schema"), is(false));
+    assertThat(SOME_SCHEMA.isMetaField("well_this_ain't_in_the_schema"), is(false));
     assertThat(SOME_SCHEMA.isKeyField("well_this_ain't_in_the_schema"), is(false));
   }
 

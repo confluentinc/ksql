@@ -111,7 +111,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
         // This is done by DataSourceNode
         // Hence, they must be removed again here if they are still in the sink schema.
         // This leads to strange behaviour, but changing it is a breaking change.
-        schema.withoutImplicitAndKeyFieldsInValue(),
+        schema.withoutMetaAndKeyFieldsInValue(),
         limit,
         timestampExtractionPolicy
     );
@@ -229,7 +229,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
 
     final String fieldName = partitionByField.get();
 
-    if (getSchema().isImplicitField(fieldName) || getSchema().isKeyField(fieldName)) {
+    if (getSchema().isMetaField(fieldName) || getSchema().isKeyField(fieldName)) {
       return;
     }
 
@@ -243,7 +243,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     final ConnectSchema valueSchema = schema.valueSchema();
 
     final Stream<Field> fields = Streams.concat(
-        schema.implicitFields().stream(),
+        schema.metaFields().stream(),
         schema.keyFields().stream()
     );
 

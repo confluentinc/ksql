@@ -87,6 +87,11 @@ public class SourceSchemasTest {
   }
 
   @Test
+  public void shouldFindUnqualifiedUniqueField() {
+    assertThat(sourceSchemas.sourcesWithField("F1"), contains(ALIAS_1));
+  }
+
+  @Test
   public void shouldFindQualifiedUniqueField() {
     assertThat(sourceSchemas.sourcesWithField(ALIAS_2 + ".F2"), contains(ALIAS_2));
   }
@@ -102,5 +107,4 @@ public class SourceSchemasTest {
     assertThat(sourceSchemas.sourcesWithField(ALIAS_1 + "." + COMMON_FIELD_NAME),
         contains(ALIAS_1));
   }
-
 }

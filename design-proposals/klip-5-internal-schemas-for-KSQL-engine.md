@@ -41,10 +41,11 @@ As an example, consider we want to declare s stream on a topic with values in JS
 is a sample message value in this topic:
 
 ```json
-{"@ID": 0, "@NAME": "foo", "MESSAGE.AMOUNT": 0.0}
+{"@ID": 0, "@NAME": "foo", "MESSAGE.AMOUNT": 0.0, "SELECT": "bar"}
 ```
 
 As you can see, two of the field names start with “@” and the third one includes “.” in the field name.
+The forth field name is "SELECT" which is a reserved word in KSQL.
  Currently we cannot declare a stream or table on this topic since its content does not conform to KQSL
  field naming requirements. However, we should be able to use quoted identifiers, which is supported by
  our parser, to declare a stream or table on this topic and write queries over the declared stream or
@@ -53,7 +54,7 @@ As you can see, two of the field names start with “@” and the third one incl
 
 ```sql
 CREATE STREAM foo
-  (“@ID” BIGINT, “@NAME” STRING, “MESSAGE.AMOUNT” DOUBLE)
+  (“@ID” BIGINT, “@NAME” STRING, “MESSAGE.AMOUNT” DOUBLE, "SELECT" STRING)
 WITH
   (KAFKA_TOPIC=’foo’, VALUE_FORMAT = ‘JSON’);
 ```
@@ -63,7 +64,7 @@ to create a new stream from foo using the following CSAS statement:
 
 ```sql
 CREATE STREAM bar AS
-SELECT “@ID”, lowercase(“@NAME”) AS “@NAME”, “MESSAGE.AMOUNT” * 100 AS “AMOUNT.BY.100”
+SELECT “@ID”, lowercase(“@NAME”) AS “@NAME”, “MESSAGE.AMOUNT” * 100 AS “AMOUNT.BY.100”, "SELECT"
 FROM foo
 WHERE “MESSAGE.AMOUNT” < 1;
 ```
@@ -100,17 +101,17 @@ the internal schema to it. The internal schema field names can follow a predefin
 KSQL engine would build the same internal schema for a given external schema everytime. As an example,
  let’s consider we use the index of the field in the schema as a prefix to a constant string value to
  build the internal schema field names. Consider the previous example where our external schema has
- three fields as the following:
+ four fields as the following:
 
 ```sql
-(“@ID” BIGINT, “@NAME” STRING, “MESSAGE.AMOUNT” DOUBLE)
+(“@ID” BIGINT, “@NAME” STRING, “MESSAGE.AMOUNT” DOUBLE, "SELECT" STRING)
 ```
 
 Assuming the constant string prefix to build the internal schema fields is “COL_”, the internal
 schema for the above schema will be as the following:
 
 ```sql
-(COL_0 BIGINT, COL_1 STRING, COL_2 DOUBLE)
+(COL_0 BIGINT, COL_1 STRING, COL_2 DOUBLE, COL_3 STRING)
 ```
 
 Note that the following one to one mapping will exist between the fields from the external schema and the fields from the internal schema:
@@ -118,6 +119,7 @@ Note that the following one to one mapping will exist between the fields from th
 * “@ID”                            <==>   COL_0
 * “@NAME”                     <==>   COL_1
 * “MESSAGE.AMOUNT” <==>   COL_2
+* "SELECT"         <==>   COL_3
 
 In the case of nested fields, we can apply the same approach to the nested fields inside ARRAY, MAP
 and STRUCT types.
@@ -130,7 +132,7 @@ As an example, consider the following query again:
 
 ```sql
 CREATE STREAM bar AS
-SELECT “@ID”, lowercase(foo.“@NAME”) AS “@NAME”, “MESSAGE.AMOUNT” * 100 AS “AMOUNT.BY.100”
+SELECT “@ID”, lowercase(foo.“@NAME”) AS “@NAME”, “MESSAGE.AMOUNT” * 100 AS “AMOUNT.BY.100”, "SELECT"
 FROM foo
 WHERE “MESSAGE.AMOUNT” < 1;
 ```
@@ -140,7 +142,7 @@ With the above mapping the engine will write this query as the following:
 ```sql
 
 CREATE STREAM bar AS
-SELECT FOO_COL_1 AS “@ID”, lowercase(FOO_COL_1) AS “@NAME”, FOO_COL_2 * 100 AS “AMOUNT.BY.100”
+SELECT FOO_COL_1 AS “@ID”, lowercase(FOO_COL_1) AS “@NAME”, FOO_COL_2 * 100 AS “AMOUNT.BY.100”, FOO_COL3
 FROM foo
 WHERE FOO_COL_2 < 1;
 ```
@@ -154,7 +156,7 @@ The sink schema for the above query will use the provided aliases for select exp
 So the sink schema will be the following:
 
 ```sql
-(“@ID” BIGINT, “@NAME” STRING, “AMOUNT.BY.100” DOUBLE)
+(“@ID” BIGINT, “@NAME” STRING, “AMOUNT.BY.100” DOUBLE, "SELECT" STRING)
 ```
 
 The engine will use the generated internal schema to build the streams application. The deserializers
@@ -177,7 +179,8 @@ does not know about the internal schemas.
 
 ## Test Plan
 
-Tests for supporting quoted identifiers will be added.
+Tests for supporting quoted identifiers will be added. This includes tests for identifiers with periods, reserved words
+such as "SELECT" or "ROWKEY", case sensitivity.
 
 All of the existing tests for different stages of query processing will indeed test the correctness
  of the use of internal schemas too since the internal schemas will be used for such processing.

@@ -48,6 +48,7 @@ When submitting a pull request (PR), use the following guidelines:
 * Follow the style guide below
 * Add/update documentation appropriately for the change you are making.
 * If you are introducing a new feature you may want to first submit your idea by creating a [new GitHub issue](https://github.com/confluentinc/ksql/issues) to solicit feedback.
+* If you would like design feedback, you should first introduce a [KLIP](design-proposals/README.md)
 * Non-trivial changes should include unit tests covering the new functionality and potentially [function tests](ksql-engine/src/test/resources/query-validation-tests/README.md).
 * Bug fixes should include a unit test or integration test reproducing the issue and potentially [function tests](ksql-engine/src/test/resources/query-validation-tests/README.md).
 * Try to keep pull requests short and submit separate ones for unrelated features, but feel free to combine simple bugfixes/tests into one pull request.

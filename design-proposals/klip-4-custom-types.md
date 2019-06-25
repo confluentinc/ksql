@@ -95,7 +95,7 @@ message that contains the rewritten schema.
 
 If a type is already registered via CLI, but is then added to the extensions directory, the value
 in the directory will take precedence over the CLI registered value. The CLI will reject calls to
-register types that are already 
+register types that are already registered in the extensions directory.
 
 ## Future Work
 * in v1, `DESCRIBE`/`Explian` commands would show the flattened types (resolved) - it is better to 

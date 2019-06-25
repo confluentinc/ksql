@@ -764,6 +764,33 @@ public class LogicalSchemaTest {
     assertThat(LogicalSchema.isImplicitColumnName("other"), is(false));
   }
 
+  @Test
+  public void shouldMatchImplicitFieldName() {
+    assertThat(SOME_SCHEMA.isMetaField(ROWTIME_NAME), is(true));
+    assertThat(SOME_SCHEMA.isKeyField(ROWTIME_NAME), is(false));
+  }
+
+  @Test
+  public void shouldMatchKeyFieldName() {
+    assertThat(SOME_SCHEMA.isMetaField(ROWKEY_NAME), is(false));
+    assertThat(SOME_SCHEMA.isKeyField(ROWKEY_NAME), is(true));
+  }
+
+  @Test
+  public void shouldNotMatchValueFieldsAsBeingImplicitOrKeyFields() {
+    SOME_SCHEMA.valueFields().forEach(field ->
+    {
+      assertThat(SOME_SCHEMA.isMetaField(field.name()), is(false));
+      assertThat(SOME_SCHEMA.isKeyField(field.name()), is(false));
+    });
+  }
+
+  @Test
+  public void shouldNotMatchRandomFieldNameAsBeingImplicitOrKeyFields() {
+    assertThat(SOME_SCHEMA.isMetaField("well_this_ain't_in_the_schema"), is(false));
+    assertThat(SOME_SCHEMA.isKeyField("well_this_ain't_in_the_schema"), is(false));
+  }
+
   private static Schema nested(final Schema schema) {
     // Nest the schema under test within another layer of schema to ensure checks are deep:
     return SchemaBuilder.struct()

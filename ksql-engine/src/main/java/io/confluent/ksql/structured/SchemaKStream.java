@@ -551,10 +551,14 @@ public class SchemaKStream<K> {
           return row;
         });
 
+    final KeyField newKeyField = schema.isMetaField(fieldName)
+        ? resultantKeyField.withName(Optional.empty())
+        : resultantKeyField;
+
     return new SchemaKStream<>(
         schema,
         keyedKStream,
-        resultantKeyField,
+        newKeyField,
         Collections.singletonList(this),
         Serdes::String,
         Type.REKEY,

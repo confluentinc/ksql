@@ -20,12 +20,12 @@ import static java.util.Objects.requireNonNull;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Streams;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.schema.connect.SqlSchemaFormatter;
 import io.confluent.ksql.schema.connect.SqlSchemaFormatter.Option;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.SchemaUtil;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -293,6 +293,22 @@ public final class LogicalSchema {
         alias);
   }
 
+  /**
+   * @param fieldName the field name to check
+   * @return {@code true} if the field matches the name of any metadata field.
+   */
+  public boolean isMetaField(final String fieldName) {
+    return metaFieldNames().contains(fieldName);
+  }
+
+  /**
+   * @param fieldName the field name to check
+   * @return {@code true} if the field matches the name of any key field.
+   */
+  public boolean isKeyField(final String fieldName) {
+    return keyFieldNames().contains(fieldName);
+  }
+
   @Override
   public boolean equals(final Object o) {
     if (this == o) {
@@ -319,9 +335,22 @@ public final class LogicalSchema {
     return IMPLICIT_FIELD_NAMES.contains(fieldName.toUpperCase());
   }
 
-  @SuppressWarnings("UnstableApiUsage")
+  private Set<String> metaFieldNames() {
+    return fieldNames(metaFields());
+  }
+
+  private Set<String> keyFieldNames() {
+    return fieldNames(keyFields());
+  }
+
   private Set<String> metaAndKeyFieldNames() {
-    return Streams.concat(metaFields().stream(), keyFields().stream())
+    final Set<String> names = metaFieldNames();
+    names.addAll(keyFieldNames());
+    return names;
+  }
+
+  private static Set<String> fieldNames(final Collection<Field> fields) {
+    return fields.stream()
         .map(Field::name)
         .collect(Collectors.toSet());
   }

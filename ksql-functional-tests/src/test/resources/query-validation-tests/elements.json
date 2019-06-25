@@ -204,7 +204,7 @@
       "outputs": [{"topic": "OUTPUT", "key": 1, "value": {"I2_ROWTIME": 11, "I2_ROWKEY": "1", "I2_F0": 4}, "timestamp": 11}]
     },
     {
-      "name": "join qualified select star",
+      "name": "join unqualified select star",
       "statements": [
         "CREATE STREAM INPUT_1 (F0 INT) WITH (kafka_topic='input_1', value_format='JSON');",
         "CREATE STREAM INPUT_2 (F0 INT) WITH (kafka_topic='input_2', value_format='JSON');",

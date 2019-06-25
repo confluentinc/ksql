@@ -140,7 +140,7 @@ public class KsqlStructuredDataOutputNodeTest {
     when(sourceNode.getNodeOutputType()).thenReturn(DataSourceType.KSTREAM);
     when(sourceNode.buildStream(ksqlStreamBuilder)).thenReturn((SchemaKStream) sourceStream);
 
-    when(sourceStream.getSchema()).thenReturn(SCHEMA.withImplicitAndKeyFieldsInValue());
+    when(sourceStream.getSchema()).thenReturn(SCHEMA.withMetaAndKeyFieldsInValue());
     when(sourceStream.getKeyField()).thenReturn(KeyField.none());
     when(sourceStream.getKeySerdeFactory()).thenReturn(keySerdeFactory);
     when(sourceStream.getKstream()).thenReturn((KStream) kstream);
@@ -331,7 +331,7 @@ public class KsqlStructuredDataOutputNodeTest {
   @Test
   public void shouldCallIntoWithIndexesToRemoveImplicitsAndRowKey() {
     // Given:
-    final LogicalSchema schema = SCHEMA.withImplicitAndKeyFieldsInValue();
+    final LogicalSchema schema = SCHEMA.withMetaAndKeyFieldsInValue();
     givenNodeWithSchema(schema);
 
     // When:

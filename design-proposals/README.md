@@ -12,7 +12,7 @@ This serves as a locking mechanism to make sure that
 - two people are not working on the same KLIP at once
 
 To submit a proposal intent, create a pull request with the following information:
-1. title is `docs: intent for KLIP-X <title-of-klip>`
+1. title is `docs: intent for KLIP-<number>: <title-of-klip>`
 1. update the number for the next KLIP on this readme
 1. add a line in the table below for your new KLIP with status `WIP`
 
@@ -27,7 +27,7 @@ This is the guts of our improvement proposal process:
    title (e.g. `klip-1-improve-udf-interfaces.md`)
 1. Fill in the template with details from your KLIP
 1. Submit a Pull Request from your branch to KSQL:
-    1. make sure the title begins with `docs: `
+    1. make sure the title is `docs: KLIP-<number>: <title>`
     1. add the label `design-proposal`
     1. update the table entry below from the Proposal Intent step with a link to your KLIP
 1. Share a link to the PR in the `#ksql` channel on the [confluent community slack](https://slackpass.io/confluentcommunity).

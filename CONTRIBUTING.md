@@ -119,7 +119,28 @@ Examples that could make sense for KSQL include "parser", "analyzer", "rest serv
 
 The optional body and footer are for specifying additional information, such as linking to issues fixed by the commit
 or drawing attention to breaking changes.
-Breaking changes must include a line starting with "BREAKING CHANGE: " followed by an explanation of what the breaking change was.
+
+A commit is a "breaking change" if users should expect different behavior from an existing workflow
+as a result of the change. Examples of breaking changes include deprecation of existing configs or APIs,
+changing default behavior of existing configs or query semantics, or the renaming of exposed JMX metrics.
+Breaking changes must be called out in commit messages, PR descriptions, and upgrade notes:
+
+ * Commit messages for breaking changes must include a line (in the optional body or footer)
+   starting with "BREAKING CHANGE: " followed by an explanation of what the breaking change was.
+   For example,
+
+       feat: inherit num partitions and replicas from source topic in CSAS/CTAS
+
+       BREAKING CHANGE: `CREATE * AS SELECT` queries now create sink topics with partition
+       and replica count equal to those of the source, rather than using values from the properties
+       `ksql.sink.partitions` and `ksql.sink.replicas`. These properties are now deprecated.
+
+ * The breaking change should similarly be called out in the PR description.
+   This description will be copied into the body of the final commit merged into the repo,
+   and picked up by our automatic changelog generation accordingly.
+
+ * [Upgrade notes][https://github.com/confluentinc/ksql/blob/master/docs/installation/upgrading.rst]
+   should also be updated as part of the same PR.
 
 ### GitHub Workflow
 

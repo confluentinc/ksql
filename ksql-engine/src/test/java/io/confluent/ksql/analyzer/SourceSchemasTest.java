@@ -87,7 +87,7 @@ public class SourceSchemasTest {
   }
 
   @Test
-  public void shouldFieldUnqualifiedUniqueField() {
+  public void shouldFindQualifiedUniqueField() {
     assertThat(sourceSchemas.sourcesWithField(ALIAS_2 + ".F2"), contains(ALIAS_2));
   }
 

@@ -81,7 +81,7 @@ for this command would be:
 The `ksql.extension.dir` will now also recognize `.sql` files that contain only `CREATE TYPE`
 commands. These commands will all be run before compiling any UDFs so these custom type declarations
 can be used in the `@Udf` annotations. They will be loaded in natural order to ensure that the
-loading behavior is deterministic.
+loading behavior is deterministic (using `Comparator#naturalOrder` and `String#CompareTo`).
 
 ## Design
 
@@ -128,7 +128,7 @@ Nothing special of note here.
 >
 >Register the ``<type>`` under the alias ``<type_name>`` to be used in future statements. Any valid
 >column schema can be registered as a custom type, and the type_name must be exclusively letters
->```[A-Z]```.
+>```[A-Z]``` and the underscore `_` character.
 
 * The `syntax-reference.rst` will have an updated section on `DROP TYPE`:
 

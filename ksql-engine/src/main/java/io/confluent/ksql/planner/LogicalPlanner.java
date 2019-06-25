@@ -33,6 +33,7 @@ import io.confluent.ksql.planner.plan.ProjectNode;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.ExpressionTypeManager;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicyFactory;
 import java.util.Optional;
@@ -172,7 +173,9 @@ public class LogicalPlanner {
 
       aggregateSchema.field(alias, expressionType);
 
-      if (expression.equals(groupBy)) {
+      if (expression.equals(groupBy)
+          && !SchemaUtil.isFieldName(alias, SchemaUtil.ROWTIME_NAME)
+          && !SchemaUtil.isFieldName(alias, SchemaUtil.ROWKEY_NAME)) {
         keyField = Optional.of(alias);
       }
     }

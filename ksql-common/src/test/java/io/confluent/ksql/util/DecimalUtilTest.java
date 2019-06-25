@@ -19,10 +19,10 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.sameInstance;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigDecimal;
 import org.apache.kafka.connect.data.Decimal;
 import org.apache.kafka.connect.data.Schema;
+import org.hamcrest.Matchers;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -233,6 +233,46 @@ public class DecimalUtilTest {
 
     // Then:
     assertThat(decimal, is(new BigDecimal("1.2")));
+  }
+
+  @Test
+  public void shouldConvertInteger() {
+    // When:
+    final Schema decimal = DecimalUtil.toDecimal(Schema.OPTIONAL_INT32_SCHEMA);
+
+    // Then:
+    assertThat(decimal, Matchers.is(DecimalUtil.builder(10, 0).build()));
+  }
+
+  @Test
+  public void shouldConvertLong() {
+    // When:
+    final Schema decimal = DecimalUtil.toDecimal(Schema.OPTIONAL_INT64_SCHEMA);
+
+    // Then:
+    assertThat(decimal, Matchers.is(DecimalUtil.builder(19, 0).build()));
+  }
+
+  @Test
+  public void shouldConvertDecimal() {
+    // Given:
+    final Schema given = DecimalUtil.builder(2, 2);
+
+    // When:
+    final Schema decimal = DecimalUtil.toDecimal(given);
+
+    // Then:
+    assertThat(decimal, sameInstance(given));
+  }
+
+  @Test
+  public void shouldThrowIfConvertString() {
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Cannot convert schema of type STRING to decimal");
+
+    // When:
+    DecimalUtil.toDecimal(Schema.OPTIONAL_STRING_SCHEMA);
   }
 
   @Test

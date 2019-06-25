@@ -158,8 +158,6 @@ public class ProcessingLogServerUtilsTest {
         stream.getSchema().valueFields().stream().map(Field::name).collect(toList()),
         equalTo(
             new ImmutableList.Builder<String>()
-                .add("ROWTIME")
-                .add("ROWKEY")
                 .addAll(
                     expected.fields().stream()
                         .map(f -> f.name().toUpperCase())

@@ -41,7 +41,7 @@ public class CreateTableCommand extends CreateSourceCommand {
     final KsqlTable ksqlTable = new KsqlTable<>(
         sqlExpression,
         sourceName,
-        schema.withImplicitAndKeyFieldsInValue(),
+        schema,
         getSerdeOptions(),
         keyField,
         timestampExtractionPolicy,

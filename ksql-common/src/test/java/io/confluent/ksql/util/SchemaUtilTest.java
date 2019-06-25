@@ -691,6 +691,42 @@ public class SchemaUtilTest {
     });
   }
 
+  @Test
+  public void shouldResolveDecimalLongAdd() {
+    final Map<PrecisionScale, PrecisionScale> inputToExpected =
+        ImmutableMap.<PrecisionScale, PrecisionScale>builder()
+            .put(PrecisionScale.of(2, 1), PrecisionScale.of(21, 1))
+            .put(PrecisionScale.of(3, 3), PrecisionScale.of(23, 3))
+            .put(PrecisionScale.of(23, 0), PrecisionScale.of(24, 0))
+            .build();
+
+    inputToExpected.forEach((in, out) -> {
+      // Given:
+      final Schema d1 = DecimalUtil.builder(in.precision, in.scale).build();
+      final Schema d2 = Schema.OPTIONAL_INT64_SCHEMA;
+
+      // When:
+      final Schema result = SchemaUtil.resolveBinaryOperatorResultType(d1, d2, Operator.ADD);
+
+      // Then:
+      assertThat(String.format("precision: %s", in), DecimalUtil.precision(result), is(out.precision));
+      assertThat(String.format("scale: %s", in), DecimalUtil.scale(result), is(out.scale));
+    });
+  }
+
+  @Test
+  public void shouldResolveDecimalDoubleMath() {
+    // Given:
+    final Schema d1 = DecimalUtil.builder(15, 10).build();
+    final Schema d2 = Schema.OPTIONAL_FLOAT64_SCHEMA;
+
+    // When:
+    final Schema result = SchemaUtil.resolveBinaryOperatorResultType(d1, d2, Operator.ADD);
+
+    // Then:
+    assertThat(result, is(Schema.OPTIONAL_FLOAT64_SCHEMA));
+  }
+
   private static class PrecisionScale {
     final int precision;
     final int scale;

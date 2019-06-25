@@ -74,6 +74,40 @@
       ]
     },
     {
+      "name": "addition with double",
+      "statements": [
+        "CREATE STREAM TEST (a DECIMAL(4,2), b DOUBLE) WITH (kafka_topic='test', value_format='AVRO');",
+        "CREATE STREAM TEST2 AS SELECT (a + b) AS RESULT FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test", "key": 0, "value": {"A": "10.01", "B":  5.1}},
+        {"topic": "test", "key": 0, "value": {"A": "10.01", "B":  -5.0}},
+        {"topic": "test", "key": 0, "value": {"A": "10.01", "B":  0.0}}
+      ],
+      "outputs": [
+        {"topic": "TEST2", "key": 0, "value": {"RESULT": 15.11}},
+        {"topic": "TEST2", "key": 0, "value": {"RESULT": 5.01}},
+        {"topic": "TEST2", "key": 0, "value": {"RESULT": 10.01}}
+      ]
+    },
+    {
+      "name": "addition with int",
+      "statements": [
+        "CREATE STREAM TEST (a DECIMAL(4,2), b INT) WITH (kafka_topic='test', value_format='AVRO');",
+        "CREATE STREAM TEST2 AS SELECT (a + b) AS RESULT FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test", "key": 0, "value": {"A": "10.01", "B": 5}},
+        {"topic": "test", "key": 0, "value": {"A": "10.01", "B": -5}},
+        {"topic": "test", "key": 0, "value": {"A": "10.01", "B": 0}}
+      ],
+      "outputs": [
+        {"topic": "TEST2", "key": 0, "value": {"RESULT": "15.01"}},
+        {"topic": "TEST2", "key": 0, "value": {"RESULT": "5.01"}},
+        {"topic": "TEST2", "key": 0, "value": {"RESULT": "10.01"}}
+      ]
+    },
+    {
       "name": "addition 3 columns",
       "statements": [
         "CREATE STREAM TEST (a DECIMAL(4,2), b DECIMAL(4,2)) WITH (kafka_topic='test', value_format='AVRO');",

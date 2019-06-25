@@ -238,10 +238,11 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     }
   }
 
+  @SuppressWarnings("UnstableApiUsage")
   private static Set<Integer> implicitAndKeyColumnIndexesInValueSchema(final LogicalSchema schema) {
     final ConnectSchema valueSchema = schema.valueSchema();
 
-    @SuppressWarnings("UnstableApiUsage") final Stream<Field> fields = Streams.concat(
+    final Stream<Field> fields = Streams.concat(
         schema.implicitFields().stream(),
         schema.keyFields().stream()
     );

@@ -245,7 +245,7 @@ public class JsonFormatTest {
     final DataSource<?> source = metaStore.getSource(streamName);
 
     final PhysicalSchema resultSchema = PhysicalSchema.from(
-        source.getSchema().withoutImplicitAndKeyFieldsInValue(),
+        source.getSchema(),
         source.getSerdeOptions()
     );
 
@@ -256,5 +256,4 @@ public class JsonFormatTest {
     ksqlEngine.getPersistentQuery(queryId)
         .ifPresent(QueryMetadata::close);
   }
-
 }

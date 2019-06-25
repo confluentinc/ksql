@@ -40,7 +40,7 @@ public class DecimalSumKudaf
     super(
         functionName,
         argIndexInValue,
-        () -> BigDecimal.ZERO,
+        DecimalSumKudaf::initialValue,
         returnSchema,
         Collections.singletonList(returnSchema),
         "Computes the sum of decimal values for a key, resulting in a decimal with the same "
@@ -75,5 +75,9 @@ public class DecimalSumKudaf
       return aggregateValue;
     }
     return aggregateValue.subtract(valueToUndo, context);
+  }
+
+  private static BigDecimal initialValue() {
+    return BigDecimal.ZERO;
   }
 }

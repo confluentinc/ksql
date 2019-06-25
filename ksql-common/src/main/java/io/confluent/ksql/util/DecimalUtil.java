@@ -153,6 +153,28 @@ public final class DecimalUtil {
     }
   }
 
+  /**
+   * Converts a schema to a decimal schema with set precision/scale without losing
+   * scale or precision.
+   *
+   * @param schema the schema
+   * @return the decimal schema
+   * @throws KsqlException if the schema cannot safely be converted to decimal
+   */
+  public static Schema toDecimal(final Schema schema) {
+    switch (schema.type()) {
+      case BYTES:
+        requireDecimal(schema);
+        return schema;
+      case INT32:
+        return builder(10, 0).build();
+      case INT64:
+        return builder(19, 0).build();
+      default:
+        throw new KsqlException("Cannot convert schema of type " + schema.type() + " to decimal.");
+    }
+  }
+
   public static BigDecimal cast(final long value, final int precision, final int scale) {
     validateParameters(precision, scale);
     final BigDecimal decimal = new BigDecimal(value, new MathContext(precision));

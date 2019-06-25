@@ -92,6 +92,56 @@ You can set up IntelliJ for CheckStyle. First install the CheckStyle IDEA plugin
 
 'Confluent Checks' will now be available in the CheckStyle tool window in the IDE and will auto-highlight issues in the code editor.
 
+#### Commit messages
+
+The project uses [Conventional Commits][https://www.conventionalcommits.org/en/v1.0.0-beta.4/] for commit messages
+in order to aid in automatic generation of changelogs. As described in the Conventional Commmits specification,
+commit messages should be of the form:
+
+    <type>[optional scope]: <description>
+
+    [optional body]
+
+    [optional footer]
+
+where the `type` is one of
+ * "fix": for bug fixes
+ * "feat": for new features
+ * "refactor": for refactors
+ * "test": for test-only changes
+ * "docs": for docs-only changes
+ * "revert": for reverting other changes
+ * "perf", "style", "build", "ci", or "chore": as described in the [Angular specification][https://github.com/angular/angular/blob/22b96b9/CONTRIBUTING.md#type] for Conventional Commits.
+
+The (optional) scope is a noun describing the section of the codebase affected by the change.
+Examples that could make sense for KSQL include "parser", "analyzer", "rest server", "testing tool",
+"cli", "processing log", and "metrics", to name a few.
+
+The optional body and footer are for specifying additional information, such as linking to issues fixed by the commit
+or drawing attention to breaking changes.
+
+A commit is a "breaking change" if users should expect different behavior from an existing workflow
+as a result of the change. Examples of breaking changes include deprecation of existing configs or APIs,
+changing default behavior of existing configs or query semantics, or the renaming of exposed JMX metrics.
+Breaking changes must be called out in commit messages, PR descriptions, and upgrade notes:
+
+ * Commit messages for breaking changes must include a line (in the optional body or footer)
+   starting with "BREAKING CHANGE: " followed by an explanation of what the breaking change was.
+   For example,
+
+       feat: inherit num partitions and replicas from source topic in CSAS/CTAS
+
+       BREAKING CHANGE: `CREATE * AS SELECT` queries now create sink topics with partition
+       and replica count equal to those of the source, rather than using values from the properties
+       `ksql.sink.partitions` and `ksql.sink.replicas`. These properties are now deprecated.
+
+ * The breaking change should similarly be called out in the PR description.
+   This description will be copied into the body of the final commit merged into the repo,
+   and picked up by our automatic changelog generation accordingly.
+
+ * [Upgrade notes][https://github.com/confluentinc/ksql/blob/master/docs/installation/upgrading.rst]
+   should also be updated as part of the same PR.
+
 ### GitHub Workflow
 
 1. Fork the `confluentinc/ksql` repository into your GitHub account: https://github.com/confluentinc/ksql/fork.
@@ -164,7 +214,8 @@ You can set up IntelliJ for CheckStyle. First install the CheckStyle IDEA plugin
 
    If you recently pushed your changes GitHub will automatically pop up a `Compare & pull request` button for any branches you recently pushed to. If you click that button it will automatically offer you to submit your pull-request to the `confluentinc/ksql` repository.
 
-   - Give your pull-request a meaningful title.
+   - Give your pull-request a meaningful title that conforms to the Conventional Commits specification
+     as described [above](#commit-messages) for commit messages.
    - In the description, explain your changes and the problem they are solving.
 
 9. Addressing code review comments

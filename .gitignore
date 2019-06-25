@@ -2,6 +2,8 @@
 target/
 docs/_build/
 dist/
+node/
+node_modules/
 
 # IntelliJ data
 *.iml

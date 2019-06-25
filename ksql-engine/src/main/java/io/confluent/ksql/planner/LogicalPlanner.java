@@ -37,7 +37,6 @@ import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicyFactory;
 import java.util.Optional;
-import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 
@@ -95,17 +94,16 @@ public class LogicalPlanner {
 
     final Into intoDataSource = analysis.getInto().get();
 
-    final Optional<Field> partitionByField = analysis.getPartitionBy()
-        .map(keyName -> inputSchema.findValueField(keyName)
+    final Optional<String> partitionByField = analysis.getPartitionBy();
+
+    partitionByField.ifPresent(keyName ->
+        inputSchema.findValueField(keyName)
             .orElseThrow(() -> new KsqlException(
                 "Column " + keyName + " does not exist in the result schema. "
                     + "Error in Partition By clause.")
             ));
 
-    final KeyField keyField = partitionByField
-        .map(Field::name)
-        .map(newKeyField -> sourcePlanNode.getKeyField().withName(newKeyField))
-        .orElse(sourcePlanNode.getKeyField());
+    final KeyField keyField = buildOutputKeyField(sourcePlanNode);
 
     return new KsqlStructuredDataOutputNode(
         new PlanNodeId(intoDataSource.getName()),
@@ -114,11 +112,35 @@ public class LogicalPlanner {
         extractionPolicy,
         keyField,
         intoDataSource.getKsqlTopic(),
-        partitionByField.isPresent(),
+        partitionByField,
         analysis.getLimitClause(),
         intoDataSource.isCreate(),
         analysis.getSerdeOptions()
     );
+  }
+
+  private KeyField buildOutputKeyField(
+      final PlanNode sourcePlanNode
+  ) {
+    final KeyField sourceKeyField = sourcePlanNode.getKeyField();
+
+    final Optional<String> partitionByField = analysis.getPartitionBy();
+    if (!partitionByField.isPresent()) {
+      return sourceKeyField;
+    }
+
+    final String partitionBy = partitionByField.get();
+    final LogicalSchema schema = sourcePlanNode.getSchema();
+
+    if (schema.isImplicitField(partitionBy)) {
+      return sourceKeyField.withName(Optional.empty());
+    }
+
+    if (schema.isKeyField(partitionBy)) {
+      return sourceKeyField;
+    }
+
+    return sourceKeyField.withName(partitionBy);
   }
 
   private static TimestampExtractionPolicy getTimestampExtractionPolicy(

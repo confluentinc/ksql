@@ -92,7 +92,7 @@ public class SourceSchemasTest {
   }
 
   @Test
-  public void shouldFieldUnqualifiedCommonField() {
+  public void shouldFindUnqualifiedCommonField() {
     assertThat(sourceSchemas.sourcesWithField(COMMON_FIELD_NAME),
         containsInAnyOrder(ALIAS_1, ALIAS_2));
   }

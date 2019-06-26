@@ -28,34 +28,46 @@ import io.confluent.ksql.parser.tree.LikePredicate;
 import io.confluent.ksql.parser.tree.LogicalBinaryExpression;
 import io.confluent.ksql.parser.tree.NotExpression;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
-import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.SchemaUtil;
 import java.util.Objects;
-import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
-
+/**
+ * Searches through the AST for any column references and throws if they are unknown fields.
+ */
 class ExpressionAnalyzer {
 
-  private final LogicalSchema schema;
-  private final boolean isJoinSchema;
+  private final SourceSchemas sourceSchemas;
 
-  ExpressionAnalyzer(final LogicalSchema schema, final boolean isJoinSchema) {
-    this.schema = Objects.requireNonNull(schema, "schema");
-    this.isJoinSchema = isJoinSchema;
+  ExpressionAnalyzer(final SourceSchemas sourceSchemas) {
+    this.sourceSchemas = Objects.requireNonNull(sourceSchemas, "sourceSchemas");
   }
 
   void analyzeExpression(final Expression expression) {
-    final Visitor visitor = new Visitor(schema);
+    final Visitor visitor = new Visitor();
     visitor.process(expression, null);
   }
 
-  private class Visitor
-      extends AstVisitor<Object, Object> {
-
-    private final LogicalSchema schema;
-
-    Visitor(final LogicalSchema schema) {
-      this.schema = Objects.requireNonNull(schema, "schema");
+  private void throwOnUnknownField(final String columnName) {
+    final Set<String> sourcesWithField = sourceSchemas.sourcesWithField(columnName);
+    if (sourcesWithField.isEmpty()) {
+      throw new KsqlException("Field '" + columnName + "' cannot be resolved.");
     }
+
+    if (sourcesWithField.size() > 1) {
+      final String possibilities = sourcesWithField.stream()
+          .sorted()
+          .map(source -> SchemaUtil.buildAliasedFieldName(source, columnName))
+          .collect(Collectors.joining(","));
+
+      throw new KsqlException("Field '" + columnName + "' is ambiguous. "
+          + "Could be any of: " + possibilities);
+    }
+  }
+
+  private class Visitor extends AstVisitor<Object, Object> {
 
     protected Object visitLikePredicate(final LikePredicate node, final Object context) {
       process(node.getValue(), null);
@@ -108,40 +120,32 @@ class ExpressionAnalyzer {
     }
 
     @Override
-    protected Object visitDereferenceExpression(
-        final DereferenceExpression node,
-        final Object context) {
-      String columnName = node.getFieldName();
-      if (isJoinSchema) {
-        columnName = node.toString();
-      }
-      final Optional<?> schemaField = schema.findValueField(columnName);
-      if (!schemaField.isPresent()) {
-        throw new RuntimeException(
-            String.format("Column %s cannot be resolved.", columnName));
-      }
+    protected Object visitCast(final Cast node, final Object context) {
+      process(node.getExpression(), context);
       return null;
     }
 
     @Override
-    protected Object visitCast(final Cast node, final Object context) {
+    protected Object visitDereferenceExpression(
+        final DereferenceExpression node,
+        final Object context
+    ) {
+      final String columnName = sourceSchemas.isJoin()
+          ? node.toString()
+          : node.getFieldName();
 
-      process(node.getExpression(), context);
+      throwOnUnknownField(columnName);
       return null;
     }
 
     @Override
     protected Object visitQualifiedNameReference(
         final QualifiedNameReference node,
-        final Object context) {
+        final Object context
+    ) {
       final String columnName = node.getName().getSuffix();
-      final Optional<?> schemaField = schema.findValueField(columnName);
-      if (!schemaField.isPresent()) {
-        throw new RuntimeException(
-            String.format("Column %s cannot be resolved.", columnName));
-      }
+      throwOnUnknownField(columnName);
       return null;
     }
   }
-
 }

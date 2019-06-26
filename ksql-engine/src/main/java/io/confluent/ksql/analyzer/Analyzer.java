@@ -15,12 +15,13 @@
 
 package io.confluent.ksql.analyzer;
 
-import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
+import io.confluent.ksql.analyzer.Analysis.AliasedDataSource;
 import io.confluent.ksql.analyzer.Analysis.Into;
+import io.confluent.ksql.analyzer.Analysis.JoinInfo;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
@@ -49,9 +50,7 @@ import io.confluent.ksql.parser.tree.Sink;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.WindowExpression;
-import io.confluent.ksql.planner.plan.DataSourceNode;
 import io.confluent.ksql.planner.plan.JoinNode;
-import io.confluent.ksql.planner.plan.PlanNodeId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.KsqlSerdeFactories;
@@ -247,7 +246,7 @@ class Analyzer {
         return Format.of(StringUtil.cleanQuotes(serdeProperty.toString()));
       }
 
-      final DataSource<?> leftSource = analysis.getFromDataSource(0).getDataSource();
+      final DataSource<?> leftSource = analysis.getFromDataSources().get(0).getDataSource();
       return leftSource.getKsqlTopic().getValueSerdeFactory().getFormat();
     }
 
@@ -331,29 +330,28 @@ class Analyzer {
       node.getHaving().ifPresent(this::analyzeHaving);
       node.getLimit().ifPresent(analysis::setLimitClause);
 
-      analyzeExpressions();
+      throwOnUnknownColumnReference();
 
       return null;
     }
 
-    private void analyzeExpressions() {
-      final boolean isJoinSchema = analysis.getJoin() != null;
+    private void throwOnUnknownColumnReference() {
 
-      final LogicalSchema schema = isJoinSchema
-          ? analysis.getJoin().getSchema()
-          : analysis.getFromDataSource(0).getSchema().withoutAlias();
-
-      final ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(schema, isJoinSchema);
+      final ExpressionAnalyzer expressionAnalyzer =
+          new ExpressionAnalyzer(analysis.getFromSourceSchemas());
 
       for (final Expression selectExpression : analysis.getSelectExpressions()) {
         expressionAnalyzer.analyzeExpression(selectExpression);
       }
+
       if (analysis.getWhereExpression() != null) {
         expressionAnalyzer.analyzeExpression(analysis.getWhereExpression());
       }
+
       for (final Expression expression : analysis.getGroupByExpressions()) {
         expressionAnalyzer.analyzeExpression(expression);
       }
+
       if (analysis.getHavingExpression() != null) {
         expressionAnalyzer.analyzeExpression(analysis.getHavingExpression());
       }
@@ -361,73 +359,41 @@ class Analyzer {
 
     @Override
     protected Node visitJoin(final Join node, final Void context) {
-      final AliasedRelation left = (AliasedRelation) process(node.getLeft(), context);
-      final AliasedRelation right = (AliasedRelation) process(node.getRight(), context);
-
-      final String leftSideName = ((Table) left.getRelation()).getName().getSuffix();
-      final DataSource<?> leftDataSource = metaStore.getSource(leftSideName);
-      if (leftDataSource == null) {
-        throw new KsqlException(format("Resource %s does not exist.", leftSideName));
-      }
-
-      final String rightSideName = ((Table) right.getRelation()).getName().getSuffix();
-      final DataSource<?> rightDataSource = metaStore.getSource(rightSideName);
-      if (rightDataSource == null) {
-        throw new KsqlException(format("Resource %s does not exist.", rightSideName));
-      }
-
-      final String leftAlias = left.getAlias();
-      final String rightAlias = right.getAlias();
+      process(node.getLeft(), context);
+      process(node.getRight(), context);
 
       final JoinNode.JoinType joinType = getJoinType(node);
+
+      final AliasedDataSource left = analysis.getFromDataSources().get(0);
+      final AliasedDataSource right = analysis.getFromDataSources().get(1);
 
       final JoinOn joinOn = (JoinOn) node.getCriteria();
       final ComparisonExpression comparisonExpression = (ComparisonExpression) joinOn
           .getExpression();
 
-      final String leftJoinField = getJoinFieldName(
-          comparisonExpression,
-          leftAlias,
-          leftDataSource.getSchema()
-      );
-
-      final String rightJoinField = getJoinFieldName(
-          comparisonExpression,
-          rightAlias,
-          rightDataSource.getSchema()
-      );
-
       if (comparisonExpression.getType() != ComparisonExpression.Type.EQUAL) {
         throw new KsqlException("Only equality join criteria is supported.");
       }
 
-      final DataSourceNode leftSourceNode = new DataSourceNode(
-          new PlanNodeId("KafkaTopic_Left"),
-          leftDataSource,
-          leftAlias
+      final String leftJoinField = getJoinFieldName(
+          comparisonExpression,
+          left.getAlias(),
+          left.getDataSource().getSchema()
       );
 
-      final DataSourceNode rightSourceNode = new DataSourceNode(
-          new PlanNodeId("KafkaTopic_Right"),
-          rightDataSource,
-          rightAlias
+      final String rightJoinField = getJoinFieldName(
+          comparisonExpression,
+          right.getAlias(),
+          right.getDataSource().getSchema()
       );
 
-      final JoinNode joinNode = new JoinNode(
-          new PlanNodeId("Join"),
-          joinType,
-          leftSourceNode,
-          rightSourceNode,
+      analysis.setJoin(new JoinInfo(
           leftJoinField,
           rightJoinField,
-          leftAlias,
-          rightAlias,
-          node.getWithinExpression().orElse(null),
-          leftDataSource.getDataSourceType(),
-          rightDataSource.getDataSourceType()
-      );
+          joinType,
+          node.getWithinExpression()
+      ));
 
-      analysis.setJoin(joinNode);
       return null;
     }
 
@@ -522,13 +488,7 @@ class Analyzer {
         throw new KsqlException(structuredDataSourceName + " does not exist.");
       }
 
-      final DataSourceNode sourceNode = new DataSourceNode(
-          new PlanNodeId("KsqlTopic"),
-          source,
-          node.getAlias()
-      );
-
-      analysis.addDataSource(sourceNode);
+      analysis.addDataSource(node.getAlias(), source);
       return node;
     }
 
@@ -541,31 +501,7 @@ class Analyzer {
     protected Node visitSelect(final Select node, final Void context) {
       for (final SelectItem selectItem : node.getSelectItems()) {
         if (selectItem instanceof AllColumns) {
-          // expand * and T.*
-          final AllColumns allColumns = (AllColumns) selectItem;
-          final Optional<NodeLocation> location = allColumns.getLocation();
-
-          final JoinNode join = analysis.getJoin();
-          if (join != null) {
-            final String prefix = allColumns.getPrefix()
-                .map(QualifiedName::toString)
-                .orElse("");
-
-            if (!prefix.equals(join.getRightAlias())) {
-              final LogicalSchema schema = join.getLeft().getSchema();
-              addSelectItems(location, schema, join.getLeftAlias(), join.getLeftAlias() + "_");
-            }
-
-            if (!prefix.equals(join.getLeftAlias())) {
-              final LogicalSchema schema = join.getRight().getSchema();
-              addSelectItems(location, schema, join.getRightAlias(), join.getRightAlias() + "_");
-            }
-          } else {
-            final DataSourceNode source = analysis.getFromDataSource(0);
-            final LogicalSchema schema = source.getSchema();
-
-            addSelectItems(location, schema, source.getAlias(), "");
-          }
+          visitSelectStar((AllColumns) selectItem);
         } else if (selectItem instanceof SingleColumn) {
           final SingleColumn column = (SingleColumn) selectItem;
           analysis.addSelectItem(column.getExpression(), column.getAlias());
@@ -609,24 +545,37 @@ class Analyzer {
       analysis.setHavingExpression((Expression) node);
     }
 
-    private void addSelectItems(
-        final Optional<NodeLocation> location,
-        final LogicalSchema schema,
-        final String sourceAlias,
-        final String aliasPrefix
-    ) {
-      for (final Field field : schema.withoutAlias().valueFields()) {
+    private void visitSelectStar(final AllColumns allColumns) {
 
-        final QualifiedName name = QualifiedName.of(sourceAlias);
+      final Optional<NodeLocation> location = allColumns.getLocation();
+
+      final String prefix = allColumns.getPrefix()
+          .map(QualifiedName::toString)
+          .orElse("");
+
+      for (final AliasedDataSource source : analysis.getFromDataSources()) {
+
+        if (!prefix.isEmpty() && !prefix.equals(source.getAlias())) {
+          continue;
+        }
+
+        final QualifiedName name = QualifiedName.of(source.getAlias());
 
         final QualifiedNameReference nameRef = new QualifiedNameReference(location, name);
 
-        final DereferenceExpression selectItem =
-            new DereferenceExpression(location, nameRef, field.name());
+        final String aliasPrefix = analysis.isJoin()
+            ? source.getAlias() + "_"
+            : "";
 
-        final String alias = aliasPrefix + field.name();
+        for (final Field field : source.getDataSource().getSchema().fields()) {
 
-        analysis.addSelectItem(selectItem, alias);
+          final DereferenceExpression selectItem =
+              new DereferenceExpression(location, nameRef, field.name());
+
+          final String alias = aliasPrefix + field.name();
+
+          analysis.addSelectItem(selectItem, alias);
+        }
       }
     }
   }

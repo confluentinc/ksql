@@ -28,6 +28,7 @@ import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -539,6 +540,16 @@ public class SchemaUtilTest {
 
     // Then:
     assertThat(result, is("some-field-name"));
+  }
+
+  @Test
+  public void shouldReturnNoAlias() {
+    assertThat(SchemaUtil.getFieldNameAlias("not-aliased"), is(Optional.empty()));
+  }
+
+  @Test
+  public void shouldReturnAlias() {
+    assertThat(SchemaUtil.getFieldNameAlias("is.aliased"), is(Optional.of("is")));
   }
 
   @Test

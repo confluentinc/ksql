@@ -912,7 +912,7 @@ public class AstBuilder {
 
       if (dataSourceExtractor.isJoin()) {
         if (dataSourceExtractor.getCommonFieldNames().contains(columnName)) {
-          throw new KsqlException("Field " + columnName + " is ambiguous.");
+          throw new KsqlException("Field '" + columnName + "' is ambiguous.");
         }
 
         if (dataSourceExtractor.getLeftFieldNames().contains(columnName)) {
@@ -935,7 +935,7 @@ public class AstBuilder {
 
         throw new InvalidColumnReferenceException(
             columnLocation,
-            "Field " + columnName + " is ambiguous."
+            "Field '" + columnName + "' cannot be resolved."
         );
       }
 
@@ -1167,7 +1167,7 @@ public class AstBuilder {
       }
     }
 
-    private OptionalInt getLimit(final LimitClauseContext limitContext) {
+    private static OptionalInt getLimit(final LimitClauseContext limitContext) {
       return limitContext == null
           ? OptionalInt.empty()
           : OptionalInt.of(processIntegerNumber(limitContext.number(), "LIMIT"));

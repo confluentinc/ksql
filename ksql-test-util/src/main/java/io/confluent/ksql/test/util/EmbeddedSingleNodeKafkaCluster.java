@@ -44,7 +44,6 @@ import kafka.security.auth.PermissionType$;
 import kafka.security.auth.ResourceType$;
 import kafka.security.auth.SimpleAclAuthorizer;
 import kafka.server.KafkaConfig;
-import kafka.utils.ZKConfig;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.common.acl.AclPermissionType;
@@ -125,7 +124,7 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
     brokerConfig.put("group.initial.rebalance.delay.ms", 100);
     broker = new KafkaEmbedded(effectiveBrokerConfigFrom());
     clientConfig.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers());
-    authorizer.configure(ImmutableMap.of(ZKConfig.ZkConnectProp(), zookeeperConnect()));
+    authorizer.configure(ImmutableMap.of(KafkaConfig.ZkConnectProp(), zookeeperConnect()));
 
     initialAcls.forEach((key, ops) ->
         addUserAcl(key.userName, AclPermissionType.ALLOW, key.resourcePattern, ops));

@@ -90,6 +90,7 @@ public class DataSourceNode
   private static final String REDUCE_OP_NAME = "reduce";
 
   private final DataSource<?> dataSource;
+  private final String alias;
   private final LogicalSchema schema;
   private final KeyField keyField;
   private final Function<KsqlConfig, MaterializedFactory> materializedFactorySupplier;
@@ -111,8 +112,14 @@ public class DataSourceNode
   ) {
     super(id, dataSource.getDataSourceType());
     this.dataSource = requireNonNull(dataSource, "dataSource");
+    this.alias = requireNonNull(alias, "alias");
+
+    // DataSourceNode copies implicit and key fields into the value schema
+    // It users a KS valueMapper to add the key fields
+    // and a KS transformValues to add the implicit fields
     this.schema = dataSource.getSchema()
-      .withAlias(alias);
+        .withMetaAndKeyFieldsInValue()
+        .withAlias(alias);
 
     final Optional<String> keyFieldName = dataSource.getKeyField()
         .withAlias(alias)
@@ -141,6 +148,10 @@ public class DataSourceNode
 
   public DataSource<?> getDataSource() {
     return dataSource;
+  }
+
+  public String getAlias() {
+    return alias;
   }
 
   @Override
@@ -177,7 +188,7 @@ public class DataSourceNode
     final Serde<GenericRow> streamSerde = builder.buildGenericRowSerde(
         valueSerdeFactory,
         PhysicalSchema.from(
-            dataSource.getSchema().withoutImplicitAndKeyFieldsInValue(),
+            dataSource.getSchema(),
             dataSource.getSerdeOptions()
         ),
         contextStacker.push(SOURCE_OP_NAME).getQueryContext()

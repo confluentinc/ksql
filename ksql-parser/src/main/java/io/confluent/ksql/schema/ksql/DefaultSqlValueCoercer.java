@@ -16,9 +16,15 @@
 package io.confluent.ksql.schema.ksql;
 
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.util.DecimalUtil;
+import io.confluent.ksql.util.KsqlException;
+import java.math.BigDecimal;
+import java.math.MathContext;
+import java.math.RoundingMode;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
+import org.apache.kafka.connect.data.Schema;
 
 public final class DefaultSqlValueCoercer implements SqlValueCoercer {
 
@@ -29,12 +35,36 @@ public final class DefaultSqlValueCoercer implements SqlValueCoercer {
           .put(SqlType.DOUBLE, Number::doubleValue)
           .build();
 
-  public <T> Optional<T> coerce(final Object value, final SqlType targetSqlType) {
+  public <T> Optional<T> coerce(final Object value, final Schema targetSchema) {
     final SqlType valueSqlType = SchemaConverters.javaToSqlConverter()
         .toSqlType(value.getClass());
+    final SqlType targetSqlType = SchemaConverters.logicalToSqlConverter()
+        .toSqlType(targetSchema)
+        .getSqlType();
 
     if (valueSqlType.equals(targetSqlType)) {
       return optional(value);
+    }
+
+    if (DecimalUtil.isDecimal(targetSchema)) {
+      final int precision = DecimalUtil.precision(targetSchema);
+      final int scale = DecimalUtil.scale(targetSchema);
+      if (value instanceof String) {
+        try {
+          return optional(new BigDecimal((String) value, new MathContext(precision))
+              .setScale(scale, RoundingMode.UNNECESSARY));
+        } catch (final NumberFormatException e) {
+          throw new KsqlException("Cannot coerce value to DECIMAL: " + value, e);
+        }
+      }
+      if (value instanceof Number) {
+        return optional(
+            new BigDecimal(
+                ((Number) value).doubleValue(),
+                new MathContext(precision))
+                .setScale(scale, RoundingMode.UNNECESSARY));
+      }
+      return Optional.empty();
     }
 
     if (!(value instanceof Number) || !valueSqlType.canUpCast(targetSqlType)) {

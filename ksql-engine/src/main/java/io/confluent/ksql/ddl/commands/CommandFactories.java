@@ -22,8 +22,6 @@ import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.DdlStatement;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
-import io.confluent.ksql.parser.tree.DropTopic;
-import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.HandlerMaps;
 import io.confluent.ksql.util.HandlerMaps.ClassHandlerMapR2;
@@ -41,12 +39,10 @@ public class CommandFactories implements DdlCommandFactory {
       .forClass(DdlStatement.class)
       .withArgTypes(CommandFactories.class, CallInfo.class)
       .withReturnType(DdlCommand.class)
-      .put(RegisterTopic.class, CommandFactories::handleRegisterTopic)
       .put(CreateStream.class, CommandFactories::handleCreateStream)
       .put(CreateTable.class, CommandFactories::handleCreateTable)
       .put(DropStream.class, CommandFactories::handleDropStream)
       .put(DropTable.class, CommandFactories::handleDropTable)
-      .put(DropTopic.class, CommandFactories::handleDropTopic)
       .build();
 
   private final ServiceContext serviceContext;
@@ -75,10 +71,6 @@ public class CommandFactories implements DdlCommandFactory {
             this,
             new CallInfo(sqlExpression, ksqlConfig, properties),
             ddlStatement);
-  }
-
-  private static RegisterTopicCommand handleRegisterTopic(final RegisterTopic statement) {
-    return new RegisterTopicCommand(statement);
   }
 
   private CreateStreamCommand handleCreateStream(
@@ -117,10 +109,6 @@ public class CommandFactories implements DdlCommandFactory {
         statement,
         DataSourceType.KTABLE
     );
-  }
-
-  private static DropTopicCommand handleDropTopic(final DropTopic statement) {
-    return new DropTopicCommand(statement);
   }
 
   private static final class CallInfo {

@@ -37,7 +37,6 @@ import io.confluent.ksql.parser.tree.LikePredicate;
 import io.confluent.ksql.parser.tree.LongLiteral;
 import io.confluent.ksql.parser.tree.NotExpression;
 import io.confluent.ksql.parser.tree.NullLiteral;
-import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.parser.tree.SearchedCaseExpression;
 import io.confluent.ksql.parser.tree.StringLiteral;
@@ -110,8 +109,9 @@ public class ExpressionTypeManager
       final ExpressionTypeContext expressionTypeContext
   ) {
     final Type sqlType = node.getType();
-    if (!(sqlType instanceof PrimitiveType)) {
-      throw new KsqlFunctionException("Only casts to primitive types are supported: " + sqlType);
+    if (!sqlType.supportsCast()) {
+      throw new KsqlFunctionException("Only casts to primitive types or decimals "
+          + "are supported: " + sqlType);
     }
 
     final Schema castType = SchemaConverters.sqlToLogicalConverter().fromSqlType(sqlType);
@@ -126,7 +126,7 @@ public class ExpressionTypeManager
     final Schema leftSchema = expressionTypeContext.getSchema();
     process(node.getRight(), expressionTypeContext);
     final Schema rightSchema = expressionTypeContext.getSchema();
-    ComparisonUtil.isValidComparison(leftSchema.type(), node.getType(), rightSchema.type());
+    ComparisonUtil.isValidComparison(leftSchema, node.getType(), rightSchema);
     expressionTypeContext.setSchema(Schema.OPTIONAL_BOOLEAN_SCHEMA);
     return null;
   }

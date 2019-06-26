@@ -16,6 +16,7 @@
 package io.confluent.ksql.codegen;
 
 import static io.confluent.ksql.testutils.AnalysisTestUtil.analyzeQuery;
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -24,13 +25,22 @@ import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.function.TestFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.ArithmeticBinaryExpression;
+import io.confluent.ksql.parser.tree.ArithmeticUnaryExpression;
+import io.confluent.ksql.parser.tree.ArithmeticUnaryExpression.Sign;
+import io.confluent.ksql.parser.tree.Cast;
+import io.confluent.ksql.parser.tree.ComparisonExpression;
+import io.confluent.ksql.parser.tree.ComparisonExpression.Type;
+import io.confluent.ksql.parser.tree.Decimal;
 import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SqlType;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.MetaStoreFixture;
+import java.util.Optional;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Before;
@@ -68,6 +78,7 @@ public class SqlToJavaVisitorTest {
         .field("TEST1.COL6", addressSchema)
         .field("TEST1.COL7", SchemaBuilder.OPTIONAL_INT32_SCHEMA)
         .field("TEST1.COL8", DecimalUtil.builder(2, 1).build())
+        .field("TEST1.COL9", DecimalUtil.builder(2, 1).build())
         .build();
 
     sqlToJavaVisitor = new SqlToJavaVisitor(LogicalSchema.of(schema), TestFunctionRegistry.INSTANCE.get());
@@ -267,6 +278,38 @@ public class SqlToJavaVisitorTest {
   }
 
   @Test
+  public void shouldGenerateCastLongToDecimalInBinaryExpression() {
+    // Given:
+    final ArithmeticBinaryExpression binExp = new ArithmeticBinaryExpression(
+        Operator.ADD,
+        new QualifiedNameReference(QualifiedName.of("TEST1.COL8")),
+        new QualifiedNameReference(QualifiedName.of("TEST1.COL0"))
+    );
+
+    // When:
+    final String java = sqlToJavaVisitor.process(binExp);
+
+    // Then:
+    assertThat(java, containsString("DecimalUtil.cast(TEST1_COL0, 19, 0)"));
+  }
+
+  @Test
+  public void shouldGenerateCastDecimalToDoubleInBinaryExpression() {
+    // Given:
+    final ArithmeticBinaryExpression binExp = new ArithmeticBinaryExpression(
+        Operator.ADD,
+        new QualifiedNameReference(QualifiedName.of("TEST1.COL8")),
+        new QualifiedNameReference(QualifiedName.of("TEST1.COL3"))
+    );
+
+    // When:
+    final String java = sqlToJavaVisitor.process(binExp);
+
+    // Then:
+    assertThat(java, containsString("(TEST1_COL8).doubleValue()"));
+  }
+
+  @Test
   public void shouldGenerateCorrectCodeForDecimalSubtract() {
     // Given:
     final ArithmeticBinaryExpression binExp = new ArithmeticBinaryExpression(
@@ -328,6 +371,255 @@ public class SqlToJavaVisitorTest {
 
     // Then:
     assertThat(java, is("(TEST1_COL8.remainder(TEST1_COL8, new MathContext(2, RoundingMode.UNNECESSARY)).setScale(1))"));
+  }
+
+  @Test
+  public void shouldGenerateCorrectCodeForDecimalDecimalEQ() {
+    // Given:
+    final ComparisonExpression compExp = new ComparisonExpression(
+        Type.EQUAL,
+        new QualifiedNameReference(QualifiedName.of("TEST1.COL8")),
+        new QualifiedNameReference(QualifiedName.of("TEST1.COL9"))
+    );
+
+    // When:
+    final String java = sqlToJavaVisitor.process(compExp);
+
+    // Then:
+    assertThat(java, containsString("(TEST1_COL8.compareTo(TEST1_COL9) == 0))"));
+  }
+
+  @Test
+  public void shouldGenerateCorrectCodeForDecimalDecimalGT() {
+    // Given:
+    final ComparisonExpression compExp = new ComparisonExpression(
+        Type.GREATER_THAN,
+        new QualifiedNameReference(QualifiedName.of("TEST1.COL8")),
+        new QualifiedNameReference(QualifiedName.of("TEST1.COL9"))
+    );
+
+    // When:
+    final String java = sqlToJavaVisitor.process(compExp);
+
+    // Then:
+    assertThat(java, containsString("(TEST1_COL8.compareTo(TEST1_COL9) > 0))"));
+  }
+
+  @Test
+  public void shouldGenerateCorrectCodeForDecimalDecimalGEQ() {
+    // Given:
+    final ComparisonExpression compExp = new ComparisonExpression(
+        Type.GREATER_THAN_OR_EQUAL,
+        new QualifiedNameReference(QualifiedName.of("TEST1.COL8")),
+        new QualifiedNameReference(QualifiedName.of("TEST1.COL9"))
+    );
+
+    // When:
+    final String java = sqlToJavaVisitor.process(compExp);
+
+    // Then:
+    assertThat(java, containsString("(TEST1_COL8.compareTo(TEST1_COL9) >= 0))"));
+  }
+
+  @Test
+  public void shouldGenerateCorrectCodeForDecimalDecimalLT() {
+    // Given:
+    final ComparisonExpression compExp = new ComparisonExpression(
+        Type.LESS_THAN,
+        new QualifiedNameReference(QualifiedName.of("TEST1.COL8")),
+        new QualifiedNameReference(QualifiedName.of("TEST1.COL9"))
+    );
+
+    // When:
+    final String java = sqlToJavaVisitor.process(compExp);
+
+    // Then:
+    assertThat(java, containsString("(TEST1_COL8.compareTo(TEST1_COL9) < 0))"));
+  }
+
+  @Test
+  public void shouldGenerateCorrectCodeForDecimalDecimalLEQ() {
+    // Given:
+    final ComparisonExpression compExp = new ComparisonExpression(
+        Type.LESS_THAN_OR_EQUAL,
+        new QualifiedNameReference(QualifiedName.of("TEST1.COL8")),
+        new QualifiedNameReference(QualifiedName.of("TEST1.COL9"))
+    );
+
+    // When:
+    final String java = sqlToJavaVisitor.process(compExp);
+
+    // Then:
+    assertThat(java, containsString("(TEST1_COL8.compareTo(TEST1_COL9) <= 0))"));
+  }
+
+  @Test
+  public void shouldGenerateCorrectCodeForDecimalDecimalIsDistinct() {
+    // Given:
+    final ComparisonExpression compExp = new ComparisonExpression(
+        Type.IS_DISTINCT_FROM,
+        new QualifiedNameReference(QualifiedName.of("TEST1.COL8")),
+        new QualifiedNameReference(QualifiedName.of("TEST1.COL9"))
+    );
+
+    // When:
+    final String java = sqlToJavaVisitor.process(compExp);
+
+    // Then:
+    assertThat(java, containsString("(TEST1_COL8.compareTo(TEST1_COL9) != 0))"));
+  }
+
+  @Test
+  public void shouldGenerateCorrectCodeForDecimalDoubleEQ() {
+    // Given:
+    final ComparisonExpression compExp = new ComparisonExpression(
+        Type.EQUAL,
+        new QualifiedNameReference(QualifiedName.of("TEST1.COL8")),
+        new QualifiedNameReference(QualifiedName.of("TEST1.COL3"))
+    );
+
+    // When:
+    final String java = sqlToJavaVisitor.process(compExp);
+
+    // Then:
+    assertThat(java, containsString("(TEST1_COL8.compareTo(new BigDecimal(TEST1_COL3)) == 0))"));
+  }
+
+  @Test
+  public void shouldGenerateCorrectCodeForDoubleDecimalEQ() {
+    // Given:
+    final ComparisonExpression compExp = new ComparisonExpression(
+        Type.EQUAL,
+        new QualifiedNameReference(QualifiedName.of("TEST1.COL3")),
+        new QualifiedNameReference(QualifiedName.of("TEST1.COL8"))
+    );
+
+    // When:
+    final String java = sqlToJavaVisitor.process(compExp);
+
+    // Then:
+    assertThat(java, containsString("(new BigDecimal(TEST1_COL3).compareTo(TEST1_COL8) == 0))"));
+  }
+
+  @Test
+  public void shouldGenerateCorrectCodeForDecimalNegation() {
+    // Given:
+    final ArithmeticUnaryExpression binExp = new ArithmeticUnaryExpression(
+        Optional.empty(),
+        Sign.MINUS,
+        new QualifiedNameReference(QualifiedName.of("TEST1.COL8"))
+    );
+
+    // When:
+    final String java = sqlToJavaVisitor.process(binExp);
+
+    // Then:
+    assertThat(java, is("(TEST1_COL8.negate(new MathContext(2, RoundingMode.UNNECESSARY)))"));
+  }
+
+  @Test
+  public void shouldGenerateCorrectCodeForDecimalUnaryPlus() {
+    // Given:
+    final ArithmeticUnaryExpression binExp = new ArithmeticUnaryExpression(
+        Optional.empty(),
+        Sign.PLUS,
+    new QualifiedNameReference(QualifiedName.of("TEST1.COL8")));
+
+      // When:
+    final String java = sqlToJavaVisitor.process(binExp);
+
+    // Then:
+    assertThat(java, is("(TEST1_COL8.plus(new MathContext(2, RoundingMode.UNNECESSARY)))"));
+  }
+
+  @Test
+  public void shouldGenerateCorrectCodeForDecimalCast() {
+    // Given:
+    final Cast cast = new Cast(
+        new QualifiedNameReference(QualifiedName.of("TEST1.COL3")),
+        Decimal.of(2, 1)
+    );
+
+    // When:
+    final String java = sqlToJavaVisitor.process(cast);
+
+    // Then:
+    assertThat(java, is("(DecimalUtil.cast(TEST1_COL3, 2, 1))"));
+  }
+
+  @Test
+  public void shouldGenerateCorrectCodeForDecimalCastNoOp() {
+    // Given:
+    final Cast cast = new Cast(
+        new QualifiedNameReference(QualifiedName.of("TEST1.COL8")),
+        Decimal.of(2, 1)
+    );
+
+    // When:
+    final String java = sqlToJavaVisitor.process(cast);
+
+    // Then:
+    assertThat(java, is("TEST1_COL8"));
+  }
+
+  @Test
+  public void shouldGenerateCorrectCodeForDecimalToIntCast() {
+    // Given:
+    final Cast cast = new Cast(
+        new QualifiedNameReference(QualifiedName.of("TEST1.COL8")),
+        PrimitiveType.of(SqlType.INTEGER)
+    );
+
+    // When:
+    final String java = sqlToJavaVisitor.process(cast);
+
+    // Then:
+    assertThat(java, is("((TEST1_COL8).intValue())"));
+  }
+
+  @Test
+  public void shouldGenerateCorrectCodeForDecimalToLongCast() {
+    // Given:
+    final Cast cast = new Cast(
+        new QualifiedNameReference(QualifiedName.of("TEST1.COL8")),
+        PrimitiveType.of(SqlType.BIGINT)
+    );
+
+    // When:
+    final String java = sqlToJavaVisitor.process(cast);
+
+    // Then:
+    assertThat(java, is("((TEST1_COL8).longValue())"));
+  }
+
+  @Test
+  public void shouldGenerateCorrectCodeForDecimalToDoubleCast() {
+    // Given:
+    final Cast cast = new Cast(
+        new QualifiedNameReference(QualifiedName.of("TEST1.COL8")),
+        PrimitiveType.of(SqlType.DOUBLE)
+    );
+
+    // When:
+    final String java = sqlToJavaVisitor.process(cast);
+
+    // Then:
+    assertThat(java, is("((TEST1_COL8).doubleValue())"));
+  }
+
+  @Test
+  public void shouldGenerateCorrectCodeForDecimalToStringCast() {
+    // Given:
+    final Cast cast = new Cast(
+        new QualifiedNameReference(QualifiedName.of("TEST1.COL8")),
+        PrimitiveType.of(SqlType.STRING)
+    );
+
+    // When:
+    final String java = sqlToJavaVisitor.process(cast);
+
+    // Then:
+    assertThat(java, is("DecimalUtil.format(2, 1, TEST1_COL8)"));
   }
 
   @Test

@@ -49,8 +49,6 @@ import org.junit.rules.ExternalResource;
 public class TemporaryEngine extends ExternalResource {
 
   public static final LogicalSchema SCHEMA = LogicalSchema.of(SchemaBuilder.struct()
-      .field("ROWTIME", Schema.OPTIONAL_INT64_SCHEMA)
-      .field("ROWKEY", Schema.OPTIONAL_STRING_SCHEMA)
       .field("val", Schema.OPTIONAL_STRING_SCHEMA)
       .build());
 

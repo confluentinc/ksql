@@ -19,14 +19,10 @@ import io.confluent.ksql.analyzer.AggregateAnalysisResult;
 import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.Analysis.Into;
 import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KeyField;
-import io.confluent.ksql.metastore.model.KsqlStream;
-import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.planner.plan.AggregateNode;
-import io.confluent.ksql.planner.plan.DataSourceNode;
 import io.confluent.ksql.planner.plan.FilterNode;
 import io.confluent.ksql.planner.plan.KsqlBareOutputNode;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
@@ -37,11 +33,10 @@ import io.confluent.ksql.planner.plan.ProjectNode;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.ExpressionTypeManager;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.Pair;
+import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicyFactory;
 import java.util.Optional;
-import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 
@@ -68,7 +63,7 @@ public class LogicalPlanner {
     if (analysis.getJoin() != null) {
       currentNode = analysis.getJoin();
     } else {
-      currentNode = buildSourceNode();
+      currentNode = analysis.getFromDataSource(0);
     }
     if (analysis.getWhereExpression() != null) {
       currentNode = buildFilterNode(currentNode);
@@ -99,17 +94,16 @@ public class LogicalPlanner {
 
     final Into intoDataSource = analysis.getInto().get();
 
-    final Optional<Field> partitionByField = analysis.getPartitionBy()
-        .map(keyName -> inputSchema.findValueField(keyName)
+    final Optional<String> partitionByField = analysis.getPartitionBy();
+
+    partitionByField.ifPresent(keyName ->
+        inputSchema.findValueField(keyName)
             .orElseThrow(() -> new KsqlException(
                 "Column " + keyName + " does not exist in the result schema. "
                     + "Error in Partition By clause.")
             ));
 
-    final KeyField keyField = partitionByField
-        .map(Field::name)
-        .map(newKeyField -> sourcePlanNode.getKeyField().withName(newKeyField))
-        .orElse(sourcePlanNode.getKeyField());
+    final KeyField keyField = buildOutputKeyField(sourcePlanNode);
 
     return new KsqlStructuredDataOutputNode(
         new PlanNodeId(intoDataSource.getName()),
@@ -118,11 +112,35 @@ public class LogicalPlanner {
         extractionPolicy,
         keyField,
         intoDataSource.getKsqlTopic(),
-        partitionByField.isPresent(),
+        partitionByField,
         analysis.getLimitClause(),
         intoDataSource.isCreate(),
         analysis.getSerdeOptions()
     );
+  }
+
+  private KeyField buildOutputKeyField(
+      final PlanNode sourcePlanNode
+  ) {
+    final KeyField sourceKeyField = sourcePlanNode.getKeyField();
+
+    final Optional<String> partitionByField = analysis.getPartitionBy();
+    if (!partitionByField.isPresent()) {
+      return sourceKeyField;
+    }
+
+    final String partitionBy = partitionByField.get();
+    final LogicalSchema schema = sourcePlanNode.getSchema();
+
+    if (schema.isMetaField(partitionBy)) {
+      return sourceKeyField.withName(Optional.empty());
+    }
+
+    if (schema.isKeyField(partitionBy)) {
+      return sourceKeyField;
+    }
+
+    return sourceKeyField.withName(partitionBy);
   }
 
   private static TimestampExtractionPolicy getTimestampExtractionPolicy(
@@ -155,7 +173,9 @@ public class LogicalPlanner {
 
       aggregateSchema.field(alias, expressionType);
 
-      if (expression.equals(groupBy)) {
+      if (expression.equals(groupBy)
+          && !SchemaUtil.isFieldName(alias, SchemaUtil.ROWTIME_NAME)
+          && !SchemaUtil.isFieldName(alias, SchemaUtil.ROWKEY_NAME)) {
         keyField = Optional.of(alias);
       }
     }
@@ -215,19 +235,5 @@ public class LogicalPlanner {
 
     final Expression filterExpression = analysis.getWhereExpression();
     return new FilterNode(new PlanNodeId("Filter"), sourcePlanNode, filterExpression);
-  }
-
-  private DataSourceNode buildSourceNode() {
-
-    final Pair<DataSource<?>, String> dataSource = analysis.getFromDataSource(0);
-    if (!(dataSource.left instanceof KsqlStream) && !(dataSource.left instanceof KsqlTable)) {
-      throw new RuntimeException("Data source is not supported yet.");
-    }
-
-    return new DataSourceNode(
-        new PlanNodeId("KsqlTopic"),
-        dataSource.left,
-        dataSource.right
-    );
   }
 }

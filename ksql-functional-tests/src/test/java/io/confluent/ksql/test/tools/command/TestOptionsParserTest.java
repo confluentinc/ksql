@@ -72,7 +72,7 @@ public class TestOptionsParserTest {
     TestOptionsParser.parse(new String[]{}, TestOptions.class);
 
     // Then:
-    assertTrue(errContent.toString("UTF-8").startsWith("Required option '--input-file' is missing"));
+    assertTrue(errContent.toString("UTF-8").startsWith("Required option '--sql-file' is missing"));
     System.setErr(originalErr);
   }
 

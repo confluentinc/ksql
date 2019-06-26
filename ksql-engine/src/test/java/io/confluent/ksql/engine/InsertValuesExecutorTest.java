@@ -1,8 +1,8 @@
 /*
  * Copyright 2019 Confluent Inc.
  *
- * Licensed under the Confluent Community License (the "License"; you may not use
- * this file except in compliance with the License. You may obtain a copy of the
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
  * License at
  *
  * http://www.confluent.io/confluent-community-license
@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.rest.server.execution;
+package io.confluent.ksql.engine;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
@@ -23,7 +23,6 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.function.TestFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.model.DataSource;
@@ -44,9 +43,12 @@ import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
+import java.math.BigDecimal;
+import java.math.MathContext;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -75,27 +77,22 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class InsertValuesExecutorTest {
 
   private static final LogicalSchema SINGLE_FIELD_SCHEMA = LogicalSchema.of(SchemaBuilder.struct()
-      .field("ROWTIME", Schema.OPTIONAL_INT64_SCHEMA)
-      .field("ROWKEY", Schema.OPTIONAL_STRING_SCHEMA)
       .field("COL0", Schema.OPTIONAL_STRING_SCHEMA)
       .build());
 
   private static final LogicalSchema SCHEMA = LogicalSchema.of(SchemaBuilder.struct()
-      .field("ROWTIME", Schema.OPTIONAL_INT64_SCHEMA)
-      .field("ROWKEY", Schema.OPTIONAL_STRING_SCHEMA)
       .field("COL0", Schema.OPTIONAL_STRING_SCHEMA)
       .field("COL1", Schema.OPTIONAL_INT64_SCHEMA)
       .build());
 
   private static final LogicalSchema BIG_SCHEMA = LogicalSchema.of(SchemaBuilder.struct()
-      .field("ROWTIME", Schema.OPTIONAL_INT64_SCHEMA)
-      .field("ROWKEY", Schema.OPTIONAL_STRING_SCHEMA)
       .field("COL0", Schema.OPTIONAL_STRING_SCHEMA) // named COL0 for auto-ROWKEY
       .field("INT", Schema.OPTIONAL_INT32_SCHEMA)
       .field("BIGINT", Schema.OPTIONAL_INT64_SCHEMA)
       .field("DOUBLE", Schema.OPTIONAL_FLOAT64_SCHEMA)
       .field("BOOLEAN", Schema.OPTIONAL_BOOLEAN_SCHEMA)
       .field("VARCHAR", Schema.OPTIONAL_STRING_SCHEMA)
+      .field("DECIMAL", DecimalUtil.builder(2, 1).build())
       .build());
 
   private static final byte[] KEY = new byte[]{1};
@@ -145,7 +142,7 @@ public class InsertValuesExecutorTest {
 
     givenDataSourceWithSchema(SCHEMA, SerdeOption.none(), Optional.of("COL0"));
 
-    expectedRow = new Struct(SCHEMA.withoutImplicitAndKeyFieldsInValue().valueSchema())
+    expectedRow = new Struct(SCHEMA.valueSchema())
         .put("COL0", "str")
         .put("COL1", 2L);
   }
@@ -154,7 +151,7 @@ public class InsertValuesExecutorTest {
   public void shouldHandleFullRow() {
     // Given:
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
-        fieldNames(SCHEMA.withoutImplicitAndKeyFieldsInValue()),
+        valueFieldNames(SCHEMA),
         ImmutableList.of(
             new StringLiteral("str"),
             new LongLiteral(2L)
@@ -176,11 +173,11 @@ public class InsertValuesExecutorTest {
     givenDataSourceWithSchema(SINGLE_FIELD_SCHEMA, SerdeOption.none(), Optional.of("COL0"));
 
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
-        fieldNames(SINGLE_FIELD_SCHEMA.withoutImplicitAndKeyFieldsInValue()),
+        valueFieldNames(SINGLE_FIELD_SCHEMA),
         ImmutableList.of(new StringLiteral("new"))
     );
 
-    expectedRow = new Struct(SINGLE_FIELD_SCHEMA.withoutImplicitAndKeyFieldsInValue().valueSchema())
+    expectedRow = new Struct(SINGLE_FIELD_SCHEMA.valueSchema())
         .put("COL0", "new");
 
     // When:
@@ -199,7 +196,7 @@ public class InsertValuesExecutorTest {
         SerdeOption.of(SerdeOption.UNWRAP_SINGLE_VALUES), Optional.of("COL0"));
 
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
-        fieldNames(SINGLE_FIELD_SCHEMA.withoutImplicitAndKeyFieldsInValue()),
+        valueFieldNames(SINGLE_FIELD_SCHEMA),
         ImmutableList.of(new StringLiteral("new"))
     );
 
@@ -378,7 +375,7 @@ public class InsertValuesExecutorTest {
     // Given:
     givenDataSourceWithSchema(BIG_SCHEMA, SerdeOption.none(), Optional.of("COL0"));
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
-        fieldNames(BIG_SCHEMA),
+        allFieldNames(BIG_SCHEMA),
         ImmutableList.of(
             new LongLiteral(1L),
             new StringLiteral("str"),
@@ -387,7 +384,8 @@ public class InsertValuesExecutorTest {
             new LongLiteral(2),
             new DoubleLiteral("3.0"),
             new BooleanLiteral("TRUE"),
-            new StringLiteral("str"))
+            new StringLiteral("str"),
+            new StringLiteral("1.2"))
     );
 
     // When:
@@ -396,13 +394,14 @@ public class InsertValuesExecutorTest {
     // Then:
     verify(keySerializer).serialize(TOPIC_NAME, "str");
     verify(valueSerializer)
-        .serialize(TOPIC_NAME, new Struct(BIG_SCHEMA.withoutImplicitAndKeyFieldsInValue().valueSchema())
+        .serialize(TOPIC_NAME, new Struct(BIG_SCHEMA.valueSchema())
         .put("COL0", "str")
         .put("INT", 0)
         .put("BIGINT", 2L)
         .put("DOUBLE", 3.0)
         .put("BOOLEAN", true)
         .put("VARCHAR", "str")
+        .put("DECIMAL", new BigDecimal(1.2, new MathContext(2)))
     );
 
     verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
@@ -435,7 +434,7 @@ public class InsertValuesExecutorTest {
   public void shouldThrowOnProducerSendError() throws ExecutionException, InterruptedException {
     // Given:
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
-        fieldNames(SCHEMA),
+        allFieldNames(SCHEMA),
         ImmutableList.of(
             new LongLiteral(1L),
             new StringLiteral("str"),
@@ -460,7 +459,7 @@ public class InsertValuesExecutorTest {
   public void shouldThrowOnSerializingKeyError() {
     // Given:
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
-        fieldNames(SCHEMA),
+        allFieldNames(SCHEMA),
         ImmutableList.of(
             new LongLiteral(1L),
             new StringLiteral("str"),
@@ -481,7 +480,7 @@ public class InsertValuesExecutorTest {
   public void shouldThrowOnSerializingValueError() {
     // Given:
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
-        fieldNames(SCHEMA),
+        allFieldNames(SCHEMA),
         ImmutableList.of(
             new LongLiteral(1L),
             new StringLiteral("str"),
@@ -633,7 +632,11 @@ public class InsertValuesExecutorTest {
     when(engine.getMetaStore()).thenReturn(metaStore);
   }
 
-  private static List<String> fieldNames(final LogicalSchema schema) {
+  private static List<String> valueFieldNames(final LogicalSchema schema) {
     return schema.valueFields().stream().map(Field::name).collect(Collectors.toList());
+  }
+
+  private static List<String> allFieldNames(final LogicalSchema schema) {
+    return schema.fields().stream().map(Field::name).collect(Collectors.toList());
   }
 }

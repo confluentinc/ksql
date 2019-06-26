@@ -20,6 +20,8 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.internal.matchers.ThrowableMessageMatcher.hasMessage;
 
+import io.confluent.ksql.util.DecimalUtil;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Serializer;
@@ -112,6 +114,120 @@ public class KsqlDelimitedSerializerTest {
 
     // Then:
     assertThat(new String(bytes, StandardCharsets.UTF_8), is("10"));
+  }
+
+  @Test
+  public void shouldSerializeDecimal() {
+    // Given:
+    final Schema schema = SchemaBuilder.struct()
+        .field("id", DecimalUtil.builder(4, 2).build())
+        .build();
+
+    final Serializer<Object> serializer = new KsqlDelimitedSerializer();
+
+    final Struct value = new Struct(schema)
+        .put("id", new BigDecimal("11.12"));
+
+    // When:
+    final byte[] bytes = serializer.serialize("", value);
+
+    // Then:
+    assertThat(new String(bytes, StandardCharsets.UTF_8), is("11.12"));
+  }
+
+  @Test
+  public void shouldSerializeDecimalWithPaddedZeros() {
+    // Given:
+    final Schema schema = SchemaBuilder.struct()
+        .field("id", DecimalUtil.builder(4, 2).build())
+        .build();
+
+    final Serializer<Object> serializer = new KsqlDelimitedSerializer();
+
+    final Struct value = new Struct(schema)
+        .put("id", new BigDecimal("1.12"));
+
+    // When:
+    final byte[] bytes = serializer.serialize("", value);
+
+    // Then:
+    assertThat(new String(bytes, StandardCharsets.UTF_8), is("01.12"));
+  }
+
+  @Test
+  public void shouldSerializeZeroDecimalWithPaddedZeros() {
+    // Given:
+    final Schema schema = SchemaBuilder.struct()
+        .field("id", DecimalUtil.builder(4, 2).build())
+        .build();
+
+    final Serializer<Object> serializer = new KsqlDelimitedSerializer();
+
+    final Struct value = new Struct(schema)
+        .put("id", BigDecimal.ZERO);
+
+    // When:
+    final byte[] bytes = serializer.serialize("", value);
+
+    // Then:
+    assertThat(new String(bytes, StandardCharsets.UTF_8), is("00.00"));
+  }
+
+  @Test
+  public void shouldSerializeOneHalfDecimalWithPaddedZeros() {
+    // Given:
+    final Schema schema = SchemaBuilder.struct()
+        .field("id", DecimalUtil.builder(4, 2).build())
+        .build();
+
+    final Serializer<Object> serializer = new KsqlDelimitedSerializer();
+
+    final Struct value = new Struct(schema)
+        .put("id", new BigDecimal(0.5));
+
+    // When:
+    final byte[] bytes = serializer.serialize("", value);
+
+    // Then:
+    assertThat(new String(bytes, StandardCharsets.UTF_8), is("00.50"));
+  }
+
+  @Test
+  public void shouldSerializeNegativeOneHalfDecimalWithPaddedZeros() {
+    // Given:
+    final Schema schema = SchemaBuilder.struct()
+        .field("id", DecimalUtil.builder(4, 2).build())
+        .build();
+
+    final Serializer<Object> serializer = new KsqlDelimitedSerializer();
+
+    final Struct value = new Struct(schema)
+        .put("id", new BigDecimal(-0.5));
+
+    // When:
+    final byte[] bytes = serializer.serialize("", value);
+
+    // Then:
+    assertThat(new String(bytes, StandardCharsets.UTF_8), is("\"-00.50\""));
+  }
+
+  @Test
+  public void shouldSerializeNegativeDecimalWithPaddedZeros() {
+    // Given:
+    final Schema schema = SchemaBuilder.struct()
+        .field("id", DecimalUtil.builder(4, 2).build())
+        .build();
+
+    final Serializer<Object> serializer = new KsqlDelimitedSerializer();
+
+    final Struct value = new Struct(schema)
+        .put("id", new BigDecimal("-1.12"));
+
+    // When:
+    final byte[] bytes = serializer.serialize("", value);
+
+    // Then:
+    assertThat(new String(bytes, StandardCharsets.UTF_8), is("\"-01.12\""));
   }
 
   @Test

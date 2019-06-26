@@ -235,8 +235,6 @@ public class PhysicalPlanBuilder {
       metaStore.putTopic(outputNode.getKsqlTopic());
     }
 
-    final LogicalSchema sinkSchema = outputNode.getSchema().withImplicitAndKeyFieldsInValue();
-
     final DataSource<?> sinkDataSource;
     if (schemaKStream instanceof SchemaKTable) {
       final SchemaKTable<?> schemaKTable = (SchemaKTable) schemaKStream;
@@ -244,7 +242,7 @@ public class PhysicalPlanBuilder {
           new KsqlTable<>(
               sqlExpression,
               outputNode.getId().toString(),
-              sinkSchema,
+              outputNode.getSchema(),
               outputNode.getSerdeOptions(),
               schemaKTable.getKeyField(),
               outputNode.getTimestampExtractionPolicy(),
@@ -256,7 +254,7 @@ public class PhysicalPlanBuilder {
           new KsqlStream<>(
               sqlExpression,
               outputNode.getId().toString(),
-              sinkSchema,
+              outputNode.getSchema(),
               outputNode.getSerdeOptions(),
               schemaKStream.getKeyField(),
               outputNode.getTimestampExtractionPolicy(),
@@ -284,10 +282,8 @@ public class PhysicalPlanBuilder {
 
     final Topology topology = builder.build();
 
-    final PhysicalSchema querySchema = PhysicalSchema.from(
-        outputNode.getSchema().withoutImplicitAndKeyFieldsInValue(),
-        outputNode.getSerdeOptions()
-    );
+    final PhysicalSchema querySchema = PhysicalSchema
+        .from(outputNode.getSchema(), outputNode.getSerdeOptions());
 
     return new PersistentQueryMetadata(
         sqlExpression,

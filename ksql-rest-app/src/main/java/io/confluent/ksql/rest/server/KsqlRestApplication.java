@@ -24,6 +24,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import io.confluent.ksql.ServiceInfo;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.TopicAccessValidator;
 import io.confluent.ksql.engine.TopicAccessValidatorFactory;
@@ -261,12 +262,6 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
   @Override
   public void stop() {
     try {
-      super.stop();
-    } catch (final Exception e) {
-      log.error("Exception while stopping rest server", e);
-    }
-
-    try {
       ksqlEngine.close();
     } catch (final Exception e) {
       log.error("Exception while waiting for Ksql Engine to close", e);
@@ -288,6 +283,12 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
       securityExtension.close();
     } catch (final Exception e) {
       log.error("Exception while closing security extension", e);
+    }
+
+    try {
+      super.stop();
+    } catch (final Exception e) {
+      log.error("Exception while stopping rest server", e);
     }
   }
 
@@ -422,7 +423,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         serviceContext,
         processingLogContext,
         functionRegistry,
-        ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG));
+        ServiceInfo.create(ksqlConfig));
 
     UdfLoader.newInstance(ksqlConfig, functionRegistry, ksqlInstallDir).load();
 

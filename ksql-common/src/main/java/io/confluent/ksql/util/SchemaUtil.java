@@ -46,10 +46,6 @@ public final class SchemaUtil {
 
   private static final String DEFAULT_NAMESPACE = "ksql";
 
-  public static final String ARRAY = "ARRAY";
-  public static final String MAP = "MAP";
-  public static final String STRUCT = "STRUCT";
-
   public static final String ROWKEY_NAME = "ROWKEY";
   public static final String ROWTIME_NAME = "ROWTIME";
 
@@ -286,8 +282,12 @@ public final class SchemaUtil {
       return Schema.OPTIONAL_STRING_SCHEMA;
     }
 
-    if (DecimalUtil.isDecimal(left) && DecimalUtil.isDecimal(right)) {
-      return resolveDecimalOperatorResultType(left, right, operator);
+    if (DecimalUtil.isDecimal(left) || DecimalUtil.isDecimal(right)) {
+      if (left.type() != Schema.Type.FLOAT64 && right.type() != Schema.Type.FLOAT64) {
+        return resolveDecimalOperatorResultType(
+            DecimalUtil.toDecimal(left), DecimalUtil.toDecimal(right), operator);
+      }
+      return Schema.OPTIONAL_FLOAT64_SCHEMA;
     }
 
     if (!TYPE_TO_SCHEMA.containsKey(left.type()) || !TYPE_TO_SCHEMA.containsKey(right.type())) {
@@ -339,6 +339,10 @@ public final class SchemaUtil {
 
   public static boolean isNumber(final Schema.Type type) {
     return ARITHMETIC_TYPES.contains(type);
+  }
+
+  public static boolean isNumber(final Schema schema) {
+    return isNumber(schema.type()) || DecimalUtil.isDecimal(schema);
   }
 
   public static Schema ensureOptional(final Schema schema) {

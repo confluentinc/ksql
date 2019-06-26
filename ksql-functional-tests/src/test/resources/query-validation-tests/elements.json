@@ -107,6 +107,55 @@
           "partitions": 4
         }
       ]
+    },
+    {
+      "name": "non-join with only ROWKEY and ROWTIME in projection",
+      "statements": [
+        "CREATE STREAM INPUT (F0 INT) WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ROWTIME, ROWKEY FROM INPUT;"
+      ],
+      "inputs": [{"topic": "input", "value": {"F0": 4}}],
+      "outputs": [{"topic": "OUTPUT", "value": {}}]
+    },
+    {
+      "name": "non-join removes ROWKEY and ROWTIME from output's value schema",
+      "statements": [
+        "CREATE STREAM INPUT (F0 INT) WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT F0, ROWTIME, ROWKEY FROM INPUT;"
+      ],
+      "inputs": [{"topic": "input", "value": {"F0": 4}}],
+      "outputs": [{"topic": "OUTPUT", "value": {"F0": 4}}]
+    },
+    {
+      "name": "join removes ROWKEY and ROWTIME from output's value schema",
+      "statements": [
+        "CREATE STREAM LEFT_STREAM (F0 INT) WITH (kafka_topic='left', value_format='JSON');",
+        "CREATE STREAM RIGHT_STREAM (F1 INT) WITH (kafka_topic='right', value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT l.ROWKEY AS ROWKEY, f0, f1 FROM left_stream l join right_stream r WITHIN 1 seconds ON l.rowkey = r.rowkey;"
+      ],
+      "inputs": [
+        {"topic": "left", "value": {"F0": 4}},
+        {"topic": "right", "value": {"F1": 6}}
+      ],
+      "outputs": [{"topic": "OUTPUT", "value": {"F0": 4, "F1": 6}}]
+    },
+    {
+      "name": "group-by removes ROWKEY from output's value schema",
+      "statements": [
+        "CREATE STREAM INPUT (F0 INT) WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT ROWKEY, COUNT(*) AS COUNT FROM INPUT GROUP BY ROWKEY;"
+      ],
+      "inputs": [{"topic": "input", "key": "3" ,"value": {"F0": 4}}],
+      "outputs": [{"topic": "OUTPUT", "key": "3" ,"value": {"COUNT": 1}}]
+    },
+    {
+      "name": "group-by removes ROWTIME from output's value schema",
+      "statements": [
+        "CREATE STREAM INPUT (F0 INT) WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT ROWTIME, COUNT(*) AS COUNT FROM INPUT GROUP BY ROWTIME;"
+      ],
+      "inputs": [{"topic": "input", "value": {"F0": 4}, "timestamp": 10}],
+      "outputs": [{"topic": "OUTPUT", "key": 10, "value": {"COUNT": 1}, "timestamp": 10}]
     }
   ]
 }

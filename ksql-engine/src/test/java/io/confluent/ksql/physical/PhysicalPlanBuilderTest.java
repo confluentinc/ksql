@@ -398,9 +398,9 @@ public class PhysicalPlanBuilderTest {
     expectedException.expect(KsqlStatementException.class);
     expectedException.expect(rawMessage(is(
         "Incompatible schema between results and sink. Result schema is "
-            + "[ROWTIME BIGINT, ROWKEY VARCHAR, COL0 BIGINT, COL1 VARCHAR, COL2 DOUBLE], "
+            + "[COL0 BIGINT, COL1 VARCHAR, COL2 DOUBLE], "
             + "but the sink schema is "
-            + "[ROWTIME BIGINT, ROWKEY VARCHAR, COL0 BIGINT, COL1 VARCHAR].")));
+            + "[COL0 BIGINT, COL1 VARCHAR].")));
 
     // When:
     execute(CREATE_STREAM_TEST1 + csasQuery + insertIntoQuery);

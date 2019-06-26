@@ -302,6 +302,20 @@ public class ConsoleTest {
           + "      \"queryString\" : \"write query\"\n"
           + "    } ],\n"
           + "    \"fields\" : [ {\n"
+          + "      \"name\" : \"ROWTIME\",\n"
+          + "      \"schema\" : {\n"
+          + "        \"type\" : \"BIGINT\",\n"
+          + "        \"fields\" : null,\n"
+          + "        \"memberSchema\" : null\n"
+          + "      }\n"
+          + "    }, {\n"
+          + "      \"name\" : \"ROWKEY\",\n"
+          + "      \"schema\" : {\n"
+          + "        \"type\" : \"STRING\",\n"
+          + "        \"fields\" : null,\n"
+          + "        \"memberSchema\" : null\n"
+          + "      }\n"
+          + "    }, {\n"
           + "      \"name\" : \"f_0\",\n"
           + "      \"schema\" : {\n"
           + "        \"type\" : \"BOOLEAN\",\n"
@@ -388,17 +402,19 @@ public class ConsoleTest {
     } else {
       assertThat(output, is("\n"
           + "Name                 : TestSource\n"
-          + " Field | Type                   \n"
-          + "--------------------------------\n"
-          + " f_0   | BOOLEAN                \n"
-          + " f_1   | INTEGER                \n"
-          + " f_2   | BIGINT                 \n"
-          + " f_3   | DOUBLE                 \n"
-          + " f_4   | VARCHAR(STRING)        \n"
-          + " f_5   | ARRAY<VARCHAR(STRING)> \n"
-          + " f_6   | MAP<STRING, BIGINT>    \n"
-          + " f_7   | STRUCT<a DOUBLE>       \n"
-          + "--------------------------------\n"
+          + " Field   | Type                      \n"
+          + "-------------------------------------\n"
+          + " ROWTIME | BIGINT           (system) \n"
+          + " ROWKEY  | VARCHAR(STRING)  (system) \n"
+          + " f_0     | BOOLEAN                   \n"
+          + " f_1     | INTEGER                   \n"
+          + " f_2     | BIGINT                    \n"
+          + " f_3     | DOUBLE                    \n"
+          + " f_4     | VARCHAR(STRING)           \n"
+          + " f_5     | ARRAY<VARCHAR(STRING)>    \n"
+          + " f_6     | MAP<STRING, BIGINT>       \n"
+          + " f_7     | STRUCT<a DOUBLE>          \n"
+          + "-------------------------------------\n"
           + "For runtime statistics and query details run: DESCRIBE EXTENDED <Stream,Table>;\n"));
     }
   }
@@ -467,6 +483,62 @@ public class ConsoleTest {
   }
 
   @Test
+  public void testSortedPrintStreamsList() throws IOException {
+    // Given:
+    final KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(
+            new StreamsList("e",
+                    ImmutableList.of(
+                            new SourceInfo.Stream("B", "TestTopic", "AVRO"),
+                            new SourceInfo.Stream("A", "TestTopic", "AVRO"),
+                            new SourceInfo.Stream("Z", "TestTopic", "AVRO"),
+                            new SourceInfo.Stream("C", "TestTopic", "AVRO")
+                    ))
+    ));
+
+    // When:
+    console.printKsqlEntityList(entityList);
+
+    // Then:
+    final String output = terminal.getOutputString();
+    if (console.getOutputFormat() == OutputFormat.JSON) {
+      assertThat(output, is("[ {\n"
+               + "  \"@type\" : \"streams\",\n"
+               + "  \"statementText\" : \"e\",\n"
+               + "  \"streams\" : [ {\n"
+               + "    \"type\" : \"STREAM\",\n"
+               + "    \"name\" : \"B\",\n"
+               + "    \"topic\" : \"TestTopic\",\n"
+               + "    \"format\" : \"AVRO\"\n"
+               + "  }, {\n"
+               + "    \"type\" : \"STREAM\",\n"
+               + "    \"name\" : \"A\",\n"
+               + "    \"topic\" : \"TestTopic\",\n"
+               + "    \"format\" : \"AVRO\"\n"
+               + "  }, {\n"
+               + "    \"type\" : \"STREAM\",\n"
+               + "    \"name\" : \"Z\",\n"
+               + "    \"topic\" : \"TestTopic\",\n"
+               + "    \"format\" : \"AVRO\"\n"
+               + "  }, {\n"
+               + "    \"type\" : \"STREAM\",\n"
+               + "    \"name\" : \"C\",\n"
+               + "    \"topic\" : \"TestTopic\",\n"
+               + "    \"format\" : \"AVRO\"\n"
+               + "  } ]\n"
+               +"} ]\n"));
+    } else {
+      assertThat(output, is("\n"
+              + " Stream Name | Kafka Topic | Format \n"
+              + "------------------------------------\n"
+              + " A           | TestTopic   | AVRO   \n"
+              + " B           | TestTopic   | AVRO   \n"
+              + " C           | TestTopic   | AVRO   \n"
+              + " Z           | TestTopic   | AVRO   \n"
+              + "------------------------------------\n"));
+    }
+  }
+
+  @Test
   public void testPrintTablesList() throws IOException {
     // Given:
     final KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(
@@ -497,6 +569,67 @@ public class ConsoleTest {
           + "----------------------------------------------\n"
           + " TestTable  | TestTopic   | JSON   | false    \n"
           + "----------------------------------------------\n"));
+    }
+  }
+
+  @Test
+  public void testSortedPrintTablesList() throws IOException {
+    // Given:
+    final KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(
+            new TablesList("e",
+                    ImmutableList.of(
+                            new SourceInfo.Table("B", "TestTopic", "JSON", false),
+                            new SourceInfo.Table("A", "TestTopic", "JSON", false),
+                            new SourceInfo.Table("Z", "TestTopic", "JSON", false),
+                            new SourceInfo.Table("C", "TestTopic", "JSON", false)
+                    )
+            )
+    ));
+
+    // When:
+    console.printKsqlEntityList(entityList);
+
+    // Then:
+    final String output = terminal.getOutputString();
+    if (console.getOutputFormat() == OutputFormat.JSON) {
+      assertThat(output, is("[ {\n"
+              + "  \"@type\" : \"tables\",\n"
+              + "  \"statementText\" : \"e\",\n"
+              + "  \"tables\" : [ {\n"
+              + "    \"type\" : \"TABLE\",\n"
+              + "    \"name\" : \"B\",\n"
+              + "    \"topic\" : \"TestTopic\",\n"
+              + "    \"format\" : \"JSON\",\n"
+              + "    \"isWindowed\" : false\n"
+              + "  }, {\n"
+              + "    \"type\" : \"TABLE\",\n"
+              + "    \"name\" : \"A\",\n"
+              + "    \"topic\" : \"TestTopic\",\n"
+              + "    \"format\" : \"JSON\",\n"
+              + "    \"isWindowed\" : false\n"
+              + "  }, {\n"
+              + "    \"type\" : \"TABLE\",\n"
+              + "    \"name\" : \"Z\",\n"
+              + "    \"topic\" : \"TestTopic\",\n"
+              + "    \"format\" : \"JSON\",\n"
+              + "    \"isWindowed\" : false\n"
+              + "  }, {\n"
+              + "    \"type\" : \"TABLE\",\n"
+              + "    \"name\" : \"C\",\n"
+              + "    \"topic\" : \"TestTopic\",\n"
+              + "    \"format\" : \"JSON\",\n"
+              + "    \"isWindowed\" : false\n"
+              + "  } ]\n"
+              + "} ]\n"));
+    } else {
+      assertThat(output, is("\n"
+              + " Table Name | Kafka Topic | Format | Windowed \n"
+              + "----------------------------------------------\n"
+              + " A          | TestTopic   | JSON   | false    \n"
+              + " B          | TestTopic   | JSON   | false    \n"
+              + " C          | TestTopic   | JSON   | false    \n"
+              + " Z          | TestTopic   | JSON   | false    \n"
+              + "----------------------------------------------\n"));
     }
   }
 
@@ -600,6 +733,20 @@ public class ConsoleTest {
           + "      \"queryString\" : \"write query\"\n"
           + "    } ],\n"
           + "    \"fields\" : [ {\n"
+          + "      \"name\" : \"ROWTIME\",\n"
+          + "      \"schema\" : {\n"
+          + "        \"type\" : \"BIGINT\",\n"
+          + "        \"fields\" : null,\n"
+          + "        \"memberSchema\" : null\n"
+          + "      }\n"
+          + "    }, {\n"
+          + "      \"name\" : \"ROWKEY\",\n"
+          + "      \"schema\" : {\n"
+          + "        \"type\" : \"STRING\",\n"
+          + "        \"fields\" : null,\n"
+          + "        \"memberSchema\" : null\n"
+          + "      }\n"
+          + "    }, {\n"
           + "      \"name\" : \"f_0\",\n"
           + "      \"schema\" : {\n"
           + "        \"type\" : \"STRING\",\n"
@@ -629,10 +776,12 @@ public class ConsoleTest {
           + "Value format         : avro\n"
           + "Kafka topic          : kadka-topic (partitions: 2, replication: 1)\n"
           + "\n"
-          + " Field | Type            \n"
-          + "-------------------------\n"
-          + " f_0   | VARCHAR(STRING) \n"
-          + "-------------------------\n"
+          + " Field   | Type                      \n"
+          + "-------------------------------------\n"
+          + " ROWTIME | BIGINT           (system) \n"
+          + " ROWKEY  | VARCHAR(STRING)  (system) \n"
+          + " f_0     | VARCHAR(STRING)           \n"
+          + "-------------------------------------\n"
           + "\n"
           + "Queries that read from this TABLE\n"
           + "-----------------------------------\n"

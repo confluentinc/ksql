@@ -16,7 +16,9 @@
 package io.confluent.ksql.util;
 
 import java.math.BigDecimal;
+import java.math.MathContext;
 import java.math.RoundingMode;
+import java.text.DecimalFormat;
 import org.apache.kafka.connect.data.Decimal;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Schema.Type;
@@ -94,16 +96,30 @@ public final class DecimalUtil {
    */
   public static int precision(final Schema schema) {
     requireDecimal(schema);
-    final String scaleString = schema.parameters().get(PRECISION_FIELD);
-    if (scaleString == null) {
+    final String precisionString = schema.parameters().get(PRECISION_FIELD);
+    if (precisionString == null) {
       throw new DataException("Invalid Decimal schema: precision parameter not found.");
     }
 
     try {
-      return Integer.parseInt(scaleString);
+      return Integer.parseInt(precisionString);
     } catch (NumberFormatException e) {
       throw new DataException("Invalid precision parameter found in Decimal schema: ", e);
     }
+  }
+
+  /**
+   * Formats the decimal string, padding zeros if necessary.
+   *
+   * @param value the value
+   * @return the formatted string
+   */
+  public static String format(final int precision, final int scale, final BigDecimal value) {
+    final DecimalFormat format = new DecimalFormat();
+    format.setMinimumIntegerDigits(precision - scale);
+    format.setMinimumFractionDigits(scale);
+
+    return format.format(value);
   }
 
   /**
@@ -120,13 +136,8 @@ public final class DecimalUtil {
     final int precision = precision(schema);
     final int scale = scale(schema);
 
-    validateParameters(precision(schema), scale(schema));
-
-    final int leftDigits = value.precision() - value.scale();
-    final int fitLeftDigits = precision - scale;
-    KsqlPreconditions.checkArgument(leftDigits <= fitLeftDigits,
-        String.format("Cannot fit decimal '%s' into DECIMAL(%d, %d) as it would truncate left "
-            + "digits to %d.", value.toPlainString(), precision, scale, fitLeftDigits));
+    validateParameters(precision, scale);
+    ensureMax(value, precision, scale);
 
     // we only support exact decimal conversions for now - in the future, we can
     // encode the rounding mode in the decimal type
@@ -139,6 +150,73 @@ public final class DecimalUtil {
               value.toPlainString(),
               precision,
               scale));
+    }
+  }
+
+  /**
+   * Converts a schema to a decimal schema with set precision/scale without losing
+   * scale or precision.
+   *
+   * @param schema the schema
+   * @return the decimal schema
+   * @throws KsqlException if the schema cannot safely be converted to decimal
+   */
+  public static Schema toDecimal(final Schema schema) {
+    switch (schema.type()) {
+      case BYTES:
+        requireDecimal(schema);
+        return schema;
+      case INT32:
+        return builder(10, 0).build();
+      case INT64:
+        return builder(19, 0).build();
+      default:
+        throw new KsqlException("Cannot convert schema of type " + schema.type() + " to decimal.");
+    }
+  }
+
+  public static BigDecimal cast(final long value, final int precision, final int scale) {
+    validateParameters(precision, scale);
+    final BigDecimal decimal = new BigDecimal(value, new MathContext(precision));
+    ensureMax(decimal, precision, scale);
+    return decimal.setScale(scale, RoundingMode.UNNECESSARY);
+  }
+
+  public static BigDecimal cast(final double value, final int precision, final int scale) {
+    validateParameters(precision, scale);
+    final BigDecimal decimal = new BigDecimal(value, new MathContext(precision));
+    ensureMax(decimal, precision, scale);
+    return decimal.setScale(scale, RoundingMode.HALF_UP);
+  }
+
+  public static BigDecimal cast(final BigDecimal value, final int precision, final int scale) {
+    if (precision == value.precision() && scale == value.scale()) {
+      return value;
+    }
+
+    validateParameters(precision, scale);
+    ensureMax(value, precision, scale);
+    return value.setScale(scale, RoundingMode.HALF_UP);
+  }
+
+  public static BigDecimal cast(final String value, final int precision, final int scale) {
+    validateParameters(precision, scale);
+    final BigDecimal decimal = new BigDecimal(value);
+    ensureMax(decimal, precision, scale);
+    return decimal.setScale(scale, RoundingMode.HALF_UP);
+  }
+
+  private static void ensureMax(final BigDecimal value, final int precision, final int scale) {
+    final int digits = precision - scale;
+    final BigDecimal maxValue = new BigDecimal(Math.pow(10, digits));
+    if (maxValue.compareTo(value.abs()) < 1) {
+      throw new ArithmeticException(
+          String.format("Numeric field overflow: A field with precision %d and scale %d "
+              + "must round to an absolute value less than 10^%d. Got %s",
+              precision,
+              scale,
+              digits,
+              value.toPlainString()));
     }
   }
 

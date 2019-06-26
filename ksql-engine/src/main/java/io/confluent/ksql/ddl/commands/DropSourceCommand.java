@@ -57,9 +57,8 @@ public class DropSourceCommand implements DdlCommand {
       ));
     }
 
-    final DropTopicCommand dropTopicCommand = new DropTopicCommand(dataSource.getKsqlTopicName());
     metaStore.deleteSource(sourceName);
-    dropTopicCommand.run(metaStore);
+    metaStore.deleteTopic(dataSource.getKsqlTopicName());
 
     return new DdlCommandResult(true,
         "Source " + sourceName + " (topic: " + dataSource.getKafkaTopicName() + ") was dropped.");

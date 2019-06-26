@@ -257,10 +257,6 @@ public abstract class DefaultAstVisitor<R, C>
     return visitStatement(node, context);
   }
 
-  protected R visitDropTopic(final DropTopic node, final C context) {
-    return visitStatement(node, context);
-  }
-
   protected R visitDropStream(final DropStream node, final C context) {
     return visitStatement(node, context);
   }

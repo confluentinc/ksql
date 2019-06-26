@@ -9,7 +9,7 @@ KSQL 5.4.0 includes new features, including:
 * UDAFs support STRUCTs as parameters and return values.
 
 * KSQL now supports working with source data where the value is an anonymous Avro or JSON serialized
-  `ARRAY`, `MAP` or primitive type, for example `STRING` or `BIGINT`. Previously KSQL required all
+  ``ARRAY``, ``MAP`` or primitive type, for example ``STRING`` or ``BIGINT``. Previously KSQL required all
   Avro values to be Avro records, and all JSON values to be JSON objects.
   For more information, refer to :ref:`ksql_single_field_wrapping`.
 
@@ -17,6 +17,9 @@ KSQL 5.4.0 includes new features, including:
   to Kafka. Users can now choose to serialize the single value as a named field within an outer
   Avro record or JSON object, depending on the format in use, or as an anonymous value.
   For more information, refer to :ref:`ksql_single_field_wrapping`.
+
+* A new config ``ksql.metrics.tags.custom`` for adding custom tags to emitted JMX metrics.
+  See :ref:`ksql-metrics-tags-custom` for usage.
 
 KSQL 5.4.0 includes the following misc. changes:
 
@@ -47,6 +50,17 @@ KSQL 5.3.0 includes new features, including:
 
 * ``CREATE STREAM`` and ``CREATE TABLE`` will now allow you to create the topic if it is missing.
   To do this, specify the ``PARTITIONS`` and optionally ``REPLICAS`` in the ``WITH`` clause.
+
+* ``CREATE STREAM AS SELECT ...`` and ``CREATE TABLE AS SELECT ...`` statements now use the source
+  topic partitions and replica counts for the sink topic if the config properties are not set in the ``WITH`` clause.
+  In case of JOIN, the left hand side topic is used.
+  This deprecates ``ksql.sink.partitions`` and ``ksql.sink.replicas`` config properties.
+
+* A new config variable, ``ksql.internal.topic.replicas``, was introduced to set the replica count for
+  the internal topics created by KSQL Server. The internal topics include the command topic and the config topic.
+
+* A new KSQL testing tool was added. The tool is a command line utility that enables testing KSQL statements
+  without requiring any infrastructure, like Apache Kafka and KSQL clusters.
 
 KSQL 5.3.0 includes bug fixes, including:
 

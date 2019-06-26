@@ -50,8 +50,6 @@ public final class MetaStoreFixture {
     final MutableMetaStore metaStore = new MetaStoreImpl(functionRegistry);
 
     final Schema test1Schema = SchemaBuilder.struct()
-        .field("ROWTIME", Schema.OPTIONAL_INT64_SCHEMA)
-        .field("ROWKEY", Schema.OPTIONAL_STRING_SCHEMA)
         .field("COL0", Schema.OPTIONAL_INT64_SCHEMA)
         .field("COL1", Schema.OPTIONAL_STRING_SCHEMA)
         .field("COL2", Schema.OPTIONAL_STRING_SCHEMA)
@@ -67,7 +65,7 @@ public final class MetaStoreFixture {
     final KsqlStream<?> ksqlStream0 = new KsqlStream<>(
         "sqlexpression",
         "TEST0",
-        LogicalSchema.of(test1Schema).withImplicitAndKeyFieldsInValue(),
+        LogicalSchema.of(test1Schema),
         SerdeOption.none(),
         KeyField.of("COL0", test1Schema.field("COL0")),
         timestampExtractionPolicy,
@@ -84,7 +82,7 @@ public final class MetaStoreFixture {
 
     final KsqlStream<?> ksqlStream1 = new KsqlStream<>("sqlexpression",
         "TEST1",
-        LogicalSchema.of(test1Schema).withImplicitAndKeyFieldsInValue(),
+        LogicalSchema.of(test1Schema),
         SerdeOption.none(),
         KeyField.of("COL0", test1Schema.field("COL0")),
         timestampExtractionPolicy,
@@ -96,8 +94,6 @@ public final class MetaStoreFixture {
     metaStore.putSource(ksqlStream1);
 
     final Schema test2Schema = SchemaBuilder.struct()
-        .field("ROWTIME", Schema.OPTIONAL_INT64_SCHEMA)
-        .field("ROWKEY", Schema.OPTIONAL_STRING_SCHEMA)
         .field("COL0", Schema.OPTIONAL_INT64_SCHEMA)
         .field("COL1", Schema.OPTIONAL_STRING_SCHEMA)
         .field("COL2", Schema.OPTIONAL_STRING_SCHEMA)
@@ -159,7 +155,7 @@ public final class MetaStoreFixture {
     final KsqlStream<?> ksqlStreamOrders = new KsqlStream<>(
         "sqlexpression",
         "ORDERS",
-        LogicalSchema.of(ordersSchema).withImplicitAndKeyFieldsInValue(),
+        LogicalSchema.of(ordersSchema),
         SerdeOption.none(),
         KeyField.of("ORDERTIME", ordersSchema.field("ORDERTIME")),
         timestampExtractionPolicy,
@@ -171,8 +167,6 @@ public final class MetaStoreFixture {
     metaStore.putSource(ksqlStreamOrders);
 
     final Schema testTable3 = SchemaBuilder.struct()
-        .field("ROWTIME", Schema.OPTIONAL_INT64_SCHEMA)
-        .field("ROWKEY", Schema.OPTIONAL_STRING_SCHEMA)
         .field("COL0", Schema.OPTIONAL_INT64_SCHEMA)
         .field("COL1", Schema.OPTIONAL_STRING_SCHEMA)
         .field("COL2", Schema.OPTIONAL_STRING_SCHEMA)
@@ -212,7 +206,7 @@ public final class MetaStoreFixture {
     final KsqlStream<?> nestedArrayStructMapOrders = new KsqlStream<>(
         "sqlexpression",
         "NESTED_STREAM",
-        LogicalSchema.of(nestedArrayStructMapSchema).withImplicitAndKeyFieldsInValue(),
+        LogicalSchema.of(nestedArrayStructMapSchema),
         SerdeOption.none(),
         KeyField.none(),
         timestampExtractionPolicy,

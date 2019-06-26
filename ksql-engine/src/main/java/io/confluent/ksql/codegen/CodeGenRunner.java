@@ -20,6 +20,7 @@ import io.confluent.ksql.function.KsqlFunction;
 import io.confluent.ksql.function.UdfFactory;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.parser.tree.ArithmeticBinaryExpression;
+import io.confluent.ksql.parser.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.parser.tree.AstVisitor;
 import io.confluent.ksql.parser.tree.BetweenPredicate;
 import io.confluent.ksql.parser.tree.Cast;
@@ -208,6 +209,13 @@ public class CodeGenRunner {
         final Object context) {
       process(node.getLeft(), null);
       process(node.getRight(), null);
+      return null;
+    }
+
+    protected Object visitArithmeticUnary(
+        final ArithmeticUnaryExpression node,
+        final Object context) {
+      process(node.getValue(), null);
       return null;
     }
 

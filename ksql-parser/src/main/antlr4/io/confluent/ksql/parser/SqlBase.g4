@@ -35,7 +35,6 @@ statement
     : query                                                                 #querystatement
     | (LIST | SHOW) PROPERTIES                                              #listProperties
     | (LIST | SHOW) TOPICS                                                  #listTopics
-    | (LIST | SHOW) REGISTERED TOPICS                                       #listRegisteredTopics
     | (LIST | SHOW) STREAMS EXTENDED?                                       #listStreams
     | (LIST | SHOW) TABLES EXTENDED?                                        #listTables
     | (LIST | SHOW) FUNCTIONS                                               #listFunctions
@@ -46,8 +45,6 @@ statement
     | TERMINATE QUERY? qualifiedName                                        #terminateQuery
     | SET STRING EQ STRING                                                  #setProperty
     | UNSET STRING                                                          #unsetProperty
-    | REGISTER TOPIC (IF NOT EXISTS)? qualifiedName
-            (WITH tableProperties)?                                         #registerTopic
     | CREATE STREAM (IF NOT EXISTS)? qualifiedName
                 (tableElements)?
                 (WITH tableProperties)?                                     #createStream
@@ -61,7 +58,6 @@ statement
             (WITH tableProperties)? AS query                                #createTableAs
     | INSERT INTO qualifiedName query (PARTITION BY identifier)?            #insertInto
     | INSERT INTO qualifiedName (columns)? VALUES values                    #insertValues
-    | DROP TOPIC (IF EXISTS)? qualifiedName                                 #dropTopic
     | DROP STREAM (IF EXISTS)? qualifiedName (DELETE TOPIC)?                #dropStream
     | DROP TABLE (IF EXISTS)? qualifiedName  (DELETE TOPIC)?                #dropTable
     | EXPLAIN  (statement | qualifiedName)                                  #explain
@@ -386,7 +382,6 @@ STRUCT: 'STRUCT';
 WITH: 'WITH';
 VALUES: 'VALUES';
 CREATE: 'CREATE';
-REGISTER: 'REGISTER';
 TABLE: 'TABLE';
 TOPIC: 'TOPIC';
 STREAM: 'STREAM';
@@ -405,7 +400,6 @@ SHOW: 'SHOW';
 LIST: 'LIST';
 TABLES: 'TABLES';
 TOPICS: 'TOPICS';
-REGISTERED: 'REGISTERED';
 QUERY: 'QUERY';
 QUERIES: 'QUERIES';
 TERMINATE: 'TERMINATE';

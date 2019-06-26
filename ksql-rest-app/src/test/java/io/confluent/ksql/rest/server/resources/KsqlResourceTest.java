@@ -93,8 +93,6 @@ import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.KsqlStatementErrorMessage;
-import io.confluent.ksql.rest.entity.KsqlTopicInfo;
-import io.confluent.ksql.rest.entity.KsqlTopicsList;
 import io.confluent.ksql.rest.entity.PropertiesList;
 import io.confluent.ksql.rest.entity.Queries;
 import io.confluent.ksql.rest.entity.QueryDescription;
@@ -140,7 +138,6 @@ import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import io.confluent.rest.RestConfig;
 import java.io.IOException;
 import java.time.Duration;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -183,7 +180,7 @@ public class KsqlResourceTest {
       0L);
   private static final LogicalSchema SINGLE_FIELD_SCHEMA = LogicalSchema.of(SchemaBuilder.struct()
       .field("val", Schema.OPTIONAL_STRING_SCHEMA)
-      .build()).withImplicitAndKeyFieldsInValue();
+      .build());
 
   private static final ClusterTerminateRequest VALID_TERMINATE_REQUEST =
       new ClusterTerminateRequest(ImmutableList.of("Foo"));
@@ -223,8 +220,6 @@ public class KsqlResourceTest {
   );
 
   private static final LogicalSchema SOME_SCHEMA = LogicalSchema.of(SchemaBuilder.struct()
-      .field("ROWTIME", Schema.OPTIONAL_INT64_SCHEMA)
-      .field("ROWKEY", Schema.OPTIONAL_STRING_SCHEMA)
       .field("f1", Schema.OPTIONAL_STRING_SCHEMA)
       .build());
 
@@ -327,34 +322,6 @@ public class KsqlResourceTest {
   }
 
   @Test
-  public void shouldInstantRegisterTopic() {
-    // When:
-    final CommandStatusEntity result = makeSingleRequest(
-        "REGISTER TOPIC FOO WITH (kafka_topic='bar', value_format='json');",
-        CommandStatusEntity.class);
-
-    // Then:
-    assertThat(result, is(new CommandStatusEntity(
-        "REGISTER TOPIC FOO WITH (kafka_topic='bar', value_format='json');",
-        commandStatus.getCommandId(), commandStatus.getStatus(), 0L)));
-  }
-
-  @Test
-  public void shouldListRegisteredTopics() {
-    // When:
-    final KsqlTopicsList ksqlTopicsList = makeSingleRequest(
-        "LIST REGISTERED TOPICS;", KsqlTopicsList.class);
-
-    // Then:
-    final Collection<KsqlTopicInfo> expectedTopics = ksqlEngine.getMetaStore()
-        .getAllKsqlTopics().values().stream()
-        .map(KsqlTopicInfo::new)
-        .collect(Collectors.toList());
-
-    assertThat(ksqlTopicsList.getTopics(), is(expectedTopics));
-  }
-
-  @Test
   public void shouldShowNoQueries() {
     // When:
     final Queries queries = makeSingleRequest("SHOW QUERIES;", Queries.class);
@@ -387,7 +354,7 @@ public class KsqlResourceTest {
     final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
         .field("FIELD1", Schema.OPTIONAL_BOOLEAN_SCHEMA)
         .field("FIELD2", Schema.OPTIONAL_STRING_SCHEMA)
-        .build()).withImplicitAndKeyFieldsInValue();
+        .build());
 
     givenSource(
         DataSourceType.KSTREAM, "new_stream", "new_topic",
@@ -415,7 +382,7 @@ public class KsqlResourceTest {
     final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
         .field("FIELD1", Schema.OPTIONAL_BOOLEAN_SCHEMA)
         .field("FIELD2", Schema.OPTIONAL_STRING_SCHEMA)
-        .build()).withImplicitAndKeyFieldsInValue();
+        .build());
 
     givenSource(
         DataSourceType.KTABLE, "new_table", "new_topic",
@@ -581,7 +548,9 @@ public class KsqlResourceTest {
     expectedException.expect(KsqlRestException.class);
     expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
     expectedException.expect(exceptionStatementErrorMessage(errorMessage(is(
-            "SELECT and PRINT queries must use the /query endpoint"))));
+            "RUN SCRIPT cannot be used with the following statements: \n"
+                    + "* PRINT\n"
+                    + "* SELECT"))));
     expectedException.expect(exceptionStatementErrorMessage(statement(is(
         "SELECT * FROM test_table;"))));
 
@@ -595,7 +564,9 @@ public class KsqlResourceTest {
     expectedException.expect(KsqlRestException.class);
     expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
     expectedException.expect(exceptionStatementErrorMessage(errorMessage(is(
-        "SELECT and PRINT queries must use the /query endpoint"))));
+            "RUN SCRIPT cannot be used with the following statements: \n"
+                    + "* PRINT\n"
+                    + "* SELECT"))));
     expectedException.expect(exceptionStatementErrorMessage(statement(is(
         "PRINT 'orders-topic';"))));
 
@@ -1593,22 +1564,6 @@ public class KsqlResourceTest {
   }
 
   @Test
-  public void shouldFailIfRegisterTopicAlreadyExists() {
-    // Given:
-    final String registerSql = "REGISTER TOPIC FOO WITH (kafka_topic='bar', value_format='json');";
-    givenKsqlTopicRegistered("foo");
-
-    // Then:
-    expectedException.expect(KsqlRestException.class);
-    expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
-    expectedException.expect(exceptionErrorMessage(
-        errorMessage(is("A topic with name 'FOO' already exists"))));
-
-    // When:
-    makeSingleRequest(registerSql, CommandStatusEntity.class);
-  }
-
-  @Test
   public void shouldFailIfCreateExistingSourceStream() {
     // Given:
     givenSource(DataSourceType.KSTREAM, "SOURCE", "topic1", "ksqlTopic1", SINGLE_FIELD_SCHEMA);
@@ -1928,7 +1883,7 @@ public class KsqlResourceTest {
   private void addTestTopicAndSources() {
     final LogicalSchema schema1 = LogicalSchema.of(SchemaBuilder.struct()
             .field("S1_F1", Schema.OPTIONAL_BOOLEAN_SCHEMA)
-            .build()).withImplicitAndKeyFieldsInValue();
+            .build());
 
     givenSource(
         DataSourceType.KTABLE,
@@ -1936,7 +1891,7 @@ public class KsqlResourceTest {
 
     final LogicalSchema schema2 = LogicalSchema.of(SchemaBuilder.struct()
         .field("S2_F1", Schema.OPTIONAL_STRING_SCHEMA)
-        .build()).withImplicitAndKeyFieldsInValue();
+        .build());
 
     givenSource(
         DataSourceType.KSTREAM,

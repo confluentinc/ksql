@@ -50,7 +50,6 @@ import io.confluent.ksql.parser.tree.DescribeFunction;
 import io.confluent.ksql.parser.tree.DoubleLiteral;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
-import io.confluent.ksql.parser.tree.DropTopic;
 import io.confluent.ksql.parser.tree.Explain;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.FunctionCall;
@@ -70,7 +69,6 @@ import io.confluent.ksql.parser.tree.LikePredicate;
 import io.confluent.ksql.parser.tree.ListFunctions;
 import io.confluent.ksql.parser.tree.ListProperties;
 import io.confluent.ksql.parser.tree.ListQueries;
-import io.confluent.ksql.parser.tree.ListRegisteredTopics;
 import io.confluent.ksql.parser.tree.ListStreams;
 import io.confluent.ksql.parser.tree.ListTables;
 import io.confluent.ksql.parser.tree.ListTopics;
@@ -84,7 +82,6 @@ import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.parser.tree.Query;
-import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.parser.tree.Relation;
 import io.confluent.ksql.parser.tree.RunScript;
 import io.confluent.ksql.parser.tree.SearchedCaseExpression;
@@ -219,16 +216,6 @@ public class AstBuilder {
     }
 
     @Override
-    public Node visitRegisterTopic(final SqlBaseParser.RegisterTopicContext context) {
-      return new RegisterTopic(
-          getLocation(context),
-          ParserUtil.getQualifiedName(context.qualifiedName()),
-          context.EXISTS() != null,
-          processTableProperties(context.tableProperties())
-      );
-    }
-
-    @Override
     public Node visitCreateStream(final SqlBaseParser.CreateStreamContext context) {
       final List<TableElement> elements = context.tableElements() == null
           ? ImmutableList.of()
@@ -308,15 +295,6 @@ public class AstBuilder {
           targetName,
           columns,
           visit(context.values().literal(), Expression.class));
-    }
-
-    @Override
-    public Node visitDropTopic(final SqlBaseParser.DropTopicContext context) {
-      return new DropTopic(
-          getLocation(context),
-          ParserUtil.getQualifiedName(context.qualifiedName()),
-          context.EXISTS() != null
-      );
     }
 
     @Override
@@ -554,11 +532,6 @@ public class AstBuilder {
     @Override
     public Node visitRunScript(final SqlBaseParser.RunScriptContext context) {
       return new RunScript(getLocation(context));
-    }
-
-    @Override
-    public Node visitListRegisteredTopics(final SqlBaseParser.ListRegisteredTopicsContext context) {
-      return new ListRegisteredTopics(getLocation(context));
     }
 
     @Override

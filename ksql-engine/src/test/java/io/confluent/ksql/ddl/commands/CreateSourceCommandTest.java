@@ -17,7 +17,7 @@ package io.confluent.ksql.ddl.commands;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -27,6 +27,7 @@ import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.ddl.commands.CreateSourceCommand.SerdeOptionsSupplier;
 import io.confluent.ksql.metastore.MutableMetaStore;
+import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.CreateStream;
@@ -35,8 +36,10 @@ import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
-import io.confluent.ksql.schema.ksql.SqlType;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SqlType;
+import io.confluent.ksql.serde.KsqlSerdeFactory;
+import io.confluent.ksql.serde.SerdeFactories;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
@@ -82,7 +85,15 @@ public class CreateSourceCommandTest {
   @Mock
   private KafkaTopicClient kafkaTopicClient;
   @Mock
+  private KsqlTopic topic;
+  @Mock
   private SerdeOptionsSupplier serdeOptions;
+  @Mock
+  private SerdeFactories serdeFactories;
+  @Mock
+  private KsqlSerdeFactory serdeFactory;
+  @Mock
+  private MutableMetaStore metaStore;
 
   private KsqlConfig ksqlConfig;
   private final Map<String, Literal> withProperties = new HashMap<>();
@@ -100,6 +111,8 @@ public class CreateSourceCommandTest {
     withProperties.clear();
     withProperties.put(DdlConfig.VALUE_FORMAT_PROPERTY, new StringLiteral("JSON"));
     withProperties.put(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral("topic"));
+
+    when(serdeFactories.create(any(), any(CreateSourceProperties.class))).thenReturn(serdeFactory);
   }
 
   @Test
@@ -113,7 +126,14 @@ public class CreateSourceCommandTest {
         "The statement does not define any columns.");
 
     // When:
-    new TestCmd("look mum, no columns", statement, ksqlConfig, kafkaTopicClient, serdeOptions);
+    new TestCmd(
+        "look mum, no columns",
+        statement,
+        ksqlConfig,
+        kafkaTopicClient,
+        serdeOptions,
+        serdeFactories
+    );
   }
 
   @Test
@@ -122,7 +142,14 @@ public class CreateSourceCommandTest {
     when(statement.getElements()).thenReturn(SOME_ELEMENTS);
 
     // When:
-    new TestCmd("look mum, columns", statement, ksqlConfig, kafkaTopicClient, serdeOptions);
+    new TestCmd(
+        "look mum, columns",
+        statement,
+        ksqlConfig,
+        kafkaTopicClient,
+        serdeOptions,
+        serdeFactories
+    );
 
     // Then: not exception thrown
   }
@@ -137,7 +164,14 @@ public class CreateSourceCommandTest {
     expectedException.expectMessage("Kafka topic does not exist: " + TOPIC_NAME);
 
     // When:
-    new TestCmd("what, no value topic?", statement, ksqlConfig, kafkaTopicClient, serdeOptions);
+    new TestCmd(
+        "what, no value topic?",
+        statement,
+        ksqlConfig,
+        kafkaTopicClient,
+        serdeOptions,
+        serdeFactories
+    );
   }
 
   @Test
@@ -146,10 +180,59 @@ public class CreateSourceCommandTest {
     when(kafkaTopicClient.isTopicExists(TOPIC_NAME)).thenReturn(true);
 
     // When:
-    new TestCmd("what, no value topic?", statement, ksqlConfig, kafkaTopicClient, serdeOptions);
+    new TestCmd(
+        "what, no value topic?",
+        statement,
+        ksqlConfig,
+        kafkaTopicClient,
+        serdeOptions,
+        serdeFactories
+    );
 
     // Then:
     verify(kafkaTopicClient).isTopicExists(TOPIC_NAME);
+  }
+
+  @Test
+  public void shouldThrowIfTopicWithSameNameAlreadyRegistered() {
+    // Given:
+    when(metaStore.getTopic("bob")).thenReturn(topic);
+
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("A topic with name 'bob' already exists");
+
+    // When:
+    new TestCmd(
+        "topic does exist",
+        statement,
+        ksqlConfig,
+        kafkaTopicClient,
+        serdeOptions,
+        serdeFactories
+    ).registerTopic(metaStore, "topic");
+  }
+
+  @Test
+  public void shouldRegisterTopic() {
+    // Given:
+    when(metaStore.getTopic("bob")).thenReturn(null);
+
+    // When:
+    new TestCmd(
+        "what, no value topic?",
+        statement,
+        ksqlConfig,
+        kafkaTopicClient,
+        serdeOptions,
+        serdeFactories
+    ).registerTopic(metaStore, "topic");
+
+    // Then:
+    verify(metaStore).putTopic(argThat(ksqlTopic ->
+        ksqlTopic.getKsqlTopicName().equals("bob") &&
+        ksqlTopic.getKafkaTopicName().equals(TOPIC_NAME))
+    );
   }
 
   @Test
@@ -165,7 +248,14 @@ public class CreateSourceCommandTest {
             + "'WILL-NOT-FIND-ME'");
 
     // When:
-    new TestCmd("key not in schema!", statement, ksqlConfig, kafkaTopicClient, serdeOptions);
+    new TestCmd(
+        "key not in schema!",
+        statement,
+        ksqlConfig,
+        kafkaTopicClient,
+        serdeOptions,
+        serdeFactories
+    );
   }
 
   @Test
@@ -182,7 +272,14 @@ public class CreateSourceCommandTest {
             + "'WILL-NOT-FIND-ME'");
 
     // When:
-    new TestCmd("key not in schema!", statement, ksqlConfig, kafkaTopicClient, serdeOptions);
+    new TestCmd(
+        "key not in schema!",
+        statement,
+        ksqlConfig,
+        kafkaTopicClient,
+        serdeOptions,
+        serdeFactories
+    );
   }
 
   @Test
@@ -199,7 +296,14 @@ public class CreateSourceCommandTest {
     when(serdeOptions.build(any(), any(), any())).thenReturn(SOME_SERDE_OPTIONS);
 
     // When:
-    final TestCmd cmd = new TestCmd("sql", statement, ksqlConfig, kafkaTopicClient, serdeOptions);
+    final TestCmd cmd = new TestCmd(
+        "sql",
+        statement,
+        ksqlConfig,
+        kafkaTopicClient,
+        serdeOptions,
+        serdeFactories
+    );
 
     // Then:
     verify(serdeOptions).build(schema, statement.getProperties(), ksqlConfig);
@@ -226,9 +330,17 @@ public class CreateSourceCommandTest {
         final CreateSource statement,
         final KsqlConfig ksqlConfig,
         final KafkaTopicClient kafkaTopicClient,
-        final SerdeOptionsSupplier serdeOptionsSupplier
+        final SerdeOptionsSupplier serdeOptionsSupplier,
+        final SerdeFactories serdeFactories
     ) {
-      super(sqlExpression, statement, ksqlConfig, kafkaTopicClient, serdeOptionsSupplier);
+      super(
+          sqlExpression,
+          statement,
+          ksqlConfig,
+          kafkaTopicClient,
+          serdeOptionsSupplier,
+          serdeFactories
+      );
     }
 
     @Override

@@ -19,11 +19,13 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
+import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.schema.ksql.SqlType;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
+@Immutable
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class SchemaInfo {
 

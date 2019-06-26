@@ -29,17 +29,9 @@ public class TestUtils {
   public List<Pair<CommandId, Command>> getAllPriorCommandRecords() {
     final List<Pair<CommandId, Command>> priorCommands = new ArrayList<>();
 
-    final Command topicCommand = new Command(
-        "REGISTER TOPIC pageview_topic WITH "
-            + "(value_format = 'json', kafka_topic='pageview_topic_json');",
-        Collections.emptyMap(), Collections.emptyMap());
-    final CommandId topicCommandId =  new CommandId(CommandId.Type.TOPIC, "_CSASTopicGen", CommandId.Action.CREATE);
-    priorCommands.add(new Pair<>(topicCommandId, topicCommand));
-
-
     final Command csCommand = new Command("CREATE STREAM pageview "
                                     + "(viewtime bigint, pageid varchar, userid varchar) "
-                                    + "WITH (kafka_topic='pageview_topic_json', value_format='json', registered_topic = 'pageview_topic');",
+                                    + "WITH (kafka_topic='pageview_topic_json', value_format='json');",
                                     Collections.emptyMap(), Collections.emptyMap());
     final CommandId csCommandId =  new CommandId(CommandId.Type.STREAM, "_CSASStreamGen", CommandId.Action.CREATE);
     priorCommands.add(new Pair<>(csCommandId, csCommand));

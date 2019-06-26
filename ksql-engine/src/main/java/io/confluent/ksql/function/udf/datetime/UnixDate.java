@@ -18,12 +18,12 @@ import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import java.time.LocalDate;
 
-@UdfDescription(name = "currentdate",
+@UdfDescription(name = "unix_date",
     description = "Gets an integer representing days since epoch.")
-public class CurrentDate {
+public class UnixDate {
 
   @Udf(description = "Gets an integer representing days since epoch.")
-  public int currentDate() {
+  public int unixDate() {
     return ((int) LocalDate.now().toEpochDay());
   }
 

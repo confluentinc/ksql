@@ -1516,14 +1516,10 @@ Scalar functions
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | CONCAT                 |  ``CONCAT(col1, '_hello')``                                               | Concatenate two strings.                          |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
-| CURRENTDATE            |  ``CURRENTDATE()``                                                        | Gets an integer representing days since epoch.    |
+| UNIX_DATE              |  ``UNIX_DATE()``                                                          | Gets an integer representing days since epoch.    |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
-| UNIX_TIMESTAMP         |  ``UNIX_TIMESTAMP([TIMEZONE])``                                           | Gets the Unix timestamp in milliseconds,          |
+| UNIX_TIMESTAMP         |  ``UNIX_TIMESTAMP()``                                                     | Gets the Unix timestamp in milliseconds,          |
 |                        |                                                                           | represented as a BIGINT.                          |
-|                        |                                                                           | TIMEZONE is an optional parameter and it is a     |
-|                        |                                                                           | ``java.util.TimeZone`` ID format, for example:    |
-|                        |                                                                           | "UTC", "America/Los_Angeles", "PDT",              |
-|                        |                                                                           | "Europe/London".                                  |
 |                        |                                                                           | The returned timestamp may differ depending on    |
 |                        |                                                                           | the local time of different KSQL Server instances.|
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+

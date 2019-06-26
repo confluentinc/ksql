@@ -14,14 +14,12 @@
 
 package io.confluent.ksql.function.udf.datetime;
 
-import io.confluent.ksql.function.KsqlFunctionException;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import java.sql.Timestamp;
-import java.time.ZoneId;
 
 import static org.junit.Assert.assertTrue;
 
@@ -53,27 +51,14 @@ public class UnixTimestampTest {
   @Test
   public void shouldGetTheUnixTimestampWithTimeZone() {
     // Given:
-    final String timeZone = "UTC";
     final Timestamp before = new Timestamp(System.currentTimeMillis());
-    before.toLocalDateTime().atZone(ZoneId.of(timeZone));
 
     // When:
-    final long result = udf.unixTimestamp(timeZone);
+    final long result = udf.unixTimestamp();
     final Timestamp after = new Timestamp(System.currentTimeMillis());
-    after.toLocalDateTime().atZone(ZoneId.of(timeZone));
 
     // Then:
     assertTrue(before.getTime() <= result && result <= after.getTime());
-  }
-
-  @Test
-  public void shouldThrowIfInvalidTimeZone() {
-    // Given:
-    expectedException.expect(KsqlFunctionException.class);
-    expectedException.expectMessage("Unknown time-zone ID: PST");
-
-    // When:
-    udf.unixTimestamp("PST");
   }
 
 }

@@ -20,22 +20,22 @@ import java.time.LocalDate;
 
 import static org.junit.Assert.assertEquals;
 
-public class CurrentDateTest {
+public class UnixDateTest {
 
-  private CurrentDate udf;
+  private UnixDate udf;
 
   @Before
   public void setUp() {
-    udf = new CurrentDate();
+    udf = new UnixDate();
   }
 
   @Test
-  public void shouldGetTheCurrentDate() {
+  public void shouldGetTheUnixDate() {
     // Given:
     final int now = ((int) LocalDate.now().toEpochDay());
 
     // When:
-    final int result = udf.currentDate();
+    final int result = udf.unixDate();
 
     // Then:
     assertEquals(now, result);

@@ -68,7 +68,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.IntStream;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
 
@@ -241,6 +240,42 @@ class Analyzer {
       return serdeFactories.create(format, sink.getProperties());
     }
 
+    /**
+     * Get the list of select expressions that are <i>not</i> for meta and key fields in the source
+     * schema.
+     *
+     * <p>Currently, the select expressions can include metadata and key fields, which are latter
+     * removed by {@link io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode}. When building
+     * the {@link SerdeOptions} its important the finally schema is used, i.e. the one with these
+     * meta and key fields removed.
+     *
+     * <p>This is weird functionality, but maintained for backwards compatibility for now.
+     *
+     * @return the list of field names in the sink that are not meta or key fields.
+     */
+    private List<String> getNoneMetaOrKeySelectAliases() {
+      final SourceSchemas sourceSchemas = analysis.getFromSourceSchemas();
+      final List<Expression> selects = analysis.getSelectExpressions();
+
+      final List<String> columnNames = new ArrayList<>(analysis.getSelectExpressionAlias());
+
+      for (int idx = selects.size() - 1; idx >= 0; --idx) {
+        final Expression select = selects.get(idx);
+
+        if (!(select instanceof DereferenceExpression)
+            && !(select instanceof QualifiedNameReference)) {
+          continue;
+        }
+
+        if (!sourceSchemas.matchesNonValueField(select.toString())) {
+          continue;
+        }
+
+        columnNames.remove(idx);
+      }
+      return columnNames;
+    }
+
     private Format getValueFormat(final Sink sink) {
       final Object serdeProperty = sink.getProperties().get(DdlConfig.VALUE_FORMAT_PROPERTY);
 
@@ -296,15 +331,7 @@ class Analyzer {
     }
 
     private void setSerdeOptions(final Sink sink) {
-      final SourceSchemas sourceSchemas = analysis.getFromSourceSchemas();
-      final List<Expression> selects = analysis.getSelectExpressions();
-
-      final List<String> columnNames = new ArrayList<>(analysis.getSelectExpressionAlias());
-      IntStream.rangeClosed(selects.size() - 1, 0)
-          .filter(idx -> selects.get(idx) instanceof DereferenceExpression
-              || selects.get(idx) instanceof QualifiedNameReference)
-          .filter(idx -> sourceSchemas.matchesNonValueField(selects.get(idx).toString()))
-          .forEach(columnNames::remove);
+      final List<String> columnNames = getNoneMetaOrKeySelectAliases();
 
       final Format valueFormat = getValueFormat(sink);
 

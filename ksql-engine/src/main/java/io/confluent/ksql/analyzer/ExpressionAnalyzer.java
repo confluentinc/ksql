@@ -29,8 +29,10 @@ import io.confluent.ksql.parser.tree.LogicalBinaryExpression;
 import io.confluent.ksql.parser.tree.NotExpression;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.SchemaUtil;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Searches through the AST for any column references and throws if they are unknown fields.
@@ -55,8 +57,13 @@ class ExpressionAnalyzer {
     }
 
     if (sourcesWithField.size() > 1) {
+      final String possibilities = sourcesWithField.stream()
+          .sorted()
+          .map(source -> SchemaUtil.buildAliasedFieldName(source, columnName))
+          .collect(Collectors.joining(","));
+
       throw new KsqlException("Field '" + columnName + "' is ambiguous. "
-          + "Could be any of: " + sourcesWithField);
+          + "Could be any of: " + possibilities);
     }
   }
 

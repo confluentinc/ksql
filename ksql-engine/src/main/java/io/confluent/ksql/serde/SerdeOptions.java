@@ -28,7 +28,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Predicate;
 
 /**
  * Factory / Util class for building the {@link SerdeOption} sets required by the engine.
@@ -110,9 +109,7 @@ public final class SerdeOptions {
       final Format valueFormat,
       final Set<SerdeOption> singleFieldDefaults
   ) {
-    final boolean singleField = columnNames.stream()
-        .filter(((Predicate<String>) LogicalSchema::isImplicitColumnName).negate())
-        .count() == 1;
+    final boolean singleField = columnNames.size() == 1;
 
     final Expression exp = properties.get(DdlConfig.WRAP_SINGLE_VALUE);
     if (exp == null) {

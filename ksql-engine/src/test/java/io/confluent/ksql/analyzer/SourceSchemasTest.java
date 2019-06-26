@@ -107,4 +107,39 @@ public class SourceSchemasTest {
     assertThat(sourceSchemas.sourcesWithField(ALIAS_1 + "." + COMMON_FIELD_NAME),
         contains(ALIAS_1));
   }
+
+  @Test
+  public void shouldMatchNonValueFieldNameIfMetaField() {
+    assertThat(sourceSchemas.matchesNonValueField("ROWTIME"), is(true));
+  }
+
+  @Test
+  public void shouldMatchNonValueFieldNameIfAliaasedMetaField() {
+    assertThat(sourceSchemas.matchesNonValueField(ALIAS_2 + ".ROWTIME"), is(true));
+  }
+
+  @Test
+  public void shouldMatchNonValueFieldNameIfKeyField() {
+    assertThat(sourceSchemas.matchesNonValueField("ROWKEY"), is(true));
+  }
+
+  @Test
+  public void shouldMatchNonValueFieldNameIfAliasedKeyField() {
+    assertThat(sourceSchemas.matchesNonValueField(ALIAS_2 + ".ROWKEY"), is(true));
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void shouldThrowOnUknonwnSourceWhenMatchingNonValueFields() {
+    sourceSchemas.matchesNonValueField("unknown.ROWKEY");
+  }
+
+  @Test
+  public void shouldNotMatchOtherFields() {
+    assertThat(sourceSchemas.matchesNonValueField(ALIAS_2 + ".F2"), is(false));
+  }
+
+  @Test
+  public void shouldNotMatchUnknownFields() {
+    assertThat(sourceSchemas.matchesNonValueField("unknown"), is(false));
+  }
 }

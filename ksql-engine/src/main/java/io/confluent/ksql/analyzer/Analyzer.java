@@ -62,11 +62,13 @@ import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.StringUtil;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.IntStream;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
 
@@ -294,16 +296,26 @@ class Analyzer {
     }
 
     private void setSerdeOptions(final Sink sink) {
-      final List<String> columnNames = analysis.getSelectExpressionAlias();
+      final SourceSchemas sourceSchemas = analysis.getFromSourceSchemas();
+      final List<Expression> selects = analysis.getSelectExpressions();
+
+      final List<String> columnNames = new ArrayList<>(analysis.getSelectExpressionAlias());
+      IntStream.rangeClosed(selects.size() - 1, 0)
+          .filter(idx -> selects.get(idx) instanceof DereferenceExpression
+              || selects.get(idx) instanceof QualifiedNameReference)
+          .filter(idx -> sourceSchemas.matchesNonValueField(selects.get(idx).toString()))
+          .forEach(columnNames::remove);
 
       final Format valueFormat = getValueFormat(sink);
 
-      analysis.setSerdeOptions(serdeOptionsSupplier.build(
+      final Set<SerdeOption> serdeOptions = serdeOptionsSupplier.build(
           columnNames,
           sink.getProperties(),
           valueFormat,
           defaultSerdeOptions
-      ));
+      );
+
+      analysis.setSerdeOptions(serdeOptions);
     }
 
     private void validateWithClause(final Set<String> withClauseVariables) {

@@ -19,7 +19,6 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.schema.connect.SqlSchemaFormatter;
 import io.confluent.ksql.schema.connect.SqlSchemaFormatter.Option;
@@ -60,11 +59,6 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 public final class LogicalSchema {
 
   private static final SqlSchemaFormatter FORMATTER = new SqlSchemaFormatter(Option.AS_COLUMN_LIST);
-
-  private static final Set<String> IMPLICIT_FIELD_NAMES = ImmutableSet.of(
-      SchemaUtil.ROWTIME_NAME,
-      SchemaUtil.ROWKEY_NAME
-  );
 
   private static final Schema METADATA_SCHEMA = SchemaBuilder
       .struct()
@@ -329,10 +323,6 @@ public final class LogicalSchema {
   @Override
   public String toString() {
     return "[" + FORMATTER.format(valueSchema) + "]";
-  }
-
-  public static boolean isImplicitColumnName(final String fieldName) {
-    return IMPLICIT_FIELD_NAMES.contains(fieldName.toUpperCase());
   }
 
   private Set<String> metaFieldNames() {

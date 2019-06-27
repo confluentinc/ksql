@@ -47,18 +47,4 @@ public class UnixTimestampTest {
     // Then:
     assertTrue(before <= result && result <= after);
   }
-
-  @Test
-  public void shouldGetTheUnixTimestampWithTimeZone() {
-    // Given:
-    final Timestamp before = new Timestamp(System.currentTimeMillis());
-
-    // When:
-    final long result = udf.unixTimestamp();
-    final Timestamp after = new Timestamp(System.currentTimeMillis());
-
-    // Then:
-    assertTrue(before.getTime() <= result && result <= after.getTime());
-  }
-
 }

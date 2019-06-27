@@ -108,19 +108,22 @@ public final class ParserUtil {
   }
 
   public static Literal visitIntegerLiteral(final IntegerLiteralContext context) {
+    final Optional<NodeLocation> location = getLocation(context);
+
     final long valueAsLong;
     try {
       valueAsLong = Long.parseLong(context.getText());
     } catch (final NumberFormatException e) {
-      throw new ParsingException("Invalid numeric literal: " + context.getText());
+      throw new ParsingException("Invalid numeric literal: " + context.getText(), location);
     }
     if (valueAsLong < 0) {
       throw new RuntimeException("Unexpected negative value in literal: " + valueAsLong);
     }
+
     if (valueAsLong <= Integer.MAX_VALUE) {
-      return new IntegerLiteral(getLocation(context), (int) valueAsLong);
+      return new IntegerLiteral(location, (int) valueAsLong);
     } else {
-      return new LongLiteral(getLocation(context), valueAsLong);
+      return new LongLiteral(location, valueAsLong);
     }
   }
 

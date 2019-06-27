@@ -1,0 +1,12 @@
+{
+  "inputs": [
+    {"topic": "s1", "key": 0, "value": {"ID": 0, "NAME": "name0", "VALUE": 0}, "timestamp": 0},
+    {"topic": "s1", "key": 1, "value": {"ID": 1, "NAME": "name1", "VALUE": 1}, "timestamp": 1},
+    {"topic": "s1", "key": 2, "value": {"ID": 2, "NAME": "name2", "VALUE": 2}, "timestamp": 2},
+    {"topic": "s1", "key": 3, "value": {"ID": 3, "NAME": "name3", "VALUE": 3}, "timestamp": 3},
+    {"topic": "s2", "key": 4, "value": {"ID": 4, "NAME": "name4", "VALUE": 4}, "timestamp": 4},
+    {"topic": "s2", "key": 5, "value": {"ID": 5, "NAME": "name5", "VALUE": 5}, "timestamp": 5},
+    {"topic": "s2", "key": 6, "value": {"ID": 6, "NAME": "name6", "VALUE": 6}, "timestamp": 6},
+    {"topic": "s2", "key": 7, "value": {"ID": 7, "NAME": "name7", "VALUE": 7}, "timestamp": 7}
+  ]
+}

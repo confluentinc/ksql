@@ -17,6 +17,8 @@ package io.confluent.ksql.test.tools;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.apache.kafka.streams.TopologyTestDriver;
 
 public final class TopologyTestDriverContainer {
@@ -57,5 +59,9 @@ public final class TopologyTestDriverContainer {
 
   public Topic getSinkTopic() {
     return sinkTopic;
+  }
+
+  public Set<String> getSourceTopicNames() {
+    return sourceTopics.stream().map(Topic::getName).collect(Collectors.toSet());
   }
 }

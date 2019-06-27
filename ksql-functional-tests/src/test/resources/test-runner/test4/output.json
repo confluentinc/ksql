@@ -1,0 +1,12 @@
+{
+  "outputs": [
+    {"topic": "s3", "key": 0, "value": {"ID": 0, "NAME": "name0", "VALUE": 0, "SOURCE": "s1"}, "timestamp": 0},
+    {"topic": "s3", "key": 1, "value": {"ID": 1, "NAME": "name1", "VALUE": 1, "SOURCE": "s1"}, "timestamp": 1},
+    {"topic": "s3", "key": 2, "value": {"ID": 2, "NAME": "name2", "VALUE": 2, "SOURCE": "s1"}, "timestamp": 2},
+    {"topic": "s3", "key": 3, "value": {"ID": 3, "NAME": "name3", "VALUE": 3, "SOURCE": "s1"}, "timestamp": 3},
+    {"topic": "s3", "key": 4, "value": {"ID": 4, "NAME": "name4", "VALUE": 4, "SOURCE": "s2"}, "timestamp": 4},
+    {"topic": "s3", "key": 5, "value": {"ID": 5, "NAME": "name5", "VALUE": 5, "SOURCE": "s2"}, "timestamp": 5},
+    {"topic": "s3", "key": 6, "value": {"ID": 6, "NAME": "name6", "VALUE": 6, "SOURCE": "s2"}, "timestamp": 6},
+    {"topic": "s3", "key": 7, "value": {"ID": 7, "NAME": "name7", "VALUE": 7, "SOURCE": "s2"}, "timestamp": 7}
+  ]
+}

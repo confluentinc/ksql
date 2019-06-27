@@ -141,6 +141,7 @@ public final class KsqlTestingTool {
       testExecutor.buildAndExecuteQuery(testCase);
       System.out.println("\t >>> Test passed!");
     } catch (final Exception e) {
+      e.printStackTrace();
       System.err.println("\t>>>>> Test failed: " + e.getMessage());
     } finally {
       testExecutor.close();

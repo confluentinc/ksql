@@ -21,6 +21,8 @@ KSQL 5.4.0 includes new features, including:
 * A new config ``ksql.metrics.tags.custom`` for adding custom tags to emitted JMX metrics.
   See :ref:`ksql-metrics-tags-custom` for usage.
 
+* New ``UNIX_TIMESTAMP()`` and ``UNIX_DATE()`` functions.
+
 KSQL 5.4.0 includes the following misc. changes:
 
 * Require either the value for a ``@UdfParameter`` or for the UDF JAR to be compiled with

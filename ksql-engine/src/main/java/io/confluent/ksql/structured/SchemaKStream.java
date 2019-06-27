@@ -541,9 +541,12 @@ public class SchemaKStream<K> {
       );
     }
 
+    final int keyIndexInValue = schema.valueFieldIndex(proposedKey.name())
+        .orElseThrow(IllegalStateException::new);
+
     final KStream keyedKStream = kstream
-        .filter((key, value) -> value != null && extractColumn(proposedKey, value) != null)
-        .selectKey((key, value) -> extractColumn(proposedKey, value).toString())
+        .filter((key, value) -> value != null && extractColumn(keyIndexInValue, value) != null)
+        .selectKey((key, value) -> extractColumn(keyIndexInValue, value).toString())
         .mapValues((key, row) -> {
           if (updateRowKey) {
             row.getColumns().set(SchemaUtil.ROWKEY_INDEX, key);
@@ -576,7 +579,7 @@ public class SchemaKStream<K> {
     return SchemaUtil.isFieldName(fieldName, SchemaUtil.ROWKEY_NAME);
   }
 
-  private Object extractColumn(final Field newKeyField, final GenericRow value) {
+  private Object extractColumn(final int keyIndexInValue, final GenericRow value) {
     if (value.getColumns().size() != schema.valueFields().size()) {
       throw new IllegalStateException("Field count mismatch. "
           + "Schema fields: " + schema
@@ -585,7 +588,7 @@ public class SchemaKStream<K> {
 
     return value
         .getColumns()
-        .get(schema.valueFieldIndex(newKeyField.name()).orElseThrow(IllegalStateException::new));
+        .get(keyIndexInValue);
   }
 
   private static String fieldNameFromExpression(final Expression expression) {

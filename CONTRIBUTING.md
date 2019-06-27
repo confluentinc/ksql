@@ -148,8 +148,7 @@ Breaking changes must be called out in commit messages, PR descriptions, and upg
 
 This project has [commitlint][https://github.com/conventional-changelog/commitlint] configured
 to ensure that commit messages are of the expected format.
-To enable commitlint, run either `mvn clean package -DskipTests` (to build KSQL locally) or
-`npm install` (if you already have `npm` installed).
+To enable commitlint, simply run `npm install` (requires [`npm`][https://www.npmjs.com/get-npm]).
 Once enabled, commitlint will reject commits with improperly formatted commit messages.
 
 ### GitHub Workflow

@@ -48,7 +48,19 @@ final class RestIntegrationTestUtil {
   }
 
   static List<KsqlEntity> makeKsqlRequest(final TestKsqlRestApp restApp, final String sql) {
+    return makeKsqlRequest(restApp, sql, Optional.empty());
+  }
+
+  static List<KsqlEntity> makeKsqlRequest(
+      final TestKsqlRestApp restApp,
+      final String sql,
+      Optional<Credentials> userCreds
+  ) {
     try (final KsqlRestClient restClient = restApp.buildKsqlClient()) {
+      userCreds.ifPresent(
+        creds -> restClient.setupAuthenticationCredentials(creds.username, creds.password)
+      );
+
       final RestResponse<KsqlEntityList> res = restClient.makeKsqlRequest(sql);
 
       throwOnError(res);

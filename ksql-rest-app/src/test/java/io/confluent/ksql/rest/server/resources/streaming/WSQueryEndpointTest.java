@@ -49,13 +49,14 @@ import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint.PrintTopicPublisher;
 import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint.QueryPublisher;
 import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint.ServiceContextFactory;
-import io.confluent.ksql.rest.server.security.KsqlAuthorizer;
+import io.confluent.ksql.rest.server.security.KsqlAuthorizationProvider;
 import io.confluent.ksql.rest.server.security.KsqlSecurityExtension;
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import java.io.IOException;
 import java.security.Principal;
@@ -135,7 +136,7 @@ public class WSQueryEndpointTest {
   @Mock
   private KsqlSecurityExtension securityExtension;
   @Mock
-  private KsqlAuthorizer authorizer;
+  private KsqlAuthorizationProvider authorizationProvider;
   @Mock
   private ServiceContext serviceContext;
   @Mock
@@ -160,8 +161,8 @@ public class WSQueryEndpointTest {
     when(securityExtension.getSchemaRegistryClientSupplier(principal))
         .thenReturn(schemaRegistryClientSupplier);
     when(securityExtension.getKafkaClientSupplier(principal)).thenReturn(topicClientSupplier);
-    when(securityExtension.getAuthorizer()).thenReturn(authorizer);
-    when(authorizer.hasAccess(any(), any(), any())).thenReturn(true);
+    when(securityExtension.getAuthorizationProvider())
+        .thenReturn(Optional.of(authorizationProvider));
     when(serviceContextFactory.create(ksqlConfig, topicClientSupplier, schemaRegistryClientSupplier))
         .thenReturn(serviceContext);
     when(serviceContext.getTopicClient()).thenReturn(topicClient);
@@ -462,15 +463,14 @@ public class WSQueryEndpointTest {
   public void shouldReturnErrorIfEndpointAuthorizationIsDenied() throws Exception {
     // Given:
     givenRequest(REQUEST_WITH_SEQUENCE_NUMBER);
-    when(authorizer.hasAccess(any(), eq(WSQueryEndpoint.class), eq("onOpen")))
-        .thenReturn(false);
+    doThrow(new KsqlException("access denied")).when(authorizationProvider)
+        .checkEndpointAccess(any(), eq("POST"), eq("/query"));
 
     // When:
     wsQueryEndpoint.onOpen(session, null);
 
     // Then:
-    verifyClosedWithReason(
-        "User:null is denied to access this cluster.",
+    verifyClosedWithReason("io.confluent.ksql.util.KsqlException: access denied",
         CloseCodes.CANNOT_ACCEPT);
   }
 

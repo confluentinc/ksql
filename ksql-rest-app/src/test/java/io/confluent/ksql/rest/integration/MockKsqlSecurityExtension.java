@@ -16,10 +16,7 @@ import java.util.function.Supplier;
  * Mock the Security extension and authorization provider for all tests
  */
 public class MockKsqlSecurityExtension implements KsqlSecurityExtension {
-  public static boolean initialized = false;
-  public static boolean closed = false;
-  public static boolean registered = false;
-  public static KsqlAuthorizationProvider provider;
+  private static KsqlAuthorizationProvider provider;
 
   public static void setAuthorizationProvider(final KsqlAuthorizationProvider provider) {
     MockKsqlSecurityExtension.provider = provider;
@@ -27,7 +24,6 @@ public class MockKsqlSecurityExtension implements KsqlSecurityExtension {
 
   @Override
   public void initialize(KsqlConfig ksqlConfig) {
-    MockKsqlSecurityExtension.initialized = true;
   }
 
   @Override
@@ -38,7 +34,6 @@ public class MockKsqlSecurityExtension implements KsqlSecurityExtension {
 
   @Override
   public void register(Configurable<?> configurable) {
-    MockKsqlSecurityExtension.registered = true;
   }
 
   @Override
@@ -53,6 +48,6 @@ public class MockKsqlSecurityExtension implements KsqlSecurityExtension {
 
   @Override
   public void close() {
-    MockKsqlSecurityExtension.closed = true;
+
   }
 }

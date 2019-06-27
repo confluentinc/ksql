@@ -115,13 +115,6 @@ public class AuthorizationFunctionalTest {
   }
 
   @Test
-  public void shouldLoadSecurityExtension() {
-    // Then:
-    assertThat(MockKsqlSecurityExtension.initialized, is(true));
-    assertThat(MockKsqlSecurityExtension.closed, is(false));
-  }
-
-  @Test
   public void shouldDenyAccess() {
     // Given:
     denyAccess(USER1, "POST", "/ksql");

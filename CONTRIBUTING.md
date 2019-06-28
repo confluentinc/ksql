@@ -119,7 +119,9 @@ Examples that could make sense for KSQL include "parser", "analyzer", "rest serv
 "cli", "processing log", and "metrics", to name a few.
 
 The optional body and footer are for specifying additional information, such as linking to issues fixed by the commit
-or drawing attention to breaking changes.
+or drawing attention to [breaking changes](#breaking-changes).
+
+##### Breaking changes
 
 A commit is a "breaking change" if users should expect different behavior from an existing workflow
 as a result of the change. Examples of breaking changes include deprecation of existing configs or APIs,
@@ -142,6 +144,14 @@ Breaking changes must be called out in commit messages, PR descriptions, and upg
 
  * [Upgrade notes][https://github.com/confluentinc/ksql/blob/master/docs/installation/upgrading.rst]
    should also be updated as part of the same PR.
+
+##### Commitlint
+
+This project has [commitlint][https://github.com/conventional-changelog/commitlint] configured
+to ensure that commit messages are of the expected format.
+To enable commitlint, simply run `npm install` from the root directory of the KSQL repo
+(after [installing `npm`][https://www.npmjs.com/get-npm].)
+Once enabled, commitlint will reject commits with improperly formatted commit messages.
 
 ### GitHub Workflow
 
@@ -217,7 +227,10 @@ Breaking changes must be called out in commit messages, PR descriptions, and upg
 
    - Give your pull-request a meaningful title that conforms to the Conventional Commits specification
      as described [above](#commit-messages) for commit messages.
-   - In the description, explain your changes and the problem they are solving.
+     You'll know your title is properly formatted once the `Semantic Pull Request` GitHub check
+     transitions from a status of "pending" to "passed".
+   - In the description, explain your changes and the problem they are solving. Be sure to also call out
+     any breaking changes as described [above](#breaking-changes).
 
 9. Addressing code review comments
 

@@ -655,17 +655,17 @@ public class SqlToJavaVisitor {
           final String listName = process(node.getBase(), context).getLeft();
           final String suppliedIdx = process(node.getIndex(), context).getLeft();
           final String trueIdx = node.getIndex().toString().startsWith("-")
-                  ? String.format("((%s)%s).size()%s", internalSchemaJavaType,
-                  listName, suppliedIdx)
-                  : suppliedIdx;
-          return new Pair<>(
-                  String.format("((%s) ((%s)%s).get((int)%s))",
-        SchemaUtil.getJavaType(internalSchema.valueSchema()).getSimpleName(),
-                internalSchemaJavaType,
-                listName,
-                trueIdx),
-        internalSchema.valueSchema()
-          );
+              ? String.format("((%s)%s).size()%s", internalSchemaJavaType, listName, suppliedIdx)
+              : suppliedIdx;
+
+          final String code = format("((%s) ((%s)%s).get((int)%s))",
+              SchemaUtil.getJavaType(internalSchema.valueSchema()).getSimpleName(),
+              internalSchemaJavaType,
+              listName,
+              trueIdx);
+
+          return new Pair<>(code, internalSchema.valueSchema());
+          
         case MAP:
           return new Pair<>(
               String.format("((%s) ((%s)%s).get(%s))",

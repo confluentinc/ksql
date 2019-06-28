@@ -1,27 +1,49 @@
-# KSQL Improvement proposals
+# KSQL Improvement Proposals
 
-This is a place to collect improvement proposals for KSQL from the community. Please follow the [KLIP Template](klip-template.md) when creating a new KLIP.
+This is a place to collect improvement proposals for KSQL from the community. Please follow the 
+[KLIP Template](klip-template.md) when creating a new KLIP.
 
-Here is the process for submitting a KLIP and getting it approved.
+We have a two-part process for submitting KLIPs:
 
-1. Create a new branch off of master on your fork.
-1. Copy the `klip-template.md` file and rename it with a klip number and title. For example `klip-0-add-protobuf-support.md`.
-1. Fill in the details in KLIP file you created above.
-1. Submit a PR from your branch to KSQL. Label it `design-proposal`, and share a link to the PR in the `#ksql` channel on the [confluent community slack](https://slackpass.io/confluentcommunity).
-1. Raise a second PR, from a second branch, which has only a change to this page, adding your KLIP to the list below. Set
-the status of your KLIP in the table to `[In Discussion](https://github.com/confluentinc/ksql/pull/your_pr_number_here)`, so that the status links to your PR.
-1. The design discussion will happen on the PR.
-1. The KLIP is approved if at least two people with write access to the KSQL repo +1 the PR.
+## Proposal Intent
 
-# KsqL Improvement Proposals (aka KLIPs)
+This serves as a locking mechanism to make sure that 
+- each KLIP has a unique number
+- two people are not working on the same KLIP at once
 
-Next KLIP number: 7.
+To submit a proposal intent, create a pull request with the following information:
+1. title is `docs: intent for KLIP-<number>: <title-of-klip>`
+1. update the number for the next KLIP on this readme
+1. add a line in the table below for your new KLIP with status `Proposal`
+
+You can expect this PR to be merged swiftly.
+
+## Design Discussion
+
+This is the guts of our improvement proposal process:
+
+1. Create a new branch off of master on your fork
+1. Copy the [`klip-template.md`](klip-template.md) file and rename it with your KLIP number and 
+   title (e.g. `klip-1-improve-udf-interfaces.md`)
+1. Fill in the template with details from your KLIP
+1. Submit a Pull Request from your branch to KSQL:
+    1. make sure the title is `docs: KLIP-<number>: <title>`
+    1. update the table entry below from the Proposal Intent step with a link to your KLIP
+1. Share a link to the PR in the `#ksql` channel on the [confluent community slack](https://slackpass.io/confluentcommunity).
+1. The design discussion will happen on the pull request
+1. The KLIP is approved and merged if at least two people with write access approve the change
+
+# KLIP Directory
+
+The progression of statuses should be: Proposal, Discussion, Approved, Merged
+
+Next KLIP number: **7**
 
 | KLIP                                                                               | Status         | Release |
 |------------------------------------------------------------------------------------|:--------------:| ------: |
 | [KLIP-X: Template](klip-template.md)                                               | -              | N/A     |
-| [KLIP-1: Improve UDF Interfaces](klip-1-improve-udf-interfaces.md)                 | Accepted       | N/A     |
-| [KLIP-2: Insert Into Semantics](klip-2-produce-data.md)                            | Adopted        | 5.3     |
-| [KLIP-3: Serialization of single Fields](klip-3-serialization-of-single-fields.md) | Accepted       | N/A     |
-| [KLIP-4: Custom Type Registry](klip-4-custom-types.md)                             | Accepted       | N/A     |
-| [KLIP-6: Execution Plans](klip-6-execution-plans.md)                               | Accepted       | N/A     |
+| [KLIP-1: Improve UDF Interfaces](klip-1-improve-udf-interfaces.md)                 | Approved       | N/A     |
+| [KLIP-2: Insert Into Semantics](klip-2-produce-data.md)                            | Merged         | 5.3     |
+| [KLIP-3: Serialization of single Fields](klip-3-serialization-of-single-fields.md) | Approved       | N/A     |
+| [KLIP-4: Custom Type Registry](klip-4-custom-types.md)                             | Approved       | N/A     |
+| [KLIP-6: Execution Plans](klip-6-execution-plans.md)                               | Approved       | N/A     |

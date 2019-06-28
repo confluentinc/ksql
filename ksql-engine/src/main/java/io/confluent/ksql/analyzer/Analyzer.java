@@ -246,7 +246,7 @@ class Analyzer {
      *
      * <p>Currently, the select expressions can include metadata and key fields, which are later
      * removed by {@link io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode}. When building
-     * the {@link SerdeOptions} its important the finally schema is used, i.e. the one with these
+     * the {@link SerdeOptions} its important the final schema is used, i.e. the one with these
      * meta and key fields removed.
      *
      * <p>This is weird functionality, but maintained for backwards compatibility for now.

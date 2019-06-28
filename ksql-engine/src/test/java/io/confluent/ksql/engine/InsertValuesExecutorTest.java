@@ -382,7 +382,7 @@ public class InsertValuesExecutorTest {
             new StringLiteral("str"),
             new IntegerLiteral(0),
             new LongLiteral(2),
-            new DoubleLiteral("3.0"),
+            new DoubleLiteral(3.0),
             new BooleanLiteral("TRUE"),
             new StringLiteral("str"),
             new StringLiteral("1.2"))
@@ -541,7 +541,7 @@ public class InsertValuesExecutorTest {
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
         ImmutableList.of("INT"),
         ImmutableList.of(
-            new DoubleLiteral("1.1")
+            new DoubleLiteral(1.1)
         )
     );
 

@@ -73,7 +73,7 @@ public class ExpressionFormatterTest {
   public void shouldFormatSubscriptExpression() {
     assertThat(ExpressionFormatter.formatExpression(new SubscriptExpression(
             new StringLiteral("abc"),
-            new DoubleLiteral("3.0"))),
+            new DoubleLiteral(3.0))),
         equalTo("'abc'[3.0]"));
   }
 
@@ -84,7 +84,7 @@ public class ExpressionFormatterTest {
 
   @Test
   public void shouldFormatDoubleLiteral() {
-    assertThat(ExpressionFormatter.formatExpression(new DoubleLiteral("2.0")), equalTo("2.0"));
+    assertThat(ExpressionFormatter.formatExpression(new DoubleLiteral(2.0)), equalTo("2.0"));
   }
 
   @Test

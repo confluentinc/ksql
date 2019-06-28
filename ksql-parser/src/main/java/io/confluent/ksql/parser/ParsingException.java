@@ -52,6 +52,15 @@ public class ParsingException
     this.charPositionInLine = charPositionInLine;
   }
 
+  public ParsingException(final String message, final Optional<NodeLocation> nodeLocation) {
+    this(
+        message,
+        null,
+        nodeLocation.map(NodeLocation::getLineNumber).orElse(1),
+        nodeLocation.map(NodeLocation::getColumnNumber).orElse(0)
+    );
+  }
+
   public int getLineNumber() {
     return line;
   }

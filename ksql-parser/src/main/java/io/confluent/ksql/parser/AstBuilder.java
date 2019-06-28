@@ -47,7 +47,6 @@ import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.DecimalLiteral;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.DescribeFunction;
-import io.confluent.ksql.parser.tree.DoubleLiteral;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.Explain;
@@ -1047,7 +1046,7 @@ public class AstBuilder {
 
     @Override
     public Node visitDecimalLiteral(final SqlBaseParser.DecimalLiteralContext context) {
-      return new DoubleLiteral(getLocation(context), context.getText());
+      return ParserUtil.parseDecimalLiteral(context);
     }
 
     @Override

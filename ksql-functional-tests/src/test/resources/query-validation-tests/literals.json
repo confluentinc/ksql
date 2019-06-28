@@ -1,0 +1,102 @@
+{
+  "tests": [
+    {
+      "name": "BOOLEAN literal",
+      "statements": [
+        "CREATE STREAM INPUT (ID bigint) WITH (kafka_topic='input', value_format='DELIMITED');",
+        "CREATE STREAM OUTPUT AS select id, TRUE, True, true, FALSE, False, false FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input", "value": "0"}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": "0,true,true,true,false,false,false"}
+      ]
+    },
+    {
+      "name": "INT literal min/max",
+      "statements": [
+        "CREATE STREAM INPUT (ID bigint) WITH (kafka_topic='input', value_format='DELIMITED');",
+        "CREATE STREAM OUTPUT AS select id, -00002147483647 AS MIN, 000002147483647 AS MAX FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input", "value": "0"}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": "0,-2147483647,2147483647"}
+      ]
+    },
+    {
+      "name": "BIGINT literal min/max",
+      "note": "Long.MIN_VALUE is actually -9223372036854775808, which KSQL can not handle as the LongLiteral is stored unsigned",
+      "statements": [
+        "CREATE STREAM INPUT (ID bigint) WITH (kafka_topic='input', value_format='DELIMITED');",
+        "CREATE STREAM OUTPUT AS select id, -00009223372036854775807 AS MIN, 000009223372036854775807 AS MAX FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input", "value": "0"}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": "0,-9223372036854775807,9223372036854775807"}
+      ]
+    },
+    {
+      "name": "DOUBLE literal min/max",
+      "statements": [
+        "CREATE STREAM INPUT (ID bigint) WITH (kafka_topic='input', value_format='DELIMITED');",
+        "CREATE STREAM OUTPUT AS select id, 04.90E-324 AS MIN_VALUE, -4.9E-324 AS NEG_MIN_VALUE, 2.2250738585072014E-308 AS MIN_NORMAL, -2.2250738585072014E-308 AS NEG_MIN_NORMAL, 1.7976931348623157E308 AS MAX_VALUE, -1.7976931348623157E308 AS NEG_MAX_VALUE FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input", "value": "0"}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": "0,4.9E-324,-4.9E-324,2.2250738585072014E-308,-2.2250738585072014E-308,1.7976931348623157E308,-1.7976931348623157E308"}
+      ]
+    },
+    {
+      "name": "BIGINT literal positive overflow",
+      "statements": [
+        "CREATE STREAM INPUT (ID bigint) WITH (kafka_topic='input', value_format='DELIMITED');",
+        "CREATE STREAM OUTPUT AS select id, 9223372036854775808 FROM INPUT;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.parser.exception.ParseFailedException",
+        "message": "Failed to prepare statement: line 2:37: Invalid numeric literal: 9223372036854775808"
+      }
+    },
+    {
+      "name": "BIGINT literal negative overflow",
+      "note": "Long.MIN_VALUE is actually -9223372036854775808, which KSQL can not handle as the LongLiteral is stored unsigned",
+      "statements": [
+        "CREATE STREAM INPUT (ID bigint) WITH (kafka_topic='input', value_format='DELIMITED');",
+        "CREATE STREAM OUTPUT AS select id, -9223372036854775808 FROM INPUT;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.parser.exception.ParseFailedException",
+        "message": "Failed to prepare statement: line 2:38: Invalid numeric literal: 9223372036854775808"
+      }
+    },
+    {
+      "name": "DOUBLE literal positive overflow",
+      "statements": [
+        "CREATE STREAM INPUT (ID bigint) WITH (kafka_topic='input', value_format='DELIMITED');",
+        "CREATE STREAM OUTPUT AS select id, 1.7976931348623159E308 FROM INPUT;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.parser.exception.ParseFailedException",
+        "message": "Failed to prepare statement: line 2:37: Number overflows DOUBLE: 1.7976931348623159E308"
+      }
+    },
+    {
+      "name": "DOUBLE literal negative overflow",
+      "statements": [
+        "CREATE STREAM INPUT (ID bigint) WITH (kafka_topic='input', value_format='DELIMITED');",
+        "CREATE STREAM OUTPUT AS select id, -1.7976931348623159E308 FROM INPUT;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.parser.exception.ParseFailedException",
+        "message": "Failed to prepare statement: line 2:38: Number overflows DOUBLE: 1.7976931348623159E308"
+      }
+    }
+  ]
+}

@@ -29,13 +29,13 @@ public class DoubleLiteralTest {
     new EqualsTester()
         .addEqualityGroup(
             // Note: At the moment location does not take part in equality testing
-            new DoubleLiteral("0.567"),
-            new DoubleLiteral("0.567"),
-            new DoubleLiteral(Optional.of(SOME_LOCATION), "0.567"),
-            new DoubleLiteral(Optional.of(SOME_LOCATION), "0.567")
+            new DoubleLiteral(0.567),
+            new DoubleLiteral(0.567),
+            new DoubleLiteral(Optional.of(SOME_LOCATION), 0.567),
+            new DoubleLiteral(Optional.of(SOME_LOCATION), 0.567)
         )
         .addEqualityGroup(
-            new DoubleLiteral("45.666")
+            new DoubleLiteral(45.666)
         )
         .testEquals();
   }

@@ -244,7 +244,7 @@ class Analyzer {
      * Get the list of select expressions that are <i>not</i> for meta and key fields in the source
      * schema.
      *
-     * <p>Currently, the select expressions can include metadata and key fields, which are latter
+     * <p>Currently, the select expressions can include metadata and key fields, which are later
      * removed by {@link io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode}. When building
      * the {@link SerdeOptions} its important the finally schema is used, i.e. the one with these
      * meta and key fields removed.

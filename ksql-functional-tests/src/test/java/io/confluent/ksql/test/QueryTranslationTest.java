@@ -49,7 +49,7 @@ import org.junit.runners.Parameterized;
 
 /**
  *  Runs the json functional tests defined under
- *  `ksql-functional-tests/query-validational-tests`.
+ *  `ksql-functional-tests/src/test/resources/query-validation-tests`.
  *
  *  See `ksql-functional-tests/README.md` for more info.
  */

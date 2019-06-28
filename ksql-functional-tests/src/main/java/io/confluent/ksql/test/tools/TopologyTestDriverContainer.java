@@ -26,6 +26,7 @@ public final class TopologyTestDriverContainer {
   private final TopologyTestDriver topologyTestDriver;
   private final List<Topic> sourceTopics;
   private final Topic sinkTopic;
+  private final Set<String> sourceTopicNames;
 
   private TopologyTestDriverContainer(
       final TopologyTestDriver topologyTestDriver,
@@ -34,6 +35,7 @@ public final class TopologyTestDriverContainer {
     this.topologyTestDriver = topologyTestDriver;
     this.sourceTopics = sourceTopics;
     this.sinkTopic = sinkTopic;
+    this.sourceTopicNames = sourceTopics.stream().map(Topic::getName).collect(Collectors.toSet());
   }
 
   public static TopologyTestDriverContainer of(
@@ -62,6 +64,6 @@ public final class TopologyTestDriverContainer {
   }
 
   public Set<String> getSourceTopicNames() {
-    return sourceTopics.stream().map(Topic::getName).collect(Collectors.toSet());
+    return sourceTopicNames;
   }
 }

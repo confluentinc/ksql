@@ -1,0 +1,47 @@
+{
+  "comments": [
+    "Arrays should be indexable from the end too",
+    "https://github.com/confluentinc/ksql/issues/2974"
+  ],
+  "tests": [
+
+    {
+      "name": "select the first element of an Array",
+      "statements": [
+        "CREATE STREAM test (colors ARRAY<STRING>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT colors[0] as C FROM test;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 1, "value": {"colors": ["Red", "Green"]}, "timestamp": 0},
+        {"topic": "test_topic", "key": 1, "value": {"colors": ["Black"]}, "timestamp": 0},
+        {"topic": "test_topic", "key": 1, "value": {"colors": ["Pink", "Yellow", "Pink"]}, "timestamp": 0}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1, "value": {"C": "Red"}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": 1, "value": {"C": "Black"}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": 1, "value": {"C": "Pink"}, "timestamp": 0}
+      ]
+    },
+    {
+      "name": "select the last element of an Array (-1)",
+      "statements": [
+        "CREATE STREAM test (colors ARRAY<STRING>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT colors[-1] as C FROM test;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 1, "value": {"colors": ["Red", "Green"]}, "timestamp": 0},
+        {"topic": "test_topic", "key": 1, "value": {"colors": ["Black"]}, "timestamp": 0},
+        {"topic": "test_topic", "key": 1, "value": {"colors": ["Pink", "Yellow", "Pink"]}, "timestamp": 0},
+        {"topic": "test_topic", "key": 1, "value": {"colors": ["White", "Pink"]}, "timestamp": 0},
+          {"topic": "test_topic", "key": 1, "value": {"colors": ["Pink", null]}, "timestamp": 0}
+        ],
+          "outputs": [
+            {"topic": "OUTPUT", "key": 1, "value": {"C": "Green"}, "timestamp": 0},
+            {"topic": "OUTPUT", "key": 1, "value": {"C": "Black"}, "timestamp": 0},
+            {"topic": "OUTPUT", "key": 1, "value": {"C": "Pink"}, "timestamp": 0},
+            {"topic": "OUTPUT", "key": 1, "value": {"C": "Pink"}, "timestamp": 0},
+            {"topic": "OUTPUT", "key": 1, "value": {"C": null}, "timestamp": 0}
+          ]
+        }
+  ]
+}

@@ -47,6 +47,7 @@ import io.confluent.ksql.parser.tree.LongLiteral;
 import io.confluent.ksql.parser.tree.Node;
 import io.confluent.ksql.parser.tree.NotExpression;
 import io.confluent.ksql.parser.tree.NullLiteral;
+import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.parser.tree.SearchedCaseExpression;
@@ -232,16 +233,18 @@ public class SqlToJavaVisitor {
     }
 
     protected Pair<String, Schema> visitLongLiteral(
-        final LongLiteral node, final Void context) {
-      return new Pair<>("Long.parseLong(\"" + node.getValue() + "\")",
-          Schema.OPTIONAL_INT64_SCHEMA);
+        final LongLiteral node,
+        final Void context
+    ) {
+      return new Pair<>(node.getValue() + "L", Schema.OPTIONAL_INT64_SCHEMA);
     }
 
     @Override
-    protected Pair<String, Schema> visitIntegerLiteral(final IntegerLiteral node,
-        final Void context) {
-      return new Pair<>("Integer.parseInt(\"" + node.getValue() + "\")",
-          Schema.OPTIONAL_INT32_SCHEMA);
+    protected Pair<String, Schema> visitIntegerLiteral(
+        final IntegerLiteral node,
+        final Void context
+    ) {
+      return new Pair<>(Integer.toString(node.getValue()), Schema.OPTIONAL_INT32_SCHEMA);
     }
 
     @Override
@@ -502,23 +505,39 @@ public class SqlToJavaVisitor {
               left.getRight(), right.getRight(), node.getOperator());
 
       if (DecimalUtil.isDecimal(schema)) {
+        final String leftExpr = CastVisitor.getCast(
+            left,
+            Decimal.of(DecimalUtil.toDecimal(left.right))).getLeft();
+        final String rightExpr = CastVisitor.getCast(
+            right,
+            Decimal.of(DecimalUtil.toDecimal(right.right))).getLeft();
+
         return new Pair<>(
             String.format(
                 "(%s.%s(%s, new MathContext(%d, RoundingMode.UNNECESSARY)).setScale(%d))",
-                left.getLeft(),
+                leftExpr,
                 DECIMAL_OPERATOR_NAME.get(node.getOperator()),
-                right.getLeft(),
+                rightExpr,
                 DecimalUtil.precision(schema),
                 DecimalUtil.scale(schema)),
             schema
         );
       } else {
+        final String leftExpr =
+            DecimalUtil.isDecimal(left.getRight())
+                ? CastVisitor.getCast(left, PrimitiveType.of(SqlType.DOUBLE)).getLeft()
+                : left.getLeft();
+        final String rightExpr =
+            DecimalUtil.isDecimal(right.getRight())
+                ? CastVisitor.getCast(right, PrimitiveType.of(SqlType.DOUBLE)).getLeft()
+                : right.getLeft();
+
         return new Pair<>(
             String.format(
                 "(%s %s %s)",
-                left.getLeft(),
+                leftExpr,
                 node.getOperator().getSymbol(),
-                right.getLeft()),
+                rightExpr),
             schema
         );
       }
@@ -829,6 +848,10 @@ public class SqlToJavaVisitor {
         final Schema returnType) {
       if (!(type instanceof Decimal)) {
         throw new KsqlException("Expected decimal type: " + type);
+      }
+
+      if (DecimalUtil.isDecimal(expr.right) && Decimal.of(expr.right).equals(type)) {
+        return expr;
       }
 
       return new Pair<>(

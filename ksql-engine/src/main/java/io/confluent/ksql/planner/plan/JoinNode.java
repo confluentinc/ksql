@@ -62,14 +62,8 @@ public class JoinNode extends PlanNode {
   private final String leftJoinFieldName;
   private final String rightJoinFieldName;
   private final KeyField keyField;
+  private final Optional<WithinExpression> withinExpression;
 
-  private final String leftAlias;
-  private final String rightAlias;
-  private final WithinExpression withinExpression;
-  private final DataSourceType leftType;
-  private final DataSourceType rightType;
-
-  // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   public JoinNode(
       final PlanNodeId id,
       final JoinType joinType,
@@ -77,27 +71,16 @@ public class JoinNode extends PlanNode {
       final DataSourceNode right,
       final String leftJoinFieldName,
       final String rightJoinFieldName,
-      final String leftAlias,
-      final String rightAlias,
-      final WithinExpression withinExpression,
-      final DataSourceType leftType,
-      final DataSourceType rightType
+      final Optional<WithinExpression> withinExpression
   ) {
-    // CHECKSTYLE_RULES.ON: ParameterNumberCheck
-    super(id, (leftType == DataSourceType.KTABLE && rightType == DataSourceType.KTABLE)
-        ? DataSourceType.KTABLE
-        : DataSourceType.KSTREAM);
+    super(id, calculateSinkType(left, right));
     this.joinType = joinType;
     this.left = Objects.requireNonNull(left, "left");
     this.right = Objects.requireNonNull(right, "right");
     this.schema = buildSchema(left, right);
     this.leftJoinFieldName = Objects.requireNonNull(leftJoinFieldName, "leftJoinFieldName");
     this.rightJoinFieldName = Objects.requireNonNull(rightJoinFieldName, "rightJoinFieldName");
-    this.leftAlias = Objects.requireNonNull(leftAlias, "leftAlias");
-    this.rightAlias = Objects.requireNonNull(rightAlias, rightAlias);
-    this.withinExpression = withinExpression;
-    this.leftType = Objects.requireNonNull(leftType, "leftType");
-    this.rightType = Objects.requireNonNull(rightType, "rightType");
+    this.withinExpression = Objects.requireNonNull(withinExpression, "withinExpression");
 
     final Field leftKeyField = validateFieldInSchema(leftJoinFieldName, left.getSchema());
     validateFieldInSchema(rightJoinFieldName, right.getSchema());
@@ -150,30 +133,6 @@ public class JoinNode extends PlanNode {
     return right;
   }
 
-  public String getLeftJoinFieldName() {
-    return leftJoinFieldName;
-  }
-
-  public String getRightJoinFieldName() {
-    return rightJoinFieldName;
-  }
-
-  public String getLeftAlias() {
-    return leftAlias;
-  }
-
-  public String getRightAlias() {
-    return rightAlias;
-  }
-
-  JoinType getJoinType() {
-    return joinType;
-  }
-
-  public boolean isLeftJoin() {
-    return joinType == JoinType.LEFT;
-  }
-
   @Override
   public SchemaKStream<?> buildStream(final KsqlQueryBuilder builder) {
 
@@ -184,7 +143,7 @@ public class JoinNode extends PlanNode {
         this,
         builder.buildNodeContext(getId()));
 
-    return joinerFactory.getJoiner(leftType, rightType).join();
+    return joinerFactory.getJoiner(left.getDataSourceType(), right.getDataSourceType()).join();
   }
 
   @Override
@@ -345,10 +304,13 @@ public class JoinNode extends PlanNode {
           .getKsqlTopic()
           .getValueSerdeFactory();
 
+      final LogicalSchema logicalSchema = sourceNode.getSchema()
+          .withoutAlias();
+
       return builder.buildGenericRowSerde(
           valueSerdeFactory,
           PhysicalSchema.from(
-              dataSource.getSchema(),
+              logicalSchema,
               SerdeOption.none()
           ),
           contextStacker.getQueryContext()
@@ -398,7 +360,7 @@ public class JoinNode extends PlanNode {
 
     @Override
     public SchemaKStream<K> join() {
-      if (joinNode.withinExpression == null) {
+      if (!joinNode.withinExpression.isPresent()) {
         throw new KsqlException("Stream-Stream joins must have a WITHIN clause specified. None was "
             + "provided. To learn about how to specify a WITHIN clause with a "
             + "stream-stream join, please visit: https://docs.confluent"
@@ -407,18 +369,18 @@ public class JoinNode extends PlanNode {
       }
 
       final SchemaKStream<K> leftStream = buildStream(
-          joinNode.getLeft(), joinNode.getLeftJoinFieldName());
+          joinNode.getLeft(), joinNode.leftJoinFieldName);
 
       final SchemaKStream<K> rightStream = buildStream(
-          joinNode.getRight(), joinNode.getRightJoinFieldName());
+          joinNode.getRight(), joinNode.rightJoinFieldName);
 
       switch (joinNode.joinType) {
         case LEFT:
           return leftStream.leftJoin(
               rightStream,
               joinNode.schema,
-              getJoinedKeyField(joinNode.leftAlias, leftStream.getKeyField()),
-              joinNode.withinExpression.joinWindow(),
+              getJoinedKeyField(joinNode.left.getAlias(), leftStream.getKeyField()),
+              joinNode.withinExpression.get().joinWindow(),
               getSerDeForSource(joinNode.left, contextStacker.push(LEFT_SERDE_CONTEXT_NAME)),
               getSerDeForSource(joinNode.right, contextStacker.push(RIGHT_SERDE_CONTEXT_NAME)),
               contextStacker);
@@ -426,8 +388,8 @@ public class JoinNode extends PlanNode {
           return leftStream.outerJoin(
               rightStream,
               joinNode.schema,
-              getOuterJoinedKeyField(joinNode.leftAlias, leftStream.getKeyField()),
-              joinNode.withinExpression.joinWindow(),
+              getOuterJoinedKeyField(joinNode.left.getAlias(), leftStream.getKeyField()),
+              joinNode.withinExpression.get().joinWindow(),
               getSerDeForSource(joinNode.left, contextStacker.push(LEFT_SERDE_CONTEXT_NAME)),
               getSerDeForSource(joinNode.right, contextStacker.push(RIGHT_SERDE_CONTEXT_NAME)),
               contextStacker);
@@ -435,8 +397,8 @@ public class JoinNode extends PlanNode {
           return leftStream.join(
               rightStream,
               joinNode.schema,
-              getJoinedKeyField(joinNode.leftAlias, leftStream.getKeyField()),
-              joinNode.withinExpression.joinWindow(),
+              getJoinedKeyField(joinNode.left.getAlias(), leftStream.getKeyField()),
+              joinNode.withinExpression.get().joinWindow(),
               getSerDeForSource(joinNode.left, contextStacker.push(LEFT_SERDE_CONTEXT_NAME)),
               getSerDeForSource(joinNode.right, contextStacker.push(RIGHT_SERDE_CONTEXT_NAME)),
               contextStacker);
@@ -458,24 +420,24 @@ public class JoinNode extends PlanNode {
 
     @Override
     public SchemaKStream<K> join() {
-      if (joinNode.withinExpression != null) {
+      if (joinNode.withinExpression.isPresent()) {
         throw new KsqlException("A window definition was provided for a Stream-Table join. These "
             + "joins are not windowed. Please drop the window definition (ie."
             + " the WITHIN clause) and try to execute your join again.");
       }
 
       final SchemaKTable<K> rightTable = buildTable(
-          joinNode.getRight(), joinNode.getRightJoinFieldName(), joinNode.getRightAlias());
+          joinNode.getRight(), joinNode.rightJoinFieldName, joinNode.right.getAlias());
 
       final SchemaKStream<K> leftStream = buildStream(
-          joinNode.getLeft(), joinNode.getLeftJoinFieldName());
+          joinNode.getLeft(), joinNode.leftJoinFieldName);
 
       switch (joinNode.joinType) {
         case LEFT:
           return leftStream.leftJoin(
               rightTable,
               joinNode.schema,
-              getJoinedKeyField(joinNode.leftAlias, leftStream.getKeyField()),
+              getJoinedKeyField(joinNode.left.getAlias(), leftStream.getKeyField()),
               getSerDeForSource(joinNode.left, contextStacker.push(LEFT_SERDE_CONTEXT_NAME)),
               contextStacker);
 
@@ -483,7 +445,7 @@ public class JoinNode extends PlanNode {
           return leftStream.join(
               rightTable,
               joinNode.schema,
-              getJoinedKeyField(joinNode.leftAlias, leftStream.getKeyField()),
+              getJoinedKeyField(joinNode.left.getAlias(), leftStream.getKeyField()),
               getSerDeForSource(joinNode.left, contextStacker.push(LEFT_SERDE_CONTEXT_NAME)),
               contextStacker);
         case OUTER:
@@ -507,7 +469,7 @@ public class JoinNode extends PlanNode {
 
     @Override
     public SchemaKTable<K> join() {
-      if (joinNode.withinExpression != null) {
+      if (joinNode.withinExpression.isPresent()) {
         throw new KsqlException("A window definition was provided for a Table-Table join. These "
             + "joins are not windowed. Please drop the window definition "
             + "(i.e. the WITHIN clause) and try to execute your Table-Table "
@@ -515,32 +477,43 @@ public class JoinNode extends PlanNode {
       }
 
       final SchemaKTable<K> leftTable = buildTable(
-          joinNode.getLeft(), joinNode.getLeftJoinFieldName(), joinNode.getLeftAlias());
+          joinNode.getLeft(), joinNode.leftJoinFieldName, joinNode.left.getAlias());
       final SchemaKTable<K> rightTable = buildTable(
-          joinNode.getRight(), joinNode.getRightJoinFieldName(), joinNode.getRightAlias());
+          joinNode.getRight(), joinNode.rightJoinFieldName, joinNode.right.getAlias());
 
       switch (joinNode.joinType) {
         case LEFT:
           return leftTable.leftJoin(
               rightTable,
               joinNode.schema,
-              getJoinedKeyField(joinNode.leftAlias, leftTable.getKeyField()),
+              getJoinedKeyField(joinNode.left.getAlias(), leftTable.getKeyField()),
               contextStacker);
         case INNER:
           return leftTable.join(
               rightTable,
               joinNode.schema,
-              getJoinedKeyField(joinNode.leftAlias, leftTable.getKeyField()),
+              getJoinedKeyField(joinNode.left.getAlias(), leftTable.getKeyField()),
               contextStacker);
         case OUTER:
           return leftTable.outerJoin(
               rightTable,
               joinNode.schema,
-              getOuterJoinedKeyField(joinNode.leftAlias, leftTable.getKeyField()),
+              getOuterJoinedKeyField(joinNode.left.getAlias(), leftTable.getKeyField()),
               contextStacker);
         default:
           throw new KsqlException("Invalid join type encountered: " + joinNode.joinType);
       }
     }
+  }
+
+  private static DataSourceType calculateSinkType(
+      final DataSourceNode left,
+      final DataSourceNode right
+  ) {
+    final DataSourceType leftType = left.getDataSourceType();
+    final DataSourceType rightType = right.getDataSourceType();
+    return leftType == DataSourceType.KTABLE && rightType == DataSourceType.KTABLE
+        ? DataSourceType.KTABLE
+        : DataSourceType.KSTREAM;
   }
 }

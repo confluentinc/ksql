@@ -1516,6 +1516,15 @@ Scalar functions
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | CONCAT                 |  ``CONCAT(col1, '_hello')``                                               | Concatenate two strings.                          |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| UNIX_DATE              |  ``UNIX_DATE()``                                                          | Gets an integer representing days since epoch.    |
+|                        |                                                                           | The returned timestamp may differ depending on    |
+|                        |                                                                           | the local time of different KSQL Server instances.|
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| UNIX_TIMESTAMP         |  ``UNIX_TIMESTAMP()``                                                     | Gets the Unix timestamp in milliseconds,          |
+|                        |                                                                           | represented as a BIGINT.                          |
+|                        |                                                                           | The returned timestamp may differ depending on    |
+|                        |                                                                           | the local time of different KSQL Server instances.|
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | DATETOSTRING           |  ``DATETOSTRING(START_DATE, 'yyyy-MM-dd')``                               | Converts an integer representation of a date into |
 |                        |                                                                           | a string representing the date in                 |
 |                        |                                                                           | the given format. Single quotes in the            |

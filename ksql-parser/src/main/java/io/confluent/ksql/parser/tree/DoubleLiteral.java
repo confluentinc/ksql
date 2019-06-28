@@ -15,8 +15,6 @@
 
 package io.confluent.ksql.parser.tree;
 
-import static java.util.Objects.requireNonNull;
-
 import com.google.errorprone.annotations.Immutable;
 import java.util.Optional;
 
@@ -25,13 +23,13 @@ public class DoubleLiteral extends Literal {
 
   private final double value;
 
-  public DoubleLiteral(final String value) {
+  public DoubleLiteral(final double value) {
     this(Optional.empty(), value);
   }
 
-  public DoubleLiteral(final Optional<NodeLocation> location, final String value) {
+  public DoubleLiteral(final Optional<NodeLocation> location, final double value) {
     super(location);
-    this.value = Double.parseDouble(requireNonNull(value, "value"));
+    this.value = value;
   }
 
   @Override
@@ -55,11 +53,7 @@ public class DoubleLiteral extends Literal {
 
     final DoubleLiteral that = (DoubleLiteral) o;
 
-    if (Double.compare(that.value, value) != 0) {
-      return false;
-    }
-
-    return true;
+    return Double.compare(that.value, value) == 0;
   }
 
   @SuppressWarnings("UnaryPlus")

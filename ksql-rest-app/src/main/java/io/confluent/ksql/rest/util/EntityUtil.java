@@ -20,7 +20,9 @@ import io.confluent.ksql.rest.entity.SchemaInfo;
 import io.confluent.ksql.schema.connect.SchemaWalker;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SqlType;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 
@@ -30,9 +32,27 @@ public final class EntityUtil {
   }
 
   public static List<FieldInfo> buildSourceSchemaEntity(final LogicalSchema schema) {
-    return SchemaWalker.visit(schema.valueSchema(), new Converter())
-        .getFields()
-        .orElseThrow(() -> new RuntimeException("Root schema should contain fields"));
+
+    final List<FieldInfo> allFields = new ArrayList<>();
+    allFields.addAll(getFields(schema.metaFields(), "implicit"));
+    allFields.addAll(getFields(schema.keyFields(), "key"));
+    allFields.addAll(getFields(schema.valueFields(), "value"));
+
+    return allFields;
+  }
+
+  private static List<FieldInfo> getFields(final List<Field> fields, final String type) {
+    if (fields.isEmpty()) {
+      throw new IllegalArgumentException("Root schema should contain fields." + " type: " + type);
+    }
+
+    return fields.stream()
+        .map(field -> new FieldInfo(field.name(), getSchema(field.schema())))
+        .collect(Collectors.toList());
+  }
+
+  private static SchemaInfo getSchema(final Schema schema) {
+    return SchemaWalker.visit(schema, new Converter());
   }
 
   private static final class Converter implements SchemaWalker.Visitor<SchemaInfo, FieldInfo> {

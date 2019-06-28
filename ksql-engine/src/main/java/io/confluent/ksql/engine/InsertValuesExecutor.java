@@ -55,7 +55,6 @@ import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.Serde;
-import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 
@@ -188,7 +187,7 @@ public class InsertValuesExecutor {
       final Map<String, Object> values
   ) {
     return new GenericRow(
-        schema.withoutImplicitAndKeyFieldsInValue()
+        schema
             .valueFields()
             .stream()
             .map(Field::name)
@@ -202,7 +201,7 @@ public class InsertValuesExecutor {
       final DataSource<?> dataSource,
       final List<Expression> values
   ) {
-    final LogicalSchema schema = dataSource.getSchema().withoutImplicitAndKeyFieldsInValue();
+    final LogicalSchema schema = dataSource.getSchema();
 
     final List<String> fieldNames = Streams.concat(
         schema.keyFields().stream(),
@@ -225,11 +224,10 @@ public class InsertValuesExecutor {
       final List<String> columns,
       final LogicalSchema schema
   ) {
-    final ConnectSchema valueSchema = schema.valueSchema();
     final Map<String, Object> values = new HashMap<>();
     for (int i = 0; i < columns.size(); i++) {
       final String column = columns.get(i);
-      final Schema columnSchema = valueSchema.field(column).schema();
+      final Schema columnSchema = columnSchema(column, schema);
       final Expression valueExp = insertValues.getValues().get(i);
 
       final Object value = new ExpressionResolver(columnSchema, column)
@@ -266,11 +264,17 @@ public class InsertValuesExecutor {
       final LogicalSchema schema,
       final Map<String, Object> values
   ) {
-    for (final Field field : schema.valueFields()) {
+    for (final Field field : schema.fields()) {
       if (!field.schema().isOptional() && values.getOrDefault(field.name(), null) == null) {
         throw new KsqlException("Got null value for nonnull field: " + field);
       }
     }
+  }
+
+  private static Schema columnSchema(final String column, final LogicalSchema schema) {
+    return schema.findField(column)
+        .map(Field::schema)
+        .orElseThrow(IllegalStateException::new);
   }
 
   @SuppressWarnings("unchecked") // we know that key is String
@@ -293,7 +297,7 @@ public class InsertValuesExecutor {
     final Serde<GenericRow> rowSerde = GenericRowSerDe.from(
         dataSource.getValueSerdeFactory(),
         PhysicalSchema.from(
-            dataSource.getSchema().withoutImplicitAndKeyFieldsInValue(),
+            dataSource.getSchema(),
             dataSource.getSerdeOptions()
         ),
         config,

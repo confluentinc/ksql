@@ -17,9 +17,12 @@ package io.confluent.ksql.analyzer;
 
 import static io.confluent.ksql.testutils.AnalysisTestUtil.analyzeQuery;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -28,6 +31,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import io.confluent.ksql.analyzer.Analysis.Into;
+import io.confluent.ksql.analyzer.Analysis.JoinInfo;
 import io.confluent.ksql.analyzer.Analyzer.SerdeOptionsSupplier;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.InternalFunctionRegistry;
@@ -45,7 +49,7 @@ import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Sink;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.StringLiteral;
-import io.confluent.ksql.planner.plan.JoinNode;
+import io.confluent.ksql.planner.plan.JoinNode.JoinType;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.SerdeFactories;
@@ -95,7 +99,6 @@ public class AnalyzerTest {
   private Query query;
   private Analyzer analyzer;
 
-  @SuppressWarnings("unchecked")
   @Before
   public void init() {
     jsonMetaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
@@ -122,7 +125,7 @@ public class AnalyzerTest {
     Assert.assertNotNull("SELECT is null", analysis.getSelectExpressions());
     Assert.assertNotNull("SELECT alias is null", analysis.getSelectExpressionAlias());
     Assert.assertTrue("FROM was not analyzed correctly.",
-        analysis.getFromDataSource(0).getDataSource().getName()
+        analysis.getFromDataSources().get(0).getDataSource().getName()
                           .equalsIgnoreCase("test1"));
     Assert.assertEquals(analysis.getSelectExpressions().size(),
         analysis.getSelectExpressionAlias().size());
@@ -154,67 +157,46 @@ public class AnalyzerTest {
 
   @Test
   public void testSimpleLeftJoinAnalysis() {
-    final String
-        simpleQuery =
-        "SELECT t1.col1, t2.col1, t2.col4, col5, t2.col2 FROM test1 t1 LEFT JOIN test2 t2 ON "
-        + "t1.col1 = t2.col1;";
-    final Analysis analysis = analyzeQuery(simpleQuery, jsonMetaStore);
-    Assert.assertNotNull("INTO is null", analysis.getInto());
-    final JoinNode join = analysis.getJoin();
-    Assert.assertNotNull("JOIN is null", join);
+    // When:
+    final Analysis analysis = analyzeQuery(
+        "SELECT t1.col1, t2.col1, t2.col4, col5, t2.col2 "
+            + "FROM test1 t1 LEFT JOIN test2 t2 "
+            + "ON t1.col1 = t2.col1;", jsonMetaStore);
 
-    Assert.assertNotNull("SELECT is null", analysis.getSelectExpressions());
-    Assert.assertNotNull("SELECT aliacs is null", analysis.getSelectExpressionAlias());
-    Assert.assertTrue("JOIN left hand side was not analyzed correctly.",
-                      analysis.getJoin().getLeftAlias().equalsIgnoreCase("t1"));
-    Assert.assertTrue("JOIN right hand side was not analyzed correctly.",
-                      analysis.getJoin().getRightAlias().equalsIgnoreCase("t2"));
+    // Then:
+    assertThat(analysis.getFromDataSources(), hasSize(2));
+    assertThat(analysis.getFromDataSources().get(0).getAlias(), is("T1"));
+    assertThat(analysis.getFromDataSources().get(1).getAlias(), is("T2"));
 
-    Assert.assertEquals(analysis.getSelectExpressions().size(),
-        analysis.getSelectExpressionAlias().size());
+    assertThat(analysis.getSelectExpressions().size(),
+        is(analysis.getSelectExpressionAlias().size()));
 
-    assertThat(analysis.getJoin().getLeftJoinFieldName(), is("T1.COL1"));
-    assertThat(analysis.getJoin().getRightJoinFieldName(), is("T2.COL1"));
+    assertThat(analysis.getJoin(), is(not(Optional.empty())));
+    assertThat(analysis.getJoin().get().getLeftJoinField(), is("T1.COL1"));
+    assertThat(analysis.getJoin().get().getRightJoinField(), is("T2.COL1"));
 
-    final String
-        select1 =
-        SqlFormatter.formatSql(analysis.getSelectExpressions().get(0))
-            .replace("\n", " ");
-    Assert.assertTrue(select1.equalsIgnoreCase("T1.COL1"));
-    final String
-        select2 =
-        SqlFormatter.formatSql(analysis.getSelectExpressions().get(1))
-            .replace("\n", " ");
-    Assert.assertTrue(select2.equalsIgnoreCase("T2.COL1"));
-    final String
-        select3 =
-        SqlFormatter.formatSql(analysis.getSelectExpressions().get(2))
-            .replace("\n", " ");
-    final String
-        select4 =
-        SqlFormatter.formatSql(analysis.getSelectExpressions().get(3))
-            .replace("\n", " ");
-    Assert.assertTrue(select3.equalsIgnoreCase("T2.COL4"));
-    Assert.assertTrue(select4.equalsIgnoreCase("T1.COL5"));
+    final List<String> selects = analysis.getSelectExpressions().stream()
+        .map(SqlFormatter::formatSql)
+        .collect(Collectors.toList());
 
-    Assert.assertTrue(analysis.getSelectExpressionAlias().get(0).equalsIgnoreCase("T1_COL1"));
-    Assert.assertTrue(analysis.getSelectExpressionAlias().get(1).equalsIgnoreCase("T2_COL1"));
-    Assert.assertTrue(analysis.getSelectExpressionAlias().get(2).equalsIgnoreCase("T2_COL4"));
-    Assert.assertTrue(analysis.getSelectExpressionAlias().get(3).equalsIgnoreCase("COL5"));
-    Assert.assertTrue(analysis.getSelectExpressionAlias().get(4).equalsIgnoreCase("T2_COL2"));
+    assertThat(selects, contains("T1.COL1", "T2.COL1", "T2.COL4", "T1.COL5", "T2.COL2"));
+    assertThat(analysis.getSelectExpressionAlias(),
+        contains("T1_COL1", "T2_COL1", "T2_COL4", "COL5", "T2_COL2"));
   }
 
   @Test
   public void shouldHandleJoinOnRowKey() {
     // When:
-    final JoinNode join = analyzeQuery(
+    final Optional<JoinInfo> join = analyzeQuery(
         "SELECT * FROM test1 t1 LEFT JOIN test2 t2 ON t1.ROWKEY = t2.ROWKEY;",
         jsonMetaStore)
         .getJoin();
 
     // Then:
-    assertThat(join.getLeftJoinFieldName(), is("T1.ROWKEY"));
-    assertThat(join.getRightJoinFieldName(), is("T2.ROWKEY"));
+    assertThat(join, is(not(Optional.empty())));
+    assertThat(join.get().getType(), is(JoinType.LEFT));
+    assertThat(join.get().getLeftJoinField(), is("T1.ROWKEY"));
+    assertThat(join.get().getRightJoinField(), is("T2.ROWKEY"));
   }
 
   @Test
@@ -226,7 +208,7 @@ public class AnalyzerTest {
     Assert.assertNotNull("SELECT is null", analysis.getSelectExpressions());
     Assert.assertNotNull("SELECT aliacs is null", analysis.getSelectExpressionAlias());
     Assert.assertTrue("FROM was not analyzed correctly.",
-        analysis.getFromDataSource(0).getDataSource().getName()
+        analysis.getFromDataSources().get(0).getDataSource().getName()
                           .equalsIgnoreCase("test1"));
 
     final String
@@ -244,7 +226,6 @@ public class AnalyzerTest {
         SqlFormatter.formatSql(analysis.getSelectExpressions().get(2))
             .replace("\n", " ");
     Assert.assertTrue(select3.equalsIgnoreCase("(TEST1.COL3 > TEST1.COL1)"));
-
   }
 
   @Test
@@ -256,7 +237,7 @@ public class AnalyzerTest {
     Assert.assertNotNull("SELECT is null", analysis.getSelectExpressions());
     Assert.assertNotNull("SELECT aliacs is null", analysis.getSelectExpressionAlias());
     Assert.assertTrue("FROM was not analyzed correctly.",
-        analysis.getFromDataSource(0).getDataSource().getName()
+        analysis.getFromDataSources().get(0).getDataSource().getName()
                     .equalsIgnoreCase("test1"));
 
     final String
@@ -371,7 +352,7 @@ public class AnalyzerTest {
     final KsqlStream<?> ksqlStream = new KsqlStream<>(
             "create stream s0 with(KAFKA_TOPIC='s0', VALUE_AVRO_SCHEMA_FULL_NAME='org.ac.s1', VALUE_FORMAT='avro');",
             "S0",
-            LogicalSchema.of(schema).withImplicitAndKeyFieldsInValue(),
+            LogicalSchema.of(schema),
         SerdeOption.none(),
             KeyField.of("FIELD1", schema.field("FIELD1")),
             new MetadataTimestampExtractionPolicy(),
@@ -466,6 +447,25 @@ public class AnalyzerTest {
         DEFAULT_SERDE_OPTIONS);
 
     assertThat(result.getSerdeOptions(), is(serdeOptions));
+  }
+
+  @Test
+  public void shouldExcludeRowTimeAndRowKeyWhenGettingSerdeOptions() {
+    // Given:
+    final Set<SerdeOption> serdeOptions = ImmutableSet.of(SerdeOption.UNWRAP_SINGLE_VALUES);
+    when(serdeOptiponsSupplier.build(any(), any(), any(), any())).thenReturn(serdeOptions);
+
+    query = parseSingle("Select ROWTIME, ROWKEY, ROWTIME AS TIME, ROWKEY AS KEY, COL0, COL1 from TEST1;");
+
+    // When:
+    analyzer.analyze("sql", query, Optional.of(sink));
+
+    // Then:
+    verify(serdeOptiponsSupplier).build(
+        eq(ImmutableList.of("TIME", "KEY", "COL0", "COL1")),
+        any(),
+        any(),
+        any());
   }
 
   @SuppressWarnings("unchecked")

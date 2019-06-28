@@ -33,6 +33,7 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
 import org.apache.avro.LogicalTypes;
@@ -45,10 +46,6 @@ import org.apache.kafka.connect.data.Struct;
 public final class SchemaUtil {
 
   private static final String DEFAULT_NAMESPACE = "ksql";
-
-  public static final String ARRAY = "ARRAY";
-  public static final String MAP = "MAP";
-  public static final String STRUCT = "STRUCT";
 
   public static final String ROWKEY_NAME = "ROWKEY";
   public static final String ROWTIME_NAME = "ROWTIME";
@@ -277,6 +274,15 @@ public final class SchemaUtil {
     return fieldName.substring(idx + 1);
   }
 
+  public static Optional<String> getFieldNameAlias(final String fieldName) {
+    final int idx = fieldName.indexOf(FIELD_NAME_DELIMITER);
+    if (idx < 0) {
+      return Optional.empty();
+    }
+
+    return Optional.of(fieldName.substring(0, idx));
+  }
+
   public static Schema resolveBinaryOperatorResultType(
       final Schema left,
       final Schema right,
@@ -286,8 +292,12 @@ public final class SchemaUtil {
       return Schema.OPTIONAL_STRING_SCHEMA;
     }
 
-    if (DecimalUtil.isDecimal(left) && DecimalUtil.isDecimal(right)) {
-      return resolveDecimalOperatorResultType(left, right, operator);
+    if (DecimalUtil.isDecimal(left) || DecimalUtil.isDecimal(right)) {
+      if (left.type() != Schema.Type.FLOAT64 && right.type() != Schema.Type.FLOAT64) {
+        return resolveDecimalOperatorResultType(
+            DecimalUtil.toDecimal(left), DecimalUtil.toDecimal(right), operator);
+      }
+      return Schema.OPTIONAL_FLOAT64_SCHEMA;
     }
 
     if (!TYPE_TO_SCHEMA.containsKey(left.type()) || !TYPE_TO_SCHEMA.containsKey(right.type())) {

@@ -22,7 +22,6 @@ import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.util.DecimalUtil;
 import java.math.BigDecimal;
 import java.util.Collections;
-import org.apache.kafka.connect.data.Schema;
 
 public class DecimalSumKudafTest extends BaseSumKudafTest<BigDecimal, DecimalSumKudaf> {
 

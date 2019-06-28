@@ -128,10 +128,15 @@ public class WebSocketSubscriberTest {
 
     assertEquals(
         "[" +
+            "{\"name\":\"ROWTIME\"," +
+            "\"schema\":{\"type\":\"BIGINT\",\"fields\":null,\"memberSchema\":null}}," +
+            "{\"name\":\"ROWKEY\"," +
+            "\"schema\":{\"type\":\"STRING\",\"fields\":null,\"memberSchema\":null}}," +
             "{\"name\":\"currency\"," +
             "\"schema\":{\"type\":\"STRING\",\"fields\":null,\"memberSchema\":null}}," +
             "{\"name\":\"amount\"," +
-            "\"schema\":{\"type\":\"DOUBLE\",\"fields\":null,\"memberSchema\":null}}]"
+            "\"schema\":{\"type\":\"DOUBLE\",\"fields\":null,\"memberSchema\":null}}"
+            + "]"
         , schema.getValue());
     assertEquals("Unable to send schema", reason.getValue().getReasonPhrase());
     assertEquals(CloseCodes.PROTOCOL_ERROR, reason.getValue().getCloseCode());

@@ -30,7 +30,6 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 
-import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.model.KeyField;
@@ -88,7 +87,6 @@ import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -128,8 +126,6 @@ public class KsqlParserTest {
 
     final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
     final Schema schemaBuilderOrders = schemaBuilder
-        .field("ROWTIME", Schema.OPTIONAL_INT64_SCHEMA)
-        .field("ROWKEY", Schema.OPTIONAL_STRING_SCHEMA)
         .field("ORDERTIME", Schema.OPTIONAL_INT64_SCHEMA)
         .field("ORDERID", Schema.OPTIONAL_INT64_SCHEMA)
         .field("ITEMID", Schema.OPTIONAL_STRING_SCHEMA)
@@ -169,7 +165,7 @@ public class KsqlParserTest {
     final KsqlTable<String> ksqlTableOrders = new KsqlTable<>(
         "sqlexpression",
         "ITEMID",
-        LogicalSchema.of(itemInfoSchema).withImplicitAndKeyFieldsInValue(),
+        LogicalSchema.of(itemInfoSchema),
         SerdeOption.none(),
         KeyField.of("ITEMID", itemInfoSchema.field("ITEMID")),
         new MetadataTimestampExtractionPolicy(),

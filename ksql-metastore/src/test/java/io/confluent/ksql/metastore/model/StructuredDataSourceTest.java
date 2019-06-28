@@ -20,6 +20,7 @@ import static org.mockito.Mockito.verify;
 
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Schema;
@@ -34,8 +35,6 @@ public class StructuredDataSourceTest {
 
   private static final LogicalSchema SOME_SCHEMA = LogicalSchema.of(
       SchemaBuilder.struct()
-          .field("ROWTIME", Schema.OPTIONAL_INT64_SCHEMA)
-          .field("ROWKEY", Schema.OPTIONAL_STRING_SCHEMA)
           .field("f0", Schema.OPTIONAL_INT64_SCHEMA)
           .build()
   );
@@ -53,6 +52,40 @@ public class StructuredDataSourceTest {
 
     // Then (no exception):
     verify(keyField).validateKeyExistsIn(SOME_SCHEMA);
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void shouldThrowIfSchemaContainsRowTime() {
+    // Given:
+    final LogicalSchema schema = LogicalSchema.of(
+        SchemaBuilder.struct()
+            .field(SchemaUtil.ROWTIME_NAME, Schema.OPTIONAL_INT64_SCHEMA)
+            .field("f0", Schema.OPTIONAL_INT64_SCHEMA)
+            .build()
+    );
+
+    // When:
+    new TestStructuredDataSource(
+        schema,
+        keyField
+    );
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void shouldThrowIfSchemaContainsRowKey() {
+    // Given:
+    final LogicalSchema schema = LogicalSchema.of(
+        SchemaBuilder.struct()
+            .field(SchemaUtil.ROWKEY_NAME, Schema.OPTIONAL_STRING_SCHEMA)
+            .field("f0", Schema.OPTIONAL_INT64_SCHEMA)
+            .build()
+    );
+
+    // When:
+    new TestStructuredDataSource(
+        schema,
+        keyField
+    );
   }
 
   /**

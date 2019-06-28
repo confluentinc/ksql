@@ -1,0 +1,6 @@
+{
+  "outputs": [
+    {"topic": "s3", "key": 0, "value": {"ID": 0, "NAME": "name0", "VALUE": 0, "SOURCE": "s1"}, "timestamp": 0},
+    {"topic": "s3", "key": 4, "value": {"ID": 4, "NAME": "name4", "VALUE": 4, "SOURCE": "s2"}, "timestamp": 4}
+  ]
+}

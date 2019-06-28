@@ -21,7 +21,6 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.startsWith;
 import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableMap;
@@ -32,22 +31,24 @@ import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.metastore.model.KsqlTopic;
-import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.ComparisonExpression;
 import io.confluent.ksql.parser.tree.CreateStream;
+import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.JoinCriteria;
 import io.confluent.ksql.parser.tree.JoinOn;
+import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TableElement;
+import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SqlType;
@@ -55,9 +56,8 @@ import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import org.apache.kafka.common.serialization.Serdes;
@@ -115,6 +115,16 @@ public class SqlFormatterTest {
       .field("ADDRESS", addressSchema)
       .build();
 
+  private static final Map<String, Literal> SOME_WITH_PROPS = ImmutableMap.of(
+      DdlConfig.KEY_NAME_PROPERTY, new StringLiteral("ORDERID"),
+      DdlConfig.VALUE_FORMAT_PROPERTY, new StringLiteral("JSON"),
+      DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral("topic_test")
+  );
+
+  private static final TableElements ELEMENTS_WITHOUT_KEY = TableElements.of(
+      new TableElement("Foo", PrimitiveType.of(SqlType.STRING)),
+      new TableElement("Bar", PrimitiveType.of(SqlType.STRING))
+  );
 
   @Before
   public void setUp() {
@@ -165,43 +175,61 @@ public class SqlFormatterTest {
   }
 
   @Test
-  public void testFormatSql() {
+  public void shouldFormatCreateStreamStatementWithImplicitKey() {
+    // Given:
+    final CreateStream createStream = new CreateStream(
+        QualifiedName.of("TEST"),
+        ELEMENTS_WITHOUT_KEY,
+        false,
+        SOME_WITH_PROPS);
 
-    final ArrayList<TableElement> tableElements = new ArrayList<>();
-    tableElements.add(new TableElement("GROUP", PrimitiveType.of(SqlType.STRING)));
-    tableElements.add(new TableElement("NOLIT", PrimitiveType.of(SqlType.STRING)));
-    tableElements.add(new TableElement("Having", PrimitiveType.of(SqlType.STRING)));
+    // When:
+    final String sql = SqlFormatter.formatSql(createStream);
+
+    // Then:
+    assertThat(sql, is("CREATE STREAM TEST (Foo STRING, Bar STRING) "
+        + "WITH (VALUE_FORMAT='JSON', KAFKA_TOPIC='topic_test', KEY='ORDERID');"));
+  }
+
+  @Test
+  public void shouldFormatCreateTableStatementWithImplicitKey() {
+    // Given:
+    final CreateTable createTable = new CreateTable(
+        QualifiedName.of("TEST"),
+        ELEMENTS_WITHOUT_KEY,
+        false,
+        SOME_WITH_PROPS);
+
+    // When:
+    final String sql = SqlFormatter.formatSql(createTable);
+
+    // Then:
+    assertThat(sql, is("CREATE TABLE TEST (Foo STRING, Bar STRING) "
+        + "WITH (VALUE_FORMAT='JSON', KAFKA_TOPIC='topic_test', KEY='ORDERID');"));
+  }
+
+  @Test
+  public void shouldFormatTableElementsNamedAfterReservedWords() {
+    // Given:
+    final TableElements tableElements = TableElements.of(
+        new TableElement("GROUP", PrimitiveType.of(SqlType.STRING)),
+        new TableElement("Having", PrimitiveType.of(SqlType.STRING))
+    );
 
     final CreateStream createStream = new CreateStream(
         QualifiedName.of("TEST"),
         tableElements,
         false,
-        ImmutableMap.of(
-            DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral("topic_test"),
-            DdlConfig.VALUE_FORMAT_PROPERTY, new StringLiteral("avro")
-        ));
-    final String sql = SqlFormatter.formatSql(createStream);
-    assertThat("literal escaping failure", sql, containsString("`GROUP` STRING"));
-    assertThat("not literal escaping failure", sql, containsString("NOLIT STRING"));
-    assertThat("lowercase literal escaping failure", sql, containsString("`Having` STRING"));
-    final List<PreparedStatement<?>> statements = KsqlParserTestUtil.buildAst(sql,
-        MetaStoreFixture.getNewMetaStore(mock(FunctionRegistry.class)));
-    assertFalse("formatted sql parsing error", statements.isEmpty());
-  }
+        SOME_WITH_PROPS);
 
-  @Test
-  public void shouldFormatCreateWithEmptySchema() {
-    final CreateStream createStream = new CreateStream(
-        QualifiedName.of("TEST"),
-        Collections.emptyList(),
-        false,
-        ImmutableMap.of(
-            DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral("topic_test"),
-            DdlConfig.VALUE_FORMAT_PROPERTY, new StringLiteral("avro")
-        ));
+    // When:
     final String sql = SqlFormatter.formatSql(createStream);
-    final String expectedSql = "CREATE STREAM TEST  WITH (VALUE_FORMAT='avro', KAFKA_TOPIC='topic_test');";
-    assertThat(sql, equalTo(expectedSql));
+
+    // Then:
+    assertThat("literal escaping failure", sql, containsString("`GROUP` STRING"));
+    assertThat("lowercase literal escaping failure", sql, containsString("`Having` STRING"));
+
+    assertValidSql(sql);
   }
 
   @Test
@@ -493,5 +521,9 @@ public class SqlFormatterTest {
     // When:
     KsqlParserTestUtil.buildSingleAst(statementString, metaStore);
   }
-}
 
+  private void assertValidSql(final String sql) {
+    // Will throw if invalid
+    KsqlParserTestUtil.buildAst(sql, metaStore);
+  }
+}

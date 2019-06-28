@@ -15,24 +15,27 @@
 
 package io.confluent.ksql.parser.tree;
 
-import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.schema.ksql.SchemaConverters;
-import io.confluent.ksql.schema.ksql.SchemaConverters.LogicalToSqlTypeConverter;
-import java.util.List;
+import io.confluent.ksql.parser.ParsingException;
+import io.confluent.ksql.util.SchemaUtil;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.stream.Collectors;
-import org.apache.kafka.connect.data.Schema;
 
+/**
+ * An element in the schema of a table or stream.
+ */
 @Immutable
 public final class TableElement extends Node {
 
   private final String name;
   private final Type type;
 
+  /**
+   * @param name the name of the element.
+   * @param type the sql type of the element.
+   */
   public TableElement(
       final String name,
       final Type type
@@ -40,6 +43,11 @@ public final class TableElement extends Node {
     this(Optional.empty(), name, type);
   }
 
+  /**
+   * @param location the location in the SQL text.
+   * @param name the name of the element.
+   * @param type the sql type of the element.
+   */
   public TableElement(
       final Optional<NodeLocation> location,
       final String name,
@@ -48,6 +56,8 @@ public final class TableElement extends Node {
     super(location);
     this.name = requireNonNull(name, "name");
     this.type = requireNonNull(type, "type");
+
+    validate();
   }
 
   public String getName() {
@@ -73,7 +83,7 @@ public final class TableElement extends Node {
     }
     final TableElement o = (TableElement) obj;
     return Objects.equals(this.name, o.name)
-           && Objects.equals(this.type, o.type);
+        && Objects.equals(this.type, o.type);
   }
 
   @Override
@@ -83,21 +93,16 @@ public final class TableElement extends Node {
 
   @Override
   public String toString() {
-    return toStringHelper(this)
-        .add("name", name)
-        .add("type", type)
-        .toString();
+    return "TableElement{"
+        + "name='" + name + '\''
+        + ", type=" + type
+        + '}';
   }
 
-  public static List<TableElement> fromSchema(final Schema schema) {
-    final LogicalToSqlTypeConverter toSqlTypeConverter = SchemaConverters
-        .logicalToSqlConverter();
-
-    return schema.fields().stream()
-        .map(f -> new TableElement(
-            f.name().toUpperCase(),
-            toSqlTypeConverter.toSqlType(f.schema()))
-        )
-        .collect(Collectors.toList());
+  private void validate() {
+    if (name.toUpperCase().equals(SchemaUtil.ROWTIME_NAME)
+        || name.toUpperCase().equals(SchemaUtil.ROWKEY_NAME)) {
+      throw new ParsingException("'" + name + "' is a reserved field name.", getLocation());
+    }
   }
 }

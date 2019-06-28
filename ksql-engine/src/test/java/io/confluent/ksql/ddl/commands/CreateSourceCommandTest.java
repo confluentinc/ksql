@@ -21,7 +21,6 @@ import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.ddl.DdlConfig;
@@ -36,6 +35,7 @@ import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
+import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SqlType;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
@@ -44,9 +44,7 @@ import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.apache.kafka.connect.data.Schema;
@@ -64,10 +62,10 @@ public class CreateSourceCommandTest {
 
   private static final String TOPIC_NAME = "some topic";
 
-  private static final List<TableElement> ONE_ELEMENT = ImmutableList.of(
+  private static final TableElements ONE_ELEMENT = TableElements.of(
       new TableElement("bob", PrimitiveType.of(SqlType.STRING)));
 
-  private static final List<TableElement> SOME_ELEMENTS = ImmutableList.of(
+  private static final TableElements SOME_ELEMENTS = TableElements.of(
       new TableElement("bob", PrimitiveType.of(SqlType.STRING)),
       new TableElement("hojjat", PrimitiveType.of(SqlType.STRING))
   );
@@ -118,7 +116,7 @@ public class CreateSourceCommandTest {
   @Test
   public void shouldThrowOnNoElements() {
     // Given:
-    when(statement.getElements()).thenReturn(Collections.emptyList());
+    when(statement.getElements()).thenReturn(TableElements.of());
 
     // Then:
     expectedException.expect(KsqlException.class);

@@ -18,7 +18,6 @@ package io.confluent.ksql.parser.tree;
 import static com.google.common.base.MoreObjects.toStringHelper;
 
 import com.google.errorprone.annotations.Immutable;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -27,7 +26,7 @@ public class CreateTable extends CreateSource implements ExecutableDdlStatement 
 
   public CreateTable(
       final QualifiedName name,
-      final List<TableElement> elements,
+      final TableElements elements,
       final boolean notExists,
       final Map<String, Literal> properties
   ) {
@@ -37,7 +36,7 @@ public class CreateTable extends CreateSource implements ExecutableDdlStatement 
   public CreateTable(
       final Optional<NodeLocation> location,
       final QualifiedName name,
-      final List<TableElement> elements,
+      final TableElements elements,
       final boolean notExists,
       final Map<String, Literal> properties
   ) {
@@ -47,7 +46,7 @@ public class CreateTable extends CreateSource implements ExecutableDdlStatement 
   private CreateTable(
       final Optional<NodeLocation> location,
       final QualifiedName name,
-      final List<TableElement> elements,
+      final TableElements elements,
       final boolean notExists,
       final CreateSourceProperties properties
   ) {
@@ -56,7 +55,7 @@ public class CreateTable extends CreateSource implements ExecutableDdlStatement 
 
   @Override
   public CreateSource copyWith(
-      final List<TableElement> elements,
+      final TableElements elements,
       final CreateSourceProperties properties
   ) {
     return new CreateTable(

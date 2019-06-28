@@ -30,6 +30,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 
+import com.google.common.collect.Iterables;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.model.KeyField;
@@ -497,8 +498,8 @@ public class KsqlParserTest {
     Assert.assertTrue(statement instanceof CreateStream);
     final CreateStream createStream = (CreateStream)statement;
     Assert.assertTrue(createStream.getName().toString().equalsIgnoreCase("ORDERS"));
-    Assert.assertTrue(createStream.getElements().size() == 4);
-    Assert.assertTrue(createStream.getElements().get(0).getName().toString().equalsIgnoreCase("ordertime"));
+    assertThat(Iterables.size(createStream.getElements()), is(4));
+    assertThat(Iterables.get(createStream.getElements(), 0).getName(), is("ORDERTIME"));
   }
 
   @Test
@@ -513,10 +514,10 @@ public class KsqlParserTest {
     Assert.assertTrue(statement instanceof CreateStream);
     final CreateStream createStream = (CreateStream)statement;
     assertThat(createStream.getName().toString().toUpperCase(), equalTo("ORDERS"));
-    assertThat(createStream.getElements().size(), equalTo(7));
-    assertThat(createStream.getElements().get(0).getName().toString().toLowerCase(), equalTo("ordertime"));
-    assertThat(createStream.getElements().get(6).getType().getSqlType(), equalTo(SqlType.STRUCT));
-    final Struct struct = (Struct) createStream.getElements().get(6).getType();
+    assertThat(Iterables.size(createStream.getElements()), equalTo(7));
+    assertThat(Iterables.get(createStream.getElements(), 0).getName().toString().toLowerCase(), equalTo("ordertime"));
+    assertThat(Iterables.get(createStream.getElements(), 6).getType().getSqlType(), equalTo(SqlType.STRUCT));
+    final Struct struct = (Struct) Iterables.get(createStream.getElements(), 6).getType();
     assertThat(struct.getFields(), hasSize(5));
     assertThat(struct.getFields().get(0).getType().getSqlType(), equalTo(SqlType.STRING));
   }
@@ -531,8 +532,8 @@ public class KsqlParserTest {
     Assert.assertTrue(statement instanceof CreateStream);
     final CreateStream createStream = (CreateStream)statement;
     Assert.assertTrue(createStream.getName().toString().equalsIgnoreCase("ORDERS"));
-    Assert.assertTrue(createStream.getElements().size() == 4);
-    Assert.assertTrue(createStream.getElements().get(0).getName().toString().equalsIgnoreCase("ordertime"));
+    assertThat(Iterables.size(createStream.getElements()), is(4));
+    assertThat(Iterables.get(createStream.getElements(), 0).getName(), is("ORDERTIME"));
     Assert.assertTrue(createStream.getProperties().getKafkaTopic().equalsIgnoreCase("orders_topic"));
     Assert.assertTrue(createStream.getProperties().getValueFormat().equals(Format.AVRO));
 
@@ -548,8 +549,8 @@ public class KsqlParserTest {
     Assert.assertTrue(statement instanceof CreateTable);
     final CreateTable createTable = (CreateTable)statement;
     Assert.assertTrue("testCreateTable failed.", createTable.getName().toString().equalsIgnoreCase("USERS"));
-    Assert.assertTrue(createTable.getElements().size() == 4);
-    Assert.assertTrue(createTable.getElements().get(0).getName().toString().equalsIgnoreCase("usertime"));
+    assertThat(Iterables.size(createTable.getElements()), is(4));
+    assertThat(Iterables.get(createTable.getElements(), 0).getName(), is("USERTIME"));
   }
 
   @Test
@@ -562,8 +563,8 @@ public class KsqlParserTest {
     Assert.assertTrue(statement instanceof CreateTable);
     final CreateTable createTable = (CreateTable)statement;
     Assert.assertTrue(createTable.getName().toString().equalsIgnoreCase("USERS"));
-    Assert.assertTrue(createTable.getElements().size() == 4);
-    Assert.assertTrue(createTable.getElements().get(0).getName().toString().equalsIgnoreCase("usertime"));
+    assertThat(Iterables.size(createTable.getElements()), is(4));
+    assertThat(Iterables.get(createTable.getElements(), 0).getName(), is("USERTIME"));
     Assert.assertTrue(createTable.getProperties().getKafkaTopic().equalsIgnoreCase("users_topic"));
     Assert.assertTrue(createTable.getProperties().getValueFormat().equals(Format.JSON));
   }

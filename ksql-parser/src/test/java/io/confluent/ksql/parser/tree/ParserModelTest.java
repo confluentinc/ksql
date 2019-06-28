@@ -74,6 +74,7 @@ public class ParserModelTest {
               DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral("topic_test"),
               DdlConfig.VALUE_FORMAT_PROPERTY, new StringLiteral("avro")
           ))
+      .put(TableElements.class, TableElements.of())
       .build();
 
   private final Class<?> modelClass;

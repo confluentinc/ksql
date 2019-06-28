@@ -18,8 +18,8 @@ package io.confluent.ksql.parser;
 import static io.confluent.ksql.schema.ksql.TypeContextUtil.getType;
 import static io.confluent.ksql.util.ParserUtil.getLocation;
 
-import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.parser.tree.TableElement;
+import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.ParserUtil;
 import java.util.List;
@@ -34,9 +34,9 @@ public final class SchemaParser {
 
   private SchemaParser() { }
 
-  public static List<TableElement> parse(final String schema) {
-    if (schema.isEmpty()) {
-      return ImmutableList.of();
+  public static TableElements parse(final String schema) {
+    if (schema.trim().isEmpty()) {
+      return TableElements.of();
     }
 
     final SqlBaseLexer lexer = new SqlBaseLexer(
@@ -63,12 +63,14 @@ public final class SchemaParser {
       }
     });
 
-    return parser.tableElements().tableElement()
+    final List<TableElement> elements = parser.tableElements().tableElement()
         .stream()
         .map(ctx -> new TableElement(
             getLocation(ctx),
             ParserUtil.getIdentifierText(ctx.identifier()),
             getType(ctx.type())))
         .collect(Collectors.toList());
+
+    return TableElements.of(elements);
   }
 }

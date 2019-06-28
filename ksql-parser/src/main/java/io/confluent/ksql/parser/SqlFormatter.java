@@ -24,6 +24,7 @@ import com.google.common.base.Strings;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.AstVisitor;
+import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
@@ -215,57 +216,14 @@ public final class SqlFormatter {
     @Override
     protected Void visitCreateStream(final CreateStream node, final Integer indent) {
       builder.append("CREATE STREAM ");
-      if (node.isNotExists()) {
-        builder.append("IF NOT EXISTS ");
-      }
-      builder.append(node.getName())
-          .append(" ");
-      if (!node.getElements().isEmpty()) {
-        builder.append("(");
-        boolean addComma = false;
-        for (final TableElement tableElement : node.getElements()) {
-          if (addComma) {
-            builder.append(", ");
-          } else {
-            addComma = true;
-          }
-          builder.append(ParserUtil.escapeIfLiteral(tableElement.getName()))
-              .append(" ")
-              .append(tableElement.getType());
-        }
-        builder.append(")");
-      }
-      builder.append(" WITH (");
-      builder.append(node.getProperties());
-      builder.append(");");
+      formatCreate(node);
       return null;
     }
 
     @Override
     protected Void visitCreateTable(final CreateTable node, final Integer indent) {
       builder.append("CREATE TABLE ");
-      if (node.isNotExists()) {
-        builder.append("IF NOT EXISTS ");
-      }
-      builder.append(node.getName())
-          .append(" ");
-      if (!node.getElements().isEmpty()) {
-        builder.append("(");
-        boolean addComma = false;
-        for (final TableElement tableElement: node.getElements()) {
-          if (addComma) {
-            builder.append(", ");
-          } else {
-            addComma = true;
-          }
-          builder.append(ParserUtil.escapeIfLiteral(tableElement.getName()))
-              .append(" ")
-              .append(tableElement.getType());
-        }
-        builder.append(")").append(" WITH (");
-        builder.append(node.getProperties());
-        builder.append(");");
-      }
+      formatCreate(node);
       return null;
     }
 
@@ -434,6 +392,41 @@ public final class SqlFormatter {
 
     private static String indentString(final int indent) {
       return Strings.repeat(INDENT, indent);
+    }
+
+    private void formatCreate(final CreateSource node) {
+      if (node.isNotExists()) {
+        builder.append("IF NOT EXISTS ");
+      }
+
+      builder.append(node.getName());
+
+      final String elements = node.getElements().stream()
+          .map(Formatter::formatTableElement)
+          .collect(Collectors.joining(", "));
+
+      if (!elements.isEmpty()) {
+        builder
+            .append(" (")
+            .append(elements)
+            .append(")");
+      }
+
+      final String tableProps = node.getProperties().toString();
+      if (!tableProps.isEmpty()) {
+        builder
+            .append(" WITH (")
+            .append(tableProps)
+            .append(")");
+      }
+
+      builder.append(";");
+    }
+
+    private static String formatTableElement(final TableElement e) {
+      return ParserUtil.escapeIfLiteral(e.getName())
+          + " "
+          + e.getType();
     }
   }
 }

@@ -253,7 +253,7 @@ class Analyzer {
      *
      * @return the list of field names in the sink that are not meta or key fields.
      */
-    private List<String> getNonMetaOrKeySelectAliases() {
+    private List<String> getNoneMetaOrKeySelectAliases() {
       final SourceSchemas sourceSchemas = analysis.getFromSourceSchemas();
       final List<Expression> selects = analysis.getSelectExpressions();
 
@@ -271,7 +271,11 @@ class Analyzer {
           continue;
         }
 
-        columnNames.remove(idx);
+        final String columnName = columnNames.get(idx);
+        if (columnName.equalsIgnoreCase(SchemaUtil.ROWTIME_NAME)
+            || columnName.equalsIgnoreCase(SchemaUtil.ROWKEY_NAME)) {
+          columnNames.remove(idx);
+        }
       }
       return columnNames;
     }

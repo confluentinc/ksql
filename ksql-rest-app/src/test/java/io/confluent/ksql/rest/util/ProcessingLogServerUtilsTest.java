@@ -16,6 +16,7 @@
 package io.confluent.ksql.rest.util;
 
 import static java.util.stream.Collectors.toList;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
@@ -39,7 +40,6 @@ import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
-import io.confluent.ksql.parser.SqlFormatter;
 import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
@@ -183,11 +183,22 @@ public class ProcessingLogServerUtilsTest {
             config,
             ksqlConfig);
 
-    // Then:
-    assertThat(
-        statement.getStatementText(),
-        equalTo(SqlFormatter.formatSql(statement.getStatement())));
     ksqlEngine.execute(ConfiguredStatement.of(statement, ImmutableMap.of(), ksqlConfig));
+
+    // Then:
+    assertThat(statement.getStatementText(), equalTo(
+        "CREATE STREAM PROCESSING_LOG_STREAM ("
+            + "logger VARCHAR, "
+            + "level VARCHAR, "
+            + "time BIGINT, "
+            + "message STRUCT<"
+            + "type INT, "
+            + "deserializationError STRUCT<errorMessage VARCHAR, recordB64 VARCHAR, cause ARRAY<VARCHAR>>, "
+            + "recordProcessingError STRUCT<errorMessage VARCHAR, record VARCHAR, cause ARRAY<VARCHAR>>, "
+            + "productionError STRUCT<errorMessage VARCHAR>"
+            + ">"
+            + ") WITH(KAFKA_TOPIC='processing_log_topic', VALUE_FORMAT='JSON');"));
+
     assertLogStream(TOPIC);
   }
 
@@ -207,11 +218,12 @@ public class ProcessingLogServerUtilsTest {
             ),
             ksqlConfig);
 
-    // Then:
-    assertThat(
-        statement.getStatementText(),
-        equalTo(SqlFormatter.formatSql(statement.getStatement())));
     ksqlEngine.execute(ConfiguredStatement.of(statement, ImmutableMap.of(), ksqlConfig));
+
+    // Then:
+    assertThat(statement.getStatementText(),
+        containsString("KAFKA_TOPIC='ksql_cluster.ksql_processing_log'"));
+
     assertLogStream(DEFAULT_TOPIC);
   }
 

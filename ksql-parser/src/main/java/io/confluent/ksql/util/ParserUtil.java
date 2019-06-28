@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.util;
 
+import static io.confluent.ksql.parser.SqlBaseParser.DecimalLiteralContext;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toList;
 
@@ -24,6 +25,7 @@ import io.confluent.ksql.parser.SqlBaseLexer;
 import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.parser.SqlBaseParser.IntegerLiteralContext;
 import io.confluent.ksql.parser.SqlBaseParser.NumberContext;
+import io.confluent.ksql.parser.tree.DoubleLiteral;
 import io.confluent.ksql.parser.tree.IntegerLiteral;
 import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.parser.tree.LongLiteral;
@@ -124,6 +126,23 @@ public final class ParserUtil {
       return new IntegerLiteral(location, (int) valueAsLong);
     } else {
       return new LongLiteral(location, valueAsLong);
+    }
+  }
+
+  public static DoubleLiteral parseDecimalLiteral(final DecimalLiteralContext context) {
+    final Optional<NodeLocation> location = getLocation(context);
+
+    try {
+      final double value = Double.parseDouble(context.getText());
+      if (Double.isNaN(value)) {
+        throw new ParsingException("Not a number: " + context.getText(), location);
+      }
+      if (Double.isInfinite(value)) {
+        throw new ParsingException("Number overflows DOUBLE: " + context.getText(), location);
+      }
+      return new DoubleLiteral(location, value);
+    } catch (final NumberFormatException e) {
+      throw new ParsingException("Invalid numeric literal: " + context.getText(), location);
     }
   }
 

@@ -47,7 +47,6 @@ import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.DecimalLiteral;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.DescribeFunction;
-import io.confluent.ksql.parser.tree.DoubleLiteral;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.Explain;
@@ -1044,20 +1043,7 @@ public class AstBuilder {
 
     @Override
     public Node visitDecimalLiteral(final SqlBaseParser.DecimalLiteralContext context) {
-      final Optional<NodeLocation> location = getLocation(context);
-
-      try {
-        final double value = Double.parseDouble(context.getText());
-        if (Double.isNaN(value)) {
-          throw new ParsingException("Not a number: " + context.getText());
-        }
-        if (Double.isInfinite(value)) {
-          throw new ParsingException("Number overflows DOUBLE: " + context.getText(), location);
-        }
-        return new DoubleLiteral(location, value);
-      } catch (final NumberFormatException e) {
-        throw new ParsingException("Invalid numeric literal: " + context.getText(), location);
-      }
+      return ParserUtil.parseDecimalLiteral(context);
     }
 
     @Override

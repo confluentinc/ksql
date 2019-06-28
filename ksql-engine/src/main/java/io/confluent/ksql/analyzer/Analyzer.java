@@ -253,7 +253,7 @@ class Analyzer {
      *
      * @return the list of field names in the sink that are not meta or key fields.
      */
-    private List<String> getNoneMetaOrKeySelectAliases() {
+    private List<String> getNonMetaOrKeySelectAliases() {
       final SourceSchemas sourceSchemas = analysis.getFromSourceSchemas();
       final List<Expression> selects = analysis.getSelectExpressions();
 

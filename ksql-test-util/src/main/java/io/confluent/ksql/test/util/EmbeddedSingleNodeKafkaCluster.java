@@ -71,6 +71,8 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
 
   private static final Logger log = LoggerFactory.getLogger(EmbeddedSingleNodeKafkaCluster.class);
 
+  public static final String JAAS_KAFKA_PROPS_NAME = "KafkaServer";
+
   public static final Credentials VALID_USER1 =
       new Credentials("valid_user_1", "some-password");
   public static final Credentials VALID_USER2 =
@@ -325,7 +327,8 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
   }
 
   private String createJaasConfigContent() {
-    final String prefix = "KafkaServer {\n  " + PlainLoginModule.class.getName() + " required\n"
+    final String prefix = JAAS_KAFKA_PROPS_NAME + " {\n  "
+                          + PlainLoginModule.class.getName() + " required\n"
                           + "  username=\"broker\"\n"
                           + "  password=\"brokerPassword\"\n"
                           + "  user_broker=\"brokerPassword\"\n";

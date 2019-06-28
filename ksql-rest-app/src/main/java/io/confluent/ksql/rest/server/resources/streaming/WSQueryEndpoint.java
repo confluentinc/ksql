@@ -184,8 +184,8 @@ public class WSQueryEndpoint {
     log.debug("Opening websocket session {}", session.getId());
 
     try {
-      // Check if the user has authorization to access this Websocket endpoint
-      checkEndpointAuthorization(session.getUserPrincipal(), QUERY_ENDPOINT_METHOD_NAME);
+      // Check if the user has authorization to open a WS session
+      checkAuthorization(session);
 
       validateVersion(session);
 
@@ -264,15 +264,22 @@ public class WSQueryEndpoint {
     SessionUtil.closeSilently(session, CloseCodes.UNEXPECTED_CONDITION, t.getMessage());
   }
 
-  private void checkEndpointAuthorization(final Principal userPrincipal, final String methodName) {
-    final Class<?> className = this.getClass();
+  private void checkAuthorization(final Session session) {
+    final String method = "POST";
+    final String path = this.getClass().getAnnotation(ServerEndpoint.class).value();
+    final Principal user = session.getUserPrincipal();
 
-    if (!securityExtension.getAuthorizer().hasAccess(userPrincipal, className, methodName)) {
-      final String userName = (userPrincipal != null) ? userPrincipal.getName() : null;
-      throw new KsqlException(
-          String.format("User:%s is denied to access this cluster.", userName)
-      );
-    }
+    securityExtension.getAuthorizationProvider().ifPresent(
+        provider -> {
+          try {
+            provider.checkEndpointAccess(user, method, path);
+          } catch (final Throwable t) {
+            log.warn(String.format("User:%s is denied access to Websocket "
+                + "%s endpoint", user, path), t);
+            throw new KsqlException(t);
+          }
+        }
+    );
   }
 
   private void validateVersion(final Session session) {

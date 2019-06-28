@@ -86,7 +86,7 @@ final class SourceSchemas {
    * Determines if the supplied {@code fieldName} matches a source(s) meta or key fields.
    *
    * <p>The supplied name can be prefixed with a source name. In which case, only that specific
-   * source is checked. If not prefix is present, all sources are checked.
+   * source is checked. If no prefix is present, all sources are checked.
    *
    * @param fieldName the field name to search for. Can be prefixed by source name.
    * @return true if this the supplied {@code fieldName} matches a non-value field

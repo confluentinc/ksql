@@ -400,7 +400,7 @@ public class LogicalSchemaTest {
   }
 
   @Test
-  public void shouldGetMataFields() {
+  public void shouldGetMetaFields() {
     assertThat(SOME_SCHEMA.findField("ROWTIME"), is(Optional.of(
         new Field("ROWTIME", 0, Schema.OPTIONAL_INT64_SCHEMA)
     )));

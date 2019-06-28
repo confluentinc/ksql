@@ -233,16 +233,18 @@ public class SqlToJavaVisitor {
     }
 
     protected Pair<String, Schema> visitLongLiteral(
-        final LongLiteral node, final Void context) {
-      return new Pair<>("Long.parseLong(\"" + node.getValue() + "\")",
-          Schema.OPTIONAL_INT64_SCHEMA);
+        final LongLiteral node,
+        final Void context
+    ) {
+      return new Pair<>(node.getValue() + "L", Schema.OPTIONAL_INT64_SCHEMA);
     }
 
     @Override
-    protected Pair<String, Schema> visitIntegerLiteral(final IntegerLiteral node,
-        final Void context) {
-      return new Pair<>("Integer.parseInt(\"" + node.getValue() + "\")",
-          Schema.OPTIONAL_INT32_SCHEMA);
+    protected Pair<String, Schema> visitIntegerLiteral(
+        final IntegerLiteral node,
+        final Void context
+    ) {
+      return new Pair<>(Integer.toString(node.getValue()), Schema.OPTIONAL_INT32_SCHEMA);
     }
 
     @Override

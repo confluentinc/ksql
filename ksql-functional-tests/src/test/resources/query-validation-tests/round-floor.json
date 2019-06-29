@@ -52,6 +52,31 @@
         {"topic": "OUTPUT", "value": {"F0" : 0, "F00" : 0.0, "F1" :  0.0, "F2" : 0.0,  "F10" :  0.0}},
         {"topic": "OUTPUT", "value": {"F0" : null, "F00" : null, "F1" :  null, "F2" : null, "F10" : null}}
       ]
+    },
+    {
+      "name": "calculate CEIL function",
+      "statements": [
+        "CREATE STREAM test (v DOUBLE) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT CEIL(v) as C0, CEIL(v, 0) as C00, CEIL(v, 1) as C1, CEIL(v, 2) as C2, CEIL(v, 10) as C10 FROM test;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": {"v" : 1.2}},
+        {"topic": "test_topic", "value": {"v" : 1.7}},
+        {"topic": "test_topic", "value": {"v" : 1.5}},
+        {"topic": "test_topic", "value": {"v" : 3}},
+        {"topic": "test_topic", "value": {"v" : 1.234567}},
+        {"topic": "test_topic", "value": {"v" : 0}},
+        {"topic": "test_topic", "value": {"v" : null}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"C0" : 2, "C00" : 2.0, "C1" :  1.2, "C2" : 1.2,  "C10" :  1.2}},
+        {"topic": "OUTPUT", "value": {"C0" : 2, "C00" : 2.0, "C1" :  1.7, "C2" : 1.7,  "C10" :  1.7}},
+        {"topic": "OUTPUT", "value": {"C0" : 2, "C00" : 2.0, "C1" :  1.5, "C2" : 1.5,  "C10" :  1.5}},
+        {"topic": "OUTPUT", "value": {"C0" : 3, "C00" : 3.0, "C1" :  3.0, "C2" : 3.0,   "C10" :  3.0}},
+        {"topic": "OUTPUT", "value": {"C0" : 2, "C00" : 2.0, "C1" :  1.3, "C2" : 1.24, "C10" :  1.234567}},
+        {"topic": "OUTPUT", "value": {"C0" : 0, "C00" : 0.0, "C1" :  0.0, "C2" : 0.0,  "C10" :  0.0}},
+        {"topic": "OUTPUT", "value": {"C0" : null, "C00" : null, "C1" :  null, "C2" : null, "C10" : null}}
+      ]
     }
   ]
 }

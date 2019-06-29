@@ -109,7 +109,7 @@ public class SqlToJavaVisitorTest {
 
   @Test
   public void shouldProcessArrayNegativeIndexExpressionCorrectly() {
-    final String simpleQuery = "SELECT col4[-1] FROM test1 WHERE col0 > 100;";
+    final String simpleQuery = "SELECT col4[-1] FROM test1;";
     final Analysis analysis = analyzeQuery(simpleQuery, metaStore);
 
     final String javaExpression = sqlToJavaVisitor

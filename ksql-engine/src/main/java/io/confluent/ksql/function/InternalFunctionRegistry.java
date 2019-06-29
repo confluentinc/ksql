@@ -233,9 +233,15 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
           AbsKudf.class));
 
       addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
-          Schema.OPTIONAL_FLOAT64_SCHEMA,
+          Schema.OPTIONAL_INT64_SCHEMA,
           Collections.singletonList(Schema.OPTIONAL_FLOAT64_SCHEMA),
-          "CEIL",
+          CeilKudf.NAME,
+          CeilKudf.class));
+
+      addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
+          Schema.OPTIONAL_FLOAT64_SCHEMA,
+          ImmutableList.of(Schema.FLOAT64_SCHEMA, Schema.OPTIONAL_INT32_SCHEMA),
+          CeilKudf.NAME,
           CeilKudf.class));
 
       addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
@@ -257,10 +263,10 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
           RoundKudf.class));
 
       addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
-           Schema.OPTIONAL_FLOAT64_SCHEMA,
-           ImmutableList.of(Schema.FLOAT64_SCHEMA, Schema.OPTIONAL_INT32_SCHEMA),
-           RoundKudf.NAME,
-           RoundKudf.class));
+          Schema.OPTIONAL_FLOAT64_SCHEMA,
+          ImmutableList.of(Schema.FLOAT64_SCHEMA, Schema.OPTIONAL_INT32_SCHEMA),
+          RoundKudf.NAME,
+          RoundKudf.class));
 
       addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
           Schema.OPTIONAL_FLOAT64_SCHEMA,

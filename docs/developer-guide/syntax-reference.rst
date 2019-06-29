@@ -1514,7 +1514,11 @@ Scalar functions
 | ARRAYCONTAINS          |  ``ARRAYCONTAINS('[1, 2, 3]', 3)``                                        | Given JSON or AVRO array checks if a search       |
 |                        |                                                                           | value contains in it                              |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
-| CEIL                   |  ``CEIL(col1)``                                                           | The ceiling of a value.                           |
+| CEIL                   |  ``CEIL(col1)`` or   ``CEIL(col1, precision)``                            | The ceiling of a value.                           |
+|                        |                                                                           |                                                   |
+|                        |                                                                           | precision is a number indicating the number of    |
+|                        |                                                                           | places after the decimal to which to round        |
+|                        |                                                                           | downward                                          |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | CONCAT                 |  ``CONCAT(col1, '_hello')``                                               | Concatenate two strings.                          |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+

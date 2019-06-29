@@ -93,8 +93,6 @@ import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.KsqlStatementErrorMessage;
-import io.confluent.ksql.rest.entity.KsqlTopicInfo;
-import io.confluent.ksql.rest.entity.KsqlTopicsList;
 import io.confluent.ksql.rest.entity.PropertiesList;
 import io.confluent.ksql.rest.entity.Queries;
 import io.confluent.ksql.rest.entity.QueryDescription;
@@ -140,7 +138,6 @@ import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import io.confluent.rest.RestConfig;
 import java.io.IOException;
 import java.time.Duration;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -183,7 +180,7 @@ public class KsqlResourceTest {
       0L);
   private static final LogicalSchema SINGLE_FIELD_SCHEMA = LogicalSchema.of(SchemaBuilder.struct()
       .field("val", Schema.OPTIONAL_STRING_SCHEMA)
-      .build()).withImplicitAndKeyFieldsInValue();
+      .build());
 
   private static final ClusterTerminateRequest VALID_TERMINATE_REQUEST =
       new ClusterTerminateRequest(ImmutableList.of("Foo"));
@@ -223,8 +220,6 @@ public class KsqlResourceTest {
   );
 
   private static final LogicalSchema SOME_SCHEMA = LogicalSchema.of(SchemaBuilder.struct()
-      .field("ROWTIME", Schema.OPTIONAL_INT64_SCHEMA)
-      .field("ROWKEY", Schema.OPTIONAL_STRING_SCHEMA)
       .field("f1", Schema.OPTIONAL_STRING_SCHEMA)
       .build());
 
@@ -359,7 +354,7 @@ public class KsqlResourceTest {
     final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
         .field("FIELD1", Schema.OPTIONAL_BOOLEAN_SCHEMA)
         .field("FIELD2", Schema.OPTIONAL_STRING_SCHEMA)
-        .build()).withImplicitAndKeyFieldsInValue();
+        .build());
 
     givenSource(
         DataSourceType.KSTREAM, "new_stream", "new_topic",
@@ -387,7 +382,7 @@ public class KsqlResourceTest {
     final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
         .field("FIELD1", Schema.OPTIONAL_BOOLEAN_SCHEMA)
         .field("FIELD2", Schema.OPTIONAL_STRING_SCHEMA)
-        .build()).withImplicitAndKeyFieldsInValue();
+        .build());
 
     givenSource(
         DataSourceType.KTABLE, "new_table", "new_topic",
@@ -1888,7 +1883,7 @@ public class KsqlResourceTest {
   private void addTestTopicAndSources() {
     final LogicalSchema schema1 = LogicalSchema.of(SchemaBuilder.struct()
             .field("S1_F1", Schema.OPTIONAL_BOOLEAN_SCHEMA)
-            .build()).withImplicitAndKeyFieldsInValue();
+            .build());
 
     givenSource(
         DataSourceType.KTABLE,
@@ -1896,7 +1891,7 @@ public class KsqlResourceTest {
 
     final LogicalSchema schema2 = LogicalSchema.of(SchemaBuilder.struct()
         .field("S2_F1", Schema.OPTIONAL_STRING_SCHEMA)
-        .build()).withImplicitAndKeyFieldsInValue();
+        .build());
 
     givenSource(
         DataSourceType.KSTREAM,

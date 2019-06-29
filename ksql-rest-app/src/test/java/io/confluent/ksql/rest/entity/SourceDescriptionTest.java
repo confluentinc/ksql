@@ -64,8 +64,6 @@ public class SourceDescriptionTest {
 
   private static DataSource<?> buildDataSource(final String kafkaTopicName) {
     final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
-        .field("ROWTIME", Schema.OPTIONAL_INT64_SCHEMA)
-        .field("ROWKEY", Schema.OPTIONAL_STRING_SCHEMA)
         .field("field0", Schema.OPTIONAL_INT32_SCHEMA)
         .build());
 

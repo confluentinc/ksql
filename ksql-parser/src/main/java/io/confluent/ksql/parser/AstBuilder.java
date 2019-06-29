@@ -47,7 +47,6 @@ import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.DecimalLiteral;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.DescribeFunction;
-import io.confluent.ksql.parser.tree.DoubleLiteral;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.Explain;
@@ -912,7 +911,7 @@ public class AstBuilder {
 
       if (dataSourceExtractor.isJoin()) {
         if (dataSourceExtractor.getCommonFieldNames().contains(columnName)) {
-          throw new KsqlException("Field " + columnName + " is ambiguous.");
+          throw new KsqlException("Field '" + columnName + "' is ambiguous.");
         }
 
         if (dataSourceExtractor.getLeftFieldNames().contains(columnName)) {
@@ -935,7 +934,7 @@ public class AstBuilder {
 
         throw new InvalidColumnReferenceException(
             columnLocation,
-            "Field " + columnName + " is ambiguous."
+            "Field '" + columnName + "' cannot be resolved."
         );
       }
 
@@ -1044,7 +1043,7 @@ public class AstBuilder {
 
     @Override
     public Node visitDecimalLiteral(final SqlBaseParser.DecimalLiteralContext context) {
-      return new DoubleLiteral(getLocation(context), context.getText());
+      return ParserUtil.parseDecimalLiteral(context);
     }
 
     @Override
@@ -1167,7 +1166,7 @@ public class AstBuilder {
       }
     }
 
-    private OptionalInt getLimit(final LimitClauseContext limitContext) {
+    private static OptionalInt getLimit(final LimitClauseContext limitContext) {
       return limitContext == null
           ? OptionalInt.empty()
           : OptionalInt.of(processIntegerNumber(limitContext.number(), "LIMIT"));

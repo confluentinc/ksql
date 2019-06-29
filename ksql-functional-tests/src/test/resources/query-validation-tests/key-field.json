@@ -131,7 +131,7 @@
             "name": "OUTPUT",
             "type": "table",
             "keyField": {"name": "FOO", "legacyName": "KSQL_INTERNAL_COL_0", "legacySchema": "STRING"},
-            "valueSchema": "STRUCT<ROWTIME BIGINT, ROWKEY STRING, FOO INT, KSQL_COL_1 BIGINT>"
+            "valueSchema": "STRUCT<FOO INT, KSQL_COL_1 BIGINT>"
           }
         ]
       }

@@ -44,7 +44,6 @@ import kafka.security.auth.PermissionType$;
 import kafka.security.auth.ResourceType$;
 import kafka.security.auth.SimpleAclAuthorizer;
 import kafka.server.KafkaConfig;
-import kafka.utils.ZKConfig;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.common.acl.AclPermissionType;
@@ -71,6 +70,8 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private static final Logger log = LoggerFactory.getLogger(EmbeddedSingleNodeKafkaCluster.class);
+
+  public static final String JAAS_KAFKA_PROPS_NAME = "KafkaServer";
 
   public static final Credentials VALID_USER1 =
       new Credentials("valid_user_1", "some-password");
@@ -125,7 +126,7 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
     brokerConfig.put("group.initial.rebalance.delay.ms", 100);
     broker = new KafkaEmbedded(effectiveBrokerConfigFrom());
     clientConfig.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers());
-    authorizer.configure(ImmutableMap.of(ZKConfig.ZkConnectProp(), zookeeperConnect()));
+    authorizer.configure(ImmutableMap.of(KafkaConfig.ZkConnectProp(), zookeeperConnect()));
 
     initialAcls.forEach((key, ops) ->
         addUserAcl(key.userName, AclPermissionType.ALLOW, key.resourcePattern, ops));
@@ -326,7 +327,8 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
   }
 
   private String createJaasConfigContent() {
-    final String prefix = "KafkaServer {\n  " + PlainLoginModule.class.getName() + " required\n"
+    final String prefix = JAAS_KAFKA_PROPS_NAME + " {\n  "
+                          + PlainLoginModule.class.getName() + " required\n"
                           + "  username=\"broker\"\n"
                           + "  password=\"brokerPassword\"\n"
                           + "  user_broker=\"brokerPassword\"\n";

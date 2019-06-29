@@ -12,14 +12,16 @@
         "CREATE STREAM OUTPUT AS SELECT colors[0] as C FROM test;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 1, "value": {"colors": ["Red", "Green"]}, "timestamp": 0},
-        {"topic": "test_topic", "key": 1, "value": {"colors": ["Black"]}, "timestamp": 0},
-        {"topic": "test_topic", "key": 1, "value": {"colors": ["Pink", "Yellow", "Pink"]}, "timestamp": 0}
+        {"topic": "test_topic", "value": {"colors": ["Red", "Green"]}},
+        {"topic": "test_topic", "value": {"colors": ["Black"]}},
+        {"topic": "test_topic", "value": {"colors": [null, "Yellow", "Pink"]}},
+        {"topic": "test_topic", "value": {"colors": []}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": 1, "value": {"C": "Red"}, "timestamp": 0},
-        {"topic": "OUTPUT", "key": 1, "value": {"C": "Black"}, "timestamp": 0},
-        {"topic": "OUTPUT", "key": 1, "value": {"C": "Pink"}, "timestamp": 0}
+        {"topic": "OUTPUT", "value": {"C": "Red"}},
+        {"topic": "OUTPUT", "value": {"C": "Black"}},
+        {"topic": "OUTPUT", "value": {"C": null}},
+        {"topic": "OUTPUT", "value": {"C": null}}
       ]
     },
     {
@@ -29,19 +31,21 @@
         "CREATE STREAM OUTPUT AS SELECT colors[-1] as C FROM test;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 1, "value": {"colors": ["Red", "Green"]}, "timestamp": 0},
-        {"topic": "test_topic", "key": 1, "value": {"colors": ["Black"]}, "timestamp": 0},
-        {"topic": "test_topic", "key": 1, "value": {"colors": ["Pink", "Yellow", "Pink"]}, "timestamp": 0},
-        {"topic": "test_topic", "key": 1, "value": {"colors": ["White", "Pink"]}, "timestamp": 0},
-          {"topic": "test_topic", "key": 1, "value": {"colors": ["Pink", null]}, "timestamp": 0}
-        ],
-          "outputs": [
-            {"topic": "OUTPUT", "key": 1, "value": {"C": "Green"}, "timestamp": 0},
-            {"topic": "OUTPUT", "key": 1, "value": {"C": "Black"}, "timestamp": 0},
-            {"topic": "OUTPUT", "key": 1, "value": {"C": "Pink"}, "timestamp": 0},
-            {"topic": "OUTPUT", "key": 1, "value": {"C": "Pink"}, "timestamp": 0},
-            {"topic": "OUTPUT", "key": 1, "value": {"C": null}, "timestamp": 0}
-          ]
-        }
+        {"topic": "test_topic", "value": {"colors": ["Red", "Green"]}},
+        {"topic": "test_topic", "value": {"colors": ["Black"]}},
+        {"topic": "test_topic", "value": {"colors": ["Pink", "Yellow", "Pink"]}},
+        {"topic": "test_topic", "value": {"colors": ["White", "Pink"]}},
+        {"topic": "test_topic", "value": {"colors": ["Pink", null]}},
+        {"topic": "test_topic", "value": {"colors": []}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"C": "Green"}},
+        {"topic": "OUTPUT", "value": {"C": "Black"}},
+        {"topic": "OUTPUT", "value": {"C": "Pink"}},
+        {"topic": "OUTPUT", "value": {"C": "Pink"}},
+        {"topic": "OUTPUT", "value": {"C": null}},
+        {"topic": "OUTPUT", "value": {"C": null}}
+      ]
+    }
   ]
 }

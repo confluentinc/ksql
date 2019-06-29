@@ -41,6 +41,7 @@ import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -54,8 +55,8 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
 
   private final KsqlTopic ksqlTopic;
   private final KeyField keyField;
+  private final Optional<String> partitionByField;
   private final boolean doCreateInto;
-  private final boolean selectKeyRequired;
   private final Set<SerdeOption> serdeOptions;
   private final SinKFactory sinKFactory;
   private final Set<Integer> implicitAndKeyFieldIndexes;
@@ -67,7 +68,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
       final TimestampExtractionPolicy timestampExtractionPolicy,
       final KeyField keyField,
       final KsqlTopic ksqlTopic,
-      final boolean selectKeyRequired,
+      final Optional<String> partitionByField,
       final OptionalInt limit,
       final boolean doCreateInto,
       final Set<SerdeOption> serdeOptions
@@ -79,7 +80,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
         timestampExtractionPolicy,
         keyField,
         ksqlTopic,
-        selectKeyRequired,
+        partitionByField,
         limit,
         doCreateInto,
         serdeOptions,
@@ -96,7 +97,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
       final TimestampExtractionPolicy timestampExtractionPolicy,
       final KeyField keyField,
       final KsqlTopic ksqlTopic,
-      final boolean selectKeyRequired,
+      final Optional<String> partitionByField,
       final OptionalInt limit,
       final boolean doCreateInto,
       final Set<SerdeOption> serdeOptions,
@@ -110,7 +111,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
         // This is done by DataSourceNode
         // Hence, they must be removed again here if they are still in the sink schema.
         // This leads to strange behaviour, but changing it is a breaking change.
-        schema.withoutImplicitAndKeyFieldsInValue(),
+        schema.withoutMetaAndKeyFieldsInValue(),
         limit,
         timestampExtractionPolicy
     );
@@ -119,14 +120,12 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     this.keyField = requireNonNull(keyField, "keyField")
         .validateKeyExistsIn(schema);
     this.ksqlTopic = requireNonNull(ksqlTopic, "ksqlTopic");
-    this.selectKeyRequired = selectKeyRequired;
+    this.partitionByField = Objects.requireNonNull(partitionByField, "partitionByField");
     this.doCreateInto = doCreateInto;
     this.implicitAndKeyFieldIndexes = implicitAndKeyColumnIndexesInValueSchema(schema);
     this.sinKFactory = requireNonNull(sinkFactory, "sinkFactory");
 
-    if (selectKeyRequired && !keyField.name().isPresent()) {
-      throw new IllegalArgumentException("keyField must be provided when performing partition by");
-    }
+    validatePartitionByField();
   }
 
   public boolean isDoCreateInto() {
@@ -216,21 +215,35 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
         contextStacker.getQueryContext()
     );
 
-    if (!selectKeyRequired) {
+    if (!partitionByField.isPresent()) {
       return result;
     }
 
-    final Field newKey = keyField.resolveLatest(getSchema())
-        .orElseThrow(IllegalStateException::new);
-
-    return result.selectKey(newKey.name(), false, contextStacker);
+    return result.selectKey(partitionByField.get(), false, contextStacker);
   }
 
+  private void validatePartitionByField() {
+    if (!partitionByField.isPresent()) {
+      return;
+    }
+
+    final String fieldName = partitionByField.get();
+
+    if (getSchema().isMetaField(fieldName) || getSchema().isKeyField(fieldName)) {
+      return;
+    }
+
+    if (!keyField.name().equals(Optional.of(fieldName))) {
+      throw new IllegalArgumentException("keyField must match partition by field");
+    }
+  }
+
+  @SuppressWarnings("UnstableApiUsage")
   private static Set<Integer> implicitAndKeyColumnIndexesInValueSchema(final LogicalSchema schema) {
     final ConnectSchema valueSchema = schema.valueSchema();
 
-    @SuppressWarnings("UnstableApiUsage") final Stream<Field> fields = Streams.concat(
-        schema.implicitFields().stream(),
+    final Stream<Field> fields = Streams.concat(
+        schema.metaFields().stream(),
         schema.keyFields().stream()
     );
 

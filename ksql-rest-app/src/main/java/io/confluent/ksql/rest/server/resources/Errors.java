@@ -63,6 +63,13 @@ public final class Errors {
     return statusCode * HTTP_TO_ERROR_CODE_MULTIPLIER;
   }
 
+  public static Response accessDenied(final String msg) {
+    return Response
+        .status(FORBIDDEN)
+        .entity(new KsqlErrorMessage(ERROR_CODE_FORBIDDEN, msg))
+        .build();
+  }
+
   public static Response badRequest(final String msg) {
     return Response
         .status(BAD_REQUEST)

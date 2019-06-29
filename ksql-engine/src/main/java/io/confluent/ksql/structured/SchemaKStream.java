@@ -265,6 +265,8 @@ public class SchemaKStream<K> {
         final List<SelectExpression> selectExpressions,
         final Field keyField
     ) {
+      Optional<Field> found = Optional.empty();
+
       for (int i = 0; i < selectExpressions.size(); i++) {
         final String toName = selectExpressions.get(i).getName();
         final Expression toExpression = selectExpressions.get(i).getExpression();
@@ -281,18 +283,23 @@ public class SchemaKStream<K> {
               = (DereferenceExpression) toExpression;
 
           if (SchemaUtil.matchFieldName(keyField, dereferenceExpression.toString())) {
-            return Optional.of(new Field(toName, i, keyField.schema()));
+            found = Optional.of(new Field(toName, i, keyField.schema()));
+            break;
           }
         } else if (toExpression instanceof QualifiedNameReference) {
           final QualifiedNameReference qualifiedNameReference
               = (QualifiedNameReference) toExpression;
 
           if (SchemaUtil.matchFieldName(keyField, qualifiedNameReference.getName().getSuffix())) {
-            return Optional.of(new Field(toName, i, keyField.schema()));
+            found = Optional.of(new Field(toName, i, keyField.schema()));
+            break;
           }
         }
       }
-      return Optional.empty();
+
+      return found
+          .filter(f -> !SchemaUtil.isFieldName(f.name(), SchemaUtil.ROWTIME_NAME))
+          .filter(f -> !SchemaUtil.isFieldName(f.name(), SchemaUtil.ROWKEY_NAME));
     }
 
     private LogicalSchema buildSchema(
@@ -534,9 +541,12 @@ public class SchemaKStream<K> {
       );
     }
 
+    final int keyIndexInValue = schema.valueFieldIndex(proposedKey.name())
+        .orElseThrow(IllegalStateException::new);
+
     final KStream keyedKStream = kstream
-        .filter((key, value) -> value != null && extractColumn(proposedKey, value) != null)
-        .selectKey((key, value) -> extractColumn(proposedKey, value).toString())
+        .filter((key, value) -> value != null && extractColumn(keyIndexInValue, value) != null)
+        .selectKey((key, value) -> extractColumn(keyIndexInValue, value).toString())
         .mapValues((key, row) -> {
           if (updateRowKey) {
             row.getColumns().set(SchemaUtil.ROWKEY_INDEX, key);
@@ -544,10 +554,14 @@ public class SchemaKStream<K> {
           return row;
         });
 
+    final KeyField newKeyField = schema.isMetaField(fieldName)
+        ? resultantKeyField.withName(Optional.empty())
+        : resultantKeyField;
+
     return new SchemaKStream<>(
         schema,
         keyedKStream,
-        resultantKeyField,
+        newKeyField,
         Collections.singletonList(this),
         Serdes::String,
         Type.REKEY,
@@ -565,7 +579,7 @@ public class SchemaKStream<K> {
     return SchemaUtil.isFieldName(fieldName, SchemaUtil.ROWKEY_NAME);
   }
 
-  private Object extractColumn(final Field newKeyField, final GenericRow value) {
+  private Object extractColumn(final int keyIndexInValue, final GenericRow value) {
     if (value.getColumns().size() != schema.valueFields().size()) {
       throw new IllegalStateException("Field count mismatch. "
           + "Schema fields: " + schema
@@ -574,7 +588,7 @@ public class SchemaKStream<K> {
 
     return value
         .getColumns()
-        .get(schema.valueFieldIndex(newKeyField.name()).orElseThrow(IllegalStateException::new));
+        .get(keyIndexInValue);
   }
 
   private static String fieldNameFromExpression(final Expression expression) {

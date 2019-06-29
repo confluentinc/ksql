@@ -23,6 +23,7 @@ import io.confluent.ksql.metastore.SerdeFactory;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import java.util.Set;
 
@@ -61,8 +62,9 @@ abstract class StructuredDataSource<K> implements DataSource<K> {
     this.keySerde = requireNonNull(keySerde, "keySerde");
     this.serdeOptions = ImmutableSet.copyOf(requireNonNull(serdeOptions, "serdeOptions"));
 
-    if (!schema.withImplicitAndKeyFieldsInValue().equals(schema)) {
-      throw new IllegalArgumentException();
+    if (schema.findValueField(SchemaUtil.ROWKEY_NAME).isPresent()
+        || schema.findValueField(SchemaUtil.ROWTIME_NAME).isPresent()) {
+      throw new IllegalArgumentException("Schema contains implicit columns in value schema");
     }
   }
 

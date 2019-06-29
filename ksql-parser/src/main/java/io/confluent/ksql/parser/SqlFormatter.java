@@ -107,6 +107,11 @@ public final class SqlFormatter {
       processRelation(node.getFrom(), indent);
       builder.append('\n');
 
+      if (node.getWindow().isPresent()) {
+        append(indent, "WINDOW" + node.getWindow().get().getKsqlWindowExpression().toString())
+            .append('\n');
+      }
+
       if (node.getWhere().isPresent()) {
         append(indent, "WHERE " + ExpressionFormatter.formatExpression(node.getWhere().get()))
             .append('\n');

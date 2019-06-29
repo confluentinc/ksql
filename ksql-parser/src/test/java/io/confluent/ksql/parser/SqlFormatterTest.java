@@ -522,6 +522,57 @@ public class SqlFormatterTest {
     KsqlParserTestUtil.buildSingleAst(statementString, metaStore);
   }
 
+  @Test
+  public void shouldFormatTumblingWindow() {
+    // Given:
+    final String statementString = "CREATE STREAM S AS SELECT ITEMID, COUNT(*) FROM ORDERS WINDOW TUMBLING (SIZE 7 DAYS) GROUP BY ITEMID;";
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
+        .getStatement();
+
+    final String result = SqlFormatter.formatSql(statement);
+
+    assertThat(result, is("CREATE STREAM S AS SELECT\n"
+        + "  ORDERS.ITEMID \"ITEMID\"\n"
+        + ", COUNT(*) \"KSQL_COL_1\"\n"
+        + "FROM ORDERS ORDERS\n"
+        + "WINDOW TUMBLING ( SIZE 7 DAYS ) \n"
+        + "GROUP BY ORDERS.ITEMID"));
+  }
+
+  @Test
+  public void shouldFormatHoppingWindow() {
+    // Given:
+    final String statementString = "CREATE STREAM S AS SELECT ITEMID, COUNT(*) FROM ORDERS WINDOW HOPPING (SIZE 20 SECONDS, ADVANCE BY 5 SECONDS) GROUP BY ITEMID;";
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
+        .getStatement();
+
+    final String result = SqlFormatter.formatSql(statement);
+
+    assertThat(result, is("CREATE STREAM S AS SELECT\n"
+        + "  ORDERS.ITEMID \"ITEMID\"\n"
+        + ", COUNT(*) \"KSQL_COL_1\"\n"
+        + "FROM ORDERS ORDERS\n"
+        + "WINDOW HOPPING ( SIZE 20 SECONDS , ADVANCE BY 5 SECONDS ) \n"
+        + "GROUP BY ORDERS.ITEMID"));
+  }
+
+  @Test
+  public void shouldFormatSessionWindow() {
+    // Given:
+    final String statementString = "CREATE STREAM S AS SELECT ITEMID, COUNT(*) FROM ORDERS WINDOW SESSION (15 MINUTES) GROUP BY ITEMID;";
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
+        .getStatement();
+
+    final String result = SqlFormatter.formatSql(statement);
+
+    assertThat(result, is("CREATE STREAM S AS SELECT\n"
+        + "  ORDERS.ITEMID \"ITEMID\"\n"
+        + ", COUNT(*) \"KSQL_COL_1\"\n"
+        + "FROM ORDERS ORDERS\n"
+        + "WINDOW SESSION ( 15 MINUTES ) \n"
+        + "GROUP BY ORDERS.ITEMID"));
+  }
+
   private void assertValidSql(final String sql) {
     // Will throw if invalid
     KsqlParserTestUtil.buildAst(sql, metaStore);

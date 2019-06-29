@@ -31,13 +31,13 @@ import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.Literal;
-import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TableElements;
+import io.confluent.ksql.parser.tree.Type;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.SqlType;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.serde.SerdeFactories;
 import io.confluent.ksql.serde.SerdeOption;
@@ -63,11 +63,11 @@ public class CreateSourceCommandTest {
   private static final String TOPIC_NAME = "some topic";
 
   private static final TableElements ONE_ELEMENT = TableElements.of(
-      new TableElement("bob", PrimitiveType.of(SqlType.STRING)));
+      new TableElement("bob", new Type(SqlTypes.STRING)));
 
   private static final TableElements SOME_ELEMENTS = TableElements.of(
-      new TableElement("bob", PrimitiveType.of(SqlType.STRING)),
-      new TableElement("hojjat", PrimitiveType.of(SqlType.STRING))
+      new TableElement("bob", new Type(SqlTypes.STRING)),
+      new TableElement("hojjat", new Type(SqlTypes.STRING))
   );
 
   private static final Set<SerdeOption> SOME_SERDE_OPTIONS = ImmutableSet

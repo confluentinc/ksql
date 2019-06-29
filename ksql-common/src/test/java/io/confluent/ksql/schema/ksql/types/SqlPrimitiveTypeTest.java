@@ -13,20 +13,21 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.parser.tree;
+package io.confluent.ksql.schema.ksql.types;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.testing.EqualsTester;
-import io.confluent.ksql.schema.ksql.SqlType;
+import io.confluent.ksql.schema.ksql.SqlBaseType;
 import io.confluent.ksql.util.KsqlException;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-public class PrimitiveTypeTest {
+public class SqlPrimitiveTypeTest {
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -34,18 +35,23 @@ public class PrimitiveTypeTest {
   @Test
   public void shouldImplementHashCodeAndEqualsProperly() {
     new EqualsTester()
-        .addEqualityGroup(PrimitiveType.of(SqlType.BOOLEAN), PrimitiveType.of(SqlType.BOOLEAN))
-        .addEqualityGroup(PrimitiveType.of(SqlType.INTEGER), PrimitiveType.of(SqlType.INTEGER))
-        .addEqualityGroup(PrimitiveType.of(SqlType.BIGINT), PrimitiveType.of(SqlType.BIGINT))
-        .addEqualityGroup(PrimitiveType.of(SqlType.DOUBLE), PrimitiveType.of(SqlType.DOUBLE))
-        .addEqualityGroup(PrimitiveType.of(SqlType.STRING), PrimitiveType.of(SqlType.STRING))
-        .addEqualityGroup(Array.of(PrimitiveType.of(SqlType.STRING)))
+        .addEqualityGroup(SqlPrimitiveType.of(SqlBaseType.BOOLEAN),
+            SqlPrimitiveType.of(SqlBaseType.BOOLEAN))
+        .addEqualityGroup(SqlPrimitiveType.of(SqlBaseType.INTEGER),
+            SqlPrimitiveType.of(SqlBaseType.INTEGER))
+        .addEqualityGroup(SqlPrimitiveType.of(SqlBaseType.BIGINT),
+            SqlPrimitiveType.of(SqlBaseType.BIGINT))
+        .addEqualityGroup(SqlPrimitiveType.of(SqlBaseType.DOUBLE),
+            SqlPrimitiveType.of(SqlBaseType.DOUBLE))
+        .addEqualityGroup(SqlPrimitiveType.of(SqlBaseType.STRING),
+            SqlPrimitiveType.of(SqlBaseType.STRING))
+        .addEqualityGroup(SqlArray.of(SqlPrimitiveType.of(SqlBaseType.STRING)))
         .testEquals();
   }
 
   @Test
   public void shouldReturnSqlType() {
-    assertThat(PrimitiveType.of(SqlType.INTEGER).getSqlType(), is(SqlType.INTEGER));
+    assertThat(SqlPrimitiveType.of(SqlBaseType.INTEGER).baseType(), is(SqlBaseType.INTEGER));
   }
 
   @Test
@@ -55,7 +61,7 @@ public class PrimitiveTypeTest {
     expectedException.expectMessage("Unknown primitive type: WHAT_IS_THIS?");
 
     // When:
-    PrimitiveType.of("WHAT_IS_THIS?");
+    SqlPrimitiveType.of("WHAT_IS_THIS?");
   }
 
   @Test
@@ -65,7 +71,7 @@ public class PrimitiveTypeTest {
     expectedException.expectMessage("Invalid primitive type: ARRAY");
 
     // When:
-    PrimitiveType.of(SqlType.ARRAY);
+    SqlPrimitiveType.of(SqlBaseType.ARRAY);
   }
 
   @Test
@@ -75,7 +81,7 @@ public class PrimitiveTypeTest {
     expectedException.expectMessage("Invalid primitive type: MAP");
 
     // When:
-    PrimitiveType.of(SqlType.MAP);
+    SqlPrimitiveType.of(SqlBaseType.MAP);
   }
 
   @Test
@@ -85,37 +91,51 @@ public class PrimitiveTypeTest {
     expectedException.expectMessage("Invalid primitive type: STRUCT");
 
     // When:
-    PrimitiveType.of(SqlType.STRUCT);
+    SqlPrimitiveType.of(SqlBaseType.STRUCT);
   }
 
   @Test
-  public void shouldSupportPrimitiveTypes() {
+  public void shouldSupportSqlPrimitiveTypes() {
     // Given:
-    final java.util.Map<String, SqlType> primitives = ImmutableMap.of(
-        "BooleaN", SqlType.BOOLEAN,
-        "IntegeR", SqlType.INTEGER,
-        "BigInT", SqlType.BIGINT,
-        "DoublE", SqlType.DOUBLE,
-        "StrinG", SqlType.STRING
+    final java.util.Map<String, SqlBaseType> primitives = ImmutableMap.of(
+        "BooleaN", SqlBaseType.BOOLEAN,
+        "IntegeR", SqlBaseType.INTEGER,
+        "BigInT", SqlBaseType.BIGINT,
+        "DoublE", SqlBaseType.DOUBLE,
+        "StrinG", SqlBaseType.STRING
     );
 
     primitives.forEach((string, expected) ->
         // Then:
-        assertThat(PrimitiveType.of(string).getSqlType(), is(expected))
+        assertThat(SqlPrimitiveType.of(string).baseType(), is(expected))
     );
   }
 
   @Test
-  public void shouldSupportAlternativePrimitiveTypeNames() {
+  public void shouldSupportAlternativeSqlPrimitiveTypeNames() {
     // Given:
-    final java.util.Map<String, SqlType> primitives = ImmutableMap.of(
-        "InT", SqlType.INTEGER,
-        "VarchaR", SqlType.STRING
+    final java.util.Map<String, SqlBaseType> primitives = ImmutableMap.of(
+        "InT", SqlBaseType.INTEGER,
+        "VarchaR", SqlBaseType.STRING
     );
 
     primitives.forEach((string, expected) ->
         // Then:
-        assertThat(PrimitiveType.of(string).getSqlType(), is(expected))
+        assertThat(SqlPrimitiveType.of(string).baseType(), is(expected))
     );
+  }
+
+  @Test
+  public void shouldImplementToString() {
+    ImmutableList.of(
+        SqlBaseType.BOOLEAN,
+        SqlBaseType.INTEGER,
+        SqlBaseType.BIGINT,
+        SqlBaseType.DOUBLE,
+        SqlBaseType.STRING
+    ).forEach(type -> {
+      // Then:
+      assertThat(SqlPrimitiveType.of(type).toString(), is(type.toString()));
+    });
   }
 }

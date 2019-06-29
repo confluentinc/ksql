@@ -20,6 +20,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.PrintStream;
@@ -55,6 +56,7 @@ public class KsqlTestingToolTest {
     System.setErr(originalErr);
   }
 
+  @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
   @Test
   public void shouldRunCorrectsTest() throws Exception {
     final File testFolder = new File(CORRECT_TESTS_FOLDER);

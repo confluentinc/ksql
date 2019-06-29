@@ -76,7 +76,6 @@ import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
-import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.StringLiteral;
@@ -115,7 +114,7 @@ import io.confluent.ksql.rest.server.computation.QueuedCommandStatus;
 import io.confluent.ksql.rest.util.EntityUtil;
 import io.confluent.ksql.rest.util.TerminateCluster;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.SqlType;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
@@ -186,7 +185,7 @@ public class KsqlResourceTest {
   private static final ClusterTerminateRequest VALID_TERMINATE_REQUEST =
       new ClusterTerminateRequest(ImmutableList.of("Foo"));
   private static final TableElements SOME_ELEMENTS = TableElements.of(
-      new TableElement("f0", PrimitiveType.of(SqlType.STRING))
+      new TableElement("f0", new io.confluent.ksql.parser.tree.Type(SqlTypes.STRING))
   );
   private static final PreparedStatement<CreateStream> STMT_0_WITH_SCHEMA = PreparedStatement.of(
       "sql with schema",

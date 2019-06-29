@@ -3,12 +3,9 @@ package io.confluent.ksql.schema.ksql;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
-import io.confluent.ksql.parser.tree.Array;
-import io.confluent.ksql.parser.tree.Decimal;
-import io.confluent.ksql.parser.tree.Map;
-import io.confluent.ksql.parser.tree.PrimitiveType;
-import io.confluent.ksql.parser.tree.Struct;
 import io.confluent.ksql.parser.tree.Type;
+import io.confluent.ksql.schema.ksql.types.SqlStruct;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
 import org.junit.Rule;
 import org.junit.Test;
@@ -28,19 +25,19 @@ public class TypeContextUtilTest {
     final Type type = TypeContextUtil.getType(schemaString);
 
     // Then:
-    assertThat(type, is(PrimitiveType.of(SqlType.STRING)));
+    assertThat(type, is(new Type(SqlTypes.STRING)));
   }
 
   @Test
   public void shouldGetTypeFromDecimal() {
     // Given:
-    final String schemaString = "DECIMAL(1, 2)";
+    final String schemaString = "DECIMAL(2, 1)";
 
     // When:
     final Type type = TypeContextUtil.getType(schemaString);
 
     // Then:
-    assertThat(type, is(Decimal.of(1, 2)));
+    assertThat(type, is(new Type(SqlTypes.decimal(2, 1))));
   }
 
   @Test
@@ -52,7 +49,7 @@ public class TypeContextUtilTest {
     final Type type = TypeContextUtil.getType(schemaString);
 
     // Then:
-    assertThat(type, is(Array.of(PrimitiveType.of(SqlType.STRING))));
+    assertThat(type, is(new Type(SqlTypes.array(SqlTypes.STRING))));
   }
 
   @Test
@@ -64,7 +61,7 @@ public class TypeContextUtilTest {
     final Type type = TypeContextUtil.getType(schemaString);
 
     // Then:
-    assertThat(type, is(Array.of(PrimitiveType.of(SqlType.INTEGER))));
+    assertThat(type, is(new Type(SqlTypes.array(SqlTypes.INTEGER))));
   }
 
   @Test
@@ -76,7 +73,7 @@ public class TypeContextUtilTest {
     final Type type = TypeContextUtil.getType(schemaString);
 
     // Then:
-    assertThat(type, is(Map.of(PrimitiveType.of(SqlType.INTEGER))));
+    assertThat(type, is(new Type(SqlTypes.map(SqlTypes.INTEGER))));
   }
 
   @Test
@@ -88,7 +85,7 @@ public class TypeContextUtilTest {
     final Type type = TypeContextUtil.getType(schemaString);
 
     // Then:
-    assertThat(type, is(Struct.builder().addField("A", PrimitiveType.of(SqlType.STRING)).build()));
+    assertThat(type, is(new Type(SqlTypes.struct().field("A", SqlTypes.STRING).build())));
   }
 
   @Test
@@ -100,10 +97,10 @@ public class TypeContextUtilTest {
     final Type type = TypeContextUtil.getType(schemaString);
 
     // Then:
-    assertThat(type, is(Struct.builder()
-        .addField("A", PrimitiveType.of(SqlType.STRING))
-        .addField("B", PrimitiveType.of(SqlType.INTEGER))
-        .build()));
+    assertThat(type, is(new Type(SqlStruct.builder()
+        .field("A", SqlTypes.STRING)
+        .field("B", SqlTypes.INTEGER)
+        .build())));
   }
 
   @Test

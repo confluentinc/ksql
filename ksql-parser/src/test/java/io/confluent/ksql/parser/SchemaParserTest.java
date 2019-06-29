@@ -20,11 +20,10 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 
 import com.google.common.collect.Iterables;
-import io.confluent.ksql.parser.tree.Map;
-import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TableElements;
-import io.confluent.ksql.schema.ksql.SqlType;
+import io.confluent.ksql.parser.tree.Type;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
 import org.junit.Rule;
 import org.junit.Test;
@@ -45,8 +44,8 @@ public class SchemaParserTest {
 
     // Then:
     assertThat(elements, contains(
-        new TableElement("FOO", PrimitiveType.of(SqlType.INTEGER)),
-        new TableElement("BAR", Map.of(PrimitiveType.of(SqlType.STRING)))
+        new TableElement("FOO", new Type(SqlTypes.INTEGER)),
+        new TableElement("BAR", new Type(SqlTypes.map(SqlTypes.STRING)))
     ));
   }
 
@@ -60,7 +59,7 @@ public class SchemaParserTest {
 
     // Then:
     assertThat(elements, contains(
-        new TableElement("END", PrimitiveType.of(SqlType.STRING))
+        new TableElement("END", new Type(SqlTypes.STRING))
     ));
   }
 
@@ -74,7 +73,7 @@ public class SchemaParserTest {
 
     // Then:
     assertThat(elements, contains(
-        new TableElement("End", PrimitiveType.of(SqlType.STRING))
+        new TableElement("End", new Type(SqlTypes.STRING))
     ));
   }
 

@@ -28,19 +28,19 @@ import org.apache.kafka.connect.data.Schema;
 
 public final class DefaultSqlValueCoercer implements SqlValueCoercer {
 
-  private static final Map<SqlType, Function<Number, Number>> UPCASTER =
-      ImmutableMap.<SqlType, Function<Number, Number>>builder()
-          .put(SqlType.INTEGER, Number::intValue)
-          .put(SqlType.BIGINT, Number::longValue)
-          .put(SqlType.DOUBLE, Number::doubleValue)
+  private static final Map<SqlBaseType, Function<Number, Number>> UPCASTER =
+      ImmutableMap.<SqlBaseType, Function<Number, Number>>builder()
+          .put(SqlBaseType.INTEGER, Number::intValue)
+          .put(SqlBaseType.BIGINT, Number::longValue)
+          .put(SqlBaseType.DOUBLE, Number::doubleValue)
           .build();
 
   public <T> Optional<T> coerce(final Object value, final Schema targetSchema) {
-    final SqlType valueSqlType = SchemaConverters.javaToSqlConverter()
+    final SqlBaseType valueSqlType = SchemaConverters.javaToSqlConverter()
         .toSqlType(value.getClass());
-    final SqlType targetSqlType = SchemaConverters.logicalToSqlConverter()
+    final SqlBaseType targetSqlType = SchemaConverters.logicalToSqlConverter()
         .toSqlType(targetSchema)
-        .getSqlType();
+        .baseType();
 
     if (valueSqlType.equals(targetSqlType)) {
       return optional(value);

@@ -13,38 +13,20 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.parser.tree;
+package io.confluent.ksql.schema.ksql.types;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.testing.EqualsTester;
-import io.confluent.ksql.parser.tree.Struct.Field;
-import io.confluent.ksql.schema.ksql.SqlType;
+import io.confluent.ksql.schema.ksql.SqlBaseType;
 import io.confluent.ksql.util.KsqlException;
-import java.util.List;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-
-public class StructTest {
-
-  private static final List<Field> SOME_OTHER_FIELDS = ImmutableList.of(
-      new Field("f0", PrimitiveType.of(SqlType.BOOLEAN))
-  );
-
-  private static final List<Field> SOME_FIELDS = ImmutableList.of(
-      new Field("f0", PrimitiveType.of(SqlType.BOOLEAN)),
-      new Field("f1", PrimitiveType.of(SqlType.INTEGER)),
-      new Field("f2", PrimitiveType.of(SqlType.BIGINT)),
-      new Field("f3", PrimitiveType.of(SqlType.DOUBLE)),
-      new Field("f4", PrimitiveType.of(SqlType.STRING)),
-      new Field("f5", Array.of(PrimitiveType.of(SqlType.BOOLEAN))),
-      new Field("f6", Map.of(PrimitiveType.of(SqlType.INTEGER))),
-      new Field("f7", Struct.builder().addFields(SOME_OTHER_FIELDS).build())
-  );
+public class SqlStructTest {
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -53,24 +35,37 @@ public class StructTest {
   public void shouldImplementHashCodeAndEqualsProperly() {
     new EqualsTester()
         .addEqualityGroup(
-            Struct.builder().addFields(SOME_FIELDS).build(),
-            Struct.builder().addFields(SOME_FIELDS).build()
+            SqlStruct.builder().field("f0", SqlTypes.INTEGER).build(),
+            SqlStruct.builder().field("f0", SqlTypes.INTEGER).build()
         )
         .addEqualityGroup(
-            Struct.builder().addFields(SOME_OTHER_FIELDS).build()
+            SqlStruct.builder().field("f1", SqlTypes.INTEGER).build()
         )
-        .addEqualityGroup(Map.of(PrimitiveType.of(SqlType.BOOLEAN)))
+        .addEqualityGroup(
+            SqlStruct.builder().field("f0", SqlTypes.BIGINT).build()
+        )
         .testEquals();
   }
 
   @Test
   public void shouldReturnSqlType() {
-    assertThat(Struct.builder().addFields(SOME_FIELDS).build().getSqlType(), is(SqlType.STRUCT));
+    assertThat(SqlStruct.builder().field("f0", SqlTypes.BIGINT).build().baseType(),
+        is(SqlBaseType.STRUCT));
   }
 
   @Test
   public void shouldReturnFields() {
-    assertThat(Struct.builder().addFields(SOME_FIELDS).build().getFields(), is(SOME_FIELDS));
+    // When:
+    final SqlStruct struct = SqlStruct.builder()
+        .field("f0", SqlTypes.BIGINT)
+        .field("f1", SqlTypes.DOUBLE)
+        .build();
+
+    // Then:
+    assertThat(struct.getFields(), contains(
+        new SqlStruct.Field("f0", SqlTypes.BIGINT),
+        new SqlStruct.Field("f1", SqlTypes.DOUBLE)
+    ));
   }
 
   @Test
@@ -80,7 +75,7 @@ public class StructTest {
     expectedException.expectMessage("STRUCT type must define fields");
 
     // When:
-    Struct.builder().build();
+    SqlStruct.builder().build();
   }
 
   @Test
@@ -91,19 +86,39 @@ public class StructTest {
         "Duplicate field names found in STRUCT: 'F0 BOOLEAN' and 'F0 INTEGER'");
 
     // When:
-    Struct.builder()
-        .addField("F0", PrimitiveType.of(SqlType.BOOLEAN))
-        .addField("F0", PrimitiveType.of(SqlType.INTEGER));
+    SqlStruct.builder()
+        .field("F0", SqlPrimitiveType.of(SqlBaseType.BOOLEAN))
+        .field("F0", SqlPrimitiveType.of(SqlBaseType.INTEGER));
   }
 
   @Test
   public void shouldNotThrowIfTwoFieldsHaveSameNameButDifferentCase() {
     // When:
-    Struct.builder()
-        .addField("f0", PrimitiveType.of(SqlType.BOOLEAN))
-        .addField("F0", PrimitiveType.of(SqlType.BOOLEAN))
+    SqlStruct.builder()
+        .field("f0", SqlPrimitiveType.of(SqlBaseType.BOOLEAN))
+        .field("F0", SqlPrimitiveType.of(SqlBaseType.BOOLEAN))
         .build();
 
     // Then: did not throw.
+  }
+
+  @Test
+  public void shouldImplementToString() {
+    // Given:
+    final SqlStruct struct = SqlStruct.builder()
+        .field("f0", SqlTypes.BIGINT)
+        .field("F1", SqlTypes.array(SqlTypes.DOUBLE))
+        .build();
+
+    // When:
+    final String sql = struct.toString();
+
+    // Then:
+    assertThat(sql, is(
+        "STRUCT<"
+            + "f0 " + SqlTypes.BIGINT
+            + ", F1 " + SqlTypes.array(SqlTypes.DOUBLE)
+            + ">"
+    ));
   }
 }

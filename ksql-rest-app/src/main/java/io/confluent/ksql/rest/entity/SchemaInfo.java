@@ -20,7 +20,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.schema.ksql.SqlType;
+import io.confluent.ksql.schema.ksql.SqlBaseType;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -29,13 +29,13 @@ import java.util.Optional;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class SchemaInfo {
 
-  private final SqlType type;
+  private final SqlBaseType type;
   private final List<FieldInfo> fields;
   private final SchemaInfo memberSchema;
 
   @JsonCreator
   public SchemaInfo(
-      @JsonProperty("type") final SqlType type,
+      @JsonProperty("type") final SqlBaseType type,
       @JsonProperty("fields") final List<? extends FieldInfo> fields,
       @JsonProperty("memberSchema") final SchemaInfo memberSchema) {
     Objects.requireNonNull(type);
@@ -46,7 +46,7 @@ public class SchemaInfo {
     this.memberSchema = memberSchema;
   }
 
-  public SqlType getType() {
+  public SqlBaseType getType() {
     return type;
   }
 

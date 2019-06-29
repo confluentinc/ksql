@@ -46,7 +46,6 @@ import io.confluent.ksql.parser.tree.SimpleCaseExpression;
 import io.confluent.ksql.parser.tree.SimpleGroupBy;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Statements;
-import io.confluent.ksql.parser.tree.Struct;
 import io.confluent.ksql.parser.tree.SubscriptExpression;
 import io.confluent.ksql.parser.tree.WhenClause;
 import java.util.Set;
@@ -228,14 +227,6 @@ public abstract class DefaultTraversalVisitor<R, C>
     process(node.getLeft(), context);
     process(node.getRight(), context);
 
-    return null;
-  }
-
-  @Override
-  protected R visitStruct(final Struct node, final C context) {
-    for (final Struct.Field field : node.getFields()) {
-      process(field.getType(), context);
-    }
     return null;
   }
 

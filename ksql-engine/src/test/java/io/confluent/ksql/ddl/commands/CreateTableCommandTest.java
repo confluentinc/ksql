@@ -23,7 +23,6 @@ import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.InternalFunctionRegistry;
@@ -35,6 +34,7 @@ import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
+import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.schema.ksql.SqlType;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
@@ -76,7 +76,7 @@ public class CreateTableCommandTest {
   public void setUp() {
     givenPropertiesWith((Collections.emptyMap()));
     when(createTableStatement.getName()).thenReturn(QualifiedName.of(TABLE_NAME));
-    when(createTableStatement.getElements()).thenReturn(ImmutableList.of(
+    when(createTableStatement.getElements()).thenReturn(TableElements.of(
         new TableElement("SOME-KEY", PrimitiveType.of(SqlType.STRING))
     ));
     when(topicClient.isTopicExists(any())).thenReturn(true);

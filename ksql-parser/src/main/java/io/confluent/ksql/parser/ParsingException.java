@@ -27,20 +27,8 @@ public class ParsingException
   private final int line;
   private final int charPositionInLine;
 
-  public ParsingException(final String message, final RecognitionException cause, final int line,
-                          final int charPositionInLine) {
-    super(message, cause);
-
-    this.line = line;
-    this.charPositionInLine = charPositionInLine;
-  }
-
   public ParsingException(final String message) {
     this(message, null, 1, 0);
-  }
-
-  public ParsingException(final String message, final NodeLocation nodeLocation) {
-    this(message, null, nodeLocation.getLineNumber(), nodeLocation.getColumnNumber());
   }
 
   public ParsingException(final String message, final Optional<NodeLocation> nodeLocation) {
@@ -50,6 +38,18 @@ public class ParsingException
         nodeLocation.map(NodeLocation::getLineNumber).orElse(1),
         nodeLocation.map(NodeLocation::getColumnNumber).orElse(0)
     );
+  }
+
+  ParsingException(
+      final String message,
+      final RecognitionException cause,
+      final int line,
+      final int charPositionInLine
+  ) {
+    super(message, cause);
+
+    this.line = line;
+    this.charPositionInLine = charPositionInLine;
   }
 
   public int getLineNumber() {

@@ -24,6 +24,7 @@ import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.hamcrest.core.IsNot.not;
 import static org.mockito.Mockito.mock;
 
+import com.google.common.collect.Iterables;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParserTestUtil;
@@ -315,8 +316,8 @@ public class StatementRewriterTest {
     assertThat(rewrittenStatement, instanceOf(CreateStream.class));
     final CreateStream createStream = (CreateStream)rewrittenStatement;
     assertThat(createStream.getName().toString(), equalTo("ORDERS"));
-    assertThat(createStream.getElements().size(), equalTo(4));
-    assertThat(createStream.getElements().get(0).getName(), equalTo("ORDERTIME"));
+    assertThat(Iterables.size(createStream.getElements()), equalTo(4));
+    assertThat(Iterables.get(createStream.getElements(), 0).getName(), equalTo("ORDERTIME"));
   }
 
   @Test
@@ -333,10 +334,10 @@ public class StatementRewriterTest {
     assertThat(rewrittenStatement, instanceOf(CreateStream.class));
     final CreateStream createStream = (CreateStream)rewrittenStatement;
     assertThat(createStream.getName().toString().toUpperCase(), equalTo("ORDERS"));
-    assertThat(createStream.getElements().size(), equalTo(7));
-    assertThat(createStream.getElements().get(0).getName().toLowerCase(), equalTo("ordertime"));
-    assertThat(createStream.getElements().get(6).getType().getSqlType(), equalTo(SqlType.STRUCT));
-    final Struct struct = (Struct) createStream.getElements().get(6).getType();
+    assertThat(Iterables.size(createStream.getElements()), equalTo(7));
+    assertThat(Iterables.get(createStream.getElements(), 0).getName().toLowerCase(), equalTo("ordertime"));
+    assertThat(Iterables.get(createStream.getElements(), 6).getType().getSqlType(), equalTo(SqlType.STRUCT));
+    final Struct struct = (Struct) Iterables.get(createStream.getElements(), 6).getType();
     assertThat(struct.getFields(), hasSize(5));
     assertThat(struct.getFields().get(0).getType().getSqlType(), equalTo(SqlType.STRING));
   }
@@ -355,8 +356,8 @@ public class StatementRewriterTest {
     final CreateStream createStream = (CreateStream)rewrittenStatement;
 
     assertThat(createStream.getName().toString(), equalTo("ORDERS"));
-    assertThat(createStream.getElements().size(), equalTo(4));
-    assertThat(createStream.getElements().get(0).getName(), equalTo("ORDERTIME"));
+    assertThat(Iterables.size(createStream.getElements()), equalTo(4));
+    assertThat(Iterables.get(createStream.getElements(), 0).getName(), equalTo("ORDERTIME"));
     assertThat(createStream.getProperties().getKafkaTopic(), equalTo("orders_topic"));
     assertThat(createStream.getProperties().getValueFormat(), equalTo(Format.AVRO));
   }
@@ -371,8 +372,8 @@ public class StatementRewriterTest {
     assertThat(rewrittenStatement, is(instanceOf(CreateTable.class)));
     final CreateTable createTable = (CreateTable)rewrittenStatement;
     assertThat(createTable.getName().toString(), equalTo("USERS"));
-    assertThat(createTable.getElements().size(), equalTo(4));
-    assertThat(createTable.getElements().get(0).getName(), equalTo("USERTIME"));
+    assertThat(Iterables.size(createTable.getElements()), equalTo(4));
+    assertThat(Iterables.get(createTable.getElements(), 0).getName(), equalTo("USERTIME"));
   }
 
   @Test
@@ -385,8 +386,8 @@ public class StatementRewriterTest {
     assertThat(rewrittenStatement, is(instanceOf(CreateTable.class)));
     final CreateTable createTable = (CreateTable)rewrittenStatement;
     assertThat(createTable.getName().toString(), equalTo("USERS"));
-    assertThat(createTable.getElements().size(), equalTo(4));
-    assertThat(createTable.getElements().get(0).getName(), equalTo("USERTIME"));
+    assertThat(Iterables.size(createTable.getElements()), equalTo(4));
+    assertThat(Iterables.get(createTable.getElements(), 0).getName(), equalTo("USERTIME"));
     assertThat(createTable.getProperties().getKafkaTopic(), equalTo("users_topic"));
     assertThat(createTable.getProperties().getValueFormat(), equalTo(Format.JSON));
   }

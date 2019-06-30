@@ -60,6 +60,7 @@ import io.confluent.ksql.parser.tree.Struct;
 import io.confluent.ksql.parser.tree.SubscriptExpression;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TableElement;
+import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.parser.tree.WhenClause;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.parser.tree.WithinExpression;
@@ -397,7 +398,7 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
         .map(tableElement -> (TableElement) process(tableElement, context))
         .collect(Collectors.toList());
 
-    return node.copyWith(rewrittenElements, node.getProperties());
+    return node.copyWith(TableElements.of(rewrittenElements), node.getProperties());
   }
 
   protected Node visitCreateStreamAsSelect(final CreateStreamAsSelect node, final Object context) {
@@ -424,7 +425,7 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
         .map(tableElement -> (TableElement) process(tableElement, context))
         .collect(Collectors.toList());
 
-    return node.copyWith(rewrittenElements, node.getProperties());
+    return node.copyWith(TableElements.of(rewrittenElements), node.getProperties());
   }
 
   protected Node visitCreateTableAsSelect(final CreateTableAsSelect node, final Object context) {

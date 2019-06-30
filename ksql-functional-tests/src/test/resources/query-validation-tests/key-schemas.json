@@ -1,0 +1,42 @@
+{
+  "tests": [
+    {
+      "name": "stream implicit STRING ROWKEY",
+      "statements": [
+        "CREATE STREAM INPUT (ID bigint) WITH (kafka_topic='input',value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT ID, ROWKEY as KEY FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input", "key": 1, "value": {"id": 1}},
+        {"topic": "input", "key": "1", "value": {"id": 2}},
+        {"topic": "input", "key": "", "value": {"id": 3}},
+        {"topic": "input", "key": null, "value": {"id": 4}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "1", "value": {"ID": 1, "KEY": "1"}},
+        {"topic": "OUTPUT", "key": "1", "value": {"ID": 2, "KEY": "1"}},
+        {"topic": "OUTPUT", "key": "", "value": {"ID": 3, "KEY": ""}},
+        {"topic": "OUTPUT", "key": null, "value": {"ID": 4, "KEY": ""}}
+      ]
+    },
+    {
+      "name": "table implicit STRING ROWKEY",
+      "statements": [
+        "CREATE TABLE INPUT (ID bigint) WITH (kafka_topic='input',value_format='JSON');",
+        "CREATE TABLE OUTPUT as SELECT ID, ROWKEY as KEY FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input", "key": 1, "value": {"id": 1}},
+        {"topic": "input", "key": "1", "value": {"id": 2}},
+        {"topic": "input", "key": "", "value": {"id": 3}},
+        {"topic": "input", "key": null, "value": {"id": 4}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "1", "value": {"ID": 1, "KEY": "1"}},
+        {"topic": "OUTPUT", "key": "1", "value": {"ID": 2, "KEY": "1"}},
+        {"topic": "OUTPUT", "key": "", "value": {"ID": 3, "KEY": ""}},
+        {"topic": "OUTPUT", "key": null, "value": {"ID": 4, "KEY": ""}}
+      ]
+    }
+  ]
+}

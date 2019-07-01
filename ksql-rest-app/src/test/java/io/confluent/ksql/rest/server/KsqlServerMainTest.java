@@ -48,6 +48,10 @@ public class KsqlServerMainTest {
   @Before
   public void setUp() {
     main = new KsqlServerMain(executable);
+    when(mockStreamsStateDir.exists()).thenReturn(true);
+    when(mockStreamsStateDir.isDirectory()).thenReturn(true);
+    when(mockStreamsStateDir.canWrite()).thenReturn(true);
+    when(mockStreamsStateDir.getPath()).thenReturn("/var/lib/kafka-streams");
   }
 
   @Test
@@ -90,7 +94,6 @@ public class KsqlServerMainTest {
   public void shouldFailIfStreamsStateDirectoryDoesNotExist() {
     // Given:
     when(mockStreamsStateDir.exists()).thenReturn(false);
-    when(mockStreamsStateDir.getPath()).thenReturn("/var/lib/kafka-streams");
 
     expectedException.expect(KsqlServerException.class);
     expectedException.expectMessage(
@@ -105,9 +108,7 @@ public class KsqlServerMainTest {
   @Test
   public void shouldFailIfStreamsStateDirectoryIsNotDirectory() {
     // Given:
-    when(mockStreamsStateDir.exists()).thenReturn(true);
     when(mockStreamsStateDir.exists()).thenReturn(false);
-    when(mockStreamsStateDir.getPath()).thenReturn("/var/lib/kafka-streams");
 
     expectedException.expect(KsqlServerException.class);
     expectedException.expectMessage(
@@ -121,10 +122,7 @@ public class KsqlServerMainTest {
   @Test
   public void shouldFailIfStreamsStateDirectoryIsNotWritable() {
     // Given:
-    when(mockStreamsStateDir.exists()).thenReturn(true);
-    when(mockStreamsStateDir.isDirectory()).thenReturn(true);
     when(mockStreamsStateDir.canWrite()).thenReturn(false);
-    when(mockStreamsStateDir.getPath()).thenReturn("/var/lib/kafka-streams");
 
     expectedException.expect(KsqlServerException.class);
     expectedException.expectMessage(

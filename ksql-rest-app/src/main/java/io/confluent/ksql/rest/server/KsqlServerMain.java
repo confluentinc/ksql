@@ -18,7 +18,9 @@ package io.confluent.ksql.rest.server;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
 import io.confluent.ksql.properties.PropertiesUtil;
+import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.version.metrics.KsqlVersionCheckerAgent;
+import java.io.File;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -46,6 +48,9 @@ public class KsqlServerMain {
       );
 
       final String installDir = properties.getOrDefault("ksql.server.install.dir", "");
+      final String streamsStateDirPath = properties.getOrDefault("ksql.streams.state.dir",
+          getSampleStreamsConfig().getString(StreamsConfig.STATE_DIR_CONFIG));
+      enforceStreamStateDirAvailability(new File(streamsStateDirPath));
       final Optional<String> queriesFile = serverOptions.getQueriesFile(properties);
       final Executable executable = createExecutable(properties, queriesFile, installDir);
       new KsqlServerMain(executable).tryStartApp();
@@ -98,5 +103,29 @@ public class KsqlServerMain {
     builder.putAll(properties);
     builder.put(StreamsConfig.APPLICATION_ID_CONFIG, KSQL_REST_SERVER_DEFAULT_APP_ID);
     return builder.build();
+  }
+
+  // package-private for test purpose
+  static void enforceStreamStateDirAvailability(final File streamsStateDir) {
+    if (!streamsStateDir.exists() || !streamsStateDir.isDirectory()) {
+      throw new KsqlServerException("The kafka streams state directory does not exist: "
+          + streamsStateDir.getPath()
+          + "\n Make sure the directory exists and is writable for KSQL server."
+      );
+    }
+    if (!streamsStateDir.canWrite()) {
+      throw new KsqlServerException("The kafka streams state directory is not writable "
+          + "for KSQL server: "
+          + streamsStateDir.getPath()
+          + "\n Make sure KSQL server has write access to this directory or change it to a writable"
+          + " one by setting `ksql.streams.state.dir` config in the properties file."
+      );
+    }
+  }
+
+  private static StreamsConfig getSampleStreamsConfig() {
+    return new StreamsConfig(
+        ImmutableMap.of(StreamsConfig.APPLICATION_ID_CONFIG, "foo",
+        "bootstrap.servers", "bar"));
   }
 }

@@ -74,6 +74,10 @@ public final class ParserUtil {
           .collect(Collectors.toSet())
   );
 
+  public static boolean isReservedIdentifier(final String name) {
+    return LITERALS_SET.contains(name.toUpperCase());
+  }
+
   public static String escapeIfLiteral(final String name) {
     return LITERALS_SET.contains(name.toUpperCase()) ? "`" + name + "`" : name;
   }

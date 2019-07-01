@@ -126,7 +126,11 @@ public final class SqlStruct extends SqlType {
     }
 
     public String toString(final FormatOptions formatOptions) {
-      return formatOptions.escapeFieldName(name) + " " + type;
+      final String fieldName = formatOptions.isReservedWord(name)
+          ? "`" + name  + "`"
+          : name;
+      
+      return fieldName + " " + type;
     }
   }
 

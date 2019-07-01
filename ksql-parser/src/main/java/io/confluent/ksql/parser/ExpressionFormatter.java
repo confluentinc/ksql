@@ -84,7 +84,7 @@ public final class ExpressionFormatter {
 
     @Override
     protected String visitType(final Type node, final Boolean context) {
-      return node.getSqlType().toString(FormatOptions.of(ParserUtil::escapeIfLiteral));
+      return node.getSqlType().toString(FormatOptions.of(ParserUtil::isReservedIdentifier));
     }
 
     @Override

@@ -48,6 +48,7 @@ import io.confluent.ksql.rest.entity.KsqlTopicsList;
 import io.confluent.ksql.rest.entity.PropertiesList;
 import io.confluent.ksql.rest.entity.Queries;
 import io.confluent.ksql.rest.entity.RunningQuery;
+import io.confluent.ksql.rest.entity.SchemaInfo;
 import io.confluent.ksql.rest.entity.SourceDescription;
 import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
 import io.confluent.ksql.rest.entity.SourceInfo;
@@ -58,6 +59,7 @@ import io.confluent.ksql.rest.entity.TopicDescription;
 import io.confluent.ksql.rest.server.computation.CommandId;
 import io.confluent.ksql.rest.util.EntityUtil;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SqlType;
 import io.confluent.ksql.serde.Format;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -110,6 +112,23 @@ public class ConsoleTest {
   public void testPrintGenericStreamedRow() throws IOException {
     final StreamedRow row = StreamedRow.row(new GenericRow(ImmutableList.of("col_1", "col_2")));
     console.printStreamedRow(row);
+  }
+
+  @Test
+  public void testPrintRowHeader() throws IOException {
+    // Given:
+    final List<FieldInfo> header = ImmutableList.of(
+        new FieldInfo("col_1", new SchemaInfo(SqlType.STRING, null, null)),
+        new FieldInfo("col_2", new SchemaInfo(SqlType.INTEGER, null, null))
+    );
+
+    // When:
+    console.printRowHeader(header);
+
+    // Then:
+    if (console.getOutputFormat() == OutputFormat.TABULAR) {
+      assertThat(terminal.getOutputString(), is("col_1 | col_2\n-------------\n"));
+    }
   }
 
   @Test

@@ -331,6 +331,26 @@ public class Console implements Closeable {
     }
   }
 
+  public void printRowHeader(final List<FieldInfo> fields) throws IOException {
+    switch (outputFormat) {
+      case JSON:
+        printAsJson(fields);
+        break;
+      case TABULAR:
+        final String header = fields.stream()
+            .map(FieldInfo::getName)
+            .collect(Collectors.joining(" | "));
+        writer().println(header);
+        writer().println(StringUtils.repeat('-', header.length()));
+        break;
+      default:
+        throw new RuntimeException(String.format(
+            "Unexpected output format: '%s'",
+            outputFormat.name()
+        ));
+    }
+  }
+
   public void registerCliSpecificCommand(final CliSpecificCommand cliSpecificCommand) {
     cliSpecificCommands.put(cliSpecificCommand.getName().toLowerCase(), cliSpecificCommand);
   }

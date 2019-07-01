@@ -37,6 +37,7 @@ import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
+import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.schema.ksql.SqlType;
 import io.confluent.ksql.serde.SerdeOption;
@@ -60,7 +61,7 @@ public class CommandFactoriesTest {
   private static final Map<String, Object> NO_PROPS = Collections.emptyMap();
   private static final String sqlExpression = "sqlExpression";
   private static final TableElements SOME_ELEMENTS = TableElements.of(
-      new TableElement("bob", PrimitiveType.of(SqlType.STRING)));
+      new TableElement(Namespace.VALUE, "bob", PrimitiveType.of(SqlType.STRING)));
 
   @Mock
   private KafkaTopicClient topicClient;
@@ -106,8 +107,8 @@ public class CommandFactoriesTest {
 
     final CreateTable ddlStatement = new CreateTable(SOME_NAME,
         TableElements.of(
-            new TableElement("COL1", PrimitiveType.of(SqlType.BIGINT)),
-            new TableElement("COL2", PrimitiveType.of(SqlType.STRING))),
+            new TableElement(Namespace.VALUE, "COL1", PrimitiveType.of(SqlType.BIGINT)),
+            new TableElement(Namespace.VALUE, "COL2", PrimitiveType.of(SqlType.STRING))),
         true, tableProperties);
 
     // When:

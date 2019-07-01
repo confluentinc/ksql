@@ -42,6 +42,7 @@ import java.util.Optional;
 import java.util.function.Supplier;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.Serde;
+import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.SchemaBuilder;
 
@@ -102,7 +103,13 @@ public class JoinNode extends PlanNode {
     for (final Field field : rightSchema.valueSchema().fields()) {
       schemaBuilder.field(field.name(), field.schema());
     }
-    return LogicalSchema.of(schemaBuilder.build());
+
+    final ConnectSchema keySchema = left.getSchema().withoutAlias().keySchema();
+
+    return LogicalSchema.of(
+        keySchema,
+        schemaBuilder.build()
+    );
   }
 
   @Override

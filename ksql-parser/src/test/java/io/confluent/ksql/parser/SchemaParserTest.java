@@ -18,11 +18,13 @@ package io.confluent.ksql.parser;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.hasItem;
 
 import com.google.common.collect.Iterables;
 import io.confluent.ksql.parser.tree.Map;
 import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.TableElement;
+import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.schema.ksql.SqlType;
 import io.confluent.ksql.util.KsqlException;
@@ -45,8 +47,23 @@ public class SchemaParserTest {
 
     // Then:
     assertThat(elements, contains(
-        new TableElement("FOO", PrimitiveType.of(SqlType.INTEGER)),
-        new TableElement("BAR", Map.of(PrimitiveType.of(SqlType.STRING)))
+        new TableElement(Namespace.VALUE, "FOO", PrimitiveType.of(SqlType.INTEGER)),
+        new TableElement(Namespace.VALUE, "BAR", Map.of(PrimitiveType.of(SqlType.STRING)))
+    ));
+  }
+
+  @Test
+  public void shouldParseValidSchemaWithKeyField() {
+    // Given:
+    final String schema = "ROWKEY STRING KEY, bar INT";
+
+    // When:
+    final TableElements elements = SchemaParser.parse(schema);
+
+    // Then:
+    assertThat(elements, contains(
+        new TableElement(Namespace.KEY, "ROWKEY", PrimitiveType.of(SqlType.STRING)),
+        new TableElement(Namespace.VALUE, "BAR", PrimitiveType.of(SqlType.INTEGER))
     ));
   }
 
@@ -59,8 +76,8 @@ public class SchemaParserTest {
     final TableElements elements = SchemaParser.parse(schema);
 
     // Then:
-    assertThat(elements, contains(
-        new TableElement("END", PrimitiveType.of(SqlType.STRING))
+    assertThat(elements, hasItem(
+        new TableElement(Namespace.VALUE, "END", PrimitiveType.of(SqlType.STRING))
     ));
   }
 
@@ -73,8 +90,8 @@ public class SchemaParserTest {
     final TableElements elements = SchemaParser.parse(schema);
 
     // Then:
-    assertThat(elements, contains(
-        new TableElement("End", PrimitiveType.of(SqlType.STRING))
+    assertThat(elements, hasItem(
+        new TableElement(Namespace.VALUE, "End", PrimitiveType.of(SqlType.STRING))
     ));
   }
 

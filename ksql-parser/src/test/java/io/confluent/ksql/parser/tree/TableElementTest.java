@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.parser.tree;
 
+import static io.confluent.ksql.parser.tree.TableElement.Namespace.KEY;
+import static io.confluent.ksql.parser.tree.TableElement.Namespace.VALUE;
 import static io.confluent.ksql.util.SchemaUtil.ROWKEY_NAME;
 import static io.confluent.ksql.util.SchemaUtil.ROWTIME_NAME;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -40,26 +42,39 @@ public class TableElementTest {
   public void shouldImplementEquals() {
     new EqualsTester()
         .addEqualityGroup(
-            new TableElement(A_LOCATION, "name", PrimitiveType.of(SqlType.STRING)),
-            new TableElement("name", PrimitiveType.of(SqlType.STRING))
+            new TableElement(A_LOCATION, VALUE, "name", PrimitiveType.of(SqlType.STRING)),
+            new TableElement(VALUE, "name", PrimitiveType.of(SqlType.STRING))
         )
         .addEqualityGroup(
-            new TableElement("different", PrimitiveType.of(SqlType.STRING))
+            new TableElement(VALUE, "different", PrimitiveType.of(SqlType.STRING))
         )
         .addEqualityGroup(
-            new TableElement("name", PrimitiveType.of(SqlType.INTEGER))
+            new TableElement(VALUE, "name", PrimitiveType.of(SqlType.INTEGER))
         )
-       .testEquals();
+        .addEqualityGroup(
+            new TableElement(KEY, "ROWKEY", PrimitiveType.of(SqlType.STRING))
+        )
+        .testEquals();
   }
 
   @Test
-  public void shouldThrowOnRowTimeValueColumn() {
+  public void shouldThrowOnRowTimeVaueColumn() {
     // Then:
     expectedException.expect(ParsingException.class);
     expectedException.expectMessage("line 2:6: 'ROWTIME' is a reserved field name.");
 
     // When:
-    new TableElement(A_LOCATION, ROWTIME_NAME, PrimitiveType.of(SqlType.BIGINT));
+    new TableElement(A_LOCATION, VALUE, ROWTIME_NAME, PrimitiveType.of(SqlType.BIGINT));
+  }
+
+  @Test
+  public void shouldThrowOnRowTimeKeyColumn() {
+    // Then:
+    expectedException.expect(ParsingException.class);
+    expectedException.expectMessage("line 2:6: 'ROWTIME' is a reserved field name.");
+
+    // When:
+    new TableElement(A_LOCATION, VALUE, ROWTIME_NAME, PrimitiveType.of(SqlType.BIGINT));
   }
 
   @Test
@@ -67,16 +82,49 @@ public class TableElementTest {
     // Then:
     expectedException.expect(ParsingException.class);
     expectedException.expectMessage(
-        "line 2:6: 'ROWKEY' is a reserved field name.");
+        "line 2:6: 'ROWKEY' is a reserved field name. It can only be used for KEY fields.");
 
     // When:
-    new TableElement(A_LOCATION, ROWKEY_NAME, PrimitiveType.of(SqlType.STRING));
+    new TableElement(A_LOCATION, VALUE, ROWKEY_NAME, PrimitiveType.of(SqlType.STRING));
+  }
+
+  @Test
+  public void shouldNotThrowOnRowKeyKeyColumn() {
+    new TableElement(
+        A_LOCATION,
+        KEY,
+        ROWKEY_NAME,
+        PrimitiveType.of(SqlType.STRING)
+    );
+  }
+
+  @Test
+  public void shouldThrowOnRowKeyIfNotString() {
+    // Then:
+    expectedException.expect(ParsingException.class);
+    expectedException.expectMessage("line 2:6: 'ROWKEY' is a KEY field with an unsupported type. "
+        + "KSQL currently only supports KEY fields of type STRING.");
+
+    // When:
+    new TableElement(A_LOCATION, KEY, ROWKEY_NAME, PrimitiveType.of(SqlType.INTEGER));
+  }
+
+  @Test
+  public void shouldThrowOnKeyColumnThatIsNotCalledRowKey() {
+    // Then:
+    expectedException.expect(ParsingException.class);
+    expectedException.expectMessage("line 2:6: 'someKey' is an invalid KEY field name. "
+        + "KSQL currently only supports KEY fields named ROWKEY.");
+
+    // When:
+    new TableElement(A_LOCATION, KEY, "someKey", PrimitiveType.of(SqlType.INTEGER));
   }
 
   @Test
   public void shouldReturnName() {
     // Given:
-    final TableElement element = new TableElement("name", PrimitiveType.of(SqlType.STRING));
+    final TableElement element =
+        new TableElement(VALUE, "name", PrimitiveType.of(SqlType.STRING));
 
     // Then:
     assertThat(element.getName(), is("name"));
@@ -85,9 +133,20 @@ public class TableElementTest {
   @Test
   public void shouldReturnType() {
     // Given:
-    final TableElement element = new TableElement("name", PrimitiveType.of(SqlType.STRING));
+    final TableElement element =
+        new TableElement(VALUE, "name", PrimitiveType.of(SqlType.STRING));
 
     // Then:
     assertThat(element.getType(), is(PrimitiveType.of(SqlType.STRING)));
+  }
+
+  @Test
+  public void shouldReturnNamespace() {
+    // Given:
+    final TableElement valueElement =
+        new TableElement(VALUE, "name", PrimitiveType.of(SqlType.STRING));
+
+    // Then:
+    assertThat(valueElement.getNamespace(), is(VALUE));
   }
 }

@@ -34,6 +34,7 @@ import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
+import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.schema.ksql.SqlType;
 import io.confluent.ksql.services.KafkaTopicClient;
@@ -77,7 +78,7 @@ public class CreateTableCommandTest {
     givenPropertiesWith((Collections.emptyMap()));
     when(createTableStatement.getName()).thenReturn(QualifiedName.of(TABLE_NAME));
     when(createTableStatement.getElements()).thenReturn(TableElements.of(
-        new TableElement("SOME-KEY", PrimitiveType.of(SqlType.STRING))
+        new TableElement(Namespace.VALUE, "SOME-KEY", PrimitiveType.of(SqlType.STRING))
     ));
     when(topicClient.isTopicExists(any())).thenReturn(true);
   }

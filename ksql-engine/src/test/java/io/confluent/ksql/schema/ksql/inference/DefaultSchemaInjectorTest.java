@@ -42,6 +42,7 @@ import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
+import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.schema.ksql.SqlType;
 import io.confluent.ksql.schema.ksql.inference.TopicSchemaSupplier.SchemaResult;
@@ -69,7 +70,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class DefaultSchemaInjectorTest {
 
   private static final TableElements SOME_ELEMENTS = TableElements.of(
-      new TableElement("bob", PrimitiveType.of(SqlType.STRING)));
+      new TableElement(Namespace.VALUE, "bob", PrimitiveType.of(SqlType.STRING)));
   private static final String KAFKA_TOPIC = "some-topic";
   private static final Map<String, Literal> UNSUPPORTED_PROPS = ImmutableMap.of(
       "VALUE_FORMAT", new StringLiteral("json"),
@@ -105,19 +106,21 @@ public class DefaultSchemaInjectorTest {
       .build();
 
   private static final TableElements EXPECTED_KSQL_SCHEMA = TableElements.of(
-      new TableElement("INTFIELD", PrimitiveType.of(SqlType.INTEGER)),
-      new TableElement("BIGINTFIELD", PrimitiveType.of(SqlType.BIGINT)),
-      new TableElement("DOUBLEFIELD", PrimitiveType.of(SqlType.DOUBLE)),
-      new TableElement("STRINGFIELD", PrimitiveType.of(SqlType.STRING)),
-      new TableElement("BOOLEANFIELD", PrimitiveType.of(SqlType.BOOLEAN)),
-      new TableElement("ARRAYFIELD", io.confluent.ksql.parser.tree.Array.of(
+      new TableElement(Namespace.VALUE, "INTFIELD", PrimitiveType.of(SqlType.INTEGER)),
+      new TableElement(Namespace.VALUE, "BIGINTFIELD", PrimitiveType.of(SqlType.BIGINT)),
+      new TableElement(Namespace.VALUE, "DOUBLEFIELD", PrimitiveType.of(SqlType.DOUBLE)),
+      new TableElement(Namespace.VALUE, "STRINGFIELD", PrimitiveType.of(SqlType.STRING)),
+      new TableElement(Namespace.VALUE, "BOOLEANFIELD", PrimitiveType.of(SqlType.BOOLEAN)),
+      new TableElement(Namespace.VALUE, "ARRAYFIELD", io.confluent.ksql.parser.tree.Array.of(
           PrimitiveType.of(SqlType.INTEGER))),
-      new TableElement("MAPFIELD", io.confluent.ksql.parser.tree.Map.of(
+      new TableElement(Namespace.VALUE, "MAPFIELD", io.confluent.ksql.parser.tree.Map.of(
           PrimitiveType.of(SqlType.BIGINT))),
-      new TableElement("STRUCTFIELD", io.confluent.ksql.parser.tree.Struct.builder()
+      new TableElement(Namespace.VALUE, "STRUCTFIELD", io.confluent.ksql.parser.tree.Struct.builder()
           .addField("S0", PrimitiveType.of(SqlType.BIGINT))
           .build()),
-      new TableElement("DECIMALFIELD", io.confluent.ksql.parser.tree.Decimal.of(4, 2)));
+      new TableElement(Namespace.VALUE,
+          "DECIMALFIELD", io.confluent.ksql.parser.tree.Decimal.of(4, 2))
+  );
 
   private static final int SCHEMA_ID = 5;
 

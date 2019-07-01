@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.parser.tree;
 
+import static io.confluent.ksql.parser.tree.TableElement.Namespace.KEY;
+import static io.confluent.ksql.parser.tree.TableElement.Namespace.VALUE;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
@@ -23,6 +25,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.testing.EqualsTester;
+import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -41,7 +44,7 @@ public class TableElementsTest {
   @Test
   public void shouldImplementHashCodeAndEqualsProperty() {
     final List<TableElement> someElements = ImmutableList.of(
-        tableElement("bob", SOME_TYPE)
+        tableElement(VALUE, "bob", SOME_TYPE)
     );
 
     new EqualsTester()
@@ -51,13 +54,49 @@ public class TableElementsTest {
   }
 
   @Test
+  public void shouldThrowOnOutOfOrderKeyColumns() {
+    // Given:
+    final List<TableElement> elements = ImmutableList.of(
+        tableElement(VALUE, "v0", SOME_TYPE),
+        tableElement(KEY, "key", STRING_TYPE)
+    );
+
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("KEY column declared after VALUE column: key");
+
+    // When:
+    TableElements.of(elements);
+  }
+
+  @Test
+  public void shouldThrowOnDuplicateKeyColumns() {
+    // Given:
+    final List<TableElement> elements = ImmutableList.of(
+        tableElement(KEY, "k0", STRING_TYPE),
+        tableElement(KEY, "k0", STRING_TYPE),
+        tableElement(KEY, "k1", STRING_TYPE),
+        tableElement(KEY, "k1", STRING_TYPE)
+    );
+
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Duplicate KEY column names:");
+    expectedException.expectMessage("k0");
+    expectedException.expectMessage("k1");
+
+    // When:
+    TableElements.of(elements);
+  }
+
+  @Test
   public void shouldThrowOnDuplicateValueColumns() {
     // Given:
     final List<TableElement> elements = ImmutableList.of(
-        tableElement("v0", SOME_TYPE),
-        tableElement("v0", SOME_TYPE),
-        tableElement("v1", SOME_TYPE),
-        tableElement("v1", SOME_TYPE)
+        tableElement(VALUE, "v0", SOME_TYPE),
+        tableElement(VALUE, "v0", SOME_TYPE),
+        tableElement(VALUE, "v1", SOME_TYPE),
+        tableElement(VALUE, "v1", SOME_TYPE)
     );
 
     // Then:
@@ -71,23 +110,43 @@ public class TableElementsTest {
   }
 
   @Test
-  public void shouldNotThrowOnNoKeyElements() {
+  public void shouldThrowIfMoreThatOneKeyColumn() {
     // Given:
     final List<TableElement> elements = ImmutableList.of(
-        tableElement("v0", PrimitiveType.of("INT"))
+        tableElement(KEY, "k0", STRING_TYPE),
+        tableElement(KEY, "k1", STRING_TYPE),
+        tableElement(VALUE, "v0", SOME_TYPE)
     );
+
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("KSQL does not yet support multiple KEY columns");
 
     // When:
     TableElements.of(elements);
+  }
 
-    // Then: did not throw.
+  @Test
+  public void shouldThrowIfKeyColumnNotString() {
+    // Given:
+    final List<TableElement> elements = ImmutableList.of(
+        tableElement(KEY, "k0", PrimitiveType.of("INT")),
+        tableElement(VALUE, "v0", SOME_TYPE)
+    );
+
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("KEY columns must be of type STRING: k0");
+
+    // When:
+    TableElements.of(elements);
   }
 
   @Test
   public void shouldIterateElements() {
     // Given:
-    final TableElement te1 = tableElement("k0", STRING_TYPE);
-    final TableElement te2 = tableElement("v0", SOME_TYPE);
+    final TableElement te1 = tableElement(KEY, "k0", STRING_TYPE);
+    final TableElement te2 = tableElement(VALUE, "v0", SOME_TYPE);
 
     // When:
     final Iterable<TableElement> iterable = TableElements.of(ImmutableList.of(te1, te2));
@@ -100,8 +159,8 @@ public class TableElementsTest {
   public void shouldStreamElements() {
     // Given:
     final List<TableElement> elements = ImmutableList.of(
-        tableElement("k0", STRING_TYPE),
-        tableElement("v0", SOME_TYPE)
+        tableElement(KEY, "k0", STRING_TYPE),
+        tableElement(VALUE, "v0", SOME_TYPE)
     );
 
     final TableElements tableElements = TableElements.of(elements);
@@ -117,8 +176,8 @@ public class TableElementsTest {
   @Test
   public void shouldToString() {
     // Given:
-    final TableElement element0 = tableElement("k0", STRING_TYPE);
-    final TableElement element1 = tableElement("v0", SOME_TYPE);
+    final TableElement element0 = tableElement(KEY, "k0", STRING_TYPE);
+    final TableElement element1 = tableElement(VALUE, "v0", SOME_TYPE);
 
     final TableElements tableElements = TableElements.of(element0, element1);
 
@@ -130,12 +189,14 @@ public class TableElementsTest {
   }
 
   private static TableElement tableElement(
+      final Namespace namespace,
       final String name,
       final Type type
   ) {
     final TableElement te = mock(TableElement.class, name);
     when(te.getName()).thenReturn(name);
     when(te.getType()).thenReturn(type);
+    when(te.getNamespace()).thenReturn(namespace);
     return te;
   }
 }

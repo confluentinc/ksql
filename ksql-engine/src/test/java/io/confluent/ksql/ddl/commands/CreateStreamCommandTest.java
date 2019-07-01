@@ -34,6 +34,7 @@ import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
+import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.schema.ksql.SqlType;
 import io.confluent.ksql.services.KafkaTopicClient;
@@ -59,8 +60,8 @@ public class CreateStreamCommandTest {
 
   private static final String STREAM_NAME = "s1";
   private static final TableElements SOME_ELEMENTS = TableElements.of(
-      new TableElement("ID", PrimitiveType.of(SqlType.BIGINT)),
-      new TableElement("bob", PrimitiveType.of(SqlType.STRING))
+      new TableElement(Namespace.VALUE, "ID", PrimitiveType.of(SqlType.BIGINT)),
+      new TableElement(Namespace.VALUE, "bob", PrimitiveType.of(SqlType.STRING))
   );
 
   @Mock

@@ -115,8 +115,10 @@ public final class KsqlEngineTestUtil {
         schemaInjector
             .map(injector -> injector.inject(configured))
             .orElse((ConfiguredStatement) configured);
+    final ConfiguredStatement<?> reformatted =
+        new SqlFormatInjector(executionContext).inject(withSchema);
     try {
-      return executionContext.execute(new SqlFormatInjector(executionContext).inject(withSchema));
+      return executionContext.execute(reformatted);
     } catch (final KsqlStatementException e) {
       // use the original statement text in the exception so that tests
       // can easily check that the failed statement is the input statement

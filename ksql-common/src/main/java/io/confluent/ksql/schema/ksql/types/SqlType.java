@@ -21,7 +21,7 @@ import io.confluent.ksql.schema.ksql.SqlBaseType;
 import java.util.Objects;
 
 /**
- * Interface for all SQL types in KSQL.
+ * Base for all SQL types in KSQL.
  */
 @Immutable
 public abstract class SqlType {

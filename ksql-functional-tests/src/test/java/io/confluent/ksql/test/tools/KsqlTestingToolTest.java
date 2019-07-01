@@ -25,6 +25,7 @@ import java.io.File;
 import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -60,6 +61,9 @@ public class KsqlTestingToolTest {
 
     final File testFolder = new File(CORRECT_TESTS_FOLDER);
     final File[] testSubFolders = testFolder.listFiles(File::isDirectory);
+    if (testSubFolders == null) {
+      Assert.fail("Invalid test folder path!");
+    }
 
     for (final File correctTestFolder: testSubFolders) {
       outContent.reset();

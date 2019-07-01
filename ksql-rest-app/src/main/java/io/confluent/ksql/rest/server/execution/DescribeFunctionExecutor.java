@@ -37,7 +37,7 @@ import org.apache.kafka.connect.data.Schema;
 public final class DescribeFunctionExecutor {
 
   private static final SqlSchemaFormatter FORMATTER =
-      new SqlSchemaFormatter(ParserUtil::isReservedWord);
+      new SqlSchemaFormatter(ParserUtil::isReservedIdentifier);
 
   private DescribeFunctionExecutor() { }
 

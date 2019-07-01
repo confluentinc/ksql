@@ -28,6 +28,7 @@ import io.confluent.ksql.schema.connect.SqlSchemaFormatter;
 import io.confluent.ksql.schema.connect.SqlSchemaFormatter.Option;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.ParserUtil;
 import java.util.Optional;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaAndValue;
@@ -38,7 +39,7 @@ public final class ProcessingLogServerUtils {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ProcessingLogServerUtils.class);
   private static final SqlSchemaFormatter FORMATTER =
-      new SqlSchemaFormatter(word -> false, Option.AS_COLUMN_LIST);
+      new SqlSchemaFormatter(ParserUtil::isReservedIdentifier, Option.AS_COLUMN_LIST);
 
   private ProcessingLogServerUtils() {
   }

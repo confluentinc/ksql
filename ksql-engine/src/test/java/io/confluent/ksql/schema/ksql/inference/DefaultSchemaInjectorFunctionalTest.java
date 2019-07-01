@@ -51,7 +51,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class DefaultSchemaInjectorFunctionalTest {
 
   private static final SqlSchemaFormatter FORMATTER =
-      new SqlSchemaFormatter(ParserUtil::isReservedWord);
+      new SqlSchemaFormatter(ParserUtil::isReservedIdentifier);
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();

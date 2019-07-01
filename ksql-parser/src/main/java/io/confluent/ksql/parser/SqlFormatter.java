@@ -429,7 +429,7 @@ public final class SqlFormatter {
     }
 
     private static String formatTableElement(final TableElement e) {
-      return ParserUtil.escapeIfReservedWord(e.getName())
+      return ParserUtil.escapeIfReservedIdentifier(e.getName())
           + " "
           + e.getType();
     }

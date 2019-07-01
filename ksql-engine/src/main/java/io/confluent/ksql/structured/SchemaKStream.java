@@ -65,7 +65,8 @@ import org.apache.kafka.streams.kstream.WindowedSerdes;
 public class SchemaKStream<K> {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
-  private static final FormatOptions FORMAT_OPTIONS = FormatOptions.of(ParserUtil::isReservedWord);
+  private static final FormatOptions FORMAT_OPTIONS =
+      FormatOptions.of(ParserUtil::isReservedIdentifier);
 
   public enum Type { SOURCE, PROJECT, FILTER, AGGREGATE, SINK, REKEY, JOIN }
 

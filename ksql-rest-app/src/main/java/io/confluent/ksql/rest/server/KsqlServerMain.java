@@ -50,8 +50,9 @@ public class KsqlServerMain {
       );
 
       final String installDir = properties.getOrDefault("ksql.server.install.dir", "");
-      final String streamsStateDirPath = StreamsConfig.configDef().defaultValues()
-          .get(StreamsConfig.STATE_DIR_CONFIG).toString();
+      final String streamsStateDirPath = properties.getOrDefault("ksql.streams.state.dir",
+          StreamsConfig.configDef().defaultValues()
+              .get(StreamsConfig.STATE_DIR_CONFIG).toString());
       enforceStreamStateDirAvailability(new File(streamsStateDirPath));
       final Optional<String> queriesFile = serverOptions.getQueriesFile(properties);
       final Executable executable = createExecutable(properties, queriesFile, installDir);

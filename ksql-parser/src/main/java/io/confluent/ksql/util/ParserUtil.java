@@ -40,31 +40,13 @@ import java.util.stream.IntStream;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.TerminalNode;
-import org.apache.commons.lang3.ObjectUtils;
 
 public final class ParserUtil {
-
-  public static final Set<String> RESERVED_WORDS;
-
-  static {
-    final ImmutableSet.Builder<String> reservedWords = new ImmutableSet.Builder<>();
-    for (int i = 1; i < SqlBaseParser.VOCABULARY.getMaxTokenType(); i++) {
-      final String name = ObjectUtils.firstNonNull(
-          SqlBaseParser.VOCABULARY.getLiteralName(i),
-          SqlBaseParser.VOCABULARY.getSymbolicName(i)
-      );
-      if (name == null) {
-        throw new IllegalStateException("Did not expect to unknown word in vocab at index " + i);
-      }
-      reservedWords.add(StringUtil.cleanQuotes(name));
-    }
-    RESERVED_WORDS = reservedWords.build();
-  }
 
   private ParserUtil() {
   }
 
-  private static final Set<String> LITERALS_SET = ImmutableSet.copyOf(
+  private static final Set<String> RESERVED_WORDS = ImmutableSet.copyOf(
       IntStream.range(0, SqlBaseLexer.VOCABULARY.getMaxTokenType())
           .mapToObj(SqlBaseLexer.VOCABULARY::getLiteralName)
           .filter(Objects::nonNull)
@@ -74,8 +56,12 @@ public final class ParserUtil {
           .collect(Collectors.toSet())
   );
 
-  public static String escapeIfLiteral(final String name) {
-    return LITERALS_SET.contains(name.toUpperCase()) ? "`" + name + "`" : name;
+  public static boolean isReservedWord(final String name) {
+    return RESERVED_WORDS.contains(name.toUpperCase());
+  }
+
+  public static String escapeIfReservedWord(final String name) {
+    return isReservedWord(name) ? "`" + name + "`" : name;
   }
 
   public static String getIdentifierText(final SqlBaseParser.IdentifierContext context) {

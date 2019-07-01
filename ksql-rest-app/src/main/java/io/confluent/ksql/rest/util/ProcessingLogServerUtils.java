@@ -37,6 +37,8 @@ import org.slf4j.LoggerFactory;
 public final class ProcessingLogServerUtils {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ProcessingLogServerUtils.class);
+  private static final SqlSchemaFormatter FORMATTER =
+      new SqlSchemaFormatter(word -> false, Option.AS_COLUMN_LIST);
 
   private ProcessingLogServerUtils() {
   }
@@ -100,7 +102,7 @@ public final class ProcessingLogServerUtils {
   ) {
     final Schema schema = getMessageSchema();
 
-    final String elements = new SqlSchemaFormatter(Option.AS_COLUMN_LIST).format(schema);
+    final String elements = FORMATTER.format(schema);
 
     final String createStreamSql = "CREATE STREAM " + name
         + " (" + elements + ")"

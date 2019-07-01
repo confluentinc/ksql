@@ -49,12 +49,12 @@ public class ParserUtilTest {
 
   @Test
   public void shouldEscapeStringIfLiteral() {
-    assertThat(ParserUtil.escapeIfLiteral("END"), equalTo("`END`"));
+    assertThat(ParserUtil.escapeIfReservedWord("END"), equalTo("`END`"));
   }
 
   @Test
   public void shouldNotEscapeStringIfNotLiteral() {
-    assertThat(ParserUtil.escapeIfLiteral("NOT_A_LITERAL"), equalTo("NOT_A_LITERAL"));
+    assertThat(ParserUtil.escapeIfReservedWord("NOT_A_LITERAL"), equalTo("NOT_A_LITERAL"));
   }
 
   @Test

@@ -28,11 +28,13 @@ import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
+import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.streams.StreamsFactories;
 import io.confluent.ksql.streams.StreamsUtil;
 import io.confluent.ksql.util.ExpressionMetadata;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.ParserUtil;
 import io.confluent.ksql.util.QueryLoggerUtil;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.SelectExpression;
@@ -62,6 +64,8 @@ import org.apache.kafka.streams.kstream.WindowedSerdes;
 @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
 public class SchemaKStream<K> {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
+
+  private static final FormatOptions FORMAT_OPTIONS = FormatOptions.of(ParserUtil::isReservedWord);
 
   public enum Type { SOURCE, PROJECT, FILTER, AGGREGATE, SINK, REKEY, JOIN }
 
@@ -697,7 +701,7 @@ public class SchemaKStream<K> {
     stringBuilder.append(indent)
         .append(" > [ ")
         .append(type).append(" ] | Schema: ")
-        .append(schema)
+        .append(schema.toString(FORMAT_OPTIONS))
         .append(" | Logger: ").append(QueryLoggerUtil.queryLoggerName(queryContext))
         .append("\n");
     for (final SchemaKStream schemaKStream : sourceSchemaKStreams) {

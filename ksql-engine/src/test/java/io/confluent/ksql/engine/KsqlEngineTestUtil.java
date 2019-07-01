@@ -28,6 +28,7 @@ import io.confluent.ksql.schema.inference.SchemaRegistryTopicSchemaSupplier;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.QueryMetadata;
 import java.util.List;
 import java.util.Map;
@@ -114,6 +115,12 @@ public final class KsqlEngineTestUtil {
         schemaInjector
             .map(injector -> injector.inject(configured))
             .orElse((ConfiguredStatement) configured);
-    return executionContext.execute(withSchema);
+    try {
+      return executionContext.execute(new SqlFormatInjector(executionContext).inject(withSchema));
+    } catch (final KsqlStatementException e) {
+      // use the original statement text in the exception so that tests
+      // can easily check that the failed statement is the input statement
+      throw new KsqlStatementException(e.getRawMessage(), stmt.getStatementText(), e.getCause());
+    }
   }
 }

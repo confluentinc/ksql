@@ -49,9 +49,10 @@ public class KsqlServerMainTest {
   public void setUp() {
     main = new KsqlServerMain(executable);
     when(mockStreamsStateDir.exists()).thenReturn(true);
-    when(mockStreamsStateDir.mkdir()).thenReturn(true);
+    when(mockStreamsStateDir.mkdirs()).thenReturn(true);
     when(mockStreamsStateDir.isDirectory()).thenReturn(true);
     when(mockStreamsStateDir.canWrite()).thenReturn(true);
+    when(mockStreamsStateDir.canExecute()).thenReturn(true);
     when(mockStreamsStateDir.getPath()).thenReturn("/var/lib/kafka-streams");
   }
 
@@ -95,7 +96,7 @@ public class KsqlServerMainTest {
   public void shouldFailIfStreamsStateDirectoryCannotBeCreated() {
     // Given:
     when(mockStreamsStateDir.exists()).thenReturn(false);
-    when(mockStreamsStateDir.mkdir()).thenReturn(false);
+    when(mockStreamsStateDir.mkdirs()).thenReturn(false);
 
     expectedException.expect(KsqlServerException.class);
     expectedException.expectMessage(
@@ -131,6 +132,21 @@ public class KsqlServerMainTest {
   public void shouldFailIfStreamsStateDirectoryIsNotWritable() {
     // Given:
     when(mockStreamsStateDir.canWrite()).thenReturn(false);
+
+    expectedException.expect(KsqlServerException.class);
+    expectedException.expectMessage(
+        "The kafka streams state directory is not writable for KSQL server: /var/lib/kafka-streams\n"
+            + " Make sure the directory exists and is writable for KSQL server \n"
+            + " or change it to a writable directory by setting 'ksql.streams.state.dir' config in the properties file.");
+
+    // When:
+    KsqlServerMain.enforceStreamStateDirAvailability(mockStreamsStateDir);
+  }
+
+  @Test
+  public void shouldFailIfStreamsStateDirectoryIsNotExacutable() {
+    // Given:
+    when(mockStreamsStateDir.canExecute()).thenReturn(false);
 
     expectedException.expect(KsqlServerException.class);
     expectedException.expectMessage(

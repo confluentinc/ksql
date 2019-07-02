@@ -112,7 +112,7 @@ public class KsqlServerMain {
   @VisibleForTesting
   static void enforceStreamStateDirAvailability(final File streamsStateDir) {
     if (!streamsStateDir.exists()) {
-      final boolean mkDirSuccess = streamsStateDir.mkdir();
+      final boolean mkDirSuccess = streamsStateDir.mkdirs();
       if (!mkDirSuccess) {
         throw new KsqlServerException("Could not create the kafka streams state directory: "
             + streamsStateDir.getPath()
@@ -134,7 +134,7 @@ public class KsqlServerMain {
           + "' config in the properties file."
       );
     }
-    if (!streamsStateDir.canWrite()) {
+    if (!streamsStateDir.canWrite() || !streamsStateDir.canExecute()) {
       throw new KsqlServerException("The kafka streams state directory is not writable "
           + "for KSQL server: "
           + streamsStateDir.getPath()

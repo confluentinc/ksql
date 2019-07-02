@@ -43,6 +43,7 @@ import org.slf4j.LoggerFactory;
 public class KsqlJsonDeserializer implements Deserializer<Object> {
 
   private static final Logger LOG = LoggerFactory.getLogger(KsqlJsonDeserializer.class);
+  private static final SqlSchemaFormatter FORMATTER = new SqlSchemaFormatter(word -> false);
 
   private static final Map<Schema.Type, Function<JsonValueContext, Object>> HANDLERS = ImmutableMap
       .<Schema.Type, Function<JsonValueContext, Object>>builder()
@@ -215,7 +216,7 @@ public class KsqlJsonDeserializer implements Deserializer<Object> {
   ) {
     throw JsonSerdeUtils.invalidConversionException(
         value,
-        SqlSchemaFormatter.DEFAULT.format(schema)
+        FORMATTER.format(schema)
     );
   }
 

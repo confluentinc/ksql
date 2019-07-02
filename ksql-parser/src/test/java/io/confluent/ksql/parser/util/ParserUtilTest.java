@@ -16,6 +16,7 @@
 package io.confluent.ksql.parser.util;
 
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -49,12 +50,12 @@ public class ParserUtilTest {
 
   @Test
   public void shouldEscapeStringIfLiteral() {
-    assertThat(ParserUtil.escapeIfLiteral("END"), equalTo("`END`"));
+    assertThat(ParserUtil.escapeIfReservedIdentifier("END"), equalTo("`END`"));
   }
 
   @Test
   public void shouldNotEscapeStringIfNotLiteral() {
-    assertThat(ParserUtil.escapeIfLiteral("NOT_A_LITERAL"), equalTo("NOT_A_LITERAL"));
+    assertThat(ParserUtil.escapeIfReservedIdentifier("NOT_A_LITERAL"), equalTo("NOT_A_LITERAL"));
   }
 
   @Test
@@ -94,6 +95,17 @@ public class ParserUtilTest {
 
     // When:
     ParserUtil.parseDecimalLiteral(decimalLiteralContext);
+  }
+
+  @Test
+  public void shouldHaveReservedLiteralInReservedSet() {
+    assertThat(ParserUtil.isReservedIdentifier("FROM"), is(true));
+  }
+
+  @Test
+  public void shouldExcludeNonReservedLiteralsFromReservedSet() {
+    // i.e. those in the "nonReserved" rule in SqlBase.g4
+    assertThat(ParserUtil.isReservedIdentifier("SHOW"), is(false));
   }
 
   private static void mockLocation(final ParserRuleContext ctx, final int line, final int col) {

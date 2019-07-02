@@ -19,6 +19,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.schema.connect.SchemaFormatter;
 import io.confluent.ksql.schema.connect.SqlSchemaFormatter;
+import io.confluent.ksql.schema.connect.SqlSchemaFormatter.Option;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import java.util.LinkedHashMap;
 import java.util.Objects;
@@ -38,11 +39,14 @@ import java.util.stream.Collectors;
 @Immutable
 public final class QuerySchemas {
 
+  private static final SqlSchemaFormatter FORMATTER =
+      new SqlSchemaFormatter(word -> false, Option.APPEND_NOT_NULL);
+
   private final LinkedHashMap<String, PersistenceSchema> schemas;
   private final SchemaFormatter schemaFormatter;
 
   public static QuerySchemas of(final LinkedHashMap<String, PersistenceSchema> schemas) {
-    return new QuerySchemas(schemas, SqlSchemaFormatter.STRICT);
+    return new QuerySchemas(schemas, FORMATTER);
   }
 
   @VisibleForTesting

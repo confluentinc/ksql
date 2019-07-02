@@ -574,14 +574,43 @@ public class LogicalSchemaTest {
     // Then:
     assertThat(s, is(
         "["
-            + "f0 BOOLEAN, "
-            + "f1 INT, "
-            + "f2 BIGINT, "
-            + "f4 DOUBLE, "
-            + "f5 VARCHAR, "
-            + "f6 STRUCT<a BIGINT>, "
-            + "f7 ARRAY<VARCHAR>, "
-            + "f8 MAP<VARCHAR, VARCHAR>"
+            + "`f0` BOOLEAN, "
+            + "`f1` INT, "
+            + "`f2` BIGINT, "
+            + "`f4` DOUBLE, "
+            + "`f5` VARCHAR, "
+            + "`f6` STRUCT<`a` BIGINT>, "
+            + "`f7` ARRAY<VARCHAR>, "
+            + "`f8` MAP<VARCHAR, VARCHAR>"
+            + "]"));
+  }
+
+  @Test
+  public void shouldConvertSchemaToStringWithReservedWords() {
+    // Given:
+    final LogicalSchema schema = LogicalSchema.of(
+        SchemaBuilder.struct()
+            .field("f0", SchemaBuilder.OPTIONAL_BOOLEAN_SCHEMA)
+            .field("f1", SchemaBuilder
+                .struct()
+                .field("f0", Schema.OPTIONAL_INT64_SCHEMA)
+                .field("f1", Schema.OPTIONAL_INT64_SCHEMA)
+                .optional()
+                .build())
+            .build()
+    );
+
+    final FormatOptions formatOptions =
+        FormatOptions.of(word -> word.equalsIgnoreCase("f0"));
+
+    // When:
+    final String s = schema.toString(formatOptions);
+
+    // Then:
+    assertThat(s, is(
+        "["
+            + "`f0` BOOLEAN, "
+            + "f1 STRUCT<`f0` BIGINT, f1 BIGINT>"
             + "]"));
   }
 
@@ -600,7 +629,7 @@ public class LogicalSchemaTest {
     // Then:
     assertThat(s, is(
         "["
-            + "t.f0 BOOLEAN"
+            + "`t.f0` BOOLEAN"
             + "]"));
   }
 

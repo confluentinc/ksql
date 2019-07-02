@@ -105,7 +105,7 @@ public final class ExpressionFormatter {
     protected String visitStruct(final Struct node, final Boolean unmangleNames) {
       return "STRUCT<" + Joiner.on(", ").join(node.getFields().stream()
           .map((child) ->
-              ParserUtil.escapeIfLiteral(child.getName())
+              ParserUtil.escapeIfReservedIdentifier(child.getName())
                   + " " + process(child.getType(), unmangleNames))
           .collect(toList())) + ">";
     }

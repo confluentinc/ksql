@@ -86,6 +86,8 @@ public class UdfIndex<T extends IndexedFunction> {
   // the best candidate (e.g. foo(null, int) matches B, C and E).
 
   private static final Logger LOG = LoggerFactory.getLogger(UdfIndex.class);
+  private static final SqlSchemaFormatter FORMATTER =
+      new SqlSchemaFormatter(word -> false);
 
   private final String udfName;
   private final Node root = new Node();
@@ -177,7 +179,7 @@ public class UdfIndex<T extends IndexedFunction> {
     final String sqlParamTypes = paramTypes.stream()
         .map(schema -> schema == null
             ? null
-            : SqlSchemaFormatter.DEFAULT.format(schema))
+            : FORMATTER.format(schema))
         .collect(Collectors.joining(", ", "[", "]"));
 
     return new KsqlException("Function '" + udfName
@@ -318,7 +320,7 @@ public class UdfIndex<T extends IndexedFunction> {
 
     @Override
     public String toString() {
-      return SqlSchemaFormatter.DEFAULT.format(schema) + (isVararg ? "(VARARG)" : "");
+      return FORMATTER.format(schema) + (isVararg ? "(VARARG)" : "");
     }
   }
 

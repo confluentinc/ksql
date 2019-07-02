@@ -52,8 +52,6 @@ public interface KsqlSecurityExtension extends AutoCloseable {
    * If an empty Optional object is returned, KSQL marks this function as disabled.
    * </p>
    * If a non-empty object is returned, KSQL marks this function as enabled.
-   * <p/>
-   * to access only the topics and schema the user has access to during the command execution.
    * </p>
    * Note: This context is used only for non-persistent commands.
    **

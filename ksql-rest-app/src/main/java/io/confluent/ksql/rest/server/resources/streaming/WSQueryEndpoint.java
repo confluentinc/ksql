@@ -51,6 +51,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeoutException;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import javax.websocket.CloseReason;
 import javax.websocket.CloseReason.CloseCodes;
@@ -93,6 +94,7 @@ public class WSQueryEndpoint {
   private final TopicAccessValidator topicAccessValidator;
   private final KsqlSecurityExtension securityExtension;
   private final ServiceContextFactory serviceContextFactory;
+  private final Function<KsqlConfig, ServiceContext> defaultServiceContextFactory;
   private final ServerState serverState;
 
   private WebSocketSubscriber<?> subscriber;
@@ -136,6 +138,7 @@ public class WSQueryEndpoint {
         topicAccessValidator,
         securityExtension,
         DefaultServiceContext::create,
+        DefaultServiceContext::create,
         serverState);
   }
 
@@ -155,6 +158,7 @@ public class WSQueryEndpoint {
       final TopicAccessValidator topicAccessValidator,
       final KsqlSecurityExtension securityExtension,
       final ServiceContextFactory serviceContextFactory,
+      final Function<KsqlConfig, ServiceContext> defaultServiceContextFactory,
       final ServerState serverState
   ) {
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
@@ -175,6 +179,8 @@ public class WSQueryEndpoint {
     this.securityExtension = Objects.requireNonNull(securityExtension, "securityExtension");
     this.serviceContextFactory =
         Objects.requireNonNull(serviceContextFactory, "serviceContextFactory");
+    this.defaultServiceContextFactory =
+        Objects.requireNonNull(defaultServiceContextFactory, "defaultServiceContextFactory");
     this.serverState = Objects.requireNonNull(serverState, "serverState");
   }
 
@@ -282,8 +288,8 @@ public class WSQueryEndpoint {
     // Creates a ServiceContext using the user's credentials, so the WS query topics are
     // accessed with the user permission context (defaults to KSQL service context)
 
-    if (!securityExtension.getAuthorizationProvider().isPresent()) {
-      return DefaultServiceContext.create(ksqlConfig);
+    if (!securityExtension.getUserContextProvider().isPresent()) {
+      return defaultServiceContextFactory.apply(ksqlConfig);
     }
 
     return securityExtension.getUserContextProvider()

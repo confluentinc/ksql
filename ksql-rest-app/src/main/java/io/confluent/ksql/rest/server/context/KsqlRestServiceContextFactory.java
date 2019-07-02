@@ -15,14 +15,20 @@
 
 package io.confluent.ksql.rest.server.context;
 
+import com.google.common.annotations.VisibleForTesting;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.rest.server.security.KsqlSecurityExtension;
 import io.confluent.ksql.services.DefaultServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import java.security.Principal;
 import java.util.Objects;
+import java.util.function.Function;
+import java.util.function.Supplier;
 import javax.inject.Inject;
 import javax.ws.rs.core.SecurityContext;
+
+import org.apache.kafka.streams.KafkaClientSupplier;
 import org.glassfish.hk2.api.Factory;
 
 /**
@@ -42,23 +48,46 @@ public class KsqlRestServiceContextFactory implements Factory<ServiceContext> {
         = Objects.requireNonNull(securityExtension, "securityExtension");
   }
 
+  @VisibleForTesting
+  @FunctionalInterface
+  interface ServiceContextFactory {
+    ServiceContext create(
+        KsqlConfig ksqlConfig,
+        KafkaClientSupplier kafkaClientSupplier,
+        Supplier<SchemaRegistryClient> srClientFactory
+    );
+  }
+
   private final SecurityContext securityContext;
+  private final Function<KsqlConfig, ServiceContext> defaultServiceContextFactory;
+  private final ServiceContextFactory userServiceContextFactory;
 
   @Inject
   public KsqlRestServiceContextFactory(final SecurityContext securityContext) {
+    this(securityContext, DefaultServiceContext::create, DefaultServiceContext::create);
+  }
+
+  @VisibleForTesting
+  KsqlRestServiceContextFactory(
+      final SecurityContext securityContext,
+      final Function<KsqlConfig, ServiceContext> defaultServiceContextFactory,
+      final ServiceContextFactory userServiceContextFactory
+  ) {
     this.securityContext = securityContext;
+    this.defaultServiceContextFactory = defaultServiceContextFactory;
+    this.userServiceContextFactory = userServiceContextFactory;
   }
 
   @Override
   public ServiceContext provide() {
-    if (!securityExtension.getAuthorizationProvider().isPresent()) {
-      return DefaultServiceContext.create(ksqlConfig);
+    if (!securityExtension.getUserContextProvider().isPresent()) {
+      return defaultServiceContextFactory.apply(ksqlConfig);
     }
 
     final Principal principal = securityContext.getUserPrincipal();
     return securityExtension.getUserContextProvider()
         .map(provider ->
-            DefaultServiceContext.create(
+            userServiceContextFactory.create(
                 ksqlConfig,
                 provider.getKafkaClientSupplier(principal),
                 provider.getSchemaRegistryClientFactory(principal)))

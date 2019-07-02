@@ -25,6 +25,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -68,6 +69,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.concurrent.TimeoutException;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import javax.websocket.CloseReason;
@@ -146,6 +148,8 @@ public class WSQueryEndpointTest {
   private ServerState serverState;
   @Mock
   private KsqlUserContextProvider userContextProvider;
+  @Mock
+  private Function<KsqlConfig, ServiceContext> defaultServiceContextProvider;
   @Captor
   private ArgumentCaptor<CloseReason> closeReasonCaptor;
   private Query query;
@@ -170,6 +174,7 @@ public class WSQueryEndpointTest {
         .thenReturn(Optional.of(authorizationProvider));
     when(serviceContextFactory.create(ksqlConfig, topicClientSupplier, schemaRegistryClientSupplier))
         .thenReturn(serviceContext);
+    when(defaultServiceContextProvider.apply(ksqlConfig)).thenReturn(serviceContext);
     when(serviceContext.getTopicClient()).thenReturn(topicClient);
     when(serverState.checkReady()).thenReturn(Optional.empty());
     givenRequest(VALID_REQUEST);
@@ -177,7 +182,8 @@ public class WSQueryEndpointTest {
     wsQueryEndpoint = new WSQueryEndpoint(
         ksqlConfig, OBJECT_MAPPER, statementParser, ksqlEngine, commandQueue, exec,
         queryPublisher, topicPublisher, activenessRegistrar, COMMAND_QUEUE_CATCHUP_TIMEOUT,
-        topicAccessValidator, securityExtension, serviceContextFactory, serverState);
+        topicAccessValidator, securityExtension, serviceContextFactory,
+        defaultServiceContextProvider, serverState);
   }
 
   @Test
@@ -384,6 +390,20 @@ public class WSQueryEndpointTest {
   }
 
   @Test
+  public void shouldCreateDefaultServiceContextIfUserContextProviderIsNotEnabled() {
+    // Given:
+    givenRequestIs(query);
+    when(securityExtension.getUserContextProvider()).thenReturn(Optional.empty());
+
+    // When:
+    wsQueryEndpoint.onOpen(session, null);
+
+    // Then:
+    verify(defaultServiceContextProvider).apply(ksqlConfig);
+    verifyZeroInteractions(userContextProvider);
+  }
+
+  @Test
   public void shouldCreateUserServiceContext() {
     // Given:
     givenRequestIs(query);
@@ -399,6 +419,7 @@ public class WSQueryEndpointTest {
         topicClientSupplier,
         schemaRegistryClientSupplier
     );
+    verifyZeroInteractions(defaultServiceContextProvider);
   }
 
   @Test

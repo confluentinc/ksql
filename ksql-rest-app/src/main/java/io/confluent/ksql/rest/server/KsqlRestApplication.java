@@ -336,9 +336,6 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
     securityExtension.getAuthorizationProvider().ifPresent(
         ac -> config.register(new KsqlAuthorizationFilter(ac))
     );
-
-    // Registers any other security filters (i.e. user context impersonation)
-    securityExtension.register(config);
   }
 
   @Override

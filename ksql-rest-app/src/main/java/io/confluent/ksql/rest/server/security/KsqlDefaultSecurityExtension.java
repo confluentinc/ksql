@@ -17,7 +17,6 @@ package io.confluent.ksql.rest.server.security;
 
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Optional;
-import javax.ws.rs.core.Configurable;
 
 /**
  * This is the default security extension for KSQL. For now, this class is just a dummy
@@ -37,10 +36,6 @@ public class KsqlDefaultSecurityExtension implements KsqlSecurityExtension {
   @Override
   public Optional<KsqlUserContextProvider> getUserContextProvider() {
     return Optional.empty();
-  }
-
-  @Override
-  public void register(final Configurable<?> configurable) {
   }
 
   @Override

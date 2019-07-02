@@ -5,7 +5,6 @@ import io.confluent.ksql.rest.server.security.KsqlSecurityExtension;
 import io.confluent.ksql.rest.server.security.KsqlUserContextProvider;
 import io.confluent.ksql.util.KsqlConfig;
 
-import javax.ws.rs.core.Configurable;
 import java.util.Optional;
 
 /**
@@ -31,10 +30,6 @@ public class MockKsqlSecurityExtension implements KsqlSecurityExtension {
   @Override
   public Optional<KsqlUserContextProvider> getUserContextProvider() {
     return Optional.empty();
-  }
-
-  @Override
-  public void register(Configurable<?> configurable) {
   }
 
   @Override

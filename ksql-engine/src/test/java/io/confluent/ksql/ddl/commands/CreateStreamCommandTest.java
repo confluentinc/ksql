@@ -204,6 +204,6 @@ public class CreateStreamCommandTest {
     final Map<String, Literal> allProps = new HashMap<>(props);
     allProps.putIfAbsent(DdlConfig.VALUE_FORMAT_PROPERTY, new StringLiteral("Json"));
     allProps.putIfAbsent(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral("some-topic"));
-    when(createStreamStatement.getProperties()).thenReturn(new CreateSourceProperties(allProps));
+    when(createStreamStatement.getProperties()).thenReturn(CreateSourceProperties.from(allProps));
   }
 }

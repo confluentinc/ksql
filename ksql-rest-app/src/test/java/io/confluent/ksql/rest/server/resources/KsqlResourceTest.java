@@ -623,7 +623,7 @@ public class KsqlResourceTest {
     assertThat(result, is(instanceOf(KsqlStatementErrorMessage.class)));
     assertThat(result.getErrorCode(), is(Errors.ERROR_CODE_BAD_STATEMENT));
     assertThat(result.getMessage(),
-        containsString("Corresponding Kafka topic (KAFKA_TOPIC) should be set in WITH clause."));
+        containsString("Missing required property \"KAFKA_TOPIC\" which has no default value."));
     assertThat(((KsqlStatementErrorMessage) result).getStatementText(),
         is("CREATE STREAM S (foo INT) WITH(VALUE_FORMAT='JSON');"));
   }

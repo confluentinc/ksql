@@ -142,8 +142,8 @@ public class DefaultSchemaInjectorTest {
     when(cs.getName()).thenReturn(QualifiedName.of("cs"));
     when(ct.getName()).thenReturn(QualifiedName.of("ct"));
 
-    when(cs.getProperties()).thenReturn(new CreateSourceProperties(SUPPORTED_PROPS));
-    when(ct.getProperties()).thenReturn(new CreateSourceProperties(SUPPORTED_PROPS));
+    when(cs.getProperties()).thenReturn(CreateSourceProperties.from(SUPPORTED_PROPS));
+    when(ct.getProperties()).thenReturn(CreateSourceProperties.from(SUPPORTED_PROPS));
 
     when(cs.copyWith(any(), any())).thenAnswer(inv -> setupCopy(inv, cs, mock(CreateStream.class)));
     when(ct.copyWith(any(), any())).thenAnswer(inv -> setupCopy(inv, ct, mock(CreateTable.class)));
@@ -203,7 +203,7 @@ public class DefaultSchemaInjectorTest {
   @Test
   public void shouldReturnStatementUnchangedIfCsFormatDoesNotSupportInference() {
     // Given:
-    when(cs.getProperties()).thenReturn(new CreateSourceProperties(UNSUPPORTED_PROPS));
+    when(cs.getProperties()).thenReturn(CreateSourceProperties.from(UNSUPPORTED_PROPS));
 
     // When:
     final ConfiguredStatement<?> result = injector.inject(csStatement);
@@ -215,7 +215,7 @@ public class DefaultSchemaInjectorTest {
   @Test
   public void shouldReturnStatementUnchangedIfCtFormatDoesNotSupportInference() {
     // Given:
-    when(ct.getProperties()).thenReturn(new CreateSourceProperties(UNSUPPORTED_PROPS));
+    when(ct.getProperties()).thenReturn(CreateSourceProperties.from(UNSUPPORTED_PROPS));
 
     // When:
     final ConfiguredStatement<?> result = injector.inject(ctStatement);
@@ -285,7 +285,7 @@ public class DefaultSchemaInjectorTest {
             + "MAPFIELD MAP<VARCHAR, BIGINT>, "
             + "STRUCTFIELD STRUCT<S0 BIGINT>, "
             + "DECIMALFIELD DECIMAL(4, 2)) "
-            + "WITH (VALUE_FORMAT='avro', KAFKA_TOPIC='some-topic', AVRO_SCHEMA_ID='5');"
+            + "WITH (AVRO_SCHEMA_ID=5, KAFKA_TOPIC='some-topic', VALUE_FORMAT='avro');"
     ));
   }
 
@@ -310,7 +310,7 @@ public class DefaultSchemaInjectorTest {
             + "MAPFIELD MAP<VARCHAR, BIGINT>, "
             + "STRUCTFIELD STRUCT<S0 BIGINT>, "
             + "DECIMALFIELD DECIMAL(4, 2)) "
-            + "WITH (VALUE_FORMAT='avro', KAFKA_TOPIC='some-topic', AVRO_SCHEMA_ID='5');"
+            + "WITH (AVRO_SCHEMA_ID=5, KAFKA_TOPIC='some-topic', VALUE_FORMAT='avro');"
     ));
   }
 
@@ -337,7 +337,7 @@ public class DefaultSchemaInjectorTest {
             + "MAPFIELD MAP<VARCHAR, BIGINT>, "
             + "STRUCTFIELD STRUCT<S0 BIGINT>, "
             + "DECIMALFIELD DECIMAL(4, 2)) "
-            + "WITH (VALUE_FORMAT='avro', KAFKA_TOPIC='some-topic', AVRO_SCHEMA_ID='42');"
+            + "WITH (AVRO_SCHEMA_ID='42', KAFKA_TOPIC='some-topic', VALUE_FORMAT='avro');"
     ));
   }
 
@@ -364,7 +364,7 @@ public class DefaultSchemaInjectorTest {
             + "MAPFIELD MAP<VARCHAR, BIGINT>, "
             + "STRUCTFIELD STRUCT<S0 BIGINT>, "
             + "DECIMALFIELD DECIMAL(4, 2)) "
-            + "WITH (VALUE_FORMAT='avro', KAFKA_TOPIC='some-topic', AVRO_SCHEMA_ID='42');"
+            + "WITH (AVRO_SCHEMA_ID='42', KAFKA_TOPIC='some-topic', VALUE_FORMAT='avro');"
     ));
   }
 
@@ -380,7 +380,7 @@ public class DefaultSchemaInjectorTest {
     // Then:
     assertThat(result.getStatement().getProperties().getAvroSchemaId().get(), is(SCHEMA_ID));
 
-    assertThat(result.getStatementText(), containsString("AVRO_SCHEMA_ID='5'"));
+    assertThat(result.getStatementText(), containsString("AVRO_SCHEMA_ID=5"));
   }
 
   @Test
@@ -473,13 +473,13 @@ public class DefaultSchemaInjectorTest {
   ) {
     final HashMap<String, Literal> props = new HashMap<>(SUPPORTED_PROPS);
     props.put(property, new StringLiteral(value));
-    return new CreateSourceProperties(props);
+    return CreateSourceProperties.from(props);
   }
 
   private static CreateSourceProperties supportedPropsWithout(final String property) {
     final HashMap<String, Literal> props = new HashMap<>(SUPPORTED_PROPS);
     assertThat("Invalid test", props.remove(property), is(notNullValue()));
-    return new CreateSourceProperties(props);
+    return CreateSourceProperties.from(props);
   }
 
   private static Object setupCopy(

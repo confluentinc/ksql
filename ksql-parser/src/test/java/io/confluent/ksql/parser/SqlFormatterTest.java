@@ -188,7 +188,7 @@ public class SqlFormatterTest {
 
     // Then:
     assertThat(sql, is("CREATE STREAM TEST (Foo STRING, Bar STRING) "
-        + "WITH (VALUE_FORMAT='JSON', KAFKA_TOPIC='topic_test', KEY='ORDERID');"));
+        + "WITH (KAFKA_TOPIC='topic_test', KEY='ORDERID', VALUE_FORMAT='JSON');"));
   }
 
   @Test
@@ -205,7 +205,7 @@ public class SqlFormatterTest {
 
     // Then:
     assertThat(sql, is("CREATE TABLE TEST (Foo STRING, Bar STRING) "
-        + "WITH (VALUE_FORMAT='JSON', KAFKA_TOPIC='topic_test', KEY='ORDERID');"));
+        + "WITH (KAFKA_TOPIC='topic_test', KEY='ORDERID', VALUE_FORMAT='JSON');"));
   }
 
   @Test

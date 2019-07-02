@@ -16,6 +16,7 @@
 package io.confluent.ksql.parser.tree;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 
@@ -25,6 +26,7 @@ import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
+import java.util.HashMap;
 import java.util.Optional;
 import org.apache.kafka.streams.kstream.WindowedSerdes;
 import org.junit.Rule;
@@ -34,7 +36,7 @@ import org.junit.rules.ExpectedException;
 public class CreateSourcePropertiesTest {
 
   private static final java.util.Map<String, Literal> MINIMUM_VALID_PROPS = ImmutableMap.of(
-      DdlConfig.VALUE_FORMAT_PROPERTY, new StringLiteral("AVRO"),
+      DdlConfig.VALUE_FORMAT_PROPERTY, new StringLiteral("AvRo"),
       DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral("foo")
   );
 
@@ -44,7 +46,7 @@ public class CreateSourcePropertiesTest {
   @Test
   public void shouldSetMinimumValidProps() {
     // When:
-    final CreateSourceProperties properties = new CreateSourceProperties(MINIMUM_VALID_PROPS);
+    final CreateSourceProperties properties = CreateSourceProperties.from(MINIMUM_VALID_PROPS);
 
     // Then:
     assertThat(properties.getKafkaTopic(), is("foo"));
@@ -54,7 +56,7 @@ public class CreateSourcePropertiesTest {
   @Test
   public void shouldReturnOptionalEmptyForMissingProps() {
     // When:
-    final CreateSourceProperties properties = new CreateSourceProperties(MINIMUM_VALID_PROPS);
+    final CreateSourceProperties properties = CreateSourceProperties.from(MINIMUM_VALID_PROPS);
 
     // Then:
     assertThat(properties.getKeyField(), is(Optional.empty()));
@@ -71,7 +73,7 @@ public class CreateSourcePropertiesTest {
   @Test
   public void shouldSetValidKey() {
     // When:
-    final CreateSourceProperties properties = new CreateSourceProperties(
+    final CreateSourceProperties properties = CreateSourceProperties.from(
         ImmutableMap.<String, Literal>builder()
             .putAll(MINIMUM_VALID_PROPS)
             .put(DdlConfig.KEY_NAME_PROPERTY, new StringLiteral("key"))
@@ -84,7 +86,7 @@ public class CreateSourcePropertiesTest {
   @Test
   public void shouldSetValidTimestampName() {
     // When:
-    final CreateSourceProperties properties = new CreateSourceProperties(
+    final CreateSourceProperties properties = CreateSourceProperties.from(
         ImmutableMap.<String, Literal>builder()
             .putAll(MINIMUM_VALID_PROPS)
             .put(DdlConfig.TIMESTAMP_NAME_PROPERTY, new StringLiteral("ts"))
@@ -97,7 +99,7 @@ public class CreateSourcePropertiesTest {
   @Test
   public void shouldSetValidTimestampFormat() {
     // When:
-    final CreateSourceProperties properties = new CreateSourceProperties(
+    final CreateSourceProperties properties = CreateSourceProperties.from(
         ImmutableMap.<String, Literal>builder()
             .putAll(MINIMUM_VALID_PROPS)
             .put(DdlConfig.TIMESTAMP_FORMAT_PROPERTY, new StringLiteral("ts"))
@@ -110,10 +112,10 @@ public class CreateSourcePropertiesTest {
   @Test
   public void shouldSetValidWindowType() {
     // When:
-    final CreateSourceProperties properties = new CreateSourceProperties(
+    final CreateSourceProperties properties = CreateSourceProperties.from(
         ImmutableMap.<String, Literal>builder()
             .putAll(MINIMUM_VALID_PROPS)
-            .put(DdlConfig.WINDOW_TYPE_PROPERTY, new StringLiteral("HOPPING"))
+            .put(DdlConfig.WINDOW_TYPE_PROPERTY, new StringLiteral("HoPPinG"))
             .build());
 
     // Then:
@@ -126,7 +128,7 @@ public class CreateSourcePropertiesTest {
   @Test
   public void shouldSetValidSchemaId() {
     // When:
-    final CreateSourceProperties properties = new CreateSourceProperties(
+    final CreateSourceProperties properties = CreateSourceProperties.from(
         ImmutableMap.<String, Literal>builder()
             .putAll(MINIMUM_VALID_PROPS)
             .put(KsqlConstants.AVRO_SCHEMA_ID, new StringLiteral("1"))
@@ -139,7 +141,7 @@ public class CreateSourcePropertiesTest {
   @Test
   public void shouldSetValidAvroSchemaName() {
     // When:
-    final CreateSourceProperties properties = new CreateSourceProperties(
+    final CreateSourceProperties properties = CreateSourceProperties.from(
         ImmutableMap.<String, Literal>builder()
             .putAll(MINIMUM_VALID_PROPS)
             .put(DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME, new StringLiteral("schema"))
@@ -152,7 +154,7 @@ public class CreateSourcePropertiesTest {
   @Test
   public void shouldCleanQuotesForStrings() {
     // When:
-    final CreateSourceProperties properties = new CreateSourceProperties(
+    final CreateSourceProperties properties = CreateSourceProperties.from(
         ImmutableMap.<String, Literal>builder()
             .putAll(MINIMUM_VALID_PROPS)
             .put(DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME, new StringLiteral("'schema'"))
@@ -163,9 +165,9 @@ public class CreateSourcePropertiesTest {
   }
 
   @Test
-  public void shouldSetReplicas() {
+  public void shouldSetReplicasFromNumber() {
     // When:
-    final CreateSourceProperties properties = new CreateSourceProperties(
+    final CreateSourceProperties properties = CreateSourceProperties.from(
         ImmutableMap.<String, Literal>builder()
             .putAll(MINIMUM_VALID_PROPS)
             .put(KsqlConstants.SOURCE_NUMBER_OF_REPLICAS, new IntegerLiteral(2))
@@ -178,7 +180,7 @@ public class CreateSourcePropertiesTest {
   @Test
   public void shouldSetPartitions() {
     // When:
-    final CreateSourceProperties properties = new CreateSourceProperties(
+    final CreateSourceProperties properties = CreateSourceProperties.from(
         ImmutableMap.<String, Literal>builder()
             .putAll(MINIMUM_VALID_PROPS)
             .put(KsqlConstants.SOURCE_NUMBER_OF_PARTITIONS, new IntegerLiteral(2))
@@ -191,7 +193,7 @@ public class CreateSourcePropertiesTest {
   @Test
   public void shouldSetWrapSingleValues() {
     // When:
-    final CreateSourceProperties properties = new CreateSourceProperties(
+    final CreateSourceProperties properties = CreateSourceProperties.from(
         ImmutableMap.<String, Literal>builder()
             .putAll(MINIMUM_VALID_PROPS)
             .put(DdlConfig.WRAP_SINGLE_VALUE, new BooleanLiteral("true"))
@@ -202,38 +204,83 @@ public class CreateSourcePropertiesTest {
   }
 
   @Test
+  public void shouldSetNumericPropertyFromStringLiteral() {
+    // When:
+    final CreateSourceProperties properties = CreateSourceProperties.from(
+        ImmutableMap.<String, Literal>builder()
+            .putAll(MINIMUM_VALID_PROPS)
+            .put(KsqlConstants.SOURCE_NUMBER_OF_REPLICAS, new StringLiteral("3"))
+            .build());
+
+    // Then:
+    assertThat(properties.getReplicas(), is(Optional.of((short) 3)));
+  }
+
+  @Test
+  public void shouldSetBooleanPropertyFromStringLiteral() {
+    // When:
+    final CreateSourceProperties properties = CreateSourceProperties.from(
+        ImmutableMap.<String, Literal>builder()
+            .putAll(MINIMUM_VALID_PROPS)
+            .put(DdlConfig.WRAP_SINGLE_VALUE, new StringLiteral("true"))
+            .build());
+
+    // Then:
+    assertThat(properties.getWrapSingleValues(), is(Optional.of(true)));
+  }
+
+  @Test
+  public void shouldHandleNonUpperCasePropNames() {
+    // When:
+    final CreateSourceProperties properties = CreateSourceProperties.from(
+        ImmutableMap.<String, Literal>builder()
+            .putAll(MINIMUM_VALID_PROPS)
+            .put(DdlConfig.WRAP_SINGLE_VALUE.toLowerCase(), new StringLiteral("false"))
+            .build());
+
+    // Then:
+    assertThat(properties.getWrapSingleValues(), is(Optional.of(false)));
+  }
+
+  @Test
   public void shouldFailIfNoKafkaTopicName() {
+    // Given:
+    final HashMap<String, Literal> props = new HashMap<>(MINIMUM_VALID_PROPS);
+    props.remove(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY);
+
     // Expect:
     expectedException.expectMessage(
-        "Corresponding Kafka topic (KAFKA_TOPIC) should be set in WITH clause");
+        "Missing required property \"KAFKA_TOPIC\" which has no default value.");
     expectedException.expect(KsqlException.class);
 
     // When:
-    new CreateSourceProperties(
-        ImmutableMap.<String, Literal>builder()
-            .put(DdlConfig.VALUE_FORMAT_PROPERTY, new StringLiteral("AVRO"))
-            .build()
-    );
+    CreateSourceProperties.from(props);
   }
 
   @Test
   public void shouldFailIfNoValueFormat() {
+    // Given:
+    final HashMap<String, Literal> props = new HashMap<>(MINIMUM_VALID_PROPS);
+    props.remove(DdlConfig.VALUE_FORMAT_PROPERTY);
+
     // Expect:
-    expectedException.expectMessage("Topic format(VALUE_FORMAT) should be set in WITH clause.");
+    expectedException
+        .expectMessage("Missing required property \"VALUE_FORMAT\" which has no default value.");
     expectedException.expect(KsqlException.class);
 
     // When:
-    new CreateSourceProperties(ImmutableMap.of());
+    CreateSourceProperties.from(props);
   }
 
   @Test
   public void shouldFailIfInvalidWindowConfig() {
     // Expect:
-    expectedException.expectMessage("WINDOW_TYPE property is not set correctly");
+    expectedException.expectMessage(
+        "Invalid value bar for property WINDOW_TYPE: String must be one of: SESSION, HOPPING, TUMBLING");
     expectedException.expect(KsqlException.class);
 
     // When:
-    new CreateSourceProperties(
+    CreateSourceProperties.from(
         ImmutableMap.<String, Literal>builder()
             .putAll(MINIMUM_VALID_PROPS)
             .put(DdlConfig.WINDOW_TYPE_PROPERTY, new StringLiteral("bar"))
@@ -244,11 +291,11 @@ public class CreateSourcePropertiesTest {
   @Test
   public void shouldFailIfInvalidConfig() {
     // Expect:
-    expectedException.expectMessage("Invalid config variable in the WITH clause: FOO");
+    expectedException.expectMessage("Invalid config variable(s) in the WITH clause: FOO");
     expectedException.expect(KsqlException.class);
 
     // When:
-    new CreateSourceProperties(
+    CreateSourceProperties.from(
         ImmutableMap.<String, Literal>builder()
             .putAll(MINIMUM_VALID_PROPS)
             .put("foo", new StringLiteral("bar"))
@@ -260,14 +307,45 @@ public class CreateSourcePropertiesTest {
   public void shouldProperlyImplementEqualsAndHashCode() {
     new EqualsTester()
         .addEqualityGroup(
-            new CreateSourceProperties(MINIMUM_VALID_PROPS),
-            new CreateSourceProperties(MINIMUM_VALID_PROPS))
+            CreateSourceProperties.from(MINIMUM_VALID_PROPS),
+            CreateSourceProperties.from(MINIMUM_VALID_PROPS))
         .addEqualityGroup(
-            new CreateSourceProperties(ImmutableMap.<String, Literal>builder()
+            CreateSourceProperties.from(ImmutableMap.<String, Literal>builder()
                 .putAll(MINIMUM_VALID_PROPS)
                 .put(DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME, new StringLiteral("schema"))
                 .build()))
         .testEquals();
   }
 
+  @Test
+  public void shouldIncludeOnlyProvidedPropsInToString() {
+    // Given:
+    final CreateSourceProperties props = CreateSourceProperties
+        .from(ImmutableMap.<String, Literal>builder()
+            .putAll(MINIMUM_VALID_PROPS)
+            .put("Wrap_Single_value", new StringLiteral("True"))
+            .build());
+
+    // When:
+    final String sql = props.toString();
+
+    // Then:
+    assertThat(sql, is("KAFKA_TOPIC='foo', VALUE_FORMAT='AvRo', WRAP_SINGLE_VALUE='True'"));
+  }
+
+  @Test
+  public void shouldNotQuoteNonStringPropValues() {
+    // Given:
+    final CreateSourceProperties props = CreateSourceProperties
+        .from(ImmutableMap.<String, Literal>builder()
+            .putAll(MINIMUM_VALID_PROPS)
+            .put("Wrap_Single_value", new BooleanLiteral("true"))
+            .build());
+
+    // When:
+    final String sql = props.toString();
+
+    // Then:
+    assertThat(sql, containsString("WRAP_SINGLE_VALUE=true"));
+  }
 }

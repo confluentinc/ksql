@@ -202,6 +202,6 @@ public class CreateTableCommandTest {
     final Map<String, Literal> allProps = new HashMap<>(props);
     allProps.putIfAbsent(DdlConfig.VALUE_FORMAT_PROPERTY, new StringLiteral("Json"));
     allProps.putIfAbsent(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral("some-topic"));
-    when(createTableStatement.getProperties()).thenReturn(new CreateSourceProperties(allProps));
+    when(createTableStatement.getProperties()).thenReturn(CreateSourceProperties.from(allProps));
   }
 }

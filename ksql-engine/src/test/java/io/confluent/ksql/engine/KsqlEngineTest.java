@@ -752,7 +752,7 @@ public class KsqlEngineTest {
         Assert.fail();
       } catch (final KsqlStatementException e) {
         assertThat(e.getMessage(), containsString(
-            "Corresponding Kafka topic (KAFKA_TOPIC) should be set in WITH clause."));
+            "Missing required property \"KAFKA_TOPIC\" which has no default value."));
       }
     }
   }
@@ -777,7 +777,7 @@ public class KsqlEngineTest {
         Assert.fail();
       } catch (final KsqlStatementException e) {
         assertThat(e.getMessage(), containsString(
-            "Topic format(VALUE_FORMAT) should be set in WITH clause."));
+            "Missing required property \"VALUE_FORMAT\" which has no default value."));
       }
     }
   }

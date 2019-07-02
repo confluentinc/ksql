@@ -154,4 +154,52 @@ public class QueryMetadataTest {
   public void shouldReturnSchema() {
     assertThat(query.getLogicalSchema(), is(SOME_SCHEMA));
   }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void shouldThrowIfSchemaContainsRowTime() {
+    // Given:
+    final LogicalSchema invalidSchema = LogicalSchema.of(SchemaBuilder.struct()
+        .field("f0", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
+        .field(SchemaUtil.ROWTIME_NAME, SchemaBuilder.OPTIONAL_INT64_SCHEMA)
+        .build());
+
+    // When:
+    new QueryMetadata(
+        "foo",
+        kafkaStreams,
+        invalidSchema,
+        SOME_SOURCES,
+        "bar",
+        DataSourceType.KSTREAM,
+        QUERY_APPLICATION_ID,
+        topoplogy,
+        Collections.emptyMap(),
+        Collections.emptyMap(),
+        closeCallback
+    );
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void shouldThrowIfSchemaContainsRowKey() {
+    // Given:
+    final LogicalSchema invalidSchema = LogicalSchema.of(SchemaBuilder.struct()
+        .field("f0", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
+        .field(SchemaUtil.ROWKEY_NAME, SchemaBuilder.OPTIONAL_STRING_SCHEMA)
+        .build());
+
+    // When:
+    new QueryMetadata(
+        "foo",
+        kafkaStreams,
+        invalidSchema,
+        SOME_SOURCES,
+        "bar",
+        DataSourceType.KSTREAM,
+        QUERY_APPLICATION_ID,
+        topoplogy,
+        Collections.emptyMap(),
+        Collections.emptyMap(),
+        closeCallback
+    );
+  }
 }

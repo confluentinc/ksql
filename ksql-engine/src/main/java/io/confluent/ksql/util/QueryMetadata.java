@@ -79,6 +79,11 @@ public class QueryMetadata {
     this.closeCallback = Objects.requireNonNull(closeCallback, "closeCallback");
     this.sourceNames = Objects.requireNonNull(sourceNames, "sourceNames");
     this.logicalSchema = Objects.requireNonNull(logicalSchema, "logicalSchema");
+
+    if (logicalSchema.findValueField(SchemaUtil.ROWKEY_NAME).isPresent()
+        || logicalSchema.findValueField(SchemaUtil.ROWTIME_NAME).isPresent()) {
+      throw new IllegalArgumentException("Schema contains implicit columns in value schema");
+    }
   }
 
   protected QueryMetadata(final QueryMetadata other, final Consumer<QueryMetadata> closeCallback) {

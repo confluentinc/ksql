@@ -111,19 +111,37 @@ public class KsqlServerMain {
 
   @VisibleForTesting
   static void enforceStreamStateDirAvailability(final File streamsStateDir) {
-    if (!streamsStateDir.exists() || !streamsStateDir.isDirectory()) {
-      throw new KsqlServerException("The kafka streams state directory does not exist: "
-          + streamsStateDir.getPath()
-          + "\n Make sure the directory exists and is writable for KSQL server."
+    if (!streamsStateDir.exists()) {
+      final boolean mkDirSuccess = streamsStateDir.mkdir();
+      if (!mkDirSuccess) {
+        throw new KsqlServerException("Could not create the kafka streams state directory: "
+            + streamsStateDir.getPath()
+            + "\n Make sure the directory exists and is writable for KSQL server "
+            + "\n or its parend directory is writbale by KSQL server"
+            + "\n or change it to a writable directory by setting '"
+            + KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.STATE_DIR_CONFIG
+            + "' config in the properties file."
+        );
+      }
+    }
+    if (!streamsStateDir.isDirectory()) {
+      throw new KsqlServerException(streamsStateDir.getPath()
+          + " is not a directory."
+          + "\n Make sure the directory exists and is writable for KSQL server "
+          + "\n or its parend directory is writbale by KSQL server"
+          + "\n or change it to a writable directory by setting '"
+          + KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.STATE_DIR_CONFIG
+          + "' config in the properties file."
       );
     }
     if (!streamsStateDir.canWrite()) {
       throw new KsqlServerException("The kafka streams state directory is not writable "
           + "for KSQL server: "
           + streamsStateDir.getPath()
-          + "\n Make sure KSQL server has write access to this directory or change it to a writable"
-          + " one by setting `" + KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.STATE_DIR_CONFIG
-          + "` config in the properties file."
+          + "\n Make sure the directory exists and is writable for KSQL server "
+          + "\n or change it to a writable directory by setting '"
+          + KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.STATE_DIR_CONFIG
+          + "' config in the properties file."
       );
     }
   }

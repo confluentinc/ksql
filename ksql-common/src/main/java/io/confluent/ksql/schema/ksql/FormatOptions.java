@@ -32,7 +32,7 @@ public final class FormatOptions {
    *
    <p>The {@code reservedWordPredicate} allows code that lives in the common module
    * to be wired up to the set of reserved words defined in the parser module. Wire this up to
-   * {@code ParserUtil::isReservedWord}.
+   * {@code ParserUtil::isReservedIdentifier}.
    *
    * <p>If using this type in a module that does <i>not</i> have access to the parser, then the
    * <i>safest</i> option is to pass in predicate that always returns true, which will always

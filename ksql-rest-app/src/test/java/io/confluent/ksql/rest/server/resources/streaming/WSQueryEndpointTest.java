@@ -392,7 +392,6 @@ public class WSQueryEndpointTest {
     wsQueryEndpoint.onOpen(session, null);
 
     // Then:
-    verify(securityExtension).getUserContextProvider();
     verify(userContextProvider).getKafkaClientSupplier(eq(principal));
     verify(userContextProvider).getSchemaRegistryClientFactory(eq(principal));
     verify(serviceContextFactory).create(

@@ -52,7 +52,7 @@ import org.apache.kafka.connect.data.Schema;
 public class DefaultSchemaInjector implements Injector {
 
   private static final SqlSchemaFormatter FORMATTER = new SqlSchemaFormatter(
-      ParserUtil.RESERVED_WORDS, Option.AS_COLUMN_LIST);
+      ParserUtil::isReservedIdentifier, Option.AS_COLUMN_LIST);
 
   private final TopicSchemaSupplier schemaSupplier;
 

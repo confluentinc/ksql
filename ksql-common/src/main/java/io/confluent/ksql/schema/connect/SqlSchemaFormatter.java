@@ -15,13 +15,14 @@
 
 package io.confluent.ksql.schema.connect;
 
-import com.google.common.collect.ImmutableSet;
+import static java.util.Objects.requireNonNull;
+
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlException;
 import java.util.EnumSet;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -52,21 +53,36 @@ public class SqlSchemaFormatter implements SchemaFormatter {
     AS_COLUMN_LIST
   }
 
-  public static final SqlSchemaFormatter DEFAULT = new SqlSchemaFormatter();
-  public static final SqlSchemaFormatter STRICT = new SqlSchemaFormatter(Option.APPEND_NOT_NULL);
-
   private final Set<Option> options;
-  private final Set<String> reservedWords;
+  private final Predicate<String> reservedWordPredicate;
 
-  public SqlSchemaFormatter(final Option... options) {
-    this(ImmutableSet.of(), options);
-  }
-
-  public SqlSchemaFormatter(final Set<String> reservedWords, final Option... options) {
+  /**
+   * Construct instance.
+   *
+   * <p>The {@code reservedWordPredicate} allows this formatter, which lives in the common module,
+   * to be wired up to the set of reserved words defined in the parser module. Wire up to
+   * {@code ParserUtil::isReservedWord}.
+   *
+   * <p>If using this type in a module that does <i>not</i> have access to the parser, then the
+   * <i>safest</i> option is to pass in that always returns {@code true}, which will always
+   * escape field names by wrapping them in back quotes.
+   *
+   * <p>Where the predicate returns {@code true} a field name will be escaped by enclosing in
+   * quotes. NB: this also makes the field name case-sensitive. So care must be taken to ensure
+   * field names have the correct case.
+   *
+   * @param reservedWordPredicate predicate to determine if a word is reserved in the SQL syntax.
+   * @param options the options to use when formatting the SQL.
+   */
+  public SqlSchemaFormatter(
+      final Predicate<String> reservedWordPredicate,
+      final Option... options
+  ) {
     this.options = options.length == 0
         ? EnumSet.noneOf(Option.class)
         : EnumSet.of(options[0], options);
-    this.reservedWords = Objects.requireNonNull(reservedWords, "reservedWords");
+
+    this.reservedWordPredicate = requireNonNull(reservedWordPredicate, "reservedWordPredicate");
   }
 
   @Override
@@ -79,7 +95,7 @@ public class SqlSchemaFormatter implements SchemaFormatter {
   }
 
   private String quoteIfReserved(final String value) {
-    return reservedWords.contains(value) ? "`" + value + "`" : value;
+    return reservedWordPredicate.test(value) ? "`" + value + "`" : value;
   }
 
   private String typePostFix(final Schema schema) {

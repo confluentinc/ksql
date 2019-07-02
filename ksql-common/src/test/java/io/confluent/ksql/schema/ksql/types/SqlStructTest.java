@@ -20,6 +20,7 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 
 import com.google.common.testing.EqualsTester;
+import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.SqlBaseType;
 import io.confluent.ksql.util.KsqlException;
 import org.junit.Rule;
@@ -116,8 +117,30 @@ public class SqlStructTest {
     // Then:
     assertThat(sql, is(
         "STRUCT<"
+            + "`f0` " + SqlTypes.BIGINT
+            + ", `F1` " + SqlTypes.array(SqlTypes.DOUBLE)
+            + ">"
+    ));
+  }
+
+  @Test
+  public void shouldImplementToStringWithReservedWordHandling() {
+    // Given:
+    final SqlStruct struct = SqlStruct.builder()
+        .field("f0", SqlTypes.BIGINT)
+        .field("F1", SqlTypes.array(SqlTypes.DOUBLE))
+        .build();
+
+    final FormatOptions formatOptions = FormatOptions.of(word -> word.equals("F1"));
+
+    // When:
+    final String sql = struct.toString(formatOptions);
+
+    // Then:
+    assertThat(sql, is(
+        "STRUCT<"
             + "f0 " + SqlTypes.BIGINT
-            + ", F1 " + SqlTypes.array(SqlTypes.DOUBLE)
+            + ", `F1` " + SqlTypes.array(SqlTypes.DOUBLE)
             + ">"
     ));
   }

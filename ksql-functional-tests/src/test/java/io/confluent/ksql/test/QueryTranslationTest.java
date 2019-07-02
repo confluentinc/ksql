@@ -49,9 +49,9 @@ import org.junit.runners.Parameterized;
 
 /**
  *  Runs the json functional tests defined under
- *  `ksql-engine/src/test/resources/query-validational-tests`.
+ *  `ksql-functional-tests/src/test/resources/query-validation-tests`.
  *
- *  See `ksql-engine/src/test/resources/query-validation-tests/README.md` for more info.
+ *  See `ksql-functional-tests/README.md` for more info.
  */
 @RunWith(Parameterized.class)
 public class QueryTranslationTest {

@@ -23,12 +23,12 @@ of KSQL (for which expected topology files exist).
 `QueryTranslationTest` supports running a subset of test files, for example following example:
 
 ```
-mvn test -pl ksql-engine -Dtest=QueryTranslationTest -DtestFile=sum.json
+mvn test -pl ksql-functional-tests -Dtest=QueryTranslationTest -DtestFile=sum.json
 ```
 
 or
 ```
-mvn test -pl ksql-engine -Dtest=QueryTranslationTest -DtestFile=sum.json,substring.json
+mvn test -pl ksql-functional-tests -Dtest=QueryTranslationTest -DtestFile=sum.json,substring.json
 ```
 
 The above commands can execute only a single test (sum.json) or multiple tests (sum.json and substring.json).
@@ -47,7 +47,7 @@ The are two places system properties may be set:
        where X is a comma-delimited list of the desired previously released version number(s).
   * From the command line
     1. run `mvn clean package -DskipTests=true` from the base of the KSQL project
-    1. Then run `mvn test -Dtopology.versions=X -Dtest=QueryTranslationTest -pl ksql-engine`.
+    1. Then run `mvn test -Dtopology.versions=X -Dtest=QueryTranslationTest -pl ksql-functional-tests`.
        Again X is a list of the versions you want to run the tests against.
 
   Note that for both options above the version(s) must exist

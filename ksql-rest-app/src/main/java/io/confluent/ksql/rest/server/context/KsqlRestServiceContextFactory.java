@@ -15,18 +15,14 @@
 
 package io.confluent.ksql.rest.server.context;
 
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.ksql.schema.registry.KsqlSchemaRegistryClientFactory;
+import io.confluent.ksql.rest.server.security.KsqlSecurityExtension;
 import io.confluent.ksql.services.DefaultServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
+import java.security.Principal;
 import java.util.Objects;
-import java.util.Optional;
-import java.util.function.Supplier;
 import javax.inject.Inject;
-import javax.ws.rs.container.ContainerRequestContext;
-import org.apache.kafka.streams.KafkaClientSupplier;
-import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
+import javax.ws.rs.core.SecurityContext;
 import org.glassfish.hk2.api.Factory;
 
 /**
@@ -35,43 +31,38 @@ import org.glassfish.hk2.api.Factory;
  */
 public class KsqlRestServiceContextFactory implements Factory<ServiceContext> {
   private static KsqlConfig ksqlConfig;
+  private static KsqlSecurityExtension securityExtension;
 
-  public static void configure(final KsqlConfig ksqlConfig) {
+  public static void configure(
+      final KsqlConfig ksqlConfig,
+      final KsqlSecurityExtension securityExtension
+  ) {
     KsqlRestServiceContextFactory.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
+    KsqlRestServiceContextFactory.securityExtension
+        = Objects.requireNonNull(securityExtension, "securityExtension");
   }
 
-  private final Optional<KsqlRestContext> ksqlRestContext;
+  private final SecurityContext securityContext;
 
   @Inject
-  public KsqlRestServiceContextFactory(final ContainerRequestContext requestContext) {
-    this.ksqlRestContext = KsqlRestContext.get(requestContext);
+  public KsqlRestServiceContextFactory(final SecurityContext securityContext) {
+    this.securityContext = securityContext;
   }
 
   @Override
   public ServiceContext provide() {
-    if (ksqlRestContext.isPresent()) {
-      return DefaultServiceContext.create(
-          ksqlConfig,
-          getKafkaClientSupplier(),
-          getSchemaRegistryClientSupplier()
-      );
+    if (!securityExtension.getAuthorizationProvider().isPresent()) {
+      return DefaultServiceContext.create(ksqlConfig);
     }
 
-    return DefaultServiceContext.create(ksqlConfig);
-  }
-
-  private KafkaClientSupplier getKafkaClientSupplier() {
-    return new ConfiguredKafkaClientSupplier(
-        new DefaultKafkaClientSupplier(),
-        ksqlRestContext.get().getKafkaClientSupplierProperties()
-    );
-  }
-
-  private Supplier<SchemaRegistryClient> getSchemaRegistryClientSupplier() {
-    return new KsqlSchemaRegistryClientFactory(
-        ksqlConfig,
-        ksqlRestContext.get().getSchemaRegistryClientHttpHeaders()
-    )::get;
+    final Principal principal = securityContext.getUserPrincipal();
+    return securityExtension.getUserContextProvider()
+        .map(provider ->
+            DefaultServiceContext.create(
+                ksqlConfig,
+                provider.getKafkaClientSupplier(principal),
+                provider.getSchemaRegistryClientFactory(principal)))
+        .get();
   }
 
   @Override

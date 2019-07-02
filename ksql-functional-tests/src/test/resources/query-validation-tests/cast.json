@@ -33,7 +33,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Only casts to primitive types or decimals are supported: STRUCT<F0 STRING, F1 INTEGER>"
+        "message": "Only casts to primitive types or decimals are supported: STRUCT<`F0` STRING, `F1` INTEGER>"
       }
     },
     {

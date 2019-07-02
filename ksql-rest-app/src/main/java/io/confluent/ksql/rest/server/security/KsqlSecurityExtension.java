@@ -15,14 +15,10 @@
 
 package io.confluent.ksql.rest.server.security;
 
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
-import java.security.Principal;
 import java.util.Optional;
-import java.util.function.Supplier;
 import javax.ws.rs.core.Configurable;
-import org.apache.kafka.streams.KafkaClientSupplier;
 
 /**
  * This interface provides a security extension (or plugin) to the KSQL server in order to
@@ -51,6 +47,23 @@ public interface KsqlSecurityExtension extends AutoCloseable {
   Optional<KsqlAuthorizationProvider> getAuthorizationProvider();
 
   /**
+   * Returns the {@link KsqlUserContextProvider} used to access to service clients that may be
+   * run in the context of a user making REST requests.
+   * </p>
+   * If an empty Optional object is returned, KSQL marks this function as disabled.
+   * </p>
+   * If a non-empty object is returned, KSQL marks this function as enabled.
+   * <p/>
+   * to access only the topics and schema the user has access to during the command execution.
+   * </p>
+   * Note: This context is used only for non-persistent commands.
+   **
+   * @return The {@code KsqlUserContextProvider} object. The context is optional, and if an empty
+   *         object is found, then KSQL will disable the user context functionality.
+   */
+  Optional<KsqlUserContextProvider> getUserContextProvider();
+
+  /**
    * Registers other security extension filters.
    * </p>
    * A {@link Configurable} is passed so that the extension can register other REST filters to
@@ -60,26 +73,6 @@ public interface KsqlSecurityExtension extends AutoCloseable {
    * @throws KsqlException If an error occurs while registering the REST security plugin.
    */
   void register(Configurable<?> configurable);
-
-  /**
-   * Constructs a {@link org.apache.kafka.streams.KafkaClientSupplier} with the user's credentials.
-   *
-   * @param principal The {@link Principal} whose credentials will be used.
-   * @throws KsqlException If an error occurs while creating the
-   * {@link org.apache.kafka.streams.KafkaClientSupplier}.
-   */
-  KafkaClientSupplier getKafkaClientSupplier(Principal principal) throws KsqlException;
-
-  /**
-   * Constructs a {@link io.confluent.kafka.schemaregistry.client.SchemaRegistryClient} supplier
-   * with the user's credentials.
-   *
-   * @param principal The {@link Principal} whose credentials will be used.
-   * @throws KsqlException If an error occurs while creating the
-   * {@link io.confluent.kafka.schemaregistry.client.SchemaRegistryClient} supplier.
-   */
-  Supplier<SchemaRegistryClient> getSchemaRegistryClientSupplier(Principal principal)
-      throws KsqlException;
 
   /**
    * Closes the current security extension. This is called in case the implementation requires

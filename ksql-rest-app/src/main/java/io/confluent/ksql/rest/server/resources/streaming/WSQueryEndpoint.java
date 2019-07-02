@@ -215,11 +215,7 @@ public class WSQueryEndpoint {
 
       final PreparedStatement<?> preparedStatement = parseStatement(request);
 
-      final Principal principal = session.getUserPrincipal();
-      serviceContext = serviceContextFactory.create(
-          ksqlConfig,
-          securityExtension.getKafkaClientSupplier(principal),
-          securityExtension.getSchemaRegistryClientSupplier(principal));
+      serviceContext = createServiceContext(session.getUserPrincipal());
 
       topicAccessValidator.validate(
           serviceContext,
@@ -280,6 +276,23 @@ public class WSQueryEndpoint {
           }
         }
     );
+  }
+
+  private ServiceContext createServiceContext(final Principal principal) {
+    // Creates a ServiceContext using the user's credentials, so the WS query topics are
+    // accessed with the user permission context (defaults to KSQL service context)
+
+    if (!securityExtension.getAuthorizationProvider().isPresent()) {
+      return DefaultServiceContext.create(ksqlConfig);
+    }
+
+    return securityExtension.getUserContextProvider()
+        .map(provider ->
+            serviceContextFactory.create(
+                ksqlConfig,
+                provider.getKafkaClientSupplier(principal),
+                provider.getSchemaRegistryClientFactory(principal)))
+        .get();
   }
 
   private void validateVersion(final Session session) {

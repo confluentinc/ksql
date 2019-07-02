@@ -66,10 +66,10 @@ import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Statement;
-import io.confluent.ksql.parser.tree.Struct;
 import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.SqlType;
+import io.confluent.ksql.schema.ksql.SqlBaseType;
+import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
@@ -515,11 +515,11 @@ public class KsqlParserTest {
     final CreateStream createStream = (CreateStream)statement;
     assertThat(createStream.getName().toString().toUpperCase(), equalTo("ORDERS"));
     assertThat(Iterables.size(createStream.getElements()), equalTo(7));
-    assertThat(Iterables.get(createStream.getElements(), 0).getName().toString().toLowerCase(), equalTo("ordertime"));
-    assertThat(Iterables.get(createStream.getElements(), 6).getType().getSqlType(), equalTo(SqlType.STRUCT));
-    final Struct struct = (Struct) Iterables.get(createStream.getElements(), 6).getType();
+    assertThat(Iterables.get(createStream.getElements(), 0).getName().toLowerCase(), equalTo("ordertime"));
+    assertThat(Iterables.get(createStream.getElements(), 6).getType().getSqlType().baseType(), equalTo(SqlBaseType.STRUCT));
+    final SqlStruct struct = (SqlStruct) Iterables.get(createStream.getElements(), 6).getType().getSqlType();
     assertThat(struct.getFields(), hasSize(5));
-    assertThat(struct.getFields().get(0).getType().getSqlType(), equalTo(SqlType.STRING));
+    assertThat(struct.getFields().get(0).getType().baseType(), equalTo(SqlBaseType.STRING));
   }
 
   @Test

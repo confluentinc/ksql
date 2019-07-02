@@ -42,16 +42,16 @@ import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.JoinCriteria;
 import io.confluent.ksql.parser.tree.JoinOn;
 import io.confluent.ksql.parser.tree.Literal;
-import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TableElements;
+import io.confluent.ksql.parser.tree.Type;
 import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.SqlType;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
 import io.confluent.ksql.util.MetaStoreFixture;
@@ -122,8 +122,8 @@ public class SqlFormatterTest {
   );
 
   private static final TableElements ELEMENTS_WITHOUT_KEY = TableElements.of(
-      new TableElement("Foo", PrimitiveType.of(SqlType.STRING)),
-      new TableElement("Bar", PrimitiveType.of(SqlType.STRING))
+      new TableElement("Foo", new Type(SqlTypes.STRING)),
+      new TableElement("Bar", new Type(SqlTypes.STRING))
   );
 
   @Before
@@ -212,8 +212,8 @@ public class SqlFormatterTest {
   public void shouldFormatTableElementsNamedAfterReservedWords() {
     // Given:
     final TableElements tableElements = TableElements.of(
-        new TableElement("GROUP", PrimitiveType.of(SqlType.STRING)),
-        new TableElement("Having", PrimitiveType.of(SqlType.STRING))
+        new TableElement("GROUP", new Type(SqlTypes.STRING)),
+        new TableElement("Having", new Type(SqlTypes.STRING))
     );
 
     final CreateStream createStream = new CreateStream(

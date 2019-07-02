@@ -24,7 +24,7 @@ import static org.junit.Assert.assertThat;
 import io.confluent.ksql.rest.entity.FieldInfo;
 import io.confluent.ksql.rest.entity.SchemaInfo;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.SqlType;
+import io.confluent.ksql.schema.ksql.SqlBaseType;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.List;
 import java.util.Optional;
@@ -38,13 +38,13 @@ public class EntityUtilTest {
   private static final FieldInfo ROWTIME_FIELD =
       new FieldInfo(
           SchemaUtil.ROWTIME_NAME,
-          new SchemaInfo(SqlType.BIGINT, null, null)
+          new SchemaInfo(SqlBaseType.BIGINT, null, null)
       );
 
   private static final FieldInfo ROWKEY_FIELD =
       new FieldInfo(
           SchemaUtil.ROWKEY_NAME,
-          new SchemaInfo(SqlType.STRING, null, null)
+          new SchemaInfo(SqlBaseType.STRING, null, null)
       );
 
   @Test

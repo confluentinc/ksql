@@ -13,35 +13,44 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.parser.tree;
+package io.confluent.ksql.schema.ksql.types;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 import com.google.common.testing.EqualsTester;
-import io.confluent.ksql.schema.ksql.SqlType;
+import io.confluent.ksql.schema.ksql.SqlBaseType;
 import org.junit.Test;
 
-public class ArrayTest {
+public class SqlArrayTest {
 
-  private static final PrimitiveType SOME_TYPE = PrimitiveType.of(SqlType.STRING);
+  private static final SqlType SOME_TYPE = SqlPrimitiveType.of(SqlBaseType.STRING);
 
   @Test
   public void shouldImplementHashCodeAndEqualsProperly() {
     new EqualsTester()
-        .addEqualityGroup(Array.of(SOME_TYPE), Array.of(SOME_TYPE))
-        .addEqualityGroup(Array.of(PrimitiveType.of(SqlType.BOOLEAN)))
-        .addEqualityGroup(Map.of(PrimitiveType.of(SqlType.BOOLEAN)))
+        .addEqualityGroup(SqlArray.of(SOME_TYPE), SqlArray.of(SOME_TYPE))
+        .addEqualityGroup(SqlArray.of(SqlPrimitiveType.of(SqlBaseType.BOOLEAN)))
+        .addEqualityGroup(SqlMap.of(SqlPrimitiveType.of(SqlBaseType.BOOLEAN)))
         .testEquals();
   }
 
   @Test
   public void shouldReturnSqlType() {
-    assertThat(Array.of(SOME_TYPE).getSqlType(), is(SqlType.ARRAY));
+    assertThat(SqlArray.of(SOME_TYPE).baseType(), is(SqlBaseType.ARRAY));
   }
 
   @Test
   public void shouldReturnValueType() {
-    assertThat(Array.of(SOME_TYPE).getItemType(), is(SOME_TYPE));
+    assertThat(SqlArray.of(SOME_TYPE).getItemType(), is(SOME_TYPE));
+  }
+
+  @Test
+  public void shouldImplmentToString() {
+    assertThat(SqlArray.of(SOME_TYPE).toString(), is(
+        "ARRAY<"
+            + SOME_TYPE.toString()
+            + ">"
+    ));
   }
 }

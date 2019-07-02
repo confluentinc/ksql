@@ -192,24 +192,7 @@ public abstract class AstVisitor<R, C> {
     return visitRelation(node, context);
   }
 
-  protected R visitPrimitiveType(final PrimitiveType node, final C context) {
-    return visitNode(node, context);
-  }
-
-  protected R visitArray(final Array node, final C context) {
-    return visitNode(node, context);
-  }
-
-  protected R visitMap(final Map node, final C context) {
-    return visitNode(node, context);
-  }
-
-  protected R visitStruct(final Struct node, final C context) {
-    return visitNode(node, context);
-  }
-
-
-  protected R visitDecimal(final Decimal node, final C context) {
+  protected R visitType(final Type node, final C context) {
     return visitNode(node, context);
   }
 

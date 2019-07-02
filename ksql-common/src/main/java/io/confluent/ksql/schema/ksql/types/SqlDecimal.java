@@ -1,8 +1,8 @@
 /*
  * Copyright 2019 Confluent Inc.
  *
- * Licensed under the Confluent Community License (the "License"; you may not use
- * this file except in compliance with the License. You may obtain a copy of the
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
  * License at
  *
  * http://www.confluent.io/confluent-community-license
@@ -13,33 +13,30 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.parser.tree;
+package io.confluent.ksql.schema.ksql.types;
 
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.schema.ksql.SqlType;
+import io.confluent.ksql.schema.ksql.FormatOptions;
+import io.confluent.ksql.schema.ksql.SqlBaseType;
 import io.confluent.ksql.util.DecimalUtil;
 import java.util.Objects;
-import java.util.Optional;
-import org.apache.kafka.connect.data.Schema;
 
 @Immutable
-public final class Decimal extends Type {
+public final class SqlDecimal extends SqlType {
 
   private final int precision;
   private final int scale;
 
-  public static Decimal of(final int precision, final int scale) {
-    return new Decimal(precision, scale);
+  public static SqlDecimal of(final int precision, final int scale) {
+    return new SqlDecimal(precision, scale);
   }
 
-  public static Decimal of(final Schema schema) {
-    return new Decimal(DecimalUtil.precision(schema), DecimalUtil.scale(schema));
-  }
-
-  private Decimal(final int precision, final int scale) {
-    super(Optional.empty(), SqlType.DECIMAL);
+  private SqlDecimal(final int precision, final int scale) {
+    super(SqlBaseType.DECIMAL);
     this.precision = precision;
     this.scale = scale;
+
+    DecimalUtil.validateParameters(precision, scale);
   }
 
   public int getPrecision() {
@@ -51,8 +48,8 @@ public final class Decimal extends Type {
   }
 
   @Override
-  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
-    return visitor.visitDecimal(this, context);
+  public boolean supportsCast() {
+    return true;
   }
 
   @Override
@@ -63,7 +60,7 @@ public final class Decimal extends Type {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    final Decimal that = (Decimal) o;
+    final SqlDecimal that = (SqlDecimal) o;
     return precision == that.precision
         && scale == that.scale;
   }
@@ -74,7 +71,12 @@ public final class Decimal extends Type {
   }
 
   @Override
-  public boolean supportsCast() {
-    return true;
+  public String toString() {
+    return "DECIMAL(" + precision + ", " + scale + ')';
+  }
+
+  @Override
+  public String toString(final FormatOptions formatOptions) {
+    return toString();
   }
 }

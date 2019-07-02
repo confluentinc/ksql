@@ -30,7 +30,7 @@ public final class FormatOptions {
   /**
    * Construct instance.
    *
-   <p>The {@code reservedWordPredicate} allows code that lives in the common module
+   * <p>The {@code reservedWordPredicate} allows code that lives in the common module
    * to be wired up to the set of reserved words defined in the parser module. Wire this up to
    * {@code ParserUtil::isReservedWord}.
    *

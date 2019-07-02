@@ -575,6 +575,7 @@ public class CliTest {
         "SELECT ORDERID, ITEMID FROM " + orderDataProvider.kstreamName(),
         3,
         containsRows(
+            row("ORDERID", "ITEMID"),
             row(row1.get(1).toString(), row1.get(2).toString()),
             row(row2.get(1).toString(), row2.get(2).toString()),
             row(row3.get(1).toString(), row3.get(2).toString())
@@ -596,6 +597,23 @@ public class CliTest {
             row(prependWithRowTimeAndKey(row2)),
             row(prependWithRowTimeAndKey(row3))
         ));
+  }
+
+  @Test
+  public void testTransientHeader() {
+    // When:
+    rowCaptor.resetTestResult();
+    run("SELECT * FROM " + orderDataProvider.kstreamName() + " LIMIT 1", localCli);
+
+    // Then: (note that some of these are truncated because of header wrapping)
+    assertThat(terminal.getOutputString(), containsString("ROWTIME"));
+    assertThat(terminal.getOutputString(), containsString("ROWKEY"));
+    assertThat(terminal.getOutputString(), containsString("ITEMID"));
+    assertThat(terminal.getOutputString(), containsString("ORDERID"));
+    assertThat(terminal.getOutputString(), containsString("ORDERUNIT"));
+    assertThat(terminal.getOutputString(), containsString("TIMESTAMP"));
+    assertThat(terminal.getOutputString(), containsString("PRICEARRA"));
+    assertThat(terminal.getOutputString(), containsString("KEYVALUEM"));
   }
 
   @Test

@@ -34,7 +34,7 @@ import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.QueuedQueryMetadata;
+import io.confluent.ksql.util.TransientQueryMetadata;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import java.time.Duration;
 import java.util.HashMap;
@@ -167,15 +167,15 @@ public class StreamedQueryResource {
         .getQuery()
         .get();
 
-    if (!(query instanceof QueuedQueryMetadata)) {
+    if (!(query instanceof TransientQueryMetadata)) {
       throw new Exception(String.format(
-          "Unexpected metadata type: expected QueuedQueryMetadata, found %s instead",
+          "Unexpected metadata type: expected TransientQueryMetadata, found %s instead",
           query.getClass()
       ));
     }
 
     final QueryStreamWriter queryStreamWriter = new QueryStreamWriter(
-        (QueuedQueryMetadata) query,
+        (TransientQueryMetadata) query,
         disconnectCheckInterval.toMillis(),
         objectMapper);
 

@@ -35,7 +35,7 @@ import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.QueuedQueryMetadata;
+import io.confluent.ksql.util.TransientQueryMetadata;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
 import java.util.Arrays;
 import java.util.Collections;
@@ -94,7 +94,7 @@ public class QueryDescriptionTest {
   @Test
   public void shouldSetFieldsCorrectlyForQueryMetadata() {
     // Given:
-    final QueryMetadata queryMetadata = new QueuedQueryMetadata(
+    final QueryMetadata queryMetadata = new TransientQueryMetadata(
         "test statement",
         queryStreams,
         SCHEMA,

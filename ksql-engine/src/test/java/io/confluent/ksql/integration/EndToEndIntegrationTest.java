@@ -37,7 +37,7 @@ import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.PageViewDataProvider;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.QueuedQueryMetadata;
+import io.confluent.ksql.util.TransientQueryMetadata;
 import io.confluent.ksql.util.UserDataProvider;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -155,7 +155,7 @@ public class EndToEndIntegrationTest {
 
   @Test
   public void shouldSelectAllFromUsers() throws Exception {
-    final QueuedQueryMetadata queryMetadata = executeQuery(
+    final TransientQueryMetadata queryMetadata = executeQuery(
         "SELECT * from %s;", USER_TABLE);
 
     final Set<String> expectedUsers = ImmutableSet
@@ -175,7 +175,7 @@ public class EndToEndIntegrationTest {
 
   @Test
   public void shouldSelectFromPageViewsWithSpecificColumn() throws Exception {
-    final QueuedQueryMetadata queryMetadata =
+    final TransientQueryMetadata queryMetadata =
         executeQuery("SELECT pageid from %s;", PAGE_VIEW_STREAM);
 
     final List<String> expectedPages =
@@ -204,7 +204,7 @@ public class EndToEndIntegrationTest {
         USER_TABLE, PAGE_VIEW_STREAM, USER_TABLE, PAGE_VIEW_STREAM,
         USER_TABLE);
 
-    final QueuedQueryMetadata queryMetadata = executeQuery(
+    final TransientQueryMetadata queryMetadata = executeQuery(
         "SELECT * from pageviews_female;");
 
     final List<KeyValue<String, GenericRow>> results = new ArrayList<>();
@@ -266,7 +266,7 @@ public class EndToEndIntegrationTest {
         + " WHERE pageId LIKE '%%_5';",
         PAGE_VIEW_STREAM);
 
-    final QueuedQueryMetadata queryMetadata =
+    final TransientQueryMetadata queryMetadata =
         executeQuery("SELECT userid, pageid from pageviews_like_p5;");
 
     final List<Object> columns = waitForFirstRow(queryMetadata);
@@ -284,7 +284,7 @@ public class EndToEndIntegrationTest {
         + "partition by viewtime;",
         PAGE_VIEW_STREAM);
 
-    final QueuedQueryMetadata queryMetadata = executeQuery(
+    final TransientQueryMetadata queryMetadata = executeQuery(
         "SELECT * from pageviews_by_viewtime;");
 
     final List<Object> columns = waitForFirstRow(queryMetadata);
@@ -311,7 +311,7 @@ public class EndToEndIntegrationTest {
 
     executeStatement(createStreamStatement);
 
-    final QueuedQueryMetadata queryMetadata = executeQuery(
+    final TransientQueryMetadata queryMetadata = executeQuery(
         "SELECT * from cart_event_product;");
 
     final List<Object> columns = waitForFirstRow(queryMetadata);
@@ -347,7 +347,7 @@ public class EndToEndIntegrationTest {
   @Test
   public void shouldSupportConfigurableUdfs() throws Exception {
     // When:
-    final QueuedQueryMetadata queryMetadata = executeQuery(
+    final TransientQueryMetadata queryMetadata = executeQuery(
         "SELECT E2EConfigurableUdf(registertime) AS x from %s;", USER_TABLE);
 
     // Then:
@@ -377,21 +377,21 @@ public class EndToEndIntegrationTest {
     return queries.isEmpty() ? null : queries.get(0);
   }
 
-  private QueuedQueryMetadata executeQuery(final String statement,
+  private TransientQueryMetadata executeQuery(final String statement,
       final String... args) {
     final QueryMetadata queryMetadata = executeStatement(statement, args);
-    assertThat(queryMetadata, instanceOf(QueuedQueryMetadata.class));
+    assertThat(queryMetadata, instanceOf(TransientQueryMetadata.class));
     toClose = queryMetadata;
-    return (QueuedQueryMetadata) queryMetadata;
+    return (TransientQueryMetadata) queryMetadata;
   }
 
   private static List<Object> waitForFirstRow(
-      final QueuedQueryMetadata queryMetadata) throws Exception {
+      final TransientQueryMetadata queryMetadata) throws Exception {
     return verifyAvailableRows(queryMetadata, 1).get(0).getColumns();
   }
 
   private static List<GenericRow> verifyAvailableRows(
-      final QueuedQueryMetadata queryMetadata,
+      final TransientQueryMetadata queryMetadata,
       final int expectedRows
   ) throws Exception {
     final BlockingQueue<KeyValue<String, GenericRow>> rowQueue = queryMetadata.getRowQueue();

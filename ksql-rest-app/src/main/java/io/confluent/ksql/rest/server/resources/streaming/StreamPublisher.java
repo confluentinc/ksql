@@ -24,7 +24,7 @@ import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.resources.streaming.Flow.Subscriber;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
-import io.confluent.ksql.util.QueuedQueryMetadata;
+import io.confluent.ksql.util.TransientQueryMetadata;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
@@ -57,8 +57,8 @@ class StreamPublisher implements Flow.Publisher<Collection<StreamedRow>> {
   @SuppressWarnings("ConstantConditions")
   @Override
   public synchronized void subscribe(final Flow.Subscriber<Collection<StreamedRow>> subscriber) {
-    final QueuedQueryMetadata queryMetadata =
-        (QueuedQueryMetadata) ksqlEngine.execute(serviceContext, query)
+    final TransientQueryMetadata queryMetadata =
+        (TransientQueryMetadata) ksqlEngine.execute(serviceContext, query)
             .getQuery()
             .get();
 
@@ -72,12 +72,12 @@ class StreamPublisher implements Flow.Publisher<Collection<StreamedRow>> {
 
   class StreamSubscription extends PollingSubscription<Collection<StreamedRow>> {
 
-    private final QueuedQueryMetadata queryMetadata;
+    private final TransientQueryMetadata queryMetadata;
     private boolean closed = false;
 
     StreamSubscription(
         final Subscriber<Collection<StreamedRow>> subscriber,
-        final QueuedQueryMetadata queryMetadata
+        final TransientQueryMetadata queryMetadata
     ) {
       super(exec, subscriber, queryMetadata.getLogicalSchema());
       this.queryMetadata = queryMetadata;

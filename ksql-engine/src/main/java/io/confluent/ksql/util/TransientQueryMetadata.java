@@ -32,14 +32,14 @@ import org.apache.kafka.streams.Topology;
 /**
  * Metadata of a transient query, e.g. {@code SELECT * FROM FOO;}.
  */
-public class QueuedQueryMetadata extends QueryMetadata {
+public class TransientQueryMetadata extends QueryMetadata {
 
   private final BlockingQueue<KeyValue<String, GenericRow>> rowQueue;
   private final AtomicBoolean isRunning = new AtomicBoolean(true);
   private final Consumer<LimitHandler> limitHandlerSetter;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
-  public QueuedQueryMetadata(
+  public TransientQueryMetadata(
       final String statementString,
       final KafkaStreams kafkaStreams,
       final LogicalSchema logicalSchema,
@@ -81,11 +81,11 @@ public class QueuedQueryMetadata extends QueryMetadata {
 
   @Override
   public boolean equals(final Object o) {
-    if (!(o instanceof QueuedQueryMetadata)) {
+    if (!(o instanceof TransientQueryMetadata)) {
       return false;
     }
 
-    final QueuedQueryMetadata that = (QueuedQueryMetadata) o;
+    final TransientQueryMetadata that = (TransientQueryMetadata) o;
 
     return Objects.equals(this.rowQueue, that.rowQueue) && super.equals(o);
   }

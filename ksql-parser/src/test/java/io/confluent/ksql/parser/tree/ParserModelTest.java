@@ -35,6 +35,8 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import org.apache.kafka.common.config.AbstractConfig;
+import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.streams.kstream.JoinWindows;
 import org.apache.kafka.streams.kstream.Window;
 import org.junit.Test;
@@ -97,6 +99,8 @@ public class ParserModelTest {
     new ImmutableTester()
         .withKnownImmutableType(Window.class)
         .withKnownImmutableType(JoinWindows.class)
+        .withKnownImmutableType(ConfigDef.class)
+        .withKnownImmutableType(AbstractConfig.class)
         .test(modelClass);
   }
 

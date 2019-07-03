@@ -23,6 +23,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.ddl.commands.CreateSourceCommand.SerdeOptionsSupplier;
 import io.confluent.ksql.metastore.MutableMetaStore;
@@ -172,6 +173,7 @@ public class CreateSourceCommandTest {
     );
   }
 
+  @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
   @Test
   public void shouldNotThrowIfTopicDoesExist() {
     // Given:
@@ -318,7 +320,7 @@ public class CreateSourceCommandTest {
   private void givenPropertiesWith(final Map<String, Literal> additionalProps) {
     final Map<String, Literal> allProps = new HashMap<>(minValidProps());
     allProps.putAll(additionalProps);
-    when(statement.getProperties()).thenReturn(new CreateSourceProperties(allProps));
+    when(statement.getProperties()).thenReturn(CreateSourceProperties.from(allProps));
   }
 
   private static final class TestCmd extends CreateSourceCommand {

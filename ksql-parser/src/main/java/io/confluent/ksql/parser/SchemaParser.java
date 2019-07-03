@@ -44,7 +44,7 @@ public final class SchemaParser {
     final CommonTokenStream tokStream = new CommonTokenStream(lexer);
     final SqlBaseParser parser = new SqlBaseParser(tokStream);
 
-    parser.addErrorListener(new BaseErrorListener() {
+    final BaseErrorListener errorListener = new BaseErrorListener() {
       @Override
       public void syntaxError(
           final Recognizer<?, ?> recognizer,
@@ -61,7 +61,13 @@ public final class SchemaParser {
                 msg),
             e);
       }
-    });
+    };
+
+    lexer.removeErrorListeners();
+    lexer.addErrorListener(errorListener);
+
+    parser.removeErrorListeners();
+    parser.addErrorListener(errorListener);
 
     final List<TableElement> elements = parser.tableElements().tableElement()
         .stream()

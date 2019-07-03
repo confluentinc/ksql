@@ -27,14 +27,17 @@ import java.util.function.Supplier;
  * <p/>
  * This context is used by KSQL to access Kafka and/or Schema Registry resources when a user
  * executes a KSQL command so it can access those resources using the same user's permissions.
+ * <p/>
+ * Note: This context is used only for non-persistent commands.
  */
 public interface KsqlUserContextProvider {
   /**
    * Constructs a {@link ConfiguredKafkaClientSupplier} to access Kafka resources on the
    * context of the specified user {@code principal}.
    * </p>
-   * {@code Note:} The {@code ConfiguredKafkaClientSupplier} is required by Websockets
-   * PRINT topic streaming ({@see PrintTopicUtil}).
+   * {@code Note:} The {@code ConfiguredKafkaClientSupplier} is required to get a
+   * {@code KafkaClientSupplier} with injected configurations that authenticates the user
+   * when accessing Kafka.
    *
    * @param principal The {@link Principal} whose credentials will be used.
    * @return {@link ConfiguredKafkaClientSupplier}.

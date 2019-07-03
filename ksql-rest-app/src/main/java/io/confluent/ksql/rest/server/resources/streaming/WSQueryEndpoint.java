@@ -93,7 +93,7 @@ public class WSQueryEndpoint {
   private final Duration commandQueueCatchupTimeout;
   private final TopicAccessValidator topicAccessValidator;
   private final KsqlSecurityExtension securityExtension;
-  private final ServiceContextFactory serviceContextFactory;
+  private final UserServiceContextFactory serviceContextFactory;
   private final Function<KsqlConfig, ServiceContext> defaultServiceContextFactory;
   private final ServerState serverState;
 
@@ -102,7 +102,7 @@ public class WSQueryEndpoint {
 
   @VisibleForTesting
   @FunctionalInterface
-  interface ServiceContextFactory {
+  interface UserServiceContextFactory {
     ServiceContext create(
         KsqlConfig ksqlConfig,
         KafkaClientSupplier kafkaClientSupplier,
@@ -157,7 +157,7 @@ public class WSQueryEndpoint {
       final Duration commandQueueCatchupTimeout,
       final TopicAccessValidator topicAccessValidator,
       final KsqlSecurityExtension securityExtension,
-      final ServiceContextFactory serviceContextFactory,
+      final UserServiceContextFactory serviceContextFactory,
       final Function<KsqlConfig, ServiceContext> defaultServiceContextFactory,
       final ServerState serverState
   ) {

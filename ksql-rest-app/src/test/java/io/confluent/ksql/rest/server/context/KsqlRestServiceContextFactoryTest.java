@@ -55,7 +55,7 @@ public class KsqlRestServiceContextFactoryTest {
   @Mock
   private Function<KsqlConfig, ServiceContext> defaultServiceContextProvider;
   @Mock
-  private KsqlRestServiceContextFactory.ServiceContextFactory userServiceContextFactory;
+  private KsqlRestServiceContextFactory.UserServiceContextFactory userServiceContextFactory;
   @Mock
   private ServiceContext defaultServiceContext;
   @Mock

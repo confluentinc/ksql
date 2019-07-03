@@ -50,7 +50,7 @@ public class KsqlRestServiceContextFactory implements Factory<ServiceContext> {
 
   @VisibleForTesting
   @FunctionalInterface
-  interface ServiceContextFactory {
+  interface UserServiceContextFactory {
     ServiceContext create(
         KsqlConfig ksqlConfig,
         KafkaClientSupplier kafkaClientSupplier,
@@ -60,7 +60,7 @@ public class KsqlRestServiceContextFactory implements Factory<ServiceContext> {
 
   private final SecurityContext securityContext;
   private final Function<KsqlConfig, ServiceContext> defaultServiceContextFactory;
-  private final ServiceContextFactory userServiceContextFactory;
+  private final UserServiceContextFactory userServiceContextFactory;
 
   @Inject
   public KsqlRestServiceContextFactory(final SecurityContext securityContext) {
@@ -71,7 +71,7 @@ public class KsqlRestServiceContextFactory implements Factory<ServiceContext> {
   KsqlRestServiceContextFactory(
       final SecurityContext securityContext,
       final Function<KsqlConfig, ServiceContext> defaultServiceContextFactory,
-      final ServiceContextFactory userServiceContextFactory
+      final UserServiceContextFactory userServiceContextFactory
   ) {
     this.securityContext = securityContext;
     this.defaultServiceContextFactory = defaultServiceContextFactory;

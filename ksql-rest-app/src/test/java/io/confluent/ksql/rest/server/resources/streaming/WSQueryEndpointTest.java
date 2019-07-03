@@ -50,7 +50,7 @@ import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.context.ConfiguredKafkaClientSupplier;
 import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint.PrintTopicPublisher;
 import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint.QueryPublisher;
-import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint.ServiceContextFactory;
+import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint.UserServiceContextFactory;
 import io.confluent.ksql.rest.server.security.KsqlAuthorizationProvider;
 import io.confluent.ksql.rest.server.security.KsqlSecurityExtension;
 import io.confluent.ksql.rest.server.security.KsqlUserContextProvider;
@@ -143,7 +143,7 @@ public class WSQueryEndpointTest {
   @Mock
   private ServiceContext serviceContext;
   @Mock
-  private ServiceContextFactory serviceContextFactory;
+  private UserServiceContextFactory serviceContextFactory;
   @Mock
   private ServerState serverState;
   @Mock

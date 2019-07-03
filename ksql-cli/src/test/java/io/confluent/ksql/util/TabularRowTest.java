@@ -34,8 +34,9 @@ public class TabularRowTest {
 
     // Then:
     assertThat(formatted, is(""
+        + "+--------+--------+\n"
         + "|foo     |bar     |\n"
-        + "+════════+════════+"));
+        + "+--------+--------+"));
   }
 
   @Test
@@ -48,10 +49,11 @@ public class TabularRowTest {
 
     // Then:
     assertThat(formatted, is(""
+        + "+--------+--------+\n"
         + "|foo     |bar is a|\n"
         + "|        | long st|\n"
         + "|        |ring    |\n"
-        + "+════════+════════+"));
+        + "+--------+--------+"));
   }
 
   @Test
@@ -63,9 +65,7 @@ public class TabularRowTest {
     final String formatted = new TabularRow(20, header, header).toString();
 
     // Then:
-    assertThat(formatted, is(""
-        + "|foo     |bar     |\n"
-        + "+--------+--------+"));
+    assertThat(formatted, is("|foo     |bar     |"));
   }
 
   @Test
@@ -80,8 +80,35 @@ public class TabularRowTest {
     assertThat(formatted, is(""
         + "|foo     |bar is a|\n"
         + "|        | long st|\n"
-        + "|        |ring    |\n"
-        + "+--------+--------+"));
+        + "|        |ring    |"));
+  }
+
+  @Test
+  public void shouldFormatNoColumns() {
+    // Given:
+    final List<String> header = ImmutableList.of();
+
+    // When:
+    final String formatted = new TabularRow(20, header, null).toString();
+
+    // Then:
+    assertThat(formatted, isEmptyString());
+  }
+
+  @Test
+  public void shouldFormatMoreColumnsThanWidth() {
+    // Given:
+    final List<String> header = ImmutableList.of("foo", "bar", "baz");
+
+    // When:
+    final String formatted = new TabularRow(3, header, null).toString();
+
+    // Then:
+    assertThat(formatted,
+        is(""
+            + "+-----+-----+-----+\n"
+            + "|foo  |bar  |baz  |\n"
+            + "+-----+-----+-----+"));
   }
 
 }

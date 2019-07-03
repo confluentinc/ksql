@@ -30,6 +30,7 @@ public class TabularRow {
   private final int width;
   private final List<String> value;
   private final List<String> header;
+  private final boolean isHeader;
 
   public TabularRow(
       final int width,
@@ -53,54 +54,87 @@ public class TabularRow {
     this.header = Objects.requireNonNull(header, "header");
     this.width = width;
     this.value = value;
+    this.isHeader = value == null;
   }
 
   @Override
   public String toString() {
-    final List<String> columns = value == null ? header : value;
+    final List<String> columns = isHeader ? header : value;
 
-    final int cellWidth = width / columns.size() - 2;
-    final String format = "%-" + cellWidth + "s|";
-
-    // split each column into fix length chunks
-    final List<List<String>> split = new ArrayList<>();
-    for (String column : columns) {
-      split.add(
-          Splitter.fixedLength(cellWidth)
-              .splitToList(column)
-              .stream()
-              .map(line -> String.format(format, line))
-              .collect(Collectors.toList())
-      );
+    if (columns.isEmpty()) {
+      return "";
     }
 
-    // buffer each column vertically to have the max number of splits
-    final int maxSplit = split.stream().map(List::size).max(Integer::compareTo).orElse(0);
-    final List<List<String>> buffered = split.stream()
-        .map(s -> addUntil(s, String.format(format, ""), maxSplit))
-        .collect(Collectors.toList());
-
-    // construct the actual table row by printing the first segment
-    // of each column before moving onto the next segment of each
-    // column
+    final int cellWidth = Math.max(width / columns.size() - 2, 5);
     final StringBuilder builder = new StringBuilder();
-    for (int i = 0; i < maxSplit; i++) {
-      builder.append('|');
-      for (List<String> col : buffered) {
-        builder.append(col.get(i));
-      }
+
+    if (isHeader) {
+      separatingLine(builder, cellWidth, columns.size());
       builder.append('\n');
     }
 
-    // add line at the end to separate one TabularRow from the next
-    final String ruleChar = value == null ? "═" : "-";
-    builder.append("+");
-    for (int i = 0; i < columns.size(); i++) {
-      builder.append(Strings.repeat(ruleChar, cellWidth));
-      builder.append("+");
+    // split each column into fix length chunks
+    final List<List<String>> split = columns.stream()
+        .map(col -> splitToFixed(col, cellWidth))
+        .collect(Collectors.toList());
+
+    // buffer each column vertically to have the max number of splits
+    final int maxSplit = split.stream().mapToInt(List::size).max().orElse(0);
+    final List<List<String>> buffered = split.stream()
+        .map(s -> addUntil(s, createCell("", cellWidth), maxSplit))
+        .collect(Collectors.toList());
+
+    toString(builder, buffered, maxSplit);
+
+    if (isHeader) {
+      builder.append('\n');
+      separatingLine(builder, cellWidth, columns.size());
     }
 
     return builder.toString();
+  }
+
+  @SuppressWarnings("ForLoopReplaceableByForEach") // clearer to read this way
+  private static void toString(
+      final StringBuilder builder,
+      final List<List<String>> columns,
+      final int numRows
+  ) {
+    for (int row = 0; row < numRows; row++) {
+      builder.append('|');
+      for (int col = 0; col < columns.size(); col++) {
+        builder.append(columns.get(col).get(row));
+      }
+      if (row != numRows - 1) {
+        builder.append('\n');
+      }
+    }
+  }
+
+  @SuppressWarnings("UnstableApiUsage")
+  private static List<String> splitToFixed(final String value, final int width) {
+    return Splitter.fixedLength(width)
+        .splitToList(value)
+        .stream()
+        .map(line -> createCell(line, width))
+        .collect(Collectors.toList());
+  }
+
+  private static void separatingLine(
+      final StringBuilder builder,
+      final int cellWidth,
+      final int numColumns
+  ) {
+    builder.append("+");
+    for (int i = 0; i < numColumns; i++) {
+      builder.append(Strings.repeat("-", cellWidth));
+      builder.append("+");
+    }
+  }
+
+  private static String createCell(final String value, final int width) {
+    final String format = "%-" + width + "s|";
+    return String.format(format, value);
   }
 
   private static <T> List<T> addUntil(final List<T> source, final T value, final int desiredSize) {

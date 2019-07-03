@@ -327,16 +327,14 @@ public class Cli implements KsqlRequestExecutor, Closeable {
   private void handleStreamedQuery(final String query) throws IOException {
     final RestResponse<KsqlEntityList> explainResponse = restClient
         .makeKsqlRequest("EXPLAIN " + query);
-    final List<FieldInfo> fields;
     if (!explainResponse.isSuccessful()) {
       terminal.printErrorMessage(explainResponse.getErrorMessage());
-      return;
-    } else {
-      final QueryDescriptionEntity description =
-          (QueryDescriptionEntity) explainResponse.getResponse().get(0);
-      fields = description.getQueryDescription().getFields();
-      terminal.printRowHeader(fields);
     }
+
+    final QueryDescriptionEntity description =
+        (QueryDescriptionEntity) explainResponse.getResponse().get(0);
+    final List<FieldInfo> fields = description.getQueryDescription().getFields();
+    terminal.printRowHeader(fields);
 
     final RestResponse<KsqlRestClient.QueryStream> queryResponse =
         makeKsqlRequest(query, restClient::makeQueryRequest);

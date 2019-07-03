@@ -47,6 +47,7 @@ import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
+import io.confluent.ksql.rest.server.context.ConfiguredKafkaClientSupplier;
 import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint.PrintTopicPublisher;
 import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint.QueryPublisher;
 import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint.ServiceContextFactory;
@@ -77,7 +78,6 @@ import javax.websocket.CloseReason.CloseCodes;
 import javax.websocket.Session;
 import javax.ws.rs.core.Response;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.streams.KafkaClientSupplier;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -115,7 +115,7 @@ public class WSQueryEndpointTest {
   @Mock
   private Supplier<SchemaRegistryClient> schemaRegistryClientSupplier;
   @Mock
-  private KafkaClientSupplier topicClientSupplier;
+  private ConfiguredKafkaClientSupplier topicClientSupplier;
   @Mock
   private KafkaTopicClient topicClient;
   @Mock

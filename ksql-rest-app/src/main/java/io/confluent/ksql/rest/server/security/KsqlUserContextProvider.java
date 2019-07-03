@@ -17,9 +17,9 @@ package io.confluent.ksql.rest.server.security;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 
+import io.confluent.ksql.rest.server.context.ConfiguredKafkaClientSupplier;
 import java.security.Principal;
 import java.util.function.Supplier;
-import org.apache.kafka.streams.KafkaClientSupplier;
 
 /**
  * Provides access to clients required to communicate with remote services using the context of
@@ -30,20 +30,24 @@ import org.apache.kafka.streams.KafkaClientSupplier;
  */
 public interface KsqlUserContextProvider {
   /**
-   * Constructs a {@link org.apache.kafka.streams.KafkaClientSupplier} with the specified user's
-   * credentials.
+   * Constructs a {@link ConfiguredKafkaClientSupplier} to access Kafka resources on the
+   * context of the specified user {@code principal}.
+   * </p>
+   * {@code Note:} The {@code ConfiguredKafkaClientSupplier} is required by Websockets
+   * PRINT topic streaming ({@see PrintTopicUtil}).
    *
    * @param principal The {@link Principal} whose credentials will be used.
-   * {@link org.apache.kafka.streams.KafkaClientSupplier}.
+   * @return {@link ConfiguredKafkaClientSupplier}.
    */
-  KafkaClientSupplier getKafkaClientSupplier(Principal principal);
+  ConfiguredKafkaClientSupplier getKafkaClientSupplier(Principal principal);
 
   /**
    * Constructs a {@link io.confluent.kafka.schemaregistry.client.SchemaRegistryClient} supplier
-   * with the specified user's credentials.
+   * with to access Schema Registry resources on the context of the specified user
+   * {@code principal}.
    *
    * @param principal The {@link Principal} whose credentials will be used.
-   * {@link io.confluent.kafka.schemaregistry.client.SchemaRegistryClient} supplier.
+   * @return {@link io.confluent.kafka.schemaregistry.client.SchemaRegistryClient} supplier.
    */
   Supplier<SchemaRegistryClient> getSchemaRegistryClientFactory(Principal principal);
 }

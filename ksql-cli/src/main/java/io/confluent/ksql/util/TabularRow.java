@@ -27,6 +27,8 @@ import java.util.stream.Collectors;
 
 public class TabularRow {
 
+  private static final int MIN_CELL_WIDTH = 5;
+
   private final int width;
   private final List<String> value;
   private final List<String> header;
@@ -65,7 +67,7 @@ public class TabularRow {
       return "";
     }
 
-    final int cellWidth = Math.max(width / columns.size() - 2, 5);
+    final int cellWidth = Math.max(width / columns.size() - 2, MIN_CELL_WIDTH);
     final StringBuilder builder = new StringBuilder();
 
     if (isHeader) {

@@ -132,8 +132,8 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.QueuedQueryMetadata;
 import io.confluent.ksql.util.Sandbox;
+import io.confluent.ksql.util.TransientQueryMetadata;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import io.confluent.rest.RestConfig;
@@ -1853,7 +1853,7 @@ public class KsqlResourceTest {
     assertThat(entity, instanceOf(QueryDescriptionEntity.class));
     final QueryDescriptionEntity queryDescriptionEntity = (QueryDescriptionEntity) entity;
     final QueryDescription queryDescription = queryDescriptionEntity.getQueryDescription();
-    final boolean valueSchemaOnly = queryMetadata instanceof QueuedQueryMetadata;
+    final boolean valueSchemaOnly = queryMetadata instanceof TransientQueryMetadata;
     assertThat(queryDescription.getFields(), is(
         EntityUtil.buildSourceSchemaEntity(queryMetadata.getLogicalSchema(), valueSchemaOnly)));
     assertThat(queryDescription.getOverriddenProperties(), is(overriddenProperties));

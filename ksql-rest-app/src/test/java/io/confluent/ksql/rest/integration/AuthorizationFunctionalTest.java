@@ -74,7 +74,7 @@ public class AuthorizationFunctionalTest {
           KsqlConfig.KSQL_SECURITY_EXTENSION_CLASS,
           MockKsqlSecurityExtension.class.getName()
       )
-      .withServiceContextBinder(config -> new AbstractBinder() {
+      .withServiceContextBinder((config, extension) -> new AbstractBinder() {
         @Override
         protected void configure() {
           bindFactory(new Factory<ServiceContext>() {

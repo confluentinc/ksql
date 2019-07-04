@@ -40,7 +40,7 @@ public class CreateTable extends CreateSource implements ExecutableDdlStatement 
       final boolean notExists,
       final Map<String, Literal> properties
   ) {
-    this(location, name, elements, notExists, new CreateSourceProperties(properties));
+    this(location, name, elements, notExists, CreateSourceProperties.from(properties));
   }
 
   private CreateTable(

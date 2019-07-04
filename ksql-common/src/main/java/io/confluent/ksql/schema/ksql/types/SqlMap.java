@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2019 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -13,36 +13,36 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.parser.tree;
+package io.confluent.ksql.schema.ksql.types;
 
 import static java.util.Objects.requireNonNull;
 
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.schema.ksql.SqlType;
+import io.confluent.ksql.schema.ksql.FormatOptions;
+import io.confluent.ksql.schema.ksql.SqlBaseType;
 import java.util.Objects;
-import java.util.Optional;
 
 @Immutable
-public final class Map extends Type {
+public final class SqlMap extends SqlType {
 
-  private final Type valueType;
+  private final SqlType valueType;
 
-  public static Map of(final Type valueType) {
-    return new Map(valueType);
+  public static SqlMap of(final SqlType valueType) {
+    return new SqlMap(valueType);
   }
 
-  private Map(final Type valueType) {
-    super(Optional.empty(), SqlType.MAP);
+  private SqlMap(final SqlType valueType) {
+    super(SqlBaseType.MAP);
     this.valueType = requireNonNull(valueType, "valueType");
   }
 
-  @Override
-  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
-    return visitor.visitMap(this, context);
+  public SqlType getValueType() {
+    return valueType;
   }
 
-  public Type getValueType() {
-    return valueType;
+  @Override
+  public boolean supportsCast() {
+    return false;
   }
 
   @Override
@@ -53,7 +53,7 @@ public final class Map extends Type {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    final Map map = (Map) o;
+    final SqlMap map = (SqlMap) o;
     return Objects.equals(valueType, map.valueType);
   }
 
@@ -63,7 +63,12 @@ public final class Map extends Type {
   }
 
   @Override
-  public boolean supportsCast() {
-    return false;
+  public String toString() {
+    return toString(FormatOptions.none());
+  }
+
+  @Override
+  public String toString(final FormatOptions formatOptions) {
+    return "MAP<VARCHAR, " + valueType.toString(formatOptions) + '>';
   }
 }

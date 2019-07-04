@@ -19,7 +19,7 @@ import io.confluent.ksql.rest.entity.FieldInfo;
 import io.confluent.ksql.rest.entity.SchemaInfo;
 import io.confluent.ksql.schema.connect.SchemaWalker;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.SqlType;
+import io.confluent.ksql.schema.ksql.SqlBaseType;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -62,42 +62,42 @@ public final class EntityUtil {
     }
 
     public SchemaInfo visitBoolean(final Schema schema) {
-      return primitive(SqlType.BOOLEAN);
+      return primitive(SqlBaseType.BOOLEAN);
     }
 
     public SchemaInfo visitInt32(final Schema schema) {
-      return primitive(SqlType.INTEGER);
+      return primitive(SqlBaseType.INTEGER);
     }
 
     public SchemaInfo visitInt64(final Schema schema) {
-      return primitive(SqlType.BIGINT);
+      return primitive(SqlBaseType.BIGINT);
     }
 
     public SchemaInfo visitFloat64(final Schema schema) {
-      return primitive(SqlType.DOUBLE);
+      return primitive(SqlBaseType.DOUBLE);
     }
 
     public SchemaInfo visitString(final Schema schema) {
-      return primitive(SqlType.STRING);
+      return primitive(SqlBaseType.STRING);
     }
 
     public SchemaInfo visitArray(final Schema schema, final SchemaInfo element) {
-      return new SchemaInfo(SqlType.ARRAY, null, element);
+      return new SchemaInfo(SqlBaseType.ARRAY, null, element);
     }
 
     public SchemaInfo visitMap(final Schema schema, final SchemaInfo key, final SchemaInfo value) {
-      return new SchemaInfo(SqlType.MAP, null, value);
+      return new SchemaInfo(SqlBaseType.MAP, null, value);
     }
 
     public SchemaInfo visitStruct(final Schema schema, final List<? extends FieldInfo> fields) {
-      return new SchemaInfo(SqlType.STRUCT, fields, null);
+      return new SchemaInfo(SqlBaseType.STRUCT, fields, null);
     }
 
     public FieldInfo visitField(final Field field, final SchemaInfo type) {
       return new FieldInfo(field.name(), type);
     }
 
-    private static SchemaInfo primitive(final SqlType type) {
+    private static SchemaInfo primitive(final SqlBaseType type) {
       return new SchemaInfo(type, null, null);
     }
   }

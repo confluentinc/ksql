@@ -44,7 +44,7 @@ import io.confluent.ksql.statement.InjectorChain;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
-import io.confluent.ksql.util.QueuedQueryMetadata;
+import io.confluent.ksql.util.TransientQueryMetadata;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -108,7 +108,7 @@ public class KsqlContextTest {
   @Mock
   private PersistentQueryMetadata persistentQuery;
   @Mock
-  private QueuedQueryMetadata transientQuery;
+  private TransientQueryMetadata transientQuery;
   @Mock
   private Injector schemaInjector;
   @Mock

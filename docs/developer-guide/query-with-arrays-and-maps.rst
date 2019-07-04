@@ -105,7 +105,7 @@ Your output should resemble:
 Press Ctrl+C to terminate the query.
 
 You can access array elements by using positive or negative index values.
-For instance, to get the user last interest run the following select:
+For example, to get the user's last interest run the following SELECT statement:
 
 .. code:: sql
 

@@ -30,12 +30,12 @@ import io.confluent.ksql.physical.QuerySchemas;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
-import io.confluent.ksql.schema.ksql.SqlType;
+import io.confluent.ksql.schema.ksql.SqlBaseType;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.QueuedQueryMetadata;
+import io.confluent.ksql.util.TransientQueryMetadata;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
 import java.util.Arrays;
 import java.util.Collections;
@@ -66,10 +66,10 @@ public class QueryDescriptionTest {
           .build());
 
   private static final List<FieldInfo> EXPECTED_FIELDS = Arrays.asList(
-      new FieldInfo("ROWTIME", new SchemaInfo(SqlType.BIGINT, null, null)),
-      new FieldInfo("ROWKEY", new SchemaInfo(SqlType.STRING, null, null)),
-      new FieldInfo("field1", new SchemaInfo(SqlType.INTEGER, null, null)),
-      new FieldInfo("field2", new SchemaInfo(SqlType.STRING, null, null)));
+      new FieldInfo("ROWTIME", new SchemaInfo(SqlBaseType.BIGINT, null, null)),
+      new FieldInfo("ROWKEY", new SchemaInfo(SqlBaseType.STRING, null, null)),
+      new FieldInfo("field1", new SchemaInfo(SqlBaseType.INTEGER, null, null)),
+      new FieldInfo("field2", new SchemaInfo(SqlBaseType.STRING, null, null)));
 
   private static final String STATEMENT = "statement";
   private static final Map<String, Object> STREAMS_PROPS = Collections.singletonMap("k1", "v1");
@@ -94,7 +94,7 @@ public class QueryDescriptionTest {
   @Test
   public void shouldSetFieldsCorrectlyForQueryMetadata() {
     // Given:
-    final QueryMetadata queryMetadata = new QueuedQueryMetadata(
+    final QueryMetadata queryMetadata = new TransientQueryMetadata(
         "test statement",
         queryStreams,
         SCHEMA,

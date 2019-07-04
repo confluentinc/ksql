@@ -19,7 +19,7 @@ import java.util.Optional;
 import org.apache.kafka.connect.data.Schema;
 
 /**
- * Coerces values to {@link SqlType SQL types}.
+ * Coerces values to {@link SqlBaseType SQL types}.
  */
 public interface SqlValueCoercer {
 

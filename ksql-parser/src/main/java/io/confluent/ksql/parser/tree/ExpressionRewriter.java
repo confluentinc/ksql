@@ -23,7 +23,7 @@ public class ExpressionRewriter<C> {
   }
 
   public Expression rewriteStruct(
-      final Struct node,
+      final Type node,
       final C context,
       final ExpressionTreeRewriter<C> treeRewriter) {
     return rewriteExpression(node, context, treeRewriter);

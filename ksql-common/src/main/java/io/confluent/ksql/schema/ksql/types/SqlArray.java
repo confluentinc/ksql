@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2019 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -13,36 +13,36 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.parser.tree;
+package io.confluent.ksql.schema.ksql.types;
 
 import static java.util.Objects.requireNonNull;
 
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.schema.ksql.SqlType;
+import io.confluent.ksql.schema.ksql.FormatOptions;
+import io.confluent.ksql.schema.ksql.SqlBaseType;
 import java.util.Objects;
-import java.util.Optional;
 
 @Immutable
-public final class Array extends Type {
+public final class SqlArray extends SqlType {
 
-  private final Type itemType;
+  private final SqlType itemType;
 
-  public static Array of(final Type itemType) {
-    return new Array(itemType);
+  public static SqlArray of(final SqlType itemType) {
+    return new SqlArray(itemType);
   }
 
-  private Array(final Type itemType) {
-    super(Optional.empty(), SqlType.ARRAY);
+  private SqlArray(final SqlType itemType) {
+    super(SqlBaseType.ARRAY);
     this.itemType = requireNonNull(itemType, "itemType");
   }
 
-  @Override
-  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
-    return visitor.visitArray(this, context);
+  public SqlType getItemType() {
+    return itemType;
   }
 
-  public Type getItemType() {
-    return itemType;
+  @Override
+  public boolean supportsCast() {
+    return false;
   }
 
   @Override
@@ -53,7 +53,7 @@ public final class Array extends Type {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    final Array array = (Array) o;
+    final SqlArray array = (SqlArray) o;
     return Objects.equals(itemType, array.itemType);
   }
 
@@ -63,7 +63,12 @@ public final class Array extends Type {
   }
 
   @Override
-  public boolean supportsCast() {
-    return false;
+  public String toString() {
+    return toString(FormatOptions.none());
+  }
+
+  @Override
+  public String toString(final FormatOptions formatOptions) {
+    return "ARRAY<" + itemType.toString(formatOptions) + '>';
   }
 }

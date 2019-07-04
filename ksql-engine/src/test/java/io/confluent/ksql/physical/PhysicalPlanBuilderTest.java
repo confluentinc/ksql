@@ -70,7 +70,7 @@ import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryIdGenerator;
 import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.QueuedQueryMetadata;
+import io.confluent.ksql.util.TransientQueryMetadata;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -246,7 +246,7 @@ public class PhysicalPlanBuilderTest {
   @Test
   public void shouldMakeBareQuery() {
     final QueryMetadata queryMetadata = buildPhysicalPlan(simpleSelectFilter);
-    assertThat(queryMetadata, instanceOf(QueuedQueryMetadata.class));
+    assertThat(queryMetadata, instanceOf(TransientQueryMetadata.class));
   }
 
   @Test

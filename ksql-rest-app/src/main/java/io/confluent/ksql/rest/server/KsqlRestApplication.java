@@ -86,6 +86,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.Executors;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -120,7 +121,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
   private final KsqlResource ksqlResource;
   private final VersionCheckerAgent versionCheckerAgent;
   private final ServiceContext serviceContext;
-  private final Function<KsqlConfig, Binder> serviceContextBinderFactory;
+  private final BiFunction<KsqlConfig, KsqlSecurityExtension, Binder>  serviceContextBinderFactory;
   private final KsqlSecurityExtension securityExtension;
   private final ServerState serverState;
   private final ProcessingLogContext processingLogContext;
@@ -144,7 +145,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
       final StreamedQueryResource streamedQueryResource,
       final KsqlResource ksqlResource,
       final VersionCheckerAgent versionCheckerAgent,
-      final Function<KsqlConfig, Binder> serviceContextBinderFactory,
+      final BiFunction<KsqlConfig, KsqlSecurityExtension, Binder> serviceContextBinderFactory,
       final KsqlSecurityExtension securityExtension,
       final ServerState serverState,
       final ProcessingLogContext processingLogContext,
@@ -325,7 +326,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         new JacksonMessageBodyProvider(JsonMapper.INSTANCE.mapper);
     config.register(jsonProvider);
     config.register(JsonParseExceptionMapper.class);
-    config.register(serviceContextBinderFactory.apply(ksqlConfig));
+    config.register(serviceContextBinderFactory.apply(ksqlConfig, securityExtension));
 
     // Don't want to buffer rows when streaming JSON in a request to the query resource
     config.property(ServerProperties.OUTBOUND_CONTENT_LENGTH_BUFFER, 0);
@@ -335,9 +336,6 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
     securityExtension.getAuthorizationProvider().ifPresent(
         ac -> config.register(new KsqlAuthorizationFilter(ac))
     );
-
-    // Registers any other security filters (i.e. user context impersonation)
-    securityExtension.register(config);
   }
 
   @Override
@@ -412,7 +410,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
       final Function<Supplier<Boolean>, VersionCheckerAgent> versionCheckerFactory,
       final int maxStatementRetries,
       final ServiceContext serviceContext,
-      final Function<KsqlConfig, Binder> serviceContextBinderFactory
+      final BiFunction<KsqlConfig, KsqlSecurityExtension, Binder> serviceContextBinderFactory
   ) {
     final String ksqlInstallDir = restConfig.getString(KsqlRestConfig.INSTALL_DIR_CONFIG);
 

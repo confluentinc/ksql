@@ -41,11 +41,11 @@ import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.parser.tree.SearchedCaseExpression;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.SubscriptExpression;
-import io.confluent.ksql.parser.tree.Type;
 import io.confluent.ksql.parser.tree.WhenClause;
 import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -108,13 +108,16 @@ public class ExpressionTypeManager
       final Cast node,
       final ExpressionTypeContext expressionTypeContext
   ) {
-    final Type sqlType = node.getType();
+    final SqlType sqlType = node.getType().getSqlType();
     if (!sqlType.supportsCast()) {
       throw new KsqlFunctionException("Only casts to primitive types or decimals "
           + "are supported: " + sqlType);
     }
 
-    final Schema castType = SchemaConverters.sqlToLogicalConverter().fromSqlType(sqlType);
+    final Schema castType = SchemaConverters
+        .sqlToLogicalConverter()
+        .fromSqlType(sqlType);
+
     expressionTypeContext.setSchema(castType);
     return null;
   }

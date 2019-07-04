@@ -30,12 +30,12 @@ import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.parser.tree.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.Literal;
-import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TableElements;
-import io.confluent.ksql.schema.ksql.SqlType;
+import io.confluent.ksql.parser.tree.Type;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -59,8 +59,8 @@ public class CreateStreamCommandTest {
 
   private static final String STREAM_NAME = "s1";
   private static final TableElements SOME_ELEMENTS = TableElements.of(
-      new TableElement("ID", PrimitiveType.of(SqlType.BIGINT)),
-      new TableElement("bob", PrimitiveType.of(SqlType.STRING))
+      new TableElement("ID", new Type(SqlTypes.BIGINT)),
+      new TableElement("bob", new Type(SqlTypes.STRING))
   );
 
   @Mock
@@ -204,6 +204,6 @@ public class CreateStreamCommandTest {
     final Map<String, Literal> allProps = new HashMap<>(props);
     allProps.putIfAbsent(DdlConfig.VALUE_FORMAT_PROPERTY, new StringLiteral("Json"));
     allProps.putIfAbsent(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral("some-topic"));
-    when(createStreamStatement.getProperties()).thenReturn(new CreateSourceProperties(allProps));
+    when(createStreamStatement.getProperties()).thenReturn(CreateSourceProperties.from(allProps));
   }
 }

@@ -46,7 +46,7 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryIdGenerator;
 import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.QueuedQueryMetadata;
+import io.confluent.ksql.util.TransientQueryMetadata;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -203,7 +203,7 @@ public class PhysicalPlanBuilder {
 
     final SchemaKStream sourceSchemaKstream = schemaKStream.getSourceSchemaKStreams().get(0);
 
-    return new QueuedQueryMetadata(
+    return new TransientQueryMetadata(
         statement,
         streams,
         bareOutputNode.getSchema(),

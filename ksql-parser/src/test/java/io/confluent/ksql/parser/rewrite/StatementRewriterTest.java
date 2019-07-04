@@ -39,8 +39,8 @@ import io.confluent.ksql.parser.tree.Node;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Statement;
-import io.confluent.ksql.parser.tree.Struct;
-import io.confluent.ksql.schema.ksql.SqlType;
+import io.confluent.ksql.schema.ksql.SqlBaseType;
+import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.util.MetaStoreFixture;
 import org.junit.Assert;
@@ -336,10 +336,10 @@ public class StatementRewriterTest {
     assertThat(createStream.getName().toString().toUpperCase(), equalTo("ORDERS"));
     assertThat(Iterables.size(createStream.getElements()), equalTo(7));
     assertThat(Iterables.get(createStream.getElements(), 0).getName().toLowerCase(), equalTo("ordertime"));
-    assertThat(Iterables.get(createStream.getElements(), 6).getType().getSqlType(), equalTo(SqlType.STRUCT));
-    final Struct struct = (Struct) Iterables.get(createStream.getElements(), 6).getType();
+    assertThat(Iterables.get(createStream.getElements(), 6).getType().getSqlType().baseType(), equalTo(SqlBaseType.STRUCT));
+    final SqlStruct struct = (SqlStruct) Iterables.get(createStream.getElements(), 6).getType().getSqlType();
     assertThat(struct.getFields(), hasSize(5));
-    assertThat(struct.getFields().get(0).getType().getSqlType(), equalTo(SqlType.STRING));
+    assertThat(struct.getFields().get(0).getType().baseType(), equalTo(SqlBaseType.STRING));
   }
 
   @Test

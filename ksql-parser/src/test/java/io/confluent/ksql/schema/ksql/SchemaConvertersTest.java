@@ -21,8 +21,12 @@ import static org.hamcrest.Matchers.is;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableSet;
-import io.confluent.ksql.parser.tree.PrimitiveType;
-import io.confluent.ksql.parser.tree.Type;
+import io.confluent.ksql.schema.ksql.types.SqlArray;
+import io.confluent.ksql.schema.ksql.types.SqlDecimal;
+import io.confluent.ksql.schema.ksql.types.SqlMap;
+import io.confluent.ksql.schema.ksql.types.SqlStruct;
+import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Map.Entry;
@@ -42,19 +46,19 @@ public class SchemaConvertersTest {
   private static final Schema LOGICAL_DOUBLE_SCHEMA = SchemaBuilder.float64().optional().build();
   private static final Schema LOGICAL_STRING_SCHEMA = SchemaBuilder.string().optional().build();
 
-  private static final BiMap<Type, Schema> SQL_TO_LOGICAL = ImmutableBiMap.<Type, Schema>builder()
-      .put(PrimitiveType.of(SqlType.BOOLEAN), LOGICAL_BOOLEAN_SCHEMA)
-      .put(PrimitiveType.of(SqlType.INTEGER), LOGICAL_INT_SCHEMA)
-      .put(PrimitiveType.of(SqlType.BIGINT), LOGICAL_BIGINT_SCHEMA)
-      .put(PrimitiveType.of(SqlType.DOUBLE), LOGICAL_DOUBLE_SCHEMA)
-      .put(PrimitiveType.of(SqlType.STRING), LOGICAL_STRING_SCHEMA)
-      .put(io.confluent.ksql.parser.tree.Array.of(PrimitiveType.of(SqlType.INTEGER)),
+  private static final BiMap<SqlType, Schema> SQL_TO_LOGICAL = ImmutableBiMap.<SqlType, Schema>builder()
+      .put(SqlTypes.BOOLEAN, LOGICAL_BOOLEAN_SCHEMA)
+      .put(SqlTypes.INTEGER, LOGICAL_INT_SCHEMA)
+      .put(SqlTypes.BIGINT, LOGICAL_BIGINT_SCHEMA)
+      .put(SqlTypes.DOUBLE, LOGICAL_DOUBLE_SCHEMA)
+      .put(SqlTypes.STRING, LOGICAL_STRING_SCHEMA)
+      .put(SqlArray.of(SqlTypes.INTEGER),
           SchemaBuilder.array(SchemaConverters.INTEGER).optional().build())
-      .put(io.confluent.ksql.parser.tree.Decimal.of(2, 1), DecimalUtil.builder(2, 1).build())
-      .put(io.confluent.ksql.parser.tree.Map.of(PrimitiveType.of(SqlType.INTEGER)),
+      .put(SqlDecimal.of(2, 1), DecimalUtil.builder(2, 1).build())
+      .put(SqlMap.of(SqlTypes.INTEGER),
           SchemaBuilder.map(SchemaConverters.STRING, SchemaConverters.INTEGER).optional().build())
-      .put(io.confluent.ksql.parser.tree.Struct.builder()
-              .addField("f0", PrimitiveType.of(SqlType.INTEGER))
+      .put(SqlStruct.builder()
+              .field("f0", SqlTypes.INTEGER)
               .build(),
           SchemaBuilder.struct().field("f0", SchemaConverters.INTEGER).optional().build())
       .build();
@@ -72,14 +76,14 @@ public class SchemaConvertersTest {
       .optional()
       .build();
 
-  private static final Type STRUCT_SQL_TYPE = io.confluent.ksql.parser.tree.Struct.builder()
-      .addField("F0", PrimitiveType.of(SqlType.INTEGER))
+  private static final SqlType STRUCT_SQL_TYPE = SqlStruct.builder()
+      .field("F0", SqlTypes.INTEGER)
       .build();
 
-  private static final Type NESTED_SQL_TYPE = io.confluent.ksql.parser.tree.Struct.builder()
-      .addField("ARRAY", io.confluent.ksql.parser.tree.Array.of(STRUCT_SQL_TYPE))
-      .addField("MAP", io.confluent.ksql.parser.tree.Map.of(STRUCT_SQL_TYPE))
-      .addField("STRUCT", STRUCT_SQL_TYPE)
+  private static final SqlType NESTED_SQL_TYPE = SqlStruct.builder()
+      .field("ARRAY", SqlArray.of(STRUCT_SQL_TYPE))
+      .field("MAP", SqlMap.of(STRUCT_SQL_TYPE))
+      .field("STRUCT", STRUCT_SQL_TYPE)
       .build();
 
   @Rule
@@ -87,11 +91,11 @@ public class SchemaConvertersTest {
 
   @Test
   public void shouldHaveTestsForAllTypes() {
-    final Set<SqlType> tested = SQL_TO_LOGICAL.keySet().stream()
-        .map(Type::getSqlType)
+    final Set<SqlBaseType> tested = SQL_TO_LOGICAL.keySet().stream()
+        .map(SqlType::baseType)
         .collect(Collectors.toSet());
 
-    final ImmutableSet<SqlType> allTypes = ImmutableSet.copyOf(SqlType.values());
+    final ImmutableSet<SqlBaseType> allTypes = ImmutableSet.copyOf(SqlBaseType.values());
 
     assertThat("If this test fails then there has been a new SQL type added and this test "
         + "file needs updating to cover that new type", tested, is(allTypes));
@@ -99,8 +103,8 @@ public class SchemaConvertersTest {
 
   @Test
   public void shouldGetLogicalForEverySqlType() {
-    for (Entry<Type, Schema> entry : SQL_TO_LOGICAL.entrySet()) {
-      final Type sqlType = entry.getKey();
+    for (Entry<SqlType, Schema> entry : SQL_TO_LOGICAL.entrySet()) {
+      final SqlType sqlType = entry.getKey();
       final Schema logical = entry.getValue();
       final Schema result = SchemaConverters.sqlToLogicalConverter().fromSqlType(sqlType);
       assertThat(result, is(logical));
@@ -110,7 +114,7 @@ public class SchemaConvertersTest {
   @Test
   public void shouldGetSqlTypeForEveryLogicalType() {
     SQL_TO_LOGICAL.inverse().forEach((logical, sqlType) -> {
-      if (!(sqlType instanceof io.confluent.ksql.parser.tree.Decimal)) {
+      if (!(sqlType instanceof SqlDecimal)) {
         assertThat(SchemaConverters.logicalToSqlConverter().toSqlType(logical), is(sqlType));
       }
     });
@@ -156,27 +160,31 @@ public class SchemaConvertersTest {
 
   @Test
   public void shouldConvertJavaBooleanToSqlBoolean() {
-    assertThat(SchemaConverters.javaToSqlConverter().toSqlType(Boolean.class), is(SqlType.BOOLEAN));
+    assertThat(SchemaConverters.javaToSqlConverter().toSqlType(Boolean.class),
+        is(SqlBaseType.BOOLEAN));
   }
 
   @Test
   public void shouldConvertJavaIntegerToSqlInteger() {
-    assertThat(SchemaConverters.javaToSqlConverter().toSqlType(Integer.class), is(SqlType.INTEGER));
+    assertThat(SchemaConverters.javaToSqlConverter().toSqlType(Integer.class),
+        is(SqlBaseType.INTEGER));
   }
 
   @Test
   public void shouldConvertJavaLongToSqlBigInt() {
-    assertThat(SchemaConverters.javaToSqlConverter().toSqlType(Long.class), is(SqlType.BIGINT));
+    assertThat(SchemaConverters.javaToSqlConverter().toSqlType(Long.class), is(SqlBaseType.BIGINT));
   }
 
   @Test
   public void shouldConvertJavaDoubleToSqlDouble() {
-    assertThat(SchemaConverters.javaToSqlConverter().toSqlType(Double.class), is(SqlType.DOUBLE));
+    assertThat(SchemaConverters.javaToSqlConverter().toSqlType(Double.class),
+        is(SqlBaseType.DOUBLE));
   }
 
   @Test
   public void shouldConvertJavaStringToSqlString() {
-    assertThat(SchemaConverters.javaToSqlConverter().toSqlType(String.class), is(SqlType.STRING));
+    assertThat(SchemaConverters.javaToSqlConverter().toSqlType(String.class),
+        is(SqlBaseType.STRING));
   }
 
   @Test

@@ -20,7 +20,7 @@ import com.google.common.collect.Lists;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.QueuedQueryMetadata;
+import io.confluent.ksql.util.TransientQueryMetadata;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -37,14 +37,14 @@ class QueryStreamWriter implements StreamingOutput {
 
   private static final Logger log = LoggerFactory.getLogger(QueryStreamWriter.class);
 
-  private final QueuedQueryMetadata queryMetadata;
+  private final TransientQueryMetadata queryMetadata;
   private final long disconnectCheckInterval;
   private final ObjectMapper objectMapper;
   private volatile Exception streamsException;
   private volatile boolean limitReached = false;
 
   QueryStreamWriter(
-      final QueuedQueryMetadata queryMetadata,
+      final TransientQueryMetadata queryMetadata,
       final long disconnectCheckInterval,
       final ObjectMapper objectMapper
   ) {

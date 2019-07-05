@@ -44,6 +44,7 @@ import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
+import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.QualifiedName;
@@ -397,7 +398,7 @@ public class StatementExecutorTest extends EasyMockSupport {
     final CreateStreamAsSelect mockStatement = mock(CreateStreamAsSelect.class);
     expect(mockStatement.getName()).andStubReturn(QualifiedName.of(name));
     expect(mockStatement.getQuery()).andStubReturn(mockCSASQuery());
-    expect(mockStatement.getProperties()).andStubReturn(emptyMap());
+    expect(mockStatement.getProperties()).andStubReturn(CreateSourceAsProperties.none());
     expect(mockStatement.getPartitionByColumn()).andStubReturn(Optional.empty());
     return mockStatement;
   }

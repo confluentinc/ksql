@@ -27,7 +27,7 @@ public class ConfigValidatorsTest {
   public final ExpectedException expectedException = ExpectedException.none();
 
   @Test
-  public void shouldFailIfValueNoInEnum() {
+  public void shouldFailIfValueNotInEnum() {
     // Given:
     final Validator validator = ConfigValidators.enumValues(TestEnum.class);
 
@@ -62,7 +62,18 @@ public class ConfigValidatorsTest {
   }
 
   @Test
-  public void shouldNotThrowifMatchForCaseInsensitiveString() {
+  public void shouldNotThrowIfEnumValueIsNull() {
+    // Given:
+    final Validator validator = ConfigValidators.enumValues(TestEnum.class);
+
+    // When:
+    validator.ensureValid("propName", null);
+
+    // Then: did not throw
+  }
+
+  @Test
+  public void shouldNotThrowIfMatchForCaseInsensitiveString() {
     // Given:
     final Validator validator = ConfigValidators.ValidCaseInsensitiveString.in("a", "B");
 

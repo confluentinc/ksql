@@ -17,9 +17,10 @@ package io.confluent.ksql.parser.tree;
 
 import static java.util.Objects.requireNonNull;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.Immutable;
-import java.util.Map;
+import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
+import java.util.Objects;
+import java.util.Optional;
 
 /**
  * Pojo holding sink information
@@ -29,7 +30,8 @@ public final class Sink {
 
   private final String name;
   private final boolean createSink;
-  private final ImmutableMap<String, Expression> properties;
+  private final CreateSourceAsProperties properties;
+  private final Optional<String> partitionBy;
 
   /**
    * Info about the sink of a query.
@@ -37,24 +39,32 @@ public final class Sink {
    * @param name the name of the sink.
    * @param createSink indicates if name should be created, (CSAS/CTAS), or not (INSERT INTO).
    * @param properties properties of the sink.
+   * @param partitionBy an optional partition by expression
    * @return the pojo.
    */
   public static Sink of(
       final String name,
       final boolean createSink,
-      final Map<String, Expression> properties
+      final CreateSourceAsProperties properties,
+      final Optional<Expression> partitionBy
   ) {
-    return new Sink(name, createSink, properties);
+    final Optional<String> partitionByExp = partitionBy
+        .map(Object::toString)
+        .map(String::toUpperCase);
+
+    return new Sink(name, createSink, properties, partitionByExp);
   }
 
   private Sink(
       final String name,
       final boolean createSink,
-      final Map<String, Expression> properties
+      final CreateSourceAsProperties properties,
+      final Optional<String> partitionBy
   ) {
     this.name = requireNonNull(name, "name");
-    this.properties = ImmutableMap.copyOf(requireNonNull(properties, "properties"));
+    this.properties = requireNonNull(properties, "properties");
     this.createSink = createSink;
+    this.partitionBy = Objects.requireNonNull(partitionBy, "partitionBy");
   }
 
   public String getName() {
@@ -65,7 +75,11 @@ public final class Sink {
     return createSink;
   }
 
-  public Map<String, Expression> getProperties() {
+  public CreateSourceAsProperties getProperties() {
     return properties;
+  }
+
+  public Optional<String> getPartitionBy() {
+    return partitionBy;
   }
 }

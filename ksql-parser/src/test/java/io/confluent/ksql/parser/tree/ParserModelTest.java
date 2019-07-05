@@ -19,12 +19,15 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assume.assumeThat;
+import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.testing.NullPointerTester;
 import com.google.common.testing.NullPointerTester.Visibility;
-import io.confluent.ksql.ddl.DdlConfig;
+import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
+import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
+import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.test.util.ClassFinder;
@@ -74,11 +77,13 @@ public class ParserModelTest {
           OptionalInt.empty()))
       .put(java.util.Map.class,
           ImmutableMap.of(
-              DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral("topic_test"),
-              DdlConfig.VALUE_FORMAT_PROPERTY, new StringLiteral("avro")
+              CommonCreateConfigs.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral("topic_test"),
+              CommonCreateConfigs.VALUE_FORMAT_PROPERTY, new StringLiteral("avro")
           ))
       .put(TableElements.class, TableElements.of())
       .put(SqlType.class, SqlTypes.BIGINT)
+      .put(CreateSourceProperties.class, mock(CreateSourceProperties.class))
+      .put(CreateSourceAsProperties.class, CreateSourceAsProperties.none())
       .build();
 
   private final Class<?> modelClass;
@@ -100,7 +105,7 @@ public class ParserModelTest {
         .withKnownImmutableType(Window.class)
         .withKnownImmutableType(JoinWindows.class)
         .withKnownImmutableType(ConfigDef.class)
-        .withKnownImmutableType(AbstractConfig.class)
+        .withKnownImmutableType(AbstractConfig.class) // Not truly immutable, but close enough.
         .test(modelClass);
   }
 

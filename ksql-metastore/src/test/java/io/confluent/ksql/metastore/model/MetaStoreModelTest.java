@@ -72,7 +72,6 @@ public class MetaStoreModelTest {
   @Test
   public void shouldBeImmutable() {
     new ImmutableTester()
-        .withKnownImmutableType(LogicalSchema.class)
         .withKnownImmutableType(org.apache.kafka.connect.data.Field.class)
         .test(modelClass);
   }

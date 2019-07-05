@@ -233,27 +233,15 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
           AbsKudf.class));
 
       addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
-          Schema.OPTIONAL_INT64_SCHEMA,
+          Schema.OPTIONAL_FLOAT64_SCHEMA,
           Collections.singletonList(Schema.OPTIONAL_FLOAT64_SCHEMA),
-          CeilKudf.NAME,
+          "CEIL",
           CeilKudf.class));
 
       addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
           Schema.OPTIONAL_FLOAT64_SCHEMA,
-          ImmutableList.of(Schema.FLOAT64_SCHEMA, Schema.OPTIONAL_INT32_SCHEMA),
-          CeilKudf.NAME,
-          CeilKudf.class));
-
-      addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
-          Schema.OPTIONAL_INT64_SCHEMA,
           Collections.singletonList(Schema.OPTIONAL_FLOAT64_SCHEMA),
-          FloorKudf.NAME,
-          FloorKudf.class));
-
-      addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
-          Schema.OPTIONAL_FLOAT64_SCHEMA,
-          ImmutableList.of(Schema.FLOAT64_SCHEMA, Schema.OPTIONAL_INT32_SCHEMA),
-          FloorKudf.NAME,
+          "FLOOR",
           FloorKudf.class));
 
       addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(

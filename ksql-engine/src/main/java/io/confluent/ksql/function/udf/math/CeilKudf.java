@@ -20,20 +20,11 @@ import io.confluent.ksql.function.udf.Kudf;
 
 public class CeilKudf implements Kudf {
 
-  public static final String NAME = "CEIL";
-
   @Override
   public Object evaluate(final Object... args) {
-    if (args.length != 1 && args.length != 2) {
-      throw new KsqlFunctionException("Ceil udf should have one or two input arguments.");
+    if (args.length != 1) {
+      throw new KsqlFunctionException("Ceil udf should have one input argument.");
     }
-
-    final Double number = (Double) args[0];
-
-    if (args.length == 1) {
-      return (long) Math.ceil(number);
-    }
-    final Double round = Math.pow(10, (Integer) args[1]);
-    return Math.ceil(number * round) / round;
+    return Math.ceil((Double) args[0]);
   }
 }

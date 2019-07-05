@@ -19,18 +19,12 @@ import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.function.udf.Kudf;
 
 public class FloorKudf implements Kudf {
-  public static final String NAME = "FLOOR";
 
   @Override
   public Object evaluate(final Object... args) {
-    if (args.length != 1  && args.length != 2) {
-      throw new KsqlFunctionException("Floor udf should have one or two input arguments.");
+    if (args.length != 1) {
+      throw new KsqlFunctionException("Floor udf should have one input argument.");
     }
-    final Double number = (Double) args[0];
-    if (args.length == 1) {
-      return (long) Math.floor(number);
-    }
-    final Double round = Math.pow(10,  (Integer) args[1]);
-    return Math.floor(number * round) / round;
+    return Math.floor((Double) args[0]);
   }
 }

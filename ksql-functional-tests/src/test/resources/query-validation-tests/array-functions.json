@@ -40,16 +40,16 @@
         {"topic": "test_topic", "value": {"v" : 1.5}},
         {"topic": "test_topic", "value": {"v" : 3}},
         {"topic": "test_topic", "value": {"v" : 1.234567}},
-        {"topic": "test_topic", "value": {"v" : 0}},
+        {"topic": "test_topic", "value": {"v" : 0.0}},
         {"topic": "test_topic", "value": {"v" : null}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "value": {"F0" : 1}},
-        {"topic": "OUTPUT", "value": {"F0" : 1}},
-        {"topic": "OUTPUT", "value": {"F0" : 1}},
-        {"topic": "OUTPUT", "value": {"F0" : 3}},
-        {"topic": "OUTPUT", "value": {"F0" : 1}},
-        {"topic": "OUTPUT", "value": {"F0" : 0}},
+        {"topic": "OUTPUT", "value": {"F0" : 1.0}},
+        {"topic": "OUTPUT", "value": {"F0" : 1.0}},
+        {"topic": "OUTPUT", "value": {"F0" : 1.0}},
+        {"topic": "OUTPUT", "value": {"F0" : 3.0}},
+        {"topic": "OUTPUT", "value": {"F0" : 1.0}},
+        {"topic": "OUTPUT", "value": {"F0" : 0.0}},
         {"topic": "OUTPUT", "value": {"F0" : null}}
       ]
     },
@@ -69,12 +69,12 @@
         {"topic": "test_topic", "value": {"v" : null}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "value": {"C0" : 2, "C00" : 2.0}},
-        {"topic": "OUTPUT", "value": {"C0" : 2, "C00" : 2.0}},
-        {"topic": "OUTPUT", "value": {"C0" : 2, "C00" : 2.0}},
-        {"topic": "OUTPUT", "value": {"C0" : 3, "C00" : 3.0}},
-        {"topic": "OUTPUT", "value": {"C0" : 2, "C00" : 2.0}},
-        {"topic": "OUTPUT", "value": {"C0" : 0, "C00" : 0.0}},
+        {"topic": "OUTPUT", "value": {"C0" : 2.0}},
+        {"topic": "OUTPUT", "value": {"C0" : 2.0}},
+        {"topic": "OUTPUT", "value": {"C0" : 2.0}},
+        {"topic": "OUTPUT", "value": {"C0" : 3.0}},
+        {"topic": "OUTPUT", "value": {"C0" : 2.0}},
+        {"topic": "OUTPUT", "value": {"C0" : 0.0}},
         {"topic": "OUTPUT", "value": {"C0" : null}}
       ]
     }

@@ -63,11 +63,13 @@ public class QueryDescription {
   private QueryDescription(
       final String id,
       final QueryMetadata queryMetadata,
-      final Set<String> sinks) {
+      final Set<String> sinks,
+      final boolean valueSchemaOnly
+  ) {
     this(
         new EntityQueryId(id),
         queryMetadata.getStatementString(),
-        EntityUtil.buildSourceSchemaEntity(queryMetadata.getLogicalSchema()),
+        EntityUtil.buildSourceSchemaEntity(queryMetadata.getLogicalSchema(), valueSchemaOnly),
         queryMetadata.getSourceNames(),
         sinks,
         queryMetadata.getTopologyDescription(),
@@ -77,11 +79,15 @@ public class QueryDescription {
 
   public static QueryDescription forQueryMetadata(final QueryMetadata queryMetadata) {
     if (queryMetadata instanceof PersistentQueryMetadata) {
+      final PersistentQueryMetadata persistentQuery = (PersistentQueryMetadata) queryMetadata;
       return new QueryDescription(
-          ((PersistentQueryMetadata) queryMetadata).getQueryId().getId(), queryMetadata,
-          ((PersistentQueryMetadata) queryMetadata).getSinkNames());
+          persistentQuery.getQueryId().getId(),
+          persistentQuery,
+          persistentQuery.getSinkNames(),
+          false
+      );
     }
-    return new QueryDescription("", queryMetadata, Collections.emptySet());
+    return new QueryDescription("", queryMetadata, Collections.emptySet(), true);
   }
 
   public EntityQueryId getId() {

@@ -31,11 +31,16 @@ public final class EntityUtil {
   private EntityUtil() {
   }
 
-  public static List<FieldInfo> buildSourceSchemaEntity(final LogicalSchema schema) {
+  public static List<FieldInfo> buildSourceSchemaEntity(
+      final LogicalSchema schema,
+      final boolean valueSchemaOnly
+  ) {
 
     final List<FieldInfo> allFields = new ArrayList<>();
-    allFields.addAll(getFields(schema.metaFields(), "implicit"));
-    allFields.addAll(getFields(schema.keyFields(), "key"));
+    if (!valueSchemaOnly) {
+      allFields.addAll(getFields(schema.metaFields(), "implicit"));
+      allFields.addAll(getFields(schema.keyFields(), "key"));
+    }
     allFields.addAll(getFields(schema.valueFields(), "value"));
 
     return allFields;

@@ -97,7 +97,7 @@ public class SourceDescription {
         dataSource.getName(),
         readQueries,
         writeQueries,
-        EntityUtil.buildSourceSchemaEntity(dataSource.getSchema()),
+        EntityUtil.buildSourceSchemaEntity(dataSource.getSchema(), false),
         dataSource.getDataSourceType().getKsqlType(),
         dataSource.getKeyField().name().orElse(""),
         Optional.ofNullable(dataSource.getTimestampExtractionPolicy())

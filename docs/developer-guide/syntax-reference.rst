@@ -1512,11 +1512,7 @@ Scalar functions
 | ARRAYCONTAINS          |  ``ARRAYCONTAINS('[1, 2, 3]', 3)``                                        | Given JSON or AVRO array checks if a search       |
 |                        |                                                                           | value contains in it                              |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
-| CEIL                   |  ``CEIL(col1)`` or   ``CEIL(col1, precision)``                            | The ceiling of a value.                           |
-|                        |                                                                           |                                                   |
-|                        |                                                                           | precision is a number indicating the number of    |
-|                        |                                                                           | places after the decimal to which to round        |
-|                        |                                                                           | downward                                          |
+| CEIL                   |  ``CEIL(col1)``                                                           | The ceiling of a value.                           |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | CONCAT                 |  ``CONCAT(col1, '_hello')``                                               | Concatenate two strings.                          |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
@@ -1565,11 +1561,7 @@ Scalar functions
 |                        |                                                                           | considered to be equal to any value. FIELD is the |
 |                        |                                                                           | complement to ELT.                                |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
-| FLOOR                  |  ``FLOOR(col1)`` or   ``FLOOR(col1, precision)``                          | The floor of a value.                             |
-|                        |                                                                           |                                                   |
-|                        |                                                                           | precision is a number indicating the number of    |
-|                        |                                                                           | places after the decimal to which to round        |
-|                        |                                                                           | downward                                          |
+| FLOOR                  |  ``FLOOR(col1)``                                                          | The floor of a value.                             |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | GEO_DISTANCE           |  ``GEO_DISTANCE(lat1, lon1, lat2, lon2, unit)``                           | The great-circle distance between two lat-long    |
 |                        |                                                                           | points, both specified in decimal degrees. An     |
@@ -1626,10 +1618,9 @@ Scalar functions
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | RANDOM                 |  ``RANDOM()``                                                             | Return a random DOUBLE value between 0.0 and 1.0. |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
-| ROUND                  |  ``ROUND(col1)`` or                                                       | Round a value to the nearest BIGINT value.        |
-|                        |  ``ROUND(col1, precision)``                                               |                                                   |
-|                        |                                                                           | precision is a number indicating up to how many   |
-|                        |                                                                           | decimal places In will be rounded                 |
+| ROUND                  |  ``ROUND(col1)`` or ``ROUND(col1, precision)``                            | Round a value to the nearest BIGINT value.        |
+|                        |                                                                           | precision is an INT indicating the number.        |
+|                        |                                                                           | of decimal places to round to.                    |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | SPLIT                  |  ``SPLIT(col1, delimiter)``                                               | Splits a string into an array of substrings based |
 |                        |                                                                           | on a delimiter. If the delimiter is not found,    |

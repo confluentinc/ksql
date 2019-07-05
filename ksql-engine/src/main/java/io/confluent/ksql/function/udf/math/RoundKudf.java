@@ -19,6 +19,7 @@ import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.function.udf.Kudf;
 
 public class RoundKudf implements Kudf {
+
   public static final String NAME = "ROUND";
 
   @Override
@@ -27,12 +28,19 @@ public class RoundKudf implements Kudf {
       throw new KsqlFunctionException("Round udf should have one or two input arguments.");
     }
 
+    if (args[0] == null) {
+      return null;
+    }
     final Double number = (Double) args[0];
 
     if (args.length == 1) {
       return Math.round(number);
     }
-    final Double round = Math.pow(10,  (Integer) args[1]);
+
+    if (args[1] == null) {
+      return null;
+    }
+    final Double round = Math.pow(10, (Integer) args[1]);
     return Math.round(number * round) / round;
   }
 }

@@ -15,7 +15,7 @@
 
 package io.confluent.ksql.datagen;
 
-import io.confluent.ksql.datagen.DataGen.Arguments.Format;
+import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Properties;
 

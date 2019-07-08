@@ -74,8 +74,7 @@ public final class SqlFormatter {
     return StringUtils.stripEnd(builder.toString(), "\n");
   }
 
-  private static final class Formatter
-          extends AstVisitor<Void, Integer> {
+  private static final class Formatter extends AstVisitor<Void, Integer> {
 
     private final StringBuilder builder;
     private final boolean unmangledNames;
@@ -147,9 +146,9 @@ public final class SqlFormatter {
       if (selectItems.size() > 1) {
         boolean first = true;
         for (final SelectItem item : selectItems) {
-          builder.append("\n")
-                  .append(indentString(indent))
-                  .append(first ? "  " : ", ");
+          builder.append(first ? "" : ",")
+                 .append("\n  ")
+                 .append(indentString(indent));
 
           process(item, indent);
           first = false;

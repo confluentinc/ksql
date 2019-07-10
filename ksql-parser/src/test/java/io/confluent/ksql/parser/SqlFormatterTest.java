@@ -324,8 +324,8 @@ public class SqlFormatterTest {
         .getStatement();
     assertThat(SqlFormatter.formatSql(statement),
         equalTo("CREATE STREAM S AS SELECT\n"
-            + "  *\n"
-            + ", ADDRESS.ADDRESS \"CITY\"\n"
+            + "  *,\n"
+            + "  ADDRESS.ADDRESS \"CITY\"\n"
             + "FROM ADDRESS ADDRESS"));
   }
 
@@ -337,8 +337,8 @@ public class SqlFormatterTest {
         .getStatement();
     assertThat(SqlFormatter.formatSql(statement),
         equalTo("CREATE STREAM S AS SELECT\n"
-            + "  ADDRESS.*\n"
-            + ", ITEMID.*\n"
+            + "  ADDRESS.*,\n"
+            + "  ITEMID.*\n"
             + "FROM ADDRESS ADDRESS\n"
             + "INNER JOIN ITEMID ITEMID ON ((ADDRESS.ADDRESS = ITEMID.ADDRESS->ADDRESS))"));
   }
@@ -351,8 +351,8 @@ public class SqlFormatterTest {
         .getStatement();
     assertThat(SqlFormatter.formatSql(statement),
         equalTo("CREATE STREAM S AS SELECT\n"
-            + "  ADDRESS.*\n"
-            + ", ITEMID.ORDERTIME \"ORDERTIME\"\n"
+            + "  ADDRESS.*,\n"
+            + "  ITEMID.ORDERTIME \"ORDERTIME\"\n"
             + "FROM ADDRESS ADDRESS\n"
             + "INNER JOIN ITEMID ITEMID ON ((ADDRESS.ADDRESS = ITEMID.ADDRESS->ADDRESS))"));
   }
@@ -364,8 +364,8 @@ public class SqlFormatterTest {
         .getStatement();
     assertThat(SqlFormatter.formatSql(statement),
         equalTo("CREATE STREAM S AS SELECT\n"
-            + "  ADDRESS.ADDRESS \"ONE\"\n"
-            + ", ADDRESS.ADDRESS \"TWO\"\n"
+            + "  ADDRESS.ADDRESS \"ONE\",\n"
+            + "  ADDRESS.ADDRESS \"TWO\"\n"
             + "FROM ADDRESS ADDRESS"));
   }
 
@@ -532,8 +532,8 @@ public class SqlFormatterTest {
     final String result = SqlFormatter.formatSql(statement);
 
     assertThat(result, is("CREATE STREAM S AS SELECT\n"
-        + "  ORDERS.ITEMID \"ITEMID\"\n"
-        + ", COUNT(*) \"KSQL_COL_1\"\n"
+        + "  ORDERS.ITEMID \"ITEMID\",\n"
+        + "  COUNT(*) \"KSQL_COL_1\"\n"
         + "FROM ORDERS ORDERS\n"
         + "WINDOW TUMBLING ( SIZE 7 DAYS ) \n"
         + "GROUP BY ORDERS.ITEMID"));
@@ -549,8 +549,8 @@ public class SqlFormatterTest {
     final String result = SqlFormatter.formatSql(statement);
 
     assertThat(result, is("CREATE STREAM S AS SELECT\n"
-        + "  ORDERS.ITEMID \"ITEMID\"\n"
-        + ", COUNT(*) \"KSQL_COL_1\"\n"
+        + "  ORDERS.ITEMID \"ITEMID\",\n"
+        + "  COUNT(*) \"KSQL_COL_1\"\n"
         + "FROM ORDERS ORDERS\n"
         + "WINDOW HOPPING ( SIZE 20 SECONDS , ADVANCE BY 5 SECONDS ) \n"
         + "GROUP BY ORDERS.ITEMID"));
@@ -566,8 +566,8 @@ public class SqlFormatterTest {
     final String result = SqlFormatter.formatSql(statement);
 
     assertThat(result, is("CREATE STREAM S AS SELECT\n"
-        + "  ORDERS.ITEMID \"ITEMID\"\n"
-        + ", COUNT(*) \"KSQL_COL_1\"\n"
+        + "  ORDERS.ITEMID \"ITEMID\",\n"
+        + "  COUNT(*) \"KSQL_COL_1\"\n"
         + "FROM ORDERS ORDERS\n"
         + "WINDOW SESSION ( 15 MINUTES ) \n"
         + "GROUP BY ORDERS.ITEMID"));

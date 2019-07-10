@@ -19,6 +19,7 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.when;
 
+import io.confluent.ksql.util.Version;
 import io.confluent.ksql.version.metrics.KsqlVersionMetrics;
 import java.time.Clock;
 import java.util.concurrent.TimeUnit;
@@ -98,8 +99,8 @@ public class BasicCollectorTest {
     final KsqlVersionMetrics metrics = basicCollector.collectMetrics();
 
     // Then:
-    assertThat(metrics.getConfluentPlatformVersion(),
-               is(BasicCollector.cpVersion(AppInfoParser.getVersion())));
+    assertThat(metrics.getConfluentPlatformVersion(), is(Version.getVersion()));
+    System.out.println(Version.getVersion());
   }
 
   @Test

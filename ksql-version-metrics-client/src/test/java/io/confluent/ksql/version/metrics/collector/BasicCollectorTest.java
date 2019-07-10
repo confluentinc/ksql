@@ -20,10 +20,11 @@ import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.version.metrics.KsqlVersionMetrics;
-import io.confluent.support.metrics.common.Version;
 import java.time.Clock;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
+
+import org.apache.kafka.common.utils.AppInfoParser;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -97,7 +98,8 @@ public class BasicCollectorTest {
     final KsqlVersionMetrics metrics = basicCollector.collectMetrics();
 
     // Then:
-    assertThat(metrics.getConfluentPlatformVersion(), is(Version.getVersion()));
+    assertThat(metrics.getConfluentPlatformVersion(),
+               is(BasicCollector.cpVersion(AppInfoParser.getVersion())));
   }
 
   @Test

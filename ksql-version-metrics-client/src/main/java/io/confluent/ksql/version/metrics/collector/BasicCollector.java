@@ -17,11 +17,13 @@ package io.confluent.ksql.version.metrics.collector;
 
 import io.confluent.ksql.version.metrics.KsqlVersionMetrics;
 import io.confluent.support.metrics.common.Collector;
-import io.confluent.support.metrics.common.Version;
 import java.time.Clock;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
+
+import org.apache.kafka.common.utils.AppInfoParser;
+
 
 public class BasicCollector extends Collector {
 
@@ -50,9 +52,14 @@ public class BasicCollector extends Collector {
   public KsqlVersionMetrics collectMetrics() {
     final KsqlVersionMetrics metricsRecord = new KsqlVersionMetrics();
     metricsRecord.setTimestamp(TimeUnit.MILLISECONDS.toSeconds(clock.millis()));
-    metricsRecord.setConfluentPlatformVersion(Version.getVersion());
+    metricsRecord.setConfluentPlatformVersion(cpVersion(AppInfoParser.getVersion()));
     metricsRecord.setKsqlComponentType(moduleType.name());
     metricsRecord.setIsActive(activenessSupplier.get());
     return metricsRecord;
+  }
+
+  // Visible for Testing
+  public static String cpVersion(final String kafkaVersion) {
+    return kafkaVersion.replace("-ce", "").replace("-ccs", "");
   }
 }

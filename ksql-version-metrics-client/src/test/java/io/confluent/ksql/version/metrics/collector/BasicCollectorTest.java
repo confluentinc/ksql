@@ -25,7 +25,6 @@ import java.time.Clock;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
-import org.apache.kafka.common.utils.AppInfoParser;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -100,7 +99,6 @@ public class BasicCollectorTest {
 
     // Then:
     assertThat(metrics.getConfluentPlatformVersion(), is(Version.getVersion()));
-    System.out.println(Version.getVersion());
   }
 
   @Test

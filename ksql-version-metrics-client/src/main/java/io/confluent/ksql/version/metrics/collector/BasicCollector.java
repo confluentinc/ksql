@@ -23,7 +23,6 @@ import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
-
 public class BasicCollector extends Collector {
 
   private final KsqlModuleType moduleType;
@@ -56,5 +55,4 @@ public class BasicCollector extends Collector {
     metricsRecord.setIsActive(activenessSupplier.get());
     return metricsRecord;
   }
-
 }

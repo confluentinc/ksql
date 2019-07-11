@@ -402,7 +402,7 @@ to correctly match the field type to the underlying serialized form to avoid des
 | DOUBLE                  | A 64-bit floating point number, as has been serialized using the Java                      |
 |                         | ``org.apache.kafka.common.serialization.DoubleSerializer``, or equivalent.                 |
 +-------------------------+--------------------------------------------------------------------------------------------+
-| STRING                  | A UTF-8 encoded text string, as has been serialized using the Java                         |
+| STRING / VARCHAR        | A UTF-8 encoded text string, as has been serialized using the Java                         |
 |                         | ``org.apache.kafka.common.serialization.StringSerializer``, or equivalent.                 |
 +-------------------------+--------------------------------------------------------------------------------------------+
 

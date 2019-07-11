@@ -31,6 +31,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.apache.avro.Schema;
+import org.apache.kafka.common.serialization.Serdes;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -45,9 +46,16 @@ public class SchemaTranslationTest {
   private static final String DDL_STATEMENT = "CREATE STREAM " + TOPIC_NAME
       + " WITH (KAFKA_TOPIC='" + TOPIC_NAME + "', VALUE_FORMAT='AVRO');";
 
+  private static final Topic OUTPUT_TOPIC = new Topic(
+      OUTPUT_TOPIC_NAME,
+      Optional.empty(),
+      Serdes::String,
+      new ValueSpecAvroSerdeSupplier(),
+      1,
+      1,
+      Optional.empty());
+
   private final TestCase testCase;
-  private static final Topic OUTPUT_TOPIC = new Topic(OUTPUT_TOPIC_NAME, Optional.empty(),
-      new ValueSpecAvroSerdeSupplier(), 1, 1);
 
   @SuppressWarnings("unused")
   public SchemaTranslationTest(final String name, final TestCase testCase) {
@@ -148,9 +156,11 @@ public class SchemaTranslationTest {
         final Topic srcTopic = new Topic(
             TOPIC_NAME,
             Optional.of(schema),
+            Serdes::String,
             new AvroSerdeSupplier(),
             1,
-            1
+            1,
+            Optional.empty()
         );
 
         final List<Record> inputRecords = generateInputRecords(srcTopic, schema);

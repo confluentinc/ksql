@@ -15,23 +15,25 @@
 
 package io.confluent.ksql.test.utils;
 
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.Format;
-import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.test.serde.SerdeSupplier;
 import io.confluent.ksql.test.serde.avro.ValueSpecAvroSerdeSupplier;
 import io.confluent.ksql.test.serde.json.ValueSpecJsonSerdeSupplier;
+import io.confluent.ksql.test.serde.kafka.KafkaSerdeSupplier;
 import io.confluent.ksql.test.serde.string.StringSerdeSupplier;
 import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;
-import io.confluent.ksql.util.KsqlException;
+import java.util.function.Supplier;
 
 public final class SerdeUtil {
 
   private SerdeUtil() {
-
   }
 
-  @SuppressWarnings("rawtypes")
-  public static SerdeSupplier<?> getSerdeSupplier(final Format format) {
+  public static SerdeSupplier<?> getSerdeSupplier(
+      final Format format,
+      final Supplier<LogicalSchema> schemaSupplier
+  ) {
     switch (format) {
       case AVRO:
         return new ValueSpecAvroSerdeSupplier();
@@ -39,23 +41,10 @@ public final class SerdeUtil {
         return new ValueSpecJsonSerdeSupplier();
       case DELIMITED:
         return new StringSerdeSupplier();
+      case KAFKA:
+        return new KafkaSerdeSupplier(schemaSupplier);
       default:
         throw new InvalidFieldException("format", "unsupported value: " + format);
-    }
-  }
-
-  public static SerdeSupplier<?> getSerdeSupplierForKsqlSerdeFactory(
-      final KsqlSerdeFactory ksqlSerdeFactory) {
-    switch (ksqlSerdeFactory.getFormat()) {
-      case AVRO:
-        return new ValueSpecAvroSerdeSupplier();
-      case JSON:
-        return new ValueSpecJsonSerdeSupplier();
-      case DELIMITED:
-        return
-            new StringSerdeSupplier();
-      default:
-        throw new KsqlException("Unsupported serde: " + ksqlSerdeFactory.getFormat());
     }
   }
 }

@@ -40,6 +40,7 @@ import io.confluent.ksql.schema.ksql.inference.SchemaRegistryTopicSchemaSupplier
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.test.serde.SerdeSupplier;
 import io.confluent.ksql.test.utils.SerdeUtil;
 import io.confluent.ksql.test.utils.WindowUtil;
 import io.confluent.ksql.util.KsqlConfig;
@@ -116,15 +117,23 @@ final class TestExecutorUtil {
       final DataSource<?> sinkDataSource,
       final Optional<Long> windowSize,
       final FakeKafkaService fakeKafkaService,
-      final SchemaRegistryClient schemaRegistryClient) {
+      final SchemaRegistryClient schemaRegistryClient
+  ) {
     final String kafkaTopicName = sinkDataSource.getKafkaTopicName();
+
     final Optional<org.apache.avro.Schema> avroSchema =
         getAvroSchema(sinkDataSource, schemaRegistryClient);
+
+    final SerdeSupplier<?> valueSerdeSupplier = SerdeUtil.getSerdeSupplier(
+            sinkDataSource.getValueSerdeFactory().getFormat(),
+            sinkDataSource::getSchema
+    );
+
     final Topic sinkTopic = new Topic(
         kafkaTopicName,
         avroSchema,
         sinkDataSource.getKeySerdeFactory(),
-        SerdeUtil.getSerdeSupplier(sinkDataSource.getValueSerdeFactory().getFormat()),
+        valueSerdeSupplier,
         KsqlConstants.legacyDefaultSinkPartitionCount,
         KsqlConstants.legacyDefaultSinkReplicaCount,
         windowSize

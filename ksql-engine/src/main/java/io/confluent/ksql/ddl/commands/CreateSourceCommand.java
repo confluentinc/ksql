@@ -24,10 +24,8 @@ import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.CreateSourceProperties;
-import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.serde.KsqlSerdeFactories;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.serde.SerdeFactories;
@@ -43,8 +41,6 @@ import java.util.Optional;
 import java.util.Set;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.kstream.Windowed;
 
 /**
@@ -62,7 +58,7 @@ abstract class CreateSourceCommand implements DdlCommand {
   final TimestampExtractionPolicy timestampExtractionPolicy;
   private final Set<SerdeOption> serdeOptions;
   private final CreateSourceProperties properties;
-  private KsqlSerdeFactory valueSerdeFactory;
+  private final KsqlSerdeFactory valueSerdeFactory;
 
   CreateSourceCommand(
       final String sqlExpression,
@@ -121,6 +117,7 @@ abstract class CreateSourceCommand implements DdlCommand {
 
     this.keySerdeFactory = extractKeySerde(properties);
     this.valueSerdeFactory = serdeFactories.create(properties.getValueFormat(), properties);
+    this.valueSerdeFactory.validate(schema.valueSchema());
     this.serdeOptions = serdeOptionsSupplier.build(schema, properties, ksqlConfig);
   }
 
@@ -133,16 +130,7 @@ abstract class CreateSourceCommand implements DdlCommand {
       throw new KsqlException("The statement does not define any columns.");
     }
 
-    final SchemaBuilder valueSchema = SchemaBuilder.struct();
-    for (final TableElement tableElement : tableElements) {
-      final String fieldName = tableElement.getName();
-      final Schema fieldSchema = SchemaConverters.sqlToLogicalConverter()
-          .fromSqlType(tableElement.getType().getSqlType());
-
-      valueSchema.field(fieldName, fieldSchema);
-    }
-
-    return LogicalSchema.of(valueSchema.build());
+    return tableElements.toLogicalSchema();
   }
 
   static void checkMetaData(

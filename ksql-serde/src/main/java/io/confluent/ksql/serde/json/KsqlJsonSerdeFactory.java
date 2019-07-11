@@ -26,12 +26,18 @@ import java.util.Collections;
 import java.util.function.Supplier;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
+import org.apache.kafka.connect.data.ConnectSchema;
 
 @Immutable
 public class KsqlJsonSerdeFactory extends KsqlSerdeFactory {
 
   public KsqlJsonSerdeFactory() {
     super(Format.JSON);
+  }
+
+  @Override
+  public void validate(final ConnectSchema schema) {
+    // Supports all types
   }
 
   @Override

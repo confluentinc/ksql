@@ -105,6 +105,10 @@ public final class LogicalSchema {
     this.alias = requireNonNull(alias, "alias");
   }
 
+  public ConnectSchema keySchema() {
+    return keySchema;
+  }
+
   public ConnectSchema valueSchema() {
     return valueSchema;
   }

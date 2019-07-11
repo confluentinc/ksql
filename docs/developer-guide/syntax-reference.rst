@@ -349,8 +349,8 @@ The WITH clause supports the following properties:
 |                         | exists with different partition/replica counts.                                            |
 +-------------------------+--------------------------------------------------------------------------------------------+
 | VALUE_FORMAT (required) | Specifies the serialization format of the message value in the topic. Supported formats:   |
-|                         | ``JSON``, ``DELIMITED`` (comma-separated value), and ``AVRO``.                             |
-|                         | For more information, see :ref:`ksql_serialization`.                                       |
+|                         | ``JSON``, ``DELIMITED`` (comma-separated value), ``AVRO`` and ``KAFKA``.                   |
+|                         | For more information, see :ref:`ksql_formats`.                                             |
 +-------------------------+--------------------------------------------------------------------------------------------+
 | PARTITIONS              | The number of partitions in the backing topic. This property must be set if creating a     |
 |                         | STREAM without an existing topic (the command will fail if the topic does not exist).      |
@@ -365,7 +365,7 @@ The WITH clause supports the following properties:
 |                         | If set, KSQL uses it as an optimization hint to determine if repartitioning can be avoided |
 |                         | when performing aggregations and joins.                                                    |
 |                         | You can only use this if the key format in kafka is ``VARCHAR`` or ``STRING``. Do not use  |
-|                         | this hint if the message key format in kafka is AVRO or JSON.                              |
+|                         | this hint if the message key format in kafka is ``AVRO`` or ``JSON``.                      |
 |                         | See :ref:`ksql_key_requirements` for more information.                                     |
 +-------------------------+--------------------------------------------------------------------------------------------+
 | TIMESTAMP               | By default, the implicit ``ROWTIME`` column is the timestamp of the message in the Kafka   |
@@ -464,8 +464,8 @@ The WITH clause supports the following properties:
 |                         | exists with different partition/replica counts.                                            |
 +-------------------------+--------------------------------------------------------------------------------------------+
 | VALUE_FORMAT (required) | Specifies the serialization format of message values in the topic. Supported formats:      |
-|                         | ``JSON``, ``DELIMITED`` (comma-separated value), and ``AVRO``.                             |
-|                         | For more information, see :ref:`ksql_serialization`.                                       |
+|                         | ``JSON``, ``DELIMITED`` (comma-separated value), ``AVRO`` and ``KAFKA``.                   |
+|                         | For more information, see :ref:`ksql_formats`.                                             |
 +-------------------------+--------------------------------------------------------------------------------------------+
 | PARTITIONS              | The number of partitions in the backing topic. This property must be set if creating a     |
 |                         | TABLE without an existing topic (the command will fail if the topic does not exist).       |
@@ -592,8 +592,9 @@ The WITH clause for the result supports the following properties:
 |                         | name of the stream in upper case will be used as default.                                            |
 +-------------------------+------------------------------------------------------------------------------------------------------+
 | VALUE_FORMAT            | Specifies the serialization format of the message value in the topic. Supported formats:             |
-|                         | ``JSON``, ``DELIMITED`` (comma-separated value), and ``AVRO``. If this property is not               |
-|                         | set, then the format of the input stream/table is used.                                              |
+|                         | ``JSON``, ``DELIMITED`` (comma-separated value), ``AVRO`` and ``KAFKA``.                             |
+|                         | If this property is not set, then the format of the input stream/table is used.                      |
+|                         | For more information, see :ref:`ksql_formats`.                                                       |
 +-------------------------+------------------------------------------------------------------------------------------------------+
 | PARTITIONS              | The number of partitions in the backing topic. If this property is not set, then the number          |
 |                         | of partitions of the input stream/table will be used. In join queries, the property values are taken |
@@ -698,8 +699,9 @@ The WITH clause supports the following properties:
 |                         | name of the table will be used as default.                                                           |
 +-------------------------+------------------------------------------------------------------------------------------------------+
 | VALUE_FORMAT            | Specifies the serialization format of the message value in the topic. Supported formats:             |
-|                         | ``JSON``, ``DELIMITED`` (comma-separated value), and ``AVRO``. If this property is not               |
-|                         | set, then the format of the input stream or table is used.                                           |
+|                         | ``JSON``, ``DELIMITED`` (comma-separated value), ``AVRO`` and ``KAFKA``.                             |
+|                         | If this property is not set, then the format of the input stream/table is used.                      |
+|                         | For more information, see :ref:`ksql_formats`.                                                       |
 +-------------------------+------------------------------------------------------------------------------------------------------+
 | PARTITIONS              | The number of partitions in the backing topic. If this property is not set, then the number          |
 |                         | of partitions of the input stream/table will be used. In join queries, the property values are taken |

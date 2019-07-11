@@ -38,6 +38,7 @@ import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.model.SemanticVersion;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
+import io.confluent.ksql.test.serde.SerdeSupplier;
 import io.confluent.ksql.test.tools.FakeKafkaService;
 import io.confluent.ksql.test.tools.Test;
 import io.confluent.ksql.test.tools.TestCase;
@@ -74,6 +75,7 @@ import java.util.stream.Stream;
 import org.apache.avro.generic.GenericData;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.TopologyTestDriver;
 import org.apache.kafka.test.TestUtils;
@@ -155,16 +157,23 @@ final class EndToEndEngineTestUtil {
       final String sinkKafkaTopicName = metaStore
           .getSource(Iterables.getOnlyElement(persistentQueryMetadata.getSinkNames()))
           .getKafkaTopicName();
+
+      final SerdeSupplier<?> valueSerdes = SerdeUtil.getSerdeSupplier(
+          persistentQueryMetadata.getResultTopic().getValueSerdeFactory().getFormat(),
+          queryMetadata::getLogicalSchema
+      );
+
       final Topic sinkTopic = new Topic(
           sinkKafkaTopicName,
           Optional.empty(),
-          SerdeUtil.getSerdeSupplierForKsqlSerdeFactory(
-              persistentQueryMetadata.getResultTopic().getValueSerdeFactory()
-          ),
+          Serdes::String,
+          valueSerdes,
           1,
-          1);
-      fakeKafkaService
-          .createTopic(sinkTopic);
+          1,
+          Optional.empty()
+      );
+
+      fakeKafkaService.createTopic(sinkTopic);
     }
 
     assertThat("test did not generate any queries.", queries.isEmpty(), is(false));

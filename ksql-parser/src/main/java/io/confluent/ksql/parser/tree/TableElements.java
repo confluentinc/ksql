@@ -16,7 +16,10 @@
 package io.confluent.ksql.parser.tree;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -26,6 +29,8 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
 
 @Immutable
 public final class TableElements implements Iterable<TableElement> {
@@ -69,6 +74,23 @@ public final class TableElements implements Iterable<TableElement> {
   @Override
   public String toString() {
     return elements.toString();
+  }
+
+  public LogicalSchema toLogicalSchema() {
+    if (Iterables.isEmpty(this)) {
+      throw new KsqlException("No columns supplied.");
+    }
+
+    final SchemaBuilder valueSchema = SchemaBuilder.struct();
+    for (final TableElement tableElement : this) {
+      final String fieldName = tableElement.getName();
+      final Schema fieldSchema = SchemaConverters.sqlToLogicalConverter()
+          .fromSqlType(tableElement.getType().getSqlType());
+
+      valueSchema.field(fieldName, fieldSchema);
+    }
+
+    return LogicalSchema.of(valueSchema.build());
   }
 
   private TableElements(final ImmutableList<TableElement> elements) {

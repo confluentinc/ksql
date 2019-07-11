@@ -21,6 +21,7 @@ import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.serde.avro.KsqlAvroSerdeFactory;
 import io.confluent.ksql.serde.delimited.KsqlDelimitedSerdeFactory;
 import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
+import io.confluent.ksql.serde.kafka.KafkaSerdeFactory;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.StringUtil;
@@ -34,9 +35,9 @@ public final class KsqlSerdeFactories implements SerdeFactories {
       final Format format,
       final CreateSourceProperties statementProps
   ) {
-    final Optional<String> avroSchema = statementProps.getValueAvroSchemaName();
+    final Optional<String> avroSchemaName = statementProps.getValueAvroSchemaName();
 
-    return build(format, avroSchema);
+    return build(format, avroSchemaName);
   }
 
   @Override
@@ -44,20 +45,23 @@ public final class KsqlSerdeFactories implements SerdeFactories {
       final Format format,
       final Map<String, Expression> sinkProperties
   ) {
-    final Optional<String> avroSchema = Optional
+    final Optional<String> avroSchemaName = Optional
         .ofNullable(sinkProperties.get(DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME))
         .map(Object::toString)
         .map(StringUtil::cleanQuotes);
 
-    return build(format, avroSchema);
+    return build(format, avroSchemaName);
   }
 
-  private static KsqlSerdeFactory build(final Format format, final Optional<String> avroSchema) {
-    validateProps(format, avroSchema);
+  private static KsqlSerdeFactory build(
+      final Format format,
+      final Optional<String> avroSchemaName
+  ) {
+    validateProps(format, avroSchemaName);
 
     switch (format) {
       case AVRO:
-        final String schemaFullName = avroSchema
+        final String schemaFullName = avroSchemaName
             .orElse(KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME);
 
         return new KsqlAvroSerdeFactory(schemaFullName);
@@ -67,6 +71,9 @@ public final class KsqlSerdeFactories implements SerdeFactories {
 
       case DELIMITED:
         return new KsqlDelimitedSerdeFactory();
+
+      case KAFKA:
+        return new KafkaSerdeFactory();
 
       default:
         throw new KsqlException(

@@ -22,7 +22,8 @@ public enum Format {
 
   JSON(true),
   AVRO(true),
-  DELIMITED(false);
+  DELIMITED(false),
+  KAFKA(false);
 
   private final boolean supportsUnwrapping;
 

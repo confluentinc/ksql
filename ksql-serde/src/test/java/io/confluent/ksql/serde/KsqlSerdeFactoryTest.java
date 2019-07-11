@@ -153,6 +153,10 @@ public class KsqlSerdeFactoryTest {
     }
 
     @Override
+    public void validate(final ConnectSchema schema) {
+    }
+
+    @Override
     protected Serializer<Object> createSerializer(
         final PersistenceSchema schema,
         final KsqlConfig ksqlConfig,

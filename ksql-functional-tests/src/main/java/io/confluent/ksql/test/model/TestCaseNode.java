@@ -57,6 +57,7 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -222,12 +223,14 @@ public class TestCaseNode {
     // Get topics from inputs and outputs fields:
     Streams.concat(inputs.stream(), outputs.stream())
         .map(RecordNode::topicName)
-        .map(topicName -> new Topic(topicName, Optional.empty(), defaultSerdeSupplier, 4, 1))
+        .map(topicName -> new Topic(topicName, Optional.empty(), Serdes::String,
+            defaultSerdeSupplier, 4, 1, Optional.empty()))
         .forEach(topic -> allTopics.putIfAbsent(topic.getName(), topic));
 
     return allTopics;
   }
 
+  @SuppressWarnings("OptionalIsPresent")
   private static Topic createTopicFromStatement(
       final FunctionRegistry functionRegistry,
       final String sql
@@ -262,23 +265,19 @@ public class TestCaseNode {
       } else {
         avroSchema = Optional.empty();
       }
-      if (windowedSerdeFactory.isPresent()) {
-        return new Topic(
-            topicName,
-            avroSchema,
-            windowedSerdeFactory.get(),
-            SerdeUtil.getSerdeSupplier(format),
-            KsqlConstants.legacyDefaultSinkPartitionCount,
-            KsqlConstants.legacyDefaultSinkReplicaCount,
-            Optional.empty());
-      } else {
-        return new Topic(
-            topicName,
-            avroSchema,
-            SerdeUtil.getSerdeSupplier(format),
-            KsqlConstants.legacyDefaultSinkPartitionCount,
-            KsqlConstants.legacyDefaultSinkReplicaCount);
-      }
+
+      final SerdeFactory<?> keySerde = windowedSerdeFactory.isPresent()
+          ? windowedSerdeFactory.get()
+          : (SerdeFactory) Serdes::String;
+
+      return new Topic(
+          topicName,
+          avroSchema,
+          keySerde,
+          SerdeUtil.getSerdeSupplier(format, statement.getElements()::toLogicalSchema),
+          KsqlConstants.legacyDefaultSinkPartitionCount,
+          KsqlConstants.legacyDefaultSinkReplicaCount,
+          Optional.empty());
     };
 
     try {

@@ -28,7 +28,7 @@ KSQL provides some additional configuration that allows serialization to be cont
 Single field (un)wrapping
 -------------------------
 
-.. note:: The ``DELIMITED`` format is not effected by single field unwrapping.
+.. note:: The ``DELIMITED`` and ``KAFKA`` formats do not support single field unwrapping.
 
 Controlling deserializing of single fields
 ==========================================
@@ -201,6 +201,7 @@ KSQL currently supports three serialization formats:
 *. ``DELIMITED`` supports comma separated values. See :ref:`delimited_format` below.
 *. ``JSON`` supports JSON values. See :ref:`json_format` below.
 *. ``AVRO`` supports AVRO serialized values. See :ref:`avro_format` below.
+*. ``KAFKA`` supports primitives serialized using the standard Kafka serializers. See :ref:`kafka_format` below.
 
 .. _delimited_format
 
@@ -262,7 +263,6 @@ And a JSON value of:
 
 KSQL deserializes the JSON object's fields into the corresponding fields of the stream.
 
- -------------------------------------
 Top-level primitives, arrays and maps
 -------------------------------------
 
@@ -292,6 +292,12 @@ the ``WRAP_SINGLE_VALUE`` is set to ``false``, for example:
 
 For more information, see :ref:`ksql_single_field_wrapping`.
 
+Field Name Case Sensitivity
+---------------------------
+
+The format is case-insensitive when matching a KSQL field name with a JSON document's property name.
+The first case-insensitive match is used.
+
 .. _avro_format
 
 ----
@@ -304,7 +310,6 @@ including records and top-level primitives, arrays, and maps.
 The format requires KSQL to be configured to store and retrieve the Avro schemas from the |sr-long|.
 For more information, see :ref:`install_ksql-avro-schema`.
 
-------------
 Avro Records
 ------------
 
@@ -333,7 +338,6 @@ And an Avro record serialized with the schema:
 
 KSQL deserializes the Avro record's fields into the corresponding fields of the stream.
 
--------------------------------------
 Top-level primitives, arrays and maps
 -------------------------------------
 
@@ -365,5 +369,48 @@ the ``WRAP_SINGLE_VALUE`` is set to ``false``, for example:
 
 For more information, see :ref:`ksql_single_field_wrapping`.
 
-===========================
 Field Name Case Sensitivity
+---------------------------
+
+The format is case-insensitive when matching a KSQL field name with an Avro record's field name.
+The first case-insensitive match is used.
+
+.. _kafka_format
+
+-----
+KAFKA
+-----
+
+The ``KAFKA`` format supports``INT``, ``BIGINT``, ``DOUBLE`` and ``STRING`` primitives that have
+been serialized using Kafka's standard set of serializers.
+
+The format is designed primarily to support primitive message keys. It can be used as a value format,
+though certain operations are not yet supported when this is the case.
+
+Unlike some other formats, this format does not perform any type coercion. It is therefore important
+to correctly match the field type to the underlying serialized form to avoid deserialization errors.
+
++-------------------------+--------------------------------------------------------------------------------------------+
+| KSQL Field Type         | Kafka Type                                                                                 |
++=========================+============================================================================================+
+| INT / INTEGER           | A 32-bit signed integer, as has been serialized using the Java                             |
+|                         | ``org.apache.kafka.common.serialization.IntegerSerializer``, or equivalent.                |
++-------------------------+--------------------------------------------------------------------------------------------+
+| BIGINT                  | A 64-bit signed integer, as has been serialized using the Java                             |
+|                         | ``org.apache.kafka.common.serialization.LongSerializer``, or equivalent.                   |
++-------------------------+--------------------------------------------------------------------------------------------+
+| DOUBLE                  | A 64-bit floating point number, as has been serialized using the Java                      |
+|                         | ``org.apache.kafka.common.serialization.DoubleSerializer``, or equivalent.                 |
++-------------------------+--------------------------------------------------------------------------------------------+
+| STRING                  | A UTF-8 encoded text string, as has been serialized using the Java                         |
+|                         | ``org.apache.kafka.common.serialization.StringSerializer``, or equivalent.                 |
++-------------------------+--------------------------------------------------------------------------------------------+
+
+As the format only supports primitive types it can only be used where the schema contains a single field.
+
+For example, if your Kafka messages have a ``long`` key you can make them available to KSQL a statement
+similar to:
+
+.. code:: sql
+
+    CREATE STREAM USERS (ROWKEY BIGINT KEY, NAME STRING) WITH (KEY_FORMAT='KAFKA', VALUE_FORMAT='JSON', ...);

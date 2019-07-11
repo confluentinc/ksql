@@ -27,7 +27,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import io.confluent.ksql.analyzer.Analysis.Into;
@@ -56,10 +55,12 @@ import io.confluent.ksql.serde.SerdeFactories;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.avro.KsqlAvroSerdeFactory;
 import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
+import io.confluent.ksql.serde.kafka.KafkaSerdeFactory;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -95,6 +96,7 @@ public class AnalyzerTest {
   private SerdeOptionsSupplier serdeOptiponsSupplier;
   @Mock
   private Sink sink;
+  private final Map<String, Expression> properties = new HashMap<>();
 
   private Query query;
   private Analyzer analyzer;
@@ -113,8 +115,11 @@ public class AnalyzerTest {
     );
 
     when(sink.getName()).thenReturn("TEST0");
+    when(sink.getProperties()).thenReturn(properties);
 
     query = parseSingle("Select COL0, COL1 from TEST1;");
+
+    registerKafkaSource();
   }
 
   @Test
@@ -431,10 +436,7 @@ public class AnalyzerTest {
     final Set<SerdeOption> serdeOptions = ImmutableSet.of(SerdeOption.UNWRAP_SINGLE_VALUES);
     when(serdeOptiponsSupplier.build(any(), any(), any(), any())).thenReturn(serdeOptions);
 
-    final Map<String, Expression> properties =
-        ImmutableMap.of("VALUE_FORMAT", new StringLiteral("AVRO"));
-
-    when(sink.getProperties()).thenReturn(properties);
+    givenSinkValueFormat(Format.AVRO);
 
     // When:
     final Analysis result = analyzer.analyze("sql", query, Optional.of(sink));
@@ -468,9 +470,69 @@ public class AnalyzerTest {
         any());
   }
 
+  @Test
+  public void shouldThrowOnGroupByIfKafkaFormat() {
+    // Given:
+    query = parseSingle("Select COL0 from KAFKA_SOURCE GROUP BY COL0;");
+
+    givenSinkValueFormat(Format.KAFKA);
+
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Source(s) KAFKA_SOURCE are using the 'KAFKA' value format."
+        + " This format does not yet support GROUP BY.");
+
+    // When:
+    analyzer.analyze("sql", query, Optional.of(sink));
+  }
+
+  @Test
+  public void shouldThrowOnJoinIfKafkaFormat() {
+    // Given:
+    query = parseSingle("Select TEST1.COL0 from TEST1 JOIN KAFKA_SOURCE "
+        + "WITHIN 1 SECOND ON "
+        + "TEST1.COL0 = KAFKA_SOURCE.COL0;");
+
+    givenSinkValueFormat(Format.KAFKA);
+
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Source(s) KAFKA_SOURCE are using the 'KAFKA' value format."
+        + " This format does not yet support JOIN.");
+
+    // When:
+    analyzer.analyze("sql", query, Optional.of(sink));
+  }
+
   @SuppressWarnings("unchecked")
   private <T extends Statement> T parseSingle(final String simpleQuery) {
     return (T) Iterables.getOnlyElement(parse(simpleQuery, jsonMetaStore));
+  }
+
+  private void givenSinkValueFormat(final Format format) {
+    properties.put("VALUE_FORMAT", new StringLiteral(format.toString()));
+  }
+
+  private void registerKafkaSource() {
+    final Schema schema = SchemaBuilder.struct()
+        .field("COL0", Schema.OPTIONAL_INT64_SCHEMA)
+        .build();
+
+    final KsqlTopic topic = new KsqlTopic("KAFKA_SOURCE", "ks", new KafkaSerdeFactory(), false);
+
+    final KsqlStream<?> stream = new KsqlStream<>(
+        "sqlexpression",
+        "KAFKA_SOURCE",
+        LogicalSchema.of(schema),
+        SerdeOption.none(),
+        KeyField.none(),
+        new MetadataTimestampExtractionPolicy(),
+        topic,
+        Serdes::String
+    );
+
+    jsonMetaStore.putTopic(topic);
+    jsonMetaStore.putSource(stream);
   }
 
   private static List<Statement> parse(final String simpleQuery, final MetaStore metaStore) {

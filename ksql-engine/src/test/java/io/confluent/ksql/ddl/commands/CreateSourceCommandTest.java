@@ -310,6 +310,29 @@ public class CreateSourceCommandTest {
     assertThat(cmd.getSerdeOptions(), is(SOME_SERDE_OPTIONS));
   }
 
+  @Test
+  public void shouldValidateValueFormatCanHandleValueSchema() {
+    // Given:
+    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder
+        .struct()
+        .field("bob", Schema.OPTIONAL_STRING_SCHEMA)
+        .field("hojjat", Schema.OPTIONAL_STRING_SCHEMA)
+        .build());
+
+    // When:
+    new TestCmd(
+        "sql",
+        statement,
+        ksqlConfig,
+        kafkaTopicClient,
+        serdeOptions,
+        serdeFactories
+    );
+
+    // Then:
+    verify(serdeFactory).validate(schema.valueSchema());
+  }
+
   private static Map<String, Literal> minValidProps() {
     return ImmutableMap.of(
         DdlConfig.VALUE_FORMAT_PROPERTY, new StringLiteral("json"),

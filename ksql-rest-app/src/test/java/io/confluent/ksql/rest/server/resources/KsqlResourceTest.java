@@ -1337,14 +1337,15 @@ public class KsqlResourceTest {
   public void shouldListDefaultKsqlProperty() {
     // Given:
     givenKsqlConfigWith(ImmutableMap.<String, Object>builder()
-        .put(StreamsConfig.STATE_DIR_CONFIG, "/var/lib/kafka-streams")
+        .put(StreamsConfig.STATE_DIR_CONFIG, "/tmp/kafka-streams")
         .build());
 
     // When:
     final PropertiesList props = makeSingleRequest("list properties;", PropertiesList.class);
 
     // Then:
-    assertThat(props.getDefaultProperties(), hasItem(KsqlConfig.KSQL_SERVICE_ID_CONFIG));
+    assertThat(props.getDefaultProperties(),
+               hasItem(KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.STATE_DIR_CONFIG));
   }
 
   @Test

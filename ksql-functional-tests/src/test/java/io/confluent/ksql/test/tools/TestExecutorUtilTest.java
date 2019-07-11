@@ -33,6 +33,7 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import org.apache.kafka.common.serialization.Serdes;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -74,7 +75,16 @@ public class TestExecutorUtilTest {
   public void shouldBuildStreamsTopologyTestDrivers() throws IOException, RestClientException {
 
     // Given:
-    final Topic sourceTopic = new Topic("test_topic", Optional.empty(), new StringSerdeSupplier(), 1, 1);
+    final Topic sourceTopic = new Topic(
+        "test_topic",
+        Optional.empty(),
+        Serdes::String,
+        new StringSerdeSupplier(),
+        1,
+        1,
+        Optional.empty()
+    );
+
     fakeKafkaService.createTopic(sourceTopic);
 
     // When:

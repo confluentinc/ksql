@@ -19,8 +19,8 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.when;
 
+import io.confluent.ksql.util.Version;
 import io.confluent.ksql.version.metrics.KsqlVersionMetrics;
-import io.confluent.support.metrics.common.Version;
 import java.time.Clock;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;

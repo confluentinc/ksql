@@ -18,79 +18,88 @@ package io.confluent.ksql.schema.connect;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
-import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.schema.connect.SqlSchemaFormatter.Option;
 import io.confluent.ksql.util.DecimalUtil;
+import java.util.function.Predicate;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Test;
 
 public class SqlSchemaFormatterTest {
 
+  private static final Predicate<String> DO_NOT_ESCAPE_COLUMN_NAMES = word -> false;
+
+  private static final SqlSchemaFormatter DEFAULT =
+      new SqlSchemaFormatter(DO_NOT_ESCAPE_COLUMN_NAMES);
+
+  private static final SqlSchemaFormatter STRICT =
+      new SqlSchemaFormatter(DO_NOT_ESCAPE_COLUMN_NAMES, Option.APPEND_NOT_NULL);
+
+
   @Test
   public void shouldFormatBoolean() {
-    assertThat(SqlSchemaFormatter.DEFAULT.format(Schema.BOOLEAN_SCHEMA), is("BOOLEAN"));
-    assertThat(SqlSchemaFormatter.STRICT.format(Schema.BOOLEAN_SCHEMA), is("BOOLEAN NOT NULL"));
+    assertThat(DEFAULT.format(Schema.BOOLEAN_SCHEMA), is("BOOLEAN"));
+    assertThat(STRICT.format(Schema.BOOLEAN_SCHEMA), is("BOOLEAN NOT NULL"));
   }
 
   @Test
   public void shouldFormatOptionalBoolean() {
-    assertThat(SqlSchemaFormatter.DEFAULT.format(Schema.OPTIONAL_BOOLEAN_SCHEMA), is("BOOLEAN"));
-    assertThat(SqlSchemaFormatter.STRICT.format(Schema.OPTIONAL_BOOLEAN_SCHEMA), is("BOOLEAN"));
+    assertThat(DEFAULT.format(Schema.OPTIONAL_BOOLEAN_SCHEMA), is("BOOLEAN"));
+    assertThat(STRICT.format(Schema.OPTIONAL_BOOLEAN_SCHEMA), is("BOOLEAN"));
   }
 
   @Test
   public void shouldFormatInt() {
-    assertThat(SqlSchemaFormatter.DEFAULT.format(Schema.INT32_SCHEMA), is("INT"));
-    assertThat(SqlSchemaFormatter.STRICT.format(Schema.INT32_SCHEMA), is("INT NOT NULL"));
+    assertThat(DEFAULT.format(Schema.INT32_SCHEMA), is("INT"));
+    assertThat(STRICT.format(Schema.INT32_SCHEMA), is("INT NOT NULL"));
   }
 
   @Test
   public void shouldFormatOptionalInt() {
-    assertThat(SqlSchemaFormatter.DEFAULT.format(Schema.OPTIONAL_INT32_SCHEMA), is("INT"));
-    assertThat(SqlSchemaFormatter.STRICT.format(Schema.OPTIONAL_INT32_SCHEMA), is("INT"));
+    assertThat(DEFAULT.format(Schema.OPTIONAL_INT32_SCHEMA), is("INT"));
+    assertThat(STRICT.format(Schema.OPTIONAL_INT32_SCHEMA), is("INT"));
   }
 
   @Test
   public void shouldFormatBigint() {
-    assertThat(SqlSchemaFormatter.DEFAULT.format(Schema.INT64_SCHEMA), is("BIGINT"));
-    assertThat(SqlSchemaFormatter.STRICT.format(Schema.INT64_SCHEMA), is("BIGINT NOT NULL"));
+    assertThat(DEFAULT.format(Schema.INT64_SCHEMA), is("BIGINT"));
+    assertThat(STRICT.format(Schema.INT64_SCHEMA), is("BIGINT NOT NULL"));
   }
 
   @Test
   public void shouldFormatOptionalBigint() {
-    assertThat(SqlSchemaFormatter.DEFAULT.format(Schema.OPTIONAL_INT64_SCHEMA), is("BIGINT"));
-    assertThat(SqlSchemaFormatter.STRICT.format(Schema.OPTIONAL_INT64_SCHEMA), is("BIGINT"));
+    assertThat(DEFAULT.format(Schema.OPTIONAL_INT64_SCHEMA), is("BIGINT"));
+    assertThat(STRICT.format(Schema.OPTIONAL_INT64_SCHEMA), is("BIGINT"));
   }
 
   @Test
   public void shouldFormatDouble() {
-    assertThat(SqlSchemaFormatter.DEFAULT.format(Schema.FLOAT64_SCHEMA), is("DOUBLE"));
-    assertThat(SqlSchemaFormatter.STRICT.format(Schema.FLOAT64_SCHEMA), is("DOUBLE NOT NULL"));
+    assertThat(DEFAULT.format(Schema.FLOAT64_SCHEMA), is("DOUBLE"));
+    assertThat(STRICT.format(Schema.FLOAT64_SCHEMA), is("DOUBLE NOT NULL"));
   }
 
   @Test
   public void shouldFormatOptionalDouble() {
-    assertThat(SqlSchemaFormatter.DEFAULT.format(Schema.OPTIONAL_FLOAT64_SCHEMA), is("DOUBLE"));
-    assertThat(SqlSchemaFormatter.STRICT.format(Schema.OPTIONAL_FLOAT64_SCHEMA), is("DOUBLE"));
+    assertThat(DEFAULT.format(Schema.OPTIONAL_FLOAT64_SCHEMA), is("DOUBLE"));
+    assertThat(STRICT.format(Schema.OPTIONAL_FLOAT64_SCHEMA), is("DOUBLE"));
   }
 
   @Test
   public void shouldFormatString() {
-    assertThat(SqlSchemaFormatter.DEFAULT.format(Schema.STRING_SCHEMA), is("VARCHAR"));
-    assertThat(SqlSchemaFormatter.STRICT.format(Schema.STRING_SCHEMA), is("VARCHAR NOT NULL"));
+    assertThat(DEFAULT.format(Schema.STRING_SCHEMA), is("VARCHAR"));
+    assertThat(STRICT.format(Schema.STRING_SCHEMA), is("VARCHAR NOT NULL"));
   }
 
   @Test
   public void shouldFormatOptionalString() {
-    assertThat(SqlSchemaFormatter.DEFAULT.format(Schema.OPTIONAL_STRING_SCHEMA), is("VARCHAR"));
-    assertThat(SqlSchemaFormatter.STRICT.format(Schema.OPTIONAL_STRING_SCHEMA), is("VARCHAR"));
+    assertThat(DEFAULT.format(Schema.OPTIONAL_STRING_SCHEMA), is("VARCHAR"));
+    assertThat(STRICT.format(Schema.OPTIONAL_STRING_SCHEMA), is("VARCHAR"));
   }
 
   @Test
   public void shouldFormatDecimal() {
-    assertThat(SqlSchemaFormatter.DEFAULT.format(DecimalUtil.builder(2, 1).build()), is("DECIMAL(2, 1)"));
-    assertThat(SqlSchemaFormatter.STRICT.format(DecimalUtil.builder(2, 1).build()), is("DECIMAL(2, 1)"));
+    assertThat(DEFAULT.format(DecimalUtil.builder(2, 1).build()), is("DECIMAL(2, 1)"));
+    assertThat(STRICT.format(DecimalUtil.builder(2, 1).build()), is("DECIMAL(2, 1)"));
   }
 
   @Test
@@ -101,9 +110,9 @@ public class SqlSchemaFormatterTest {
         .build();
 
     // Then:
-    assertThat(SqlSchemaFormatter.DEFAULT.format(schema),
+    assertThat(DEFAULT.format(schema),
         is("ARRAY<DOUBLE>"));
-    assertThat(SqlSchemaFormatter.STRICT.format(schema),
+    assertThat(STRICT.format(schema),
         is("ARRAY<DOUBLE NOT NULL> NOT NULL"));
   }
 
@@ -116,9 +125,9 @@ public class SqlSchemaFormatterTest {
         .build();
 
     // Then:
-    assertThat(SqlSchemaFormatter.DEFAULT.format(schema),
+    assertThat(DEFAULT.format(schema),
         is("ARRAY<DOUBLE>"));
-    assertThat(SqlSchemaFormatter.STRICT.format(schema),
+    assertThat(STRICT.format(schema),
         is("ARRAY<DOUBLE>"));
   }
 
@@ -130,10 +139,10 @@ public class SqlSchemaFormatterTest {
         .build();
 
     // Then:
-    assertThat(SqlSchemaFormatter.DEFAULT.format(schema),
+    assertThat(DEFAULT.format(schema),
         is("MAP<VARCHAR, DOUBLE>"));
 
-    assertThat(SqlSchemaFormatter.STRICT.format(schema),
+    assertThat(STRICT.format(schema),
         is("MAP<VARCHAR NOT NULL, DOUBLE NOT NULL> NOT NULL"));
   }
 
@@ -146,8 +155,8 @@ public class SqlSchemaFormatterTest {
         .build();
 
     // Then:
-    assertThat(SqlSchemaFormatter.DEFAULT.format(schema), is("MAP<VARCHAR, DOUBLE>"));
-    assertThat(SqlSchemaFormatter.STRICT.format(schema), is("MAP<VARCHAR, DOUBLE>"));
+    assertThat(DEFAULT.format(schema), is("MAP<VARCHAR, DOUBLE>"));
+    assertThat(STRICT.format(schema), is("MAP<VARCHAR, DOUBLE>"));
   }
 
   @Test
@@ -164,14 +173,14 @@ public class SqlSchemaFormatterTest {
         .build();
 
     // Then:
-    assertThat(SqlSchemaFormatter.DEFAULT.format(structSchema), is(
+    assertThat(DEFAULT.format(structSchema), is(
         "STRUCT<"
             + "COL1 VARCHAR, "
             + "COL4 ARRAY<DOUBLE>, "
             + "COL5 MAP<VARCHAR, DOUBLE>"
             + ">"));
 
-    assertThat(SqlSchemaFormatter.STRICT.format(structSchema), is(
+    assertThat(STRICT.format(structSchema), is(
         "STRUCT<"
             + "COL1 VARCHAR NOT NULL, "
             + "COL4 ARRAY<DOUBLE NOT NULL> NOT NULL, "
@@ -189,12 +198,15 @@ public class SqlSchemaFormatterTest {
             .field("COL3", Schema.STRING_SCHEMA)
             .build())
         .build();
-    final SqlSchemaFormatter formatter = new SqlSchemaFormatter(ImmutableSet.of("COL1", "COL2", "COL3"));
+
+    final Predicate<String> escaper = name -> !name.equalsIgnoreCase("COL1");
+
+    final SqlSchemaFormatter formatter = new SqlSchemaFormatter(escaper);
 
     // Then:
     assertThat(formatter.format(structSchema), is(
         "STRUCT<"
-            + "`COL1` VARCHAR, "
+            + "COL1 VARCHAR, "
             + "`COL2` STRUCT<`COL3` VARCHAR>"
             + ">"));
   }
@@ -216,14 +228,14 @@ public class SqlSchemaFormatterTest {
         .build();
 
     // Then:
-    assertThat(SqlSchemaFormatter.DEFAULT.format(structSchema), is(
+    assertThat(DEFAULT.format(structSchema), is(
         "STRUCT<"
             + "COL1 VARCHAR, "
             + "COL4 ARRAY<DOUBLE>, "
             + "COL5 MAP<VARCHAR, DOUBLE>"
             + ">"));
 
-    assertThat(SqlSchemaFormatter.STRICT.format(structSchema), is(
+    assertThat(STRICT.format(structSchema), is(
         "STRUCT<"
             + "COL1 VARCHAR, "
             + "COL4 ARRAY<DOUBLE>, "
@@ -248,6 +260,7 @@ public class SqlSchemaFormatterTest {
         .build();
 
     final SqlSchemaFormatter formatter = new SqlSchemaFormatter(
+        DO_NOT_ESCAPE_COLUMN_NAMES,
         Option.AS_COLUMN_LIST,
         Option.APPEND_NOT_NULL
     );
@@ -278,6 +291,7 @@ public class SqlSchemaFormatterTest {
         .build();
 
     final SqlSchemaFormatter formatter = new SqlSchemaFormatter(
+        DO_NOT_ESCAPE_COLUMN_NAMES,
         Option.AS_COLUMN_LIST,
         Option.APPEND_NOT_NULL
     );

@@ -58,8 +58,6 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 @Immutable
 public final class LogicalSchema {
 
-  private static final SqlSchemaFormatter FORMATTER = new SqlSchemaFormatter(Option.AS_COLUMN_LIST);
-
   private static final Schema METADATA_SCHEMA = SchemaBuilder
       .struct()
       .field(SchemaUtil.ROWTIME_NAME, Schema.OPTIONAL_INT64_SCHEMA)
@@ -341,7 +339,14 @@ public final class LogicalSchema {
 
   @Override
   public String toString() {
-    return "[" + FORMATTER.format(valueSchema) + "]";
+    return toString(FormatOptions.none());
+  }
+
+  public String toString(final FormatOptions formatOptions) {
+    final SqlSchemaFormatter formatter = new SqlSchemaFormatter(
+        formatOptions::isReservedWord, Option.AS_COLUMN_LIST);
+
+    return "[" + formatter.format(valueSchema) + "]";
   }
 
   private Set<String> metaFieldNames() {

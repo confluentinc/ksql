@@ -26,6 +26,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.parser.tree.TableElement.Namespace;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -35,8 +36,8 @@ import org.junit.rules.ExpectedException;
 
 public class TableElementsTest {
 
-  private static final PrimitiveType SOME_TYPE = PrimitiveType.of("INT");
-  private static final PrimitiveType STRING_TYPE = PrimitiveType.of("STRING");
+  private static final Type SOME_TYPE = new Type(SqlTypes.INTEGER);
+  private static final Type STRING_TYPE = new Type(SqlTypes.STRING);
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -110,6 +111,19 @@ public class TableElementsTest {
   }
 
   @Test
+  public void shouldNotThrowOnNoKeyElements() {
+    // Given:
+    final List<TableElement> elements = ImmutableList.of(
+        tableElement(VALUE, "v0", new Type(SqlTypes.INTEGER))
+    );
+
+    // When:
+    TableElements.of(elements);
+
+    // Then: did not throw.
+  }
+
+  @Test
   public void shouldThrowIfMoreThatOneKeyColumn() {
     // Given:
     final List<TableElement> elements = ImmutableList.of(
@@ -130,7 +144,7 @@ public class TableElementsTest {
   public void shouldThrowIfKeyColumnNotString() {
     // Given:
     final List<TableElement> elements = ImmutableList.of(
-        tableElement(KEY, "k0", PrimitiveType.of("INT")),
+        tableElement(KEY, "k0", new Type(SqlTypes.INTEGER)),
         tableElement(VALUE, "v0", SOME_TYPE)
     );
 

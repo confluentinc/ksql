@@ -68,7 +68,7 @@ import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.SqlType;
+import io.confluent.ksql.schema.ksql.SqlBaseType;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
@@ -504,7 +504,7 @@ public class KsqlParserTest {
     assertThat(result.getName().toString(), equalTo("ORDERS"));
     assertThat(Iterables.size(result.getElements()), equalTo(7));
     assertThat(Iterables.get(result.getElements(), 0).getName(), equalTo("ORDERTIME"));
-    assertThat(Iterables.get(result.getElements(), 6).getType().getSqlType(), equalTo(SqlType.STRUCT));
+    assertThat(Iterables.get(result.getElements(), 6).getType().getSqlType().baseType(), equalTo(SqlBaseType.STRUCT));
     assertThat(result.getProperties().getKafkaTopic(), equalTo("orders_topic"));
     assertThat(result.getProperties().getValueFormat(), equalTo(Format.AVRO));
   }

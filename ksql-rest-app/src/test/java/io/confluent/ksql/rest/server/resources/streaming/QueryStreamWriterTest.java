@@ -34,7 +34,7 @@ import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.physical.LimitHandler;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.QueuedQueryMetadata;
+import io.confluent.ksql.util.TransientQueryMetadata;
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -72,7 +72,7 @@ public class QueryStreamWriterTest {
   @Mock(MockType.NICE)
   private KsqlEngine ksqlEngine;
   @Mock(MockType.NICE)
-  private QueuedQueryMetadata queryMetadata;
+  private TransientQueryMetadata queryMetadata;
   @Mock(MockType.NICE)
   private BlockingQueue<KeyValue<String, GenericRow>> rowQueue;
   private Capture<Thread.UncaughtExceptionHandler> ehCapture;

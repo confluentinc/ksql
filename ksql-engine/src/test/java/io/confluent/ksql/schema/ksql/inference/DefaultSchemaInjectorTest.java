@@ -37,15 +37,16 @@ import io.confluent.ksql.parser.tree.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.Literal;
-import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
-import io.confluent.ksql.schema.ksql.SqlType;
+import io.confluent.ksql.parser.tree.Type;
 import io.confluent.ksql.schema.ksql.inference.TopicSchemaSupplier.SchemaResult;
+import io.confluent.ksql.schema.ksql.types.SqlStruct;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
@@ -70,7 +71,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class DefaultSchemaInjectorTest {
 
   private static final TableElements SOME_ELEMENTS = TableElements.of(
-      new TableElement(Namespace.VALUE, "bob", PrimitiveType.of(SqlType.STRING)));
+      new TableElement(Namespace.VALUE, "bob", new Type(SqlTypes.STRING)));
   private static final String KAFKA_TOPIC = "some-topic";
   private static final Map<String, Literal> UNSUPPORTED_PROPS = ImmutableMap.of(
       "VALUE_FORMAT", new StringLiteral("json"),
@@ -106,21 +107,19 @@ public class DefaultSchemaInjectorTest {
       .build();
 
   private static final TableElements EXPECTED_KSQL_SCHEMA = TableElements.of(
-      new TableElement(Namespace.VALUE, "INTFIELD", PrimitiveType.of(SqlType.INTEGER)),
-      new TableElement(Namespace.VALUE, "BIGINTFIELD", PrimitiveType.of(SqlType.BIGINT)),
-      new TableElement(Namespace.VALUE, "DOUBLEFIELD", PrimitiveType.of(SqlType.DOUBLE)),
-      new TableElement(Namespace.VALUE, "STRINGFIELD", PrimitiveType.of(SqlType.STRING)),
-      new TableElement(Namespace.VALUE, "BOOLEANFIELD", PrimitiveType.of(SqlType.BOOLEAN)),
-      new TableElement(Namespace.VALUE, "ARRAYFIELD", io.confluent.ksql.parser.tree.Array.of(
-          PrimitiveType.of(SqlType.INTEGER))),
-      new TableElement(Namespace.VALUE, "MAPFIELD", io.confluent.ksql.parser.tree.Map.of(
-          PrimitiveType.of(SqlType.BIGINT))),
-      new TableElement(Namespace.VALUE, "STRUCTFIELD", io.confluent.ksql.parser.tree.Struct.builder()
-          .addField("S0", PrimitiveType.of(SqlType.BIGINT))
-          .build()),
+      new TableElement(Namespace.VALUE, "INTFIELD", new Type(SqlTypes.INTEGER)),
+      new TableElement(Namespace.VALUE, "BIGINTFIELD", new Type(SqlTypes.BIGINT)),
+      new TableElement(Namespace.VALUE, "DOUBLEFIELD", new Type(SqlTypes.DOUBLE)),
+      new TableElement(Namespace.VALUE, "STRINGFIELD", new Type(SqlTypes.STRING)),
+      new TableElement(Namespace.VALUE, "BOOLEANFIELD", new Type(SqlTypes.BOOLEAN)),
+      new TableElement(Namespace.VALUE, "ARRAYFIELD", new Type(SqlTypes.array(SqlTypes.INTEGER))),
+      new TableElement(Namespace.VALUE, "MAPFIELD", new Type(SqlTypes.map(SqlTypes.BIGINT))),
+      new TableElement(Namespace.VALUE, "STRUCTFIELD", new Type(SqlStruct.builder()
+          .field("S0", SqlTypes.BIGINT)
+          .build())),
       new TableElement(Namespace.VALUE,
-          "DECIMALFIELD", io.confluent.ksql.parser.tree.Decimal.of(4, 2))
-  );
+          "DECIMALFIELD", new Type(SqlTypes.decimal(4, 2))
+  ));
 
   private static final int SCHEMA_ID = 5;
 
@@ -145,8 +144,8 @@ public class DefaultSchemaInjectorTest {
     when(cs.getName()).thenReturn(QualifiedName.of("cs"));
     when(ct.getName()).thenReturn(QualifiedName.of("ct"));
 
-    when(cs.getProperties()).thenReturn(new CreateSourceProperties(SUPPORTED_PROPS));
-    when(ct.getProperties()).thenReturn(new CreateSourceProperties(SUPPORTED_PROPS));
+    when(cs.getProperties()).thenReturn(CreateSourceProperties.from(SUPPORTED_PROPS));
+    when(ct.getProperties()).thenReturn(CreateSourceProperties.from(SUPPORTED_PROPS));
 
     when(cs.copyWith(any(), any())).thenAnswer(inv -> setupCopy(inv, cs, mock(CreateStream.class)));
     when(ct.copyWith(any(), any())).thenAnswer(inv -> setupCopy(inv, ct, mock(CreateTable.class)));
@@ -206,7 +205,7 @@ public class DefaultSchemaInjectorTest {
   @Test
   public void shouldReturnStatementUnchangedIfCsFormatDoesNotSupportInference() {
     // Given:
-    when(cs.getProperties()).thenReturn(new CreateSourceProperties(UNSUPPORTED_PROPS));
+    when(cs.getProperties()).thenReturn(CreateSourceProperties.from(UNSUPPORTED_PROPS));
 
     // When:
     final ConfiguredStatement<?> result = injector.inject(csStatement);
@@ -218,7 +217,7 @@ public class DefaultSchemaInjectorTest {
   @Test
   public void shouldReturnStatementUnchangedIfCtFormatDoesNotSupportInference() {
     // Given:
-    when(ct.getProperties()).thenReturn(new CreateSourceProperties(UNSUPPORTED_PROPS));
+    when(ct.getProperties()).thenReturn(CreateSourceProperties.from(UNSUPPORTED_PROPS));
 
     // When:
     final ConfiguredStatement<?> result = injector.inject(ctStatement);
@@ -288,7 +287,7 @@ public class DefaultSchemaInjectorTest {
             + "MAPFIELD MAP<VARCHAR, BIGINT>, "
             + "STRUCTFIELD STRUCT<S0 BIGINT>, "
             + "DECIMALFIELD DECIMAL(4, 2)) "
-            + "WITH (VALUE_FORMAT='avro', KAFKA_TOPIC='some-topic', AVRO_SCHEMA_ID='5');"
+            + "WITH (AVRO_SCHEMA_ID=5, KAFKA_TOPIC='some-topic', VALUE_FORMAT='avro');"
     ));
   }
 
@@ -313,7 +312,7 @@ public class DefaultSchemaInjectorTest {
             + "MAPFIELD MAP<VARCHAR, BIGINT>, "
             + "STRUCTFIELD STRUCT<S0 BIGINT>, "
             + "DECIMALFIELD DECIMAL(4, 2)) "
-            + "WITH (VALUE_FORMAT='avro', KAFKA_TOPIC='some-topic', AVRO_SCHEMA_ID='5');"
+            + "WITH (AVRO_SCHEMA_ID=5, KAFKA_TOPIC='some-topic', VALUE_FORMAT='avro');"
     ));
   }
 
@@ -340,7 +339,7 @@ public class DefaultSchemaInjectorTest {
             + "MAPFIELD MAP<VARCHAR, BIGINT>, "
             + "STRUCTFIELD STRUCT<S0 BIGINT>, "
             + "DECIMALFIELD DECIMAL(4, 2)) "
-            + "WITH (VALUE_FORMAT='avro', KAFKA_TOPIC='some-topic', AVRO_SCHEMA_ID='42');"
+            + "WITH (AVRO_SCHEMA_ID='42', KAFKA_TOPIC='some-topic', VALUE_FORMAT='avro');"
     ));
   }
 
@@ -367,7 +366,7 @@ public class DefaultSchemaInjectorTest {
             + "MAPFIELD MAP<VARCHAR, BIGINT>, "
             + "STRUCTFIELD STRUCT<S0 BIGINT>, "
             + "DECIMALFIELD DECIMAL(4, 2)) "
-            + "WITH (VALUE_FORMAT='avro', KAFKA_TOPIC='some-topic', AVRO_SCHEMA_ID='42');"
+            + "WITH (AVRO_SCHEMA_ID='42', KAFKA_TOPIC='some-topic', VALUE_FORMAT='avro');"
     ));
   }
 
@@ -383,7 +382,7 @@ public class DefaultSchemaInjectorTest {
     // Then:
     assertThat(result.getStatement().getProperties().getAvroSchemaId().get(), is(SCHEMA_ID));
 
-    assertThat(result.getStatementText(), containsString("AVRO_SCHEMA_ID='5'"));
+    assertThat(result.getStatementText(), containsString("AVRO_SCHEMA_ID=5"));
   }
 
   @Test
@@ -476,13 +475,13 @@ public class DefaultSchemaInjectorTest {
   ) {
     final HashMap<String, Literal> props = new HashMap<>(SUPPORTED_PROPS);
     props.put(property, new StringLiteral(value));
-    return new CreateSourceProperties(props);
+    return CreateSourceProperties.from(props);
   }
 
   private static CreateSourceProperties supportedPropsWithout(final String property) {
     final HashMap<String, Literal> props = new HashMap<>(SUPPORTED_PROPS);
     assertThat("Invalid test", props.remove(property), is(notNullValue()));
-    return new CreateSourceProperties(props);
+    return CreateSourceProperties.from(props);
   }
 
   private static Object setupCopy(

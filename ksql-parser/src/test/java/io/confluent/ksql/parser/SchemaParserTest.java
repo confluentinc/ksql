@@ -21,12 +21,11 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasItem;
 
 import com.google.common.collect.Iterables;
-import io.confluent.ksql.parser.tree.Map;
-import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
-import io.confluent.ksql.schema.ksql.SqlType;
+import io.confluent.ksql.parser.tree.Type;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
 import org.junit.Rule;
 import org.junit.Test;
@@ -47,8 +46,8 @@ public class SchemaParserTest {
 
     // Then:
     assertThat(elements, contains(
-        new TableElement(Namespace.VALUE, "FOO", PrimitiveType.of(SqlType.INTEGER)),
-        new TableElement(Namespace.VALUE, "BAR", Map.of(PrimitiveType.of(SqlType.STRING)))
+        new TableElement(Namespace.VALUE, "FOO", new Type(SqlTypes.INTEGER)),
+        new TableElement(Namespace.VALUE, "BAR", new Type(SqlTypes.map(SqlTypes.STRING)))
     ));
   }
 
@@ -62,8 +61,8 @@ public class SchemaParserTest {
 
     // Then:
     assertThat(elements, contains(
-        new TableElement(Namespace.KEY, "ROWKEY", PrimitiveType.of(SqlType.STRING)),
-        new TableElement(Namespace.VALUE, "BAR", PrimitiveType.of(SqlType.INTEGER))
+        new TableElement(Namespace.KEY, "ROWKEY", new Type(SqlTypes.STRING)),
+        new TableElement(Namespace.VALUE, "BAR", new Type(SqlTypes.INTEGER))
     ));
   }
 
@@ -77,7 +76,7 @@ public class SchemaParserTest {
 
     // Then:
     assertThat(elements, hasItem(
-        new TableElement(Namespace.VALUE, "END", PrimitiveType.of(SqlType.STRING))
+        new TableElement(Namespace.VALUE, "END", new Type(SqlTypes.STRING))
     ));
   }
 
@@ -91,7 +90,7 @@ public class SchemaParserTest {
 
     // Then:
     assertThat(elements, hasItem(
-        new TableElement(Namespace.VALUE, "End", PrimitiveType.of(SqlType.STRING))
+        new TableElement(Namespace.VALUE, "End", new Type(SqlTypes.STRING))
     ));
   }
 

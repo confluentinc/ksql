@@ -19,7 +19,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.parser.tree.TableElement.Namespace;
-import io.confluent.ksql.schema.ksql.SqlType;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.Map;
 import java.util.Optional;
 import org.junit.Test;
@@ -30,7 +30,7 @@ public class CreateTableTest {
   public static final NodeLocation OTHER_LOCATION = new NodeLocation(1, 0);
   private static final QualifiedName SOME_NAME = QualifiedName.of("bob");
   private static final TableElements SOME_ELEMENTS = TableElements.of(
-      new TableElement(Namespace.VALUE, "Bob", PrimitiveType.of(SqlType.STRING))
+      new TableElement(Namespace.VALUE, "Bob", new Type(SqlTypes.STRING))
   );
   private static final Map<String, Literal> SOME_PROPS = ImmutableMap.of(
       "value_format", new StringLiteral("json"),

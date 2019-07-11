@@ -70,7 +70,7 @@ import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryIdGenerator;
 import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.QueuedQueryMetadata;
+import io.confluent.ksql.util.TransientQueryMetadata;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -246,7 +246,7 @@ public class PhysicalPlanBuilderTest {
   @Test
   public void shouldMakeBareQuery() {
     final QueryMetadata queryMetadata = buildPhysicalPlan(simpleSelectFilter);
-    assertThat(queryMetadata, instanceOf(QueuedQueryMetadata.class));
+    assertThat(queryMetadata, instanceOf(TransientQueryMetadata.class));
   }
 
   @Test
@@ -398,9 +398,9 @@ public class PhysicalPlanBuilderTest {
     expectedException.expect(KsqlStatementException.class);
     expectedException.expect(rawMessage(is(
         "Incompatible schema between results and sink. Result schema is "
-            + "[COL0 BIGINT, COL1 VARCHAR, COL2 DOUBLE], "
+            + "[`COL0` BIGINT, `COL1` VARCHAR, `COL2` DOUBLE], "
             + "but the sink schema is "
-            + "[COL0 BIGINT, COL1 VARCHAR].")));
+            + "[`COL0` BIGINT, `COL1` VARCHAR].")));
 
     // When:
     execute(CREATE_STREAM_TEST1 + csasQuery + insertIntoQuery);

@@ -25,6 +25,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -46,11 +47,13 @@ import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
+import io.confluent.ksql.rest.server.context.ConfiguredKafkaClientSupplier;
 import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint.PrintTopicPublisher;
 import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint.QueryPublisher;
-import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint.ServiceContextFactory;
+import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint.UserServiceContextFactory;
 import io.confluent.ksql.rest.server.security.KsqlAuthorizationProvider;
 import io.confluent.ksql.rest.server.security.KsqlSecurityExtension;
+import io.confluent.ksql.rest.server.security.KsqlUserContextProvider;
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
@@ -67,6 +70,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.concurrent.TimeoutException;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import javax.websocket.CloseReason;
@@ -74,7 +78,6 @@ import javax.websocket.CloseReason.CloseCodes;
 import javax.websocket.Session;
 import javax.ws.rs.core.Response;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.streams.KafkaClientSupplier;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -112,7 +115,7 @@ public class WSQueryEndpointTest {
   @Mock
   private Supplier<SchemaRegistryClient> schemaRegistryClientSupplier;
   @Mock
-  private KafkaClientSupplier topicClientSupplier;
+  private ConfiguredKafkaClientSupplier topicClientSupplier;
   @Mock
   private KafkaTopicClient topicClient;
   @Mock
@@ -140,9 +143,13 @@ public class WSQueryEndpointTest {
   @Mock
   private ServiceContext serviceContext;
   @Mock
-  private ServiceContextFactory serviceContextFactory;
+  private UserServiceContextFactory serviceContextFactory;
   @Mock
   private ServerState serverState;
+  @Mock
+  private KsqlUserContextProvider userContextProvider;
+  @Mock
+  private Function<KsqlConfig, ServiceContext> defaultServiceContextProvider;
   @Captor
   private ArgumentCaptor<CloseReason> closeReasonCaptor;
   private Query query;
@@ -158,13 +165,16 @@ public class WSQueryEndpointTest {
     when(session.getUserPrincipal()).thenReturn(principal);
     when(statementParser.parseSingleStatement(anyString()))
         .thenAnswer(invocation -> PreparedStatement.of(invocation.getArgument(0).toString(), query));
-    when(securityExtension.getSchemaRegistryClientSupplier(principal))
+    when(securityExtension.getUserContextProvider()).thenReturn(Optional.of(userContextProvider));
+    when(userContextProvider.getSchemaRegistryClientFactory(any()))
         .thenReturn(schemaRegistryClientSupplier);
-    when(securityExtension.getKafkaClientSupplier(principal)).thenReturn(topicClientSupplier);
+    when(userContextProvider.getKafkaClientSupplier(any()))
+        .thenReturn(topicClientSupplier);
     when(securityExtension.getAuthorizationProvider())
         .thenReturn(Optional.of(authorizationProvider));
     when(serviceContextFactory.create(ksqlConfig, topicClientSupplier, schemaRegistryClientSupplier))
         .thenReturn(serviceContext);
+    when(defaultServiceContextProvider.apply(ksqlConfig)).thenReturn(serviceContext);
     when(serviceContext.getTopicClient()).thenReturn(topicClient);
     when(serverState.checkReady()).thenReturn(Optional.empty());
     givenRequest(VALID_REQUEST);
@@ -172,7 +182,8 @@ public class WSQueryEndpointTest {
     wsQueryEndpoint = new WSQueryEndpoint(
         ksqlConfig, OBJECT_MAPPER, statementParser, ksqlEngine, commandQueue, exec,
         queryPublisher, topicPublisher, activenessRegistrar, COMMAND_QUEUE_CATCHUP_TIMEOUT,
-        topicAccessValidator, securityExtension, serviceContextFactory, serverState);
+        topicAccessValidator, securityExtension, serviceContextFactory,
+        defaultServiceContextProvider, serverState);
   }
 
   @Test
@@ -379,7 +390,21 @@ public class WSQueryEndpointTest {
   }
 
   @Test
-  public void shouldCreateImpersonatedServiceContext() {
+  public void shouldCreateDefaultServiceContextIfUserContextProviderIsNotEnabled() {
+    // Given:
+    givenRequestIs(query);
+    when(securityExtension.getUserContextProvider()).thenReturn(Optional.empty());
+
+    // When:
+    wsQueryEndpoint.onOpen(session, null);
+
+    // Then:
+    verify(defaultServiceContextProvider).apply(ksqlConfig);
+    verifyZeroInteractions(userContextProvider);
+  }
+
+  @Test
+  public void shouldCreateUserServiceContext() {
     // Given:
     givenRequestIs(query);
 
@@ -387,13 +412,18 @@ public class WSQueryEndpointTest {
     wsQueryEndpoint.onOpen(session, null);
 
     // Then:
-    verify(securityExtension).getKafkaClientSupplier(eq(principal));
-    verify(securityExtension).getSchemaRegistryClientSupplier(eq(principal));
-    verify(serviceContextFactory).create(ksqlConfig, topicClientSupplier, schemaRegistryClientSupplier);
+    verify(userContextProvider).getKafkaClientSupplier(eq(principal));
+    verify(userContextProvider).getSchemaRegistryClientFactory(eq(principal));
+    verify(serviceContextFactory).create(
+        ksqlConfig,
+        topicClientSupplier,
+        schemaRegistryClientSupplier
+    );
+    verifyZeroInteractions(defaultServiceContextProvider);
   }
 
   @Test
-  public void shouldCloseImpersonatedServiceContextOnClose() {
+  public void shouldCloseUserServiceContextOnClose() {
     // Given:
     givenRequestIs(query);
 

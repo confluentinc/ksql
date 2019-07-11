@@ -44,6 +44,11 @@
             <artifactId>jackson-databind</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>io.confluent.ksql</groupId>
+            <artifactId>ksql-engine</artifactId>
+        </dependency>
+
         <!-- Required for running tests -->
 
         <dependency>

@@ -19,7 +19,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.parser.tree.TableElement.Namespace;
-import io.confluent.ksql.schema.ksql.SqlType;
+import io.confluent.ksql.schema.ksql.SqlBaseType;
 import io.confluent.ksql.util.KsqlException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -95,7 +95,8 @@ public final class TableElements implements Iterable<TableElement> {
       throw new KsqlException("KSQL does not yet support multiple KEY columns");
     }
 
-    if (numKeyColumns == 1 && keyColumns.get(0).getType().getSqlType() != SqlType.STRING) {
+    if (numKeyColumns == 1
+        && keyColumns.get(0).getType().getSqlType().baseType() != SqlBaseType.STRING) {
       throw new KsqlException("KEY columns must be of type STRING: " + keyColumns.get(0).getName());
     }
 

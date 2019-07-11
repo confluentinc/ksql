@@ -42,7 +42,6 @@ import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.JoinCriteria;
 import io.confluent.ksql.parser.tree.JoinOn;
 import io.confluent.ksql.parser.tree.Literal;
-import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.StringLiteral;
@@ -50,9 +49,10 @@ import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
+import io.confluent.ksql.parser.tree.Type;
 import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.SqlType;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
 import io.confluent.ksql.util.MetaStoreFixture;
@@ -123,13 +123,13 @@ public class SqlFormatterTest {
   );
 
   private static final TableElements ELEMENTS_WITH_KEY = TableElements.of(
-      new TableElement(Namespace.KEY, "ROWKEY", PrimitiveType.of(SqlType.STRING)),
-      new TableElement(Namespace.VALUE, "Foo", PrimitiveType.of(SqlType.STRING))
+      new TableElement(Namespace.KEY, "ROWKEY", new Type(SqlTypes.STRING)),
+      new TableElement(Namespace.VALUE, "Foo", new Type(SqlTypes.STRING))
   );
 
   private static final TableElements ELEMENTS_WITHOUT_KEY = TableElements.of(
-      new TableElement(Namespace.VALUE, "Foo", PrimitiveType.of(SqlType.STRING)),
-      new TableElement(Namespace.VALUE, "Bar", PrimitiveType.of(SqlType.STRING))
+      new TableElement(Namespace.VALUE, "Foo", new Type(SqlTypes.STRING)),
+      new TableElement(Namespace.VALUE, "Bar", new Type(SqlTypes.STRING))
   );
 
   @Before
@@ -211,7 +211,7 @@ public class SqlFormatterTest {
 
     // Then:
     assertThat(sql, is("CREATE STREAM TEST (Foo STRING, Bar STRING) "
-        + "WITH (VALUE_FORMAT='JSON', KAFKA_TOPIC='topic_test', KEY='ORDERID');"));
+        + "WITH (KAFKA_TOPIC='topic_test', KEY='ORDERID', VALUE_FORMAT='JSON');"));
   }
 
   @Test
@@ -245,15 +245,15 @@ public class SqlFormatterTest {
 
     // Then:
     assertThat(sql, is("CREATE TABLE TEST (Foo STRING, Bar STRING) "
-        + "WITH (VALUE_FORMAT='JSON', KAFKA_TOPIC='topic_test', KEY='ORDERID');"));
+        + "WITH (KAFKA_TOPIC='topic_test', KEY='ORDERID', VALUE_FORMAT='JSON');"));
   }
 
   @Test
   public void shouldFormatTableElementsNamedAfterReservedWords() {
     // Given:
     final TableElements tableElements = TableElements.of(
-        new TableElement(Namespace.VALUE, "GROUP", PrimitiveType.of(SqlType.STRING)),
-        new TableElement(Namespace.VALUE, "Having", PrimitiveType.of(SqlType.STRING))
+        new TableElement(Namespace.VALUE, "GROUP", new Type(SqlTypes.STRING)),
+        new TableElement(Namespace.VALUE, "Having", new Type(SqlTypes.STRING))
     );
 
     final CreateStream createStream = new CreateStream(
@@ -364,8 +364,8 @@ public class SqlFormatterTest {
         .getStatement();
     assertThat(SqlFormatter.formatSql(statement),
         equalTo("CREATE STREAM S AS SELECT\n"
-            + "  *\n"
-            + ", ADDRESS.ADDRESS \"CITY\"\n"
+            + "  *,\n"
+            + "  ADDRESS.ADDRESS \"CITY\"\n"
             + "FROM ADDRESS ADDRESS"));
   }
 
@@ -377,8 +377,8 @@ public class SqlFormatterTest {
         .getStatement();
     assertThat(SqlFormatter.formatSql(statement),
         equalTo("CREATE STREAM S AS SELECT\n"
-            + "  ADDRESS.*\n"
-            + ", ITEMID.*\n"
+            + "  ADDRESS.*,\n"
+            + "  ITEMID.*\n"
             + "FROM ADDRESS ADDRESS\n"
             + "INNER JOIN ITEMID ITEMID ON ((ADDRESS.ADDRESS = ITEMID.ADDRESS->ADDRESS))"));
   }
@@ -391,8 +391,8 @@ public class SqlFormatterTest {
         .getStatement();
     assertThat(SqlFormatter.formatSql(statement),
         equalTo("CREATE STREAM S AS SELECT\n"
-            + "  ADDRESS.*\n"
-            + ", ITEMID.ORDERTIME \"ORDERTIME\"\n"
+            + "  ADDRESS.*,\n"
+            + "  ITEMID.ORDERTIME \"ORDERTIME\"\n"
             + "FROM ADDRESS ADDRESS\n"
             + "INNER JOIN ITEMID ITEMID ON ((ADDRESS.ADDRESS = ITEMID.ADDRESS->ADDRESS))"));
   }
@@ -404,8 +404,8 @@ public class SqlFormatterTest {
         .getStatement();
     assertThat(SqlFormatter.formatSql(statement),
         equalTo("CREATE STREAM S AS SELECT\n"
-            + "  ADDRESS.ADDRESS \"ONE\"\n"
-            + ", ADDRESS.ADDRESS \"TWO\"\n"
+            + "  ADDRESS.ADDRESS \"ONE\",\n"
+            + "  ADDRESS.ADDRESS \"TWO\"\n"
             + "FROM ADDRESS ADDRESS"));
   }
 
@@ -572,8 +572,8 @@ public class SqlFormatterTest {
     final String result = SqlFormatter.formatSql(statement);
 
     assertThat(result, is("CREATE STREAM S AS SELECT\n"
-        + "  ORDERS.ITEMID \"ITEMID\"\n"
-        + ", COUNT(*) \"KSQL_COL_1\"\n"
+        + "  ORDERS.ITEMID \"ITEMID\",\n"
+        + "  COUNT(*) \"KSQL_COL_1\"\n"
         + "FROM ORDERS ORDERS\n"
         + "WINDOW TUMBLING ( SIZE 7 DAYS ) \n"
         + "GROUP BY ORDERS.ITEMID"));
@@ -589,8 +589,8 @@ public class SqlFormatterTest {
     final String result = SqlFormatter.formatSql(statement);
 
     assertThat(result, is("CREATE STREAM S AS SELECT\n"
-        + "  ORDERS.ITEMID \"ITEMID\"\n"
-        + ", COUNT(*) \"KSQL_COL_1\"\n"
+        + "  ORDERS.ITEMID \"ITEMID\",\n"
+        + "  COUNT(*) \"KSQL_COL_1\"\n"
         + "FROM ORDERS ORDERS\n"
         + "WINDOW HOPPING ( SIZE 20 SECONDS , ADVANCE BY 5 SECONDS ) \n"
         + "GROUP BY ORDERS.ITEMID"));
@@ -606,8 +606,8 @@ public class SqlFormatterTest {
     final String result = SqlFormatter.formatSql(statement);
 
     assertThat(result, is("CREATE STREAM S AS SELECT\n"
-        + "  ORDERS.ITEMID \"ITEMID\"\n"
-        + ", COUNT(*) \"KSQL_COL_1\"\n"
+        + "  ORDERS.ITEMID \"ITEMID\",\n"
+        + "  COUNT(*) \"KSQL_COL_1\"\n"
         + "FROM ORDERS ORDERS\n"
         + "WINDOW SESSION ( 15 MINUTES ) \n"
         + "GROUP BY ORDERS.ITEMID"));

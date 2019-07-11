@@ -18,7 +18,7 @@ package io.confluent.ksql.serde.json;
 import io.confluent.ksql.schema.connect.SchemaWalker;
 import io.confluent.ksql.schema.connect.SchemaWalker.Visitor;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
-import io.confluent.ksql.schema.ksql.SqlType;
+import io.confluent.ksql.schema.ksql.SqlBaseType;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Schema.Type;
 
@@ -52,7 +52,7 @@ final class JsonSerdeUtils {
     if (object instanceof Boolean) {
       return (Boolean) object;
     }
-    throw invalidConversionException(object, SqlType.BOOLEAN);
+    throw invalidConversionException(object, SqlBaseType.BOOLEAN);
   }
 
   static int toInteger(final Object object) {
@@ -66,10 +66,10 @@ final class JsonSerdeUtils {
       try {
         return Integer.parseInt((String) object);
       } catch (final NumberFormatException e) {
-        throw failedStringCoercionException(SqlType.INTEGER);
+        throw failedStringCoercionException(SqlBaseType.INTEGER);
       }
     }
-    throw invalidConversionException(object, SqlType.INTEGER);
+    throw invalidConversionException(object, SqlBaseType.INTEGER);
   }
 
   static long toLong(final Object object) {
@@ -83,10 +83,10 @@ final class JsonSerdeUtils {
       try {
         return Long.parseLong((String) object);
       } catch (final NumberFormatException e) {
-        throw failedStringCoercionException(SqlType.BIGINT);
+        throw failedStringCoercionException(SqlBaseType.BIGINT);
       }
     }
-    throw invalidConversionException(object, SqlType.BIGINT);
+    throw invalidConversionException(object, SqlBaseType.BIGINT);
   }
 
   static double toDouble(final Object object) {
@@ -100,10 +100,10 @@ final class JsonSerdeUtils {
       try {
         return Double.parseDouble((String) object);
       } catch (final NumberFormatException e) {
-        throw failedStringCoercionException(SqlType.DOUBLE);
+        throw failedStringCoercionException(SqlBaseType.DOUBLE);
       }
     }
-    throw invalidConversionException(object, SqlType.DOUBLE);
+    throw invalidConversionException(object, SqlBaseType.DOUBLE);
   }
 
   static IllegalArgumentException invalidConversionException(
@@ -117,12 +117,12 @@ final class JsonSerdeUtils {
 
   private static IllegalArgumentException invalidConversionException(
       final Object object,
-      final SqlType sqlType
+      final SqlBaseType sqlType
   ) {
     return invalidConversionException(object, sqlType.toString());
   }
 
-  private static IllegalArgumentException failedStringCoercionException(final SqlType sqlType) {
+  private static IllegalArgumentException failedStringCoercionException(final SqlBaseType sqlType) {
     return new IllegalArgumentException("Can't coerce string to type. targetType: " + sqlType);
   }
 }

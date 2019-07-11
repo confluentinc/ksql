@@ -19,7 +19,7 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.parser.ParsingException;
-import io.confluent.ksql.schema.ksql.SqlType;
+import io.confluent.ksql.schema.ksql.SqlBaseType;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.Objects;
 import java.util.Optional;
@@ -130,9 +130,9 @@ public final class TableElement extends Node {
             + "KSQL currently only supports KEY fields named ROWKEY.", getLocation());
       }
 
-      if (type.getSqlType() != SqlType.STRING) {
+      if (type.getSqlType().baseType() != SqlBaseType.STRING) {
         throw new ParsingException("'" + name + "' is a KEY field with an unsupported type. "
-            + "KSQL currently only supports KEY fields of type " + SqlType.STRING + ".",
+            + "KSQL currently only supports KEY fields of type " + SqlBaseType.STRING + ".",
             getLocation());
       }
     } else if (isRowKey) {

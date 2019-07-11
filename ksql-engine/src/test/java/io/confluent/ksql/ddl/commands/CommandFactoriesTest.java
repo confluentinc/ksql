@@ -33,13 +33,13 @@ import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.ExecutableDdlStatement;
 import io.confluent.ksql.parser.tree.Literal;
-import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
-import io.confluent.ksql.schema.ksql.SqlType;
+import io.confluent.ksql.parser.tree.Type;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
@@ -61,7 +61,7 @@ public class CommandFactoriesTest {
   private static final Map<String, Object> NO_PROPS = Collections.emptyMap();
   private static final String sqlExpression = "sqlExpression";
   private static final TableElements SOME_ELEMENTS = TableElements.of(
-      new TableElement(Namespace.VALUE, "bob", PrimitiveType.of(SqlType.STRING)));
+      new TableElement(Namespace.VALUE, "bob", new Type(SqlTypes.STRING)));
 
   @Mock
   private KafkaTopicClient topicClient;
@@ -107,8 +107,8 @@ public class CommandFactoriesTest {
 
     final CreateTable ddlStatement = new CreateTable(SOME_NAME,
         TableElements.of(
-            new TableElement(Namespace.VALUE, "COL1", PrimitiveType.of(SqlType.BIGINT)),
-            new TableElement(Namespace.VALUE, "COL2", PrimitiveType.of(SqlType.STRING))),
+            new TableElement(Namespace.VALUE, "COL1", new Type(SqlTypes.BIGINT)),
+            new TableElement(Namespace.VALUE, "COL2", new Type(SqlTypes.STRING))),
         true, tableProperties);
 
     // When:

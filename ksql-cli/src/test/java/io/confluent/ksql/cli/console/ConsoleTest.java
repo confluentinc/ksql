@@ -1007,6 +1007,6 @@ public class ConsoleTest {
       dataSourceBuilder.field("f_" + idx, fieldTypes[idx]);
     }
 
-    return EntityUtil.buildSourceSchemaEntity(LogicalSchema.of(dataSourceBuilder.build()));
+    return EntityUtil.buildSourceSchemaEntity(LogicalSchema.of(dataSourceBuilder.build()), false);
   }
 }

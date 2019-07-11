@@ -65,7 +65,7 @@ import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.entity.TopicDescription;
-import io.confluent.ksql.schema.ksql.SqlType;
+import io.confluent.ksql.schema.ksql.SqlBaseType;
 import io.confluent.ksql.util.CmdLineUtil;
 import io.confluent.ksql.util.HandlerMaps;
 import io.confluent.ksql.util.HandlerMaps.ClassHandlerMap1;
@@ -396,20 +396,20 @@ public class Console implements Closeable {
   private static String schemaToTypeString(final SchemaInfo schema) {
     switch (schema.getType()) {
       case ARRAY:
-        return SqlType.ARRAY + "<"
+        return SqlBaseType.ARRAY + "<"
             + schemaToTypeString(schema.getMemberSchema().get())
             + ">";
       case MAP:
-        return SqlType.MAP
+        return SqlBaseType.MAP
             + "<"
-            + SqlType.STRING + ", "
+            + SqlBaseType.STRING + ", "
             + schemaToTypeString(schema.getMemberSchema().get())
             + ">";
       case STRUCT:
         return schema.getFields().get()
             .stream()
             .map(f -> f.getName() + " " + schemaToTypeString(f.getSchema()))
-            .collect(Collectors.joining(", ", SqlType.STRUCT + "<", ">"));
+            .collect(Collectors.joining(", ", SqlBaseType.STRUCT + "<", ">"));
       case STRING:
         return "VARCHAR(STRING)";
       default:

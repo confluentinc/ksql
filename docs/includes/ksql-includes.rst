@@ -126,13 +126,13 @@ Your output should resemble:
 
 ::
 
-     Kafka Topic        | Registered | Partitions | Partition Replicas | Consumers | ConsumerGroups
-    ------------------------------------------------------------------------------------------------
-     _confluent-metrics | false      | 12         | 1                  | 0         | 0
-     _schemas           | false      | 1          | 1                  | 0         | 0
-     pageviews          | false      | 1          | 1                  | 0         | 0
-     users              | false      | 1          | 1                  | 0         | 0
-    ------------------------------------------------------------------------------------------------
+     Kafka Topic        | Partitions | Partition Replicas | Consumers | ConsumerGroups
+    -----------------------------------------------------------------------------------
+     _confluent-metrics | 12         | 1                  | 0         | 0
+     _schemas           | 1          | 1                  | 0         | 0
+     pageviews          | 1          | 1                  | 0         | 0
+     users              | 1          | 1                  | 0         | 0
+    -----------------------------------------------------------------------------------
 
 Inspect the ``users`` topic by using the PRINT statement:
 

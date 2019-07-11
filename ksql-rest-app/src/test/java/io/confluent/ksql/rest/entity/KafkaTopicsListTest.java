@@ -53,9 +53,6 @@ public class KafkaTopicsListTest {
     topicDescriptions.put("test-topic", new TopicDescription("test-topic", false, Collections.singletonList(topicPartitionInfo)));
 
 
-    /**
-     * Return POJO for consumerGroupClient
-     */
     final TopicPartition topicPartition = new TopicPartition("test-topic", 1);
     final KafkaConsumerGroupClientImpl.ConsumerSummary consumerSummary = new KafkaConsumerGroupClientImpl.ConsumerSummary("consumer-id");
     consumerSummary.addPartition(topicPartition);
@@ -70,11 +67,7 @@ public class KafkaTopicsListTest {
     expect(consumerGroupClient.describeConsumerGroup("test-topic")).andReturn(consumerGroupSummary);
     replay(consumerGroupClient);
 
-    /**
-     * Test
-     */
-
-    final KafkaTopicsList topicsList = KafkaTopicsList.build("statement test", ksqlTopics, topicDescriptions, new KsqlConfig(Collections.EMPTY_MAP), consumerGroupClient);
+    final KafkaTopicsList topicsList = KafkaTopicsList.build("statement test", topicDescriptions, new KsqlConfig(Collections.EMPTY_MAP), consumerGroupClient);
 
     assertThat(topicsList.getTopics().size(), equalTo(1));
     final KafkaTopicInfo first = topicsList.getTopics().iterator().next();
@@ -89,7 +82,7 @@ public class KafkaTopicsListTest {
     final ObjectMapper mapper = JsonMapper.INSTANCE.mapper;
     final KafkaTopicsList expected = new KafkaTopicsList(
         "SHOW TOPICS;",
-        ImmutableList.of(new KafkaTopicInfo("thetopic", true, ImmutableList.of(1, 2, 3), 42, 12))
+        ImmutableList.of(new KafkaTopicInfo("thetopic", ImmutableList.of(1, 2, 3), 42, 12))
     );
     final String json = mapper.writeValueAsString(expected);
     assertEquals(

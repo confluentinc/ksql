@@ -104,6 +104,35 @@ Your output should resemble:
 
 Press Ctrl+C to terminate the query.
 
+You can access array elements by using positive or negative index values.
+For example, to get the user's last interest run the following SELECT statement:
+
+.. code:: sql
+
+      SELECT interests[-1] AS last_interest,
+             userid,
+             gender,
+             regionid
+      FROM users_extended;
+
+Your output should resemble:  
+
+::
+
+    Travel | User_9 | OTHER  | Region_6
+    Travel | User_2 | FEMALE | Region_5
+    Sport  | User_3 | FEMALE | Region_8
+    Movies | User_5 | OTHER  | Region_9
+    Movies | User_8 | MALE   | Region_1
+    Movies | User_1 | MALE   | Region_6
+    News   | User_4 | MALE   | Region_9
+    Movies | User_7 | OTHER  | Region_1
+    Sport  | User_6 | FEMALE | Region_5
+    ^CQuery terminated
+
+
+Press Ctrl+C to terminate the query.
+
 Next Steps
 **********
 

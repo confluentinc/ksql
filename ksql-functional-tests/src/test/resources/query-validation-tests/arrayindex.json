@@ -1,0 +1,51 @@
+{
+  "comments": [
+    "Arrays should be indexable from the end too",
+    "https://github.com/confluentinc/ksql/issues/2974"
+  ],
+  "tests": [
+
+    {
+      "name": "select the first element of an Array",
+      "statements": [
+        "CREATE STREAM test (colors ARRAY<STRING>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT colors[0] as C FROM test;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": {"colors": ["Red", "Green"]}},
+        {"topic": "test_topic", "value": {"colors": ["Black"]}},
+        {"topic": "test_topic", "value": {"colors": [null, "Yellow", "Pink"]}},
+        {"topic": "test_topic", "value": {"colors": []}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"C": "Red"}},
+        {"topic": "OUTPUT", "value": {"C": "Black"}},
+        {"topic": "OUTPUT", "value": {"C": null}},
+        {"topic": "OUTPUT", "value": {"C": null}}
+      ]
+    },
+    {
+      "name": "select the last element of an Array (-1)",
+      "statements": [
+        "CREATE STREAM test (colors ARRAY<STRING>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT colors[-1] as C FROM test;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": {"colors": ["Red", "Green"]}},
+        {"topic": "test_topic", "value": {"colors": ["Black"]}},
+        {"topic": "test_topic", "value": {"colors": ["Pink", "Yellow", "Pink"]}},
+        {"topic": "test_topic", "value": {"colors": ["White", "Pink"]}},
+        {"topic": "test_topic", "value": {"colors": ["Pink", null]}},
+        {"topic": "test_topic", "value": {"colors": []}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"C": "Green"}},
+        {"topic": "OUTPUT", "value": {"C": "Black"}},
+        {"topic": "OUTPUT", "value": {"C": "Pink"}},
+        {"topic": "OUTPUT", "value": {"C": "Pink"}},
+        {"topic": "OUTPUT", "value": {"C": null}},
+        {"topic": "OUTPUT", "value": {"C": null}}
+      ]
+    }
+  ]
+}

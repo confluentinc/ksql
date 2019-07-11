@@ -230,7 +230,7 @@ public class TestCaseNode {
     return allTopics;
   }
 
-  @SuppressWarnings("OptionalIsPresent")
+  @SuppressWarnings("unchecked")
   private static Topic createTopicFromStatement(
       final FunctionRegistry functionRegistry,
       final String sql
@@ -266,9 +266,8 @@ public class TestCaseNode {
         avroSchema = Optional.empty();
       }
 
-      final SerdeFactory<?> keySerde = windowedSerdeFactory.isPresent()
-          ? windowedSerdeFactory.get()
-          : (SerdeFactory) Serdes::String;
+      final SerdeFactory<?> keySerde = windowedSerdeFactory
+          .orElseGet(() -> (SerdeFactory) Serdes::String);
 
       return new Topic(
           topicName,

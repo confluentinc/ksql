@@ -103,7 +103,19 @@ public class SqlToJavaVisitorTest {
         .process(analysis.getSelectExpressions().get(0));
 
     assertThat(javaExpression,
-        equalTo("((Double) ((java.util.List)TEST1_COL4).get((int)(0)))"));
+       equalTo("((Double) ((java.util.List)TEST1_COL4).get((int)0))"));
+  }
+
+  @Test
+  public void shouldProcessArrayNegativeIndexExpressionCorrectly() {
+    final String simpleQuery = "SELECT col4[-1] FROM test1;";
+    final Analysis analysis = analyzeQuery(simpleQuery, metaStore);
+
+    final String javaExpression = sqlToJavaVisitor
+            .process(analysis.getSelectExpressions().get(0));
+
+    assertThat(javaExpression,
+            equalTo("((Double) ((java.util.List)TEST1_COL4).get((int)((java.util.List)TEST1_COL4).size()-1))"));
   }
 
   @Test

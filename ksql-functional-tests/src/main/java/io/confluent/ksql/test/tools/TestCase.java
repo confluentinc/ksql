@@ -173,7 +173,7 @@ public class TestCase implements Test {
             new ConsumerRecordFactory<>(
                 record.keySerializer(),
                 record.topic.getValueSerializer(schemaRegistryClient)
-            ).create(record.topic.name, record.key(), record.value, record.timestamp)
+            ).create(record.topic.getName(), record.key(), record.value, record.timestamp)
         );
       }
     }
@@ -196,7 +196,7 @@ public class TestCase implements Test {
 
         final ProducerRecord record = topologyTestDriverContainer.getTopologyTestDriver()
             .readOutput(
-                expectedOutput.topic.name,
+                expectedOutput.topic.getName(),
                 expectedOutput.keyDeserializer(),
                 expectedOutput.topic.getValueDeserializer(schemaRegistryClient));
 
@@ -212,7 +212,7 @@ public class TestCase implements Test {
       }
     } catch (final AssertionError e) {
       final String rowMsg = idx == -1 ? "" : " while processing output row " + idx;
-      final String topicMsg = idx == -1 ? "" : " topic: " + outputRecords.get(idx).topic.name;
+      final String topicMsg = idx == -1 ? "" : " topic: " + outputRecords.get(idx).topic.getName();
       throw new AssertionError("failed" + rowMsg + topicMsg + " due to: "
           + e.getMessage(), e);
     }
@@ -230,7 +230,7 @@ public class TestCase implements Test {
               new BytesDeserializer());
 
       if (record != null) {
-        throw new AssertionError("Unexpected records available on topic: " + topic.name);
+        throw new AssertionError("Unexpected records available on topic: " + topic.getName());
       }
     });
   }
@@ -243,8 +243,8 @@ public class TestCase implements Test {
       fakeKafkaService.createTopic(topic);
       kafkaTopicClient.createTopic(
           topic.getName(),
-          topic.numPartitions,
-          (short) topic.replicas);
+          topic.getNumPartitions(),
+          topic.getReplicas());
 
       topic.getSchema()
           .ifPresent(schema -> {
@@ -302,11 +302,13 @@ public class TestCase implements Test {
       final FakeKafkaRecord fakeKafkaRecord,
       final FakeKafkaService fakeKafkaService,
       final TopologyTestDriverContainer testDriver,
-      final SchemaRegistryClient schemaRegistryClient) {
+      final SchemaRegistryClient schemaRegistryClient
+  ) {
     final Topic recordTopic = fakeKafkaRecord.getTestRecord().topic;
     final Serializer<Object> keySerializer = recordTopic.getKeySerializer();
-    final Serializer<Object> valueSerializer = recordTopic.getValueSerdeSupplier()
-        instanceof AvroSerdeSupplier
+
+    final Serializer<Object> valueSerializer =
+        recordTopic.getValueSerdeSupplier() instanceof AvroSerdeSupplier
         ? new ValueSpecAvroSerdeSupplier().getSerializer(schemaRegistryClient)
         : recordTopic.getValueSerializer(schemaRegistryClient);
 
@@ -315,7 +317,7 @@ public class TestCase implements Test {
         keySerializer,
         valueSerializer
     ).create(
-        recordTopic.name,
+        recordTopic.getName(),
         key,
         fakeKafkaRecord.getTestRecord().value(),
         fakeKafkaRecord.getTestRecord().timestamp

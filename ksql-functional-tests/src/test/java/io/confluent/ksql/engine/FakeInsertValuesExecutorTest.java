@@ -33,6 +33,7 @@ import io.confluent.ksql.test.tools.Topic;
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.serialization.Serdes;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -55,8 +56,14 @@ public final class FakeInsertValuesExecutorTest {
 
   @Before
   public void setUp() {
-    when(fakeKafkaService.getTopic(SOME_TOPIC)).thenReturn(
-        new Topic(SOME_TOPIC, Optional.empty(), new StringSerdeSupplier(), 1, 1));
+    when(fakeKafkaService.getTopic(SOME_TOPIC)).thenReturn(new Topic(
+        SOME_TOPIC,
+        Optional.empty(),
+        Serdes::String,
+        new StringSerdeSupplier(),
+        1,
+        1,
+        Optional.empty()));
 
     fakeProducer = new FakeProduer(fakeKafkaService);
   }
@@ -114,8 +121,14 @@ public final class FakeInsertValuesExecutorTest {
     // Given:
     final byte[] value = "{\"this\": 1}".getBytes(StandardCharsets.UTF_8);
 
-    when(fakeKafkaService.getTopic(SOME_TOPIC)).thenReturn(
-        new Topic(SOME_TOPIC, Optional.empty(), new AvroSerdeSupplier(), 1, 1));
+    when(fakeKafkaService.getTopic(SOME_TOPIC)).thenReturn(new Topic(
+        SOME_TOPIC,
+        Optional.empty(),
+        Serdes::String,
+        new AvroSerdeSupplier(),
+        1,
+        1,
+        Optional.empty()));
 
     final long timestamp = 22L;
     final ProducerRecord<byte[], byte[]> record = new ProducerRecord<>(

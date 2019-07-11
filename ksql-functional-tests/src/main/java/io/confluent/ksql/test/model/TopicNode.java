@@ -23,13 +23,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.NullNode;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.test.serde.SerdeSupplier;
-import io.confluent.ksql.test.serde.avro.ValueSpecAvroSerdeSupplier;
-import io.confluent.ksql.test.serde.json.ValueSpecJsonSerdeSupplier;
-import io.confluent.ksql.test.serde.string.StringSerdeSupplier;
 import io.confluent.ksql.test.tools.Topic;
 import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;
+import io.confluent.ksql.test.utils.SerdeUtil;
 import java.util.Optional;
 import org.apache.avro.Schema;
+import org.apache.kafka.common.serialization.Serdes;
 
 class TopicNode {
 
@@ -37,7 +36,7 @@ class TopicNode {
 
   private final String name;
   private final String format;
-  private final Optional<Schema> schema;
+  private final Optional<Schema> avroSchema;
   private final int numPartitions;
   private final int replicas;
 
@@ -49,7 +48,7 @@ class TopicNode {
       @JsonProperty("replicas") final Integer replicas
   ) {
     this.name = name == null ? "" : name;
-    this.schema = buildAvroSchema(requireNonNull(schema, "schema"));
+    this.avroSchema = buildAvroSchema(requireNonNull(schema, "schema"));
     this.format = format == null ? "" : format;
     this.numPartitions = numPartitions == null ? 1 : numPartitions;
     this.replicas = replicas == null ? 1 : replicas;
@@ -62,12 +61,18 @@ class TopicNode {
   Topic build(final String defaultFormat) {
     final String formatToUse = format.replace("{FORMAT}", defaultFormat);
 
+    final SerdeSupplier<?> valueSerdeSupplier = SerdeUtil.getSerdeSupplier(
+        Format.of(formatToUse)
+    );
+
     return new Topic(
         name,
-        schema,
-        getSerdeSupplier(Format.of(formatToUse)),
+        avroSchema,
+        Serdes::String,
+        valueSerdeSupplier,
         numPartitions,
-        replicas
+        replicas,
+        Optional.empty()
     );
   }
 
@@ -82,20 +87,6 @@ class TopicNode {
       return Optional.of(parser.parse(schemaString));
     } catch (final Exception e) {
       throw new InvalidFieldException("schema", "failed to parse", e);
-    }
-  }
-
-  @SuppressWarnings("rawtypes")
-  private static SerdeSupplier getSerdeSupplier(final Format format) {
-    switch (format) {
-      case AVRO:
-        return new ValueSpecAvroSerdeSupplier();
-      case JSON:
-        return new ValueSpecJsonSerdeSupplier();
-      case DELIMITED:
-        return new StringSerdeSupplier();
-      default:
-        throw new InvalidFieldException("format", "unsupported value: " + format);
     }
   }
 }

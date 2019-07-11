@@ -39,6 +39,7 @@ import java.util.Optional;
 import org.apache.avro.Schema;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.TopologyTestDriver;
 import org.junit.Rule;
 import org.junit.Test;
@@ -57,7 +58,26 @@ public class TestCaseTest {
   public final ExpectedException expectedException = ExpectedException.none();
 
   private final SerdeSupplier serdeSupplier = new StringSerdeSupplier();
-  private final Topic topic = new Topic("foo_kafka", Optional.empty(), serdeSupplier, 4, 1);
+  private final Topic topic = new Topic(
+      "foo_kafka",
+      Optional.empty(),
+      Serdes::String,
+      serdeSupplier,
+      4,
+      1,
+      Optional.empty()
+  );
+
+  private final Topic otherTopic = new Topic(
+      "bar_kafka",
+      Optional.empty(),
+      Serdes::String,
+      serdeSupplier,
+      1,
+      1,
+      Optional.empty()
+  );
+
   private final Record record = new Record(topic, "k1", "v1, v2", 123456789L, null);
   private final TestCase testCase = new TestCase(
       null,
@@ -88,7 +108,7 @@ public class TestCaseTest {
     final TopologyTestDriverContainer topologyTestDriverContainer = TopologyTestDriverContainer.of(
         topologyTestDriver,
         ImmutableList.of(topic),
-        new Topic("BAR", Optional.empty(), new StringSerdeSupplier(), 1, 1)
+        otherTopic
     );
 
     // When:
@@ -184,7 +204,16 @@ public class TestCaseTest {
     final KafkaTopicClient kafkaTopicClient = mock(KafkaTopicClient.class);
     final SchemaRegistryClient schemaRegistryClient = mock(SchemaRegistryClient.class);
     final Schema fakeAvroSchema = mock(Schema.class);
-    final Topic topic = new Topic("foo", Optional.of(fakeAvroSchema), new AvroSerdeSupplier(), 4, (short)1);
+    final Topic topic = new Topic(
+        "foo",
+        Optional.of(fakeAvroSchema),
+        Serdes::String,
+        new AvroSerdeSupplier(),
+        4,
+        (short)1,
+        Optional.empty()
+    );
+
     final TestCase testCase = new TestCase(
         null,
         "test",
@@ -238,10 +267,30 @@ public class TestCaseTest {
   }
 
   private TopologyTestDriverContainer getSampleTopologyTestDriverContainer() {
+    final Topic sourceTopic = new Topic(
+        "FOO",
+        Optional.empty(),
+        Serdes::String,
+        new StringSerdeSupplier(),
+        1,
+        1,
+        Optional.empty()
+    );
+
+    final Topic sinkTopic = new Topic(
+        "BAR",
+        Optional.empty(),
+        Serdes::String,
+        new StringSerdeSupplier(),
+        1,
+        1,
+        Optional.empty()
+    );
+
     return TopologyTestDriverContainer.of(
         topologyTestDriver,
-        ImmutableList.of(new Topic("FOO", Optional.empty(), new StringSerdeSupplier(), 1, 1)),
-        new Topic("BAR", Optional.empty(), new StringSerdeSupplier(), 1, 1)
+        ImmutableList.of(sourceTopic),
+        sinkTopic
     );
   }
 

@@ -62,6 +62,7 @@ import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.StringUtil;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -239,6 +240,46 @@ class Analyzer {
       return serdeFactories.create(format, sink.getProperties());
     }
 
+    /**
+     * Get the list of select expressions that are <i>not</i> for meta and key fields in the source
+     * schema.
+     *
+     * <p>Currently, the select expressions can include metadata and key fields, which are later
+     * removed by {@link io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode}. When building
+     * the {@link SerdeOptions} its important the final schema is used, i.e. the one with these
+     * meta and key fields removed.
+     *
+     * <p>This is weird functionality, but maintained for backwards compatibility for now.
+     *
+     * @return the list of field names in the sink that are not meta or key fields.
+     */
+    private List<String> getNoneMetaOrKeySelectAliases() {
+      final SourceSchemas sourceSchemas = analysis.getFromSourceSchemas();
+      final List<Expression> selects = analysis.getSelectExpressions();
+
+      final List<String> columnNames = new ArrayList<>(analysis.getSelectExpressionAlias());
+
+      for (int idx = selects.size() - 1; idx >= 0; --idx) {
+        final Expression select = selects.get(idx);
+
+        if (!(select instanceof DereferenceExpression)
+            && !(select instanceof QualifiedNameReference)) {
+          continue;
+        }
+
+        if (!sourceSchemas.matchesNonValueField(select.toString())) {
+          continue;
+        }
+
+        final String columnName = columnNames.get(idx);
+        if (columnName.equalsIgnoreCase(SchemaUtil.ROWTIME_NAME)
+            || columnName.equalsIgnoreCase(SchemaUtil.ROWKEY_NAME)) {
+          columnNames.remove(idx);
+        }
+      }
+      return columnNames;
+    }
+
     private Format getValueFormat(final Sink sink) {
       final Object serdeProperty = sink.getProperties().get(DdlConfig.VALUE_FORMAT_PROPERTY);
 
@@ -294,16 +335,18 @@ class Analyzer {
     }
 
     private void setSerdeOptions(final Sink sink) {
-      final List<String> columnNames = analysis.getSelectExpressionAlias();
+      final List<String> columnNames = getNoneMetaOrKeySelectAliases();
 
       final Format valueFormat = getValueFormat(sink);
 
-      analysis.setSerdeOptions(serdeOptionsSupplier.build(
+      final Set<SerdeOption> serdeOptions = serdeOptionsSupplier.build(
           columnNames,
           sink.getProperties(),
           valueFormat,
           defaultSerdeOptions
-      ));
+      );
+
+      analysis.setSerdeOptions(serdeOptions);
     }
 
     private void validateWithClause(final Set<String> withClauseVariables) {

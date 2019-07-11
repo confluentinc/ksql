@@ -28,11 +28,13 @@ import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
+import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.streams.StreamsFactories;
 import io.confluent.ksql.streams.StreamsUtil;
 import io.confluent.ksql.util.ExpressionMetadata;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.ParserUtil;
 import io.confluent.ksql.util.QueryLoggerUtil;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.SelectExpression;
@@ -62,6 +64,9 @@ import org.apache.kafka.streams.kstream.WindowedSerdes;
 @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
 public class SchemaKStream<K> {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
+
+  private static final FormatOptions FORMAT_OPTIONS =
+      FormatOptions.of(ParserUtil::isReservedIdentifier);
 
   public enum Type { SOURCE, PROJECT, FILTER, AGGREGATE, SINK, REKEY, JOIN }
 
@@ -541,9 +546,12 @@ public class SchemaKStream<K> {
       );
     }
 
+    final int keyIndexInValue = schema.valueFieldIndex(proposedKey.name())
+        .orElseThrow(IllegalStateException::new);
+
     final KStream keyedKStream = kstream
-        .filter((key, value) -> value != null && extractColumn(proposedKey, value) != null)
-        .selectKey((key, value) -> extractColumn(proposedKey, value).toString())
+        .filter((key, value) -> value != null && extractColumn(keyIndexInValue, value) != null)
+        .selectKey((key, value) -> extractColumn(keyIndexInValue, value).toString())
         .mapValues((key, row) -> {
           if (updateRowKey) {
             row.getColumns().set(SchemaUtil.ROWKEY_INDEX, key);
@@ -576,7 +584,7 @@ public class SchemaKStream<K> {
     return SchemaUtil.isFieldName(fieldName, SchemaUtil.ROWKEY_NAME);
   }
 
-  private Object extractColumn(final Field newKeyField, final GenericRow value) {
+  private Object extractColumn(final int keyIndexInValue, final GenericRow value) {
     if (value.getColumns().size() != schema.valueFields().size()) {
       throw new IllegalStateException("Field count mismatch. "
           + "Schema fields: " + schema
@@ -585,7 +593,7 @@ public class SchemaKStream<K> {
 
     return value
         .getColumns()
-        .get(schema.valueFieldIndex(newKeyField.name()).orElseThrow(IllegalStateException::new));
+        .get(keyIndexInValue);
   }
 
   private static String fieldNameFromExpression(final Expression expression) {
@@ -694,7 +702,7 @@ public class SchemaKStream<K> {
     stringBuilder.append(indent)
         .append(" > [ ")
         .append(type).append(" ] | Schema: ")
-        .append(schema)
+        .append(schema.toString(FORMAT_OPTIONS))
         .append(" | Logger: ").append(QueryLoggerUtil.queryLoggerName(queryContext))
         .append("\n");
     for (final SchemaKStream schemaKStream : sourceSchemaKStreams) {

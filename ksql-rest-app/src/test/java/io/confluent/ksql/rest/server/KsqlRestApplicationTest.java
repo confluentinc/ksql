@@ -37,7 +37,6 @@ import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
-import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.rest.server.computation.CommandRunner;
 import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.QueuedCommandStatus;
@@ -65,7 +64,6 @@ import javax.ws.rs.core.Configurable;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.ArgumentMatcher;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -124,7 +122,7 @@ public class KsqlRestApplicationTest {
   private ParsedStatement parsedStatement;
   @Mock
   private PreparedStatement<?> preparedStatement;
-  private PreparedStatement<CreateSource> logCreateStatement;
+  private PreparedStatement<?> logCreateStatement;
   private KsqlRestApplication app;
 
   @SuppressWarnings("unchecked")

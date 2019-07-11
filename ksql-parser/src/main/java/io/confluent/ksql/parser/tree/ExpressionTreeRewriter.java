@@ -17,6 +17,7 @@ package io.confluent.ksql.parser.tree;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
@@ -65,19 +66,20 @@ public final class ExpressionTreeRewriter<C> {
     }
 
     @Override
-    protected Expression visitStruct(final Struct node, final Context<C> context) {
+    protected Expression visitType(final Type node, final Context<C> context) {
+      if (!(node.getSqlType() instanceof SqlStruct)) {
+        return node;
+      }
+
       if (!context.isDefaultRewrite()) {
-        final Expression result = rewriter.rewriteStruct(node, context.get(), ExpressionTreeRewriter
-            .this);
+        final Expression result =
+            rewriter.rewriteStruct(node, context.get(), ExpressionTreeRewriter.this);
+
         if (result != null) {
           return result;
         }
       }
 
-      final ImmutableList.Builder<Expression> builder = ImmutableList.builder();
-      for (final Struct.Field field : node.getFields()) {
-        builder.add(rewrite(field.getType(), context.get()));
-      }
       return node;
     }
 

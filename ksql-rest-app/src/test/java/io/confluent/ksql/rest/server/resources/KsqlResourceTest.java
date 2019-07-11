@@ -76,11 +76,11 @@ import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
-import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
+import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.entity.CommandStatus;
@@ -114,7 +114,7 @@ import io.confluent.ksql.rest.server.computation.QueuedCommandStatus;
 import io.confluent.ksql.rest.util.EntityUtil;
 import io.confluent.ksql.rest.util.TerminateCluster;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.SqlType;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
@@ -133,6 +133,7 @@ import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.Sandbox;
+import io.confluent.ksql.util.TransientQueryMetadata;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import io.confluent.rest.RestConfig;
@@ -184,8 +185,8 @@ public class KsqlResourceTest {
 
   private static final ClusterTerminateRequest VALID_TERMINATE_REQUEST =
       new ClusterTerminateRequest(ImmutableList.of("Foo"));
-  private static final List<TableElement> SOME_ELEMENTS = ImmutableList.of(
-      new TableElement("f0", PrimitiveType.of(SqlType.STRING))
+  private static final TableElements SOME_ELEMENTS = TableElements.of(
+      new TableElement("f0", new io.confluent.ksql.parser.tree.Type(SqlTypes.STRING))
   );
   private static final PreparedStatement<CreateStream> STMT_0_WITH_SCHEMA = PreparedStatement.of(
       "sql with schema",
@@ -622,7 +623,7 @@ public class KsqlResourceTest {
     assertThat(result, is(instanceOf(KsqlStatementErrorMessage.class)));
     assertThat(result.getErrorCode(), is(Errors.ERROR_CODE_BAD_STATEMENT));
     assertThat(result.getMessage(),
-        containsString("Corresponding Kafka topic (KAFKA_TOPIC) should be set in WITH clause."));
+        containsString("Missing required property \"KAFKA_TOPIC\" which has no default value."));
     assertThat(((KsqlStatementErrorMessage) result).getStatementText(),
         is("CREATE STREAM S (foo INT) WITH(VALUE_FORMAT='JSON');"));
   }
@@ -1311,7 +1312,7 @@ public class KsqlResourceTest {
   public void shouldListDefaultKsqlProperty() {
     // Given:
     givenKsqlConfigWith(ImmutableMap.<String, Object>builder()
-        .put(StreamsConfig.STATE_DIR_CONFIG, "/var/lib/kafka-streams")
+        .put(StreamsConfig.STATE_DIR_CONFIG, "/tmp/kafka-streams")
         .build());
 
     // When:
@@ -1319,7 +1320,7 @@ public class KsqlResourceTest {
 
     // Then:
     assertThat(props.getDefaultProperties(),
-        hasItem(KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.STATE_DIR_CONFIG));
+               hasItem(KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.STATE_DIR_CONFIG));
   }
 
   @Test
@@ -1852,8 +1853,9 @@ public class KsqlResourceTest {
     assertThat(entity, instanceOf(QueryDescriptionEntity.class));
     final QueryDescriptionEntity queryDescriptionEntity = (QueryDescriptionEntity) entity;
     final QueryDescription queryDescription = queryDescriptionEntity.getQueryDescription();
+    final boolean valueSchemaOnly = queryMetadata instanceof TransientQueryMetadata;
     assertThat(queryDescription.getFields(), is(
-        EntityUtil.buildSourceSchemaEntity(queryMetadata.getLogicalSchema())));
+        EntityUtil.buildSourceSchemaEntity(queryMetadata.getLogicalSchema(), valueSchemaOnly)));
     assertThat(queryDescription.getOverriddenProperties(), is(overriddenProperties));
   }
 

@@ -378,7 +378,7 @@ public class LogicalSchemaTest {
   }
 
   @Test
-  public void shouldNotGetImplicitFieldFromValue() {
+  public void shouldNotGetMetaFieldFromValue() {
     assertThat(SOME_SCHEMA.findValueField("ROWTIME"), is(Optional.empty()));
   }
 
@@ -388,7 +388,7 @@ public class LogicalSchemaTest {
   }
 
   @Test
-  public void shouldGetImplicitFieldFromValueIfAdded() {
+  public void shouldGetMetaFieldFromValueIfAdded() {
     assertThat(SOME_SCHEMA.withMetaAndKeyFieldsInValue().findValueField("ROWTIME"),
         is(not(Optional.empty())));
   }
@@ -400,7 +400,7 @@ public class LogicalSchemaTest {
   }
 
   @Test
-  public void shouldGetImplicitFields() {
+  public void shouldGetMetaFields() {
     assertThat(SOME_SCHEMA.findField("ROWTIME"), is(Optional.of(
         new Field("ROWTIME", 0, Schema.OPTIONAL_INT64_SCHEMA)
     )));
@@ -452,14 +452,14 @@ public class LogicalSchemaTest {
   }
 
   @Test
-  public void shouldExposeImplicitFields() {
+  public void shouldExposeMetaFields() {
     assertThat(SOME_SCHEMA.metaFields(), is(ImmutableList.of(
         new Field(ROWTIME_NAME, 0, Schema.OPTIONAL_INT64_SCHEMA)
     )));
   }
 
   @Test
-  public void shouldExposeAliasedImplicitFields() {
+  public void shouldExposeAliasedMetaFields() {
     // Given:
     final LogicalSchema schema = SOME_SCHEMA.withAlias("fred");
 
@@ -574,14 +574,43 @@ public class LogicalSchemaTest {
     // Then:
     assertThat(s, is(
         "["
-            + "f0 BOOLEAN, "
-            + "f1 INT, "
-            + "f2 BIGINT, "
-            + "f4 DOUBLE, "
-            + "f5 VARCHAR, "
-            + "f6 STRUCT<a BIGINT>, "
-            + "f7 ARRAY<VARCHAR>, "
-            + "f8 MAP<VARCHAR, VARCHAR>"
+            + "`f0` BOOLEAN, "
+            + "`f1` INT, "
+            + "`f2` BIGINT, "
+            + "`f4` DOUBLE, "
+            + "`f5` VARCHAR, "
+            + "`f6` STRUCT<`a` BIGINT>, "
+            + "`f7` ARRAY<VARCHAR>, "
+            + "`f8` MAP<VARCHAR, VARCHAR>"
+            + "]"));
+  }
+
+  @Test
+  public void shouldConvertSchemaToStringWithReservedWords() {
+    // Given:
+    final LogicalSchema schema = LogicalSchema.of(
+        SchemaBuilder.struct()
+            .field("f0", SchemaBuilder.OPTIONAL_BOOLEAN_SCHEMA)
+            .field("f1", SchemaBuilder
+                .struct()
+                .field("f0", Schema.OPTIONAL_INT64_SCHEMA)
+                .field("f1", Schema.OPTIONAL_INT64_SCHEMA)
+                .optional()
+                .build())
+            .build()
+    );
+
+    final FormatOptions formatOptions =
+        FormatOptions.of(word -> word.equalsIgnoreCase("f0"));
+
+    // When:
+    final String s = schema.toString(formatOptions);
+
+    // Then:
+    assertThat(s, is(
+        "["
+            + "`f0` BOOLEAN, "
+            + "f1 STRUCT<`f0` BIGINT, f1 BIGINT>"
             + "]"));
   }
 
@@ -600,12 +629,12 @@ public class LogicalSchemaTest {
     // Then:
     assertThat(s, is(
         "["
-            + "t.f0 BOOLEAN"
+            + "`t.f0` BOOLEAN"
             + "]"));
   }
 
   @Test
-  public void shouldAddImplicitAndKeyColumns() {
+  public void shouldAddMetaAndKeyColumns() {
     // Given:
     final LogicalSchema schema = LogicalSchema.of(SOME_CONNECT_SCHEMA);
 
@@ -624,7 +653,7 @@ public class LogicalSchemaTest {
   }
 
   @Test
-  public void shouldAddImplicitAndKeyColumnsWhenAliased() {
+  public void shouldAddMetaAndKeyColumnsWhenAliased() {
     // Given:
     final LogicalSchema schema = LogicalSchema.of(SOME_CONNECT_SCHEMA)
         .withAlias("bob");
@@ -644,7 +673,7 @@ public class LogicalSchemaTest {
   }
 
   @Test
-  public void shouldAddImplicitAndKeyColumnsOnlyOnce() {
+  public void shouldAddMetaAndKeyColumnsOnlyOnce() {
     // Given:
     final LogicalSchema ksqlSchema = LogicalSchema.of(SOME_CONNECT_SCHEMA)
         .withMetaAndKeyFieldsInValue();
@@ -657,7 +686,7 @@ public class LogicalSchemaTest {
   }
 
   @Test
-  public void shouldRemoveOthersWhenAddingImplicitsAndKeyFields() {
+  public void shouldRemoveOthersWhenAddingMetasAndKeyFields() {
     // Given:
     final LogicalSchema ksqlSchema = LogicalSchema.of(SchemaBuilder.struct()
         .field("f0", Schema.OPTIONAL_INT64_SCHEMA)
@@ -681,7 +710,7 @@ public class LogicalSchemaTest {
   }
 
   @Test
-  public void shouldRemoveImplicitFields() {
+  public void shouldRemoveMetaFields() {
     // Given:
     final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
         .field("f0", Schema.OPTIONAL_INT64_SCHEMA)
@@ -701,7 +730,7 @@ public class LogicalSchemaTest {
   }
 
   @Test
-  public void shouldRemoveImplicitFieldsWhereEverTheyAre() {
+  public void shouldRemoveMetaFieldsWhereEverTheyAre() {
     // Given:
     final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
         .field("f0", Schema.OPTIONAL_INT64_SCHEMA)
@@ -723,7 +752,7 @@ public class LogicalSchemaTest {
   }
 
   @Test
-  public void shouldRemoveImplicitFieldsEvenIfAliased() {
+  public void shouldRemoveMetaFieldsEvenIfAliased() {
     // Given:
     final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
         .field("f0", Schema.OPTIONAL_INT64_SCHEMA)
@@ -744,28 +773,7 @@ public class LogicalSchemaTest {
   }
 
   @Test
-  public void shouldMarkRowTimeAsImplicit() {
-    assertThat(LogicalSchema.isImplicitColumnName(ROWTIME_NAME), is(true));
-  }
-
-  @Test
-  public void shouldMarkRowKeyAsImplicit() {
-    assertThat(LogicalSchema.isImplicitColumnName(ROWKEY_NAME), is(true));
-  }
-
-  @Test
-  public void shouldMarkAsImplicitRegardlessOfCase() {
-    assertThat(LogicalSchema.isImplicitColumnName(ROWTIME_NAME.toLowerCase()), is(true));
-    assertThat(LogicalSchema.isImplicitColumnName(ROWTIME_NAME.toUpperCase()), is(true));
-  }
-
-  @Test
-  public void shouldNotMarkOtherFieldsAsImplicit() {
-    assertThat(LogicalSchema.isImplicitColumnName("other"), is(false));
-  }
-
-  @Test
-  public void shouldMatchImplicitFieldName() {
+  public void shouldMatchMetaFieldName() {
     assertThat(SOME_SCHEMA.isMetaField(ROWTIME_NAME), is(true));
     assertThat(SOME_SCHEMA.isKeyField(ROWTIME_NAME), is(false));
   }
@@ -777,7 +785,7 @@ public class LogicalSchemaTest {
   }
 
   @Test
-  public void shouldNotMatchValueFieldsAsBeingImplicitOrKeyFields() {
+  public void shouldNotMatchValueFieldsAsBeingMetaOrKeyFields() {
     SOME_SCHEMA.valueFields().forEach(field ->
     {
       assertThat(SOME_SCHEMA.isMetaField(field.name()), is(false));
@@ -786,7 +794,7 @@ public class LogicalSchemaTest {
   }
 
   @Test
-  public void shouldNotMatchRandomFieldNameAsBeingImplicitOrKeyFields() {
+  public void shouldNotMatchRandomFieldNameAsBeingMetaOrKeyFields() {
     assertThat(SOME_SCHEMA.isMetaField("well_this_ain't_in_the_schema"), is(false));
     assertThat(SOME_SCHEMA.isKeyField("well_this_ain't_in_the_schema"), is(false));
   }

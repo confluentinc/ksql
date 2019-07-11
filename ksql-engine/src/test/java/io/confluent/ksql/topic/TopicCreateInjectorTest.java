@@ -466,7 +466,7 @@ public class TopicCreateInjectorTest {
             + "stream/table please re-run the statement providing the required 'PARTITIONS' "
             + "configuration in the WITH clause (and optionally 'REPLICAS'). For example: "
             + "CREATE STREAM FOO (FOO STRING) "
-            + "WITH (VALUE_FORMAT='avro', KAFKA_TOPIC='doesntexist', PARTITIONS=2, REPLICAS=1);");
+            + "WITH (KAFKA_TOPIC='doesntexist', PARTITIONS=2, REPLICAS=1, VALUE_FORMAT='avro');");
 
     // When:
     injector.inject(statement, builder);

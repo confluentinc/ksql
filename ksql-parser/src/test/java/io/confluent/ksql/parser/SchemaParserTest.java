@@ -17,14 +17,14 @@ package io.confluent.ksql.parser;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.contains;
 
-import io.confluent.ksql.parser.tree.Map;
-import io.confluent.ksql.parser.tree.PrimitiveType;
+import com.google.common.collect.Iterables;
 import io.confluent.ksql.parser.tree.TableElement;
-import io.confluent.ksql.schema.ksql.SqlType;
+import io.confluent.ksql.parser.tree.TableElements;
+import io.confluent.ksql.parser.tree.Type;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
-import java.util.List;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -40,16 +40,13 @@ public class SchemaParserTest {
     final String schema = "foo INTEGER, bar MAP<VARCHAR, VARCHAR>";
 
     // When:
-    final List<TableElement> elements = SchemaParser.parse(schema);
+    final TableElements elements = SchemaParser.parse(schema);
 
     // Then:
-    assertThat(elements.size(), is(2));
-    assertThat(
-        elements.get(0),
-        is(new TableElement("FOO", PrimitiveType.of(SqlType.INTEGER))));
-    assertThat(
-        elements.get(1),
-        is(new TableElement("BAR", Map.of(PrimitiveType.of(SqlType.STRING)))));
+    assertThat(elements, contains(
+        new TableElement("FOO", new Type(SqlTypes.INTEGER)),
+        new TableElement("BAR", new Type(SqlTypes.map(SqlTypes.STRING)))
+    ));
   }
 
   @Test
@@ -58,23 +55,38 @@ public class SchemaParserTest {
     final String schema = "`END` VARCHAR";
 
     // When:
-    final List<TableElement> elements = SchemaParser.parse(schema);
+    final TableElements elements = SchemaParser.parse(schema);
 
     // Then:
-    assertThat(elements.size(), is(1));
-    assertThat(elements.get(0), is(new TableElement("END", PrimitiveType.of(SqlType.STRING))));
+    assertThat(elements, contains(
+        new TableElement("END", new Type(SqlTypes.STRING))
+    ));
+  }
+
+  @Test
+  public void shouldParseQuotedMixedCase() {
+    // Given:
+    final String schema = "`End` VARCHAR";
+
+    // When:
+    final TableElements elements = SchemaParser.parse(schema);
+
+    // Then:
+    assertThat(elements, contains(
+        new TableElement("End", new Type(SqlTypes.STRING))
+    ));
   }
 
   @Test
   public void shouldParseEmptySchema() {
     // Given:
-    final String schema = "";
+    final String schema = " \t\n\r";
 
     // When:
-    final List<TableElement> elements = SchemaParser.parse(schema);
+    final TableElements elements = SchemaParser.parse(schema);
 
     // Then:
-    assertThat(elements, empty());
+    assertThat(Iterables.isEmpty(elements), is(true));
   }
 
   @Test
@@ -102,5 +114,4 @@ public class SchemaParserTest {
     // When:
     SchemaParser.parse(schema);
   }
-
 }

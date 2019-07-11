@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.util;
 
+import io.confluent.ksql.schema.ksql.types.SqlDecimal;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
@@ -175,6 +176,28 @@ public final class DecimalUtil {
     }
   }
 
+  /**
+   * Converts a schema to a sql decimal with set precision/scale without losing
+   * scale or precision.
+   *
+   * @param schema the schema
+   * @return the sql decimal
+   * @throws KsqlException if the schema cannot safely be converted to decimal
+   */
+  public static SqlDecimal toSqlDecimal(final Schema schema) {
+    switch (schema.type()) {
+      case BYTES:
+        requireDecimal(schema);
+        return SqlDecimal.of(precision(schema), scale(schema));
+      case INT32:
+        return SqlDecimal.of(10, 0);
+      case INT64:
+        return SqlDecimal.of(19, 0);
+      default:
+        throw new KsqlException("Cannot convert schema of type " + schema.type() + " to decimal.");
+    }
+  }
+
   public static BigDecimal cast(final long value, final int precision, final int scale) {
     validateParameters(precision, scale);
     final BigDecimal decimal = new BigDecimal(value, new MathContext(precision));
@@ -220,7 +243,7 @@ public final class DecimalUtil {
     }
   }
 
-  private static void validateParameters(final int precision, final int scale) {
+  public static void validateParameters(final int precision, final int scale) {
     KsqlPreconditions.checkArgument(precision > 0,
         String.format("DECIMAL precision must be >= 1: DECIMAL(%d,%d)", precision, scale));
     KsqlPreconditions.checkArgument(scale >= 0,

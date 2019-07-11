@@ -102,7 +102,6 @@ public class WebSocketSubscriberTest {
     EasyMock.verify(subscription, session, async);
   }
 
-
   @Test
   public void testOnSchema() throws Exception {
     replayOnSubscribe();
@@ -128,10 +127,6 @@ public class WebSocketSubscriberTest {
 
     assertEquals(
         "[" +
-            "{\"name\":\"ROWTIME\"," +
-            "\"schema\":{\"type\":\"BIGINT\",\"fields\":null,\"memberSchema\":null}}," +
-            "{\"name\":\"ROWKEY\"," +
-            "\"schema\":{\"type\":\"STRING\",\"fields\":null,\"memberSchema\":null}}," +
             "{\"name\":\"currency\"," +
             "\"schema\":{\"type\":\"STRING\",\"fields\":null,\"memberSchema\":null}}," +
             "{\"name\":\"amount\"," +

@@ -15,15 +15,20 @@
 
 package io.confluent.ksql.util;
 
+import static io.confluent.ksql.parser.SqlBaseParser.DecimalLiteralContext;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toList;
 
 import com.google.common.collect.ImmutableSet;
+import io.confluent.ksql.parser.DefaultKsqlParser;
+import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.ParsingException;
 import io.confluent.ksql.parser.SqlBaseLexer;
 import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.parser.SqlBaseParser.IntegerLiteralContext;
 import io.confluent.ksql.parser.SqlBaseParser.NumberContext;
+import io.confluent.ksql.parser.exception.ParseFailedException;
+import io.confluent.ksql.parser.tree.DoubleLiteral;
 import io.confluent.ksql.parser.tree.IntegerLiteral;
 import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.parser.tree.LongLiteral;
@@ -33,47 +38,51 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.TerminalNode;
-import org.apache.commons.lang3.ObjectUtils;
 
 public final class ParserUtil {
-
-  public static final Set<String> RESERVED_WORDS;
-
-  static {
-    final ImmutableSet.Builder<String> reservedWords = new ImmutableSet.Builder<>();
-    for (int i = 1; i < SqlBaseParser.VOCABULARY.getMaxTokenType(); i++) {
-      final String name = ObjectUtils.firstNonNull(
-          SqlBaseParser.VOCABULARY.getLiteralName(i),
-          SqlBaseParser.VOCABULARY.getSymbolicName(i)
-      );
-      if (name == null) {
-        throw new IllegalStateException("Did not expect to unknown word in vocab at index " + i);
-      }
-      reservedWords.add(StringUtil.cleanQuotes(name));
-    }
-    RESERVED_WORDS = reservedWords.build();
-  }
 
   private ParserUtil() {
   }
 
-  private static final Set<String> LITERALS_SET = ImmutableSet.copyOf(
-      IntStream.range(0, SqlBaseLexer.VOCABULARY.getMaxTokenType())
-          .mapToObj(SqlBaseLexer.VOCABULARY::getLiteralName)
-          .filter(Objects::nonNull)
-          // literals start and end with ' - remove them
-          .map(l -> l.substring(1, l.length() - 1))
-          .map(String::toUpperCase)
-          .collect(Collectors.toSet())
-  );
+  private static final Set<String> RESERVED_WORDS;
 
-  public static String escapeIfLiteral(final String name) {
-    return LITERALS_SET.contains(name.toUpperCase()) ? "`" + name + "`" : name;
+  static {
+    final KsqlParser parser = new DefaultKsqlParser();
+
+    final Predicate<String> isReservedWord = columnName -> {
+      try {
+        parser.parse(
+            "CREATE STREAM x (" + columnName + " INT) "
+                + "WITH(KAFKA_TOPIC='x', VALUE_FORMAT='JSON');");
+        return false;
+      } catch (final ParseFailedException e) {
+        return true;
+      }
+    };
+
+    final Set<String> reserved = IntStream.range(0, SqlBaseLexer.VOCABULARY.getMaxTokenType())
+        .mapToObj(SqlBaseLexer.VOCABULARY::getLiteralName)
+        .filter(Objects::nonNull)
+        .map(l -> l.substring(1, l.length() - 1)) // literals start and end with ' - remove them
+        .map(String::toUpperCase)
+        .filter(isReservedWord)
+        .collect(Collectors.toSet());
+
+    RESERVED_WORDS = ImmutableSet.copyOf(reserved);
+  }
+
+  public static boolean isReservedIdentifier(final String name) {
+    return RESERVED_WORDS.contains(name.toUpperCase());
+  }
+
+  public static String escapeIfReservedIdentifier(final String name) {
+    return isReservedIdentifier(name) ? "`" + name + "`" : name;
   }
 
   public static String getIdentifierText(final SqlBaseParser.IdentifierContext context) {
@@ -108,19 +117,39 @@ public final class ParserUtil {
   }
 
   public static Literal visitIntegerLiteral(final IntegerLiteralContext context) {
+    final Optional<NodeLocation> location = getLocation(context);
+
     final long valueAsLong;
     try {
       valueAsLong = Long.parseLong(context.getText());
     } catch (final NumberFormatException e) {
-      throw new ParsingException("Invalid numeric literal: " + context.getText());
+      throw new ParsingException("Invalid numeric literal: " + context.getText(), location);
     }
     if (valueAsLong < 0) {
       throw new RuntimeException("Unexpected negative value in literal: " + valueAsLong);
     }
+
     if (valueAsLong <= Integer.MAX_VALUE) {
-      return new IntegerLiteral(getLocation(context), (int) valueAsLong);
+      return new IntegerLiteral(location, (int) valueAsLong);
     } else {
-      return new LongLiteral(getLocation(context), valueAsLong);
+      return new LongLiteral(location, valueAsLong);
+    }
+  }
+
+  public static DoubleLiteral parseDecimalLiteral(final DecimalLiteralContext context) {
+    final Optional<NodeLocation> location = getLocation(context);
+
+    try {
+      final double value = Double.parseDouble(context.getText());
+      if (Double.isNaN(value)) {
+        throw new ParsingException("Not a number: " + context.getText(), location);
+      }
+      if (Double.isInfinite(value)) {
+        throw new ParsingException("Number overflows DOUBLE: " + context.getText(), location);
+      }
+      return new DoubleLiteral(location, value);
+    } catch (final NumberFormatException e) {
+      throw new ParsingException("Invalid numeric literal: " + context.getText(), location);
     }
   }
 

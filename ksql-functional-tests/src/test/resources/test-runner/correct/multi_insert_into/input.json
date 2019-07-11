@@ -1,0 +1,6 @@
+{
+  "inputs": [
+    {"topic": "s1", "key": 0, "value": {"ID": 0, "NAME": "name0", "VALUE": 0}, "timestamp": 0},
+    {"topic": "s2", "key": 4, "value": {"ID": 4, "NAME": "name4", "VALUE": 4}, "timestamp": 4}
+  ]
+}

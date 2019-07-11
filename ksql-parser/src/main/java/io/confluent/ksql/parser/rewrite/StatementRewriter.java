@@ -56,10 +56,10 @@ import io.confluent.ksql.parser.tree.SimpleGroupBy;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.Statements;
-import io.confluent.ksql.parser.tree.Struct;
 import io.confluent.ksql.parser.tree.SubscriptExpression;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TableElement;
+import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.parser.tree.WhenClause;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.parser.tree.WithinExpression;
@@ -337,12 +337,6 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
     return node;
   }
 
-  protected Node visitStruct(final Struct node, final Object context) {
-    return Struct.builder()
-        .addFields(node.getFields())
-        .build();
-  }
-
   protected Node visitAliasedRelation(final AliasedRelation node, final Object context) {
     final Relation rewrittenRelation = (Relation) process(node.getRelation(), context);
 
@@ -397,7 +391,7 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
         .map(tableElement -> (TableElement) process(tableElement, context))
         .collect(Collectors.toList());
 
-    return node.copyWith(rewrittenElements, node.getProperties());
+    return node.copyWith(TableElements.of(rewrittenElements), node.getProperties());
   }
 
   protected Node visitCreateStreamAsSelect(final CreateStreamAsSelect node, final Object context) {
@@ -424,7 +418,7 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
         .map(tableElement -> (TableElement) process(tableElement, context))
         .collect(Collectors.toList());
 
-    return node.copyWith(rewrittenElements, node.getProperties());
+    return node.copyWith(TableElements.of(rewrittenElements), node.getProperties());
   }
 
   protected Node visitCreateTableAsSelect(final CreateTableAsSelect node, final Object context) {

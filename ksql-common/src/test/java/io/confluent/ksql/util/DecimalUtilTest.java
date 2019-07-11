@@ -19,10 +19,11 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.sameInstance;
 
+import io.confluent.ksql.schema.ksql.types.SqlDecimal;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.math.BigDecimal;
 import org.apache.kafka.connect.data.Decimal;
 import org.apache.kafka.connect.data.Schema;
-import org.hamcrest.Matchers;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -241,7 +242,7 @@ public class DecimalUtilTest {
     final Schema decimal = DecimalUtil.toDecimal(Schema.OPTIONAL_INT32_SCHEMA);
 
     // Then:
-    assertThat(decimal, Matchers.is(DecimalUtil.builder(10, 0).build()));
+    assertThat(decimal, is(DecimalUtil.builder(10, 0).build()));
   }
 
   @Test
@@ -250,7 +251,7 @@ public class DecimalUtilTest {
     final Schema decimal = DecimalUtil.toDecimal(Schema.OPTIONAL_INT64_SCHEMA);
 
     // Then:
-    assertThat(decimal, Matchers.is(DecimalUtil.builder(19, 0).build()));
+    assertThat(decimal, is(DecimalUtil.builder(19, 0).build()));
   }
 
   @Test
@@ -267,6 +268,46 @@ public class DecimalUtilTest {
 
   @Test
   public void shouldThrowIfConvertString() {
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Cannot convert schema of type STRING to decimal");
+
+    // When:
+    DecimalUtil.toDecimal(Schema.OPTIONAL_STRING_SCHEMA);
+  }
+
+  @Test
+  public void shouldConvertIntegerToSqlDecimal() {
+    // When:
+    final SqlDecimal decimal = DecimalUtil.toSqlDecimal(Schema.OPTIONAL_INT32_SCHEMA);
+
+    // Then:
+    assertThat(decimal, is(SqlTypes.decimal(10, 0)));
+  }
+
+  @Test
+  public void shouldConvertLongToSqlDecimal() {
+    // When:
+    final SqlDecimal decimal = DecimalUtil.toSqlDecimal(Schema.OPTIONAL_INT64_SCHEMA);
+
+    // Then:
+    assertThat(decimal, is(SqlTypes.decimal(19, 0)));
+  }
+
+  @Test
+  public void shouldConvertDecimalToSqlDecimal() {
+    // Given:
+    final Schema given = DecimalUtil.builder(2, 2);
+
+    // When:
+    final SqlDecimal decimal = DecimalUtil.toSqlDecimal(given);
+
+    // Then:
+    assertThat(decimal, is(SqlTypes.decimal(2, 2)));
+  }
+
+  @Test
+  public void shouldThrowIfConvertStringToSqlDecimal() {
     // Expect:
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage("Cannot convert schema of type STRING to decimal");

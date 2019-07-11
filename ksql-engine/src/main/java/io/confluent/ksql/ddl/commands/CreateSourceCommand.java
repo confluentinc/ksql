@@ -16,6 +16,7 @@
 package io.confluent.ksql.ddl.commands;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Iterables;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.SerdeFactory;
@@ -24,6 +25,7 @@ import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.TableElement;
+import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.serde.KsqlSerdeFactories;
@@ -34,15 +36,14 @@ import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.StringUtil;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicyFactory;
-import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
+import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.kstream.Windowed;
 
@@ -96,7 +97,7 @@ abstract class CreateSourceCommand implements DdlCommand {
     checkTopicExists(properties);
     this.topicName = this.sourceName;
 
-    this.schema = getStreamTableSchema(statement.getElements());
+    this.schema = buildSchema(statement.getElements());
 
     if (properties.getKeyField().isPresent()) {
       final String name = properties.getKeyField().get().toUpperCase();
@@ -127,28 +128,21 @@ abstract class CreateSourceCommand implements DdlCommand {
     return serdeOptions;
   }
 
-  private static LogicalSchema getStreamTableSchema(final List<TableElement> tableElements) {
-    if (tableElements.isEmpty()) {
+  private static LogicalSchema buildSchema(final TableElements tableElements) {
+    if (Iterables.isEmpty(tableElements)) {
       throw new KsqlException("The statement does not define any columns.");
     }
 
-    SchemaBuilder tableSchema = SchemaBuilder.struct();
+    final SchemaBuilder valueSchema = SchemaBuilder.struct();
     for (final TableElement tableElement : tableElements) {
-      if (tableElement.getName().equalsIgnoreCase(SchemaUtil.ROWTIME_NAME)
-          || tableElement.getName().equalsIgnoreCase(SchemaUtil.ROWKEY_NAME)) {
-        throw new KsqlException(
-            SchemaUtil.ROWTIME_NAME + "/" + SchemaUtil.ROWKEY_NAME + " are "
-            + "reserved token for implicit column."
-            + " You cannot use them as a column name.");
+      final String fieldName = tableElement.getName();
+      final Schema fieldSchema = SchemaConverters.sqlToLogicalConverter()
+          .fromSqlType(tableElement.getType().getSqlType());
 
-      }
-      tableSchema = tableSchema.field(
-          tableElement.getName(),
-          SchemaConverters.sqlToLogicalConverter().fromSqlType(tableElement.getType())
-      );
+      valueSchema.field(fieldName, fieldSchema);
     }
 
-    return LogicalSchema.of(tableSchema.build());
+    return LogicalSchema.of(valueSchema.build());
   }
 
   static void checkMetaData(

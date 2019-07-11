@@ -16,7 +16,6 @@
 package io.confluent.ksql.rest.server;
 
 import static io.confluent.ksql.parser.ParserMatchers.configured;
-import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
@@ -51,7 +50,6 @@ import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.Literal;
-import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Select;
@@ -59,8 +57,10 @@ import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TableElement;
+import io.confluent.ksql.parser.tree.TableElements;
+import io.confluent.ksql.parser.tree.Type;
 import io.confluent.ksql.parser.tree.UnsetProperty;
-import io.confluent.ksql.schema.ksql.SqlType;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -82,8 +82,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
-import java.util.function.BiFunction;
 import java.util.Properties;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -110,8 +110,8 @@ public class StandaloneExecutorTest {
       ));
   private static final KsqlConfig ksqlConfig = new KsqlConfig(emptyMap());
 
-  private static final List<TableElement> SOME_ELEMENTS = ImmutableList.of(
-      new TableElement("bob", PrimitiveType.of(SqlType.STRING)));
+  private static final TableElements SOME_ELEMENTS = TableElements.of(
+      new TableElement("bob", new Type(SqlTypes.STRING)));
 
   private static final QualifiedName SOME_NAME = QualifiedName.of("Bob");
   private static final String SOME_TOPIC = "some-topic";
@@ -666,7 +666,7 @@ public class StandaloneExecutorTest {
   public void shouldThrowOnCreateStatementWithNoElements() {
     // Given:
     final PreparedStatement<CreateStream> cs = PreparedStatement.of("CS",
-        new CreateStream(SOME_NAME, emptyList(), false, JSON_PROPS));
+        new CreateStream(SOME_NAME, TableElements.of(), false, JSON_PROPS));
 
     givenQueryFileParsesTo(cs);
 
@@ -683,7 +683,7 @@ public class StandaloneExecutorTest {
   public void shouldSupportSchemaInference() {
     // Given:
     final PreparedStatement<CreateStream> cs = PreparedStatement.of("CS",
-        new CreateStream(SOME_NAME, emptyList(), false, AVRO_PROPS));
+        new CreateStream(SOME_NAME, TableElements.of(), false, AVRO_PROPS));
 
     givenQueryFileParsesTo(cs);
 

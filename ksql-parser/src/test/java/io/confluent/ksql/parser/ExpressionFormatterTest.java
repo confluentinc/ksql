@@ -21,7 +21,6 @@ import static org.junit.Assert.assertThat;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.parser.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.parser.tree.ArithmeticUnaryExpression;
-import io.confluent.ksql.parser.tree.Array;
 import io.confluent.ksql.parser.tree.BetweenPredicate;
 import io.confluent.ksql.parser.tree.BooleanLiteral;
 import io.confluent.ksql.parser.tree.Cast;
@@ -37,22 +36,23 @@ import io.confluent.ksql.parser.tree.IsNullPredicate;
 import io.confluent.ksql.parser.tree.LikePredicate;
 import io.confluent.ksql.parser.tree.LogicalBinaryExpression;
 import io.confluent.ksql.parser.tree.LongLiteral;
-import io.confluent.ksql.parser.tree.Map;
 import io.confluent.ksql.parser.tree.NotExpression;
 import io.confluent.ksql.parser.tree.NullLiteral;
-import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.parser.tree.SearchedCaseExpression;
 import io.confluent.ksql.parser.tree.SimpleCaseExpression;
 import io.confluent.ksql.parser.tree.StringLiteral;
-import io.confluent.ksql.parser.tree.Struct;
 import io.confluent.ksql.parser.tree.SubscriptExpression;
 import io.confluent.ksql.parser.tree.TimeLiteral;
 import io.confluent.ksql.parser.tree.TimestampLiteral;
+import io.confluent.ksql.parser.tree.Type;
 import io.confluent.ksql.parser.tree.WhenClause;
 import io.confluent.ksql.schema.Operator;
-import io.confluent.ksql.schema.ksql.SqlType;
+import io.confluent.ksql.schema.ksql.types.SqlArray;
+import io.confluent.ksql.schema.ksql.types.SqlMap;
+import io.confluent.ksql.schema.ksql.types.SqlStruct;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.Collections;
 import java.util.Optional;
 import org.junit.Test;
@@ -73,7 +73,7 @@ public class ExpressionFormatterTest {
   public void shouldFormatSubscriptExpression() {
     assertThat(ExpressionFormatter.formatExpression(new SubscriptExpression(
             new StringLiteral("abc"),
-            new DoubleLiteral("3.0"))),
+            new DoubleLiteral(3.0))),
         equalTo("'abc'[3.0]"));
   }
 
@@ -84,7 +84,7 @@ public class ExpressionFormatterTest {
 
   @Test
   public void shouldFormatDoubleLiteral() {
-    assertThat(ExpressionFormatter.formatExpression(new DoubleLiteral("2.0")), equalTo("2.0"));
+    assertThat(ExpressionFormatter.formatExpression(new DoubleLiteral(2.0)), equalTo("2.0"));
   }
 
   @Test
@@ -198,7 +198,7 @@ public class ExpressionFormatterTest {
     // Given:
     final Cast cast = new Cast(
         new LongLiteral(1),
-        PrimitiveType.of("DOUBLE"));
+        new Type(SqlTypes.DOUBLE));
 
     // When:
     final String result = ExpressionFormatter.formatExpression(cast);
@@ -276,36 +276,37 @@ public class ExpressionFormatterTest {
 
   @Test
   public void shouldFormatStruct() {
-    final Struct struct = Struct.builder()
-        .addField("field1", PrimitiveType.of(SqlType.INTEGER))
-        .addField("field2", PrimitiveType.of(SqlType.STRING))
+    final SqlStruct struct = SqlStruct.builder()
+        .field("field1", SqlTypes.INTEGER)
+        .field("field2", SqlTypes.STRING)
         .build();
 
     assertThat(
-        ExpressionFormatter.formatExpression(struct),
+        ExpressionFormatter.formatExpression(new Type(struct)),
         equalTo("STRUCT<field1 INTEGER, field2 STRING>"));
   }
 
   @Test
   public void shouldFormatStructWithColumnWithReservedWordName() {
-    final Struct struct = Struct.builder()
-        .addField("END", PrimitiveType.of(SqlType.INTEGER))
+    final SqlStruct struct = SqlStruct.builder()
+        .field("END", SqlTypes.INTEGER)
         .build();
 
     assertThat(
-        ExpressionFormatter.formatExpression(struct),
+        ExpressionFormatter.formatExpression(new Type(struct)),
         equalTo("STRUCT<`END` INTEGER>"));
   }
 
   @Test
   public void shouldFormatMap() {
-    final Map map = Map.of(PrimitiveType.of(SqlType.BIGINT));
-    assertThat(ExpressionFormatter.formatExpression(map), equalTo("MAP<VARCHAR, BIGINT>"));
+    final SqlMap map = SqlTypes.map(SqlTypes.BIGINT);
+    assertThat(ExpressionFormatter.formatExpression(new Type(map)),
+        equalTo("MAP<VARCHAR, BIGINT>"));
   }
 
   @Test
   public void shouldFormatArray() {
-    final Array array = Array.of(PrimitiveType.of(SqlType.BOOLEAN));
-    assertThat(ExpressionFormatter.formatExpression(array), equalTo("ARRAY<BOOLEAN>"));
+    final SqlArray array = SqlTypes.array(SqlTypes.BOOLEAN);
+    assertThat(ExpressionFormatter.formatExpression(new Type(array)), equalTo("ARRAY<BOOLEAN>"));
   }
 }

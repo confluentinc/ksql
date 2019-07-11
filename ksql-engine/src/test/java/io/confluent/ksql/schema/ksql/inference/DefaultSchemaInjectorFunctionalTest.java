@@ -35,6 +35,7 @@ import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.ParserUtil;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Assert;
@@ -48,6 +49,9 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class DefaultSchemaInjectorFunctionalTest {
+
+  private static final SqlSchemaFormatter FORMATTER =
+      new SqlSchemaFormatter(ParserUtil::isReservedIdentifier);
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -523,8 +527,8 @@ public class DefaultSchemaInjectorFunctionalTest {
 
     final Schema actual = getSchemaForDdlStatement((CreateSource) withSchema);
 
-    Assert.assertThat(new SqlSchemaFormatter().format(actual),
-        equalTo(new SqlSchemaFormatter().format(expectedKqlSchema)));
+    Assert.assertThat(FORMATTER.format(actual),
+        equalTo(FORMATTER.format(expectedKqlSchema)));
     Assert.assertThat(actual, equalTo(expectedKqlSchema));
   }
 
@@ -533,7 +537,7 @@ public class DefaultSchemaInjectorFunctionalTest {
     for (final TableElement tableElement : statement.getElements()) {
       builder.field(
           tableElement.getName(),
-          SchemaConverters.sqlToLogicalConverter().fromSqlType(tableElement.getType())
+          SchemaConverters.sqlToLogicalConverter().fromSqlType(tableElement.getType().getSqlType())
       );
     }
     return builder.build();

@@ -15,13 +15,14 @@
 
 package io.confluent.ksql.schema.ksql.inference;
 
+import com.google.common.collect.Iterables;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.SchemaParser;
 import io.confluent.ksql.parser.SqlFormatter;
 import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.Statement;
-import io.confluent.ksql.parser.tree.TableElement;
+import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.schema.connect.SqlSchemaFormatter;
 import io.confluent.ksql.schema.connect.SqlSchemaFormatter.Option;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
@@ -32,7 +33,6 @@ import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.ParserUtil;
-import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import org.apache.kafka.connect.data.Schema;
@@ -52,7 +52,7 @@ import org.apache.kafka.connect.data.Schema;
 public class DefaultSchemaInjector implements Injector {
 
   private static final SqlSchemaFormatter FORMATTER = new SqlSchemaFormatter(
-      ParserUtil.RESERVED_WORDS, Option.AS_COLUMN_LIST);
+      ParserUtil::isReservedIdentifier, Option.AS_COLUMN_LIST);
 
   private final TopicSchemaSupplier schemaSupplier;
 
@@ -115,14 +115,14 @@ public class DefaultSchemaInjector implements Injector {
   private static boolean hasElements(
       final ConfiguredStatement<CreateSource> statement
   ) {
-    return !statement.getStatement().getElements().isEmpty();
+    return !Iterables.isEmpty(statement.getStatement().getElements());
   }
 
   private static CreateSource addSchemaFields(
       final ConfiguredStatement<CreateSource> preparedStatement,
       final SchemaAndId schema
   ) {
-    final List<TableElement> elements = buildElements(schema.schema, preparedStatement);
+    final TableElements elements = buildElements(schema.schema, preparedStatement);
 
     final CreateSource statement = preparedStatement.getStatement();
     final CreateSourceProperties properties = statement.getProperties();
@@ -133,13 +133,12 @@ public class DefaultSchemaInjector implements Injector {
     return statement.copyWith(elements, properties.withSchemaId(schema.id));
   }
 
-  private static List<TableElement> buildElements(
+  private static TableElements buildElements(
       final Schema schema,
       final ConfiguredStatement<CreateSource> preparedStatement
   ) {
     try {
-      // throws exception if invalid
-      SchemaConverters.logicalToSqlConverter().toSqlType(schema);
+      throwOnInvalidSchema(schema);
       return SchemaParser.parse(FORMATTER.format(schema));
     } catch (final Exception e) {
       throw new KsqlStatementException(
@@ -147,6 +146,10 @@ public class DefaultSchemaInjector implements Injector {
           preparedStatement.getStatementText(),
           e);
     }
+  }
+
+  private static void throwOnInvalidSchema(final Schema schema) {
+    SchemaConverters.logicalToSqlConverter().toSqlType(schema);
   }
 
   private static PreparedStatement<CreateSource> buildPreparedStatement(

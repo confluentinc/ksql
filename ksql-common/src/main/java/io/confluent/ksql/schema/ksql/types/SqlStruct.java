@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2019 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -13,21 +13,22 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.parser.tree;
+package io.confluent.ksql.schema.ksql.types;
 
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.schema.ksql.SqlType;
+import io.confluent.ksql.schema.ksql.FormatOptions;
+import io.confluent.ksql.schema.ksql.SqlBaseType;
 import io.confluent.ksql.util.KsqlException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Immutable
-public final class Struct extends Type {
+public final class SqlStruct extends SqlType {
 
   private final ImmutableList<Field> fields;
 
@@ -35,8 +36,8 @@ public final class Struct extends Type {
     return new Builder();
   }
 
-  private Struct(final List<Field> fields) {
-    super(Optional.empty(), SqlType.STRUCT);
+  private SqlStruct(final List<Field> fields) {
+    super(SqlBaseType.STRUCT);
     this.fields = ImmutableList.copyOf(requireNonNull(fields, "fields"));
   }
 
@@ -45,8 +46,20 @@ public final class Struct extends Type {
   }
 
   @Override
-  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
-    return visitor.visitStruct(this, context);
+  public boolean supportsCast() {
+    return false;
+  }
+
+  @Override
+  public boolean equals(final Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    final SqlStruct struct = (SqlStruct) o;
+    return fields.equals(struct.fields);
   }
 
   @Override
@@ -55,29 +68,24 @@ public final class Struct extends Type {
   }
 
   @Override
-  public boolean equals(final Object obj) {
-    if (this == obj) {
-      return true;
-    }
-    if (obj == null || getClass() != obj.getClass()) {
-      return false;
-    }
-    final Struct other = (Struct) obj;
-    return Objects.equals(this.fields, other.fields);
+  public String toString() {
+    return toString(FormatOptions.none());
   }
 
   @Override
-  public boolean supportsCast() {
-    return false;
+  public String toString(final FormatOptions formatOptions) {
+    return fields.stream()
+        .map(f -> f.toString(formatOptions))
+        .collect(Collectors.joining(", ", "STRUCT<", ">"));
   }
 
   @Immutable
   public static final class Field {
 
     private final String name;
-    private final Type type;
+    private final SqlType type;
 
-    public Field(final String name, final Type type) {
+    public Field(final String name, final SqlType type) {
       this.name = Objects.requireNonNull(name, "name");
       this.type = Objects.requireNonNull(type, "type");
 
@@ -90,7 +98,7 @@ public final class Struct extends Type {
       return name;
     }
 
-    public Type getType() {
+    public SqlType getType() {
       return type;
     }
 
@@ -116,18 +124,21 @@ public final class Struct extends Type {
     public String toString() {
       return name + " " + type;
     }
+
+    public String toString(final FormatOptions formatOptions) {
+      final String fieldName = formatOptions.isReservedWord(name)
+          ? "`" + name  + "`"
+          : name;
+      
+      return fieldName + " " + type;
+    }
   }
 
   public static final class Builder {
 
     private final List<Field> fields = new ArrayList<>();
 
-    public Builder addFields(final List<Field> fields) {
-      fields.forEach(this::addField);
-      return this;
-    }
-
-    public Builder addField(final String fieldName, final Type fieldType) {
+    public Builder field(final String fieldName, final SqlType fieldType) {
       return addField(new Field(fieldName, fieldType));
     }
 
@@ -137,11 +148,11 @@ public final class Struct extends Type {
       return this;
     }
 
-    public Struct build() {
+    public SqlStruct build() {
       if (fields.isEmpty()) {
         throw new KsqlException("STRUCT type must define fields");
       }
-      return new Struct(fields);
+      return new SqlStruct(fields);
     }
 
     private void throwOnDuplicateFieldName(final Field other) {

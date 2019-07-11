@@ -30,7 +30,6 @@ import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -261,22 +260,6 @@ public class SerdeOptionsTest {
     // When:
     SerdeOptions
         .buildForCreateAsStatement(MULTI_FIELD_NAMES, properties, Format.JSON, singleFieldDefaults);
-  }
-
-  @Test
-  public void shouldIgnoreImplicitsWhenCountingColumns() {
-    // Given:
-    properties.put(DdlConfig.WRAP_SINGLE_VALUE, new BooleanLiteral("false"));
-
-    final List<String> columnNames =
-        ImmutableList.of("Bob", SchemaUtil.ROWKEY_NAME, SchemaUtil.ROWTIME_NAME);
-
-    // When:
-    final Set<SerdeOption> result = SerdeOptions
-        .buildForCreateAsStatement(columnNames, properties, Format.AVRO, singleFieldDefaults);
-
-    // Then:
-    assertThat(result, hasItem(SerdeOption.UNWRAP_SINGLE_VALUES));
   }
 
   @Test

@@ -15,12 +15,10 @@
 
 package io.confluent.ksql.parser.tree;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.ddl.DdlConfig;
-import io.confluent.ksql.schema.ksql.SqlType;
-import java.util.List;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.Map;
 import java.util.Optional;
 import org.junit.Test;
@@ -30,8 +28,8 @@ public class CreateTableTest {
   public static final NodeLocation SOME_LOCATION = new NodeLocation(0, 0);
   public static final NodeLocation OTHER_LOCATION = new NodeLocation(1, 0);
   private static final QualifiedName SOME_NAME = QualifiedName.of("bob");
-  private static final List<TableElement> SOME_ELEMENTS = ImmutableList.of(
-      new TableElement("Bob", PrimitiveType.of(SqlType.STRING))
+  private static final TableElements SOME_ELEMENTS = TableElements.of(
+      new TableElement("Bob", new Type(SqlTypes.STRING))
   );
   private static final Map<String, Literal> SOME_PROPS = ImmutableMap.of(
       "value_format", new StringLiteral("json"),
@@ -56,7 +54,7 @@ public class CreateTableTest {
             new CreateTable(QualifiedName.of("jim"), SOME_ELEMENTS, true, SOME_PROPS)
         )
         .addEqualityGroup(
-            new CreateTable(SOME_NAME, ImmutableList.of(), true, SOME_PROPS)
+            new CreateTable(SOME_NAME, TableElements.of(), true, SOME_PROPS)
         )
         .addEqualityGroup(
             new CreateTable(SOME_NAME, SOME_ELEMENTS, false, SOME_PROPS)

@@ -25,7 +25,8 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.testing.NullPointerTester;
 import com.google.common.testing.NullPointerTester.Visibility;
 import io.confluent.ksql.ddl.DdlConfig;
-import io.confluent.ksql.schema.ksql.SqlType;
+import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.test.util.ClassFinder;
 import io.confluent.ksql.test.util.ImmutableTester;
 import java.lang.reflect.Modifier;
@@ -34,6 +35,8 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import org.apache.kafka.common.config.AbstractConfig;
+import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.streams.kstream.JoinWindows;
 import org.apache.kafka.streams.kstream.Window;
 import org.junit.Test;
@@ -49,7 +52,7 @@ public class ParserModelTest {
   private static final Select DEFAULT_SELECT =
       new Select(ImmutableList.of(new AllColumns(Optional.empty())));
   private static final Table DEFAULT_RELATION = new Table(QualifiedName.of("vic"));
-  private static final PrimitiveType DEFAULT_TYPE = PrimitiveType.of(SqlType.STRING);
+  private static final Type DEFAULT_TYPE = new Type(SqlTypes.STRING);
 
   private static final ImmutableMap<Class<?>, Object> DEFAULTS = ImmutableMap
       .<Class<?>, Object>builder()
@@ -74,6 +77,8 @@ public class ParserModelTest {
               DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral("topic_test"),
               DdlConfig.VALUE_FORMAT_PROPERTY, new StringLiteral("avro")
           ))
+      .put(TableElements.class, TableElements.of())
+      .put(SqlType.class, SqlTypes.BIGINT)
       .build();
 
   private final Class<?> modelClass;
@@ -94,6 +99,8 @@ public class ParserModelTest {
     new ImmutableTester()
         .withKnownImmutableType(Window.class)
         .withKnownImmutableType(JoinWindows.class)
+        .withKnownImmutableType(ConfigDef.class)
+        .withKnownImmutableType(AbstractConfig.class)
         .test(modelClass);
   }
 

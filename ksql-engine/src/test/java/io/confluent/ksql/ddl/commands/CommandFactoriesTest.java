@@ -23,7 +23,6 @@ import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.parser.tree.BooleanLiteral;
@@ -34,11 +33,12 @@ import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.ExecutableDdlStatement;
 import io.confluent.ksql.parser.tree.Literal;
-import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
-import io.confluent.ksql.schema.ksql.SqlType;
+import io.confluent.ksql.parser.tree.TableElements;
+import io.confluent.ksql.parser.tree.Type;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
@@ -46,7 +46,6 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import org.junit.Before;
 import org.junit.Test;
@@ -60,8 +59,8 @@ public class CommandFactoriesTest {
   private static final QualifiedName SOME_NAME = QualifiedName.of("bob");
   private static final Map<String, Object> NO_PROPS = Collections.emptyMap();
   private static final String sqlExpression = "sqlExpression";
-  private static final List<TableElement> SOME_ELEMENTS = ImmutableList.of(
-      new TableElement("bob", PrimitiveType.of(SqlType.STRING)));
+  private static final TableElements SOME_ELEMENTS = TableElements.of(
+      new TableElement("bob", new Type(SqlTypes.STRING)));
 
   @Mock
   private KafkaTopicClient topicClient;
@@ -106,9 +105,9 @@ public class CommandFactoriesTest {
     final HashMap<String, Literal> tableProperties = validTableProps();
 
     final CreateTable ddlStatement = new CreateTable(SOME_NAME,
-        ImmutableList.of(
-            new TableElement("COL1", PrimitiveType.of(SqlType.BIGINT)),
-            new TableElement("COL2", PrimitiveType.of(SqlType.STRING))),
+        TableElements.of(
+            new TableElement("COL1", new Type(SqlTypes.BIGINT)),
+            new TableElement("COL2", new Type(SqlTypes.STRING))),
         true, tableProperties);
 
     // When:

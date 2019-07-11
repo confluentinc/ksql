@@ -23,7 +23,6 @@ import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.InternalFunctionRegistry;
@@ -31,18 +30,18 @@ import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.parser.tree.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.Literal;
-import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
-import io.confluent.ksql.schema.ksql.SqlType;
+import io.confluent.ksql.parser.tree.TableElements;
+import io.confluent.ksql.parser.tree.Type;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.apache.kafka.common.serialization.Serdes;
@@ -59,9 +58,9 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class CreateStreamCommandTest {
 
   private static final String STREAM_NAME = "s1";
-  private static final List<TableElement> SOME_ELEMENTS = ImmutableList.of(
-      new TableElement("ID", PrimitiveType.of(SqlType.BIGINT)),
-      new TableElement("bob", PrimitiveType.of(SqlType.STRING))
+  private static final TableElements SOME_ELEMENTS = TableElements.of(
+      new TableElement("ID", new Type(SqlTypes.BIGINT)),
+      new TableElement("bob", new Type(SqlTypes.STRING))
   );
 
   @Mock
@@ -205,6 +204,6 @@ public class CreateStreamCommandTest {
     final Map<String, Literal> allProps = new HashMap<>(props);
     allProps.putIfAbsent(DdlConfig.VALUE_FORMAT_PROPERTY, new StringLiteral("Json"));
     allProps.putIfAbsent(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral("some-topic"));
-    when(createStreamStatement.getProperties()).thenReturn(new CreateSourceProperties(allProps));
+    when(createStreamStatement.getProperties()).thenReturn(CreateSourceProperties.from(allProps));
   }
 }

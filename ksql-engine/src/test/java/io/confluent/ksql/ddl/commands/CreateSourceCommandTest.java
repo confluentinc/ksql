@@ -21,9 +21,9 @@ import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.ddl.commands.CreateSourceCommand.SerdeOptionsSupplier;
 import io.confluent.ksql.metastore.MutableMetaStore;
@@ -32,21 +32,20 @@ import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.Literal;
-import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
+import io.confluent.ksql.parser.tree.TableElements;
+import io.confluent.ksql.parser.tree.Type;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.SqlType;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.serde.SerdeFactories;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.apache.kafka.connect.data.Schema;
@@ -64,12 +63,12 @@ public class CreateSourceCommandTest {
 
   private static final String TOPIC_NAME = "some topic";
 
-  private static final List<TableElement> ONE_ELEMENT = ImmutableList.of(
-      new TableElement("bob", PrimitiveType.of(SqlType.STRING)));
+  private static final TableElements ONE_ELEMENT = TableElements.of(
+      new TableElement("bob", new Type(SqlTypes.STRING)));
 
-  private static final List<TableElement> SOME_ELEMENTS = ImmutableList.of(
-      new TableElement("bob", PrimitiveType.of(SqlType.STRING)),
-      new TableElement("hojjat", PrimitiveType.of(SqlType.STRING))
+  private static final TableElements SOME_ELEMENTS = TableElements.of(
+      new TableElement("bob", new Type(SqlTypes.STRING)),
+      new TableElement("hojjat", new Type(SqlTypes.STRING))
   );
 
   private static final Set<SerdeOption> SOME_SERDE_OPTIONS = ImmutableSet
@@ -118,7 +117,7 @@ public class CreateSourceCommandTest {
   @Test
   public void shouldThrowOnNoElements() {
     // Given:
-    when(statement.getElements()).thenReturn(Collections.emptyList());
+    when(statement.getElements()).thenReturn(TableElements.of());
 
     // Then:
     expectedException.expect(KsqlException.class);
@@ -174,6 +173,7 @@ public class CreateSourceCommandTest {
     );
   }
 
+  @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
   @Test
   public void shouldNotThrowIfTopicDoesExist() {
     // Given:
@@ -320,7 +320,7 @@ public class CreateSourceCommandTest {
   private void givenPropertiesWith(final Map<String, Literal> additionalProps) {
     final Map<String, Literal> allProps = new HashMap<>(minValidProps());
     allProps.putAll(additionalProps);
-    when(statement.getProperties()).thenReturn(new CreateSourceProperties(allProps));
+    when(statement.getProperties()).thenReturn(CreateSourceProperties.from(allProps));
   }
 
   private static final class TestCmd extends CreateSourceCommand {

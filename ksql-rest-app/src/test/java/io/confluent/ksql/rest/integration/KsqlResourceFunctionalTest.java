@@ -73,7 +73,7 @@ public class KsqlResourceFunctionalTest {
 
   private static final TestKsqlRestApp REST_APP = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
-      .withServiceContextBinder(config -> new AbstractBinder() {
+      .withServiceContextBinder((config, extension) -> new AbstractBinder() {
         @Override
         protected void configure() {
           bindFactory(new Factory<ServiceContext>() {

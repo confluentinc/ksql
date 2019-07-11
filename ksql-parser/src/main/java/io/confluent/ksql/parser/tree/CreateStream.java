@@ -18,7 +18,6 @@ package io.confluent.ksql.parser.tree;
 import static com.google.common.base.MoreObjects.toStringHelper;
 
 import com.google.errorprone.annotations.Immutable;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -27,7 +26,7 @@ public class CreateStream extends CreateSource implements ExecutableDdlStatement
 
   public CreateStream(
       final QualifiedName name,
-      final List<TableElement> elements,
+      final TableElements elements,
       final boolean notExists,
       final Map<String, Literal> properties
   ) {
@@ -37,17 +36,17 @@ public class CreateStream extends CreateSource implements ExecutableDdlStatement
   public CreateStream(
       final Optional<NodeLocation> location,
       final QualifiedName name,
-      final List<TableElement> elements,
+      final TableElements elements,
       final boolean notExists,
       final Map<String, Literal> properties
   ) {
-    this(location, name, elements, notExists, new CreateSourceProperties(properties));
+    this(location, name, elements, notExists, CreateSourceProperties.from(properties));
   }
 
   private CreateStream(
       final Optional<NodeLocation> location,
       final QualifiedName name,
-      final List<TableElement> elements,
+      final TableElements elements,
       final boolean notExists,
       final CreateSourceProperties properties
   ) {
@@ -56,7 +55,7 @@ public class CreateStream extends CreateSource implements ExecutableDdlStatement
 
   @Override
   public CreateSource copyWith(
-      final List<TableElement> elements,
+      final TableElements elements,
       final CreateSourceProperties properties
   ) {
     return new CreateStream(

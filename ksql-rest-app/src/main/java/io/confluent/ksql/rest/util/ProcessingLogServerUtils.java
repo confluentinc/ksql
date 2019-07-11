@@ -24,11 +24,11 @@ import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
-import io.confluent.ksql.parser.SqlFormatter;
-import io.confluent.ksql.parser.tree.CreateSource;
-import io.confluent.ksql.parser.tree.TableElement;
+import io.confluent.ksql.schema.connect.SqlSchemaFormatter;
+import io.confluent.ksql.schema.connect.SqlSchemaFormatter.Option;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.ParserUtil;
 import java.util.Optional;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaAndValue;
@@ -38,6 +38,8 @@ import org.slf4j.LoggerFactory;
 public final class ProcessingLogServerUtils {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ProcessingLogServerUtils.class);
+  private static final SqlSchemaFormatter FORMATTER =
+      new SqlSchemaFormatter(ParserUtil::isReservedIdentifier, Option.AS_COLUMN_LIST);
 
   private ProcessingLogServerUtils() {
   }
@@ -85,7 +87,7 @@ public final class ProcessingLogServerUtils {
     return Optional.of(topicName);
   }
 
-  public static PreparedStatement<CreateSource> processingLogStreamCreateStatement(
+  public static PreparedStatement<?> processingLogStreamCreateStatement(
       final ProcessingLogConfig config,
       final KsqlConfig ksqlConfig
   ) {
@@ -95,27 +97,20 @@ public final class ProcessingLogServerUtils {
     );
   }
 
-  private static PreparedStatement<CreateSource> processingLogStreamCreateStatement(
+  private static PreparedStatement<?> processingLogStreamCreateStatement(
       final String name,
       final String topicName
   ) {
     final Schema schema = getMessageSchema();
-    final String statementNoSchema =
-        String.format(
-            "CREATE STREAM %s WITH(KAFKA_TOPIC='%s', VALUE_FORMAT='JSON');", name, topicName);
-    final DefaultKsqlParser parser = new DefaultKsqlParser();
-    final ParsedStatement parsed = parser.parse(statementNoSchema).get(0);
-    final PreparedStatement<?> preparedStatement = parser
-        .prepare(parsed, new MetaStoreImpl(new InternalFunctionRegistry()));
 
-    final CreateSource streamCreateStatement
-        = (CreateSource) preparedStatement.getStatement();
-    final CreateSource streamCreateStatementWithSchema =
-        streamCreateStatement.copyWith(
-            TableElement.fromSchema(schema),
-            streamCreateStatement.getProperties());
-    return PreparedStatement.of(
-        SqlFormatter.formatSql(streamCreateStatementWithSchema),
-        streamCreateStatementWithSchema);
+    final String elements = FORMATTER.format(schema);
+
+    final String createStreamSql = "CREATE STREAM " + name
+        + " (" + elements + ")"
+        + " WITH(KAFKA_TOPIC='" + topicName + "', VALUE_FORMAT='JSON');";
+
+    final DefaultKsqlParser parser = new DefaultKsqlParser();
+    final ParsedStatement parsed = parser.parse(createStreamSql).get(0);
+    return parser.prepare(parsed, new MetaStoreImpl(new InternalFunctionRegistry()));
   }
 }

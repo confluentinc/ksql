@@ -127,17 +127,39 @@
       "outputs": [{"topic": "OUTPUT", "value": {"F0": 4}}]
     },
     {
+      "name": "non-join leaves aliased ROWKEY and ROWTIME in output's value schema",
+      "statements": [
+        "CREATE STREAM INPUT (F0 INT) WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT F0, ROWTIME AS TIME, ROWKEY AS KEY FROM INPUT;"
+      ],
+      "inputs": [{"topic": "input", "key": "k", "value": {"F0": 4}, "timestamp": 1}],
+      "outputs": [{"topic": "OUTPUT", "key": "k", "value": {"F0": 4, "TIME": 1, "KEY": "k"}, "timestamp": 1}]
+    },
+    {
       "name": "join removes ROWKEY and ROWTIME from output's value schema",
       "statements": [
         "CREATE STREAM LEFT_STREAM (F0 INT) WITH (kafka_topic='left', value_format='JSON');",
         "CREATE STREAM RIGHT_STREAM (F1 INT) WITH (kafka_topic='right', value_format='JSON');",
-        "CREATE STREAM OUTPUT as SELECT l.ROWKEY AS ROWKEY, f0, f1 FROM left_stream l join right_stream r WITHIN 1 seconds ON l.rowkey = r.rowkey;"
+        "CREATE STREAM OUTPUT as SELECT l.ROWTIME AS ROWTIME, l.ROWKEY AS ROWKEY, f0, f1 FROM left_stream l join right_stream r WITHIN 1 seconds ON l.rowkey = r.rowkey;"
       ],
       "inputs": [
         {"topic": "left", "value": {"F0": 4}},
         {"topic": "right", "value": {"F1": 6}}
       ],
       "outputs": [{"topic": "OUTPUT", "value": {"F0": 4, "F1": 6}}]
+    },
+    {
+      "name": "join leaves aliased ROWKEY and ROWTIME in output's value schema",
+      "statements": [
+        "CREATE STREAM LEFT_STREAM (F0 INT) WITH (kafka_topic='left', value_format='JSON');",
+        "CREATE STREAM RIGHT_STREAM (F1 INT) WITH (kafka_topic='right', value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT l.ROWTIME AS TIME, l.ROWKEY AS KEY, f0, f1 FROM left_stream l join right_stream r WITHIN 1 seconds ON l.rowkey = r.rowkey;"
+      ],
+      "inputs": [
+        {"topic": "left", "key": "k", "value": {"F0": 4}, "timestamp": 1},
+        {"topic": "right", "key": "k", "value": {"F1": 6}, "timestamp": 1}
+      ],
+      "outputs": [{"topic": "OUTPUT", "key": "k", "value": {"F0": 4, "F1": 6, "TIME": 1, "KEY": "k"}, "timestamp": 1}]
     },
     {
       "name": "group-by removes ROWKEY from output's value schema",

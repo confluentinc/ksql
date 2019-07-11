@@ -32,6 +32,7 @@ import io.confluent.ksql.rest.entity.SourceInfo;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.server.context.KsqlRestServiceContextBinder;
+import io.confluent.ksql.rest.server.security.KsqlSecurityExtension;
 import io.confluent.ksql.services.DefaultServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
@@ -50,7 +51,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import javax.ws.rs.client.Client;
@@ -82,7 +83,7 @@ public class TestKsqlRestApp extends ExternalResource {
   private final Map<String, ?> baseConfig;
   private final Supplier<String> bootstrapServers;
   private final Supplier<ServiceContext> serviceContext;
-  private final Function<KsqlConfig, Binder> serviceContextBinderFactory;
+  private final BiFunction<KsqlConfig, KsqlSecurityExtension, Binder> serviceContextBinderFactory;
   private final List<URL> listeners = new ArrayList<>();
   private KsqlRestApplication restServer;
 
@@ -90,7 +91,7 @@ public class TestKsqlRestApp extends ExternalResource {
       final Supplier<String> bootstrapServers,
       final Map<String, Object> additionalProps,
       final Supplier<ServiceContext> serviceContext,
-      final Function<KsqlConfig, Binder> serviceContextBinderFactory) {
+      final BiFunction<KsqlConfig, KsqlSecurityExtension, Binder>  serviceContextBinderFactory) {
 
     this.baseConfig = buildBaseConfig(additionalProps);
     this.bootstrapServers = Objects.requireNonNull(bootstrapServers, "bootstrapServers");
@@ -372,7 +373,8 @@ public class TestKsqlRestApp extends ExternalResource {
     private final Map<String, Object> additionalProps = new HashMap<>();
 
     private Supplier<ServiceContext> serviceContext;
-    private Function<KsqlConfig, Binder> serviceContextBinder = KsqlRestServiceContextBinder::new;
+    private BiFunction<KsqlConfig, KsqlSecurityExtension, Binder>  serviceContextBinder
+        = KsqlRestServiceContextBinder::new;
 
     private Builder(final Supplier<String> bootstrapServers) {
       this.bootstrapServers = Objects.requireNonNull(bootstrapServers, "bootstrapServers");
@@ -397,7 +399,9 @@ public class TestKsqlRestApp extends ExternalResource {
       return this;
     }
 
-    public Builder withServiceContextBinder(final Function<KsqlConfig, Binder> binder) {
+    public Builder withServiceContextBinder(
+        final BiFunction<KsqlConfig, KsqlSecurityExtension, Binder>  binder
+    ) {
       serviceContextBinder = binder;
       return this;
     }

@@ -16,6 +16,7 @@
 package io.confluent.ksql.rest.server;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.function.UdfLoader;
@@ -310,7 +311,9 @@ public class StandaloneExecutor implements Executable {
         return;
       }
 
-      if (!((CreateSource) statement.getStatement()).getElements().isEmpty()) {
+      final CreateSource createStatement = (CreateSource) statement.getStatement();
+
+      if (!Iterables.isEmpty(createStatement.getElements())) {
         return;
       }
 

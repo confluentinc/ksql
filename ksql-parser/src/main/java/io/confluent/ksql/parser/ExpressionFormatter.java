@@ -16,20 +16,17 @@
 package io.confluent.ksql.parser;
 
 import static java.lang.String.format;
-import static java.util.stream.Collectors.toList;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.parser.tree.ArithmeticUnaryExpression;
-import io.confluent.ksql.parser.tree.Array;
 import io.confluent.ksql.parser.tree.AstVisitor;
 import io.confluent.ksql.parser.tree.BetweenPredicate;
 import io.confluent.ksql.parser.tree.BooleanLiteral;
 import io.confluent.ksql.parser.tree.Cast;
 import io.confluent.ksql.parser.tree.ComparisonExpression;
-import io.confluent.ksql.parser.tree.Decimal;
 import io.confluent.ksql.parser.tree.DecimalLiteral;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.DoubleLiteral;
@@ -44,21 +41,20 @@ import io.confluent.ksql.parser.tree.IsNullPredicate;
 import io.confluent.ksql.parser.tree.LikePredicate;
 import io.confluent.ksql.parser.tree.LogicalBinaryExpression;
 import io.confluent.ksql.parser.tree.LongLiteral;
-import io.confluent.ksql.parser.tree.Map;
 import io.confluent.ksql.parser.tree.Node;
 import io.confluent.ksql.parser.tree.NotExpression;
 import io.confluent.ksql.parser.tree.NullLiteral;
-import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.parser.tree.SearchedCaseExpression;
 import io.confluent.ksql.parser.tree.SimpleCaseExpression;
 import io.confluent.ksql.parser.tree.StringLiteral;
-import io.confluent.ksql.parser.tree.Struct;
 import io.confluent.ksql.parser.tree.SubscriptExpression;
 import io.confluent.ksql.parser.tree.TimeLiteral;
 import io.confluent.ksql.parser.tree.TimestampLiteral;
+import io.confluent.ksql.parser.tree.Type;
 import io.confluent.ksql.parser.tree.WhenClause;
+import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.ParserUtil;
 import java.util.ArrayList;
@@ -87,32 +83,8 @@ public final class ExpressionFormatter {
     }
 
     @Override
-    protected String visitPrimitiveType(final PrimitiveType node, final Boolean unmangleNames) {
-      return node.getSqlType().toString();
-    }
-
-    @Override
-    protected String visitArray(final Array node, final Boolean unmangleNames) {
-      return "ARRAY<" + process(node.getItemType(), unmangleNames) + ">";
-    }
-
-    @Override
-    protected String visitMap(final Map node, final Boolean unmangleNames) {
-      return "MAP<VARCHAR, " + process(node.getValueType(), unmangleNames) + ">";
-    }
-
-    @Override
-    protected String visitStruct(final Struct node, final Boolean unmangleNames) {
-      return "STRUCT<" + Joiner.on(", ").join(node.getFields().stream()
-          .map((child) ->
-              ParserUtil.escapeIfLiteral(child.getName())
-                  + " " + process(child.getType(), unmangleNames))
-          .collect(toList())) + ">";
-    }
-
-    @Override
-    protected String visitDecimal(final Decimal node, final Boolean context) {
-      return String.format("DECIMAL(%d, %d)", node.getPrecision(), node.getScale());
+    protected String visitType(final Type node, final Boolean context) {
+      return node.getSqlType().toString(FormatOptions.of(ParserUtil::isReservedIdentifier));
     }
 
     @Override

@@ -20,10 +20,13 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -35,6 +38,9 @@ public class KsqlTestingToolTest {
   private final ByteArrayOutputStream errContent = new ByteArrayOutputStream();
   private final PrintStream originalOut = System.out;
   private final PrintStream originalErr = System.err;
+
+  private final static String CORRECT_TESTS_FOLDER = "src/test/resources/test-runner/correct/";
+  private final static String INCORRECT_TESTS_FOLDER = "src/test/resources/test-runner/incorrect";
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -51,15 +57,22 @@ public class KsqlTestingToolTest {
     System.setErr(originalErr);
   }
 
+  @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
   @Test
   public void shouldRunCorrectsTest() throws Exception {
-    final String testFolderPath = "src/test/resources/test-runner/";
-    for (int i = 1; i <= 4; i++) {
+
+    final File testFolder = new File(CORRECT_TESTS_FOLDER);
+    final File[] testSubFolders = testFolder.listFiles(File::isDirectory);
+    if (testSubFolders == null) {
+      Assert.fail("Invalid test folder path!");
+    }
+
+    for (final File correctTestFolder: testSubFolders) {
       outContent.reset();
       errContent.reset();
-      runTestCaseAndAssertPassed(testFolderPath + "test" + i + "/statements.sql",
-          testFolderPath + "test" + i + "/input.json",
-          testFolderPath + "test" + i + "/output.json"
+      runTestCaseAndAssertPassed(correctTestFolder.getPath() + "/statements.sql",
+          correctTestFolder.getPath() + "/input.json",
+          correctTestFolder.getPath() + "/output.json"
           );
     }
   }
@@ -98,9 +111,9 @@ public class KsqlTestingToolTest {
   public void shouldFailWithIncorrectTest() throws Exception {
     // When:
     KsqlTestingTool.runWithTripleFiles(
-        "src/test/resources/test-runner/incorrect-test1/statements.sql",
-        "src/test/resources/test-runner/incorrect-test1/input.json",
-        "src/test/resources/test-runner/incorrect-test1/output.json");
+        INCORRECT_TESTS_FOLDER + "/expected_mismatch/statements.sql",
+        INCORRECT_TESTS_FOLDER + "/expected_mismatch/input.json",
+        INCORRECT_TESTS_FOLDER + "/expected_mismatch/output.json");
 
     // Then:
     assertThat(errContent.toString("UTF-8"),
@@ -111,13 +124,13 @@ public class KsqlTestingToolTest {
   public void shouldFailWithIncorrectInputFormat() throws Exception {
     // Given:
     expectedException.expect(Exception.class);
-    expectedException.expectMessage("File name: src/test/resources/test-runner/incorrect-test2/input.json Message: Unexpected character ('{' (code 123)): was expecting double-quote to start field name");
+    expectedException.expectMessage("File name: " + INCORRECT_TESTS_FOLDER + "/incorrect_input_format/input.json Message: Unexpected character ('{' (code 123)): was expecting double-quote to start field name");
 
     // When:
     KsqlTestingTool.runWithTripleFiles(
-        "src/test/resources/test-runner/incorrect-test2/statements.sql",
-        "src/test/resources/test-runner/incorrect-test2/input.json",
-        "src/test/resources/test-runner/incorrect-test2/output.json");
+        INCORRECT_TESTS_FOLDER + "/incorrect_input_format/statements.sql",
+        INCORRECT_TESTS_FOLDER + "/incorrect_input_format/input.json",
+        INCORRECT_TESTS_FOLDER + "/incorrect_input_format/output.json");
 
   }
 
@@ -130,9 +143,9 @@ public class KsqlTestingToolTest {
 
     // When:
     KsqlTestingTool.runWithTripleFiles(
-        "src/test/resources/test-runner/incorrect-test3/statements.sql",
-        "src/test/resources/test-runner/incorrect-test3/input.json",
-        "src/test/resources/test-runner/incorrect-test3/output.json");
+        INCORRECT_TESTS_FOLDER + "/missing_field_in_output/statements.sql",
+        INCORRECT_TESTS_FOLDER + "/missing_field_in_output/input.json",
+        INCORRECT_TESTS_FOLDER + "/missing_field_in_output/output.json");
 
   }
 
@@ -140,13 +153,13 @@ public class KsqlTestingToolTest {
   public void shouldFailWithEmptyInput() throws Exception {
     // Given:
     expectedException.expect(Exception.class);
-    expectedException.expectMessage("File name: src/test/resources/test-runner/incorrect-test4/input.json Message: Cannot construct instance of `io.confluent.ksql.test.model.InputRecordsNode`, problem: Inputs cannot be empty.");
+    expectedException.expectMessage("File name: " + INCORRECT_TESTS_FOLDER + "/empty_input/input.json Message: Cannot construct instance of `io.confluent.ksql.test.model.InputRecordsNode`, problem: Inputs cannot be empty.");
 
     // When:
     KsqlTestingTool.runWithTripleFiles(
-        "src/test/resources/test-runner/incorrect-test4/statements.sql",
-        "src/test/resources/test-runner/incorrect-test4/input.json",
-        "src/test/resources/test-runner/incorrect-test4/output.json");
+        INCORRECT_TESTS_FOLDER + "/empty_input/statements.sql",
+        INCORRECT_TESTS_FOLDER + "/empty_input/input.json",
+        INCORRECT_TESTS_FOLDER + "/empty_input/output.json");
 
   }
 
@@ -154,13 +167,13 @@ public class KsqlTestingToolTest {
   public void shouldFailWithEmptyOutput() throws Exception {
     // Given:
     expectedException.expect(Exception.class);
-    expectedException.expectMessage("File name: src/test/resources/test-runner/incorrect-test5/output.json Message: Cannot construct instance of `io.confluent.ksql.test.model.OutputRecordsNode`, problem: Outputs cannot be empty.");
+    expectedException.expectMessage("File name: " + INCORRECT_TESTS_FOLDER + "/empty_output/output.json Message: Cannot construct instance of `io.confluent.ksql.test.model.OutputRecordsNode`, problem: Outputs cannot be empty.");
 
     // When:
     KsqlTestingTool.runWithTripleFiles(
-        "src/test/resources/test-runner/incorrect-test5/statements.sql",
-        "src/test/resources/test-runner/incorrect-test5/input.json",
-        "src/test/resources/test-runner/incorrect-test5/output.json");
+        INCORRECT_TESTS_FOLDER + "/empty_output/statements.sql",
+        INCORRECT_TESTS_FOLDER + "/empty_output/input.json",
+        INCORRECT_TESTS_FOLDER + "/empty_output/output.json");
 
   }
 

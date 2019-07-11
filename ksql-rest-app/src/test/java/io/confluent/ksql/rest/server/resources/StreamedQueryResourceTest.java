@@ -56,7 +56,7 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.QueuedQueryMetadata;
+import io.confluent.ksql.util.TransientQueryMetadata;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import java.io.EOFException;
 import java.io.IOException;
@@ -278,8 +278,8 @@ public class StreamedQueryResourceTest {
 
     reset(mockKsqlEngine);
 
-    final QueuedQueryMetadata queuedQueryMetadata =
-        new QueuedQueryMetadata(
+    final TransientQueryMetadata transientQueryMetadata =
+        new TransientQueryMetadata(
             queryString,
             mockKafkaStreams,
             SOME_SCHEMA,
@@ -296,7 +296,7 @@ public class StreamedQueryResourceTest {
     reset(mockOutputNode);
     expect(mockKsqlEngine.execute(serviceContext,
         ConfiguredStatement.of(statement, requestStreamsProperties, ksqlConfig)))
-        .andReturn(ExecuteResult.of(queuedQueryMetadata));
+        .andReturn(ExecuteResult.of(transientQueryMetadata));
 
     expect(mockKsqlEngine.isAcceptingStatements()).andReturn(true);
     replay(mockKsqlEngine, mockStatementParser, mockKafkaStreams, mockOutputNode);

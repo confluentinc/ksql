@@ -24,10 +24,10 @@ import java.util.Set;
 import java.util.stream.Stream;
 import org.junit.Test;
 
-public class SqlTypeTest {
+public class SqlBaseTypeTest {
 
-  private static final Set<SqlType> NUMBER_TYPES =
-      ImmutableSet.of(SqlType.INTEGER, SqlType.BIGINT, SqlType.DOUBLE);
+  private static final Set<SqlBaseType> NUMBER_TYPES =
+      ImmutableSet.of(SqlBaseType.INTEGER, SqlBaseType.BIGINT, SqlBaseType.DOUBLE);
 
   @Test
   public void shouldNotBeNumber() {
@@ -55,32 +55,32 @@ public class SqlTypeTest {
 
   @Test
   public void shouldUpCastInt() {
-    assertThat(SqlType.INTEGER.canUpCast(SqlType.BIGINT), is(true));
-    assertThat(SqlType.INTEGER.canUpCast(SqlType.DOUBLE), is(true));
+    assertThat(SqlBaseType.INTEGER.canUpCast(SqlBaseType.BIGINT), is(true));
+    assertThat(SqlBaseType.INTEGER.canUpCast(SqlBaseType.DOUBLE), is(true));
   }
 
   @Test
   public void shouldUpCastBigInt() {
-    assertThat(SqlType.BIGINT.canUpCast(SqlType.DOUBLE), is(true));
+    assertThat(SqlBaseType.BIGINT.canUpCast(SqlBaseType.DOUBLE), is(true));
   }
 
   @Test
   public void shouldNotDownCastBigInt() {
-    assertThat(SqlType.BIGINT.canUpCast(SqlType.INTEGER), is(false));
+    assertThat(SqlBaseType.BIGINT.canUpCast(SqlBaseType.INTEGER), is(false));
   }
 
   @Test
   public void shouldNotDownCastDouble() {
-    assertThat(SqlType.DOUBLE.canUpCast(SqlType.INTEGER), is(false));
-    assertThat(SqlType.DOUBLE.canUpCast(SqlType.BIGINT), is(false));
+    assertThat(SqlBaseType.DOUBLE.canUpCast(SqlBaseType.INTEGER), is(false));
+    assertThat(SqlBaseType.DOUBLE.canUpCast(SqlBaseType.BIGINT), is(false));
   }
 
-  private static Stream<SqlType> numberTypes() {
+  private static Stream<SqlBaseType> numberTypes() {
     return NUMBER_TYPES.stream();
   }
 
-  private static Stream<SqlType> nonNumberTypes() {
-    return Arrays.stream(SqlType.values())
+  private static Stream<SqlBaseType> nonNumberTypes() {
+    return Arrays.stream(SqlBaseType.values())
         .filter(sqlType -> !NUMBER_TYPES.contains(sqlType));
   }
 }

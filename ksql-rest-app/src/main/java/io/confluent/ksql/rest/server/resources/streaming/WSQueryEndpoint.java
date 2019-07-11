@@ -51,6 +51,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeoutException;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import javax.websocket.CloseReason;
 import javax.websocket.CloseReason.CloseCodes;
@@ -92,7 +93,8 @@ public class WSQueryEndpoint {
   private final Duration commandQueueCatchupTimeout;
   private final TopicAccessValidator topicAccessValidator;
   private final KsqlSecurityExtension securityExtension;
-  private final ServiceContextFactory serviceContextFactory;
+  private final UserServiceContextFactory serviceContextFactory;
+  private final Function<KsqlConfig, ServiceContext> defaultServiceContextFactory;
   private final ServerState serverState;
 
   private WebSocketSubscriber<?> subscriber;
@@ -100,7 +102,7 @@ public class WSQueryEndpoint {
 
   @VisibleForTesting
   @FunctionalInterface
-  interface ServiceContextFactory {
+  interface UserServiceContextFactory {
     ServiceContext create(
         KsqlConfig ksqlConfig,
         KafkaClientSupplier kafkaClientSupplier,
@@ -136,6 +138,7 @@ public class WSQueryEndpoint {
         topicAccessValidator,
         securityExtension,
         DefaultServiceContext::create,
+        DefaultServiceContext::create,
         serverState);
   }
 
@@ -154,7 +157,8 @@ public class WSQueryEndpoint {
       final Duration commandQueueCatchupTimeout,
       final TopicAccessValidator topicAccessValidator,
       final KsqlSecurityExtension securityExtension,
-      final ServiceContextFactory serviceContextFactory,
+      final UserServiceContextFactory serviceContextFactory,
+      final Function<KsqlConfig, ServiceContext> defaultServiceContextFactory,
       final ServerState serverState
   ) {
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
@@ -175,6 +179,8 @@ public class WSQueryEndpoint {
     this.securityExtension = Objects.requireNonNull(securityExtension, "securityExtension");
     this.serviceContextFactory =
         Objects.requireNonNull(serviceContextFactory, "serviceContextFactory");
+    this.defaultServiceContextFactory =
+        Objects.requireNonNull(defaultServiceContextFactory, "defaultServiceContextFactory");
     this.serverState = Objects.requireNonNull(serverState, "serverState");
   }
 
@@ -215,11 +221,7 @@ public class WSQueryEndpoint {
 
       final PreparedStatement<?> preparedStatement = parseStatement(request);
 
-      final Principal principal = session.getUserPrincipal();
-      serviceContext = serviceContextFactory.create(
-          ksqlConfig,
-          securityExtension.getKafkaClientSupplier(principal),
-          securityExtension.getSchemaRegistryClientSupplier(principal));
+      serviceContext = createServiceContext(session.getUserPrincipal());
 
       topicAccessValidator.validate(
           serviceContext,
@@ -280,6 +282,23 @@ public class WSQueryEndpoint {
           }
         }
     );
+  }
+
+  private ServiceContext createServiceContext(final Principal principal) {
+    // Creates a ServiceContext using the user's credentials, so the WS query topics are
+    // accessed with the user permission context (defaults to KSQL service context)
+
+    if (!securityExtension.getUserContextProvider().isPresent()) {
+      return defaultServiceContextFactory.apply(ksqlConfig);
+    }
+
+    return securityExtension.getUserContextProvider()
+        .map(provider ->
+            serviceContextFactory.create(
+                ksqlConfig,
+                provider.getKafkaClientSupplier(principal),
+                provider.getSchemaRegistryClientFactory(principal)))
+        .get();
   }
 
   private void validateVersion(final Session session) {

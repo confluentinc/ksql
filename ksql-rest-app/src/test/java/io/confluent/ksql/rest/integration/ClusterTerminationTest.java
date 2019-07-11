@@ -58,7 +58,7 @@ public class ClusterTerminationTest {
   private static final TestKsqlRestApp REST_APP = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
       .withServiceContext(TEST_HARNESS::getServiceContext)
-      .withServiceContextBinder(config -> new AbstractBinder() {
+      .withServiceContextBinder((config, extension) -> new AbstractBinder() {
         @Override
         protected void configure() {
           bindFactory(new Factory<ServiceContext>() {

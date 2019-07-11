@@ -23,7 +23,6 @@ import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.InternalFunctionRegistry;
@@ -31,11 +30,12 @@ import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.parser.tree.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.Literal;
-import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
-import io.confluent.ksql.schema.ksql.SqlType;
+import io.confluent.ksql.parser.tree.TableElements;
+import io.confluent.ksql.parser.tree.Type;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -76,8 +76,8 @@ public class CreateTableCommandTest {
   public void setUp() {
     givenPropertiesWith((Collections.emptyMap()));
     when(createTableStatement.getName()).thenReturn(QualifiedName.of(TABLE_NAME));
-    when(createTableStatement.getElements()).thenReturn(ImmutableList.of(
-        new TableElement("SOME-KEY", PrimitiveType.of(SqlType.STRING))
+    when(createTableStatement.getElements()).thenReturn(TableElements.of(
+        new TableElement("SOME-KEY", new Type(SqlTypes.STRING))
     ));
     when(topicClient.isTopicExists(any())).thenReturn(true);
   }
@@ -202,6 +202,6 @@ public class CreateTableCommandTest {
     final Map<String, Literal> allProps = new HashMap<>(props);
     allProps.putIfAbsent(DdlConfig.VALUE_FORMAT_PROPERTY, new StringLiteral("Json"));
     allProps.putIfAbsent(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral("some-topic"));
-    when(createTableStatement.getProperties()).thenReturn(new CreateSourceProperties(allProps));
+    when(createTableStatement.getProperties()).thenReturn(CreateSourceProperties.from(allProps));
   }
 }

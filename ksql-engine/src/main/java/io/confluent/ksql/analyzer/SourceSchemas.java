@@ -26,6 +26,7 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.apache.kafka.connect.data.Field;
 
 /**
  * Helper for finding fields in the schemas of one or more aliased sources.
@@ -40,6 +41,13 @@ final class SourceSchemas {
     if (sourceSchemas.isEmpty()) {
       throw new IllegalArgumentException("Must supply at least one schema");
     }
+  }
+
+  /**
+   * @return {@code true} if there is more than one source schema, i.e. its a join.
+   */
+  boolean isJoin() {
+    return sourceSchemas.size() > 1;
   }
 
   /**
@@ -74,7 +82,42 @@ final class SourceSchemas {
         : ImmutableSet.of();
   }
 
-  public boolean isJoin() {
-    return sourceSchemas.size() > 1;
+  /**
+   * Determines if the supplied {@code fieldName} matches a source(s) meta or key fields.
+   *
+   * <p>The supplied name can be prefixed with a source name. In which case, only that specific
+   * source is checked. If no prefix is present, all sources are checked.
+   *
+   * @param fieldName the field name to search for. Can be prefixed by source name.
+   * @return true if this the supplied {@code fieldName} matches a non-value field
+   */
+  boolean matchesNonValueField(final String fieldName) {
+    final Optional<String> maybeSourceName = SchemaUtil.getFieldNameAlias(fieldName);
+    if (!maybeSourceName.isPresent()) {
+      return sourceSchemas.values().stream()
+          .anyMatch(schema -> nonValueFieldNames(schema).contains(fieldName));
+    }
+
+    final String sourceName = maybeSourceName.get();
+    final String baseFieldName = SchemaUtil.getFieldNameWithNoAlias(fieldName);
+
+    final LogicalSchema sourceSchema = sourceSchemas.get(sourceName);
+    if (sourceSchema == null) {
+      throw new IllegalArgumentException("Unknown source: " + sourceName);
+    }
+
+    return nonValueFieldNames(sourceSchema).contains(baseFieldName);
+  }
+
+  private static Set<String> nonValueFieldNames(final LogicalSchema schema) {
+    final Set<String> fieldNames = schema.metaFields().stream()
+        .map(Field::name)
+        .collect(Collectors.toSet());
+
+    schema.keyFields().stream()
+        .map(Field::name)
+        .forEach(fieldNames::add);
+
+    return fieldNames;
   }
 }

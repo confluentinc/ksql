@@ -18,7 +18,7 @@ package io.confluent.ksql.schema.ksql;
 /**
  * The SQL types supported by KSQL.
  */
-public enum SqlType {
+public enum SqlBaseType {
   BOOLEAN, INTEGER, BIGINT, DOUBLE, DECIMAL, STRING, ARRAY, MAP, STRUCT;
 
   public boolean isNumber() {
@@ -26,7 +26,7 @@ public enum SqlType {
     return this == INTEGER || this == BIGINT || this == DOUBLE;
   }
 
-  public boolean canUpCast(final SqlType to) {
+  public boolean canUpCast(final SqlBaseType to) {
     return isNumber() && this.ordinal() <= to.ordinal();
   }
 }

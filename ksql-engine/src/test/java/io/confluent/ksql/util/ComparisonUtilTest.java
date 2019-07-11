@@ -21,7 +21,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.parser.tree.ComparisonExpression;
-import io.confluent.ksql.schema.ksql.SqlType;
+import io.confluent.ksql.schema.ksql.SqlBaseType;
 import java.util.List;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -43,9 +43,9 @@ public class ComparisonUtilTest {
       SchemaBuilder.struct().field("foo", Schema.OPTIONAL_INT64_SCHEMA).build()
   );
 
-  private static final SqlType[] SCHEMA_TO_SQL_NAME = new SqlType[] {
-      SqlType.BOOLEAN, SqlType.INTEGER, SqlType.BIGINT, SqlType.DOUBLE,
-      SqlType.DECIMAL, SqlType.STRING, SqlType.ARRAY, SqlType.MAP, SqlType.STRUCT
+  private static final SqlBaseType[] SCHEMA_TO_SQL_NAME = new SqlBaseType[] {
+      SqlBaseType.BOOLEAN, SqlBaseType.INTEGER, SqlBaseType.BIGINT, SqlBaseType.DOUBLE,
+      SqlBaseType.DECIMAL, SqlBaseType.STRING, SqlBaseType.ARRAY, SqlBaseType.MAP, SqlBaseType.STRUCT
   };
 
   private static final List<List<Boolean>> expectedResults = ImmutableList.of(

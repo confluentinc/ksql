@@ -1344,8 +1344,7 @@ public class KsqlResourceTest {
     final PropertiesList props = makeSingleRequest("list properties;", PropertiesList.class);
 
     // Then:
-    assertThat(props.getDefaultProperties(),
-        hasItem(KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.STATE_DIR_CONFIG));
+    assertThat(props.getDefaultProperties(), hasItem(KsqlConfig.KSQL_SERVICE_ID_CONFIG));
   }
 
   @Test

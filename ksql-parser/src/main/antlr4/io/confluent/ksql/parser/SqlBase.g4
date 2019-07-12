@@ -294,7 +294,6 @@ identifier
     | nonReserved            #unquotedIdentifier
     | BACKQUOTED_IDENTIFIER  #backQuotedIdentifier
     | DIGIT_IDENTIFIER       #digitIdentifier
-    | KEY                    #keyLiteral
     ;
 
 number
@@ -317,6 +316,7 @@ nonReserved
     | EXPLAIN | ANALYZE | TYPE
     | SET | RESET
     | IF
+    | KEY
     ;
 
 SELECT: 'SELECT';

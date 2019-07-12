@@ -19,20 +19,13 @@ import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
 import static org.junit.internal.matchers.ThrowableMessageMatcher.hasMessage;
 
-import io.confluent.ksql.logging.processing.ProcessingLogConfig;
-import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
-import io.confluent.ksql.serde.SerdeTestUtils;
-import io.confluent.ksql.serde.util.SerdeProcessingLogMessageFactory;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlException;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
-import java.util.Collections;
-import java.util.Optional;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Schema;
@@ -44,7 +37,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
-import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -60,20 +52,14 @@ public class KsqlDelimitedDeserializerTest {
       .build()
   );
 
-  private final ProcessingLogConfig processingLogConfig =
-      new ProcessingLogConfig(Collections.emptyMap());
-
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
 
   private KsqlDelimitedDeserializer deserializer;
 
-  @Mock
-  private ProcessingLogger recordLogger;
-
   @Before
   public void before() {
-    deserializer = new KsqlDelimitedDeserializer(ORDER_SCHEMA, recordLogger);
+    deserializer = new KsqlDelimitedDeserializer(ORDER_SCHEMA);
   }
 
   @Test
@@ -91,27 +77,6 @@ public class KsqlDelimitedDeserializerTest {
     assertThat(struct.get("ITEMID"), is("item_1"));
     assertThat(struct.get("ORDERUNITS"), is(10.0));
     assertThat(struct.get("COST"), is(new BigDecimal("10.10")));
-  }
-
-  @Test
-  public void shouldLogErrors() {
-    // Given:
-    final byte[] record = "badnumfields".getBytes(StandardCharsets.UTF_8);
-
-    try {
-      // When:
-      deserializer.deserialize("topic", record);
-      fail("deserialize should have thrown");
-    } catch (final SerializationException e) {
-
-      // Then:
-      SerdeTestUtils.shouldLogError(
-          recordLogger,
-          SerdeProcessingLogMessageFactory.deserializationErrorMsg(
-              e.getCause(),
-              Optional.of(record)).apply(processingLogConfig),
-          processingLogConfig);
-    }
   }
 
   @Test
@@ -166,7 +131,7 @@ public class KsqlDelimitedDeserializerTest {
     expectedException.expectMessage("DELIMITED expects all top level schemas to be STRUCTs");
 
     // When:
-    new KsqlDelimitedDeserializer(persistenceSchema(Schema.OPTIONAL_INT64_SCHEMA), recordLogger);
+    new KsqlDelimitedDeserializer(persistenceSchema(Schema.OPTIONAL_INT64_SCHEMA));
   }
 
   @Test
@@ -178,8 +143,7 @@ public class KsqlDelimitedDeserializerTest {
         .build()
     );
 
-    final KsqlDelimitedDeserializer deserializer =
-        new KsqlDelimitedDeserializer(schema, recordLogger);
+    final KsqlDelimitedDeserializer deserializer = new KsqlDelimitedDeserializer(schema);
 
     final byte[] bytes = "10".getBytes(StandardCharsets.UTF_8);
 
@@ -198,8 +162,7 @@ public class KsqlDelimitedDeserializerTest {
           .field("cost", DecimalUtil.builder(4, 2))
           .build()
     );
-    final KsqlDelimitedDeserializer deserializer =
-        new KsqlDelimitedDeserializer(schema, recordLogger);
+    final KsqlDelimitedDeserializer deserializer = new KsqlDelimitedDeserializer(schema);
 
     final byte[] bytes = "01.12".getBytes(StandardCharsets.UTF_8);
 
@@ -218,8 +181,7 @@ public class KsqlDelimitedDeserializerTest {
             .field("cost", DecimalUtil.builder(4, 2))
             .build()
     );
-    final KsqlDelimitedDeserializer deserializer =
-        new KsqlDelimitedDeserializer(schema, recordLogger);
+    final KsqlDelimitedDeserializer deserializer = new KsqlDelimitedDeserializer(schema);
 
     final byte[] bytes = "1.12".getBytes(StandardCharsets.UTF_8);
 
@@ -240,8 +202,7 @@ public class KsqlDelimitedDeserializerTest {
         .build()
     );
 
-    final KsqlDelimitedDeserializer deserializer = new KsqlDelimitedDeserializer(schema,
-        recordLogger);
+    final KsqlDelimitedDeserializer deserializer = new KsqlDelimitedDeserializer(schema);
 
     final byte[] bytes = "10".getBytes(StandardCharsets.UTF_8);
 
@@ -272,7 +233,7 @@ public class KsqlDelimitedDeserializerTest {
     expectedException.expectMessage("DELIMITED does not support type: ARRAY, field: ids");
 
     // When:
-    new KsqlDelimitedDeserializer(schema, recordLogger);
+    new KsqlDelimitedDeserializer(schema);
   }
 
   @Test
@@ -292,7 +253,7 @@ public class KsqlDelimitedDeserializerTest {
     expectedException.expectMessage("DELIMITED does not support type: MAP, field: ids");
 
     // When:
-    new KsqlDelimitedDeserializer(schema, recordLogger);
+    new KsqlDelimitedDeserializer(schema);
   }
 
   @Test
@@ -313,7 +274,7 @@ public class KsqlDelimitedDeserializerTest {
     expectedException.expectMessage("DELIMITED does not support type: STRUCT, field: ids");
 
     // When:
-    new KsqlDelimitedDeserializer(schema, recordLogger);
+    new KsqlDelimitedDeserializer(schema);
   }
 
   private static PersistenceSchema persistenceSchema(final Schema connectSchema) {

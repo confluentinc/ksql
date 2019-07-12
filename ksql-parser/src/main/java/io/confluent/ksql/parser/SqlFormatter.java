@@ -17,13 +17,12 @@ package io.confluent.ksql.parser;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.Iterables.getOnlyElement;
-import static com.google.common.collect.Iterables.transform;
 
-import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.AstVisitor;
+import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
@@ -259,49 +258,22 @@ public final class SqlFormatter {
     }
 
     @Override
-    protected Void visitCreateStreamAsSelect(final CreateStreamAsSelect node,
-                                             final Integer indent) {
+    protected Void visitCreateStreamAsSelect(
+        final CreateStreamAsSelect node,
+        final Integer indent
+    ) {
       builder.append("CREATE STREAM ");
-      if (node.isNotExists()) {
-        builder.append("IF NOT EXISTS ");
-      }
-      builder.append(node.getName());
-
-      if (!node.getProperties().isEmpty()) {
-        builder.append(" WITH (");
-        Joiner.on(", ")
-            .appendTo(builder, transform(
-                node.getProperties().entrySet(), entry -> entry.getKey() + " = "
-                                                          + ExpressionFormatter
-                                                              .formatExpression(entry.getValue())));
-        builder.append(")");
-      }
-
-      builder.append(" AS ");
-      process(node.getQuery(), indent);
-      processPartitionBy(node.getPartitionByColumn(), indent);
+      formatCreateAs(node, indent);
       return null;
     }
 
     @Override
-    protected Void visitCreateTableAsSelect(final CreateTableAsSelect node, final Integer indent) {
+    protected Void visitCreateTableAsSelect(
+        final CreateTableAsSelect node,
+        final Integer indent
+    ) {
       builder.append("CREATE TABLE ");
-      if (node.isNotExists()) {
-        builder.append("IF NOT EXISTS ");
-      }
-      builder.append(node.getName());
-
-      if (!node.getProperties().isEmpty()) {
-        builder.append(" WITH (");
-        Joiner.on(", ")
-                .appendTo(builder, node.getProperties().entrySet().stream()
-                        .map(entry -> entry.getKey() + " = " + ExpressionFormatter
-                        .formatExpression(entry.getValue())).collect(Collectors.toList()));
-        builder.append(")");
-      }
-
-      builder.append(" AS ");
-      process(node.getQuery(), indent);
+      formatCreateAs(node, indent);
       return null;
     }
 
@@ -425,6 +397,27 @@ public final class SqlFormatter {
       }
 
       builder.append(";");
+    }
+
+    private void formatCreateAs(final CreateAsSelect node, final Integer indent) {
+      if (node.isNotExists()) {
+        builder.append("IF NOT EXISTS ");
+      }
+
+      builder.append(node.getName());
+
+      final String tableProps = node.getProperties().toString();
+      if (!tableProps.isEmpty()) {
+        builder
+            .append(" WITH (")
+            .append(tableProps)
+            .append(")");
+      }
+
+      builder.append(" AS ");
+
+      process(node.getQuery(), indent);
+      processPartitionBy(node.getPartitionByColumn(), indent);
     }
 
     private static String formatTableElement(final TableElement e) {

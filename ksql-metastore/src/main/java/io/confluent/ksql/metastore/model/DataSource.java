@@ -92,9 +92,10 @@ public interface DataSource<K> {
   /**
    * The timestamp extraction policy of the source.
    *
-   * <p>This is controlled by the {@link io.confluent.ksql.ddl.DdlConfig#TIMESTAMP_NAME_PROPERTY}
-   * and {@link io.confluent.ksql.ddl.DdlConfig#TIMESTAMP_FORMAT_PROPERTY} properties set in the
-   * WITH clause.
+   * <p>This is controlled by the
+   * {@link io.confluent.ksql.properties.with.CommonCreateConfigs#TIMESTAMP_NAME_PROPERTY}
+   * and {@link io.confluent.ksql.properties.with.CommonCreateConfigs#TIMESTAMP_FORMAT_PROPERTY}
+   * properties set in the WITH clause.
    *
    * @return the timestamp extraction policy of the source.
    */

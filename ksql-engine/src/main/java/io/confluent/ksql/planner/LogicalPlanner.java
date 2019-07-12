@@ -151,8 +151,8 @@ public class LogicalPlanner {
   ) {
     return TimestampExtractionPolicyFactory.create(
         inputSchema,
-        analysis.getTimestampColumnName(),
-        analysis.getTimestampFormat());
+        analysis.getProperties().getTimestampColumnName(),
+        analysis.getProperties().getTimestampFormat());
   }
 
   private AggregateNode buildAggregateNode(final PlanNode sourcePlanNode) {

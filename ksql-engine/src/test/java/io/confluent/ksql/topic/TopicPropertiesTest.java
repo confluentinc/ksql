@@ -37,13 +37,8 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
-import io.confluent.ksql.ddl.DdlConfig;
-import io.confluent.ksql.parser.tree.IntegerLiteral;
-import io.confluent.ksql.parser.tree.Literal;
-import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.topic.TopicProperties.Builder;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -54,6 +49,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.admin.TopicDescription;
@@ -75,21 +71,20 @@ public class TopicPropertiesTest {
 
     public @Rule ExpectedException expectedException = ExpectedException.none();
 
-    final KsqlConfig config = new KsqlConfig(ImmutableMap.of(
+    private final KsqlConfig config = new KsqlConfig(ImmutableMap.of(
         KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY, 1,
         KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, (short) 1
     ));
 
     @Test
     public void shouldUseNameFromWithClause() {
-      // Given:
-      final Map<String, Literal> withClause = ImmutableMap.of(
-          DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral("name")
-      );
-
       // When:
       final TopicProperties properties = new TopicProperties.Builder()
-          .withWithClause(withClause)
+          .withWithClause(
+              Optional.of("name"),
+              Optional.empty(),
+              Optional.empty()
+          )
           .withKsqlConfig(config)
           .build();
 
@@ -99,15 +94,14 @@ public class TopicPropertiesTest {
 
     @Test
     public void shouldUseNameFromWithClauseWhenNameIsAlsoPresent() {
-      // Given:
-      final Map<String, Literal> withClause = ImmutableMap.of(
-          DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral("name")
-      );
-
       // When:
       final TopicProperties properties = new TopicProperties.Builder()
           .withName("oh no!")
-          .withWithClause(withClause)
+          .withWithClause(
+              Optional.of("name"),
+              Optional.empty(),
+              Optional.empty()
+          )
           .withKsqlConfig(config)
           .build();
 
@@ -189,16 +183,13 @@ public class TopicPropertiesTest {
 
     @Test
     public void shouldNotMakeRemoteCallIfUnnecessary() {
-      // Given:
-      final Map<String, Literal> withClause = ImmutableMap.of(
-          DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral("name"),
-          KsqlConstants.SINK_NUMBER_OF_PARTITIONS, new IntegerLiteral(1),
-          KsqlConstants.SINK_NUMBER_OF_REPLICAS, new IntegerLiteral(1)
-      );
-
       // When:
       final TopicProperties properties = new TopicProperties.Builder()
-          .withWithClause(withClause)
+          .withWithClause(
+              Optional.of("name"),
+              Optional.of(1),
+              Optional.of((short) 1)
+          )
           .withKsqlConfig(config)
           .withSource(() -> {
             throw new RuntimeException();
@@ -239,6 +230,85 @@ public class TopicPropertiesTest {
       assertThat(properties.getReplicas(), equalTo((short) 1));
     }
 
+    @Test
+    public void shouldHandleStringOverrides() {
+      // Given:
+      final Map<String, Object> propertyOverrides = ImmutableMap.of(
+          KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY, "1",
+          KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, "2"
+      );
+
+      // When:
+      final TopicProperties properties = new TopicProperties.Builder()
+          .withName("name")
+          .withOverrides(propertyOverrides)
+          .build();
+
+      // Then:
+      assertThat(properties.getPartitions(), is(1));
+      assertThat(properties.getReplicas(), is((short)2));
+    }
+
+    @Test
+    public void shouldHandleNumberOverrides() {
+      // Given:
+      final Map<String, Object> propertyOverrides = ImmutableMap.of(
+          KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY, 1,
+          KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, 2
+      );
+
+      // When:
+      final TopicProperties properties = new TopicProperties.Builder()
+          .withName("name")
+          .withOverrides(propertyOverrides)
+          .build();
+
+      // Then:
+      assertThat(properties.getPartitions(), is(1));
+      assertThat(properties.getReplicas(), is((short)2));
+    }
+
+    @Test
+    public void shouldThrowOnInvalidPartitionsOverride() {
+      // Given:
+      final Map<String, Object> propertyOverrides = ImmutableMap.of(
+          KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY, "I ain't no number",
+          KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, "2"
+      );
+
+      // Then:
+      expectedException.expect(KsqlException.class);
+      expectedException.expectMessage(
+          "Failed to parse property override 'ksql.sink.partitions': "
+              + "For input string: \"I ain't no number\"");
+
+      // When:
+      new TopicProperties.Builder()
+          .withName("name")
+          .withOverrides(propertyOverrides)
+          .build();
+    }
+
+    @Test
+    public void shouldThrowOnInvalidReplicasOverride() {
+      // Given:
+      final Map<String, Object> propertyOverrides = ImmutableMap.of(
+          KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY, "1",
+          KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, "I ain't no number"
+      );
+
+      // Then:
+      expectedException.expect(KsqlException.class);
+      expectedException.expectMessage(
+          "Failed to parse property override 'ksql.sink.replicas': "
+              + "For input string: \"I ain't no number\"");
+
+      // When:
+      new TopicProperties.Builder()
+          .withName("name")
+          .withOverrides(propertyOverrides)
+          .build();
+    }
   }
 
   @RunWith(Parameterized.class)
@@ -342,7 +412,8 @@ public class TopicPropertiesTest {
 
     private KsqlConfig ksqlConfig = new KsqlConfig(new HashMap<>());
     private final Map<String, Object> propertyOverrides = new HashMap<>();
-    private final Map<String, Literal> withClause = new HashMap<>();
+    private Optional<Integer> withClausePartitionCount = Optional.empty();
+    private Optional<Short> withClauseReplicationFactor = Optional.empty();
 
     @Test
     public void shouldInferCorrectPartitionsAndReplicas() {
@@ -352,47 +423,45 @@ public class TopicPropertiesTest {
       // When:
       final TopicProperties properties = new TopicProperties.Builder()
           .withName("name")
-          .withWithClause(withClause)
+          .withWithClause(
+              Optional.empty(),
+              withClausePartitionCount,
+              withClauseReplicationFactor
+          )
           .withOverrides(propertyOverrides)
           .withKsqlConfig(ksqlConfig)
           .withSource(() -> source(SOURCE))
           .build();
 
       // Then:
-      assertThat(properties.getPartitions(), equalTo(expectedPartitions.partitions));
-      assertThat(properties.getReplicas(), equalTo(expectedReplicas.replicas));
+      assertThat(properties.getPartitions(), equalTo(expectedPartitions.partitions.orElse(null)));
+      assertThat(properties.getReplicas(), equalTo(expectedReplicas.replicas.orElse(null)));
     }
 
     private void givenInject(final Inject inject) {
       switch (inject.type) {
         case WITH:
-          if (inject.partitions != null) {
-            withClause.put(
-                KsqlConstants.SINK_NUMBER_OF_PARTITIONS,
-                new IntegerLiteral(inject.partitions));
-          }
-          if (inject.replicas != null) {
-            withClause.put(
-                KsqlConstants.SINK_NUMBER_OF_REPLICAS,
-                new IntegerLiteral(inject.replicas));
-          }
+          withClausePartitionCount = inject.partitions;
+          withClauseReplicationFactor = inject.replicas;
           break;
         case OVERRIDES:
-          if (inject.partitions != null) {
-            propertyOverrides.put(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY, inject.partitions);
-          }
-          if (inject.replicas != null) {
-            propertyOverrides.put(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, inject.replicas);
-          }
+          inject.partitions.ifPresent(partitions ->
+              propertyOverrides.put(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY, partitions)
+          );
+
+          inject.replicas.ifPresent(replicas ->
+              propertyOverrides.put(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, replicas)
+          );
           break;
         case KSQL_CONFIG:
           final Map<String, Object> cfg = new HashMap<>();
-          if (inject.partitions != null) {
-            cfg.put(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY, inject.partitions);
-          }
-          if (inject.replicas != null) {
-            cfg.put(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, inject.replicas);
-          }
+          inject.partitions.ifPresent(partitions ->
+              cfg.put(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY, partitions)
+          );
+
+          inject.replicas.ifPresent(replicas ->
+              cfg.put(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, replicas)
+          );
           ksqlConfig = new KsqlConfig(cfg);
           break;
         case SOURCE:
@@ -401,15 +470,15 @@ public class TopicPropertiesTest {
       }
     }
 
-    public TopicDescription source(final Inject source) {
+    public static TopicDescription source(final Inject source) {
       return new TopicDescription(
           "source",
           false,
-          Collections.nCopies(source.partitions,
+          Collections.nCopies(source.partitions.get(),
               new TopicPartitionInfo(
                   0,
                   null,
-                  Collections.nCopies(source.replicas, new Node(0, "", 0)),
+                  Collections.nCopies(source.replicas.get(), new Node(0, "", 0)),
                   ImmutableList.of())
           )
       );
@@ -438,13 +507,13 @@ public class TopicPropertiesTest {
     ;
 
     final Type type;
-    final Integer partitions;
-    final Short replicas;
+    final Optional<Integer> partitions;
+    final Optional<Short> replicas;
 
     Inject(final Type type, final Integer partitions, final Short replicas) {
       this.type = type;
-      this.partitions = partitions;
-      this.replicas = replicas;
+      this.partitions = Optional.ofNullable(partitions);
+      this.replicas = Optional.ofNullable(replicas);
     }
 
     enum Type {
@@ -470,10 +539,15 @@ public class TopicPropertiesTest {
         injects = new ArrayList<>(injects);
         injects.sort(Comparator.comparing(i -> i.type));
 
-        final Inject expectedPartitions =
-            injects.stream().filter(i -> i.partitions != null).findFirst().orElse(Inject.SOURCE);
-        final Inject expectedReplicas =
-            injects.stream().filter(i -> i.replicas != null).findFirst().orElse(Inject.SOURCE);
+        final Inject expectedPartitions = injects.stream()
+            .filter(i -> i.partitions.isPresent())
+            .findFirst()
+            .orElse(Inject.SOURCE);
+
+        final Inject expectedReplicas = injects.stream()
+            .filter(i -> i.replicas.isPresent())
+            .findFirst()
+            .orElse(Inject.SOURCE);
 
         System.out.println(String.format("{new Inject[]{%-38s}, %-15s, %-15s},",
             injects.stream().map(Objects::toString).collect(Collectors.joining(", ")),

@@ -27,10 +27,6 @@ public class ParsingException
   private final int line;
   private final int charPositionInLine;
 
-  public ParsingException(final String message) {
-    this(message, null, 1, 0);
-  }
-
   public ParsingException(final String message, final Optional<NodeLocation> nodeLocation) {
     this(
         message,

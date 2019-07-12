@@ -64,8 +64,6 @@ import io.confluent.ksql.parser.tree.WhenClause;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.parser.tree.WithinExpression;
 import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -395,21 +393,16 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
   }
 
   protected Node visitCreateStreamAsSelect(final CreateStreamAsSelect node, final Object context) {
+    final Optional<Expression> partitionBy = node.getPartitionByColumn()
+        .map(exp -> (Expression) process(exp,context));
+
     return new CreateStreamAsSelect(
         node.getLocation(),
         node.getName(),
         (Query) process(node.getQuery(), context),
         node.isNotExists(),
-        node.getProperties().entrySet().stream()
-            .collect(Collectors.toMap(
-                Map.Entry::getKey,
-                e -> (Literal) process(e.getValue(), context)
-            )),
-        node.getPartitionByColumn().isPresent()
-            ? Optional.ofNullable(
-            (Expression) process(node.getPartitionByColumn().get(),
-                context))
-            : Optional.empty()
+        node.getProperties(),
+        partitionBy
     );
   }
 
@@ -422,15 +415,13 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
   }
 
   protected Node visitCreateTableAsSelect(final CreateTableAsSelect node, final Object context) {
-    return new CreateTableAsSelect(node.getLocation(),
+    return new CreateTableAsSelect(
+        node.getLocation(),
         node.getName(),
         (Query) process(node.getQuery(), context),
         node.isNotExists(),
-        node.getProperties().entrySet().stream()
-            .collect(Collectors.toMap(
-                Entry::getKey,
-                e -> (Literal) process(e.getValue(), context)
-            )));
+        node.getProperties()
+    );
   }
 
   protected Node visitInsertInto(final InsertInto node, final Object context) {

@@ -22,12 +22,13 @@ import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.SerdeFactory;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlTopic;
+import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.CreateSource;
-import io.confluent.ksql.parser.tree.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
+import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.KsqlSerdeFactories;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.serde.SerdeFactories;
@@ -62,7 +63,7 @@ abstract class CreateSourceCommand implements DdlCommand {
   final TimestampExtractionPolicy timestampExtractionPolicy;
   private final Set<SerdeOption> serdeOptions;
   private final CreateSourceProperties properties;
-  private KsqlSerdeFactory valueSerdeFactory;
+  private final KsqlSerdeFactory valueSerdeFactory;
 
   CreateSourceCommand(
       final String sqlExpression,
@@ -114,14 +115,24 @@ abstract class CreateSourceCommand implements DdlCommand {
       this.keyField = KeyField.none();
     }
 
-    final Optional<String> timestampName = properties.getTimestampName();
+    final Optional<String> timestampName = properties.getTimestampColumnName();
     final Optional<String> timestampFormat = properties.getTimestampFormat();
     this.timestampExtractionPolicy = TimestampExtractionPolicyFactory
         .create(schema, timestampName, timestampFormat);
 
     this.keySerdeFactory = extractKeySerde(properties);
-    this.valueSerdeFactory = serdeFactories.create(properties.getValueFormat(), properties);
-    this.serdeOptions = serdeOptionsSupplier.build(schema, properties, ksqlConfig);
+
+    this.valueSerdeFactory = serdeFactories.create(
+        properties.getValueFormat(),
+        properties.getValueAvroSchemaName()
+    );
+
+    this.serdeOptions = serdeOptionsSupplier.build(
+        schema,
+        properties.getValueFormat(),
+        properties.getWrapSingleValues(),
+        ksqlConfig
+    );
   }
 
   Set<SerdeOption> getSerdeOptions() {
@@ -200,7 +211,8 @@ abstract class CreateSourceCommand implements DdlCommand {
 
     Set<SerdeOption> build(
         LogicalSchema schema,
-        CreateSourceProperties properties,
+        Format valueFormat,
+        Optional<Boolean> wrapSingleValues,
         KsqlConfig ksqlConfig
     );
   }

@@ -33,7 +33,6 @@ import com.google.common.collect.Iterables;
 import io.confluent.ksql.analyzer.Analysis.Into;
 import io.confluent.ksql.analyzer.Analysis.JoinInfo;
 import io.confluent.ksql.analyzer.Analyzer.SerdeOptionsSupplier;
-import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MutableMetaStore;
@@ -43,13 +42,14 @@ import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.KsqlParserTestUtil;
 import io.confluent.ksql.parser.SqlFormatter;
+import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
-import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Sink;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.planner.plan.JoinNode.JoinType;
+import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.SerdeFactories;
@@ -61,7 +61,6 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -113,6 +112,7 @@ public class AnalyzerTest {
     );
 
     when(sink.getName()).thenReturn("TEST0");
+    when(sink.getProperties()).thenReturn(CreateSourceAsProperties.none());
 
     query = parseSingle("Select COL0, COL1 from TEST1;");
   }
@@ -403,7 +403,7 @@ public class AnalyzerTest {
     final Analyzer analyzer = new Analyzer(jsonMetaStore, "", DEFAULT_SERDE_OPTIONS);
 
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME + " is only valid for AVRO topics.");
+    expectedException.expectMessage(CommonCreateConfigs.VALUE_AVRO_SCHEMA_FULL_NAME + " is only valid for AVRO topics.");
 
     analyzer.analyze("sqlExpression", query, Optional.of(createStreamAsSelect.getSink()));
   }
@@ -431,8 +431,8 @@ public class AnalyzerTest {
     final Set<SerdeOption> serdeOptions = ImmutableSet.of(SerdeOption.UNWRAP_SINGLE_VALUES);
     when(serdeOptiponsSupplier.build(any(), any(), any(), any())).thenReturn(serdeOptions);
 
-    final Map<String, Expression> properties =
-        ImmutableMap.of("VALUE_FORMAT", new StringLiteral("AVRO"));
+    final CreateSourceAsProperties properties = CreateSourceAsProperties.from(
+        ImmutableMap.of("VALUE_FORMAT", new StringLiteral("AVRO")));
 
     when(sink.getProperties()).thenReturn(properties);
 
@@ -442,8 +442,8 @@ public class AnalyzerTest {
     // Then:
     verify(serdeOptiponsSupplier).build(
         ImmutableList.of("COL0", "COL1"),
-        properties,
         Format.AVRO,
+        properties.getWrapSingleValues(),
         DEFAULT_SERDE_OPTIONS);
 
     assertThat(result.getSerdeOptions(), is(serdeOptions));

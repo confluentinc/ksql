@@ -13,17 +13,23 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.serde;
+package io.confluent.ksql.properties.with;
 
-import java.util.Optional;
+import org.apache.kafka.common.config.ConfigDef;
 
-public interface SerdeFactories {
+/**
+ * 'With Clause' properties for 'CREATE AS' statements.
+ */
+public final class CreateAsConfigs {
 
-  /**
-   * Create {@link KsqlSerdeFactory}.
-   *
-   * @param format the format to use
-   * @param fullSchemaName explicitly set full schema name
-   */
-  KsqlSerdeFactory create(Format format, Optional<String> fullSchemaName);
+  private static final ConfigDef CONFIG_DEF = new ConfigDef();
+
+  static {
+    CommonCreateConfigs.addToConfigDef(CONFIG_DEF, false, false);
+  }
+
+  public static final ConfigMetaData CONFIG_METADATA = ConfigMetaData.of(CONFIG_DEF);
+
+  private CreateAsConfigs() {
+  }
 }

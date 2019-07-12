@@ -393,16 +393,16 @@ to correctly match the field type to the underlying serialized form to avoid des
 +-------------------------+--------------------------------------------------------------------------------------------+
 | KSQL Field Type         | Kafka Type                                                                                 |
 +=========================+============================================================================================+
-| INT / INTEGER           | A 32-bit signed integer, as has been serialized using the Java                             |
+| INT / INTEGER           | A 32-bit signed integer, that was serialized using the Java                                |
 |                         | ``org.apache.kafka.common.serialization.IntegerSerializer``, or equivalent.                |
 +-------------------------+--------------------------------------------------------------------------------------------+
-| BIGINT                  | A 64-bit signed integer, as has been serialized using the Java                             |
+| BIGINT                  | A 64-bit signed integer, that was serialized using the Java                                |
 |                         | ``org.apache.kafka.common.serialization.LongSerializer``, or equivalent.                   |
 +-------------------------+--------------------------------------------------------------------------------------------+
-| DOUBLE                  | A 64-bit floating point number, as has been serialized using the Java                      |
+| DOUBLE                  | A 64-bit floating point number, that was serialized using the Java                         |
 |                         | ``org.apache.kafka.common.serialization.DoubleSerializer``, or equivalent.                 |
 +-------------------------+--------------------------------------------------------------------------------------------+
-| STRING / VARCHAR        | A UTF-8 encoded text string, as has been serialized using the Java                         |
+| STRING / VARCHAR        | A UTF-8 encoded text string, that was serialized using the Java                            |
 |                         | ``org.apache.kafka.common.serialization.StringSerializer``, or equivalent.                 |
 +-------------------------+--------------------------------------------------------------------------------------------+
 

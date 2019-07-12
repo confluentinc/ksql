@@ -16,7 +16,7 @@
         {"topic": "test_topic", "value": {"v" : 3}},
         {"topic": "test_topic", "value": {"v" : 1.234567}},
         {"topic": "test_topic", "value": {"v" : 0}},
-        {"topic": "test_topic", "value": {"v" : 110}},
+        {"topic": "test_topic", "value": {"v" : 111}},
         {"topic": "test_topic", "value": {"v" : null}}
       ],
       "outputs": [
@@ -26,7 +26,7 @@
         {"topic": "OUTPUT", "value": {"R0" : 3, "R00" : 3.0, "R1" :  3.0, "R2" : 3.0,  "R10" :  3.0, "1R" :  0.0 ,"2R" :  0.0 }},
         {"topic": "OUTPUT", "value": {"R0" : 1, "R00" : 1.0, "R1" :  1.2, "R2" : 1.23, "R10" :  1.234567,"1R" :  0.0 ,"2R" :  0.0 }},
         {"topic": "OUTPUT", "value": {"R0" : 0, "R00" : 0.0, "R1" :  0.0, "R2" : 0.0,  "R10" :  0.0, "1R" :  0.0 ,"2R" :  0.0 }},
-        {"topic": "OUTPUT", "value": {"R0" : 110, "R00" : 110.0, "R1" :  110.0, "R2" : 110.0,  "R10" :  110.0, "1R" :  110.0 ,"2R" :  100.0 }},
+        {"topic": "OUTPUT", "value": {"R0" : 111, "R00" : 111.0, "R1" :  111.0, "R2" : 111.0,  "R10" :  111.0, "1R" :  110.0 ,"2R" :  100.0 }},
         {"topic": "OUTPUT", "value": {"R0" : null, "R00" : null, "R1" :  null, "R2" : null, "R10" : null,"1R" :  null ,"2R" :  null }}
       ]
     },

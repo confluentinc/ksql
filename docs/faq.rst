@@ -74,7 +74,7 @@ KSQL currently supports formats:
 -  JSON
 -  Avro message values are supported. Avro keys are not yet supported. Requires |sr| and ``ksql.schema.registry.url`` in the
    KSQL server configuration file. For more information, see :ref:`install_ksql-avro-schema`.
--  KAFKA (e.g. a ``BIGINT`` that's serialized using Kafka's standard `LongSerializer`).
+-  KAFKA (for example, a ``BIGINT`` that's serialized using Kafka's standard ``LongSerializer``).
 
 See :ref:`ksql_formats` for more details.
 

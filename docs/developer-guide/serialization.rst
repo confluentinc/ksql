@@ -387,7 +387,7 @@ been serialized using Kafka's standard set of serializers.
 The format is designed primarily to support primitive message keys. It can be used as a value format,
 though certain operations aren't supported when this is the case.
 
-Unlike some other formats, this format does not perform any type coercion. It is therefore important
+Unlike some other formats, the ``KAFKA`` format does not perform any type coercion, so it's important
 to correctly match the field type to the underlying serialized form to avoid deserialization errors.
 
 +-------------------------+--------------------------------------------------------------------------------------------+

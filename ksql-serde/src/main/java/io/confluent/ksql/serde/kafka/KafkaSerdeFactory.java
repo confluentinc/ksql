@@ -24,13 +24,16 @@ import io.confluent.ksql.schema.connect.SqlSchemaFormatter.Option;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
+import io.confluent.ksql.serde.util.SerdeProcessingLogMessageFactory;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Supplier;
+import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
@@ -85,7 +88,7 @@ public class KafkaSerdeFactory extends KsqlSerdeFactory {
 
     primitiveDeserializer.configure(Collections.emptyMap(), false);
 
-    return new RowDeserializer(primitiveDeserializer, schema.getConnectSchema());
+    return new RowDeserializer(primitiveDeserializer, schema.getConnectSchema(), processingLogger);
   }
 
   @SuppressWarnings("unchecked")
@@ -134,18 +137,34 @@ public class KafkaSerdeFactory extends KsqlSerdeFactory {
     private final Deserializer<Object> delegate;
     private final Struct struct;
     private final Field field;
+    private final ProcessingLogger processingLogger;
 
-    RowDeserializer(final Deserializer<Object> delegate, final ConnectSchema schema) {
+    RowDeserializer(
+        final Deserializer<Object> delegate,
+        final ConnectSchema schema,
+        final ProcessingLogger processingLogger
+    ) {
       this.delegate = Objects.requireNonNull(delegate, "delegate");
       this.struct = new Struct(schema);
       this.field = schema.fields().get(0);
+      this.processingLogger = Objects.requireNonNull(processingLogger, "processingLogger");
     }
 
     @Override
     public Struct deserialize(final String topic, final byte[] bytes) {
-      final Object primitive = delegate.deserialize(topic, bytes);
-      struct.put(field, primitive);
-      return struct;
+      try {
+        final Object primitive = delegate.deserialize(topic, bytes);
+        struct.put(field, primitive);
+        return struct;
+      } catch (final Exception e) {
+        processingLogger.error(
+            SerdeProcessingLogMessageFactory.deserializationErrorMsg(
+                e,
+                Optional.ofNullable(bytes))
+        );
+        throw new SerializationException(
+            "Error deserializing DELIMITED message from topic: " + topic, e);
+      }
     }
   }
 }

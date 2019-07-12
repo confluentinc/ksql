@@ -16,6 +16,7 @@
 package io.confluent.ksql.rest.integration;
 
 import static io.confluent.ksql.serde.Format.JSON;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 
 import com.google.common.collect.ImmutableList;
@@ -37,6 +38,7 @@ import kafka.zookeeper.ZooKeeperClientException;
 import org.glassfish.hk2.api.Factory;
 import org.glassfish.hk2.utilities.binding.AbstractBinder;
 import org.glassfish.jersey.process.internal.RequestScoped;
+import org.hamcrest.MatcherAssert;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -116,6 +118,12 @@ public class ClusterTerminationTest {
     TEST_HARNESS.waitForTopicsToBeAbsent(SINK_TOPIC);
 
     TEST_HARNESS.waitForSubjectToBeAbsent(SINK_TOPIC + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
+
+    MatcherAssert.assertThat(
+        "Should not delete non-sink topics",
+        TEST_HARNESS.topicExists(PAGE_VIEW_TOPIC),
+        is(true)
+    );
   }
 
   private static void terminateCluster(final List<String> deleteTopicList) {

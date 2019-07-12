@@ -38,7 +38,7 @@ statement
     | (LIST | SHOW) STREAMS EXTENDED?                                       #listStreams
     | (LIST | SHOW) TABLES EXTENDED?                                        #listTables
     | (LIST | SHOW) FUNCTIONS                                               #listFunctions
-    | DESCRIBE EXTENDED? (qualifiedName | TOPIC qualifiedName)              #showColumns
+    | DESCRIBE EXTENDED? qualifiedName                                      #showColumns
     | DESCRIBE FUNCTION qualifiedName                                       #describeFunction
     | PRINT (qualifiedName | STRING) printClause                            #printTopic
     | (LIST | SHOW) QUERIES EXTENDED?                                       #listQueries

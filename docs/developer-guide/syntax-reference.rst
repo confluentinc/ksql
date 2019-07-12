@@ -1620,7 +1620,7 @@ Scalar functions
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | RANDOM                 |  ``RANDOM()``                                                             | Return a random DOUBLE value between 0.0 and 1.0. |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
-| ROUND                  |  ``ROUND(col1)`` or ``ROUND(col1, precision)``                            | Round a value to the nearest BIGINT value.        |
+| ROUND                  |  ``ROUND(col1)`` or ``ROUND(col1, scale)``                            | Round a value to the nearest BIGINT value.        |
 |                        |                                                                           | precision is an INT indicating the number.        |
 |                        |                                                                           | of decimal places to round to.                    |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+

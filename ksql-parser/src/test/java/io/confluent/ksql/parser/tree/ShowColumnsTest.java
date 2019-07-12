@@ -42,10 +42,7 @@ public class ShowColumnsTest {
         .addEqualityGroup(
             new ShowColumns(QualifiedName.of("diff"), false)
         )
-        .addEqualityGroup(
-            new ShowColumns(SOME_NAME, false)
-        )
-        .addEqualityGroup(
+       .addEqualityGroup(
             new ShowColumns(SOME_NAME, true)
         )
         .testEquals();

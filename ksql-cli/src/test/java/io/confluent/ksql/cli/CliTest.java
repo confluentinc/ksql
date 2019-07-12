@@ -451,12 +451,6 @@ public class CliTest {
   }
 
   @Test
-  public void testDescribe() {
-    assertRunCommand("describe topic " + COMMANDS_KSQL_TOPIC_NAME,
-        isRow(COMMANDS_KSQL_TOPIC_NAME, commandTopicName, "JSON"));
-  }
-
-  @Test
   public void shouldPrintCorrectSchemaForDescribeStream() {
     assertRunCommand(
         "describe " + orderDataProvider.kstreamName(),

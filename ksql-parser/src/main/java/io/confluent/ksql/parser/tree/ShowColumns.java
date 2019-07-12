@@ -25,31 +25,24 @@ import java.util.Optional;
 public class ShowColumns extends Statement {
 
   private final QualifiedName table;
-  private final boolean isTopic;
   private final boolean isExtended;
 
-  public ShowColumns(final QualifiedName table, final boolean isTopic, final boolean isExtended) {
-    this(Optional.empty(), table, isTopic, isExtended);
+  public ShowColumns(final QualifiedName table, final boolean isExtended) {
+    this(Optional.empty(), table, isExtended);
   }
 
   public ShowColumns(
       final Optional<NodeLocation> location,
       final QualifiedName table,
-      final boolean isTopic,
       final boolean isExtended
   ) {
     super(location);
     this.table = requireNonNull(table, "table");
-    this.isTopic = isTopic;
     this.isExtended = isExtended;
   }
 
   public QualifiedName getTable() {
     return table;
-  }
-
-  public boolean isTopic() {
-    return isTopic;
   }
 
   public boolean isExtended() {
@@ -70,21 +63,19 @@ public class ShowColumns extends Statement {
       return false;
     }
     final ShowColumns that = (ShowColumns) o;
-    return isTopic == that.isTopic
-        && isExtended == that.isExtended
+    return isExtended == that.isExtended
         && Objects.equals(table, that.table);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(table, isTopic, isExtended);
+    return Objects.hash(table, isExtended);
   }
 
   @Override
   public String toString() {
     return "ShowColumns{"
         + "table=" + table
-        + ", isTopic=" + isTopic
         + ", isExtended=" + isExtended
         + '}';
   }

@@ -574,7 +574,6 @@ public class AstBuilder {
       return new ShowColumns(
           getLocation(context),
           ParserUtil.getQualifiedName(context.qualifiedName()),
-          context.TOPIC() != null,
           context.EXTENDED() != null
       );
     }

@@ -33,13 +33,10 @@ public class RoundKudf implements Kudf {
     }
     final Double number = (Double) args[0];
 
-    if (args.length == 1) {
+    if (args.length == 1 || args[1] == null) {
       return Math.round(number);
     }
 
-    if (args[1] == null) {
-      return null;
-    }
     final Double round = Math.pow(10, (Integer) args[1]);
     return Math.round(number * round) / round;
   }

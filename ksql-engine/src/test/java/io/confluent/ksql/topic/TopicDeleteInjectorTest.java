@@ -19,6 +19,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -43,6 +44,8 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import org.junit.Before;
 import org.junit.Rule;
@@ -55,12 +58,14 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class TopicDeleteInjectorTest {
 
+  private static final String SOURCE_NAME = "SOMETHING";
+  private static final String TOPIC_NAME = "something";
   private static final ConfiguredStatement<DropStream> DROP_WITH_DELETE_TOPIC = givenStatement(
       "DROP STREAM SOMETHING DELETE TOPIC",
-      new DropStream(QualifiedName.of("SOMETHING"), false, true));
+      new DropStream(QualifiedName.of(SOURCE_NAME), false, true));
   private static final ConfiguredStatement<DropStream> DROP_WITHOUT_DELETE_TOPIC = givenStatement(
       "DROP STREAM SOMETHING",
-      new DropStream(QualifiedName.of("SOMETHING"), false, false));
+      new DropStream(QualifiedName.of(SOURCE_NAME), false, false));
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -80,8 +85,9 @@ public class TopicDeleteInjectorTest {
   public void setUp() {
     deleteInjector = new TopicDeleteInjector(metaStore, topicClient, registryClient);
 
-    when(metaStore.getSource("SOMETHING")).thenAnswer(inv -> source);
-    when(source.getKafkaTopicName()).thenReturn("something");
+    when(metaStore.getSource(SOURCE_NAME)).thenAnswer(inv -> source);
+    when(source.getName()).thenReturn(SOURCE_NAME);
+    when(source.getKafkaTopicName()).thenReturn(TOPIC_NAME);
     when(source.getValueSerdeFactory()).thenReturn(new KsqlJsonSerdeFactory());
   }
 
@@ -160,6 +166,60 @@ public class TopicDeleteInjectorTest {
 
     // When:
     deleteInjector.inject(dropStatement);
+  }
+
+  @Test
+  public void shouldNotThrowIfNoOtherSourcesUsingTopic() {
+    // Given:
+    final ConfiguredStatement<DropStream> dropStatement = givenStatement(
+        "DROP SOMETHING DELETE TOPIC;",
+        new DropStream(QualifiedName.of(SOURCE_NAME),
+            true,
+            true)
+    );
+    final DataSource<?> other1 = givenSource("OTHER", "other");
+    final Map<String, DataSource<?>> sources = new HashMap<>();
+    sources.put(SOURCE_NAME, source);
+    sources.put("OTHER", other1);
+    when(metaStore.getAllDataSources()).thenReturn(sources);
+
+    // When:
+    deleteInjector.inject(dropStatement);
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  public void shouldThrowExceptionIfOtherSourcesUsingTopic() {
+    // Given:
+    final ConfiguredStatement<DropStream> dropStatement = givenStatement(
+        "DROP SOMETHING DELETE TOPIC;",
+        new DropStream(QualifiedName.of(SOURCE_NAME),
+            true,
+            true)
+    );
+    final DataSource<?> other1 = givenSource("OTHER1", TOPIC_NAME);
+    final DataSource<?> other2 = givenSource("OTHER2", TOPIC_NAME);
+    final Map<String, DataSource<?>> sources = new HashMap<>();
+    sources.put(SOURCE_NAME, source);
+    sources.put("OTHER1", other1);
+    sources.put("OTHER2", other2);
+    when(metaStore.getAllDataSources()).thenReturn(sources);
+
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(
+        "Refusing to delete topic. "
+            + "Found other data sources (OTHER1, OTHER2) using topic something");
+
+    // When:
+    deleteInjector.inject(dropStatement);
+  }
+
+  private DataSource<?> givenSource(final String name, final String topicName) {
+    final DataSource source = mock(DataSource.class);
+    when(source.getName()).thenReturn(name);
+    when(source.getKafkaTopicName()).thenReturn(topicName);
+    return source;
   }
 
   private static <T extends Statement> ConfiguredStatement<T> givenStatement(

@@ -27,7 +27,6 @@ import java.util.Objects;
 public class KafkaTopicInfo {
 
   private final String name;
-  private final boolean registered;
   private final List<Integer> replicaInfo;
   private final int consumerGroupCount;
   private final int consumerCount;
@@ -35,13 +34,11 @@ public class KafkaTopicInfo {
   @JsonCreator
   public KafkaTopicInfo(
       @JsonProperty("name") final String name,
-      @JsonProperty("registered") final boolean registered,
       @JsonProperty("replicaInfo") final List<Integer> replicaInfo,
       @JsonProperty("consumerCount") final int consumerCount,
       @JsonProperty("consumerGroupCount") final int consumerGroupCount
   ) {
     this.name = name;
-    this.registered = registered;
     this.replicaInfo = replicaInfo;
     this.consumerGroupCount = consumerGroupCount;
     this.consumerCount = consumerCount;
@@ -49,10 +46,6 @@ public class KafkaTopicInfo {
 
   public String getName() {
     return name;
-  }
-
-  public boolean getRegistered() {
-    return registered;
   }
 
   public List<Integer> getReplicaInfo() {

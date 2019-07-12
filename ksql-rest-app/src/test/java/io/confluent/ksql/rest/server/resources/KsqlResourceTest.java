@@ -1554,7 +1554,7 @@ public class KsqlResourceTest {
   public void shouldNeverEnqueueIfErrorIsThrown() {
     // Given:
     givenMockEngine();
-    when(ksqlEngine.getMetaStore()).thenThrow(new KsqlException("Fail"));
+    when(ksqlEngine.parse(anyString())).thenThrow(new KsqlException("Fail"));
 
     // When:
     makeFailingRequest(

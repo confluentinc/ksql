@@ -157,8 +157,7 @@ public class CreateStreamCommandTest {
     cmd.run(metaStore);
 
     // Then:
-    expectedException.expectMessage("Cannot create stream 's1': A stream " +
-            "with name 's1' already exists");
+    expectedException.expectMessage("Cannot add stream 's1': A stream with the same name already exists");
 
     // When:
     cmd.run(metaStore);

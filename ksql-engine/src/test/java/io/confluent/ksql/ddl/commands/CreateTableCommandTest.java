@@ -155,8 +155,7 @@ public class CreateTableCommandTest {
     cmd.run(metaStore);
 
     // Then:
-    expectedException.expectMessage("Cannot create table 't1': A table " +
-        "with name 't1' already exists");
+    expectedException.expectMessage("Cannot add table 't1': A table with the same name already exists");
 
     // When:
     cmd.run(metaStore);

@@ -609,8 +609,7 @@ public class KsqlEngineTest {
 
     expectedException.expect(KsqlStatementException.class);
     expectedException.expect(rawMessage(is(
-        "Cannot add the new data source. "
-            + "Another data source with the same name already exists: KsqlTable name:FOO")));
+        "Cannot add table 'FOO': A table with the same name already exists")));
     expectedException.expect(statementText(is(
         "CREATE TABLE FOO WITH (KAFKA_TOPIC='BAR') AS SELECT * FROM TEST2;")));
 
@@ -662,8 +661,7 @@ public class KsqlEngineTest {
     // Then:
     expectedException.expect(KsqlStatementException.class);
     expectedException.expect(rawMessage(is(
-        "Cannot add the new data source. "
-            + "Another data source with the same name already exists: KsqlStream name:FOO")));
+        "Cannot add stream 'FOO': A stream with the same name already exists")));
     expectedException.expect(statementText(is(
         "CREATE STREAM FOO WITH (KAFKA_TOPIC='BAR') AS SELECT * FROM ORDERS;")));
 

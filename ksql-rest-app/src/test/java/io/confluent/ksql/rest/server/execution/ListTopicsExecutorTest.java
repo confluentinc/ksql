@@ -44,7 +44,7 @@ public class ListTopicsExecutorTest {
   @Test
   public void shouldListKafkaTopics() {
     // Given:
-    engine.givenKsqlTopic("topic1");
+    engine.givenKafkaTopic("topic1");
     engine.givenKafkaTopic("topic2");
 
     final AdminClient mockAdminClient = mock(AdminClient.class);

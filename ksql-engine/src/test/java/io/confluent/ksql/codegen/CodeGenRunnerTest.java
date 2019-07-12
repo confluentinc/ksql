@@ -190,7 +190,6 @@ public class CodeGenRunnerTest {
             Serdes::String
         );
 
-        metaStore.putTopic(ksqlTopic);
         metaStore.putSource(ksqlStream);
         codeGenRunner = new CodeGenRunner(LogicalSchema.of(schema), ksqlConfig, functionRegistry);
     }

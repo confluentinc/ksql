@@ -408,7 +408,7 @@ to correctly match the field type to the underlying serialized form to avoid des
 
 Because the format supports only primitive types, you can only use it when the schema contains a single field.
 
-For example, if your Kafka messages have a ``long`` key you can make them available to KSQL a statement
+For example, if your Kafka messages have a ``long`` key, you can make them available to KSQL a statement
 similar to:
 
 .. code:: sql

@@ -53,7 +53,6 @@ import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.server.KsqlRestApplication;
-import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.rest.server.computation.CommandId;
 import io.confluent.ksql.rest.server.resources.Errors;
@@ -149,7 +148,6 @@ public class CliTest {
 
   private static final List<List<String>> EMPTY_RESULT = ImmutableList.of();
 
-  private static String commandTopicName;
   private static TopicProducer topicProducer;
   private static TopicConsumer topicConsumer;
   private static KsqlRestClient restClient;
@@ -166,8 +164,6 @@ public class CliTest {
   @BeforeClass
   public static void classSetUp() throws Exception {
     restClient = new KsqlRestClient(REST_APP.getHttpListener().toString());
-
-    commandTopicName = KsqlRestConfig.getCommandTopic(KsqlConfig.KSQL_SERVICE_ID_DEFAULT);
 
     orderDataProvider = new OrderDataProvider();
     CLUSTER.createTopic(orderDataProvider.topicName());

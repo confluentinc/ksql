@@ -25,11 +25,9 @@ import static org.junit.Assert.assertEquals;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.json.JsonMapper;
-import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.util.KafkaConsumerGroupClient;
 import io.confluent.ksql.util.KafkaConsumerGroupClientImpl;
 import io.confluent.ksql.util.KsqlConfig;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -45,7 +43,6 @@ public class KafkaTopicsListTest {
   @Test
   public void shouldBuildValidTopicList() {
 
-    final Collection<KsqlTopic> ksqlTopics = Collections.emptyList();
     // represent the full list of topics
     final Map<String, TopicDescription> topicDescriptions = new HashMap<>();
     final TopicPartitionInfo topicPartitionInfo = new TopicPartitionInfo(1, new Node(1, "", 8088),
@@ -86,10 +83,12 @@ public class KafkaTopicsListTest {
     );
     final String json = mapper.writeValueAsString(expected);
     assertEquals(
-        "{\"@type\":\"kafka_topics\",\"statementText\":\"SHOW TOPICS;\"," +
-        "\"topics\":[{\"name\":\"thetopic\",\"registered\":true," +
-        "\"replicaInfo\":[1,2,3],\"consumerCount\":42," +
-        "\"consumerGroupCount\":12}]}",
+        "{"
+            + "\"@type\":\"kafka_topics\","
+            + "\"statementText\":\"SHOW TOPICS;\","
+            + "\"topics\":["
+            + "{\"name\":\"thetopic\",\"replicaInfo\":[1,2,3],\"consumerCount\":42,\"consumerGroupCount\":12}"
+            + "]}",
         json);
 
     final KafkaTopicsList actual = mapper.readValue(json, KafkaTopicsList.class);

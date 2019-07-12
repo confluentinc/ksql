@@ -31,7 +31,8 @@ public class RoundKudf implements Kudf {
     if (args[0] == null) {
       return null;
     }
-    final Double number = (Double) args[0];
+    final Object value = args[0];
+    final Double number = (Double) value;
 
     if (args.length == 1 || args[1] == null) {
       return Math.round(number);

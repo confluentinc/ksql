@@ -24,10 +24,9 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MutableMetaStore;
-import io.confluent.ksql.parser.tree.CreateSourceProperties;
+import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.parser.tree.QualifiedName;
@@ -36,6 +35,8 @@ import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.parser.tree.Type;
+import io.confluent.ksql.properties.with.CommonCreateConfigs;
+import io.confluent.ksql.properties.with.CreateConfigs;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
@@ -96,7 +97,7 @@ public class CreateTableCommandTest {
   public void shouldExtractSessionWindowType() {
     // Given:
     givenPropertiesWith(ImmutableMap.of(
-        DdlConfig.WINDOW_TYPE_PROPERTY, new StringLiteral("SeSSion")));
+        CreateConfigs.WINDOW_TYPE_PROPERTY, new StringLiteral("SeSSion")));
 
     // When:
     final CreateTableCommand cmd = createCmd();
@@ -110,7 +111,7 @@ public class CreateTableCommandTest {
   public void shouldExtractHoppingWindowType() {
     // Given:
     givenPropertiesWith(ImmutableMap.of(
-        DdlConfig.WINDOW_TYPE_PROPERTY, new StringLiteral("HoPPing")));
+        CreateConfigs.WINDOW_TYPE_PROPERTY, new StringLiteral("HoPPing")));
 
     // When:
     final CreateTableCommand cmd = createCmd();
@@ -124,7 +125,7 @@ public class CreateTableCommandTest {
   public void shouldExtractTumblingWindowType() {
     // Given:
     givenPropertiesWith(ImmutableMap.of(
-        DdlConfig.WINDOW_TYPE_PROPERTY, new StringLiteral("Tumbling")));
+        CreateConfigs.WINDOW_TYPE_PROPERTY, new StringLiteral("Tumbling")));
 
     // When:
     final CreateTableCommand cmd = createCmd();
@@ -201,8 +202,8 @@ public class CreateTableCommandTest {
 
   private void givenPropertiesWith(final Map<String, Literal> props) {
     final Map<String, Literal> allProps = new HashMap<>(props);
-    allProps.putIfAbsent(DdlConfig.VALUE_FORMAT_PROPERTY, new StringLiteral("Json"));
-    allProps.putIfAbsent(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral("some-topic"));
+    allProps.putIfAbsent(CommonCreateConfigs.VALUE_FORMAT_PROPERTY, new StringLiteral("Json"));
+    allProps.putIfAbsent(CommonCreateConfigs.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral("some-topic"));
     when(createTableStatement.getProperties()).thenReturn(CreateSourceProperties.from(allProps));
   }
 }

@@ -15,14 +15,15 @@
 
 package io.confluent.ksql.serde;
 
-import io.confluent.ksql.parser.tree.CreateSourceProperties;
-import io.confluent.ksql.parser.tree.Expression;
-import java.util.Map;
+import java.util.Optional;
 
 public interface SerdeFactories {
 
-  KsqlSerdeFactory create(Format format, CreateSourceProperties statementProps);
-
-  KsqlSerdeFactory create(Format format, Map<String, Expression> sinkProperties);
-
+  /**
+   * Create {@link KsqlSerdeFactory}.
+   *
+   * @param format the format to use
+   * @param fullSchemaName explicitly set full schema name
+   */
+  KsqlSerdeFactory create(Format format, Optional<String> fullSchemaName);
 }

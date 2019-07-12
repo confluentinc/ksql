@@ -15,8 +15,10 @@
 
 package io.confluent.ksql.rest.util;
 
-import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.startsWith;
@@ -29,7 +31,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
@@ -40,7 +41,6 @@ import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
-import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
@@ -49,6 +49,7 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -67,6 +68,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class ClusterTerminatorTest {
+
   private final static String MANAGED_TOPIC_1 = "MANAGED_TOPIC_1";
   private final static String MANAGED_TOPIC_2 = "MANAGED_TOPIC_2";
   private final static List<String> MANAGED_TOPICS = ImmutableList.of(
@@ -94,10 +96,14 @@ public class ClusterTerminatorTest {
   @Rule
   public ExpectedException expectedException = ExpectedException.none();
 
+  private final Map<String, DataSource<?>> dataSources = new HashMap<>();
+
   private ClusterTerminator clusterTerminator;
 
   @Before
   public void setup() {
+    dataSources.clear();
+
     when(serviceContext.getTopicClient()).thenReturn(kafkaTopicClient);
     when(serviceContext.getSchemaRegistryClient()).thenReturn(schemaRegistryClient);
     clusterTerminator = new ClusterTerminator(
@@ -108,6 +114,8 @@ public class ClusterTerminatorTest {
     when(ksqlEngine.getMetaStore()).thenReturn(metaStore);
     when(ksqlEngine.getPersistentQueries())
         .thenReturn(ImmutableList.of(persistentQuery0, persistentQuery1));
+
+    when(metaStore.getAllDataSources()).thenReturn(dataSources);
   }
 
   @Test
@@ -402,23 +410,26 @@ public class ClusterTerminatorTest {
     verifySchemaNotDeletedForTopic("K_Foo");
   }
 
-  private static KsqlTopic getKsqlTopic(final String topicName, final String kafkaTopicName,
-      final boolean isSink) {
-    return new KsqlTopic(topicName, kafkaTopicName, new KsqlJsonSerdeFactory(), isSink);
-  }
-
   private void givenSinkTopicsExistInMetastore(final String... kafkaTopicNames) {
-    final Map<String, KsqlTopic> ksqlTopicMap = Stream.of(kafkaTopicNames)
-        .collect(Collectors.toMap(
-            kafkaTopicName -> "KSQL_" + kafkaTopicName,
-            kafkaTopicName -> getKsqlTopic("KSQL_" + kafkaTopicName, kafkaTopicName, true)));
-    when(metaStore.getAllKsqlTopics()).thenReturn(ksqlTopicMap);
+    Stream.of(kafkaTopicNames).forEach(name -> givenSourceRegisteredWithTopic(name, true));
   }
 
   @SuppressWarnings("SameParameterValue")
   private void givenNonSinkTopicsExistInMetastore(final String kafkaTopicName) {
-    when(metaStore.getAllKsqlTopics()).thenReturn(ImmutableMap.of(
-        "KSQL_" + kafkaTopicName, getKsqlTopic("KSQL_" + kafkaTopicName, kafkaTopicName, false)));
+    givenSourceRegisteredWithTopic(kafkaTopicName, false);
+  }
+
+  private void givenSourceRegisteredWithTopic(final String kafkaTopicName, final boolean sink) {
+    final String sourceName = "SOURCE_" + kafkaTopicName;
+
+    final KsqlTopic topic = mock(KsqlTopic.class);
+    when(topic.getKafkaTopicName()).thenReturn(kafkaTopicName);
+    when(topic.isKsqlSink()).thenReturn(sink);
+
+    final DataSource<?> source = mock(DataSource.class);
+    when(source.getKsqlTopic()).thenReturn(topic);
+
+    assertThat("topic already registered", dataSources.put(sourceName, source), is(nullValue()));
   }
 
   private void givenTopicsUseAvroSerdes(final String... topicNames) {

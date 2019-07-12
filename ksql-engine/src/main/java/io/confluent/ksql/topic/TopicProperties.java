@@ -17,16 +17,11 @@ package io.confluent.ksql.topic;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
-import io.confluent.ksql.ddl.DdlConfig;
-import io.confluent.ksql.parser.tree.CreateSourceProperties;
-import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.WithClauseUtil;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 import org.apache.commons.lang3.ObjectUtils;
@@ -104,56 +99,36 @@ public final class TopicProperties {
     private TopicProperties fromKsqlConfig = new TopicProperties(null, null, null);
     private Supplier<TopicProperties> fromSource = () -> new TopicProperties(null, null, null);
 
-    public Builder withName(final String name) {
+    Builder withName(final String name) {
       this.name = name;
       return this;
     }
 
-    public Builder withWithClause(final CreateSourceProperties properties) {
-      final String name = properties.getKafkaTopic();
-      final Integer partitions = properties.getPartitions().orElse(null);
-      final Short replicas = properties.getReplicas().orElse(null);
-
-      fromWithClause = new TopicProperties(name, partitions, replicas);
+    Builder withWithClause(
+        final Optional<String> name,
+        final Optional<Integer> partitionCount,
+        final Optional<Short> replicationFactor
+    ) {
+      fromWithClause = new TopicProperties(
+          name.orElse(null),
+          partitionCount.orElse(null),
+          replicationFactor.orElse(null)
+      );
       return this;
     }
 
-    public Builder withWithClause(final Map<String, Literal> withClause) {
-      final Expression nameExpression = withClause.get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY);
-      final String name = nameExpression == null
-          ? null
-          : StringUtils.strip(nameExpression.toString(), "'");
+    Builder withOverrides(final Map<String, Object> overrides) {
+      final Integer partitions = parsePartitionsOverride(
+          overrides.get(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY));
 
-      final Expression partitionExp = withClause.get(KsqlConstants.SINK_NUMBER_OF_PARTITIONS);
-      final Integer partitions = partitionExp == null
-          ? null
-          : WithClauseUtil.parsePartitions(partitionExp.toString());
-
-      final Expression replicasExp = withClause.get(KsqlConstants.SINK_NUMBER_OF_REPLICAS);
-      final Short replicas = replicasExp == null
-          ? null
-          : WithClauseUtil.parseReplicas(replicasExp.toString());
-
-      fromWithClause = new TopicProperties(name, partitions, replicas);
-      return this;
-    }
-
-    public Builder withOverrides(final Map<String, Object> overrides) {
-      final Object partitionsObj = overrides.get(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY);
-      final Integer partitions = (partitionsObj instanceof Integer || partitionsObj == null)
-          ? (Integer) partitionsObj
-          : (Integer) WithClauseUtil.parsePartitions(partitionsObj.toString());
-
-      final Object replicasObj = overrides.get(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY);
-      final Short replicas = (replicasObj instanceof Short || replicasObj == null)
-          ? (Short) replicasObj
-          : (Short) WithClauseUtil.parseReplicas(replicasObj.toString());
+      final Short replicas = parseReplicasOverride(
+          overrides.get(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY));
 
       fromOverrides = new TopicProperties(null, partitions, replicas);
       return this;
     }
 
-    public Builder withKsqlConfig(final KsqlConfig config) {
+    Builder withKsqlConfig(final KsqlConfig config) {
       // requires check for containsKey because `getInt` will return 0 otherwise
       Integer partitions = null;
       if (config.values().containsKey(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY)) {
@@ -170,7 +145,7 @@ public final class TopicProperties {
       return this;
     }
 
-    public Builder withSource(final Supplier<TopicDescription> descriptionSupplier) {
+    Builder withSource(final Supplier<TopicDescription> descriptionSupplier) {
       fromSource = Suppliers.memoize(() -> {
         final TopicDescription description = descriptionSupplier.get();
         final Integer partitions = description.partitions().size();
@@ -211,7 +186,31 @@ public final class TopicProperties {
 
       return new TopicProperties(name, partitions, replicas);
     }
-
   }
 
+  private static Integer parsePartitionsOverride(final Object value) {
+    if (value instanceof Integer || value == null) {
+      return (Integer) value;
+    }
+
+    try {
+      return Integer.parseInt(value.toString());
+    } catch (final Exception e) {
+      throw new KsqlException("Failed to parse property override '"
+          + KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY + "': " + e.getMessage(), e);
+    }
+  }
+
+  private static Short parseReplicasOverride(final Object value) {
+    if (value instanceof Short || value == null) {
+      return (Short) value;
+    }
+
+    try {
+      return Short.parseShort(value.toString());
+    } catch (final Exception e) {
+      throw new KsqlException("Failed to parse property override '"
+          + KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY + "': " + e.getMessage(), e);
+    }
+  }
 }

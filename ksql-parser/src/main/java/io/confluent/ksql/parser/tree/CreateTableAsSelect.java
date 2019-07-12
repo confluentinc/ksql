@@ -15,9 +15,8 @@
 
 package io.confluent.ksql.parser.tree;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.Immutable;
-import java.util.Map;
+import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
 import java.util.Optional;
 
 @Immutable
@@ -27,7 +26,7 @@ public class CreateTableAsSelect extends CreateAsSelect {
       final QualifiedName name,
       final Query query,
       final boolean notExists,
-      final Map<String, Literal> properties
+      final CreateSourceAsProperties properties
   ) {
     this(Optional.empty(), name, query, notExists, properties);
   }
@@ -37,20 +36,20 @@ public class CreateTableAsSelect extends CreateAsSelect {
       final QualifiedName name,
       final Query query,
       final boolean notExists,
-      final Map<String, Literal> properties
+      final CreateSourceAsProperties properties
   ) {
     super(location, name, query, notExists, properties, Optional.empty());
   }
 
   private CreateTableAsSelect(
       final CreateTableAsSelect other,
-      final Map<String, Literal> properties
+      final CreateSourceAsProperties properties
   ) {
     super(other, properties);
   }
 
   @Override
-  public CreateAsSelect copyWith(final Map<String, Literal> properties) {
+  public CreateAsSelect copyWith(final CreateSourceAsProperties properties) {
     return new CreateTableAsSelect(this, properties);
   }
 
@@ -61,7 +60,7 @@ public class CreateTableAsSelect extends CreateAsSelect {
 
   @Override
   public Sink getSink() {
-    return Sink.of(getName().getSuffix(), true, ImmutableMap.copyOf(getProperties()));
+    return Sink.of(getName().getSuffix(), true, getProperties(), Optional.empty());
   }
 
   @Override

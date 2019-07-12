@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.util;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.schema.registry.SchemaRegistryUtil;
 import io.confluent.ksql.serde.Format;
@@ -80,7 +81,8 @@ public class ClusterTerminator {
         .collect(Collectors.toList());
 
     final MetaStore metaStore = ksqlEngine.getMetaStore();
-    final List<String> toDelete = metaStore.getAllKsqlTopics().values().stream()
+    final List<String> toDelete = metaStore.getAllDataSources().values().stream()
+        .map(DataSource::getKsqlTopic)
         .filter(KsqlTopic::isKsqlSink)
         .map(KsqlTopic::getKafkaTopicName)
         .filter(topicName -> topicShouldBeDeleted(topicName, patterns))

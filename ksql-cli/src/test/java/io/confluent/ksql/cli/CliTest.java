@@ -364,7 +364,6 @@ public class CliTest {
         "topics",
         hasRow(
             equalTo(orderDataProvider.topicName()),
-            equalTo("true"),
             equalTo("1"),
             equalTo("1"),
             any(String.class),
@@ -448,12 +447,6 @@ public class CliTest {
     ));
 
     assertRunCommand("unset 'auto.offset.reset'", is(EMPTY_RESULT));
-  }
-
-  @Test
-  public void testDescribe() {
-    assertRunCommand("describe topic " + COMMANDS_KSQL_TOPIC_NAME,
-        isRow(COMMANDS_KSQL_TOPIC_NAME, commandTopicName, "JSON"));
   }
 
   @Test

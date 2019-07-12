@@ -34,19 +34,16 @@ public class ShowColumnsTest {
     new EqualsTester()
         .addEqualityGroup(
             // Note: At the moment location does not take part in equality testing
-            new ShowColumns(SOME_NAME, true, false),
-            new ShowColumns(SOME_NAME, true, false),
-            new ShowColumns(Optional.of(SOME_LOCATION), SOME_NAME, true, false),
-            new ShowColumns(Optional.of(OTHER_LOCATION), SOME_NAME, true, false)
+            new ShowColumns(SOME_NAME, false),
+            new ShowColumns(SOME_NAME, false),
+            new ShowColumns(Optional.of(SOME_LOCATION), SOME_NAME, false),
+            new ShowColumns(Optional.of(OTHER_LOCATION), SOME_NAME, false)
         )
         .addEqualityGroup(
-            new ShowColumns(QualifiedName.of("diff"), true, false)
+            new ShowColumns(QualifiedName.of("diff"), false)
         )
-        .addEqualityGroup(
-            new ShowColumns(SOME_NAME, false, false)
-        )
-        .addEqualityGroup(
-            new ShowColumns(SOME_NAME, true, true)
+       .addEqualityGroup(
+            new ShowColumns(SOME_NAME, true)
         )
         .testEquals();
   }

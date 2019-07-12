@@ -17,10 +17,10 @@ package io.confluent.ksql.parser.tree;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.testing.EqualsTester;
-import io.confluent.ksql.ddl.DdlConfig;
+import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.TableElement.Namespace;
+import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import java.util.Map;
 import java.util.Optional;
 import org.junit.Test;
 
@@ -32,14 +32,17 @@ public class CreateTableTest {
   private static final TableElements SOME_ELEMENTS = TableElements.of(
       new TableElement(Namespace.VALUE, "Bob", new Type(SqlTypes.STRING))
   );
-  private static final Map<String, Literal> SOME_PROPS = ImmutableMap.of(
+  private static final CreateSourceProperties SOME_PROPS = CreateSourceProperties.from(
+      ImmutableMap.of(
       "value_format", new StringLiteral("json"),
       "kafka_topic", new StringLiteral("foo")
+      ));
+  private static final CreateSourceProperties OTHER_PROPS = CreateSourceProperties.from(
+      ImmutableMap.of(
+          "value_format", new StringLiteral("json"),
+          "kafka_topic", new StringLiteral("foo"),
+          CommonCreateConfigs.TIMESTAMP_NAME_PROPERTY, new StringLiteral("foo"))
   );
-  private static final Map<String, Literal> OTHER_PROPS = ImmutableMap.<String, Literal>builder()
-      .putAll(SOME_PROPS)
-      .put(DdlConfig.TIMESTAMP_NAME_PROPERTY, new StringLiteral("foo"))
-      .build();
 
   @Test
   public void shouldImplementHashCodeAndEqualsProperty() {

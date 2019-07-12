@@ -19,7 +19,6 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.hasEntry;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -27,7 +26,6 @@ import static org.mockito.Mockito.when;
 import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 
 import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.MutableMetaStore;
@@ -37,23 +35,21 @@ import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
+import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateSource;
-import io.confluent.ksql.parser.tree.CreateSourceProperties;
-import io.confluent.ksql.parser.tree.IntegerLiteral;
-import io.confluent.ksql.parser.tree.Literal;
-import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Supplier;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.config.TopicConfig;
@@ -136,8 +132,7 @@ public class TopicCreateInjectorTest {
     when(topicClient.describeTopic("source")).thenReturn(sourceDescription);
     when(topicClient.isTopicExists("source")).thenReturn(true);
     when(builder.withName(any())).thenReturn(builder);
-    when(builder.withWithClause((CreateSourceProperties) any())).thenReturn(builder);
-    when(builder.withWithClause((Map<String, Literal>) any())).thenReturn(builder);
+    when(builder.withWithClause(any(), any(), any())).thenReturn(builder);
     when(builder.withOverrides(any())).thenReturn(builder);
     when(builder.withKsqlConfig(any())).thenReturn(builder);
     when(builder.withSource(any())).thenReturn(builder);
@@ -212,15 +207,22 @@ public class TopicCreateInjectorTest {
   }
 
   @Test
-  public void shouldPassThroughWithClauseToBuilder() {
+  public void shouldPassThroughWithClauseToBuilderForCreateAs() {
     // Given:
     givenStatement("CREATE STREAM x WITH (kafka_topic='topic') AS SELECT * FROM SOURCE;");
+
+    final CreateSourceAsProperties props = ((CreateAsSelect) statement.getStatement())
+        .getProperties();
 
     // When:
     injector.inject(statement, builder);
 
     // Then:
-    verify(builder).withWithClause(((CreateAsSelect) (statement.getStatement())).getProperties());
+    verify(builder).withWithClause(
+        props.getKafkaTopic(),
+        props.getPartitions(),
+        props.getReplicas()
+    );
   }
 
   @Test
@@ -228,11 +230,19 @@ public class TopicCreateInjectorTest {
     // Given:
     givenStatement("CREATE STREAM x (FOO VARCHAR) WITH(value_format='avro', kafka_topic='topic', partitions=2);");
 
+    final CreateSourceProperties props = ((CreateSource) statement.getStatement())
+        .getProperties();
+
     // When:
     injector.inject(statement, builder);
 
     // Then:
-    verify(builder).withWithClause(((CreateSource) (statement.getStatement())).getProperties());
+
+    verify(builder).withWithClause(
+        Optional.of(props.getKafkaTopic()),
+        props.getPartitions(),
+        props.getReplicas()
+    );
   }
 
   @Test
@@ -337,6 +347,7 @@ public class TopicCreateInjectorTest {
   public void shouldBuildWithClauseWithTopicProperties() {
     // Given:
     givenStatement("CREATE STREAM x WITH (kafka_topic='topic') AS SELECT * FROM SOURCE;");
+
     when(builder.build()).thenReturn(new TopicProperties("expectedName", 10, (short) 10));
 
     // When:
@@ -344,12 +355,10 @@ public class TopicCreateInjectorTest {
         (ConfiguredStatement<CreateAsSelect>) injector.inject(statement, builder);
 
     // Then:
-    assertThat(result.getStatement().getProperties(),
-        hasEntry(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral("expectedName")));
-    assertThat(result.getStatement().getProperties(),
-        hasEntry(KsqlConstants.SINK_NUMBER_OF_PARTITIONS, new IntegerLiteral(10)));
-    assertThat(result.getStatement().getProperties(),
-        hasEntry(KsqlConstants.SINK_NUMBER_OF_REPLICAS, new IntegerLiteral(10)));
+    final CreateSourceAsProperties props = result.getStatement().getProperties();
+    assertThat(props.getKafkaTopic(), is(Optional.of("expectedName")));
+    assertThat(props.getPartitions(), is(Optional.of(10)));
+    assertThat(props.getReplicas(), is(Optional.of((short)10)));
   }
 
   @Test
@@ -363,7 +372,7 @@ public class TopicCreateInjectorTest {
     // Then:
     assertThat(result.getStatementText(),
         equalTo(
-            "CREATE STREAM X WITH (REPLICAS = 1, PARTITIONS = 1, KAFKA_TOPIC = 'name') AS SELECT *"
+            "CREATE STREAM X WITH (KAFKA_TOPIC='name', PARTITIONS=1, REPLICAS=1) AS SELECT *"
                 + "\nFROM SOURCE SOURCE;"));
   }
 

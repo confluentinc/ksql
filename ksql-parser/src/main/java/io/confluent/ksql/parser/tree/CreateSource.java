@@ -18,6 +18,7 @@ package io.confluent.ksql.parser.tree;
 import static java.util.Objects.requireNonNull;
 
 import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import java.util.Objects;
 import java.util.Optional;
 

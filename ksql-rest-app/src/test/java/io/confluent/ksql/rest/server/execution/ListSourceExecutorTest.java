@@ -37,11 +37,10 @@ import io.confluent.ksql.rest.entity.SourceDescriptionList;
 import io.confluent.ksql.rest.entity.SourceInfo;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
-import io.confluent.ksql.rest.entity.TopicDescription;
 import io.confluent.ksql.rest.server.TemporaryEngine;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.statement.ConfiguredStatement;
-import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import org.junit.Rule;
 import org.junit.Test;
@@ -163,7 +162,7 @@ public class ListSourceExecutorTest {
             ConfiguredStatement.of(
               PreparedStatement.of(
                   "DESCRIBE SINK;",
-                  new ShowColumns(QualifiedName.of("SINK"), false, false)),
+                  new ShowColumns(QualifiedName.of("SINK"), false)),
                 ImmutableMap.of(),
                 engine.getKsqlConfig()
             ),
@@ -186,32 +185,14 @@ public class ListSourceExecutorTest {
   }
 
   @Test
-  public void shouldShowColumnsTopic() {
-    // Given:
-    engine.givenSource(DataSourceType.KSTREAM, "S");
-
-    // When:
-    final TopicDescription description = (TopicDescription) CustomExecutors.SHOW_COLUMNS.execute(
-        engine.configure("DESCRIBE TOPIC S;"),
-        engine.getEngine(),
-        engine.getServiceContext()
-    ).orElseThrow(IllegalStateException::new);
-
-    // Then:
-    assertThat(description,
-        equalTo(new TopicDescription("DESCRIBE TOPIC S;", "S", "S", "JSON",
-            TemporaryEngine.SCHEMA.toString())));
-  }
-
-  @Test
-  public void shouldThrowOnDescribeMissingTopic() {
+  public void shouldThrowOnDescribeMissingSource() {
     // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Could not find Topic");
+    expectedException.expect(KsqlStatementException.class);
+    expectedException.expectMessage("Could not find STREAM/TABLE 'S' in the Metastore");
 
     // When:
     CustomExecutors.SHOW_COLUMNS.execute(
-        engine.configure("DESCRIBE TOPIC S;"),
+        engine.configure("DESCRIBE S;"),
         engine.getEngine(),
         engine.getServiceContext()
     );

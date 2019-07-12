@@ -121,12 +121,12 @@ Your output should resemble:
 
 ::
 
-     Kafka Topic        | Registered | Partitions | Partition Replicas | Consumers | ConsumerGroups
-    ------------------------------------------------------------------------------------------------
-     _confluent-metrics | false      | 12         | 1                  | 0         | 0
-     _schemas           | false      | 1          | 1                  | 0         | 0
-     raw-topic          | false      | 1          | 1                  | 0         | 0
-    ------------------------------------------------------------------------------------------------
+     Kafka Topic        | Partitions | Partition Replicas | Consumers | ConsumerGroups
+    ----------------------------------------------------------------------------------
+     _confluent-metrics | 12         | 1                  | 0         | 0
+     _schemas           | 1          | 1                  | 0         | 0
+     raw-topic          | 1          | 1                  | 0         | 0
+    ----------------------------------------------------------------------------------
 
 Inspect ``raw-topic`` to ensure that |kcat| populated it: 
 

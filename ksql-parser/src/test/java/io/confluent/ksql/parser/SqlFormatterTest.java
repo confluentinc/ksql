@@ -24,7 +24,6 @@ import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.model.KeyField;
@@ -32,6 +31,7 @@ import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.parser.exception.ParseFailedException;
+import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.ComparisonExpression;
 import io.confluent.ksql.parser.tree.CreateStream;
@@ -41,7 +41,6 @@ import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.JoinCriteria;
 import io.confluent.ksql.parser.tree.JoinOn;
-import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.StringLiteral;
@@ -51,6 +50,8 @@ import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.parser.tree.Type;
 import io.confluent.ksql.parser.tree.WithinExpression;
+import io.confluent.ksql.properties.with.CommonCreateConfigs;
+import io.confluent.ksql.properties.with.CreateConfigs;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.SerdeOption;
@@ -58,7 +59,6 @@ import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
 import java.util.Collections;
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import org.apache.kafka.common.serialization.Serdes;
@@ -116,10 +116,11 @@ public class SqlFormatterTest {
       .field("ADDRESS", addressSchema)
       .build();
 
-  private static final Map<String, Literal> SOME_WITH_PROPS = ImmutableMap.of(
-      DdlConfig.KEY_NAME_PROPERTY, new StringLiteral("ORDERID"),
-      DdlConfig.VALUE_FORMAT_PROPERTY, new StringLiteral("JSON"),
-      DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral("topic_test")
+  private static final CreateSourceProperties SOME_WITH_PROPS = CreateSourceProperties.from(
+      ImmutableMap.of(
+          CreateConfigs.KEY_NAME_PROPERTY, new StringLiteral("ORDERID"),
+          CommonCreateConfigs.VALUE_FORMAT_PROPERTY, new StringLiteral("JSON"),
+          CommonCreateConfigs.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral("topic_test"))
   );
 
   private static final TableElements ELEMENTS_WITH_KEY = TableElements.of(
@@ -417,7 +418,7 @@ public class SqlFormatterTest {
 
     final String result = SqlFormatter.formatSql(statement);
 
-    assertThat(result, startsWith("CREATE STREAM S WITH (PARTITIONS = 4) AS SELECT"));
+    assertThat(result, startsWith("CREATE STREAM S WITH (PARTITIONS=4) AS SELECT"));
   }
 
   @Test
@@ -428,7 +429,7 @@ public class SqlFormatterTest {
 
     final String result = SqlFormatter.formatSql(statement);
 
-    assertThat(result, startsWith("CREATE TABLE S WITH (PARTITIONS = 4) AS SELECT"));
+    assertThat(result, startsWith("CREATE TABLE S WITH (PARTITIONS=4) AS SELECT"));
   }
 
   @Test

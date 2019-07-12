@@ -18,10 +18,8 @@ package io.confluent.ksql.parser.tree;
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.ddl.DdlConfig;
-import java.util.Map;
+import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -69,11 +67,7 @@ public class InsertInto
 
   @Override
   public Sink getSink() {
-    final Map<String, Expression> properties = partitionByColumn
-        .map(exp -> ImmutableMap.of(DdlConfig.PARTITION_BY_PROPERTY, exp))
-        .orElseGet(ImmutableMap::of);
-
-    return Sink.of(target.getSuffix(), false, properties);
+    return Sink.of(target.getSuffix(), false, CreateSourceAsProperties.none(), partitionByColumn);
   }
 
   @Override

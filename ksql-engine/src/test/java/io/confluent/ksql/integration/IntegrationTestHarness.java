@@ -47,6 +47,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -120,6 +121,12 @@ public class IntegrationTestHarness extends ExternalResource {
 
   public ContextBuilder ksqlContextBuilder() {
     return new ContextBuilder();
+  }
+
+  public boolean topicExists(final String topicName) {
+    final KafkaTopicClient topicClient = serviceContext.get().getTopicClient();
+
+    return topicClient.isTopicExists(topicName);
   }
 
   /**
@@ -559,7 +566,7 @@ public class IntegrationTestHarness extends ExternalResource {
       final PhysicalSchema schema
   ) {
     return GenericRowSerDe.from(
-        serdeFactories.create(format, Collections.emptyMap()),
+        serdeFactories.create(format, Optional.empty()),
         schema,
         new KsqlConfig(Collections.emptyMap()),
         serviceContext.get().getSchemaRegistryClientFactory(),
@@ -573,7 +580,7 @@ public class IntegrationTestHarness extends ExternalResource {
       final PhysicalSchema schema
   ) {
     return GenericRowSerDe.from(
-        serdeFactories.create(format, Collections.emptyMap()),
+        serdeFactories.create(format, Optional.empty()),
         schema,
         new KsqlConfig(Collections.emptyMap()),
         serviceContext.get().getSchemaRegistryClientFactory(),

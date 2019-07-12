@@ -74,6 +74,7 @@ import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.QualifiedName;
@@ -195,10 +196,10 @@ public class KsqlResourceTest {
           QualifiedName.of("bob"),
           SOME_ELEMENTS,
           true,
-          ImmutableMap.of(
+          CreateSourceProperties.from(ImmutableMap.of(
               "KAFKA_TOPIC", new StringLiteral("orders-topic"),
               "VALUE_FORMAT", new StringLiteral("avro")
-          )));
+          ))));
   private static final ConfiguredStatement<CreateStream> CFG_0_WITH_SCHEMA = ConfiguredStatement.of(
       STMT_0_WITH_SCHEMA,
       ImmutableMap.of(),
@@ -211,10 +212,10 @@ public class KsqlResourceTest {
           QualifiedName.of("john"),
           SOME_ELEMENTS,
           true,
-          ImmutableMap.of(
+          CreateSourceProperties.from(ImmutableMap.of(
               "KAFKA_TOPIC", new StringLiteral("orders-topic"),
               "VALUE_FORMAT", new StringLiteral("avro")
-          )));
+          ))));
   private static final ConfiguredStatement<CreateStream> CFG_1_WITH_SCHEMA = ConfiguredStatement.of(
       STMT_1_WITH_SCHEMA,
       ImmutableMap.of(),
@@ -1554,7 +1555,7 @@ public class KsqlResourceTest {
   public void shouldNeverEnqueueIfErrorIsThrown() {
     // Given:
     givenMockEngine();
-    when(ksqlEngine.getMetaStore()).thenThrow(new KsqlException("Fail"));
+    when(ksqlEngine.parse(anyString())).thenThrow(new KsqlException("Fail"));
 
     // When:
     makeFailingRequest(
@@ -1994,10 +1995,6 @@ public class KsqlResourceTest {
 
   private void givenKafkaTopicExists(final String name) {
     kafkaTopicClient.preconditionTopicExists(name, 1, (short) 1, emptyMap());
-  }
-
-  private void givenKsqlTopicRegistered(final String name) {
-    metaStore.putTopic(new KsqlTopic(name.toUpperCase(), name, new KsqlJsonSerdeFactory(), true));
   }
 
   private void givenPersistentQueryCount(final int value) {

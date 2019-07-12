@@ -33,7 +33,7 @@ public class RoundKudf implements Kudf {
     }
     final Double number = (Double) args[0];
 
-    if (args.length == 1) {
+    if (args.length == 1 || args[1] == null) {
       return Math.round(number);
     }
 

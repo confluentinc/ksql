@@ -390,21 +390,22 @@ though certain operations aren't supported when this is the case.
 Unlike some other formats, the ``KAFKA`` format does not perform any type coercion, so it's important
 to correctly match the field type to the underlying serialized form to avoid deserialization errors.
 
-+-------------------------+--------------------------------------------------------------------------------------------+
-| KSQL Field Type         | Kafka Type                                                                                 |
-+=========================+============================================================================================+
-| INT / INTEGER           | A 32-bit signed integer, that was serialized using the Java                                |
-|                         | ``org.apache.kafka.common.serialization.IntegerSerializer``, or equivalent.                |
-+-------------------------+--------------------------------------------------------------------------------------------+
-| BIGINT                  | A 64-bit signed integer, that was serialized using the Java                                |
-|                         | ``org.apache.kafka.common.serialization.LongSerializer``, or equivalent.                   |
-+-------------------------+--------------------------------------------------------------------------------------------+
-| DOUBLE                  | A 64-bit floating point number, that was serialized using the Java                         |
-|                         | ``org.apache.kafka.common.serialization.DoubleSerializer``, or equivalent.                 |
-+-------------------------+--------------------------------------------------------------------------------------------+
-| STRING / VARCHAR        | A UTF-8 encoded text string, that was serialized using the Java                            |
-|                         | ``org.apache.kafka.common.serialization.StringSerializer``, or equivalent.                 |
-+-------------------------+--------------------------------------------------------------------------------------------+
+The table below details the SQL types the format supports, including details of the associated Kafka
+Java Serializer, Deserializer and Connect Converter classes you would need to use to write the key
+to Kafka, read the key from Kafka, or use to configure Apache Connect to work with the ``KAFKA`` format,
+respectively.
+
++------------------+--------------------------------+-------------------------------------------------------------+---------------------------------------------------------------+-------------------------------------------------------+
+| KSQL Field Type  | Kafka Type                     | Kafka Serializer                                            | Kafka Deserializer                                            | Connect Converter                                     |
++==================+================================+=============================================================+===============================================================+=======================================================+
+| INT / INTEGER    | A 32-bit signed integer        | ``org.apache.kafka.common.serialization.IntegerSerializer`` | ``org.apache.kafka.common.serialization.IntegerDeserializer`` | ``org.apache.kafka.connect.storage.IntegerConverter`` |
++------------------+--------------------------------+-------------------------------------------------------------+---------------------------------------------------------------+-------------------------------------------------------+
+| BIGINT           | A 64-bit signed integer        | ``org.apache.kafka.common.serialization.LongSerializer``    | ``org.apache.kafka.common.serialization.LongDeserializer``    | ``org.apache.kafka.connect.storage.LongConverter``    |
++------------------+--------------------------------+-------------------------------------------------------------+---------------------------------------------------------------+-------------------------------------------------------+
+| DOUBLE           | A 64-bit floating point number | ``org.apache.kafka.common.serialization.DoubleSerializer``  |``org.apache.kafka.common.serialization.DoubleDeserializer``   | ``org.apache.kafka.connect.storage.DoubleConverter``  |
++------------------+--------------------------------+-------------------------------------------------------------+---------------------------------------------------------------+-------------------------------------------------------+
+| STRING / VARCHAR | A UTF-8 encoded text string    | ``org.apache.kafka.common.serialization.StringSerializer``  |``org.apache.kafka.common.serialization.StringDeserializer``   | ``org.apache.kafka.connect.storage.StringConverter``  |
++------------------+--------------------------------+-------------------------------------------------------------+---------------------------------------------------------------+-------------------------------------------------------+
 
 Because the format supports only primitive types, you can only use it when the schema contains a single field.
 

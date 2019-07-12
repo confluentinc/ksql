@@ -29,6 +29,7 @@ import com.google.common.collect.Maps;
 import io.confluent.connect.avro.AvroData;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlEngineTestUtil;
 import io.confluent.ksql.function.TestFunctionRegistry;
@@ -42,12 +43,14 @@ import io.confluent.ksql.test.serde.SerdeSupplier;
 import io.confluent.ksql.test.tools.FakeKafkaService;
 import io.confluent.ksql.test.tools.Test;
 import io.confluent.ksql.test.tools.TestCase;
+import io.confluent.ksql.test.tools.TestExecutor;
 import io.confluent.ksql.test.tools.Topic;
 import io.confluent.ksql.test.tools.TopologyAndConfigs;
 import io.confluent.ksql.test.tools.TopologyTestDriverContainer;
 import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;
 import io.confluent.ksql.test.utils.SerdeUtil;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import java.io.BufferedReader;
@@ -490,30 +493,36 @@ final class EndToEndEngineTestUtil {
   static void shouldBuildAndExecuteQuery(final TestCase testCase) {
 
 
-    try (final ServiceContext serviceContext = getServiceContext();
-        final KsqlEngine ksqlEngine = getKsqlEngine(serviceContext)
-    ) {
-      testCase.initializeTopics(
-          serviceContext.getTopicClient(),
-          fakeKafkaService,
-          serviceContext.getSchemaRegistryClient());
-
-      final TopologyTestDriverContainer topologyTestDriverContainer =
-          buildStreamsTopologyTestDriverContainer(
-              testCase,
-              serviceContext,
-              ksqlEngine);
-
-      testCase.verifyTopology();
-      testCase.processInput(topologyTestDriverContainer, serviceContext.getSchemaRegistryClient());
-      testCase.verifyOutput(topologyTestDriverContainer, serviceContext.getSchemaRegistryClient());
-      testCase.verifyMetastore(ksqlEngine.getMetaStore());
+//    try (final ServiceContext serviceContext = getServiceContext();
+//        final KsqlEngine ksqlEngine = getKsqlEngine(serviceContext)
+    final TestExecutor testExecutor = new TestExecutor();
+    try {
+      testExecutor.buildAndExecuteQuery(testCase);
+//      testCase.initializeTopics(
+//          serviceContext.getTopicClient(),
+//          fakeKafkaService,
+//          serviceContext.getSchemaRegistryClient());
+//
+//      final TopologyTestDriverContainer topologyTestDriverContainer =
+//          buildStreamsTopologyTestDriverContainer(
+//              testCase,
+//              serviceContext,
+//              ksqlEngine);
+//
+//      testCase.verifyTopology();
+//      testCase.processInput(topologyTestDriverContainer, serviceContext.getSchemaRegistryClient());
+//      testCase.verifyOutput(topologyTestDriverContainer, serviceContext.getSchemaRegistryClient());
+//      testCase.verifyMetastore(ksqlEngine.getMetaStore());
     } catch (final RuntimeException e) {
       testCase.handleException(e);
     } catch (final AssertionError e) {
       throw new AssertionError("test: " + testCase.getName() + System.lineSeparator()
           + "file: " + testCase.getTestFile()
           + "Failed with error:" + e.getMessage(), e);
+    } catch (final RestClientException | IOException e) {
+      throw new KsqlException("Test failed failed: " + e.getMessage(), e);
+    } finally {
+      testExecutor.close();
     }
   }
 

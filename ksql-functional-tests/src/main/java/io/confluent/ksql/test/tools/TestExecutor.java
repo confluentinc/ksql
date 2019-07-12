@@ -16,6 +16,7 @@
 package io.confluent.ksql.test.tools;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import io.confluent.common.utils.TestUtils;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
@@ -29,6 +30,7 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -37,7 +39,7 @@ import java.util.stream.Collectors;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.streams.StreamsConfig;
 
-final class TestExecutor {
+public class TestExecutor {
 
   private final ServiceContext serviceContext = getServiceContext();
   private final KsqlEngine ksqlEngine = getKsqlEngine(serviceContext);
@@ -45,7 +47,8 @@ final class TestExecutor {
 
   private final FakeKafkaService fakeKafkaService = FakeKafkaService.create();
 
-  void buildAndExecuteQuery(final TestCase testCase) throws IOException, RestClientException {
+  public void buildAndExecuteQuery(final TestCase testCase)
+      throws IOException, RestClientException {
 
     final KsqlConfig currentConfigs = new KsqlConfig(config);
 
@@ -103,7 +106,7 @@ final class TestExecutor {
     }
   }
 
-  void close() {
+  public void close() {
     serviceContext.close();
     ksqlEngine.close();
   }
@@ -121,7 +124,8 @@ final class TestExecutor {
             FakeKafkaRecord.of(record, null),
             fakeKafkaService,
             topologyTestDriverContainer,
-            serviceContext.getSchemaRegistryClient()
+            serviceContext.getSchemaRegistryClient(),
+            ImmutableSet.copyOf(testCase.getTopics())
         );
       }
     }
@@ -139,7 +143,8 @@ final class TestExecutor {
           fakeKafkaRecord,
           fakeKafkaService,
           topologyTestDriverContainer,
-          serviceContext.getSchemaRegistryClient()
+          serviceContext.getSchemaRegistryClient(),
+          Collections.emptySet()
       );
     }
   }

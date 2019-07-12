@@ -302,7 +302,8 @@ public class TestCase implements Test {
       final FakeKafkaRecord fakeKafkaRecord,
       final FakeKafkaService fakeKafkaService,
       final TopologyTestDriverContainer testDriver,
-      final SchemaRegistryClient schemaRegistryClient
+      final SchemaRegistryClient schemaRegistryClient,
+      final Set<Topic> possibleSinkTopics
   ) {
     final Topic recordTopic = fakeKafkaRecord.getTestRecord().topic;
     final Serializer<Object> keySerializer = recordTopic.getKeySerializer();
@@ -326,24 +327,49 @@ public class TestCase implements Test {
 
     final Topic sinkTopic = testDriver.getSinkTopic();
 
+    processRecordsForTopic(
+        testDriver.getTopologyTestDriver(),
+        sinkTopic,
+        fakeKafkaService,
+        schemaRegistryClient
+    );
+
+    for (final Topic possibleSinkTopic: possibleSinkTopics) {
+      if (possibleSinkTopic.getName().equals(sinkTopic.getName()))
+        continue;
+      processRecordsForTopic(
+          testDriver.getTopologyTestDriver(),
+          possibleSinkTopic,
+          fakeKafkaService,
+          schemaRegistryClient
+      );
+    }
+  }
+
+  @SuppressWarnings("unchecked")
+  private static void processRecordsForTopic(
+      final TopologyTestDriver topologyTestDriver,
+      final Topic topicToWriteInto,
+      final FakeKafkaService fakeKafkaService,
+      final SchemaRegistryClient schemaRegistryClient
+  ) {
     while (true) {
-      final ProducerRecord<?,?> producerRecord = testDriver.getTopologyTestDriver().readOutput(
-          sinkTopic.getName(),
-          sinkTopic.getKeyDeserializer(),
-          sinkTopic.getValueDeserializer(schemaRegistryClient)
+      final ProducerRecord<?,?> producerRecord = topologyTestDriver.readOutput(
+          topicToWriteInto.getName(),
+          topicToWriteInto.getKeyDeserializer(),
+          topicToWriteInto.getValueDeserializer(schemaRegistryClient)
       );
       if (producerRecord == null) {
-        return;
+        break;
       }
 
       fakeKafkaService.writeRecord(
-          producerRecord.topic(),
+          topicToWriteInto.getName(),
           FakeKafkaRecord.of(
-              sinkTopic,
+              topicToWriteInto,
               producerRecord)
       );
     }
-
   }
 
   void verifyOutputTopics(

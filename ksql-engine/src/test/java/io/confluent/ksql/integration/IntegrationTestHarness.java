@@ -122,6 +122,12 @@ public class IntegrationTestHarness extends ExternalResource {
     return new ContextBuilder();
   }
 
+  public boolean topicExists(final String topicName) {
+    final KafkaTopicClient topicClient = serviceContext.get().getTopicClient();
+
+    return topicClient.isTopicExists(topicName);
+  }
+
   /**
    * Ensure topics with the given {@code topicNames} exist.
    *

@@ -32,7 +32,6 @@ import com.google.common.collect.Iterables;
 import io.confluent.ksql.analyzer.Analysis.Into;
 import io.confluent.ksql.analyzer.Analysis.JoinInfo;
 import io.confluent.ksql.analyzer.Analyzer.SerdeOptionsSupplier;
-import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MutableMetaStore;
@@ -42,13 +41,16 @@ import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.KsqlParserTestUtil;
 import io.confluent.ksql.parser.SqlFormatter;
+import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
+import io.confluent.ksql.parser.tree.BooleanLiteral;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
-import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Sink;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.planner.plan.JoinNode.JoinType;
+import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.SerdeFactories;
@@ -96,10 +98,11 @@ public class AnalyzerTest {
   private SerdeOptionsSupplier serdeOptiponsSupplier;
   @Mock
   private Sink sink;
-  private final Map<String, Expression> properties = new HashMap<>();
 
   private Query query;
   private Analyzer analyzer;
+  private Optional<Format> sinkFormat = Optional.empty();
+  private Optional<Boolean> sinkWrapSingleValues = Optional.empty();
 
   @Before
   public void init() {
@@ -115,7 +118,7 @@ public class AnalyzerTest {
     );
 
     when(sink.getName()).thenReturn("TEST0");
-    when(sink.getProperties()).thenReturn(properties);
+    when(sink.getProperties()).thenReturn(CreateSourceAsProperties.none());
 
     query = parseSingle("Select COL0, COL1 from TEST1;");
 
@@ -408,7 +411,7 @@ public class AnalyzerTest {
     final Analyzer analyzer = new Analyzer(jsonMetaStore, "", DEFAULT_SERDE_OPTIONS);
 
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME + " is only valid for AVRO topics.");
+    expectedException.expectMessage(CommonCreateConfigs.VALUE_AVRO_SCHEMA_FULL_NAME + " is only valid for AVRO topics.");
 
     analyzer.analyze("sqlExpression", query, Optional.of(createStreamAsSelect.getSink()));
   }
@@ -437,6 +440,7 @@ public class AnalyzerTest {
     when(serdeOptiponsSupplier.build(any(), any(), any(), any())).thenReturn(serdeOptions);
 
     givenSinkValueFormat(Format.AVRO);
+    givenWrapSingleValues(true);
 
     // When:
     final Analysis result = analyzer.analyze("sql", query, Optional.of(sink));
@@ -444,8 +448,8 @@ public class AnalyzerTest {
     // Then:
     verify(serdeOptiponsSupplier).build(
         ImmutableList.of("COL0", "COL1"),
-        properties,
         Format.AVRO,
+        Optional.of(true),
         DEFAULT_SERDE_OPTIONS);
 
     assertThat(result.getSerdeOptions(), is(serdeOptions));
@@ -510,7 +514,24 @@ public class AnalyzerTest {
   }
 
   private void givenSinkValueFormat(final Format format) {
-    properties.put("VALUE_FORMAT", new StringLiteral(format.toString()));
+    this.sinkFormat = Optional.of(format);
+    buildProps();
+  }
+
+  private void givenWrapSingleValues(final boolean wrap) {
+    this.sinkWrapSingleValues = Optional.of(wrap);
+    buildProps();
+  }
+
+  private void buildProps() {
+    final Map<String, Literal> props = new HashMap<>();
+    sinkFormat.ifPresent(f -> props.put("VALUE_FORMAT", new StringLiteral(f.toString())));
+    sinkWrapSingleValues.ifPresent(b -> props.put("WRAP_SINGLE_VALUE", new BooleanLiteral(Boolean.toString(b))));
+
+    final CreateSourceAsProperties properties = CreateSourceAsProperties.from(props);
+
+    when(sink.getProperties()).thenReturn(properties);
+
   }
 
   private void registerKafkaSource() {

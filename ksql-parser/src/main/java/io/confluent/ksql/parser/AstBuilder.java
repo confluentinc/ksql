@@ -32,6 +32,8 @@ import io.confluent.ksql.parser.SqlBaseParser.LimitClauseContext;
 import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
 import io.confluent.ksql.parser.SqlBaseParser.TablePropertiesContext;
 import io.confluent.ksql.parser.SqlBaseParser.TablePropertyContext;
+import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
+import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.ArithmeticBinaryExpression;
@@ -207,12 +209,14 @@ public class AstBuilder {
           ? ImmutableList.of()
           : visit(context.tableElements().tableElement(), TableElement.class);
 
+      final Map<String, Literal> properties = processTableProperties(context.tableProperties());
+
       return new CreateTable(
           getLocation(context),
           ParserUtil.getQualifiedName(context.qualifiedName()),
           TableElements.of(elements),
           context.EXISTS() != null,
-          processTableProperties(context.tableProperties())
+          CreateSourceProperties.from(properties)
       );
     }
 
@@ -222,36 +226,41 @@ public class AstBuilder {
           ? ImmutableList.of()
           : visit(context.tableElements().tableElement(), TableElement.class);
 
+      final Map<String, Literal> properties = processTableProperties(context.tableProperties());
+
       return new CreateStream(
           getLocation(context),
           ParserUtil.getQualifiedName(context.qualifiedName()),
           TableElements.of(elements),
           context.EXISTS() != null,
-          processTableProperties(context.tableProperties())
+          CreateSourceProperties.from(properties)
       );
     }
 
     @Override
     public Node visitCreateStreamAs(final SqlBaseParser.CreateStreamAsContext context) {
+      final Map<String, Literal> properties = processTableProperties(context.tableProperties());
 
       return new CreateStreamAsSelect(
           getLocation(context),
           ParserUtil.getQualifiedName(context.qualifiedName()),
           visitQuery(context.query()),
           context.EXISTS() != null,
-          processTableProperties(context.tableProperties()),
+          CreateSourceAsProperties.from(properties),
           getPartitionBy(context.identifier())
       );
     }
 
     @Override
     public Node visitCreateTableAs(final SqlBaseParser.CreateTableAsContext context) {
+      final Map<String, Literal> properties = processTableProperties(context.tableProperties());
+
       return new CreateTableAsSelect(
           getLocation(context),
           ParserUtil.getQualifiedName(context.qualifiedName()),
           visitQuery(context.query()),
           context.EXISTS() != null,
-          processTableProperties(context.tableProperties())
+          CreateSourceAsProperties.from(properties)
       );
     }
 

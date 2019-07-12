@@ -15,17 +15,13 @@
 
 package io.confluent.ksql.serde;
 
-import io.confluent.ksql.ddl.DdlConfig;
-import io.confluent.ksql.parser.tree.CreateSourceProperties;
-import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.serde.avro.KsqlAvroSerdeFactory;
 import io.confluent.ksql.serde.delimited.KsqlDelimitedSerdeFactory;
 import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
 import io.confluent.ksql.serde.kafka.KafkaSerdeFactory;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.StringUtil;
-import java.util.Map;
 import java.util.Optional;
 
 public final class KsqlSerdeFactories implements SerdeFactories {
@@ -33,35 +29,13 @@ public final class KsqlSerdeFactories implements SerdeFactories {
   @Override
   public KsqlSerdeFactory create(
       final Format format,
-      final CreateSourceProperties statementProps
+      final Optional<String> fullSchemaName
   ) {
-    final Optional<String> avroSchemaName = statementProps.getValueAvroSchemaName();
-
-    return build(format, avroSchemaName);
-  }
-
-  @Override
-  public KsqlSerdeFactory create(
-      final Format format,
-      final Map<String, Expression> sinkProperties
-  ) {
-    final Optional<String> avroSchemaName = Optional
-        .ofNullable(sinkProperties.get(DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME))
-        .map(Object::toString)
-        .map(StringUtil::cleanQuotes);
-
-    return build(format, avroSchemaName);
-  }
-
-  private static KsqlSerdeFactory build(
-      final Format format,
-      final Optional<String> avroSchemaName
-  ) {
-    validateProps(format, avroSchemaName);
+    validateProps(format, fullSchemaName);
 
     switch (format) {
       case AVRO:
-        final String schemaFullName = avroSchemaName
+        final String schemaFullName = fullSchemaName
             .orElse(KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME);
 
         return new KsqlAvroSerdeFactory(schemaFullName);
@@ -84,7 +58,7 @@ public final class KsqlSerdeFactories implements SerdeFactories {
   private static void validateProps(final Format format, final Optional<String> avroSchema) {
     if (format != Format.AVRO && avroSchema.isPresent()) {
       throw new KsqlException(
-          DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME + " is only valid for AVRO topics.");
+          CommonCreateConfigs.VALUE_AVRO_SCHEMA_FULL_NAME + " is only valid for AVRO topics.");
     }
   }
 }

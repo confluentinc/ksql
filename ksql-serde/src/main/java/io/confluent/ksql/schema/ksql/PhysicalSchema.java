@@ -19,7 +19,7 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.ddl.DdlConfig;
+import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Objects;
@@ -112,7 +112,7 @@ public final class PhysicalSchema {
     final boolean unwrapSingle = serdeOptions.contains(SerdeOption.UNWRAP_SINGLE_VALUES);
 
     if (unwrapSingle && !singleField) {
-      throw new KsqlException("'" + DdlConfig.WRAP_SINGLE_VALUE + "' "
+      throw new KsqlException("'" + CommonCreateConfigs.WRAP_SINGLE_VALUE + "' "
           + "is only valid for single-field value schemas");
     }
 

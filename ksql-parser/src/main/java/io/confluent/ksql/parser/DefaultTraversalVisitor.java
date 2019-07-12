@@ -22,7 +22,6 @@ import io.confluent.ksql.parser.tree.AstVisitor;
 import io.confluent.ksql.parser.tree.BetweenPredicate;
 import io.confluent.ksql.parser.tree.Cast;
 import io.confluent.ksql.parser.tree.ComparisonExpression;
-import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.FunctionCall;
@@ -273,14 +272,6 @@ public abstract class DefaultTraversalVisitor<R, C>
     for (final Expression expression : node.getColumns()) {
       process(expression, context);
     }
-
-    return null;
-  }
-
-  @Override
-  protected R visitCreateTableAsSelect(final CreateTableAsSelect node, final C context) {
-    process(node.getQuery(), context);
-    node.getProperties().values().forEach(expression -> process(expression, context));
 
     return null;
   }

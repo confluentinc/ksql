@@ -1,8 +1,8 @@
 /*
  * Copyright 2019 Confluent Inc.
  *
- * Licensed under the Confluent Community License (the "License"; you may not use
- * this file except in compliance with the License. You may obtain a copy of the
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
  * License at
  *
  * http://www.confluent.io/confluent-community-license
@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.parser.tree;
+package io.confluent.ksql.parser.properties.with;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
@@ -22,9 +22,13 @@ import static org.hamcrest.Matchers.is;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.testing.EqualsTester;
-import io.confluent.ksql.ddl.DdlConfig;
+import io.confluent.ksql.parser.tree.BooleanLiteral;
+import io.confluent.ksql.parser.tree.IntegerLiteral;
+import io.confluent.ksql.parser.tree.Literal;
+import io.confluent.ksql.parser.tree.StringLiteral;
+import io.confluent.ksql.properties.with.CommonCreateConfigs;
+import io.confluent.ksql.properties.with.CreateConfigs;
 import io.confluent.ksql.serde.Format;
-import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import java.util.HashMap;
 import java.util.Optional;
@@ -36,8 +40,8 @@ import org.junit.rules.ExpectedException;
 public class CreateSourcePropertiesTest {
 
   private static final java.util.Map<String, Literal> MINIMUM_VALID_PROPS = ImmutableMap.of(
-      DdlConfig.VALUE_FORMAT_PROPERTY, new StringLiteral("AvRo"),
-      DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral("foo")
+      CommonCreateConfigs.VALUE_FORMAT_PROPERTY, new StringLiteral("AvRo"),
+      CommonCreateConfigs.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral("foo")
   );
 
   @Rule
@@ -60,7 +64,7 @@ public class CreateSourcePropertiesTest {
 
     // Then:
     assertThat(properties.getKeyField(), is(Optional.empty()));
-    assertThat(properties.getTimestampName(), is(Optional.empty()));
+    assertThat(properties.getTimestampColumnName(), is(Optional.empty()));
     assertThat(properties.getTimestampFormat(), is(Optional.empty()));
     assertThat(properties.getWindowType(), is(Optional.empty()));
     assertThat(properties.getAvroSchemaId(), is(Optional.empty()));
@@ -76,7 +80,7 @@ public class CreateSourcePropertiesTest {
     final CreateSourceProperties properties = CreateSourceProperties.from(
         ImmutableMap.<String, Literal>builder()
             .putAll(MINIMUM_VALID_PROPS)
-            .put(DdlConfig.KEY_NAME_PROPERTY, new StringLiteral("key"))
+            .put(CreateConfigs.KEY_NAME_PROPERTY, new StringLiteral("key"))
             .build());
 
     // Then:
@@ -89,11 +93,11 @@ public class CreateSourcePropertiesTest {
     final CreateSourceProperties properties = CreateSourceProperties.from(
         ImmutableMap.<String, Literal>builder()
             .putAll(MINIMUM_VALID_PROPS)
-            .put(DdlConfig.TIMESTAMP_NAME_PROPERTY, new StringLiteral("ts"))
+            .put(CommonCreateConfigs.TIMESTAMP_NAME_PROPERTY, new StringLiteral("ts"))
             .build());
 
     // Then:
-    assertThat(properties.getTimestampName(), is(Optional.of("ts")));
+    assertThat(properties.getTimestampColumnName(), is(Optional.of("ts")));
   }
 
   @Test
@@ -102,11 +106,26 @@ public class CreateSourcePropertiesTest {
     final CreateSourceProperties properties = CreateSourceProperties.from(
         ImmutableMap.<String, Literal>builder()
             .putAll(MINIMUM_VALID_PROPS)
-            .put(DdlConfig.TIMESTAMP_FORMAT_PROPERTY, new StringLiteral("ts"))
+            .put(
+                CommonCreateConfigs.TIMESTAMP_FORMAT_PROPERTY,
+                new StringLiteral("yyyy-MM-dd'T'HH:mm:ss.SSS")
+            )
             .build());
 
     // Then:
-    assertThat(properties.getTimestampFormat(), is(Optional.of("ts")));
+    assertThat(properties.getTimestampFormat(), is(Optional.of("yyyy-MM-dd'T'HH:mm:ss.SSS")));
+  }
+
+  @Test
+  public void shouldThrowOnInvalidTimestampFormat() {
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(
+        "Invalid datatime format for config:TIMESTAMP_FORMAT, reason:Unknown pattern letter: i");
+
+    // When:
+    CreateSourceAsProperties.from(
+        ImmutableMap.of(CommonCreateConfigs.TIMESTAMP_FORMAT_PROPERTY, new StringLiteral("invalid")));
   }
 
   @Test
@@ -115,7 +134,7 @@ public class CreateSourcePropertiesTest {
     final CreateSourceProperties properties = CreateSourceProperties.from(
         ImmutableMap.<String, Literal>builder()
             .putAll(MINIMUM_VALID_PROPS)
-            .put(DdlConfig.WINDOW_TYPE_PROPERTY, new StringLiteral("HoPPinG"))
+            .put(CreateConfigs.WINDOW_TYPE_PROPERTY, new StringLiteral("HoPPinG"))
             .build());
 
     // Then:
@@ -131,7 +150,7 @@ public class CreateSourcePropertiesTest {
     final CreateSourceProperties properties = CreateSourceProperties.from(
         ImmutableMap.<String, Literal>builder()
             .putAll(MINIMUM_VALID_PROPS)
-            .put(KsqlConstants.AVRO_SCHEMA_ID, new StringLiteral("1"))
+            .put(CreateConfigs.AVRO_SCHEMA_ID, new StringLiteral("1"))
             .build());
 
     // Then:
@@ -144,7 +163,7 @@ public class CreateSourcePropertiesTest {
     final CreateSourceProperties properties = CreateSourceProperties.from(
         ImmutableMap.<String, Literal>builder()
             .putAll(MINIMUM_VALID_PROPS)
-            .put(DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME, new StringLiteral("schema"))
+            .put(CommonCreateConfigs.VALUE_AVRO_SCHEMA_FULL_NAME, new StringLiteral("schema"))
             .build());
 
     // Then:
@@ -157,7 +176,7 @@ public class CreateSourcePropertiesTest {
     final CreateSourceProperties properties = CreateSourceProperties.from(
         ImmutableMap.<String, Literal>builder()
             .putAll(MINIMUM_VALID_PROPS)
-            .put(DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME, new StringLiteral("'schema'"))
+            .put(CommonCreateConfigs.VALUE_AVRO_SCHEMA_FULL_NAME, new StringLiteral("'schema'"))
             .build());
 
     // Then:
@@ -170,7 +189,7 @@ public class CreateSourcePropertiesTest {
     final CreateSourceProperties properties = CreateSourceProperties.from(
         ImmutableMap.<String, Literal>builder()
             .putAll(MINIMUM_VALID_PROPS)
-            .put(KsqlConstants.SOURCE_NUMBER_OF_REPLICAS, new IntegerLiteral(2))
+            .put(CommonCreateConfigs.SOURCE_NUMBER_OF_REPLICAS, new IntegerLiteral(2))
             .build());
 
     // Then:
@@ -183,7 +202,7 @@ public class CreateSourcePropertiesTest {
     final CreateSourceProperties properties = CreateSourceProperties.from(
         ImmutableMap.<String, Literal>builder()
             .putAll(MINIMUM_VALID_PROPS)
-            .put(KsqlConstants.SOURCE_NUMBER_OF_PARTITIONS, new IntegerLiteral(2))
+            .put(CommonCreateConfigs.SOURCE_NUMBER_OF_PARTITIONS, new IntegerLiteral(2))
             .build());
 
     // Then:
@@ -196,7 +215,7 @@ public class CreateSourcePropertiesTest {
     final CreateSourceProperties properties = CreateSourceProperties.from(
         ImmutableMap.<String, Literal>builder()
             .putAll(MINIMUM_VALID_PROPS)
-            .put(DdlConfig.WRAP_SINGLE_VALUE, new BooleanLiteral("true"))
+            .put(CommonCreateConfigs.WRAP_SINGLE_VALUE, new BooleanLiteral("true"))
             .build());
 
     // Then:
@@ -209,7 +228,7 @@ public class CreateSourcePropertiesTest {
     final CreateSourceProperties properties = CreateSourceProperties.from(
         ImmutableMap.<String, Literal>builder()
             .putAll(MINIMUM_VALID_PROPS)
-            .put(KsqlConstants.SOURCE_NUMBER_OF_REPLICAS, new StringLiteral("3"))
+            .put(CommonCreateConfigs.SOURCE_NUMBER_OF_REPLICAS, new StringLiteral("3"))
             .build());
 
     // Then:
@@ -222,7 +241,7 @@ public class CreateSourcePropertiesTest {
     final CreateSourceProperties properties = CreateSourceProperties.from(
         ImmutableMap.<String, Literal>builder()
             .putAll(MINIMUM_VALID_PROPS)
-            .put(DdlConfig.WRAP_SINGLE_VALUE, new StringLiteral("true"))
+            .put(CommonCreateConfigs.WRAP_SINGLE_VALUE, new StringLiteral("true"))
             .build());
 
     // Then:
@@ -235,7 +254,7 @@ public class CreateSourcePropertiesTest {
     final CreateSourceProperties properties = CreateSourceProperties.from(
         ImmutableMap.<String, Literal>builder()
             .putAll(MINIMUM_VALID_PROPS)
-            .put(DdlConfig.WRAP_SINGLE_VALUE.toLowerCase(), new StringLiteral("false"))
+            .put(CommonCreateConfigs.WRAP_SINGLE_VALUE.toLowerCase(), new StringLiteral("false"))
             .build());
 
     // Then:
@@ -246,7 +265,7 @@ public class CreateSourcePropertiesTest {
   public void shouldFailIfNoKafkaTopicName() {
     // Given:
     final HashMap<String, Literal> props = new HashMap<>(MINIMUM_VALID_PROPS);
-    props.remove(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY);
+    props.remove(CommonCreateConfigs.KAFKA_TOPIC_NAME_PROPERTY);
 
     // Expect:
     expectedException.expectMessage(
@@ -261,7 +280,7 @@ public class CreateSourcePropertiesTest {
   public void shouldFailIfNoValueFormat() {
     // Given:
     final HashMap<String, Literal> props = new HashMap<>(MINIMUM_VALID_PROPS);
-    props.remove(DdlConfig.VALUE_FORMAT_PROPERTY);
+    props.remove(CommonCreateConfigs.VALUE_FORMAT_PROPERTY);
 
     // Expect:
     expectedException
@@ -283,7 +302,7 @@ public class CreateSourcePropertiesTest {
     CreateSourceProperties.from(
         ImmutableMap.<String, Literal>builder()
             .putAll(MINIMUM_VALID_PROPS)
-            .put(DdlConfig.WINDOW_TYPE_PROPERTY, new StringLiteral("bar"))
+            .put(CreateConfigs.WINDOW_TYPE_PROPERTY, new StringLiteral("bar"))
             .build()
     );
   }
@@ -312,7 +331,7 @@ public class CreateSourcePropertiesTest {
         .addEqualityGroup(
             CreateSourceProperties.from(ImmutableMap.<String, Literal>builder()
                 .putAll(MINIMUM_VALID_PROPS)
-                .put(DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME, new StringLiteral("schema"))
+                .put(CommonCreateConfigs.VALUE_AVRO_SCHEMA_FULL_NAME, new StringLiteral("schema"))
                 .build()))
         .testEquals();
   }

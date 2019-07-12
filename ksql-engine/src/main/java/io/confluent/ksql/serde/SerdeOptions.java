@@ -16,17 +16,12 @@
 package io.confluent.ksql.serde;
 
 import com.google.common.collect.ImmutableSet;
-import io.confluent.ksql.ddl.DdlConfig;
-import io.confluent.ksql.parser.LiteralUtil;
-import io.confluent.ksql.parser.tree.CreateSourceProperties;
-import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.parser.tree.Literal;
+import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -57,85 +52,68 @@ public final class SerdeOptions {
    * Build serde options for {@code `CREATE STREAM`} and {@code `CREATE TABLE`} statements.
    *
    * @param schema the logical schema of the create statement.
-   * @param properties the WITH clause properties of the statement.
+   * @param valueFormat the format of the value.
+   * @param wrapSingleValues explicitly set single value wrapping flag.
    * @param ksqlConfig the system config, used to retrieve defaults.
    * @return the set of serde options the statement defines.
    */
   public static Set<SerdeOption> buildForCreateStatement(
       final LogicalSchema schema,
-      final CreateSourceProperties properties,
+      final Format valueFormat,
+      final Optional<Boolean> wrapSingleValues,
       final KsqlConfig ksqlConfig
   ) {
-    final Format valueFormat = properties.getValueFormat();
-
-    final ImmutableSet.Builder<SerdeOption> options = ImmutableSet.builder();
-
-    final boolean singleValueField = schema.valueSchema().fields().size() == 1;
-
-    if (properties.getWrapSingleValues().isPresent() && !singleValueField) {
-      throw new KsqlException("'" + DdlConfig.WRAP_SINGLE_VALUE + "' "
-          + "is only valid for single-field value schemas");
-    }
-
-    if (properties.getWrapSingleValues().isPresent() && !valueFormat.supportsUnwrapping()) {
-      throw new KsqlException("'" + DdlConfig.WRAP_SINGLE_VALUE + "' can not be used with format '"
-          + valueFormat + "' as it does not support wrapping");
-    }
-
-    final Set<SerdeOption> defaults = buildDefaults(ksqlConfig);
-
-    if (singleValueField && !properties.getWrapSingleValues()
-        .orElseGet(() -> !defaults.contains(SerdeOption.UNWRAP_SINGLE_VALUES))
-    ) {
-      options.add(SerdeOption.UNWRAP_SINGLE_VALUES);
-    }
-
-    return Collections.unmodifiableSet(options.build());
+    final boolean singleField = schema.valueSchema().fields().size() == 1;
+    final Set<SerdeOption> singleFieldDefaults = buildDefaults(ksqlConfig);
+    return build(singleField, valueFormat, wrapSingleValues, singleFieldDefaults);
   }
 
   /**
    * Build serde options for {@code `CREATE STREAM AS SELECT`} and {@code `CREATE TABLE AS SELECT`}
    * statements.
    *
-   * @param columnNames the set of column names in the schema.
-   * @param properties the WITH clause properties of the statement.
+   * @param valueColumnNames the set of column names in the schema.
    * @param valueFormat the format of the value.
+   * @param wrapSingleValues explicitly set single value wrapping flag.
    * @param singleFieldDefaults the defaults for single fields.
    * @return the set of serde options the statement defines.
    */
   public static Set<SerdeOption> buildForCreateAsStatement(
-      final List<String> columnNames,
-      final Map<String, Expression> properties,
+      final List<String> valueColumnNames,
       final Format valueFormat,
+      final Optional<Boolean> wrapSingleValues,
       final Set<SerdeOption> singleFieldDefaults
   ) {
-    final boolean singleField = columnNames.size() == 1;
+    final boolean singleField = valueColumnNames.size() == 1;
+    return build(singleField, valueFormat, wrapSingleValues, singleFieldDefaults);
+  }
 
-    final Expression exp = properties.get(DdlConfig.WRAP_SINGLE_VALUE);
-    if (exp == null) {
+  private static Set<SerdeOption> build(
+      final boolean singleField,
+      final Format valueFormat,
+      final Optional<Boolean> wrapSingleValues,
+      final Set<SerdeOption> singleFieldDefaults
+  ) {
+    if (!wrapSingleValues.isPresent()) {
       return singleField && singleFieldDefaults.contains(SerdeOption.UNWRAP_SINGLE_VALUES)
           ? SerdeOption.of(SerdeOption.UNWRAP_SINGLE_VALUES)
           : SerdeOption.none();
     }
 
     if (!valueFormat.supportsUnwrapping()) {
-      throw new KsqlException("'" + DdlConfig.WRAP_SINGLE_VALUE + "' can not be used with format '"
+      throw new KsqlException("'" + CommonCreateConfigs.WRAP_SINGLE_VALUE
+          + "' can not be used with format '"
           + valueFormat + "' as it does not support wrapping");
     }
 
     if (!singleField) {
-      throw new KsqlException("'" + DdlConfig.WRAP_SINGLE_VALUE
+      throw new KsqlException("'" + CommonCreateConfigs.WRAP_SINGLE_VALUE
           + "' is only valid for single-field value schemas");
-    }
-
-    if (!(exp instanceof Literal)) {
-      throw new KsqlException(DdlConfig.WRAP_SINGLE_VALUE
-          + " set in the WITH clause must be set to a literal");
     }
 
     final ImmutableSet.Builder<SerdeOption> options = ImmutableSet.builder();
 
-    if (!LiteralUtil.toBoolean(((Literal) exp), DdlConfig.WRAP_SINGLE_VALUE)) {
+    if (!wrapSingleValues.get()) {
       options.add(SerdeOption.UNWRAP_SINGLE_VALUES);
     }
 

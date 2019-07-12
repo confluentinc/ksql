@@ -364,7 +364,6 @@ public class CliTest {
         "topics",
         hasRow(
             equalTo(orderDataProvider.topicName()),
-            equalTo("true"),
             equalTo("1"),
             equalTo("1"),
             any(String.class),

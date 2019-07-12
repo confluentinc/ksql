@@ -30,6 +30,7 @@ import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Optional;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -100,7 +101,7 @@ public class SourceDescriptionTest {
         "json",
         Collections.emptyList(),
         Collections.emptyList(),
-        null);
+        Optional.empty());
 
     // Then:
     assertThat(

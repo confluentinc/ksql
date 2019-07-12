@@ -43,9 +43,11 @@ import io.confluent.ksql.rest.entity.FunctionInfo;
 import io.confluent.ksql.rest.entity.FunctionType;
 import io.confluent.ksql.rest.entity.KafkaTopicInfo;
 import io.confluent.ksql.rest.entity.KafkaTopicsList;
+import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlTopicInfo;
 import io.confluent.ksql.rest.entity.KsqlTopicsList;
+import io.confluent.ksql.rest.entity.KsqlWarning;
 import io.confluent.ksql.rest.entity.PropertiesList;
 import io.confluent.ksql.rest.entity.Queries;
 import io.confluent.ksql.rest.entity.RunningQuery;
@@ -85,6 +87,22 @@ public class ConsoleTest {
   private final Console console;
   private final Supplier<String> lineSupplier;
   private final CliSpecificCommand cliCommand;
+  private final SourceDescription sourceDescription = new SourceDescription(
+      "TestSource",
+      Collections.emptyList(),
+      Collections.emptyList(),
+      buildTestSchema(2),
+      DataSourceType.KTABLE.getKsqlType(),
+      "key",
+      "2000-01-01",
+      "stats",
+      "errors",
+      true,
+      "avro",
+      "kadka-topic",
+      2,
+      1
+  );
 
   @Parameterized.Parameters(name = "{0}")
   public static Collection<OutputFormat> data() {
@@ -154,7 +172,8 @@ public class ConsoleTest {
               new SourceDescription(
                   "TestSource", Collections.emptyList(), Collections.emptyList(), buildTestSchema(i),
                   DataSourceType.KTABLE.getKsqlType(), "key", "2000-01-01", "stats",
-                  "errors", false, "avro", "kadka-topic", 1, 1)),
+                  "errors", false, "avro", "kadka-topic", 1, 1),
+              Collections.emptyList()),
           new TopicDescription("e", "TestTopic", "TestKafkaTopic", "AVRO", "schemaString"),
           new StreamsList("e", ImmutableList.of(new SourceInfo.Stream("TestStream", "TestTopic", "AVRO"))),
           new TablesList("e", ImmutableList.of(new SourceInfo.Table("TestTable", "TestTopic", "JSON", false))),
@@ -171,11 +190,9 @@ public class ConsoleTest {
     final KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(
         new SourceDescriptionEntity(
             "e",
-            new SourceDescription(
-                "TestSource", Collections.emptyList(), Collections.emptyList(),
-                buildTestSchema(2), DataSourceType.KTABLE.getKsqlType(),
-                "key", "2000-01-01", "stats", "errors", true, "avro", "kadka-topic",
-                2, 1))));
+            sourceDescription,
+            Collections.emptyList()))
+    );
 
     console.printKsqlEntityList(entityList);
 
@@ -184,6 +201,31 @@ public class ConsoleTest {
       assertThat(output, containsString("\"topic\" : \"kadka-topic\""));
     } else {
       assertThat(output, containsString("Kafka topic          : kadka-topic (partitions: 2, replication: 1)"));
+    }
+  }
+
+  @Test
+  public void shouldPrintWarnings() throws IOException {
+    // Given:
+    final KsqlEntity entity = new SourceDescriptionEntity(
+        "e",
+        sourceDescription,
+        ImmutableList.of(new KsqlWarning("oops"), new KsqlWarning("doh!"))
+    );
+
+    // When:
+    console.printKsqlEntityList(ImmutableList.of(entity));
+
+    // Then:
+    final String output = terminal.getOutputString();
+    if (console.getOutputFormat() == OutputFormat.TABULAR) {
+      assertThat(
+          output,
+          containsString("WARNING: oops\nWARNING: doh")
+      );
+    } else {
+      assertThat(output, containsString("\"message\" : \"oops\""));
+      assertThat(output, containsString("\"message\" : \"doh!\""));
     }
   }
 

@@ -51,6 +51,7 @@ import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlStatementErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlTopicsList;
+import io.confluent.ksql.rest.entity.KsqlWarning;
 import io.confluent.ksql.rest.entity.PropertiesList;
 import io.confluent.ksql.rest.entity.Queries;
 import io.confluent.ksql.rest.entity.QueryDescription;
@@ -383,6 +384,14 @@ public class Console implements Closeable {
     }
     
     handler.handle(this, entity);
+
+    printWarnings(entity);
+  }
+
+  private void printWarnings(final KsqlEntity entity) {
+    for (final KsqlWarning warning : entity.getWarnings()) {
+      writer().println("WARNING: " + warning.getMessage());
+    }
   }
 
   @SuppressWarnings("ConstantConditions")

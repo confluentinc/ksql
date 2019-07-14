@@ -379,7 +379,10 @@ public class AggregateNode extends PlanNode {
       );
     }
 
-    return LogicalSchema.of(schemaBuilder.build());
+    return LogicalSchema.of(
+        schema.keySchema(),
+        schemaBuilder.build()
+    );
   }
 
   private static class InternalSchema {

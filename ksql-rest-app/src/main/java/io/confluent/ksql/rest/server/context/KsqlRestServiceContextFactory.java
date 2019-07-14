@@ -27,7 +27,6 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import javax.inject.Inject;
 import javax.ws.rs.core.SecurityContext;
-
 import org.apache.kafka.streams.KafkaClientSupplier;
 import org.glassfish.hk2.api.Factory;
 

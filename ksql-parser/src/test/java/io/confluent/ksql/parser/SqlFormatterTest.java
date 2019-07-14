@@ -46,6 +46,7 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TableElement;
+import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.parser.tree.Type;
 import io.confluent.ksql.parser.tree.WithinExpression;
@@ -122,9 +123,14 @@ public class SqlFormatterTest {
           CommonCreateConfigs.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral("topic_test"))
   );
 
+  private static final TableElements ELEMENTS_WITH_KEY = TableElements.of(
+      new TableElement(Namespace.KEY, "ROWKEY", new Type(SqlTypes.STRING)),
+      new TableElement(Namespace.VALUE, "Foo", new Type(SqlTypes.STRING))
+  );
+
   private static final TableElements ELEMENTS_WITHOUT_KEY = TableElements.of(
-      new TableElement("Foo", new Type(SqlTypes.STRING)),
-      new TableElement("Bar", new Type(SqlTypes.STRING))
+      new TableElement(Namespace.VALUE, "Foo", new Type(SqlTypes.STRING)),
+      new TableElement(Namespace.VALUE, "Bar", new Type(SqlTypes.STRING))
   );
 
   @Before
@@ -176,6 +182,23 @@ public class SqlFormatterTest {
   }
 
   @Test
+  public void shouldFormatCreateStreamStatementWithExplicitKey() {
+    // Given:
+    final CreateStream createStream = new CreateStream(
+        QualifiedName.of("TEST"),
+        ELEMENTS_WITH_KEY,
+        false,
+        SOME_WITH_PROPS);
+
+    // When:
+    final String sql = SqlFormatter.formatSql(createStream);
+
+    // Then:
+    assertThat(sql, is("CREATE STREAM TEST (ROWKEY STRING KEY, Foo STRING) "
+        + "WITH (KAFKA_TOPIC='topic_test', KEY='ORDERID', VALUE_FORMAT='JSON');"));
+  }
+
+  @Test
   public void shouldFormatCreateStreamStatementWithImplicitKey() {
     // Given:
     final CreateStream createStream = new CreateStream(
@@ -189,6 +212,23 @@ public class SqlFormatterTest {
 
     // Then:
     assertThat(sql, is("CREATE STREAM TEST (Foo STRING, Bar STRING) "
+        + "WITH (KAFKA_TOPIC='topic_test', KEY='ORDERID', VALUE_FORMAT='JSON');"));
+  }
+
+  @Test
+  public void shouldFormatCreateTableStatementWithExplicitKey() {
+    // Given:
+    final CreateTable createTable = new CreateTable(
+        QualifiedName.of("TEST"),
+        ELEMENTS_WITH_KEY,
+        false,
+        SOME_WITH_PROPS);
+
+    // When:
+    final String sql = SqlFormatter.formatSql(createTable);
+
+    // Then:
+    assertThat(sql, is("CREATE TABLE TEST (ROWKEY STRING KEY, Foo STRING) "
         + "WITH (KAFKA_TOPIC='topic_test', KEY='ORDERID', VALUE_FORMAT='JSON');"));
   }
 
@@ -213,8 +253,8 @@ public class SqlFormatterTest {
   public void shouldFormatTableElementsNamedAfterReservedWords() {
     // Given:
     final TableElements tableElements = TableElements.of(
-        new TableElement("GROUP", new Type(SqlTypes.STRING)),
-        new TableElement("Having", new Type(SqlTypes.STRING))
+        new TableElement(Namespace.VALUE, "GROUP", new Type(SqlTypes.STRING)),
+        new TableElement(Namespace.VALUE, "Having", new Type(SqlTypes.STRING))
     );
 
     final CreateStream createStream = new CreateStream(

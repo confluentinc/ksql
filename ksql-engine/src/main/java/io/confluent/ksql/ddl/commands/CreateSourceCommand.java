@@ -25,6 +25,7 @@ import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.TableElement;
+import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
@@ -37,6 +38,7 @@ import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.StringUtil;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicyFactory;
@@ -144,16 +146,25 @@ abstract class CreateSourceCommand implements DdlCommand {
       throw new KsqlException("The statement does not define any columns.");
     }
 
+    final SchemaBuilder keySchema = SchemaBuilder.struct();
     final SchemaBuilder valueSchema = SchemaBuilder.struct();
     for (final TableElement tableElement : tableElements) {
       final String fieldName = tableElement.getName();
       final Schema fieldSchema = SchemaConverters.sqlToLogicalConverter()
           .fromSqlType(tableElement.getType().getSqlType());
 
-      valueSchema.field(fieldName, fieldSchema);
+      if (tableElement.getNamespace() == Namespace.KEY) {
+        keySchema.field(fieldName, fieldSchema);
+      } else {
+        valueSchema.field(fieldName, fieldSchema);
+      }
     }
 
-    return LogicalSchema.of(valueSchema.build());
+    if (keySchema.fields().isEmpty()) {
+      keySchema.field(SchemaUtil.ROWKEY_NAME, Schema.OPTIONAL_STRING_SCHEMA);
+    }
+
+    return LogicalSchema.of(keySchema.build(), valueSchema.build());
   }
 
   static void checkMetaData(

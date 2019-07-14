@@ -19,6 +19,7 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.parser.ParsingException;
+import io.confluent.ksql.schema.ksql.SqlBaseType;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.Objects;
 import java.util.Optional;
@@ -29,31 +30,42 @@ import java.util.Optional;
 @Immutable
 public final class TableElement extends Node {
 
+  public enum Namespace {
+    KEY,
+    VALUE
+  }
+
+  private final Namespace namespace;
   private final String name;
   private final Type type;
 
   /**
+   * @param namespace indicates if the element is part of the key or value.
    * @param name the name of the element.
    * @param type the sql type of the element.
    */
   public TableElement(
+      final Namespace namespace,
       final String name,
       final Type type
   ) {
-    this(Optional.empty(), name, type);
+    this(Optional.empty(), namespace, name, type);
   }
 
   /**
    * @param location the location in the SQL text.
+   * @param namespace  indicates if the element is part of the key or value.
    * @param name the name of the element.
    * @param type the sql type of the element.
    */
   public TableElement(
       final Optional<NodeLocation> location,
+      final Namespace namespace,
       final String name,
       final Type type
   ) {
     super(location);
+    this.namespace = requireNonNull(namespace, "namespace");
     this.name = requireNonNull(name, "name");
     this.type = requireNonNull(type, "type");
 
@@ -66,6 +78,10 @@ public final class TableElement extends Node {
 
   public Type getType() {
     return type;
+  }
+
+  public Namespace getNamespace() {
+    return namespace;
   }
 
   @Override
@@ -83,12 +99,13 @@ public final class TableElement extends Node {
     }
     final TableElement o = (TableElement) obj;
     return Objects.equals(this.name, o.name)
-        && Objects.equals(this.type, o.type);
+        && Objects.equals(this.type, o.type)
+        && Objects.equals(this.namespace, o.namespace);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(name, type);
+    return Objects.hash(name, type, namespace);
   }
 
   @Override
@@ -96,13 +113,31 @@ public final class TableElement extends Node {
     return "TableElement{"
         + "name='" + name + '\''
         + ", type=" + type
+        + ", namespace=" + namespace
         + '}';
   }
 
   private void validate() {
-    if (name.toUpperCase().equals(SchemaUtil.ROWTIME_NAME)
-        || name.toUpperCase().equals(SchemaUtil.ROWKEY_NAME)) {
+    if (name.toUpperCase().equals(SchemaUtil.ROWTIME_NAME)) {
       throw new ParsingException("'" + name + "' is a reserved field name.", getLocation());
+    }
+
+    final boolean isRowKey = name.toUpperCase().equals(SchemaUtil.ROWKEY_NAME);
+
+    if (namespace == Namespace.KEY) {
+      if (!isRowKey) {
+        throw new ParsingException("'" + name + "' is an invalid KEY field name. "
+            + "KSQL currently only supports KEY fields named ROWKEY.", getLocation());
+      }
+
+      if (type.getSqlType().baseType() != SqlBaseType.STRING) {
+        throw new ParsingException("'" + name + "' is a KEY field with an unsupported type. "
+            + "KSQL currently only supports KEY fields of type " + SqlBaseType.STRING + ".",
+            getLocation());
+      }
+    } else if (isRowKey) {
+      throw new ParsingException("'" + name + "' is a reserved field name. "
+          + "It can only be used for KEY fields.", getLocation());
     }
   }
 }

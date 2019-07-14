@@ -34,6 +34,7 @@ import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
+import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.parser.tree.Type;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
@@ -65,11 +66,11 @@ public class CreateSourceCommandTest {
   private static final String TOPIC_NAME = "some topic";
 
   private static final TableElements ONE_ELEMENT = TableElements.of(
-      new TableElement("bob", new Type(SqlTypes.STRING)));
+      new TableElement(Namespace.VALUE, "bob", new Type(SqlTypes.STRING)));
 
   private static final TableElements SOME_ELEMENTS = TableElements.of(
-      new TableElement("bob", new Type(SqlTypes.STRING)),
-      new TableElement("hojjat", new Type(SqlTypes.STRING))
+      new TableElement(Namespace.VALUE, "bob", new Type(SqlTypes.STRING)),
+      new TableElement(Namespace.VALUE, "hojjat", new Type(SqlTypes.STRING))
   );
 
   private static final Set<SerdeOption> SOME_SERDE_OPTIONS = ImmutableSet
@@ -311,6 +312,71 @@ public class CreateSourceCommandTest {
         ksqlConfig
     );
     assertThat(cmd.getSerdeOptions(), is(SOME_SERDE_OPTIONS));
+  }
+
+  @Test
+  public void shouldBuildSchemaWithImplicitKeyField() {
+    // Given:
+    when(statement.getElements()).thenReturn(TableElements.of(
+        new TableElement(Namespace.VALUE, "bob", new Type(SqlTypes.STRING)),
+        new TableElement(Namespace.VALUE, "hojjat", new Type(SqlTypes.STRING))
+    ));
+
+    // When:
+    final TestCmd result = new TestCmd(
+        "look mum, no columns",
+        statement,
+        ksqlConfig,
+        kafkaTopicClient,
+        serdeOptions,
+        serdeFactories
+    );
+
+    // Then:
+    assertThat(result.schema, is(LogicalSchema.of(
+        SchemaBuilder
+            .struct()
+            .field("ROWKEY", Schema.OPTIONAL_STRING_SCHEMA)
+            .build(),
+        SchemaBuilder
+            .struct()
+            .field("bob", Schema.OPTIONAL_STRING_SCHEMA)
+            .field("hojjat", Schema.OPTIONAL_STRING_SCHEMA)
+            .build()
+    )));
+  }
+
+  @Test
+  public void shouldBuildSchemaWithExplicitKeyField() {
+    // Given:
+    when(statement.getElements()).thenReturn(TableElements.of(
+        new TableElement(Namespace.KEY, "ROWKEY", new Type(SqlTypes.STRING)),
+        new TableElement(Namespace.VALUE, "bob", new Type(SqlTypes.STRING)),
+        new TableElement(Namespace.VALUE, "hojjat", new Type(SqlTypes.STRING))
+    ));
+
+    // When:
+    final TestCmd result = new TestCmd(
+        "look mum, no columns",
+        statement,
+        ksqlConfig,
+        kafkaTopicClient,
+        serdeOptions,
+        serdeFactories
+    );
+
+    // Then:
+    assertThat(result.schema, is(LogicalSchema.of(
+        SchemaBuilder
+            .struct()
+            .field("ROWKEY", Schema.OPTIONAL_STRING_SCHEMA)
+            .build(),
+        SchemaBuilder
+            .struct()
+            .field("bob", Schema.OPTIONAL_STRING_SCHEMA)
+            .field("hojjat", Schema.OPTIONAL_STRING_SCHEMA)
+            .build()
+    )));
   }
 
   private static Map<String, Literal> minValidProps() {

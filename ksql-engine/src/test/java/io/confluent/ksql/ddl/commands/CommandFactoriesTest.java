@@ -36,6 +36,7 @@ import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
+import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.parser.tree.Type;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
@@ -60,7 +61,7 @@ public class CommandFactoriesTest {
   private static final Map<String, Object> NO_PROPS = Collections.emptyMap();
   private static final String sqlExpression = "sqlExpression";
   private static final TableElements SOME_ELEMENTS = TableElements.of(
-      new TableElement("bob", new Type(SqlTypes.STRING)));
+      new TableElement(Namespace.VALUE, "bob", new Type(SqlTypes.STRING)));
 
   private static final Map<String, Literal> MINIMIM_PROPS = ImmutableMap.of(
       CommonCreateConfigs.VALUE_FORMAT_PROPERTY, new StringLiteral("JSON"),
@@ -105,8 +106,8 @@ public class CommandFactoriesTest {
     // Given:
     final CreateTable ddlStatement = new CreateTable(SOME_NAME,
         TableElements.of(
-            new TableElement("COL1", new Type(SqlTypes.BIGINT)),
-            new TableElement("COL2", new Type(SqlTypes.STRING))),
+            new TableElement(Namespace.VALUE, "COL1", new Type(SqlTypes.BIGINT)),
+            new TableElement(Namespace.VALUE, "COL2", new Type(SqlTypes.STRING))),
         true, withProperties);
 
     // When:

@@ -4,7 +4,6 @@ import io.confluent.ksql.rest.server.security.KsqlAuthorizationProvider;
 import io.confluent.ksql.rest.server.security.KsqlSecurityExtension;
 import io.confluent.ksql.rest.server.security.KsqlUserContextProvider;
 import io.confluent.ksql.util.KsqlConfig;
-
 import java.util.Optional;
 
 /**

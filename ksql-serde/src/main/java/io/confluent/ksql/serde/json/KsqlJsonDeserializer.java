@@ -17,10 +17,8 @@ package io.confluent.ksql.serde.json;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.gson.Gson;
-import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.schema.connect.SqlSchemaFormatter;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
-import io.confluent.ksql.serde.util.SerdeProcessingLogMessageFactory;
 import io.confluent.ksql.util.KsqlException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -28,7 +26,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.function.Function;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
@@ -61,17 +58,14 @@ public class KsqlJsonDeserializer implements Deserializer<Object> {
   private final Gson gson;
   private final PersistenceSchema physicalSchema;
   private final JsonConverter jsonConverter;
-  private final ProcessingLogger recordLogger;
 
   KsqlJsonDeserializer(
-      final PersistenceSchema physicalSchema,
-      final ProcessingLogger recordLogger
+      final PersistenceSchema physicalSchema
   ) {
     this.gson = new Gson();
     this.physicalSchema = JsonSerdeUtils.validateSchema(physicalSchema);
     this.jsonConverter = new JsonConverter();
     this.jsonConverter.configure(Collections.singletonMap("schemas.enable", false), false);
-    this.recordLogger = Objects.requireNonNull(recordLogger, "recordLogger");
   }
 
   @Override
@@ -87,11 +81,6 @@ public class KsqlJsonDeserializer implements Deserializer<Object> {
       }
       return value;
     } catch (final Exception e) {
-      recordLogger.error(
-          SerdeProcessingLogMessageFactory.deserializationErrorMsg(
-              e,
-              Optional.ofNullable(bytes))
-      );
       throw new SerializationException(
           "Error deserializing JSON message from topic: " + topic, e);
     }

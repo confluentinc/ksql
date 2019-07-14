@@ -27,18 +27,13 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.logging.processing.ProcessingLogConfig;
-import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
-import io.confluent.ksql.serde.SerdeTestUtils;
-import io.confluent.ksql.serde.util.SerdeProcessingLogMessageFactory;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.connect.data.ConnectSchema;
@@ -50,7 +45,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
-import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -93,9 +87,6 @@ public class KsqlJsonDeserializerTest {
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
-
-  @Mock
-  private ProcessingLogger recordLogger;
 
   private Struct expectedOrder;
   private Schema connectSchema;
@@ -566,7 +557,7 @@ public class KsqlJsonDeserializerTest {
     expectedException.expectMessage("Only MAPs with STRING keys are supported");
 
     // When:
-    new KsqlJsonDeserializer(physicalSchema, recordLogger);
+    new KsqlJsonDeserializer(physicalSchema);
   }
 
   @Test
@@ -587,7 +578,7 @@ public class KsqlJsonDeserializerTest {
     expectedException.expectMessage("Only MAPs with STRING keys are supported");
 
     // When:
-    new KsqlJsonDeserializer(physicalSchema, recordLogger);
+    new KsqlJsonDeserializer(physicalSchema);
   }
 
   @Test
@@ -623,34 +614,10 @@ public class KsqlJsonDeserializerTest {
     }
   }
 
-  @Test
-  public void shouldLogDeserializationErrors() {
-    // Given:
-    final ProcessingLogConfig processingLogConfig =
-        new ProcessingLogConfig(Collections.emptyMap());
-
-    final byte[] data = "{foo".getBytes(StandardCharsets.UTF_8);
-
-    try {
-      // When:
-      deserializer.deserialize(SOME_TOPIC, data);
-      fail("deserialize should have thrown");
-
-    } catch (final SerializationException e) {
-      // Then:
-      SerdeTestUtils.shouldLogError(
-          recordLogger,
-          SerdeProcessingLogMessageFactory.deserializationErrorMsg(
-              e.getCause(),
-              Optional.of(data)).apply(processingLogConfig),
-          processingLogConfig);
-    }
-  }
-
   private void givenDeserializerForSchema(final Schema connectSchema) {
     final PersistenceSchema physicalSchema = PersistenceSchema.of((ConnectSchema) connectSchema);
     this.connectSchema = connectSchema;
-    deserializer = new KsqlJsonDeserializer(physicalSchema, recordLogger);
+    deserializer = new KsqlJsonDeserializer(physicalSchema);
   }
 
   private static byte[] serializeJson(final Object expected) {

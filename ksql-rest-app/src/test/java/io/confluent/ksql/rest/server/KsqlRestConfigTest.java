@@ -74,11 +74,4 @@ public class KsqlRestConfigTest {
     assertEquals(COMMIT_INTERVAL_MS, originals1.get(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG));
     assertEquals(COMMIT_INTERVAL_MS, originals2.get(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG));
   }
-
-  @Test
-  public void ensureCorrectCommandTopicName() {
-    final String commandTopicName = KsqlRestConfig.getCommandTopic("TestKSql");
-    assertThat(commandTopicName,
-               equalTo("_confluent-ksql-TestKSql_" + KsqlRestConfig.COMMAND_TOPIC_SUFFIX));
-  }
 }

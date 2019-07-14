@@ -125,7 +125,7 @@ public class InsertValuesExecutorTest {
 
   @Before
   public void setup() {
-    when(valueSerde.createSerde(any(), any(), any(), any(), any())).thenReturn(valueSerDe);
+    when(valueSerde.createSerde(any(), any(), any())).thenReturn(valueSerDe);
 
     when(keySerDe.serializer()).thenReturn(keySerializer);
     when(valueSerDe.serializer()).thenReturn(valueSerializer);

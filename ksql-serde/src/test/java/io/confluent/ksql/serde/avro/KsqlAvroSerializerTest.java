@@ -32,7 +32,6 @@ import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.AbstractKafkaAvroSerDeConfig;
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
-import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
@@ -987,9 +986,7 @@ public class KsqlAvroSerializerTest {
             .createSerde(
                 PersistenceSchema.of((ConnectSchema) ksqlRecordSchema),
                 ksqlConfig,
-                () -> schemaRegistryClient,
-                "logger.name.prefix",
-                ProcessingLogContext.create()
+                () -> schemaRegistryClient
             ).serializer();
 
     // When:

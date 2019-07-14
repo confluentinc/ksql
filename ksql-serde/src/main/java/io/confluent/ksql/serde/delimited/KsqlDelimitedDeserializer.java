@@ -16,9 +16,7 @@
 package io.confluent.ksql.serde.delimited;
 
 import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
-import io.confluent.ksql.serde.util.SerdeProcessingLogMessageFactory;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlException;
 import java.math.BigDecimal;
@@ -27,7 +25,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.function.Function;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
@@ -51,14 +48,11 @@ public class KsqlDelimitedDeserializer implements Deserializer<Object> {
   );
 
   private final ConnectSchema schema;
-  private final ProcessingLogger recordLogger;
 
   KsqlDelimitedDeserializer(
-      final PersistenceSchema schema,
-      final ProcessingLogger recordLogger
+      final PersistenceSchema schema
   ) {
     this.schema = Objects.requireNonNull(schema, "schema").getConnectSchema();
-    this.recordLogger = Objects.requireNonNull(recordLogger, "recordLogger");
 
     throwOnUnsupported(this.schema);
   }
@@ -113,8 +107,6 @@ public class KsqlDelimitedDeserializer implements Deserializer<Object> {
       }
       return struct;
     } catch (final Exception e) {
-      recordLogger.error(SerdeProcessingLogMessageFactory
-          .deserializationErrorMsg(e, Optional.of(bytes)));
       throw new SerializationException("Error deserializing delimited row", e);
     }
   }

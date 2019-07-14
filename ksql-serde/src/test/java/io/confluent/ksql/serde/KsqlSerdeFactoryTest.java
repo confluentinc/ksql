@@ -24,8 +24,6 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
-import io.confluent.ksql.logging.processing.ProcessingLogger;
-import io.confluent.ksql.logging.processing.ProcessingLoggerFactory;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.function.Supplier;
@@ -45,7 +43,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class KsqlSerdeFactoryTest {
 
   private static final KsqlConfig KSQL_CONFIG = new KsqlConfig(ImmutableMap.of());
-  private static final String SOME_LOGGER_NAME = "bob";
 
   private static final PersistenceSchema SOME_SCHEMA = persistenceSchema(
       SchemaBuilder.struct()
@@ -62,10 +59,6 @@ public class KsqlSerdeFactoryTest {
   @Mock
   private DeserializerFactory deserializerFactory;
   @Mock
-  private ProcessingLoggerFactory loggerFactory;
-  @Mock
-  private ProcessingLogger processingLogger;
-  @Mock
   private Serializer<Object> serializer;
   @Mock
   private Deserializer<Object> deserializer;
@@ -74,13 +67,10 @@ public class KsqlSerdeFactoryTest {
 
   @Before
   public void setUp() {
-    when(processingLogContext.getLoggerFactory()).thenReturn(loggerFactory);
-    when(loggerFactory.getLogger(any())).thenReturn(processingLogger);
-
     when(serializerFactory.createSerializer(any(), any(), any()))
         .thenReturn(serializer);
 
-    when(deserializerFactory.createDeserializer(any(), any(), any(), any()))
+    when(deserializerFactory.createDeserializer(any(), any(), any()))
         .thenReturn(deserializer);
 
     factory = new TestSerdeFactory(serializerFactory, deserializerFactory);
@@ -92,9 +82,7 @@ public class KsqlSerdeFactoryTest {
     factory.createSerde(
         SOME_SCHEMA,
         KSQL_CONFIG,
-        srClientFactory,
-        SOME_LOGGER_NAME,
-        processingLogContext
+        srClientFactory
     );
 
     // Then:
@@ -108,14 +96,12 @@ public class KsqlSerdeFactoryTest {
     factory.createSerde(
         SOME_SCHEMA,
         KSQL_CONFIG,
-        srClientFactory,
-        SOME_LOGGER_NAME,
-        processingLogContext
+        srClientFactory
     );
 
     // Then:
     verify(deserializerFactory)
-        .createDeserializer(SOME_SCHEMA, KSQL_CONFIG, srClientFactory, processingLogger);
+        .createDeserializer(SOME_SCHEMA, KSQL_CONFIG, srClientFactory);
   }
 
   @Test
@@ -124,9 +110,7 @@ public class KsqlSerdeFactoryTest {
     final Serde<Object> serde = factory.createSerde(
         SOME_SCHEMA,
         KSQL_CONFIG,
-        srClientFactory,
-        SOME_LOGGER_NAME,
-        processingLogContext
+        srClientFactory
     );
 
     // Then:
@@ -166,11 +150,10 @@ public class KsqlSerdeFactoryTest {
     protected Deserializer<Object> createDeserializer(
         final PersistenceSchema schema,
         final KsqlConfig ksqlConfig,
-        final Supplier<SchemaRegistryClient> srClientFactory,
-        final ProcessingLogger processingLogger
+        final Supplier<SchemaRegistryClient> srClientFactory
     ) {
       return deserializerFactory
-          .createDeserializer(schema, ksqlConfig, srClientFactory, processingLogger);
+          .createDeserializer(schema, ksqlConfig, srClientFactory);
     }
   }
 
@@ -188,8 +171,7 @@ public class KsqlSerdeFactoryTest {
     Deserializer<Object> createDeserializer(
         final PersistenceSchema schema,
         final KsqlConfig ksqlConfig,
-        final Supplier<SchemaRegistryClient> srClientFactory,
-        final ProcessingLogger processingLogger
+        final Supplier<SchemaRegistryClient> srClientFactory
     );
   }
 }

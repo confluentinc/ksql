@@ -1471,8 +1471,7 @@ public class KsqlAvroDeserializerTest {
     deserializer = serdeFactory.createDeserializer(
         PersistenceSchema.of((ConnectSchema) schema),
         KSQL_CONFIG,
-        () -> schemaRegistryClient,
-        recordLogger
+        () -> schemaRegistryClient
     );
 
     deserializer.configure(Collections.emptyMap(), false);

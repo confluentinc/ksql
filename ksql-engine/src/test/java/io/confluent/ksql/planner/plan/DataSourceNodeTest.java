@@ -366,14 +366,14 @@ public class DataSourceNodeTest {
     // Then:
     assertThat(schema, is(
         LogicalSchema.of(SchemaBuilder.struct()
-            .field(sourceName + "." + SchemaUtil.ROWTIME_NAME, Schema.OPTIONAL_INT64_SCHEMA)
-            .field(sourceName + "." + SchemaUtil.ROWKEY_NAME, Schema.OPTIONAL_STRING_SCHEMA)
-            .field(sourceName + ".field1", Schema.OPTIONAL_STRING_SCHEMA)
-            .field(sourceName + ".field2", Schema.OPTIONAL_STRING_SCHEMA)
-            .field(sourceName + ".field3", Schema.OPTIONAL_STRING_SCHEMA)
-            .field(sourceName + "." + TIMESTAMP_FIELD, Schema.OPTIONAL_INT64_SCHEMA)
-            .field(sourceName + ".key", Schema.OPTIONAL_STRING_SCHEMA)
-            .build())));
+            .field(SchemaUtil.ROWTIME_NAME, Schema.OPTIONAL_INT64_SCHEMA)
+            .field(SchemaUtil.ROWKEY_NAME, Schema.OPTIONAL_STRING_SCHEMA)
+            .field("field1", Schema.OPTIONAL_STRING_SCHEMA)
+            .field("field2", Schema.OPTIONAL_STRING_SCHEMA)
+            .field("field3", Schema.OPTIONAL_STRING_SCHEMA)
+            .field(TIMESTAMP_FIELD, Schema.OPTIONAL_INT64_SCHEMA)
+            .field("key", Schema.OPTIONAL_STRING_SCHEMA)
+            .build()).withAlias(sourceName)));
   }
 
   @Test

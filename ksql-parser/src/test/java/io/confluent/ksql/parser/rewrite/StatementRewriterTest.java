@@ -18,7 +18,6 @@ package io.confluent.ksql.parser.rewrite;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.hamcrest.core.IsNot.not;
@@ -40,9 +39,9 @@ import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.schema.ksql.SqlBaseType;
-import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.util.MetaStoreFixture;
+import java.util.Optional;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -305,91 +304,47 @@ public class StatementRewriterTest {
   }
 
   @Test
-  public void testCreateStreamWithTopic() {
-    final String queryStr =
-        "CREATE STREAM orders (ordertime bigint, orderid varchar, itemid varchar, orderunits "
-            + "double) WITH (kafka_topic = 'foo', value_format = 'json', key='ordertime');";
-    final Statement statement = parse(queryStr);
-
-    final Statement rewrittenStatement = (Statement) statementRewriter.process(statement, null);
-
-    assertThat(rewrittenStatement, instanceOf(CreateStream.class));
-    final CreateStream createStream = (CreateStream)rewrittenStatement;
-    assertThat(createStream.getName().toString(), equalTo("ORDERS"));
-    assertThat(Iterables.size(createStream.getElements()), equalTo(4));
-    assertThat(Iterables.get(createStream.getElements(), 0).getName(), equalTo("ORDERTIME"));
-  }
-
-  @Test
-  public void testCreateStreamWithTopicWithStruct() {
-    final String queryStr =
-        "CREATE STREAM orders (ordertime bigint, orderid varchar, itemid varchar, orderunits "
-            + "double, arraycol array<double>, mapcol map<varchar, double>, "
-            + "order_address STRUCT< number VARCHAR, street VARCHAR, zip INTEGER, city "
-            + "VARCHAR, state VARCHAR >) WITH (kafka_topic='foo', value_format='json', key='ordertime');";
-    final Statement statement = parse(queryStr);
-
-    final Statement rewrittenStatement = (Statement) statementRewriter.process(statement, null);
-
-    assertThat(rewrittenStatement, instanceOf(CreateStream.class));
-    final CreateStream createStream = (CreateStream)rewrittenStatement;
-    assertThat(createStream.getName().toString().toUpperCase(), equalTo("ORDERS"));
-    assertThat(Iterables.size(createStream.getElements()), equalTo(7));
-    assertThat(Iterables.get(createStream.getElements(), 0).getName().toLowerCase(), equalTo("ordertime"));
-    assertThat(Iterables.get(createStream.getElements(), 6).getType().getSqlType().baseType(), equalTo(SqlBaseType.STRUCT));
-    final SqlStruct struct = (SqlStruct) Iterables.get(createStream.getElements(), 6).getType().getSqlType();
-    assertThat(struct.getFields(), hasSize(5));
-    assertThat(struct.getFields().get(0).getType().baseType(), equalTo(SqlBaseType.STRING));
-  }
-
-  @Test
   public void testCreateStream() {
-    final String queryStr =
-        "CREATE STREAM orders "
-            + "(ordertime bigint, orderid varchar, itemid varchar, orderunits double) "
-            + "WITH (value_format = 'avro',kafka_topic='orders_topic');";
-    final Statement statement = parse(queryStr);
+    // Given:
+    final Statement statement = parse("CREATE STREAM orders ("
+        + "ordertime bigint, "
+        + "orderid varchar, "
+        + "itemid varchar, "
+        + "orderunits double, "
+        + "arraycol array<double>, "
+        + "mapcol map<varchar, double>, "
+        + "order_address STRUCT<number VARCHAR, street VARCHAR, zip INTEGER>"
+        + ") WITH (value_format = 'avro',kafka_topic='orders_topic');");
 
-    final Statement rewrittenStatement = (Statement) statementRewriter.process(statement, null);
+    // When:
+    final CreateStream result = (CreateStream) statementRewriter.process(statement, null);
 
-    assertThat(rewrittenStatement, instanceOf(CreateStream.class));
-    final CreateStream createStream = (CreateStream)rewrittenStatement;
-
-    assertThat(createStream.getName().toString(), equalTo("ORDERS"));
-    assertThat(Iterables.size(createStream.getElements()), equalTo(4));
-    assertThat(Iterables.get(createStream.getElements(), 0).getName(), equalTo("ORDERTIME"));
-    assertThat(createStream.getProperties().getKafkaTopic(), equalTo("orders_topic"));
-    assertThat(createStream.getProperties().getValueFormat(), equalTo(Format.AVRO));
-  }
-
-  @Test
-  public void testCreateTableWithTopic() {
-    final String queryStr =
-        "CREATE TABLE users (usertime bigint, userid varchar, regionid varchar, gender varchar) "
-            + "WITH (kafka_topic='foo', value_format='json', key='userid');";
-    final Statement statement = parse(queryStr);
-    final Statement rewrittenStatement = (Statement) statementRewriter.process(statement, null);
-    assertThat(rewrittenStatement, is(instanceOf(CreateTable.class)));
-    final CreateTable createTable = (CreateTable)rewrittenStatement;
-    assertThat(createTable.getName().toString(), equalTo("USERS"));
-    assertThat(Iterables.size(createTable.getElements()), equalTo(4));
-    assertThat(Iterables.get(createTable.getElements(), 0).getName(), equalTo("USERTIME"));
+    // Then:
+    assertThat(result.getName().toString(), equalTo("ORDERS"));
+    assertThat(Iterables.size(result.getElements()), equalTo(7));
+    assertThat(Iterables.get(result.getElements(), 0).getName(), equalTo("ORDERTIME"));
+    assertThat(Iterables.get(result.getElements(), 6).getType().getSqlType().baseType(), equalTo(SqlBaseType.STRUCT));
+    assertThat(result.getProperties().getKafkaTopic(), equalTo("orders_topic"));
+    assertThat(result.getProperties().getValueFormat(), equalTo(Format.AVRO));
   }
 
   @Test
   public void testCreateTable() {
-    final String queryStr =
+    // Given:
+    final Statement statement = parse(
         "CREATE TABLE users (usertime bigint, userid varchar, regionid varchar, gender varchar) "
-            + "WITH (kafka_topic = 'users_topic', value_format='json', key = 'userid');";
-    final Statement statement = parse(queryStr);
-    final Statement rewrittenStatement = (Statement) statementRewriter.process(statement, null);
-    assertThat(rewrittenStatement, is(instanceOf(CreateTable.class)));
-    final CreateTable createTable = (CreateTable)rewrittenStatement;
-    assertThat(createTable.getName().toString(), equalTo("USERS"));
-    assertThat(Iterables.size(createTable.getElements()), equalTo(4));
-    assertThat(Iterables.get(createTable.getElements(), 0).getName(), equalTo("USERTIME"));
-    assertThat(createTable.getProperties().getKafkaTopic(), equalTo("users_topic"));
-    assertThat(createTable.getProperties().getValueFormat(), equalTo(Format.JSON));
+            + "WITH (kafka_topic='foo', value_format='json', key='userid');");
+
+    // When:
+    final CreateTable result = (CreateTable) statementRewriter.process(statement, null);
+
+    // Then:
+    assertThat(result.getName().toString(), equalTo("USERS"));
+    assertThat(Iterables.size(result.getElements()), equalTo(4));
+    assertThat(Iterables.get(result.getElements(), 0).getName(), equalTo("USERTIME"));
+    assertThat(result.getProperties().getKafkaTopic(), equalTo("foo"));
+    assertThat(result.getProperties().getValueFormat(), equalTo(Format.JSON));
+    assertThat(result.getProperties().getKeyField(), equalTo(Optional.of("userid")));
   }
 
   @Test

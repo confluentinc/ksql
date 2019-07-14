@@ -63,7 +63,7 @@ public final class LogicalSchema {
       .field(SchemaUtil.ROWTIME_NAME, Schema.OPTIONAL_INT64_SCHEMA)
       .build();
 
-  private static final Schema KEY_SCHEMA = SchemaBuilder
+  private static final Schema IMPLICIT_KEY_SCHEMA = SchemaBuilder
       .struct()
       .field(SchemaUtil.ROWKEY_NAME, Schema.OPTIONAL_STRING_SCHEMA)
       .build();
@@ -90,7 +90,14 @@ public final class LogicalSchema {
   private final ConnectSchema valueSchema;
 
   public static LogicalSchema of(final Schema valueSchema) {
-    return new LogicalSchema(METADATA_SCHEMA, KEY_SCHEMA, valueSchema, Optional.empty());
+    return LogicalSchema.of(IMPLICIT_KEY_SCHEMA, valueSchema);
+  }
+
+  public static LogicalSchema of(
+      final Schema keySchema,
+      final Schema valueSchema
+  ) {
+    return new LogicalSchema(METADATA_SCHEMA, keySchema, valueSchema, Optional.empty());
   }
 
   private LogicalSchema(
@@ -242,6 +249,13 @@ public final class LogicalSchema {
   }
 
   /**
+   * @return {@code true} is aliased, {@code false} otherwise.
+   */
+  public boolean isAliased() {
+    return alias.isPresent();
+  }
+
+  /**
    * Copies metadata and key fields to the value schema.
    *
    * <p>If the fields already exist in the value schema the function returns the same schema.
@@ -314,12 +328,13 @@ public final class LogicalSchema {
       return false;
     }
     final LogicalSchema that = (LogicalSchema) o;
-    return schemasAreEqual(valueSchema, that.valueSchema);
+    return Objects.equals(keySchema, that.keySchema)
+        && Objects.equals(valueSchema, that.valueSchema);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(valueSchema);
+    return Objects.hash(keySchema, valueSchema);
   }
 
   @Override

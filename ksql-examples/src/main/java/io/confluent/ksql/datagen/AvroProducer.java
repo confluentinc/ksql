@@ -54,9 +54,14 @@ public class AvroProducer extends DataGenProducer {
       final org.apache.kafka.connect.data.Schema kafkaSchema,
       final String topicName
   ) {
+    final PhysicalSchema physicalSchema = PhysicalSchema.from(
+        LogicalSchema.of(KEY_SCHEMA, kafkaSchema),
+        SerdeOption.none()
+    );
+
     return GenericRowSerDe.from(
         new KsqlAvroSerdeFactory(KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME),
-        PhysicalSchema.from(LogicalSchema.of(kafkaSchema), SerdeOption.none()),
+        physicalSchema,
         ksqlConfig,
         () -> schemaRegistryClient,
         "",

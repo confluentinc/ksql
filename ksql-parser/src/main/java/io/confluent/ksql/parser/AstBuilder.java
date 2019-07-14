@@ -100,6 +100,7 @@ import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.SubscriptExpression;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TableElement;
+import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.parser.tree.TimeLiteral;
@@ -583,7 +584,6 @@ public class AstBuilder {
       return new ShowColumns(
           getLocation(context),
           ParserUtil.getQualifiedName(context.qualifiedName()),
-          context.TOPIC() != null,
           context.EXTENDED() != null
       );
     }
@@ -1011,6 +1011,7 @@ public class AstBuilder {
     public Node visitTableElement(final SqlBaseParser.TableElementContext context) {
       return new TableElement(
           getLocation(context),
+          context.KEY() == null ? Namespace.VALUE : Namespace.KEY,
           ParserUtil.getIdentifierText(context.identifier()),
           getType(context.type())
       );

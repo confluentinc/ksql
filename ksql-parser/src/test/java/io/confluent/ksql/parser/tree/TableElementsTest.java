@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.parser.tree;
 
+import static io.confluent.ksql.parser.tree.TableElement.Namespace.KEY;
+import static io.confluent.ksql.parser.tree.TableElement.Namespace.VALUE;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
@@ -23,6 +25,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.testing.EqualsTester;
+import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
@@ -45,7 +48,7 @@ public class TableElementsTest {
   @Test
   public void shouldImplementHashCodeAndEqualsProperty() {
     final List<TableElement> someElements = ImmutableList.of(
-        tableElement("bob", INT_TYPE)
+        tableElement(VALUE, "bob", INT_TYPE)
     );
 
     new EqualsTester()
@@ -55,13 +58,49 @@ public class TableElementsTest {
   }
 
   @Test
+  public void shouldThrowOnOutOfOrderKeyColumns() {
+    // Given:
+    final List<TableElement> elements = ImmutableList.of(
+        tableElement(VALUE, "v0", INT_TYPE),
+        tableElement(KEY, "key", STRING_TYPE)
+    );
+
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("KEY column declared after VALUE column: key");
+
+    // When:
+    TableElements.of(elements);
+  }
+
+  @Test
+  public void shouldThrowOnDuplicateKeyColumns() {
+    // Given:
+    final List<TableElement> elements = ImmutableList.of(
+        tableElement(KEY, "k0", STRING_TYPE),
+        tableElement(KEY, "k0", STRING_TYPE),
+        tableElement(KEY, "k1", STRING_TYPE),
+        tableElement(KEY, "k1", STRING_TYPE)
+    );
+
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Duplicate KEY column names:");
+    expectedException.expectMessage("k0");
+    expectedException.expectMessage("k1");
+
+    // When:
+    TableElements.of(elements);
+  }
+
+  @Test
   public void shouldThrowOnDuplicateValueColumns() {
     // Given:
     final List<TableElement> elements = ImmutableList.of(
-        tableElement("v0", INT_TYPE),
-        tableElement("v0", INT_TYPE),
-        tableElement("v1", INT_TYPE),
-        tableElement("v1", INT_TYPE)
+        tableElement(VALUE, "v0", INT_TYPE),
+        tableElement(VALUE, "v0", INT_TYPE),
+        tableElement(VALUE, "v1", INT_TYPE),
+        tableElement(VALUE, "v1", INT_TYPE)
     );
 
     // Then:
@@ -78,7 +117,7 @@ public class TableElementsTest {
   public void shouldNotThrowOnNoKeyElements() {
     // Given:
     final List<TableElement> elements = ImmutableList.of(
-        tableElement("v0", new Type(SqlTypes.INTEGER))
+        tableElement(VALUE, "v0", new Type(SqlTypes.INTEGER))
     );
 
     // When:
@@ -88,10 +127,43 @@ public class TableElementsTest {
   }
 
   @Test
+  public void shouldThrowIfMoreThatOneKeyColumn() {
+    // Given:
+    final List<TableElement> elements = ImmutableList.of(
+        tableElement(KEY, "k0", STRING_TYPE),
+        tableElement(KEY, "k1", STRING_TYPE),
+        tableElement(VALUE, "v0", INT_TYPE)
+    );
+
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("KSQL does not yet support multiple KEY columns");
+
+    // When:
+    TableElements.of(elements);
+  }
+
+  @Test
+  public void shouldThrowIfKeyColumnNotString() {
+    // Given:
+    final List<TableElement> elements = ImmutableList.of(
+        tableElement(KEY, "k0", new Type(SqlTypes.INTEGER)),
+        tableElement(VALUE, "v0", INT_TYPE)
+    );
+
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("KEY columns must be of type STRING: k0");
+
+    // When:
+    TableElements.of(elements);
+  }
+
+  @Test
   public void shouldIterateElements() {
     // Given:
-    final TableElement te1 = tableElement("k0", STRING_TYPE);
-    final TableElement te2 = tableElement("v0", INT_TYPE);
+    final TableElement te1 = tableElement(KEY, "k0", STRING_TYPE);
+    final TableElement te2 = tableElement(VALUE, "v0", INT_TYPE);
 
     // When:
     final Iterable<TableElement> iterable = TableElements.of(ImmutableList.of(te1, te2));
@@ -104,8 +176,8 @@ public class TableElementsTest {
   public void shouldStreamElements() {
     // Given:
     final List<TableElement> elements = ImmutableList.of(
-        tableElement("k0", STRING_TYPE),
-        tableElement("v0", INT_TYPE)
+        tableElement(KEY, "k0", STRING_TYPE),
+        tableElement(VALUE, "v0", INT_TYPE)
     );
 
     final TableElements tableElements = TableElements.of(elements);
@@ -121,8 +193,8 @@ public class TableElementsTest {
   @Test
   public void shouldToString() {
     // Given:
-    final TableElement element0 = tableElement("k0", STRING_TYPE);
-    final TableElement element1 = tableElement("v0", INT_TYPE);
+    final TableElement element0 = tableElement(KEY, "k0", STRING_TYPE);
+    final TableElement element1 = tableElement(VALUE, "v0", INT_TYPE);
 
     final TableElements tableElements = TableElements.of(element0, element1);
 
@@ -134,7 +206,7 @@ public class TableElementsTest {
   }
 
   @Test
-  public void shouldThrowWhenBuildLogicalSchemaIfNotElements() {
+  public void shouldThrowWhenBuildLogicalSchemaIfNoElements() {
     // Given:
     final TableElements tableElements = TableElements.of();
 
@@ -149,8 +221,8 @@ public class TableElementsTest {
   @Test
   public void shouldBuildLogicalSchema() {
     // Given:
-    final TableElement element0 = tableElement("v0", STRING_TYPE);
-    final TableElement element1 = tableElement("v1", INT_TYPE);
+    final TableElement element0 = tableElement(KEY, "k0", STRING_TYPE);
+    final TableElement element1 = tableElement(VALUE, "v0", INT_TYPE);
     final TableElements tableElements = TableElements.of(element0, element1);
 
     // When:
@@ -160,19 +232,24 @@ public class TableElementsTest {
     assertThat(schema, is(LogicalSchema.of(
         SchemaBuilder
             .struct()
-            .field("v0", Schema.OPTIONAL_STRING_SCHEMA)
-            .field("v1", Schema.OPTIONAL_INT32_SCHEMA)
-        .build()
+            .field("k0", Schema.OPTIONAL_STRING_SCHEMA)
+        .build(),
+        SchemaBuilder
+            .struct()
+            .field("v0", Schema.OPTIONAL_INT32_SCHEMA)
+            .build()
     )));
   }
 
   private static TableElement tableElement(
+      final Namespace namespace,
       final String name,
       final Type type
   ) {
     final TableElement te = mock(TableElement.class, name);
     when(te.getName()).thenReturn(name);
     when(te.getType()).thenReturn(type);
+    when(te.getNamespace()).thenReturn(namespace);
     return te;
   }
 }

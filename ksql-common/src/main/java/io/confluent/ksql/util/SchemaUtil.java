@@ -50,7 +50,6 @@ public final class SchemaUtil {
   public static final String ROWKEY_NAME = "ROWKEY";
   public static final String ROWTIME_NAME = "ROWTIME";
 
-  public static final int ROWTIME_INDEX = 0;
   public static final int ROWKEY_INDEX = 1;
   private static final Map<Type, Supplier<SchemaBuilder>> typeToSchema
       = ImmutableMap.<Type, Supplier<SchemaBuilder>>builder()

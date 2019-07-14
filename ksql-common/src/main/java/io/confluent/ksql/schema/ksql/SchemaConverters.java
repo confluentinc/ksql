@@ -30,7 +30,7 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 
 /**
- * Util class for converting between KSQL's {@link LogicalSchema} and it's SQL types.
+ * Util class for converting between KSQL's {@link LogicalSchema} and its SQL types.
  *
  * <p>KSQL the following main type systems / schema types:
  *

@@ -72,8 +72,8 @@ public class ListTopicsExecutorTest {
 
     // Then:
     assertThat(topicsList.getTopics(), containsInAnyOrder(
-        new KafkaTopicInfo("topic1", true, ImmutableList.of(1), 0, 0),
-        new KafkaTopicInfo("topic2", false, ImmutableList.of(1), 0, 0)
+        new KafkaTopicInfo("topic1", ImmutableList.of(1), 0, 0),
+        new KafkaTopicInfo("topic2", ImmutableList.of(1), 0, 0)
     ));
   }
 

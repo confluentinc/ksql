@@ -19,7 +19,6 @@ import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
-import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.parser.tree.ListStreams;
 import io.confluent.ksql.parser.tree.ListTables;
 import io.confluent.ksql.parser.tree.ShowColumns;
@@ -32,11 +31,9 @@ import io.confluent.ksql.rest.entity.SourceDescriptionList;
 import io.confluent.ksql.rest.entity.SourceInfo;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
-import io.confluent.ksql.rest.entity.TopicDescription;
 import io.confluent.ksql.rest.server.KsqlRestApplication;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
-import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.util.List;
@@ -103,24 +100,6 @@ public final class ListSourceExecutor {
       final ServiceContext serviceContext
   ) {
     final ShowColumns showColumns = statement.getStatement();
-    if (showColumns.isTopic()) {
-      final String name = showColumns.getTable().getSuffix();
-      final KsqlTopic ksqlTopic = executionContext.getMetaStore().getTopic(name);
-      if (ksqlTopic == null) {
-        throw new KsqlException(String.format(
-            "Could not find Topic '%s' in the Metastore",
-            name
-        ));
-      }
-      return Optional.of(new TopicDescription(
-          statement.getStatementText(),
-          name,
-          ksqlTopic.getKafkaTopicName(),
-          ksqlTopic.getValueSerdeFactory().getFormat().toString(),
-          null
-      ));
-    }
-
     return Optional.of(new SourceDescriptionEntity(
         statement.getStatementText(),
         describeSource(

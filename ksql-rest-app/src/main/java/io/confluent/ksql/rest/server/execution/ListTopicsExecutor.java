@@ -41,11 +41,9 @@ public final class ListTopicsExecutor {
 
     return Optional.of(KafkaTopicsList.build(
         statement.getStatementText(),
-        executionContext.getMetaStore().getAllKsqlTopics().values(),
         client.describeTopics(client.listNonInternalTopicNames()),
         statement.getConfig(),
         kafkaConsumerGroupClient
     ));
   }
-
 }

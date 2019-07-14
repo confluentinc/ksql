@@ -37,6 +37,87 @@
         {"topic": "OUTPUT", "key": "", "value": {"ID": 3, "KEY": ""}},
         {"topic": "OUTPUT", "key": null, "value": {"ID": 4, "KEY": ""}}
       ]
+    },
+    {
+      "name": "stream explicit STRING ROWKEY",
+      "statements": [
+        "CREATE STREAM INPUT (ROWKEY STRING KEY, ID bigint) WITH (kafka_topic='input',value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT ID, ROWKEY as KEY FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input", "key": 1, "value": {"id": 1}},
+        {"topic": "input", "key": "1", "value": {"id": 2}},
+        {"topic": "input", "key": "", "value": {"id": 3}},
+        {"topic": "input", "key": null, "value": {"id": 4}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "1", "value": {"ID": 1, "KEY": "1"}},
+        {"topic": "OUTPUT", "key": "1", "value": {"ID": 2, "KEY": "1"}},
+        {"topic": "OUTPUT", "key": "", "value": {"ID": 3, "KEY": ""}},
+        {"topic": "OUTPUT", "key": null, "value": {"ID": 4, "KEY": ""}}
+      ]
+    },
+    {
+      "name": "table explicit STRING ROWKEY",
+      "statements": [
+        "CREATE TABLE INPUT (ROWKEY STRING KEY, ID bigint) WITH (kafka_topic='input',value_format='JSON');",
+        "CREATE TABLE OUTPUT as SELECT ID, ROWKEY as KEY FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input", "key": 1, "value": {"id": 1}},
+        {"topic": "input", "key": "1", "value": {"id": 2}},
+        {"topic": "input", "key": "", "value": {"id": 3}},
+        {"topic": "input", "key": null, "value": {"id": 4}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "1", "value": {"ID": 1, "KEY": "1"}},
+        {"topic": "OUTPUT", "key": "1", "value": {"ID": 2, "KEY": "1"}},
+        {"topic": "OUTPUT", "key": "", "value": {"ID": 3, "KEY": ""}},
+        {"topic": "OUTPUT", "key": null, "value": {"ID": 4, "KEY": ""}}
+      ]
+    },
+    {
+      "name": "explicit non-STRING ROWKEY",
+      "statements": [
+        "CREATE STREAM INPUT (ROWKEY INT KEY, ID bigint) WITH (kafka_topic='input',value_format='JSON');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.parser.exception.ParseFailedException",
+        "message": "line 1:23: 'ROWKEY' is a KEY field with an unsupported type. KSQL currently only supports KEY fields of type STRING."
+      }
+    },
+    {
+      "name": "explicit key field named other than ROWKEY",
+      "statements": [
+        "CREATE STREAM INPUT (OTHER STRING KEY, ID bigint) WITH (kafka_topic='input',value_format='JSON');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.parser.exception.ParseFailedException",
+        "message": "line 1:23: 'OTHER' is an invalid KEY field name. KSQL currently only supports KEY fields named ROWKEY."
+      }
+    },
+    {
+      "name": "KEY key field name",
+      "statements": [
+        "CREATE STREAM INPUT (KEY STRING KEY, ID bigint) WITH (kafka_topic='input',value_format='JSON');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.parser.exception.ParseFailedException",
+        "message": "line 1:23: 'KEY' is an invalid KEY field name. KSQL currently only supports KEY fields named ROWKEY."
+      }
+    },
+    {
+      "name": "KEY value field name",
+      "statements": [
+        "CREATE STREAM INPUT (KEY STRING, ID bigint) WITH (kafka_topic='input',value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input", "key": 1, "value": {"key": "a", "id": 1}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "1", "value": {"ID": 1, "KEY": "a"}}
+      ]
     }
   ]
 }

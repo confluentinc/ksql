@@ -27,7 +27,6 @@ public class KafkaTopicsListTableBuilder implements TableBuilder<KafkaTopicsList
 
   private static final List<String> HEADERS = ImmutableList.of(
       "Kafka Topic",
-      "Registered",
       "Partitions",
       "Partition Replicas",
       "Consumers",
@@ -38,7 +37,6 @@ public class KafkaTopicsListTableBuilder implements TableBuilder<KafkaTopicsList
     final Stream<List<String>> rows = entity.getTopics().stream()
         .map(t -> ImmutableList.of(
             t.getName(),
-            Boolean.toString(t.getRegistered()),
             Integer.toString(t.getReplicaInfo().size()),
             getTopicReplicaInfo(t.getReplicaInfo()),
             Integer.toString(t.getConsumerCount()),

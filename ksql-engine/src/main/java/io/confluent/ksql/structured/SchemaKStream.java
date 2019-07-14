@@ -49,6 +49,7 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
+import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -223,7 +224,8 @@ public class SchemaKStream<K> {
 
     Selection(
         final List<SelectExpression> selectExpressions,
-        final ProcessingLogger processingLogger) {
+        final ProcessingLogger processingLogger
+    ) {
       key = findKeyField(selectExpressions);
       final List<ExpressionMetadata> expressionEvaluators = buildExpressions(selectExpressions);
       schema = buildSchema(selectExpressions, expressionEvaluators);
@@ -309,13 +311,19 @@ public class SchemaKStream<K> {
 
     private LogicalSchema buildSchema(
         final List<SelectExpression> selectExpressions,
-        final List<ExpressionMetadata> expressionEvaluators) {
-      final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
+        final List<ExpressionMetadata> expressionEvaluators
+    ) {
+      final SchemaBuilder valueSchema = SchemaBuilder.struct();
       IntStream.range(0, selectExpressions.size()).forEach(
-          i -> schemaBuilder.field(
+          i -> valueSchema.field(
               selectExpressions.get(i).getName(),
               expressionEvaluators.get(i).getExpressionType()));
-      return LogicalSchema.of(schemaBuilder.build());
+
+      final ConnectSchema keySchema = SchemaKStream.this.schema.isAliased()
+          ? SchemaKStream.this.schema.withoutAlias().keySchema()
+          : SchemaKStream.this.schema.keySchema();
+
+      return LogicalSchema.of(keySchema, valueSchema.build());
     }
 
     List<ExpressionMetadata> buildExpressions(final List<SelectExpression> selectExpressions
@@ -506,7 +514,6 @@ public class SchemaKStream<K> {
         contextStacker.getQueryContext()
     );
   }
-
 
   @SuppressWarnings("unchecked")
   public SchemaKStream<?> selectKey(

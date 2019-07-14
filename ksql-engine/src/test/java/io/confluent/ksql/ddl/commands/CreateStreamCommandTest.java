@@ -32,6 +32,7 @@ import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
+import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.parser.tree.Type;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
@@ -60,8 +61,8 @@ public class CreateStreamCommandTest {
 
   private static final String STREAM_NAME = "s1";
   private static final TableElements SOME_ELEMENTS = TableElements.of(
-      new TableElement("ID", new Type(SqlTypes.BIGINT)),
-      new TableElement("bob", new Type(SqlTypes.STRING))
+      new TableElement(Namespace.VALUE, "ID", new Type(SqlTypes.BIGINT)),
+      new TableElement(Namespace.VALUE, "bob", new Type(SqlTypes.STRING))
   );
 
   @Mock

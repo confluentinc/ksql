@@ -48,6 +48,7 @@ import io.confluent.ksql.parser.tree.ShowColumns;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TableElement;
+import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.util.ParserUtil;
 import java.util.List;
 import java.util.Optional;
@@ -423,7 +424,8 @@ public final class SqlFormatter {
     private static String formatTableElement(final TableElement e) {
       return ParserUtil.escapeIfReservedIdentifier(e.getName())
           + " "
-          + e.getType();
+          + e.getType()
+          + (e.getNamespace() == Namespace.KEY ? " KEY" : "");
     }
   }
 }

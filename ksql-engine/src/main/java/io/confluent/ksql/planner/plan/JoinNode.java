@@ -43,6 +43,7 @@ import java.util.function.Supplier;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Field;
+import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 
 
@@ -77,7 +78,6 @@ public class JoinNode extends PlanNode {
     this.joinType = joinType;
     this.left = Objects.requireNonNull(left, "left");
     this.right = Objects.requireNonNull(right, "right");
-    this.schema = buildSchema(left, right);
     this.leftJoinFieldName = Objects.requireNonNull(leftJoinFieldName, "leftJoinFieldName");
     this.rightJoinFieldName = Objects.requireNonNull(rightJoinFieldName, "rightJoinFieldName");
     this.withinExpression = Objects.requireNonNull(withinExpression, "withinExpression");
@@ -86,23 +86,8 @@ public class JoinNode extends PlanNode {
     validateFieldInSchema(rightJoinFieldName, right.getSchema());
 
     this.keyField = KeyField.of(leftJoinFieldName, leftKeyField);
-  }
 
-  private static LogicalSchema buildSchema(final PlanNode left, final PlanNode right) {
-
-    final LogicalSchema leftSchema = left.getSchema();
-    final LogicalSchema rightSchema = right.getSchema();
-
-    final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
-
-    for (final Field field : leftSchema.valueSchema().fields()) {
-      schemaBuilder.field(field.name(), field.schema());
-    }
-
-    for (final Field field : rightSchema.valueSchema().fields()) {
-      schemaBuilder.field(field.name(), field.schema());
-    }
-    return LogicalSchema.of(schemaBuilder.build());
+    this.schema = buildSchema(left, right);
   }
 
   @Override
@@ -515,5 +500,31 @@ public class JoinNode extends PlanNode {
     return leftType == DataSourceType.KTABLE && rightType == DataSourceType.KTABLE
         ? DataSourceType.KTABLE
         : DataSourceType.KSTREAM;
+  }
+
+  private static LogicalSchema buildSchema(
+      final PlanNode left,
+      final PlanNode right
+  ) {
+
+    final LogicalSchema leftSchema = left.getSchema();
+    final LogicalSchema rightSchema = right.getSchema();
+
+    final SchemaBuilder valueSchema = SchemaBuilder.struct();
+
+    for (final Field field : leftSchema.valueSchema().fields()) {
+      valueSchema.field(field.name(), field.schema());
+    }
+
+    for (final Field field : rightSchema.valueSchema().fields()) {
+      valueSchema.field(field.name(), field.schema());
+    }
+
+    // Hard-wire for now, until we support custom type/name of key fields:
+    final Schema keySchema = SchemaBuilder.struct()
+        .field(SchemaUtil.ROWKEY_NAME, Schema.OPTIONAL_STRING_SCHEMA)
+        .build();
+
+    return LogicalSchema.of(keySchema, valueSchema.build());
   }
 }

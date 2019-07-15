@@ -303,15 +303,6 @@ public final class LogicalSchema {
         alias);
   }
 
-  public LogicalSchema withoutMetaAndKeyFields() {
-    return new LogicalSchema(
-        SchemaBuilder.struct().build(),
-        SchemaBuilder.struct().build(),
-        valueSchema,
-        alias
-    );
-  }
-
   /**
    * @param fieldName the field name to check
    * @return {@code true} if the field matches the name of any metadata field.

@@ -34,17 +34,23 @@ public class TabularRow {
   private final List<String> header;
   private final boolean isHeader;
 
-  public TabularRow(
+  public static TabularRow createHeader(final int width, final List<FieldInfo> header) {
+    return new TabularRow(
+        width,
+        header.stream().map(FieldInfo::getName).collect(Collectors.toList()),
+        null);
+  }
+
+  public static TabularRow createRow(
       final int width,
       final List<FieldInfo> header,
       final GenericRow value
   ) {
-    this(
+    return new TabularRow(
         width,
         header.stream().map(FieldInfo::getName).collect(Collectors.toList()),
-        value == null
-            ? null
-            : value.getColumns().stream().map(Objects::toString).collect(Collectors.toList()));
+        value.getColumns().stream().map(Objects::toString).collect(Collectors.toList())
+    );
   }
 
   @VisibleForTesting
@@ -86,7 +92,7 @@ public class TabularRow {
         .map(s -> addUntil(s, createCell("", cellWidth), maxSplit))
         .collect(Collectors.toList());
 
-    toString(builder, buffered, maxSplit);
+    formatRow(builder, buffered, maxSplit);
 
     if (isHeader) {
       builder.append('\n');
@@ -97,7 +103,7 @@ public class TabularRow {
   }
 
   @SuppressWarnings("ForLoopReplaceableByForEach") // clearer to read this way
-  private static void toString(
+  private static void formatRow(
       final StringBuilder builder,
       final List<List<String>> columns,
       final int numRows

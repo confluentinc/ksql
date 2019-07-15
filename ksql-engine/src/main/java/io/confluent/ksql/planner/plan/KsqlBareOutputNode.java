@@ -39,17 +39,7 @@ public class KsqlBareOutputNode extends OutputNode {
       final OptionalInt limit,
       final TimestampExtractionPolicy extractionPolicy
   ) {
-    super(
-        id,
-        source,
-        // KSQL internally copies the implicit and key fields into the value schema.
-        // This is done by DataSourceNode - for transient queries, we do not print
-        // out the metafields and the key fields unless they are explicitly asked
-        // for, so remove them from the schema
-        schema.withoutMetaAndKeyFields(),
-        limit,
-        extractionPolicy
-    );
+    super(id, source, schema, limit, extractionPolicy);
     this.keyField = KeyField.of(source.getKeyField().name(), Optional.empty())
         .validateKeyExistsIn(schema);
   }

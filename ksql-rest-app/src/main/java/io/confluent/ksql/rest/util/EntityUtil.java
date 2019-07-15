@@ -47,6 +47,10 @@ public final class EntityUtil {
   }
 
   private static List<FieldInfo> getFields(final List<Field> fields, final String type) {
+    if (fields.isEmpty()) {
+      throw new IllegalArgumentException("Root schema should contain fields." + " type: " + type);
+    }
+
     return fields.stream()
         .map(field -> new FieldInfo(field.name(), getSchema(field.schema())))
         .collect(Collectors.toList());

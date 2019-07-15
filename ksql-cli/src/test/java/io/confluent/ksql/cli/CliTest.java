@@ -575,7 +575,6 @@ public class CliTest {
         "SELECT ORDERID, ITEMID FROM " + orderDataProvider.kstreamName(),
         3,
         containsRows(
-            row("ORDERID", "ITEMID"),
             row(row1.get(1).toString(), row1.get(2).toString()),
             row(row2.get(1).toString(), row2.get(2).toString()),
             row(row3.get(1).toString(), row3.get(2).toString())

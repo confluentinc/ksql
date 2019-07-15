@@ -340,7 +340,7 @@ public class Console implements Closeable {
       case JSON:
         break;
       case TABULAR:
-        writer().println(new TabularRow(getWidth(), fields, null));
+        writer().println(TabularRow.createHeader(getWidth(), fields));
         break;
       default:
         throw new RuntimeException(String.format(
@@ -393,7 +393,7 @@ public class Console implements Closeable {
       final List<FieldInfo> fields
   ) {
     rowCaptor.addRow(row);
-    writer().println(new TabularRow(getWidth(), fields, row));
+    writer().println(TabularRow.createRow(getWidth(), fields, row));
     flush();
   }
 

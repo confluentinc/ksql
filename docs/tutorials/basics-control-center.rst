@@ -300,8 +300,8 @@ You can assign properties in the KSQL Editor before you run your queries.
       :alt: Screenshot of the Data Streams page in Confluent Control Center
       :align: center
 
-   The graph is shaded green, because all of the records were consumed when the
-   ``pageviews_female`` stream started.
+   The graph is at 100 percent, because all of the records were consumed when
+   the ``pageviews_female`` stream started.
 
 View streams and tables
 =======================

@@ -12,10 +12,14 @@ Watch the `screencast of Reading Kafka Data from KSQL <https://www.youtube.com/e
 
 **Prerequisites:**
 
-- :ref:`Confluent Platform <installation>` is installed and running. This installation includes a Kafka broker, KSQL, |c3-short|,
-  |zk|, |sr|, REST Proxy, and Kafka Connect.
-- If you installed |cp| via TAR or ZIP, navigate into the installation directory. The paths and commands used throughout
-  this tutorial assume that your are in this installation directory.
+- :ref:`Confluent Platform <installation>` is installed and running. This
+  installation includes a Kafka broker, KSQL, |c3-short|, |zk|, |sr|, |crest|,
+  and |kconnect|.
+- If you installed |cp| via TAR or ZIP, navigate into the installation
+  directory. The paths and commands used throughout this tutorial assume
+  that you are in this installation directory.
+- Consider :ref:`installing <cli-install>` the |confluent-cli| to start a local
+  installation of |cp|.
 - Java: Minimum version 1.8. Install Oracle Java JRE or JDK >= 1.8 on your local machine
 
 .. include:: ../includes/ksql-includes.rst
@@ -176,5 +180,5 @@ command.
 
 .. code:: bash
 
-    $ <path-to-confluent>/bin/confluent stop
+    $ <path-to-confluent>/bin/confluent local stop
 

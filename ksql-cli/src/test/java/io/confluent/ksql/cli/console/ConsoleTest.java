@@ -48,6 +48,7 @@ import io.confluent.ksql.rest.entity.KsqlTopicsList;
 import io.confluent.ksql.rest.entity.PropertiesList;
 import io.confluent.ksql.rest.entity.Queries;
 import io.confluent.ksql.rest.entity.RunningQuery;
+import io.confluent.ksql.rest.entity.SchemaInfo;
 import io.confluent.ksql.rest.entity.SourceDescription;
 import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
 import io.confluent.ksql.rest.entity.SourceInfo;
@@ -58,6 +59,7 @@ import io.confluent.ksql.rest.entity.TopicDescription;
 import io.confluent.ksql.rest.server.computation.CommandId;
 import io.confluent.ksql.rest.util.EntityUtil;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SqlBaseType;
 import io.confluent.ksql.serde.Format;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -79,6 +81,10 @@ public class ConsoleTest {
 
   private static final String CLI_CMD_NAME = "some command";
   private static final String WHITE_SPACE = " \t ";
+  private static final List<FieldInfo> HEADER =
+          ImmutableList.of(
+              new FieldInfo("foo", new SchemaInfo(SqlBaseType.STRING, null, null)),
+              new FieldInfo("bar", new SchemaInfo(SqlBaseType.STRING, null, null)));
 
   private final TestTerminal terminal;
   private final Console console;
@@ -108,22 +114,43 @@ public class ConsoleTest {
 
   @Test
   public void testPrintGenericStreamedRow() throws IOException {
+    // Given:
     final StreamedRow row = StreamedRow.row(new GenericRow(ImmutableList.of("col_1", "col_2")));
-    console.printStreamedRow(row);
+
+    // When:
+    console.printStreamedRow(row, HEADER);
+
+    // Then:
+    if (console.getOutputFormat() == OutputFormat.TABULAR) {
+      assertThat(terminal.getOutputString(), containsString("col_1"));
+      assertThat(terminal.getOutputString(), containsString("col_2"));
+    }
+  }
+
+  @Test
+  public void testPrintHeader() throws IOException {
+    // When:
+    console.printRowHeader(HEADER);
+
+    // Then:
+    if (console.getOutputFormat() == OutputFormat.TABULAR) {
+      assertThat(terminal.getOutputString(), containsString("foo"));
+      assertThat(terminal.getOutputString(), containsString("bar"));
+    }
   }
 
   @Test
   public void testPrintErrorStreamedRow() throws IOException {
     final FakeException exception = new FakeException();
 
-    console.printStreamedRow(StreamedRow.error(exception));
+    console.printStreamedRow(StreamedRow.error(exception), HEADER);
 
     assertThat(terminal.getOutputString(), is(exception.getMessage() + "\n"));
   }
 
   @Test
   public void testPrintFinalMessageStreamedRow() throws IOException {
-    console.printStreamedRow(StreamedRow.finalMessage("Some message"));
+    console.printStreamedRow(StreamedRow.finalMessage("Some message"), HEADER);
     assertThat(terminal.getOutputString(), is("Some message\n"));
   }
 

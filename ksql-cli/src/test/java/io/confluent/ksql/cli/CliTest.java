@@ -599,6 +599,23 @@ public class CliTest {
   }
 
   @Test
+  public void testTransientHeader() {
+    // When:
+    rowCaptor.resetTestResult();
+    run("SELECT * FROM " + orderDataProvider.kstreamName() + " LIMIT 1", localCli);
+
+    // Then: (note that some of these are truncated because of header wrapping)
+    assertThat(terminal.getOutputString(), containsString("ROWTIME"));
+    assertThat(terminal.getOutputString(), containsString("ROWKEY"));
+    assertThat(terminal.getOutputString(), containsString("ITEMID"));
+    assertThat(terminal.getOutputString(), containsString("ORDERID"));
+    assertThat(terminal.getOutputString(), containsString("ORDERUNIT"));
+    assertThat(terminal.getOutputString(), containsString("TIMESTAMP"));
+    assertThat(terminal.getOutputString(), containsString("PRICEARRA"));
+    assertThat(terminal.getOutputString(), containsString("KEYVALUEM"));
+  }
+
+  @Test
   public void testSelectUDFs() {
     final String queryString = String.format(
         "SELECT ITEMID, "

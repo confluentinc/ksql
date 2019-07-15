@@ -329,6 +329,7 @@ public class Cli implements KsqlRequestExecutor, Closeable {
         .makeKsqlRequest("EXPLAIN " + query);
     if (!explainResponse.isSuccessful()) {
       terminal.printErrorMessage(explainResponse.getErrorMessage());
+      return;
     }
 
     final QueryDescriptionEntity description =

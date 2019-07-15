@@ -129,9 +129,6 @@ public class ConsoleTest {
 
   @Test
   public void testPrintHeader() throws IOException {
-    // Given:
-    final StreamedRow row = StreamedRow.row(new GenericRow(ImmutableList.of("col_1", "col_2")));
-
     // When:
     console.printRowHeader(HEADER);
 

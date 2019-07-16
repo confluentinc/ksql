@@ -19,7 +19,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
@@ -49,8 +48,6 @@ public class KafkaSerdeFactoryTest {
   private KsqlConfig ksqlConfig;
   @Mock
   private Supplier<SchemaRegistryClient> srClientFactory;
-  @Mock
-  private ProcessingLogger processingLogger;
   private KafkaSerdeFactory factory;
 
   @Before
@@ -194,7 +191,7 @@ public class KafkaSerdeFactoryTest {
     final Serializer<Object> serializer = factory
         .createSerializer(schema, ksqlConfig, srClientFactory);
     final Deserializer<Object> deserializer = factory
-        .createDeserializer(schema, ksqlConfig, srClientFactory, processingLogger);
+        .createDeserializer(schema, ksqlConfig, srClientFactory);
 
     final Struct struct = new Struct(schema.getConnectSchema());
     struct.put("f0", value);

@@ -67,13 +67,13 @@ public class KafkaSerdeSupplier implements SerdeSupplier<Object> {
   ) {
     switch (connectSchema.fields().get(0).schema().type()) {
       case INT32:
-        return (Serde)Serdes.Integer();
+        return (Serde) Serdes.Integer();
       case INT64:
-        return (Serde)Serdes.Long();
+        return (Serde) Serdes.Long();
       case FLOAT64:
-        return (Serde)Serdes.Double();
+        return (Serde) Serdes.Double();
       case STRING:
-        return (Serde)Serdes.String();
+        return (Serde) Serdes.String();
       default:
         throw new IllegalStateException("Unsupported type for KAFKA format");
     }

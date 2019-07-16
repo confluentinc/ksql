@@ -21,6 +21,7 @@ import io.confluent.ksql.schema.connect.SchemaWalker;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
+import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Collections;
@@ -78,14 +79,15 @@ public class KsqlDelimitedSerdeFactory extends KsqlSerdeFactory {
     }
 
     public Void visitBytes(final Schema schema) {
-      // Decimal type is allowed.
+      if (!DecimalUtil.isDecimal(schema)) {
+        visitSchema(schema);
+      }
       return null;
     }
 
     public Void visitSchema(final Schema schema) {
-      final String typeString = schema.type() == Type.BYTES ? "DECIMAL" : schema.type().toString();
       throw new KsqlException("The '" + Format.DELIMITED
-          + "' format does not support type '" + typeString + "'");
+          + "' format does not support type '" + schema.type().toString() + "'");
     }
   }
 }

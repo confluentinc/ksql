@@ -18,20 +18,18 @@ package io.confluent.ksql.serde.kafka;
 import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.schema.connect.SqlSchemaFormatter;
 import io.confluent.ksql.schema.connect.SqlSchemaFormatter.Option;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
-import io.confluent.ksql.serde.util.SerdeProcessingLogMessageFactory;
+import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.function.Supplier;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
@@ -80,15 +78,14 @@ public class KafkaSerdeFactory extends KsqlSerdeFactory {
   protected Deserializer<Object> createDeserializer(
       final PersistenceSchema schema,
       final KsqlConfig ksqlConfig,
-      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
-      final ProcessingLogger processingLogger
+      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
   ) {
     final Deserializer<Object> primitiveDeserializer = getPrimitiveSerde(schema.getConnectSchema())
         .deserializer();
 
     primitiveDeserializer.configure(Collections.emptyMap(), false);
 
-    return new RowDeserializer(primitiveDeserializer, schema.getConnectSchema(), processingLogger);
+    return new RowDeserializer(primitiveDeserializer, schema.getConnectSchema());
   }
 
   @SuppressWarnings("unchecked")
@@ -107,7 +104,10 @@ public class KafkaSerdeFactory extends KsqlSerdeFactory {
     final Type type = fields.get(0).schema().type();
     final Serde<?> serde = SERDE.get(type);
     if (serde == null) {
-      final String typeString = type == Type.BYTES ? "DECIMAL" : type.toString();
+      final String typeString = DecimalUtil.isDecimal(fields.get(0).schema())
+          ? "DECIMAL"
+          : type.toString();
+
       throw new KsqlException("The '" + Format.KAFKA
           + "' format does not support type '" + typeString + "'");
     }
@@ -135,33 +135,26 @@ public class KafkaSerdeFactory extends KsqlSerdeFactory {
   private static final class RowDeserializer implements Deserializer<Object> {
 
     private final Deserializer<Object> delegate;
-    private final Struct struct;
+    private final ConnectSchema schema;
     private final Field field;
-    private final ProcessingLogger processingLogger;
 
     RowDeserializer(
         final Deserializer<Object> delegate,
-        final ConnectSchema schema,
-        final ProcessingLogger processingLogger
+        final ConnectSchema schema
     ) {
       this.delegate = Objects.requireNonNull(delegate, "delegate");
-      this.struct = new Struct(schema);
+      this.schema = Objects.requireNonNull(schema, "schema");
       this.field = schema.fields().get(0);
-      this.processingLogger = Objects.requireNonNull(processingLogger, "processingLogger");
     }
 
     @Override
     public Struct deserialize(final String topic, final byte[] bytes) {
       try {
         final Object primitive = delegate.deserialize(topic, bytes);
+        final Struct struct = new Struct(schema);
         struct.put(field, primitive);
         return struct;
       } catch (final Exception e) {
-        processingLogger.error(
-            SerdeProcessingLogMessageFactory.deserializationErrorMsg(
-                e,
-                Optional.ofNullable(bytes))
-        );
         throw new SerializationException(
             "Error deserializing DELIMITED message from topic: " + topic, e);
       }

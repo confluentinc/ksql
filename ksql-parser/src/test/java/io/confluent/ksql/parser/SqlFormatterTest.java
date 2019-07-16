@@ -161,7 +161,6 @@ public class SqlFormatterTest {
         Serdes::String
     );
 
-    metaStore.putTopic(ksqlTopicOrders);
     metaStore.putSource(ksqlStreamOrders);
 
     final KsqlTopic
@@ -177,7 +176,6 @@ public class SqlFormatterTest {
         ksqlTopicItems,
         Serdes::String
     );
-    metaStore.putTopic(ksqlTopicItems);
     metaStore.putSource(ksqlTableOrders);
   }
 
@@ -342,8 +340,7 @@ public class SqlFormatterTest {
   public void shouldFormatSelectQueryCorrectly() {
     final String statementString =
         "CREATE STREAM S AS SELECT a.address->city FROM address a;";
-    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
-        .getStatement();
+    final Statement statement = parseSingle(statementString);
     assertThat(SqlFormatter.formatSql(statement), equalTo("CREATE STREAM S AS SELECT FETCH_FIELD_FROM_STRUCT(A.ADDRESS, 'CITY') \"ADDRESS__CITY\"\n"
         + "FROM ADDRESS A"));
   }
@@ -351,8 +348,7 @@ public class SqlFormatterTest {
   @Test
   public void shouldFormatSelectStarCorrectly() {
     final String statementString = "CREATE STREAM S AS SELECT * FROM address;";
-    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
-        .getStatement();
+    final Statement statement = parseSingle(statementString);
     assertThat(SqlFormatter.formatSql(statement),
         equalTo("CREATE STREAM S AS SELECT *\n"
             + "FROM ADDRESS ADDRESS"));
@@ -361,8 +357,7 @@ public class SqlFormatterTest {
   @Test
   public void shouldFormatSelectStarCorrectlyWithOtherFields() {
     final String statementString = "CREATE STREAM S AS SELECT *, address AS city FROM address;";
-    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
-        .getStatement();
+    final Statement statement = parseSingle(statementString);
     assertThat(SqlFormatter.formatSql(statement),
         equalTo("CREATE STREAM S AS SELECT\n"
             + "  *,\n"
@@ -374,8 +369,7 @@ public class SqlFormatterTest {
   public void shouldFormatSelectStarCorrectlyWithJoin() {
     final String statementString = "CREATE STREAM S AS SELECT address.*, itemid.* "
         + "FROM address INNER JOIN itemid ON address.address = itemid.address->address;";
-    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
-        .getStatement();
+    final Statement statement = parseSingle(statementString);
     assertThat(SqlFormatter.formatSql(statement),
         equalTo("CREATE STREAM S AS SELECT\n"
             + "  ADDRESS.*,\n"
@@ -388,8 +382,7 @@ public class SqlFormatterTest {
   public void shouldFormatSelectStarCorrectlyWithJoinOneSidedStar() {
     final String statementString = "CREATE STREAM S AS SELECT address.*, itemid.ordertime "
         + "FROM address INNER JOIN itemid ON address.address = itemid.address->address;";
-    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
-        .getStatement();
+    final Statement statement = parseSingle(statementString);
     assertThat(SqlFormatter.formatSql(statement),
         equalTo("CREATE STREAM S AS SELECT\n"
             + "  ADDRESS.*,\n"
@@ -401,8 +394,7 @@ public class SqlFormatterTest {
   @Test
   public void shouldFormatSelectCorrectlyWithDuplicateFields() {
     final String statementString = "CREATE STREAM S AS SELECT address AS one, address AS two FROM address;";
-    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
-        .getStatement();
+    final Statement statement = parseSingle(statementString);
     assertThat(SqlFormatter.formatSql(statement),
         equalTo("CREATE STREAM S AS SELECT\n"
             + "  ADDRESS.ADDRESS \"ONE\",\n"
@@ -413,8 +405,7 @@ public class SqlFormatterTest {
   @Test
   public void shouldFormatCsasWithClause() {
     final String statementString = "CREATE STREAM S WITH(partitions=4) AS SELECT * FROM address;";
-    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
-        .getStatement();
+    final Statement statement = parseSingle(statementString);
 
     final String result = SqlFormatter.formatSql(statement);
 
@@ -424,8 +415,7 @@ public class SqlFormatterTest {
   @Test
   public void shouldFormatCtasWithClause() {
     final String statementString = "CREATE TABLE S WITH(partitions=4) AS SELECT * FROM address;";
-    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
-        .getStatement();
+    final Statement statement = parseSingle(statementString);
 
     final String result = SqlFormatter.formatSql(statement);
 
@@ -435,8 +425,7 @@ public class SqlFormatterTest {
   @Test
   public void shouldFormatCsasPartitionBy() {
     final String statementString = "CREATE STREAM S AS SELECT * FROM ADDRESS PARTITION BY ADDRESS;";
-    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
-        .getStatement();
+    final Statement statement = parseSingle(statementString);
 
     final String result = SqlFormatter.formatSql(statement);
 
@@ -448,8 +437,7 @@ public class SqlFormatterTest {
   @Test
   public void shouldFormatInsertIntoPartitionBy() {
     final String statementString = "INSERT INTO ADDRESS SELECT * FROM ADDRESS PARTITION BY ADDRESS;";
-    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
-        .getStatement();
+    final Statement statement = parseSingle(statementString);
 
     final String result = SqlFormatter.formatSql(statement);
 
@@ -461,8 +449,7 @@ public class SqlFormatterTest {
   @Test
   public void shouldFormatExplainQuery() {
     final String statementString = "EXPLAIN foo;";
-    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
-        .getStatement();
+    final Statement statement = parseSingle(statementString);
 
     final String result = SqlFormatter.formatSql(statement);
 
@@ -472,8 +459,7 @@ public class SqlFormatterTest {
   @Test
   public void shouldFormatExplainStatement() {
     final String statementString = "EXPLAIN SELECT * FROM ADDRESS;";
-    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
-        .getStatement();
+    final Statement statement = parseSingle(statementString);
 
     final String result = SqlFormatter.formatSql(statement);
 
@@ -531,8 +517,7 @@ public class SqlFormatterTest {
   @Test
   public void shouldFormatInsertValuesStatement() {
     final String statementString = "INSERT INTO ADDRESS (NUMBER, STREET, CITY) VALUES (2, 'high', 'palo alto');";
-    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
-        .getStatement();
+    final Statement statement = parseSingle(statementString);
 
     final String result = SqlFormatter.formatSql(statement);
 
@@ -542,8 +527,7 @@ public class SqlFormatterTest {
   @Test
   public void shouldFormatInsertValuesNoSchema() {
     final String statementString = "INSERT INTO ADDRESS VALUES (2);";
-    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
-        .getStatement();
+    final Statement statement = parseSingle(statementString);
 
     final String result = SqlFormatter.formatSql(statement);
 
@@ -567,8 +551,7 @@ public class SqlFormatterTest {
   public void shouldFormatTumblingWindow() {
     // Given:
     final String statementString = "CREATE STREAM S AS SELECT ITEMID, COUNT(*) FROM ORDERS WINDOW TUMBLING (SIZE 7 DAYS) GROUP BY ITEMID;";
-    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
-        .getStatement();
+    final Statement statement = parseSingle(statementString);
 
     final String result = SqlFormatter.formatSql(statement);
 
@@ -584,8 +567,7 @@ public class SqlFormatterTest {
   public void shouldFormatHoppingWindow() {
     // Given:
     final String statementString = "CREATE STREAM S AS SELECT ITEMID, COUNT(*) FROM ORDERS WINDOW HOPPING (SIZE 20 SECONDS, ADVANCE BY 5 SECONDS) GROUP BY ITEMID;";
-    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
-        .getStatement();
+    final Statement statement = parseSingle(statementString);
 
     final String result = SqlFormatter.formatSql(statement);
 
@@ -600,9 +582,8 @@ public class SqlFormatterTest {
   @Test
   public void shouldFormatSessionWindow() {
     // Given:
-    final String statementString = "CREATE STREAM S AS SELECT ITEMID, COUNT(*) FROM ORDERS WINDOW SESSION (15 MINUTES) GROUP BY ITEMID;";
-    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
-        .getStatement();
+    final Statement statement = parseSingle(
+        "CREATE STREAM S AS SELECT ITEMID, COUNT(*) FROM ORDERS WINDOW SESSION (15 MINUTES) GROUP BY ITEMID;");
 
     final String result = SqlFormatter.formatSql(statement);
 
@@ -612,6 +593,22 @@ public class SqlFormatterTest {
         + "FROM ORDERS ORDERS\n"
         + "WINDOW SESSION ( 15 MINUTES ) \n"
         + "GROUP BY ORDERS.ITEMID"));
+  }
+
+  @Test
+  public void shouldFormatDescribeSource() {
+    // Given:
+    final Statement statement = parseSingle("DESCRIBE ORDERS;");
+
+    // When:
+    final String result = SqlFormatter.formatSql(statement);
+
+    // Then:
+    assertThat(result, is("DESCRIBE ORDERS"));
+  }
+
+  private Statement parseSingle(final String statementString) {
+    return KsqlParserTestUtil.buildSingleAst(statementString, metaStore).getStatement();
   }
 
   private void assertValidSql(final String sql) {

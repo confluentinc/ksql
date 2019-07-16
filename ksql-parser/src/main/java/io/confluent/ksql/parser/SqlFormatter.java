@@ -245,9 +245,8 @@ public final class SqlFormatter {
 
     @Override
     protected Void visitShowColumns(final ShowColumns node, final Integer context) {
-      builder.append("SHOW COLUMNS FROM ")
+      builder.append("DESCRIBE ")
               .append(node.getTable());
-
       return null;
     }
 

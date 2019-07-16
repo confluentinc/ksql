@@ -56,7 +56,6 @@ import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.SerdeFactories;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.avro.KsqlAvroSerdeFactory;
-import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
 import io.confluent.ksql.serde.kafka.KafkaSerdeFactory;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
@@ -270,15 +269,11 @@ public class AnalyzerTest {
   @Test
   public void shouldCreateCorrectSinkKsqlTopic() {
     final String simpleQuery = "CREATE STREAM FOO WITH (KAFKA_TOPIC='TEST_TOPIC1') AS SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
-    // The following few lines are only needed for this test
-    final MutableMetaStore testMetastore = jsonMetaStore.copy();
-    final KsqlTopic ksqlTopic = new KsqlTopic("FOO", "TEST_TOPIC1", new KsqlJsonSerdeFactory(), true);
-    testMetastore.putTopic(ksqlTopic);
-    final List<Statement> statements = parse(simpleQuery, testMetastore);
+    final List<Statement> statements = parse(simpleQuery, jsonMetaStore);
     final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statements.get(0);
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(testMetastore, "", DEFAULT_SERDE_OPTIONS);
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", DEFAULT_SERDE_OPTIONS);
     final Analysis analysis = analyzer
         .analyze("sqlExpression", query, Optional.of(createStreamAsSelect.getSink()));
 
@@ -368,7 +363,6 @@ public class AnalyzerTest {
             Serdes::String
     );
 
-    newAvroMetaStore.putTopic(ksqlTopic);
     newAvroMetaStore.putSource(ksqlStream);
 
     final List<Statement> statements = parse(simpleQuery, newAvroMetaStore);
@@ -552,7 +546,6 @@ public class AnalyzerTest {
         Serdes::String
     );
 
-    jsonMetaStore.putTopic(topic);
     jsonMetaStore.putSource(stream);
   }
 

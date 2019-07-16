@@ -34,22 +34,20 @@ public class CreateStreamCommand extends CreateSourceCommand {
 
   @Override
   public DdlCommandResult run(final MutableMetaStore metaStore) {
-    registerTopic(metaStore, "stream");
 
-    checkMetaData(metaStore, sourceName, topicName);
-
-    final KsqlStream ksqlStream = new KsqlStream<>(
+    final KsqlStream<?> ksqlStream = new KsqlStream<>(
         sqlExpression,
         sourceName,
         schema,
         getSerdeOptions(),
         keyField,
         timestampExtractionPolicy,
-        metaStore.getTopic(topicName),
+        buildTopic(),
         keySerdeFactory
     );
 
     metaStore.putSource(ksqlStream);
+
     return new DdlCommandResult(true, "Stream created");
   }
 }

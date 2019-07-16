@@ -231,10 +231,6 @@ public class PhysicalPlanBuilder {
       final QueryId queryId,
       final QuerySchemas schemas
   ) {
-    if (metaStore.getTopic(outputNode.getKsqlTopic().getKsqlTopicName()) == null) {
-      metaStore.putTopic(outputNode.getKsqlTopic());
-    }
-
     final DataSource<?> sinkDataSource;
     if (schemaKStream instanceof SchemaKTable) {
       final SchemaKTable<?> schemaKTable = (SchemaKTable) schemaKStream;

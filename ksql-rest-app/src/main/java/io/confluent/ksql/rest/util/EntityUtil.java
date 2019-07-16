@@ -20,6 +20,7 @@ import io.confluent.ksql.rest.entity.SchemaInfo;
 import io.confluent.ksql.schema.connect.SchemaWalker;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SqlBaseType;
+import io.confluent.ksql.util.DecimalUtil;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -84,6 +85,12 @@ public final class EntityUtil {
 
     public SchemaInfo visitString(final Schema schema) {
       return primitive(SqlBaseType.STRING);
+    }
+
+    @Override
+    public SchemaInfo visitBytes(final Schema schema) {
+      DecimalUtil.requireDecimal(schema);
+      return new SchemaInfo(SqlBaseType.DECIMAL, null, null);
     }
 
     public SchemaInfo visitArray(final Schema schema, final SchemaInfo element) {

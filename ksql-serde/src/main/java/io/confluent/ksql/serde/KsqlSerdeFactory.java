@@ -15,12 +15,8 @@
 
 package io.confluent.ksql.serde;
 
-import static io.confluent.ksql.logging.processing.ProcessingLoggerUtil.join;
-
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.ksql.logging.processing.ProcessingLogContext;
-import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Objects;
@@ -33,8 +29,6 @@ import org.apache.kafka.connect.data.ConnectSchema;
 
 @Immutable
 public abstract class KsqlSerdeFactory {
-
-  private static final String DESERIALIZER_LOGGER_NAME = "deserializer";
 
   private final Format format;
 
@@ -55,13 +49,8 @@ public abstract class KsqlSerdeFactory {
   public Serde<Object> createSerde(
       final PersistenceSchema schema,
       final KsqlConfig ksqlConfig,
-      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
-      final String loggerNamePrefix,
-      final ProcessingLogContext processingLogContext
+      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
   ) {
-    final ProcessingLogger processingLogger = processingLogContext.getLoggerFactory()
-        .getLogger(join(loggerNamePrefix, DESERIALIZER_LOGGER_NAME));
-
     final Serializer<Object> serializer = createSerializer(
         schema,
         ksqlConfig,
@@ -71,8 +60,7 @@ public abstract class KsqlSerdeFactory {
     final Deserializer<Object> deserializer = createDeserializer(
         schema,
         ksqlConfig,
-        schemaRegistryClientFactory,
-        processingLogger
+        schemaRegistryClientFactory
     );
 
     return Serdes.serdeFrom(serializer, deserializer);
@@ -87,8 +75,7 @@ public abstract class KsqlSerdeFactory {
   protected abstract Deserializer<Object> createDeserializer(
       PersistenceSchema schema,
       KsqlConfig ksqlConfig,
-      Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
-      ProcessingLogger processingLogger
+      Supplier<SchemaRegistryClient> schemaRegistryClientFactory
   );
 
   @Override

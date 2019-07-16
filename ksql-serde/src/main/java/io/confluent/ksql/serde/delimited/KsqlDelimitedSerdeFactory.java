@@ -17,7 +17,6 @@ package io.confluent.ksql.serde.delimited;
 
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.schema.connect.SchemaWalker;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.serde.Format;
@@ -64,14 +63,10 @@ public class KsqlDelimitedSerdeFactory extends KsqlSerdeFactory {
   protected Deserializer<Object> createDeserializer(
       final PersistenceSchema schema,
       final KsqlConfig ksqlConfig,
-      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
-      final ProcessingLogger processingLogger
+      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
   ) {
-    final Deserializer<Object> deserializer =
-        new KsqlDelimitedDeserializer(schema, processingLogger);
-
+    final Deserializer<Object> deserializer = new KsqlDelimitedDeserializer(schema);
     deserializer.configure(Collections.emptyMap(), false);
-
     return deserializer;
   }
 

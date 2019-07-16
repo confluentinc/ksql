@@ -103,9 +103,8 @@ public class SchemaKGroupedTableTest {
             , ksqlTable.getKsqlTopic().getValueSerdeFactory().createSerde(
                 PersistenceSchema.of(ksqlTable.getSchema().valueSchema()),
                 new KsqlConfig(Collections.emptyMap()),
-                MockSchemaRegistryClient::new,
-                "test",
-                processingLogContext)));
+                MockSchemaRegistryClient::new
+            )));
 
   }
 

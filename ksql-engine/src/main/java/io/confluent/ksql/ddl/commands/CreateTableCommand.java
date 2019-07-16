@@ -34,22 +34,20 @@ public class CreateTableCommand extends CreateSourceCommand {
 
   @Override
   public DdlCommandResult run(final MutableMetaStore metaStore) {
-    registerTopic(metaStore, "table");
 
-    checkMetaData(metaStore, sourceName, topicName);
-
-    final KsqlTable ksqlTable = new KsqlTable<>(
+    final KsqlTable<?> ksqlTable = new KsqlTable<>(
         sqlExpression,
         sourceName,
         schema,
         getSerdeOptions(),
         keyField,
         timestampExtractionPolicy,
-        metaStore.getTopic(topicName),
+        buildTopic(),
         keySerdeFactory
     );
 
     metaStore.putSource(ksqlTable);
+
     return new DdlCommandResult(true, "Table created");
   }
 }

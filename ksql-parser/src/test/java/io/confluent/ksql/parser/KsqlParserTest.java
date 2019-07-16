@@ -156,7 +156,6 @@ public class KsqlParserTest {
         Serdes::String
     );
 
-    metaStore.putTopic(ksqlTopicOrders);
     metaStore.putSource(ksqlStreamOrders);
 
     final KsqlTopic ksqlTopicItems =
@@ -173,7 +172,6 @@ public class KsqlParserTest {
         Serdes::String
     );
 
-    metaStore.putTopic(ksqlTopicItems);
     metaStore.putSource(ksqlTableOrders);
   }
 

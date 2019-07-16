@@ -161,7 +161,6 @@ public class SqlFormatterTest {
         Serdes::String
     );
 
-    metaStore.putTopic(ksqlTopicOrders);
     metaStore.putSource(ksqlStreamOrders);
 
     final KsqlTopic
@@ -177,7 +176,6 @@ public class SqlFormatterTest {
         ksqlTopicItems,
         Serdes::String
     );
-    metaStore.putTopic(ksqlTopicItems);
     metaStore.putSource(ksqlTableOrders);
   }
 

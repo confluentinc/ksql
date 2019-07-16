@@ -17,7 +17,6 @@ package io.confluent.ksql.ddl.commands;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -190,48 +189,6 @@ public class CreateSourceCommandTest {
 
     // Then:
     verify(kafkaTopicClient).isTopicExists(TOPIC_NAME);
-  }
-
-  @Test
-  public void shouldThrowIfTopicWithSameNameAlreadyRegistered() {
-    // Given:
-    when(metaStore.getTopic("bob")).thenReturn(topic);
-
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("A topic with name 'bob' already exists");
-
-    // When:
-    new TestCmd(
-        "topic does exist",
-        statement,
-        ksqlConfig,
-        kafkaTopicClient,
-        serdeOptions,
-        serdeFactories
-    ).registerTopic(metaStore, "topic");
-  }
-
-  @Test
-  public void shouldRegisterTopic() {
-    // Given:
-    when(metaStore.getTopic("bob")).thenReturn(null);
-
-    // When:
-    new TestCmd(
-        "what, no value topic?",
-        statement,
-        ksqlConfig,
-        kafkaTopicClient,
-        serdeOptions,
-        serdeFactories
-    ).registerTopic(metaStore, "topic");
-
-    // Then:
-    verify(metaStore).putTopic(argThat(ksqlTopic ->
-        ksqlTopic.getKsqlTopicName().equals("bob") &&
-        ksqlTopic.getKafkaTopicName().equals(TOPIC_NAME))
-    );
   }
 
   @Test

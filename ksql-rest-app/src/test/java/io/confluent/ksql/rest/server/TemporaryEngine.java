@@ -84,9 +84,11 @@ public class TemporaryEngine extends ExternalResource {
   @SuppressWarnings("unchecked")
   public <T extends DataSource<?>> T givenSource(
       final DataSourceType type,
-      final String name) {
-    final KsqlTopic topic = givenKsqlTopic(name);
+      final String name
+  ) {
     givenKafkaTopic(name);
+
+    final KsqlTopic topic = new KsqlTopic(name, name, new KsqlJsonSerdeFactory(), false);
 
     final DataSource<?> source;
     switch (type) {
@@ -122,13 +124,6 @@ public class TemporaryEngine extends ExternalResource {
     metaStore.putSource(source);
 
     return (T) source;
-  }
-
-  public KsqlTopic givenKsqlTopic(String name) {
-    final KsqlTopic topic = new KsqlTopic(name, name, new KsqlJsonSerdeFactory(), false);
-    givenKafkaTopic(name);
-    metaStore.putTopic(topic);
-    return topic;
   }
 
   public void givenKafkaTopic(final String name) {

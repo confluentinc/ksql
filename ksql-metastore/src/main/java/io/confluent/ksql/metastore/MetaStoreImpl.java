@@ -20,7 +20,6 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.UdfFactory;
 import io.confluent.ksql.metastore.model.DataSource;
-import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlReferentialIntegrityException;
 import java.util.Collections;
@@ -37,7 +36,6 @@ import org.apache.kafka.connect.data.Schema;
 @ThreadSafe
 public final class MetaStoreImpl implements MutableMetaStore {
 
-  private final Map<String, KsqlTopic> topics = new ConcurrentHashMap<>();
   private final Map<String, SourceInfo> dataSources = new ConcurrentHashMap<>();
   private final Object referentialIntegrityLock = new Object();
   private final FunctionRegistry functionRegistry;
@@ -47,28 +45,12 @@ public final class MetaStoreImpl implements MutableMetaStore {
   }
 
   private MetaStoreImpl(
-      final Map<String, KsqlTopic> topics,
       final Map<String, SourceInfo> dataSources,
       final FunctionRegistry functionRegistry
   ) {
-    this.topics.putAll(topics);
     this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
 
     dataSources.forEach((name, info) -> this.dataSources.put(name, info.copy()));
-  }
-
-  @Override
-  public KsqlTopic getTopic(final String topicName) {
-    return topics.get(topicName);
-  }
-
-  @Override
-  public void putTopic(final KsqlTopic topic) {
-    if (topics.putIfAbsent(topic.getKsqlTopicName(), topic) != null) {
-      throw new KsqlException(
-          "Cannot add the new topic. Another topic with the same name already exists: "
-          + topic.getKsqlTopicName());
-    }
   }
 
   @Override
@@ -81,27 +63,18 @@ public final class MetaStoreImpl implements MutableMetaStore {
   }
 
   @Override
-  public List<DataSource<?>> getSourcesForKafkaTopic(final String kafkaTopicName) {
-    return dataSources.values()
-        .stream()
-        .map(sourceInfo -> sourceInfo.source)
-        .filter(source -> source.getKafkaTopicName().equals(kafkaTopicName))
-        .collect(Collectors.toList());
-  }
-
-  @Override
   public void putSource(final DataSource<?> dataSource) {
-    if (dataSources.putIfAbsent(dataSource.getName(), new SourceInfo(dataSource)) != null) {
-      throw new KsqlException(
-          "Cannot add the new data source. Another data source with the same name already exists: "
-              + dataSource.toString());
-    }
-  }
+    final SourceInfo existing = dataSources
+        .putIfAbsent(dataSource.getName(), new SourceInfo(dataSource));
 
-  @Override
-  public void deleteTopic(final String topicName) {
-    if (topics.remove(topicName) == null) {
-      throw new KsqlException(String.format("No topic with name %s was registered.", topicName));
+    if (existing != null) {
+      final String name = dataSource.getName();
+      final String newType = dataSource.getDataSourceType().getKsqlType().toLowerCase();
+      final String existingType = existing.source.getDataSourceType().getKsqlType().toLowerCase();
+
+      throw new KsqlException(String.format(
+          "Cannot add %s '%s': A %s with the same name already exists",
+          newType, name, existingType));
     }
   }
 
@@ -143,11 +116,6 @@ public final class MetaStoreImpl implements MutableMetaStore {
         .entrySet()
         .stream()
         .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().source));
-  }
-
-  @Override
-  public Map<String, KsqlTopic> getAllKsqlTopics() {
-    return Collections.unmodifiableMap(topics);
   }
 
   @Override
@@ -211,7 +179,7 @@ public final class MetaStoreImpl implements MutableMetaStore {
   @Override
   public MutableMetaStore copy() {
     synchronized (referentialIntegrityLock) {
-      return new MetaStoreImpl(topics, dataSources, functionRegistry);
+      return new MetaStoreImpl(dataSources, functionRegistry);
     }
   }
 

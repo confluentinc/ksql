@@ -17,8 +17,6 @@ package io.confluent.ksql.ddl.commands;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Iterables;
-import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.SerdeFactory;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlTopic;
@@ -57,7 +55,6 @@ abstract class CreateSourceCommand implements DdlCommand {
 
   final String sqlExpression;
   final String sourceName;
-  final String topicName;
   final LogicalSchema schema;
   final KeyField keyField;
   private final KafkaTopicClient kafkaTopicClient;
@@ -98,7 +95,6 @@ abstract class CreateSourceCommand implements DdlCommand {
     this.properties = statement.getProperties();
 
     checkTopicExists(properties);
-    this.topicName = this.sourceName;
 
     this.schema = buildSchema(statement.getElements());
 
@@ -167,21 +163,6 @@ abstract class CreateSourceCommand implements DdlCommand {
     return LogicalSchema.of(keySchema.build(), valueSchema.build());
   }
 
-  static void checkMetaData(
-      final MetaStore metaStore,
-      final String sourceName,
-      final String topicName
-  ) {
-    if (metaStore.getSource(sourceName) != null) {
-      throw new KsqlException(String.format("Source already exists: %s", sourceName));
-    }
-
-    if (metaStore.getTopic(topicName) == null) {
-      throw new KsqlException(
-          String.format("The corresponding topic does not exist: %s", topicName));
-    }
-  }
-
   private void checkTopicExists(final CreateSourceProperties properties) {
     final String kafkaTopicName = properties.getKafkaTopic();
     if (!kafkaTopicClient.isTopicExists(kafkaTopicName)) {
@@ -189,19 +170,9 @@ abstract class CreateSourceCommand implements DdlCommand {
     }
   }
 
-  protected void registerTopic(final MutableMetaStore metaStore, final String entity) {
-    if (metaStore.getTopic(topicName) != null) {
-      final String errorMessage =
-          String.format("Cannot create %s '%s': A %s with name '%s' already exists",
-              entity, topicName, entity, topicName);
-
-      throw new KsqlException(errorMessage);
-    }
-
+  KsqlTopic buildTopic() {
     final String kafkaTopicName = properties.getKafkaTopic();
-    final KsqlTopic ksqlTopic = new KsqlTopic(topicName, kafkaTopicName, valueSerdeFactory, false);
-
-    metaStore.putTopic(ksqlTopic);
+    return new KsqlTopic(sourceName, kafkaTopicName, valueSerdeFactory, false);
   }
 
   private static SerdeFactory<?> extractKeySerde(

@@ -17,7 +17,6 @@ package io.confluent.ksql.test;
 
 import io.confluent.ksql.test.tools.TestCase;
 import java.io.File;
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -25,14 +24,10 @@ import java.util.List;
 import java.util.stream.Collectors;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
 import org.apache.kafka.test.IntegrationTest;
-import org.apache.kafka.test.TestUtils;
-import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
-import org.xml.sax.SAXException;
 
 /**
  * This class is used to generate the topology files to ensure safe
@@ -56,15 +51,11 @@ public final class TopologyFileGenerator {
 
     private static final String BASE_DIRECTORY = "src/test/resources/expected_topology/";
 
-    public static void main(final String[] args) throws Exception {
-        generateTopologies(findBaseDir());
+    private TopologyFileGenerator() {
     }
 
-    @Test
-    public void shouldGenerateTopologies() throws Exception {
-        final File tmp = TestUtils.tempDirectory();
-        tmp.deleteOnExit();
-        generateTopologies(tmp.toPath());
+    public static void main(final String[] args) throws Exception {
+        generateTopologies(findBaseDir());
     }
 
     static Path findBaseDir() {
@@ -81,7 +72,7 @@ public final class TopologyFileGenerator {
             + "root of the ksql-functional-tests module");
     }
 
-    private static void generateTopologies(final Path base) throws Exception {
+    static void generateTopologies(final Path base) throws Exception {
         final String formattedVersion = getFormattedVersionFromPomFile();
         final Path generatedTopologyPath = base.resolve(formattedVersion);
 
@@ -105,7 +96,7 @@ public final class TopologyFileGenerator {
             .collect(Collectors.toList());
     }
 
-    private static String getFormattedVersionFromPomFile() throws IOException, ParserConfigurationException, SAXException {
+    private static String getFormattedVersionFromPomFile() throws Exception {
         final File pomFile = new File("pom.xml");
         final DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
         final DocumentBuilder documentBuilder = documentBuilderFactory.newDocumentBuilder();

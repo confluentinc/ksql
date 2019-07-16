@@ -79,7 +79,7 @@ tableElements
     ;
 
 tableElement
-    : identifier type
+    : identifier type (KEY)?
     ;
 
 tableProperties
@@ -316,6 +316,7 @@ nonReserved
     | EXPLAIN | ANALYZE | TYPE
     | SET | RESET
     | IF
+    | KEY
     ;
 
 SELECT: 'SELECT';
@@ -426,6 +427,7 @@ UNSET: 'UNSET';
 RUN: 'RUN';
 SCRIPT: 'SCRIPT';
 DECIMAL: 'DECIMAL';
+KEY: 'KEY';
 
 IF: 'IF';
 

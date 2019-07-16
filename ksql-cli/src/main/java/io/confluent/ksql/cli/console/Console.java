@@ -69,6 +69,7 @@ import io.confluent.ksql.util.HandlerMaps;
 import io.confluent.ksql.util.HandlerMaps.ClassHandlerMap1;
 import io.confluent.ksql.util.HandlerMaps.Handler1;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.TabularRow;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
@@ -278,7 +279,10 @@ public class Console implements Closeable {
     writer().println(shortMsg);
   }
 
-  public void printStreamedRow(final StreamedRow row) throws IOException {
+  public void printStreamedRow(
+      final StreamedRow row,
+      final List<FieldInfo> fields
+  ) throws IOException {
     if (row.getErrorMessage() != null) {
       printErrorMessage(row.getErrorMessage());
       return;
@@ -294,7 +298,7 @@ public class Console implements Closeable {
         printAsJson(row.getRow().getColumns());
         break;
       case TABULAR:
-        printAsTable(row.getRow());
+        printAsTable(row.getRow(), fields);
         break;
       default:
         throw new RuntimeException(String.format(
@@ -318,6 +322,21 @@ public class Console implements Closeable {
           }
           printAsTable(ksqlEntity);
         }
+        break;
+      default:
+        throw new RuntimeException(String.format(
+            "Unexpected output format: '%s'",
+            outputFormat.name()
+        ));
+    }
+  }
+
+  public void printRowHeader(final List<FieldInfo> fields) throws IOException {
+    switch (outputFormat) {
+      case JSON:
+        break;
+      case TABULAR:
+        writer().println(TabularRow.createHeader(getWidth(), fields));
         break;
       default:
         throw new RuntimeException(String.format(
@@ -365,14 +384,12 @@ public class Console implements Closeable {
         .findFirst();
   }
 
-  private void printAsTable(final GenericRow row) {
+  private void printAsTable(
+      final GenericRow row,
+      final List<FieldInfo> fields
+  ) {
     rowCaptor.addRow(row);
-    writer().println(
-        String.join(
-            " | ",
-            row.getColumns().stream().map(Objects::toString).collect(Collectors.toList())
-        )
-    );
+    writer().println(TabularRow.createRow(getWidth(), fields, row));
     flush();
   }
 

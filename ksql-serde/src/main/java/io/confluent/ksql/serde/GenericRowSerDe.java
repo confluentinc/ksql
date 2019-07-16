@@ -15,11 +15,14 @@
 
 package io.confluent.ksql.serde;
 
+import static io.confluent.ksql.logging.processing.ProcessingLoggerUtil.join;
 import static java.util.Objects.requireNonNull;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.logging.processing.LoggingDeserializer;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
+import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.util.KsqlConfig;
@@ -38,9 +41,12 @@ import org.apache.kafka.connect.data.Struct;
 
 public final class GenericRowSerDe implements Serde<GenericRow> {
 
+  private static final String DESERIALIZER_LOGGER_NAME = "deserializer";
+
   private final Serde<Object> delegate;
   private final PhysicalSchema schema;
   private final boolean unwrapped;
+  private final ProcessingLogger processingLogger;
 
   public static Serde<GenericRow> from(
       final KsqlSerdeFactory serdeFactory,
@@ -50,25 +56,28 @@ public final class GenericRowSerDe implements Serde<GenericRow> {
       final String loggerNamePrefix,
       final ProcessingLogContext processingLogContext
   ) {
+    final ProcessingLogger processingLogger = processingLogContext.getLoggerFactory()
+        .getLogger(join(loggerNamePrefix, DESERIALIZER_LOGGER_NAME));
 
     final Serde<Object> structSerde = serdeFactory.createSerde(
         schema.valueSchema(),
         ksqlConfig,
-        srClientFactory,
-        loggerNamePrefix,
-        processingLogContext);
+        srClientFactory
+    );
 
-    return new GenericRowSerDe(structSerde, schema);
+    return new GenericRowSerDe(structSerde, schema, processingLogger);
   }
 
   private GenericRowSerDe(
       final Serde<Object> delegate,
-      final PhysicalSchema schema
+      final PhysicalSchema schema,
+      final ProcessingLogger processingLogger
   ) {
     this.delegate = requireNonNull(delegate, "delegate");
     this.schema = requireNonNull(schema, "schema");
     this.unwrapped = schema.logicalSchema().valueFields().size() == 1
         && schema.serdeOptions().contains(SerdeOption.UNWRAP_SINGLE_VALUES);
+    this.processingLogger = requireNonNull(processingLogger, "processingLogger");
   }
 
   @Override
@@ -81,9 +90,11 @@ public final class GenericRowSerDe implements Serde<GenericRow> {
   @SuppressWarnings("unchecked")
   @Override
   public Deserializer<GenericRow> deserializer() {
-    return unwrapped
+    final Deserializer<GenericRow> deserializer = unwrapped
         ? new UnwrappedGenericRowDeserializer(delegate.deserializer())
         : new GenericRowDeserializer((Deserializer) delegate.deserializer());
+
+    return new LoggingDeserializer(deserializer, processingLogger);
   }
 
   @Override

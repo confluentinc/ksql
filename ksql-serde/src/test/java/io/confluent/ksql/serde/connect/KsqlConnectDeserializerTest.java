@@ -17,20 +17,14 @@ package io.confluent.ksql.serde.connect;
 
 import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.logging.processing.ProcessingLogConfig;
-import io.confluent.ksql.logging.processing.ProcessingLogger;
-import io.confluent.ksql.serde.SerdeTestUtils;
-import io.confluent.ksql.serde.util.SerdeProcessingLogMessageFactory;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
-import java.util.Optional;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaAndValue;
 import org.apache.kafka.connect.data.Struct;
@@ -51,8 +45,6 @@ public class KsqlConnectDeserializerTest {
   @Mock
   private DataTranslator dataTranslator;
   @Mock
-  private ProcessingLogger recordLogger;
-  @Mock
   private Schema schema;
   @Mock
   private Object value;
@@ -71,8 +63,7 @@ public class KsqlConnectDeserializerTest {
   public void setup() {
     connectDeserializer = new KsqlConnectDeserializer(
         converter,
-        dataTranslator,
-        recordLogger
+        dataTranslator
     );
     when(converter.toConnectData(any(), any())).thenReturn(new SchemaAndValue(schema, value));
     when(dataTranslator.toKsqlRow(any(), any())).thenReturn(ksqlStruct);
@@ -87,27 +78,5 @@ public class KsqlConnectDeserializerTest {
     verify(converter, times(1)).toConnectData(TOPIC, BYTES);
     verify(dataTranslator, times(1)).toKsqlRow(schema, value);
     assertThat(deserialized, sameInstance(ksqlStruct));
-  }
-
-  @Test
-  public void shouldLogOnError() {
-    // Given:
-    final RuntimeException error = new RuntimeException("bad");
-    reset(converter);
-    when(converter.toConnectData(any(), any())).thenThrow(error);
-
-    // When:
-   try {
-     connectDeserializer.deserialize(TOPIC, BYTES);
-     fail("deserialize should have thrown");
-   } catch (final RuntimeException caught) {
-     SerdeTestUtils.shouldLogError(
-         recordLogger,
-         SerdeProcessingLogMessageFactory.deserializationErrorMsg(
-             error,
-             Optional.ofNullable(BYTES)).apply(processingLogConfig),
-         processingLogConfig
-     );
-   }
   }
 }

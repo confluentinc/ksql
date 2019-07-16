@@ -27,6 +27,8 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
+import io.confluent.ksql.logging.processing.ProcessingLogger;
+import io.confluent.ksql.logging.processing.ProcessingLoggerFactory;
 import io.confluent.ksql.planner.plan.PlanNodeId;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -84,10 +86,15 @@ public class KsqlQueryBuilderTest {
 
   @Before
   public void setUp() {
-    when(valueSerdeFactory.createSerde(any(), any(), any(), any(), any())).thenReturn(rowSerde);
+    when(valueSerdeFactory.createSerde(any(), any(), any())).thenReturn(rowSerde);
     when(serviceContext.getSchemaRegistryClientFactory()).thenReturn(srClientFactory);
 
     queryContext = new QueryContext.Stacker(QUERY_ID).push("context").getQueryContext();
+
+    final ProcessingLoggerFactory loggerFactory = mock(ProcessingLoggerFactory.class);
+    final ProcessingLogger logger = mock(ProcessingLogger.class);
+    when(loggerFactory.getLogger(any())).thenReturn(logger);
+    when(processingLogContext.getLoggerFactory()).thenReturn(loggerFactory);
 
     ksqlQueryBuilder = KsqlQueryBuilder.of(
         streamsBuilder,
@@ -149,9 +156,8 @@ public class KsqlQueryBuilderTest {
     verify(valueSerdeFactory).createSerde(
         SOME_SCHEMA.valueSchema(),
         ksqlConfig,
-        srClientFactory,
-        QueryLoggerUtil.queryLoggerName(queryContext),
-        processingLogContext);
+        srClientFactory
+    );
 
     assertThat(result, is(GenericRowSerDe.from(
         valueSerdeFactory,

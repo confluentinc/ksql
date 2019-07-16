@@ -19,6 +19,7 @@ import static io.confluent.ksql.schema.ksql.TypeContextUtil.getType;
 import static io.confluent.ksql.util.ParserUtil.getLocation;
 
 import io.confluent.ksql.parser.tree.TableElement;
+import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.ParserUtil;
@@ -73,8 +74,10 @@ public final class SchemaParser {
         .stream()
         .map(ctx -> new TableElement(
             getLocation(ctx),
+            ctx.KEY() == null ? Namespace.VALUE : Namespace.KEY,
             ParserUtil.getIdentifierText(ctx.identifier()),
-            getType(ctx.type())))
+            getType(ctx.type())
+        ))
         .collect(Collectors.toList());
 
     return TableElements.of(elements);

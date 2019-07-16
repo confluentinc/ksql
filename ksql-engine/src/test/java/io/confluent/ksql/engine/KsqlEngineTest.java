@@ -523,9 +523,7 @@ public class KsqlEngineTest {
         "create table bar as select * from test2;", KSQL_CONFIG, Collections.emptyMap());
 
     // Then:
-    verify(jsonKsqlSerde, atLeastOnce()).createSerde(
-        any(), any(), eq(schemaRegistryClientFactory), any(), any()
-    );
+    verify(jsonKsqlSerde, atLeastOnce()).createSerde(any(), any(), eq(schemaRegistryClientFactory));
   }
 
   @SuppressWarnings("unchecked")

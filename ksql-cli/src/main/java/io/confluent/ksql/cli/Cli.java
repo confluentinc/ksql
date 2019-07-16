@@ -32,8 +32,10 @@ import io.confluent.ksql.rest.client.KsqlRestClient.QueryStream;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
+import io.confluent.ksql.rest.entity.FieldInfo;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
+import io.confluent.ksql.rest.entity.QueryDescriptionEntity;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.resources.Errors;
 import io.confluent.ksql.util.ErrorMessageUtil;
@@ -323,6 +325,17 @@ public class Cli implements KsqlRequestExecutor, Closeable {
 
   @SuppressWarnings("try")
   private void handleStreamedQuery(final String query) throws IOException {
+    final RestResponse<KsqlEntityList> explainResponse = restClient
+        .makeKsqlRequest("EXPLAIN " + query);
+    if (!explainResponse.isSuccessful()) {
+      terminal.printErrorMessage(explainResponse.getErrorMessage());
+      return;
+    }
+
+    final QueryDescriptionEntity description =
+        (QueryDescriptionEntity) explainResponse.getResponse().get(0);
+    final List<FieldInfo> fields = description.getQueryDescription().getFields();
+    terminal.printRowHeader(fields);
 
     final RestResponse<KsqlRestClient.QueryStream> queryResponse =
         makeKsqlRequest(query, restClient::makeQueryRequest);
@@ -334,18 +347,20 @@ public class Cli implements KsqlRequestExecutor, Closeable {
     } else {
       try (KsqlRestClient.QueryStream queryStream = queryResponse.getResponse();
           StatusClosable ignored = terminal.setStatusMessage("Press CTRL-C to interrupt")) {
-        streamResults(queryStream);
+        streamResults(queryStream, fields);
       }
     }
   }
 
-  private void streamResults(final QueryStream queryStream) {
-
+  private void streamResults(
+      final QueryStream queryStream,
+      final List<FieldInfo> fields
+  ) {
     final Future<?> queryStreamFuture = queryStreamExecutorService.submit(() -> {
       for (long rowsRead = 0; limitNotReached(rowsRead) && queryStream.hasNext(); rowsRead++) {
         try {
           final StreamedRow row = queryStream.next();
-          terminal.printStreamedRow(row);
+          terminal.printStreamedRow(row, fields);
           if (row.isTerminal()) {
             break;
           }

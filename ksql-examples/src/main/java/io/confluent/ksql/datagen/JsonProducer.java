@@ -35,9 +35,14 @@ public class JsonProducer extends DataGenProducer {
       final org.apache.kafka.connect.data.Schema kafkaSchema,
       final String topicName
   ) {
+    final PhysicalSchema physicalSchema = PhysicalSchema.from(
+        LogicalSchema.of(KEY_SCHEMA, kafkaSchema),
+        SerdeOption.none()
+    );
+
     return GenericRowSerDe.from(
         new KsqlJsonSerdeFactory(),
-        PhysicalSchema.from(LogicalSchema.of(kafkaSchema), SerdeOption.none()),
+        physicalSchema,
         new KsqlConfig(ImmutableMap.of()),
         () -> null,
         "",

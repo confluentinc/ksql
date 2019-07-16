@@ -32,6 +32,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import javax.annotation.concurrent.ThreadSafe;
+
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.AlterConfigOp;
 import org.apache.kafka.clients.admin.Config;
@@ -43,6 +45,7 @@ import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.KafkaFuture;
 import org.apache.kafka.common.config.ConfigResource;
 import org.apache.kafka.common.config.TopicConfig;
+import org.apache.kafka.common.errors.TopicDeletionDisabledException;
 import org.apache.kafka.common.errors.TopicExistsException;
 import org.apache.kafka.common.errors.UnsupportedVersionException;
 import org.slf4j.Logger;
@@ -59,6 +62,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   private static final Logger LOG = LoggerFactory.getLogger(KafkaTopicClient.class);
 
   private static final String DEFAULT_REPLICATION_PROP = "default.replication.factor";
+  private static final String DELETE_TOPIC_ENABLE = "delete.topic.enable";
 
   private final AdminClient adminClient;
 
@@ -246,6 +250,21 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
       try {
         entry.getValue().get(30, TimeUnit.SECONDS);
       } catch (final Exception e) {
+        final Throwable rootCause = ExceptionUtils.getRootCause(e);
+
+        // Checking if the Kafka cluster has the DELETE_TOPIC_ENABLE configuration enabled requires
+        // the user to have DescribeConfigs permissions (or ACL) in Kafka. To avoid giving that
+        // unnecessary permission, we can detect it by catching the TopicDeletionDisabledException.
+        if (rootCause instanceof TopicDeletionDisabledException) {
+          // If TopicDeletionDisabledException is detected, we throw the exception immediately
+          // instead of going through the rest of the topics to delete.
+          // It is now up to the caller to ignore this exception.
+          LOG.info("Cannot delete topics since '" + DELETE_TOPIC_ENABLE + "' is false. ");
+          throw new TopicDeletionDisabledException("Topic deletion is disabled. "
+              + "To delete the topic, you must set '" + DELETE_TOPIC_ENABLE + "' to true in "
+              + "the Kafka cluster configuration.");
+        }
+
         failList.add(entry.getKey());
       }
     }
@@ -268,9 +287,14 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
         deleteTopics(internalTopics);
       }
     } catch (final Exception e) {
-      LOG.error("Exception while trying to clean up internal topics for application id: {}.",
-          applicationId, e
-      );
+      // An exception due to TopicDeletionDisabledException should not be logged as an error, just
+      // info level should be enough. However, the deleteTopics() method already logged it for us,
+      // so we can skip it.
+      if (!(e instanceof TopicDeletionDisabledException)) {
+        LOG.error("Exception while trying to clean up internal topics for application id: {}.",
+            applicationId, e
+        );
+      }
     }
   }
 

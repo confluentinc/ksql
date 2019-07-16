@@ -36,6 +36,7 @@ import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.kafka.common.errors.TopicDeletionDisabledException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -99,8 +100,13 @@ public class ClusterTerminator {
               filterNonExistingTopics(topicsToBeDeleted)),
           ExecutorUtil.RetryBehaviour.ALWAYS);
     } catch (final Exception e) {
-      throw new KsqlException(
-          "Exception while deleting topics: " + StringUtils.join(topicsToBeDeleted, ", "));
+      // An exception due to TopicDeletionDisabledException should be ignored when a Cluster
+      // termination is requested. The deleteTopics already logs an INFO message. We can skip
+      // logging it here.
+      if (!(e instanceof TopicDeletionDisabledException)) {
+        throw new KsqlException(
+            "Exception while deleting topics: " + StringUtils.join(topicsToBeDeleted, ", "));
+      }
     }
   }
 

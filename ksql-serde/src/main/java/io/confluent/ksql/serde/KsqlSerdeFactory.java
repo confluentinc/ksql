@@ -25,6 +25,7 @@ import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.serialization.Serializer;
+import org.apache.kafka.connect.data.ConnectSchema;
 
 @Immutable
 public abstract class KsqlSerdeFactory {
@@ -38,6 +39,12 @@ public abstract class KsqlSerdeFactory {
   public Format getFormat() {
     return format;
   }
+
+  /**
+   * Validate the serde factory can handle the supplied {@code schema}.
+   * @param schema the schema to validate.
+   */
+  public abstract void validate(ConnectSchema schema);
 
   public Serde<Object> createSerde(
       final PersistenceSchema schema,

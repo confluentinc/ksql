@@ -23,6 +23,13 @@ KSQL 5.4.0 includes new features, including:
 
 * New ``UNIX_TIMESTAMP()`` and ``UNIX_DATE()`` functions.
 
+* A new ``KAFKA`` format that supports ``INT``, ``BIGINT``, ``DOUBLE`` and ``STRING`` fields that
+  have been serialized using the standard Kafka serializers,
+  e.g. ``org.apache.kafka.common.serialization.LongSerializer``.
+
+  The format only supports single values, i.e. only single field, being primarily intended for use
+  as a key format.
+
 KSQL 5.4.0 includes the following misc. changes:
 
 * Require either the value for a ``@UdfParameter`` or for the UDF JAR to be compiled with

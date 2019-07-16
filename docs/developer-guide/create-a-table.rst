@@ -39,7 +39,8 @@ Also, the ``userid`` field is assigned as the table's KEY property.
 
 KSQL can't infer the topic's data format, so you must provide the format of the
 values that are stored in the topic. In this example, the data format is
-``JSON``. Other options are ``Avro`` and ``DELIMITED``.
+``JSON``. Other options are ``Avro``, ``DELIMITED`` or ``KAFKA``.
+See :ref:`ksql_formats` for more details.
 
 In the KSQL CLI, paste the following CREATE TABLE statement: 
 

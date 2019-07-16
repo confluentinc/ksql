@@ -33,6 +33,7 @@ import java.util.Objects;
 import java.util.function.Supplier;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
+import org.apache.kafka.connect.data.ConnectSchema;
 
 @Immutable
 public class KsqlAvroSerdeFactory extends KsqlSerdeFactory {
@@ -45,6 +46,11 @@ public class KsqlAvroSerdeFactory extends KsqlSerdeFactory {
     if (this.fullSchemaName.isEmpty()) {
       throw new IllegalArgumentException("the schema name cannot be empty");
     }
+  }
+
+  @Override
+  public void validate(final ConnectSchema schema) {
+    // Supports all types
   }
 
   @Override

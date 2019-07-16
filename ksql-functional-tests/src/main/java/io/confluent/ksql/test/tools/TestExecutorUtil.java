@@ -125,7 +125,8 @@ final class TestExecutorUtil {
         getAvroSchema(sinkDataSource, schemaRegistryClient);
 
     final SerdeSupplier<?> valueSerdeSupplier = SerdeUtil.getSerdeSupplier(
-        sinkDataSource.getValueSerdeFactory().getFormat()
+        sinkDataSource.getValueSerdeFactory().getFormat(),
+        sinkDataSource::getSchema
     );
 
     final Topic sinkTopic = new Topic(

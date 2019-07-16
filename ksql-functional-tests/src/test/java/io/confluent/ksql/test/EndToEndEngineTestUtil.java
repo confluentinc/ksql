@@ -159,7 +159,8 @@ final class EndToEndEngineTestUtil {
           .getKafkaTopicName();
 
       final SerdeSupplier<?> valueSerdes = SerdeUtil.getSerdeSupplier(
-          persistentQueryMetadata.getResultTopic().getValueSerdeFactory().getFormat()
+          persistentQueryMetadata.getResultTopic().getValueSerdeFactory().getFormat(),
+          queryMetadata::getLogicalSchema
       );
 
       final Topic sinkTopic = new Topic(

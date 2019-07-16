@@ -15,12 +15,15 @@
 
 package io.confluent.ksql.test.utils;
 
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.test.serde.SerdeSupplier;
 import io.confluent.ksql.test.serde.avro.ValueSpecAvroSerdeSupplier;
 import io.confluent.ksql.test.serde.json.ValueSpecJsonSerdeSupplier;
+import io.confluent.ksql.test.serde.kafka.KafkaSerdeSupplier;
 import io.confluent.ksql.test.serde.string.StringSerdeSupplier;
 import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;
+import java.util.function.Supplier;
 
 public final class SerdeUtil {
 
@@ -28,7 +31,8 @@ public final class SerdeUtil {
   }
 
   public static SerdeSupplier<?> getSerdeSupplier(
-      final Format format
+      final Format format,
+      final Supplier<LogicalSchema> schemaSupplier
   ) {
     switch (format) {
       case AVRO:
@@ -37,6 +41,8 @@ public final class SerdeUtil {
         return new ValueSpecJsonSerdeSupplier();
       case DELIMITED:
         return new StringSerdeSupplier();
+      case KAFKA:
+        return new KafkaSerdeSupplier(schemaSupplier);
       default:
         throw new InvalidFieldException("format", "unsupported value: " + format);
     }

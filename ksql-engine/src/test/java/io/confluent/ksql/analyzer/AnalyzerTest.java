@@ -27,7 +27,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import io.confluent.ksql.analyzer.Analysis.Into;
@@ -43,7 +42,9 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.KsqlParserTestUtil;
 import io.confluent.ksql.parser.SqlFormatter;
 import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
+import io.confluent.ksql.parser.tree.BooleanLiteral;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
+import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Sink;
 import io.confluent.ksql.parser.tree.Statement;
@@ -55,11 +56,14 @@ import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.SerdeFactories;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.avro.KsqlAvroSerdeFactory;
+import io.confluent.ksql.serde.kafka.KafkaSerdeFactory;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -96,6 +100,8 @@ public class AnalyzerTest {
 
   private Query query;
   private Analyzer analyzer;
+  private Optional<Format> sinkFormat = Optional.empty();
+  private Optional<Boolean> sinkWrapSingleValues = Optional.empty();
 
   @Before
   public void init() {
@@ -114,6 +120,8 @@ public class AnalyzerTest {
     when(sink.getProperties()).thenReturn(CreateSourceAsProperties.none());
 
     query = parseSingle("Select COL0, COL1 from TEST1;");
+
+    registerKafkaSource();
   }
 
   @Test
@@ -425,10 +433,8 @@ public class AnalyzerTest {
     final Set<SerdeOption> serdeOptions = ImmutableSet.of(SerdeOption.UNWRAP_SINGLE_VALUES);
     when(serdeOptiponsSupplier.build(any(), any(), any(), any())).thenReturn(serdeOptions);
 
-    final CreateSourceAsProperties properties = CreateSourceAsProperties.from(
-        ImmutableMap.of("VALUE_FORMAT", new StringLiteral("AVRO")));
-
-    when(sink.getProperties()).thenReturn(properties);
+    givenSinkValueFormat(Format.AVRO);
+    givenWrapSingleValues(true);
 
     // When:
     final Analysis result = analyzer.analyze("sql", query, Optional.of(sink));
@@ -437,7 +443,7 @@ public class AnalyzerTest {
     verify(serdeOptiponsSupplier).build(
         ImmutableList.of("COL0", "COL1"),
         Format.AVRO,
-        properties.getWrapSingleValues(),
+        Optional.of(true),
         DEFAULT_SERDE_OPTIONS);
 
     assertThat(result.getSerdeOptions(), is(serdeOptions));
@@ -462,9 +468,85 @@ public class AnalyzerTest {
         any());
   }
 
+  @Test
+  public void shouldThrowOnGroupByIfKafkaFormat() {
+    // Given:
+    query = parseSingle("Select COL0 from KAFKA_SOURCE GROUP BY COL0;");
+
+    givenSinkValueFormat(Format.KAFKA);
+
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Source(s) KAFKA_SOURCE are using the 'KAFKA' value format."
+        + " This format does not yet support GROUP BY.");
+
+    // When:
+    analyzer.analyze("sql", query, Optional.of(sink));
+  }
+
+  @Test
+  public void shouldThrowOnJoinIfKafkaFormat() {
+    // Given:
+    query = parseSingle("Select TEST1.COL0 from TEST1 JOIN KAFKA_SOURCE "
+        + "WITHIN 1 SECOND ON "
+        + "TEST1.COL0 = KAFKA_SOURCE.COL0;");
+
+    givenSinkValueFormat(Format.KAFKA);
+
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Source(s) KAFKA_SOURCE are using the 'KAFKA' value format."
+        + " This format does not yet support JOIN.");
+
+    // When:
+    analyzer.analyze("sql", query, Optional.of(sink));
+  }
+
   @SuppressWarnings("unchecked")
   private <T extends Statement> T parseSingle(final String simpleQuery) {
     return (T) Iterables.getOnlyElement(parse(simpleQuery, jsonMetaStore));
+  }
+
+  private void givenSinkValueFormat(final Format format) {
+    this.sinkFormat = Optional.of(format);
+    buildProps();
+  }
+
+  private void givenWrapSingleValues(final boolean wrap) {
+    this.sinkWrapSingleValues = Optional.of(wrap);
+    buildProps();
+  }
+
+  private void buildProps() {
+    final Map<String, Literal> props = new HashMap<>();
+    sinkFormat.ifPresent(f -> props.put("VALUE_FORMAT", new StringLiteral(f.toString())));
+    sinkWrapSingleValues.ifPresent(b -> props.put("WRAP_SINGLE_VALUE", new BooleanLiteral(Boolean.toString(b))));
+
+    final CreateSourceAsProperties properties = CreateSourceAsProperties.from(props);
+
+    when(sink.getProperties()).thenReturn(properties);
+
+  }
+
+  private void registerKafkaSource() {
+    final Schema schema = SchemaBuilder.struct()
+        .field("COL0", Schema.OPTIONAL_INT64_SCHEMA)
+        .build();
+
+    final KsqlTopic topic = new KsqlTopic("KAFKA_SOURCE", "ks", new KafkaSerdeFactory(), false);
+
+    final KsqlStream<?> stream = new KsqlStream<>(
+        "sqlexpression",
+        "KAFKA_SOURCE",
+        LogicalSchema.of(schema),
+        SerdeOption.none(),
+        KeyField.none(),
+        new MetadataTimestampExtractionPolicy(),
+        topic,
+        Serdes::String
+    );
+
+    jsonMetaStore.putSource(stream);
   }
 
   private static List<Statement> parse(final String simpleQuery, final MetaStore metaStore) {

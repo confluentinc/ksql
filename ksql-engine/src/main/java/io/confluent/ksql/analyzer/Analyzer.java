@@ -62,12 +62,29 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 class Analyzer {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
+
+  private static final String KAFKA_VALUE_FORMAT_LIMITATION_DETAILS = ""
+      + "The KAFKA format is primarily intended for use as a key format. "
+      + "It can be used as a value format, but can not be used in any operation that "
+      + "requires a repartition or changelog topic." + System.lineSeparator()
+      + "Removing this limitation requires enhancements to the core of KSQL. "
+      + "This will come in a future release. Until then, avoid using the KAFKA format for values."
+      + System.lineSeparator() + "If you have an existing topic with "
+      + "KAFKA formatted values you can duplicate the data and serialize using Avro or JSON with a "
+      + "statement such as: "
+      + System.lineSeparator()
+      + System.lineSeparator()
+      + "'CREATE STREAM <new-stream-name> WITH(VALUE_FORMAT='Avro') AS "
+      + "SELECT * FROM <existing-kafka-formated-stream-name>;'"
+      + System.lineSeparator()
+      + "For more info see https://github.com/confluentinc/ksql/issues/3060";
 
   private final MetaStore metaStore;
   private final String topicPrefix;
@@ -127,6 +144,8 @@ class Analyzer {
 
     visitor.analyzeSink(sink, sqlExpression);
 
+    visitor.validate();
+
     return visitor.analysis;
   }
 
@@ -135,6 +154,8 @@ class Analyzer {
     // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
     private final Analysis analysis = new Analysis();
+    private boolean isJoin = false;
+    private boolean isGroupBy = false;
 
     private void analyzeSink(
         final Optional<Sink> sink,
@@ -306,6 +327,8 @@ class Analyzer {
 
     @Override
     protected Node visitJoin(final Join node, final Void context) {
+      isJoin = true;
+
       process(node.getLeft(), context);
       process(node.getRight(), context);
 
@@ -478,6 +501,8 @@ class Analyzer {
     }
 
     private void analyzeGroupBy(final GroupBy groupBy) {
+      isGroupBy = true;
+
       for (final GroupingElement groupingElement : groupBy.getGroupingElements()) {
         final Set<Expression> groupingSet = groupingElement.enumerateGroupingSets().get(0);
         analysis.addGroupByExpressions(groupingSet);
@@ -523,6 +548,30 @@ class Analyzer {
 
           analysis.addSelectItem(selectItem, alias);
         }
+      }
+    }
+
+    public void validate() {
+      final String kafkaSources = analysis.getFromDataSources().stream()
+          .filter(s -> s.getDataSource().getKsqlTopic().getValueSerdeFactory().getFormat()
+              == Format.KAFKA)
+          .map(AliasedDataSource::getAlias)
+          .collect(Collectors.joining(", "));
+
+      if (kafkaSources.isEmpty()) {
+        return;
+      }
+
+      if (isJoin) {
+        throw new KsqlException("Source(s) " + kafkaSources + " are using the 'KAFKA' value format."
+            + " This format does not yet support JOIN."
+            + System.lineSeparator() + KAFKA_VALUE_FORMAT_LIMITATION_DETAILS);
+      }
+
+      if (isGroupBy) {
+        throw new KsqlException("Source(s) " + kafkaSources + " are using the 'KAFKA' value format."
+            + " This format does not yet support GROUP BY."
+            + System.lineSeparator() + KAFKA_VALUE_FORMAT_LIMITATION_DETAILS);
       }
     }
   }

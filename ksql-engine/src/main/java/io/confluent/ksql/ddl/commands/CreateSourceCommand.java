@@ -22,11 +22,8 @@ import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.CreateSource;
-import io.confluent.ksql.parser.tree.TableElement;
-import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.KsqlSerdeFactories;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
@@ -36,7 +33,6 @@ import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.StringUtil;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicyFactory;
@@ -44,8 +40,6 @@ import java.util.Optional;
 import java.util.Set;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.kstream.Windowed;
 
 /**
@@ -125,6 +119,7 @@ abstract class CreateSourceCommand implements DdlCommand {
         properties.getValueAvroSchemaName()
     );
 
+    this.valueSerdeFactory.validate(schema.valueSchema());
     this.serdeOptions = serdeOptionsSupplier.build(
         schema,
         properties.getValueFormat(),
@@ -142,25 +137,7 @@ abstract class CreateSourceCommand implements DdlCommand {
       throw new KsqlException("The statement does not define any columns.");
     }
 
-    final SchemaBuilder keySchema = SchemaBuilder.struct();
-    final SchemaBuilder valueSchema = SchemaBuilder.struct();
-    for (final TableElement tableElement : tableElements) {
-      final String fieldName = tableElement.getName();
-      final Schema fieldSchema = SchemaConverters.sqlToLogicalConverter()
-          .fromSqlType(tableElement.getType().getSqlType());
-
-      if (tableElement.getNamespace() == Namespace.KEY) {
-        keySchema.field(fieldName, fieldSchema);
-      } else {
-        valueSchema.field(fieldName, fieldSchema);
-      }
-    }
-
-    if (keySchema.fields().isEmpty()) {
-      keySchema.field(SchemaUtil.ROWKEY_NAME, Schema.OPTIONAL_STRING_SCHEMA);
-    }
-
-    return LogicalSchema.of(keySchema.build(), valueSchema.build());
+    return tableElements.toLogicalSchema();
   }
 
   private void checkTopicExists(final CreateSourceProperties properties) {

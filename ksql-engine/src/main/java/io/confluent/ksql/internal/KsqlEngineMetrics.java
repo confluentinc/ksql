@@ -284,13 +284,15 @@ public class KsqlEngineMetrics implements Closeable {
       final KsqlMetric metric) {
     // legacy
     sensor.add(
-        metrics.metricName(ksqlServiceId + metric.name(), metricGroupName, metric.description()),
+        metrics.metricName(
+            ksqlServiceId + "-" + metric.name(),
+            metricGroupName, metric.description()),
         metric.statSupplier().get());
     // new
     sensor.add(
         metrics.metricName(
             metric.name(),
-            ksqlServiceId + metricGroupName,
+            ksqlServiceId + "-" + metricGroupName,
             metric.description(),
             customMetricsTags),
         metric.statSupplier().get());
@@ -332,7 +334,7 @@ public class KsqlEngineMetrics implements Closeable {
     final String name = state + "-queries";
     // legacy
     configureGaugeForState(
-        ksqlServiceId + metricGroupName + "-" + name,
+        ksqlServiceId + "-" + metricGroupName + "-" + name,
         metricGroupName,
         Collections.emptyMap(),
         state
@@ -340,7 +342,7 @@ public class KsqlEngineMetrics implements Closeable {
     // new
     configureGaugeForState(
         name,
-        ksqlServiceId + metricGroupName,
+        ksqlServiceId + "-" + metricGroupName,
         customMetricsTags,
         state
     );

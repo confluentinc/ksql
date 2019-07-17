@@ -20,11 +20,12 @@ import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
+import io.confluent.ksql.util.KsqlConstants;
 import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Pattern;
 
-@UdfDescription(name = SplitKudf.NAME, author = "Confluent",
+@UdfDescription(name = SplitKudf.NAME, author = KsqlConstants.CONFLUENT_AUTHOR,
     description = "Splits a string into an array of substrings based on a delimiter. "
         + "If the delimiter is found at the beginning of the string, end of the string, or there "
         + "are contiguous delimiters in the string, then empty strings are added to the array. "

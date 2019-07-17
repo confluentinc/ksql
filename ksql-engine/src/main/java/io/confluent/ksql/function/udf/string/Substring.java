@@ -19,13 +19,14 @@ import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConstants;
 import java.util.Map;
 import java.util.Objects;
 import org.apache.kafka.common.Configurable;
 
 @SuppressWarnings("unused") // Invoked via reflection.
 @UdfDescription(name = "substring",
-    author = "Confluent",
+    author = KsqlConstants.CONFLUENT_AUTHOR,
     description = "Returns a substring of the passed in value.\n"
         + "The behaviour of this function changed in release 5.1. "
         + "It is possible to switch the function back to pre-v5.1 functionality via the setting:\n"

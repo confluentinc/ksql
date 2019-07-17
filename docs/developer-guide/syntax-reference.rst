@@ -59,7 +59,7 @@ supported KSQL types, including the complex types ``MAP``, ``ARRAY``, and
 ``STRUCT``.
 
 .. note::
-    
+
     ``Properties`` is not a valid field name.
 
 Here's an example CREATE STREAM statement that uses a ``STRUCT`` to
@@ -90,7 +90,7 @@ KSQL Time Units
 The following list shows valid time units for the SIZE, ADVANCE BY, SESSION, and
 WITHIN clauses.
 
-* DAY, DAYS 
+* DAY, DAYS
 * HOUR, HOURS
 * MINUTE, MINUTES
 * SECOND, SECONDS
@@ -108,13 +108,13 @@ timestamp in ``ROWTIME``. By default, the implicit ``ROWTIME`` column is the
 timestamp of a message in a Kafka topic. Timestamps have an accuracy of
 one millisecond.
 
-Use the TIMESTAMP property to override ``ROWTIME`` with the contents of the 
+Use the TIMESTAMP property to override ``ROWTIME`` with the contents of the
 specified column. Define the format of a record's timestamp by using the
 TIMESTAMP_FORMAT property.
 
 If you use the TIMESTAMP property but don't set TIMESTAMP_FORMAT, KSQL assumes
 that the timestamp field is a ``bigint``. If you set TIMESTAMP_FORMAT, the
-TIMESTAMP field must be of type ``varchar`` and have a format that the 
+TIMESTAMP field must be of type ``varchar`` and have a format that the
 ``DateTimeFormatter`` Java class can parse.
 
 If your timestamp format has embedded single quotes, you can escape them by
@@ -1559,6 +1559,8 @@ Scalar functions
 |                        |                                                                           |                                                   |
 |                        |                                                                           | ``{"foo": {"bar": "quux"}}``                      |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| EXP                    |  ``EXP(col1)``                                                            | The exponential of a value.                       |
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | FIELD                  | ``FIELD(str VARCHAR, args VARCHAR[])``                                    | Returns the 1-indexed position of ``str`` in      |
 |                        |                                                                           | ``args``, or 0 if not found. If ``str`` is NULL,  |
 |                        |                                                                           | the return value is 0, because NULL is not        |
@@ -1580,6 +1582,8 @@ Scalar functions
 | LCASE                  |  ``LCASE(col1)``                                                          | Convert a string to lowercase.                    |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | LEN                    |  ``LEN(col1)``                                                            | The length of a string.                           |
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| LOG                    |  ``LOG(col1)``                                                            | The logarithm of a value.                         |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | MASK                   |  ``MASK(col1, 'X', 'x', 'n', '-')``                                       | Convert a string to a masked or obfuscated        |
 |                        |                                                                           | version of itself. The optional arguments         |
@@ -1623,6 +1627,8 @@ Scalar functions
 | RANDOM                 |  ``RANDOM()``                                                             | Return a random DOUBLE value between 0.0 and 1.0. |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | ROUND                  |  ``ROUND(col1)``                                                          | Round a value to the nearest BIGINT value.        |
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| SQRT                   |  ``SQRT(col1)``                                                           | The square root of a value.                       |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | SPLIT                  |  ``SPLIT(col1, delimiter)``                                               | Splits a string into an array of substrings based |
 |                        |                                                                           | on a delimiter. If the delimiter is not found,    |

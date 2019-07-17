@@ -22,11 +22,12 @@ import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
+import io.confluent.ksql.util.KsqlConstants;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.concurrent.ExecutionException;
 
-@UdfDescription(name = "datetostring", author = "Confluent",
+@UdfDescription(name = "datetostring", author = KsqlConstants.CONFLUENT_AUTHOR,
     description = "Converts an integer representing days since epoch to a date string"
         + " using the given format pattern. Note this is the format Kafka Connect uses"
         + " to represent dates with no time component.  The format pattern should be"

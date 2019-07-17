@@ -69,27 +69,27 @@ public final class CollectListUdaf {
   }
 
   @UdafFactory(description = "collect values of a Bigint field into a single Array")
-  public static Udaf<Long, List<Long>> createCollectListLong() {
+  public static TableUdaf<Long, List<Long>> createCollectListLong() {
     return listCollector();
   }
 
   @UdafFactory(description = "collect values of an Integer field into a single Array")
-  public static Udaf<Integer, List<Integer>> createCollectListInt() {
+  public static TableUdaf<Integer, List<Integer>> createCollectListInt() {
     return listCollector();
   }
 
   @UdafFactory(description = "collect values of a Double field into a single Array")
-  public static Udaf<Double, List<Double>> createCollectListDouble() {
+  public static TableUdaf<Double, List<Double>> createCollectListDouble() {
     return listCollector();
   }
 
   @UdafFactory(description = "collect values of a String/Varchar field into a single Array")
-  public static Udaf<String, List<String>> createCollectListString() {
+  public static TableUdaf<String, List<String>> createCollectListString() {
     return listCollector();
   }
 
   @UdafFactory(description = "collect values of a Boolean field into a single Array")
-  public static Udaf<Boolean, List<Boolean>> createCollectListBool() {
+  public static TableUdaf<Boolean, List<Boolean>> createCollectListBool() {
     return listCollector();
   }
 }

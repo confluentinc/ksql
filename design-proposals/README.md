@@ -47,4 +47,4 @@ Next KLIP number: **8**
 | [KLIP-3: Serialization of single Fields](klip-3-serialization-of-single-fields.md) | Approved       | N/A     |
 | [KLIP-4: Custom Type Registry](klip-4-custom-types.md)                             | Approved       | N/A     |
 | [KLIP-6: Execution Plans](klip-6-execution-plans.md)                               | Approved       | N/A     |
-| KLIP-7: Kafka Connect Integration                                                  | Proposal       | N/A     |
+| [KLIP-7: Kafka Connect Integration](klip-7-connect-integration.md)                 | Discussion     | N/A     |

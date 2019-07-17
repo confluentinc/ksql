@@ -275,7 +275,7 @@ public class SqlToJavaVisitor {
           .map(expressionTypeManager::getExpressionSchema)
           .collect(Collectors.toList());
 
-      return udfFactory.getFunction(argumentSchemas).getReturnType();
+      return udfFactory.getFunction(argumentSchemas).getReturnType(argumentSchemas);
     }
 
     @Override

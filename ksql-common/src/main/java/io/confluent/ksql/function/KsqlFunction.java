@@ -18,15 +18,19 @@ package io.confluent.ksql.function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import io.confluent.ksql.function.udf.Kudf;
+import io.confluent.ksql.util.GenericsUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.annotation.concurrent.Immutable;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Schema.Type;
+import org.apache.kafka.connect.data.SchemaBuilder;
 
 @Immutable
 public final class KsqlFunction implements IndexedFunction {
@@ -41,6 +45,7 @@ public final class KsqlFunction implements IndexedFunction {
   private final String description;
   private final String pathLoadedFrom;
   private final boolean isVariadic;
+  private final boolean hasGenerics;
 
   /**
    * Create built in / legacy function.
@@ -108,6 +113,7 @@ public final class KsqlFunction implements IndexedFunction {
     this.description = Objects.requireNonNull(description, "description");
     this.pathLoadedFrom  = Objects.requireNonNull(pathLoadedFrom, "pathLoadedFrom");
     this.isVariadic = isVariadic;
+    this.hasGenerics = !GenericsUtil.constituentGenerics(returnType).isEmpty();
 
     if (arguments.stream().anyMatch(Objects::isNull)) {
       throw new IllegalArgumentException("KSQL Function can't have null argument types");
@@ -129,8 +135,25 @@ public final class KsqlFunction implements IndexedFunction {
   }
 
 
-  public Schema getReturnType() {
-    return returnType;
+  public Schema getReturnType(final List<Schema> arguments) {
+    if (!hasGenerics) {
+      return returnType;
+    }
+
+    final Map<Schema, Schema> genericMapping = new HashMap<>();
+    for (int i = 0; i < Math.min(this.arguments.size(), arguments.size()); i++) {
+      final Schema schema = this.arguments.get(i);
+
+      // we resolve any variadic as if it were an array so that the type
+      // structure matches the input type
+      final Schema instance = isVariadic && i == this.arguments.size() - 1
+          ? SchemaBuilder.array(arguments.get(i)).build()
+          : arguments.get(i);
+
+      GenericsUtil.identifyGenerics(genericMapping, schema, instance);
+    }
+
+    return GenericsUtil.resolve(returnType, genericMapping);
   }
 
   public List<Schema> getArguments() {

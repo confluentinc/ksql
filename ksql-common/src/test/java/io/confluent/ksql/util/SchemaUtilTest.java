@@ -999,7 +999,46 @@ public class SchemaUtilTest {
     ));
   }
 
-  // Following methods not invoked but used to test conversion from Type -> Schema
+  @Test
+  public void shouldGetGenericSchemaFromType() throws NoSuchMethodException {
+    // Given:
+    final Type genericType = getClass().getMethod("genericType").getGenericReturnType();
+
+    // When:
+    final Schema returnType = SchemaUtil.getSchemaFromType(genericType);
+
+    // Then:
+    assertThat(returnType, is(GenericsUtil.generic("T").build()));
+  }
+
+  @Test
+  public void shouldGetGenericSchemaFromParameterizedType() throws NoSuchMethodException {
+    // Given:
+    final Type genericType = getClass().getMethod("genericMapType").getGenericReturnType();
+
+    // When:
+    final Schema returnType = SchemaUtil.getSchemaFromType(genericType);
+
+    // Then:
+    assertThat(returnType, is(GenericsUtil.map(Schema.OPTIONAL_STRING_SCHEMA, "T").build()));
+  }
+
+  // following methods not invoked but used to test conversion from type -> schema
+  @SuppressWarnings({"unused", "WeakerAccess"})
+  public <T> T genericType() {
+    return null;
+  }
+
+  @SuppressWarnings({"unused", "WeakerAccess"})
+  public <T> List<T> genericArrayType() {
+    return null;
+  }
+
+  @SuppressWarnings({"unused", "WeakerAccess"})
+  public <T> Map<String, T> genericMapType() {
+    return null;
+  }
+
   @SuppressWarnings("unused")
   private void mapType(final Map<String, Integer> map) {
   }

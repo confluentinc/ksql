@@ -7,6 +7,7 @@ import static org.hamcrest.Matchers.is;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.function.udf.Kudf;
+import io.confluent.ksql.util.GenericsUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Arrays;
@@ -30,6 +31,10 @@ public class UdfIndexTest {
   private static final Schema STRUCT3_PERMUTE = SchemaBuilder.struct().field("d", INT).field("c", INT).build();
   private static final Schema MAP1 = SchemaBuilder.map(STRING, STRING).build();
   private static final Schema MAP2 = SchemaBuilder.map(STRING, INT).build();
+
+  private static final Schema GENERIC_LIST = GenericsUtil.array("T").build();
+  private static final Schema STRING_LIST = SchemaBuilder.array(STRING);
+  private static final Schema INT_LIST = SchemaBuilder.array(INT);
 
   private static final String EXPECTED = "expected";
   private static final String OTHER = "other";
@@ -413,6 +418,36 @@ public class UdfIndexTest {
 
     // When:
     final KsqlFunction fun = udfIndex.getFunction(Arrays.asList(STRING, INT, null, INT));
+
+    // Then:
+    assertThat(fun.getFunctionName(), equalTo(EXPECTED));
+  }
+
+  @Test
+  public void shouldFindGenericMethodWithIntParam() {
+    // Given:
+    final KsqlFunction[] functions = new KsqlFunction[]{
+        function(EXPECTED, false, GENERIC_LIST)
+    };
+    Arrays.stream(functions).forEach(udfIndex::addFunction);
+
+    // When:
+    final KsqlFunction fun = udfIndex.getFunction(Collections.singletonList(INT_LIST));
+
+    // Then:
+    assertThat(fun.getFunctionName(), equalTo(EXPECTED));
+  }
+
+  @Test
+  public void shouldFindGenericMethodWithStringParam() {
+    // Given:
+    final KsqlFunction[] functions = new KsqlFunction[]{
+        function(EXPECTED, false, GENERIC_LIST)
+    };
+    Arrays.stream(functions).forEach(udfIndex::addFunction);
+
+    // When:
+    final KsqlFunction fun = udfIndex.getFunction(Collections.singletonList(STRING_LIST));
 
     // Then:
     assertThat(fun.getFunctionName(), equalTo(EXPECTED));

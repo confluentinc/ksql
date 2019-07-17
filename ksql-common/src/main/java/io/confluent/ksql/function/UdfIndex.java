@@ -19,6 +19,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import io.confluent.ksql.schema.connect.SqlSchemaFormatter;
+import io.confluent.ksql.util.GenericsUtil;
 import io.confluent.ksql.util.KsqlException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -175,6 +176,7 @@ public class UdfIndex<T extends IndexedFunction> {
 
   private KsqlException createNoMatchingFunctionException(final List<Schema> paramTypes) {
     LOG.debug("Current UdfIndex:\n{}", describe());
+    System.out.println(describe());
 
     final String sqlParamTypes = paramTypes.stream()
         .map(schema -> schema == null
@@ -259,8 +261,10 @@ public class UdfIndex<T extends IndexedFunction> {
         ImmutableMap.<Type, BiPredicate<Schema, Schema>>builder()
             .put(Type.MAP, (a, b) ->
                 Objects.equals(a.keySchema(), b.keySchema())
-                    && Objects.equals(a.valueSchema(), b.valueSchema()))
-            .put(Type.ARRAY, (a, b) -> Objects.equals(a.valueSchema(), b.valueSchema()))
+                    && Objects.equals(a.valueSchema(), b.valueSchema())
+                    || isValidGeneric(a, b))
+            .put(Type.ARRAY, (a, b) -> Objects.equals(a.valueSchema(), b.valueSchema())
+                || isValidGeneric(a, b))
             .put(Type.STRUCT, (a, b) ->
                 a.fields().isEmpty()
                 || b.fields().isEmpty()
@@ -304,6 +308,15 @@ public class UdfIndex<T extends IndexedFunction> {
         return schema.isOptional();
       }
 
+      if (GenericsUtil.isGeneric(schema)) {
+        // since we only support one generic per method, this should work
+        // if we decide in the future to support more generics, then we
+        // need to make sure that we pass a long a map of generic->resolved
+        // and only resolve a generic to a new type if it's never been seen
+        // before
+        return true;
+      }
+
       final Schema.Type type = schema.type();
       if (!Objects.equals(type, argument.type())) {
         return false;
@@ -317,6 +330,15 @@ public class UdfIndex<T extends IndexedFunction> {
           && Objects.deepEquals(schema.defaultValue(), argument.defaultValue());
     }
     // CHECKSTYLE_RULES.ON: BooleanExpressionComplexity
+
+    private static boolean isValidGeneric(final Schema schema, final Schema instance) {
+      try {
+        GenericsUtil.resolve(schema, GenericsUtil.identifyGenerics(schema, instance));
+        return true;
+      } catch (final Exception e) {
+        return false;
+      }
+    }
 
     @Override
     public String toString() {

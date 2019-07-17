@@ -27,8 +27,10 @@ import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Ordering;
 import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
+import java.lang.reflect.GenericArrayType;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.lang.reflect.TypeVariable;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
@@ -133,10 +135,14 @@ public final class SchemaUtil {
   }
 
   public static Schema getSchemaFromType(final Type type, final String name, final String doc) {
-    final SchemaBuilder schema =
-        typeToSchema.getOrDefault(type, () -> handleParametrizedType(type)).get();
+    final SchemaBuilder schema;
+    if (type instanceof TypeVariable) {
+      schema = GenericsUtil.generic(((TypeVariable) type).getName());
+    } else {
+      schema = typeToSchema.getOrDefault(type, () -> handleParametrizedType(type)).get();
+      schema.name(name);
+    }
 
-    schema.name(name);
     schema.doc(doc);
     return schema.build();
   }
@@ -386,24 +392,45 @@ public final class SchemaUtil {
     }
 
     return builder
+        .name(schema.name())
         .optional()
         .build();
+  }
+
+
+  public static void requireValidBytesType(final Schema type) {
+    KsqlPreconditions.checkArgument(
+        GenericsUtil.isGeneric(type) || DecimalUtil.isDecimal(type),
+        "Expected BYTES type to be generic or DECIMAL, but got " + type);
   }
 
   private static SchemaBuilder handleParametrizedType(final Type type) {
     if (type instanceof ParameterizedType) {
       final ParameterizedType parameterizedType = (ParameterizedType) type;
       if (parameterizedType.getRawType() == Map.class) {
-        return SchemaBuilder.map(getSchemaFromType(
-            parameterizedType.getActualTypeArguments()[0]),
-            getSchemaFromType(parameterizedType.getActualTypeArguments()[1]));
+        final Schema keySchema = getSchemaFromType(parameterizedType.getActualTypeArguments()[0]);
+        final Type valueType = ((ParameterizedType) type).getActualTypeArguments()[1];
+        if (valueType instanceof TypeVariable) {
+          return GenericsUtil.map(keySchema, ((TypeVariable) valueType).getName());
+        }
+
+        return SchemaBuilder.map(keySchema, getSchemaFromType(valueType));
       } else if (parameterizedType.getRawType() == List.class) {
-        return SchemaBuilder.array(getSchemaFromType(
-            parameterizedType.getActualTypeArguments()[0]));
+        final Type valueType = ((ParameterizedType) type).getActualTypeArguments()[0];
+        if (valueType instanceof TypeVariable) {
+          return GenericsUtil.array(((TypeVariable) valueType).getName());
+        }
+
+        return SchemaBuilder.array(getSchemaFromType(valueType));
       }
     } else if (type instanceof Class<?> && ((Class<?>) type).isArray()) {
       // handle var args
       return SchemaBuilder.array(getSchemaFromType(((Class<?>) type).getComponentType()));
+    } else if (type instanceof GenericArrayType) {
+      return SchemaBuilder.array(
+          GenericsUtil.generic(
+              ((GenericArrayType) type).getGenericComponentType().getTypeName()
+          ).build());
     }
     throw new KsqlException("Type inference is not supported for: " + type);
   }

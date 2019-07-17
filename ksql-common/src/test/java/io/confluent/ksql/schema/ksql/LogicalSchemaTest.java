@@ -441,7 +441,7 @@ public class LogicalSchemaTest {
     // Then:
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage(
-        "Expected schema of type DECIMAL but got a schema of type BYTES and name foobar");
+        "Expected BYTES type to be generic or DECIMAL, but got Schema{foobar:BYTES}");
 
     // When:
     LogicalSchema.of(
@@ -459,7 +459,7 @@ public class LogicalSchemaTest {
     // Then:
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage(
-        "Expected schema of type DECIMAL but got a schema of type BYTES and name foobar");
+        "Expected BYTES type to be generic or DECIMAL, but got Schema{foobar:BYTES}");
 
     // When:
     LogicalSchema.of(

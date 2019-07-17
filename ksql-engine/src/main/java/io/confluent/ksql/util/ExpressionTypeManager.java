@@ -287,7 +287,7 @@ public class ExpressionTypeManager
         argTypes.add(expressionTypeContext.getSchema());
       }
       final Schema returnType = udfFactory.getFunction(argTypes)
-          .getReturnType();
+          .getReturnType(argTypes);
       expressionTypeContext.setSchema(returnType);
     }
     return null;

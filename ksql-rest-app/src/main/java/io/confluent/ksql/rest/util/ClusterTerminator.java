@@ -99,14 +99,12 @@ public class ClusterTerminator {
           () -> serviceContext.getTopicClient().deleteTopics(
               filterNonExistingTopics(topicsToBeDeleted)),
           ExecutorUtil.RetryBehaviour.ALWAYS);
+    } catch (final TopicDeletionDisabledException e) {
+      // Ignore TopicDeletionDisabledException when a Cluster termination is requested.
+      LOGGER.info("Did not delete any topics: ", e.getMessage());
     } catch (final Exception e) {
-      // An exception due to TopicDeletionDisabledException should be ignored when a Cluster
-      // termination is requested. The deleteTopics already logs an INFO message. We can skip
-      // logging it here.
-      if (!(e instanceof TopicDeletionDisabledException)) {
-        throw new KsqlException(
-            "Exception while deleting topics: " + StringUtils.join(topicsToBeDeleted, ", "));
-      }
+      throw new KsqlException(
+          "Exception while deleting topics: " + StringUtils.join(topicsToBeDeleted, ", "));
     }
   }
 

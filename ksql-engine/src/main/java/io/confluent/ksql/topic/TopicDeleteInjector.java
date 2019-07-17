@@ -30,6 +30,7 @@ import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
+import io.confluent.ksql.util.ExecutorUtil;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Objects;
@@ -91,7 +92,9 @@ public class TopicDeleteInjector implements Injector {
 
     if (source != null) {
       try {
-        topicClient.deleteTopics(ImmutableList.of(source.getKafkaTopicName()));
+        ExecutorUtil.executeWithRetries(
+            () -> topicClient.deleteTopics(ImmutableList.of(source.getKafkaTopicName())),
+            ExecutorUtil.RetryBehaviour.ALWAYS);
       } catch (Exception e) {
         throw new KsqlException("Could not delete the corresponding kafka topic: "
             + source.getKafkaTopicName(), e);

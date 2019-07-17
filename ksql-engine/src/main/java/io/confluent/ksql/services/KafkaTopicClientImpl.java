@@ -259,7 +259,6 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
           // If TopicDeletionDisabledException is detected, we throw the exception immediately
           // instead of going through the rest of the topics to delete.
           // It is now up to the caller to ignore this exception.
-          LOG.info("Cannot delete topics since '" + DELETE_TOPIC_ENABLE + "' is false. ");
           throw new TopicDeletionDisabledException("Topic deletion is disabled. "
               + "To delete the topic, you must set '" + DELETE_TOPIC_ENABLE + "' to true in "
               + "the Kafka cluster configuration.");
@@ -287,15 +286,13 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
       if (!internalTopics.isEmpty()) {
         deleteTopics(internalTopics);
       }
+    } catch (final TopicDeletionDisabledException e) {
+      // Ignore TopicDeletionDisabledException should not be logged as an error
+      LOG.info("Did not delete any topics: ", e.getMessage());
     } catch (final Exception e) {
-      // An exception due to TopicDeletionDisabledException should not be logged as an error, just
-      // info level should be enough. However, the deleteTopics() method already logged it for us,
-      // so we can skip it.
-      if (!(e instanceof TopicDeletionDisabledException)) {
-        LOG.error("Exception while trying to clean up internal topics for application id: {}.",
-            applicationId, e
-        );
-      }
+      LOG.error("Exception while trying to clean up internal topics for application id: {}.",
+          applicationId, e
+      );
     }
   }
 

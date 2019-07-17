@@ -55,6 +55,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import org.apache.kafka.common.errors.TopicDeletionDisabledException;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -372,6 +374,21 @@ public class ClusterTerminatorTest {
     // When:
     clusterTerminator.terminateCluster(Collections.emptyList());
 
+  }
+
+  @Test
+  public void shouldNotThrowOnTopicDeletionDisabledException() throws Exception {
+    // Given:
+    givenTopicsExistInKafka("K_Foo");
+    givenSinkTopicsExistInMetastore(Format.AVRO,"K_Foo");
+    givenSchemasForTopicsExistInSchemaRegistry("K_Foo");
+    doThrow(TopicDeletionDisabledException.class).when(kafkaTopicClient).deleteTopics(any());
+
+    // When:
+    clusterTerminator.terminateCluster(ImmutableList.of("K_Foo"));
+
+    // Then:
+    verifySchemaDeletedForTopics("K_Foo");
   }
 
   @Test

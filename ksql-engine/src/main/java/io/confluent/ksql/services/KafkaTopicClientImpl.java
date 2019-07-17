@@ -265,6 +265,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
               + "the Kafka cluster configuration.");
         }
 
+        LOG.error(String.format("Could not delete topic '%s'", entry.getKey()), e);
         failList.add(entry.getKey());
       }
     }

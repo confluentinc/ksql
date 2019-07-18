@@ -36,6 +36,7 @@ import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.kafka.common.errors.TopicDeletionDisabledException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -98,6 +99,9 @@ public class ClusterTerminator {
           () -> serviceContext.getTopicClient().deleteTopics(
               filterNonExistingTopics(topicsToBeDeleted)),
           ExecutorUtil.RetryBehaviour.ALWAYS);
+    } catch (final TopicDeletionDisabledException e) {
+      // Ignore TopicDeletionDisabledException when a Cluster termination is requested.
+      LOGGER.info("Did not delete any topics: ", e.getMessage());
     } catch (final Exception e) {
       throw new KsqlException(
           "Exception while deleting topics: " + StringUtils.join(topicsToBeDeleted, ", "));

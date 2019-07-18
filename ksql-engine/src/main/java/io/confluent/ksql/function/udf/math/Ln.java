@@ -14,58 +14,47 @@
 
 package io.confluent.ksql.function.udf.math;
 
-import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
 import io.confluent.ksql.util.KsqlConstants;
 
 @UdfDescription(
-    name = "log",
+    name = "ln",
     author = KsqlConstants.CONFLUENT_AUTHOR,
     description = "The natural logarithm of a value."
 )
-public class Log {
+public class Ln {
 
   @Udf(description = "Returns the natural logarithm (base e) of an INT value.")
-  public Double log(
+  public Double ln(
         @UdfParameter(
             value = "value",
             description = "the value get the natual logarithm of."
         ) final Integer value
   ) {
-    return log(value == null ? null : value.doubleValue());
+    return ln(value == null ? null : value.doubleValue());
   }
 
   @Udf(description = "Returns the natural logarithm (base e) of a BIGINT value.")
-  public Double log(
+  public Double ln(
       @UdfParameter(
           value = "value",
           description = "the value get the natual logarithm of."
       ) final Long value
   ) {
-    return log(value == null ? null : value.doubleValue());
+    return ln(value == null ? null : value.doubleValue());
   }
 
   @Udf(description = "Returns the natural logarithm (base e) of a DOUBLE value.")
-  public Double log(
+  public Double ln(
       @UdfParameter(
           value = "value",
           description = "the value get the natual logarithm of."
       ) final Double value
   ) {
-    if (value == null) {
-      return null;
-    }
-
-    final double result = Math.log(value);
-    if (Double.isNaN(result)) {
-      throw new KsqlFunctionException("Result was NaN");
-    }
-    if (Double.isInfinite(result)) {
-      throw new KsqlFunctionException("Result was infinite");
-    }
-
-    return result;
+    return value == null
+        ? null
+        : Math.log(value);
   }
 }

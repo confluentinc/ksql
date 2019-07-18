@@ -18,55 +18,39 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 
-import io.confluent.ksql.function.KsqlFunctionException;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
-public class LogTest {
+public class LnTest {
 
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
-
-  private Log udf;
+  private Ln udf;
 
   @Before
   public void setUp() {
-    udf = new Log();
+    udf = new Ln();
   }
 
   @Test
   public void shouldHandleNull() {
-    assertThat(udf.log((Integer)null), is(nullValue()));
-    assertThat(udf.log((Long)null), is(nullValue()));
-    assertThat(udf.log((Double)null), is(nullValue()));
+    assertThat(udf.ln((Integer)null), is(nullValue()));
+    assertThat(udf.ln((Long)null), is(nullValue()));
+    assertThat(udf.ln((Double)null), is(nullValue()));
   }
 
   @Test
-  public void shouldThrowIfResultNan() {
-    // Then:
-    expectedException.expect(KsqlFunctionException.class);
-    expectedException.expectMessage("Result was NaN");
-
-    // When:
-    udf.log(-1.0);
+  public void shouldHandleNegative() {
+    assertThat(Double.isNaN(udf.ln(-1.0)), is(true));
   }
 
   @Test
-  public void shouldThrowIfInfinite() {
-    // Then:
-    expectedException.expect(KsqlFunctionException.class);
-    expectedException.expectMessage("Result was infinite");
-
-    // When:
-    udf.log(0.0);
+  public void shouldHandleZero() {
+    assertThat(Double.isInfinite(udf.ln(0.0)), is(true));
   }
 
   @Test
   public void shouldHandlePositive() {
-    assertThat(udf.log(1), is(0.0));
-    assertThat(udf.log(1L), is(0.0));
-    assertThat(udf.log(1.0), is(0.0));
+    assertThat(udf.ln(1), is(0.0));
+    assertThat(udf.ln(1L), is(0.0));
+    assertThat(udf.ln(1.0), is(0.0));
   }
 }

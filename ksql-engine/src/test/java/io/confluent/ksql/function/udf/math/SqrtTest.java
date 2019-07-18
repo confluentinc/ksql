@@ -18,16 +18,10 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 
-import io.confluent.ksql.function.KsqlFunctionException;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class SqrtTest {
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   private Sqrt udf;
 
@@ -44,13 +38,8 @@ public class SqrtTest {
   }
 
   @Test
-  public void shouldThrowOnNaN() {
-    // Then:
-    expectedException.expect(KsqlFunctionException.class);
-    expectedException.expectMessage("Result was NaN");
-
-    // When:
-    udf.sqrt(-6.0);
+  public void shouldHandleNegative() {
+    assertThat(Double.isNaN(udf.sqrt(-6.0)), is(true));
   }
 
   @Test

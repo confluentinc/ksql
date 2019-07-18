@@ -14,7 +14,6 @@
 
 package io.confluent.ksql.function.udf.math;
 
-import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
@@ -55,15 +54,8 @@ public class Sqrt {
           description = "The value to get the square root of."
       ) final Double value
   ) {
-    if (value == null) {
-      return null;
-    }
-
-    final double result = Math.sqrt(value);
-    if (Double.isNaN(result)) {
-      throw new KsqlFunctionException("Result was NaN");
-    }
-
-    return result;
+    return value == null
+        ? null
+        : Math.sqrt(value);
   }
 }

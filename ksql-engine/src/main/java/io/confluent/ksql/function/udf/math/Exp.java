@@ -54,10 +54,8 @@ public class Exp {
           description = "the exponent to raise e to."
       ) final Double exponent
   ) {
-    if (exponent == null) {
-      return null;
-    }
-
-    return Math.exp(exponent);
+    return exponent == null
+        ? null
+        : Math.exp(exponent);
   }
 }

@@ -17,7 +17,6 @@ package io.confluent.ksql.function.udaf.array;
 
 import com.google.common.collect.Lists;
 import io.confluent.ksql.function.udaf.TableUdaf;
-import io.confluent.ksql.function.udaf.Udaf;
 import io.confluent.ksql.function.udaf.UdafDescription;
 import io.confluent.ksql.function.udaf.UdafFactory;
 import java.util.List;

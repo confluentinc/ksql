@@ -83,7 +83,8 @@ public class KsqlEngineMetrics implements Closeable {
       final Map<String, String> customMetricsTags,
       final Optional<KsqlMetricsExtension> metricsExtension) {
     this.ksqlEngine = ksqlEngine;
-    this.ksqlServiceId = KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX + ksqlEngine.getServiceId();
+    this.ksqlServiceId = KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX
+            + addDelimiterIfNotExists(ksqlEngine.getServiceId());
     this.sensors = new ArrayList<>();
     this.countMetrics = new ArrayList<>();
     this.metricGroupName = metricGroupPrefix + "-query-stats";
@@ -285,14 +286,14 @@ public class KsqlEngineMetrics implements Closeable {
     // legacy
     sensor.add(
         metrics.metricName(
-            ksqlServiceId + "-" + metric.name(),
+            ksqlServiceId + metric.name(),
             metricGroupName, metric.description()),
         metric.statSupplier().get());
     // new
     sensor.add(
         metrics.metricName(
             metric.name(),
-            ksqlServiceId + "-" + metricGroupName,
+            ksqlServiceId + metricGroupName,
             metric.description(),
             customMetricsTags),
         metric.statSupplier().get());
@@ -334,7 +335,7 @@ public class KsqlEngineMetrics implements Closeable {
     final String name = state + "-queries";
     // legacy
     configureGaugeForState(
-        ksqlServiceId + "-" + metricGroupName + "-" + name,
+        ksqlServiceId + metricGroupName + "-" + name,
         metricGroupName,
         Collections.emptyMap(),
         state
@@ -342,7 +343,7 @@ public class KsqlEngineMetrics implements Closeable {
     // new
     configureGaugeForState(
         name,
-        ksqlServiceId + "-" + metricGroupName,
+        ksqlServiceId + metricGroupName,
         customMetricsTags,
         state
     );
@@ -375,5 +376,12 @@ public class KsqlEngineMetrics implements Closeable {
     public Gauge<Long> getCount() {
       return count;
     }
+  }
+
+  private String addDelimiterIfNotExists(final String serviceId) {
+    if (!serviceId.endsWith("_")) {
+      return serviceId + "-";
+    }
+    return serviceId;
   }
 }

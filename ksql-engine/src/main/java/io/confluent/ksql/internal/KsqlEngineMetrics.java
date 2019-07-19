@@ -23,7 +23,9 @@ import java.io.Closeable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.function.Supplier;
 import org.apache.kafka.common.MetricName;
@@ -55,24 +57,28 @@ public class KsqlEngineMetrics implements Closeable {
   private final Sensor errorRate;
 
   private final String ksqlServiceId;
-
+  private final Map<String, String> customMetricsTags;
 
   private final KsqlEngine ksqlEngine;
   private final Metrics metrics;
 
-  public KsqlEngineMetrics(final KsqlEngine ksqlEngine) {
-    this(METRIC_GROUP_PREFIX, ksqlEngine, MetricCollectors.getMetrics());
+  public KsqlEngineMetrics(
+      final KsqlEngine ksqlEngine,
+      final Map<String, String> customMetricsTags) {
+    this(METRIC_GROUP_PREFIX, ksqlEngine, MetricCollectors.getMetrics(), customMetricsTags);
   }
 
   KsqlEngineMetrics(
       final String metricGroupPrefix,
       final KsqlEngine ksqlEngine,
-      final Metrics metrics) {
+      final Metrics metrics,
+      final Map<String, String> customMetricsTags) {
     this.ksqlEngine = ksqlEngine;
     this.ksqlServiceId = KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX + ksqlEngine.getServiceId();
     this.sensors = new ArrayList<>();
     this.countMetrics = new ArrayList<>();
     this.metricGroupName = metricGroupPrefix + "-query-stats";
+    this.customMetricsTags = customMetricsTags;
 
     this.metrics = metrics;
 
@@ -269,7 +275,8 @@ public class KsqlEngineMetrics implements Closeable {
         statSupplier.get());
     // new
     sensor.add(
-        metrics.metricName(metricName, ksqlServiceId + metricGroupName, description),
+        metrics.metricName(
+            metricName, ksqlServiceId + metricGroupName, description, customMetricsTags),
         statSupplier.get());
   }
 
@@ -293,6 +300,7 @@ public class KsqlEngineMetrics implements Closeable {
       final Metrics metrics,
       final String name,
       final String group,
+      final Map<String, String> tags,
       final KafkaStreams.State state
   ) {
     final Gauge<Long> gauge =
@@ -302,7 +310,7 @@ public class KsqlEngineMetrics implements Closeable {
                 .filter(queryMetadata -> queryMetadata.getState().equals(state.toString()))
                 .count();
     final String description = String.format("Count of queries in %s state.", state.toString());
-    final MetricName metricName = metrics.metricName(name, group, description);
+    final MetricName metricName = metrics.metricName(name, group, description, tags);
     final CountMetric countMetric = new CountMetric(metricName, gauge);
     metrics.addMetric(metricName, gauge);
     countMetrics.add(countMetric);
@@ -315,8 +323,9 @@ public class KsqlEngineMetrics implements Closeable {
     // legacy
     configureGaugeForState(
         metrics,
-        ksqlServiceId + metricGroupName  + "-" + name,
+        ksqlServiceId + metricGroupName + "-" + name,
         metricGroupName,
+        Collections.emptyMap(),
         state
     );
     // new
@@ -324,6 +333,7 @@ public class KsqlEngineMetrics implements Closeable {
         metrics,
         name,
         ksqlServiceId + metricGroupName,
+        customMetricsTags,
         state
     );
   }

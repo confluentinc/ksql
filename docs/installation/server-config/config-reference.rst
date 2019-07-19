@@ -317,6 +317,16 @@ The corresponding environment variable in the
 `KSQL Server image <https://hub.docker.com/r/confluentinc/cp-ksql-server/>`__ is
 ``KSQL_LISTENERS``.
 
+.. _ksql-metrics-tags-custom:
+
+------------------------
+ksql.metrics.tags.custom
+------------------------
+
+A list of tags to be included with emitted :ref:`JMX metrics <ksql-monitoring-and-metrics>`,
+formatted as a string of ``key:value`` pairs separated by commas.
+For example, ``key1:value1,key2:value2``.
+
 .. _ksql-c3-settings:
 
 |c3| Settings

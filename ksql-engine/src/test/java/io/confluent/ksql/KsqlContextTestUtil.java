@@ -57,7 +57,7 @@ public final class KsqlContextTestUtil {
         serviceContext,
         ProcessingLogContext.create(),
         functionRegistry,
-        ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)
+        ServiceInfo.create(ksqlConfig)
     );
 
     return new KsqlContext(

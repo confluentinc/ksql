@@ -24,6 +24,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import io.confluent.ksql.ServiceInfo;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.ddl.commands.CreateStreamCommand;
 import io.confluent.ksql.ddl.commands.RegisterTopicCommand;
@@ -468,7 +469,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         serviceContext,
         processingLogContext,
         functionRegistry,
-        ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG));
+        ServiceInfo.create(ksqlConfig));
 
     UdfLoader.newInstance(ksqlConfig, functionRegistry, ksqlInstallDir).load();
 

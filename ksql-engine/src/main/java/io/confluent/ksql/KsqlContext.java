@@ -66,12 +66,12 @@ public class KsqlContext {
     final ServiceContext serviceContext = DefaultServiceContext.create(ksqlConfig);
     final MutableFunctionRegistry functionRegistry = new InternalFunctionRegistry();
     UdfLoader.newInstance(ksqlConfig, functionRegistry, ".").load();
-    final String serviceId = ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
+    final ServiceInfo serviceInfo = ServiceInfo.create(ksqlConfig);
     final KsqlEngine engine = new KsqlEngine(
         serviceContext,
         processingLogContext,
         functionRegistry,
-        serviceId);
+        serviceInfo);
 
     return new KsqlContext(
         serviceContext,

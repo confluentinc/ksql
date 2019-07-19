@@ -1,7 +1,7 @@
 .. _ksql-testing-tool:
 
 KSQL Testing Tool
-###########################
+#################
 
 Use the KSQL testing tool to test a set of KSQL statements. The KSQL testing tool
 is a command line utility that enables testing KSQL statements without requiring any infrastructure, like |ak-tm| and KSQL clusters.

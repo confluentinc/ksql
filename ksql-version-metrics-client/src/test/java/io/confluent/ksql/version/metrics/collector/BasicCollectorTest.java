@@ -24,7 +24,6 @@ import io.confluent.ksql.version.metrics.KsqlVersionMetrics;
 import java.time.Clock;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;

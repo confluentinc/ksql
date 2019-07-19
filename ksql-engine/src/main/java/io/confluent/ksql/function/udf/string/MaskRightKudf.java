@@ -17,8 +17,9 @@ package io.confluent.ksql.function.udf.string;
 
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
+import io.confluent.ksql.util.KsqlConstants;
 
-@UdfDescription(name = MaskRightKudf.NAME, author = "Confluent",
+@UdfDescription(name = MaskRightKudf.NAME, author = KsqlConstants.CONFLUENT_AUTHOR,
     description = "Returns a version of the input string with the"
         + " specified number of characters, counting back from the end of the string, masked out."
         + " Default masking rules will replace all upper-case characters with 'X', all lower-case"

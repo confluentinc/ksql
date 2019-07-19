@@ -16,7 +16,6 @@
 package io.confluent.ksql.schema.ksql;
 
 import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.parser.tree.Type;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
 import io.confluent.ksql.schema.ksql.types.SqlMap;
@@ -31,14 +30,13 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 
 /**
- * Util class for converting between KSQL's {@link LogicalSchema} and it's SQL types, i.e. those
- * derived from {@link Type}.
+ * Util class for converting between KSQL's {@link LogicalSchema} and its SQL types.
  *
  * <p>KSQL the following main type systems / schema types:
  *
  * <ul>
  *   <li>
- *     <b>SQL {@link Type}:</b>
+ *     <b>{@link SqlType}:</b>
  *     - the SQL type system, e.g. INTEGER, BIGINT, ARRAY&lt;something&gt;, etc
  *   </li>
  *   <li>
@@ -47,7 +45,7 @@ import org.apache.kafka.connect.data.SchemaBuilder;
  *     or table.
  *   </li>
  *   <li>
- *     <b>{@link PhysicalSchema}:</b>
+ *     <b>PhysicalSchema</b>
  *     - the schema of how all the row's parts, e.g. key, value, are serialized to/from Kafka.
  *   </li>
  *   <li>

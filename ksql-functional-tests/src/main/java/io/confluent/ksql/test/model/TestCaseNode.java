@@ -273,7 +273,7 @@ public class TestCaseNode {
           topicName,
           avroSchema,
           keySerde,
-          SerdeUtil.getSerdeSupplier(format),
+          SerdeUtil.getSerdeSupplier(format, statement.getElements()::toLogicalSchema),
           KsqlConstants.legacyDefaultSinkPartitionCount,
           KsqlConstants.legacyDefaultSinkReplicaCount,
           Optional.empty());

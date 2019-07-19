@@ -69,7 +69,6 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SqlBaseType;
-import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
@@ -157,7 +156,6 @@ public class KsqlParserTest {
         Serdes::String
     );
 
-    metaStore.putTopic(ksqlTopicOrders);
     metaStore.putSource(ksqlStreamOrders);
 
     final KsqlTopic ksqlTopicItems =
@@ -174,7 +172,6 @@ public class KsqlParserTest {
         Serdes::String
     );
 
-    metaStore.putTopic(ksqlTopicItems);
     metaStore.putSource(ksqlTableOrders);
   }
 
@@ -489,84 +486,41 @@ public class KsqlParserTest {
   }
 
   @Test
-  public void testCreateStreamWithTopic() {
-    final String
-        queryStr =
-        "CREATE STREAM orders (ordertime bigint, orderid varchar, itemid varchar, orderunits "
-        + "double) WITH (key='ordertime', kafka_topic='foo', value_format='json');";
-    final Statement statement = KsqlParserTestUtil.buildSingleAst(queryStr, metaStore).getStatement();
-    Assert.assertTrue(statement instanceof CreateStream);
-    final CreateStream createStream = (CreateStream)statement;
-    Assert.assertTrue(createStream.getName().toString().equalsIgnoreCase("ORDERS"));
-    assertThat(Iterables.size(createStream.getElements()), is(4));
-    assertThat(Iterables.get(createStream.getElements(), 0).getName(), is("ORDERTIME"));
-  }
-
-  @Test
-  public void testCreateStreamWithTopicWithStruct() {
-    final String
-        queryStr =
-        "CREATE STREAM orders (ordertime bigint, orderid varchar, itemid varchar, orderunits "
-        + "double, arraycol array<double>, mapcol map<varchar, double>, "
-        + "order_address STRUCT< number VARCHAR, street VARCHAR, zip INTEGER, city "
-        + "VARCHAR, state VARCHAR >) WITH (key='ordertime', value_format='json', kafka_topic='foo');";
-    final Statement statement = KsqlParserTestUtil.buildSingleAst(queryStr, metaStore).getStatement();
-    Assert.assertTrue(statement instanceof CreateStream);
-    final CreateStream createStream = (CreateStream)statement;
-    assertThat(createStream.getName().toString().toUpperCase(), equalTo("ORDERS"));
-    assertThat(Iterables.size(createStream.getElements()), equalTo(7));
-    assertThat(Iterables.get(createStream.getElements(), 0).getName().toLowerCase(), equalTo("ordertime"));
-    assertThat(Iterables.get(createStream.getElements(), 6).getType().getSqlType().baseType(), equalTo(SqlBaseType.STRUCT));
-    final SqlStruct struct = (SqlStruct) Iterables.get(createStream.getElements(), 6).getType().getSqlType();
-    assertThat(struct.getFields(), hasSize(5));
-    assertThat(struct.getFields().get(0).getType().baseType(), equalTo(SqlBaseType.STRING));
-  }
-
-  @Test
   public void testCreateStream() {
-    final String
-        queryStr =
-        "CREATE STREAM orders (ordertime bigint, orderid varchar, itemid varchar, orderunits "
-        + "double) WITH (value_format = 'avro', kafka_topic='orders_topic');";
-    final Statement statement = KsqlParserTestUtil.buildSingleAst(queryStr, metaStore).getStatement();
-    Assert.assertTrue(statement instanceof CreateStream);
-    final CreateStream createStream = (CreateStream)statement;
-    Assert.assertTrue(createStream.getName().toString().equalsIgnoreCase("ORDERS"));
-    assertThat(Iterables.size(createStream.getElements()), is(4));
-    assertThat(Iterables.get(createStream.getElements(), 0).getName(), is("ORDERTIME"));
-    Assert.assertTrue(createStream.getProperties().getKafkaTopic().equalsIgnoreCase("orders_topic"));
-    Assert.assertTrue(createStream.getProperties().getValueFormat().equals(Format.AVRO));
+    // When:
+    final CreateStream result = (CreateStream) KsqlParserTestUtil.buildSingleAst("CREATE STREAM orders ("
+        + "ordertime bigint, "
+        + "orderid varchar, "
+        + "itemid varchar, "
+        + "orderunits double, "
+        + "arraycol array<double>, "
+        + "mapcol map<varchar, double>, "
+        + "order_address STRUCT<number VARCHAR, street VARCHAR, zip INTEGER>"
+        + ") WITH (value_format = 'avro',kafka_topic='orders_topic');", metaStore).getStatement();
 
-  }
-
-  @Test
-  public void testCreateTableWithTopic() {
-    final String
-        queryStr =
-        "CREATE TABLE users (usertime bigint, userid varchar, regionid varchar, gender varchar) "
-            + "WITH (kafka_topic='foo', value_format='json', key='userid');";
-    final Statement statement = KsqlParserTestUtil.buildSingleAst(queryStr, metaStore).getStatement();
-    Assert.assertTrue(statement instanceof CreateTable);
-    final CreateTable createTable = (CreateTable)statement;
-    Assert.assertTrue("testCreateTable failed.", createTable.getName().toString().equalsIgnoreCase("USERS"));
-    assertThat(Iterables.size(createTable.getElements()), is(4));
-    assertThat(Iterables.get(createTable.getElements(), 0).getName(), is("USERTIME"));
+    // Then:
+    assertThat(result.getName().toString(), equalTo("ORDERS"));
+    assertThat(Iterables.size(result.getElements()), equalTo(7));
+    assertThat(Iterables.get(result.getElements(), 0).getName(), equalTo("ORDERTIME"));
+    assertThat(Iterables.get(result.getElements(), 6).getType().getSqlType().baseType(), equalTo(SqlBaseType.STRUCT));
+    assertThat(result.getProperties().getKafkaTopic(), equalTo("orders_topic"));
+    assertThat(result.getProperties().getValueFormat(), equalTo(Format.AVRO));
   }
 
   @Test
   public void testCreateTable() {
-    final String
-        queryStr =
+    // When:
+    final CreateTable result = (CreateTable) KsqlParserTestUtil.buildSingleAst(
         "CREATE TABLE users (usertime bigint, userid varchar, regionid varchar, gender varchar) "
-        + "WITH (kafka_topic = 'users_topic', value_format='json', key = 'userid');";
-    final Statement statement = KsqlParserTestUtil.buildSingleAst(queryStr, metaStore).getStatement();
-    Assert.assertTrue(statement instanceof CreateTable);
-    final CreateTable createTable = (CreateTable)statement;
-    Assert.assertTrue(createTable.getName().toString().equalsIgnoreCase("USERS"));
-    assertThat(Iterables.size(createTable.getElements()), is(4));
-    assertThat(Iterables.get(createTable.getElements(), 0).getName(), is("USERTIME"));
-    Assert.assertTrue(createTable.getProperties().getKafkaTopic().equalsIgnoreCase("users_topic"));
-    Assert.assertTrue(createTable.getProperties().getValueFormat().equals(Format.JSON));
+            + "WITH (kafka_topic='foo', value_format='json', key='userid');", metaStore).getStatement();
+
+    // Then:
+    assertThat(result.getName().toString(), equalTo("USERS"));
+    assertThat(Iterables.size(result.getElements()), equalTo(4));
+    assertThat(Iterables.get(result.getElements(), 0).getName(), equalTo("USERTIME"));
+    assertThat(result.getProperties().getKafkaTopic(), equalTo("foo"));
+    assertThat(result.getProperties().getValueFormat(), equalTo(Format.JSON));
+    assertThat(result.getProperties().getKeyField(), equalTo(Optional.of("userid")));
   }
 
   @Test

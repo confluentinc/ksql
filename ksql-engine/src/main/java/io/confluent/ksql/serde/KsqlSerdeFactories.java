@@ -19,6 +19,7 @@ import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.serde.avro.KsqlAvroSerdeFactory;
 import io.confluent.ksql.serde.delimited.KsqlDelimitedSerdeFactory;
 import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
+import io.confluent.ksql.serde.kafka.KafkaSerdeFactory;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
@@ -44,6 +45,9 @@ public final class KsqlSerdeFactories implements SerdeFactories {
 
       case DELIMITED:
         return new KsqlDelimitedSerdeFactory();
+
+      case KAFKA:
+        return new KafkaSerdeFactory();
 
       default:
         throw new KsqlException(

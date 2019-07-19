@@ -8,11 +8,13 @@ You can use KSQL in |c3| to write streaming queries against messages in |ak|.
 **Prerequisites:**
 
 - :ref:`Confluent Platform <installation>` is installed and running. This
-  installation includes a Kafka broker, KSQL, |c3-short|, |zk|, |sr|, REST
-  Proxy, and Kafka Connect.
+  installation includes a Kafka broker, KSQL, |c3-short|, |zk|, |sr|, |crest|,
+  and |kconnect|.
 - If you installed |cp| via TAR or ZIP, navigate into the installation
   directory. The paths and commands used throughout this tutorial assume that
   you are in this installation directory.
+- Consider :ref:`installing <cli-install>` the |confluent-cli| to start a local
+  installation of |cp|.
 - Java: Minimum version 1.8. Install Oracle Java JRE or JDK >= 1.8 on your
   local machine
 
@@ -26,19 +28,26 @@ Inspect Topics By Using |c3-short|
 **********************************
 
 #. Open your browser to ``http://localhost:9021``. |c3| opens, showing the
-   **System health** view.
+   **Home** page for your clusters. In the navigation bar, click the cluster
+   that you want to use with KSQL.
 
 #. In the navigation menu, click **Topics** to view the ``pageviews`` and ``users``
    topics that you created previously.
 
-   .. image:: ../img/c3-topics-pageviews-users.png
+   .. figure:: ../img/c3-topics-pageviews-users.png
       :alt: Screenshot of Confluent Control Center showing the Topics page
       :align: center
 
 Inspect Topics By Using KSQL in |c3-short|
 ******************************************
 
-#. In the navigation menu, click **KSQL** to open the **KSQL Editor**.
+#. In the cluster submenu, click **KSQL** to open the KSQL clusters page,
+   and click **KSQL** to open the **KSQL Editor** on the default application.
+
+   .. figure:: ../img/c3-ksql-app-list.png
+      :alt: Screenshot of Confluent Control Center showing the KSQL application list
+      :align: center
+
 
 #. In the editing window, use the SHOW TOPICS statement to see the available
    topics on the Kafka cluster. Click **Run** to start the query.
@@ -47,7 +56,7 @@ Inspect Topics By Using KSQL in |c3-short|
 
        SHOW TOPICS;
 
-   .. image:: ../img/c3-ksql-editor-show-topics.png
+   .. figure:: ../img/c3-ksql-editor-show-topics.png
       :alt: Screenshot of Confluent Control Center showing the KSQL Editor
       :align: center
 
@@ -88,7 +97,7 @@ Inspect Topics By Using KSQL in |c3-short|
 
    Your output should resemble:
 
-   .. image:: ../img/c3-ksql-print-topic-users.png
+   .. figure:: ../img/c3-ksql-print-topic-users.png
       :alt: Screenshot of the KSQL SHOW TOPIC statement in Confluent Control Center
       :align: center
 
@@ -105,7 +114,7 @@ the |c3-short| UI .
 These examples query records from the ``pageviews`` and ``users`` topics using
 the following schema.
 
-.. image:: ../img/ksql-quickstart-schemas.jpg
+.. figure:: ../img/ksql-quickstart-schemas.jpg
    :alt: ER diagram showing a pageviews stream and a users table with a common userid column
    :align: center
 
@@ -124,7 +133,7 @@ statements in KSQL Editor, just like you use them in the KSQL CLI.
 
    Your output should resemble:
 
-   .. image:: ../img/c3-ksql-create-stream-statement.png
+   .. figure:: ../img/c3-ksql-create-stream-statement.png
       :alt: Screenshot of the KSQL CREATE STREAM statement in Confluent Control Center
       :align: center
 
@@ -161,7 +170,7 @@ Create a Table in the |c3-short| UI
 #. In the KSQL Editor, navigate to **Tables** and click **Add a table**. The
    **Create a KSQL Table** dialog opens.
 
-   .. image:: ../img/c3-ksql-create-table-wizard-1.png
+   .. figure:: ../img/c3-ksql-create-table-wizard-1.png
       :alt: Screenshot of the Create a KSQL Table wizard in Confluent Control Center
       :align: center
 
@@ -169,19 +178,18 @@ Create a Table in the |c3-short| UI
    schema and displays the field names and types from the topic. You need to
    choose a few more settings. 
 
-   * In the **How are your messages encoded?** dropdown, select **JSON**.
+   * In the **Encoding** dropdown, select **JSON**.
    * In the **Key** dropdown, select **userid**.
 
 #. Click **Save Table** to create a table on the the ``users`` topic.
 
-   .. image:: ../img/c3-ksql-create-table-wizard-2.png
+   .. figure:: ../img/c3-ksql-create-table-wizard-2.png
       :alt: Screenshot of the Create a KSQL Table wizard in Confluent Control Center
       :align: center
 
-#. The KSQL Editor opens with a suggested query. Click **Run** to display the
-   query results.  
+#. The KSQL Editor opens with a suggested query.
 
-   .. image:: ../img/c3-ksql-select-from-users-query.png
+   .. figure:: ../img/c3-ksql-select-from-users-query.png
       :alt: Screenshot of a KSQL SELECT query in Confluent Control Center
       :align: center
 
@@ -209,7 +217,7 @@ end them with the TERMINATE statement.
 
    Your output should resemble:
 
-   .. image:: ../img/c3-ksql-csas.png
+   .. figure:: ../img/c3-ksql-csas.png
       :alt: Screenshot of the KSQL CREATE STREAM AS SELECT statement in Confluent Control Center
       :align: center
 
@@ -217,7 +225,7 @@ end them with the TERMINATE statement.
    which shows details about the ``pageviews_enriched`` stream that you created
    in the previous query.
 
-   .. image:: ../img/c3-ksql-running-queries.png
+   .. figure:: ../img/c3-ksql-running-queries.png
       :alt: Screenshot of the KSQL Running Queries page in Confluent Control Center
       :align: center
 
@@ -229,22 +237,20 @@ Monitor Persistent Queries
 
 You can monitor your persistent queries visually by using |C3|.
 
-#. In the navigation menu, click **Data streams** and find the consumer group
+#. In the cluster submenu, click **Consumers** and find the consumer group
    for the ``pageviews_enriched`` query, which is named
    ``_confluent-ksql-default_query_CSAS_PAGEVIEWS_ENRICHED_0``.
-   
+
+   Click **Consumption** to see the rate that the ``pageviews_enriched`` query is
+   consuming records.
+
 #. Change the time scale from **Last 4 hours** to **Last 30 minutes**.
 
    Your output should resemble:
 
-   .. image:: ../img/c3-ksql-data-streams-1.png
+   .. figure:: ../img/c3-ksql-data-streams-1.png
       :alt: Screenshot of the Data Streams page in Confluent Control Center
       :align: center
-
-   The graph is shaded red, because in the time since you started ksql-datagen, 
-   records have accumulated in the ``pageviews`` and ``users`` topics, with no
-   consumer groups to consume them. The green bar on the right indicates that the
-   ``pageviews_enriched`` query has recently started consuming records.
 
 #. In the navigation menu, click **Consumer lag** and find the consumer group
    for the ``pageviews_enriched`` query, which is named
@@ -252,7 +258,7 @@ You can monitor your persistent queries visually by using |C3|.
    This view shows how well your persistent query is keeping up with the incoming
    data.
 
-   .. image:: ../img/c3-ksql-consumer-lag.png
+   .. figure:: ../img/c3-ksql-consumer-lag.png
       :alt: Screenshot of the Consumer Lag page in Confluent Control Center
       :align: center
 
@@ -261,9 +267,10 @@ Query Properties
 
 You can assign properties in the KSQL Editor before you run your queries.
 
-#. In the navigation menu, click **KSQL** to open the **KSQL Editor**.
+#. In the cluster submenu, click **KSQL** to open the KSQL clusters page,
+   and click **KSQL** to open the **KSQL Editor** on the default application.
 
-#. Click **Query properties** and set the ``auto.offset.reset`` field to **Earliest**.
+#. Click **Add query properties** and set the ``auto.offset.reset`` field to **Earliest**.
 
 #. Copy the following code into the editing window and click **Run**.
 
@@ -273,21 +280,62 @@ You can assign properties in the KSQL Editor before you run your queries.
       SELECT * FROM pageviews_enriched
       WHERE gender = 'FEMALE';
 
+   .. figure:: ../img/c3-ksql-set-auto-offset-reset.png
+      :alt: Screenshot showing how to set a query property in the KSQL Editor page
+      :align: center
+
    The ``pageviews_female`` stream starts with the earliest record in the
    ``pageviews`` topic, which means that it consumes all of the available 
-   records from the beginning.
+   records from the beginning.    
 
 #. Confirm that the ``auto.offset.reset`` property was applied to the 
-   ``pageviews_female`` stream. In the navigation menu, click **Data streams**
+   ``pageviews_female`` stream. In the cluster submenu, click **Consumers**
    and find the consumer group for the ``pageviews_female`` stream, which is
    named ``_confluent-ksql-default_query_CSAS_PAGEVIEWS_FEMALE_1``.
+   
+   Click **Consumption** to see the rate that the ``pageviews_female`` query is
+   consuming records.
 
-   .. image:: ../img/c3-ksql-data-streams-2.png
+   .. figure:: ../img/c3-ksql-data-streams-2.png
       :alt: Screenshot of the Data Streams page in Confluent Control Center
       :align: center
 
-   The graph is shaded green, because all of the records were consumed when the
-   ``pageviews_female`` stream started.
+   The graph is at 100 percent, because all of the records were consumed when
+   the ``pageviews_female`` stream started.
+
+View streams and tables
+=======================
+
+You can see all of your persistent queries, streams, and tables in a single,
+unified view. 
+
+#. Click **KSQl Editor** and find the **All available streams and tables** pane
+   on the right side of the page,
+
+#. Click **KSQL_PROCESSING_LOG** to open the processing log stream. The schema
+   for the stream is displayed, including nested data structures.
+
+   .. figure:: ../img/c3-ksql-streams-and-tables-pane.png
+      :alt: Screenshot of the unified KSQL streams and tables pane in Confluent Control Center
+      :align: center
+
+Download selected records
+=========================
+
+You can download records that you select in the query results window as a 
+JSON file.
+
+#. Copy the following code into the editing window and click **Run**. 
+
+   .. code:: sql
+
+      SELECT * FROM  PAGEVIEWS_FEMALE;
+
+#. In the query results window, select some records and click **Download**.
+   
+   .. figure:: ../img/c3-ksql-download-records.png
+      :alt: Screenshot showing how to download query results to JSON in Confluent Control Center
+      :align: center
 
 Next Steps
 **********

@@ -22,11 +22,12 @@ import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.timestamp.StringToTimestampParser;
 import java.time.ZoneId;
 import java.util.concurrent.ExecutionException;
 
-@UdfDescription(name = "stringtotimestamp", author = "Confluent",
+@UdfDescription(name = "stringtotimestamp", author = KsqlConstants.CONFLUENT_AUTHOR,
     description = "Converts a string representation of a date in the given format"
         + " into the BIGINT value that represents the millisecond timestamp.")
 public class StringToTimestamp {

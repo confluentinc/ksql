@@ -88,6 +88,32 @@
       "outputs": [
         {"topic": "OUTPUT", "value": {"INPUT_1_BAR": 2, "I2_BAR": 2}}
       ]
+    },
+    {
+      "name": "wildcard select with aliased source",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT I;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"FOO": 1, "BAR": 2}}
+      ]
+    },
+    {
+      "name": "prefixed wildcard select with aliased source",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT I.* FROM INPUT I;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"FOO": 1, "BAR": 2}}
+      ]
     }
   ]
 }

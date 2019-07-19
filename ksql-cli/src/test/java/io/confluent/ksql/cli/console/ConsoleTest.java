@@ -43,11 +43,10 @@ import io.confluent.ksql.rest.entity.FunctionDescriptionList;
 import io.confluent.ksql.rest.entity.FunctionInfo;
 import io.confluent.ksql.rest.entity.FunctionType;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
-import io.confluent.ksql.rest.entity.KsqlTopicInfo;
-import io.confluent.ksql.rest.entity.KsqlTopicsList;
 import io.confluent.ksql.rest.entity.PropertiesList;
 import io.confluent.ksql.rest.entity.Queries;
 import io.confluent.ksql.rest.entity.RunningQuery;
+import io.confluent.ksql.rest.entity.SchemaInfo;
 import io.confluent.ksql.rest.entity.SourceDescription;
 import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
 import io.confluent.ksql.rest.entity.SourceInfo;
@@ -58,7 +57,7 @@ import io.confluent.ksql.rest.entity.TopicDescription;
 import io.confluent.ksql.rest.server.computation.CommandId;
 import io.confluent.ksql.rest.util.EntityUtil;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.schema.ksql.SqlBaseType;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -79,6 +78,10 @@ public class ConsoleTest {
 
   private static final String CLI_CMD_NAME = "some command";
   private static final String WHITE_SPACE = " \t ";
+  private static final List<FieldInfo> HEADER =
+          ImmutableList.of(
+              new FieldInfo("foo", new SchemaInfo(SqlBaseType.STRING, null, null)),
+              new FieldInfo("bar", new SchemaInfo(SqlBaseType.STRING, null, null)));
 
   private final TestTerminal terminal;
   private final Console console;
@@ -108,22 +111,43 @@ public class ConsoleTest {
 
   @Test
   public void testPrintGenericStreamedRow() throws IOException {
+    // Given:
     final StreamedRow row = StreamedRow.row(new GenericRow(ImmutableList.of("col_1", "col_2")));
-    console.printStreamedRow(row);
+
+    // When:
+    console.printStreamedRow(row, HEADER);
+
+    // Then:
+    if (console.getOutputFormat() == OutputFormat.TABULAR) {
+      assertThat(terminal.getOutputString(), containsString("col_1"));
+      assertThat(terminal.getOutputString(), containsString("col_2"));
+    }
+  }
+
+  @Test
+  public void testPrintHeader() throws IOException {
+    // When:
+    console.printRowHeader(HEADER);
+
+    // Then:
+    if (console.getOutputFormat() == OutputFormat.TABULAR) {
+      assertThat(terminal.getOutputString(), containsString("foo"));
+      assertThat(terminal.getOutputString(), containsString("bar"));
+    }
   }
 
   @Test
   public void testPrintErrorStreamedRow() throws IOException {
     final FakeException exception = new FakeException();
 
-    console.printStreamedRow(StreamedRow.error(exception));
+    console.printStreamedRow(StreamedRow.error(exception), HEADER);
 
     assertThat(terminal.getOutputString(), is(exception.getMessage() + "\n"));
   }
 
   @Test
   public void testPrintFinalMessageStreamedRow() throws IOException {
-    console.printStreamedRow(StreamedRow.finalMessage("Some message"));
+    console.printStreamedRow(StreamedRow.finalMessage("Some message"), HEADER);
     assertThat(terminal.getOutputString(), is("Some message\n"));
   }
 
@@ -630,38 +654,6 @@ public class ConsoleTest {
               + " C          | TestTopic   | JSON   | false    \n"
               + " Z          | TestTopic   | JSON   | false    \n"
               + "----------------------------------------------\n"));
-    }
-  }
-
-  @Test
-  public void testPrintTopicsList() throws IOException {
-    // Given:
-    final KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(
-        new KsqlTopicsList("e",
-            ImmutableList.of(new KsqlTopicInfo("TestTopic", "TestKafkaTopic", Format.JSON)))
-    ));
-
-    // When:
-    console.printKsqlEntityList(entityList);
-
-    // Then:
-    final String output = terminal.getOutputString();
-    if (console.getOutputFormat() == OutputFormat.JSON) {
-      assertThat(output, is("[ {\n"
-          + "  \"@type\" : \"ksql_topics\",\n"
-          + "  \"statementText\" : \"e\",\n"
-          + "  \"topics\" : [ {\n"
-          + "    \"name\" : \"TestTopic\",\n"
-          + "    \"kafkaTopic\" : \"TestKafkaTopic\",\n"
-          + "    \"format\" : \"JSON\"\n"
-          + "  } ]\n"
-          + "} ]\n"));
-    } else {
-      assertThat(output, is("\n"
-          + " Ksql Topic | Kafka Topic    | Format \n"
-          + "--------------------------------------\n"
-          + " TestTopic  | TestKafkaTopic | JSON   \n"
-          + "--------------------------------------\n"));
     }
   }
 

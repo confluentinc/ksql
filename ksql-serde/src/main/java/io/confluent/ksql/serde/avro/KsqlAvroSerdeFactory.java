@@ -20,7 +20,6 @@ import io.confluent.connect.avro.AvroConverter;
 import io.confluent.connect.avro.AvroDataConfig;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.AbstractKafkaAvroSerDeConfig;
-import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
@@ -34,6 +33,7 @@ import java.util.Objects;
 import java.util.function.Supplier;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
+import org.apache.kafka.connect.data.ConnectSchema;
 
 @Immutable
 public class KsqlAvroSerdeFactory extends KsqlSerdeFactory {
@@ -46,6 +46,11 @@ public class KsqlAvroSerdeFactory extends KsqlSerdeFactory {
     if (this.fullSchemaName.isEmpty()) {
       throw new IllegalArgumentException("the schema name cannot be empty");
     }
+  }
+
+  @Override
+  public void validate(final ConnectSchema schema) {
+    // Supports all types
   }
 
   @Override
@@ -90,14 +95,12 @@ public class KsqlAvroSerdeFactory extends KsqlSerdeFactory {
   protected Deserializer<Object> createDeserializer(
       final PersistenceSchema schema,
       final KsqlConfig ksqlConfig,
-      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
-      final ProcessingLogger processingLogger
+      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
   ) {
     final Supplier<Deserializer<Object>> supplier = () -> createConnectDeserializer(
         schema,
         ksqlConfig,
-        schemaRegistryClientFactory,
-        processingLogger);
+        schemaRegistryClientFactory);
 
     // Sanity check:
     supplier.get();
@@ -125,15 +128,14 @@ public class KsqlAvroSerdeFactory extends KsqlSerdeFactory {
   private KsqlConnectDeserializer createConnectDeserializer(
       final PersistenceSchema schema,
       final KsqlConfig ksqlConfig,
-      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
-      final ProcessingLogger processingLogger
+      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
   ) {
     final AvroDataTranslator translator = createAvroTranslator(schema, ksqlConfig);
 
     final AvroConverter avroConverter =
         getAvroConverter(schemaRegistryClientFactory.get(), ksqlConfig);
 
-    return new KsqlConnectDeserializer(avroConverter, translator, processingLogger);
+    return new KsqlConnectDeserializer(avroConverter, translator);
   }
 
   private AvroDataTranslator createAvroTranslator(

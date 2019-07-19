@@ -33,7 +33,8 @@ The following example creates a stream that has three columns from the
 
 KSQL can't infer the topic's data format, so you must provide the format of the
 values that are stored in the topic. In this example, the data format is
-``DELIMITED``. Other options are ``Avro`` and ``JSON``.
+``DELIMITED``. Other options are ``Avro``, ``JSON`` or ``KAFKA``.
+See :ref:`ksql_formats` for more details.
 
 In the KSQL CLI, paste the following CREATE STREAM statement: 
 

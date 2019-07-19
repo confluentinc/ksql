@@ -32,6 +32,7 @@ import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
+import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.parser.tree.Type;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
@@ -78,7 +79,7 @@ public class CreateTableCommandTest {
     givenPropertiesWith((Collections.emptyMap()));
     when(createTableStatement.getName()).thenReturn(QualifiedName.of(TABLE_NAME));
     when(createTableStatement.getElements()).thenReturn(TableElements.of(
-        new TableElement("SOME-KEY", new Type(SqlTypes.STRING))
+        new TableElement(Namespace.VALUE, "SOME-KEY", new Type(SqlTypes.STRING))
     ));
     when(topicClient.isTopicExists(any())).thenReturn(true);
   }
@@ -157,8 +158,7 @@ public class CreateTableCommandTest {
     cmd.run(metaStore);
 
     // Then:
-    expectedException.expectMessage("Cannot create table 't1': A table " +
-        "with name 't1' already exists");
+    expectedException.expectMessage("Cannot add table 't1': A table with the same name already exists");
 
     // When:
     cmd.run(metaStore);

@@ -58,6 +58,7 @@ import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TableElement;
+import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.parser.tree.Type;
 import io.confluent.ksql.parser.tree.UnsetProperty;
@@ -112,7 +113,7 @@ public class StandaloneExecutorTest {
   private static final KsqlConfig ksqlConfig = new KsqlConfig(emptyMap());
 
   private static final TableElements SOME_ELEMENTS = TableElements.of(
-      new TableElement("bob", new Type(SqlTypes.STRING)));
+      new TableElement(Namespace.VALUE, "bob", new Type(SqlTypes.STRING)));
 
   private static final QualifiedName SOME_NAME = QualifiedName.of("Bob");
   private static final String SOME_TOPIC = "some-topic";

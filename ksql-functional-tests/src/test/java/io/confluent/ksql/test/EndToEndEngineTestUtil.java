@@ -159,7 +159,8 @@ final class EndToEndEngineTestUtil {
           .getKafkaTopicName();
 
       final SerdeSupplier<?> valueSerdes = SerdeUtil.getSerdeSupplier(
-          persistentQueryMetadata.getResultTopic().getValueSerdeFactory().getFormat()
+          persistentQueryMetadata.getResultTopic().getValueSerdeFactory().getFormat(),
+          queryMetadata::getLogicalSchema
       );
 
       final Topic sinkTopic = new Topic(
@@ -268,7 +269,9 @@ final class EndToEndEngineTestUtil {
   }
 
   static String formatQueryName(final String originalQueryName) {
-    return originalQueryName.replaceAll(" - (AVRO|JSON)$", "").replaceAll("\\s", "_");
+    return originalQueryName
+        .replaceAll(" - (AVRO|JSON)$", "")
+        .replaceAll("\\s|/", "_");
   }
 
   static Map<String, TopologyAndConfigs> loadExpectedTopologies(final String dir) {

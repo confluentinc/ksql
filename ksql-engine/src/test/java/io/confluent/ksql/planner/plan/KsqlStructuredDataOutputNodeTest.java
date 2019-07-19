@@ -22,6 +22,7 @@ import static org.hamcrest.Matchers.sameInstance;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -48,6 +49,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.QueryIdGenerator;
 import io.confluent.ksql.util.QueryLoggerUtil;
 import io.confluent.ksql.util.timestamp.LongColumnTimestampExtractionPolicy;
+import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
@@ -422,6 +424,29 @@ public class KsqlStructuredDataOutputNodeTest {
         rowSerde,
         ImmutableSet.of(2, 5)
     );
+  }
+
+  @Test
+  public void shouldValidateValueFormatCanHandleValueSchema() {
+    // Given:
+    clearInvocations(sinkValueSerdeFactory);
+
+    // When:
+    new KsqlStructuredDataOutputNode(
+        new PlanNodeId("0"),
+        sourceNode,
+        SCHEMA,
+        new MetadataTimestampExtractionPolicy(),
+        KeyField.none(),
+        ksqlTopic,
+        Optional.empty(),
+        OptionalInt.empty(),
+        false,
+        SerdeOption.none()
+    );
+
+    // Then:
+    verify(sinkValueSerdeFactory).validate(SCHEMA.valueSchema());
   }
 
   private void givenInsertIntoNode() {

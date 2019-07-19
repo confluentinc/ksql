@@ -81,6 +81,7 @@ import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
+import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
@@ -187,7 +188,7 @@ public class KsqlResourceTest {
   private static final ClusterTerminateRequest VALID_TERMINATE_REQUEST =
       new ClusterTerminateRequest(ImmutableList.of("Foo"));
   private static final TableElements SOME_ELEMENTS = TableElements.of(
-      new TableElement("f0", new io.confluent.ksql.parser.tree.Type(SqlTypes.STRING))
+      new TableElement(Namespace.VALUE, "f0", new io.confluent.ksql.parser.tree.Type(SqlTypes.STRING))
   );
   private static final PreparedStatement<CreateStream> STMT_0_WITH_SCHEMA = PreparedStatement.of(
       "sql with schema",
@@ -1575,7 +1576,7 @@ public class KsqlResourceTest {
     expectedException.expect(KsqlRestException.class);
     expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
     expectedException.expect(exceptionErrorMessage(
-        errorMessage(containsString("Source already exists: SOURCE"))));
+        errorMessage(containsString("Cannot add stream 'SOURCE': A stream with the same name already exists"))));
 
     // When:
     final String createSql =
@@ -1593,7 +1594,7 @@ public class KsqlResourceTest {
     expectedException.expect(KsqlRestException.class);
     expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
     expectedException.expect(exceptionErrorMessage(
-        errorMessage(containsString("Source already exists: SOURCE"))));
+        errorMessage(containsString("Cannot add table 'SOURCE': A table with the same name already exists"))));
 
     // When:
     final String createSql =
@@ -1606,15 +1607,14 @@ public class KsqlResourceTest {
   public void shouldFailIfCreateAsSelectExistingSourceStream() {
     // Given:
     givenSource(DataSourceType.KSTREAM, "SOURCE", "topic1", "ksqlTopic1", SINGLE_FIELD_SCHEMA);
-    givenSource(DataSourceType.KSTREAM, "SINK", "topic2", "ksqlTopic2", SINGLE_FIELD_SCHEMA);
+    givenSource(DataSourceType.KTABLE, "SINK", "topic2", "ksqlTopic2", SINGLE_FIELD_SCHEMA);
 
     // Then:
     expectedException.expect(KsqlRestException.class);
     expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
     expectedException.expect(exceptionErrorMessage(
         errorMessage(containsString(
-            "Cannot add the new data source. Another data source with the "
-                + "same name already exists: KsqlStream name:SINK"))));
+            "Cannot add stream 'SINK': A table with the same name already exists"))));
 
     // When:
     final String createSql =
@@ -1626,15 +1626,14 @@ public class KsqlResourceTest {
   public void shouldFailIfCreateAsSelectExistingSourceTable() {
     // Given:
     givenSource(DataSourceType.KTABLE, "SOURCE", "topic1", "ksqlTopic1", SINGLE_FIELD_SCHEMA);
-    givenSource(DataSourceType.KTABLE, "SINK", "topic2", "ksqlTopic2", SINGLE_FIELD_SCHEMA);
+    givenSource(DataSourceType.KSTREAM, "SINK", "topic2", "ksqlTopic2", SINGLE_FIELD_SCHEMA);
 
     // Then:
     expectedException.expect(KsqlRestException.class);
     expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
     expectedException.expect(exceptionErrorMessage(
         errorMessage(containsString(
-            "Cannot add the new data source. Another data source with the "
-                + "same name already exists: KsqlTable name:SINK"))));
+            "Cannot add table 'SINK': A stream with the same name already exists"))));
 
     // When:
     final String createSql =
@@ -1909,17 +1908,12 @@ public class KsqlResourceTest {
       final String ksqlTopicName,
       final LogicalSchema schema
   ) {
-    if (metaStore.getTopic(ksqlTopicName) != null) {
-      return;
-    }
-
     final KsqlTopic ksqlTopic = new KsqlTopic(
         ksqlTopicName,
         topicName,
         new KsqlJsonSerdeFactory(),
         false);
     givenKafkaTopicExists(topicName);
-    metaStore.putTopic(ksqlTopic);
     if (type == DataSourceType.KSTREAM) {
       metaStore.putSource(
           new KsqlStream<>(

@@ -1,0 +1,64 @@
+{
+  "comments": [
+    "Tests covering math functions."
+  ],
+  "tests": [
+    {
+      "name": "exp",
+      "statements": [
+        "CREATE STREAM INPUT (i INT, l BIGINT, d DOUBLE) WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT exp(i) i, exp(l) l, exp(d) d FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input", "value": {"i": null, "l": null, "d": null}},
+        {"topic": "input", "value": {"i": -1, "l": -2, "d": -3.0}},
+        {"topic": "input", "value": {"i": 0, "l": 0, "d": 0.0}},
+        {"topic": "input", "value": {"i": 1, "l": 2, "d": 3.0}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"I": null, "L": null, "D": null}},
+        {"topic": "OUTPUT", "value": {"I": 0.36787944117144233, "L": 0.1353352832366127, "D": 0.049787068367863944}},
+        {"topic": "OUTPUT", "value": {"I": 1.0, "L": 1.0, "D": 1.0}},
+        {"topic": "OUTPUT", "value": {"I": 2.718281828459045, "L": 7.38905609893065, "D": 20.085536923187668}}
+      ]
+    },
+    {
+      "name": "ln",
+      "statements": [
+        "CREATE STREAM INPUT (i INT, l BIGINT, d DOUBLE) WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ln(i) i, ln(l) l, ln(d) d FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input", "value": {"i": null, "l": null, "d": null}},
+        {"topic": "input", "value": {"i": -1, "l": -2, "d": -3.0}},
+        {"topic": "input", "value": {"i": 0, "l": 0, "d": 0.0}},
+        {"topic": "input", "value": {"i": 1, "l": 2, "d": 3.0}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"I": null, "L": null, "D": null}},
+        {"topic": "OUTPUT", "value": {"I": "NaN", "L": "NaN", "D": "NaN"}},
+        {"topic": "OUTPUT", "value": {"I": "-Infinity", "L": "-Infinity", "D": "-Infinity"}},
+        {"topic": "OUTPUT", "value": {"I": 0.0, "L": 0.6931471805599453, "D": 1.0986122886681098}}
+      ]
+    },
+    {
+      "name": "sqrt",
+      "statements": [
+        "CREATE STREAM INPUT (i INT, l BIGINT, d DOUBLE) WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT sqrt(i) i, sqrt(l) l, sqrt(d) d FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input", "value": {"i": null, "l": null, "d": null}},
+        {"topic": "input", "value": {"i": -1, "l": -2, "d": -3.0}},
+        {"topic": "input", "value": {"i": 0, "l": 0, "d": 0.0}},
+        {"topic": "input", "value": {"i": 1, "l": 2, "d": 3.0}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"I": null, "L": null, "D": null}},
+        {"topic": "OUTPUT", "value": {"I": "NaN", "L": "NaN", "D": "NaN"}},
+        {"topic": "OUTPUT", "value": {"I": 0.0, "L": 0.0, "D": 0.0}},
+        {"topic": "OUTPUT", "value": {"I": 1.0, "L": 1.4142135623730951, "D": 1.7320508075688772}}
+      ]
+    }
+  ]
+}

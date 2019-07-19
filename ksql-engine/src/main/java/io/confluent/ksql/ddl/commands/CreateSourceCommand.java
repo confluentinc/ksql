@@ -17,17 +17,13 @@ package io.confluent.ksql.ddl.commands;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Iterables;
-import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.SerdeFactory;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.CreateSource;
-import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.KsqlSerdeFactories;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
@@ -44,8 +40,6 @@ import java.util.Optional;
 import java.util.Set;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.kstream.Windowed;
 
 /**
@@ -55,7 +49,6 @@ abstract class CreateSourceCommand implements DdlCommand {
 
   final String sqlExpression;
   final String sourceName;
-  final String topicName;
   final LogicalSchema schema;
   final KeyField keyField;
   private final KafkaTopicClient kafkaTopicClient;
@@ -96,7 +89,6 @@ abstract class CreateSourceCommand implements DdlCommand {
     this.properties = statement.getProperties();
 
     checkTopicExists(properties);
-    this.topicName = this.sourceName;
 
     this.schema = buildSchema(statement.getElements());
 
@@ -127,6 +119,7 @@ abstract class CreateSourceCommand implements DdlCommand {
         properties.getValueAvroSchemaName()
     );
 
+    this.valueSerdeFactory.validate(schema.valueSchema());
     this.serdeOptions = serdeOptionsSupplier.build(
         schema,
         properties.getValueFormat(),
@@ -144,31 +137,7 @@ abstract class CreateSourceCommand implements DdlCommand {
       throw new KsqlException("The statement does not define any columns.");
     }
 
-    final SchemaBuilder valueSchema = SchemaBuilder.struct();
-    for (final TableElement tableElement : tableElements) {
-      final String fieldName = tableElement.getName();
-      final Schema fieldSchema = SchemaConverters.sqlToLogicalConverter()
-          .fromSqlType(tableElement.getType().getSqlType());
-
-      valueSchema.field(fieldName, fieldSchema);
-    }
-
-    return LogicalSchema.of(valueSchema.build());
-  }
-
-  static void checkMetaData(
-      final MetaStore metaStore,
-      final String sourceName,
-      final String topicName
-  ) {
-    if (metaStore.getSource(sourceName) != null) {
-      throw new KsqlException(String.format("Source already exists: %s", sourceName));
-    }
-
-    if (metaStore.getTopic(topicName) == null) {
-      throw new KsqlException(
-          String.format("The corresponding topic does not exist: %s", topicName));
-    }
+    return tableElements.toLogicalSchema();
   }
 
   private void checkTopicExists(final CreateSourceProperties properties) {
@@ -178,19 +147,9 @@ abstract class CreateSourceCommand implements DdlCommand {
     }
   }
 
-  protected void registerTopic(final MutableMetaStore metaStore, final String entity) {
-    if (metaStore.getTopic(topicName) != null) {
-      final String errorMessage =
-          String.format("Cannot create %s '%s': A %s with name '%s' already exists",
-              entity, topicName, entity, topicName);
-
-      throw new KsqlException(errorMessage);
-    }
-
+  KsqlTopic buildTopic() {
     final String kafkaTopicName = properties.getKafkaTopic();
-    final KsqlTopic ksqlTopic = new KsqlTopic(topicName, kafkaTopicName, valueSerdeFactory, false);
-
-    metaStore.putTopic(ksqlTopic);
+    return new KsqlTopic(sourceName, kafkaTopicName, valueSerdeFactory, false);
   }
 
   private static SerdeFactory<?> extractKeySerde(

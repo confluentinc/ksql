@@ -12,6 +12,18 @@
       "outputs": [
         {"topic": "REPARTITIONED", "key": "zero", "value": "zero,0"}
       ]
+    },{
+      "name": "partition by - KAFKA",
+      "statements": [
+        "CREATE STREAM INPUT (ID int) with (kafka_topic='input', value_format = 'KAFKA');",
+        "CREATE STREAM OUTPUT AS select ID from INPUT partition by ID;"
+      ],
+      "inputs": [
+        {"topic": "input", "key": 0, "value": 10}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "10", "value": 10}
+      ]
     },
     {
       "name": "partition by with projection select all",

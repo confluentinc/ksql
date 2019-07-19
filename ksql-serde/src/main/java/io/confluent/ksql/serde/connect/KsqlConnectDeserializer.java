@@ -15,11 +15,8 @@
 
 package io.confluent.ksql.serde.connect;
 
-import io.confluent.ksql.logging.processing.ProcessingLogger;
-import io.confluent.ksql.serde.util.SerdeProcessingLogMessageFactory;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.connect.data.SchemaAndValue;
@@ -29,16 +26,13 @@ public class KsqlConnectDeserializer implements Deserializer<Object> {
 
   private final Converter converter;
   private final DataTranslator translator;
-  private final ProcessingLogger recordLogger;
 
   public KsqlConnectDeserializer(
       final Converter converter,
-      final DataTranslator translator,
-      final ProcessingLogger recordLogger
+      final DataTranslator translator
   ) {
     this.converter = Objects.requireNonNull(converter, "converter");
     this.translator = Objects.requireNonNull(translator, "translator");
-    this.recordLogger = Objects.requireNonNull(recordLogger, "recordLogger");
   }
 
   @Override
@@ -51,8 +45,6 @@ public class KsqlConnectDeserializer implements Deserializer<Object> {
       final SchemaAndValue schemaAndValue = converter.toConnectData(topic, bytes);
       return translator.toKsqlRow(schemaAndValue.schema(), schemaAndValue.value());
     } catch (final Exception e) {
-      recordLogger.error(SerdeProcessingLogMessageFactory
-          .deserializationErrorMsg(e, Optional.ofNullable(bytes)));
       throw new SerializationException(
           "Error deserializing message from topic: " + topic, e);
     }

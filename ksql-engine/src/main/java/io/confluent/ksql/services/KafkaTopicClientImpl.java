@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.services;
 
-import com.google.common.base.Suppliers;
 import com.google.common.collect.Lists;
 import io.confluent.ksql.exception.KafkaResponseGetFailedException;
 import io.confluent.ksql.topic.TopicProperties;
@@ -31,9 +30,10 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import javax.annotation.concurrent.ThreadSafe;
+
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.AlterConfigOp;
 import org.apache.kafka.clients.admin.Config;
@@ -45,6 +45,7 @@ import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.KafkaFuture;
 import org.apache.kafka.common.config.ConfigResource;
 import org.apache.kafka.common.config.TopicConfig;
+import org.apache.kafka.common.errors.TopicDeletionDisabledException;
 import org.apache.kafka.common.errors.TopicExistsException;
 import org.apache.kafka.common.errors.UnsupportedVersionException;
 import org.slf4j.Logger;
@@ -65,14 +66,6 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
 
   private final AdminClient adminClient;
 
-  // This supplier solves two issues:
-  // 1. Avoids the constructor to check for the topic.delete.enable unnecessary. The AdminClient
-  //    might not have access to this config, and it would fail for every Ksql command if it does
-  //    the check initially.
-  // 2. It is a memoize supplier. Once this is call, the subsequent calls will return the cached
-  //    value.
-  private final Supplier<Boolean> isTopicDeleteEnabledSupplier;
-
   /**
    * Construct a topic client from an existing admin client.
    *
@@ -80,7 +73,6 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
    */
   public KafkaTopicClientImpl(final AdminClient adminClient) {
     this.adminClient = Objects.requireNonNull(adminClient, "adminClient");
-    this.isTopicDeleteEnabledSupplier = Suppliers.memoize(this::isTopicDeleteEnabled);
   }
 
   @Override
@@ -249,10 +241,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
     if (topicsToDelete.isEmpty()) {
       return;
     }
-    if (!isTopicDeleteEnabledSupplier.get()) {
-      LOG.info("Cannot delete topics since '" + DELETE_TOPIC_ENABLE + "' is false. ");
-      return;
-    }
+
     final DeleteTopicsResult deleteTopicsResult = adminClient.deleteTopics(topicsToDelete);
     final Map<String, KafkaFuture<Void>> results = deleteTopicsResult.values();
     final List<String> failList = Lists.newArrayList();
@@ -261,6 +250,21 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
       try {
         entry.getValue().get(30, TimeUnit.SECONDS);
       } catch (final Exception e) {
+        final Throwable rootCause = ExceptionUtils.getRootCause(e);
+
+        // Checking if the Kafka cluster has the DELETE_TOPIC_ENABLE configuration enabled requires
+        // the user to have DescribeConfigs permissions (or ACL) in Kafka. To avoid giving that
+        // unnecessary permission, we can detect it by catching the TopicDeletionDisabledException.
+        if (rootCause instanceof TopicDeletionDisabledException) {
+          // If TopicDeletionDisabledException is detected, we throw the exception immediately
+          // instead of going through the rest of the topics to delete.
+          // It is now up to the caller to ignore this exception.
+          throw new TopicDeletionDisabledException("Topic deletion is disabled. "
+              + "To delete the topic, you must set '" + DELETE_TOPIC_ENABLE + "' to true in "
+              + "the Kafka cluster configuration.");
+        }
+
+        LOG.error(String.format("Could not delete topic '%s'", entry.getKey()), e);
         failList.add(entry.getKey());
       }
     }
@@ -271,10 +275,6 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
 
   @Override
   public void deleteInternalTopics(final String applicationId) {
-    if (!isTopicDeleteEnabledSupplier.get()) {
-      LOG.warn("Cannot delete topics since '" + DELETE_TOPIC_ENABLE + "' is false. ");
-      return;
-    }
     try {
       final Set<String> topicNames = listTopicNames();
       final List<String> internalTopics = Lists.newArrayList();
@@ -286,22 +286,13 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
       if (!internalTopics.isEmpty()) {
         deleteTopics(internalTopics);
       }
+    } catch (final TopicDeletionDisabledException e) {
+      // Ignore TopicDeletionDisabledException should not be logged as an error
+      LOG.info("Did not delete any topics: ", e.getMessage());
     } catch (final Exception e) {
       LOG.error("Exception while trying to clean up internal topics for application id: {}.",
           applicationId, e
       );
-    }
-  }
-
-  private boolean isTopicDeleteEnabled() {
-    try {
-      final ConfigEntry configEntry = getConfig().get(DELETE_TOPIC_ENABLE);
-      // default to true if there is no entry
-      return configEntry == null || Boolean.valueOf(configEntry.value());
-    } catch (final Exception e) {
-      LOG.error("Failed to initialize TopicClient: {}", e.getMessage());
-      throw new KafkaResponseGetFailedException(
-          "Could not fetch broker information. KSQL cannot initialize", e);
     }
   }
 

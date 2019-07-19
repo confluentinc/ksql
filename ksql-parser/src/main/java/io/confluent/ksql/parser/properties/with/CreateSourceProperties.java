@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.parser.properties.with;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.metastore.SerdeFactory;
 import io.confluent.ksql.parser.tree.IntegerLiteral;
@@ -24,8 +23,10 @@ import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.properties.with.CreateConfigs;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.StringUtil;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.kstream.WindowedSerdes;
@@ -36,12 +37,9 @@ import org.apache.kafka.streams.kstream.WindowedSerdes;
 @Immutable
 public final class CreateSourceProperties extends WithClauseProperties {
 
-  private static final java.util.Map<String, SerdeFactory<Windowed<String>>> WINDOW_TYPES =
-      ImmutableMap.of(
-          "SESSION", () -> WindowedSerdes.sessionWindowedSerdeFrom(String.class),
-          "TUMBLING", () -> WindowedSerdes.timeWindowedSerdeFrom(String.class),
-          "HOPPING", () -> WindowedSerdes.timeWindowedSerdeFrom(String.class)
-      );
+  private static final String TUMBLING_WINDOW_NAME = "TUMBLING";
+  private static final String HOPPING_WINDOW_NAME = "HOPPING";
+  private static final String SESSION_WINDOW_NAME = "SESSION";
 
   public static CreateSourceProperties from(final Map<String, Literal> literals) {
     try {
@@ -60,6 +58,10 @@ public final class CreateSourceProperties extends WithClauseProperties {
     super(CreateConfigs.CONFIG_METADATA, originals);
 
     validateDateTimeFormat(CommonCreateConfigs.TIMESTAMP_FORMAT_PROPERTY);
+    if (originals.containsKey(CreateConfigs.WINDOW_SIZE_PROPERTY)) {
+      validateWindowSizeProperty(
+          StringUtil.cleanQuotes(originals.get(CreateConfigs.WINDOW_SIZE_PROPERTY).toString()));
+    }
   }
 
   public Format getValueFormat() {
@@ -82,10 +84,26 @@ public final class CreateSourceProperties extends WithClauseProperties {
     return Optional.ofNullable(getString(CreateConfigs.KEY_NAME_PROPERTY));
   }
 
+  @SuppressWarnings("unchecked")
   public Optional<SerdeFactory<Windowed<String>>> getWindowType() {
-    return Optional.ofNullable(getString(CreateConfigs.WINDOW_TYPE_PROPERTY))
-        .map(String::toUpperCase)
-        .map(WINDOW_TYPES::get);
+    final Optional<String> windowType = Optional.ofNullable(
+        getString(CreateConfigs.WINDOW_TYPE_PROPERTY))
+        .map(String::toUpperCase);
+    if (!windowType.isPresent()) {
+      return Optional.empty();
+    }
+    if (SESSION_WINDOW_NAME.equalsIgnoreCase(windowType.get())) {
+      if (getString(CreateConfigs.WINDOW_SIZE_PROPERTY) != null) {
+        throw new KsqlException(CreateConfigs.WINDOW_SIZE_PROPERTY
+            + " should not be set for SESSION windows.");
+      }
+      return Optional.of(() -> WindowedSerdes.sessionWindowedSerdeFrom(String.class));
+    }
+    if (TUMBLING_WINDOW_NAME.equalsIgnoreCase(windowType.get())
+        || HOPPING_WINDOW_NAME.equalsIgnoreCase(windowType.get())) {
+      return getTimedWindowSerdeFactory();
+    }
+    throw new KsqlException("Invalid window type: " + windowType.get());
   }
 
   public Optional<String> getTimestampColumnName() {
@@ -124,5 +142,22 @@ public final class CreateSourceProperties extends WithClauseProperties {
     originals.put(CommonCreateConfigs.SOURCE_NUMBER_OF_REPLICAS, new IntegerLiteral(replicas));
 
     return new CreateSourceProperties(originals);
+  }
+
+  private Optional<SerdeFactory<Windowed<String>>> getTimedWindowSerdeFactory() {
+    final Optional<String> windowSize = Optional.ofNullable(
+        getString(CreateConfigs.WINDOW_SIZE_PROPERTY))
+        .map(String::toUpperCase);
+    if (!windowSize.isPresent()) {
+      throw new KsqlException("Tumbling and Hopping window types should set "
+          + CreateConfigs.WINDOW_SIZE_PROPERTY + " in the WITH clause.");
+    }
+    final String[] sizeParts = StringUtil.cleanQuotes(windowSize.get()).split(" ");
+    final long size = Long.parseLong(sizeParts[0]);
+    final TimeUnit timeUnit = TimeUnit.valueOf(sizeParts[1].toUpperCase());
+    return Optional.of(() -> WindowedSerdes.timeWindowedSerdeFrom(
+        String.class,
+        TimeUnit.MILLISECONDS.convert(size, timeUnit)
+    ));
   }
 }

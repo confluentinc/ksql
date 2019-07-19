@@ -21,12 +21,14 @@ import com.google.common.collect.Sets.SetView;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.properties.with.ConfigMetaData;
+import io.confluent.ksql.properties.with.CreateConfigs;
 import io.confluent.ksql.util.KsqlException;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.config.AbstractConfig;
 
@@ -84,6 +86,32 @@ abstract class WithClauseProperties extends AbstractConfig {
           + " config:" + configName
           + ", reason:" + e.getMessage(), e);
     }
+  }
+
+  static void validateWindowSizeProperty(final String windowSizeProperty) {
+    Objects.requireNonNull(windowSizeProperty, "windowSizeProperty");
+    final String[] sizeParts = windowSizeProperty.split(" ");
+    if (sizeParts.length != 2) {
+      throwWindowSizeException(windowSizeProperty);
+    }
+    try {
+      Long.parseLong(sizeParts[0]);
+    } catch (final NumberFormatException nfe) {
+      throwWindowSizeException(windowSizeProperty);
+    }
+
+    try {
+      TimeUnit.valueOf(sizeParts[1].toUpperCase());
+    } catch (final Exception iae) {
+      throwWindowSizeException(windowSizeProperty);
+    }
+  }
+
+  private static void throwWindowSizeException(final String windowSizeProperty) {
+    throw new KsqlException("Invalid " + CreateConfigs.WINDOW_SIZE_PROPERTY + " property : "
+        + windowSizeProperty + ". " + CreateConfigs.WINDOW_SIZE_PROPERTY + " should be a string "
+        + "with two literals, window size (a number) and window size unit (a time unit). "
+        + "For example: '10 SECONDS'.");
   }
 
   private static Map<String, Object> toValues(

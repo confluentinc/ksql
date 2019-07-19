@@ -29,6 +29,7 @@ public class WindowData {
   public final long start;
   public final long end;
   public final Type type;
+  public final long size;
 
   public WindowData(
       @JsonProperty("start") final long start,
@@ -37,6 +38,7 @@ public class WindowData {
   ) {
     this.start = start;
     this.end = end;
+    this.size = size();
     this.type = Type.valueOf(requireNonNull(type, "type").toUpperCase());
   }
 

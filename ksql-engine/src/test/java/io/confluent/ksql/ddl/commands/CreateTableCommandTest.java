@@ -110,7 +110,8 @@ public class CreateTableCommandTest {
   public void shouldExtractHoppingWindowType() {
     // Given:
     givenPropertiesWith(ImmutableMap.of(
-        CreateConfigs.WINDOW_TYPE_PROPERTY, new StringLiteral("HoPPing")));
+        CreateConfigs.WINDOW_TYPE_PROPERTY, new StringLiteral("HoPPing"),
+        CreateConfigs.WINDOW_SIZE_PROPERTY, new StringLiteral("2 MINUTES")));
 
     // When:
     final CreateTableCommand cmd = createCmd();
@@ -124,7 +125,8 @@ public class CreateTableCommandTest {
   public void shouldExtractTumblingWindowType() {
     // Given:
     givenPropertiesWith(ImmutableMap.of(
-        CreateConfigs.WINDOW_TYPE_PROPERTY, new StringLiteral("Tumbling")));
+        CreateConfigs.WINDOW_TYPE_PROPERTY, new StringLiteral("Tumbling"),
+        CreateConfigs.WINDOW_SIZE_PROPERTY, new StringLiteral("2 seconds")));
 
     // When:
     final CreateTableCommand cmd = createCmd();

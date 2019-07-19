@@ -112,7 +112,8 @@ public class CreateStreamCommandTest {
   public void shouldExtractHoppingWindowType() {
     // Given:
     givenPropertiesWith(ImmutableMap.of(
-        CreateConfigs.WINDOW_TYPE_PROPERTY, new StringLiteral("HoPPing")));
+        CreateConfigs.WINDOW_TYPE_PROPERTY, new StringLiteral("HoPPing"),
+        CreateConfigs.WINDOW_SIZE_PROPERTY, new StringLiteral("5 SECONDS")));
 
     // When:
     final CreateStreamCommand cmd = createCmd();
@@ -126,7 +127,8 @@ public class CreateStreamCommandTest {
   public void shouldExtractTumblingWindowType() {
     // Given:
     givenPropertiesWith(ImmutableMap.of(
-        CreateConfigs.WINDOW_TYPE_PROPERTY, new StringLiteral("Tumbling")));
+        CreateConfigs.WINDOW_TYPE_PROPERTY, new StringLiteral("Tumbling"),
+        CreateConfigs.WINDOW_SIZE_PROPERTY, new StringLiteral("5 SECONDS")));
 
     // When:
     final CreateStreamCommand cmd = createCmd();
@@ -134,6 +136,38 @@ public class CreateStreamCommandTest {
     // Then:
     assertThat(cmd.keySerdeFactory.create(),
         is(instanceOf(WindowedSerdes.timeWindowedSerdeFrom(String.class).getClass())));
+  }
+
+  @Test
+  public void shouldThrowIfHoppingWindowSizeIsNotSet() {
+    // Given:
+    givenPropertiesWith(ImmutableMap.of(
+        CreateConfigs.WINDOW_TYPE_PROPERTY, new StringLiteral("HoPPing")));
+
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(
+        "Tumbling and Hopping window types should set WINDOW_SIZE in the WITH clause.");
+
+    // When:
+    final CreateStreamCommand cmd = createCmd();
+
+  }
+
+  @Test
+  public void shouldThrowIfTumblingWindowSizeIsNotSet() {
+    // Given:
+    givenPropertiesWith(ImmutableMap.of(
+        CreateConfigs.WINDOW_TYPE_PROPERTY, new StringLiteral("Tumbling")));
+
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(
+        "Tumbling and Hopping window types should set WINDOW_SIZE in the WITH clause.");
+
+    // When:
+    final CreateStreamCommand cmd = createCmd();
+
   }
 
   @Test

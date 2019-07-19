@@ -399,9 +399,15 @@ The WITH clause supports the following properties:
 |                         | ``DELIMITED``, or when the value schema has multiple fields, will result in an error.      |
 +-------------------------+--------------------------------------------------------------------------------------------+
 | WINDOW_TYPE             | By default, the topic is assumed to contain non-windowed data. If the data is windowed,    |
-|                         | i.e. was created using KSQL using a query that contains a ``WINDOW`` clause, then the      |
+|                         | i.e., was created using KSQL using a query that contains a ``WINDOW`` clause, then the     |
 |                         | ``WINDOW_TYPE`` property can be used to provide the window type. Valid values are          |
 |                         | ``SESSION``, ``HOPPING`, and ``TUMBLING``.                                                 |
++-------------------------+--------------------------------------------------------------------------------------------+
+| WINDOW_SIZE             | By default, the topic is assumed to contain non-windowed data. If the data is windowed,    |
+|                         | i.e., was created using KSQL using a query that contains a ``WINDOW`` clause, and the      |
+|                         | ``WINDOW_TYPE`` property is TUMBLING or HOPPING, then the WINDOW_SIZE property should be   |
+|                         | set. The property is a string with two literals, window size (a number) and window size    |
+|                         | unit (a time unit). For example: '10 SECONDS'.                                             |
 +-------------------------+--------------------------------------------------------------------------------------------+
 
 For more information on timestamp formats, see
@@ -517,6 +523,12 @@ The WITH clause supports the following properties:
 |                         | i.e. was created using KSQL using a query that contains a ``WINDOW`` clause, then the      |
 |                         | ``WINDOW_TYPE`` property can be used to provide the window type. Valid values are          |
 |                         | ``SESSION``, ``HOPPING`, and ``TUMBLING``.                                                 |
++-------------------------+--------------------------------------------------------------------------------------------+
+| WINDOW_SIZE             | By default, the topic is assumed to contain non-windowed data. If the data is windowed,    |
+|                         | i.e., was created using KSQL using a query that contains a ``WINDOW`` clause, and the      |
+|                         | ``WINDOW_TYPE`` property is TUMBLING or HOPPING, then the WINDOW_SIZE property should be   |
+|                         | set. The property is a string with two literals, window size (a number) and window size    |
+|                         | unit (a time unit). For example: '10 SECONDS'.                                             |
 +-------------------------+--------------------------------------------------------------------------------------------+
 
 .. include:: ../includes/ksql-includes.rst

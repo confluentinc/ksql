@@ -7,7 +7,6 @@ import static org.hamcrest.Matchers.is;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.function.udf.Kudf;
-import io.confluent.ksql.util.GenericsUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Arrays;
@@ -454,6 +453,39 @@ public class UdfIndexTest {
   }
 
   @Test
+  public void shouldMatchGenericMethodWithMultipleIdenticalGenerics() {
+    // Given:
+    final Schema generic = GenericsUtil.generic("A").build();
+    final KsqlFunction[] functions = new KsqlFunction[]{
+        function(EXPECTED, false, generic, generic)
+    };
+    Arrays.stream(functions).forEach(udfIndex::addFunction);
+
+    // When:
+    final KsqlFunction fun = udfIndex.getFunction(ImmutableList.of(INT, INT));
+
+    // Then:
+    assertThat(fun.getFunctionName(), equalTo(EXPECTED));
+  }
+
+  @Test
+  public void shouldMatchGenericMethodWithMultipleGenerics() {
+    // Given:
+    final Schema genericA = GenericsUtil.generic("A").build();
+    final Schema genericB = GenericsUtil.generic("B").build();
+    final KsqlFunction[] functions = new KsqlFunction[]{
+        function(EXPECTED, false, genericA, genericB)
+    };
+    Arrays.stream(functions).forEach(udfIndex::addFunction);
+
+    // When:
+    final KsqlFunction fun = udfIndex.getFunction(ImmutableList.of(INT, STRING));
+
+    // Then:
+    assertThat(fun.getFunctionName(), equalTo(EXPECTED));
+  }
+
+  @Test
   public void shouldNotMatchIfParamLengthDiffers() {
     // Given:
     final KsqlFunction[] functions = new KsqlFunction[]{function(OTHER, false, STRING)};
@@ -597,6 +629,24 @@ public class UdfIndexTest {
 
     // When:
     udfIndex.getFunction(ImmutableList.of(STRUCT3_PERMUTE));
+  }
+
+  @Test
+  public void shouldNotMatchGenericMethodWithAlreadyReservedTypes() {
+    // Given:
+    final Schema generic = GenericsUtil.generic("A").build();
+    final KsqlFunction[] functions = new KsqlFunction[]{
+        function(EXPECTED, false, generic, generic)
+    };
+    Arrays.stream(functions).forEach(udfIndex::addFunction);
+
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(is("Function 'name' does not accept parameters of types:"
+        + "[INT, VARCHAR]"));
+
+    // When:
+    udfIndex.getFunction(ImmutableList.of(INT, STRING));
   }
 
 

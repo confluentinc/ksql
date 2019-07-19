@@ -21,12 +21,13 @@ import io.confluent.ksql.function.udf.UdfParameter;
 import java.util.Arrays;
 import java.util.List;
 
-@UdfDescription(name = "AS_LIST", description = "Construct a list based on some inputs")
-public class AsList {
+@UdfDescription(name = "AS_ARRAY", description = "Construct a list based on some inputs")
+public class AsArray {
 
-  @SuppressWarnings("unchecked")
+  @SuppressWarnings("varargs")
+  @SafeVarargs
   @Udf
-  public final <T> List<T> asList(@UdfParameter final T... elements) {
+  public final <T> List<T> asArray(@UdfParameter final T... elements) {
     return Arrays.asList(elements);
   }
 

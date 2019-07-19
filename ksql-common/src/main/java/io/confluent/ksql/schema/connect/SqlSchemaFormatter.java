@@ -17,10 +17,9 @@ package io.confluent.ksql.schema.connect;
 
 import static java.util.Objects.requireNonNull;
 
+import io.confluent.ksql.function.GenericsUtil;
 import io.confluent.ksql.util.DecimalUtil;
-import io.confluent.ksql.util.GenericsUtil;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
@@ -149,7 +148,6 @@ public class SqlSchemaFormatter implements SchemaFormatter {
 
     @Override
     public String visitBytes(final Schema schema) {
-      SchemaUtil.requireValidBytesType(schema);
       if (DecimalUtil.isDecimal(schema)) {
         return "DECIMAL("
             + DecimalUtil.precision(schema) + ", "
@@ -158,7 +156,7 @@ public class SqlSchemaFormatter implements SchemaFormatter {
         return GenericsUtil.name(schema);
       }
 
-      throw new IllegalStateException("Branch not covered by requireValidBytesType!");
+      throw new KsqlException("Cannot format bytes type: " + schema);
     }
 
     public String visitArray(final Schema schema, final String element) {

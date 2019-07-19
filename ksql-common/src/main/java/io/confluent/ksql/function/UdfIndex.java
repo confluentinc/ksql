@@ -19,7 +19,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import io.confluent.ksql.schema.connect.SqlSchemaFormatter;
-import io.confluent.ksql.util.GenericsUtil;
 import io.confluent.ksql.util.KsqlException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -143,7 +142,7 @@ public class UdfIndex<T extends IndexedFunction> {
 
   T getFunction(final List<Schema> arguments) {
     final List<Node> candidates = new ArrayList<>();
-    getCandidates(arguments, 0, root, candidates);
+    getCandidates(arguments, 0, root, candidates, new HashMap<>());
 
     return candidates
         .stream()
@@ -156,7 +155,8 @@ public class UdfIndex<T extends IndexedFunction> {
       final List<Schema> arguments,
       final int argIndex,
       final Node current,
-      final List<Node> candidates
+      final List<Node> candidates,
+      final Map<Schema, Schema> reservedGenerics
   ) {
     if (argIndex == arguments.size()) {
       if (current.value != null) {
@@ -166,17 +166,17 @@ public class UdfIndex<T extends IndexedFunction> {
     }
 
     final Schema arg = arguments.get(argIndex);
-    current.children
-        .entrySet()
-        .stream()
-        .filter(entry -> entry.getKey().accepts(arg))
-        .map(Entry::getValue)
-        .forEach(node -> getCandidates(arguments, argIndex + 1, node, candidates));
+    for (Entry<Parameter, Node> candidate : current.children.entrySet()) {
+      final Map<Schema, Schema> reservedCopy = new HashMap<>(reservedGenerics);
+      if (candidate.getKey().accepts(arg, reservedCopy)) {
+        final Node node = candidate.getValue();
+        getCandidates(arguments, argIndex + 1, node, candidates, reservedCopy);
+      }
+    }
   }
 
   private KsqlException createNoMatchingFunctionException(final List<Schema> paramTypes) {
     LOG.debug("Current UdfIndex:\n{}", describe());
-    System.out.println(describe());
 
     final String sqlParamTypes = paramTypes.stream()
         .map(schema -> schema == null
@@ -259,16 +259,9 @@ public class UdfIndex<T extends IndexedFunction> {
 
     private static final Map<Type, BiPredicate<Schema, Schema>> CUSTOM_SCHEMA_EQ =
         ImmutableMap.<Type, BiPredicate<Schema, Schema>>builder()
-            .put(Type.MAP, (a, b) ->
-                Objects.equals(a.keySchema(), b.keySchema())
-                    && Objects.equals(a.valueSchema(), b.valueSchema())
-                    || isValidGeneric(a, b))
-            .put(Type.ARRAY, (a, b) -> Objects.equals(a.valueSchema(), b.valueSchema())
-                || isValidGeneric(a, b))
-            .put(Type.STRUCT, (a, b) ->
-                a.fields().isEmpty()
-                || b.fields().isEmpty()
-                || Objects.equals(a.fields(), b.fields()))
+            .put(Type.MAP, Parameter::mapEquals)
+            .put(Type.ARRAY, Parameter::arrayEquals)
+            .put(Type.STRUCT, Parameter::structEquals)
             .build();
 
     private final Schema schema;
@@ -298,23 +291,26 @@ public class UdfIndex<T extends IndexedFunction> {
     }
 
     /**
-     * @param argument the argument to test against
+     * @param argument         the argument to test against
+     * @param reservedGenerics a mapping of generics to already reserved types - this map
+     *                         will be updated if the parameter is generic to point to the
+     *                         current argument for future checks to accept
+     *
      * @return whether or not this argument can be used as a value for
      *         this parameter
      */
     // CHECKSTYLE_RULES.OFF: BooleanExpressionComplexity
-    boolean accepts(final Schema argument) {
+    boolean accepts(final Schema argument, final Map<Schema, Schema> reservedGenerics) {
       if (argument == null) {
         return schema.isOptional();
       }
 
-      if (GenericsUtil.isGeneric(schema)) {
-        // since we only support one generic per method, this should work
-        // if we decide in the future to support more generics, then we
-        // need to make sure that we pass a long a map of generic->resolved
-        // and only resolve a generic to a new type if it's never been seen
-        // before
-        return true;
+      if (!GenericsUtil.constituentGenerics(schema).isEmpty()
+          && GenericsUtil.instanceOf(schema, argument)) {
+        // check if this specific generic has already been resolved to some other
+        // type - if not, reserve it for future checks to accept
+        final Schema old = reservedGenerics.putIfAbsent(schema, argument);
+        return old == null || old.equals(argument);
       }
 
       final Schema.Type type = schema.type();
@@ -331,13 +327,20 @@ public class UdfIndex<T extends IndexedFunction> {
     }
     // CHECKSTYLE_RULES.ON: BooleanExpressionComplexity
 
-    private static boolean isValidGeneric(final Schema schema, final Schema instance) {
-      try {
-        GenericsUtil.resolve(schema, GenericsUtil.identifyGenerics(schema, instance));
-        return true;
-      } catch (final Exception e) {
-        return false;
-      }
+
+    private static boolean mapEquals(final Schema mapA, final Schema mapB) {
+      return Objects.equals(mapA.keySchema(), mapB.keySchema())
+          && Objects.equals(mapA.valueSchema(), mapB.valueSchema());
+    }
+
+    private static boolean arrayEquals(final Schema arrayA, final Schema arrayB) {
+      return Objects.equals(arrayA.valueSchema(), arrayB.valueSchema());
+    }
+
+    private static boolean structEquals(final Schema structA, final Schema structB) {
+      return structA.fields().isEmpty()
+          || structB.fields().isEmpty()
+          || Objects.equals(structA.fields(), structB.fields());
     }
 
     @Override

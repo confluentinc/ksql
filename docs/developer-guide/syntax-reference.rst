@@ -1528,6 +1528,12 @@ Scalar functions
 | ARRAYCONTAINS          |  ``ARRAYCONTAINS('[1, 2, 3]', 3)``                                        | Given JSON or AVRO array checks if a search       |
 |                        |                                                                           | value contains in it                              |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| AS_ARRAY               |  ``AS_ARRAY(col1, col2)```                                                | Construct an array from a variable number of      |
+|                        |                                                                           | inputs.                                           |
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| AS_MAP                 |  ``AS_MAP(keys, vals)```                                                  | Construct a map from a list of keys and list of   |
+|                        |                                                                           | values.                                           |
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | CEIL                   |  ``CEIL(col1)``                                                           | The ceiling of a value.                           |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | CONCAT                 |  ``CONCAT(col1, '_hello')``                                               | Concatenate two strings.                          |
@@ -1641,6 +1647,10 @@ Scalar functions
 | ROUND                  |  ``ROUND(col1)``                                                          | Round a value to the nearest BIGINT value.        |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | SQRT                   |  ``SQRT(col1)``                                                           | The square root of a value.                       |
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| SLICE                  |  ``SLICE(col1, from, to)``                                                | Slices a list based on the supplied indices. The  |
+|                        |                                                                           | indexes start at 1 and are inclusive of both      |
+|                        |                                                                           | endpoints.                                        |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | SPLIT                  |  ``SPLIT(col1, delimiter)``                                               | Splits a string into an array of substrings based |
 |                        |                                                                           | on a delimiter. If the delimiter is not found,    |

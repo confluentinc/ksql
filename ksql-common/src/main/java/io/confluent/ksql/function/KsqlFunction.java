@@ -18,7 +18,6 @@ package io.confluent.ksql.function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import io.confluent.ksql.function.udf.Kudf;
-import io.confluent.ksql.util.GenericsUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.HashMap;
@@ -38,7 +37,7 @@ public final class KsqlFunction implements IndexedFunction {
   static final String INTERNAL_PATH = "internal";
 
   private final Schema returnType;
-  private final List<Schema> arguments;
+  private final List<Schema> parameters;
   private final String functionName;
   private final Class<? extends Kudf> kudfClass;
   private final Function<KsqlConfig, Kudf> udfFactory;
@@ -106,7 +105,7 @@ public final class KsqlFunction implements IndexedFunction {
       final String pathLoadedFrom,
       final boolean isVariadic) {
     this.returnType = Objects.requireNonNull(returnType, "returnType");
-    this.arguments = ImmutableList.copyOf(Objects.requireNonNull(arguments, "arguments"));
+    this.parameters = ImmutableList.copyOf(Objects.requireNonNull(arguments, "arguments"));
     this.functionName = Objects.requireNonNull(functionName, "functionName");
     this.kudfClass = Objects.requireNonNull(kudfClass, "kudfClass");
     this.udfFactory = Objects.requireNonNull(udfFactory, "udfFactory");
@@ -141,23 +140,23 @@ public final class KsqlFunction implements IndexedFunction {
     }
 
     final Map<Schema, Schema> genericMapping = new HashMap<>();
-    for (int i = 0; i < Math.min(this.arguments.size(), arguments.size()); i++) {
-      final Schema schema = this.arguments.get(i);
+    for (int i = 0; i < Math.min(parameters.size(), arguments.size()); i++) {
+      final Schema schema = parameters.get(i);
 
       // we resolve any variadic as if it were an array so that the type
       // structure matches the input type
-      final Schema instance = isVariadic && i == this.arguments.size() - 1
+      final Schema instance = isVariadic && i == parameters.size() - 1
           ? SchemaBuilder.array(arguments.get(i)).build()
           : arguments.get(i);
 
-      GenericsUtil.identifyGenerics(genericMapping, schema, instance);
+      genericMapping.putAll(GenericsUtil.identifyGenerics(schema, instance));
     }
 
     return GenericsUtil.resolve(returnType, genericMapping);
   }
 
   public List<Schema> getArguments() {
-    return arguments;
+    return parameters;
   }
 
   public String getFunctionName() {
@@ -190,7 +189,7 @@ public final class KsqlFunction implements IndexedFunction {
     }
     final KsqlFunction that = (KsqlFunction) o;
     return Objects.equals(returnType, that.returnType)
-        && Objects.equals(arguments, that.arguments)
+        && Objects.equals(parameters, that.parameters)
         && Objects.equals(functionName, that.functionName)
         && Objects.equals(kudfClass, that.kudfClass)
         && Objects.equals(pathLoadedFrom, that.pathLoadedFrom)
@@ -199,14 +198,15 @@ public final class KsqlFunction implements IndexedFunction {
 
   @Override
   public int hashCode() {
-    return Objects.hash(returnType, arguments, functionName, kudfClass, pathLoadedFrom, isVariadic);
+    return Objects.hash(
+        returnType, parameters, functionName, kudfClass, pathLoadedFrom, isVariadic);
   }
 
   @Override
   public String toString() {
     return "KsqlFunction{"
         + "returnType=" + returnType
-        + ", arguments=" + arguments.stream().map(Schema::type).collect(Collectors.toList())
+        + ", arguments=" + parameters.stream().map(Schema::type).collect(Collectors.toList())
         + ", functionName='" + functionName + '\''
         + ", kudfClass=" + kudfClass
         + ", description='" + description + "'"

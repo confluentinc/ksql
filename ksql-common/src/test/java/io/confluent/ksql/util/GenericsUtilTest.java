@@ -18,10 +18,12 @@ package io.confluent.ksql.util;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.is;
 
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.function.GenericsUtil;
 import java.util.Map;
 import java.util.Set;
 import org.apache.kafka.connect.data.Schema;
@@ -113,6 +115,20 @@ public class GenericsUtilTest {
   }
 
   @Test
+  public void shouldFindNoConstituentGenerics() {
+    // Given:
+    final Schema struct = SchemaBuilder.struct()
+        .field("a", Schema.OPTIONAL_INT64_SCHEMA)
+        .field("b", DecimalUtil.builder(1, 1).build());
+
+    // When:
+    final Set<Schema> generics = GenericsUtil.constituentGenerics(struct);
+
+    // Then:
+    assertThat(generics, empty());
+  }
+
+  @Test
   public void shouldResolveSchemaWithMapping() {
     // Given:
     final Schema a = GenericsUtil.generic("A").build();
@@ -197,10 +213,77 @@ public class GenericsUtilTest {
     assertThat(mapping, hasEntry(a.valueSchema(), Schema.OPTIONAL_STRING_SCHEMA));
   }
 
-  @Test(expected = KsqlException.class)
-  public void shouldThrowOnNonLettersInTypeName() {
+  @Test
+  public void shouldIdentifyMapWithStructValueAndGenericKey() {
+    // Given:
+    final Schema mapWithGenericArray = SchemaBuilder.map(
+        GenericsUtil.generic("K").build(),
+        SchemaBuilder.struct().field("a", Schema.OPTIONAL_STRING_SCHEMA).build())
+        .build();
+    final Schema instance = SchemaBuilder.map(
+        Schema.OPTIONAL_STRING_SCHEMA,
+        SchemaBuilder.struct().field("a", Schema.OPTIONAL_STRING_SCHEMA));
+
     // When:
-    GenericsUtil.generic("!");
+    final Map<Schema, Schema> mapping = GenericsUtil.identifyGenerics(mapWithGenericArray, instance);
+
+    // Then:
+    assertThat(mapping, hasEntry(GenericsUtil.generic("K").build(), Schema.OPTIONAL_STRING_SCHEMA));
+  }
+
+  @Test
+  public void shouldIdentifyComplexInstanceOf() {
+    // Given:
+    final Schema mapWithGenericArray = GenericsUtil.map(GenericsUtil.array("K").build(), "V");
+    final Schema instance = SchemaBuilder.map(
+        SchemaBuilder.array(Schema.OPTIONAL_STRING_SCHEMA),
+        Schema.OPTIONAL_INT32_SCHEMA);
+
+    // When:
+    final boolean isInstance = GenericsUtil.instanceOf(mapWithGenericArray, instance);
+
+    // Then:
+    assertThat("expected instance of", isInstance);
+  }
+
+  @Test
+  public void shouldNotIdentifyInstanceOfGenericMismatch() {
+    // Given:
+    final Schema mapWithGenericArray = GenericsUtil.map(GenericsUtil.generic("K").build(), "K");
+    final Schema instance = SchemaBuilder.map(
+        Schema.OPTIONAL_STRING_SCHEMA,
+        Schema.OPTIONAL_INT32_SCHEMA);
+
+    // When:
+    final boolean isInstance = GenericsUtil.instanceOf(mapWithGenericArray, instance);
+
+    // Then:
+    assertThat("expected not instance of", !isInstance);
+  }
+
+  @Test
+  public void shouldNotIdentifyInstanceOfTypeMismatch() {
+    // Given:
+    final Schema mapWithGenericArray = GenericsUtil.map(Schema.OPTIONAL_STRING_SCHEMA, "K");
+    final Schema instance = SchemaBuilder.array(Schema.OPTIONAL_STRING_SCHEMA);
+
+    // When:
+    final boolean isInstance = GenericsUtil.instanceOf(mapWithGenericArray, instance);
+
+    // Then:
+    assertThat("expected not instance of", !isInstance);
+  }
+
+  @Test
+  public void shouldExtractValidNameFromGeneric() {
+    // Given:
+    final Schema generic = GenericsUtil.generic("party");
+
+    // When:
+    final String name = GenericsUtil.name(generic);
+
+    // Then:
+    assertThat(name, is("party"));
   }
 
   @Test(expected = KsqlException.class)
@@ -210,5 +293,34 @@ public class GenericsUtilTest {
         GenericsUtil.map(GenericsUtil.generic("A").build(), "A").build(),
         SchemaBuilder.map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_INT64_SCHEMA).build()
     );
+  }
+
+  @Test(expected = KsqlException.class)
+  public void shouldFailResolveSchemaWithIncompleteMapping() {
+    // Given:
+    final Schema a = GenericsUtil.generic("A").build();
+    final Map<Schema, Schema> mapping = ImmutableMap.of();
+
+    // When:
+    GenericsUtil.resolve(a, mapping);
+  }
+
+  @Test(expected = KsqlException.class)
+  public void shouldFailIdentifyMismatchStructureGeneric() {
+    // Given:
+    final Schema a = GenericsUtil.map(Schema.OPTIONAL_STRING_SCHEMA, "A").build();
+    final Schema instance = SchemaBuilder.array(Schema.OPTIONAL_STRING_SCHEMA).build();
+
+    // When:
+    GenericsUtil.identifyGenerics(a, instance);
+  }
+
+  @Test(expected = KsqlException.class)
+  public void shouldThrowIfExtractInvalidGenericName() {
+    // Given:
+    final Schema invalid = SchemaBuilder.bytes().name("fubar").build();
+
+    // When:
+    GenericsUtil.name(invalid);
   }
 }

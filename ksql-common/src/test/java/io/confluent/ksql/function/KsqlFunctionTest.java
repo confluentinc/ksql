@@ -20,7 +20,6 @@ import static org.hamcrest.CoreMatchers.is;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.function.udf.Kudf;
-import io.confluent.ksql.util.GenericsUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.List;
 import java.util.function.Function;

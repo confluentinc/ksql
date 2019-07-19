@@ -22,6 +22,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.notNullValue;
 
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.function.GenericsUtil;
 import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import java.lang.reflect.Type;
@@ -777,103 +778,6 @@ public class SchemaUtilTest {
     SchemaUtil.resolveBinaryOperatorResultType(Schema.BOOLEAN_SCHEMA, Schema.FLOAT64_SCHEMA, Operator.ADD);
   }
 
-  @Test
-  public void shouldGetBooleanSchemaForBooleanClass() {
-    assertThat(SchemaUtil.getSchemaFromType(Boolean.class),
-        equalTo(Schema.OPTIONAL_BOOLEAN_SCHEMA));
-  }
-
-  @Test
-  public void shouldGetBooleanSchemaForBooleanPrimitiveClass() {
-    assertThat(SchemaUtil.getSchemaFromType(boolean.class),
-        equalTo(Schema.BOOLEAN_SCHEMA));
-  }
-
-  @Test
-  public void shouldGetIntSchemaForIntegerClass() {
-    assertThat(SchemaUtil.getSchemaFromType(Integer.class),
-        equalTo(Schema.OPTIONAL_INT32_SCHEMA));
-  }
-
-  @Test
-  public void shouldGetIntegerSchemaForIntPrimitiveClass() {
-    assertThat(SchemaUtil.getSchemaFromType(int.class),
-        equalTo(Schema.INT32_SCHEMA));
-  }
-
-  @Test
-  public void shouldGetLongSchemaForLongClass() {
-    assertThat(SchemaUtil.getSchemaFromType(Long.class),
-        equalTo(Schema.OPTIONAL_INT64_SCHEMA));
-  }
-
-  @Test
-  public void shouldGetLongSchemaForLongPrimitiveClass() {
-    assertThat(SchemaUtil.getSchemaFromType(long.class),
-        equalTo(Schema.INT64_SCHEMA));
-  }
-
-  @Test
-  public void shouldGetFloatSchemaForDoubleClass() {
-    assertThat(SchemaUtil.getSchemaFromType(Double.class),
-        equalTo(Schema.OPTIONAL_FLOAT64_SCHEMA));
-  }
-
-  @Test
-  public void shouldGetFloatSchemaForDoublePrimitiveClass() {
-    assertThat(SchemaUtil.getSchemaFromType(double.class),
-        equalTo(Schema.FLOAT64_SCHEMA));
-  }
-
-  @Test
-  public void shouldGetMapSchemaFromMapClass() throws NoSuchMethodException {
-    final Type type = getClass().getDeclaredMethod("mapType", Map.class)
-        .getGenericParameterTypes()[0];
-    final Schema schema = SchemaUtil.getSchemaFromType(type);
-    assertThat(schema.type(), equalTo(Schema.Type.MAP));
-    assertThat(schema.keySchema(), equalTo(Schema.OPTIONAL_STRING_SCHEMA));
-    assertThat(schema.valueSchema(), equalTo(Schema.OPTIONAL_INT32_SCHEMA));
-  }
-
-  @Test
-  public void shouldGetArraySchemaFromListClass() throws NoSuchMethodException {
-    final Type type = getClass().getDeclaredMethod("listType", List.class)
-        .getGenericParameterTypes()[0];
-    final Schema schema = SchemaUtil.getSchemaFromType(type);
-    assertThat(schema.type(), equalTo(Schema.Type.ARRAY));
-    assertThat(schema.valueSchema(), equalTo(Schema.OPTIONAL_FLOAT64_SCHEMA));
-  }
-
-  @Test
-  public void shouldGetStringSchemaFromStringClass() {
-    assertThat(SchemaUtil.getSchemaFromType(String.class),
-        equalTo(Schema.OPTIONAL_STRING_SCHEMA));
-  }
-
-  @Test(expected = KsqlException.class)
-  public void shouldThrowExceptionIfClassDoesntMapToSchema() {
-    SchemaUtil.getSchemaFromType(System.class);
-  }
-
-  @Test
-  public void shouldDefaultToNoNameOnGetSchemaFromType() {
-    assertThat(SchemaUtil.getSchemaFromType(Double.class).name(), is(nullValue()));
-  }
-
-  @Test
-  public void shouldDefaultToNoDocOnGetSchemaFromType() {
-    assertThat(SchemaUtil.getSchemaFromType(Double.class).doc(), is(nullValue()));
-  }
-
-  @Test
-  public void shouldSetNameOnGetSchemaFromType() {
-    assertThat(SchemaUtil.getSchemaFromType(Double.class, "name", "").name(), is("name"));
-  }
-
-  @Test
-  public void shouldSetDocOnGetSchemaFromType() {
-    assertThat(SchemaUtil.getSchemaFromType(Double.class, "", "doc").doc(), is("doc"));
-  }
 
   @Test
   public void shouldPassIsNumberForInt() {
@@ -999,52 +903,5 @@ public class SchemaUtilTest {
     ));
   }
 
-  @Test
-  public void shouldGetGenericSchemaFromType() throws NoSuchMethodException {
-    // Given:
-    final Type genericType = getClass().getMethod("genericType").getGenericReturnType();
-
-    // When:
-    final Schema returnType = SchemaUtil.getSchemaFromType(genericType);
-
-    // Then:
-    assertThat(returnType, is(GenericsUtil.generic("T").build()));
-  }
-
-  @Test
-  public void shouldGetGenericSchemaFromParameterizedType() throws NoSuchMethodException {
-    // Given:
-    final Type genericType = getClass().getMethod("genericMapType").getGenericReturnType();
-
-    // When:
-    final Schema returnType = SchemaUtil.getSchemaFromType(genericType);
-
-    // Then:
-    assertThat(returnType, is(GenericsUtil.map(Schema.OPTIONAL_STRING_SCHEMA, "T").build()));
-  }
-
-  // following methods not invoked but used to test conversion from type -> schema
-  @SuppressWarnings({"unused", "WeakerAccess"})
-  public <T> T genericType() {
-    return null;
-  }
-
-  @SuppressWarnings({"unused", "WeakerAccess"})
-  public <T> List<T> genericArrayType() {
-    return null;
-  }
-
-  @SuppressWarnings({"unused", "WeakerAccess"})
-  public <T> Map<String, T> genericMapType() {
-    return null;
-  }
-
-  @SuppressWarnings("unused")
-  private void mapType(final Map<String, Integer> map) {
-  }
-
-  @SuppressWarnings("unused")
-  private void listType(final List<Double> list) {
-  }
 }
 

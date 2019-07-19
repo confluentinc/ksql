@@ -103,6 +103,14 @@ The KSQL server will check the value being passed to each parameter and report a
 log for any null values being passed to a primitive type. The associated column in the output row
 will be ``null``.
 
+Generics in UDFS
+~~~~~~~~~~~~~~~~
+
+A UDF declaration can utilize generics if they match the following conditions:
+
+- Any generic in the return value of a method must appear in at least one of the method parameters
+- The generic must not adhere to any interface (e.g. `<T extends Number>` is invalid)
+
 .. _example-udf-class:
 
 Example UDF class

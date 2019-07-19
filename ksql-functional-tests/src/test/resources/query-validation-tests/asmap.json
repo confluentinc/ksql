@@ -10,12 +10,18 @@
         "CREATE STREAM OUTPUT AS SELECT AS_MAP(ks, vals) as m FROM TEST;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 1, "value": {"ks":  ["a", "b"], "vals":  [1, 2]}, "timestamp": 0},
-        {"topic": "test_topic", "key": 1, "value": {"ks":  ["a", "b", "c"], "vals":  [1, 2, 3]}, "timestamp": 0}
+        {"topic": "test_topic", "value": {"ks":  ["a", "b"], "vals":  [1, 2]}},
+        {"topic": "test_topic", "value": {"ks":  ["a", "b", "c"], "vals":  [1, 2, 3]}},
+        {"topic": "test_topic", "value": {"ks":  ["a", "b", null], "vals":  [1, 2, 3]}},
+        {"topic": "test_topic", "value": {"ks":  ["a", "b"], "vals":  [1, 2, 3]}},
+        {"topic": "test_topic", "value": {"ks":  ["a", "b", "c"], "vals":  [1, 2, null]}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": 1, "value": {"M":  {"a":  1, "b":  2}}, "timestamp": 0},
-        {"topic": "OUTPUT", "key": 1, "value": {"M":  {"a":  1, "b":  2, "c":  3}}, "timestamp": 0}
+        {"topic": "OUTPUT", "value": {"M":  {"a":  1, "b":  2}}},
+        {"topic": "OUTPUT", "value": {"M":  {"a":  1, "b":  2, "c":  3}}},
+        {"topic": "OUTPUT", "value": {"M":  null}},
+        {"topic": "OUTPUT", "value": {"M":  null}},
+        {"topic": "OUTPUT", "value": {"M":  {"a":  1, "b":  2, "c":  null}}}
       ]
     }
   ]

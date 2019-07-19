@@ -18,7 +18,6 @@ package io.confluent.ksql.function.udf.map;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
-import io.confluent.ksql.util.KsqlPreconditions;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -30,11 +29,15 @@ public class AsMap {
   public final <T> Map<String, T> asMap(
       @UdfParameter final List<String> keys,
       @UdfParameter final List<T> values) {
-    KsqlPreconditions.checkArgument(
-        keys.size() == values.size(),
-        "There must be a one to one mapping between keys and values to create a map!");
+    if (keys.size() != values.size()) {
+      return null;
+    }
+
     final Map<String, T> map = new HashMap<>();
     for (int i = 0; i < keys.size(); i++) {
+      if (keys.get(i) == null) {
+        return null;
+      }
       map.putIfAbsent(keys.get(i), values.get(i));
     }
     return map;

@@ -20,7 +20,7 @@ import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
-
+import io.confluent.ksql.util.KsqlConstants;
 import java.util.List;
 
 /**
@@ -31,7 +31,7 @@ import java.util.List;
  * <p>An optional fifth parameter allows to specify either "MI" (miles) or "KM" (kilometers) as the
  * desired unit for the output measurement. Default is KM.
  */
-@UdfDescription(name = "geo_distance", author = "Confluent",
+@UdfDescription(name = "geo_distance", author = KsqlConstants.CONFLUENT_AUTHOR,
     description = "Compute the distance between two points on the surface of the earth,"
         + " according to the Haversine formula for \"great circle distance\".")
 public class GeoDistance {

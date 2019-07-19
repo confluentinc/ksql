@@ -20,6 +20,8 @@ public final class KsqlConstants {
   private KsqlConstants() {
   }
 
+  public static final String CONFLUENT_AUTHOR = "Confluent";
+
   public static final String KSQL_INTERNAL_TOPIC_PREFIX = "_confluent-ksql-";
   public static final String CONFLUENT_INTERNAL_TOPIC_PREFIX = "__confluent";
 

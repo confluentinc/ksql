@@ -51,7 +51,7 @@ public final class KsqlEngineTestUtil {
         ProcessingLogContext.create(),
         "test_instance_",
         metaStore,
-        (engine) -> new KsqlEngineMetrics(engine, Collections.emptyMap())
+        (engine) -> new KsqlEngineMetrics(engine, Collections.emptyMap(), Optional.empty())
     );
   }
 

@@ -149,6 +149,11 @@ public class KsqlConfig extends AbstractConfig {
       "A list of tags to be included with emitted JMX metrics, formatted as a string of key:value "
       + "pairs separated by commas. For example, 'key1:value1,key2:value2'.";
 
+  public static final String KSQL_CUSTOM_METRICS_EXTENSION = "ksql.metrics.extension";
+  private static final String KSQL_CUSTOM_METRICS_EXTENSION_DOC =
+      "Extension for supplying custom metrics to be emitted along with "
+      + "the engine's default JMX metrics";
+
   public static final String KSQL_STREAMS_PREFIX = "ksql.streams.";
 
   public static final String KSQL_COLLECT_UDF_METRICS = "ksql.udf.collect.metrics";
@@ -459,6 +464,12 @@ public class KsqlConfig extends AbstractConfig {
             "",
             ConfigDef.Importance.LOW,
             KSQL_CUSTOM_METRICS_TAGS_DOC
+        ).define(
+            KSQL_CUSTOM_METRICS_EXTENSION,
+            ConfigDef.Type.CLASS,
+            null,
+            ConfigDef.Importance.LOW,
+            KSQL_CUSTOM_METRICS_EXTENSION_DOC
         )
         .withClientSslSupport();
     for (final CompatibilityBreakingConfigDef compatibilityBreakingConfigDef

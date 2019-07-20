@@ -114,13 +114,16 @@ final class TestExecutor {
       final TopologyTestDriverContainer topologyTestDriverContainer,
       final ServiceContext serviceContext
   ) {
+
     for (final Record record : testCase.getInputRecords()) {
-      TestCase.processSingleRecord(
-          FakeKafkaRecord.of(record, null),
-          fakeKafkaService,
-          topologyTestDriverContainer,
-          serviceContext.getSchemaRegistryClient()
-      );
+      if (topologyTestDriverContainer.getSourceTopicNames().contains(record.topic.getName())) {
+        TestCase.processSingleRecord(
+            FakeKafkaRecord.of(record, null),
+            fakeKafkaService,
+            topologyTestDriverContainer,
+            serviceContext.getSchemaRegistryClient()
+        );
+      }
     }
   }
 

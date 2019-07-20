@@ -15,9 +15,9 @@
 
 package io.confluent.ksql.version.metrics.collector;
 
+import io.confluent.ksql.util.Version;
 import io.confluent.ksql.version.metrics.KsqlVersionMetrics;
 import io.confluent.support.metrics.common.Collector;
-import io.confluent.support.metrics.common.Version;
 import java.time.Clock;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;

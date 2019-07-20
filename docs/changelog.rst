@@ -26,6 +26,17 @@ KSQL 5.3.0 includes new features, including:
 * ``CREATE STREAM`` and ``CREATE TABLE`` will now allow you to create the topic if it is missing.
   To do this, specify the ``PARTITIONS`` and optionally ``REPLICAS`` in the ``WITH`` clause.
 
+* ``CREATE STREAM AS SELECT ...`` and ``CREATE TABLE AS SELECT ...`` statements now use the source
+  topic partitions and replica counts for the sink topic if the config properties are not set in the ``WITH`` clause.
+  In case of JOIN, the left hand side topic is used.
+  This deprecates ``ksql.sink.partitions`` and ``ksql.sink.replicas`` config properties.
+
+* A new config variable, ``ksql.internal.topic.replicas``, was introduced to set the replica count for
+  the internal topics created by KSQL Server. The internal topics include the command topic and the config topic.
+
+* A new KSQL testing tool was added. The tool is a command line utility that enables testing KSQL statements
+  without requiring any infrastructure, like Apache Kafka and KSQL clusters.
+
 KSQL 5.3.0 includes bug fixes, including:
 
 * The ``ROWTIME`` of the row generated when a ``JOIN`` encounters late data was previous the ``ROWTIME`` of the late event,

@@ -769,6 +769,7 @@ For example, the statements below would all be valid for a source with schema
 The values will serialize using the ``value_format`` specified in the original `CREATE` statement.
 The key will always be serialized as a String.
 
+.. _ksql-syntax-describe:
 
 DESCRIBE
 --------
@@ -881,6 +882,7 @@ DESCRIBE FUNCTION
 
 Provides a description of a function including an input parameters and the return type.
 
+.. _ksql-syntax-explain:
 
 EXPLAIN
 -------

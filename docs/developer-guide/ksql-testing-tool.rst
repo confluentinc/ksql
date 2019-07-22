@@ -56,6 +56,7 @@ The statements file contains the KSQL statements to test. The following are the 
 Here is a sample statements file for the testing tool:
 
 .. code:: sql
+
     CREATE STREAM orders (ORDERUNITS double) WITH (kafka_topic='test_topic', value_format='JSON');
     CREATE STREAM S1 AS SELECT ORDERUNITS, CASE WHEN orderunits < 2.0 THEN 'small' WHEN orderunits < 4.0 THEN 'medium' ELSE 'large' END AS case_resault FROM orders;
 
@@ -66,6 +67,7 @@ The input file is a JSON file with one array field named "inputs". Each element 
 A message should have a topic, a key, a value and a timestamp. The following is a sample input file for the above test:
 
 .. code:: json
+
     {
       "inputs": [
               {"topic": "test_topic", "timestamp": 0, "value": {"ORDERUNITS": 2.0}, "key": 0},
@@ -84,6 +86,7 @@ The output file is a JSON file with an array field named "outputs". Similar to t
 An expected output message should have a topic, a key, a value and a timestamp. The following is a sample expected output file for the above test:
 
 .. code:: json
+
      {
        "outputs": [
                {"topic": "S1", "timestamp": 0, "value": {"ORDERUNITS": 2.0, "CASE_RESAULT": "medium"}, "key": 0},
@@ -106,6 +109,7 @@ To specify a window for a message you can add a "window" field to the message. A
 The following is an example expected output file with records that have a window field:
 
 .. code:: json
+
      {
         "outputs": [
           {"topic": "S2", "key": 0, "value": "0,0", "timestamp": 0, "window": {"start": 0, "end": 30000, "type": "time"}},
@@ -120,12 +124,24 @@ Currently, in the input files you can only have record with session window types
 The testing tool will indicate the success or failure of a test by printing the corresponding message. The following is the result of a successful test:
 
 .. code:: bash
+
     ksql-test-runner -s statements.sql -i input.json -o output.json
+
+Your output should resemble:
+
+::
+
      Test passed!
 
 If a test fails, the testing tool will indicate the failure along with the cause. Here is an example of the output for a failing test:
 
 .. code:: bash
+
     ksql-test-runner -s statements_bad.sql -i input_bad.json -o output_bad.json
+
+Your output should resemble:
+
+::
+
       Test failed: Expected <900, {T_ID=90, NAME=ninety}> with timestamp=17000 but was <90, {T_ID=90, NAME=ninety}> with timestamp=17000
 

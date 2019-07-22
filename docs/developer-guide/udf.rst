@@ -109,7 +109,7 @@ Generics in UDFS
 A UDF declaration can utilize generics if they match the following conditions:
 
 - Any generic in the return value of a method must appear in at least one of the method parameters
-- The generic must not adhere to any interface (e.g. `<T extends Number>` is invalid)
+- The generic must not adhere to any interface. For example, ``<T extends Number>`` is not valid).
 
 .. _example-udf-class:
 

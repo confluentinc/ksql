@@ -74,6 +74,12 @@
             <artifactId>ksql-examples</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>io.confluent.ksql</groupId>
+            <artifactId>ksql-functional-tests</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
       <!-- Required for running tests -->
 
       <dependency>

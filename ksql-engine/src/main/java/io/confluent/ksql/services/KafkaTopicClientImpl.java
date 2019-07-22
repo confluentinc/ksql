@@ -32,7 +32,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import javax.annotation.concurrent.ThreadSafe;
-
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.AlterConfigOp;
@@ -252,16 +251,10 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
       } catch (final Exception e) {
         final Throwable rootCause = ExceptionUtils.getRootCause(e);
 
-        // Checking if the Kafka cluster has the DELETE_TOPIC_ENABLE configuration enabled requires
-        // the user to have DescribeConfigs permissions (or ACL) in Kafka. To avoid giving that
-        // unnecessary permission, we can detect it by catching the TopicDeletionDisabledException.
         if (rootCause instanceof TopicDeletionDisabledException) {
-          // If TopicDeletionDisabledException is detected, we throw the exception immediately
-          // instead of going through the rest of the topics to delete.
-          // It is now up to the caller to ignore this exception.
           throw new TopicDeletionDisabledException("Topic deletion is disabled. "
               + "To delete the topic, you must set '" + DELETE_TOPIC_ENABLE + "' to true in "
-              + "the Kafka cluster configuration.");
+              + "the Kafka broker configuration.");
         }
 
         LOG.error(String.format("Could not delete topic '%s'", entry.getKey()), e);
@@ -286,9 +279,6 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
       if (!internalTopics.isEmpty()) {
         deleteTopics(internalTopics);
       }
-    } catch (final TopicDeletionDisabledException e) {
-      // Ignore TopicDeletionDisabledException should not be logged as an error
-      LOG.info("Did not delete any topics: ", e.getMessage());
     } catch (final Exception e) {
       LOG.error("Exception while trying to clean up internal topics for application id: {}.",
           applicationId, e

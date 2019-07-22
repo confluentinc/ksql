@@ -22,7 +22,6 @@ import static org.hamcrest.Matchers.is;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.testing.EqualsTester;
-import io.confluent.ksql.metastore.SerdeFactory;
 import io.confluent.ksql.parser.tree.BooleanLiteral;
 import io.confluent.ksql.parser.tree.IntegerLiteral;
 import io.confluent.ksql.parser.tree.Literal;
@@ -33,7 +32,6 @@ import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.util.KsqlException;
 import java.util.HashMap;
 import java.util.Optional;
-import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.kstream.WindowedSerdes;
 import org.junit.Rule;
 import org.junit.Test;
@@ -208,7 +206,7 @@ public class CreateSourcePropertiesTest {
             .putAll(MINIMUM_VALID_PROPS)
             .put(CreateConfigs.WINDOW_TYPE_PROPERTY, new StringLiteral("SESSION"))
             .build());
-    final Optional<SerdeFactory<Windowed<String>>> serdeFactory = properties.getWindowType();
+    properties.getWindowType();
 
     // Then:
     assertThat("hasWindowType", properties.getWindowType().isPresent());

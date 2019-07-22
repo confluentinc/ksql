@@ -24,8 +24,7 @@ import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.function.Supplier;
-import org.apache.kafka.common.serialization.Deserializer;
-import org.apache.kafka.common.serialization.Serializer;
+import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -188,17 +187,14 @@ public class KafkaSerdeFactoryTest {
         PersistenceSchema.of(schemaWithFieldOfType(fieldSchema));
 
     factory.validate(schema.getConnectSchema());
-    final Serializer<Object> serializer = factory
-        .createSerializer(schema, ksqlConfig, srClientFactory);
-    final Deserializer<Object> deserializer = factory
-        .createDeserializer(schema, ksqlConfig, srClientFactory);
+    final Serde<Object> serde = factory.createSerde(schema, ksqlConfig, srClientFactory);
 
     final Struct struct = new Struct(schema.getConnectSchema());
     struct.put("f0", value);
 
     // When:
-    final byte[] bytes = serializer.serialize("topic", struct);
-    final Object result = deserializer.deserialize("topic", bytes);
+    final byte[] bytes = serde.serializer().serialize("topic", struct);
+    final Object result = serde.deserializer().deserialize("topic", bytes);
 
     // Then:
     assertThat(result, is(struct));

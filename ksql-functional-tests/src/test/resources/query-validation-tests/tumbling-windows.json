@@ -97,7 +97,7 @@
     {
       "name": "import tumbling table",
       "statements": [
-        "CREATE TABLE TEST (ID bigint, VALUE bigint) WITH (kafka_topic='test_topic', value_format='DELIMITED', key='ID', WINDOW_TYPE='Tumbling');",
+        "CREATE TABLE TEST (ID bigint, VALUE bigint) WITH (kafka_topic='test_topic', value_format='DELIMITED', key='ID', WINDOW_TYPE='Tumbling', WINDOW_SIZE='30 seconds');",
         "CREATE TABLE S2 as SELECT *, ROWKEY as KEY FROM test;"
       ],
       "inputs": [

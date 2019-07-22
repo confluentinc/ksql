@@ -240,7 +240,8 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
   }
 
   private void validateSerdeCanHandleSchema() {
-    ksqlTopic.getValueSerdeFactory().validate(getSchema().valueSchema());
+    final PhysicalSchema physicalSchema = PhysicalSchema.from(getSchema(), serdeOptions);
+    ksqlTopic.getValueSerdeFactory().validate(physicalSchema.valueSchema());
   }
 
   @SuppressWarnings("UnstableApiUsage")

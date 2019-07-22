@@ -33,7 +33,6 @@ import java.util.Objects;
 import java.util.function.Supplier;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
-import org.apache.kafka.connect.data.ConnectSchema;
 
 @Immutable
 public class KsqlAvroSerdeFactory extends KsqlSerdeFactory {
@@ -49,7 +48,7 @@ public class KsqlAvroSerdeFactory extends KsqlSerdeFactory {
   }
 
   @Override
-  public void validate(final ConnectSchema schema) {
+  public void validate(final PersistenceSchema schema) {
     // Supports all types
   }
 

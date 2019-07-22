@@ -137,7 +137,7 @@ public class KsqlSerdeFactoryTest {
     }
 
     @Override
-    public void validate(final ConnectSchema schema) {
+    public void validate(final PersistenceSchema schema) {
     }
 
     @Override

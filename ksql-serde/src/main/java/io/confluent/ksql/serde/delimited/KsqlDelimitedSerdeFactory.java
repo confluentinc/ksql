@@ -41,12 +41,13 @@ public class KsqlDelimitedSerdeFactory extends KsqlSerdeFactory {
   }
 
   @Override
-  public void validate(final ConnectSchema schema) {
-    if (schema.type() != Type.STRUCT) {
+  public void validate(final PersistenceSchema schema) {
+    final ConnectSchema connectSchema = schema.getConnectSchema();
+    if (connectSchema.type() != Type.STRUCT) {
       throw new IllegalArgumentException("DELIMITED format does not support unwrapping");
     }
 
-    schema.fields().forEach(f -> SchemaWalker.visit(f.schema(), new SchemaValidator()));
+    connectSchema.fields().forEach(f -> SchemaWalker.visit(f.schema(), new SchemaValidator()));
   }
 
   @Override

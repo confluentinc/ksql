@@ -25,7 +25,6 @@ import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.ddl.commands.CreateSourceCommand.SerdeOptionsSupplier;
 import io.confluent.ksql.metastore.MutableMetaStore;
-import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.CreateStream;
@@ -39,6 +38,7 @@ import io.confluent.ksql.parser.tree.Type;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.properties.with.CreateConfigs;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.serde.SerdeFactories;
@@ -85,15 +85,11 @@ public class CreateSourceCommandTest {
   @Mock
   private KafkaTopicClient kafkaTopicClient;
   @Mock
-  private KsqlTopic topic;
-  @Mock
   private SerdeOptionsSupplier serdeOptions;
   @Mock
   private SerdeFactories serdeFactories;
   @Mock
   private KsqlSerdeFactory serdeFactory;
-  @Mock
-  private MutableMetaStore metaStore;
   @Mock
   private CreateSourceProperties withProperties;
 
@@ -356,7 +352,7 @@ public class CreateSourceCommandTest {
     );
 
     // Then:
-    verify(serdeFactory).validate(schema.valueSchema());
+    verify(serdeFactory).validate(PhysicalSchema.from(schema, SerdeOption.none()).valueSchema());
   }
 
   private static Map<String, Literal> minValidProps() {

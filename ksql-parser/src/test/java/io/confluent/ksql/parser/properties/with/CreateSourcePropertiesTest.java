@@ -224,7 +224,7 @@ public class CreateSourcePropertiesTest {
 
   @Test
   public void shouldThrowForIncorrectSizeFormat() {
-    throwForIncorrectWindowSize("k seconds ");
+    throwForIncorrectWindowSize("k seconds");
   }
 
   @Test
@@ -461,7 +461,7 @@ public class CreateSourcePropertiesTest {
     // Then:
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage(
-        "Invalid WINDOW_SIZE property : " + windowSizeString + ". WINDOW_SIZE should be a string with two literals, window size (a number) and window size unit (a time unit). For example: '10 SECONDS'.");
+        "Invalid WINDOW_SIZE property : " + windowSizeString.toUpperCase() + ". WINDOW_SIZE should be a string with two literals, window size (a number) and window size unit (a time unit). For example: '10 SECONDS'.");
 
     // When:
     final CreateSourceProperties properties = CreateSourceProperties.from(

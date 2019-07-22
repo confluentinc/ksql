@@ -101,6 +101,7 @@ public class CreateStreamCommandTest {
     givenPropertiesWith(ImmutableMap.of(
         CreateConfigs.WINDOW_TYPE_PROPERTY, new StringLiteral("SeSSion")));
 
+
     // When:
     final CreateStreamCommand cmd = createCmd();
 
@@ -142,8 +143,8 @@ public class CreateStreamCommandTest {
   @Test
   public void shouldThrowIfHoppingWindowSizeIsNotSet() {
     // Given:
-    givenPropertiesWith(ImmutableMap.of(
-        CreateConfigs.WINDOW_TYPE_PROPERTY, new StringLiteral("HoPPing")));
+    final Map<String, Literal> allProps = ImmutableMap.of(
+        CreateConfigs.WINDOW_TYPE_PROPERTY, new StringLiteral("HoPPing"));
 
     // Then:
     expectedException.expect(KsqlException.class);
@@ -151,15 +152,15 @@ public class CreateStreamCommandTest {
         "Tumbling and Hopping window types should set WINDOW_SIZE in the WITH clause.");
 
     // When:
-    final CreateStreamCommand cmd = createCmd();
+    CreateSourceProperties.from(getInitialProps(allProps));
 
   }
 
   @Test
   public void shouldThrowIfTumblingWindowSizeIsNotSet() {
     // Given:
-    givenPropertiesWith(ImmutableMap.of(
-        CreateConfigs.WINDOW_TYPE_PROPERTY, new StringLiteral("Tumbling")));
+    final Map<String, Literal> allProps = ImmutableMap.of(
+        CreateConfigs.WINDOW_TYPE_PROPERTY, new StringLiteral("Tumbling"));
 
     // Then:
     expectedException.expect(KsqlException.class);
@@ -167,8 +168,7 @@ public class CreateStreamCommandTest {
         "Tumbling and Hopping window types should set WINDOW_SIZE in the WITH clause.");
 
     // When:
-    final CreateStreamCommand cmd = createCmd();
-
+    CreateSourceProperties.from(getInitialProps(allProps));
   }
 
   @Test
@@ -235,10 +235,14 @@ public class CreateStreamCommandTest {
     );
   }
 
-  private void givenPropertiesWith(final Map<String, Literal> props) {
+  private static Map<String, Literal> getInitialProps(final Map<String, Literal> props) {
     final Map<String, Literal> allProps = new HashMap<>(props);
     allProps.putIfAbsent(CommonCreateConfigs.VALUE_FORMAT_PROPERTY, new StringLiteral("Json"));
     allProps.putIfAbsent(CommonCreateConfigs.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral("some-topic"));
-    when(createStreamStatement.getProperties()).thenReturn(CreateSourceProperties.from(allProps));
+    return allProps;
+  }
+
+  private void givenPropertiesWith(final Map<String, Literal> props) {
+    when(createStreamStatement.getProperties()).thenReturn(CreateSourceProperties.from(getInitialProps(props)));
   }
 }

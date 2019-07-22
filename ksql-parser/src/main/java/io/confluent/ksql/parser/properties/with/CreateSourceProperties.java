@@ -58,9 +58,9 @@ public final class CreateSourceProperties extends WithClauseProperties {
     super(CreateConfigs.CONFIG_METADATA, originals);
 
     validateDateTimeFormat(CommonCreateConfigs.TIMESTAMP_FORMAT_PROPERTY);
+    validateWindowType();
     if (originals.containsKey(CreateConfigs.WINDOW_SIZE_PROPERTY)) {
-      validateWindowSizeProperty(
-          StringUtil.cleanQuotes(originals.get(CreateConfigs.WINDOW_SIZE_PROPERTY).toString()));
+      getTimedWindowSerdeFactory();
     }
   }
 
@@ -93,10 +93,6 @@ public final class CreateSourceProperties extends WithClauseProperties {
       return Optional.empty();
     }
     if (SESSION_WINDOW_NAME.equalsIgnoreCase(windowType.get())) {
-      if (getString(CreateConfigs.WINDOW_SIZE_PROPERTY) != null) {
-        throw new KsqlException(CreateConfigs.WINDOW_SIZE_PROPERTY
-            + " should not be set for SESSION windows.");
-      }
       return Optional.of(() -> WindowedSerdes.sessionWindowedSerdeFrom(String.class));
     }
     if (TUMBLING_WINDOW_NAME.equalsIgnoreCase(windowType.get())
@@ -144,6 +140,28 @@ public final class CreateSourceProperties extends WithClauseProperties {
     return new CreateSourceProperties(originals);
   }
 
+
+  private void validateWindowType() {
+    final Optional<String> windowType = Optional.ofNullable(
+        getString(CreateConfigs.WINDOW_TYPE_PROPERTY))
+        .map(String::toUpperCase);
+    if (!windowType.isPresent()) {
+      return;
+    }
+    if (SESSION_WINDOW_NAME.equalsIgnoreCase(windowType.get())) {
+      if (getString(CreateConfigs.WINDOW_SIZE_PROPERTY) != null) {
+        throw new KsqlException(CreateConfigs.WINDOW_SIZE_PROPERTY
+            + " should not be set for SESSION windows.");
+      }
+      return;
+    } else if (TUMBLING_WINDOW_NAME.equalsIgnoreCase(windowType.get())
+        || HOPPING_WINDOW_NAME.equalsIgnoreCase(windowType.get())) {
+      getTimedWindowSerdeFactory();
+      return;
+    }
+    throw new KsqlException("Invalid window type: " + windowType.get());
+  }
+
   private Optional<SerdeFactory<Windowed<String>>> getTimedWindowSerdeFactory() {
     final Optional<String> windowSize = Optional.ofNullable(
         getString(CreateConfigs.WINDOW_SIZE_PROPERTY))
@@ -152,12 +170,31 @@ public final class CreateSourceProperties extends WithClauseProperties {
       throw new KsqlException("Tumbling and Hopping window types should set "
           + CreateConfigs.WINDOW_SIZE_PROPERTY + " in the WITH clause.");
     }
-    final String[] sizeParts = StringUtil.cleanQuotes(windowSize.get()).split(" ");
-    final long size = Long.parseLong(sizeParts[0]);
-    final TimeUnit timeUnit = TimeUnit.valueOf(sizeParts[1].toUpperCase());
-    return Optional.of(() -> WindowedSerdes.timeWindowedSerdeFrom(
-        String.class,
-        TimeUnit.MILLISECONDS.convert(size, timeUnit)
-    ));
+    final String windowSizeProperty = windowSize.get();
+    final String[] sizeParts = StringUtil.cleanQuotes(windowSizeProperty).split(" ");
+    if (sizeParts.length != 2) {
+      throwWindowSizeException(windowSizeProperty);
+    }
+    try {
+      final long size = Long.parseLong(sizeParts[0]);
+      final TimeUnit timeUnit = TimeUnit.valueOf(
+          sizeParts[1].toUpperCase().endsWith("S")
+              ? sizeParts[1].toUpperCase()
+              : sizeParts[1].toUpperCase() + "S");
+      return Optional.of(() -> WindowedSerdes.timeWindowedSerdeFrom(
+          String.class,
+          TimeUnit.MILLISECONDS.convert(size, timeUnit)
+      ));
+    } catch (final Exception e) {
+      throwWindowSizeException(windowSizeProperty);
+    }
+    throw new KsqlException("Invalid time window: " + windowSizeProperty);
+  }
+
+  private static void throwWindowSizeException(final String windowSizeProperty) {
+    throw new KsqlException("Invalid " + CreateConfigs.WINDOW_SIZE_PROPERTY + " property : "
+        + windowSizeProperty + ". " + CreateConfigs.WINDOW_SIZE_PROPERTY + " should be a string "
+        + "with two literals, window size (a number) and window size unit (a time unit). "
+        + "For example: '10 SECONDS'.");
   }
 }

@@ -21,6 +21,7 @@ These topics show how to develop KSQL applications for |cp|.
     partition-data
     syntax-reference
     serialization
+    ksql-testing-tool
     api
     udf
     processing-log

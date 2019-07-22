@@ -64,6 +64,8 @@ a single process and maintain only a single application. There are some (solvabl
 this approach, but for the reason outlined above, the syntax will be developed with the assumption
 that Connect is running as a separate component.
 
+**The recommendation is to support 1 & 3, tabling 2 unless a need for it comes in the future**
+
 ### Syntax
 
 Analogous to DDL and DML, the Connect syntax will separate actions that have side effects with
@@ -73,15 +75,13 @@ actions that simply declare metadata on top of existing data. This solves two is
 - A connector can be modeled in different ways (e.g. stream/table) and connector lifecycle should
   be independent with how KSQL interprets it
 
-In the future, there can exist shortcuts (similar to `C*AS`) to both create connectors and declare 
-corresponding streams/tables.
-
 There are a few more minor points of consideration:
-- All "DDL" commands that cause changes in connect will not be submitted to the command topic;
+- All "DML" commands that cause changes in connect will not be submitted to the command topic;
   instead they will be issued on the REST server (this follows the pattern that all external-state
   modifications are not distributed)
-- To make this work for all vanilla connectors, we will need Connect to implement an API that shows
-  all topics created by a connector.
+- Some connectors will have KSQL-specific wrapper implementations that will allow simpler 
+  configuration and tighter integration. These connectors will also automatically issue the DDL 
+  statements for any topics that they create, when possible.
 
 **Sample Ingress**
 
@@ -97,6 +97,10 @@ ksql> CREATE EXTERNAL SOURCE my-postgres-jdbc WITH ( \
 SOURCE CREATED
 --------------
 ```
+
+If the connector is one of the KSQL supported connectors, we can have default configuration options
+and tighter integration specified by `CREATE EXTERNAL SOURCE(type='JDBC') WITH (...);`.
+
 *Note: as Connect manages to simplify the configuration, whether through templates or any other
 means, we will immediately be able to leverage this simplification in KSQL's WITH clause.*
 
@@ -125,7 +129,8 @@ user-table | test-postgres-jdbc-user-table | id VARCHAR, user VARCHAR, age INTEG
 page-table | test-postgres-jdbc-page-table | id VARCHAR, page VARCHAR, url VARCHAR
 ```
 
-Then the user can create streams or tables from the underlying topics:
+Then the user can create streams or tables from the underlying topics (this can happen automatically
+for some set of blessed connectors):
 ```sql
 ksql> CREATE TABLE users_original WITH (kafka_topic = 'test-postgres-jdbc-user-table', ...);
 
@@ -138,14 +143,14 @@ At this point, assuming the `pageviews_original` stream is already created, we c
 created `users_original` table with the `pageviews_original` stream. Finally, the user can drop and 
 terminate the connectors.
 ```sql
-ksql> DROP EXTERNAL SOURCE my-postgres-jdbc TERMINATE;
+ksql> DROP EXTERNAL SOURCE my-postgres-jdbc;
 ```
 
 **Sample Egress**
 
 Data egress would work in a similar fashion:
 ```sql
-ksql> CREATE EXTERNAL SINK my-elastic-sink FROM my-table1 WITH (...);
+ksql> CREATE EXTERNAL SINK my-elastic-sink WITH (sources='my-table1', ...);
 
 ksql> SHOW EXTERNAL SINKS;
 
@@ -170,17 +175,31 @@ elasticsearch1 | elastic-sink-elasticsearch1
 ksql> DROP EXTERNAL SINK my-elastic-sink TERMINATE;
 ```
 
+### Connect Improvements
+
+This section is a record of some suggestions for Connect that would make it more KSQL-friendly:
+
+- Connectors should have an API to expose all topics they create
+- Connectors should have an API to map a topic to the schema that they create
+- The JDBC connector should not require an SMT to populate the kafka KEY
+- The Security model should work well with systems that create connectors "on behalf of" other users
+- A more detailed error endpoint to help diagnose faulty connectors
+
 ### Advanced Topics
 
 - **Error Handling**: it is difficult to understand whether a given connector is or is not working,
   and further difficult to debug why it is not working. This is out of scope for this KLIP and
-  should be addressed in connect and then exposed externally. There is a class of synchronous errors 
-  that can be easily identified (e.g. missing configurations) that can be bubbled up directly to the 
-  user at the time when they submit the request.
+  should be addressed in connect and then exposed externally. There is a limited set of synchronous 
+  errors that can be easily identified (e.g. missing configurations) that can be bubbled up directly 
+  to the user at the time when they submit the request.
 - **Secret Management**: some connectors (e.g. JDBC connector) may require passing secrets to
-  access the database. If this is the case, the MVP recommendation will be to lock down the command
-  topic and pass it in-line over HTTPS. Later, we can solve this by allowing references to an
-  external secret management service.
+  access the database. For the MVP, the security will naively rely on HTTPS and Connect - requiring
+  users to specify their secrets in the SQL statement (e.g. `CREATE ... WITH(foo.username='me', 
+  foo.password='secret')`). Although this is not ideal, these command will not be distributed onto
+  the KSQL command topic. It is recommended that the Connect configuration topic, though, is locked
+  down to prevent these secrets from leaking there. In a later iteration, KSQL can integrate more
+  directly with Connect security features by passing tokens to some secret manager (e.g. Vault) and
+  resolving them only server-side.
 
 ## Test plan
 

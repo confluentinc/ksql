@@ -20,7 +20,8 @@ import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThat;
-import io.confluent.ksql.function.udaf.Udaf;
+
+import io.confluent.ksql.function.udaf.TableUdaf;
 import java.util.List;
 import org.junit.Test;
 
@@ -28,7 +29,7 @@ public class CollectListUdafTest {
 
   @Test
   public void shouldCollectInts() {
-    final Udaf<Integer, List<Integer>> udaf = CollectListUdaf.createCollectListInt();
+    final TableUdaf<Integer, List<Integer>> udaf = CollectListUdaf.createCollectListInt();
     final Integer[] values = new Integer[] {3, 4, 5, 3};
     List<Integer> runningList = udaf.initialize();
     for (final Integer i : values) {
@@ -39,7 +40,7 @@ public class CollectListUdafTest {
 
   @Test
   public void shouldMergeIntLists() {
-    final Udaf<Integer, List<Integer>> udaf = CollectListUdaf.createCollectListInt();
+    final TableUdaf<Integer, List<Integer>> udaf = CollectListUdaf.createCollectListInt();
 
     List<Integer> lhs = udaf.initialize();
     final Integer[] lhsValues = new Integer[] {1, 2, null, 3};
@@ -61,7 +62,7 @@ public class CollectListUdafTest {
 
   @Test
   public void shouldRespectSizeLimit() {
-    final Udaf<Integer, List<Integer>> udaf = CollectListUdaf.createCollectListInt();
+    final TableUdaf<Integer, List<Integer>> udaf = CollectListUdaf.createCollectListInt();
     List<Integer> runningList = udaf.initialize();
     for (int i = 1; i < 2500; i++) {
       runningList = udaf.aggregate(i, runningList);

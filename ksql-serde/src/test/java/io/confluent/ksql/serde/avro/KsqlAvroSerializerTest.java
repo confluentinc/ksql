@@ -617,7 +617,7 @@ public class KsqlAvroSerializerTest {
 
     // When:
     new KsqlAvroSerdeFactory(KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME)
-        .createSerializer(
+        .createSerde(
             physicalSchema,
             ksqlConfig,
             () -> schemaRegistryClient
@@ -643,7 +643,7 @@ public class KsqlAvroSerializerTest {
 
     // When:
     new KsqlAvroSerdeFactory(KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME)
-        .createSerializer(
+        .createSerde(
             physicalSchema,
             ksqlConfig,
             () -> schemaRegistryClient
@@ -1099,11 +1099,11 @@ public class KsqlAvroSerializerTest {
 
   private void givenSerializerForSchema(final Schema schema) {
     serializer = new KsqlAvroSerdeFactory(KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME)
-        .createSerializer(
+        .createSerde(
             PersistenceSchema.of((ConnectSchema) schema),
             ksqlConfig,
             () -> schemaRegistryClient
-        );
+        ).serializer();
   }
 
   private org.apache.avro.Schema avroSchemaStoredInSchemaRegistry() {

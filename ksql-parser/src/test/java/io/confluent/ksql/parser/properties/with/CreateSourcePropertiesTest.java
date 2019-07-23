@@ -135,6 +135,7 @@ public class CreateSourcePropertiesTest {
         ImmutableMap.<String, Literal>builder()
             .putAll(MINIMUM_VALID_PROPS)
             .put(CreateConfigs.WINDOW_TYPE_PROPERTY, new StringLiteral("HoPPinG"))
+            .put(CreateConfigs.WINDOW_SIZE_PROPERTY, new StringLiteral("'2 SECONDS'"))
             .build());
 
     // Then:
@@ -143,6 +144,92 @@ public class CreateSourcePropertiesTest {
         properties.getWindowType().get().create(),
         instanceOf(WindowedSerdes.timeWindowedSerdeFrom(String.class).getClass()));
   }
+
+  @Test
+  public void shouldThrowIfWindowSizeIsNotSetForTimeWindow() {
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(
+        "Tumbling and Hopping window types should set WINDOW_SIZE in the WITH clause.");
+
+    // When:
+    final CreateSourceProperties properties = CreateSourceProperties.from(
+        ImmutableMap.<String, Literal>builder()
+            .putAll(MINIMUM_VALID_PROPS)
+            .put(CreateConfigs.WINDOW_TYPE_PROPERTY, new StringLiteral("HoPPinG"))
+            .build());
+    properties.getWindowType();
+
+  }
+
+  @Test
+  public void shouldThrowForInvalidWindowType() {
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(
+        "Invalid value HoppPPinG for property WINDOW_TYPE: String must be one of: SESSION, HOPPING, TUMBLING, null");
+
+    // When:
+    final CreateSourceProperties properties = CreateSourceProperties.from(
+        ImmutableMap.<String, Literal>builder()
+            .putAll(MINIMUM_VALID_PROPS)
+            .put(CreateConfigs.WINDOW_TYPE_PROPERTY, new StringLiteral("HoppPPinG"))
+            .build());
+    properties.getWindowType();
+
+  }
+
+  @Test
+  public void shouldThrowIfSizeIsSetForSessionWindow() {
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(
+        "WINDOW_SIZE should not be set for SESSION windows.");
+
+    // When:
+    final CreateSourceProperties properties = CreateSourceProperties.from(
+        ImmutableMap.<String, Literal>builder()
+            .putAll(MINIMUM_VALID_PROPS)
+            .put(CreateConfigs.WINDOW_TYPE_PROPERTY, new StringLiteral("SESSION"))
+            .put(CreateConfigs.WINDOW_SIZE_PROPERTY, new StringLiteral("'2 SECONDS'"))
+            .build());
+    properties.getWindowType();
+
+  }
+
+  @Test
+  public void shouldSetSessionWindow() {
+
+    // When:
+    final CreateSourceProperties properties = CreateSourceProperties.from(
+        ImmutableMap.<String, Literal>builder()
+            .putAll(MINIMUM_VALID_PROPS)
+            .put(CreateConfigs.WINDOW_TYPE_PROPERTY, new StringLiteral("SESSION"))
+            .build());
+    properties.getWindowType();
+
+    // Then:
+    assertThat("hasWindowType", properties.getWindowType().isPresent());
+    assertThat(
+        properties.getWindowType().get().create(),
+        instanceOf(WindowedSerdes.sessionWindowedSerdeFrom(String.class).getClass()));
+  }
+
+  @Test
+  public void shouldThrowForIncorrectSize() {
+    throwForIncorrectWindowSize("hello");
+  }
+
+  @Test
+  public void shouldThrowForIncorrectSizeFormat() {
+    throwForIncorrectWindowSize("k seconds");
+  }
+
+  @Test
+  public void shouldThrowForIncorrectSizeUnit() {
+    throwForIncorrectWindowSize("5 sec");
+  }
+
 
   @Test
   public void shouldSetValidSchemaId() {
@@ -366,5 +453,21 @@ public class CreateSourcePropertiesTest {
 
     // Then:
     assertThat(sql, containsString("WRAP_SINGLE_VALUE=true"));
+  }
+
+  private void throwForIncorrectWindowSize(final String windowSizeString) {
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(
+        "Invalid WINDOW_SIZE property : " + windowSizeString.toUpperCase() + ". WINDOW_SIZE should be a string with two literals, window size (a number) and window size unit (a time unit). For example: '10 SECONDS'.");
+
+    // When:
+    final CreateSourceProperties properties = CreateSourceProperties.from(
+        ImmutableMap.<String, Literal>builder()
+            .putAll(MINIMUM_VALID_PROPS)
+            .put(CreateConfigs.WINDOW_TYPE_PROPERTY, new StringLiteral("TUMBLING"))
+            .put(CreateConfigs.WINDOW_SIZE_PROPERTY, new StringLiteral("'" + windowSizeString + "'"))
+            .build());
+    properties.getWindowType();
   }
 }

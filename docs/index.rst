@@ -90,6 +90,7 @@ KSQL Documentation
     installation/index
     concepts/index
     developer-guide/index
+    ../../security/rbac/ksql-rbac
     operations
     capacity-planning
     testing-tool

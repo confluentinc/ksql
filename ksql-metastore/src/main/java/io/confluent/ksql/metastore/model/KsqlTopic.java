@@ -23,18 +23,15 @@ import io.confluent.ksql.serde.KsqlSerdeFactory;
 @Immutable
 public class KsqlTopic {
 
-  private final String ksqlTopicName;
   private final String kafkaTopicName;
   private final KsqlSerdeFactory valueSerdeFactory;
   private final boolean isKsqlSink;
 
   public KsqlTopic(
-      final String ksqlTopicName,
       final String kafkaTopicName,
       final KsqlSerdeFactory valueSerdeFactory,
       final boolean isKsqlSink
   ) {
-    this.ksqlTopicName = requireNonNull(ksqlTopicName, "ksqlTopicName");
     this.kafkaTopicName = requireNonNull(kafkaTopicName, "kafkaTopicName");
     this.valueSerdeFactory = requireNonNull(valueSerdeFactory, "valueSerdeFactory");
     this.isKsqlSink = isKsqlSink;
@@ -46,10 +43,6 @@ public class KsqlTopic {
 
   public String getKafkaTopicName() {
     return kafkaTopicName;
-  }
-
-  public String getKsqlTopicName() {
-    return ksqlTopicName;
   }
 
   public boolean isKsqlSink() {

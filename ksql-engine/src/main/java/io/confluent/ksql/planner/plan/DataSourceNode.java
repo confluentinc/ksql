@@ -132,10 +132,6 @@ public class DataSourceNode
         requireNonNull(materializedFactorySupplier, "materializedFactorySupplier");
   }
 
-  public String getTopicName() {
-    return dataSource.getKsqlTopicName();
-  }
-
   @Override
   public LogicalSchema getSchema() {
     return schema;

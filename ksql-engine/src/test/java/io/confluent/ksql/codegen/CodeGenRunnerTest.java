@@ -175,7 +175,6 @@ public class CodeGenRunnerTest {
             .build();
 
         final KsqlTopic ksqlTopic = new KsqlTopic(
-            "CODEGEN_TEST",
             "codegen_test",
             new KsqlJsonSerdeFactory(), false);
 

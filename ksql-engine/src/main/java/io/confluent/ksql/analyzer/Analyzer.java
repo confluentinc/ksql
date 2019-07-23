@@ -195,7 +195,6 @@ class Analyzer {
       final KsqlSerdeFactory valueSerdeFactory = getValueSerdeFactory(sink);
 
       final KsqlTopic intoKsqlTopic = new KsqlTopic(
-          sink.getName(),
           topicName,
           valueSerdeFactory,
           true

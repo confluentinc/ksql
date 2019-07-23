@@ -148,7 +148,7 @@ public class SqlFormatterTest {
 
     final KsqlTopic
         ksqlTopicOrders =
-        new KsqlTopic("ADDRESS_TOPIC", "orders_topic", new KsqlJsonSerdeFactory(), false);
+        new KsqlTopic("orders_topic", new KsqlJsonSerdeFactory(), false);
 
     final KsqlStream ksqlStreamOrders = new KsqlStream<>(
         "sqlexpression",
@@ -165,7 +165,7 @@ public class SqlFormatterTest {
 
     final KsqlTopic
         ksqlTopicItems =
-        new KsqlTopic("ITEMS_TOPIC", "item_topic", new KsqlJsonSerdeFactory(), false);
+        new KsqlTopic("item_topic", new KsqlJsonSerdeFactory(), false);
     final KsqlTable<String> ksqlTableOrders = new KsqlTable<>(
         "sqlexpression",
         "ITEMID",

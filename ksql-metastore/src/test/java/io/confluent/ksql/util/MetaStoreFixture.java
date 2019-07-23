@@ -60,7 +60,7 @@ public final class MetaStoreFixture {
 
     final KsqlTopic
         ksqlTopic0 =
-        new KsqlTopic("TEST0", "test0", valueSerdeFactory, false);
+        new KsqlTopic("test0", valueSerdeFactory, false);
 
     final KsqlStream<?> ksqlStream0 = new KsqlStream<>(
         "sqlexpression",
@@ -77,7 +77,7 @@ public final class MetaStoreFixture {
 
     final KsqlTopic
         ksqlTopic1 =
-        new KsqlTopic("TEST1", "test1", valueSerdeFactory, false);
+        new KsqlTopic("test1", valueSerdeFactory, false);
 
     final KsqlStream<?> ksqlStream1 = new KsqlStream<>("sqlexpression",
         "TEST1",
@@ -101,7 +101,7 @@ public final class MetaStoreFixture {
 
     final KsqlTopic
         ksqlTopic2 =
-        new KsqlTopic("TEST2", "test2", valueSerdeFactory, false);
+        new KsqlTopic("test2", valueSerdeFactory, false);
     final KsqlTable<String> ksqlTable = new KsqlTable<>(
         "sqlexpression",
         "TEST2",
@@ -147,7 +147,7 @@ public final class MetaStoreFixture {
 
     final KsqlTopic
         ksqlTopicOrders =
-        new KsqlTopic("ORDERS_TOPIC", "orders_topic", valueSerdeFactory, false);
+        new KsqlTopic("orders_topic", valueSerdeFactory, false);
 
     final KsqlStream<?> ksqlStreamOrders = new KsqlStream<>(
         "sqlexpression",
@@ -172,7 +172,7 @@ public final class MetaStoreFixture {
 
     final KsqlTopic
         ksqlTopic3 =
-        new KsqlTopic("TEST3", "test3", valueSerdeFactory, false);
+        new KsqlTopic("test3", valueSerdeFactory, false);
     final KsqlTable<String> ksqlTable3 = new KsqlTable<>(
         "sqlexpression",
         "TEST3",
@@ -195,7 +195,7 @@ public final class MetaStoreFixture {
 
     final KsqlTopic
         nestedArrayStructMapTopic =
-        new KsqlTopic("NestedArrayStructMap", "NestedArrayStructMap_topic", valueSerdeFactory,
+        new KsqlTopic("NestedArrayStructMap_topic", valueSerdeFactory,
             false);
 
     final KsqlStream<?> nestedArrayStructMapOrders = new KsqlStream<>(
@@ -212,7 +212,7 @@ public final class MetaStoreFixture {
     metaStore.putSource(nestedArrayStructMapOrders);
 
     final KsqlTopic ksqlTopic4 =
-        new KsqlTopic("TEST4", "test4", valueSerdeFactory, false);
+        new KsqlTopic("test4", valueSerdeFactory, false);
 
     final KsqlStream<?> ksqlStream4 = new KsqlStream<>(
         "sqlexpression4",

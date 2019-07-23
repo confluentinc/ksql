@@ -102,11 +102,6 @@ public interface DataSource<K> {
   TimestampExtractionPolicy getTimestampExtractionPolicy();
 
   /**
-   * @return the name of the KSQL REGISTERED TOPIC backing this source.
-   */
-  String getKsqlTopicName();
-
-  /**
    * @return the name of the KAFKA topic backing this source.
    */
   String getKafkaTopicName();

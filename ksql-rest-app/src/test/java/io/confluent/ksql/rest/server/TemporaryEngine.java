@@ -88,7 +88,7 @@ public class TemporaryEngine extends ExternalResource {
   ) {
     givenKafkaTopic(name);
 
-    final KsqlTopic topic = new KsqlTopic(name, name, new KsqlJsonSerdeFactory(), false);
+    final KsqlTopic topic = new KsqlTopic(name, new KsqlJsonSerdeFactory(), false);
 
     final DataSource<?> source;
     switch (type) {

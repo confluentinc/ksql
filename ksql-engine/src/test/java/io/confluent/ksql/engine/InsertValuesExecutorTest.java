@@ -614,7 +614,7 @@ public class InsertValuesExecutorTest {
       final Set<SerdeOption> serdeOptions,
       final Optional<String> keyField
   ) {
-    final KsqlTopic topic = new KsqlTopic("TOPIC", TOPIC_NAME, valueSerde, false);
+    final KsqlTopic topic = new KsqlTopic(TOPIC_NAME, valueSerde, false);
     final DataSource<?> dataSource = new KsqlStream<>(
         "",
         "TOPIC",

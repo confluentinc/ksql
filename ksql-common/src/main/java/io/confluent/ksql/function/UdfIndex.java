@@ -87,7 +87,7 @@ public class UdfIndex<T extends IndexedFunction> {
 
   private static final Logger LOG = LoggerFactory.getLogger(UdfIndex.class);
   private static final SqlSchemaFormatter FORMATTER =
-      new SqlSchemaFormatter(word -> false);
+      new UdfSchemaFormatter(word -> false);
 
   private final String udfName;
   private final Node root = new Node();

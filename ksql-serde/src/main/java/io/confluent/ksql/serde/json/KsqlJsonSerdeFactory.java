@@ -21,17 +21,17 @@ import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.util.KsqlConfig;
-import java.util.Collections;
 import java.util.function.Supplier;
-import org.apache.kafka.common.serialization.Deserializer;
-import org.apache.kafka.common.serialization.Serializer;
+import org.apache.kafka.common.serialization.Serde;
+import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.ConnectSchema;
 
 @Immutable
-public class KsqlJsonSerdeFactory extends KsqlSerdeFactory {
+public class KsqlJsonSerdeFactory implements KsqlSerdeFactory {
 
-  public KsqlJsonSerdeFactory() {
-    super(Format.JSON);
+  @Override
+  public Format getFormat() {
+    return Format.JSON;
   }
 
   @Override
@@ -40,24 +40,14 @@ public class KsqlJsonSerdeFactory extends KsqlSerdeFactory {
   }
 
   @Override
-  protected Serializer<Object> createSerializer(
+  public Serde<Object> createSerde(
       final PersistenceSchema schema,
       final KsqlConfig ksqlConfig,
       final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
   ) {
-    final Serializer<Object> serializer = new KsqlJsonSerializer(schema);
-    serializer.configure(Collections.emptyMap(), false);
-    return serializer;
-  }
-
-  @Override
-  protected Deserializer<Object> createDeserializer(
-      final PersistenceSchema schema,
-      final KsqlConfig ksqlConfig,
-      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
-  ) {
-    final Deserializer<Object> deserializer = new KsqlJsonDeserializer(schema);
-    deserializer.configure(Collections.emptyMap(), false);
-    return deserializer;
+    return Serdes.serdeFrom(
+        new KsqlJsonSerializer(schema),
+        new KsqlJsonDeserializer(schema)
+    );
   }
 }

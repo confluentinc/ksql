@@ -100,7 +100,6 @@ public class ClusterTerminator {
               filterNonExistingTopics(topicsToBeDeleted)),
           ExecutorUtil.RetryBehaviour.ALWAYS);
     } catch (final TopicDeletionDisabledException e) {
-      // Ignore TopicDeletionDisabledException when a Cluster termination is requested.
       LOGGER.info("Did not delete any topics: ", e.getMessage());
     } catch (final Exception e) {
       throw new KsqlException(

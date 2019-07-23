@@ -56,8 +56,8 @@ public class KafkaSerdeFactory implements KsqlSerdeFactory {
   }
 
   @Override
-  public void validate(final ConnectSchema schema) {
-    getPrimitiveSerde(schema);
+  public void validate(final PersistenceSchema schema) {
+    getPrimitiveSerde(schema.getConnectSchema());
   }
 
   @Override

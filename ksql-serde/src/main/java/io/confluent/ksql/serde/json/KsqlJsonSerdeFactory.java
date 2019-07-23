@@ -24,7 +24,6 @@ import io.confluent.ksql.util.KsqlConfig;
 import java.util.function.Supplier;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
-import org.apache.kafka.connect.data.ConnectSchema;
 
 @Immutable
 public class KsqlJsonSerdeFactory implements KsqlSerdeFactory {
@@ -35,7 +34,7 @@ public class KsqlJsonSerdeFactory implements KsqlSerdeFactory {
   }
 
   @Override
-  public void validate(final ConnectSchema schema) {
+  public void validate(final PersistenceSchema schema) {
     // Supports all types
   }
 

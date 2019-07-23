@@ -21,7 +21,6 @@ import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.function.Supplier;
 import org.apache.kafka.common.serialization.Serde;
-import org.apache.kafka.connect.data.ConnectSchema;
 
 @Immutable
 public interface KsqlSerdeFactory {
@@ -36,7 +35,7 @@ public interface KsqlSerdeFactory {
    *
    * @param schema the schema to validate.
    */
-  void validate(ConnectSchema schema);
+  void validate(PersistenceSchema schema);
 
   /**
    * Create the serde.

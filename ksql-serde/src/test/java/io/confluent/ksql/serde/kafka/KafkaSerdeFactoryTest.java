@@ -19,13 +19,15 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
+import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.function.Supplier;
 import org.apache.kafka.common.serialization.Serde;
-import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
@@ -57,11 +59,11 @@ public class KafkaSerdeFactoryTest {
   @Test
   public void shouldThrowOnValidateIfMultipleFields() {
     // Given:
-    final ConnectSchema schema = (ConnectSchema) SchemaBuilder
+    final PersistenceSchema schema = getPersistenceSchema(SchemaBuilder
         .struct()
         .field("f0", Schema.OPTIONAL_INT32_SCHEMA)
         .field("f1", Schema.OPTIONAL_INT64_SCHEMA)
-        .build();
+        .build());
 
     // Then:
     expectedException.expect(KsqlException.class);
@@ -75,7 +77,7 @@ public class KafkaSerdeFactoryTest {
   @Test
   public void shouldThrowOnValidateIfBoolean() {
     // Given:
-    final ConnectSchema schema = schemaWithFieldOfType(Schema.OPTIONAL_BOOLEAN_SCHEMA);
+    final PersistenceSchema schema = schemaWithFieldOfType(Schema.OPTIONAL_BOOLEAN_SCHEMA);
 
     // Then:
     expectedException.expect(KsqlException.class);
@@ -89,7 +91,10 @@ public class KafkaSerdeFactoryTest {
   @Test
   public void shouldThrowOnValidateIfDecimal() {
     // Given:
-    final ConnectSchema schema = schemaWithFieldOfType(DecimalUtil.builder(1, 1));
+    final PersistenceSchema schema = schemaWithFieldOfType(DecimalUtil
+        .builder(1, 1)
+        .optional()
+        .build());
 
     // Then:
     expectedException.expect(KsqlException.class);
@@ -103,8 +108,9 @@ public class KafkaSerdeFactoryTest {
   @Test
   public void shouldThrowOnValidateIfArray() {
     // Given:
-    final ConnectSchema schema = schemaWithFieldOfType(SchemaBuilder
+    final PersistenceSchema schema = schemaWithFieldOfType(SchemaBuilder
         .array(Schema.OPTIONAL_STRING_SCHEMA)
+        .optional()
         .build());
 
     // Then:
@@ -119,8 +125,9 @@ public class KafkaSerdeFactoryTest {
   @Test
   public void shouldThrowOnValidateIfMap() {
     // Given:
-    final ConnectSchema schema = schemaWithFieldOfType(SchemaBuilder
+    final PersistenceSchema schema = schemaWithFieldOfType(SchemaBuilder
         .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_STRING_SCHEMA)
+        .optional()
         .build());
 
     // Then:
@@ -135,9 +142,10 @@ public class KafkaSerdeFactoryTest {
   @Test
   public void shouldThrowOnValidateIfStruct() {
     // Given:
-    final ConnectSchema schema = schemaWithFieldOfType(SchemaBuilder
+    final PersistenceSchema schema = schemaWithFieldOfType(SchemaBuilder
         .struct()
         .field("f0", Schema.OPTIONAL_STRING_SCHEMA)
+        .optional()
         .build());
 
     // Then:
@@ -183,10 +191,9 @@ public class KafkaSerdeFactoryTest {
 
   private void shouldHandle(final Schema fieldSchema, final Object value) {
     // Given:
-    final PersistenceSchema schema =
-        PersistenceSchema.of(schemaWithFieldOfType(fieldSchema));
+    final PersistenceSchema schema = schemaWithFieldOfType(fieldSchema);
 
-    factory.validate(schema.getConnectSchema());
+    factory.validate(schema);
     final Serde<Object> serde = factory.createSerde(schema, ksqlConfig, srClientFactory);
 
     final Struct struct = new Struct(schema.getConnectSchema());
@@ -200,10 +207,18 @@ public class KafkaSerdeFactoryTest {
     assertThat(result, is(struct));
   }
 
-  private static ConnectSchema schemaWithFieldOfType(final Schema schema) {
-    return (ConnectSchema) SchemaBuilder
+  private static PersistenceSchema schemaWithFieldOfType(final Schema fieldSchema) {
+    final Schema connectSchema = SchemaBuilder
         .struct()
-        .field("f0", schema)
+        .field("f0", fieldSchema)
         .build();
+
+    return getPersistenceSchema(connectSchema);
+  }
+
+  private static PersistenceSchema getPersistenceSchema(final Schema connectSchema) {
+    final LogicalSchema logicalSchema = LogicalSchema.of(connectSchema, connectSchema);
+    final PhysicalSchema physicalSchema = PhysicalSchema.from(logicalSchema, SerdeOption.none());
+    return physicalSchema.valueSchema();
   }
 }

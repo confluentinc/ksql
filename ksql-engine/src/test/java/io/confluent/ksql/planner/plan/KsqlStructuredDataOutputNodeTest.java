@@ -39,6 +39,7 @@ import io.confluent.ksql.physical.KsqlQueryBuilder;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode.SinKFactory;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.avro.KsqlAvroSerdeFactory;
@@ -83,6 +84,10 @@ public class KsqlStructuredDataOutputNodeTest {
       .field("field3", Schema.OPTIONAL_STRING_SCHEMA)
       .field("timestamp", Schema.OPTIONAL_INT64_SCHEMA)
       .field("key", Schema.OPTIONAL_STRING_SCHEMA)
+      .build());
+
+  private static final LogicalSchema SINGLE_FIELD_SCHEMA = LogicalSchema.of(SchemaBuilder.struct()
+      .field("field1", Schema.OPTIONAL_STRING_SCHEMA)
       .build());
 
   private static final KeyField KEY_FIELD =
@@ -430,23 +435,28 @@ public class KsqlStructuredDataOutputNodeTest {
   public void shouldValidateValueFormatCanHandleValueSchema() {
     // Given:
     clearInvocations(sinkValueSerdeFactory);
+    final Set<SerdeOption> serdeOptions = SerdeOption.of(SerdeOption.UNWRAP_SINGLE_VALUES);
 
     // When:
     new KsqlStructuredDataOutputNode(
         new PlanNodeId("0"),
         sourceNode,
-        SCHEMA,
+        SINGLE_FIELD_SCHEMA,
         new MetadataTimestampExtractionPolicy(),
         KeyField.none(),
         ksqlTopic,
         Optional.empty(),
         OptionalInt.empty(),
         false,
-        SerdeOption.none()
+        serdeOptions
     );
 
     // Then:
-    verify(sinkValueSerdeFactory).validate(SCHEMA.valueSchema());
+    final PersistenceSchema expected = PhysicalSchema
+        .from(SINGLE_FIELD_SCHEMA, serdeOptions)
+        .valueSchema();
+
+    verify(sinkValueSerdeFactory).validate(expected);
   }
 
   private void givenInsertIntoNode() {

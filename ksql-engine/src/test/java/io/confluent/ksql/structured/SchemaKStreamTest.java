@@ -15,10 +15,9 @@
 
 package io.confluent.ksql.structured;
 
-import static io.confluent.ksql.metastore.model.MetaStoreMatchers.FieldMatchers.hasIndex;
-import static io.confluent.ksql.metastore.model.MetaStoreMatchers.FieldMatchers.hasName;
 import static io.confluent.ksql.metastore.model.MetaStoreMatchers.KeyFieldMatchers.hasLegacyName;
-import static io.confluent.ksql.metastore.model.MetaStoreMatchers.KeyFieldMatchers.hasLegacySchema;
+import static io.confluent.ksql.metastore.model.MetaStoreMatchers.KeyFieldMatchers.hasLegacyType;
+import static io.confluent.ksql.metastore.model.MetaStoreMatchers.LegacyFieldMatchers.hasName;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
@@ -40,6 +39,7 @@ import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.KeyField;
+import io.confluent.ksql.metastore.model.KeyField.LegacyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.metastore.model.KsqlTopic;
@@ -54,8 +54,10 @@ import io.confluent.ksql.planner.plan.FilterNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.schema.ksql.Field;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.GenericRowSerDe;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
@@ -79,9 +81,7 @@ import java.util.Optional;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.serialization.Serdes.StringSerde;
-import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.kstream.Consumed;
 import org.apache.kafka.streams.kstream.Grouped;
@@ -99,7 +99,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
-@SuppressWarnings("unchecked")
+@SuppressWarnings({"unchecked", "OptionalGetWithoutIsPresent"})
 @RunWith(MockitoJUnitRunner.class)
 public class SchemaKStreamTest {
 
@@ -122,7 +122,7 @@ public class SchemaKStreamTest {
       metaStore.getSource("TEST1")
           .getKeyField()
           .legacy()
-          .map(field -> SchemaUtil.buildAliasedField("left", field)));
+          .map(field -> field.withSource("left")));
 
   private KStream kStream;
   private KsqlStream<?> ksqlStream;
@@ -133,10 +133,10 @@ public class SchemaKStreamTest {
   private Serde<GenericRow> rightSerde;
   private LogicalSchema joinSchema;
   private Serde<GenericRow> rowSerde;
-  private final LogicalSchema simpleSchema = LogicalSchema.of(SchemaBuilder.struct()
-      .field("key", Schema.OPTIONAL_STRING_SCHEMA)
-      .field("val", Schema.OPTIONAL_INT64_SCHEMA)
-      .build());
+  private final LogicalSchema simpleSchema = LogicalSchema.builder()
+      .valueField("key", SqlTypes.STRING)
+      .valueField("val", SqlTypes.BIGINT)
+      .build();
   private final QueryContext.Stacker queryContext
       = new QueryContext.Stacker(new QueryId("query")).push("node");
   private final QueryContext parentContext = queryContext.push("parent").getQueryContext();
@@ -229,9 +229,9 @@ public class SchemaKStreamTest {
 
     // Then:
     assertThat(projectedSchemaKStream.getSchema().valueFields(), contains(
-        new Field("COL0", 0, Schema.OPTIONAL_INT64_SCHEMA),
-        new Field("COL2", 1, Schema.OPTIONAL_STRING_SCHEMA),
-        new Field("COL3", 2, Schema.OPTIONAL_FLOAT64_SCHEMA)
+        Field.of("COL0", SqlTypes.BIGINT),
+        Field.of("COL2", SqlTypes.STRING),
+        Field.of("COL3", SqlTypes.DOUBLE)
     ));
 
     assertThat(projectedSchemaKStream.getSourceSchemaKStreams().get(0), is(initialSchemaKStream));
@@ -251,7 +251,7 @@ public class SchemaKStreamTest {
 
     // Then:
     assertThat(result.getKeyField(),
-        is(KeyField.of("NEWKEY", new Field("NEWKEY", 0, Schema.OPTIONAL_INT64_SCHEMA))));
+        is(KeyField.of("NEWKEY", Field.of("NEWKEY", SqlTypes.BIGINT))));
   }
 
   @Test
@@ -268,7 +268,7 @@ public class SchemaKStreamTest {
 
     // Then:
     assertThat(result.getKeyField(),
-        is(KeyField.of("NEWKEY", new Field("NEWKEY", 0, Schema.OPTIONAL_INT64_SCHEMA))));
+        is(KeyField.of("NEWKEY", Field.of("NEWKEY", SqlTypes.BIGINT))));
   }
 
   @Test
@@ -285,7 +285,7 @@ public class SchemaKStreamTest {
 
     // Then:
     assertThat(result.getKeyField(),
-        is(KeyField.of("NEWKEY", new Field("NEWKEY", 0, Schema.OPTIONAL_INT64_SCHEMA))));
+        is(KeyField.of("NEWKEY", Field.of("NEWKEY", SqlTypes.BIGINT))));
   }
 
   @Test
@@ -301,8 +301,8 @@ public class SchemaKStreamTest {
 
     // Then:
     assertThat(result.getKeyField(), KeyFieldMatchers.hasName("COL0"));
-    assertThat(result.getKeyField(), hasLegacyName(initialSchemaKStream.keyField.legacy().map(Field::name)));
-    assertThat(result.getKeyField(), hasLegacySchema(initialSchemaKStream.keyField.legacy().map(Field::schema)));
+    assertThat(result.getKeyField(), hasLegacyName(initialSchemaKStream.keyField.legacy().map(LegacyField::name)));
+    assertThat(result.getKeyField(), hasLegacyType(initialSchemaKStream.keyField.legacy().map(LegacyField::type)));
   }
 
   @Test
@@ -318,7 +318,7 @@ public class SchemaKStreamTest {
 
     // Then:
     assertThat(result.getKeyField(),
-        equalTo(KeyField.of("COL0", new Field("COL0", 1, Schema.OPTIONAL_INT64_SCHEMA))));
+        equalTo(KeyField.of("COL0", Field.of("COL0", SqlTypes.BIGINT))));
   }
 
   @Test
@@ -366,9 +366,9 @@ public class SchemaKStreamTest {
 
     // Then:
     assertThat(projectedSchemaKStream.getSchema().valueFields(), contains(
-        new Field("COL0", 0, Schema.OPTIONAL_INT64_SCHEMA),
-        new Field("KSQL_COL_1", 1, Schema.OPTIONAL_INT32_SCHEMA),
-        new Field("KSQL_COL_2", 2, Schema.OPTIONAL_FLOAT64_SCHEMA)
+        Field.of("COL0", SqlTypes.BIGINT),
+        Field.of("KSQL_COL_1", SqlTypes.INTEGER),
+        Field.of("KSQL_COL_2", SqlTypes.DOUBLE)
     ));
 
     assertThat(projectedSchemaKStream.getSourceSchemaKStreams().get(0), is(initialSchemaKStream));
@@ -389,20 +389,14 @@ public class SchemaKStreamTest {
 
     // Then:
     assertThat(filteredSchemaKStream.getSchema().valueFields(), contains(
-        new Field("TEST1.ROWTIME", 0, Schema.OPTIONAL_INT64_SCHEMA),
-        new Field("TEST1.ROWKEY", 1, Schema.OPTIONAL_STRING_SCHEMA),
-        new Field("TEST1.COL0", 2, Schema.OPTIONAL_INT64_SCHEMA),
-        new Field("TEST1.COL1", 3, Schema.OPTIONAL_STRING_SCHEMA),
-        new Field("TEST1.COL2", 4, Schema.OPTIONAL_STRING_SCHEMA),
-        new Field("TEST1.COL3", 5, Schema.OPTIONAL_FLOAT64_SCHEMA),
-        new Field("TEST1.COL4", 6, SchemaBuilder
-            .array(Schema.OPTIONAL_FLOAT64_SCHEMA)
-            .optional()
-            .build()),
-        new Field("TEST1.COL5", 7, SchemaBuilder
-            .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_FLOAT64_SCHEMA)
-            .optional()
-            .build())
+        Field.of("TEST1.ROWTIME", SqlTypes.BIGINT),
+        Field.of("TEST1.ROWKEY", SqlTypes.STRING),
+        Field.of("TEST1.COL0", SqlTypes.BIGINT),
+        Field.of("TEST1.COL1", SqlTypes.STRING),
+        Field.of("TEST1.COL2", SqlTypes.STRING),
+        Field.of("TEST1.COL3", SqlTypes.DOUBLE),
+        Field.of("TEST1.COL4", SqlTypes.array(SqlTypes.DOUBLE)),
+        Field.of("TEST1.COL5", SqlTypes.map(SqlTypes.DOUBLE))
     ));
 
     assertThat(filteredSchemaKStream.getSourceSchemaKStreams().get(0), is(initialSchemaKStream));
@@ -414,8 +408,8 @@ public class SchemaKStreamTest {
     givenInitialKStreamOf("SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;");
 
     final KeyField expected = KeyField.of(
-        Optional.of("TEST1.COL1"),
-        initialSchemaKStream.getSchema().findValueField("TEST1.COL1")
+        "TEST1.COL1",
+        initialSchemaKStream.getSchema().findValueField("TEST1.COL1").get()
     );
 
     // When:
@@ -500,7 +494,6 @@ public class SchemaKStreamTest {
     // Then:
     assertThat(groupedSchemaKStream.getKeyField().name(), is(Optional.empty()));
     assertThat(groupedSchemaKStream.getKeyField().legacy(), OptionalMatchers.of(hasName("UCASE(TEST1.COL1)")));
-    assertThat(groupedSchemaKStream.getKeyField().legacy(), OptionalMatchers.of(hasIndex(-1)));
   }
 
   @Test
@@ -764,7 +757,7 @@ public class SchemaKStreamTest {
     final SchemaKStream schemaKtream = new SchemaKStream(
         simpleSchema,
         mock(KStream.class),
-        KeyField.of("key", simpleSchema.valueSchema().field("key")),
+        KeyField.of("key", simpleSchema.findValueField("key").get()),
         ImmutableList.of(parentSchemaKStream),
         Serdes::String,
         Type.SOURCE,
@@ -774,7 +767,7 @@ public class SchemaKStreamTest {
 
     // When/Then:
     final String expected =
-        " > [ SOURCE ] | Schema: [key VARCHAR, val BIGINT] | Logger: query.node.source\n\t"
+        " > [ SOURCE ] | Schema: [key STRING, val BIGINT] | Logger: query.node.source\n\t"
             + "parent plan";
     assertThat(schemaKtream.getExecutionPlan(""), equalTo(expected));
   }
@@ -785,7 +778,7 @@ public class SchemaKStreamTest {
     final SchemaKStream schemaKtream = new SchemaKStream(
         simpleSchema,
         mock(KStream.class),
-        KeyField.of("key", simpleSchema.valueSchema().field("key")),
+        KeyField.of("key", simpleSchema.findValueField("key").get()),
         Collections.emptyList(),
         Serdes::String,
         Type.SOURCE,
@@ -795,7 +788,7 @@ public class SchemaKStreamTest {
 
     // When/Then:
     final String expected =
-        " > [ SOURCE ] | Schema: [key VARCHAR, val BIGINT] | Logger: query.node.source\n";
+        " > [ SOURCE ] | Schema: [key STRING, val BIGINT] | Logger: query.node.source\n";
     assertThat(schemaKtream.getExecutionPlan(""), equalTo(expected));
   }
 
@@ -811,7 +804,7 @@ public class SchemaKStreamTest {
     final SchemaKStream schemaKtream = new SchemaKStream(
         simpleSchema,
         mock(KStream.class),
-        KeyField.of("key", simpleSchema.valueSchema().field("key")),
+        KeyField.of("key", simpleSchema.findValueField("key").get()),
         ImmutableList.of(parentSchemaKStream1, parentSchemaKStream2),
         Serdes::String,
         Type.SOURCE,
@@ -821,7 +814,7 @@ public class SchemaKStreamTest {
 
     // When/Then:
     final String expected =
-        " > [ SOURCE ] | Schema: [key VARCHAR, val BIGINT] | Logger: query.node.source\n"
+        " > [ SOURCE ] | Schema: [key STRING, val BIGINT] | Logger: query.node.source\n"
             + "\tparent 1 plan"
             + "\tparent 2 plan";
     assertThat(schemaKtream.getExecutionPlan(""), equalTo(expected));
@@ -906,19 +899,17 @@ public class SchemaKStreamTest {
       final LogicalSchema leftSchema,
       final LogicalSchema rightSchema
   ) {
-    final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
+    final LogicalSchema.Builder schemaBuilder = LogicalSchema.builder();
     final String leftAlias = "left";
     final String rightAlias = "right";
     for (final Field field : leftSchema.valueFields()) {
-      final String fieldName = leftAlias + "." + field.name();
-      schemaBuilder.field(fieldName, field.schema());
+      schemaBuilder.valueField(Field.of(leftAlias, field.name(), field.type()));
     }
 
     for (final Field field : rightSchema.valueFields()) {
-      final String fieldName = rightAlias + "." + field.name();
-      schemaBuilder.field(fieldName, field.schema());
+      schemaBuilder.valueField(Field.of(rightAlias, field.name(), field.type()));
     }
-    return LogicalSchema.of(schemaBuilder.build());
+    return schemaBuilder.build();
   }
 
   private PlanNode givenInitialKStreamOf(final String selectQuery) {

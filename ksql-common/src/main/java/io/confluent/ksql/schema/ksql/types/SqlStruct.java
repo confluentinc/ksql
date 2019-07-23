@@ -139,12 +139,17 @@ public final class SqlStruct extends SqlType {
     private final List<Field> fields = new ArrayList<>();
 
     public Builder field(final String fieldName, final SqlType fieldType) {
-      return addField(new Field(fieldName, fieldType));
+      return field(new Field(fieldName, fieldType));
     }
 
-    private Builder addField(final Field field) {
+    public Builder field(final Field field) {
       throwOnDuplicateFieldName(field);
       fields.add(field);
+      return this;
+    }
+
+    public Builder fields(final Iterable<? extends io.confluent.ksql.schema.ksql.Field> fields) {
+      fields.forEach(f -> field(f.name(), f.type()));
       return this;
     }
 

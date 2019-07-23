@@ -53,6 +53,7 @@ import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.properties.with.CreateConfigs;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
@@ -62,13 +63,12 @@ import java.util.Collections;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import org.apache.kafka.common.serialization.Serdes;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+@SuppressWarnings("OptionalGetWithoutIsPresent")
 public class SqlFormatterTest {
 
   @Rule
@@ -80,40 +80,37 @@ public class SqlFormatterTest {
 
   private MutableMetaStore metaStore;
 
-  private static final Schema addressSchema = SchemaBuilder.struct()
-      .field("NUMBER", Schema.OPTIONAL_INT64_SCHEMA)
-      .field("STREET", Schema.OPTIONAL_STRING_SCHEMA)
-      .field("CITY", Schema.OPTIONAL_STRING_SCHEMA)
-      .field("STATE", Schema.OPTIONAL_STRING_SCHEMA)
-      .field("ZIPCODE", Schema.OPTIONAL_INT64_SCHEMA)
-      .optional().build();
+  private static final SqlType addressSchema = SqlTypes.struct()
+      .field("NUMBER", SqlTypes.BIGINT)
+      .field("STREET", SqlTypes.STRING)
+      .field("CITY", SqlTypes.STRING)
+      .field("STATE", SqlTypes.STRING)
+      .field("ZIPCODE", SqlTypes.BIGINT)
+      .build();
 
-  private static final Schema categorySchema = SchemaBuilder.struct()
-      .field("ID", Schema.OPTIONAL_INT64_SCHEMA)
-      .field("NAME", Schema.OPTIONAL_STRING_SCHEMA)
-      .optional().build();
+  private static final SqlType categorySchema = SqlTypes.struct()
+      .field("ID", SqlTypes.BIGINT)
+      .field("NAME", SqlTypes.STRING)
+      .build();
 
-  private static final Schema itemInfoSchema = SchemaBuilder.struct()
-      .field("ITEMID", Schema.OPTIONAL_INT64_SCHEMA)
-      .field("NAME", Schema.OPTIONAL_STRING_SCHEMA)
-      .field("CATEGORY", categorySchema)
-      .optional().build();
+  private static final LogicalSchema itemInfoSchema = LogicalSchema.builder()
+      .valueField("ITEMID", SqlTypes.BIGINT)
+      .valueField("NAME", SqlTypes.STRING)
+      .valueField("CATEGORY", categorySchema)
+      .build();
 
-  private static final Schema schemaBuilderOrders = SchemaBuilder.struct()
-      .field("ORDERTIME", Schema.OPTIONAL_INT64_SCHEMA)
-      .field("ORDERID", Schema.OPTIONAL_INT64_SCHEMA)
-      .field("ITEMID", Schema.OPTIONAL_STRING_SCHEMA)
-      .field("ITEMINFO", itemInfoSchema)
-      .field("ORDERUNITS", Schema.OPTIONAL_INT32_SCHEMA)
-      .field("ARRAYCOL",SchemaBuilder
-          .array(Schema.OPTIONAL_FLOAT64_SCHEMA)
-          .optional()
+  private static final LogicalSchema ORDERS_SCHEMA = LogicalSchema.builder()
+      .valueField("ORDERTIME", SqlTypes.BIGINT)
+      .valueField("ORDERID", SqlTypes.BIGINT)
+      .valueField("ITEMID", SqlTypes.STRING)
+      .valueField("ITEMINFO", SqlTypes
+          .struct()
+          .fields(itemInfoSchema.valueFields())
           .build())
-      .field("MAPCOL", SchemaBuilder
-          .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_FLOAT64_SCHEMA)
-          .optional()
-          .build())
-      .field("ADDRESS", addressSchema)
+      .valueField("ORDERUNITS", SqlTypes.INTEGER)
+      .valueField("ARRAYCOL", SqlTypes.array(SqlTypes.DOUBLE))
+      .valueField("MAPCOL", SqlTypes.map(SqlTypes.DOUBLE))
+      .valueField("ADDRESS", addressSchema)
       .build();
 
   private static final CreateSourceProperties SOME_WITH_PROPS = CreateSourceProperties.from(
@@ -146,16 +143,19 @@ public class SqlFormatterTest {
 
     metaStore = MetaStoreFixture.getNewMetaStore(mock(FunctionRegistry.class));
 
-    final KsqlTopic
-        ksqlTopicOrders =
-        new KsqlTopic("ADDRESS_TOPIC", "orders_topic", new KsqlJsonSerdeFactory(), false);
+    final KsqlTopic ksqlTopicOrders = new KsqlTopic(
+        "ADDRESS_TOPIC",
+        "orders_topic",
+        new KsqlJsonSerdeFactory(),
+        false
+    );
 
     final KsqlStream ksqlStreamOrders = new KsqlStream<>(
         "sqlexpression",
         "ADDRESS",
-        LogicalSchema.of(schemaBuilderOrders),
+        ORDERS_SCHEMA,
         SerdeOption.none(),
-        KeyField.of("ORDERTIME", schemaBuilderOrders.field("ORDERTIME")),
+        KeyField.of("ORDERTIME", ORDERS_SCHEMA.findValueField("ORDERTIME").get()),
         new MetadataTimestampExtractionPolicy(),
         ksqlTopicOrders,
         Serdes::String
@@ -163,19 +163,24 @@ public class SqlFormatterTest {
 
     metaStore.putSource(ksqlStreamOrders);
 
-    final KsqlTopic
-        ksqlTopicItems =
-        new KsqlTopic("ITEMS_TOPIC", "item_topic", new KsqlJsonSerdeFactory(), false);
+    final KsqlTopic ksqlTopicItems = new KsqlTopic(
+        "ITEMS_TOPIC",
+        "item_topic",
+        new KsqlJsonSerdeFactory(),
+        false
+    );
+
     final KsqlTable<String> ksqlTableOrders = new KsqlTable<>(
         "sqlexpression",
         "ITEMID",
-        LogicalSchema.of(itemInfoSchema),
+        itemInfoSchema,
         SerdeOption.none(),
-        KeyField.of("ITEMID", itemInfoSchema.field("ITEMID")),
+        KeyField.of("ITEMID", itemInfoSchema.findValueField("ITEMID").get()),
         new MetadataTimestampExtractionPolicy(),
         ksqlTopicItems,
         Serdes::String
     );
+
     metaStore.putSource(ksqlTableOrders);
   }
 

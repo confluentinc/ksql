@@ -28,6 +28,7 @@ import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.physical.KsqlQueryBuilder;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.schema.ksql.Field;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.SerdeOption;
@@ -48,7 +49,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.ConnectSchema;
-import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.streams.kstream.KStream;
 
 public class KsqlStructuredDataOutputNode extends OutputNode {
@@ -256,7 +256,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
         .map(Field::name)
         .map(valueSchema::field)
         .filter(Objects::nonNull)
-        .map(Field::index)
+        .map(org.apache.kafka.connect.data.Field::index)
         .collect(Collectors.toSet());
   }
 

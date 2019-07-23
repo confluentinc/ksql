@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.schema.ksql;
 
+import com.google.common.collect.BiMap;
+import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
@@ -24,10 +26,13 @@ import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlException;
+import java.math.BigDecimal;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.connect.data.Struct;
 
 /**
  * Util class for converting between KSQL's {@link LogicalSchema} and its SQL types.
@@ -70,6 +75,9 @@ public final class SchemaConverters {
 
   private static final JavaToSqlTypeConverter JAVA_TO_SQL_CONVERTER =
       new JavaToSqlConverter();
+
+  private static final SqlToJavaTypeConverter SQL_TO_JAVA_CONVERTER =
+      new SqlToJavaConverter();
 
   private SchemaConverters() {
   }
@@ -115,6 +123,17 @@ public final class SchemaConverters {
     SqlBaseType toSqlType(Class<?> javaType);
   }
 
+  public interface SqlToJavaTypeConverter {
+
+    /**
+     * Convert the supplied {@code sqlBaseType} to its corresponding Java type.
+     *
+     * @param sqlBaseType the SQL type to convert.
+     * @return the java type.
+     */
+    Class<?> toJavaType(SqlBaseType sqlBaseType);
+  }
+
   public static LogicalToSqlTypeConverter logicalToSqlConverter() {
     return LOGICAL_TO_SQL_CONVERTER;
   }
@@ -125,6 +144,10 @@ public final class SchemaConverters {
 
   public static JavaToSqlTypeConverter javaToSqlConverter() {
     return JAVA_TO_SQL_CONVERTER;
+  }
+
+  public static SqlToJavaTypeConverter sqlToJavaConverter() {
+    return SQL_TO_JAVA_CONVERTER;
   }
 
   private static final class LogicalToSqlConverter implements LogicalToSqlTypeConverter {
@@ -245,14 +268,17 @@ public final class SchemaConverters {
 
   private static class JavaToSqlConverter implements JavaToSqlTypeConverter {
 
-    private static final Map<java.lang.reflect.Type, SqlBaseType> JAVA_TO_SQL
-        = ImmutableMap.<java.lang.reflect.Type, SqlBaseType>builder()
+    private static final BiMap<Class<?>, SqlBaseType> JAVA_TO_SQL
+        = ImmutableBiMap.<Class<?>, SqlBaseType>builder()
         .put(Boolean.class, SqlBaseType.BOOLEAN)
         .put(Integer.class, SqlBaseType.INTEGER)
         .put(Long.class, SqlBaseType.BIGINT)
         .put(Double.class, SqlBaseType.DOUBLE)
         .put(String.class, SqlBaseType.STRING)
-        // Structured types not required yet.
+        .put(BigDecimal.class, SqlBaseType.DECIMAL)
+        .put(List.class, SqlBaseType.ARRAY)
+        .put(Map.class, SqlBaseType.MAP)
+        .put(Struct.class, SqlBaseType.STRUCT)
         .build();
 
     @Override
@@ -263,6 +289,22 @@ public final class SchemaConverters {
       }
 
       return sqlType;
+    }
+  }
+
+  private static class SqlToJavaConverter implements SqlToJavaTypeConverter {
+
+    private static final BiMap<SqlBaseType, Class<?>> SQL_TO_JAVA =
+        JavaToSqlConverter.JAVA_TO_SQL.inverse();
+
+    @Override
+    public Class<?> toJavaType(final SqlBaseType sqlBaseType) {
+      final Class<?> javaType = SQL_TO_JAVA.get(sqlBaseType);
+      if (javaType == null) {
+        throw new KsqlException("Unexpected sql type: " + sqlBaseType);
+      }
+
+      return javaType;
     }
   }
 }

@@ -21,8 +21,11 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.SerdeFactory;
 import io.confluent.ksql.metastore.model.KeyField;
+import io.confluent.ksql.metastore.model.KeyField.LegacyField;
 import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.schema.ksql.Field;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.streams.StreamsFactories;
 import io.confluent.ksql.streams.StreamsUtil;
 import io.confluent.ksql.util.KsqlConfig;
@@ -35,8 +38,6 @@ import java.util.Optional;
 import java.util.Set;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
-import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.kstream.KGroupedTable;
 import org.apache.kafka.streams.kstream.KStream;
@@ -206,11 +207,11 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
                     contextStacker.getQueryContext()), Serdes.String(), valSerde)
         );
 
-    final Field legacyKeyField = new Field(
-        groupBy.aggregateKeyName, -1, Schema.OPTIONAL_STRING_SCHEMA);
+    final LegacyField legacyKeyField = LegacyField
+        .notInSchema(groupBy.aggregateKeyName, SqlTypes.STRING);
 
     final Optional<String> newKeyField = schema.findValueField(groupBy.aggregateKeyName)
-        .map(Field::name);
+        .map(Field::fullName);
 
     return new SchemaKGroupedTable(
         schema,

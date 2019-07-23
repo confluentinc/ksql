@@ -31,14 +31,15 @@ import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.parser.tree.BooleanLiteral;
 import io.confluent.ksql.physical.KsqlQueryBuilder;
+import io.confluent.ksql.schema.ksql.Field;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.structured.QueryContext.Stacker;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SelectExpression;
 import java.util.Arrays;
 import java.util.Optional;
-import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Before;
@@ -59,7 +60,7 @@ public class ProjectNodeTest {
       .field("field2", Schema.OPTIONAL_STRING_SCHEMA)
       .build());
   private static final KeyField SOURCE_KEY_FIELD = KeyField
-      .of("source-key", new Field("legacy-source-key", 1, Schema.STRING_SCHEMA));
+      .of("source-key", Field.of("legacy-source-key", SqlTypes.STRING));
 
   @Mock
   private PlanNode source;

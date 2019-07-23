@@ -38,6 +38,7 @@ import io.confluent.ksql.parser.tree.IntegerLiteral;
 import io.confluent.ksql.parser.tree.LongLiteral;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.StringLiteral;
+import io.confluent.ksql.schema.ksql.Field;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.serde.SerdeOption;
@@ -60,7 +61,6 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serializer;
-import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
@@ -73,6 +73,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+@SuppressWarnings("OptionalGetWithoutIsPresent")
 @RunWith(MockitoJUnitRunner.class)
 public class InsertValuesExecutorTest {
 
@@ -395,14 +396,14 @@ public class InsertValuesExecutorTest {
     verify(keySerializer).serialize(TOPIC_NAME, "str");
     verify(valueSerializer)
         .serialize(TOPIC_NAME, new Struct(BIG_SCHEMA.valueSchema())
-        .put("COL0", "str")
-        .put("INT", 0)
-        .put("BIGINT", 2L)
-        .put("DOUBLE", 3.0)
-        .put("BOOLEAN", true)
-        .put("VARCHAR", "str")
-        .put("DECIMAL", new BigDecimal(1.2, new MathContext(2)))
-    );
+            .put("COL0", "str")
+            .put("INT", 0)
+            .put("BIGINT", 2L)
+            .put("DOUBLE", 3.0)
+            .put("BOOLEAN", true)
+            .put("VARCHAR", "str")
+            .put("DECIMAL", new BigDecimal(1.2, new MathContext(2)))
+        );
 
     verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
   }
@@ -615,12 +616,17 @@ public class InsertValuesExecutorTest {
       final Optional<String> keyField
   ) {
     final KsqlTopic topic = new KsqlTopic("TOPIC", TOPIC_NAME, valueSerde, false);
+
+    final KeyField valueKeyField = keyField
+        .map(kf -> KeyField.of(kf, schema.findValueField(kf).get()))
+        .orElse(KeyField.none());
+
     final DataSource<?> dataSource = new KsqlStream<>(
         "",
         "TOPIC",
         schema,
         serdeOptions,
-        KeyField.of(keyField, keyField.map(f -> schema.valueSchema().field(f))),
+        valueKeyField,
         new MetadataTimestampExtractionPolicy(),
         topic,
         () -> keySerDe

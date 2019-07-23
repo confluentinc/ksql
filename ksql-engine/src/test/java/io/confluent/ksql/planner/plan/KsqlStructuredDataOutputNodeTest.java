@@ -69,6 +69,7 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
+@SuppressWarnings("OptionalGetWithoutIsPresent")
 @RunWith(MockitoJUnitRunner.class)
 public class KsqlStructuredDataOutputNodeTest {
 
@@ -86,7 +87,7 @@ public class KsqlStructuredDataOutputNodeTest {
       .build());
 
   private static final KeyField KEY_FIELD =
-      KeyField.of("key", SCHEMA.valueSchema().field("key"));
+      KeyField.of("key", SCHEMA.findValueField("key").get());
   private static final PlanNodeId PLAN_NODE_ID = new PlanNodeId("0");
 
   @Rule

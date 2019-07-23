@@ -48,4 +48,4 @@ Next KLIP number: **9**
 | [KLIP-4: Custom Type Registry](klip-4-custom-types.md)                             | Approved       | N/A     |
 | [KLIP-6: Execution Plans](klip-6-execution-plans.md)                               | Approved       | N/A     |
 | KLIP-7: Kafka Connect Integration                                                  | Proposal       | N/A     |
-| KLIP-8: Interactive Queries                                                        | Proposal       | N/A     |
+| [KLIP-8: Interactive Queries](klip-8-interactive-queries.md)                       | Proposal       | N/A     |

@@ -239,10 +239,4 @@ public class SchemaConvertersTest {
     // When:
     SchemaConverters.javaToSqlConverter().toSqlType(double.class);
   }
-
-  @Test
-  public void shouldConvertSqlToJavaType() {
-    assertThat(SchemaConverters.sqlToJavaConverter().toJavaType(SqlBaseType.STRING),
-        equalTo(String.class));
-  }
 }

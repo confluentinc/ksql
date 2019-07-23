@@ -512,15 +512,9 @@ public class JoinNode extends PlanNode {
 
     final LogicalSchema.Builder joinSchema = LogicalSchema.builder();
 
-    for (final Field field : leftSchema.valueFields()) {
-      // Add value fields with source info:
-      joinSchema.valueField(field);
-    }
+    joinSchema.valueFields(leftSchema.valueFields());
 
-    for (final Field field : rightSchema.valueFields()) {
-      // Add value fields with source info:
-      joinSchema.valueField(field);
-    }
+    joinSchema.valueFields(rightSchema.valueFields());
 
     // Hard-wire for now, until we support custom type/name of key fields:
     joinSchema.keyField(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING);

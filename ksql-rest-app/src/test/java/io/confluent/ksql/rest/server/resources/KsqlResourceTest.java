@@ -59,6 +59,7 @@ import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.KsqlConfigTestUtil;
@@ -1743,7 +1744,7 @@ public class KsqlResourceTest {
         .stream()
         .map(md -> new RunningQuery(
             md.getStatementString(),
-            md.getSinkNames(),
+            ImmutableSet.of(md.getSinkName()),
             new EntityQueryId(md.getQueryId())))
         .collect(Collectors.toList());
   }

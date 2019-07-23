@@ -23,7 +23,6 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.google.common.collect.ImmutableSet;
 import io.confluent.connect.avro.AvroData;
 import io.confluent.connect.avro.AvroDataConfig;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
@@ -99,7 +98,7 @@ public class AvroUtilTest {
     when(persistentQuery.getResultTopic()).thenReturn(RESULT_TOPIC);
     when(persistentQuery.getResultTopicFormat())
         .thenReturn(RESULT_TOPIC.getValueSerdeFactory().getFormat());
-    when(persistentQuery.getSinkNames()).thenReturn(ImmutableSet.of(STREAM_NAME));
+    when(persistentQuery.getSinkName()).thenReturn(STREAM_NAME);
   }
 
   @Test

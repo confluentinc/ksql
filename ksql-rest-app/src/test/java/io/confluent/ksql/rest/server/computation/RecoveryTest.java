@@ -398,14 +398,14 @@ public class RecoveryTest {
   private static class PersistentQueryMetadataMatcher
       extends TypeSafeDiagnosingMatcher<PersistentQueryMetadata> {
     private final Matcher<Set<String>> sourcesNamesMatcher;
-    private final Matcher<Set<String>> sinkNamesMatcher;
+    private final Matcher<String> sinkNamesMatcher;
     private final Matcher<LogicalSchema> resultSchemaMatcher;
     private final Matcher<String> sqlMatcher;
     private final Matcher<String> stateMatcher;
 
     PersistentQueryMetadataMatcher(final PersistentQueryMetadata metadata) {
       this.sourcesNamesMatcher = equalTo(metadata.getSourceNames());
-      this.sinkNamesMatcher = equalTo(metadata.getSinkNames());
+      this.sinkNamesMatcher = equalTo(metadata.getSinkName());
       this.resultSchemaMatcher = equalTo(metadata.getLogicalSchema());
       this.sqlMatcher = equalTo(metadata.getStatementString());
       this.stateMatcher = equalTo(metadata.getState());
@@ -439,7 +439,7 @@ public class RecoveryTest {
       }
       if (!test(
           sinkNamesMatcher,
-          metadata.getSinkNames(),
+          metadata.getSinkName(),
           description,
           "sink names mismatch: "
       )) {

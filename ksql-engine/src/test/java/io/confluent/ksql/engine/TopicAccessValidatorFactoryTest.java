@@ -15,18 +15,20 @@
 
 package io.confluent.ksql.engine;
 
-import static org.easymock.EasyMock.anyObject;
-import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.mock;
-import static org.easymock.EasyMock.replay;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.any;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.util.KsqlConfig;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -36,24 +38,24 @@ import java.util.Set;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.Config;
 import org.apache.kafka.clients.admin.ConfigEntry;
-import org.apache.kafka.clients.admin.DescribeClusterOptions;
 import org.apache.kafka.clients.admin.DescribeClusterResult;
 import org.apache.kafka.clients.admin.DescribeConfigsResult;
 import org.apache.kafka.common.KafkaFuture;
 import org.apache.kafka.common.Node;
 import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.common.config.ConfigResource;
-import org.easymock.EasyMock;
-import org.easymock.EasyMockRunner;
-import org.easymock.Mock;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
 
-@RunWith(EasyMockRunner.class)
 public class TopicAccessValidatorFactoryTest {
   private static final String KAFKA_AUTHORIZER_CLASS_NAME = "authorizer.class.name";
 
+  @Mock
+  private KsqlConfig ksqlConfig;
   @Mock
   private ServiceContext serviceContext;
   @Mock
@@ -61,12 +63,16 @@ public class TopicAccessValidatorFactoryTest {
 
   private Node node;
 
+  @Rule
+  final public MockitoRule mockitoJUnit = MockitoJUnit.rule();
+
   @Before
   public void setUp() {
     node = new Node(1, "host", 9092);
 
-    expect(serviceContext.getAdminClient()).andReturn(adminClient);
-    replay(serviceContext);
+    when(serviceContext.getAdminClient()).thenReturn(adminClient);
+    when(ksqlConfig.getString(KsqlConfig.KSQL_ENABLE_TOPIC_ACCESS_VALIDATOR))
+        .thenReturn(KsqlConfig.KSQL_ACCESS_VALIDATOR_AUTO);
   }
 
   @Test
@@ -75,7 +81,10 @@ public class TopicAccessValidatorFactoryTest {
     givenKafkaAuthorizer("an-authorizer-class", Collections.emptySet());
 
     // When:
-    final TopicAccessValidator validator = TopicAccessValidatorFactory.create(serviceContext, null);
+    final TopicAccessValidator validator = TopicAccessValidatorFactory.create(
+        ksqlConfig,
+        serviceContext
+    );
 
     // Then
     assertThat(validator, is(instanceOf(AuthorizationTopicAccessValidator.class)));
@@ -87,10 +96,47 @@ public class TopicAccessValidatorFactoryTest {
     givenKafkaAuthorizer("", Collections.emptySet());
 
     // When:
-    final TopicAccessValidator validator = TopicAccessValidatorFactory.create(serviceContext, null);
+    final TopicAccessValidator validator = TopicAccessValidatorFactory.create(
+        ksqlConfig,
+        serviceContext
+    );
 
     // Then
     assertThat(validator, not(instanceOf(AuthorizationTopicAccessValidator.class)));
+  }
+
+  @Test
+  public void shouldReturnDummyValidatorIfNotEnabled() {
+    // Given:
+    when(ksqlConfig.getString(KsqlConfig.KSQL_ENABLE_TOPIC_ACCESS_VALIDATOR))
+        .thenReturn(KsqlConfig.KSQL_ACCESS_VALIDATOR_OFF);
+
+    // When:
+    final TopicAccessValidator validator = TopicAccessValidatorFactory.create(
+        ksqlConfig,
+        serviceContext
+    );
+
+    // Then:
+    assertThat(validator, not(instanceOf(AuthorizationTopicAccessValidator.class)));
+    verifyZeroInteractions(adminClient);
+  }
+
+  @Test
+  public void shouldReturnAuthorizationValidatorIfEnabled() {
+    // Given:
+    when(ksqlConfig.getString(KsqlConfig.KSQL_ENABLE_TOPIC_ACCESS_VALIDATOR))
+        .thenReturn(KsqlConfig.KSQL_ACCESS_VALIDATOR_ON);
+
+    // When:
+    final TopicAccessValidator validator = TopicAccessValidatorFactory.create(
+        ksqlConfig,
+        serviceContext
+    );
+
+    // Then:
+    assertThat(validator, instanceOf(AuthorizationTopicAccessValidator.class));
+    verifyZeroInteractions(adminClient);
   }
 
   @Test
@@ -99,7 +145,10 @@ public class TopicAccessValidatorFactoryTest {
     givenKafkaAuthorizer("an-authorizer-class", null);
 
     // When:
-    final TopicAccessValidator validator = TopicAccessValidatorFactory.create(serviceContext, null);
+    final TopicAccessValidator validator = TopicAccessValidatorFactory.create(
+        ksqlConfig,
+        serviceContext
+    );
 
     // Then
     assertThat(validator, not(instanceOf(AuthorizationTopicAccessValidator.class)));
@@ -109,24 +158,25 @@ public class TopicAccessValidatorFactoryTest {
       final String className,
       final Set<AclOperation> authOperations
   ) {
-    expect(adminClient.describeCluster()).andReturn(describeClusterResult(authOperations));
-    expect(adminClient.describeCluster(anyObject()))
-        .andReturn(describeClusterResult(authOperations));
-    expect(adminClient.describeConfigs(describeBrokerRequest()))
-        .andReturn(describeBrokerResult(Collections.singletonList(
+    final DescribeClusterResult describeClusterResult = describeClusterResult(authOperations);
+    when(adminClient.describeCluster()).thenReturn(describeClusterResult);
+    when(adminClient.describeCluster(any()))
+        .thenReturn(describeClusterResult);
+    final DescribeConfigsResult describeConfigsResult = describeBrokerResult(
+        Collections.singletonList(
             new ConfigEntry(KAFKA_AUTHORIZER_CLASS_NAME, className)
-        )));
-
-    replay(adminClient);
+        )
+    );
+    when(adminClient.describeConfigs(describeBrokerRequest()))
+        .thenReturn(describeConfigsResult);
   }
 
   private DescribeClusterResult describeClusterResult(final Set<AclOperation> authOperations) {
     final Collection<Node> nodes = Collections.singletonList(node);
-    final DescribeClusterResult describeClusterResult = EasyMock.mock(DescribeClusterResult.class);
-    expect(describeClusterResult.nodes()).andReturn(KafkaFuture.completedFuture(nodes));
-    expect(describeClusterResult.authorizedOperations())
-        .andReturn(KafkaFuture.completedFuture(authOperations));
-    replay(describeClusterResult);
+    final DescribeClusterResult describeClusterResult = mock(DescribeClusterResult.class);
+    when(describeClusterResult.nodes()).thenReturn(KafkaFuture.completedFuture(nodes));
+    when(describeClusterResult.authorizedOperations())
+        .thenReturn(KafkaFuture.completedFuture(authOperations));
     return describeClusterResult;
   }
 
@@ -138,8 +188,7 @@ public class TopicAccessValidatorFactoryTest {
     final DescribeConfigsResult describeConfigsResult = mock(DescribeConfigsResult.class);
     final Map<ConfigResource, Config> config = ImmutableMap.of(
         new ConfigResource(ConfigResource.Type.BROKER, node.idString()), new Config(brokerConfigs));
-    expect(describeConfigsResult.all()).andReturn(KafkaFuture.completedFuture(config)).anyTimes();
-    replay(describeConfigsResult);
+    when(describeConfigsResult.all()).thenReturn(KafkaFuture.completedFuture(config));
     return describeConfigsResult;
   }
 }

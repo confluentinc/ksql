@@ -135,7 +135,7 @@ public class GenericsUtilTest {
     final Map<Schema, Schema> mapping = ImmutableMap.of(a, Schema.OPTIONAL_STRING_SCHEMA);
 
     // When:
-    final Schema resolved = GenericsUtil.resolve(a, mapping);
+    final Schema resolved = GenericsUtil.applyResolved(a, mapping);
 
     // Then:
     assertThat(resolved, is(Schema.OPTIONAL_STRING_SCHEMA));
@@ -149,7 +149,7 @@ public class GenericsUtilTest {
     final Map<Schema, Schema> mapping = ImmutableMap.of(a, Schema.OPTIONAL_STRING_SCHEMA);
 
     // When:
-    final Schema resolved = GenericsUtil.resolve(array, mapping);
+    final Schema resolved = GenericsUtil.applyResolved(array, mapping);
 
     // Then:
     assertThat(resolved, is(SchemaBuilder.array(Schema.OPTIONAL_STRING_SCHEMA).optional().build()));
@@ -163,7 +163,7 @@ public class GenericsUtilTest {
     final Map<Schema, Schema> mapping = ImmutableMap.of(a, Schema.OPTIONAL_STRING_SCHEMA);
 
     // When:
-    final Schema resolved = GenericsUtil.resolve(map, mapping);
+    final Schema resolved = GenericsUtil.applyResolved(map, mapping);
 
     // Then:
     assertThat(resolved,
@@ -180,7 +180,7 @@ public class GenericsUtilTest {
     final Schema instance = Schema.OPTIONAL_STRING_SCHEMA;
 
     // When:
-    final Map<Schema, Schema> mapping = GenericsUtil.identifyGenerics(a, instance);
+    final Map<Schema, Schema> mapping = GenericsUtil.resolveGenerics(a, instance);
 
     // Then:
     assertThat(mapping, hasEntry(a, Schema.OPTIONAL_STRING_SCHEMA));
@@ -193,7 +193,7 @@ public class GenericsUtilTest {
     final Schema instance = SchemaBuilder.array(Schema.OPTIONAL_STRING_SCHEMA).build();
 
     // When:
-    final Map<Schema, Schema> mapping = GenericsUtil.identifyGenerics(a, instance);
+    final Map<Schema, Schema> mapping = GenericsUtil.resolveGenerics(a, instance);
 
     // Then:
     assertThat(mapping, hasEntry(a.valueSchema(), Schema.OPTIONAL_STRING_SCHEMA));
@@ -207,7 +207,7 @@ public class GenericsUtilTest {
         .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_STRING_SCHEMA).build();
 
     // When:
-    final Map<Schema, Schema> mapping = GenericsUtil.identifyGenerics(a, instance);
+    final Map<Schema, Schema> mapping = GenericsUtil.resolveGenerics(a, instance);
 
     // Then:
     assertThat(mapping, hasEntry(a.valueSchema(), Schema.OPTIONAL_STRING_SCHEMA));
@@ -225,7 +225,7 @@ public class GenericsUtilTest {
         SchemaBuilder.struct().field("a", Schema.OPTIONAL_STRING_SCHEMA));
 
     // When:
-    final Map<Schema, Schema> mapping = GenericsUtil.identifyGenerics(mapWithGenericArray, instance);
+    final Map<Schema, Schema> mapping = GenericsUtil.resolveGenerics(mapWithGenericArray, instance);
 
     // Then:
     assertThat(mapping, hasEntry(GenericsUtil.generic("K").build(), Schema.OPTIONAL_STRING_SCHEMA));
@@ -289,7 +289,7 @@ public class GenericsUtilTest {
   @Test(expected = KsqlException.class)
   public void shouldThrowIfConflictingGeneric() {
     // When:
-    GenericsUtil.identifyGenerics(
+    GenericsUtil.resolveGenerics(
         GenericsUtil.map(GenericsUtil.generic("A").build(), "A").build(),
         SchemaBuilder.map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_INT64_SCHEMA).build()
     );
@@ -302,7 +302,7 @@ public class GenericsUtilTest {
     final Map<Schema, Schema> mapping = ImmutableMap.of();
 
     // When:
-    GenericsUtil.resolve(a, mapping);
+    GenericsUtil.applyResolved(a, mapping);
   }
 
   @Test(expected = KsqlException.class)
@@ -312,7 +312,7 @@ public class GenericsUtilTest {
     final Schema instance = SchemaBuilder.array(Schema.OPTIONAL_STRING_SCHEMA).build();
 
     // When:
-    GenericsUtil.identifyGenerics(a, instance);
+    GenericsUtil.resolveGenerics(a, instance);
   }
 
   @Test(expected = KsqlException.class)

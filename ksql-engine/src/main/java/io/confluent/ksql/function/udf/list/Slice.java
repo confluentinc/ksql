@@ -20,17 +20,23 @@ import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
 import java.util.List;
 
-@UdfDescription(name = "slice", description = "slice of a generic list")
+@UdfDescription(name = "slice", description = "slice of an ARRAY")
 public class Slice {
 
   @Udf
   public <T> List<T> slice(
       @UdfParameter(description = "the input array")  final List<T> in,
-      @UdfParameter(description = "start index")      final int from,
-      @UdfParameter(description = "end index")        final int to) {
+      @UdfParameter(description = "start index")      final Integer from,
+      @UdfParameter(description = "end index")        final Integer to) {
+    if (in == null) {
+      return null;
+    }
+
     try {
       // SQL systems are usually 1-indexed and are inclusive of end index
-      return in.subList(from - 1, to);
+      final int start = from == null ? 0 : from - 1;
+      final int end = to == null ? in.size() : to;
+      return in.subList(start, end);
     } catch (final IndexOutOfBoundsException e) {
       return null;
     }

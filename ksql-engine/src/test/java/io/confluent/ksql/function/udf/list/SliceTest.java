@@ -37,6 +37,18 @@ public class SliceTest {
   }
 
   @Test
+  public void shouldFullListOnNullEndpoints() {
+    // Given:
+    final List<String> list = Lists.newArrayList("a", "b", "c");
+
+    // When:
+    final List<String> slice = new Slice().slice(list, null, null);
+
+    // Then:
+    assertThat(slice, is(Lists.newArrayList("a", "b", "c")));
+  }
+
+  @Test
   public void shouldOneElementSlice() {
     // Given:
     final List<String> list = Lists.newArrayList("a", "b", "c");
@@ -67,6 +79,18 @@ public class SliceTest {
 
     // When:
     final List<String> slice = new Slice().slice(list, 2, 5);
+
+    // Then:
+    assertThat(slice, nullValue());
+  }
+
+  @Test
+  public void shouldReturnNullOnNullInput() {
+    // Given:
+    final List<String> list = null;
+
+    // When:
+    final List<String> slice = new Slice().slice(list, 1, 2);
 
     // Then:
     assertThat(slice, nullValue());

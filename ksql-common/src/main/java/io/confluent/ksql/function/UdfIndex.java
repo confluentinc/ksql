@@ -166,7 +166,7 @@ public class UdfIndex<T extends IndexedFunction> {
     }
 
     final Schema arg = arguments.get(argIndex);
-    for (Entry<Parameter, Node> candidate : current.children.entrySet()) {
+    for (final Entry<Parameter, Node> candidate : current.children.entrySet()) {
       final Map<Schema, Schema> reservedCopy = new HashMap<>(reservedGenerics);
       if (candidate.getKey().accepts(arg, reservedCopy)) {
         final Node node = candidate.getValue();
@@ -305,28 +305,41 @@ public class UdfIndex<T extends IndexedFunction> {
         return schema.isOptional();
       }
 
-      if (!GenericsUtil.constituentGenerics(schema).isEmpty()
-          && GenericsUtil.instanceOf(schema, argument)) {
-        // check if this specific generic has already been resolved to some other
-        // type - if not, reserve it for future checks to accept
-        final Schema old = reservedGenerics.putIfAbsent(schema, argument);
-        return old == null || old.equals(argument);
+      if (GenericsUtil.hasGenerics(schema)) {
+        return reserveGenerics(schema, argument, reservedGenerics);
       }
 
       final Schema.Type type = schema.type();
-      if (!Objects.equals(type, argument.type())) {
-        return false;
-      }
 
       // we require a custom equals method that ignores certain values (e.g.
       // whether or not the schema is optional, and the documentation)
-      return CUSTOM_SCHEMA_EQ.getOrDefault(type, (a, b) -> true).test(schema, argument)
+      return Objects.equals(type, argument.type())
+          && CUSTOM_SCHEMA_EQ.getOrDefault(type, (a, b) -> true).test(schema, argument)
           && Objects.equals(schema.version(), argument.version())
           && Objects.equals(schema.parameters(), argument.parameters())
           && Objects.deepEquals(schema.defaultValue(), argument.defaultValue());
     }
     // CHECKSTYLE_RULES.ON: BooleanExpressionComplexity
 
+    private static boolean reserveGenerics(
+        final Schema schema,
+        final Schema argument,
+        final Map<Schema, Schema> reservedGenerics
+    ) {
+      if (!GenericsUtil.instanceOf(schema, argument)) {
+        return false;
+      }
+
+      final Map<Schema, Schema> genericMapping = GenericsUtil.resolveGenerics(schema, argument);
+      for (final Entry<Schema, Schema> entry : genericMapping.entrySet()) {
+        final Schema old = reservedGenerics.putIfAbsent(entry.getKey(), entry.getValue());
+        if (old != null && !old.equals(entry.getValue())) {
+          return false;
+        }
+      }
+
+      return true;
+    }
 
     private static boolean mapEquals(final Schema mapA, final Schema mapB) {
       return Objects.equals(mapA.keySchema(), mapB.keySchema())

@@ -110,6 +110,8 @@ A UDF declaration can utilize generics if they match the following conditions:
 
 - Any generic in the return value of a method must appear in at least one of the method parameters
 - The generic must not adhere to any interface. For example, ``<T extends Number>`` is not valid).
+- The generic does not support type coercion or inheritance. For example, ``add(T a, T b)`` will
+  accept ``BIGINT, BIGINT`` but not ``INT, BIGINT``.
 
 .. _example-udf-class:
 

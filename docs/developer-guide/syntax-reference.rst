@@ -277,7 +277,8 @@ Map
 .. note:: The ``DELIMITED`` format doesn't support maps.
 
 KSQL supports fields that are maps. A map has a key and value type. All of the keys must be of the
-same type, and all of the values must be also be of the same type. Currently only ``STRING`` keys are supported. The value type can be any valid KSQL type.
+same type, and all of the values must be also be of the same type. Currently only ``STRING`` keys
+are supported. The value type can be any valid KSQL type.
 
 You can define maps within a ``CREATE TABLE`` or ``CREATE STREAM`` statement by using the syntax
 ``MAP<KeyType, ValueType>``. For example, ``MAP<STRING, INT>`` defines a map with string keys and

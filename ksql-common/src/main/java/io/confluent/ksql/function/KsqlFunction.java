@@ -112,7 +112,7 @@ public final class KsqlFunction implements IndexedFunction {
     this.description = Objects.requireNonNull(description, "description");
     this.pathLoadedFrom  = Objects.requireNonNull(pathLoadedFrom, "pathLoadedFrom");
     this.isVariadic = isVariadic;
-    this.hasGenerics = !GenericsUtil.constituentGenerics(returnType).isEmpty();
+    this.hasGenerics = GenericsUtil.hasGenerics(returnType);
 
     if (arguments.stream().anyMatch(Objects::isNull)) {
       throw new IllegalArgumentException("KSQL Function can't have null argument types");
@@ -149,10 +149,10 @@ public final class KsqlFunction implements IndexedFunction {
           ? SchemaBuilder.array(arguments.get(i)).build()
           : arguments.get(i);
 
-      genericMapping.putAll(GenericsUtil.identifyGenerics(schema, instance));
+      genericMapping.putAll(GenericsUtil.resolveGenerics(schema, instance));
     }
 
-    return GenericsUtil.resolve(returnType, genericMapping);
+    return GenericsUtil.applyResolved(returnType, genericMapping);
   }
 
   public List<Schema> getArguments() {

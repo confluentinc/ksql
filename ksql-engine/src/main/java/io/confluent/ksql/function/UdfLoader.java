@@ -283,7 +283,7 @@ public class UdfLoader {
                 doc);
       }
 
-      return JavaToConnect.getSchemaFromType(type, name, doc);
+      return UdfUtil.getSchemaFromType(type, name, doc);
     }).collect(Collectors.toList());
 
     final Schema returnType = getReturnType(method, udfAnnotation);
@@ -372,7 +372,7 @@ public class UdfLoader {
   private static Schema getReturnType(final Method method, final Udf udfAnnotation) {
     try {
       final Schema returnType = udfAnnotation.schema().isEmpty()
-          ? JavaToConnect.getSchemaFromType(method.getGenericReturnType())
+          ? UdfUtil.getSchemaFromType(method.getGenericReturnType())
           : SchemaConverters
               .sqlToLogicalConverter()
               .fromSqlType(TypeContextUtil.getType(udfAnnotation.schema()).getSqlType());

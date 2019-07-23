@@ -12,15 +12,13 @@
       "inputs": [
         {"topic": "test_topic", "value": {"ks":  ["a", "b"], "vals":  [1, 2]}},
         {"topic": "test_topic", "value": {"ks":  ["a", "b", "c"], "vals":  [1, 2, 3]}},
-        {"topic": "test_topic", "value": {"ks":  ["a", "b", null], "vals":  [1, 2, 3]}},
         {"topic": "test_topic", "value": {"ks":  ["a", "b"], "vals":  [1, 2, 3]}},
         {"topic": "test_topic", "value": {"ks":  ["a", "b", "c"], "vals":  [1, 2, null]}}
       ],
       "outputs": [
         {"topic": "OUTPUT", "value": {"M":  {"a":  1, "b":  2}}},
         {"topic": "OUTPUT", "value": {"M":  {"a":  1, "b":  2, "c":  3}}},
-        {"topic": "OUTPUT", "value": {"M":  null}},
-        {"topic": "OUTPUT", "value": {"M":  null}},
+        {"topic": "OUTPUT", "value": {"M":  {"a":  1, "b":  2}}},
         {"topic": "OUTPUT", "value": {"M":  {"a":  1, "b":  2, "c":  null}}}
       ]
     }

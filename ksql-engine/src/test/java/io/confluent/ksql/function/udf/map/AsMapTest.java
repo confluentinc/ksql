@@ -17,6 +17,7 @@ package io.confluent.ksql.function.udf.map;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasEntry;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 
 import com.google.common.collect.Lists;
@@ -55,7 +56,7 @@ public class AsMapTest {
   }
 
   @Test
-  public void shouldReturnNullIfMismatchingLengthKeysAndValues() {
+  public void shouldIgnoreMismatchingLengthKeysAndValues() {
     // Given:
     final List<String> keys = Lists.newArrayList("1", "2");
     final List<Integer> values = Lists.newArrayList(1, 2, 3);
@@ -64,11 +65,13 @@ public class AsMapTest {
     final Map<String, Integer> map = new AsMap().asMap(keys, values);
 
     // Then:
-    assertThat(map, nullValue());
+    assertThat(map.size(), is(2));
+    assertThat(map, hasEntry("1", 1));
+    assertThat(map, hasEntry("2", 2));
   }
 
   @Test
-  public void shouldReturnNullIfNullKey() {
+  public void shouldHandleNullKey() {
     // Given:
     final List<String> keys = Lists.newArrayList("1", null);
     final List<Integer> values = Lists.newArrayList(1, 2);
@@ -77,7 +80,8 @@ public class AsMapTest {
     final Map<String, Integer> map = new AsMap().asMap(keys, values);
 
     // Then:
-    assertThat(map, nullValue());
+    assertThat(map, hasEntry("1", 1));
+    assertThat(map, hasEntry(null, 2));
   }
 
 }

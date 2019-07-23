@@ -152,13 +152,13 @@ public class UdfCompiler {
               UdfArgSupplier.class, new String[]{"args", "returnType", "metrics"});
 
       final Schema argSchema = paramSchema.isEmpty()
-          ? JavaToConnect.getSchemaFromType(valueAndAggregateTypes.left)
+          ? UdfUtil.getSchemaFromType(valueAndAggregateTypes.left)
           : SchemaConverters.sqlToLogicalConverter()
               .fromSqlType(TypeContextUtil.getType(paramSchema).getSqlType());
       final List<Schema> args = Collections.singletonList(argSchema);
 
       final Schema returnValue = returnSchema.isEmpty()
-          ? SchemaUtil.ensureOptional(JavaToConnect.getSchemaFromType(valueAndAggregateTypes.right))
+          ? SchemaUtil.ensureOptional(UdfUtil.getSchemaFromType(valueAndAggregateTypes.right))
           : SchemaConverters.sqlToLogicalConverter()
               .fromSqlType(TypeContextUtil.getType(returnSchema).getSqlType());
 

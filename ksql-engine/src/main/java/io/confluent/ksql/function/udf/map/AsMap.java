@@ -29,16 +29,12 @@ public class AsMap {
   public final <T> Map<String, T> asMap(
       @UdfParameter final List<String> keys,
       @UdfParameter final List<T> values) {
-    if (keys.size() != values.size()) {
-      return null;
-    }
-
     final Map<String, T> map = new HashMap<>();
     for (int i = 0; i < keys.size(); i++) {
-      if (keys.get(i) == null) {
-        return null;
-      }
-      map.putIfAbsent(keys.get(i), values.get(i));
+      final String key = keys.get(i);
+      final T value = i >= values.size() ? null : values.get(i);
+
+      map.put(key, value);
     }
     return map;
   }

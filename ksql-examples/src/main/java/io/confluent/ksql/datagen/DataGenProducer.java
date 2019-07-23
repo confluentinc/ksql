@@ -15,30 +15,56 @@
 
 package io.confluent.ksql.datagen;
 
+import static java.util.Objects.requireNonNull;
+
 import io.confluent.avro.random.generator.Generator;
 import io.confluent.connect.avro.AvroData;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.PersistenceSchema;
+import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.serde.GenericRowSerDe;
+import io.confluent.ksql.serde.KsqlSerdeFactory;
+import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.Objects;
 import java.util.Properties;
+import java.util.function.Supplier;
 import org.apache.avro.Schema;
 import org.apache.kafka.clients.producer.Callback;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.Serializer;
-import org.apache.kafka.common.serialization.StringSerializer;
+import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 
-public abstract class DataGenProducer {
+public class DataGenProducer {
 
-  static final org.apache.kafka.connect.data.Schema KEY_SCHEMA = SchemaBuilder.struct()
+  static final ConnectSchema KEY_SCHEMA = (ConnectSchema) SchemaBuilder.struct()
       .field(SchemaUtil.ROWKEY_NAME, org.apache.kafka.connect.data.Schema.OPTIONAL_STRING_SCHEMA)
       .build();
 
   // Max 100 ms between messsages.
   public static final long INTER_MESSAGE_MAX_INTERVAL = 500;
+
+  private final KsqlSerdeFactory keySerializerFactory;
+  private final KsqlSerdeFactory valueSerializerFactory;
+  private final Supplier<SchemaRegistryClient> srClientSupplier;
+
+  public DataGenProducer(
+      final KsqlSerdeFactory keySerializerFactory,
+      final KsqlSerdeFactory valueSerializerFactory,
+      final Supplier<SchemaRegistryClient> srClientSupplier
+  ) {
+    this.keySerializerFactory = requireNonNull(keySerializerFactory, "keySerializerFactory");
+    this.valueSerializerFactory = requireNonNull(valueSerializerFactory, "valueSerializerFactory");
+    this.srClientSupplier = requireNonNull(srClientSupplier, "srClientSupplier");
+  }
 
   public void populateTopic(
       final Properties props,
@@ -57,12 +83,21 @@ public abstract class DataGenProducer {
     final org.apache.kafka.connect.data.Schema ksqlSchema =
         DataGenSchemaUtil.getOptionalSchema(avroData.toConnectSchema(avroSchema));
 
-    final Serializer<GenericRow> serializer = getSerializer(avroSchema, ksqlSchema, kafkaTopicName);
+    final PhysicalSchema physicalSchema = PhysicalSchema.from(
+        LogicalSchema.of(KEY_SCHEMA, ksqlSchema),
+        SerdeOption.none()
+    );
+
+    final KsqlConfig ksqConfig = new KsqlConfig(props);
+
+    final Serializer<String> keySerializer = getKeySerializer(ksqConfig);
+
+    final Serializer<GenericRow> valueSerializer = getValueSerializer(physicalSchema, ksqConfig);
 
     final KafkaProducer<String, GenericRow> producer = new KafkaProducer<>(
         props,
-        new StringSerializer(),
-        serializer
+        keySerializer,
+        valueSerializer
     );
 
     final SessionManager sessionManager = new SessionManager();
@@ -96,6 +131,31 @@ public abstract class DataGenProducer {
     producer.close();
   }
 
+  @SuppressWarnings("unchecked")
+  private Serializer<String> getKeySerializer(final KsqlConfig ksqConfig) {
+    final PersistenceSchema schema = keySerializerFactory.getFormat().supportsUnwrapping()
+        ? PersistenceSchema.of((ConnectSchema) KEY_SCHEMA.fields().get(0).schema())
+        : PersistenceSchema.of(KEY_SCHEMA);
+
+    return (Serializer<String>) (Serializer)keySerializerFactory
+        .createSerde(schema, ksqConfig, srClientSupplier)
+        .serializer();
+  }
+
+  private Serializer<GenericRow> getValueSerializer(
+      final PhysicalSchema physicalSchema,
+      final KsqlConfig ksqConfig
+  ) {
+    return GenericRowSerDe.from(
+          valueSerializerFactory,
+          physicalSchema,
+          ksqConfig,
+          srClientSupplier,
+          "",
+          NoopProcessingLogContext.INSTANCE
+      ).serializer();
+  }
+
   private static class ErrorLoggingCallback implements Callback {
 
     private final String topic;
@@ -122,10 +182,4 @@ public abstract class DataGenProducer {
       }
     }
   }
-
-  protected abstract Serializer<GenericRow> getSerializer(
-      Schema avroSchema,
-      org.apache.kafka.connect.data.Schema kafkaSchema,
-      String topicName
-  );
 }

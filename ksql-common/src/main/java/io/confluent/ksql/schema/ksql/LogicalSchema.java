@@ -319,16 +319,12 @@ public final class LogicalSchema {
     return toString(FormatOptions.none());
   }
 
-  @SuppressWarnings("ConstantConditions")
   public String toString(final FormatOptions formatOptions) {
     // Meta fields deliberately excluded.
 
-    // Key fields excluded for now:
-    //    final String keys = keyFields.stream()
-    //        .map(f -> f.toString(formatOptions) + " " + KEY_KEYWORD)
-    //        .collect(Collectors.joining(", "));
-
-    final String keys = "";
+    final String keys = keyFields.stream()
+        .map(f -> f.toString(formatOptions) + " " + KEY_KEYWORD)
+        .collect(Collectors.joining(", "));
 
     final String values = valueFields.stream()
         .map(f -> f.toString(formatOptions))

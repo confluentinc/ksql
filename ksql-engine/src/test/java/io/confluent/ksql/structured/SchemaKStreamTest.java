@@ -766,10 +766,10 @@ public class SchemaKStreamTest {
         queryContext.push("source").getQueryContext());
 
     // When/Then:
-    final String expected =
-        " > [ SOURCE ] | Schema: [key STRING, val BIGINT] | Logger: query.node.source\n\t"
-            + "parent plan";
-    assertThat(schemaKtream.getExecutionPlan(""), equalTo(expected));
+    assertThat(schemaKtream.getExecutionPlan(""), equalTo(
+        " > [ SOURCE ] | Schema: [ROWKEY STRING KEY, key STRING, val BIGINT] | "
+            + "Logger: query.node.source\n"
+            + "\tparent plan"));
   }
 
   @Test
@@ -787,9 +787,9 @@ public class SchemaKStreamTest {
         queryContext.push("source").getQueryContext());
 
     // When/Then:
-    final String expected =
-        " > [ SOURCE ] | Schema: [key STRING, val BIGINT] | Logger: query.node.source\n";
-    assertThat(schemaKtream.getExecutionPlan(""), equalTo(expected));
+    assertThat(schemaKtream.getExecutionPlan(""), equalTo(
+        " > [ SOURCE ] | Schema: [ROWKEY STRING KEY, key STRING, val BIGINT] | "
+            + "Logger: query.node.source\n"));
   }
 
   @Test
@@ -813,11 +813,11 @@ public class SchemaKStreamTest {
         queryContext.push("source").getQueryContext());
 
     // When/Then:
-    final String expected =
-        " > [ SOURCE ] | Schema: [key STRING, val BIGINT] | Logger: query.node.source\n"
+    assertThat(schemaKtream.getExecutionPlan(""), equalTo(
+        " > [ SOURCE ] | Schema: [ROWKEY STRING KEY, key STRING, val BIGINT] | "
+            + "Logger: query.node.source\n"
             + "\tparent 1 plan"
-            + "\tparent 2 plan";
-    assertThat(schemaKtream.getExecutionPlan(""), equalTo(expected));
+            + "\tparent 2 plan"));
   }
 
   private void whenCreateJoined() {

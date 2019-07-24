@@ -171,6 +171,18 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_SECURITY_EXTENSION_DOC = "A KSQL security extension class that "
       + "provides authorization to KSQL servers.";
 
+  public static final String KSQL_ENABLE_TOPIC_ACCESS_VALIDATOR = "ksql.access.validator.enable";
+  public static final String KSQL_ACCESS_VALIDATOR_ON = "on";
+  public static final String KSQL_ACCESS_VALIDATOR_OFF = "off";
+  public static final String KSQL_ACCESS_VALIDATOR_AUTO = "auto";
+  public static final String KSQL_ACCESS_VALIDATOR_DOC =
+      "Config to enable/disable the topic access validator, which checks that KSQL can access "
+          + "the involved topics before committing to execute a statement. Possible values are "
+          + "\"on\", \"off\", and \"auto\". Setting to \"on\" enables the validator. Setting to "
+          + "\"off\" disables the validator. If set to \"auto\", KSQL will attempt to discover "
+          + "whether the Kafka cluster supports the required API, and enables the validator if "
+          + "it does.";
+
   public static final Collection<CompatibilityBreakingConfigDef> COMPATIBLY_BREAKING_CONFIG_DEFS
       = ImmutableList.of(
           new CompatibilityBreakingConfigDef(
@@ -493,6 +505,17 @@ public class KsqlConfig extends AbstractConfig {
             null,
             ConfigDef.Importance.LOW,
             KSQL_CUSTOM_METRICS_EXTENSION_DOC
+        ).define(
+            KSQL_ENABLE_TOPIC_ACCESS_VALIDATOR,
+            Type.STRING,
+            KSQL_ACCESS_VALIDATOR_AUTO,
+            ValidString.in(
+                KSQL_ACCESS_VALIDATOR_ON,
+                KSQL_ACCESS_VALIDATOR_OFF,
+                KSQL_ACCESS_VALIDATOR_AUTO
+            ),
+            ConfigDef.Importance.LOW,
+            KSQL_ACCESS_VALIDATOR_DOC
         )
         .withClientSslSupport();
     for (final CompatibilityBreakingConfigDef compatibilityBreakingConfigDef

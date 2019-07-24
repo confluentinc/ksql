@@ -42,7 +42,9 @@ import io.confluent.ksql.rest.entity.FieldInfo;
 import io.confluent.ksql.rest.entity.FunctionDescriptionList;
 import io.confluent.ksql.rest.entity.FunctionInfo;
 import io.confluent.ksql.rest.entity.FunctionType;
+import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
+import io.confluent.ksql.rest.entity.KsqlWarning;
 import io.confluent.ksql.rest.entity.PropertiesList;
 import io.confluent.ksql.rest.entity.Queries;
 import io.confluent.ksql.rest.entity.RunningQuery;
@@ -87,6 +89,22 @@ public class ConsoleTest {
   private final Console console;
   private final Supplier<String> lineSupplier;
   private final CliSpecificCommand cliCommand;
+  private final SourceDescription sourceDescription = new SourceDescription(
+      "TestSource",
+      Collections.emptyList(),
+      Collections.emptyList(),
+      buildTestSchema(Schema.OPTIONAL_INT32_SCHEMA, Schema.OPTIONAL_STRING_SCHEMA),
+      DataSourceType.KTABLE.getKsqlType(),
+      "key",
+      "2000-01-01",
+      "stats",
+      "errors",
+      true,
+      "avro",
+      "kadka-topic",
+      2,
+      1
+  );
 
   @Parameterized.Parameters(name = "{0}")
   public static Collection<OutputFormat> data() {
@@ -176,7 +194,8 @@ public class ConsoleTest {
           + "    \"status\" : \"SUCCESS\",\n"
           + "    \"message\" : \"Success Message\"\n"
           + "  },\n"
-          + "  \"commandSequenceNumber\" : 0\n"
+          + "  \"commandSequenceNumber\" : 0,\n"
+          + "  \"warnings\" : [ ]\n"
           + "} ]\n"));
     } else {
       assertThat(output, is("\n"
@@ -214,7 +233,8 @@ public class ConsoleTest {
           + "    \"k3\" : true\n"
           + "  },\n"
           + "  \"overwrittenProperties\" : [ ],\n"
-          + "  \"defaultProperties\" : [ ]\n"
+          + "  \"defaultProperties\" : [ ],\n"
+          + "  \"warnings\" : [ ]\n"
           + "} ]\n"));
     } else {
       assertThat(output, is("\n"
@@ -252,7 +272,8 @@ public class ConsoleTest {
           + "    \"sinks\" : [ \"Test\" ],\n"
           + "    \"id\" : \"0\",\n"
           + "    \"queryString\" : \"select * from t1\"\n"
-          + "  } ]\n"
+          + "  } ],\n"
+          + "  \"warnings\" : [ ]\n"
           + "} ]\n"));
     } else {
       assertThat(output, is("\n"
@@ -299,9 +320,23 @@ public class ConsoleTest {
         new SourceDescriptionEntity(
             "some sql",
             new SourceDescription(
-                "TestSource", readQueries, writeQueries, fields,
-                DataSourceType.KTABLE.getKsqlType(), "key", "2000-01-01", "stats",
-                "errors", false, "avro", "kadka-topic", 1, 1))
+                "TestSource",
+                readQueries,
+                writeQueries,
+                fields,
+                DataSourceType.KTABLE.getKsqlType(),
+                "key",
+                "2000-01-01",
+                "stats",
+                "errors",
+                false,
+                "avro",
+                "kadka-topic",
+                1,
+                1
+            ),
+            Collections.emptyList()
+        )
     ));
 
     // When:
@@ -421,7 +456,8 @@ public class ConsoleTest {
           + "    \"topic\" : \"kadka-topic\",\n"
           + "    \"partitions\" : 1,\n"
           + "    \"replication\" : 1\n"
-          + "  }\n"
+          + "  },\n"
+          + "  \"warnings\" : [ ]\n"
           + "} ]\n"));
     } else {
       assertThat(output, is("\n"
@@ -462,6 +498,7 @@ public class ConsoleTest {
           + "  \"name\" : \"TestTopic\",\n"
           + "  \"format\" : \"AVRO\",\n"
           + "  \"schemaString\" : \"schemaString\",\n"
+          + "  \"warnings\" : [ ],\n"
           + "  \"kafkaTopic\" : \"TestKafkaTopic\"\n"
           + "} ]\n"));
     } else {
@@ -495,7 +532,8 @@ public class ConsoleTest {
           + "    \"name\" : \"TestStream\",\n"
           + "    \"topic\" : \"TestTopic\",\n"
           + "    \"format\" : \"AVRO\"\n"
-          + "  } ]\n"
+          + "  } ],\n"
+          + "  \"warnings\" : [ ]\n"
           + "} ]\n"));
     } else {
       assertThat(output, is("\n"
@@ -548,7 +586,8 @@ public class ConsoleTest {
                + "    \"name\" : \"C\",\n"
                + "    \"topic\" : \"TestTopic\",\n"
                + "    \"format\" : \"AVRO\"\n"
-               + "  } ]\n"
+               + "  } ],\n"
+               + "  \"warnings\" : [ ]\n"
                +"} ]\n"));
     } else {
       assertThat(output, is("\n"
@@ -585,7 +624,8 @@ public class ConsoleTest {
           + "    \"topic\" : \"TestTopic\",\n"
           + "    \"format\" : \"JSON\",\n"
           + "    \"isWindowed\" : false\n"
-          + "  } ]\n"
+          + "  } ],\n"
+          + "  \"warnings\" : [ ]\n"
           + "} ]\n"));
     } else {
       assertThat(output, is("\n"
@@ -643,7 +683,8 @@ public class ConsoleTest {
               + "    \"topic\" : \"TestTopic\",\n"
               + "    \"format\" : \"JSON\",\n"
               + "    \"isWindowed\" : false\n"
-              + "  } ]\n"
+              + "  } ],\n"
+              + "  \"warnings\" : [ ]\n"
               + "} ]\n"));
     } else {
       assertThat(output, is("\n"
@@ -673,6 +714,7 @@ public class ConsoleTest {
       assertThat(output, is("[ {\n"
           + "  \"@type\" : \"executionPlan\",\n"
           + "  \"statementText\" : \"Test Execution Plan\",\n"
+          + "  \"warnings\" : [ ],\n"
           + "  \"executionPlan\" : \"Test Execution Plan\"\n"
           + "} ]\n"));
     } else {
@@ -698,10 +740,23 @@ public class ConsoleTest {
         new SourceDescriptionEntity(
             "e",
             new SourceDescription(
-                "TestSource", readQueries, writeQueries,
-                buildTestSchema(Schema.OPTIONAL_STRING_SCHEMA), DataSourceType.KTABLE.getKsqlType(),
-                "key", "2000-01-01", "stats", "errors", true, "avro", "kadka-topic",
-                2, 1))));
+                "TestSource",
+                readQueries,
+                writeQueries,
+                buildTestSchema(Schema.OPTIONAL_STRING_SCHEMA),
+                DataSourceType.KTABLE.getKsqlType(),
+                "key",
+                "2000-01-01",
+                "stats",
+                "errors",
+                true,
+                "avro",
+                "kadka-topic",
+                2, 1
+            ),
+            Collections.emptyList()
+        ))
+    );
 
     // When:
     console.printKsqlEntityList(entityList);
@@ -756,7 +811,8 @@ public class ConsoleTest {
           + "    \"topic\" : \"kadka-topic\",\n"
           + "    \"partitions\" : 2,\n"
           + "    \"replication\" : 1\n"
-          + "  }\n"
+          + "  },\n"
+          + "  \"warnings\" : [ ]\n"
           + "} ]\n"));
     } else {
       assertThat(output, is("\n"
@@ -792,6 +848,31 @@ public class ConsoleTest {
           + "stats\n"
           + "errors\n"
           + "(Statistics of the local KSQL server interaction with the Kafka topic kadka-topic)\n"));
+    }
+  }
+
+  @Test
+  public void shouldPrintWarnings() throws IOException {
+    // Given:
+    final KsqlEntity entity = new SourceDescriptionEntity(
+        "e",
+        sourceDescription,
+        ImmutableList.of(new KsqlWarning("oops"), new KsqlWarning("doh!"))
+    );
+
+    // When:
+    console.printKsqlEntityList(ImmutableList.of(entity));
+
+    // Then:
+    final String output = terminal.getOutputString();
+    if (console.getOutputFormat() == OutputFormat.TABULAR) {
+      assertThat(
+          output,
+          containsString("WARNING: oops\nWARNING: doh")
+      );
+    } else {
+      assertThat(output, containsString("\"message\" : \"oops\""));
+      assertThat(output, containsString("\"message\" : \"doh!\""));
     }
   }
 

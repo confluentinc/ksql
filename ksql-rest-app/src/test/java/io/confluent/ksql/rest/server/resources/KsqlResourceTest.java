@@ -146,6 +146,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
@@ -373,11 +374,12 @@ public class KsqlResourceTest {
         new SourceDescription(
             ksqlEngine.getMetaStore().getSource("TEST_STREAM"),
             true, "JSON", Collections.emptyList(), Collections.emptyList(),
-            kafkaTopicClient),
+            Optional.of(kafkaTopicClient.describeTopic("KAFKA_TOPIC_2"))),
         new SourceDescription(
             ksqlEngine.getMetaStore().getSource("new_stream"),
             true, "JSON", Collections.emptyList(), Collections.emptyList(),
-            kafkaTopicClient)));
+            Optional.of(kafkaTopicClient.describeTopic("new_topic"))))
+    );
   }
 
   @Test
@@ -401,11 +403,12 @@ public class KsqlResourceTest {
         new SourceDescription(
             ksqlEngine.getMetaStore().getSource("TEST_TABLE"),
             true, "JSON", Collections.emptyList(), Collections.emptyList(),
-            kafkaTopicClient),
+            Optional.of(kafkaTopicClient.describeTopic("KAFKA_TOPIC_1"))),
         new SourceDescription(
             ksqlEngine.getMetaStore().getSource("new_table"),
             true, "JSON", Collections.emptyList(), Collections.emptyList(),
-            kafkaTopicClient)));
+            Optional.of(kafkaTopicClient.describeTopic("new_topic"))))
+    );
   }
 
   @Test
@@ -442,8 +445,13 @@ public class KsqlResourceTest {
 
     // Then:
     final SourceDescription expectedDescription = new SourceDescription(
-        ksqlEngine.getMetaStore().getSource("DESCRIBED_STREAM"), false, "JSON",
-        Collections.singletonList(queries.get(1)), Collections.singletonList(queries.get(0)), null);
+        ksqlEngine.getMetaStore().getSource("DESCRIBED_STREAM"),
+        false,
+        "JSON",
+        Collections.singletonList(queries.get(1)),
+        Collections.singletonList(queries.get(0)),
+        Optional.empty()
+    );
 
     assertThat(description.getSourceDescription(), is(expectedDescription));
   }

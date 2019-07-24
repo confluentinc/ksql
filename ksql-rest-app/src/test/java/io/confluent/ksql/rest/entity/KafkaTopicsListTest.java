@@ -88,7 +88,7 @@ public class KafkaTopicsListTest {
             + "\"statementText\":\"SHOW TOPICS;\","
             + "\"topics\":["
             + "{\"name\":\"thetopic\",\"replicaInfo\":[1,2,3],\"consumerCount\":42,\"consumerGroupCount\":12}"
-            + "]}",
+            + "],\"warnings\":[]}",
         json);
 
     final KafkaTopicsList actual = mapper.readValue(json, KafkaTopicsList.class);

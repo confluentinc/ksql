@@ -18,24 +18,26 @@ package io.confluent.ksql.rest.entity;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import java.util.List;
+import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
 
+@Immutable
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class SourceDescriptionEntity extends KsqlEntity {
-  private final SourceDescription sourceDescription;
+public class KsqlWarning {
+  private final String message;
 
   @JsonCreator
-  public SourceDescriptionEntity(
-      @JsonProperty("statementText") final String statementText,
-      @JsonProperty("sourceDescription") final SourceDescription sourceDescription,
-      @JsonProperty("warnings") final List<KsqlWarning> warnings) {
-    super(statementText, warnings);
-    this.sourceDescription = sourceDescription;
+  public KsqlWarning(@JsonProperty("message") final String message) {
+    this.message = Objects.requireNonNull(message, "message");
   }
 
-  public SourceDescription getSourceDescription() {
-    return sourceDescription;
+  public String getMessage() {
+    return message;
+  }
+
+  @Override
+  public String toString() {
+    return message;
   }
 
   @Override
@@ -43,15 +45,15 @@ public class SourceDescriptionEntity extends KsqlEntity {
     if (this == o) {
       return true;
     }
-    if (!(o instanceof SourceDescriptionEntity)) {
+    if (!(o instanceof KsqlWarning)) {
       return false;
     }
-    final SourceDescriptionEntity other = (SourceDescriptionEntity)o;
-    return Objects.equals(sourceDescription, other.sourceDescription);
+    final KsqlWarning that = (KsqlWarning) o;
+    return Objects.equals(message, that.message);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(getSourceDescription());
+    return Objects.hash(message);
   }
 }

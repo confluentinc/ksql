@@ -48,7 +48,7 @@ Name                                        Default  Description
 ==========================================  =======  ===========================================================================================
 ``schema=<avro schema file>``                        Path to an Avro schema file. Requires the ``format``, ``topic``, and ``key`` options.
 ``key-format=<key format>``                    Kafka format of generated record keys: one of ``avro``, ``json``, ``delimited``, ``kafka``. Case-insensitive.
-``value-format=<value format>``                json  Format of generated record values: one of ``avro``, ``json``, ``delimited``. Case-insensitive.
+``value-format=<value format>``                JSON format of generated record values: one of ``avro``, ``json``, ``delimited``. Case-insensitive.
 ``topic=<kafka topic name>``                         Name of the topic that receives generated records.
 ``key=<name of key column>``                         Field to use as the key for generated records.
 ``quickstart=<quickstart preset>``                   Generate records from a preset schema: ``orders``, ``users``, or ``pageviews``. Case-insensitive.

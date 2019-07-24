@@ -867,6 +867,7 @@ public class LogicalSchemaTest {
         .keyField("fieldName", SqlTypes.DOUBLE)
         .keyField(Field.of("source", "fieldName", SqlTypes.BOOLEAN))
         .keyField(Field.of("diff", "fieldName", SqlTypes.STRING))
+        .valueField("fieldName", SqlTypes.BIGINT)
         .build();
 
     // When:
@@ -885,6 +886,7 @@ public class LogicalSchemaTest {
   public void shouldGetValueSchema() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
+        .keyField("fieldName", SqlTypes.STRING)
         .valueField("fieldName", SqlTypes.BIGINT)
         .valueField(Field.of("source", "fieldName", SqlTypes.INTEGER))
         .valueField(Field.of("diff", "fieldName", SqlTypes.STRING))

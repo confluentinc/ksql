@@ -252,9 +252,7 @@ public class SchemaKStream<K> {
       final Optional<String> fieldAlias = SchemaUtil.getFieldNameAlias(fullFieldName);
       final String fieldNameWithNoAlias = SchemaUtil.getFieldNameWithNoAlias(fullFieldName);
 
-      final Field keyField = fieldAlias
-          .map(alias -> Field.of(alias, fieldNameWithNoAlias, SqlTypes.STRING))
-          .orElse(Field.of(fullFieldName, SqlTypes.STRING));
+      final Field keyField = Field.of(fieldAlias, fieldNameWithNoAlias, SqlTypes.STRING);
 
       return doFindKeyField(selectExpressions, keyField)
           .map(Field::fullName);

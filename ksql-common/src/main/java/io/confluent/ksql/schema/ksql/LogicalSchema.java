@@ -415,11 +415,7 @@ public final class LogicalSchema {
       final String fieldName = SchemaUtil.getFieldNameWithNoAlias(field.name());
       final SqlType fieldType = converter.toSqlType(field.schema());
 
-      final Field newField = source
-          .map(s -> Field.of(s, fieldName, fieldType))
-          .orElseGet(() -> Field.of(fieldName, fieldType));
-
-      builder.add(newField);
+      builder.add(Field.of(source, fieldName, fieldType));
     }
 
     return builder.build();

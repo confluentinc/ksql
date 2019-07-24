@@ -51,6 +51,16 @@ public final class Field {
     return new Field(Optional.of(source), name, type);
   }
 
+  /**
+   * @param source the name of the source of the field.
+   * @param name the name of the field.
+   * @param type the type of the field.
+   * @return the immutable field.
+   */
+  public static Field of(final Optional<String> source, final String name, final SqlType type) {
+    return new Field(source, name, type);
+  }
+
   private Field(final Optional<String> source, final String name, final SqlType type) {
     this.source = Objects.requireNonNull(source, "source");
     this.name = Objects.requireNonNull(name, "name");

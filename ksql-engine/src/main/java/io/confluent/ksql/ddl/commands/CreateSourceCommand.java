@@ -24,6 +24,7 @@ import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.KsqlSerdeFactories;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
@@ -112,6 +113,15 @@ abstract class CreateSourceCommand implements DdlCommand {
     this.timestampExtractionPolicy = TimestampExtractionPolicyFactory
         .create(schema, timestampName, timestampFormat);
 
+    this.serdeOptions = serdeOptionsSupplier.build(
+        schema,
+        properties.getValueFormat(),
+        properties.getWrapSingleValues(),
+        ksqlConfig
+    );
+
+    final PhysicalSchema physicalSchema = PhysicalSchema.from(schema, serdeOptions);
+
     this.keySerdeFactory = extractKeySerde(properties);
 
     this.valueSerdeFactory = serdeFactories.create(
@@ -119,13 +129,7 @@ abstract class CreateSourceCommand implements DdlCommand {
         properties.getValueAvroSchemaName()
     );
 
-    this.valueSerdeFactory.validate(schema.valueSchema());
-    this.serdeOptions = serdeOptionsSupplier.build(
-        schema,
-        properties.getValueFormat(),
-        properties.getWrapSingleValues(),
-        ksqlConfig
-    );
+    this.valueSerdeFactory.validate(physicalSchema.valueSchema());
   }
 
   Set<SerdeOption> getSerdeOptions() {

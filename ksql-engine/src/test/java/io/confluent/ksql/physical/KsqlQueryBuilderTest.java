@@ -16,6 +16,7 @@
 package io.confluent.ksql.physical;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -42,7 +43,9 @@ import io.confluent.ksql.structured.QueryContext.Stacker;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.QueryLoggerUtil;
 import java.util.function.Supplier;
+import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
+import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.StreamsBuilder;
@@ -80,12 +83,18 @@ public class KsqlQueryBuilderTest {
   @Mock
   private Serde<Object> rowSerde;
   @Mock
+  private Serializer<Object> innerSerializer;
+  @Mock
+  private Deserializer<Object> innerDeserializer;
+  @Mock
   private Supplier<SchemaRegistryClient> srClientFactory;
   private QueryContext queryContext;
   private KsqlQueryBuilder ksqlQueryBuilder;
 
   @Before
   public void setUp() {
+    when(rowSerde.serializer()).thenReturn(innerSerializer);
+    when(rowSerde.deserializer()).thenReturn(innerDeserializer);
     when(valueSerdeFactory.createSerde(any(), any(), any())).thenReturn(rowSerde);
     when(serviceContext.getSchemaRegistryClientFactory()).thenReturn(srClientFactory);
 
@@ -159,14 +168,17 @@ public class KsqlQueryBuilderTest {
         srClientFactory
     );
 
-    assertThat(result, is(GenericRowSerDe.from(
+    final Serde<GenericRow> expected = GenericRowSerDe.from(
         valueSerdeFactory,
         SOME_SCHEMA,
         ksqlConfig,
         srClientFactory,
         QueryLoggerUtil.queryLoggerName(queryContext),
         processingLogContext
-        )));
+    );
+
+    assertThat(result.serializer(), is(instanceOf(expected.serializer().getClass())));
+    assertThat(result.deserializer(), is(instanceOf(expected.deserializer().getClass())));
   }
 
   @Test

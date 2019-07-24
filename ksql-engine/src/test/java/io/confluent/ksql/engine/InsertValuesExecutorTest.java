@@ -58,6 +58,7 @@ import java.util.stream.Collectors;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.errors.SerializationException;
+import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.Field;
@@ -112,9 +113,13 @@ public class InsertValuesExecutorTest {
   @Mock
   private Serializer<String> keySerializer;
   @Mock
+  private Deserializer<String> keyDeserializer;
+  @Mock
   private Serde<Object> valueSerDe;
   @Mock
   private Serializer<Object> valueSerializer;
+  @Mock
+  private Deserializer<Object> valueDeserializer;
   @Mock
   private ServiceContext serviceContext;
   @Mock
@@ -128,7 +133,9 @@ public class InsertValuesExecutorTest {
     when(valueSerde.createSerde(any(), any(), any())).thenReturn(valueSerDe);
 
     when(keySerDe.serializer()).thenReturn(keySerializer);
+    when(keySerDe.deserializer()).thenReturn(keyDeserializer);
     when(valueSerDe.serializer()).thenReturn(valueSerializer);
+    when(valueSerDe.deserializer()).thenReturn(valueDeserializer);
 
     when(keySerializer.serialize(any(), any())).thenReturn(KEY);
     when(valueSerializer.serialize(any(), any())).thenReturn(VALUE);

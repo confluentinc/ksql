@@ -20,7 +20,6 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -232,34 +231,6 @@ public class GenericRowSerDeTest {
 
     // Then:
     verify(delegateDeserializer).configure(SOME_CONFIG, true);
-  }
-
-  @Test
-  public void shouldRequestNewSerializerEachTime() {
-    // Given:
-    givenSerdeForSchema(MUTLI_FIELD_SCHEMA);
-
-    rowSerde.serializer();
-
-    // When:
-    rowSerde.serializer();
-
-    // Then:
-    verify(deletageSerde, times(2)).serializer();
-  }
-
-  @Test
-  public void shouldRequestNewDeserializerEachTime() {
-    // Given:
-    givenSerdeForSchema(UNWRAPPED_SINGLE_FIELD_SCHEMA);
-
-    rowSerde.deserializer();
-
-    // When:
-    rowSerde.deserializer();
-
-    // Then:
-    verify(deletageSerde, times(2)).deserializer();
   }
 
   @Test

@@ -26,7 +26,6 @@ import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -42,7 +41,7 @@ import org.apache.kafka.connect.data.Schema.Type;
 import org.apache.kafka.connect.data.Struct;
 
 @Immutable
-public class KafkaSerdeFactory extends KsqlSerdeFactory {
+public class KafkaSerdeFactory implements KsqlSerdeFactory {
 
   private static final Map<Type, Serde<?>> SERDE = ImmutableMap.of(
       Type.STRING, Serdes.String(),
@@ -51,41 +50,35 @@ public class KafkaSerdeFactory extends KsqlSerdeFactory {
       Type.FLOAT64, Serdes.Double()
   );
 
-  public KafkaSerdeFactory() {
-    super(Format.KAFKA);
+  @Override
+  public Format getFormat() {
+    return Format.KAFKA;
   }
 
   @Override
-  public void validate(final ConnectSchema schema) {
-    getPrimitiveSerde(schema);
+  public void validate(final PersistenceSchema schema) {
+    getPrimitiveSerde(schema.getConnectSchema());
   }
 
   @Override
-  protected Serializer<Object> createSerializer(
+  public Serde<Object> createSerde(
       final PersistenceSchema schema,
       final KsqlConfig ksqlConfig,
       final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
   ) {
-    final Serializer<Object> primitiveSerializer = getPrimitiveSerde(schema.getConnectSchema())
-        .serializer();
+    final Serde<Object> primitiveSerde = getPrimitiveSerde(schema.getConnectSchema());
 
-    primitiveSerializer.configure(Collections.emptyMap(), false);
+    final Serializer<Object> serializer = new RowSerializer(
+        primitiveSerde.serializer(),
+        schema.getConnectSchema()
+    );
 
-    return new RowSerializer(primitiveSerializer, schema.getConnectSchema());
-  }
+    final Deserializer<Object> deserializer = new RowDeserializer(
+        primitiveSerde.deserializer(),
+        schema.getConnectSchema()
+    );
 
-  @Override
-  protected Deserializer<Object> createDeserializer(
-      final PersistenceSchema schema,
-      final KsqlConfig ksqlConfig,
-      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
-  ) {
-    final Deserializer<Object> primitiveDeserializer = getPrimitiveSerde(schema.getConnectSchema())
-        .deserializer();
-
-    primitiveDeserializer.configure(Collections.emptyMap(), false);
-
-    return new RowDeserializer(primitiveDeserializer, schema.getConnectSchema());
+    return Serdes.serdeFrom(serializer, deserializer);
   }
 
   @SuppressWarnings("unchecked")

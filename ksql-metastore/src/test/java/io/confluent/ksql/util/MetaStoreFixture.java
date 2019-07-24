@@ -60,7 +60,6 @@ public final class MetaStoreFixture {
         .build();
 
     final KsqlTopic ksqlTopic0 = new KsqlTopic(
-        "TEST0",
         "test0",
         valueSerdeFactory,
         false
@@ -80,7 +79,6 @@ public final class MetaStoreFixture {
     metaStore.putSource(ksqlStream0);
 
     final KsqlTopic ksqlTopic1 = new KsqlTopic(
-        "TEST1",
         "test1",
         valueSerdeFactory,
         false
@@ -107,12 +105,10 @@ public final class MetaStoreFixture {
         .build();
 
     final KsqlTopic ksqlTopic2 = new KsqlTopic(
-        "TEST2",
         "test2",
         valueSerdeFactory,
         false
     );
-
     final KsqlTable<String> ksqlTable = new KsqlTable<>(
         "sqlexpression",
         "TEST2",
@@ -157,7 +153,6 @@ public final class MetaStoreFixture {
         .build();
 
     final KsqlTopic ksqlTopicOrders = new KsqlTopic(
-        "ORDERS_TOPIC",
         "orders_topic",
         valueSerdeFactory,
         false
@@ -185,12 +180,10 @@ public final class MetaStoreFixture {
         .build();
 
     final KsqlTopic ksqlTopic3 = new KsqlTopic(
-        "TEST3",
         "test3",
         valueSerdeFactory,
         false
     );
-
     final KsqlTable<String> ksqlTable3 = new KsqlTable<>(
         "sqlexpression",
         "TEST3",
@@ -223,7 +216,6 @@ public final class MetaStoreFixture {
         .build();
 
     final KsqlTopic nestedArrayStructMapTopic = new KsqlTopic(
-        "NestedArrayStructMap",
         "NestedArrayStructMap_topic",
         valueSerdeFactory,
         false
@@ -243,7 +235,6 @@ public final class MetaStoreFixture {
     metaStore.putSource(nestedArrayStructMapOrders);
 
     final KsqlTopic ksqlTopic4 = new KsqlTopic(
-        "TEST4",
         "test4",
         valueSerdeFactory,
         false

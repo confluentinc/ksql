@@ -619,12 +619,11 @@ public class InsertValuesExecutorTest {
       final Set<SerdeOption> serdeOptions,
       final Optional<String> keyField
   ) {
-    final KsqlTopic topic = new KsqlTopic("TOPIC", TOPIC_NAME, valueSerde, false);
+    final KsqlTopic topic = new KsqlTopic(TOPIC_NAME, valueSerde, false);
 
     final KeyField valueKeyField = keyField
         .map(kf -> KeyField.of(kf, schema.findValueField(kf).get()))
         .orElse(KeyField.none());
-
     final DataSource<?> dataSource = new KsqlStream<>(
         "",
         "TOPIC",

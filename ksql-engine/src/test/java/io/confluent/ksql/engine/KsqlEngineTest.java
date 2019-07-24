@@ -145,8 +145,8 @@ public class KsqlEngineTest {
     assertThat(queries, hasSize(2));
     assertThat(queries.get(0), is(instanceOf(PersistentQueryMetadata.class)));
     assertThat(queries.get(1), is(instanceOf(PersistentQueryMetadata.class)));
-    assertThat(((PersistentQueryMetadata) queries.get(0)).getSinkNames(), contains("BAR"));
-    assertThat(((PersistentQueryMetadata) queries.get(1)).getSinkNames(), contains("FOO"));
+    assertThat(((PersistentQueryMetadata) queries.get(0)).getSinkName(), is("BAR"));
+    assertThat(((PersistentQueryMetadata) queries.get(1)).getSinkName(), is("FOO"));
   }
 
   @Test

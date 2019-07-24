@@ -24,7 +24,6 @@ import com.fasterxml.jackson.databind.ObjectWriter;
 import com.fasterxml.jackson.databind.node.NullNode;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import io.confluent.connect.avro.AvroData;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
@@ -155,7 +154,7 @@ final class EndToEndEngineTestUtil {
       final PersistentQueryMetadata persistentQueryMetadata
           = (PersistentQueryMetadata) queryMetadata;
       final String sinkKafkaTopicName = metaStore
-          .getSource(Iterables.getOnlyElement(persistentQueryMetadata.getSinkNames()))
+          .getSource(persistentQueryMetadata.getSinkName())
           .getKafkaTopicName();
 
       final SerdeSupplier<?> valueSerdes = SerdeUtil.getSerdeSupplier(
@@ -231,7 +230,7 @@ final class EndToEndEngineTestUtil {
             .collect(Collectors.toList()),
         fakeKafkaService.getTopic(
             ksqlEngine.getMetaStore()
-                .getSource(persistentQueryMetadata.getSinkNames().iterator().next())
+                .getSource(persistentQueryMetadata.getSinkName())
                 .getKafkaTopicName())
     );
   }

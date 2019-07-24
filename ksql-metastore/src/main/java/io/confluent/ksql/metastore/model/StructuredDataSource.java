@@ -114,11 +114,6 @@ abstract class StructuredDataSource<K> implements DataSource<K> {
   }
 
   @Override
-  public String getKsqlTopicName() {
-    return ksqlTopic.getKsqlTopicName();
-  }
-
-  @Override
   public String getKafkaTopicName() {
     return ksqlTopic.getKafkaTopicName();
   }

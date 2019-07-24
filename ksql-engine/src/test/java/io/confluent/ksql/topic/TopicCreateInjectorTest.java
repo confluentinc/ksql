@@ -102,7 +102,7 @@ public class TopicCreateInjectorTest {
     injector = new TopicCreateInjector(topicClient, metaStore);
 
     final KsqlTopic sourceTopic =
-        new KsqlTopic("SOURCE", "source", new KsqlJsonSerdeFactory(), false);
+        new KsqlTopic("source", new KsqlJsonSerdeFactory(), false);
     final KsqlStream source = new KsqlStream<>(
         "",
         "SOURCE",
@@ -116,7 +116,7 @@ public class TopicCreateInjectorTest {
     metaStore.putSource(source);
 
     final KsqlTopic joinTopic =
-        new KsqlTopic("J_SOURCE", "jSource", new KsqlJsonSerdeFactory(), false);
+        new KsqlTopic("jSource", new KsqlJsonSerdeFactory(), false);
     final KsqlStream joinSource = new KsqlStream<>(
         "",
         "J_SOURCE",

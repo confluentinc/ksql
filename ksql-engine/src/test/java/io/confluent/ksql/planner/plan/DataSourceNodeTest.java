@@ -113,7 +113,7 @@ public class DataSourceNodeTest {
       SerdeOption.none(),
       KeyField.of("key", realSchema.findValueField("key").get()),
       new LongColumnTimestampExtractionPolicy("timestamp"),
-      new KsqlTopic("topic", "topic",
+      new KsqlTopic("topic",
           new KsqlJsonSerdeFactory(), false),
       Serdes::String
   );
@@ -294,7 +294,7 @@ public class DataSourceNodeTest {
         SerdeOption.none(),
         KeyField.of("field1", realSchema.findValueField("field1").get()),
         new LongColumnTimestampExtractionPolicy("timestamp"),
-        new KsqlTopic("topic2", "topic2",
+        new KsqlTopic("topic2",
             new KsqlJsonSerdeFactory(), false),
         Serdes::String
     );
@@ -315,7 +315,7 @@ public class DataSourceNodeTest {
         SerdeOption.none(),
         KeyField.of("field1", realSchema.findValueField("field1").get()),
         new LongColumnTimestampExtractionPolicy("timestamp"),
-        new KsqlTopic("topic2", "topic2",
+        new KsqlTopic("topic2",
             new KsqlJsonSerdeFactory(), false),
         Serdes::String
     );

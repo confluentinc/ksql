@@ -50,7 +50,7 @@ public class MetaStoreModelTest {
       .<Class<?>, Object>builder()
       .put(KsqlSerdeFactory.class, new KsqlJsonSerdeFactory())
       .put(KsqlTopic.class,
-          new KsqlTopic("bob", "bob", new KsqlJsonSerdeFactory(), false))
+          new KsqlTopic("bob", new KsqlJsonSerdeFactory(), false))
       .put(org.apache.kafka.connect.data.Field.class,
           new org.apache.kafka.connect.data.Field("bob", 1, Schema.OPTIONAL_STRING_SCHEMA))
       .put(KeyField.class, KeyField.of(Optional.empty(), Optional.empty()))

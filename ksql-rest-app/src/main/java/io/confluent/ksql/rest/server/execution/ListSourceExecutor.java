@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.server.execution;
 
+import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.exception.KafkaResponseGetFailedException;
 import io.confluent.ksql.metastore.model.DataSource;
@@ -200,7 +201,7 @@ public final class ListSourceExecutor {
             extended,
             dataSource.getKsqlTopic().getValueSerdeFactory().getFormat().name(),
             getQueries(ksqlEngine, q -> q.getSourceNames().contains(dataSource.getName())),
-            getQueries(ksqlEngine, q -> q.getSinkNames().contains(dataSource.getName())),
+            getQueries(ksqlEngine, q -> q.getSinkName().equals(dataSource.getName())),
             topicDescription
         )
     );
@@ -214,7 +215,10 @@ public final class ListSourceExecutor {
         .stream()
         .filter(predicate)
         .map(q -> new RunningQuery(
-            q.getStatementString(), q.getSinkNames(), new EntityQueryId(q.getQueryId())))
+            q.getStatementString(),
+            ImmutableSet.of(q.getSinkName()),
+            new EntityQueryId(q.getQueryId())
+        ))
         .collect(Collectors.toList());
   }
 

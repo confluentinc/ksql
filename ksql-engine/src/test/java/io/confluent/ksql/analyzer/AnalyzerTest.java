@@ -282,7 +282,6 @@ public class AnalyzerTest {
     final Optional<Into> into = analysis.getInto();
     assertThat(into, is(not((Optional.empty()))));
     final KsqlTopic createdKsqlTopic = into.get().getKsqlTopic();
-    assertThat(createdKsqlTopic.getKsqlTopicName(), is("FOO"));
     assertThat(createdKsqlTopic.getKafkaTopicName(), is("TEST_TOPIC1"));
   }
 
@@ -343,7 +342,6 @@ public class AnalyzerTest {
 
     final KsqlTopic ksqlTopic =
             new KsqlTopic(
-                    "S0",
                     "s0",
                     new KsqlAvroSerdeFactory("org.ac.s1"),
                     false);
@@ -533,7 +531,7 @@ public class AnalyzerTest {
         .field("COL0", Schema.OPTIONAL_INT64_SCHEMA)
         .build();
 
-    final KsqlTopic topic = new KsqlTopic("KAFKA_SOURCE", "ks", new KafkaSerdeFactory(), false);
+    final KsqlTopic topic = new KsqlTopic("ks", new KafkaSerdeFactory(), false);
 
     final KsqlStream<?> stream = new KsqlStream<>(
         "sqlexpression",

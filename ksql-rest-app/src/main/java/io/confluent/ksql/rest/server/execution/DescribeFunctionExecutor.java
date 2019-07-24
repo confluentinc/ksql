@@ -94,7 +94,8 @@ public final class DescribeFunctionExecutor {
 
     udfFactory.eachFunction(func -> listBuilder.add(
         getFunctionInfo(
-            func.getArguments(), func.getReturnType(), func.getDescription(), func.isVariadic())));
+            func.getArguments(),
+            func.getReturnType(func.getArguments()), func.getDescription(), func.isVariadic())));
 
     return new FunctionDescriptionList(
         statementText,

@@ -71,7 +71,7 @@ The following options apply to both the ``schema`` and ``quickstart`` options.
 Name                                          Default                                              Description
 ============================================  ===================================================  =========================================================================================
 ``bootstrap-server=<kafka-server>:<port>``    localhost:9092                                       IP address and port for the Kafka server to connect to.
-``key-format=<key format>``                   kafka                                                Format of generated record keys: ``avro``, ``json``, ``delimited`` or ``kafka``. Case-insensitive. Required by the ``schema`` option.
+``key-format=<key format>``                   Kafka                                                format of generated record keys: ``avro``, ``json``, ``delimited`` or ``kafka``. Case-insensitive. Required by the ``schema`` option.
 ``value-format=<value format>``               json                                                 Format of generated record values: ``avro``, ``json``, or ``delimited``. Case-insensitive. Required by the ``schema`` option.
 ``topic=<kafka topic name>``                                                                       Name of the topic that receives generated records. Required by the ``schema`` option.
 ``key=<name of key column>``                                                                       Field to use as the key for generated records. Required by the ``schema`` option.

@@ -21,6 +21,7 @@ import static com.google.common.collect.Iterables.getOnlyElement;
 import com.google.common.base.Strings;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AllColumns;
+import io.confluent.ksql.parser.tree.AstNode;
 import io.confluent.ksql.parser.tree.AstVisitor;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateSource;
@@ -39,7 +40,6 @@ import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.JoinCriteria;
 import io.confluent.ksql.parser.tree.JoinOn;
 import io.confluent.ksql.parser.tree.ListFunctions;
-import io.confluent.ksql.parser.tree.Node;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Relation;
 import io.confluent.ksql.parser.tree.Select;
@@ -64,11 +64,11 @@ public final class SqlFormatter {
   private SqlFormatter() {
   }
 
-  public static String formatSql(final Node root) {
+  public static String formatSql(final AstNode root) {
     return formatSql(root, true);
   }
 
-  public static String formatSql(final Node root, final boolean unmangleNames) {
+  public static String formatSql(final AstNode root, final boolean unmangleNames) {
     final StringBuilder builder = new StringBuilder();
     new Formatter(builder, unmangleNames).process(root, 0);
     return StringUtils.stripEnd(builder.toString(), "\n");
@@ -85,7 +85,7 @@ public final class SqlFormatter {
     }
 
     @Override
-    protected Void visitNode(final Node node, final Integer indent) {
+    protected Void visitNode(final AstNode node, final Integer indent) {
       throw new UnsupportedOperationException("not yet implemented: " + node);
     }
 
@@ -316,7 +316,7 @@ public final class SqlFormatter {
       builder.append(
           node.getValues()
               .stream()
-              .map(SqlFormatter::formatSql)
+              .map(exp -> ExpressionFormatter.formatExpression(exp, unmangledNames))
               .collect(Collectors.joining(", ")));
       builder.append(")");
 

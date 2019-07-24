@@ -25,10 +25,5 @@ public abstract class Literal extends Expression {
     super(location);
   }
 
-  @Override
-  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
-    return visitor.visitLiteral(this, context);
-  }
-
   public abstract Object getValue();
 }

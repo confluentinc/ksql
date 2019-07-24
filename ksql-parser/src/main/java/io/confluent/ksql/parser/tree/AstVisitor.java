@@ -17,30 +17,30 @@ package io.confluent.ksql.parser.tree;
 
 import javax.annotation.Nullable;
 
-public abstract class AstVisitor<R, C> {
+public abstract class AstVisitor<R, C> implements ExpressionVisitor<R, C> {
 
-  public R process(final Node node, @Nullable final C context) {
+  public R process(final AstNode node, @Nullable final C context) {
     return node.accept(this, context);
   }
 
-  protected R visitNode(final Node node, final C context) {
+  protected R visitNode(final AstNode node, final C context) {
     return null;
   }
 
   protected R visitExpression(final Expression node, final C context) {
-    return visitNode(node, context);
+    return null;
   }
 
-  protected R visitArithmeticBinary(final ArithmeticBinaryExpression node, final C context) {
+  public R visitArithmeticBinary(final ArithmeticBinaryExpression node, final C context) {
     return visitExpression(node, context);
   }
 
-  protected R visitBetweenPredicate(final BetweenPredicate node, final C context) {
+  public R visitBetweenPredicate(final BetweenPredicate node, final C context) {
     return visitExpression(node, context);
   }
 
 
-  protected R visitComparisonExpression(final ComparisonExpression node, final C context) {
+  public R visitComparisonExpression(final ComparisonExpression node, final C context) {
     return visitExpression(node, context);
   }
 
@@ -48,11 +48,11 @@ public abstract class AstVisitor<R, C> {
     return visitExpression(node, context);
   }
 
-  protected R visitDoubleLiteral(final DoubleLiteral node, final C context) {
+  public R visitDoubleLiteral(final DoubleLiteral node, final C context) {
     return visitLiteral(node, context);
   }
 
-  protected R visitDecimalLiteral(final DecimalLiteral node, final C context) {
+  public R visitDecimalLiteral(final DecimalLiteral node, final C context) {
     return visitLiteral(node, context);
   }
 
@@ -80,7 +80,7 @@ public abstract class AstVisitor<R, C> {
     return visitStatement(node, context);
   }
 
-  protected R visitTimeLiteral(final TimeLiteral node, final C context) {
+  public R visitTimeLiteral(final TimeLiteral node, final C context) {
     return visitLiteral(node, context);
   }
 
@@ -92,55 +92,55 @@ public abstract class AstVisitor<R, C> {
     return visitNode(node, context);
   }
 
-  protected R visitTimestampLiteral(final TimestampLiteral node, final C context) {
+  public R visitTimestampLiteral(final TimestampLiteral node, final C context) {
     return visitLiteral(node, context);
   }
 
-  protected R visitWhenClause(final WhenClause node, final C context) {
+  public R visitWhenClause(final WhenClause node, final C context) {
     return visitExpression(node, context);
   }
 
-  protected R visitInPredicate(final InPredicate node, final C context) {
+  public R visitInPredicate(final InPredicate node, final C context) {
     return visitExpression(node, context);
   }
 
-  protected R visitFunctionCall(final FunctionCall node, final C context) {
+  public R visitFunctionCall(final FunctionCall node, final C context) {
     return visitExpression(node, context);
   }
 
-  protected R visitSimpleCaseExpression(final SimpleCaseExpression node, final C context) {
+  public R visitSimpleCaseExpression(final SimpleCaseExpression node, final C context) {
     return visitExpression(node, context);
   }
 
-  protected R visitStringLiteral(final StringLiteral node, final C context) {
+  public R visitStringLiteral(final StringLiteral node, final C context) {
     return visitLiteral(node, context);
   }
 
-  protected R visitBooleanLiteral(final BooleanLiteral node, final C context) {
+  public R visitBooleanLiteral(final BooleanLiteral node, final C context) {
     return visitLiteral(node, context);
   }
 
-  protected R visitInListExpression(final InListExpression node, final C context) {
+  public R visitInListExpression(final InListExpression node, final C context) {
     return visitExpression(node, context);
   }
 
-  protected R visitQualifiedNameReference(final QualifiedNameReference node, final C context) {
+  public R visitQualifiedNameReference(final QualifiedNameReference node, final C context) {
     return visitExpression(node, context);
   }
 
-  protected R visitDereferenceExpression(final DereferenceExpression node, final C context) {
+  public R visitDereferenceExpression(final DereferenceExpression node, final C context) {
     return visitExpression(node, context);
   }
 
-  protected R visitNullLiteral(final NullLiteral node, final C context) {
+  public R visitNullLiteral(final NullLiteral node, final C context) {
     return visitLiteral(node, context);
   }
 
-  protected R visitArithmeticUnary(final ArithmeticUnaryExpression node, final C context) {
+  public R visitArithmeticUnary(final ArithmeticUnaryExpression node, final C context) {
     return visitExpression(node, context);
   }
 
-  protected R visitNotExpression(final NotExpression node, final C context) {
+  public R visitNotExpression(final NotExpression node, final C context) {
     return visitExpression(node, context);
   }
 
@@ -156,35 +156,35 @@ public abstract class AstVisitor<R, C> {
     return visitSelectItem(node, context);
   }
 
-  protected R visitSearchedCaseExpression(final SearchedCaseExpression node, final C context) {
+  public R visitSearchedCaseExpression(final SearchedCaseExpression node, final C context) {
     return visitExpression(node, context);
   }
 
-  protected R visitLikePredicate(final LikePredicate node, final C context) {
+  public R visitLikePredicate(final LikePredicate node, final C context) {
     return visitExpression(node, context);
   }
 
-  protected R visitIsNotNullPredicate(final IsNotNullPredicate node, final C context) {
+  public R visitIsNotNullPredicate(final IsNotNullPredicate node, final C context) {
     return visitExpression(node, context);
   }
 
-  protected R visitIsNullPredicate(final IsNullPredicate node, final C context) {
+  public R visitIsNullPredicate(final IsNullPredicate node, final C context) {
     return visitExpression(node, context);
   }
 
-  protected R visitSubscriptExpression(final SubscriptExpression node, final C context) {
+  public R visitSubscriptExpression(final SubscriptExpression node, final C context) {
     return visitExpression(node, context);
   }
 
-  protected R visitLongLiteral(final LongLiteral node, final C context) {
+  public R visitLongLiteral(final LongLiteral node, final C context) {
     return visitLiteral(node, context);
   }
 
-  protected R visitIntegerLiteral(final IntegerLiteral node, final C context) {
+  public R visitIntegerLiteral(final IntegerLiteral node, final C context) {
     return visitLiteral(node, context);
   }
 
-  protected R visitLogicalBinaryExpression(final LogicalBinaryExpression node, final C context) {
+  public R visitLogicalBinaryExpression(final LogicalBinaryExpression node, final C context) {
     return visitExpression(node, context);
   }
 
@@ -192,8 +192,8 @@ public abstract class AstVisitor<R, C> {
     return visitRelation(node, context);
   }
 
-  protected R visitType(final Type node, final C context) {
-    return visitNode(node, context);
+  public R visitType(final Type node, final C context) {
+    return visitExpression(node, context);
   }
 
   protected R visitAliasedRelation(final AliasedRelation node, final C context) {
@@ -208,7 +208,7 @@ public abstract class AstVisitor<R, C> {
     return visitNode(node, context);
   }
 
-  protected R visitCast(final Cast node, final C context) {
+  public R visitCast(final Cast node, final C context) {
     return visitExpression(node, context);
   }
 

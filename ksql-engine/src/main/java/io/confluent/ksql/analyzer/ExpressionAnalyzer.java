@@ -69,19 +69,19 @@ class ExpressionAnalyzer {
 
   private class Visitor extends AstVisitor<Object, Object> {
 
-    protected Object visitLikePredicate(final LikePredicate node, final Object context) {
+    public Object visitLikePredicate(final LikePredicate node, final Object context) {
       process(node.getValue(), null);
       return null;
     }
 
-    protected Object visitFunctionCall(final FunctionCall node, final Object context) {
+    public Object visitFunctionCall(final FunctionCall node, final Object context) {
       for (final Expression argExpr : node.getArguments()) {
         process(argExpr, null);
       }
       return null;
     }
 
-    protected Object visitArithmeticBinary(
+    public Object visitArithmeticBinary(
         final ArithmeticBinaryExpression node,
         final Object context) {
       process(node.getLeft(), null);
@@ -89,15 +89,15 @@ class ExpressionAnalyzer {
       return null;
     }
 
-    protected Object visitIsNotNullPredicate(final IsNotNullPredicate node, final Object context) {
+    public Object visitIsNotNullPredicate(final IsNotNullPredicate node, final Object context) {
       return process(node.getValue(), context);
     }
 
-    protected Object visitIsNullPredicate(final IsNullPredicate node, final Object context) {
+    public Object visitIsNullPredicate(final IsNullPredicate node, final Object context) {
       return process(node.getValue(), context);
     }
 
-    protected Object visitLogicalBinaryExpression(
+    public Object visitLogicalBinaryExpression(
         final LogicalBinaryExpression node,
         final Object context) {
       process(node.getLeft(), null);
@@ -106,7 +106,7 @@ class ExpressionAnalyzer {
     }
 
     @Override
-    protected Object visitComparisonExpression(
+    public Object visitComparisonExpression(
         final ComparisonExpression node,
         final Object context) {
       process(node.getLeft(), null);
@@ -115,18 +115,18 @@ class ExpressionAnalyzer {
     }
 
     @Override
-    protected Object visitNotExpression(final NotExpression node, final Object context) {
+    public Object visitNotExpression(final NotExpression node, final Object context) {
       return process(node.getValue(), null);
     }
 
     @Override
-    protected Object visitCast(final Cast node, final Object context) {
+    public Object visitCast(final Cast node, final Object context) {
       process(node.getExpression(), context);
       return null;
     }
 
     @Override
-    protected Object visitDereferenceExpression(
+    public Object visitDereferenceExpression(
         final DereferenceExpression node,
         final Object context
     ) {
@@ -139,7 +139,7 @@ class ExpressionAnalyzer {
     }
 
     @Override
-    protected Object visitQualifiedNameReference(
+    public Object visitQualifiedNameReference(
         final QualifiedNameReference node,
         final Object context
     ) {

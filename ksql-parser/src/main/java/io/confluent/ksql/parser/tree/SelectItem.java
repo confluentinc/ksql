@@ -19,7 +19,7 @@ import com.google.errorprone.annotations.Immutable;
 import java.util.Optional;
 
 @Immutable
-public abstract class SelectItem extends Node {
+public abstract class SelectItem extends AstNode {
 
   protected SelectItem(final Optional<NodeLocation> location) {
     super(location);

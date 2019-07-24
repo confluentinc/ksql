@@ -19,14 +19,14 @@ import com.google.errorprone.annotations.Immutable;
 import java.util.Optional;
 
 @Immutable
-public abstract class Relation extends AstNode {
+public abstract class AstNode extends Node {
 
-  protected Relation(final Optional<NodeLocation> location) {
+  protected AstNode(final Optional<NodeLocation> location) {
     super(location);
   }
 
-  @Override
-  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
-    return visitor.visitRelation(this, context);
-  }
+  /**
+   * Accessible for {@link AstVisitor}, use {@link AstVisitor#process(AstNode, Object)} instead.
+   */
+  protected abstract <R, C> R accept(AstVisitor<R, C> visitor, C context);
 }

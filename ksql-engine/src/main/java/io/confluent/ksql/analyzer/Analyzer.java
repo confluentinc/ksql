@@ -28,6 +28,7 @@ import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.parser.DefaultTraversalVisitor;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AllColumns;
+import io.confluent.ksql.parser.tree.AstNode;
 import io.confluent.ksql.parser.tree.Cast;
 import io.confluent.ksql.parser.tree.ComparisonExpression;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
@@ -36,7 +37,6 @@ import io.confluent.ksql.parser.tree.GroupBy;
 import io.confluent.ksql.parser.tree.GroupingElement;
 import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.JoinOn;
-import io.confluent.ksql.parser.tree.Node;
 import io.confluent.ksql.parser.tree.NodeLocation;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
@@ -150,7 +150,7 @@ class Analyzer {
   }
 
   // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
-  private final class Visitor extends DefaultTraversalVisitor<Node, Void> {
+  private final class Visitor extends DefaultTraversalVisitor<AstNode, Void> {
     // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
     private final Analysis analysis = new Analysis();
@@ -282,7 +282,7 @@ class Analyzer {
 
 
     @Override
-    protected Node visitQuery(
+    protected AstNode visitQuery(
         final Query node,
         final Void context
     ) {
@@ -325,7 +325,7 @@ class Analyzer {
     }
 
     @Override
-    protected Node visitJoin(final Join node, final Void context) {
+    protected AstNode visitJoin(final Join node, final Void context) {
       isJoin = true;
 
       process(node.getLeft(), context);
@@ -449,7 +449,7 @@ class Analyzer {
     }
 
     @Override
-    protected Node visitAliasedRelation(final AliasedRelation node, final Void context) {
+    protected AstNode visitAliasedRelation(final AliasedRelation node, final Void context) {
       final String structuredDataSourceName = ((Table) node.getRelation()).getName().getSuffix();
 
       final DataSource<?> source = metaStore.getSource(structuredDataSourceName);
@@ -462,12 +462,12 @@ class Analyzer {
     }
 
     @Override
-    protected Node visitCast(final Cast node, final Void context) {
+    public AstNode visitCast(final Cast node, final Void context) {
       return process(node.getExpression(), context);
     }
 
     @Override
-    protected Node visitSelect(final Select node, final Void context) {
+    protected AstNode visitSelect(final Select node, final Void context) {
       for (final SelectItem selectItem : node.getSelectItems()) {
         if (selectItem instanceof AllColumns) {
           visitSelectStar((AllColumns) selectItem);
@@ -483,7 +483,7 @@ class Analyzer {
     }
 
     @Override
-    protected Node visitQualifiedNameReference(
+    public AstNode visitQualifiedNameReference(
         final QualifiedNameReference node,
         final Void context
     ) {
@@ -491,12 +491,12 @@ class Analyzer {
     }
 
     @Override
-    protected Node visitGroupBy(final GroupBy node, final Void context) {
+    protected AstNode visitGroupBy(final GroupBy node, final Void context) {
       return null;
     }
 
-    private void analyzeWhere(final Node node) {
-      analysis.setWhereExpression((Expression) node);
+    private void analyzeWhere(final Expression node) {
+      analysis.setWhereExpression(node);
     }
 
     private void analyzeGroupBy(final GroupBy groupBy) {
@@ -512,8 +512,8 @@ class Analyzer {
       analysis.setWindowExpression(windowExpression);
     }
 
-    private void analyzeHaving(final Node node) {
-      analysis.setHavingExpression((Expression) node);
+    private void analyzeHaving(final Expression node) {
+      analysis.setHavingExpression(node);
     }
 
     private void visitSelectStar(final AllColumns allColumns) {

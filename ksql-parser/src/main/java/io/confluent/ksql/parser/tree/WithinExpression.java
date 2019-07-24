@@ -25,7 +25,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.kafka.streams.kstream.JoinWindows;
 
 @Immutable
-public class WithinExpression extends Node {
+public class WithinExpression extends AstNode {
 
   private final long before;
   private final long after;

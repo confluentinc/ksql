@@ -15,7 +15,7 @@
 
 package io.confluent.ksql.planner.plan;
 
-import static io.confluent.ksql.metastore.model.MetaStoreMatchers.FieldMatchers.hasName;
+import static io.confluent.ksql.metastore.model.MetaStoreMatchers.LegacyFieldMatchers.hasName;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.MAPVALUES_NODE;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.SOURCE_NODE;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.getNodeByName;
@@ -48,6 +48,8 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.MetaStoreMatchers.OptionalMatchers;
 import io.confluent.ksql.physical.KsqlQueryBuilder;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.schema.ksql.Field;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.structured.QueryContext;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
@@ -64,8 +66,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.TopologyDescription;
@@ -284,9 +284,9 @@ public class AggregateNodeTest {
 
     // Then:
     assertThat(stream.getSchema().valueFields(), contains(
-        new Field("COL0", 0, Schema.OPTIONAL_INT64_SCHEMA),
-        new Field("KSQL_COL_1", 1, Schema.OPTIONAL_FLOAT64_SCHEMA),
-        new Field("KSQL_COL_2", 2, Schema.OPTIONAL_INT64_SCHEMA)));
+        Field.of("COL0", SqlTypes.BIGINT),
+        Field.of("KSQL_COL_1", SqlTypes.DOUBLE),
+        Field.of("KSQL_COL_2", SqlTypes.BIGINT)));
   }
 
   @Test

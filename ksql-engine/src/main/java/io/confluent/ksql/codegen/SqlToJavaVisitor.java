@@ -52,8 +52,10 @@ import io.confluent.ksql.parser.tree.SearchedCaseExpression;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.SubscriptExpression;
 import io.confluent.ksql.schema.Operator;
+import io.confluent.ksql.schema.ksql.Field;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
+import io.confluent.ksql.schema.ksql.SchemaConverters.SqlToLogicalTypeConverter;
 import io.confluent.ksql.schema.ksql.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
 import io.confluent.ksql.schema.ksql.types.SqlType;
@@ -75,10 +77,12 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.text.StrSubstitutor;
-import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 
 public class SqlToJavaVisitor {
+
+  private static final SqlToLogicalTypeConverter SQL_TO_CONNECT_SCHEMA_CONVERTER =
+      SchemaConverters.sqlToLogicalConverter();
 
   public static final List<String> JAVA_IMPORTS = ImmutableList.of(
       "org.apache.kafka.connect.data.Struct",
@@ -206,7 +210,7 @@ public class SqlToJavaVisitor {
           .orElseThrow(() ->
               new KsqlException("Field not found: " + fieldName));
 
-      final Schema schema = schemaField.schema();
+      final Schema schema = SQL_TO_CONNECT_SCHEMA_CONVERTER.fromSqlType(schemaField.type());
       return new Pair<>(fieldName.replace(".", "_"), schema);
     }
 
@@ -220,7 +224,7 @@ public class SqlToJavaVisitor {
           .orElseThrow(() ->
               new KsqlException("Field not found: " + fieldName));
 
-      final Schema schema = schemaField.schema();
+      final Schema schema = SQL_TO_CONNECT_SCHEMA_CONVERTER.fromSqlType(schemaField.type());
       return new Pair<>(fieldName.replace(".", "_"), schema);
     }
 

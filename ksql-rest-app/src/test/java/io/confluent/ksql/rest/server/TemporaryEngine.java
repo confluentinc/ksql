@@ -47,6 +47,7 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.rules.ExternalResource;
 
+@SuppressWarnings("OptionalGetWithoutIsPresent")
 public class TemporaryEngine extends ExternalResource {
 
   public static final LogicalSchema SCHEMA = LogicalSchema.of(SchemaBuilder.struct()
@@ -99,7 +100,7 @@ public class TemporaryEngine extends ExternalResource {
                 name,
                 SCHEMA,
                 SerdeOption.none(),
-                KeyField.of("val", SCHEMA.valueSchema().field("val")),
+                KeyField.of("val", SCHEMA.findValueField("val").get()),
                 new MetadataTimestampExtractionPolicy(),
                 topic,
                 Serdes::String
@@ -112,7 +113,7 @@ public class TemporaryEngine extends ExternalResource {
                 name,
                 SCHEMA,
                 SerdeOption.none(),
-                KeyField.of("val", SCHEMA.valueSchema().field("val")),
+                KeyField.of("val", SCHEMA.findValueField("val").get()),
                 new MetadataTimestampExtractionPolicy(),
                 topic,
                 Serdes::String

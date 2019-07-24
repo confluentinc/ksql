@@ -35,8 +35,12 @@ import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.physical.KsqlQueryBuilder;
+import io.confluent.ksql.schema.ksql.Field;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.schema.ksql.SchemaConverters;
+import io.confluent.ksql.schema.ksql.SchemaConverters.LogicalToSqlTypeConverter;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.services.KafkaTopicClient;
@@ -59,9 +63,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.serialization.Serde;
-import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
 
 
 public class AggregateNode extends PlanNode {
@@ -360,29 +362,30 @@ public class AggregateNode extends PlanNode {
       final FunctionRegistry functionRegistry,
       final InternalSchema internalSchema
   ) {
-    final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
+    final LogicalSchema.Builder schemaBuilder = LogicalSchema.builder();
     final List<Field> fields = schema.valueFields();
+
+    schemaBuilder.keyFields(schema.keyFields());
+
     for (int i = 0; i < getRequiredColumns().size(); i++) {
-      schemaBuilder.field(fields.get(i).name(), fields.get(i).schema());
+      schemaBuilder.valueField(fields.get(i));
     }
-    for (int aggFunctionVarSuffix = 0;
-        aggFunctionVarSuffix < getFunctionCalls().size(); aggFunctionVarSuffix++) {
+
+    final LogicalToSqlTypeConverter converter = SchemaConverters.logicalToSqlConverter();
+
+    for (int idx = 0; idx < getFunctionCalls().size(); idx++) {
       final KsqlAggregateFunction aggregateFunction = getAggregateFunction(
           functionRegistry,
           internalSchema,
-          getFunctionCalls().get(aggFunctionVarSuffix),
+          getFunctionCalls().get(idx),
           schema);
-      schemaBuilder.field(
-          AggregateExpressionRewriter.AGGREGATE_FUNCTION_VARIABLE_PREFIX
-              + aggFunctionVarSuffix,
-          aggregateFunction.getReturnType()
-      );
+
+      final String fieldName = AggregateExpressionRewriter.AGGREGATE_FUNCTION_VARIABLE_PREFIX + idx;
+      final SqlType fieldType = converter.toSqlType(aggregateFunction.getReturnType());
+      schemaBuilder.valueField(fieldName, fieldType);
     }
 
-    return LogicalSchema.of(
-        schema.keySchema(),
-        schemaBuilder.build()
-    );
+    return schemaBuilder.build();
   }
 
   private static class InternalSchema {

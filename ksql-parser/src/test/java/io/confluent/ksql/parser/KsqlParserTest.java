@@ -69,6 +69,8 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SqlBaseType;
+import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
@@ -80,8 +82,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import org.apache.kafka.common.serialization.Serdes;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
@@ -92,6 +92,7 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 
+@SuppressWarnings("OptionalGetWithoutIsPresent")
 public class KsqlParserTest {
 
   @Rule
@@ -99,58 +100,55 @@ public class KsqlParserTest {
 
   private MutableMetaStore metaStore;
 
+  private static final SqlType addressSchema = SqlTypes.struct()
+      .field("NUMBER", SqlTypes.BIGINT)
+      .field("STREET", SqlTypes.STRING)
+      .field("CITY", SqlTypes.STRING)
+      .field("STATE", SqlTypes.STRING)
+      .field("ZIPCODE", SqlTypes.BIGINT)
+      .build();
+
+  private static final SqlType categorySchema = SqlTypes.struct()
+      .field("ID", SqlTypes.BIGINT)
+      .field("NAME", SqlTypes.STRING)
+      .build();
+
+  private static final LogicalSchema itemInfoSchema = LogicalSchema.builder()
+      .valueField("ITEMID", SqlTypes.BIGINT)
+      .valueField("NAME", SqlTypes.STRING)
+      .valueField("CATEGORY", categorySchema)
+      .build();
+
+  private static final LogicalSchema ORDERS_SCHEMA = LogicalSchema.builder()
+      .valueField("ORDERTIME", SqlTypes.BIGINT)
+      .valueField("ORDERID", SqlTypes.BIGINT)
+      .valueField("ITEMID", SqlTypes.STRING)
+      .valueField("ITEMINFO", SqlTypes
+          .struct()
+          .fields(itemInfoSchema.valueFields())
+          .build())
+      .valueField("ORDERUNITS", SqlTypes.INTEGER)
+      .valueField("ARRAYCOL", SqlTypes.array(SqlTypes.DOUBLE))
+      .valueField("MAPCOL", SqlTypes.map(SqlTypes.DOUBLE))
+      .valueField("ADDRESS", addressSchema)
+      .build();
 
   @Before
   public void init() {
-
     metaStore = MetaStoreFixture.getNewMetaStore(mock(FunctionRegistry.class));
 
-    final Schema addressSchema = SchemaBuilder.struct()
-        .field("NUMBER", Schema.OPTIONAL_INT64_SCHEMA)
-        .field("STREET", Schema.OPTIONAL_STRING_SCHEMA)
-        .field("CITY", Schema.OPTIONAL_STRING_SCHEMA)
-        .field("STATE", Schema.OPTIONAL_STRING_SCHEMA)
-        .field("ZIPCODE", Schema.OPTIONAL_INT64_SCHEMA)
-        .optional().build();
-
-    final Schema categorySchema = SchemaBuilder.struct()
-        .field("ID", Schema.OPTIONAL_INT64_SCHEMA)
-        .field("NAME", Schema.OPTIONAL_STRING_SCHEMA)
-        .optional().build();
-
-    final Schema itemInfoSchema = SchemaBuilder.struct()
-        .field("ITEMID", Schema.OPTIONAL_INT64_SCHEMA)
-        .field("NAME", Schema.OPTIONAL_STRING_SCHEMA)
-        .field("CATEGORY", categorySchema)
-        .optional().build();
-
-    final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
-    final Schema schemaBuilderOrders = schemaBuilder
-        .field("ORDERTIME", Schema.OPTIONAL_INT64_SCHEMA)
-        .field("ORDERID", Schema.OPTIONAL_INT64_SCHEMA)
-        .field("ITEMID", Schema.OPTIONAL_STRING_SCHEMA)
-        .field("ITEMINFO", itemInfoSchema)
-        .field("ORDERUNITS", Schema.OPTIONAL_INT32_SCHEMA)
-        .field("ARRAYCOL",SchemaBuilder
-            .array(Schema.OPTIONAL_FLOAT64_SCHEMA)
-            .optional()
-            .build())
-        .field("MAPCOL", SchemaBuilder
-            .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_FLOAT64_SCHEMA)
-            .optional()
-            .build())
-        .field("ADDRESS", addressSchema)
-        .build();
-
-    final KsqlTopic ksqlTopicOrders =
-        new KsqlTopic("orders_topic", new KsqlJsonSerdeFactory(), false);
+    final KsqlTopic ksqlTopicOrders = new KsqlTopic(
+        "orders_topic",
+        new KsqlJsonSerdeFactory(),
+        false
+    );
 
     final KsqlStream ksqlStreamOrders = new KsqlStream<>(
         "sqlexpression",
         "ADDRESS",
-        LogicalSchema.of(schemaBuilderOrders),
+        ORDERS_SCHEMA,
         SerdeOption.none(),
-        KeyField.of("ORDERTIME", schemaBuilderOrders.field("ORDERTIME")),
+        KeyField.of("ORDERTIME", ORDERS_SCHEMA.findValueField("ORDERTIME").get()),
         new MetadataTimestampExtractionPolicy(),
         ksqlTopicOrders,
         Serdes::String
@@ -158,15 +156,18 @@ public class KsqlParserTest {
 
     metaStore.putSource(ksqlStreamOrders);
 
-    final KsqlTopic ksqlTopicItems =
-        new KsqlTopic("item_topic", new KsqlJsonSerdeFactory(), false);
+    final KsqlTopic ksqlTopicItems = new KsqlTopic(
+        "item_topic",
+        new KsqlJsonSerdeFactory(),
+        false
+    );
 
     final KsqlTable<String> ksqlTableOrders = new KsqlTable<>(
         "sqlexpression",
         "ITEMID",
-        LogicalSchema.of(itemInfoSchema),
+        itemInfoSchema,
         SerdeOption.none(),
-        KeyField.of("ITEMID", itemInfoSchema.field("ITEMID")),
+        KeyField.of("ITEMID", itemInfoSchema.findValueField("ITEMID").get()),
         new MetadataTimestampExtractionPolicy(),
         ksqlTopicItems,
         Serdes::String

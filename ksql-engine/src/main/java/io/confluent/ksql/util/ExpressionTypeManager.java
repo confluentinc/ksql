@@ -43,17 +43,21 @@ import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.SubscriptExpression;
 import io.confluent.ksql.parser.tree.WhenClause;
 import io.confluent.ksql.schema.Operator;
+import io.confluent.ksql.schema.ksql.Field;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
+import io.confluent.ksql.schema.ksql.SchemaConverters.SqlToLogicalTypeConverter;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 
 public class ExpressionTypeManager
     extends DefaultAstVisitor<Expression, ExpressionTypeManager.ExpressionTypeContext> {
+
+  private static final SqlToLogicalTypeConverter SQL_TO_CONNECT_SCHEMA_CONVERTER =
+      SchemaConverters.sqlToLogicalConverter();
 
   private final LogicalSchema schema;
   private final FunctionRegistry functionRegistry;
@@ -150,8 +154,8 @@ public class ExpressionTypeManager
         .orElseThrow(() ->
             new KsqlException(String.format("Invalid Expression %s.", node.toString())));
 
-    final Schema qualifiedNameReferenceSchema = schemaField.schema();
-    expressionTypeContext.setSchema(qualifiedNameReferenceSchema);
+    final Schema schema = SQL_TO_CONNECT_SCHEMA_CONVERTER.fromSqlType(schemaField.type());
+    expressionTypeContext.setSchema(schema);
     return null;
   }
 
@@ -164,8 +168,8 @@ public class ExpressionTypeManager
         .orElseThrow(() ->
             new KsqlException(String.format("Invalid Expression %s.", node.toString())));
 
-    final Schema dereferenceExpressionSchema = schemaField.schema();
-    expressionTypeContext.setSchema(dereferenceExpressionSchema);
+    final Schema schema = SQL_TO_CONNECT_SCHEMA_CONVERTER.fromSqlType(schemaField.type());
+    expressionTypeContext.setSchema(schema);
     return null;
   }
 

@@ -48,7 +48,7 @@ public class SqlMapTest {
   @Test
   public void shouldImplementToString() {
     assertThat(SqlMap.of(SOME_TYPE).toString(), is(
-        "MAP<VARCHAR, "
+        "MAP<STRING, "
             + SOME_TYPE
             + ">"
     ));

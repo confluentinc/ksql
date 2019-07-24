@@ -48,6 +48,7 @@ import io.confluent.ksql.parser.tree.Sink;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.planner.plan.JoinNode;
+import io.confluent.ksql.schema.ksql.Field;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.KsqlSerdeFactories;
@@ -64,7 +65,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.serialization.Serdes;
-import org.apache.kafka.connect.data.Field;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 class Analyzer {

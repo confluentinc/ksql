@@ -69,6 +69,6 @@ public final class SqlMap extends SqlType {
 
   @Override
   public String toString(final FormatOptions formatOptions) {
-    return "MAP<VARCHAR, " + valueType.toString(formatOptions) + '>';
+    return "MAP<" + SqlTypes.STRING + ", " + valueType.toString(formatOptions) + '>';
   }
 }

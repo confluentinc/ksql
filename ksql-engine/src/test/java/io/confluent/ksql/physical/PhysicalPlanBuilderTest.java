@@ -334,15 +334,15 @@ public class PhysicalPlanBuilderTest {
         "\t\t\t\t > [ PROJECT ] | Schema: [KSQL_INTERNAL_COL_0 BIGINT, "
             + "KSQL_INTERNAL_COL_1 DOUBLE] |"));
     assertThat(lines[3], startsWith(
-        "\t\t\t\t\t\t > [ FILTER ] | Schema: [TEST1.ROWTIME BIGINT, TEST1.ROWKEY VARCHAR, "
-            + "TEST1.COL0 BIGINT, TEST1.COL1 VARCHAR, TEST1.COL2 VARCHAR, "
+        "\t\t\t\t\t\t > [ FILTER ] | Schema: [TEST1.ROWTIME BIGINT, TEST1.ROWKEY STRING, "
+            + "TEST1.COL0 BIGINT, TEST1.COL1 STRING, TEST1.COL2 STRING, "
             + "TEST1.COL3 DOUBLE, TEST1.COL4 ARRAY<DOUBLE>, "
-            + "TEST1.COL5 MAP<VARCHAR, DOUBLE>] |"));
+            + "TEST1.COL5 MAP<STRING, DOUBLE>] |"));
     assertThat(lines[4], startsWith(
-        "\t\t\t\t\t\t\t\t > [ SOURCE ] | Schema: [TEST1.ROWTIME BIGINT, TEST1.ROWKEY VARCHAR, "
-            + "TEST1.COL0 BIGINT, TEST1.COL1 VARCHAR, TEST1.COL2 VARCHAR, "
+        "\t\t\t\t\t\t\t\t > [ SOURCE ] | Schema: [TEST1.ROWTIME BIGINT, TEST1.ROWKEY STRING, "
+            + "TEST1.COL0 BIGINT, TEST1.COL1 STRING, TEST1.COL2 STRING, "
             + "TEST1.COL3 DOUBLE, TEST1.COL4 ARRAY<DOUBLE>, "
-            + "TEST1.COL5 MAP<VARCHAR, DOUBLE>] |"));
+            + "TEST1.COL5 MAP<STRING, DOUBLE>] |"));
   }
 
   @Test
@@ -360,11 +360,11 @@ public class PhysicalPlanBuilderTest {
     final String[] lines = planText.split("\n");
     Assert.assertTrue(lines.length == 3);
     Assert.assertEquals(lines[0],
-        " > [ SINK ] | Schema: [COL0 BIGINT, COL1 VARCHAR, COL2 DOUBLE] | Logger: InsertQuery_1.S1");
+        " > [ SINK ] | Schema: [COL0 BIGINT, COL1 STRING, COL2 DOUBLE] | Logger: InsertQuery_1.S1");
     Assert.assertEquals(lines[1],
-        "\t\t > [ PROJECT ] | Schema: [COL0 BIGINT, COL1 VARCHAR, COL2 DOUBLE] | Logger: InsertQuery_1.Project");
+        "\t\t > [ PROJECT ] | Schema: [COL0 BIGINT, COL1 STRING, COL2 DOUBLE] | Logger: InsertQuery_1.Project");
     Assert.assertEquals(lines[2],
-        "\t\t\t\t > [ SOURCE ] | Schema: [TEST1.ROWTIME BIGINT, TEST1.ROWKEY VARCHAR, TEST1.COL0 BIGINT, TEST1.COL1 VARCHAR, TEST1.COL2 DOUBLE] | Logger: InsertQuery_1.KsqlTopic");
+        "\t\t\t\t > [ SOURCE ] | Schema: [TEST1.ROWTIME BIGINT, TEST1.ROWKEY STRING, TEST1.COL0 BIGINT, TEST1.COL1 STRING, TEST1.COL2 DOUBLE] | Logger: InsertQuery_1.KsqlTopic");
     assertThat(queryMetadataList.get(1), instanceOf(PersistentQueryMetadata.class));
     final PersistentQueryMetadata persistentQuery = (PersistentQueryMetadata)
         queryMetadataList.get(1);
@@ -398,9 +398,9 @@ public class PhysicalPlanBuilderTest {
     expectedException.expect(KsqlStatementException.class);
     expectedException.expect(rawMessage(is(
         "Incompatible schema between results and sink. Result schema is "
-            + "[`COL0` BIGINT, `COL1` VARCHAR, `COL2` DOUBLE], "
+            + "[`COL0` BIGINT, `COL1` STRING, `COL2` DOUBLE], "
             + "but the sink schema is "
-            + "[`COL0` BIGINT, `COL1` VARCHAR].")));
+            + "[`COL0` BIGINT, `COL1` STRING].")));
 
     // When:
     execute(CREATE_STREAM_TEST1 + csasQuery + insertIntoQuery);
@@ -444,13 +444,13 @@ public class PhysicalPlanBuilderTest {
     final String[] lines = planText.split("\n");
     assertThat(lines.length, equalTo(3));
     assertThat(lines[0], containsString(
-        "> [ SINK ] | Schema: [ROWTIME BIGINT, ROWKEY VARCHAR, COL0 INT]"));
+        "> [ SINK ] | Schema: [ROWTIME BIGINT, ROWKEY STRING, COL0 INTEGER]"));
 
     assertThat(lines[1], containsString(
-        "> [ PROJECT ] | Schema: [ROWTIME BIGINT, ROWKEY VARCHAR, COL0 INT]"));
+        "> [ PROJECT ] | Schema: [ROWTIME BIGINT, ROWKEY STRING, COL0 INTEGER]"));
 
     assertThat(lines[2], containsString(
-        "> [ SOURCE ] | Schema: [TEST1.ROWTIME BIGINT, TEST1.ROWKEY VARCHAR, TEST1.COL0 INT]"));
+        "> [ SOURCE ] | Schema: [TEST1.ROWTIME BIGINT, TEST1.ROWKEY STRING, TEST1.COL0 INTEGER]"));
   }
 
   @Test
@@ -489,11 +489,11 @@ public class PhysicalPlanBuilderTest {
     final String[] lines = planText.split("\n");
     assertThat(lines.length, equalTo(4));
     assertThat(lines[0],
-        equalTo(" > [ REKEY ] | Schema: [COL0 BIGINT, COL1 VARCHAR, COL2 DOUBLE] "
+        equalTo(" > [ REKEY ] | Schema: [COL0 BIGINT, COL1 STRING, COL2 DOUBLE] "
             + "| Logger: InsertQuery_1.S1"));
-    assertThat(lines[1], equalTo("\t\t > [ SINK ] | Schema: [COL0 BIGINT, COL1 VARCHAR, COL2 "
+    assertThat(lines[1], equalTo("\t\t > [ SINK ] | Schema: [COL0 BIGINT, COL1 STRING, COL2 "
         + "DOUBLE] | Logger: InsertQuery_1.S1"));
-    assertThat(lines[2], equalTo("\t\t\t\t > [ PROJECT ] | Schema: [COL0 BIGINT, COL1 VARCHAR"
+    assertThat(lines[2], equalTo("\t\t\t\t > [ PROJECT ] | Schema: [COL0 BIGINT, COL1 STRING"
         + ", COL2 DOUBLE] | Logger: InsertQuery_1.Project"));
   }
 
@@ -507,7 +507,7 @@ public class PhysicalPlanBuilderTest {
     expectedException.expect(KsqlStatementException.class);
     expectedException.expect(rawMessage(is(
         "Incompatible key fields for sink and results. "
-        + "Sink key field is COL0 (type: Schema{INT64}) "
+        + "Sink key field is COL0 (type: BIGINT) "
         + "while result key field is null (type: null)")));
 
     // When:
@@ -734,21 +734,6 @@ public class PhysicalPlanBuilderTest {
     final String serviceId = physicalPlanBuilder.getServiceId();
     assertThat(serviceId, equalTo(KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX
         + KsqlConfig.KSQL_SERVICE_ID_DEFAULT));
-  }
-
-  @Test
-  public void shouldHaveOptionalFieldsInResultSchema() {
-    final String csasQuery = "CREATE STREAM s1 WITH (value_format = 'delimited') AS SELECT col0, col1, "
-        + "col2 FROM "
-        + "test1;";
-    final String insertIntoQuery = "INSERT INTO s1 SELECT col0, col1, col2 FROM test1;";
-    givenKafkaTopicsExist("test1");
-    final List<QueryMetadata> queryMetadataList = execute(
-        CREATE_STREAM_TEST1 + csasQuery + insertIntoQuery);
-    final LogicalSchema resultSchema = queryMetadataList.get(0).getLogicalSchema();
-    resultSchema.valueFields().forEach(
-        field -> Assert.assertTrue(field.schema().isOptional())
-    );
   }
 
   @Test

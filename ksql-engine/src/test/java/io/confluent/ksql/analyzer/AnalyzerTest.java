@@ -52,6 +52,7 @@ import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.planner.plan.JoinNode.JoinType;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.SerdeFactories;
 import io.confluent.ksql.serde.SerdeOption;
@@ -344,21 +345,20 @@ public class AnalyzerTest {
                     "s0",
                     new KsqlAvroSerdeFactory("org.ac.s1"),
                     false);
-    final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
-    final Schema schema = schemaBuilder
-            .name("org.ac.s1")
-            .field("FIELD1", Schema.OPTIONAL_INT64_SCHEMA)
+
+    final LogicalSchema schema = LogicalSchema.builder()
+            .valueField("FIELD1", SqlTypes.BIGINT)
             .build();
 
     final KsqlStream<?> ksqlStream = new KsqlStream<>(
-            "create stream s0 with(KAFKA_TOPIC='s0', VALUE_AVRO_SCHEMA_FULL_NAME='org.ac.s1', VALUE_FORMAT='avro');",
-            "S0",
-            LogicalSchema.of(schema),
+        "create stream s0 with(KAFKA_TOPIC='s0', VALUE_AVRO_SCHEMA_FULL_NAME='org.ac.s1', VALUE_FORMAT='avro');",
+        "S0",
+        schema,
         SerdeOption.none(),
-            KeyField.of("FIELD1", schema.field("FIELD1")),
-            new MetadataTimestampExtractionPolicy(),
-            ksqlTopic,
-            Serdes::String
+        KeyField.of("FIELD1", schema.findValueField("FIELD1").get()),
+        new MetadataTimestampExtractionPolicy(),
+        ksqlTopic,
+        Serdes::String
     );
 
     newAvroMetaStore.putSource(ksqlStream);

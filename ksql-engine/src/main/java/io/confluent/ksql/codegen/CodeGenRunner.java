@@ -36,7 +36,10 @@ import io.confluent.ksql.parser.tree.NotExpression;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.parser.tree.SearchedCaseExpression;
 import io.confluent.ksql.parser.tree.SubscriptExpression;
+import io.confluent.ksql.schema.ksql.Field;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SchemaConverters;
+import io.confluent.ksql.schema.ksql.SchemaConverters.SqlToJavaTypeConverter;
 import io.confluent.ksql.util.ExpressionMetadata;
 import io.confluent.ksql.util.ExpressionTypeManager;
 import io.confluent.ksql.util.GenericRowValueTypeEnforcer;
@@ -51,7 +54,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.codehaus.commons.compiler.CompileException;
 import org.codehaus.commons.compiler.CompilerFactoryFactory;
@@ -150,6 +152,8 @@ public class CodeGenRunner {
 
   private static final class Visitor extends AstVisitor<Object, Object> {
 
+    private static final SqlToJavaTypeConverter converter = SchemaConverters.sqlToJavaConverter();
+
     private final LogicalSchema schema;
     private final Set<ParameterType> parameters;
     private final FunctionRegistry functionRegistry;
@@ -173,9 +177,9 @@ public class CodeGenRunner {
 
     private void addParameter(final Field schemaField) {
       parameters.add(new ParameterType(
-          SchemaUtil.getJavaType(schemaField.schema()),
-          schemaField.name(),
-          schemaField.name().replace(".", "_"),
+          converter.toJavaType(schemaField.type().baseType()),
+          schemaField.fullName(),
+          schemaField.fullName().replace(".", "_"),
           ksqlConfig));
     }
 

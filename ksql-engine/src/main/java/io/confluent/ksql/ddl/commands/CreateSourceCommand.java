@@ -23,6 +23,7 @@ import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.TableElements;
+import io.confluent.ksql.schema.ksql.Field;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.Format;
@@ -40,7 +41,6 @@ import io.confluent.ksql.util.timestamp.TimestampExtractionPolicyFactory;
 import java.util.Optional;
 import java.util.Set;
 import org.apache.kafka.common.serialization.Serdes;
-import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.streams.kstream.Windowed;
 
 /**

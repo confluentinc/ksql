@@ -20,13 +20,12 @@ import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import io.confluent.ksql.parser.tree.Type;
-import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.TypeContextUtil;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.test.model.KeyFieldNode;
 import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;
 import java.io.IOException;
 import java.util.Optional;
-import org.apache.kafka.connect.data.Schema;
 
 public class KeyFieldDeserializer extends StdDeserializer<KeyFieldNode> {
 
@@ -44,7 +43,7 @@ public class KeyFieldDeserializer extends StdDeserializer<KeyFieldNode> {
 
     final Optional<String> name = buildString("name", node, jp);
     final Optional<String> legacyName = buildString("legacyName", node, jp);
-    final Optional<Schema> legacySchema = buildLegacySchema(node, jp);
+    final Optional<SqlType> legacySchema = buildLegacySchema(node, jp);
 
     return new KeyFieldNode(name, legacyName, legacySchema);
   }
@@ -66,7 +65,7 @@ public class KeyFieldDeserializer extends StdDeserializer<KeyFieldNode> {
     return Optional.ofNullable(value);
   }
 
-  private static Optional<Schema> buildLegacySchema(
+  private static Optional<SqlType> buildLegacySchema(
       final JsonNode node,
       final JsonParser jp
   ) throws IOException {
@@ -82,8 +81,7 @@ public class KeyFieldDeserializer extends StdDeserializer<KeyFieldNode> {
     try {
       return Optional.ofNullable(valueSchema)
           .map(TypeContextUtil::getType)
-          .map(Type::getSqlType)
-          .map(SchemaConverters.sqlToLogicalConverter()::fromSqlType);
+          .map(Type::getSqlType);
     } catch (final Exception e) {
       throw new InvalidFieldException("legacySchema", "Failed to parse: " + valueSchema, e);
     }

@@ -46,7 +46,7 @@ import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.schema.ksql.Field;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
-import io.confluent.ksql.schema.ksql.SchemaConverters.SqlToLogicalTypeConverter;
+import io.confluent.ksql.schema.ksql.SchemaConverters.SqlToConnectTypeConverter;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import java.util.ArrayList;
 import java.util.List;
@@ -56,8 +56,8 @@ import org.apache.kafka.connect.data.Schema;
 public class ExpressionTypeManager
     extends DefaultAstVisitor<Expression, ExpressionTypeManager.ExpressionTypeContext> {
 
-  private static final SqlToLogicalTypeConverter SQL_TO_CONNECT_SCHEMA_CONVERTER =
-      SchemaConverters.sqlToLogicalConverter();
+  private static final SqlToConnectTypeConverter SQL_TO_CONNECT_SCHEMA_CONVERTER =
+      SchemaConverters.sqlToConnectConverter();
 
   private final LogicalSchema schema;
   private final FunctionRegistry functionRegistry;
@@ -119,8 +119,8 @@ public class ExpressionTypeManager
     }
 
     final Schema castType = SchemaConverters
-        .sqlToLogicalConverter()
-        .fromSqlType(sqlType);
+        .sqlToConnectConverter()
+        .toConnectSchema(sqlType);
 
     expressionTypeContext.setSchema(castType);
     return null;
@@ -154,7 +154,7 @@ public class ExpressionTypeManager
         .orElseThrow(() ->
             new KsqlException(String.format("Invalid Expression %s.", node.toString())));
 
-    final Schema schema = SQL_TO_CONNECT_SCHEMA_CONVERTER.fromSqlType(schemaField.type());
+    final Schema schema = SQL_TO_CONNECT_SCHEMA_CONVERTER.toConnectSchema(schemaField.type());
     expressionTypeContext.setSchema(schema);
     return null;
   }
@@ -168,7 +168,7 @@ public class ExpressionTypeManager
         .orElseThrow(() ->
             new KsqlException(String.format("Invalid Expression %s.", node.toString())));
 
-    final Schema schema = SQL_TO_CONNECT_SCHEMA_CONVERTER.fromSqlType(schemaField.type());
+    final Schema schema = SQL_TO_CONNECT_SCHEMA_CONVERTER.toConnectSchema(schemaField.type());
     expressionTypeContext.setSchema(schema);
     return null;
   }

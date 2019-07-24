@@ -39,7 +39,7 @@ import io.confluent.ksql.schema.ksql.Field;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
-import io.confluent.ksql.schema.ksql.SchemaConverters.LogicalToSqlTypeConverter;
+import io.confluent.ksql.schema.ksql.SchemaConverters.ConnectToSqlTypeConverter;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.serde.SerdeOption;
@@ -371,7 +371,7 @@ public class AggregateNode extends PlanNode {
       schemaBuilder.valueField(fields.get(i));
     }
 
-    final LogicalToSqlTypeConverter converter = SchemaConverters.logicalToSqlConverter();
+    final ConnectToSqlTypeConverter converter = SchemaConverters.connectToSqlConverter();
 
     for (int idx = 0; idx < getFunctionCalls().size(); idx++) {
       final KsqlAggregateFunction aggregateFunction = getAggregateFunction(

@@ -285,7 +285,7 @@ public class ExpressionTypeManagerTest {
         .get()
         .type();
 
-    assertThat(caseSchema, equalTo(SchemaConverters.sqlToLogicalConverter().fromSqlType(sqlType)));
+    assertThat(caseSchema, equalTo(SchemaConverters.sqlToConnectConverter().toConnectSchema(sqlType)));
   }
 
   @Test

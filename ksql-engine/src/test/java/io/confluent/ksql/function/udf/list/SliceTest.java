@@ -16,7 +16,8 @@
 package io.confluent.ksql.function.udf.list;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 
 import com.google.common.collect.Lists;
 import java.util.List;

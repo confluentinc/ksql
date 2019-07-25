@@ -135,7 +135,7 @@ public class LogicalSchemaTest {
         LogicalSchema.of(keySchema, SOME_VALUE_SCHEMA);
         fail();
       } catch (final KsqlException e) {
-        assertThat(schema.toString(), e.getMessage(), containsString("Unexpected logical type"));
+        assertThat(schema.toString(), e.getMessage(), containsString("Unexpected schema type"));
       }
     });
   }
@@ -152,7 +152,7 @@ public class LogicalSchemaTest {
         LogicalSchema.of(SOME_KEY_SCHEMA, valueSchema);
         fail();
       } catch (final KsqlException e) {
-        assertThat(schema.toString(), e.getMessage(), containsString("Unexpected logical type"));
+        assertThat(schema.toString(), e.getMessage(), containsString("Unexpected schema type"));
       }
     });
   }

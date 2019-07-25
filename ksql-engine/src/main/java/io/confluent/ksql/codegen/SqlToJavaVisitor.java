@@ -55,7 +55,7 @@ import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.schema.ksql.Field;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
-import io.confluent.ksql.schema.ksql.SchemaConverters.SqlToLogicalTypeConverter;
+import io.confluent.ksql.schema.ksql.SchemaConverters.SqlToConnectTypeConverter;
 import io.confluent.ksql.schema.ksql.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
 import io.confluent.ksql.schema.ksql.types.SqlType;
@@ -81,8 +81,8 @@ import org.apache.kafka.connect.data.Schema;
 
 public class SqlToJavaVisitor {
 
-  private static final SqlToLogicalTypeConverter SQL_TO_CONNECT_SCHEMA_CONVERTER =
-      SchemaConverters.sqlToLogicalConverter();
+  private static final SqlToConnectTypeConverter SQL_TO_CONNECT_SCHEMA_CONVERTER =
+      SchemaConverters.sqlToConnectConverter();
 
   public static final List<String> JAVA_IMPORTS = ImmutableList.of(
       "org.apache.kafka.connect.data.Struct",
@@ -210,7 +210,7 @@ public class SqlToJavaVisitor {
           .orElseThrow(() ->
               new KsqlException("Field not found: " + fieldName));
 
-      final Schema schema = SQL_TO_CONNECT_SCHEMA_CONVERTER.fromSqlType(schemaField.type());
+      final Schema schema = SQL_TO_CONNECT_SCHEMA_CONVERTER.toConnectSchema(schemaField.type());
       return new Pair<>(fieldName.replace(".", "_"), schema);
     }
 
@@ -224,7 +224,7 @@ public class SqlToJavaVisitor {
           .orElseThrow(() ->
               new KsqlException("Field not found: " + fieldName));
 
-      final Schema schema = SQL_TO_CONNECT_SCHEMA_CONVERTER.fromSqlType(schemaField.type());
+      final Schema schema = SQL_TO_CONNECT_SCHEMA_CONVERTER.toConnectSchema(schemaField.type());
       return new Pair<>(fieldName.replace(".", "_"), schema);
     }
 
@@ -772,8 +772,8 @@ public class SqlToJavaVisitor {
       }
 
       final Schema returnType = SchemaConverters
-          .sqlToLogicalConverter()
-          .fromSqlType(sqlType);
+          .sqlToConnectConverter()
+          .toConnectSchema(sqlType);
 
       final Schema rightSchema = expr.getRight();
       if (returnType.equals(rightSchema) || rightSchema == null) {
@@ -927,7 +927,7 @@ public class SqlToJavaVisitor {
         default:
           throw new KsqlFunctionException(
               "Invalid cast operation: Cannot cast " + exprStr
-                  + " to " + SchemaConverters.logicalToSqlConverter().toSqlType(schema));
+                  + " to " + SchemaConverters.connectToSqlConverter().toSqlType(schema));
       }
     }
 

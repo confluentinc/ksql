@@ -149,7 +149,7 @@ public class DefaultSchemaInjector implements Injector {
   }
 
   private static void throwOnInvalidSchema(final Schema schema) {
-    SchemaConverters.logicalToSqlConverter().toSqlType(schema);
+    SchemaConverters.connectToSqlConverter().toSqlType(schema);
   }
 
   private static PreparedStatement<CreateSource> buildPreparedStatement(

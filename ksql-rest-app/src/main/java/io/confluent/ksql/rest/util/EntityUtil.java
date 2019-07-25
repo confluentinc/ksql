@@ -54,9 +54,8 @@ public final class EntityUtil {
       throw new IllegalArgumentException("Root schema should contain fields." + " type: " + type);
     }
 
-    // Todo(ac): can now visit fields...
     return fields.stream()
-        .map(field -> new FieldInfo(field.name(), getSchema(field.type())))
+        .map(field -> SqlTypeWalker.visit(field, new Converter()))
         .collect(Collectors.toList());
   }
 

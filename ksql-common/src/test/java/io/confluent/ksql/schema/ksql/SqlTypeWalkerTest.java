@@ -300,6 +300,23 @@ public class SqlTypeWalkerTest {
     SqlTypeWalker.visit(type, visitor);
   }
 
+  @Test
+  public void shouldStartWalkingFromField() {
+    // Given:
+    final SqlPrimitiveType type = SqlTypes.BOOLEAN;
+    final Field field = Field.of("name", type);
+    when(visitor.visitBoolean(any())).thenReturn("Expected");
+    when(visitor.visitField(any(), any())).thenReturn(22);
+
+    // When:
+    final Integer result = SqlTypeWalker.visit(field, visitor);
+
+    // Then:
+    verify(visitor).visitBoolean(same(type));
+    verify(visitor).visitField(same(field), eq("Expected"));
+    assertThat(result, is(22));
+  }
+
   public static Stream<SqlType> primitiveTypes() {
     return Stream.of(
         SqlTypes.BOOLEAN,

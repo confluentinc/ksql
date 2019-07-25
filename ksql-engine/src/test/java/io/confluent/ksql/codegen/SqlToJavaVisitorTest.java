@@ -15,15 +15,17 @@
 
 package io.confluent.ksql.codegen;
 
-import static io.confluent.ksql.testutils.AnalysisTestUtil.analyzeQuery;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.function.TestFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.parser.DefaultKsqlParser;
+import io.confluent.ksql.parser.KsqlParser;
+import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
+import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.parser.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.parser.tree.ArithmeticUnaryExpression.Sign;
@@ -32,6 +34,8 @@ import io.confluent.ksql.parser.tree.ComparisonExpression;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
+import io.confluent.ksql.parser.tree.Query;
+import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Type;
 import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -85,66 +89,65 @@ public class SqlToJavaVisitorTest {
 
   @Test
   public void shouldProcessBasicJavaMath() {
-    final String simpleQuery = "SELECT col0+col3, col2, col3+10, col0*25, 12*4+2 FROM test1 WHERE col0 > 100;";
-    final Analysis analysis = analyzeQuery(simpleQuery, metaStore);
+    // Given:
+    final Expression expression = parseExpression("col0+col3");
 
-    final String javaExpression = sqlToJavaVisitor
-        .process(analysis.getSelectExpressions().get(0));
+    // When:
+    final String javaExpression = sqlToJavaVisitor.process(expression);
 
+    // Then:
     assertThat(javaExpression, equalTo("(TEST1_COL0 + TEST1_COL3)"));
   }
 
   @Test
   public void shouldProcessArrayExpressionCorrectly() {
-    final String simpleQuery = "SELECT col4[0] FROM test1 WHERE col0 > 100;";
-    final Analysis analysis = analyzeQuery(simpleQuery, metaStore);
+    // Given:
+    final Expression expression = parseExpression("col4[0]");
 
-    final String javaExpression = sqlToJavaVisitor
-        .process(analysis.getSelectExpressions().get(0));
+    // When:
+    final String javaExpression = sqlToJavaVisitor.process(expression);
 
+    // Then:
     assertThat(javaExpression,
        equalTo("((Double) ((java.util.List)TEST1_COL4).get((int)0))"));
   }
 
   @Test
   public void shouldProcessArrayNegativeIndexExpressionCorrectly() {
-    final String simpleQuery = "SELECT col4[-1] FROM test1;";
-    final Analysis analysis = analyzeQuery(simpleQuery, metaStore);
+    // Given:
+    final Expression expression = parseExpression("col4[-1]");
 
-    final String javaExpression = sqlToJavaVisitor
-            .process(analysis.getSelectExpressions().get(0));
+    // When:
+    final String javaExpression = sqlToJavaVisitor.process(expression);
 
+    // Then:
     assertThat(javaExpression,
             equalTo("((Double) ((java.util.List)TEST1_COL4).get((int)((java.util.List)TEST1_COL4).size()-1))"));
   }
 
   @Test
   public void shouldProcessMapExpressionCorrectly() {
-    final String simpleQuery = "SELECT col5['key1'] FROM test1 WHERE col0 > 100;";
-    final Analysis analysis = analyzeQuery(simpleQuery, metaStore);
+    // Given:
+    final Expression expression = parseExpression("col5['key1']");
 
-    final String javaExpression = sqlToJavaVisitor
-        .process(analysis.getSelectExpressions().get(0));
+    // When:
+    final String javaExpression = sqlToJavaVisitor.process(expression);
 
+    // Then:
     assertThat(javaExpression, equalTo("((Double) ((java.util.Map)TEST1_COL5).get(\"key1\"))"));
   }
 
   @Test
   public void shouldCreateCorrectCastJavaExpression() {
+    // Given/When:
+    final String javaExpression0 = sqlToJavaVisitor.process(
+        parseExpression("cast(col0 AS INTEGER)"));
+    final String javaExpression1 = sqlToJavaVisitor.process(
+        parseExpression("cast(col3 as BIGINT)"));
+    final String javaExpression2 = sqlToJavaVisitor.process(
+        parseExpression("cast(col3 as varchar)"));
 
-    final String simpleQuery = "SELECT cast(col0 AS INTEGER), cast(col3 as BIGINT), cast(col3 as "
-        + "varchar) FROM "
-        + "test1 WHERE "
-        + "col0 > 100;";
-    final Analysis analysis = analyzeQuery(simpleQuery, metaStore);
-
-    final String javaExpression0 = sqlToJavaVisitor
-        .process(analysis.getSelectExpressions().get(0));
-    final String javaExpression1 = sqlToJavaVisitor
-        .process(analysis.getSelectExpressions().get(1));
-    final String javaExpression2 = sqlToJavaVisitor
-        .process(analysis.getSelectExpressions().get(2));
-
+    // Then:
     assertThat(javaExpression0, equalTo("(new Long(TEST1_COL0).intValue())"));
     assertThat(javaExpression1, equalTo("(new Double(TEST1_COL3).longValue())"));
     assertThat(javaExpression2, equalTo("String.valueOf(TEST1_COL3)"));
@@ -152,13 +155,14 @@ public class SqlToJavaVisitorTest {
 
   @Test
   public void shouldPostfixFunctionInstancesWithUniqueId() {
-    final Analysis analysis = analyzeQuery(
-        "SELECT CONCAT(SUBSTRING(col1,1,3),CONCAT('-',SUBSTRING(col1,4,5))) FROM test1;",
-        metaStore);
+    // Given:
+    final Expression expression = parseExpression(
+        "CONCAT(SUBSTRING(col1,1,3),CONCAT('-',SUBSTRING(col1,4,5)))");
 
-    final String javaExpression = sqlToJavaVisitor
-        .process(analysis.getSelectExpressions().get(0));
+    // When:
+    final String javaExpression = sqlToJavaVisitor.process(expression);
 
+    // Then:
     assertThat(javaExpression, is(
         "((String) CONCAT_0.evaluate("
             + "((String) SUBSTRING_1.evaluate(TEST1_COL1, 1, 3)), "
@@ -168,87 +172,100 @@ public class SqlToJavaVisitorTest {
 
   @Test
   public void shouldEscapeQuotesInStringLiteral() {
-    final Analysis analysis = analyzeQuery(
-        "SELECT '\"foo\"' FROM test1;", metaStore);
+    // Given:
+    final Expression expression = parseExpression("'\"foo\"'");
 
-    final String javaExpression = sqlToJavaVisitor
-        .process(analysis.getSelectExpressions().get(0));
+    // When:
+    final String javaExpression = sqlToJavaVisitor.process(expression);
+
+    // Then:
     assertThat(javaExpression, equalTo("\"\\\"foo\\\"\""));
   }
 
   @Test
   public void shouldEscapeQuotesInStringLiteralQuote() {
-    final Analysis analysis = analyzeQuery(
-        "SELECT '\\\"' FROM test1;", metaStore);
-    final String javaExpression = sqlToJavaVisitor
-        .process(analysis.getSelectExpressions().get(0));
+    // Given:
+    final Expression expression = parseExpression("'\\\"'");
+
+    // When:
+    final String javaExpression = sqlToJavaVisitor.process(expression);
+
+    // Then:
     assertThat(javaExpression, equalTo("\"\\\\\\\"\""));
   }
 
   @Test
   public void shouldGenerateCorrectCodeForComparisonWithNegativeNumbers() {
-    final Analysis analysis = analyzeQuery(
-        "SELECT * FROM test1 WHERE col3 > -10.0;", metaStore);
+    // Given:
+    final Expression expression = parseExpression("col3 > -10.0");
 
-    final String javaExpression = sqlToJavaVisitor
-        .process(analysis.getWhereExpression());
+    // When:
+    final String javaExpression = sqlToJavaVisitor.process(expression);
+
+    // Then:
     assertThat(javaExpression, equalTo("((((Object)(TEST1_COL3)) == null || ((Object)(-10.0)) == null) ? false : (TEST1_COL3 > -10.0))"));
   }
 
   @Test
   public void shouldGenerateCorrectCodeForLikePatternWithLeadingWildcard() {
-    final Analysis analysis = analyzeQuery(
-        "SELECT * FROM test1 WHERE col1 LIKE '%foo';", metaStore);
+    // Given:
+    final Expression expression = parseExpression("col1 LIKE '%foo'");
 
-    final String javaExpression = sqlToJavaVisitor
-        .process(analysis.getWhereExpression());
+    // When:
+    final String javaExpression = sqlToJavaVisitor.process(expression);
+
+    // Then:
     assertThat(javaExpression, equalTo("(TEST1_COL1).endsWith(\"foo\")"));
   }
 
   @Test
   public void shouldGenerateCorrectCodeForLikePatternWithTrailingWildcard() {
-    final Analysis analysis = analyzeQuery(
-        "SELECT * FROM test1 WHERE col1 LIKE 'foo%';", metaStore);
+    // Given:
+    final Expression expression = parseExpression(" col1 LIKE 'foo%'");
 
-    final String javaExpression = sqlToJavaVisitor
-        .process(analysis.getWhereExpression());
+    // When:
+    final String javaExpression = sqlToJavaVisitor.process(expression);
+
+    // Then:
     assertThat(javaExpression, equalTo("(TEST1_COL1).startsWith(\"foo\")"));
   }
 
   @Test
   public void shouldGenerateCorrectCodeForLikePatternWithLeadingAndTrailingWildcards() {
-    final Analysis analysis = analyzeQuery(
-        "SELECT * FROM test1 WHERE col1 LIKE '%foo%';", metaStore);
+    // Given:
+    final Expression expression = parseExpression("col1 LIKE '%foo%'");
 
-    final String javaExpression = sqlToJavaVisitor
-        .process(analysis.getWhereExpression());
+    // When:
+    final String javaExpression = sqlToJavaVisitor.process(expression);
+
+    // Then:
     assertThat(javaExpression, equalTo("(TEST1_COL1).contains(\"foo\")"));
   }
 
   @Test
   public void shouldGenerateCorrectCodeForLikePatternWithoutWildcards() {
-    final Analysis analysis = analyzeQuery(
-        "SELECT * FROM test1 WHERE col1 LIKE 'foo';", metaStore);
+    // Given:
+    final Expression expression = parseExpression("col1 LIKE 'foo'");
 
-    final String javaExpression = sqlToJavaVisitor
-        .process(analysis.getWhereExpression());
+    // When:
+    final String javaExpression = sqlToJavaVisitor.process(expression);
+
+    // Then:
     assertThat(javaExpression, equalTo("(TEST1_COL1).equals(\"foo\")"));
   }
 
   @Test
   public void shouldGenerateCorrectCodeForCaseStatement() {
     // Given:
-    final Analysis analysis = analyzeQuery(
-        "SELECT CASE"
+    final Expression expression = parseExpression(
+        "CASE"
             + "    WHEN col7 < 10 THEN 'small' "
             + "    WHEN col7 < 100 THEN 'medium' "
             + "    ELSE 'large'"
-            + "  END "
-            + "FROM test1;", metaStore);
+            + "  END ");
 
     // When:
-    final String javaExpression = sqlToJavaVisitor
-        .process(analysis.getSelectExpressions().get(0));
+    final String javaExpression = sqlToJavaVisitor.process(expression);
 
     // ThenL
     assertThat(javaExpression, equalTo("((java.lang.String)SearchedCaseFunction.searchedCaseFunction(ImmutableList.of( SearchedCaseFunction.whenClause( new Supplier<Boolean>() { @Override public Boolean get() { return ((((Object)(TEST1_COL7)) == null || ((Object)(10)) == null) ? false : (TEST1_COL7 < 10)); }},  new Supplier<java.lang.String>() { @Override public java.lang.String get() { return \"small\"; }}), SearchedCaseFunction.whenClause( new Supplier<Boolean>() { @Override public Boolean get() { return ((((Object)(TEST1_COL7)) == null || ((Object)(100)) == null) ? false : (TEST1_COL7 < 100)); }},  new Supplier<java.lang.String>() { @Override public java.lang.String get() { return \"medium\"; }})), new Supplier<java.lang.String>() { @Override public java.lang.String get() { return \"large\"; }}))"));
@@ -257,16 +274,14 @@ public class SqlToJavaVisitorTest {
   @Test
   public void shouldGenerateCorrectCodeForCaseStatementWithNoElse() {
     // Given:
-    final Analysis analysis = analyzeQuery(
-        "SELECT CASE"
+    final Expression expression = parseExpression(
+        "CASE"
             + "     WHEN col7 < 10 THEN 'small' "
             + "     WHEN col7 < 100 THEN 'medium' "
-            + "  END "
-            + "FROM test1;", metaStore);
+            + "  END ");
 
     // When:
-    final String javaExpression = sqlToJavaVisitor
-        .process(analysis.getSelectExpressions().get(0));
+    final String javaExpression = sqlToJavaVisitor.process(expression);
 
     // ThenL
     assertThat(javaExpression, equalTo("((java.lang.String)SearchedCaseFunction.searchedCaseFunction(ImmutableList.of( SearchedCaseFunction.whenClause( new Supplier<Boolean>() { @Override public Boolean get() { return ((((Object)(TEST1_COL7)) == null || ((Object)(10)) == null) ? false : (TEST1_COL7 < 10)); }},  new Supplier<java.lang.String>() { @Override public java.lang.String get() { return \"small\"; }}), SearchedCaseFunction.whenClause( new Supplier<Boolean>() { @Override public Boolean get() { return ((((Object)(TEST1_COL7)) == null || ((Object)(100)) == null) ? false : (TEST1_COL7 < 100)); }},  new Supplier<java.lang.String>() { @Override public java.lang.String get() { return \"medium\"; }})), new Supplier<java.lang.String>() { @Override public java.lang.String get() { return null; }}))"));
@@ -636,30 +651,78 @@ public class SqlToJavaVisitorTest {
   @Test
   public void shouldThrowOnIn() {
     // Given:
-    final Analysis analysis = analyzeQuery(
-        "SELECT * FROM test1 WHERE col1 IN (1,2,3);", metaStore);
-
-    final Expression where = analysis.getWhereExpression();
+    final Expression expression = parseExpression("col1 IN (1,2,3)");
 
     // Then:
     expectedException.expect(UnsupportedOperationException.class);
 
     // When:
-    sqlToJavaVisitor.process(where);
+    sqlToJavaVisitor.process(expression);
   }
 
   @Test
   public void shouldThrowOnNotIn() {
     // Given:
-    final Analysis analysis = analyzeQuery(
-        "SELECT * FROM test1 WHERE col1 NOT IN (1,2,3);", metaStore);
-
-    final Expression decimal = analysis.getWhereExpression();
+    final Expression expression = parseExpression("col1 NOT IN (1,2,3)");
 
     // Then:
     expectedException.expect(UnsupportedOperationException.class);
 
     // When:
-    sqlToJavaVisitor.process(decimal);
+    sqlToJavaVisitor.process(expression);
+  }
+
+  @Test
+  public void shouldThrowOnSimpleCase() {
+    // Given:
+    final Expression expression = parseExpression(
+        "CASE col7 "
+            + "WHEN 10 THEN 'ten' "
+            + "WHEN 100 THEN 'one hundred' "
+            + "END"
+    );
+
+    // Then:
+    expectedException.expect(UnsupportedOperationException.class);
+
+    // When:
+    sqlToJavaVisitor.process(expression);
+  }
+
+  @Test
+  public void shouldThrowOnTimeLiteral() {
+    // Given:
+    final Expression expression = parseExpression("TIME '12:34:56.789'");
+
+    // Then:
+    expectedException.expect(UnsupportedOperationException.class);
+
+    // When:
+    sqlToJavaVisitor.process(expression);
+  }
+
+  @Test
+  public void shouldThrowOnTimestampLiteral() {
+    // Given:
+    final Expression expression = parseExpression("TIMESTAMP '1776-07-04 12:34:56.789'");
+
+    // Then:
+    expectedException.expect(UnsupportedOperationException.class);
+
+    // When:
+    sqlToJavaVisitor.process(expression);
+  }
+
+  private Expression parseExpression(final String asText) {
+    final KsqlParser parser = new DefaultKsqlParser();
+    final String ksql = String.format("SELECT %s FROM test1;", asText);
+
+    final ParsedStatement parsedStatement = parser.parse(ksql).get(0);
+    final PreparedStatement preparedStatement = parser.prepare(parsedStatement, metaStore);
+    final SingleColumn singleColumn = (SingleColumn) ((Query)preparedStatement.getStatement())
+        .getSelect()
+        .getSelectItems()
+        .get(0);
+    return singleColumn.getExpression();
   }
 }

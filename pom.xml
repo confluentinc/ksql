@@ -44,6 +44,7 @@
         <module>ksql-udf-quickstart</module>
         <module>ksql-serde</module>
         <module>ksql-metastore</module>
+        <module>ksql-execution</module>
         <module>ksql-parser</module>
         <module>ksql-engine</module>
         <module>ksql-tools</module>
@@ -165,6 +166,12 @@
             <dependency>
                 <groupId>io.confluent.ksql</groupId>
                 <artifactId>ksql-engine</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.confluent.ksql</groupId>
+                <artifactId>ksql-execution</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

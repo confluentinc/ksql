@@ -68,7 +68,7 @@ public class SourceDescriptionTest {
         .field("field0", Schema.OPTIONAL_INT32_SCHEMA)
         .build());
 
-    final KsqlTopic topic = new KsqlTopic("internal", kafkaTopicName, new KsqlJsonSerdeFactory(), true);
+    final KsqlTopic topic = new KsqlTopic(kafkaTopicName, new KsqlJsonSerdeFactory(), true);
     return new KsqlStream<>(
         "query",
         "stream",

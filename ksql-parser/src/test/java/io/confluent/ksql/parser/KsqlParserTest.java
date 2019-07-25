@@ -138,7 +138,6 @@ public class KsqlParserTest {
     metaStore = MetaStoreFixture.getNewMetaStore(mock(FunctionRegistry.class));
 
     final KsqlTopic ksqlTopicOrders = new KsqlTopic(
-        "ADDRESS_TOPIC",
         "orders_topic",
         new KsqlJsonSerdeFactory(),
         false
@@ -158,7 +157,6 @@ public class KsqlParserTest {
     metaStore.putSource(ksqlStreamOrders);
 
     final KsqlTopic ksqlTopicItems = new KsqlTopic(
-        "ITEMS_TOPIC",
         "item_topic",
         new KsqlJsonSerdeFactory(),
         false

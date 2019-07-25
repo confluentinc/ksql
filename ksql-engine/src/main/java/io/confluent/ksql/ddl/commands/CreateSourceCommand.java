@@ -153,7 +153,7 @@ abstract class CreateSourceCommand implements DdlCommand {
 
   KsqlTopic buildTopic() {
     final String kafkaTopicName = properties.getKafkaTopic();
-    return new KsqlTopic(sourceName, kafkaTopicName, valueSerdeFactory, false);
+    return new KsqlTopic(kafkaTopicName, valueSerdeFactory, false);
   }
 
   private static SerdeFactory<?> extractKeySerde(

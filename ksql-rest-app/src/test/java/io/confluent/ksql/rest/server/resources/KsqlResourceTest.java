@@ -59,6 +59,7 @@ import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.KsqlConfigTestUtil;
@@ -152,7 +153,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.ws.rs.core.Response;
 import org.apache.avro.Schema.Type;
-import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.Serdes;
@@ -363,7 +363,7 @@ public class KsqlResourceTest {
 
     givenSource(
         DataSourceType.KSTREAM, "new_stream", "new_topic",
-        "new_ksql_topic", schema);
+        schema);
 
     // When:
     final SourceDescriptionList descriptionList = makeSingleRequest(
@@ -392,7 +392,7 @@ public class KsqlResourceTest {
 
     givenSource(
         DataSourceType.KTABLE, "new_table", "new_topic",
-        "new_ksql_topic", schema);
+        schema);
 
     // When:
     final SourceDescriptionList descriptionList = makeSingleRequest(
@@ -684,7 +684,7 @@ public class KsqlResourceTest {
   public void shouldSupportTopicInferenceInVerification() {
     // Given:
     givenMockEngine();
-    givenSource(DataSourceType.KSTREAM, "ORDERS1", "ORDERS1", "ORDERS1", SOME_SCHEMA);
+    givenSource(DataSourceType.KSTREAM, "ORDERS1", "ORDERS1", SOME_SCHEMA);
 
     final String sql = "CREATE STREAM orders2 AS SELECT * FROM orders1;";
     final String sqlWithTopic = "CREATE STREAM orders2 WITH(kafka_topic='orders2') AS SELECT * FROM orders1;";
@@ -709,7 +709,7 @@ public class KsqlResourceTest {
   public void shouldSupportTopicInferenceInExecution() {
     // Given:
     givenMockEngine();
-    givenSource(DataSourceType.KSTREAM, "ORDERS1", "ORDERS1", "ORDERS1", SOME_SCHEMA);
+    givenSource(DataSourceType.KSTREAM, "ORDERS1", "ORDERS1", SOME_SCHEMA);
 
     final String sql = "CREATE STREAM orders2 AS SELECT * FROM orders1;";
     final String sqlWithTopic = "CREATE STREAM orders2 WITH(kafka_topic='orders2') AS SELECT * FROM orders1;";
@@ -732,7 +732,7 @@ public class KsqlResourceTest {
   @Test
   public void shouldFailWhenTopicInferenceFailsDuringValidate() {
     // Given:
-    givenSource(DataSourceType.KSTREAM, "ORDERS1", "ORDERS1", "ORDERS1", SOME_SCHEMA);
+    givenSource(DataSourceType.KSTREAM, "ORDERS1", "ORDERS1", SOME_SCHEMA);
     when(sandboxTopicInjector.inject(any()))
         .thenThrow(new KsqlStatementException("boom", "sql"));
 
@@ -749,7 +749,7 @@ public class KsqlResourceTest {
   @Test
   public void shouldFailWhenTopicInferenceFailsDuringExecute() {
     // Given:
-    givenSource(DataSourceType.KSTREAM, "ORDERS1", "ORDERS1", "ORDERS1", SOME_SCHEMA);
+    givenSource(DataSourceType.KSTREAM, "ORDERS1", "ORDERS1", SOME_SCHEMA);
 
     when(topicInjector.inject(any()))
         .thenThrow(new KsqlStatementException("boom", "some-sql"));
@@ -1578,7 +1578,7 @@ public class KsqlResourceTest {
   @Test
   public void shouldFailIfCreateExistingSourceStream() {
     // Given:
-    givenSource(DataSourceType.KSTREAM, "SOURCE", "topic1", "ksqlTopic1", SINGLE_FIELD_SCHEMA);
+    givenSource(DataSourceType.KSTREAM, "SOURCE", "topic1", SINGLE_FIELD_SCHEMA);
     givenKafkaTopicExists("topic2");
 
     // Then:
@@ -1596,7 +1596,7 @@ public class KsqlResourceTest {
   @Test
   public void shouldFailIfCreateExistingSourceTable() {
     // Given:
-    givenSource(DataSourceType.KTABLE, "SOURCE", "topic1", "ksqlTopic1", SINGLE_FIELD_SCHEMA);
+    givenSource(DataSourceType.KTABLE, "SOURCE", "topic1", SINGLE_FIELD_SCHEMA);
     givenKafkaTopicExists("topic2");
 
     // Then:
@@ -1615,8 +1615,8 @@ public class KsqlResourceTest {
   @Test
   public void shouldFailIfCreateAsSelectExistingSourceStream() {
     // Given:
-    givenSource(DataSourceType.KSTREAM, "SOURCE", "topic1", "ksqlTopic1", SINGLE_FIELD_SCHEMA);
-    givenSource(DataSourceType.KTABLE, "SINK", "topic2", "ksqlTopic2", SINGLE_FIELD_SCHEMA);
+    givenSource(DataSourceType.KSTREAM, "SOURCE", "topic1", SINGLE_FIELD_SCHEMA);
+    givenSource(DataSourceType.KTABLE, "SINK", "topic2", SINGLE_FIELD_SCHEMA);
 
     // Then:
     expectedException.expect(KsqlRestException.class);
@@ -1634,8 +1634,8 @@ public class KsqlResourceTest {
   @Test
   public void shouldFailIfCreateAsSelectExistingSourceTable() {
     // Given:
-    givenSource(DataSourceType.KTABLE, "SOURCE", "topic1", "ksqlTopic1", SINGLE_FIELD_SCHEMA);
-    givenSource(DataSourceType.KSTREAM, "SINK", "topic2", "ksqlTopic2", SINGLE_FIELD_SCHEMA);
+    givenSource(DataSourceType.KTABLE, "SOURCE", "topic1", SINGLE_FIELD_SCHEMA);
+    givenSource(DataSourceType.KSTREAM, "SINK", "topic2", SINGLE_FIELD_SCHEMA);
 
     // Then:
     expectedException.expect(KsqlRestException.class);
@@ -1752,7 +1752,7 @@ public class KsqlResourceTest {
         .stream()
         .map(md -> new RunningQuery(
             md.getStatementString(),
-            md.getSinkNames(),
+            ImmutableSet.of(md.getSinkName()),
             new EntityQueryId(md.getQueryId())))
         .collect(Collectors.toList());
   }
@@ -1898,7 +1898,7 @@ public class KsqlResourceTest {
 
     givenSource(
         DataSourceType.KTABLE,
-        "TEST_TABLE", "KAFKA_TOPIC_1", "KSQL_TOPIC_1", schema1);
+        "TEST_TABLE", "KAFKA_TOPIC_1", schema1);
 
     final LogicalSchema schema2 = LogicalSchema.of(SchemaBuilder.struct()
         .field("S2_F1", Schema.OPTIONAL_STRING_SCHEMA)
@@ -1906,7 +1906,7 @@ public class KsqlResourceTest {
 
     givenSource(
         DataSourceType.KSTREAM,
-        "TEST_STREAM", "KAFKA_TOPIC_2", "KSQL_TOPIC_2", schema2);
+        "TEST_STREAM", "KAFKA_TOPIC_2", schema2);
     givenKafkaTopicExists("orders-topic");
   }
 
@@ -1914,11 +1914,9 @@ public class KsqlResourceTest {
       final DataSourceType type,
       final String sourceName,
       final String topicName,
-      final String ksqlTopicName,
       final LogicalSchema schema
   ) {
     final KsqlTopic ksqlTopic = new KsqlTopic(
-        ksqlTopicName,
         topicName,
         new KsqlJsonSerdeFactory(),
         false);

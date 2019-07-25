@@ -119,6 +119,16 @@ public class SqlSchemaFormatter implements SchemaFormatter {
         .substring(STRUCT_START.length(), suffixStripped.length() - STRUCTURED_END.length());
   }
 
+  protected String visitBytes(final Schema schema) {
+    if (DecimalUtil.isDecimal(schema)) {
+      return "DECIMAL("
+          + DecimalUtil.precision(schema) + ", "
+          + DecimalUtil.scale(schema) + ")";
+    }
+
+    throw new KsqlException("Cannot format bytes type: " + schema);
+  }
+
   private final class Converter implements SchemaWalker.Visitor<String, String> {
 
     public String visitSchema(final Schema schema) {
@@ -147,10 +157,7 @@ public class SqlSchemaFormatter implements SchemaFormatter {
 
     @Override
     public String visitBytes(final Schema schema) {
-      DecimalUtil.requireDecimal(schema);
-      return "DECIMAL("
-          + DecimalUtil.precision(schema) + ", "
-          + DecimalUtil.scale(schema) + ")";
+      return SqlSchemaFormatter.this.visitBytes(schema);
     }
 
     public String visitArray(final Schema schema, final String element) {

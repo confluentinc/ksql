@@ -537,33 +537,20 @@ public class LogicalSchemaTest {
   @Test
   public void shouldConvertSchemaToString() {
     // Given:
-    final LogicalSchema schema = LogicalSchema.of(
-        SchemaBuilder.struct()
-            .field("f0", SchemaBuilder.OPTIONAL_BOOLEAN_SCHEMA)
-            .field("f1", SchemaBuilder.OPTIONAL_INT32_SCHEMA)
-            .field("f2", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
-            .field("f4", SchemaBuilder.OPTIONAL_FLOAT64_SCHEMA)
-            .field("f5", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
-            .field("f6", SchemaBuilder
-                .struct()
-                .field("a", Schema.OPTIONAL_INT64_SCHEMA)
-                .optional()
-                .build())
-            .field("f7", SchemaBuilder
-                .array(
-                    SchemaBuilder.OPTIONAL_STRING_SCHEMA
-                )
-                .optional()
-                .build())
-            .field("f8", SchemaBuilder
-                .map(
-                    SchemaBuilder.OPTIONAL_STRING_SCHEMA,
-                    SchemaBuilder.OPTIONAL_STRING_SCHEMA
-                )
-                .optional()
-                .build())
-            .build()
-    );
+    final LogicalSchema schema = LogicalSchema.builder()
+        .valueField("f0", SqlTypes.BOOLEAN)
+        .valueField("f1", SqlTypes.INTEGER)
+        .valueField("f2", SqlTypes.BIGINT)
+        .valueField("f4", SqlTypes.DOUBLE)
+        .valueField("f5", SqlTypes.STRING)
+        .valueField("f6", SqlTypes.struct()
+            .field("a", SqlTypes.BIGINT)
+            .build())
+        .valueField("f7", SqlTypes.array(SqlTypes.STRING))
+        .valueField("f8", SqlTypes.map(SqlTypes.STRING))
+        .keyField("k0", SqlTypes.BIGINT)
+        .keyField("k1", SqlTypes.DOUBLE)
+        .build();
 
     // When:
     final String s = schema.toString();
@@ -571,6 +558,8 @@ public class LogicalSchemaTest {
     // Then:
     assertThat(s, is(
         "["
+            + "`k0` BIGINT KEY, "
+            + "`k1` DOUBLE KEY, "
             + "`f0` BOOLEAN, "
             + "`f1` INTEGER, "
             + "`f2` BIGINT, "
@@ -606,6 +595,7 @@ public class LogicalSchemaTest {
     // Then:
     assertThat(s, is(
         "["
+            + "ROWKEY STRING KEY, "
             + "`f0` BOOLEAN, "
             + "f1 STRUCT<`f0` BIGINT, f1 BIGINT>"
             + "]"));
@@ -626,6 +616,7 @@ public class LogicalSchemaTest {
     // Then:
     assertThat(s, is(
         "["
+            + "`t.ROWKEY` STRING KEY, "
             + "`t.f0` BOOLEAN"
             + "]"));
   }

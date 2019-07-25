@@ -1,0 +1,26 @@
+{
+  "comments": [
+    "Tests covering map creation"
+  ],
+  "tests": [
+    {
+      "name": "create map from key/value lists",
+      "statements": [
+        "CREATE STREAM TEST (ks ARRAY<VARCHAR>, vals ARRAY<INT>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT AS_MAP(ks, vals) as m FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": {"ks":  ["a", "b"], "vals":  [1, 2]}},
+        {"topic": "test_topic", "value": {"ks":  ["a", "b", "c"], "vals":  [1, 2, 3]}},
+        {"topic": "test_topic", "value": {"ks":  ["a", "b"], "vals":  [1, 2, 3]}},
+        {"topic": "test_topic", "value": {"ks":  ["a", "b", "c"], "vals":  [1, 2, null]}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"M":  {"a":  1, "b":  2}}},
+        {"topic": "OUTPUT", "value": {"M":  {"a":  1, "b":  2, "c":  3}}},
+        {"topic": "OUTPUT", "value": {"M":  {"a":  1, "b":  2}}},
+        {"topic": "OUTPUT", "value": {"M":  {"a":  1, "b":  2, "c":  null}}}
+      ]
+    }
+  ]
+}

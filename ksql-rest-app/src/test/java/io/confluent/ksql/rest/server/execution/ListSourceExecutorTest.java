@@ -28,6 +28,7 @@ import static org.mockito.Mockito.verify;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KsqlStream;
@@ -218,7 +219,7 @@ public class ListSourceExecutorTest {
             ImmutableList.of(),
             ImmutableList.of(new RunningQuery(
                 metadata.getStatementString(),
-                metadata.getSinkNames(),
+                ImmutableSet.of(metadata.getSinkName()),
                 new EntityQueryId(metadata.getQueryId()))),
             Optional.empty())));
   }

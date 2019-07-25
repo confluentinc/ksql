@@ -75,7 +75,7 @@ public class ListQueriesExecutorTest {
     assertThat(queries.getQueries(), containsInAnyOrder(
         new RunningQuery(
             metadata.getStatementString(),
-            metadata.getSinkNames(),
+            ImmutableSet.of(metadata.getSinkName()),
             new EntityQueryId(metadata.getQueryId()))));
   }
 
@@ -103,7 +103,7 @@ public class ListQueriesExecutorTest {
   public static PersistentQueryMetadata givenPersistentQuery(final String id) {
     final PersistentQueryMetadata metadata = mock(PersistentQueryMetadata.class);
     when(metadata.getQueryId()).thenReturn(new QueryId(id));
-    when(metadata.getSinkNames()).thenReturn(ImmutableSet.of(id));
+    when(metadata.getSinkName()).thenReturn(id);
     when(metadata.getLogicalSchema()).thenReturn(TemporaryEngine.SCHEMA);
 
     return metadata;

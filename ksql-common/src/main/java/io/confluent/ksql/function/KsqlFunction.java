@@ -20,13 +20,16 @@ import com.google.common.collect.Iterables;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.annotation.concurrent.Immutable;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Schema.Type;
+import org.apache.kafka.connect.data.SchemaBuilder;
 
 @Immutable
 public final class KsqlFunction implements IndexedFunction {
@@ -34,13 +37,14 @@ public final class KsqlFunction implements IndexedFunction {
   static final String INTERNAL_PATH = "internal";
 
   private final Schema returnType;
-  private final List<Schema> arguments;
+  private final List<Schema> parameters;
   private final String functionName;
   private final Class<? extends Kudf> kudfClass;
   private final Function<KsqlConfig, Kudf> udfFactory;
   private final String description;
   private final String pathLoadedFrom;
   private final boolean isVariadic;
+  private final boolean hasGenerics;
 
   /**
    * Create built in / legacy function.
@@ -101,13 +105,14 @@ public final class KsqlFunction implements IndexedFunction {
       final String pathLoadedFrom,
       final boolean isVariadic) {
     this.returnType = Objects.requireNonNull(returnType, "returnType");
-    this.arguments = ImmutableList.copyOf(Objects.requireNonNull(arguments, "arguments"));
+    this.parameters = ImmutableList.copyOf(Objects.requireNonNull(arguments, "arguments"));
     this.functionName = Objects.requireNonNull(functionName, "functionName");
     this.kudfClass = Objects.requireNonNull(kudfClass, "kudfClass");
     this.udfFactory = Objects.requireNonNull(udfFactory, "udfFactory");
     this.description = Objects.requireNonNull(description, "description");
     this.pathLoadedFrom  = Objects.requireNonNull(pathLoadedFrom, "pathLoadedFrom");
     this.isVariadic = isVariadic;
+    this.hasGenerics = GenericsUtil.hasGenerics(returnType);
 
     if (arguments.stream().anyMatch(Objects::isNull)) {
       throw new IllegalArgumentException("KSQL Function can't have null argument types");
@@ -129,12 +134,29 @@ public final class KsqlFunction implements IndexedFunction {
   }
 
 
-  public Schema getReturnType() {
-    return returnType;
+  public Schema getReturnType(final List<Schema> arguments) {
+    if (!hasGenerics) {
+      return returnType;
+    }
+
+    final Map<Schema, Schema> genericMapping = new HashMap<>();
+    for (int i = 0; i < Math.min(parameters.size(), arguments.size()); i++) {
+      final Schema schema = parameters.get(i);
+
+      // we resolve any variadic as if it were an array so that the type
+      // structure matches the input type
+      final Schema instance = isVariadic && i == parameters.size() - 1
+          ? SchemaBuilder.array(arguments.get(i)).build()
+          : arguments.get(i);
+
+      genericMapping.putAll(GenericsUtil.resolveGenerics(schema, instance));
+    }
+
+    return GenericsUtil.applyResolved(returnType, genericMapping);
   }
 
   public List<Schema> getArguments() {
-    return arguments;
+    return parameters;
   }
 
   public String getFunctionName() {
@@ -167,7 +189,7 @@ public final class KsqlFunction implements IndexedFunction {
     }
     final KsqlFunction that = (KsqlFunction) o;
     return Objects.equals(returnType, that.returnType)
-        && Objects.equals(arguments, that.arguments)
+        && Objects.equals(parameters, that.parameters)
         && Objects.equals(functionName, that.functionName)
         && Objects.equals(kudfClass, that.kudfClass)
         && Objects.equals(pathLoadedFrom, that.pathLoadedFrom)
@@ -176,14 +198,15 @@ public final class KsqlFunction implements IndexedFunction {
 
   @Override
   public int hashCode() {
-    return Objects.hash(returnType, arguments, functionName, kudfClass, pathLoadedFrom, isVariadic);
+    return Objects.hash(
+        returnType, parameters, functionName, kudfClass, pathLoadedFrom, isVariadic);
   }
 
   @Override
   public String toString() {
     return "KsqlFunction{"
         + "returnType=" + returnType
-        + ", arguments=" + arguments.stream().map(Schema::type).collect(Collectors.toList())
+        + ", arguments=" + parameters.stream().map(Schema::type).collect(Collectors.toList())
         + ", functionName='" + functionName + '\''
         + ", kudfClass=" + kudfClass
         + ", description='" + description + "'"

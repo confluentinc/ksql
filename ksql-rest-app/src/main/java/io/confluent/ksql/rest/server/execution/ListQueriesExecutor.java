@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.server.execution;
 
+import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.parser.tree.ListQueries;
 import io.confluent.ksql.rest.entity.EntityQueryId;
@@ -52,7 +53,7 @@ public final class ListQueriesExecutor {
             .map(
                 q -> new RunningQuery(
                     q.getStatementString(),
-                    q.getSinkNames(),
+                    ImmutableSet.of(q.getSinkName()),
                     new EntityQueryId(q.getQueryId())))
             .collect(Collectors.toList())));
   }

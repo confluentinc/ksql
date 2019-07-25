@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.entity;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.rest.util.EntityUtil;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
@@ -83,7 +84,7 @@ public class QueryDescription {
       return new QueryDescription(
           persistentQuery.getQueryId().getId(),
           persistentQuery,
-          persistentQuery.getSinkNames(),
+          ImmutableSet.of(persistentQuery.getSinkName()),
           false
       );
     }

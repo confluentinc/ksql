@@ -24,7 +24,6 @@ import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.QueryDescription;
@@ -124,7 +123,7 @@ public class ExplainExecutorTest {
   public static PersistentQueryMetadata givenPersistentQuery(final String id) {
     final PersistentQueryMetadata metadata = mock(PersistentQueryMetadata.class);
     when(metadata.getQueryId()).thenReturn(new QueryId(id));
-    when(metadata.getSinkNames()).thenReturn(ImmutableSet.of(id));
+    when(metadata.getSinkName()).thenReturn(id);
     when(metadata.getLogicalSchema()).thenReturn(TemporaryEngine.SCHEMA);
 
     return metadata;

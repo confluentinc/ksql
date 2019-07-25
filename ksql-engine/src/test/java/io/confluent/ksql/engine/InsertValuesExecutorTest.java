@@ -114,8 +114,6 @@ public class InsertValuesExecutorTest {
   @Mock
   private Serializer<String> keySerializer;
   @Mock
-  private Deserializer<String> keyDeserializer;
-  @Mock
   private Serde<Object> valueSerDe;
   @Mock
   private Serializer<Object> valueSerializer;
@@ -134,7 +132,6 @@ public class InsertValuesExecutorTest {
     when(valueSerde.createSerde(any(), any(), any())).thenReturn(valueSerDe);
 
     when(keySerDe.serializer()).thenReturn(keySerializer);
-    when(keySerDe.deserializer()).thenReturn(keyDeserializer);
     when(valueSerDe.serializer()).thenReturn(valueSerializer);
     when(valueSerDe.deserializer()).thenReturn(valueDeserializer);
 
@@ -622,12 +619,11 @@ public class InsertValuesExecutorTest {
       final Set<SerdeOption> serdeOptions,
       final Optional<String> keyField
   ) {
-    final KsqlTopic topic = new KsqlTopic("TOPIC", TOPIC_NAME, valueSerde, false);
+    final KsqlTopic topic = new KsqlTopic(TOPIC_NAME, valueSerde, false);
 
     final KeyField valueKeyField = keyField
         .map(kf -> KeyField.of(kf, schema.findValueField(kf).get()))
         .orElse(KeyField.none());
-
     final DataSource<?> dataSource = new KsqlStream<>(
         "",
         "TOPIC",

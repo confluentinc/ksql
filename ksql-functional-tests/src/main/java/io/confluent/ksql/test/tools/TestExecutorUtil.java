@@ -99,8 +99,7 @@ final class TestExecutorUtil {
           .collect(Collectors.toList());
 
       final Topic sinkTopic = buildSinkTopic(
-          ksqlEngine.getMetaStore()
-              .getSource(persistentQueryMetadata.getSinkNames().iterator().next()),
+          ksqlEngine.getMetaStore().getSource(persistentQueryMetadata.getSinkName()),
           persistentQueryAndSortedSources.getWindowSize(),
           fakeKafkaService,
           serviceContext.getSchemaRegistryClient());

@@ -17,10 +17,10 @@ package io.confluent.ksql.analyzer;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.parser.DefaultTraversalVisitor;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.FunctionCall;
+import io.confluent.ksql.parser.tree.TraversalExpressionVisitor;
 import io.confluent.ksql.util.KsqlException;
 import java.util.HashSet;
 import java.util.Objects;
@@ -81,7 +81,7 @@ class AggregateAnalyzer {
     visitor.process(expression, null);
   }
 
-  private final class AggregateVisitor extends DefaultTraversalVisitor<Void, Void> {
+  private final class AggregateVisitor extends TraversalExpressionVisitor<Void> {
 
     private final BiConsumer<Optional<String>, DereferenceExpression> dereferenceCollector;
     private Optional<String> aggFunctionName = Optional.empty();
@@ -134,5 +134,7 @@ class AggregateAnalyzer {
       aggregateAnalysis.addRequiredColumn(node);
       return null;
     }
+
+
   }
 }

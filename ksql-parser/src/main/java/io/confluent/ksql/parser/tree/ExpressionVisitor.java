@@ -79,4 +79,5 @@ public interface ExpressionVisitor<R, C> {
   R visitType(Type exp, @Nullable C context);
 
   R visitWhenClause(WhenClause exp, @Nullable C context);
+
 }

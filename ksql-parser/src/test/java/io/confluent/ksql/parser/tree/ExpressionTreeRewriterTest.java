@@ -19,13 +19,16 @@ package io.confluent.ksql.parser.tree;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.parser.tree.ExpressionTreeRewriter.Context;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.BiFunction;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -47,7 +50,7 @@ public class ExpressionTreeRewriterTest {
       QualifiedName.of("Vic")), "f2");
 
   @Mock
-  private ExpressionRewriter<String> rewriter;
+  private BiFunction<Expression, Context<Void>, Optional<Expression>> plugin;
 
   @Test
   public void shouldRewriteFunctionCall() {
@@ -55,11 +58,11 @@ public class ExpressionTreeRewriterTest {
     final FunctionCall original = givenFunctionCall();
     final FunctionCall expected = mock(FunctionCall.class);
 
-    when(rewriter.rewriteFunctionCall(eq(original), any(), any()))
-        .thenReturn(expected);
+    when(plugin.apply(eq(original), any()))
+        .thenReturn(Optional.of(expected));
 
     // When:
-    final FunctionCall result = ExpressionTreeRewriter.rewriteWith(rewriter, original);
+    final FunctionCall result = ExpressionTreeRewriter.rewriteWith(plugin, original);
 
     // Then:
     assertThat(result, is(expected));
@@ -70,11 +73,12 @@ public class ExpressionTreeRewriterTest {
     // Given:
     final FunctionCall original = givenFunctionCall();
 
-    when(rewriter.rewriteDereferenceExpression(eq(DEREF_0), any(), any()))
-        .thenReturn(DEREF_2);
+    when(plugin.apply(any(), any())).thenReturn(Optional.empty());
+    when(plugin.apply(eq(DEREF_0), any()))
+        .thenReturn(Optional.of(DEREF_2));
 
     // When:
-    final FunctionCall result = ExpressionTreeRewriter.rewriteWith(rewriter, original);
+    final FunctionCall result = ExpressionTreeRewriter.rewriteWith(plugin, original);
 
     // Then:
     assertThat(result.getName(), is(original.getName()));

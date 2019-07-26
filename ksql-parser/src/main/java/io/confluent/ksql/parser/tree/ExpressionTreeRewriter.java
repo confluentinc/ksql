@@ -16,562 +16,426 @@
 package io.confluent.ksql.parser.tree;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
-import io.confluent.ksql.schema.ksql.types.SqlStruct;
-import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
+/**
+ * ExpressionTreeRewriter creates a copy of an expression with sub-expressions optionally
+ * rewritten by a plugin. The plugin implements
+ * {@code BiFunction<Expression, Context<C>, Optional<Expression>>}. The plugin
+ * will be called for each expression within the provided expression (including for the
+ * provided expression). If the plugin returns a non-empty value, the returned value will
+ * be substituted for the expression in the final result.
+ *
+ * @param <C> A context type to be passed through to the plugin.
+ */
 public final class ExpressionTreeRewriter<C> {
 
-  private final ExpressionRewriter<C> rewriter;
-  private final ExpressionVisitor<Expression, Context<C>> visitor;
+  public static final class Context<C> {
+    private final C context;
+    private final ExpressionVisitor<Expression, C> rewriter;
 
-  public static <C, T extends Expression> T rewriteWith(
-      final ExpressionRewriter<C> rewriter, final T node) {
-    return new ExpressionTreeRewriter<>(rewriter).rewrite(node, null);
+    private Context(final C context, final ExpressionVisitor<Expression, C> rewriter) {
+      this.context = context;
+      this.rewriter = rewriter;
+    }
+
+    public C getContext() {
+      return context;
+    }
+
+    public Expression process(final Expression expression) {
+      return rewriter.process(expression, context);
+    }
   }
 
+  private final RewritingVisitor<C> rewriter;
 
-  private ExpressionTreeRewriter(final ExpressionRewriter<C> rewriter) {
-    this.rewriter = rewriter;
-    this.visitor = new RewritingVisitor();
+  @SuppressWarnings("unchecked")
+  public static <C, T extends Expression> T rewriteWith(
+      final BiFunction<Expression, Context<C>, Optional<Expression>> plugin, final T expression) {
+    return rewriteWith(plugin, expression, null);
   }
 
   @SuppressWarnings("unchecked")
-  public <T extends Expression> T rewrite(final T node, final C context) {
-    return (T) visitor.process(node, new Context<>(context, false));
+  public static <C, T extends Expression> T rewriteWith(
+      final BiFunction<Expression, Context<C>, Optional<Expression>> plugin,
+      final T expression,
+      final C context) {
+    return new ExpressionTreeRewriter<C>(plugin).rewrite(expression, context);
+  }
+
+  @SuppressWarnings("unchecked")
+  public <T extends Expression> T rewrite(final T expression, final C context) {
+    return (T) rewriter.process(expression, context);
+  }
+
+  public ExpressionTreeRewriter(
+      final BiFunction<Expression, Context<C>, Optional<Expression>> plugin) {
+    this.rewriter = new RewritingVisitor<>(plugin);
+  }
+
+  // Exposed at package-level for testing
+  ExpressionTreeRewriter(
+      final BiFunction<Expression, Context<C>, Optional<Expression>> plugin,
+      final BiFunction<Expression, C, Expression> rewriter) {
+    this.rewriter = new RewritingVisitor<>(plugin, rewriter);
   }
 
   // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
-  private class RewritingVisitor
-      extends VisitParentExpressionVisitor<Expression, Context<C>> {
+  private static final class RewritingVisitor<C> implements ExpressionVisitor<Expression, C> {
     // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
+    private final BiFunction<Expression, Context<C>, Optional<Expression>> plugin;
+    private final BiFunction<Expression, C, Expression> rewriter;
 
-    @Override
-    public Expression visitExpression(final Expression node, final Context<C> context) {
-      if (!context.isDefaultRewrite()) {
-        final Expression
-            result =
-            rewriter.rewriteExpression(node, context.get(), ExpressionTreeRewriter.this);
-        if (result != null) {
-          return result;
-        }
-      }
+    private RewritingVisitor(
+        final BiFunction<Expression, Context<C>, Optional<Expression>> plugin) {
+      this.plugin = Objects.requireNonNull(plugin, "plugin");
+      this.rewriter = this::process;
+    }
 
-      throw new UnsupportedOperationException(
-          "not yet implemented: " + getClass().getSimpleName() + " for " + node.getClass()
-              .getName());
+    private RewritingVisitor(
+        final BiFunction<Expression, Context<C>, Optional<Expression>> plugin,
+        final BiFunction<Expression, C, Expression> rewriter) {
+      this.plugin = Objects.requireNonNull(plugin, "plugin");
+      this.rewriter = Objects.requireNonNull(rewriter, "rewriter");
     }
 
     @Override
-    public Expression visitType(final Type node, final Context<C> context) {
-      if (!(node.getSqlType() instanceof SqlStruct)) {
-        return node;
-      }
-
-      if (!context.isDefaultRewrite()) {
-        final Expression result =
-            rewriter.rewriteStruct(node, context.get(), ExpressionTreeRewriter.this);
-
-        if (result != null) {
-          return result;
-        }
-      }
-
-      return node;
+    public Expression visitType(final Type node, final C context) {
+      return plugin.apply(node, new Context<>(context, this)).orElse(node);
     }
 
     @Override
     public Expression visitArithmeticUnary(
         final ArithmeticUnaryExpression node,
-        final Context<C> context) {
-      if (!context.isDefaultRewrite()) {
-        final Expression
-            result =
-            rewriter.rewriteArithmeticUnary(node, context.get(), ExpressionTreeRewriter.this);
-        if (result != null) {
-          return result;
-        }
+        final C context) {
+      final Optional<Expression> result
+          = plugin.apply(node, new Context<>(context, this));
+      if (result.isPresent()) {
+        return result.get();
       }
-
-      final Expression child = rewrite(node.getValue(), context.get());
-      if (child != node.getValue()) {
-        return new ArithmeticUnaryExpression(node.getLocation(), node.getSign(), child);
-      }
-
-      return node;
+      final Expression child = rewriter.apply(node.getValue(), context);
+      return new ArithmeticUnaryExpression(node.getLocation(), node.getSign(), child);
     }
 
     @Override
     public Expression visitArithmeticBinary(
         final ArithmeticBinaryExpression node,
-        final Context<C> context) {
-      if (!context.isDefaultRewrite()) {
-        final Expression
-            result =
-            rewriter.rewriteArithmeticBinary(node, context.get(), ExpressionTreeRewriter.this);
-        if (result != null) {
-          return result;
-        }
+        final C context) {
+      final Optional<Expression> result
+          = plugin.apply(node, new Context<>(context, this));
+      if (result.isPresent()) {
+        return result.get();
       }
 
-      final Expression left = rewrite(node.getLeft(), context.get());
-      final Expression right = rewrite(node.getRight(), context.get());
+      final Expression left = rewriter.apply(node.getLeft(), context);
+      final Expression right = rewriter.apply(node.getRight(), context);
 
-      if (left != node.getLeft() || right != node.getRight()) {
-        return new ArithmeticBinaryExpression(node.getLocation(), node.getOperator(), left, right);
-      }
-
-      return node;
+      return new ArithmeticBinaryExpression(node.getLocation(), node.getOperator(), left, right);
     }
 
     @Override
     public Expression visitSubscriptExpression(
         final SubscriptExpression node,
-        final Context<C> context) {
-      if (!context.isDefaultRewrite()) {
-        final Expression
-            result =
-            rewriter.rewriteSubscriptExpression(node, context.get(), ExpressionTreeRewriter.this);
-        if (result != null) {
-          return result;
-        }
+        final C context) {
+      final Optional<Expression> result
+          = plugin.apply(node, new Context<C>(context, this));
+      if (result.isPresent()) {
+        return result.get();
       }
 
-      final Expression base = rewrite(node.getBase(), context.get());
-      final Expression index = rewrite(node.getIndex(), context.get());
+      final Expression base = rewriter.apply(node.getBase(), context);
+      final Expression index = rewriter.apply(node.getIndex(), context);
 
-      if (base != node.getBase() || index != node.getIndex()) {
-        return new SubscriptExpression(node.getLocation(), base, index);
-      }
-
-      return node;
+      return new SubscriptExpression(node.getLocation(), base, index);
     }
 
     @Override
     public Expression visitComparisonExpression(
         final ComparisonExpression node,
-        final Context<C> context) {
-      if (!context.isDefaultRewrite()) {
-        final Expression
-            result =
-            rewriter.rewriteComparisonExpression(node, context.get(), ExpressionTreeRewriter.this);
-        if (result != null) {
-          return result;
-        }
+        final C context) {
+      final Optional<Expression> result
+          = plugin.apply(node, new Context<>(context, this));
+      if (result.isPresent()) {
+        return result.get();
       }
 
-      final Expression left = rewrite(node.getLeft(), context.get());
-      final Expression right = rewrite(node.getRight(), context.get());
+      final Expression left = rewriter.apply(node.getLeft(), context);
+      final Expression right = rewriter.apply(node.getRight(), context);
 
-      if (left != node.getLeft() || right != node.getRight()) {
-        return new ComparisonExpression(node.getLocation(), node.getType(), left, right);
-      }
-
-      return node;
+      return new ComparisonExpression(node.getLocation(), node.getType(), left, right);
     }
 
     @Override
     public Expression visitBetweenPredicate(
         final BetweenPredicate node,
-        final Context<C> context) {
-      if (!context.isDefaultRewrite()) {
-        final Expression
-            result =
-            rewriter.rewriteBetweenPredicate(node, context.get(), ExpressionTreeRewriter.this);
-        if (result != null) {
-          return result;
-        }
+        final C context) {
+      final Optional<Expression> result
+          = plugin.apply(node, new Context<>(context, this));
+      if (result.isPresent()) {
+        return result.get();
       }
 
-      final Expression value = rewrite(node.getValue(), context.get());
-      final Expression min = rewrite(node.getMin(), context.get());
-      final Expression max = rewrite(node.getMax(), context.get());
+      final Expression value = rewriter.apply(node.getValue(), context);
+      final Expression min = rewriter.apply(node.getMin(), context);
+      final Expression max = rewriter.apply(node.getMax(), context);
 
-      if (value != node.getValue() || min != node.getMin() || max != node.getMax()) {
-        return new BetweenPredicate(value, min, max);
-      }
-
-      return node;
+      return new BetweenPredicate(value, min, max);
     }
 
     @Override
     public Expression visitLogicalBinaryExpression(final LogicalBinaryExpression node,
-                                                   final Context<C> context) {
-      if (!context.isDefaultRewrite()) {
-        final Expression
-            result =
-            rewriter
-                .rewriteLogicalBinaryExpression(node, context.get(), ExpressionTreeRewriter.this);
-        if (result != null) {
-          return result;
-        }
+        final C context) {
+      final Optional<Expression> result
+          = plugin.apply(node, new Context<>(context, this));
+      if (result.isPresent()) {
+        return result.get();
       }
 
-      final Expression left = rewrite(node.getLeft(), context.get());
-      final Expression right = rewrite(node.getRight(), context.get());
-
-      if (left != node.getLeft() || right != node.getRight()) {
-        return new LogicalBinaryExpression(node.getLocation(), node.getType(), left, right);
-      }
-
-      return node;
+      final Expression left = rewriter.apply(node.getLeft(), context);
+      final Expression right = rewriter.apply(node.getRight(), context);
+      return new LogicalBinaryExpression(node.getLocation(), node.getType(), left, right);
     }
 
     @Override
-    public Expression visitNotExpression(final NotExpression node, final Context<C> context) {
-      if (!context.isDefaultRewrite()) {
-        final Expression
-            result =
-            rewriter.rewriteNotExpression(node, context.get(), ExpressionTreeRewriter.this);
-        if (result != null) {
-          return result;
-        }
+    public Expression visitNotExpression(final NotExpression node, final C context) {
+      final Optional<Expression> result
+          = plugin.apply(node, new Context<>(context, this));
+      if (result.isPresent()) {
+        return result.get();
       }
 
-      final Expression value = rewrite(node.getValue(), context.get());
-
-      if (value != node.getValue()) {
-        return new NotExpression(node.getLocation(), value);
-      }
-
-      return node;
+      final Expression value = rewriter.apply(node.getValue(), context);
+      return new NotExpression(node.getLocation(), value);
     }
 
     @Override
     public Expression visitIsNullPredicate(
         final IsNullPredicate node,
-        final Context<C> context) {
-      if (!context.isDefaultRewrite()) {
-        final Expression
-            result =
-            rewriter.rewriteIsNullPredicate(node, context.get(), ExpressionTreeRewriter.this);
-        if (result != null) {
-          return result;
-        }
+        final C context) {
+      final Optional<Expression> result
+          = plugin.apply(node, new Context<>(context, this));
+      if (result.isPresent()) {
+        return result.get();
       }
 
-      final Expression value = rewrite(node.getValue(), context.get());
+      final Expression value = rewriter.apply(node.getValue(), context);
 
-      if (value != node.getValue()) {
-        return new IsNullPredicate(node.getLocation(), value);
-      }
-
-      return node;
+      return new IsNullPredicate(node.getLocation(), value);
     }
 
     @Override
     public Expression visitIsNotNullPredicate(
         final IsNotNullPredicate node,
-        final Context<C> context) {
-      if (!context.isDefaultRewrite()) {
-        final Expression
-            result =
-            rewriter.rewriteIsNotNullPredicate(node, context.get(), ExpressionTreeRewriter.this);
-        if (result != null) {
-          return result;
-        }
+        final C context) {
+      final Optional<Expression> result
+          = plugin.apply(node, new Context<>(context, this));
+      if (result.isPresent()) {
+        return result.get();
       }
 
-      final Expression value = rewrite(node.getValue(), context.get());
+      final Expression value = rewriter.apply(node.getValue(), context);
 
-      if (value != node.getValue()) {
-        return new IsNotNullPredicate(node.getLocation(), value);
-      }
-
-      return node;
+      return new IsNotNullPredicate(node.getLocation(), value);
     }
 
     @Override
     public Expression visitSearchedCaseExpression(final SearchedCaseExpression node,
-                                                     final Context<C> context) {
-      if (!context.isDefaultRewrite()) {
-        final Expression
-            result =
-            rewriter
-                .rewriteSearchedCaseExpression(node, context.get(), ExpressionTreeRewriter.this);
-        if (result != null) {
-          return result;
-        }
+        final C context) {
+      final Optional<Expression> result
+          = plugin.apply(node, new Context<>(context, this));
+      if (result.isPresent()) {
+        return result.get();
       }
 
       final ImmutableList.Builder<WhenClause> builder = ImmutableList.builder();
       for (final WhenClause expression : node.getWhenClauses()) {
-        builder.add(rewrite(expression, context.get()));
+        builder.add((WhenClause) rewriter.apply(expression, context));
       }
-
       final Optional<Expression> defaultValue = node.getDefaultValue()
-          .map(value -> rewrite(value, context.get()));
-
-      if (!sameElements(node.getDefaultValue(), defaultValue) || !sameElements(
-          node.getWhenClauses(), builder.build())) {
-        return new SearchedCaseExpression(node.getLocation(), builder.build(), defaultValue);
-      }
-
-      return node;
+          .map(value -> rewriter.apply(value, context));
+      return new SearchedCaseExpression(node.getLocation(), builder.build(), defaultValue);
     }
 
     @Override
     public Expression visitSimpleCaseExpression(
         final SimpleCaseExpression node,
-        final Context<C> context) {
-      if (!context.isDefaultRewrite()) {
-        final Expression
-            result =
-            rewriter.rewriteSimpleCaseExpression(node, context.get(), ExpressionTreeRewriter.this);
-        if (result != null) {
-          return result;
-        }
+        final C context) {
+      final Optional<Expression> result
+          = plugin.apply(node, new Context<>(context, this));
+      if (result.isPresent()) {
+        return result.get();
       }
 
-      final Expression operand = rewrite(node.getOperand(), context.get());
+      final Expression operand = rewriter.apply(node.getOperand(), context);
 
       final ImmutableList.Builder<WhenClause> builder = ImmutableList.builder();
       for (final WhenClause expression : node.getWhenClauses()) {
-        builder.add(rewrite(expression, context.get()));
+        builder.add((WhenClause) rewriter.apply(expression, context));
       }
 
       final Optional<Expression> defaultValue = node.getDefaultValue()
-          .map(value -> rewrite(value, context.get()));
+          .map(value -> rewriter.apply(value, context));
 
-      if (operand != node.getOperand()
-          || !sameElements(node.getDefaultValue(), defaultValue)
-          || !sameElements(node.getWhenClauses(), builder.build())) {
-        return new SimpleCaseExpression(node.getLocation(), operand, builder.build(), defaultValue);
-      }
-
-      return node;
+      return new SimpleCaseExpression(node.getLocation(), operand, builder.build(), defaultValue);
     }
 
     @Override
-    public Expression visitWhenClause(final WhenClause node, final Context<C> context) {
-      if (!context.isDefaultRewrite()) {
-        final Expression
-            result =
-            rewriter.rewriteWhenClause(node, context.get(), ExpressionTreeRewriter.this);
-        if (result != null) {
-          return result;
-        }
+    public Expression visitWhenClause(final WhenClause node, final C context) {
+      final Optional<Expression> rewritten
+          = plugin.apply(node, new Context<>(context, this));
+      if (rewritten.isPresent()) {
+        return rewritten.get();
       }
 
-      final Expression operand = rewrite(node.getOperand(), context.get());
-      final Expression result = rewrite(node.getResult(), context.get());
+      final Expression operand = rewriter.apply(node.getOperand(), context);
+      final Expression result = rewriter.apply(node.getResult(), context);
 
-      if (operand != node.getOperand() || result != node.getResult()) {
-        return new WhenClause(node.getLocation(), operand, result);
-      }
-      return node;
+      return new WhenClause(node.getLocation(), operand, result);
     }
 
     @Override
-    public Expression visitFunctionCall(final FunctionCall node, final Context<C> context) {
-      if (!context.isDefaultRewrite()) {
-        final Expression
-            result =
-            rewriter.rewriteFunctionCall(node, context.get(), ExpressionTreeRewriter.this);
-        if (result != null) {
-          return result;
-        }
+    public Expression visitFunctionCall(final FunctionCall node, final C context) {
+      final Optional<Expression> result
+          = plugin.apply(node, new Context<>(context, this));
+      if (result.isPresent()) {
+        return result.get();
       }
 
       final List<Expression> args = node.getArguments().stream()
-          .map(arg -> rewrite(arg, context.get()))
+          .map(arg -> rewriter.apply(arg, context))
           .collect(Collectors.toList());
 
-      if (!node.getArguments().equals(args)) {
-        return new FunctionCall(node.getLocation(), node.getName(), args);
-      }
-
-      return node;
+      return new FunctionCall(node.getLocation(), node.getName(), args);
     }
 
     @Override
-    public Expression visitLikePredicate(final LikePredicate node, final Context<C> context) {
-      if (!context.isDefaultRewrite()) {
-        final Expression
-            result =
-            rewriter.rewriteLikePredicate(node, context.get(), ExpressionTreeRewriter.this);
-        if (result != null) {
-          return result;
-        }
+    public Expression visitLikePredicate(final LikePredicate node, final C context) {
+      final Optional<Expression> result
+          = plugin.apply(node, new Context<>(context, this));
+      if (result.isPresent()) {
+        return result.get();
       }
 
-      final Expression value = rewrite(node.getValue(), context.get());
-      final Expression pattern = rewrite(node.getPattern(), context.get());
+      final Expression value = rewriter.apply(node.getValue(), context);
+      final Expression pattern = rewriter.apply(node.getPattern(), context);
 
-      if (value != node.getValue() || pattern != node.getPattern()) {
-        return new LikePredicate(node.getLocation(), value, pattern);
-      }
-
-      return node;
+      return new LikePredicate(node.getLocation(), value, pattern);
     }
 
     @Override
-    public Expression visitInPredicate(final InPredicate node, final Context<C> context) {
-      if (!context.isDefaultRewrite()) {
-        final Expression
-            result =
-            rewriter.rewriteInPredicate(node, context.get(), ExpressionTreeRewriter.this);
-        if (result != null) {
-          return result;
-        }
+    public Expression visitInPredicate(final InPredicate node, final C context) {
+      final Optional<Expression> result
+          = plugin.apply(node, new Context<>(context, this));
+      if (result.isPresent()) {
+        return result.get();
       }
 
-      final Expression value = rewrite(node.getValue(), context.get());
-      final InListExpression list = rewrite(node.getValueList(), context.get());
+      final Expression value = rewriter.apply(node.getValue(), context);
+      final InListExpression list = (InListExpression) rewriter.apply(node.getValueList(), context);
 
-      if (node.getValue() != value || node.getValueList() != list) {
-        return new InPredicate(node.getLocation(), value, list);
-      }
-
-      return node;
+      return new InPredicate(node.getLocation(), value, list);
     }
 
     @Override
-    public Expression visitInListExpression(
-        final InListExpression node,
-        final Context<C> context) {
-      if (!context.isDefaultRewrite()) {
-        final Expression
-            result =
-            rewriter.rewriteInListExpression(node, context.get(), ExpressionTreeRewriter.this);
-        if (result != null) {
-          return result;
-        }
+    public Expression visitInListExpression(final InListExpression node, final C context) {
+      final Optional<Expression> result
+          = plugin.apply(node, new Context<>(context, this));
+      if (result.isPresent()) {
+        return result.get();
       }
 
       final ImmutableList.Builder<Expression> builder = ImmutableList.builder();
       for (final Expression expression : node.getValues()) {
-        builder.add(rewrite(expression, context.get()));
+        builder.add(rewriter.apply(expression, context));
       }
 
-      if (!sameElements(node.getValues(), builder.build())) {
-        return new InListExpression(node.getLocation(), builder.build());
-      }
-
-      return node;
-    }
-
-    @Override
-    public Expression visitLiteral(final Literal node, final Context<C> context) {
-      if (!context.isDefaultRewrite()) {
-        final Expression
-            result =
-            rewriter.rewriteLiteral(node, context.get(), ExpressionTreeRewriter.this);
-        if (result != null) {
-          return result;
-        }
-      }
-
-      return node;
+      return new InListExpression(node.getLocation(), builder.build());
     }
 
     @Override
     public Expression visitQualifiedNameReference(
         final QualifiedNameReference node,
-        final Context<C> context) {
-      if (!context.isDefaultRewrite()) {
-        final Expression
-            result =
-            rewriter
-                .rewriteQualifiedNameReference(node, context.get(), ExpressionTreeRewriter.this);
-        if (result != null) {
-          return result;
-        }
-      }
-
-      return node;
+        final C context) {
+      return plugin.apply(node, new Context<>(context, this)).orElse(node);
     }
 
     @Override
     public Expression visitDereferenceExpression(
         final DereferenceExpression node,
-        final Context<C> context) {
-      if (!context.isDefaultRewrite()) {
-        final Expression
-            result =
-            rewriter.rewriteDereferenceExpression(node, context.get(), ExpressionTreeRewriter.this);
-        if (result != null) {
-          return result;
-        }
+        final C context) {
+      final Optional<Expression> result
+          = plugin.apply(node, new Context<>(context, this));
+      if (result.isPresent()) {
+        return result.get();
       }
 
-      final Expression base = rewrite(node.getBase(), context.get());
-      if (base != node.getBase()) {
-        return new DereferenceExpression(node.getLocation(), base, node.getFieldName());
-      }
-
-      return node;
+      final Expression base = rewriter.apply(node.getBase(), context);
+      return new DereferenceExpression(node.getLocation(), base, node.getFieldName());
     }
 
     @Override
-    public Expression visitCast(final Cast node, final Context<C> context) {
-      if (!context.isDefaultRewrite()) {
-        final Expression result =
-            rewriter.rewriteCast(node, context.get(), ExpressionTreeRewriter.this);
-        if (result != null) {
-          return result;
-        }
+    public Expression visitCast(final Cast node, final C context) {
+      final Optional<Expression> result
+          = plugin.apply(node, new Context<>(context, this));
+      if (result.isPresent()) {
+        return result.get();
       }
 
-      final Expression expression = rewrite(node.getExpression(), context.get());
-
-      if (node.getExpression() != expression) {
-        return new Cast(node.getLocation(), expression, node.getType());
-      }
-
-      return node;
-    }
-  }
-
-  public static final class Context<C> {
-
-    private final boolean defaultRewrite;
-    private final C context;
-
-    private Context(final C context, final boolean defaultRewrite) {
-      this.context = context;
-      this.defaultRewrite = defaultRewrite;
+      final Expression expression = rewriter.apply(node.getExpression(), context);
+      final Type type = (Type) rewriter.apply(node.getType(), context);
+      return new Cast(node.getLocation(), expression, type);
     }
 
-    public C get() {
-      return context;
+    @Override
+    public Expression visitBooleanLiteral(final BooleanLiteral node, final C context) {
+      return plugin.apply(node, new Context<>(context, this)).orElse(node);
     }
 
-    public boolean isDefaultRewrite() {
-      return defaultRewrite;
-    }
-  }
-
-  private static <T> boolean sameElements(final Optional<T> a, final Optional<T> b) {
-    if (!a.isPresent() && !b.isPresent()) {
-      return true;
-    } else if (a.isPresent() != b.isPresent()) {
-      return false;
+    @Override
+    public Expression visitDoubleLiteral(final DoubleLiteral node, final C context) {
+      return plugin.apply(node, new Context<>(context, this)).orElse(node);
     }
 
-    return a.get() == b.get();
-  }
-
-  @SuppressWarnings("ObjectEquality")
-  private static <T> boolean sameElements(
-      final Iterable<? extends T> a,
-      final Iterable<? extends T> b) {
-    if (Iterables.size(a) != Iterables.size(b)) {
-      return false;
+    @Override
+    public Expression visitIntegerLiteral(final IntegerLiteral node, final C context) {
+      return plugin.apply(node, new Context<>(context, this)).orElse(node);
     }
 
-    final Iterator<? extends T> first = a.iterator();
-    final Iterator<? extends T> second = b.iterator();
-
-    while (first.hasNext() && second.hasNext()) {
-      if (first.next() != second.next()) {
-        return false;
-      }
+    @Override
+    public Expression visitLongLiteral(final LongLiteral node, final C context) {
+      return plugin.apply(node, new Context<>(context, this)).orElse(node);
     }
 
-    return true;
+    @Override
+    public Expression visitNullLiteral(final NullLiteral node, final C context) {
+      return plugin.apply(node, new Context<>(context, this)).orElse(node);
+    }
+
+    @Override
+    public Expression visitStringLiteral(final StringLiteral node, final C context) {
+      return plugin.apply(node, new Context<>(context, this)).orElse(node);
+    }
+
+    @Override
+    public Expression visitDecimalLiteral(final DecimalLiteral node, final C context) {
+      return plugin.apply(node, new Context<>(context, this)).orElse(node);
+    }
+
+    @Override
+    public Expression visitTimeLiteral(final TimeLiteral node, final C context) {
+      return plugin.apply(node, new Context<>(context, this)).orElse(node);
+    }
+
+    @Override
+    public Expression visitTimestampLiteral(
+        final TimestampLiteral node,
+        final C context) {
+      return plugin.apply(node, new Context<>(context, this)).orElse(node);
+    }
   }
 }

@@ -19,14 +19,17 @@ import io.confluent.ksql.parser.tree.BetweenPredicate;
 import io.confluent.ksql.parser.tree.ComparisonExpression;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.parser.tree.ExpressionTreeRewriter;
+import io.confluent.ksql.parser.tree.ExpressionTreeRewriter.Context;
 import io.confluent.ksql.parser.tree.FunctionCall;
-import io.confluent.ksql.parser.tree.Node;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.StringLiteral;
 
+import io.confluent.ksql.parser.tree.VisitParentExpressionVisitor;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 public class StatementRewriteForRowtime {
   private final Expression expression;
@@ -40,27 +43,40 @@ public class StatementRewriteForRowtime {
   }
 
   public Expression rewriteForRowtime() {
-    return (Expression) new RewriteWithTimestampTransform().process(expression, null);
+    return new ExpressionTreeRewriter<>(
+        new OperatorPlugin()::process).rewrite(expression, null);
   }
 
-  private static class TimestampRewriter extends StatementRewriter {
+  private static final class TimestampPlugin
+      extends VisitParentExpressionVisitor<Optional<Expression>, Context<Void>> {
     private static final String DATE_PATTERN = "yyyy-MM-dd";
     private static final String TIME_PATTERN = "HH:mm:ss.SSS";
     private static final String PATTERN = DATE_PATTERN + "'T'" + TIME_PATTERN;
 
-    @Override
-    public Expression visitFunctionCall(final FunctionCall node, final Object context) {
-      return (Expression) new StatementRewriter().process(node, context);
+    private TimestampPlugin() {
+      super(Optional.empty());
     }
 
     @Override
-    public Node visitStringLiteral(final StringLiteral node, final Object context) {
+    public Optional<Expression> visitFunctionCall(
+        final FunctionCall node,
+        final Context<Void> context) {
+      return Optional.of(node);
+    }
+
+    @Override
+    public Optional<Expression> visitStringLiteral(
+        final StringLiteral node,
+        final Context<Void> context) {
       if (!node.getValue().equals("ROWTIME")) {
-        return new FunctionCall(
-            QualifiedName.of("STRINGTOTIMESTAMP"),
-            getFunctionArgs(node.getValue()));
+        return Optional.of(
+            new FunctionCall(
+                QualifiedName.of("STRINGTOTIMESTAMP"),
+                getFunctionArgs(node.getValue())
+            )
+        );
       }
-      return node;
+      return Optional.of(node);
     }
 
     private List<Expression> getFunctionArgs(final String datestring) {
@@ -122,39 +138,48 @@ public class StatementRewriteForRowtime {
     }
   }
 
-  private static class RewriteWithTimestampTransform extends StatementRewriter {
-    @Override
-    public Expression visitBetweenPredicate(final BetweenPredicate node, final Object context) {
-      if (StatementRewriteForRowtime.requiresRewrite(node)) {
-        return new BetweenPredicate(
-            node.getLocation(),
-            (Expression) new TimestampRewriter().process(node.getValue(), context),
-            (Expression) new TimestampRewriter().process(node.getMin(), context),
-            (Expression) new TimestampRewriter().process(node.getMax(), context));
-      }
-      return new BetweenPredicate(
-          node.getLocation(),
-          (Expression) process(node.getValue(), context),
-          (Expression) process(node.getMin(), context),
-          (Expression) process(node.getMax(), context));
+  private static final class OperatorPlugin
+      extends VisitParentExpressionVisitor<Optional<Expression>, Context<Void>> {
+    private OperatorPlugin() {
+      super(Optional.empty());
+    }
+
+    private Expression rewriteTimestamp(final Expression expression) {
+      return new ExpressionTreeRewriter<>(new TimestampPlugin()::process).rewrite(expression, null);
     }
 
     @Override
-    public Expression visitComparisonExpression(
-        final ComparisonExpression node,
-        final Object context) {
-      if (expressionIsRowtime(node.getLeft()) || expressionIsRowtime(node.getRight())) {
-        return new ComparisonExpression(
-          node.getLocation(),
-          node.getType(),
-          (Expression) new TimestampRewriter().process(node.getLeft(), context),
-          (Expression) new TimestampRewriter().process(node.getRight(), context));
+    public Optional<Expression> visitBetweenPredicate(
+        final BetweenPredicate node,
+        final Context<Void> context) {
+      if (StatementRewriteForRowtime.requiresRewrite(node)) {
+        return Optional.of(
+            new BetweenPredicate(
+                node.getLocation(),
+                rewriteTimestamp(node.getValue()),
+                rewriteTimestamp(node.getMin()),
+                rewriteTimestamp(node.getMax())
+            )
+        );
       }
-      return new ComparisonExpression(
-          node.getLocation(),
-          node.getType(),
-          (Expression) process(node.getLeft(), context),
-          (Expression) process(node.getRight(), context));
+      return Optional.empty();
+    }
+
+    @Override
+    public Optional<Expression> visitComparisonExpression(
+        final ComparisonExpression node,
+        final Context<Void> context) {
+      if (expressionIsRowtime(node.getLeft()) || expressionIsRowtime(node.getRight())) {
+        return Optional.of(
+            new ComparisonExpression(
+                node.getLocation(),
+                node.getType(),
+                rewriteTimestamp(node.getLeft()),
+                rewriteTimestamp(node.getRight())
+            )
+        );
+      }
+      return Optional.empty();
     }
   }
 

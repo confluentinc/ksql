@@ -33,6 +33,7 @@ import io.confluent.ksql.parser.tree.ComparisonExpression;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
+import io.confluent.ksql.parser.tree.ExpressionTreeRewriter;
 import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.Query;
@@ -49,20 +50,21 @@ import org.junit.Test;
 public class StatementRewriterTest {
 
   private MetaStore metaStore;
-  private StatementRewriter statementRewriter;
+  private StatementRewriter<Object> statementRewriter;
 
   @Before
   public void init() {
     metaStore = MetaStoreFixture.getNewMetaStore(mock(FunctionRegistry.class));
-    statementRewriter = new StatementRewriter();
+    final ExpressionTreeRewriter<Object> rewriter = new ExpressionTreeRewriter<>((e, c) -> Optional.empty());
+    statementRewriter = new StatementRewriter<>(rewriter::rewrite);
   }
-  
+
   @Test
   public void testProjection() {
     final String queryStr = "SELECT col0, col2, col3 FROM test1;";
     final Statement statement = parse(queryStr);
 
-    final Statement rewrittenStatement = (Statement) statementRewriter.process(statement, null);
+    final Statement rewrittenStatement = (Statement) statementRewriter.rewrite(statement, null);
 
     assertThat(rewrittenStatement, instanceOf(Query.class));
 
@@ -79,7 +81,7 @@ public class StatementRewriterTest {
     final String queryStr = "SELECT col0, col2, col3, col4[0], col5['key1'] FROM test1;";
     final Statement statement = parse(queryStr);
 
-    final Statement rewrittenStatement = (Statement) statementRewriter.process(statement, null);
+    final Statement rewrittenStatement = (Statement) statementRewriter.rewrite(statement, null);
 
     assertThat(rewrittenStatement, instanceOf(Query.class));
 
@@ -101,7 +103,7 @@ public class StatementRewriterTest {
   public void testProjectFilter() {
     final String queryStr = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
     final Statement statement = parse(queryStr);
-    final Statement rewrittenStatement = (Statement) statementRewriter.process(statement, null);
+    final Statement rewrittenStatement = (Statement) statementRewriter.rewrite(statement, null);
 
     assertThat(rewrittenStatement, instanceOf(Query.class));
 
@@ -118,7 +120,7 @@ public class StatementRewriterTest {
   public void testBinaryExpression() {
     final String queryStr = "SELECT col0+10, col2, col3-col1 FROM test1;";
     final Statement statement = parse(queryStr);
-    final Statement rewrittenStatement = (Statement) statementRewriter.process(statement, null);
+    final Statement rewrittenStatement = (Statement) statementRewriter.rewrite(statement, null);
 
     assertThat(rewrittenStatement, instanceOf(Query.class));
 
@@ -132,7 +134,7 @@ public class StatementRewriterTest {
   public void testBooleanExpression() {
     final String queryStr = "SELECT col0 = 10, col2, col3 > col1 FROM test1;";
     final Statement statement = parse(queryStr);
-    final Statement rewrittenStatement = (Statement) statementRewriter.process(statement, null);
+    final Statement rewrittenStatement = (Statement) statementRewriter.rewrite(statement, null);
 
     assertThat(rewrittenStatement, instanceOf(Query.class));
 
@@ -147,7 +149,7 @@ public class StatementRewriterTest {
   public void testLiterals() {
     final String queryStr = "SELECT 10, col2, 'test', 2.5, true, -5 FROM test1;";
     final Statement statement = parse(queryStr);
-    final Statement rewrittenStatement = (Statement) statementRewriter.process(statement, null);
+    final Statement rewrittenStatement = (Statement) statementRewriter.rewrite(statement, null);
 
     assertThat(rewrittenStatement, instanceOf(Query.class));
 
@@ -182,7 +184,7 @@ public class StatementRewriterTest {
     final String queryStr =
         "SELECT 10, col2, 'test', 2.5, true, -5 FROM test1 WHERE col1 = 10 AND col2 LIKE 'val' OR col4 > 2.6 ;";
     final Statement statement = parse(queryStr);
-    final Statement rewrittenStatement = (Statement) statementRewriter.process(statement, null);
+    final Statement rewrittenStatement = (Statement) statementRewriter.rewrite(statement, null);
 
     assertThat(rewrittenStatement, instanceOf(Query.class));
 
@@ -207,7 +209,7 @@ public class StatementRewriterTest {
         "SELECT t1.col1, t2.col1, t2.col4, col5, t2.col2 FROM test1 t1 LEFT JOIN test2 t2 ON "
             + "t1.col1 = t2.col1;";
     final Statement statement = parse(queryStr);
-    final Statement rewrittenStatement = (Statement) statementRewriter.process(statement, null);
+    final Statement rewrittenStatement = (Statement) statementRewriter.rewrite(statement, null);
 
     assertThat(rewrittenStatement, instanceOf(Query.class));
 
@@ -227,7 +229,7 @@ public class StatementRewriterTest {
         "SELECT t1.col1, t2.col1, t2.col4, t2.col2 FROM test1 t1 LEFT JOIN test2 t2 ON t1.col1 = "
             + "t2.col1 WHERE t2.col2 = 'test';";
     final Statement statement = parse(queryStr);
-    final Statement rewrittenStatement = (Statement) statementRewriter.process(statement, null);
+    final Statement rewrittenStatement = (Statement) statementRewriter.rewrite(statement, null);
 
     assertThat(rewrittenStatement, instanceOf(Query.class));
 
@@ -248,7 +250,7 @@ public class StatementRewriterTest {
     final Query original = parse("SELECT * FROM test1 t1;");
 
     // When:
-    final AstNode rewrittenStatement = (AstNode) statementRewriter.process(original, null);
+    final AstNode rewrittenStatement = statementRewriter.rewrite(original, null);
 
     // Then:
     assertThat(rewrittenStatement, is(instanceOf(Query.class)));
@@ -265,7 +267,7 @@ public class StatementRewriterTest {
             + "WHERE t2.col2 = 'test';");
 
     // When:
-    final AstNode rewrittenStatement = (AstNode) statementRewriter.process(original, null);
+    final AstNode rewrittenStatement = statementRewriter.rewrite(original, null);
 
     // Then:
     assertThat(rewrittenStatement, instanceOf(Query.class));
@@ -284,7 +286,7 @@ public class StatementRewriterTest {
     final String queryStr = "SELECT lcase(col1), concat(col2,'hello'), floor(abs(col3)) FROM test1 t1;";
     final Statement statement = parse(queryStr);
 
-    final Statement rewrittenStatement = (Statement) statementRewriter.process(statement, null);
+    final Statement rewrittenStatement = (Statement) statementRewriter.rewrite(statement, null);
 
     assertThat(rewrittenStatement, instanceOf(Query.class));
 
@@ -317,7 +319,7 @@ public class StatementRewriterTest {
         + ") WITH (value_format = 'avro',kafka_topic='orders_topic');");
 
     // When:
-    final CreateStream result = (CreateStream) statementRewriter.process(statement, null);
+    final CreateStream result = (CreateStream) statementRewriter.rewrite(statement, null);
 
     // Then:
     assertThat(result.getName().toString(), equalTo("ORDERS"));
@@ -336,7 +338,7 @@ public class StatementRewriterTest {
             + "WITH (kafka_topic='foo', value_format='json', key='userid');");
 
     // When:
-    final CreateTable result = (CreateTable) statementRewriter.process(statement, null);
+    final CreateTable result = (CreateTable) statementRewriter.rewrite(statement, null);
 
     // Then:
     assertThat(result.getName().toString(), equalTo("USERS"));
@@ -355,7 +357,7 @@ public class StatementRewriterTest {
         + "AS SELECT * FROM orders "
         + "WHERE orderunits > 5;");
 
-    final Statement rewrittenStatement = (Statement) statementRewriter.process(original, null);
+    final Statement rewrittenStatement = (Statement) statementRewriter.rewrite(original, null);
 
     assertThat(rewrittenStatement, is(instanceOf(CreateStreamAsSelect.class)));
     final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect)rewrittenStatement;
@@ -375,7 +377,7 @@ public class StatementRewriterTest {
         "select itemid, sum(orderunits) from orders window TUMBLING ( size 30 second) where orderunits > 5 group by itemid;";
     final Statement statement = parse(queryStr);
 
-    final Statement rewrittenStatement = (Statement) statementRewriter.process(statement, null);
+    final Statement rewrittenStatement = (Statement) statementRewriter.rewrite(statement, null);
 
     assertThat(rewrittenStatement, instanceOf(Query.class));
     final Query query = (Query) rewrittenStatement;
@@ -398,7 +400,7 @@ public class StatementRewriterTest {
             + " > 5 group by itemid;";
     final Statement statement = parse(queryStr);
 
-    final Statement rewrittenStatement = (Statement) statementRewriter.process(statement, null);
+    final Statement rewrittenStatement = (Statement) statementRewriter.rewrite(statement, null);
 
     assertThat(rewrittenStatement, instanceOf(Query.class));
     final Query query = (Query) rewrittenStatement;
@@ -415,12 +417,12 @@ public class StatementRewriterTest {
   @Test
   public void testSelectSessionWindow() {
 
-   final String queryStr =
+    final String queryStr =
         "select itemid, sum(orderunits) from orders window SESSION ( 30 second) where "
             + "orderunits > 5 group by itemid;";
     final Statement statement = parse(queryStr);
 
-    final Statement rewrittenStatement = (Statement) statementRewriter.process(statement, null);
+    final Statement rewrittenStatement = (Statement) statementRewriter.rewrite(statement, null);
 
     assertThat(rewrittenStatement, instanceOf(Query.class));
     final Query query = (Query) rewrittenStatement;
@@ -442,7 +444,7 @@ public class StatementRewriterTest {
         + "12);";
     final Statement statement = parse(simpleQuery);
 
-    final Statement rewrittenStatement = (Statement) statementRewriter.process(statement, null);
+    final Statement rewrittenStatement = (Statement) statementRewriter.rewrite(statement, null);
 
     assertThat(rewrittenStatement, instanceOf(CreateStreamAsSelect.class));
     final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) rewrittenStatement;
@@ -456,7 +458,7 @@ public class StatementRewriterTest {
         + "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
     final Statement statement = parse(insertIntoString);
 
-    final Statement rewrittenStatement = (Statement) statementRewriter.process(statement, null);
+    final Statement rewrittenStatement = (Statement) statementRewriter.rewrite(statement, null);
 
     assertThat(rewrittenStatement, instanceOf(InsertInto.class));
     final InsertInto insertInto = (InsertInto) rewrittenStatement;

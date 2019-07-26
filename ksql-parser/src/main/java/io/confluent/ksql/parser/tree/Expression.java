@@ -30,13 +30,7 @@ public abstract class Expression extends Node {
     super(location);
   }
 
-  /**
-   * Accessible for {@link AstVisitor}, use {@link AstVisitor#process(Node, Object)} instead.
-   */
-  @Override
-  protected <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
-    return visitor.visitExpression(this, context);
-  }
+  protected abstract <R, C> R accept(ExpressionVisitor<R, C> visitor, C context);
 
   @Override
   public final String toString() {

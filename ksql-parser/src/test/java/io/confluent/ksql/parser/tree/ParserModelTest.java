@@ -91,7 +91,7 @@ public class ParserModelTest {
   @Parameterized.Parameters(name = "{0}")
   public static Collection<Class<?>> data() {
     return ClassFinder.getClasses(FunctionCall.class.getPackage().getName()).stream()
-        .filter(Node.class::isAssignableFrom)
+        .filter(AstNode.class::isAssignableFrom)
         .collect(Collectors.toList());
   }
 

@@ -21,6 +21,7 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import com.google.common.collect.ImmutableList;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.function.udaf.TestUdaf;
 import io.confluent.ksql.function.udaf.Udaf;
@@ -147,6 +148,24 @@ public class UdfCompilerTest {
         classLoader);
 
     assertThat(udf.eval(this, 1, 2, 3), equalTo(6.0));
+  }
+
+  @Test
+  public void shouldHandleMethodsWithGenericArguments() throws Exception {
+    final UdfInvoker udf = UdfCompiler.compile(
+        getClass().getMethod("generic", int.class, Object.class),
+        classLoader);
+
+    assertThat(udf.eval(this, 1, "hi"), equalTo("hi"));
+  }
+
+  @Test
+  public void shouldHandleMethodsWithParameterizedGenericArguments() throws Exception {
+    final UdfInvoker udf = UdfCompiler.compile(
+        getClass().getMethod("generic", int.class, List.class),
+        classLoader);
+
+    assertThat(udf.eval(this, 1, ImmutableList.of("hi")), equalTo("hi"));
   }
 
   @Test
@@ -416,6 +435,14 @@ public class UdfCompilerTest {
 
   public Long udf(final Long val) {
     return val;
+  }
+
+  public <T> T generic(final int foo, final T val) {
+    return val;
+  }
+
+  public <T> T generic(final int foo, final List<T> val) {
+    return val.get(0);
   }
 
   public Struct udfStruct(final String val) {

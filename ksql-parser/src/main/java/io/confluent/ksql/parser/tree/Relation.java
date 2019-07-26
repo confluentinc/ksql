@@ -19,7 +19,7 @@ import com.google.errorprone.annotations.Immutable;
 import java.util.Optional;
 
 @Immutable
-public abstract class Relation extends Node {
+public abstract class Relation extends AstNode {
 
   protected Relation(final Optional<NodeLocation> location) {
     super(location);

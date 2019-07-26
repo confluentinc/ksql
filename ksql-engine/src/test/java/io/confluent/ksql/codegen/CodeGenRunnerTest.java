@@ -108,8 +108,8 @@ public class CodeGenRunnerTest {
     private static final int MAP_INDEX2 = 12;
     private static final int STRUCT_INDEX = 15;
 
-    private static final Schema STRUCT_SCHEMA = SchemaConverters.sqlToLogicalConverter()
-        .fromSqlType(META_STORE_SCHEMA.findValueField("COL15").get().type());
+    private static final Schema STRUCT_SCHEMA = SchemaConverters.sqlToConnectConverter()
+        .toConnectSchema(META_STORE_SCHEMA.findValueField("COL15").get().type());
 
     private static final List<Object> ONE_ROW = ImmutableList.of(
         0L, "S1", "S2", 3.1, 4.2, 5, true, false, 8L,

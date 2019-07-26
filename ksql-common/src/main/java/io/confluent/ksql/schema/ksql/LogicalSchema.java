@@ -19,8 +19,8 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.schema.ksql.SchemaConverters.LogicalToSqlTypeConverter;
-import io.confluent.ksql.schema.ksql.SchemaConverters.SqlToLogicalTypeConverter;
+import io.confluent.ksql.schema.ksql.SchemaConverters.ConnectToSqlTypeConverter;
+import io.confluent.ksql.schema.ksql.SchemaConverters.SqlToConnectTypeConverter;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.SchemaUtil;
@@ -385,12 +385,12 @@ public final class LogicalSchema {
   private static ConnectSchema toConnectSchema(
       final List<Field> fields
   ) {
-    final SqlToLogicalTypeConverter converter = SchemaConverters.sqlToLogicalConverter();
+    final SqlToConnectTypeConverter converter = SchemaConverters.sqlToConnectConverter();
 
     final SchemaBuilder builder = SchemaBuilder.struct();
     for (final Field field : fields) {
 
-      final Schema fieldSchema = converter.fromSqlType(field.type());
+      final Schema fieldSchema = converter.toConnectSchema(field.type());
       builder.field(field.fullName(), fieldSchema);
     }
 
@@ -402,7 +402,7 @@ public final class LogicalSchema {
       throw new IllegalArgumentException("Top level schema must be STRUCT");
     }
 
-    final LogicalToSqlTypeConverter converter = SchemaConverters.logicalToSqlConverter();
+    final ConnectToSqlTypeConverter converter = SchemaConverters.connectToSqlConverter();
 
     final ImmutableList.Builder<Field> builder = ImmutableList.builder();
 

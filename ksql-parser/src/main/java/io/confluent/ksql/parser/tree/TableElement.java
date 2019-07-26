@@ -28,7 +28,7 @@ import java.util.Optional;
  * An element in the schema of a table or stream.
  */
 @Immutable
-public final class TableElement extends Node {
+public final class TableElement extends AstNode {
 
   public enum Namespace {
     KEY,

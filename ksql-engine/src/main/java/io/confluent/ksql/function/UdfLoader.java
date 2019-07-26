@@ -276,14 +276,14 @@ public class UdfLoader {
 
       final String doc = annotation.map(UdfParameter::description).orElse("");
       if (annotation.isPresent() && !annotation.get().schema().isEmpty()) {
-        return SchemaConverters.sqlToLogicalConverter()
-            .fromSqlType(
+        return SchemaConverters.sqlToConnectConverter()
+            .toConnectSchema(
                 TypeContextUtil.getType(annotation.get().schema()).getSqlType(),
                 name,
                 doc);
       }
 
-      return SchemaUtil.getSchemaFromType(type, name, doc);
+      return UdfUtil.getSchemaFromType(type, name, doc);
     }).collect(Collectors.toList());
 
     final Schema returnType = getReturnType(method, udfAnnotation);
@@ -372,10 +372,10 @@ public class UdfLoader {
   private static Schema getReturnType(final Method method, final Udf udfAnnotation) {
     try {
       final Schema returnType = udfAnnotation.schema().isEmpty()
-          ? SchemaUtil.getSchemaFromType(method.getGenericReturnType())
+          ? UdfUtil.getSchemaFromType(method.getGenericReturnType())
           : SchemaConverters
-              .sqlToLogicalConverter()
-              .fromSqlType(TypeContextUtil.getType(udfAnnotation.schema()).getSqlType());
+              .sqlToConnectConverter()
+              .toConnectSchema(TypeContextUtil.getType(udfAnnotation.schema()).getSqlType());
 
       return SchemaUtil.ensureOptional(returnType);
     } catch (final KsqlException e) {

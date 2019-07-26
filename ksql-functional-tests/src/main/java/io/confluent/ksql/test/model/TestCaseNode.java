@@ -258,7 +258,7 @@ public class TestCaseNode {
         final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
         statement.getElements().forEach(e -> schemaBuilder.field(
             e.getName(),
-            SchemaConverters.sqlToLogicalConverter().fromSqlType(e.getType().getSqlType()))
+            SchemaConverters.sqlToConnectConverter().toConnectSchema(e.getType().getSqlType()))
         );
         avroSchema = Optional.of(new AvroData(1)
             .fromConnectSchema(addNames(schemaBuilder.build())));

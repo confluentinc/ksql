@@ -23,7 +23,7 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 @Immutable
-public class WindowExpression extends Node {
+public class WindowExpression extends AstNode {
 
   private final String windowName;
   private final KsqlWindowExpression ksqlWindowExpression;

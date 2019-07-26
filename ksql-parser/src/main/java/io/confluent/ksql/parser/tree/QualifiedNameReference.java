@@ -44,7 +44,7 @@ public class QualifiedNameReference extends Expression {
   }
 
   @Override
-  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
+  public <R, C> R accept(final ExpressionVisitor<R, C> visitor, final C context) {
     return visitor.visitQualifiedNameReference(this, context);
   }
 

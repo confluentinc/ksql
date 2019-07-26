@@ -45,27 +45,36 @@ import org.junit.rules.ExpectedException;
 
 public class SchemaConvertersTest {
 
-  private static final Schema LOGICAL_BOOLEAN_SCHEMA = SchemaBuilder.bool().optional().build();
-  private static final Schema LOGICAL_INT_SCHEMA = SchemaBuilder.int32().optional().build();
-  private static final Schema LOGICAL_BIGINT_SCHEMA = SchemaBuilder.int64().optional().build();
-  private static final Schema LOGICAL_DOUBLE_SCHEMA = SchemaBuilder.float64().optional().build();
-  private static final Schema LOGICAL_STRING_SCHEMA = SchemaBuilder.string().optional().build();
+  private static final Schema CONNECT_BOOLEAN_SCHEMA = SchemaBuilder.bool().optional().build();
+  private static final Schema CONNECT_INTEGER_SCHEMA = SchemaBuilder.int32().optional().build();
+  private static final Schema CONNECT_BIGINT_SCHEMA = SchemaBuilder.int64().optional().build();
+  private static final Schema CONNECT_DOUBLE_SCHEMA = SchemaBuilder.float64().optional().build();
+  private static final Schema CONNECT_STRING_SCHEMA = SchemaBuilder.string().optional().build();
 
   private static final BiMap<SqlType, Schema> SQL_TO_LOGICAL = ImmutableBiMap.<SqlType, Schema>builder()
-      .put(SqlTypes.BOOLEAN, LOGICAL_BOOLEAN_SCHEMA)
-      .put(SqlTypes.INTEGER, LOGICAL_INT_SCHEMA)
-      .put(SqlTypes.BIGINT, LOGICAL_BIGINT_SCHEMA)
-      .put(SqlTypes.DOUBLE, LOGICAL_DOUBLE_SCHEMA)
-      .put(SqlTypes.STRING, LOGICAL_STRING_SCHEMA)
-      .put(SqlArray.of(SqlTypes.INTEGER),
-          SchemaBuilder.array(SchemaConverters.INTEGER).optional().build())
+      .put(SqlTypes.BOOLEAN, CONNECT_BOOLEAN_SCHEMA)
+      .put(SqlTypes.INTEGER, CONNECT_INTEGER_SCHEMA)
+      .put(SqlTypes.BIGINT, CONNECT_BIGINT_SCHEMA)
+      .put(SqlTypes.DOUBLE, CONNECT_DOUBLE_SCHEMA)
+      .put(SqlTypes.STRING, CONNECT_STRING_SCHEMA)
+      .put(SqlArray.of(SqlTypes.INTEGER), SchemaBuilder
+          .array(Schema.OPTIONAL_INT32_SCHEMA)
+          .optional()
+          .build()
+      )
       .put(SqlDecimal.of(2, 1), DecimalUtil.builder(2, 1).build())
-      .put(SqlMap.of(SqlTypes.INTEGER),
-          SchemaBuilder.map(SchemaConverters.STRING, SchemaConverters.INTEGER).optional().build())
+      .put(SqlMap.of(SqlTypes.INTEGER), SchemaBuilder
+          .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_INT32_SCHEMA)
+          .optional()
+          .build()
+      )
       .put(SqlStruct.builder()
               .field("f0", SqlTypes.INTEGER)
               .build(),
-          SchemaBuilder.struct().field("f0", SchemaConverters.INTEGER).optional().build())
+          SchemaBuilder.struct()
+              .field("f0", Schema.OPTIONAL_INT32_SCHEMA)
+              .optional()
+              .build())
       .build();
 
   private static final BiMap<SqlBaseType, Class<?>> SQL_TO_JAVA = ImmutableBiMap
@@ -89,7 +98,7 @@ public class SchemaConvertersTest {
   private static final Schema NESTED_LOGICAL_TYPE = SchemaBuilder.struct()
       .field("ARRAY", SchemaBuilder.array(STRUCT_LOGICAL_TYPE).optional().build())
       .field("MAP",
-          SchemaBuilder.map(LOGICAL_STRING_SCHEMA, STRUCT_LOGICAL_TYPE).optional().build())
+          SchemaBuilder.map(CONNECT_STRING_SCHEMA, STRUCT_LOGICAL_TYPE).optional().build())
       .field("STRUCT", STRUCT_LOGICAL_TYPE)
       .optional()
       .build();
@@ -124,7 +133,7 @@ public class SchemaConvertersTest {
     for (Entry<SqlType, Schema> entry : SQL_TO_LOGICAL.entrySet()) {
       final SqlType sqlType = entry.getKey();
       final Schema logical = entry.getValue();
-      final Schema result = SchemaConverters.sqlToLogicalConverter().fromSqlType(sqlType);
+      final Schema result = SchemaConverters.sqlToConnectConverter().toConnectSchema(sqlType);
       assertThat(result, is(logical));
     }
   }
@@ -132,7 +141,7 @@ public class SchemaConvertersTest {
   @Test
   public void shouldGetSqlTypeForEveryLogicalType() {
     SQL_TO_LOGICAL.inverse().forEach((logical, sqlType) -> {
-      assertThat(SchemaConverters.logicalToSqlConverter().toSqlType(logical), is(sqlType));
+      assertThat(SchemaConverters.connectToSqlConverter().toSqlType(logical), is(sqlType));
     });
   }
 
@@ -165,19 +174,19 @@ public class SchemaConvertersTest {
 
   @Test
   public void shouldConvertNestedComplexToSql() {
-    assertThat(SchemaConverters.logicalToSqlConverter().toSqlType(NESTED_LOGICAL_TYPE), is(NESTED_SQL_TYPE));
+    assertThat(SchemaConverters.connectToSqlConverter().toSqlType(NESTED_LOGICAL_TYPE), is(NESTED_SQL_TYPE));
   }
 
   @Test
   public void shouldConvertNestedComplexFromSql() {
-    assertThat(SchemaConverters.sqlToLogicalConverter().fromSqlType(NESTED_SQL_TYPE), is(NESTED_LOGICAL_TYPE));
+    assertThat(SchemaConverters.sqlToConnectConverter().toConnectSchema(NESTED_SQL_TYPE), is(NESTED_LOGICAL_TYPE));
   }
 
   @Test
   public void shouldThrowOnNonStringKeyedMap() {
     // Given:
     final Schema mapSchema = SchemaBuilder
-        .map(LOGICAL_BIGINT_SCHEMA, LOGICAL_DOUBLE_SCHEMA).optional()
+        .map(CONNECT_BIGINT_SCHEMA, CONNECT_DOUBLE_SCHEMA).optional()
         .build();
 
     // Then:
@@ -185,7 +194,7 @@ public class SchemaConvertersTest {
     expectedException.expectMessage("Unsupported map key type: Schema{INT64}");
 
     // When:
-    SchemaConverters.logicalToSqlConverter().toSqlType(mapSchema);
+    SchemaConverters.connectToSqlConverter().toSqlType(mapSchema);
   }
 
   @Test
@@ -195,10 +204,10 @@ public class SchemaConvertersTest {
 
     // Then:
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Unexpected logical type: Schema{INT8}");
+    expectedException.expectMessage("Unexpected schema type: Schema{INT8}");
 
     // When:
-    SchemaConverters.logicalToSqlConverter().toSqlType(unsupported);
+    SchemaConverters.connectToSqlConverter().toSqlType(unsupported);
   }
 
   @Test

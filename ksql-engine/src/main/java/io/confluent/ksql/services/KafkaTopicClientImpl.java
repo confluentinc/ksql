@@ -46,6 +46,7 @@ import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.KafkaFuture;
 import org.apache.kafka.common.config.ConfigResource;
 import org.apache.kafka.common.config.TopicConfig;
+import org.apache.kafka.common.errors.TopicAuthorizationException;
 import org.apache.kafka.common.errors.TopicDeletionDisabledException;
 import org.apache.kafka.common.errors.TopicExistsException;
 import org.apache.kafka.common.errors.UnknownTopicOrPartitionException;
@@ -142,7 +143,21 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   @Override
   public boolean isTopicExists(final String topic) {
     LOG.trace("Checking for existence of topic '{}'", topic);
-    return listTopicNames().contains(topic);
+
+    // Do not use listTopicNames() to check for topic existence because it generates a noisy
+    // kafka-authorize.log when Kafka ACL authorization is enabled
+
+    try {
+      return describeTopic(topic) != null;
+    } catch (final Exception e) {
+      final Throwable rootCause = ExceptionUtils.getRootCause(e);
+      if (rootCause instanceof TopicAuthorizationException
+          || rootCause instanceof UnknownTopicOrPartitionException) {
+        return false;
+      }
+
+      throw e;
+    }
   }
 
   @Override

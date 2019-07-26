@@ -29,6 +29,7 @@ import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.engine.KsqlEngine;
 import com.google.common.collect.ImmutableList;
@@ -55,10 +56,13 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 import io.confluent.rest.RestConfig;
 import java.util.Collections;
+import java.util.Map;
 import javax.ws.rs.core.Configurable;
 import java.util.LinkedList;
 import java.util.Optional;
 import java.util.Queue;
+import org.apache.kafka.streams.StreamsConfig;
+import org.apache.kafka.streams.state.RocksDBConfigSetter;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -66,6 +70,7 @@ import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.rocksdb.Options;
 
 @RunWith(MockitoJUnitRunner.class)
 public class KsqlRestApplicationTest {
@@ -347,5 +352,36 @@ public class KsqlRestApplicationTest {
     inOrder.verify(serverState).setInitializingReason("error2");
     inOrder.verify(precondition1).checkPrecondition(restConfig, serviceContext);
     inOrder.verify(precondition2).checkPrecondition(restConfig, serviceContext);
+  }
+
+  @Test
+  public void shouldConfigureRocksDBConfigSetterWithConfigureMethod() throws Exception {
+    // Given:
+    when(ksqlConfig.getKsqlStreamConfigProps()).thenReturn(
+        ImmutableMap.of(
+            StreamsConfig.ROCKSDB_CONFIG_SETTER_CLASS_CONFIG,
+            Class.forName("io.confluent.ksql.plugins.rocksdb.TestRocksDBConfigSetterWithConfigure"))
+    );
+    final Runnable mockRunnable = mock(Runnable.class);
+    when(ksqlConfig.originals()).thenReturn(ImmutableMap.of("test.runnable", mockRunnable));
+
+    // When:
+    app.startKsql();
+
+    // Then:
+    verify(mockRunnable).run();
+  }
+
+  @Test
+  public void shouldSkipConfiguringRocksDBConfigSetterWithoutConfigureMethod() throws Exception {
+    // Given:
+    when(ksqlConfig.getKsqlStreamConfigProps()).thenReturn(
+        ImmutableMap.of(
+            StreamsConfig.ROCKSDB_CONFIG_SETTER_CLASS_CONFIG,
+            Class.forName("io.confluent.ksql.plugins.rocksdb.TestRocksDBConfigSetterWithoutConfigure"))
+    );
+
+    // No error when:
+    app.startKsql();
   }
 }

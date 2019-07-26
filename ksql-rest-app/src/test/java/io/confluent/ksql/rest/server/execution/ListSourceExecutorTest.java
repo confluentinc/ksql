@@ -247,7 +247,8 @@ public class ListSourceExecutorTest {
         engine.getServiceContext().getKafkaClientSupplier(),
         engine.getServiceContext().getAdminClient(),
         spyTopicClient,
-        engine.getServiceContext().getSchemaRegistryClientFactory()
+        engine.getServiceContext().getSchemaRegistryClientFactory(),
+        engine.getServiceContext().getConnectClient()
     );
 
     // When:

@@ -18,6 +18,7 @@ package io.confluent.ksql.services;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -55,6 +56,7 @@ public final class SandboxedServiceContextTest {
           .ignore("getKafkaClientSupplier")
           .ignore("getSchemaRegistryClient")
           .ignore("getSchemaRegistryClientFactory")
+          .ignore("getConnectClient")
           .ignore("close")
           .build();
     }
@@ -160,6 +162,15 @@ public final class SandboxedServiceContextTest {
 
       // Then:
       assertThat(factory.get(), is(sameInstance(sandboxedServiceContext.getSchemaRegistryClient())));
+    }
+
+    @Test
+    public void shouldGetSandboxedConnectClient() {
+      // When:
+      final ConnectClient client = sandboxedServiceContext.getConnectClient();
+
+      // Then:
+      assertThat("Expected proxy class", Proxy.isProxyClass(client.getClass()));
     }
 
     @Test

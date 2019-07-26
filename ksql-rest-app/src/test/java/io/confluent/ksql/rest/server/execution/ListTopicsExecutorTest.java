@@ -59,7 +59,8 @@ public class ListTopicsExecutorTest {
         engine.getServiceContext().getKafkaClientSupplier(),
         mockAdminClient,
         engine.getServiceContext().getTopicClient(),
-        engine.getServiceContext().getSchemaRegistryClientFactory()
+        engine.getServiceContext().getSchemaRegistryClientFactory(),
+        engine.getServiceContext().getConnectClient()
     );
 
     // When:

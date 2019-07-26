@@ -1148,7 +1148,7 @@ public class KsqlParserTest {
     // When:
     final PreparedStatement<CreateConnector> createExternal =
         KsqlParserTestUtil.buildSingleAst(
-            "CREATE SOURCE CONNECTOR foo WITH (\"foo.bar\"='foo');", metaStore);
+            "CREATE SOURCE CONNECTOR foo WITH ('foo.bar'='foo');", metaStore);
 
     // Then:
     assertThat(createExternal.getStatement().getConfig(), hasEntry("foo.bar", new StringLiteral("foo")));

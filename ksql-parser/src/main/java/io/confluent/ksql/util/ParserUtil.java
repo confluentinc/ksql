@@ -27,6 +27,7 @@ import io.confluent.ksql.parser.SqlBaseLexer;
 import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.parser.SqlBaseParser.IntegerLiteralContext;
 import io.confluent.ksql.parser.SqlBaseParser.NumberContext;
+import io.confluent.ksql.parser.SqlBaseParser.StringIdentifierContext;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.tree.DoubleLiteral;
 import io.confluent.ksql.parser.tree.IntegerLiteral;
@@ -90,6 +91,8 @@ public final class ParserUtil {
       return unquote(context.getText(), "\"");
     } else if (context instanceof SqlBaseParser.BackQuotedIdentifierContext) {
       return unquote(context.getText(), "`");
+    } else if (context instanceof StringIdentifierContext) {
+      return unquote(context.getText(), "'");
     } else {
       return context.getText().toUpperCase();
     }

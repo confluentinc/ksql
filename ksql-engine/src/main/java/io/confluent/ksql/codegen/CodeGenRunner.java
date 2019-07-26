@@ -183,12 +183,12 @@ public class CodeGenRunner {
           ksqlConfig));
     }
 
-    protected Object visitLikePredicate(final LikePredicate node, final Object context) {
+    public Object visitLikePredicate(final LikePredicate node, final Object context) {
       process(node.getValue(), null);
       return null;
     }
 
-    protected Object visitFunctionCall(final FunctionCall node, final Object context) {
+    public Object visitFunctionCall(final FunctionCall node, final Object context) {
       final int functionNumber = functionCounter++;
       final List<Schema> argumentTypes = new ArrayList<>();
       final String functionName = node.getName().getSuffix();
@@ -208,7 +208,7 @@ public class CodeGenRunner {
       return null;
     }
 
-    protected Object visitArithmeticBinary(
+    public Object visitArithmeticBinary(
         final ArithmeticBinaryExpression node,
         final Object context) {
       process(node.getLeft(), null);
@@ -216,22 +216,22 @@ public class CodeGenRunner {
       return null;
     }
 
-    protected Object visitArithmeticUnary(
+    public Object visitArithmeticUnary(
         final ArithmeticUnaryExpression node,
         final Object context) {
       process(node.getValue(), null);
       return null;
     }
 
-    protected Object visitIsNotNullPredicate(final IsNotNullPredicate node, final Object context) {
+    public Object visitIsNotNullPredicate(final IsNotNullPredicate node, final Object context) {
       return process(node.getValue(), context);
     }
 
-    protected Object visitIsNullPredicate(final IsNullPredicate node, final Object context) {
+    public Object visitIsNullPredicate(final IsNullPredicate node, final Object context) {
       return process(node.getValue(), context);
     }
 
-    protected Object visitLogicalBinaryExpression(
+    public Object visitLogicalBinaryExpression(
         final LogicalBinaryExpression node,
         final Object context) {
       process(node.getLeft(), null);
@@ -240,7 +240,7 @@ public class CodeGenRunner {
     }
 
     @Override
-    protected Object visitComparisonExpression(
+    public Object visitComparisonExpression(
         final ComparisonExpression node,
         final Object context) {
       process(node.getLeft(), null);
@@ -249,7 +249,7 @@ public class CodeGenRunner {
     }
 
     @Override
-    protected Object visitBetweenPredicate(final BetweenPredicate node, final Object context) {
+    public Object visitBetweenPredicate(final BetweenPredicate node, final Object context) {
       process(node.getValue(), null);
       process(node.getMax(), null);
       process(node.getMin(), null);
@@ -257,12 +257,12 @@ public class CodeGenRunner {
     }
 
     @Override
-    protected Object visitNotExpression(final NotExpression node, final Object context) {
+    public Object visitNotExpression(final NotExpression node, final Object context) {
       return process(node.getValue(), null);
     }
 
     @Override
-    protected Object visitDereferenceExpression(
+    public Object visitDereferenceExpression(
         final DereferenceExpression node,
         final Object context
     ) {
@@ -271,7 +271,7 @@ public class CodeGenRunner {
     }
 
     @Override
-    protected Object visitSearchedCaseExpression(
+    public Object visitSearchedCaseExpression(
         final SearchedCaseExpression node,
         final Object context) {
       node.getWhenClauses().forEach(
@@ -285,13 +285,13 @@ public class CodeGenRunner {
     }
 
     @Override
-    protected Object visitCast(final Cast node, final Object context) {
+    public Object visitCast(final Cast node, final Object context) {
       process(node.getExpression(), context);
       return null;
     }
 
     @Override
-    protected Object visitSubscriptExpression(
+    public Object visitSubscriptExpression(
         final SubscriptExpression node,
         final Object context
     ) {
@@ -307,7 +307,7 @@ public class CodeGenRunner {
     }
 
     @Override
-    protected Object visitQualifiedNameReference(
+    public Object visitQualifiedNameReference(
         final QualifiedNameReference node,
         final Object context
     ) {

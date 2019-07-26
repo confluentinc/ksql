@@ -23,7 +23,7 @@ import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.parser.SqlBaseBaseVisitor;
 import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.parser.tree.AliasedRelation;
-import io.confluent.ksql.parser.tree.Node;
+import io.confluent.ksql.parser.tree.AstNode;
 import io.confluent.ksql.parser.tree.NodeLocation;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -103,21 +103,21 @@ public class DataSourceExtractor {
     return isJoin;
   }
 
-  private final class Visitor extends SqlBaseBaseVisitor<Node> {
+  private final class Visitor extends SqlBaseBaseVisitor<AstNode> {
 
     @Override
-    public Node visitQuery(final SqlBaseParser.QueryContext ctx) {
+    public AstNode visitQuery(final SqlBaseParser.QueryContext ctx) {
       visit(ctx.from);
       return visitChildren(ctx);
     }
 
     @Override
-    public Node visitTableName(final SqlBaseParser.TableNameContext context) {
+    public AstNode visitTableName(final SqlBaseParser.TableNameContext context) {
       return new Table(getLocation(context), ParserUtil.getQualifiedName(context.qualifiedName()));
     }
 
     @Override
-    public Node visitAliasedRelation(final SqlBaseParser.AliasedRelationContext context) {
+    public AstNode visitAliasedRelation(final SqlBaseParser.AliasedRelationContext context) {
       final Table table = (Table) visit(context.relationPrimary());
 
       final String alias;
@@ -155,7 +155,7 @@ public class DataSourceExtractor {
     }
 
     @Override
-    public Node visitJoinRelation(final SqlBaseParser.JoinRelationContext context) {
+    public AstNode visitJoinRelation(final SqlBaseParser.JoinRelationContext context) {
       isJoin = true;
       final AliasedRelation left = (AliasedRelation) visit(context.left);
       leftAlias = left.getAlias();

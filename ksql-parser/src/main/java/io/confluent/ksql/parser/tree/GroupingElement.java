@@ -21,7 +21,7 @@ import java.util.Optional;
 import java.util.Set;
 
 @Immutable
-public abstract class GroupingElement extends Node {
+public abstract class GroupingElement extends AstNode {
 
   GroupingElement(final Optional<NodeLocation> location) {
     super(location);

@@ -89,8 +89,9 @@ public class ExpressionTypeManager
     }
   }
 
+  // TODO(rohan): make the below an internal class
   @Override
-  protected Expression visitArithmeticBinary(final ArithmeticBinaryExpression node,
+  public Expression visitArithmeticBinary(final ArithmeticBinaryExpression node,
       final ExpressionTypeContext expressionTypeContext) {
     process(node.getLeft(), expressionTypeContext);
     final Schema leftType = expressionTypeContext.getSchema();
@@ -101,14 +102,14 @@ public class ExpressionTypeManager
   }
 
   @Override
-  protected Expression visitNotExpression(
+  public Expression visitNotExpression(
       final NotExpression node, final ExpressionTypeContext expressionTypeContext) {
     expressionTypeContext.setSchema(Schema.OPTIONAL_BOOLEAN_SCHEMA);
     return null;
   }
 
   @Override
-  protected Expression visitCast(
+  public Expression visitCast(
       final Cast node,
       final ExpressionTypeContext expressionTypeContext
   ) {
@@ -127,7 +128,7 @@ public class ExpressionTypeManager
   }
 
   @Override
-  protected Expression visitComparisonExpression(
+  public Expression visitComparisonExpression(
       final ComparisonExpression node, final ExpressionTypeContext expressionTypeContext) {
     process(node.getLeft(), expressionTypeContext);
     final Schema leftSchema = expressionTypeContext.getSchema();
@@ -139,14 +140,14 @@ public class ExpressionTypeManager
   }
 
   @Override
-  protected Expression visitBetweenPredicate(final BetweenPredicate node,
+  public Expression visitBetweenPredicate(final BetweenPredicate node,
       final ExpressionTypeContext context) {
     context.setSchema(Schema.OPTIONAL_BOOLEAN_SCHEMA);
     return null;
   }
 
   @Override
-  protected Expression visitQualifiedNameReference(
+  public Expression visitQualifiedNameReference(
       final QualifiedNameReference node,
       final ExpressionTypeContext expressionTypeContext
   ) {
@@ -160,7 +161,7 @@ public class ExpressionTypeManager
   }
 
   @Override
-  protected Expression visitDereferenceExpression(
+  public Expression visitDereferenceExpression(
       final DereferenceExpression node,
       final ExpressionTypeContext expressionTypeContext
   ) {
@@ -174,70 +175,70 @@ public class ExpressionTypeManager
   }
 
   @Override
-  protected Expression visitStringLiteral(final StringLiteral node,
+  public Expression visitStringLiteral(final StringLiteral node,
       final ExpressionTypeContext expressionTypeContext) {
     expressionTypeContext.setSchema(Schema.OPTIONAL_STRING_SCHEMA);
     return null;
   }
 
   @Override
-  protected Expression visitBooleanLiteral(final BooleanLiteral node,
+  public Expression visitBooleanLiteral(final BooleanLiteral node,
       final ExpressionTypeContext expressionTypeContext) {
     expressionTypeContext.setSchema(Schema.OPTIONAL_BOOLEAN_SCHEMA);
     return null;
   }
 
   @Override
-  protected Expression visitLongLiteral(final LongLiteral node,
+  public Expression visitLongLiteral(final LongLiteral node,
       final ExpressionTypeContext expressionTypeContext) {
     expressionTypeContext.setSchema(Schema.OPTIONAL_INT64_SCHEMA);
     return null;
   }
 
   @Override
-  protected Expression visitIntegerLiteral(final IntegerLiteral node,
+  public Expression visitIntegerLiteral(final IntegerLiteral node,
       final ExpressionTypeContext expressionTypeContext) {
     expressionTypeContext.setSchema(Schema.OPTIONAL_INT32_SCHEMA);
     return null;
   }
 
   @Override
-  protected Expression visitDoubleLiteral(final DoubleLiteral node,
+  public Expression visitDoubleLiteral(final DoubleLiteral node,
       final ExpressionTypeContext expressionTypeContext) {
     expressionTypeContext.setSchema(Schema.OPTIONAL_FLOAT64_SCHEMA);
     return null;
   }
 
   @Override
-  protected Expression visitNullLiteral(final NullLiteral node,
+  public Expression visitNullLiteral(final NullLiteral node,
       final ExpressionTypeContext context) {
     context.setSchema(null);
     return null;
   }
 
   @Override
-  protected Expression visitLikePredicate(final LikePredicate node,
+  public Expression visitLikePredicate(final LikePredicate node,
       final ExpressionTypeContext expressionTypeContext) {
     expressionTypeContext.setSchema(Schema.OPTIONAL_BOOLEAN_SCHEMA);
     return null;
   }
 
   @Override
-  protected Expression visitIsNotNullPredicate(final IsNotNullPredicate node,
+  public Expression visitIsNotNullPredicate(final IsNotNullPredicate node,
       final ExpressionTypeContext expressionTypeContext) {
     expressionTypeContext.setSchema(Schema.OPTIONAL_BOOLEAN_SCHEMA);
     return null;
   }
 
   @Override
-  protected Expression visitIsNullPredicate(final IsNullPredicate node,
+  public Expression visitIsNullPredicate(final IsNullPredicate node,
       final ExpressionTypeContext expressionTypeContext) {
     expressionTypeContext.setSchema(Schema.OPTIONAL_BOOLEAN_SCHEMA);
     return null;
   }
 
   @Override
-  protected Expression visitSearchedCaseExpression(
+  public Expression visitSearchedCaseExpression(
       final SearchedCaseExpression node,
       final ExpressionTypeContext expressionTypeContext) {
     validateSearchedCaseExpression(node);
@@ -246,7 +247,7 @@ public class ExpressionTypeManager
   }
 
   @Override
-  protected Expression visitSubscriptExpression(
+  public Expression visitSubscriptExpression(
       final SubscriptExpression node,
       final ExpressionTypeContext expressionTypeContext
   ) {
@@ -257,7 +258,7 @@ public class ExpressionTypeManager
   }
 
   @Override
-  protected Expression visitFunctionCall(
+  public Expression visitFunctionCall(
       final FunctionCall node,
       final ExpressionTypeContext expressionTypeContext) {
 

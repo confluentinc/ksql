@@ -19,8 +19,8 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.parser.DefaultTraversalVisitor;
 import io.confluent.ksql.parser.tree.AliasedRelation;
+import io.confluent.ksql.parser.tree.AstNode;
 import io.confluent.ksql.parser.tree.Join;
-import io.confluent.ksql.parser.tree.Node;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.util.KsqlException;
 import java.util.HashSet;
@@ -29,7 +29,7 @@ import java.util.Set;
 /**
  * Helper class that extracts all source topics from a query node.
  */
-public class SourceTopicsExtractor extends DefaultTraversalVisitor<Node, Void> {
+public class SourceTopicsExtractor extends DefaultTraversalVisitor<AstNode, Void> {
   private final Set<String> sourceTopics = new HashSet<>();
   private final MetaStore metaStore;
 
@@ -48,14 +48,14 @@ public class SourceTopicsExtractor extends DefaultTraversalVisitor<Node, Void> {
   }
 
   @Override
-  protected Node visitJoin(final Join node, final Void context) {
+  protected AstNode visitJoin(final Join node, final Void context) {
     process(node.getLeft(), context);
     process(node.getRight(), context);
     return null;
   }
 
   @Override
-  protected Node visitAliasedRelation(final AliasedRelation node, final Void context) {
+  protected AstNode visitAliasedRelation(final AliasedRelation node, final Void context) {
     final String structuredDataSourceName = ((Table) node.getRelation()).getName().getSuffix();
     final DataSource<?> source = metaStore.getSource(structuredDataSourceName);
     if (source == null) {

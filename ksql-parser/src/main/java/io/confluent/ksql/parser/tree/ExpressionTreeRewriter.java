@@ -26,7 +26,7 @@ import java.util.stream.Collectors;
 public final class ExpressionTreeRewriter<C> {
 
   private final ExpressionRewriter<C> rewriter;
-  private final AstVisitor<Expression, Context<C>> visitor;
+  private final ExpressionVisitor<Expression, Context<C>> visitor;
 
   public static <C, T extends Expression> T rewriteWith(
       final ExpressionRewriter<C> rewriter, final T node) {
@@ -46,7 +46,7 @@ public final class ExpressionTreeRewriter<C> {
 
   // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
   private class RewritingVisitor
-      extends AstVisitor<Expression, Context<C>> {
+      extends VisitParentExpressionVisitor<Expression, Context<C>> {
     // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
     @Override

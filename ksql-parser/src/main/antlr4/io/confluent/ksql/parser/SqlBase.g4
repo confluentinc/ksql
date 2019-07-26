@@ -56,6 +56,7 @@ statement
                     (WITH tableProperties)?                                 #createTable
     | CREATE TABLE (IF NOT EXISTS)? qualifiedName
             (WITH tableProperties)? AS query                                #createTableAs
+    | CREATE (SINK | SOURCE) CONNECTOR identifier WITH tableProperties      #createConnector
     | INSERT INTO qualifiedName query (PARTITION BY identifier)?            #insertInto
     | INSERT INTO qualifiedName (columns)? VALUES values                    #insertValues
     | DROP STREAM (IF EXISTS)? qualifiedName (DELETE TOPIC)?                #dropStream
@@ -316,6 +317,7 @@ nonReserved
     | EXPLAIN | ANALYZE | TYPE
     | SET | RESET
     | IF
+    | CONNECTOR | SOURCE | SINK
     | KEY
     ;
 
@@ -428,6 +430,9 @@ RUN: 'RUN';
 SCRIPT: 'SCRIPT';
 DECIMAL: 'DECIMAL';
 KEY: 'KEY';
+CONNECTOR: 'CONNECTOR';
+SINK: 'SINK';
+SOURCE: 'SOURCE';
 
 IF: 'IF';
 

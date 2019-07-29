@@ -1144,7 +1144,7 @@ public class KsqlParserTest {
   }
 
   @Test
-  public void shouldBuildCreateExternalSourceStatement() {
+  public void shouldBuildCreateSourceConnectorStatement() {
     // When:
     final PreparedStatement<CreateConnector> createExternal =
         KsqlParserTestUtil.buildSingleAst(
@@ -1157,7 +1157,7 @@ public class KsqlParserTest {
   }
 
   @Test
-  public void shouldBuildCreateExternalSinkStatement() {
+  public void shouldBuildCreateSinkConnectorStatement() {
     // When:
     final PreparedStatement<CreateConnector> createExternal =
         KsqlParserTestUtil.buildSingleAst(

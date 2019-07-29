@@ -198,10 +198,16 @@ public class AstBuilder {
       final ImmutableMap.Builder<String, Literal> properties = ImmutableMap.builder();
       if (tablePropertiesContext != null) {
         for (final TablePropertyContext prop : tablePropertiesContext.tableProperty()) {
-          properties.put(
-              ParserUtil.getIdentifierText(prop.identifier()),
-              (Literal) visit(prop.literal())
-          );
+          if (prop.identifier() != null) {
+            properties.put(
+                ParserUtil.getIdentifierText(prop.identifier()),
+                (Literal) visit(prop.literal())
+            );
+          } else {
+            properties.put(
+                ParserUtil.unquote(prop.STRING().getText(), "'"),
+                (Literal) visit(prop.literal()));
+          }
         }
       }
       return properties.build();

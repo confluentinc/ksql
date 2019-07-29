@@ -88,7 +88,7 @@ tableProperties
     ;
 
 tableProperty
-    : identifier EQ literal
+    : (identifier | STRING) EQ literal
     ;
 
 printClause
@@ -292,7 +292,6 @@ qualifiedName
 identifier
     : IDENTIFIER             #unquotedIdentifier
     | QUOTED_IDENTIFIER      #quotedIdentifierAlternative
-    | STRING                 #stringIdentifier
     | nonReserved            #unquotedIdentifier
     | BACKQUOTED_IDENTIFIER  #backQuotedIdentifier
     | DIGIT_IDENTIFIER       #digitIdentifier

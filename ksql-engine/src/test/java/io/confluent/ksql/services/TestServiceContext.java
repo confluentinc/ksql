@@ -62,7 +62,8 @@ public final class TestServiceContext {
         new FakeKafkaClientSupplier(),
         new FakeKafkaClientSupplier().getAdminClient(Collections.emptyMap()),
         topicClient,
-        srClientFactory
+        srClientFactory,
+        new DefaultConnectClient("http://localhost:8083")
     );
   }
 
@@ -78,7 +79,8 @@ public final class TestServiceContext {
         kafkaClientSupplier,
         adminClient,
         new KafkaTopicClientImpl(adminClient),
-        srClientFactory
+        srClientFactory,
+        new DefaultConnectClient(ksqlConfig.getString(KsqlConfig.CONNECT_URL_PROPERTY))
     );
   }
 
@@ -86,8 +88,9 @@ public final class TestServiceContext {
       final KafkaClientSupplier kafkaClientSupplier,
       final AdminClient adminClient,
       final KafkaTopicClient topicClient,
-      final Supplier<SchemaRegistryClient> srClientFactory
+      final Supplier<SchemaRegistryClient> srClientFactory,
+      final ConnectClient connectClient
   ) {
-    return new DefaultServiceContext(kafkaClientSupplier, adminClient, topicClient, srClientFactory);
+    return new DefaultServiceContext(kafkaClientSupplier, adminClient, topicClient, srClientFactory, connectClient);
   }
 }

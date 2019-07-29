@@ -84,6 +84,15 @@ public interface ServiceContext extends AutoCloseable {
    */
   Supplier<SchemaRegistryClient> getSchemaRegistryClientFactory();
 
+  /**
+   * Get the shared {@link ConnectClient} instance.
+   *
+   * <p>The default implementation is thread-safe and can be shared across threads.
+   *
+   * @return a shared {@link ConnectClient}
+   */
+  ConnectClient getConnectClient();
+
   @Override
   void close();
 }

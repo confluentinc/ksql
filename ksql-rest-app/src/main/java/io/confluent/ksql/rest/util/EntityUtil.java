@@ -41,7 +41,7 @@ public final class EntityUtil {
 
     final List<FieldInfo> allFields = new ArrayList<>();
     if (!valueSchemaOnly) {
-      allFields.addAll(getFields(schema.metaFields(), "implicit"));
+      allFields.addAll(getFields(schema.metaFields(), "meta"));
       allFields.addAll(getFields(schema.keyFields(), "key"));
     }
     allFields.addAll(getFields(schema.valueFields(), "value"));
@@ -55,7 +55,7 @@ public final class EntityUtil {
     }
 
     return fields.stream()
-        .map(field -> new FieldInfo(field.name(), getSchema(field.type())))
+        .map(field -> SqlTypeWalker.visit(field, new Converter()))
         .collect(Collectors.toList());
   }
 
@@ -81,8 +81,8 @@ public final class EntityUtil {
       return new SchemaInfo(SqlBaseType.STRUCT, fields, null);
     }
 
-    public FieldInfo visitField(final SqlStruct.Field field, final SchemaInfo type) {
-      return new FieldInfo(field.getName(), type);
+    public FieldInfo visitField(final Field field, final SchemaInfo type) {
+      return new FieldInfo(field.fullName(), type);
     }
   }
 }

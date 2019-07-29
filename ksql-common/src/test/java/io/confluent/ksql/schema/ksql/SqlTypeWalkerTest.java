@@ -33,7 +33,6 @@ import io.confluent.ksql.schema.ksql.types.SqlDecimal;
 import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
-import io.confluent.ksql.schema.ksql.types.SqlStruct.Field;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.stream.Stream;
@@ -183,7 +182,7 @@ public class SqlTypeWalkerTest {
     when(visitor.visitDouble(any())).thenReturn("0");
     when(visitor.visitInt(any())).thenReturn("1");
     when(visitor.visitField(any(), any())).thenAnswer(inv -> {
-      final int fieldName = Integer.parseInt(inv.<Field>getArgument(0).getName());
+      final int fieldName = Integer.parseInt(inv.<Field>getArgument(0).fullName());
       final int expectedArg = Integer.parseInt(inv.getArgument(1));
       assertThat(fieldName, is(expectedArg));
       return fieldName;
@@ -299,6 +298,23 @@ public class SqlTypeWalkerTest {
 
     // When:
     SqlTypeWalker.visit(type, visitor);
+  }
+
+  @Test
+  public void shouldStartWalkingFromField() {
+    // Given:
+    final SqlPrimitiveType type = SqlTypes.BOOLEAN;
+    final Field field = Field.of("name", type);
+    when(visitor.visitBoolean(any())).thenReturn("Expected");
+    when(visitor.visitField(any(), any())).thenReturn(22);
+
+    // When:
+    final Integer result = SqlTypeWalker.visit(field, visitor);
+
+    // Then:
+    verify(visitor).visitBoolean(same(type));
+    verify(visitor).visitField(same(field), eq("Expected"));
+    assertThat(result, is(22));
   }
 
   public static Stream<SqlType> primitiveTypes() {

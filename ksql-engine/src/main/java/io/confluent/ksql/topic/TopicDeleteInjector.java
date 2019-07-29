@@ -103,7 +103,7 @@ public class TopicDeleteInjector implements Injector {
             + source.getKafkaTopicName(), e);
       }
 
-      if (source.getValueSerdeFactory().getFormat() == Format.AVRO) {
+      if (source.getKsqlTopic().getValueFormat().getFormat() == Format.AVRO) {
         try {
           SchemaRegistryUtil.deleteSubjectWithRetries(
               schemaRegistryClient,

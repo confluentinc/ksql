@@ -21,7 +21,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.metastore.SerdeFactory;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
@@ -101,11 +100,6 @@ abstract class StructuredDataSource<K> implements DataSource<K> {
   @Override
   public SerdeFactory<K> getKeySerdeFactory() {
     return keySerde;
-  }
-
-  @Override
-  public KsqlSerdeFactory getValueSerdeFactory() {
-    return ksqlTopic.getValueSerdeFactory();
   }
 
   @Override

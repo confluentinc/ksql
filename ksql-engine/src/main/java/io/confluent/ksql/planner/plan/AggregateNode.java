@@ -41,8 +41,8 @@ import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SchemaConverters.ConnectToSqlTypeConverter;
 import io.confluent.ksql.schema.ksql.types.SqlType;
-import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.QueryContext;
 import io.confluent.ksql.structured.SchemaKGroupedStream;
@@ -202,11 +202,13 @@ public class AggregateNode extends PlanNode {
 
     final QueryContext.Stacker groupByContext = contextStacker.push(GROUP_BY_OP_NAME);
 
-    final KsqlSerdeFactory valueSerdeFactory = streamSourceNode.getDataSource()
-        .getValueSerdeFactory();
+    final ValueFormat valueFormat = streamSourceNode
+        .getDataSource()
+        .getKsqlTopic()
+        .getValueFormat();
 
     final Serde<GenericRow> genericRowSerde = builder.buildGenericRowSerde(
-        valueSerdeFactory,
+        valueFormat,
         PhysicalSchema.from(aggregateArgExpanded.getSchema(), SerdeOption.none()),
         groupByContext.getQueryContext()
     );
@@ -235,7 +237,7 @@ public class AggregateNode extends PlanNode {
     final QueryContext.Stacker aggregationContext = contextStacker.push(AGGREGATION_OP_NAME);
 
     final Serde<GenericRow> aggValueGenericRowSerde = builder.buildGenericRowSerde(
-        valueSerdeFactory,
+        valueFormat,
         PhysicalSchema.from(aggStageSchema, SerdeOption.none()),
         aggregationContext.getQueryContext()
     );

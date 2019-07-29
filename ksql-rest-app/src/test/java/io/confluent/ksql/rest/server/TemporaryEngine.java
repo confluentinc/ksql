@@ -30,8 +30,10 @@ import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
-import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
+import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
@@ -89,7 +91,12 @@ public class TemporaryEngine extends ExternalResource {
   ) {
     givenKafkaTopic(name);
 
-    final KsqlTopic topic = new KsqlTopic(name, new KsqlJsonSerdeFactory(), false);
+    final KsqlTopic topic = new KsqlTopic(
+        name,
+        KeyFormat.nonWindowed(Format.KAFKA),
+        ValueFormat.of(Format.JSON),
+        false
+    );
 
     final DataSource<?> source;
     switch (type) {

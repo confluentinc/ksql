@@ -15,7 +15,9 @@
 
 package io.confluent.ksql.properties.with;
 
-import io.confluent.ksql.configdef.ConfigValidators.ValidCaseInsensitiveString;
+import static io.confluent.ksql.configdef.ConfigValidators.enumValues;
+
+import io.confluent.ksql.model.WindowType;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigDef.Importance;
 import org.apache.kafka.common.config.ConfigDef.Type;
@@ -42,7 +44,7 @@ public final class CreateConfigs {
           WINDOW_TYPE_PROPERTY,
           ConfigDef.Type.STRING,
           null,
-          ValidCaseInsensitiveString.in("SESSION", "HOPPING", "TUMBLING", null),
+          enumValues(WindowType.class),
           Importance.LOW,
           "If the data is windowed, i.e. was created using KSQL using a query that "
               + "contains a ``WINDOW`` clause, then the property can be used to provide the "
@@ -53,8 +55,9 @@ public final class CreateConfigs {
           null,
           Importance.LOW,
           "If the data is windowed, i.e., was created using KSQL via a query that "
-              + "contains a ``WINDOW`` clause and the window is a timed window,"
-              + " then the property should be used to provide the window size. "
+              + "contains a ``WINDOW`` clause and the window is a HOPPING or TUMBLING window, "
+              + "then the property should be used to provide the window size, "
+              + "for example: '20 SECONDS'."
       ).define(
           AVRO_SCHEMA_ID,
           ConfigDef.Type.INT,

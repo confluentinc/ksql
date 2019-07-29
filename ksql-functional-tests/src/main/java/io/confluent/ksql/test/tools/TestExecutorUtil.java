@@ -124,7 +124,7 @@ final class TestExecutorUtil {
         getAvroSchema(sinkDataSource, schemaRegistryClient);
 
     final SerdeSupplier<?> valueSerdeSupplier = SerdeUtil.getSerdeSupplier(
-        sinkDataSource.getValueSerdeFactory().getFormat(),
+        sinkDataSource.getKsqlTopic().getValueFormat().getFormat(),
         sinkDataSource::getSchema
     );
 
@@ -149,7 +149,7 @@ final class TestExecutorUtil {
   private static Optional<Schema> getAvroSchema(
       final DataSource<?> dataSource,
       final SchemaRegistryClient schemaRegistryClient) {
-    if (dataSource.getValueSerdeFactory().getFormat() == Format.AVRO) {
+    if (dataSource.getKsqlTopic().getValueFormat().getFormat() == Format.AVRO) {
       try {
         final SchemaMetadata schemaMetadata = schemaRegistryClient.getLatestSchemaMetadata(
             dataSource.getKafkaTopicName() + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);

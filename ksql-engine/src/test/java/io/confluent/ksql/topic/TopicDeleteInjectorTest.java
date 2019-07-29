@@ -31,13 +31,14 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.ListProperties;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.Statement;
-import io.confluent.ksql.serde.avro.KsqlAvroSerdeFactory;
-import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
+import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
@@ -75,6 +76,8 @@ public class TopicDeleteInjectorTest {
   @Mock
   private DataSource<?> source;
   @Mock
+  private KsqlTopic topic;
+  @Mock
   private SchemaRegistryClient registryClient;
   @Mock
   private KafkaTopicClient topicClient;
@@ -88,7 +91,8 @@ public class TopicDeleteInjectorTest {
     when(metaStore.getSource(SOURCE_NAME)).thenAnswer(inv -> source);
     when(source.getName()).thenReturn(SOURCE_NAME);
     when(source.getKafkaTopicName()).thenReturn(TOPIC_NAME);
-    when(source.getValueSerdeFactory()).thenReturn(new KsqlJsonSerdeFactory());
+    when(source.getKsqlTopic()).thenReturn(topic);
+    when(topic.getValueFormat()).thenReturn(ValueFormat.of(Format.JSON));
   }
 
   @Test
@@ -136,7 +140,7 @@ public class TopicDeleteInjectorTest {
   @Test
   public void shouldDeleteSchemaInSR() throws IOException, RestClientException {
     // Given:
-    when(source.getValueSerdeFactory()).thenReturn(new KsqlAvroSerdeFactory("foo"));
+    when(topic.getValueFormat()).thenReturn(ValueFormat.of(Format.AVRO));
 
     // When:
     deleteInjector.inject(DROP_WITH_DELETE_TOPIC);

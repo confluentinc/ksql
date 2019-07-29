@@ -42,7 +42,7 @@ public class CreateTableCommand extends CreateSourceCommand {
         getSerdeOptions(),
         keyField,
         timestampExtractionPolicy,
-        buildTopic(),
+        getTopic(),
         keySerdeFactory
     );
 

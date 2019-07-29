@@ -40,8 +40,10 @@ import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
-import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
+import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
@@ -101,8 +103,13 @@ public class TopicCreateInjectorTest {
 
     injector = new TopicCreateInjector(topicClient, metaStore);
 
-    final KsqlTopic sourceTopic =
-        new KsqlTopic("source", new KsqlJsonSerdeFactory(), false);
+    final KsqlTopic sourceTopic = new KsqlTopic(
+        "source",
+        KeyFormat.nonWindowed(Format.KAFKA),
+        ValueFormat.of(Format.JSON),
+        false
+    );
+
     final KsqlStream source = new KsqlStream<>(
         "",
         "SOURCE",
@@ -115,8 +122,13 @@ public class TopicCreateInjectorTest {
     );
     metaStore.putSource(source);
 
-    final KsqlTopic joinTopic =
-        new KsqlTopic("jSource", new KsqlJsonSerdeFactory(), false);
+    final KsqlTopic joinTopic = new KsqlTopic(
+        "jSource",
+        KeyFormat.nonWindowed(Format.KAFKA),
+        ValueFormat.of(Format.JSON),
+        false
+    );
+
     final KsqlStream joinSource = new KsqlStream<>(
         "",
         "J_SOURCE",

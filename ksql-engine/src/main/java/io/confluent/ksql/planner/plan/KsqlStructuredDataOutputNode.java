@@ -126,7 +126,6 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     this.sinKFactory = requireNonNull(sinkFactory, "sinkFactory");
 
     validatePartitionByField();
-    validateSerdeCanHandleSchema();
   }
 
   public boolean isDoCreateInto() {
@@ -173,7 +172,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     );
 
     final Serde<GenericRow> outputRowSerde = builder.buildGenericRowSerde(
-        getKsqlTopic().getValueSerdeFactory(),
+        getKsqlTopic().getValueFormat(),
         PhysicalSchema.from(getSchema(), serdeOptions),
         contextStacker.getQueryContext()
     );
@@ -237,11 +236,6 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     if (!keyField.name().equals(Optional.of(fieldName))) {
       throw new IllegalArgumentException("keyField must match partition by field");
     }
-  }
-
-  private void validateSerdeCanHandleSchema() {
-    final PhysicalSchema physicalSchema = PhysicalSchema.from(getSchema(), serdeOptions);
-    ksqlTopic.getValueSerdeFactory().validate(physicalSchema.valueSchema());
   }
 
   @SuppressWarnings("UnstableApiUsage")

@@ -48,7 +48,6 @@ import io.confluent.ksql.schema.ksql.Field;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
@@ -1101,8 +1100,5 @@ public class JoinNodeTest {
 
     final KsqlTopic ksqlTopic = mock(KsqlTopic.class);
     when(dataSource.getKsqlTopic()).thenReturn(ksqlTopic);
-
-    final KsqlSerdeFactory valueSerdeFactory = mock(KsqlSerdeFactory.class);
-    when(ksqlTopic.getValueSerdeFactory()).thenReturn(valueSerdeFactory);
   }
 }

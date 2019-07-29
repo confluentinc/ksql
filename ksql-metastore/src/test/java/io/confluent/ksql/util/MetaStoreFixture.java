@@ -25,9 +25,10 @@ import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.KsqlSerdeFactory;
+import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
-import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
+import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
 import org.apache.kafka.common.serialization.Serdes;
 
@@ -38,17 +39,19 @@ public final class MetaStoreFixture {
   }
 
   public static MutableMetaStore getNewMetaStore(final FunctionRegistry functionRegistry) {
-    return getNewMetaStore(functionRegistry, new KsqlJsonSerdeFactory());
+    return getNewMetaStore(functionRegistry, ValueFormat.of(Format.JSON));
   }
 
   public static MutableMetaStore getNewMetaStore(
       final FunctionRegistry functionRegistry,
-      final KsqlSerdeFactory valueSerdeFactory
+      final ValueFormat valueFormat
   ) {
     final MetadataTimestampExtractionPolicy timestampExtractionPolicy
         = new MetadataTimestampExtractionPolicy();
 
     final MutableMetaStore metaStore = new MetaStoreImpl(functionRegistry);
+
+    final KeyFormat keyFormat = KeyFormat.nonWindowed(Format.KAFKA);
 
     final LogicalSchema test1Schema = LogicalSchema.builder()
         .valueField("COL0", SqlTypes.BIGINT)
@@ -61,7 +64,8 @@ public final class MetaStoreFixture {
 
     final KsqlTopic ksqlTopic0 = new KsqlTopic(
         "test0",
-        valueSerdeFactory,
+        keyFormat,
+        valueFormat,
         false
     );
 
@@ -80,7 +84,8 @@ public final class MetaStoreFixture {
 
     final KsqlTopic ksqlTopic1 = new KsqlTopic(
         "test1",
-        valueSerdeFactory,
+        keyFormat,
+        valueFormat,
         false
     );
 
@@ -106,7 +111,8 @@ public final class MetaStoreFixture {
 
     final KsqlTopic ksqlTopic2 = new KsqlTopic(
         "test2",
-        valueSerdeFactory,
+        keyFormat,
+        valueFormat,
         false
     );
     final KsqlTable<String> ksqlTable = new KsqlTable<>(
@@ -154,7 +160,8 @@ public final class MetaStoreFixture {
 
     final KsqlTopic ksqlTopicOrders = new KsqlTopic(
         "orders_topic",
-        valueSerdeFactory,
+        keyFormat,
+        valueFormat,
         false
     );
 
@@ -181,7 +188,8 @@ public final class MetaStoreFixture {
 
     final KsqlTopic ksqlTopic3 = new KsqlTopic(
         "test3",
-        valueSerdeFactory,
+        keyFormat,
+        valueFormat,
         false
     );
     final KsqlTable<String> ksqlTable3 = new KsqlTable<>(
@@ -217,7 +225,8 @@ public final class MetaStoreFixture {
 
     final KsqlTopic nestedArrayStructMapTopic = new KsqlTopic(
         "NestedArrayStructMap_topic",
-        valueSerdeFactory,
+        keyFormat,
+        valueFormat,
         false
     );
 
@@ -236,7 +245,8 @@ public final class MetaStoreFixture {
 
     final KsqlTopic ksqlTopic4 = new KsqlTopic(
         "test4",
-        valueSerdeFactory,
+        keyFormat,
+        valueFormat,
         false
     );
 

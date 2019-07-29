@@ -109,7 +109,7 @@ public class PersistentQueryMetadata extends QueryMetadata {
   }
 
   public Format getResultTopicFormat() {
-    return resultTopic.getValueSerdeFactory().getFormat();
+    return resultTopic.getValueFormat().getFormat();
   }
 
   public String getSchemasDescription() {

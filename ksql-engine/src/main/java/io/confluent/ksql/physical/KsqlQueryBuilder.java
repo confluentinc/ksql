@@ -17,6 +17,7 @@ package io.confluent.ksql.physical;
 
 import static java.util.Objects.requireNonNull;
 
+import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
@@ -25,7 +26,10 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.GenericRowSerDe;
+import io.confluent.ksql.serde.KsqlSerdeFactories;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
+import io.confluent.ksql.serde.SerdeFactories;
+import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.structured.QueryContext;
 import io.confluent.ksql.util.KsqlConfig;
@@ -41,6 +45,7 @@ public final class KsqlQueryBuilder {
   private final ServiceContext serviceContext;
   private final ProcessingLogContext processingLogContext;
   private final FunctionRegistry functionRegistry;
+  private final SerdeFactories serdeFactories;
   private final QueryId queryId;
   private final LinkedHashMap<String, PersistenceSchema> schemas = new LinkedHashMap<>();
 
@@ -58,17 +63,20 @@ public final class KsqlQueryBuilder {
         serviceContext,
         processingLogContext,
         functionRegistry,
-        queryId
+        queryId,
+        new KsqlSerdeFactories()
     );
   }
 
-  private KsqlQueryBuilder(
+  @VisibleForTesting
+  KsqlQueryBuilder(
       final StreamsBuilder streamsBuilder,
       final KsqlConfig ksqlConfig,
       final ServiceContext serviceContext,
       final ProcessingLogContext processingLogContext,
       final FunctionRegistry functionRegistry,
-      final QueryId queryId
+      final QueryId queryId,
+      final SerdeFactories serdeFactories
   ) {
     this.streamsBuilder = requireNonNull(streamsBuilder, "streamsBuilder");
     this.ksqlConfig = requireNonNull(ksqlConfig, "ksqlConfig");
@@ -76,6 +84,7 @@ public final class KsqlQueryBuilder {
     this.processingLogContext = requireNonNull(processingLogContext, "processingLogContext");
     this.functionRegistry = requireNonNull(functionRegistry, "functionRegistry");
     this.queryId = requireNonNull(queryId, "queryId");
+    this.serdeFactories = requireNonNull(serdeFactories, "serdeFactories");
   }
 
   public ProcessingLogContext getProcessingLogContext() {
@@ -119,13 +128,18 @@ public final class KsqlQueryBuilder {
   }
 
   public Serde<GenericRow> buildGenericRowSerde(
-      final KsqlSerdeFactory valueSerdeFactory,
+      final ValueFormat valueFormat,
       final PhysicalSchema schema,
       final QueryContext queryContext
   ) {
     final String loggerNamePrefix = QueryLoggerUtil.queryLoggerName(queryContext);
 
     track(loggerNamePrefix, schema.valueSchema());
+
+    final KsqlSerdeFactory valueSerdeFactory = serdeFactories.create(
+        valueFormat.getFormatInfo().getFormat(),
+        valueFormat.getFormatInfo().getAvroFullSchemaName()
+    );
 
     return GenericRowSerDe.from(
         valueSerdeFactory,

@@ -30,8 +30,8 @@ import io.confluent.ksql.physical.KsqlQueryBuilder;
 import io.confluent.ksql.schema.ksql.Field;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
-import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.streams.MaterializedFactory;
 import io.confluent.ksql.streams.StreamsUtil;
@@ -177,12 +177,12 @@ public class DataSourceNode
     final TimestampExtractor timestampExtractor = getTimestampExtractionPolicy()
         .create(timeStampColumnIndex);
 
-    final KsqlSerdeFactory valueSerdeFactory = getDataSource()
+    final ValueFormat valueFormat = getDataSource()
         .getKsqlTopic()
-        .getValueSerdeFactory();
+        .getValueFormat();
 
     final Serde<GenericRow> streamSerde = builder.buildGenericRowSerde(
-        valueSerdeFactory,
+        valueFormat,
         PhysicalSchema.from(
             dataSource.getSchema(),
             dataSource.getSerdeOptions()
@@ -195,7 +195,7 @@ public class DataSourceNode
       final QueryContext.Stacker reduceContextStacker = contextStacker.push(REDUCE_OP_NAME);
 
       final Serde<GenericRow> aggregateSerde = builder.buildGenericRowSerde(
-          valueSerdeFactory,
+          valueFormat,
           PhysicalSchema.from(schema, SerdeOption.none()),
           reduceContextStacker.getQueryContext()
       );

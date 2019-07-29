@@ -26,8 +26,10 @@ import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
-import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
+import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlException;
@@ -371,12 +373,12 @@ public class AuthorizationTopicAccessValidatorTest {
       final String streamName,
       final TopicDescription topicDescription
   ) {
-    final KsqlTopic sourceTopic =
-        new KsqlTopic(
-            topicDescription.name(),
-            new KsqlJsonSerdeFactory(),
-            false
-        );
+    final KsqlTopic sourceTopic = new KsqlTopic(
+        topicDescription.name(),
+        KeyFormat.nonWindowed(Format.KAFKA),
+        ValueFormat.of(Format.JSON),
+        false
+    );
 
     final KsqlStream<?> streamSource = new KsqlStream<>(
         "",

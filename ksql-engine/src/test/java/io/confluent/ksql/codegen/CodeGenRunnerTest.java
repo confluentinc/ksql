@@ -46,8 +46,10 @@ import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
-import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
+import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.util.ExpressionMetadata;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -154,7 +156,10 @@ public class CodeGenRunnerTest {
 
         final KsqlTopic ksqlTopic = new KsqlTopic(
             "codegen_test",
-            new KsqlJsonSerdeFactory(), false);
+            KeyFormat.nonWindowed(Format.KAFKA),
+            ValueFormat.of(Format.JSON),
+            false
+        );
 
         final KsqlStream ksqlStream = new KsqlStream<>(
             "sqlexpression",

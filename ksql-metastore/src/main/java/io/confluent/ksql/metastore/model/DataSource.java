@@ -18,7 +18,6 @@ package io.confluent.ksql.metastore.model;
 import io.confluent.ksql.metastore.SerdeFactory;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
-import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import java.util.Set;
@@ -83,11 +82,6 @@ public interface DataSource<K> {
    * @return the serde factory for the source.
    */
   SerdeFactory<K> getKeySerdeFactory();
-
-  /**
-   * @return the value format info.
-   */
-  KsqlSerdeFactory getValueSerdeFactory();
 
   /**
    * The timestamp extraction policy of the source.

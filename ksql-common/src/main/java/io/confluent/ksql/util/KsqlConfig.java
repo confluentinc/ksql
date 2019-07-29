@@ -63,6 +63,8 @@ public class KsqlConfig extends AbstractConfig {
 
   public static final String SCHEMA_REGISTRY_URL_PROPERTY = "ksql.schema.registry.url";
 
+  public static final String CONNECT_URL_PROPERTY = "ksql.connect.registry.url";
+
   public static final String KSQL_ENABLE_UDFS = "ksql.udfs.enabled";
 
   public static final String KSQL_EXT_DIR = "ksql.extension.dir";
@@ -154,8 +156,8 @@ public class KsqlConfig extends AbstractConfig {
       "Extension for supplying custom metrics to be emitted along with "
       + "the engine's default JMX metrics";
 
-  public static final String
-      defaultSchemaRegistryUrl = "http://localhost:8081";
+  public static final String DEFAULT_SCHEMA_REGISTRY_URL = "http://localhost:8081";
+  public static final String DEFAULT_CONNECT_URL = "http://localhost:8083";
 
   public static final String KSQL_STREAMS_PREFIX = "ksql.streams.";
 
@@ -425,9 +427,15 @@ public class KsqlConfig extends AbstractConfig {
         ).define(
             SCHEMA_REGISTRY_URL_PROPERTY,
             ConfigDef.Type.STRING,
-            defaultSchemaRegistryUrl,
+            DEFAULT_SCHEMA_REGISTRY_URL,
             ConfigDef.Importance.MEDIUM,
             "The URL for the schema registry, defaults to http://localhost:8081"
+        ).define(
+            CONNECT_URL_PROPERTY,
+            ConfigDef.Type.STRING,
+            DEFAULT_CONNECT_URL,
+            Importance.MEDIUM,
+            "The URL for the connect deployment, defaults to http://localhost:8083"
         ).define(
             KSQL_ENABLE_UDFS,
             ConfigDef.Type.BOOLEAN,

@@ -54,6 +54,11 @@ public class LazyServiceContext implements ServiceContext {
   }
 
   @Override
+  public ConnectClient getConnectClient() {
+    return serviceContextSupplier.get().getConnectClient();
+  }
+
+  @Override
   public void close() {
     serviceContextSupplier.get().close();
   }

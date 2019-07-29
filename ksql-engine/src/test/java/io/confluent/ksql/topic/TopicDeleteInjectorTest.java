@@ -19,6 +19,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -43,7 +44,6 @@ import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
-import io.confluent.ksql.util.KsqlException;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
@@ -165,7 +165,7 @@ public class TopicDeleteInjectorTest {
         "DROP SOMETHING", new DropStream(QualifiedName.of("SOMETHING_ELSE"), true, true));
 
     // Expect:
-    expectedException.expect(KsqlException.class);
+    expectedException.expect(RuntimeException.class);
     expectedException.expectMessage("Could not find source to delete topic for");
 
     // When:
@@ -210,13 +210,24 @@ public class TopicDeleteInjectorTest {
     when(metaStore.getAllDataSources()).thenReturn(sources);
 
     // Expect:
-    expectedException.expect(KsqlException.class);
+    expectedException.expect(RuntimeException.class);
     expectedException.expectMessage(
         "Refusing to delete topic. "
             + "Found other data sources (OTHER1, OTHER2) using topic something");
 
     // When:
     deleteInjector.inject(dropStatement);
+  }
+
+  @Test
+  public void shouldNotThrowIfSchemaIsMissing() throws IOException, RestClientException {
+    // Given:
+    when(source.getValueSerdeFactory()).thenReturn(new KsqlAvroSerdeFactory("foo"));
+    doThrow(new RestClientException("Subject not found.", 404, 40401))
+            .when(registryClient).deleteSubject("something" + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
+
+    // When:
+    deleteInjector.inject(DROP_WITH_DELETE_TOPIC);
   }
 
   private DataSource<?> givenSource(final String name, final String topicName) {
@@ -236,5 +247,4 @@ public class TopicDeleteInjectorTest {
         new KsqlConfig(ImmutableMap.of())
     );
   }
-
 }

@@ -16,6 +16,7 @@
 package io.confluent.ksql.services;
 
 import static org.easymock.EasyMock.anyObject;
+import static org.easymock.EasyMock.eq;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.mock;
@@ -115,7 +116,8 @@ public class KafkaTopicClientImplTest {
 
   @Test
   public void shouldCreateTopic() {
-    expect(adminClient.listTopics()).andReturn(getListTopicsResult());
+    expect(adminClient.describeTopics(eq(ImmutableList.of("test")), anyObject()))
+        .andStubReturn(describeTopicReturningUnknownPartitionException());
     expect(adminClient.createTopics(anyObject())).andReturn(getCreateTopicsResult());
     replay(adminClient);
 
@@ -126,7 +128,8 @@ public class KafkaTopicClientImplTest {
 
   @Test
   public void shouldUseExistingTopicWithTheSameSpecsInsteadOfCreate() {
-    expect(adminClient.listTopics()).andReturn(getListTopicsResult());
+    expect(adminClient.describeTopics(eq(ImmutableList.of(topicName1)), anyObject()))
+        .andReturn(getDescribeTopicsResult());
     expect(adminClient.describeTopics(anyObject(), anyObject()))
         .andReturn(getDescribeTopicsResult());
     replay(adminClient);
@@ -145,7 +148,8 @@ public class KafkaTopicClientImplTest {
     expect(adminClient.describeConfigs(describeBrokerRequest()))
         .andReturn(describeBrokerResult(Collections.emptyList()));
     expect(adminClient.createTopics(anyObject())).andReturn(getCreateTopicsResult());
-    expect(adminClient.listTopics()).andReturn(getListTopicsResult());
+    expect(adminClient.describeTopics(eq(ImmutableList.of(topicName1)), anyObject()))
+        .andReturn(getDescribeTopicsResult());
     expect(adminClient.describeTopics(anyObject(), anyObject()))
         .andReturn(getDescribeTopicsResult());
     replay(adminClient);
@@ -156,7 +160,8 @@ public class KafkaTopicClientImplTest {
 
   @Test
   public void shouldNotFailIfTopicAlreadyExistsButCreateUsesDefaultReplicas() {
-    expect(adminClient.listTopics()).andReturn(getListTopicsResult());
+    expect(adminClient.describeTopics(eq(ImmutableList.of(topicName1)), anyObject()))
+        .andReturn(getDescribeTopicsResult());
     expect(adminClient.describeTopics(anyObject(), anyObject()))
         .andReturn(getDescribeTopicsResult());
     replay(adminClient);
@@ -167,10 +172,9 @@ public class KafkaTopicClientImplTest {
 
   @Test
   public void shouldNotFailIfTopicAlreadyExistsWhenCreating() {
-    expect(adminClient.listTopics()).andReturn(getEmptyListTopicResult());
-    expect(adminClient.createTopics(anyObject()))
-        .andReturn(createTopicReturningTopicExistsException());
-    expect(adminClient.describeTopics(anyObject(), anyObject()))
+    expect(adminClient.describeTopics(eq(ImmutableList.of(topicName1)), anyObject()))
+        .andReturn(getDescribeTopicsResult());
+    expect(adminClient.describeTopics(eq(ImmutableList.of(topicName1)), anyObject()))
         .andReturn(getDescribeTopicsResult());
     replay(adminClient);
     final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
@@ -180,14 +184,15 @@ public class KafkaTopicClientImplTest {
 
   @Test
   public void shouldRetryDescribeTopicOnRetriableException() {
-    expect(adminClient.listTopics()).andReturn(getEmptyListTopicResult());
+    expect(adminClient.describeTopics(eq(ImmutableList.of(topicName1)), anyObject()))
+        .andReturn(describeTopicReturningUnknownPartitionException()).times(5);
     expect(adminClient.createTopics(anyObject()))
-        .andReturn(createTopicReturningTopicExistsException());
+        .andStubReturn(createTopicReturningTopicExistsException());
     expect(adminClient.describeTopics(anyObject(), anyObject()))
         .andReturn(describeTopicReturningUnknownPartitionException()).once();
     // The second time, return the right response.
     expect(adminClient.describeTopics(anyObject(), anyObject()))
-        .andReturn(getDescribeTopicsResult()).once();
+        .andStubReturn(getDescribeTopicsResult());
     replay(adminClient);
     final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
     kafkaTopicClient.createTopic(topicName1, 1, (short) 1);
@@ -368,7 +373,8 @@ public class KafkaTopicClientImplTest {
 
   @Test
   public void shouldSetTopicCleanupPolicyToCompact() {
-    expect(adminClient.listTopics()).andReturn(getEmptyListTopicResult());
+    expect(adminClient.describeTopics(eq(ImmutableList.of(topicName1)), anyObject()))
+        .andStubReturn(describeTopicReturningUnknownPartitionException());
 
     // Verify that the new topic configuration being passed to the admin client is what we expect.
     final NewTopic newTopic = new NewTopic(topicName1, 1, (short) 1);
@@ -493,7 +499,7 @@ public class KafkaTopicClientImplTest {
   private static DescribeTopicsResult describeTopicReturningUnknownPartitionException() {
     final DescribeTopicsResult describeTopicsResult = niceMock(DescribeTopicsResult.class);
     expect(describeTopicsResult.all())
-        .andReturn(failedFuture(new UnknownTopicOrPartitionException("Topic doesn't exist")));
+        .andStubReturn(failedFuture(new UnknownTopicOrPartitionException("Topic doesn't exist")));
     replay(describeTopicsResult);
     return describeTopicsResult;
   }
@@ -681,7 +687,7 @@ public class KafkaTopicClientImplTest {
     try {
       final KafkaFuture<T> future = mock(KafkaFuture.class);
       future.get();
-      expectLastCall().andThrow(new ExecutionException(cause));
+      expectLastCall().andStubThrow(new ExecutionException(cause));
       replay(future);
       return future;
     } catch (final Exception e) {

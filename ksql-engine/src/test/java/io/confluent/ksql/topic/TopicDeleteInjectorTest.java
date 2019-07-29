@@ -192,7 +192,6 @@ public class TopicDeleteInjectorTest {
   }
 
   @Test
-  @SuppressWarnings("unchecked")
   public void shouldThrowExceptionIfOtherSourcesUsingTopic() {
     // Given:
     final ConfiguredStatement<DropStream> dropStatement = givenStatement(
@@ -222,7 +221,7 @@ public class TopicDeleteInjectorTest {
   @Test
   public void shouldNotThrowIfSchemaIsMissing() throws IOException, RestClientException {
     // Given:
-    when(source.getValueSerdeFactory()).thenReturn(new KsqlAvroSerdeFactory("foo"));
+    when(topic.getValueFormat()).thenReturn(ValueFormat.of(Format.AVRO, Optional.of("foo")));
     doThrow(new RestClientException("Subject not found.", 404, 40401))
             .when(registryClient).deleteSubject("something" + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
 
@@ -230,7 +229,7 @@ public class TopicDeleteInjectorTest {
     deleteInjector.inject(DROP_WITH_DELETE_TOPIC);
   }
 
-  private DataSource<?> givenSource(final String name, final String topicName) {
+  private static DataSource<?> givenSource(final String name, final String topicName) {
     final DataSource source = mock(DataSource.class);
     when(source.getName()).thenReturn(name);
     when(source.getKafkaTopicName()).thenReturn(topicName);

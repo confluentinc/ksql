@@ -15,12 +15,12 @@
 
 package io.confluent.ksql.util.timestamp;
 
-import io.confluent.ksql.ddl.DdlConfig;
+import io.confluent.ksql.properties.with.CommonCreateConfigs;
+import io.confluent.ksql.schema.ksql.Field;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SqlBaseType;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
-import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
 
 public final class TimestampExtractionPolicyFactory {
 
@@ -43,31 +43,31 @@ public final class TimestampExtractionPolicyFactory {
             "The TIMESTAMP column set in the WITH clause does not exist in the schema: '"
                 + fieldName + "'"));
 
-    final Schema.Type timestampFieldType = timestampField.schema().type();
-    if (timestampFieldType == Schema.Type.STRING) {
+    final SqlBaseType timestampFieldType = timestampField.type().baseType();
+    if (timestampFieldType == SqlBaseType.STRING) {
 
       final String format = timestampFormat.orElseThrow(() -> new KsqlException(
           "A String timestamp field has been specified without"
               + " also specifying the "
-              + DdlConfig.TIMESTAMP_FORMAT_PROPERTY.toLowerCase()));
+              + CommonCreateConfigs.TIMESTAMP_FORMAT_PROPERTY.toLowerCase()));
 
       return new StringTimestampExtractionPolicy(fieldName, format);
     }
 
     if (timestampFormat.isPresent()) {
-      throw new KsqlException("'" + DdlConfig.TIMESTAMP_FORMAT_PROPERTY
+      throw new KsqlException("'" + CommonCreateConfigs.TIMESTAMP_FORMAT_PROPERTY
           + "' set in the WITH clause can only be used "
           + "when the timestamp column in of type STRING.");
     }
 
-    if (timestampFieldType == Schema.Type.INT64) {
+    if (timestampFieldType == SqlBaseType.BIGINT) {
       return new LongColumnTimestampExtractionPolicy(fieldName);
     }
 
     throw new KsqlException(
         "Timestamp column, " + timestampColumnName + ", should be LONG(INT64)"
             + " or a String with a "
-            + DdlConfig.TIMESTAMP_FORMAT_PROPERTY.toLowerCase()
+            + CommonCreateConfigs.TIMESTAMP_FORMAT_PROPERTY.toLowerCase()
             + " specified");
   }
 

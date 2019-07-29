@@ -36,7 +36,7 @@ public final class AvroUtil {
 
     final org.apache.avro.Schema avroSchema = SchemaUtil.buildAvroSchema(
         queryMetadata.getPhysicalSchema().valueSchema(),
-        queryMetadata.getResultTopic().getKsqlTopicName()
+        queryMetadata.getSinkName()
     );
 
     final String topicName = queryMetadata.getResultTopic().getKafkaTopicName();

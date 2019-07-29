@@ -19,6 +19,7 @@ import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.parser.tree.ArithmeticUnaryExpression;
+import io.confluent.ksql.parser.tree.AstNode;
 import io.confluent.ksql.parser.tree.BetweenPredicate;
 import io.confluent.ksql.parser.tree.Cast;
 import io.confluent.ksql.parser.tree.ComparisonExpression;
@@ -64,15 +65,13 @@ import io.confluent.ksql.parser.tree.WhenClause;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.parser.tree.WithinExpression;
 import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
 
 /**
  * This class will create a new AST given the input AST. The new AST is exactly the clone of
- * the imput one. If you want to rewrite a query by changing the AST you can inherit from this
+ * the input one. If you want to rewrite a query by changing the AST you can inherit from this
  * class and implemet the changes for the nodes you need. The newly generated tree will include
  * your changes and the rest of the tree will remain the same.
  *
@@ -84,11 +83,11 @@ import java.util.stream.Collectors;
 public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
-  protected Node visitExpression(final Expression node, final Object context) {
+  protected Expression visitExpression(final Expression node, final Object context) {
     return node;
   }
 
-  protected Node visitArithmeticBinary(
+  public Expression visitArithmeticBinary(
       final ArithmeticBinaryExpression node,
       final Object context
   ) {
@@ -102,7 +101,7 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
         rewrittenRight);
   }
 
-  protected Node visitBetweenPredicate(final BetweenPredicate node, final Object context) {
+  public Expression visitBetweenPredicate(final BetweenPredicate node, final Object context) {
     return new BetweenPredicate(
         node.getLocation(),
         (Expression) process(node.getValue(), context),
@@ -110,7 +109,9 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
         (Expression) process(node.getMax(), context));
   }
 
-  protected Node visitComparisonExpression(final ComparisonExpression node, final Object context) {
+  public Expression visitComparisonExpression(
+      final ComparisonExpression node,
+      final Object context) {
     return new ComparisonExpression(
         node.getLocation(),
         node.getType(),
@@ -118,7 +119,7 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
         (Expression) process(node.getRight(), context));
   }
 
-  protected Node visitStatements(final Statements node, final Object context) {
+  protected AstNode visitStatements(final Statements node, final Object context) {
     final List<Statement> rewrittenStatements = node.getStatements()
         .stream()
         .map(s -> (Statement) process(s, context))
@@ -159,7 +160,7 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
     );
   }
 
-  protected Node visitSelect(final Select node, final Object context) {
+  protected AstNode visitSelect(final Select node, final Object context) {
     final List<SelectItem> rewrittenItems = node.getSelectItems()
         .stream()
         .map(selectItem -> (SelectItem) process(selectItem, context))
@@ -171,7 +172,7 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
     );
   }
 
-  protected Node visitWhenClause(final WhenClause node, final Object context) {
+  public Expression visitWhenClause(final WhenClause node, final Object context) {
     return new WhenClause(
         node.getLocation(),
         (Expression) process(node.getOperand(), context),
@@ -179,7 +180,7 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
     );
   }
 
-  protected Node visitInPredicate(final InPredicate node, final Object context) {
+  public Expression visitInPredicate(final InPredicate node, final Object context) {
     return new InPredicate(
         node.getLocation(),
         (Expression) process(node.getValue(), context),
@@ -187,7 +188,7 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
     );
   }
 
-  protected Node visitFunctionCall(final FunctionCall node, final Object context) {
+  public Expression visitFunctionCall(final FunctionCall node, final Object context) {
     final List<Expression> rewrittenArgs = node.getArguments()
         .stream()
         .map(arg -> (Expression) process(arg, context))
@@ -200,7 +201,9 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
     );
   }
 
-  protected Node visitSimpleCaseExpression(final SimpleCaseExpression node, final Object context) {
+  public Expression visitSimpleCaseExpression(
+      final SimpleCaseExpression node,
+      final Object context) {
     final Expression operand = (Expression) process(node.getOperand(), context);
 
     final List<WhenClause> when = node.getWhenClauses().stream()
@@ -218,7 +221,7 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
       );
   }
 
-  protected Node visitInListExpression(final InListExpression node, final Object context) {
+  public Expression visitInListExpression(final InListExpression node, final Object context) {
     final List<Expression> rewrittenExpressions = node.getValues().stream()
         .map(value -> (Expression) process(value, context))
         .collect(Collectors.toList());
@@ -226,14 +229,14 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
     return new InListExpression(node.getLocation(), rewrittenExpressions);
   }
 
-  protected Node visitQualifiedNameReference(
+  public Expression visitQualifiedNameReference(
       final QualifiedNameReference node,
       final Object context
   ) {
     return node;
   }
 
-  protected Node visitDereferenceExpression(
+  public Expression visitDereferenceExpression(
       final DereferenceExpression node,
       final Object context
   ) {
@@ -244,11 +247,13 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
     );
   }
 
-  protected Node visitLiteral(final Literal node, final Object context) {
+  public Expression visitLiteral(final Literal node, final Object context) {
     return node;
   }
 
-  protected Node visitArithmeticUnary(final ArithmeticUnaryExpression node, final Object context) {
+  public Expression visitArithmeticUnary(
+      final ArithmeticUnaryExpression node,
+      final Object context) {
     final Expression rewrittenExpression = (Expression) process(node.getValue(), context);
 
     return new ArithmeticUnaryExpression(
@@ -258,22 +263,22 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
     );
   }
 
-  protected Node visitNotExpression(final NotExpression node, final Object context) {
+  public Expression visitNotExpression(final NotExpression node, final Object context) {
     return new NotExpression(
         node.getLocation(),
         (Expression) process(node.getValue(), context)
     );
   }
 
-  protected Node visitSingleColumn(final SingleColumn node, final Object context) {
+  protected AstNode visitSingleColumn(final SingleColumn node, final Object context) {
     return node.copyWithExpression((Expression) process(node.getExpression(), context));
   }
 
-  protected Node visitAllColumns(final AllColumns node, final Object context) {
+  protected AstNode visitAllColumns(final AllColumns node, final Object context) {
     return node;
   }
 
-  protected Node visitSearchedCaseExpression(
+  public Expression visitSearchedCaseExpression(
       final SearchedCaseExpression node,
       final Object context
   ) {
@@ -291,7 +296,7 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
     );
   }
 
-  protected Node visitLikePredicate(final LikePredicate node, final Object context) {
+  public Expression visitLikePredicate(final LikePredicate node, final Object context) {
     return new LikePredicate(
         node.getLocation(),
         (Expression) process(node.getValue(), context),
@@ -299,21 +304,23 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
       );
   }
 
-  protected Node visitIsNotNullPredicate(final IsNotNullPredicate node, final Object context) {
+  public Expression visitIsNotNullPredicate(final IsNotNullPredicate node, final Object context) {
     return new IsNotNullPredicate(
         node.getLocation(),
         (Expression) process(node.getValue(), context)
     );
   }
 
-  protected Node visitIsNullPredicate(final IsNullPredicate node, final Object context) {
+  public Expression visitIsNullPredicate(final IsNullPredicate node, final Object context) {
     return new IsNullPredicate(
         node.getLocation(),
         (Expression) process(node.getValue(), context)
     );
   }
 
-  protected Node visitSubscriptExpression(final SubscriptExpression node, final Object context) {
+  public Expression visitSubscriptExpression(
+      final SubscriptExpression node,
+      final Object context) {
     return new SubscriptExpression(
         node.getLocation(),
         (Expression) process(node.getBase(), context),
@@ -321,7 +328,7 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
     );
   }
 
-  protected Node visitLogicalBinaryExpression(
+  public Expression visitLogicalBinaryExpression(
       final LogicalBinaryExpression node,
       final Object context
   ) {
@@ -333,11 +340,11 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
     );
   }
 
-  protected Node visitTable(final Table node, final Object context) {
+  protected AstNode visitTable(final Table node, final Object context) {
     return node;
   }
 
-  protected Node visitAliasedRelation(final AliasedRelation node, final Object context) {
+  protected AstNode visitAliasedRelation(final AliasedRelation node, final Object context) {
     final Relation rewrittenRelation = (Relation) process(node.getRelation(), context);
 
     return new AliasedRelation(
@@ -346,7 +353,7 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
         node.getAlias());
   }
 
-  protected Node visitJoin(final Join node, final Object context) {
+  protected AstNode visitJoin(final Join node, final Object context) {
     final Relation rewrittenLeft = (Relation) process(node.getLeft(), context);
     final Relation rewrittenRight = (Relation) process(node.getRight(), context);
     final Optional<WithinExpression> rewrittenWithin = node.getWithinExpression()
@@ -362,31 +369,33 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
   }
 
   @Override
-  protected Node visitWithinExpression(final WithinExpression node, final Object context) {
+  protected AstNode visitWithinExpression(final WithinExpression node, final Object context) {
     return node;
   }
 
-  protected Node visitCast(final Cast node, final Object context) {
+  public Expression visitCast(final Cast node, final Object context) {
     final Expression expression = (Expression) process(node.getExpression(), context);
     return new Cast(node.getLocation(), expression, node.getType());
   }
 
-  protected Node visitWindowExpression(final WindowExpression node, final Object context) {
+  protected AstNode visitWindowExpression(final WindowExpression node, final Object context) {
     return new WindowExpression(
           node.getLocation(),
           node.getWindowName(),
           (KsqlWindowExpression) process(node.getKsqlWindowExpression(), context));
   }
 
-  protected Node visitKsqlWindowExpression(final KsqlWindowExpression node, final Object context) {
+  protected AstNode visitKsqlWindowExpression(
+      final KsqlWindowExpression node,
+      final Object context) {
     return node;
   }
 
-  protected Node visitTableElement(final TableElement node, final Object context) {
+  protected AstNode visitTableElement(final TableElement node, final Object context) {
     return node;
   }
 
-  protected Node visitCreateStream(final CreateStream node, final Object context) {
+  protected AstNode visitCreateStream(final CreateStream node, final Object context) {
     final List<TableElement> rewrittenElements = node.getElements().stream()
         .map(tableElement -> (TableElement) process(tableElement, context))
         .collect(Collectors.toList());
@@ -394,26 +403,23 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
     return node.copyWith(TableElements.of(rewrittenElements), node.getProperties());
   }
 
-  protected Node visitCreateStreamAsSelect(final CreateStreamAsSelect node, final Object context) {
+  protected AstNode visitCreateStreamAsSelect(
+      final CreateStreamAsSelect node,
+      final Object context) {
+    final Optional<Expression> partitionBy = node.getPartitionByColumn()
+        .map(exp -> (Expression) process(exp,context));
+
     return new CreateStreamAsSelect(
         node.getLocation(),
         node.getName(),
         (Query) process(node.getQuery(), context),
         node.isNotExists(),
-        node.getProperties().entrySet().stream()
-            .collect(Collectors.toMap(
-                Map.Entry::getKey,
-                e -> (Literal) process(e.getValue(), context)
-            )),
-        node.getPartitionByColumn().isPresent()
-            ? Optional.ofNullable(
-            (Expression) process(node.getPartitionByColumn().get(),
-                context))
-            : Optional.empty()
+        node.getProperties(),
+        partitionBy
     );
   }
 
-  protected Node visitCreateTable(final CreateTable node, final Object context) {
+  protected AstNode visitCreateTable(final CreateTable node, final Object context) {
     final List<TableElement> rewrittenElements = node.getElements().stream()
         .map(tableElement -> (TableElement) process(tableElement, context))
         .collect(Collectors.toList());
@@ -421,19 +427,19 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
     return node.copyWith(TableElements.of(rewrittenElements), node.getProperties());
   }
 
-  protected Node visitCreateTableAsSelect(final CreateTableAsSelect node, final Object context) {
-    return new CreateTableAsSelect(node.getLocation(),
+  protected AstNode visitCreateTableAsSelect(
+      final CreateTableAsSelect node,
+      final Object context) {
+    return new CreateTableAsSelect(
+        node.getLocation(),
         node.getName(),
         (Query) process(node.getQuery(), context),
         node.isNotExists(),
-        node.getProperties().entrySet().stream()
-            .collect(Collectors.toMap(
-                Entry::getKey,
-                e -> (Literal) process(e.getValue(), context)
-            )));
+        node.getProperties()
+    );
   }
 
-  protected Node visitInsertInto(final InsertInto node, final Object context) {
+  protected AstNode visitInsertInto(final InsertInto node, final Object context) {
     final Optional<Expression> rewrittenPartitionBy = node.getPartitionByColumn()
         .map(exp -> (Expression) process(exp, context));
 
@@ -444,11 +450,11 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
         rewrittenPartitionBy);
   }
 
-  protected Node visitDropTable(final DropTable node, final Object context) {
+  protected AstNode visitDropTable(final DropTable node, final Object context) {
     return node;
   }
 
-  protected Node visitGroupBy(final GroupBy node, final Object context) {
+  protected AstNode visitGroupBy(final GroupBy node, final Object context) {
     final List<GroupingElement> rewrittenGroupings = node.getGroupingElements().stream()
         .map(groupingElement -> (GroupingElement) process(groupingElement, context))
         .collect(Collectors.toList());
@@ -456,7 +462,7 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
     return new GroupBy(node.getLocation(), rewrittenGroupings);
   }
 
-  protected Node visitSimpleGroupBy(final SimpleGroupBy node, final Object context) {
+  protected AstNode visitSimpleGroupBy(final SimpleGroupBy node, final Object context) {
     final List<Expression> columns = node.getColumns().stream()
         .map(ce -> (Expression) process(ce, context))
         .collect(Collectors.toList());

@@ -65,6 +65,7 @@ import org.apache.kafka.common.config.ConfigResource;
 import org.apache.kafka.common.config.TopicConfig;
 import org.apache.kafka.common.errors.DisconnectException;
 import org.apache.kafka.common.errors.NotControllerException;
+import org.apache.kafka.common.errors.TopicDeletionDisabledException;
 import org.apache.kafka.common.errors.TopicExistsException;
 import org.apache.kafka.common.errors.UnknownTopicOrPartitionException;
 import org.apache.kafka.common.errors.UnsupportedVersionException;
@@ -239,9 +240,6 @@ public class KafkaTopicClientImplTest {
 
   @Test
   public void shouldDeleteTopics() {
-    expect(adminClient.describeCluster()).andReturn(describeClusterResult());
-    expect(adminClient.describeConfigs(describeBrokerRequest()))
-        .andReturn(describeBrokerResult(Collections.emptyList()));
     expect(adminClient.deleteTopics(anyObject())).andReturn(getDeleteTopicsResult());
     replay(adminClient);
     final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
@@ -264,9 +262,6 @@ public class KafkaTopicClientImplTest {
 
   @Test
   public void shouldDeleteInternalTopics() {
-    expect(adminClient.describeCluster()).andReturn(describeClusterResult());
-    expect(adminClient.describeConfigs(describeBrokerRequest()))
-        .andReturn(describeBrokerResult(Collections.emptyList()));
     expect(adminClient.listTopics()).andReturn(getListTopicsResultWithInternalTopics());
     expect(adminClient.deleteTopics(Arrays.asList(internalTopic2, internalTopic1)))
         .andReturn(getDeleteInternalTopicsResult());
@@ -280,47 +275,14 @@ public class KafkaTopicClientImplTest {
   }
 
   @Test
-  public void shouldDeleteTopicsIfDeleteTopicEnableTrue() {
+  public void shouldDeleteTopicThrowOnTopicDeletionDisabledException() {
     // Given:
-    givenDeleteTopicEnableTrue();
-    expect(adminClient.deleteTopics(anyObject())).andReturn(getDeleteTopicsResult());
+    expect(adminClient.deleteTopics(anyObject())).andReturn(getTopicDeletionDisableException());
     replay(adminClient);
     final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
 
     // When:
     kafkaTopicClient.deleteTopics(Collections.singletonList(topicName2));
-
-    // Then:
-    verify(adminClient);
-  }
-
-  @Test
-  public void shouldDeleteTopicsIfBrokerDoesNotReturnValueForDeleteTopicEnable() {
-    // Given:
-    givenDeleteTopicEnableNotReturnedByBroker();
-    expect(adminClient.deleteTopics(anyObject())).andReturn(getDeleteTopicsResult());
-    replay(adminClient);
-    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
-
-    // When:
-    kafkaTopicClient.deleteTopics(Collections.singletonList(topicName2));
-
-    // Then:
-    verify(adminClient);
-  }
-
-  @Test
-  public void shouldNotDeleteTopicIfDeleteTopicEnableFalse() {
-    // Given:
-    givenDeleteTopicEnableFalse();
-    replay(adminClient);
-    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
-
-    // When:
-    kafkaTopicClient.deleteTopics(Collections.singletonList(topicName2));
-
-    // Then:
-    verify(adminClient);
   }
 
   @Test
@@ -597,29 +559,23 @@ public class KafkaTopicClientImplTest {
     return Collections.singleton(new ConfigResource(ConfigResource.Type.BROKER, node.idString()));
   }
 
-  private void givenDeleteTopicEnableTrue() {
-    reset(adminClient);
-    expect(adminClient.describeCluster()).andReturn(describeClusterResult());
+  private DeleteTopicsResult getTopicDeletionDisableException() {
+    final DeleteTopicsResult deleteTopicsResult = mock(DeleteTopicsResult.class);
+    final KafkaFuture<Void> kafkaFuture = mock(KafkaFuture.class);
 
-    final ConfigEntry configEntryDeleteEnable = new ConfigEntry("delete.topic.enable", "true");
-    expect(adminClient.describeConfigs(describeBrokerRequest()))
-        .andReturn(describeBrokerResult(Collections.singletonList(configEntryDeleteEnable)));
-  }
+    try {
+      expect(kafkaFuture.get()).andThrow(
+          new TopicDeletionDisabledException("Topic deletion is disabled")
+      );
+    } catch (final Exception e) {
+      // this should not happen in the test
+    }
 
-  private void givenDeleteTopicEnableFalse() {
-    reset(adminClient);
-    expect(adminClient.describeCluster()).andReturn(describeClusterResult());
+    expect(deleteTopicsResult.values())
+        .andReturn(Collections.singletonMap(topicName1, kafkaFuture));
 
-    final ConfigEntry configEntryDeleteEnable = new ConfigEntry("delete.topic.enable", "false");
-    expect(adminClient.describeConfigs(describeBrokerRequest()))
-        .andReturn(describeBrokerResult(Collections.singletonList(configEntryDeleteEnable)));
-  }
-
-  private void givenDeleteTopicEnableNotReturnedByBroker() {
-    reset(adminClient);
-    expect(adminClient.describeCluster()).andReturn(describeClusterResult());
-    expect(adminClient.describeConfigs(describeBrokerRequest()))
-        .andReturn(describeBrokerResult(Collections.emptyList()));
+    replay(deleteTopicsResult);
+    return deleteTopicsResult;
   }
 
   private DescribeConfigsResult describeBrokerResult(final List<ConfigEntry> brokerConfigs) {

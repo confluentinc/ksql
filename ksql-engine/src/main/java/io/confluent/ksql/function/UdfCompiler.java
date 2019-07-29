@@ -30,9 +30,11 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.AnnotatedParameterizedType;
+import java.lang.reflect.GenericArrayType;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.lang.reflect.TypeVariable;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -150,15 +152,15 @@ public class UdfCompiler {
               UdfArgSupplier.class, new String[]{"args", "returnType", "metrics"});
 
       final Schema argSchema = paramSchema.isEmpty()
-          ? SchemaUtil.getSchemaFromType(valueAndAggregateTypes.left)
-          : SchemaConverters.sqlToLogicalConverter()
-              .fromSqlType(TypeContextUtil.getType(paramSchema).getSqlType());
+          ? UdfUtil.getSchemaFromType(valueAndAggregateTypes.left)
+          : SchemaConverters.sqlToConnectConverter()
+              .toConnectSchema(TypeContextUtil.getType(paramSchema).getSqlType());
       final List<Schema> args = Collections.singletonList(argSchema);
 
       final Schema returnValue = returnSchema.isEmpty()
-          ? SchemaUtil.ensureOptional(SchemaUtil.getSchemaFromType(valueAndAggregateTypes.right))
-          : SchemaConverters.sqlToLogicalConverter()
-              .fromSqlType(TypeContextUtil.getType(returnSchema).getSqlType());
+          ? SchemaUtil.ensureOptional(UdfUtil.getSchemaFromType(valueAndAggregateTypes.right))
+          : SchemaConverters.sqlToConnectConverter()
+              .toConnectSchema(TypeContextUtil.getType(returnSchema).getSqlType());
 
       return evaluator.apply(args, returnValue, metrics);
     } catch (final Exception e) {
@@ -270,21 +272,29 @@ public class UdfCompiler {
    */
   private static String generateCode(final Method method) {
     validateMethodSignature(method);
-    Arrays.stream(method.getParameterTypes())
-        .filter(type -> !UdfCompiler.isTypeSupported(type, SUPPORTED_UDF_TYPES))
-        .findFirst()
-        .ifPresent(type -> {
-          throw new KsqlException(
-              String.format(
-                  "Type %s is not supported by UDF methods. "
-                      + "Supported types %s. method=%s, class=%s",
-                  type,
-                  SUPPORTED_UDAF_TYPES,
-                  method.getName(),
-                  method.getDeclaringClass()
-              )
-          );
-        });
+    final Class<?>[] types = method.getParameterTypes();
+    for (int i = 0; i < types.length; i++) {
+      final Class<?> type = types[i];
+
+      if (method.getGenericParameterTypes()[i] instanceof TypeVariable
+          || method.getGenericParameterTypes()[i] instanceof GenericArrayType) {
+        // this is the case where the type parameter is generic
+        continue;
+      }
+
+      if (!UdfCompiler.isTypeSupported(type, SUPPORTED_UDF_TYPES)) {
+        throw new KsqlException(
+            String.format(
+                "Type %s is not supported by UDF methods. "
+                    + "Supported types %s. method=%s, class=%s",
+                type,
+                SUPPORTED_UDAF_TYPES,
+                method.getName(),
+                method.getDeclaringClass()
+            )
+        );
+      }
+    }
 
     return UdfTemplate.generateCode(method, "thiz");
   }

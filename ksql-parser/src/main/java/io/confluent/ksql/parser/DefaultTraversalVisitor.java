@@ -22,7 +22,6 @@ import io.confluent.ksql.parser.tree.AstVisitor;
 import io.confluent.ksql.parser.tree.BetweenPredicate;
 import io.confluent.ksql.parser.tree.Cast;
 import io.confluent.ksql.parser.tree.ComparisonExpression;
-import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.FunctionCall;
@@ -61,12 +60,12 @@ public abstract class DefaultTraversalVisitor<R, C>
   }
 
   @Override
-  protected R visitCast(final Cast node, final C context) {
+  public R visitCast(final Cast node, final C context) {
     return process(node.getExpression(), context);
   }
 
   @Override
-  protected R visitArithmeticBinary(final ArithmeticBinaryExpression node, final C context) {
+  public R visitArithmeticBinary(final ArithmeticBinaryExpression node, final C context) {
     process(node.getLeft(), context);
     process(node.getRight(), context);
 
@@ -74,7 +73,7 @@ public abstract class DefaultTraversalVisitor<R, C>
   }
 
   @Override
-  protected R visitBetweenPredicate(final BetweenPredicate node, final C context) {
+  public R visitBetweenPredicate(final BetweenPredicate node, final C context) {
     process(node.getValue(), context);
     process(node.getMin(), context);
     process(node.getMax(), context);
@@ -83,7 +82,7 @@ public abstract class DefaultTraversalVisitor<R, C>
   }
 
   @Override
-  protected R visitSubscriptExpression(final SubscriptExpression node, final C context) {
+  public R visitSubscriptExpression(final SubscriptExpression node, final C context) {
     process(node.getBase(), context);
     process(node.getIndex(), context);
 
@@ -91,7 +90,7 @@ public abstract class DefaultTraversalVisitor<R, C>
   }
 
   @Override
-  protected R visitComparisonExpression(final ComparisonExpression node, final C context) {
+  public R visitComparisonExpression(final ComparisonExpression node, final C context) {
     process(node.getLeft(), context);
     process(node.getRight(), context);
 
@@ -132,7 +131,7 @@ public abstract class DefaultTraversalVisitor<R, C>
   }
 
   @Override
-  protected R visitWhenClause(final WhenClause node, final C context) {
+  public R visitWhenClause(final WhenClause node, final C context) {
     process(node.getOperand(), context);
     process(node.getResult(), context);
 
@@ -140,7 +139,7 @@ public abstract class DefaultTraversalVisitor<R, C>
   }
 
   @Override
-  protected R visitInPredicate(final InPredicate node, final C context) {
+  public R visitInPredicate(final InPredicate node, final C context) {
     process(node.getValue(), context);
     process(node.getValueList(), context);
 
@@ -148,7 +147,7 @@ public abstract class DefaultTraversalVisitor<R, C>
   }
 
   @Override
-  protected R visitFunctionCall(final FunctionCall node, final C context) {
+  public R visitFunctionCall(final FunctionCall node, final C context) {
     for (final Expression argument : node.getArguments()) {
       process(argument, context);
     }
@@ -157,13 +156,13 @@ public abstract class DefaultTraversalVisitor<R, C>
   }
 
   @Override
-  protected R visitDereferenceExpression(final DereferenceExpression node, final C context) {
+  public R visitDereferenceExpression(final DereferenceExpression node, final C context) {
     process(node.getBase(), context);
     return null;
   }
 
   @Override
-  protected R visitSimpleCaseExpression(final SimpleCaseExpression node, final C context) {
+  public R visitSimpleCaseExpression(final SimpleCaseExpression node, final C context) {
     process(node.getOperand(), context);
     for (final WhenClause clause : node.getWhenClauses()) {
       process(clause, context);
@@ -176,7 +175,7 @@ public abstract class DefaultTraversalVisitor<R, C>
   }
 
   @Override
-  protected R visitInListExpression(final InListExpression node, final C context) {
+  public R visitInListExpression(final InListExpression node, final C context) {
     for (final Expression value : node.getValues()) {
       process(value, context);
     }
@@ -185,17 +184,17 @@ public abstract class DefaultTraversalVisitor<R, C>
   }
 
   @Override
-  protected R visitArithmeticUnary(final ArithmeticUnaryExpression node, final C context) {
+  public R visitArithmeticUnary(final ArithmeticUnaryExpression node, final C context) {
     return process(node.getValue(), context);
   }
 
   @Override
-  protected R visitNotExpression(final NotExpression node, final C context) {
+  public R visitNotExpression(final NotExpression node, final C context) {
     return process(node.getValue(), context);
   }
 
   @Override
-  protected R visitSearchedCaseExpression(final SearchedCaseExpression node, final C context) {
+  public R visitSearchedCaseExpression(final SearchedCaseExpression node, final C context) {
     for (final WhenClause clause : node.getWhenClauses()) {
       process(clause, context);
     }
@@ -206,24 +205,24 @@ public abstract class DefaultTraversalVisitor<R, C>
   }
 
   @Override
-  protected R visitLikePredicate(final LikePredicate node, final C context) {
+  public R visitLikePredicate(final LikePredicate node, final C context) {
     process(node.getValue(), context);
     process(node.getPattern(), context);
     return null;
   }
 
   @Override
-  protected R visitIsNotNullPredicate(final IsNotNullPredicate node, final C context) {
+  public R visitIsNotNullPredicate(final IsNotNullPredicate node, final C context) {
     return process(node.getValue(), context);
   }
 
   @Override
-  protected R visitIsNullPredicate(final IsNullPredicate node, final C context) {
+  public R visitIsNullPredicate(final IsNullPredicate node, final C context) {
     return process(node.getValue(), context);
   }
 
   @Override
-  protected R visitLogicalBinaryExpression(final LogicalBinaryExpression node, final C context) {
+  public R visitLogicalBinaryExpression(final LogicalBinaryExpression node, final C context) {
     process(node.getLeft(), context);
     process(node.getRight(), context);
 
@@ -273,14 +272,6 @@ public abstract class DefaultTraversalVisitor<R, C>
     for (final Expression expression : node.getColumns()) {
       process(expression, context);
     }
-
-    return null;
-  }
-
-  @Override
-  protected R visitCreateTableAsSelect(final CreateTableAsSelect node, final C context) {
-    process(node.getQuery(), context);
-    node.getProperties().values().forEach(expression -> process(expression, context));
 
     return null;
   }

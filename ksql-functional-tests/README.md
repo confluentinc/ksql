@@ -23,12 +23,12 @@ of KSQL (for which expected topology files exist).
 `QueryTranslationTest` supports running a subset of test files, for example following example:
 
 ```
-mvn test -pl ksql-functional-tests -Dtest=QueryTranslationTest -DtestFile=sum.json
+mvn test -pl ksql-functional-tests -Dtest=QueryTranslationTest -Dksql.test.files=sum.json
 ```
 
 or
 ```
-mvn test -pl ksql-functional-tests -Dtest=QueryTranslationTest -DtestFile=sum.json,substring.json
+mvn test -pl ksql-functional-tests -Dtest=QueryTranslationTest -Dksql.test.files=sum.json,substring.json
 ```
 
 The above commands can execute only a single test (sum.json) or multiple tests (sum.json and substring.json).

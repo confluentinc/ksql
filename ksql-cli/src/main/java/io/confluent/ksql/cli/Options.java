@@ -73,8 +73,7 @@ public class Options {
               + PASSWORD_SHORT_OPTION
               + "/"
               + PASSWORD_OPTION
-              + " flag",
-      hidden = true)
+              + " flag")
   private String userName;
 
   @SuppressWarnings("unused") // Accessed via reflection
@@ -86,8 +85,7 @@ public class Options {
               + USERNAME_SHORT_OPTION
               + "/"
               + USERNAME_OPTION
-              + " flag",
-      hidden = true)
+              + " flag")
   private String password;
 
   @SuppressWarnings("unused") // Accessed via reflection

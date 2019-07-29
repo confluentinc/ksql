@@ -25,11 +25,9 @@ import static org.junit.Assert.assertEquals;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.json.JsonMapper;
-import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.util.KafkaConsumerGroupClient;
 import io.confluent.ksql.util.KafkaConsumerGroupClientImpl;
 import io.confluent.ksql.util.KsqlConfig;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -45,7 +43,6 @@ public class KafkaTopicsListTest {
   @Test
   public void shouldBuildValidTopicList() {
 
-    final Collection<KsqlTopic> ksqlTopics = Collections.emptyList();
     // represent the full list of topics
     final Map<String, TopicDescription> topicDescriptions = new HashMap<>();
     final TopicPartitionInfo topicPartitionInfo = new TopicPartitionInfo(1, new Node(1, "", 8088),
@@ -53,9 +50,6 @@ public class KafkaTopicsListTest {
     topicDescriptions.put("test-topic", new TopicDescription("test-topic", false, Collections.singletonList(topicPartitionInfo)));
 
 
-    /**
-     * Return POJO for consumerGroupClient
-     */
     final TopicPartition topicPartition = new TopicPartition("test-topic", 1);
     final KafkaConsumerGroupClientImpl.ConsumerSummary consumerSummary = new KafkaConsumerGroupClientImpl.ConsumerSummary("consumer-id");
     consumerSummary.addPartition(topicPartition);
@@ -70,11 +64,7 @@ public class KafkaTopicsListTest {
     expect(consumerGroupClient.describeConsumerGroup("test-topic")).andReturn(consumerGroupSummary);
     replay(consumerGroupClient);
 
-    /**
-     * Test
-     */
-
-    final KafkaTopicsList topicsList = KafkaTopicsList.build("statement test", ksqlTopics, topicDescriptions, new KsqlConfig(Collections.EMPTY_MAP), consumerGroupClient);
+    final KafkaTopicsList topicsList = KafkaTopicsList.build("statement test", topicDescriptions, new KsqlConfig(Collections.EMPTY_MAP), consumerGroupClient);
 
     assertThat(topicsList.getTopics().size(), equalTo(1));
     final KafkaTopicInfo first = topicsList.getTopics().iterator().next();
@@ -89,14 +79,16 @@ public class KafkaTopicsListTest {
     final ObjectMapper mapper = JsonMapper.INSTANCE.mapper;
     final KafkaTopicsList expected = new KafkaTopicsList(
         "SHOW TOPICS;",
-        ImmutableList.of(new KafkaTopicInfo("thetopic", true, ImmutableList.of(1, 2, 3), 42, 12))
+        ImmutableList.of(new KafkaTopicInfo("thetopic", ImmutableList.of(1, 2, 3), 42, 12))
     );
     final String json = mapper.writeValueAsString(expected);
     assertEquals(
-        "{\"@type\":\"kafka_topics\",\"statementText\":\"SHOW TOPICS;\"," +
-        "\"topics\":[{\"name\":\"thetopic\",\"registered\":true," +
-        "\"replicaInfo\":[1,2,3],\"consumerCount\":42," +
-        "\"consumerGroupCount\":12}]}",
+        "{"
+            + "\"@type\":\"kafka_topics\","
+            + "\"statementText\":\"SHOW TOPICS;\","
+            + "\"topics\":["
+            + "{\"name\":\"thetopic\",\"replicaInfo\":[1,2,3],\"consumerCount\":42,\"consumerGroupCount\":12}"
+            + "],\"warnings\":[]}",
         json);
 
     final KafkaTopicsList actual = mapper.readValue(json, KafkaTopicsList.class);

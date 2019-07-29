@@ -27,7 +27,7 @@ import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.kstream.Windowed;
 
 @Immutable
-public abstract class KsqlWindowExpression extends Node {
+public abstract class KsqlWindowExpression extends AstNode {
 
   KsqlWindowExpression(final Optional<NodeLocation> location) {
     super(location);

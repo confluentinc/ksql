@@ -31,6 +31,10 @@ public class UdfIndexTest {
   private static final Schema MAP1 = SchemaBuilder.map(STRING, STRING).build();
   private static final Schema MAP2 = SchemaBuilder.map(STRING, INT).build();
 
+  private static final Schema GENERIC_LIST = GenericsUtil.array("T").build();
+  private static final Schema STRING_LIST = SchemaBuilder.array(STRING).build();
+  private static final Schema INT_LIST = SchemaBuilder.array(INT).build();
+
   private static final String EXPECTED = "expected";
   private static final String OTHER = "other";
 
@@ -419,6 +423,85 @@ public class UdfIndexTest {
   }
 
   @Test
+  public void shouldFindGenericMethodWithIntParam() {
+    // Given:
+    final KsqlFunction[] functions = new KsqlFunction[]{
+        function(EXPECTED, false, GENERIC_LIST)
+    };
+    Arrays.stream(functions).forEach(udfIndex::addFunction);
+
+    // When:
+    final KsqlFunction fun = udfIndex.getFunction(Collections.singletonList(INT_LIST));
+
+    // Then:
+    assertThat(fun.getFunctionName(), equalTo(EXPECTED));
+  }
+
+  @Test
+  public void shouldFindGenericMethodWithStringParam() {
+    // Given:
+    final KsqlFunction[] functions = new KsqlFunction[]{
+        function(EXPECTED, false, GENERIC_LIST)
+    };
+    Arrays.stream(functions).forEach(udfIndex::addFunction);
+
+    // When:
+    final KsqlFunction fun = udfIndex.getFunction(Collections.singletonList(STRING_LIST));
+
+    // Then:
+    assertThat(fun.getFunctionName(), equalTo(EXPECTED));
+  }
+
+  @Test
+  public void shouldMatchGenericMethodWithMultipleIdenticalGenerics() {
+    // Given:
+    final Schema generic = GenericsUtil.generic("A").build();
+    final KsqlFunction[] functions = new KsqlFunction[]{
+        function(EXPECTED, false, generic, generic)
+    };
+    Arrays.stream(functions).forEach(udfIndex::addFunction);
+
+    // When:
+    final KsqlFunction fun = udfIndex.getFunction(ImmutableList.of(INT, INT));
+
+    // Then:
+    assertThat(fun.getFunctionName(), equalTo(EXPECTED));
+  }
+
+  @Test
+  public void shouldMatchGenericMethodWithMultipleGenerics() {
+    // Given:
+    final Schema genericA = GenericsUtil.generic("A").build();
+    final Schema genericB = GenericsUtil.generic("B").build();
+    final KsqlFunction[] functions = new KsqlFunction[]{
+        function(EXPECTED, false, genericA, genericB)
+    };
+    Arrays.stream(functions).forEach(udfIndex::addFunction);
+
+    // When:
+    final KsqlFunction fun = udfIndex.getFunction(ImmutableList.of(INT, STRING));
+
+    // Then:
+    assertThat(fun.getFunctionName(), equalTo(EXPECTED));
+  }
+
+  @Test
+  public void shouldMatchNestedGenericMethodWithMultipleGenerics() {
+    // Given:
+    final Schema generic = GenericsUtil.array("A").build();
+    final KsqlFunction[] functions = new KsqlFunction[]{
+        function(EXPECTED, false, generic, generic)
+    };
+    Arrays.stream(functions).forEach(udfIndex::addFunction);
+
+    // When:
+    final KsqlFunction fun = udfIndex.getFunction(ImmutableList.of(INT_LIST, INT_LIST));
+
+    // Then:
+    assertThat(fun.getFunctionName(), equalTo(EXPECTED));
+  }
+
+  @Test
   public void shouldNotMatchIfParamLengthDiffers() {
     // Given:
     final KsqlFunction[] functions = new KsqlFunction[]{function(OTHER, false, STRING)};
@@ -562,6 +645,42 @@ public class UdfIndexTest {
 
     // When:
     udfIndex.getFunction(ImmutableList.of(STRUCT3_PERMUTE));
+  }
+
+  @Test
+  public void shouldNotMatchGenericMethodWithAlreadyReservedTypes() {
+    // Given:
+    final Schema generic = GenericsUtil.generic("A").build();
+    final KsqlFunction[] functions = new KsqlFunction[]{
+        function(EXPECTED, false, generic, generic)
+    };
+    Arrays.stream(functions).forEach(udfIndex::addFunction);
+
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(is("Function 'name' does not accept parameters of types:"
+        + "[INT, VARCHAR]"));
+
+    // When:
+    udfIndex.getFunction(ImmutableList.of(INT, STRING));
+  }
+
+  @Test
+  public void shouldNotMatchNestedGenericMethodWithAlreadyReservedTypes() {
+    // Given:
+    final Schema generic = GenericsUtil.array("A").build();
+    final KsqlFunction[] functions = new KsqlFunction[]{
+        function(EXPECTED, false, generic, generic)
+    };
+    Arrays.stream(functions).forEach(udfIndex::addFunction);
+
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(is("Function 'name' does not accept parameters of types:"
+        + "[ARRAY<INT>, ARRAY<VARCHAR>]"));
+
+    // When:
+    udfIndex.getFunction(ImmutableList.of(INT_LIST, STRING_LIST));
   }
 
 

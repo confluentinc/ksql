@@ -23,12 +23,12 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.rest.util.EntityUtil;
-import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import org.apache.kafka.clients.admin.TopicDescription;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonTypeName("description")
@@ -91,7 +91,7 @@ public class SourceDescription {
       final String format,
       final List<RunningQuery> readQueries,
       final List<RunningQuery> writeQueries,
-      final KafkaTopicClient topicClient
+      final Optional<TopicDescription> topicDescription
   ) {
     this(
         dataSource.getName(),
@@ -111,44 +111,13 @@ public class SourceDescription {
         extended,
         format,
         dataSource.getKafkaTopicName(),
-        (
-            extended && topicClient != null ? getPartitions(
-                topicClient,
-                dataSource.getKafkaTopicName()
-            ) : 0
-        ),
-        (
-            extended && topicClient != null ? getReplication(
-                topicClient,
-                dataSource.getKafkaTopicName()
-            ) : 0
-        )
+        topicDescription.map(td -> td.partitions().size()).orElse(0),
+        topicDescription.map(td -> td.partitions().get(0).replicas().size()).orElse(0)
     );
-  }
-
-  private static int getPartitions(
-      final KafkaTopicClient topicClient,
-      final String kafkaTopicName
-  ) {
-    return topicClient
-        .describeTopic(kafkaTopicName)
-        .partitions()
-        .size();
   }
 
   public int getPartitions() {
     return partitions;
-  }
-
-  private static int getReplication(
-      final KafkaTopicClient topicClient,
-      final String kafkaTopicName
-  ) {
-    return topicClient
-        .describeTopic(kafkaTopicName)
-        .partitions().iterator().next()
-        .replicas()
-        .size();
   }
 
   public int getReplication() {

@@ -19,8 +19,8 @@ import com.google.common.collect.Iterables;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.SchemaParser;
 import io.confluent.ksql.parser.SqlFormatter;
+import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.CreateSource;
-import io.confluent.ksql.parser.tree.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.schema.connect.SqlSchemaFormatter;
@@ -149,7 +149,7 @@ public class DefaultSchemaInjector implements Injector {
   }
 
   private static void throwOnInvalidSchema(final Schema schema) {
-    SchemaConverters.logicalToSqlConverter().toSqlType(schema);
+    SchemaConverters.connectToSqlConverter().toSqlType(schema);
   }
 
   private static PreparedStatement<CreateSource> buildPreparedStatement(

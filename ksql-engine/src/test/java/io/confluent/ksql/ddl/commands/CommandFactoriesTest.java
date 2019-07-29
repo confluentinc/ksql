@@ -24,7 +24,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.ddl.DdlConfig;
+import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.BooleanLiteral;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateTable;
@@ -36,8 +36,10 @@ import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
+import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.parser.tree.Type;
+import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.services.KafkaTopicClient;
@@ -45,7 +47,6 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 import org.junit.Before;
 import org.junit.Test;
@@ -60,7 +61,12 @@ public class CommandFactoriesTest {
   private static final Map<String, Object> NO_PROPS = Collections.emptyMap();
   private static final String sqlExpression = "sqlExpression";
   private static final TableElements SOME_ELEMENTS = TableElements.of(
-      new TableElement("bob", new Type(SqlTypes.STRING)));
+      new TableElement(Namespace.VALUE, "bob", new Type(SqlTypes.STRING)));
+
+  private static final Map<String, Literal> MINIMIM_PROPS = ImmutableMap.of(
+      CommonCreateConfigs.VALUE_FORMAT_PROPERTY, new StringLiteral("JSON"),
+      CommonCreateConfigs.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral("topic")
+  );
 
   @Mock
   private KafkaTopicClient topicClient;
@@ -70,17 +76,13 @@ public class CommandFactoriesTest {
   private CommandFactories commandFactories;
 
   private KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of());
-  private final Map<String, Literal> withProperties = new HashMap<>();
+  private CreateSourceProperties withProperties =
+      CreateSourceProperties.from(MINIMIM_PROPS);
 
 
   @Before
   public void before() {
     when(serviceContext.getTopicClient()).thenReturn(topicClient);
-
-    withProperties.clear();
-    withProperties.put(DdlConfig.VALUE_FORMAT_PROPERTY, new StringLiteral("JSON"));
-    withProperties.put(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral("topic"));
-
     when(topicClient.isTopicExists(any())).thenReturn(true);
 
     commandFactories = new CommandFactories(serviceContext);
@@ -102,13 +104,11 @@ public class CommandFactoriesTest {
   @Test
   public void shouldCreateCommandForCreateTable() {
     // Given:
-    final HashMap<String, Literal> tableProperties = validTableProps();
-
     final CreateTable ddlStatement = new CreateTable(SOME_NAME,
         TableElements.of(
-            new TableElement("COL1", new Type(SqlTypes.BIGINT)),
-            new TableElement("COL2", new Type(SqlTypes.STRING))),
-        true, tableProperties);
+            new TableElement(Namespace.VALUE, "COL1", new Type(SqlTypes.BIGINT)),
+            new TableElement(Namespace.VALUE, "COL2", new Type(SqlTypes.STRING))),
+        true, withProperties);
 
     // When:
     final DdlCommand result = commandFactories
@@ -165,7 +165,7 @@ public class CommandFactoriesTest {
         KsqlConfig.KSQL_WRAP_SINGLE_VALUES, true
     );
 
-    withProperties.put(DdlConfig.WRAP_SINGLE_VALUE, new BooleanLiteral("false"));
+    givenProperty(CommonCreateConfigs.WRAP_SINGLE_VALUE, new BooleanLiteral("false"));
 
     final DdlStatement statement =
         new CreateStream(SOME_NAME, SOME_ELEMENTS, true, withProperties);
@@ -251,7 +251,7 @@ public class CommandFactoriesTest {
         KsqlConfig.KSQL_WRAP_SINGLE_VALUES, true
     );
 
-    withProperties.put(DdlConfig.WRAP_SINGLE_VALUE, new BooleanLiteral("false"));
+    givenProperty(CommonCreateConfigs.WRAP_SINGLE_VALUE, new BooleanLiteral("false"));
 
     final DdlStatement statement =
         new CreateTable(SOME_NAME, SOME_ELEMENTS, true, withProperties);
@@ -326,9 +326,9 @@ public class CommandFactoriesTest {
         not(contains(SerdeOption.UNWRAP_SINGLE_VALUES)));
   }
 
-  private HashMap<String, Literal> validTableProps() {
-    final HashMap<String, Literal> tableProperties = new HashMap<>(withProperties);
-    tableProperties.put(DdlConfig.KEY_NAME_PROPERTY, new StringLiteral("COL1"));
-    return tableProperties;
+  private void givenProperty(final String name, final Literal value) {
+    final Map<String, Literal> props = withProperties.copyOfOriginalLiterals();
+    props.put(name, value);
+    withProperties = CreateSourceProperties.from(props);
   }
 }

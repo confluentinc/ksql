@@ -353,7 +353,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
 
       final StatementParser statementParser = new StatementParser(ksqlEngine);
       final TopicAccessValidator topicAccessValidator =
-          TopicAccessValidatorFactory.create(serviceContext, ksqlEngine.getMetaStore());
+          TopicAccessValidatorFactory.create(ksqlConfig, serviceContext);
 
       container.addEndpoint(
           ServerEndpointConfig.Builder
@@ -458,7 +458,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
     final KsqlSecurityExtension securityExtension = loadSecurityExtension(ksqlConfig);
 
     final TopicAccessValidator topicAccessValidator =
-        TopicAccessValidatorFactory.create(serviceContext, ksqlEngine.getMetaStore());
+        TopicAccessValidatorFactory.create(ksqlConfig, serviceContext);
 
     final StreamedQueryResource streamedQueryResource = new StreamedQueryResource(
         ksqlConfig,

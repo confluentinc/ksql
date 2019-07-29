@@ -18,6 +18,9 @@ package io.confluent.ksql.rest.entity;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.google.common.collect.ImmutableList;
+import java.util.Collections;
+import java.util.List;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonTypeInfo(
@@ -33,7 +36,6 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
     @JsonSubTypes.Type(value = TopicDescription.class, name = "topicDescription"),
     @JsonSubTypes.Type(value = StreamsList.class, name = "streams"),
     @JsonSubTypes.Type(value = TablesList.class, name = "tables"),
-    @JsonSubTypes.Type(value = KsqlTopicsList.class, name = "ksql_topics"),
     @JsonSubTypes.Type(value = KafkaTopicsList.class, name = "kafka_topics"),
     @JsonSubTypes.Type(value = ExecutionPlan.class, name = "executionPlan"),
     @JsonSubTypes.Type(value = SourceDescriptionList.class, name = "source_descriptions"),
@@ -43,12 +45,22 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 })
 public abstract class KsqlEntity {
   private final String statementText;
+  private final List<KsqlWarning> warnings;
 
   public KsqlEntity(final String statementText) {
+    this(statementText, Collections.emptyList());
+  }
+
+  public KsqlEntity(final String statementText, final List<KsqlWarning> warnings) {
     this.statementText = statementText;
+    this.warnings = warnings == null ? Collections.emptyList() : ImmutableList.copyOf(warnings);
   }
 
   public String getStatementText() {
     return statementText;
+  }
+
+  public List<KsqlWarning> getWarnings() {
+    return warnings;
   }
 }

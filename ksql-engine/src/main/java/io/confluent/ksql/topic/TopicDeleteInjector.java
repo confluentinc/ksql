@@ -31,10 +31,11 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.util.ExecutorUtil;
-import io.confluent.ksql.util.ExecutorUtil.RetryBehaviour;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
+import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * This {@code Injector} will delete the topic associated with a
@@ -92,10 +93,11 @@ public class TopicDeleteInjector implements Injector {
     final DataSource<?> source = metastore.getSource(sourceName);
 
     if (source != null) {
+      checkTopicRefs(source);
       try {
         ExecutorUtil.executeWithRetries(
             () -> topicClient.deleteTopics(ImmutableList.of(source.getKafkaTopicName())),
-            RetryBehaviour.ALWAYS);
+            ExecutorUtil.RetryBehaviour.ALWAYS);
       } catch (Exception e) {
         throw new KsqlException("Could not delete the corresponding kafka topic: "
             + source.getKafkaTopicName(), e);
@@ -119,5 +121,25 @@ public class TopicDeleteInjector implements Injector {
     final String withoutDeleteText = SqlFormatter.formatSql(withoutDelete) + ";";
 
     return statement.withStatement(withoutDeleteText, withoutDelete);
+  }
+
+  private void checkTopicRefs(final DataSource<?> source) {
+    final String topicName = source.getKafkaTopicName();
+    final String sourceName = source.getName();
+    final Map<String, DataSource<?>> sources = metastore.getAllDataSources();
+    final String using = sources.values().stream()
+        .filter(s -> s.getKafkaTopicName().equals(topicName))
+        .map(DataSource::getName)
+        .filter(name -> !sourceName.equals(name))
+        .collect(Collectors.joining(", "));
+    if (!using.isEmpty()) {
+      throw new KsqlException(
+          String.format(
+              "Refusing to delete topic. Found other data sources (%s) using topic %s",
+              using,
+              topicName
+          )
+      );
+    }
   }
 }

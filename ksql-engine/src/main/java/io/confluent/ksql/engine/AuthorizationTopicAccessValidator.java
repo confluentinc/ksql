@@ -15,11 +15,9 @@
 
 package io.confluent.ksql.engine;
 
-import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
-import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
@@ -140,13 +138,7 @@ public class AuthorizationTopicAccessValidator implements TopicAccessValidator {
       final MetaStore metaStore,
       final CreateAsSelect createAsSelect
   ) {
-    final Expression nameExpression = createAsSelect.getProperties()
-        .get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY);
-
-    if (nameExpression != null) {
-      return StringUtils.strip(nameExpression.toString(), "'");
-    }
-
-    return getSourceTopicName(metaStore, createAsSelect.getName().getSuffix());
+    return createAsSelect.getProperties().getKafkaTopic()
+        .orElseGet(() -> getSourceTopicName(metaStore, createAsSelect.getName().getSuffix()));
   }
 }

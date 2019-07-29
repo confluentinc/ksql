@@ -20,6 +20,16 @@
       ]
     },
     {
+      "name": "deserialize DELIMITED with WRAP_SINGLE_VALUE",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT) WITH (WRAP_SINGLE_VALUE=false, kafka_topic='input_topic', value_format='DELIMITED');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "'WRAP_SINGLE_VALUE' can not be used with format 'DELIMITED' as it does not support wrapping"
+      }
+    },
+    {
       "name": "deserialize anonymous primitive - value",
       "format": ["JSON", "AVRO"],
       "statements": [
@@ -85,16 +95,6 @@
         {"topic": "OUTPUT", "value": {"FOO": 10}},
         {"topic": "OUTPUT", "value": null}
       ]
-    },
-    {
-      "name": "deserialize anonymous array - value - DELIMITED",
-      "statements": [
-        "CREATE STREAM INPUT (foo ARRAY<STRING>) WITH (WRAP_SINGLE_VALUE=false, kafka_topic='input_topic', value_format='DELIMITED');"
-      ],
-      "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "'WRAP_SINGLE_VALUE' can not be used with format 'DELIMITED' as it does not support wrapping"
-      }
     },
     {
       "name": "deserialize anonymous array - value",
@@ -191,16 +191,6 @@
       "outputs": [
         {"topic": "OUTPUT", "value": {"FOO": ["a", "b", "c"]}}
       ]
-    },
-    {
-      "name": "deserialize anonymous map - value - DELIMITED",
-      "statements": [
-        "CREATE STREAM INPUT (foo MAP<STRING, INT>) WITH (WRAP_SINGLE_VALUE=false, kafka_topic='input_topic', value_format='DELIMITED');"
-      ],
-      "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "'WRAP_SINGLE_VALUE' can not be used with format 'DELIMITED' as it does not support wrapping"
-      }
     },
     {
       "name": "deserialize anonymous map - value",

@@ -88,6 +88,7 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+@SuppressWarnings("OptionalGetWithoutIsPresent")
 @RunWith(MockitoJUnitRunner.class)
 public class DataSourceNodeTest {
 
@@ -110,9 +111,9 @@ public class DataSourceNodeTest {
       "datasource",
       realSchema,
       SerdeOption.none(),
-      KeyField.of("key", realSchema.valueSchema().field("key")),
+      KeyField.of("key", realSchema.findValueField("key").get()),
       new LongColumnTimestampExtractionPolicy("timestamp"),
-      new KsqlTopic("topic", "topic",
+      new KsqlTopic("topic",
           new KsqlJsonSerdeFactory(), false),
       Serdes::String
   );
@@ -291,9 +292,9 @@ public class DataSourceNodeTest {
     final KsqlTable<String> table = new KsqlTable<>("sqlExpression", "datasource",
         realSchema,
         SerdeOption.none(),
-        KeyField.of("field1", realSchema.valueSchema().field("field1")),
+        KeyField.of("field1", realSchema.findValueField("field1").get()),
         new LongColumnTimestampExtractionPolicy("timestamp"),
-        new KsqlTopic("topic2", "topic2",
+        new KsqlTopic("topic2",
             new KsqlJsonSerdeFactory(), false),
         Serdes::String
     );
@@ -312,9 +313,9 @@ public class DataSourceNodeTest {
     final KsqlTable<String> table = new KsqlTable<>("sqlExpression", "datasource",
         realSchema,
         SerdeOption.none(),
-        KeyField.of("field1", realSchema.valueSchema().field("field1")),
+        KeyField.of("field1", realSchema.findValueField("field1").get()),
         new LongColumnTimestampExtractionPolicy("timestamp"),
-        new KsqlTopic("topic2", "topic2",
+        new KsqlTopic("topic2",
             new KsqlJsonSerdeFactory(), false),
         Serdes::String
     );
@@ -366,14 +367,14 @@ public class DataSourceNodeTest {
     // Then:
     assertThat(schema, is(
         LogicalSchema.of(SchemaBuilder.struct()
-            .field(sourceName + "." + SchemaUtil.ROWTIME_NAME, Schema.OPTIONAL_INT64_SCHEMA)
-            .field(sourceName + "." + SchemaUtil.ROWKEY_NAME, Schema.OPTIONAL_STRING_SCHEMA)
-            .field(sourceName + ".field1", Schema.OPTIONAL_STRING_SCHEMA)
-            .field(sourceName + ".field2", Schema.OPTIONAL_STRING_SCHEMA)
-            .field(sourceName + ".field3", Schema.OPTIONAL_STRING_SCHEMA)
-            .field(sourceName + "." + TIMESTAMP_FIELD, Schema.OPTIONAL_INT64_SCHEMA)
-            .field(sourceName + ".key", Schema.OPTIONAL_STRING_SCHEMA)
-            .build())));
+            .field(SchemaUtil.ROWTIME_NAME, Schema.OPTIONAL_INT64_SCHEMA)
+            .field(SchemaUtil.ROWKEY_NAME, Schema.OPTIONAL_STRING_SCHEMA)
+            .field("field1", Schema.OPTIONAL_STRING_SCHEMA)
+            .field("field2", Schema.OPTIONAL_STRING_SCHEMA)
+            .field("field3", Schema.OPTIONAL_STRING_SCHEMA)
+            .field(TIMESTAMP_FIELD, Schema.OPTIONAL_INT64_SCHEMA)
+            .field("key", Schema.OPTIONAL_STRING_SCHEMA)
+            .build()).withAlias(sourceName)));
   }
 
   @Test
@@ -400,7 +401,7 @@ public class DataSourceNodeTest {
     when(streamsBuilder.stream(anyString(), any())).thenReturn((KStream)kStream);
     when(tableSource.getSchema()).thenReturn(realSchema);
     when(tableSource.getKeyField())
-        .thenReturn(KeyField.of("field1", realSchema.valueSchema().field("field1")));
+        .thenReturn(KeyField.of("field1", realSchema.findValueField("field1").get()));
 
     return new DataSourceNode(
         realNodeId,

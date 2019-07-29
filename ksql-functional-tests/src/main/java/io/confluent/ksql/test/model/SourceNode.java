@@ -110,7 +110,7 @@ class SourceNode {
     return Optional.ofNullable(schema)
         .map(TypeContextUtil::getType)
         .map(Type::getSqlType)
-        .map(SchemaConverters.sqlToLogicalConverter()::fromSqlType)
+        .map(SchemaConverters.sqlToConnectConverter()::toConnectSchema)
         .map(SourceNode::makeTopLevelStructNoneOptional);
   }
 

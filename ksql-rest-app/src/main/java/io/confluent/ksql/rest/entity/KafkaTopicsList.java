@@ -19,7 +19,6 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Preconditions;
-import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.util.KafkaConsumerGroupClient;
 import io.confluent.ksql.util.KafkaConsumerGroupClientImpl;
 import io.confluent.ksql.util.KsqlConfig;
@@ -77,14 +76,10 @@ public class KafkaTopicsList extends KsqlEntity {
 
   public static KafkaTopicsList build(
       final String statementText,
-      final Collection<KsqlTopic> ksqlTopics,
       final Map<String, TopicDescription> kafkaTopicDescriptions,
       final KsqlConfig ksqlConfig,
       final KafkaConsumerGroupClient consumerGroupClient
   ) {
-
-    final Set<String> registeredNames = getRegisteredKafkaTopicNames(ksqlTopics);
-
     final List<KafkaTopicInfo> kafkaTopicInfoList = new ArrayList<>();
     final Map<String, TopicDescription> filteredDescriptions = new TreeMap<>(
         filterKsqlInternalTopics(kafkaTopicDescriptions, ksqlConfig));
@@ -95,7 +90,6 @@ public class KafkaTopicsList extends KsqlEntity {
     for (final TopicDescription desp : filteredDescriptions.values()) {
       kafkaTopicInfoList.add(new KafkaTopicInfo(
           desp.name(),
-          registeredNames.contains(desp.name()),
           desp.partitions()
               .stream().map(partition -> partition.replicas().size()).collect(Collectors.toList()),
           topicConsumersAndGroupCount.getOrDefault(desp.name(), Arrays.asList(0, 0)).get(0),
@@ -141,14 +135,6 @@ public class KafkaTopicsList extends KsqlEntity {
     );
 
     return results;
-  }
-
-  private static Set<String> getRegisteredKafkaTopicNames(final Collection<KsqlTopic> ksqlTopics) {
-    final Set<String> registeredNames = new HashSet<>();
-    for (final KsqlTopic ksqlTopic : ksqlTopics) {
-      registeredNames.add(ksqlTopic.getKafkaTopicName());
-    }
-    return registeredNames;
   }
 
   private static Map<String, TopicDescription> filterKsqlInternalTopics(

@@ -53,7 +53,6 @@ import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.server.KsqlRestApplication;
-import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.rest.server.computation.CommandId;
 import io.confluent.ksql.rest.server.resources.Errors;
@@ -149,7 +148,6 @@ public class CliTest {
 
   private static final List<List<String>> EMPTY_RESULT = ImmutableList.of();
 
-  private static String commandTopicName;
   private static TopicProducer topicProducer;
   private static TopicConsumer topicConsumer;
   private static KsqlRestClient restClient;
@@ -166,8 +164,6 @@ public class CliTest {
   @BeforeClass
   public static void classSetUp() throws Exception {
     restClient = new KsqlRestClient(REST_APP.getHttpListener().toString());
-
-    commandTopicName = KsqlRestConfig.getCommandTopic(KsqlConfig.KSQL_SERVICE_ID_DEFAULT);
 
     orderDataProvider = new OrderDataProvider();
     CLUSTER.createTopic(orderDataProvider.topicName());
@@ -364,7 +360,6 @@ public class CliTest {
         "topics",
         hasRow(
             equalTo(orderDataProvider.topicName()),
-            equalTo("true"),
             equalTo("1"),
             equalTo("1"),
             any(String.class),
@@ -448,12 +443,6 @@ public class CliTest {
     ));
 
     assertRunCommand("unset 'auto.offset.reset'", is(EMPTY_RESULT));
-  }
-
-  @Test
-  public void testDescribe() {
-    assertRunCommand("describe topic " + COMMANDS_KSQL_TOPIC_NAME,
-        isRow(COMMANDS_KSQL_TOPIC_NAME, commandTopicName, "JSON"));
   }
 
   @Test
@@ -607,6 +596,23 @@ public class CliTest {
             row(prependWithRowTimeAndKey(row2)),
             row(prependWithRowTimeAndKey(row3))
         ));
+  }
+
+  @Test
+  public void testTransientHeader() {
+    // When:
+    rowCaptor.resetTestResult();
+    run("SELECT * FROM " + orderDataProvider.kstreamName() + " LIMIT 1", localCli);
+
+    // Then: (note that some of these are truncated because of header wrapping)
+    assertThat(terminal.getOutputString(), containsString("ROWTIME"));
+    assertThat(terminal.getOutputString(), containsString("ROWKEY"));
+    assertThat(terminal.getOutputString(), containsString("ITEMID"));
+    assertThat(terminal.getOutputString(), containsString("ORDERID"));
+    assertThat(terminal.getOutputString(), containsString("ORDERUNIT"));
+    assertThat(terminal.getOutputString(), containsString("TIMESTAMP"));
+    assertThat(terminal.getOutputString(), containsString("PRICEARRA"));
+    assertThat(terminal.getOutputString(), containsString("KEYVALUEM"));
   }
 
   @Test

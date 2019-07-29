@@ -17,29 +17,27 @@ package io.confluent.ksql.topic;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext;
-import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.SqlFormatter;
+import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
+import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
-import io.confluent.ksql.parser.tree.IntegerLiteral;
-import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.parser.tree.Statement;
-import io.confluent.ksql.parser.tree.StringLiteral;
+import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.topic.TopicProperties.Builder;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import org.apache.kafka.common.config.TopicConfig;
 
 /**
@@ -103,25 +101,30 @@ public class TopicCreateInjector implements Injector {
       final TopicProperties.Builder topicPropertiesBuilder
   ) {
     final CreateSource createSource = statement.getStatement();
-    final String topicName = createSource.getProperties().getKafkaTopic();
+    final CreateSourceProperties properties = createSource.getProperties();
+
+    final String topicName = properties.getKafkaTopic();
 
     if (topicClient.isTopicExists(topicName)) {
       topicPropertiesBuilder.withSource(() -> topicClient.describeTopic(topicName));
-    } else if (!createSource.getProperties().getPartitions().isPresent()) {
+    } else if (!properties.getPartitions().isPresent()) {
       final CreateSource example = createSource.copyWith(
           createSource.getElements(),
-          createSource.getProperties().withPartitionsAndReplicas(2, (short) 1));
+          properties.withPartitionsAndReplicas(2, (short) 1));
       throw new KsqlException(
           "Topic '" + topicName + "' does not exist. If you want to create a new topic for the "
               + "stream/table please re-run the statement providing the required '"
-              + KsqlConstants.SOURCE_NUMBER_OF_PARTITIONS + "' configuration in the WITH clause "
-              + "(and optionally '" + KsqlConstants.SOURCE_NUMBER_OF_REPLICAS + "'). For example: "
-              + SqlFormatter.formatSql(example));
+              + CommonCreateConfigs.SOURCE_NUMBER_OF_PARTITIONS + "' configuration in the WITH "
+              + "clause (and optionally '" + CommonCreateConfigs.SOURCE_NUMBER_OF_REPLICAS + "'). "
+              + "For example: " + SqlFormatter.formatSql(example));
     }
 
     topicPropertiesBuilder
         .withName(topicName)
-        .withWithClause(createSource.getProperties());
+        .withWithClause(
+            Optional.of(properties.getKafkaTopic()),
+            properties.getPartitions(),
+            properties.getReplicas());
 
     createTopic(topicPropertiesBuilder, statement, createSource instanceof CreateTable);
 
@@ -140,6 +143,7 @@ public class TopicCreateInjector implements Injector {
             .toString();
 
     final T createAsSelect = statement.getStatement();
+    final CreateSourceAsProperties properties = createAsSelect.getProperties();
 
     final SourceTopicsExtractor extractor = new SourceTopicsExtractor(metaStore);
     extractor.process(statement.getStatement().getQuery(), null);
@@ -147,20 +151,23 @@ public class TopicCreateInjector implements Injector {
 
     topicPropertiesBuilder
         .withName(prefix + createAsSelect.getName().getSuffix())
-        .withWithClause(createAsSelect.getProperties())
-        .withSource(() -> topicClient.describeTopic(sourceTopicName));
+        .withSource(() -> topicClient.describeTopic(sourceTopicName))
+        .withWithClause(
+            properties.getKafkaTopic(),
+            properties.getPartitions(),
+            properties.getReplicas());
 
     final boolean shouldCompactTopic = createAsSelect instanceof CreateTableAsSelect
         && !createAsSelect.getQuery().getWindow().isPresent();
 
     final TopicProperties info = createTopic(topicPropertiesBuilder, statement, shouldCompactTopic);
 
-    final Map<String, Literal> props = new HashMap<>(createAsSelect.getProperties());
-    props.put(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral(info.getTopicName()));
-    props.put(KsqlConstants.SINK_NUMBER_OF_REPLICAS, new IntegerLiteral(info.getReplicas()));
-    props.put(KsqlConstants.SINK_NUMBER_OF_PARTITIONS, new IntegerLiteral(info.getPartitions()));
+    final T withTopic = (T) createAsSelect.copyWith(properties.withTopic(
+        info.getTopicName(),
+        info.getPartitions(),
+        info.getReplicas()
+    ));
 
-    final T withTopic = (T) createAsSelect.copyWith(props);
     final String withTopicText = SqlFormatter.formatSql(withTopic) + ";";
 
     return statement.withStatement(withTopicText, withTopic);

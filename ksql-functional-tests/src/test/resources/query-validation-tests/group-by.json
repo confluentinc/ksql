@@ -28,7 +28,19 @@
         {"topic": "OUTPUT", "key": "d2", "value": "d2,2"},
         {"topic": "OUTPUT", "key": "d1", "value": "d1,3"}
       ]
-    },{
+    },
+    {
+      "name": "field (stream->table) - KAFKA",
+      "statements": [
+        "CREATE STREAM TEST (data VARCHAR) WITH (kafka_topic='test_topic', KEY='data', value_format='KAFKA');",
+        "CREATE TABLE OUTPUT WITH(value_format='DELIMITED') AS SELECT COUNT(*) FROM TEST GROUP BY DATA;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Source(s) TEST are using the 'KAFKA' value format. This format does not yet support GROUP BY."
+      }
+    },
+    {
       "name": "field (stream->table) - format",
       "statements": [
         "CREATE STREAM TEST (data VARCHAR) WITH (kafka_topic='test_topic', KEY='data', value_format='{FORMAT}');",

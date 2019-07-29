@@ -33,6 +33,7 @@ import io.confluent.ksql.serde.avro.KsqlAvroSerdeFactory;
 import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.Pair;
+import io.confluent.ksql.util.SchemaUtil;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -117,6 +118,11 @@ public class SerdeBenchmark {
 
   @State(Scope.Thread)
   public static class SerdeState {
+
+    private static final org.apache.kafka.connect.data.Schema KEY_SCHEMA = SchemaBuilder.struct()
+        .field(SchemaUtil.ROWKEY_NAME, org.apache.kafka.connect.data.Schema.OPTIONAL_STRING_SCHEMA)
+        .build();
+
     Serializer<GenericRow> serializer;
     Deserializer<GenericRow> deserializer;
     GenericRow row;
@@ -165,9 +171,14 @@ public class SerdeBenchmark {
     private static Serde<GenericRow> getJsonSerdeHelper(
         final org.apache.kafka.connect.data.Schema schema
     ) {
+      final PhysicalSchema physicalSchema = PhysicalSchema.from(
+          LogicalSchema.of(KEY_SCHEMA, schema),
+          SerdeOption.none()
+      );
+
       return GenericRowSerDe.from(
           new KsqlJsonSerdeFactory(),
-          PhysicalSchema.from(LogicalSchema.of(schema), SerdeOption.none()),
+          physicalSchema,
           new KsqlConfig(Collections.emptyMap()),
           () -> null,
           "benchmark",
@@ -178,9 +189,15 @@ public class SerdeBenchmark {
         final org.apache.kafka.connect.data.Schema schema
     ) {
       final SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
+
+      final PhysicalSchema physicalSchema = PhysicalSchema.from(
+          LogicalSchema.of(KEY_SCHEMA, schema),
+          SerdeOption.none()
+      );
+
       return GenericRowSerDe.from(
           new KsqlAvroSerdeFactory("benchmarkSchema"),
-          PhysicalSchema.from(LogicalSchema.of(schema), SerdeOption.none()),
+          physicalSchema,
           new KsqlConfig(Collections.emptyMap()),
           () -> schemaRegistryClient,
           "benchmark",

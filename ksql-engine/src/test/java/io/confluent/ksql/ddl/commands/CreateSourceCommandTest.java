@@ -17,27 +17,28 @@ package io.confluent.ksql.ddl.commands;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.ddl.commands.CreateSourceCommand.SerdeOptionsSupplier;
 import io.confluent.ksql.metastore.MutableMetaStore;
-import io.confluent.ksql.metastore.model.KsqlTopic;
+import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.CreateSource;
-import io.confluent.ksql.parser.tree.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
+import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.parser.tree.Type;
+import io.confluent.ksql.properties.with.CommonCreateConfigs;
+import io.confluent.ksql.properties.with.CreateConfigs;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.serde.SerdeFactories;
@@ -64,11 +65,11 @@ public class CreateSourceCommandTest {
   private static final String TOPIC_NAME = "some topic";
 
   private static final TableElements ONE_ELEMENT = TableElements.of(
-      new TableElement("bob", new Type(SqlTypes.STRING)));
+      new TableElement(Namespace.VALUE, "bob", new Type(SqlTypes.STRING)));
 
   private static final TableElements SOME_ELEMENTS = TableElements.of(
-      new TableElement("bob", new Type(SqlTypes.STRING)),
-      new TableElement("hojjat", new Type(SqlTypes.STRING))
+      new TableElement(Namespace.VALUE, "bob", new Type(SqlTypes.STRING)),
+      new TableElement(Namespace.VALUE, "hojjat", new Type(SqlTypes.STRING))
   );
 
   private static final Set<SerdeOption> SOME_SERDE_OPTIONS = ImmutableSet
@@ -84,18 +85,15 @@ public class CreateSourceCommandTest {
   @Mock
   private KafkaTopicClient kafkaTopicClient;
   @Mock
-  private KsqlTopic topic;
-  @Mock
   private SerdeOptionsSupplier serdeOptions;
   @Mock
   private SerdeFactories serdeFactories;
   @Mock
   private KsqlSerdeFactory serdeFactory;
   @Mock
-  private MutableMetaStore metaStore;
+  private CreateSourceProperties withProperties;
 
   private KsqlConfig ksqlConfig;
-  private final Map<String, Literal> withProperties = new HashMap<>();
 
 
   @Before
@@ -107,11 +105,7 @@ public class CreateSourceCommandTest {
 
     ksqlConfig = new KsqlConfig(ImmutableMap.of());
 
-    withProperties.clear();
-    withProperties.put(DdlConfig.VALUE_FORMAT_PROPERTY, new StringLiteral("JSON"));
-    withProperties.put(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral("topic"));
-
-    when(serdeFactories.create(any(), any(CreateSourceProperties.class))).thenReturn(serdeFactory);
+    when(serdeFactories.create(any(), any())).thenReturn(serdeFactory);
   }
 
   @Test
@@ -194,52 +188,10 @@ public class CreateSourceCommandTest {
   }
 
   @Test
-  public void shouldThrowIfTopicWithSameNameAlreadyRegistered() {
-    // Given:
-    when(metaStore.getTopic("bob")).thenReturn(topic);
-
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("A topic with name 'bob' already exists");
-
-    // When:
-    new TestCmd(
-        "topic does exist",
-        statement,
-        ksqlConfig,
-        kafkaTopicClient,
-        serdeOptions,
-        serdeFactories
-    ).registerTopic(metaStore, "topic");
-  }
-
-  @Test
-  public void shouldRegisterTopic() {
-    // Given:
-    when(metaStore.getTopic("bob")).thenReturn(null);
-
-    // When:
-    new TestCmd(
-        "what, no value topic?",
-        statement,
-        ksqlConfig,
-        kafkaTopicClient,
-        serdeOptions,
-        serdeFactories
-    ).registerTopic(metaStore, "topic");
-
-    // Then:
-    verify(metaStore).putTopic(argThat(ksqlTopic ->
-        ksqlTopic.getKsqlTopicName().equals("bob") &&
-        ksqlTopic.getKafkaTopicName().equals(TOPIC_NAME))
-    );
-  }
-
-  @Test
   public void shouldThrowIfKeyFieldNotInSchema() {
     // Given:
     givenPropertiesWith(ImmutableMap.of(
-        DdlConfig.KEY_NAME_PROPERTY, new StringLiteral("will-not-find-me")));
+        CreateConfigs.KEY_NAME_PROPERTY, new StringLiteral("will-not-find-me")));
 
     // Then:
     expectedException.expect(KsqlException.class);
@@ -263,7 +215,7 @@ public class CreateSourceCommandTest {
     // Given:
     givenPropertiesWith(ImmutableMap.of());
     givenPropertiesWith(ImmutableMap.of(
-        DdlConfig.TIMESTAMP_NAME_PROPERTY, new StringLiteral("will-not-find-me")));
+        CommonCreateConfigs.TIMESTAMP_NAME_PROPERTY, new StringLiteral("will-not-find-me")));
 
     // Then:
     expectedException.expect(KsqlException.class);
@@ -293,7 +245,7 @@ public class CreateSourceCommandTest {
         .field("bob", Schema.OPTIONAL_STRING_SCHEMA)
         .build());
 
-    when(serdeOptions.build(any(), any(), any())).thenReturn(SOME_SERDE_OPTIONS);
+    when(serdeOptions.build(any(), any(), any(), any())).thenReturn(SOME_SERDE_OPTIONS);
 
     // When:
     final TestCmd cmd = new TestCmd(
@@ -306,14 +258,107 @@ public class CreateSourceCommandTest {
     );
 
     // Then:
-    verify(serdeOptions).build(schema, statement.getProperties(), ksqlConfig);
+    verify(serdeOptions).build(
+        schema,
+        statement.getProperties().getValueFormat(),
+        statement.getProperties().getWrapSingleValues(),
+        ksqlConfig
+    );
     assertThat(cmd.getSerdeOptions(), is(SOME_SERDE_OPTIONS));
+  }
+
+  @Test
+  public void shouldBuildSchemaWithImplicitKeyField() {
+    // Given:
+    when(statement.getElements()).thenReturn(TableElements.of(
+        new TableElement(Namespace.VALUE, "bob", new Type(SqlTypes.STRING)),
+        new TableElement(Namespace.VALUE, "hojjat", new Type(SqlTypes.STRING))
+    ));
+
+    // When:
+    final TestCmd result = new TestCmd(
+        "look mum, no columns",
+        statement,
+        ksqlConfig,
+        kafkaTopicClient,
+        serdeOptions,
+        serdeFactories
+    );
+
+    // Then:
+    assertThat(result.schema, is(LogicalSchema.of(
+        SchemaBuilder
+            .struct()
+            .field("ROWKEY", Schema.OPTIONAL_STRING_SCHEMA)
+            .build(),
+        SchemaBuilder
+            .struct()
+            .field("bob", Schema.OPTIONAL_STRING_SCHEMA)
+            .field("hojjat", Schema.OPTIONAL_STRING_SCHEMA)
+            .build()
+    )));
+  }
+
+  @Test
+  public void shouldBuildSchemaWithExplicitKeyField() {
+    // Given:
+    when(statement.getElements()).thenReturn(TableElements.of(
+        new TableElement(Namespace.KEY, "ROWKEY", new Type(SqlTypes.STRING)),
+        new TableElement(Namespace.VALUE, "bob", new Type(SqlTypes.STRING)),
+        new TableElement(Namespace.VALUE, "hojjat", new Type(SqlTypes.STRING))
+    ));
+
+    // When:
+    final TestCmd result = new TestCmd(
+        "look mum, no columns",
+        statement,
+        ksqlConfig,
+        kafkaTopicClient,
+        serdeOptions,
+        serdeFactories
+    );
+
+    // Then:
+    assertThat(result.schema, is(LogicalSchema.of(
+        SchemaBuilder
+            .struct()
+            .field("ROWKEY", Schema.OPTIONAL_STRING_SCHEMA)
+            .build(),
+        SchemaBuilder
+            .struct()
+            .field("bob", Schema.OPTIONAL_STRING_SCHEMA)
+            .field("hojjat", Schema.OPTIONAL_STRING_SCHEMA)
+            .build()
+    )));
+  }
+
+  @Test
+  public void shouldValidateValueFormatCanHandleValueSchema() {
+    // Given:
+    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder
+        .struct()
+        .field("bob", Schema.OPTIONAL_STRING_SCHEMA)
+        .field("hojjat", Schema.OPTIONAL_STRING_SCHEMA)
+        .build());
+
+    // When:
+    new TestCmd(
+        "sql",
+        statement,
+        ksqlConfig,
+        kafkaTopicClient,
+        serdeOptions,
+        serdeFactories
+    );
+
+    // Then:
+    verify(serdeFactory).validate(PhysicalSchema.from(schema, SerdeOption.none()).valueSchema());
   }
 
   private static Map<String, Literal> minValidProps() {
     return ImmutableMap.of(
-        DdlConfig.VALUE_FORMAT_PROPERTY, new StringLiteral("json"),
-        DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral(TOPIC_NAME)
+        CommonCreateConfigs.VALUE_FORMAT_PROPERTY, new StringLiteral("json"),
+        CommonCreateConfigs.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral(TOPIC_NAME)
     );
   }
 

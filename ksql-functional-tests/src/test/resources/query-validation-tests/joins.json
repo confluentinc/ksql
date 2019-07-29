@@ -42,6 +42,18 @@
       }
     },
     {
+      "name": "stream stream left join - KAFKA",
+      "statements": [
+        "CREATE STREAM S_LEFT (ID bigint) WITH (kafka_topic='left_topic', value_format='KAFKA', key='ID');",
+        "CREATE STREAM S_RIGHT (ID bigint) WITH (kafka_topic='right_topic', value_format='KAFKA', key='ID');",
+        "CREATE STREAM OUTPUT WITH(value_format='delimited') as SELECT * FROM s_left join s_right WITHIN 1 second ON s_left.id = s_right.id;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Source(s) S_LEFT, S_RIGHT are using the 'KAFKA' value format. This format does not yet support JOIN."
+      }
+    },
+    {
       "name": "stream stream left join - legacy downstream query",
       "comments": [
         "The purpose of this test is to capture the topology of a downstream query of the above test case",

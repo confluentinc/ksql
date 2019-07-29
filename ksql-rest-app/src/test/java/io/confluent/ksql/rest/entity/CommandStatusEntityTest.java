@@ -38,9 +38,20 @@ public class CommandStatusEntityTest {
       + "\"status\":\"SUCCESS\","
       + "\"message\":\"some success message\""
       + "},"
+      + "\"commandSequenceNumber\":2,"
+      + "\"warnings\":[]"
+      + "}";
+  private static final String JSON_ENTITY_NO_WARNINGS = "{"
+      + "\"@type\":\"currentStatus\","
+      + "\"statementText\":\"sql\","
+      + "\"commandId\":\"topic/1/create\","
+      + "\"commandStatus\":{"
+      + "\"status\":\"SUCCESS\","
+      + "\"message\":\"some success message\""
+      + "},"
       + "\"commandSequenceNumber\":2"
       + "}";
-  private static final String OLD_JSON_ENTITY = "{"
+  private static final String JSON_ENTITY_NO_CSN = "{"
       + "\"@type\":\"currentStatus\","
       + "\"statementText\":\"sql\","
       + "\"commandId\":\"topic/1/create\","
@@ -85,7 +96,7 @@ public class CommandStatusEntityTest {
   public void shouldBeAbleToDeserializeOlderServerMessage() throws Exception {
     // When:
     final CommandStatusEntity entity =
-        OBJECT_MAPPER.readValue(OLD_JSON_ENTITY, CommandStatusEntity.class);
+        OBJECT_MAPPER.readValue(JSON_ENTITY_NO_CSN, CommandStatusEntity.class);
 
     // Then:
     assertThat(entity, is(ENTITY_WITHOUT_SEQUENCE_NUMBER));

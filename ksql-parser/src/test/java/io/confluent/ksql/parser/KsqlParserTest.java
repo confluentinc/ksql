@@ -69,7 +69,8 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SqlBaseType;
-import io.confluent.ksql.schema.ksql.types.SqlStruct;
+import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
@@ -81,8 +82,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import org.apache.kafka.common.serialization.Serdes;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
@@ -93,6 +92,7 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 
+@SuppressWarnings("OptionalGetWithoutIsPresent")
 public class KsqlParserTest {
 
   @Rule
@@ -100,81 +100,79 @@ public class KsqlParserTest {
 
   private MutableMetaStore metaStore;
 
+  private static final SqlType addressSchema = SqlTypes.struct()
+      .field("NUMBER", SqlTypes.BIGINT)
+      .field("STREET", SqlTypes.STRING)
+      .field("CITY", SqlTypes.STRING)
+      .field("STATE", SqlTypes.STRING)
+      .field("ZIPCODE", SqlTypes.BIGINT)
+      .build();
+
+  private static final SqlType categorySchema = SqlTypes.struct()
+      .field("ID", SqlTypes.BIGINT)
+      .field("NAME", SqlTypes.STRING)
+      .build();
+
+  private static final LogicalSchema itemInfoSchema = LogicalSchema.builder()
+      .valueField("ITEMID", SqlTypes.BIGINT)
+      .valueField("NAME", SqlTypes.STRING)
+      .valueField("CATEGORY", categorySchema)
+      .build();
+
+  private static final LogicalSchema ORDERS_SCHEMA = LogicalSchema.builder()
+      .valueField("ORDERTIME", SqlTypes.BIGINT)
+      .valueField("ORDERID", SqlTypes.BIGINT)
+      .valueField("ITEMID", SqlTypes.STRING)
+      .valueField("ITEMINFO", SqlTypes
+          .struct()
+          .fields(itemInfoSchema.valueFields())
+          .build())
+      .valueField("ORDERUNITS", SqlTypes.INTEGER)
+      .valueField("ARRAYCOL", SqlTypes.array(SqlTypes.DOUBLE))
+      .valueField("MAPCOL", SqlTypes.map(SqlTypes.DOUBLE))
+      .valueField("ADDRESS", addressSchema)
+      .build();
 
   @Before
   public void init() {
-
     metaStore = MetaStoreFixture.getNewMetaStore(mock(FunctionRegistry.class));
 
-    final Schema addressSchema = SchemaBuilder.struct()
-        .field("NUMBER", Schema.OPTIONAL_INT64_SCHEMA)
-        .field("STREET", Schema.OPTIONAL_STRING_SCHEMA)
-        .field("CITY", Schema.OPTIONAL_STRING_SCHEMA)
-        .field("STATE", Schema.OPTIONAL_STRING_SCHEMA)
-        .field("ZIPCODE", Schema.OPTIONAL_INT64_SCHEMA)
-        .optional().build();
-
-    final Schema categorySchema = SchemaBuilder.struct()
-        .field("ID", Schema.OPTIONAL_INT64_SCHEMA)
-        .field("NAME", Schema.OPTIONAL_STRING_SCHEMA)
-        .optional().build();
-
-    final Schema itemInfoSchema = SchemaBuilder.struct()
-        .field("ITEMID", Schema.OPTIONAL_INT64_SCHEMA)
-        .field("NAME", Schema.OPTIONAL_STRING_SCHEMA)
-        .field("CATEGORY", categorySchema)
-        .optional().build();
-
-    final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
-    final Schema schemaBuilderOrders = schemaBuilder
-        .field("ORDERTIME", Schema.OPTIONAL_INT64_SCHEMA)
-        .field("ORDERID", Schema.OPTIONAL_INT64_SCHEMA)
-        .field("ITEMID", Schema.OPTIONAL_STRING_SCHEMA)
-        .field("ITEMINFO", itemInfoSchema)
-        .field("ORDERUNITS", Schema.OPTIONAL_INT32_SCHEMA)
-        .field("ARRAYCOL",SchemaBuilder
-            .array(Schema.OPTIONAL_FLOAT64_SCHEMA)
-            .optional()
-            .build())
-        .field("MAPCOL", SchemaBuilder
-            .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_FLOAT64_SCHEMA)
-            .optional()
-            .build())
-        .field("ADDRESS", addressSchema)
-        .build();
-
-    final KsqlTopic ksqlTopicOrders =
-        new KsqlTopic("ADDRESS_TOPIC", "orders_topic", new KsqlJsonSerdeFactory(), false);
+    final KsqlTopic ksqlTopicOrders = new KsqlTopic(
+        "orders_topic",
+        new KsqlJsonSerdeFactory(),
+        false
+    );
 
     final KsqlStream ksqlStreamOrders = new KsqlStream<>(
         "sqlexpression",
         "ADDRESS",
-        LogicalSchema.of(schemaBuilderOrders),
+        ORDERS_SCHEMA,
         SerdeOption.none(),
-        KeyField.of("ORDERTIME", schemaBuilderOrders.field("ORDERTIME")),
+        KeyField.of("ORDERTIME", ORDERS_SCHEMA.findValueField("ORDERTIME").get()),
         new MetadataTimestampExtractionPolicy(),
         ksqlTopicOrders,
         Serdes::String
     );
 
-    metaStore.putTopic(ksqlTopicOrders);
     metaStore.putSource(ksqlStreamOrders);
 
-    final KsqlTopic ksqlTopicItems =
-        new KsqlTopic("ITEMS_TOPIC", "item_topic", new KsqlJsonSerdeFactory(), false);
+    final KsqlTopic ksqlTopicItems = new KsqlTopic(
+        "item_topic",
+        new KsqlJsonSerdeFactory(),
+        false
+    );
 
     final KsqlTable<String> ksqlTableOrders = new KsqlTable<>(
         "sqlexpression",
         "ITEMID",
-        LogicalSchema.of(itemInfoSchema),
+        itemInfoSchema,
         SerdeOption.none(),
-        KeyField.of("ITEMID", itemInfoSchema.field("ITEMID")),
+        KeyField.of("ITEMID", itemInfoSchema.findValueField("ITEMID").get()),
         new MetadataTimestampExtractionPolicy(),
         ksqlTopicItems,
         Serdes::String
     );
 
-    metaStore.putTopic(ksqlTopicItems);
     metaStore.putSource(ksqlTableOrders);
   }
 
@@ -489,84 +487,41 @@ public class KsqlParserTest {
   }
 
   @Test
-  public void testCreateStreamWithTopic() {
-    final String
-        queryStr =
-        "CREATE STREAM orders (ordertime bigint, orderid varchar, itemid varchar, orderunits "
-        + "double) WITH (key='ordertime', kafka_topic='foo', value_format='json');";
-    final Statement statement = KsqlParserTestUtil.buildSingleAst(queryStr, metaStore).getStatement();
-    Assert.assertTrue(statement instanceof CreateStream);
-    final CreateStream createStream = (CreateStream)statement;
-    Assert.assertTrue(createStream.getName().toString().equalsIgnoreCase("ORDERS"));
-    assertThat(Iterables.size(createStream.getElements()), is(4));
-    assertThat(Iterables.get(createStream.getElements(), 0).getName(), is("ORDERTIME"));
-  }
-
-  @Test
-  public void testCreateStreamWithTopicWithStruct() {
-    final String
-        queryStr =
-        "CREATE STREAM orders (ordertime bigint, orderid varchar, itemid varchar, orderunits "
-        + "double, arraycol array<double>, mapcol map<varchar, double>, "
-        + "order_address STRUCT< number VARCHAR, street VARCHAR, zip INTEGER, city "
-        + "VARCHAR, state VARCHAR >) WITH (key='ordertime', value_format='json', kafka_topic='foo');";
-    final Statement statement = KsqlParserTestUtil.buildSingleAst(queryStr, metaStore).getStatement();
-    Assert.assertTrue(statement instanceof CreateStream);
-    final CreateStream createStream = (CreateStream)statement;
-    assertThat(createStream.getName().toString().toUpperCase(), equalTo("ORDERS"));
-    assertThat(Iterables.size(createStream.getElements()), equalTo(7));
-    assertThat(Iterables.get(createStream.getElements(), 0).getName().toLowerCase(), equalTo("ordertime"));
-    assertThat(Iterables.get(createStream.getElements(), 6).getType().getSqlType().baseType(), equalTo(SqlBaseType.STRUCT));
-    final SqlStruct struct = (SqlStruct) Iterables.get(createStream.getElements(), 6).getType().getSqlType();
-    assertThat(struct.getFields(), hasSize(5));
-    assertThat(struct.getFields().get(0).getType().baseType(), equalTo(SqlBaseType.STRING));
-  }
-
-  @Test
   public void testCreateStream() {
-    final String
-        queryStr =
-        "CREATE STREAM orders (ordertime bigint, orderid varchar, itemid varchar, orderunits "
-        + "double) WITH (value_format = 'avro', kafka_topic='orders_topic');";
-    final Statement statement = KsqlParserTestUtil.buildSingleAst(queryStr, metaStore).getStatement();
-    Assert.assertTrue(statement instanceof CreateStream);
-    final CreateStream createStream = (CreateStream)statement;
-    Assert.assertTrue(createStream.getName().toString().equalsIgnoreCase("ORDERS"));
-    assertThat(Iterables.size(createStream.getElements()), is(4));
-    assertThat(Iterables.get(createStream.getElements(), 0).getName(), is("ORDERTIME"));
-    Assert.assertTrue(createStream.getProperties().getKafkaTopic().equalsIgnoreCase("orders_topic"));
-    Assert.assertTrue(createStream.getProperties().getValueFormat().equals(Format.AVRO));
+    // When:
+    final CreateStream result = (CreateStream) KsqlParserTestUtil.buildSingleAst("CREATE STREAM orders ("
+        + "ordertime bigint, "
+        + "orderid varchar, "
+        + "itemid varchar, "
+        + "orderunits double, "
+        + "arraycol array<double>, "
+        + "mapcol map<varchar, double>, "
+        + "order_address STRUCT<number VARCHAR, street VARCHAR, zip INTEGER>"
+        + ") WITH (value_format = 'avro',kafka_topic='orders_topic');", metaStore).getStatement();
 
-  }
-
-  @Test
-  public void testCreateTableWithTopic() {
-    final String
-        queryStr =
-        "CREATE TABLE users (usertime bigint, userid varchar, regionid varchar, gender varchar) "
-            + "WITH (kafka_topic='foo', value_format='json', key='userid');";
-    final Statement statement = KsqlParserTestUtil.buildSingleAst(queryStr, metaStore).getStatement();
-    Assert.assertTrue(statement instanceof CreateTable);
-    final CreateTable createTable = (CreateTable)statement;
-    Assert.assertTrue("testCreateTable failed.", createTable.getName().toString().equalsIgnoreCase("USERS"));
-    assertThat(Iterables.size(createTable.getElements()), is(4));
-    assertThat(Iterables.get(createTable.getElements(), 0).getName(), is("USERTIME"));
+    // Then:
+    assertThat(result.getName().toString(), equalTo("ORDERS"));
+    assertThat(Iterables.size(result.getElements()), equalTo(7));
+    assertThat(Iterables.get(result.getElements(), 0).getName(), equalTo("ORDERTIME"));
+    assertThat(Iterables.get(result.getElements(), 6).getType().getSqlType().baseType(), equalTo(SqlBaseType.STRUCT));
+    assertThat(result.getProperties().getKafkaTopic(), equalTo("orders_topic"));
+    assertThat(result.getProperties().getValueFormat(), equalTo(Format.AVRO));
   }
 
   @Test
   public void testCreateTable() {
-    final String
-        queryStr =
+    // When:
+    final CreateTable result = (CreateTable) KsqlParserTestUtil.buildSingleAst(
         "CREATE TABLE users (usertime bigint, userid varchar, regionid varchar, gender varchar) "
-        + "WITH (kafka_topic = 'users_topic', value_format='json', key = 'userid');";
-    final Statement statement = KsqlParserTestUtil.buildSingleAst(queryStr, metaStore).getStatement();
-    Assert.assertTrue(statement instanceof CreateTable);
-    final CreateTable createTable = (CreateTable)statement;
-    Assert.assertTrue(createTable.getName().toString().equalsIgnoreCase("USERS"));
-    assertThat(Iterables.size(createTable.getElements()), is(4));
-    assertThat(Iterables.get(createTable.getElements(), 0).getName(), is("USERTIME"));
-    Assert.assertTrue(createTable.getProperties().getKafkaTopic().equalsIgnoreCase("users_topic"));
-    Assert.assertTrue(createTable.getProperties().getValueFormat().equals(Format.JSON));
+            + "WITH (kafka_topic='foo', value_format='json', key='userid');", metaStore).getStatement();
+
+    // Then:
+    assertThat(result.getName().toString(), equalTo("USERS"));
+    assertThat(Iterables.size(result.getElements()), equalTo(4));
+    assertThat(Iterables.get(result.getElements(), 0).getName(), equalTo("USERTIME"));
+    assertThat(result.getProperties().getKafkaTopic(), equalTo("foo"));
+    assertThat(result.getProperties().getValueFormat(), equalTo(Format.JSON));
+    assertThat(result.getProperties().getKeyField(), equalTo(Optional.of("userid")));
   }
 
   @Test

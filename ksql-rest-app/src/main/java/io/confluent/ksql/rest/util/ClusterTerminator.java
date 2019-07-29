@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.util;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.schema.registry.SchemaRegistryUtil;
 import io.confluent.ksql.serde.Format;
@@ -27,13 +28,15 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.QueryMetadata;
+import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.kafka.common.errors.TopicDeletionDisabledException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -79,57 +82,39 @@ public class ClusterTerminator {
         .map(Pattern::compile)
         .collect(Collectors.toList());
 
-    final MetaStore metaStore = ksqlEngine.getMetaStore();
-    final List<String> toDelete = metaStore.getAllKsqlTopics().values().stream()
-        .filter(KsqlTopic::isKsqlSink)
-        .map(KsqlTopic::getKafkaTopicName)
-        .filter(topicName -> topicShouldBeDeleted(topicName, patterns))
-        .collect(Collectors.toList());
-    deleteTopics(toDelete);
-    cleanUpSinkAvroSchemas(toDelete);
+    final List<DataSource<?>> toDelete = getSourcesToDelete(patterns, ksqlEngine.getMetaStore());
+
+    deleteTopics(topicNames(toDelete));
+    cleanUpSinkAvroSchemas(subjectNames(toDelete));
   }
 
-  private List<String> filterNonExistingTopics(final List<String> topicList) {
+  private List<String> filterNonExistingTopics(final Collection<String> topicList) {
     final Set<String> existingTopicNames = serviceContext.getTopicClient().listTopicNames();
     return topicList.stream().filter(existingTopicNames::contains).collect(Collectors.toList());
   }
 
-  private static boolean topicShouldBeDeleted(
-      final String topicName, final List<Pattern> patterns
-  ) {
-    return patterns.stream()
-        .anyMatch(pattern -> pattern.matcher(topicName).matches());
-  }
-
-  private void deleteTopics(final List<String> topicsToBeDeleted) {
+  private void deleteTopics(final Collection<String> topicsToBeDeleted) {
     try {
       ExecutorUtil.executeWithRetries(
           () -> serviceContext.getTopicClient().deleteTopics(
               filterNonExistingTopics(topicsToBeDeleted)),
           ExecutorUtil.RetryBehaviour.ALWAYS);
+    } catch (final TopicDeletionDisabledException e) {
+      LOGGER.info("Did not delete any topics: ", e.getMessage());
     } catch (final Exception e) {
       throw new KsqlException(
           "Exception while deleting topics: " + StringUtils.join(topicsToBeDeleted, ", "));
     }
   }
 
-  private void cleanUpSinkAvroSchemas(final List<String> topicsToBeDeleted) {
-    final Stream<String> subjectsToDelete = topicsToBeDeleted.stream()
-        .filter(this::hasAvroSource)
-        .map(topicName -> topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
-    filterNonExistingSubjects(subjectsToDelete).forEach(this::deleteSubject);
-  }
+  private void cleanUpSinkAvroSchemas(final Collection<String> subjectsToDelete) {
+    final Set<String> knownSubject = SchemaRegistryUtil
+        .getSubjectNames(serviceContext.getSchemaRegistryClient())
+        .collect(Collectors.toSet());
 
-  private boolean hasAvroSource(final String topicName) {
-    return ksqlEngine.getMetaStore().getSourcesForKafkaTopic(topicName).stream()
-        .anyMatch(dataSource -> dataSource.getValueSerdeFactory().getFormat() == Format.AVRO);
-  }
+    subjectsToDelete.retainAll(knownSubject);
 
-  private Stream<String> filterNonExistingSubjects(final Stream<String> subjects) {
-    final Set<String> existingSubjects =
-        SchemaRegistryUtil.getSubjectNames(serviceContext.getSchemaRegistryClient())
-            .collect(Collectors.toSet());
-    return subjects.filter(existingSubjects::contains);
+    subjectsToDelete.forEach(this::deleteSubject);
   }
 
   private void deleteSubject(final String subject) {
@@ -139,5 +124,34 @@ public class ClusterTerminator {
     } catch (final Exception e) {
       LOGGER.warn("Failed to clean up Avro schema for subject: " + subject, e);
     }
+  }
+
+  private static List<DataSource<?>> getSourcesToDelete(
+      final List<Pattern> patterns,
+      final MetaStore metaStore
+  ) {
+    final Predicate<String> predicate = topicName -> patterns.stream()
+        .anyMatch(pattern -> pattern.matcher(topicName).matches());
+
+    return metaStore.getAllDataSources().values().stream()
+        .filter(s -> s.getKsqlTopic().isKsqlSink())
+        .filter(s -> predicate.test(s.getKsqlTopic().getKafkaTopicName()))
+        .collect(Collectors.toList());
+  }
+
+  private static Set<String> topicNames(final List<DataSource<?>> sources) {
+    return sources.stream()
+        .map(DataSource::getKsqlTopic)
+        .map(KsqlTopic::getKafkaTopicName)
+        .collect(Collectors.toSet());
+  }
+
+  private static Set<String> subjectNames(final List<DataSource<?>> sources) {
+    return sources.stream()
+        .filter(s -> s.getKsqlTopic().getValueSerdeFactory().getFormat() == Format.AVRO)
+        .map(DataSource::getKsqlTopic)
+        .map(KsqlTopic::getKafkaTopicName)
+        .map(topicName -> topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX)
+        .collect(Collectors.toSet());
   }
 }

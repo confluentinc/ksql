@@ -31,6 +31,7 @@ import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Optional;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -67,7 +68,7 @@ public class SourceDescriptionTest {
         .field("field0", Schema.OPTIONAL_INT32_SCHEMA)
         .build());
 
-    final KsqlTopic topic = new KsqlTopic("internal", kafkaTopicName, new KsqlJsonSerdeFactory(), true);
+    final KsqlTopic topic = new KsqlTopic(kafkaTopicName, new KsqlJsonSerdeFactory(), true);
     return new KsqlStream<>(
         "query",
         "stream",
@@ -108,7 +109,7 @@ public class SourceDescriptionTest {
         "json",
         Collections.emptyList(),
         Collections.emptyList(),
-        null);
+        Optional.empty());
 
     // Then:
     assertThat(

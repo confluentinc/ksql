@@ -42,6 +42,8 @@ import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
+import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
+import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
@@ -49,7 +51,6 @@ import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.InsertInto;
-import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Select;
@@ -57,6 +58,7 @@ import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TableElement;
+import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.parser.tree.Type;
 import io.confluent.ksql.parser.tree.UnsetProperty;
@@ -111,20 +113,23 @@ public class StandaloneExecutorTest {
   private static final KsqlConfig ksqlConfig = new KsqlConfig(emptyMap());
 
   private static final TableElements SOME_ELEMENTS = TableElements.of(
-      new TableElement("bob", new Type(SqlTypes.STRING)));
+      new TableElement(Namespace.VALUE, "bob", new Type(SqlTypes.STRING)));
 
   private static final QualifiedName SOME_NAME = QualifiedName.of("Bob");
   private static final String SOME_TOPIC = "some-topic";
 
-  private static final ImmutableMap<String, Literal> JSON_PROPS = ImmutableMap
-      .of(
+  private static final CreateSourceProperties JSON_PROPS = CreateSourceProperties.from(
+      ImmutableMap.of(
           "VALUE_FORMAT", new StringLiteral("json"),
           "KAFKA_TOPIC", new StringLiteral(SOME_TOPIC)
-      );
+      )
+  );
 
-  private static final ImmutableMap<String, Literal> AVRO_PROPS = ImmutableMap.of(
-      "VALUE_FORMAT", new StringLiteral("avro"),
-      "KAFKA_TOPIC", new StringLiteral(SOME_TOPIC));
+  private static final CreateSourceProperties AVRO_PROPS = CreateSourceProperties.from(
+      ImmutableMap.of(
+          "VALUE_FORMAT", new StringLiteral("avro"),
+          "KAFKA_TOPIC", new StringLiteral(SOME_TOPIC))
+  );
 
   private static final CreateStream CREATE_STREAM = new CreateStream(
       SOME_NAME, SOME_ELEMENTS, true, JSON_PROPS);
@@ -142,7 +147,7 @@ public class StandaloneExecutorTest {
           OptionalInt.empty()
       ),
       false,
-      ImmutableMap.of(),
+      CreateSourceAsProperties.none(),
       Optional.empty()
   );
 
@@ -502,7 +507,7 @@ public class StandaloneExecutorTest {
   public void shouldRunCsasStatements() {
     // Given:
     final PreparedStatement<?> csas = PreparedStatement.of("CSAS1",
-        new CreateStreamAsSelect(SOME_NAME, query, false, emptyMap(), Optional.empty()));
+        new CreateStreamAsSelect(SOME_NAME, query, false, CreateSourceAsProperties.none(), Optional.empty()));
     final ConfiguredStatement<?> configured = ConfiguredStatement.of(csas, emptyMap(), ksqlConfig);
     givenQueryFileParsesTo(csas);
 
@@ -520,7 +525,7 @@ public class StandaloneExecutorTest {
   public void shouldRunCtasStatements() {
     // Given:
     final PreparedStatement<?> ctas = PreparedStatement.of("CTAS",
-        new CreateTableAsSelect(SOME_NAME, query, false, emptyMap()));
+        new CreateTableAsSelect(SOME_NAME, query, false, CreateSourceAsProperties.none()));
     final ConfiguredStatement<?> configured = ConfiguredStatement.of(ctas, emptyMap(), ksqlConfig);
 
     givenQueryFileParsesTo(ctas);

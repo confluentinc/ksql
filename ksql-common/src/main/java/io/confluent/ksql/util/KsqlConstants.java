@@ -20,22 +20,15 @@ public final class KsqlConstants {
   private KsqlConstants() {
   }
 
+  public static final String CONFLUENT_AUTHOR = "Confluent";
+
   public static final String KSQL_INTERNAL_TOPIC_PREFIX = "_confluent-ksql-";
   public static final String CONFLUENT_INTERNAL_TOPIC_PREFIX = "__confluent";
-
-  public static final String SINK_NUMBER_OF_PARTITIONS = "PARTITIONS";
-  public static final String SOURCE_NUMBER_OF_PARTITIONS = SINK_NUMBER_OF_PARTITIONS;
-
-  public static final String SINK_NUMBER_OF_REPLICAS = "REPLICAS";
-  public static final String SOURCE_NUMBER_OF_REPLICAS = SINK_NUMBER_OF_REPLICAS;
-
-  public static final String SINK_TIMESTAMP_COLUMN_NAME = "TIMESTAMP";
 
   public static final String STREAMS_CHANGELOG_TOPIC_SUFFIX = "-changelog";
   public static final String STREAMS_REPARTITION_TOPIC_SUFFIX = "-repartition";
 
   public static final String SCHEMA_REGISTRY_VALUE_SUFFIX = "-value";
-  public static final String AVRO_SCHEMA_ID = "AVRO_SCHEMA_ID";
 
   public static final int legacyDefaultSinkPartitionCount = 4;
   public static final short legacyDefaultSinkReplicaCount = 1;

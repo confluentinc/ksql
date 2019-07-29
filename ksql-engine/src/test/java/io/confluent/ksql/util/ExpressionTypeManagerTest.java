@@ -24,6 +24,8 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.TestFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SchemaConverters;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Assert;
@@ -276,12 +278,14 @@ public class ExpressionTypeManagerTest {
     final Schema caseSchema = ordersExpressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(0));
 
     // Then:
-    assertThat(caseSchema, equalTo(metaStore
+    final SqlType sqlType = metaStore
         .getSource("ORDERS")
         .getSchema()
         .findValueField("ADDRESS")
         .get()
-        .schema()));
+        .type();
+
+    assertThat(caseSchema, equalTo(SchemaConverters.sqlToConnectConverter().toConnectSchema(sqlType)));
   }
 
   @Test

@@ -42,6 +42,7 @@ import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicyFactory;
 import java.util.List;
 import java.util.Optional;
+import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 
@@ -151,8 +152,8 @@ public class LogicalPlanner {
   ) {
     return TimestampExtractionPolicyFactory.create(
         inputSchema,
-        analysis.getTimestampColumnName(),
-        analysis.getTimestampFormat());
+        analysis.getProperties().getTimestampColumnName(),
+        analysis.getProperties().getTimestampFormat());
   }
 
   private AggregateNode buildAggregateNode(final PlanNode sourcePlanNode) {
@@ -182,10 +183,19 @@ public class LogicalPlanner {
       }
     }
 
+    final ConnectSchema keySchema = sourcePlanNode.getSchema().isAliased()
+        ? sourcePlanNode.getSchema().withoutAlias().keySchema()
+        : sourcePlanNode.getSchema().keySchema();
+
+    final LogicalSchema schema = LogicalSchema.of(
+        keySchema,
+        aggregateSchema.build()
+    );
+
     return new AggregateNode(
         new PlanNodeId("Aggregate"),
         sourcePlanNode,
-        LogicalSchema.of(aggregateSchema.build()),
+        schema,
         keyField,
         analysis.getGroupByExpressions(),
         analysis.getWindowExpression(),
@@ -224,10 +234,16 @@ public class LogicalPlanner {
       }
     }
 
+    final ConnectSchema keySchema = sourcePlanNode.getSchema().isAliased()
+        ? sourcePlanNode.getSchema().withoutAlias().keySchema()
+        : sourcePlanNode.getSchema().keySchema();
+
+    final LogicalSchema schema = LogicalSchema.of(keySchema, projectionSchema.build());
+
     return new ProjectNode(
         new PlanNodeId("Project"),
         sourcePlanNode,
-        LogicalSchema.of(projectionSchema.build()),
+        schema,
         keyFieldName,
         analysis.getSelectExpressions()
     );

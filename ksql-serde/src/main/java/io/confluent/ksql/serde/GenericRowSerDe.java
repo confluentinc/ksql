@@ -15,33 +15,39 @@
 
 package io.confluent.ksql.serde;
 
+import static io.confluent.ksql.logging.processing.ProcessingLoggerUtil.join;
 import static java.util.Objects.requireNonNull;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.logging.processing.LoggingDeserializer;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
+import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.function.Supplier;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
+import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Struct;
 
-public final class GenericRowSerDe implements Serde<GenericRow> {
+public final class GenericRowSerDe {
 
-  private final Serde<Object> delegate;
-  private final PhysicalSchema schema;
-  private final boolean unwrapped;
+  private static final String DESERIALIZER_LOGGER_NAME = "deserializer";
 
+  private GenericRowSerDe() {
+  }
+
+  @SuppressWarnings("unchecked")
   public static Serde<GenericRow> from(
       final KsqlSerdeFactory serdeFactory,
       final PhysicalSchema schema,
@@ -50,58 +56,34 @@ public final class GenericRowSerDe implements Serde<GenericRow> {
       final String loggerNamePrefix,
       final ProcessingLogContext processingLogContext
   ) {
+    final ProcessingLogger processingLogger = processingLogContext.getLoggerFactory()
+        .getLogger(join(loggerNamePrefix, DESERIALIZER_LOGGER_NAME));
 
-    final Serde<Object> structSerde = serdeFactory.createSerde(
+    final Serde<Object> innerSerde = serdeFactory.createSerde(
         schema.valueSchema(),
         ksqlConfig,
-        srClientFactory,
-        loggerNamePrefix,
-        processingLogContext);
+        srClientFactory
+    );
 
-    return new GenericRowSerDe(structSerde, schema);
-  }
-
-  private GenericRowSerDe(
-      final Serde<Object> delegate,
-      final PhysicalSchema schema
-  ) {
-    this.delegate = requireNonNull(delegate, "delegate");
-    this.schema = requireNonNull(schema, "schema");
-    this.unwrapped = schema.logicalSchema().valueFields().size() == 1
+    final boolean unwrapped = schema.logicalSchema().valueFields().size() == 1
         && schema.serdeOptions().contains(SerdeOption.UNWRAP_SINGLE_VALUES);
-  }
 
-  @Override
-  public Serializer<GenericRow> serializer() {
-    return unwrapped
-        ? new UnwrappedGenericRowSerializer(delegate.serializer())
-        : new GenericRowSerializer(delegate.serializer(), schema.logicalSchema());
-  }
+    final Serializer<GenericRow> serializer = unwrapped
+        ? new UnwrappedGenericRowSerializer(innerSerde.serializer())
+        : new GenericRowSerializer(innerSerde.serializer(), schema.logicalSchema());
 
-  @SuppressWarnings("unchecked")
-  @Override
-  public Deserializer<GenericRow> deserializer() {
-    return unwrapped
-        ? new UnwrappedGenericRowDeserializer(delegate.deserializer())
-        : new GenericRowDeserializer((Deserializer) delegate.deserializer());
-  }
+    final Deserializer<GenericRow> deserializer = unwrapped
+        ? new UnwrappedGenericRowDeserializer(innerSerde.deserializer())
+        : new GenericRowDeserializer((Deserializer) innerSerde.deserializer());
 
-  @Override
-  public boolean equals(final Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-    final GenericRowSerDe that = (GenericRowSerDe) o;
-    return Objects.equals(delegate, that.delegate)
-        && Objects.equals(schema, that.schema);
-  }
+    final Serde<GenericRow> genericRowSerde = Serdes.serdeFrom(
+        serializer,
+        new LoggingDeserializer(deserializer, processingLogger)
+    );
 
-  @Override
-  public int hashCode() {
-    return Objects.hash(delegate, schema);
+    genericRowSerde.configure(Collections.emptyMap(), false);
+
+    return genericRowSerde;
   }
 
   private static class UnwrappedGenericRowSerializer implements Serializer<GenericRow> {

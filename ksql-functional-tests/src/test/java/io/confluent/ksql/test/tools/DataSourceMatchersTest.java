@@ -15,19 +15,14 @@
 
 package io.confluent.ksql.test.tools;
 
-import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.hamcrest.Matchers.not;
 import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.MetaStoreMatchers.FieldMatchers;
-import java.util.Optional;
-import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
-import org.hamcrest.FeatureMatcher;
-import org.hamcrest.Matcher;
-import org.hamcrest.TypeSafeDiagnosingMatcher;
+import io.confluent.ksql.schema.ksql.Field;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -38,37 +33,41 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class DataSourceMatchersTest {
 
   @Mock
-  private DataSource dataSource;
+  private DataSource<?> dataSource;
 
   @Test
-  @SuppressWarnings("unchecked")
-  public void shouldGetMatcherForName() {
+  public void shouldMatchSourceName() {
     // Given:
     when(dataSource.getName()).thenReturn("foo");
 
-    // When:
-    final Matcher matcher = DataSourceMatchers.hasName("foo");
-
     // Then:
-    assertThat(matcher, instanceOf(FeatureMatcher.class));
-    final FeatureMatcher<DataSource<?>, String> featureMatcher = (FeatureMatcher<DataSource<?>, String>) matcher;
-    assertTrue(featureMatcher.matches(dataSource));
+    assertThat(dataSource, DataSourceMatchers.hasName("foo"));
   }
 
-
   @Test
-  public void shouldGetCorrectTypeSafeDiagnosingMatcher() {
-
+  public void shouldNotMatchSourceName() {
     // Given:
-
-    // When:
-    final Matcher matcher = DataSourceMatchers.OptionalMatchers.of(FieldMatchers.hasName("foo"));
+    when(dataSource.getName()).thenReturn("not-foo");
 
     // Then:
-    assertThat(matcher, instanceOf(TypeSafeDiagnosingMatcher.class));
-    final TypeSafeDiagnosingMatcher typeSafeDiagnosingMatcher = (TypeSafeDiagnosingMatcher) matcher;
-    assertTrue(typeSafeDiagnosingMatcher.matches(Optional.of(new Field("foo", 0, Schema.OPTIONAL_INT32_SCHEMA))));
+    assertThat(dataSource, not(DataSourceMatchers.hasName("foo")));
+  }
 
+  @Test
+  public void shouldMatchFieldName() {
+    // Given:
+    final Field field = Field.of("foo", SqlTypes.STRING);
 
+    // Then:
+    assertThat(field, FieldMatchers.hasFullName("foo"));
+  }
+
+  @Test
+  public void shouldNotMatchFieldName() {
+    // Given:
+    final Field field = Field.of("not-foo", SqlTypes.STRING);
+
+    // Then:
+    assertThat(field, not(FieldMatchers.hasFullName("foo")));
   }
 }

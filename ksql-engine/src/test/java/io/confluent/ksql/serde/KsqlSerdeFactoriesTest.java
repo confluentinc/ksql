@@ -17,12 +17,8 @@ package io.confluent.ksql.serde;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.mockito.Mockito.when;
 
-import io.confluent.ksql.ddl.DdlConfig;
-import io.confluent.ksql.parser.tree.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.serde.avro.KsqlAvroSerdeFactory;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
@@ -43,8 +39,6 @@ public class KsqlSerdeFactoriesTest {
   public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
-  private CreateSourceProperties statementProps;
-  @Mock
   private Map<String, Expression> sinkProps;
 
   private SerdeFactories factory;
@@ -56,60 +50,37 @@ public class KsqlSerdeFactoriesTest {
 
   @Test
   public void shouldThrowOnJsonIfValuesAvroSchemaNameSet() {
-    // Given:
-    when(statementProps.getValueAvroSchemaName()).thenReturn(Optional.of("vic"));
-
     // Then:
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage("VALUE_AVRO_SCHEMA_FULL_NAME is only valid for AVRO topics.");
 
     // When:
-    factory.create(Format.JSON, statementProps);
+    factory.create(Format.JSON, Optional.of("vic"));
   }
 
   @Test
   public void shouldThrowOnDelimitedIfValuesAvroSchemaNameSet() {
-    // Given:
-    when(sinkProps.get(DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME))
-        .thenReturn(new StringLiteral("bob"));
-
     // Then:
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage("VALUE_AVRO_SCHEMA_FULL_NAME is only valid for AVRO topics.");
 
     // When:
-    factory.create(Format.DELIMITED, sinkProps);
+    factory.create(Format.DELIMITED, Optional.of("vic"));
   }
 
   @Test
   public void shouldPickUpValueAvroSchemaNameFromStatementProps() {
-    // Given:
-    when(statementProps.getValueAvroSchemaName()).thenReturn(Optional.of("vic"));
-
     // When:
-    final KsqlSerdeFactory result = factory.create(Format.AVRO, statementProps);
+    final KsqlSerdeFactory result = factory.create(Format.AVRO, Optional.of("vic"));
 
     // Then:
     assertThat(result, is(new KsqlAvroSerdeFactory("vic")));
   }
 
   @Test
-  public void shouldPickUpValueAvroSchemaNameFromSinkProps() {
-    // Given:
-    when(sinkProps.get(DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME))
-        .thenReturn(new StringLiteral("hojjat"));
-
-    // When:
-    final KsqlSerdeFactory result = factory.create(Format.AVRO, sinkProps);
-
-    // Then:
-    assertThat(result, is(new KsqlAvroSerdeFactory("hojjat")));
-  }
-
-  @Test
   public void shouldPickUpDefaultValueAvroSchemaName() {
     // When:
-    final KsqlSerdeFactory result = factory.create(Format.AVRO, sinkProps);
+    final KsqlSerdeFactory result = factory.create(Format.AVRO, Optional.empty());
 
     // Then:
     assertThat(result, is(new KsqlAvroSerdeFactory(KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME)));

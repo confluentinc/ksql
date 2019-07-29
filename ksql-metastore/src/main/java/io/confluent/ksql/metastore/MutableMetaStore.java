@@ -16,16 +16,11 @@
 package io.confluent.ksql.metastore;
 
 import io.confluent.ksql.metastore.model.DataSource;
-import io.confluent.ksql.metastore.model.KsqlTopic;
 import java.util.Set;
 
 public interface MutableMetaStore extends MetaStore {
 
-  void putTopic(KsqlTopic topic);
-
   void putSource(DataSource<?> dataSource);
-
-  void deleteTopic(String topicName);
 
   void deleteSource(String sourceName);
 

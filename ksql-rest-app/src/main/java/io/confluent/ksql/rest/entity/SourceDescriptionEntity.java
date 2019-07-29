@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.entity;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.List;
 import java.util.Objects;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -27,8 +28,9 @@ public class SourceDescriptionEntity extends KsqlEntity {
   @JsonCreator
   public SourceDescriptionEntity(
       @JsonProperty("statementText") final String statementText,
-      @JsonProperty("sourceDescription") final SourceDescription sourceDescription) {
-    super(statementText);
+      @JsonProperty("sourceDescription") final SourceDescription sourceDescription,
+      @JsonProperty("warnings") final List<KsqlWarning> warnings) {
+    super(statementText, warnings);
     this.sourceDescription = sourceDescription;
   }
 

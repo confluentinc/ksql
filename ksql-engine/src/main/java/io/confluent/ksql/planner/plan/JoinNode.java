@@ -20,10 +20,13 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KeyField;
+import io.confluent.ksql.metastore.model.KeyField.LegacyField;
 import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.physical.KsqlQueryBuilder;
+import io.confluent.ksql.schema.ksql.Field;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.services.KafkaTopicClient;
@@ -42,8 +45,6 @@ import java.util.Optional;
 import java.util.function.Supplier;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.Serde;
-import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.SchemaBuilder;
 
 
 public class JoinNode extends PlanNode {
@@ -77,7 +78,6 @@ public class JoinNode extends PlanNode {
     this.joinType = joinType;
     this.left = Objects.requireNonNull(left, "left");
     this.right = Objects.requireNonNull(right, "right");
-    this.schema = buildSchema(left, right);
     this.leftJoinFieldName = Objects.requireNonNull(leftJoinFieldName, "leftJoinFieldName");
     this.rightJoinFieldName = Objects.requireNonNull(rightJoinFieldName, "rightJoinFieldName");
     this.withinExpression = Objects.requireNonNull(withinExpression, "withinExpression");
@@ -85,24 +85,10 @@ public class JoinNode extends PlanNode {
     final Field leftKeyField = validateFieldInSchema(leftJoinFieldName, left.getSchema());
     validateFieldInSchema(rightJoinFieldName, right.getSchema());
 
-    this.keyField = KeyField.of(leftJoinFieldName, leftKeyField);
-  }
+    this.keyField = KeyField
+        .of(leftJoinFieldName, LegacyField.of(leftKeyField.fullName(), leftKeyField.type()));
 
-  private static LogicalSchema buildSchema(final PlanNode left, final PlanNode right) {
-
-    final LogicalSchema leftSchema = left.getSchema();
-    final LogicalSchema rightSchema = right.getSchema();
-
-    final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
-
-    for (final Field field : leftSchema.valueSchema().fields()) {
-      schemaBuilder.field(field.name(), field.schema());
-    }
-
-    for (final Field field : rightSchema.valueSchema().fields()) {
-      schemaBuilder.field(field.name(), field.schema());
-    }
-    return LogicalSchema.of(schemaBuilder.build());
+    this.schema = buildSchema(left, right);
   }
 
   @Override
@@ -258,7 +244,7 @@ public class JoinNode extends PlanNode {
       final String rowKey = SchemaUtil.buildAliasedFieldName(tableName, SchemaUtil.ROWKEY_NAME);
 
       final boolean namesMatch = keyField
-          .map(field -> SchemaUtil.matchFieldName(field, joinFieldName))
+          .map(field -> SchemaUtil.isFieldName(joinFieldName, field.fullName()))
           .orElse(false);
 
       if (namesMatch || joinFieldName.equals(rowKey)) {
@@ -273,7 +259,7 @@ public class JoinNode extends PlanNode {
       }
 
       throw new KsqlException(
-          "Source table (" + tableName + ") key column (" + keyField.get().name() + ") "
+          "Source table (" + tableName + ") key column (" + keyField.get().fullName() + ") "
               + "is not the column used in the join criteria (" + joinFieldName + "). "
               + "Only the table's key column or 'ROWKEY' is supported in the join criteria."
       );
@@ -515,5 +501,24 @@ public class JoinNode extends PlanNode {
     return leftType == DataSourceType.KTABLE && rightType == DataSourceType.KTABLE
         ? DataSourceType.KTABLE
         : DataSourceType.KSTREAM;
+  }
+
+  private static LogicalSchema buildSchema(
+      final PlanNode left,
+      final PlanNode right
+  ) {
+    final LogicalSchema leftSchema = left.getSchema();
+    final LogicalSchema rightSchema = right.getSchema();
+
+    final LogicalSchema.Builder joinSchema = LogicalSchema.builder();
+
+    joinSchema.valueFields(leftSchema.valueFields());
+
+    joinSchema.valueFields(rightSchema.valueFields());
+
+    // Hard-wire for now, until we support custom type/name of key fields:
+    joinSchema.keyField(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING);
+
+    return joinSchema.build();
   }
 }

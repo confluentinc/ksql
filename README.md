@@ -1,4 +1,4 @@
-# ![KSQL rocket](ksq-lrocket.png) KSQL - Streaming SQL for Apache Kafka
+# ![KSQL rocket](ksql-rocket.png) KSQL - Streaming SQL for Apache Kafka
 
 > **KSQL is now GA and officially supported by Confluent Inc. [Get started with KSQL today](#getting-started).**
 

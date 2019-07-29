@@ -17,8 +17,7 @@ package io.confluent.ksql.parser.tree;
 
 import static java.util.Objects.requireNonNull;
 
-import com.google.common.collect.ImmutableMap;
-import java.util.Map;
+import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -27,7 +26,7 @@ public abstract class CreateAsSelect extends Statement implements QueryContainer
   private final QualifiedName name;
   private final Query query;
   private final boolean notExists;
-  private final ImmutableMap<String, Literal> properties;
+  private final CreateSourceAsProperties properties;
   private final Optional<Expression> partitionByColumn;
 
   CreateAsSelect(
@@ -35,20 +34,21 @@ public abstract class CreateAsSelect extends Statement implements QueryContainer
       final QualifiedName name,
       final Query query,
       final boolean notExists,
-      final Map<String, Literal> properties,
-      final Optional<Expression> partitionByColumn) {
+      final CreateSourceAsProperties properties,
+      final Optional<Expression> partitionByColumn
+  ) {
     super(location);
-    this.name = requireNonNull(name, "name is null");
-    this.query = requireNonNull(query, "query is null");
+    this.name = requireNonNull(name, "name");
+    this.query = requireNonNull(query, "query");
     this.notExists = notExists;
-    this.properties = ImmutableMap
-        .copyOf(requireNonNull(properties, "properties is null"));
+    this.properties = requireNonNull(properties, "properties");
     this.partitionByColumn = requireNonNull(partitionByColumn, "partitionByColumn");
   }
 
   CreateAsSelect(
       final CreateAsSelect other,
-      final Map<String, Literal> properties) {
+      final CreateSourceAsProperties properties
+  ) {
     this(
         other.getLocation(),
         other.name,
@@ -58,7 +58,7 @@ public abstract class CreateAsSelect extends Statement implements QueryContainer
         other.partitionByColumn);
   }
 
-  public abstract CreateAsSelect copyWith(Map<String, Literal> properties);
+  public abstract CreateAsSelect copyWith(CreateSourceAsProperties properties);
 
   public QualifiedName getName() {
     return name;
@@ -73,7 +73,7 @@ public abstract class CreateAsSelect extends Statement implements QueryContainer
     return notExists;
   }
 
-  public Map<String, Literal> getProperties() {
+  public CreateSourceAsProperties getProperties() {
     return properties;
   }
 

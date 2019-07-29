@@ -19,7 +19,6 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.FunctionCall;
-import io.confluent.ksql.parser.tree.Node;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.parser.tree.Query;
@@ -45,11 +44,10 @@ public class StatementRewriteForStruct {
         || statement instanceof QueryContainer;
   }
 
-
   private static class RewriteWithStructFieldExtractors extends StatementRewriter {
 
     @Override
-    protected Node visitDereferenceExpression(
+    public Expression visitDereferenceExpression(
         final DereferenceExpression node,
         final Object context
     ) {

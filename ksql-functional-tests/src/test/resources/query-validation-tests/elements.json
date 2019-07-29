@@ -1,9 +1,10 @@
 {
   "tests": [
     {
-      "name": "validate JSON fails without elements",
+      "name": "validate without elements FAILS",
+      "format": ["DELIMITED", "JSON", "KAFKA"],
       "statements": [
-        "CREATE STREAM TEST WITH (kafka_topic='test_topic', value_format='JSON');"
+        "CREATE STREAM INPUT WITH (kafka_topic='input', value_format='{FORMAT}');"
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
@@ -11,20 +12,10 @@
       }
     },
     {
-      "name": "validate DELIMITED fails without elements",
+      "name": "validate without elements OK - AVRO",
       "statements": [
-        "CREATE STREAM TEST WITH (kafka_topic='test_topic', value_format='DELIMITED');"
-      ],
-      "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlException",
-        "message": "The statement does not define any columns."
-      }
-    },
-    {
-      "name": "validate AVRO ok without elements",
-      "statements": [
-        "CREATE STREAM TEST WITH (kafka_topic='input', value_format='AVRO');",
-        "CREATE STREAM S WITH(PARTITIONS = 4) as SELECT * FROM test;"
+        "CREATE STREAM INPUT WITH (kafka_topic='input', value_format='AvRo');",
+        "CREATE STREAM OUTPUT WITH(PARTITIONS = 4) as SELECT * FROM input;"
       ],
       "topics": [
         {
@@ -33,19 +24,29 @@
           "format": "AVRO"
         },
         {
-          "name": "S",
+          "name": "OUTPUT",
           "format": "AVRO",
           "partitions": 4
         }
       ],
       "inputs": [{"topic": "input", "value": {"c1": 4}}],
-      "outputs": [{"topic": "S", "value": {"C1": 4}}]
+      "outputs": [{"topic": "OUTPUT", "value": {"C1": 4}}]
     },
     {
-      "name": "validate AVRO ok with elements",
+      "name": "validate with elements OK",
+      "format": ["JSON"],
       "statements": [
-        "CREATE STREAM TEST (c1 INT) WITH (kafka_topic='input', value_format='AVRO');",
-        "CREATE STREAM S WITH(PARTITIONS = 4) as SELECT * FROM test;"
+        "CREATE STREAM INPUT (V0 INT) WITH (kafka_topic='input', value_format='{FORMAT}');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [{"topic": "input", "value": {"V0": 4}}],
+      "outputs": [{"topic": "OUTPUT", "value": {"V0": 4}}]
+    },
+    {
+      "name": "validate with elements OK - AVRO",
+      "statements": [
+        "CREATE STREAM INPUT (c1 INT) WITH (kafka_topic='input', value_format='AVRO');",
+        "CREATE STREAM OUTPUT WITH(PARTITIONS = 4) as SELECT * FROM input;"
       ],
       "topics": [
         {
@@ -54,19 +55,249 @@
           "format": "AVRO"
         },
         {
-          "name": "S",
+          "name": "OUTPUT",
           "format": "AVRO",
           "partitions": 4
         }
       ],
       "inputs": [{"topic": "input", "value": {"c1": 4}}],
-      "outputs": [{"topic": "S", "value": {"C1": 4}}]
+      "outputs": [{"topic": "OUTPUT", "value": {"C1": 4}}]
+    },
+    {
+      "name": "validate multiple value elements in C* FAILS - KAFKA",
+      "statements": [
+        "CREATE STREAM INPUT (V0 INT, V1 STRING) WITH (kafka_topic='input', value_format='KafkA');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "The 'KAFKA' format only supports a single field. Got: V0 INT, V1 VARCHAR"
+      }
+    },
+    {
+      "name": "validate multiple value elements in C*AS FAILS - KAFKA",
+      "statements": [
+        "CREATE STREAM INPUT (V0 INT, V1 STRING) WITH (kafka_topic='input', value_format='DELIMITED');",
+        "CREATE STREAM OUTPUT WITH (value_format='kafka') AS SELECT * FROM INPUT;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "The 'KAFKA' format only supports a single field. Got: V0 INT, V1 VARCHAR"
+      }
+    },
+    {
+      "name": "validate boolean elements FAILS - KAFKA",
+      "statements": [
+        "CREATE STREAM INPUT (V0 BOOLEAN) WITH (kafka_topic='input', value_format='KAFKA');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "The 'KAFKA' format does not support type 'BOOLEAN'"
+      }
+    },
+    {
+      "name": "validate boolean elements OK",
+      "format": ["DELIMITED"],
+      "statements": [
+        "CREATE STREAM INPUT (V0 BOOLEAN) WITH (kafka_topic='input', value_format='{FORMAT}');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [{"topic": "input", "value": "true"}],
+      "outputs": [{"topic": "OUTPUT", "value": "true"}]
+    },
+    {
+      "name": "validate boolean elements OK",
+      "format": ["JSON", "AVRO"],
+      "statements": [
+        "CREATE STREAM INPUT (V0 BOOLEAN) WITH (kafka_topic='input', value_format='{FORMAT}');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [{"topic": "input", "value": {"V0": true}}],
+      "outputs": [{"topic": "OUTPUT", "value": {"V0": true}}]
+    },
+    {
+      "name": "validate int elements OK",
+      "format": ["DELIMITED", "KAFKA"],
+      "statements": [
+        "CREATE STREAM INPUT (V0 INT) WITH (kafka_topic='input', value_format='{FORMAT}');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [{"topic": "input", "value": 10}],
+      "outputs": [{"topic": "OUTPUT", "value": 10}]
+    },
+    {
+      "name": "validate int elements OK",
+      "format": ["JSON", "AVRO"],
+      "statements": [
+        "CREATE STREAM INPUT (V0 INT) WITH (kafka_topic='input', value_format='{FORMAT}');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [{"topic": "input", "value": {"V0": 10}}],
+      "outputs": [{"topic": "OUTPUT", "value": {"V0": 10}}]
+    },
+    {
+      "name": "validate bigint elements OK",
+      "format": ["DELIMITED", "KAFKA"],
+      "statements": [
+        "CREATE STREAM INPUT (V0 BIGINT) WITH (kafka_topic='input', value_format='{FORMAT}');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [{"topic": "input", "value": 10000000000}],
+      "outputs": [{"topic": "OUTPUT", "value": 10000000000}]
+    },
+    {
+      "name": "validate bigint elements OK",
+      "format": ["JSON", "AVRO"],
+      "statements": [
+        "CREATE STREAM INPUT (V0 BIGINT) WITH (kafka_topic='input', value_format='{FORMAT}');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [{"topic": "input", "value": {"V0": 10000000000}}],
+      "outputs": [{"topic": "OUTPUT", "value": {"V0": 10000000000}}]
+    },
+    {
+      "name": "validate double elements OK",
+      "format": ["DELIMITED", "KAFKA"],
+      "statements": [
+        "CREATE STREAM INPUT (V0 DOUBLE) WITH (kafka_topic='input', value_format='{FORMAT}');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [{"topic": "input", "value": 10.1}],
+      "outputs": [{"topic": "OUTPUT", "value": 10.1}]
+    },
+    {
+      "name": "validate double elements OK",
+      "format": ["JSON", "AVRO"],
+      "statements": [
+        "CREATE STREAM INPUT (V0 DOUBLE) WITH (kafka_topic='input', value_format='{FORMAT}');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [{"topic": "input", "value": {"V0": 10.1}}],
+      "outputs": [{"topic": "OUTPUT", "value": {"V0": 10.1}}]
+    },
+    {
+      "name": "validate string elements OK",
+      "format": ["DELIMITED", "KAFKA"],
+      "statements": [
+        "CREATE STREAM INPUT (V0 STRING) WITH (kafka_topic='input', value_format='{FORMAT}');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [{"topic": "input", "value": "Hello"}],
+      "outputs": [{"topic": "OUTPUT", "value": "Hello"}]
+    },
+    {
+      "name": "validate string elements OK",
+      "format": ["JSON", "AVRO"],
+      "statements": [
+        "CREATE STREAM INPUT (V0 STRING) WITH (kafka_topic='input', value_format='{FORMAT}');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [{"topic": "input", "value": {"V0": "Hello"}}],
+      "outputs": [{"topic": "OUTPUT", "value": {"V0": "Hello"}}]
+    },
+    {
+      "name": "validate array element in C* FAILS",
+      "format": ["DELIMITED", "KAFKA"],
+      "statements": [
+        "CREATE STREAM INPUT (V0 ARRAY<INT>) WITH (kafka_topic='input', value_format='{FORMAT}');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "format does not support type 'ARRAY'"
+      }
+    },
+    {
+      "name": "validate array element in C*AS FAILS",
+      "format": ["DELIMITED", "KAFKA"],
+      "statements": [
+        "CREATE STREAM INPUT (V0 ARRAY<INT>) WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT WITH (value_format='{FORMAT}') AS SELECT * FROM INPUT;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "format does not support type 'ARRAY'"
+      }
+    },
+    {
+      "name": "validate array element OK",
+      "format": ["JSON", "AVRO"],
+      "statements": [
+        "CREATE STREAM INPUT (V0 ARRAY<INT>) WITH (kafka_topic='input', value_format='{FORMAT}');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [{"topic": "input", "value": {"V0": [1]}}],
+      "outputs": [{"topic": "OUTPUT", "value": {"V0": [1]}}]
+    },
+    {
+      "name": "validate map element in C* FAILS",
+      "format": ["DELIMITED", "KAFKA"],
+      "statements": [
+        "CREATE STREAM INPUT (V0 MAP<STRING, INT>) WITH (kafka_topic='input', value_format='{FORMAT}');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "format does not support type 'MAP'"
+      }
+    },
+    {
+      "name": "validate map element in C*AS FAILS",
+      "format": ["DELIMITED", "KAFKA"],
+      "statements": [
+        "CREATE STREAM INPUT (V0 MAP<STRING, INT>) WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT WITH(value_format='{FORMAT}') AS SELECT * FROM INPUT;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "format does not support type 'MAP'"
+      }
+    },
+    {
+      "name": "validate map element OK",
+      "format": ["JSON", "AVRO"],
+      "statements": [
+        "CREATE STREAM INPUT (V0 MAP<STRING, INT>) WITH (kafka_topic='input', value_format='{FORMAT}');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [{"topic": "input", "value": {"V0": {"k1": 1}}}],
+      "outputs": [{"topic": "OUTPUT", "value": {"V0": {"k1": 1}}}]
+    },
+    {
+      "name": "validate struct element in C* FAILS",
+      "format": ["DELIMITED", "KAFKA"],
+      "statements": [
+        "CREATE STREAM INPUT (V0 STRUCT<F0 STRING>) WITH (kafka_topic='input', value_format='{FORMAT}');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "format does not support type 'STRUCT'"
+      }
+    },
+    {
+      "name": "validate struct element in C*AS FAILS",
+      "format": ["DELIMITED", "KAFKA"],
+      "statements": [
+        "CREATE STREAM INPUT (V0 STRUCT<F0 STRING>) WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT WITH(value_format='{FORMAT}') AS SELECT * FROM INPUT;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "format does not support type 'STRUCT'"
+      }
+    },
+    {
+      "name": "validate struct element OK",
+      "format": ["JSON", "AVRO"],
+      "statements": [
+        "CREATE STREAM INPUT (V0 STRUCT<F0 STRING, F1 INT>) WITH (kafka_topic='input', value_format='{FORMAT}');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [{"topic": "input", "value": {"V0": {"f0": "bob", "f1": 1}}}],
+      "outputs": [{"topic": "OUTPUT", "value": {"V0": {"F0": "bob", "F1": 1}}}]
     },
     {
       "name": "validate AVRO uses null for unknown element",
       "statements": [
-        "CREATE STREAM TEST (c1 INT, unknown INT) WITH (kafka_topic='input', value_format='AVRO');",
-        "CREATE STREAM S WITH(PARTITIONS = 4) as SELECT * FROM test;"
+        "CREATE STREAM INPUT (c1 INT, unknown INT) WITH (kafka_topic='input', value_format='AVRO');",
+        "CREATE STREAM S WITH(PARTITIONS = 4) as SELECT * FROM input;"
       ],
       "topics": [
         {
@@ -86,12 +317,12 @@
     {
       "name": "validate AVRO fails on incompatible schema evolution",
       "statements": [
-        "CREATE STREAM TEST (c1 INT) WITH (kafka_topic='input', value_format='AVRO');",
-        "CREATE STREAM S WITH(PARTITIONS = 4) as SELECT * FROM test;"
+        "CREATE STREAM INPUT (c1 INT) WITH (kafka_topic='input', value_format='AVRO');",
+        "CREATE STREAM OUTPUT WITH(PARTITIONS = 4) as SELECT * FROM input;"
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Cannot register avro schema for S as the schema registry rejected it, (maybe schema evolution issues?)"
+        "message": "Cannot register avro schema for OUTPUT as the schema registry rejected it, (maybe schema evolution issues?)"
       },
       "topics": [
         {
@@ -101,7 +332,7 @@
           "partitions": 4
         },
         {
-          "name": "S",
+          "name": "OUTPUT",
           "schema": {"name": "blah", "type": "record", "fields": [{"name": "C1", "type": "double"}]},
           "format": "AVRO",
           "partitions": 4

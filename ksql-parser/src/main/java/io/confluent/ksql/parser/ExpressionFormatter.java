@@ -19,10 +19,8 @@ import static java.lang.String.format;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.parser.tree.ArithmeticUnaryExpression;
-import io.confluent.ksql.parser.tree.AstVisitor;
 import io.confluent.ksql.parser.tree.BetweenPredicate;
 import io.confluent.ksql.parser.tree.BooleanLiteral;
 import io.confluent.ksql.parser.tree.Cast;
@@ -31,6 +29,7 @@ import io.confluent.ksql.parser.tree.DecimalLiteral;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.DoubleLiteral;
 import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.parser.tree.ExpressionVisitor;
 import io.confluent.ksql.parser.tree.FunctionCall;
 import io.confluent.ksql.parser.tree.GroupingElement;
 import io.confluent.ksql.parser.tree.InListExpression;
@@ -41,7 +40,6 @@ import io.confluent.ksql.parser.tree.IsNullPredicate;
 import io.confluent.ksql.parser.tree.LikePredicate;
 import io.confluent.ksql.parser.tree.LogicalBinaryExpression;
 import io.confluent.ksql.parser.tree.LongLiteral;
-import io.confluent.ksql.parser.tree.Node;
 import io.confluent.ksql.parser.tree.NotExpression;
 import io.confluent.ksql.parser.tree.NullLiteral;
 import io.confluent.ksql.parser.tree.QualifiedName;
@@ -74,89 +72,75 @@ public final class ExpressionFormatter {
     return new Formatter().process(expression, unmangleNames);
   }
 
-  public static class Formatter
-          extends AstVisitor<String, Boolean> {
-
+  public static class Formatter implements ExpressionVisitor<String, Boolean> {
     @Override
-    protected String visitNode(final Node node, final Boolean unmangleNames) {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    protected String visitType(final Type node, final Boolean context) {
+    public String visitType(final Type node, final Boolean context) {
       return node.getSqlType().toString(FormatOptions.of(ParserUtil::isReservedIdentifier));
     }
 
     @Override
-    protected String visitExpression(final Expression node, final Boolean unmangleNames) {
-      throw new UnsupportedOperationException(
-              format("not yet implemented: %s.visit%s", getClass().getName(),
-                      node.getClass().getSimpleName()));
-    }
-
-    @Override
-    protected String visitBooleanLiteral(final BooleanLiteral node, final Boolean unmangleNames) {
+    public String visitBooleanLiteral(final BooleanLiteral node, final Boolean unmangleNames) {
       return String.valueOf(node.getValue());
     }
 
     @Override
-    protected String visitStringLiteral(final StringLiteral node, final Boolean unmangleNames) {
+    public String visitStringLiteral(final StringLiteral node, final Boolean unmangleNames) {
       return formatStringLiteral(node.getValue());
     }
 
     @Override
-    protected String visitSubscriptExpression(
+    public String visitSubscriptExpression(
         final SubscriptExpression node,
         final Boolean unmangleNames) {
-      return SqlFormatter.formatSql(node.getBase(), unmangleNames) + "[" + SqlFormatter
-              .formatSql(node.getIndex(), unmangleNames) + "]";
+      return process(node.getBase(), unmangleNames)
+          + "[" + process(node.getIndex(), unmangleNames) + "]";
     }
 
     @Override
-    protected String visitLongLiteral(final LongLiteral node, final Boolean unmangleNames) {
+    public String visitLongLiteral(final LongLiteral node, final Boolean unmangleNames) {
       return Long.toString(node.getValue());
     }
 
     @Override
-    protected String visitIntegerLiteral(final IntegerLiteral node, final Boolean unmangleNames) {
+    public String visitIntegerLiteral(final IntegerLiteral node, final Boolean unmangleNames) {
       return Integer.toString(node.getValue());
     }
 
     @Override
-    protected String visitDoubleLiteral(final DoubleLiteral node, final Boolean unmangleNames) {
+    public String visitDoubleLiteral(final DoubleLiteral node, final Boolean unmangleNames) {
       return Double.toString(node.getValue());
     }
 
     @Override
-    protected String visitDecimalLiteral(final DecimalLiteral node, final Boolean unmangleNames) {
+    public String visitDecimalLiteral(final DecimalLiteral node, final Boolean unmangleNames) {
       return "DECIMAL '" + node.getValue() + "'";
     }
 
     @Override
-    protected String visitTimeLiteral(final TimeLiteral node, final Boolean unmangleNames) {
+    public String visitTimeLiteral(final TimeLiteral node, final Boolean unmangleNames) {
       return "TIME '" + node.getValue() + "'";
     }
 
     @Override
-    protected String visitTimestampLiteral(
+    public String visitTimestampLiteral(
         final TimestampLiteral node,
         final Boolean unmangleNames) {
       return "TIMESTAMP '" + node.getValue() + "'";
     }
 
     @Override
-    protected String visitNullLiteral(final NullLiteral node, final Boolean unmangleNames) {
+    public String visitNullLiteral(final NullLiteral node, final Boolean unmangleNames) {
       return "null";
     }
 
     @Override
-    protected String visitQualifiedNameReference(final QualifiedNameReference node,
+    public String visitQualifiedNameReference(final QualifiedNameReference node,
                                                  final Boolean unmangleNames) {
       return formatQualifiedName(node.getName());
     }
 
     @Override
-    protected String visitDereferenceExpression(
+    public String visitDereferenceExpression(
         final DereferenceExpression node,
         final Boolean unmangleNames) {
       final String baseString = process(node.getBase(), unmangleNames);
@@ -175,7 +159,7 @@ public final class ExpressionFormatter {
     }
 
     @Override
-    protected String visitFunctionCall(final FunctionCall node, final Boolean unmangleNames) {
+    public String visitFunctionCall(final FunctionCall node, final Boolean unmangleNames) {
       final StringBuilder builder = new StringBuilder();
 
       String arguments = joinExpressions(node.getArguments(), unmangleNames);
@@ -190,19 +174,19 @@ public final class ExpressionFormatter {
     }
 
     @Override
-    protected String visitLogicalBinaryExpression(final LogicalBinaryExpression node,
+    public String visitLogicalBinaryExpression(final LogicalBinaryExpression node,
                                                   final Boolean unmangleNames) {
       return formatBinaryExpression(node.getType().toString(), node.getLeft(), node.getRight(),
               unmangleNames);
     }
 
     @Override
-    protected String visitNotExpression(final NotExpression node, final Boolean unmangleNames) {
+    public String visitNotExpression(final NotExpression node, final Boolean unmangleNames) {
       return "(NOT " + process(node.getValue(), unmangleNames) + ")";
     }
 
     @Override
-    protected String visitComparisonExpression(
+    public String visitComparisonExpression(
         final ComparisonExpression node,
         final Boolean unmangleNames) {
       return formatBinaryExpression(node.getType().getValue(), node.getLeft(), node.getRight(),
@@ -210,19 +194,19 @@ public final class ExpressionFormatter {
     }
 
     @Override
-    protected String visitIsNullPredicate(final IsNullPredicate node, final Boolean unmangleNames) {
+    public String visitIsNullPredicate(final IsNullPredicate node, final Boolean unmangleNames) {
       return "(" + process(node.getValue(), unmangleNames) + " IS NULL)";
     }
 
     @Override
-    protected String visitIsNotNullPredicate(
+    public String visitIsNotNullPredicate(
         final IsNotNullPredicate node,
         final Boolean unmangleNames) {
       return "(" + process(node.getValue(), unmangleNames) + " IS NOT NULL)";
     }
 
     @Override
-    protected String visitArithmeticUnary(
+    public String visitArithmeticUnary(
         final ArithmeticUnaryExpression node,
         final Boolean unmangleNames) {
       final String value = process(node.getValue(), unmangleNames);
@@ -240,7 +224,7 @@ public final class ExpressionFormatter {
     }
 
     @Override
-    protected String visitArithmeticBinary(
+    public String visitArithmeticBinary(
         final ArithmeticBinaryExpression node,
         final Boolean unmangleNames) {
       return formatBinaryExpression(node.getOperator().getSymbol(), node.getLeft(), node.getRight(),
@@ -248,21 +232,12 @@ public final class ExpressionFormatter {
     }
 
     @Override
-    protected String visitLikePredicate(final LikePredicate node, final Boolean unmangleNames) {
+    public String visitLikePredicate(final LikePredicate node, final Boolean unmangleNames) {
       return "("
           + process(node.getValue(), unmangleNames)
           + " LIKE "
           + process(node.getPattern(), unmangleNames)
           + ')';
-    }
-
-    @Override
-    protected String visitAllColumns(final AllColumns node, final Boolean unmangleNames) {
-      if (node.getPrefix().isPresent()) {
-        return node.getPrefix().get() + ".*";
-      }
-
-      return "*";
     }
 
     @Override
@@ -272,7 +247,7 @@ public final class ExpressionFormatter {
     }
 
     @Override
-    protected String visitSearchedCaseExpression(final SearchedCaseExpression node,
+    public String visitSearchedCaseExpression(final SearchedCaseExpression node,
                                                  final Boolean unmangleNames) {
       final ImmutableList.Builder<String> parts = ImmutableList.builder();
       parts.add("CASE");
@@ -289,7 +264,7 @@ public final class ExpressionFormatter {
     }
 
     @Override
-    protected String visitSimpleCaseExpression(
+    public String visitSimpleCaseExpression(
         final SimpleCaseExpression node,
         final Boolean unmangleNames) {
       final ImmutableList.Builder<String> parts = ImmutableList.builder();
@@ -310,13 +285,13 @@ public final class ExpressionFormatter {
     }
 
     @Override
-    protected String visitWhenClause(final WhenClause node, final Boolean unmangleNames) {
+    public String visitWhenClause(final WhenClause node, final Boolean unmangleNames) {
       return "WHEN " + process(node.getOperand(), unmangleNames) + " THEN " + process(
               node.getResult(), unmangleNames);
     }
 
     @Override
-    protected String visitBetweenPredicate(
+    public String visitBetweenPredicate(
         final BetweenPredicate node,
         final Boolean unmangleNames) {
       return "(" + process(node.getValue(), unmangleNames) + " BETWEEN "
@@ -326,13 +301,13 @@ public final class ExpressionFormatter {
     }
 
     @Override
-    protected String visitInPredicate(final InPredicate node, final Boolean unmangleNames) {
+    public String visitInPredicate(final InPredicate node, final Boolean unmangleNames) {
       return "(" + process(node.getValue(), unmangleNames) + " IN " + process(node.getValueList(),
               unmangleNames) + ")";
     }
 
     @Override
-    protected String visitInListExpression(
+    public String visitInListExpression(
         final InListExpression node,
         final Boolean unmangleNames) {
       return "(" + joinExpressions(node.getValues(), unmangleNames) + ")";

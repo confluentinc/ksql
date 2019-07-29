@@ -36,6 +36,7 @@ import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
 import io.confluent.rest.RestConfig;
@@ -46,10 +47,12 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.rules.ExternalResource;
 
+@SuppressWarnings("OptionalGetWithoutIsPresent")
 public class TemporaryEngine extends ExternalResource {
 
   public static final LogicalSchema SCHEMA = LogicalSchema.of(SchemaBuilder.struct()
       .field("val", Schema.OPTIONAL_STRING_SCHEMA)
+      .field("val2", DecimalUtil.builder(2, 1).build())
       .build());
 
   private MutableMetaStore metaStore;
@@ -82,9 +85,11 @@ public class TemporaryEngine extends ExternalResource {
   @SuppressWarnings("unchecked")
   public <T extends DataSource<?>> T givenSource(
       final DataSourceType type,
-      final String name) {
-    final KsqlTopic topic = givenKsqlTopic(name);
+      final String name
+  ) {
     givenKafkaTopic(name);
+
+    final KsqlTopic topic = new KsqlTopic(name, new KsqlJsonSerdeFactory(), false);
 
     final DataSource<?> source;
     switch (type) {
@@ -95,7 +100,7 @@ public class TemporaryEngine extends ExternalResource {
                 name,
                 SCHEMA,
                 SerdeOption.none(),
-                KeyField.of("val", SCHEMA.valueSchema().field("val")),
+                KeyField.of("val", SCHEMA.findValueField("val").get()),
                 new MetadataTimestampExtractionPolicy(),
                 topic,
                 Serdes::String
@@ -108,7 +113,7 @@ public class TemporaryEngine extends ExternalResource {
                 name,
                 SCHEMA,
                 SerdeOption.none(),
-                KeyField.of("val", SCHEMA.valueSchema().field("val")),
+                KeyField.of("val", SCHEMA.findValueField("val").get()),
                 new MetadataTimestampExtractionPolicy(),
                 topic,
                 Serdes::String
@@ -120,13 +125,6 @@ public class TemporaryEngine extends ExternalResource {
     metaStore.putSource(source);
 
     return (T) source;
-  }
-
-  public KsqlTopic givenKsqlTopic(String name) {
-    final KsqlTopic topic = new KsqlTopic(name, name, new KsqlJsonSerdeFactory(), false);
-    givenKafkaTopic(name);
-    metaStore.putTopic(topic);
-    return topic;
   }
 
   public void givenKafkaTopic(final String name) {

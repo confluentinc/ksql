@@ -18,7 +18,7 @@ package io.confluent.ksql.parser.tree;
 import static com.google.common.base.MoreObjects.toStringHelper;
 
 import com.google.errorprone.annotations.Immutable;
-import java.util.Map;
+import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import java.util.Optional;
 
 @Immutable
@@ -28,22 +28,12 @@ public class CreateTable extends CreateSource implements ExecutableDdlStatement 
       final QualifiedName name,
       final TableElements elements,
       final boolean notExists,
-      final Map<String, Literal> properties
+      final CreateSourceProperties properties
   ) {
     this(Optional.empty(), name, elements, notExists, properties);
   }
 
   public CreateTable(
-      final Optional<NodeLocation> location,
-      final QualifiedName name,
-      final TableElements elements,
-      final boolean notExists,
-      final Map<String, Literal> properties
-  ) {
-    this(location, name, elements, notExists, CreateSourceProperties.from(properties));
-  }
-
-  private CreateTable(
       final Optional<NodeLocation> location,
       final QualifiedName name,
       final TableElements elements,

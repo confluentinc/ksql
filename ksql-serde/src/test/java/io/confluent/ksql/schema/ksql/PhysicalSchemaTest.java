@@ -115,6 +115,6 @@ public class PhysicalSchemaTest {
 
     // Then:
     assertThat(result.valueSchema().getConnectSchema(),
-        is(SCHEMA_WITH_SINGLE_FIELD.valueFields().get(0).schema()));
+        is(SCHEMA_WITH_SINGLE_FIELD.valueSchema().fields().get(0).schema()));
   }
 }

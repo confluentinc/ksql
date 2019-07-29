@@ -15,11 +15,16 @@
 
 package io.confluent.ksql.function;
 
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
+
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.util.KsqlConfig;
-import java.util.Collections;
+import java.util.List;
 import java.util.function.Function;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -37,22 +42,116 @@ public class KsqlFunctionTest {
   private Function<KsqlConfig, Kudf> udfFactory;
 
   @Test
+  public void shouldResolveGenericReturnType() {
+    // Given:
+    final KsqlFunction function = createFunction(
+        GenericsUtil.generic("T").build(),
+        ImmutableList.of(GenericsUtil.generic("T").build())
+    );
+
+    // When:
+    final Schema returnType = function.getReturnType(ImmutableList.of(Schema.OPTIONAL_STRING_SCHEMA));
+
+    // Then:
+    assertThat(returnType, is(Schema.OPTIONAL_STRING_SCHEMA));
+  }
+
+  @Test
+  public void shouldResolveGenericReturnTypeFromArray() {
+    // Given:
+    final KsqlFunction function = createFunction(
+        GenericsUtil.generic("T").build(),
+        ImmutableList.of(GenericsUtil.array("T").build())
+    );
+
+    // When:
+    final Schema returnType = function.getReturnType(
+        ImmutableList.of(SchemaBuilder.array(Schema.OPTIONAL_STRING_SCHEMA).build()));
+
+    // Then:
+    assertThat(returnType, is(Schema.OPTIONAL_STRING_SCHEMA));
+  }
+
+  @Test
+  public void shouldResolveGenericReturnTypeFromSecondArgument() {
+    // Given:
+    final KsqlFunction function = createFunction(
+        GenericsUtil.generic("T").build(),
+        ImmutableList.of(
+            GenericsUtil.generic("S").build(),
+            GenericsUtil.generic("T").build()
+        )
+    );
+
+    // When:
+    final Schema returnType = function.getReturnType(
+        ImmutableList.of(
+            Schema.OPTIONAL_STRING_SCHEMA,
+            Schema.OPTIONAL_INT64_SCHEMA));
+
+    // Then:
+    assertThat(returnType, is(Schema.OPTIONAL_INT64_SCHEMA));
+  }
+
+  @Test
+  public void shouldResolveGenericArrayReturnType() {
+    // Given:
+    final KsqlFunction function = createFunction(
+        GenericsUtil.array("T").build(),
+        ImmutableList.of(GenericsUtil.generic("T").build())
+    );
+
+    // When:
+    final Schema returnType = function.getReturnType(ImmutableList.of(Schema.OPTIONAL_STRING_SCHEMA));
+
+    // Then:
+    assertThat(returnType, is(SchemaBuilder.array(Schema.OPTIONAL_STRING_SCHEMA).optional().build()));
+  }
+
+  @Test
+  public void shouldResolveGenericFromVariadicArgument() {
+    // Given:
+    final KsqlFunction function = createFunction(
+        GenericsUtil.generic("T").build(),
+        ImmutableList.of(GenericsUtil.array("T").build()),
+        true
+    );
+
+    // When:
+    final Schema returnType = function.getReturnType(ImmutableList.of(Schema.OPTIONAL_STRING_SCHEMA));
+
+    // Then:
+    assertThat(returnType, is(Schema.OPTIONAL_STRING_SCHEMA));
+  }
+
+  @Test
   public void shouldThrowOnNonOptionalReturnType() {
     // Then:
     expectedException.expect(IllegalArgumentException.class);
     expectedException.expectMessage("KSQL only supports optional field types");
 
     // When:
-    KsqlFunction.create(
-        Schema.INT32_SCHEMA, // <-- non-optional return type.
-        Collections.emptyList(),
+    createFunction(Schema.INT32_SCHEMA, ImmutableList.of());
+  }
+
+  private KsqlFunction createFunction(final Schema returnSchema, final List<Schema> args) {
+    return createFunction(returnSchema, args, false);
+  }
+
+  private KsqlFunction createFunction(
+      final Schema returnSchema,
+      final List<Schema> args,
+      final boolean isVariadic
+  ) {
+    return KsqlFunction.create(
+        returnSchema,
+        args,
         "funcName",
         MyUdf.class,
         udfFactory,
         "the description",
         "path/udf/loaded/from.jar",
-        false
-
+        isVariadic
     );
   }
 

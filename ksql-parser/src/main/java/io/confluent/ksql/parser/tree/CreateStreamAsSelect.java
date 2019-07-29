@@ -15,10 +15,8 @@
 
 package io.confluent.ksql.parser.tree;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.ddl.DdlConfig;
-import java.util.Map;
+import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
 import java.util.Optional;
 
 @Immutable
@@ -28,7 +26,7 @@ public class CreateStreamAsSelect extends CreateAsSelect {
       final QualifiedName name,
       final Query query,
       final boolean notExists,
-      final Map<String, Literal> properties,
+      final CreateSourceAsProperties properties,
       final Optional<Expression> partitionByColumn
   ) {
     this(Optional.empty(), name, query, notExists, properties, partitionByColumn);
@@ -39,33 +37,25 @@ public class CreateStreamAsSelect extends CreateAsSelect {
       final QualifiedName name,
       final Query query,
       final boolean notExists,
-      final Map<String, Literal> properties,
+      final CreateSourceAsProperties properties,
       final Optional<Expression> partitionByColumn) {
     super(location, name, query, notExists, properties, partitionByColumn);
   }
 
   private CreateStreamAsSelect(
       final CreateStreamAsSelect other,
-      final Map<String, Literal> properties
+      final CreateSourceAsProperties properties
   ) {
     super(other, properties);
   }
 
   @Override
   public Sink getSink() {
-    final Map<String, Expression> sinkProperties = getPartitionByColumn()
-        .map(exp -> (Map<String, Expression>)ImmutableMap.<String, Expression>builder()
-            .putAll(getProperties())
-            .put(DdlConfig.PARTITION_BY_PROPERTY, exp)
-            .build()
-        )
-        .orElseGet(() -> ImmutableMap.copyOf(getProperties()));
-
-    return Sink.of(getName().getSuffix(), true, sinkProperties);
+    return Sink.of(getName().getSuffix(), true, getProperties(), getPartitionByColumn());
   }
 
   @Override
-  public CreateAsSelect copyWith(final Map<String, Literal> properties) {
+  public CreateAsSelect copyWith(final CreateSourceAsProperties properties) {
     return new CreateStreamAsSelect(this, properties);
   }
 

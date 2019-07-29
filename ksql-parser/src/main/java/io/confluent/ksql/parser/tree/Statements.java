@@ -25,7 +25,7 @@ import java.util.Objects;
 import java.util.Optional;
 
 @Immutable
-public class Statements extends Node {
+public class Statements extends AstNode {
 
   private final ImmutableList<Statement> statements;
 

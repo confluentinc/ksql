@@ -373,7 +373,6 @@ public class AuthorizationTopicAccessValidatorTest {
   ) {
     final KsqlTopic sourceTopic =
         new KsqlTopic(
-            streamName.toUpperCase(),
             topicDescription.name(),
             new KsqlJsonSerdeFactory(),
             false

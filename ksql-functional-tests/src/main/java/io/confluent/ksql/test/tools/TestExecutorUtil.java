@@ -99,8 +99,7 @@ final class TestExecutorUtil {
           .collect(Collectors.toList());
 
       final Topic sinkTopic = buildSinkTopic(
-          ksqlEngine.getMetaStore()
-              .getSource(persistentQueryMetadata.getSinkNames().iterator().next()),
+          ksqlEngine.getMetaStore().getSource(persistentQueryMetadata.getSinkName()),
           persistentQueryAndSortedSources.getWindowSize(),
           fakeKafkaService,
           serviceContext.getSchemaRegistryClient());
@@ -129,7 +128,8 @@ final class TestExecutorUtil {
         getAvroSchema(sinkDataSource, schemaRegistryClient);
 
     final SerdeSupplier<?> valueSerdeSupplier = SerdeUtil.getSerdeSupplier(
-        sinkDataSource.getValueSerdeFactory().getFormat()
+        sinkDataSource.getValueSerdeFactory().getFormat(),
+        sinkDataSource::getSchema
     );
 
     final Topic sinkTopic = new Topic(

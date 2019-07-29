@@ -19,7 +19,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -27,6 +27,8 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
+import io.confluent.ksql.logging.processing.ProcessingLogger;
+import io.confluent.ksql.logging.processing.ProcessingLoggerFactory;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.util.KsqlConfig;
@@ -91,6 +93,8 @@ public class GenericRowSerDeTest {
   @Mock
   private ProcessingLogContext processingContext;
   @Mock
+  private ProcessingLoggerFactory loggerFactory;
+  @Mock
   private Serde<Object> deletageSerde;
   @Mock
   private Serializer<Object> delegateSerializer;
@@ -101,11 +105,15 @@ public class GenericRowSerDeTest {
 
   @Before
   public void setUp() {
-    when(valueSerdeFactory.createSerde(any(), any(), any(), any(), any())).thenReturn(deletageSerde);
+    when(valueSerdeFactory.createSerde(any(), any(), any())).thenReturn(deletageSerde);
     when(deletageSerde.serializer()).thenReturn(delegateSerializer);
     when(deletageSerde.deserializer()).thenReturn(delegateDeserializer);
 
     when(delegateSerializer.serialize(any(), any())).thenReturn(SOME_BYTES);
+
+    final ProcessingLogger logger = mock(ProcessingLogger.class);
+    when(loggerFactory.getLogger(any())).thenReturn(logger);
+    when(processingContext.getLoggerFactory()).thenReturn(loggerFactory);
   }
 
   @Test
@@ -124,16 +132,14 @@ public class GenericRowSerDeTest {
     verify(valueSerdeFactory).createSerde(
         MUTLI_FIELD_SCHEMA.valueSchema(),
         ksqlConfig,
-        srClientFactory,
-        LOGGER_PREFIX,
-        processingContext
+        srClientFactory
     );
   }
 
   @Test(expected = NullPointerException.class)
   public void shouldThrowOnNullStructSerde() {
     // Given:
-    when(valueSerdeFactory.createSerde(any(), any(), any(), any(), any())).thenReturn(null);
+    when(valueSerdeFactory.createSerde(any(), any(), any())).thenReturn(null);
 
     // When:
     GenericRowSerDe.from(
@@ -157,6 +163,22 @@ public class GenericRowSerDeTest {
         LOGGER_PREFIX,
         processingContext
     );
+  }
+
+  @Test
+  public void shouldCreateProcessingLoggerWithCorrectName() {
+    // When:
+    GenericRowSerDe.from(
+        valueSerdeFactory,
+        MUTLI_FIELD_SCHEMA,
+        ksqlConfig,
+        srClientFactory,
+        LOGGER_PREFIX,
+        processingContext
+    );
+
+    // Then:
+    verify(loggerFactory).getLogger("bob.deserializer");
   }
 
   @Test
@@ -209,34 +231,6 @@ public class GenericRowSerDeTest {
 
     // Then:
     verify(delegateDeserializer).configure(SOME_CONFIG, true);
-  }
-
-  @Test
-  public void shouldRequestNewSerializerEachTime() {
-    // Given:
-    givenSerdeForSchema(MUTLI_FIELD_SCHEMA);
-
-    rowSerde.serializer();
-
-    // When:
-    rowSerde.serializer();
-
-    // Then:
-    verify(deletageSerde, times(2)).serializer();
-  }
-
-  @Test
-  public void shouldRequestNewDeserializerEachTime() {
-    // Given:
-    givenSerdeForSchema(UNWRAPPED_SINGLE_FIELD_SCHEMA);
-
-    rowSerde.deserializer();
-
-    // When:
-    rowSerde.deserializer();
-
-    // Then:
-    verify(deletageSerde, times(2)).deserializer();
   }
 
   @Test

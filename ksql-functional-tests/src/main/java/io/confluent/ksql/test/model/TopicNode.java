@@ -21,7 +21,10 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.NullNode;
+import io.confluent.connect.avro.AvroData;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.test.TestFrameworkException;
 import io.confluent.ksql.test.serde.SerdeSupplier;
 import io.confluent.ksql.test.tools.Topic;
 import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;
@@ -62,7 +65,8 @@ class TopicNode {
     final String formatToUse = format.replace("{FORMAT}", defaultFormat);
 
     final SerdeSupplier<?> valueSerdeSupplier = SerdeUtil.getSerdeSupplier(
-        Format.of(formatToUse)
+        Format.of(formatToUse),
+        this::logicalSchema
     );
 
     return new Topic(
@@ -74,6 +78,18 @@ class TopicNode {
         replicas,
         Optional.empty()
     );
+  }
+
+  private LogicalSchema logicalSchema() {
+    if (!avroSchema.isPresent()) {
+      throw new TestFrameworkException("Test framework requires "
+          + "the schema of any topic using format KAFKA");
+    }
+
+    final org.apache.kafka.connect.data.Schema valueSchema = new AvroData(1)
+        .toConnectSchema(avroSchema.get());
+
+    return LogicalSchema.of(valueSchema);
   }
 
   private static Optional<Schema> buildAvroSchema(final JsonNode schema) {

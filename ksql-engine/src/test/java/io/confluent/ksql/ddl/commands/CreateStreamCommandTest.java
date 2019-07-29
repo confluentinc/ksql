@@ -24,17 +24,19 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MutableMetaStore;
-import io.confluent.ksql.parser.tree.CreateSourceProperties;
+import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
+import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.parser.tree.Type;
+import io.confluent.ksql.properties.with.CommonCreateConfigs;
+import io.confluent.ksql.properties.with.CreateConfigs;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
@@ -59,8 +61,8 @@ public class CreateStreamCommandTest {
 
   private static final String STREAM_NAME = "s1";
   private static final TableElements SOME_ELEMENTS = TableElements.of(
-      new TableElement("ID", new Type(SqlTypes.BIGINT)),
-      new TableElement("bob", new Type(SqlTypes.STRING))
+      new TableElement(Namespace.VALUE, "ID", new Type(SqlTypes.BIGINT)),
+      new TableElement(Namespace.VALUE, "bob", new Type(SqlTypes.STRING))
   );
 
   @Mock
@@ -97,7 +99,8 @@ public class CreateStreamCommandTest {
   public void shouldExtractSessionWindowType() {
     // Given:
     givenPropertiesWith(ImmutableMap.of(
-        DdlConfig.WINDOW_TYPE_PROPERTY, new StringLiteral("SeSSion")));
+        CreateConfigs.WINDOW_TYPE_PROPERTY, new StringLiteral("SeSSion")));
+
 
     // When:
     final CreateStreamCommand cmd = createCmd();
@@ -111,7 +114,8 @@ public class CreateStreamCommandTest {
   public void shouldExtractHoppingWindowType() {
     // Given:
     givenPropertiesWith(ImmutableMap.of(
-        DdlConfig.WINDOW_TYPE_PROPERTY, new StringLiteral("HoPPing")));
+        CreateConfigs.WINDOW_TYPE_PROPERTY, new StringLiteral("HoPPing"),
+        CreateConfigs.WINDOW_SIZE_PROPERTY, new StringLiteral("5 SECONDS")));
 
     // When:
     final CreateStreamCommand cmd = createCmd();
@@ -125,7 +129,8 @@ public class CreateStreamCommandTest {
   public void shouldExtractTumblingWindowType() {
     // Given:
     givenPropertiesWith(ImmutableMap.of(
-        DdlConfig.WINDOW_TYPE_PROPERTY, new StringLiteral("Tumbling")));
+        CreateConfigs.WINDOW_TYPE_PROPERTY, new StringLiteral("Tumbling"),
+        CreateConfigs.WINDOW_SIZE_PROPERTY, new StringLiteral("5 SECONDS")));
 
     // When:
     final CreateStreamCommand cmd = createCmd();
@@ -133,6 +138,37 @@ public class CreateStreamCommandTest {
     // Then:
     assertThat(cmd.keySerdeFactory.create(),
         is(instanceOf(WindowedSerdes.timeWindowedSerdeFrom(String.class).getClass())));
+  }
+
+  @Test
+  public void shouldThrowIfHoppingWindowSizeIsNotSet() {
+    // Given:
+    final Map<String, Literal> allProps = ImmutableMap.of(
+        CreateConfigs.WINDOW_TYPE_PROPERTY, new StringLiteral("HoPPing"));
+
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(
+        "Tumbling and Hopping window types should set WINDOW_SIZE in the WITH clause.");
+
+    // When:
+    CreateSourceProperties.from(getInitialProps(allProps));
+
+  }
+
+  @Test
+  public void shouldThrowIfTumblingWindowSizeIsNotSet() {
+    // Given:
+    final Map<String, Literal> allProps = ImmutableMap.of(
+        CreateConfigs.WINDOW_TYPE_PROPERTY, new StringLiteral("Tumbling"));
+
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(
+        "Tumbling and Hopping window types should set WINDOW_SIZE in the WITH clause.");
+
+    // When:
+    CreateSourceProperties.from(getInitialProps(allProps));
   }
 
   @Test
@@ -156,8 +192,7 @@ public class CreateStreamCommandTest {
     cmd.run(metaStore);
 
     // Then:
-    expectedException.expectMessage("Cannot create stream 's1': A stream " +
-            "with name 's1' already exists");
+    expectedException.expectMessage("Cannot add stream 's1': A stream with the same name already exists");
 
     // When:
     cmd.run(metaStore);
@@ -200,10 +235,14 @@ public class CreateStreamCommandTest {
     );
   }
 
-  private void givenPropertiesWith(final Map<String, Literal> props) {
+  private static Map<String, Literal> getInitialProps(final Map<String, Literal> props) {
     final Map<String, Literal> allProps = new HashMap<>(props);
-    allProps.putIfAbsent(DdlConfig.VALUE_FORMAT_PROPERTY, new StringLiteral("Json"));
-    allProps.putIfAbsent(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral("some-topic"));
-    when(createStreamStatement.getProperties()).thenReturn(CreateSourceProperties.from(allProps));
+    allProps.putIfAbsent(CommonCreateConfigs.VALUE_FORMAT_PROPERTY, new StringLiteral("Json"));
+    allProps.putIfAbsent(CommonCreateConfigs.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral("some-topic"));
+    return allProps;
+  }
+
+  private void givenPropertiesWith(final Map<String, Literal> props) {
+    when(createStreamStatement.getProperties()).thenReturn(CreateSourceProperties.from(getInitialProps(props)));
   }
 }

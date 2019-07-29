@@ -28,6 +28,7 @@ import io.confluent.ksql.function.udf.structfieldextractor.FetchFieldFromStruct;
 import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.parser.tree.ArithmeticUnaryExpression;
+import io.confluent.ksql.parser.tree.AstNode;
 import io.confluent.ksql.parser.tree.AstVisitor;
 import io.confluent.ksql.parser.tree.BetweenPredicate;
 import io.confluent.ksql.parser.tree.BooleanLiteral;
@@ -43,7 +44,6 @@ import io.confluent.ksql.parser.tree.IsNullPredicate;
 import io.confluent.ksql.parser.tree.LikePredicate;
 import io.confluent.ksql.parser.tree.LogicalBinaryExpression;
 import io.confluent.ksql.parser.tree.LongLiteral;
-import io.confluent.ksql.parser.tree.Node;
 import io.confluent.ksql.parser.tree.NotExpression;
 import io.confluent.ksql.parser.tree.NullLiteral;
 import io.confluent.ksql.parser.tree.QualifiedName;
@@ -52,8 +52,10 @@ import io.confluent.ksql.parser.tree.SearchedCaseExpression;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.SubscriptExpression;
 import io.confluent.ksql.schema.Operator;
+import io.confluent.ksql.schema.ksql.Field;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
+import io.confluent.ksql.schema.ksql.SchemaConverters.SqlToConnectTypeConverter;
 import io.confluent.ksql.schema.ksql.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
 import io.confluent.ksql.schema.ksql.types.SqlType;
@@ -75,10 +77,12 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.text.StrSubstitutor;
-import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 
 public class SqlToJavaVisitor {
+
+  private static final SqlToConnectTypeConverter SQL_TO_CONNECT_SCHEMA_CONVERTER =
+      SchemaConverters.sqlToConnectConverter();
 
   public static final List<String> JAVA_IMPORTS = ImmutableList.of(
       "org.apache.kafka.connect.data.Struct",
@@ -148,7 +152,7 @@ public class SqlToJavaVisitor {
     }
 
     @Override
-    protected Pair<String, Schema> visitNode(final Node node, final Void context) {
+    protected Pair<String, Schema> visitNode(final AstNode node, final Void context) {
       throw new UnsupportedOperationException();
     }
 
@@ -167,7 +171,7 @@ public class SqlToJavaVisitor {
     }
 
     @Override
-    protected Pair<String, Schema> visitBooleanLiteral(
+    public Pair<String, Schema> visitBooleanLiteral(
         final BooleanLiteral node,
         final Void context
     ) {
@@ -175,7 +179,7 @@ public class SqlToJavaVisitor {
     }
 
     @Override
-    protected Pair<String, Schema> visitStringLiteral(
+    public Pair<String, Schema> visitStringLiteral(
         final StringLiteral node,
         final Void context
     ) {
@@ -185,19 +189,19 @@ public class SqlToJavaVisitor {
     }
 
     @Override
-    protected Pair<String, Schema> visitDoubleLiteral(
+    public Pair<String, Schema> visitDoubleLiteral(
         final DoubleLiteral node, final Void context) {
       return new Pair<>(Double.toString(node.getValue()), Schema.OPTIONAL_FLOAT64_SCHEMA);
     }
 
     @Override
-    protected Pair<String, Schema> visitNullLiteral(
+    public Pair<String, Schema> visitNullLiteral(
         final NullLiteral node, final Void context) {
       return new Pair<>("null", null);
     }
 
     @Override
-    protected Pair<String, Schema> visitQualifiedNameReference(
+    public Pair<String, Schema> visitQualifiedNameReference(
         final QualifiedNameReference node,
         final Void context
     ) {
@@ -206,12 +210,12 @@ public class SqlToJavaVisitor {
           .orElseThrow(() ->
               new KsqlException("Field not found: " + fieldName));
 
-      final Schema schema = schemaField.schema();
+      final Schema schema = SQL_TO_CONNECT_SCHEMA_CONVERTER.toConnectSchema(schemaField.type());
       return new Pair<>(fieldName.replace(".", "_"), schema);
     }
 
     @Override
-    protected Pair<String, Schema> visitDereferenceExpression(
+    public Pair<String, Schema> visitDereferenceExpression(
         final DereferenceExpression node,
         final Void context
     ) {
@@ -220,7 +224,7 @@ public class SqlToJavaVisitor {
           .orElseThrow(() ->
               new KsqlException("Field not found: " + fieldName));
 
-      final Schema schema = schemaField.schema();
+      final Schema schema = SQL_TO_CONNECT_SCHEMA_CONVERTER.toConnectSchema(schemaField.type());
       return new Pair<>(fieldName.replace(".", "_"), schema);
     }
 
@@ -232,7 +236,7 @@ public class SqlToJavaVisitor {
       return Joiner.on('.').join(parts);
     }
 
-    protected Pair<String, Schema> visitLongLiteral(
+    public Pair<String, Schema> visitLongLiteral(
         final LongLiteral node,
         final Void context
     ) {
@@ -240,7 +244,7 @@ public class SqlToJavaVisitor {
     }
 
     @Override
-    protected Pair<String, Schema> visitIntegerLiteral(
+    public Pair<String, Schema> visitIntegerLiteral(
         final IntegerLiteral node,
         final Void context
     ) {
@@ -248,7 +252,7 @@ public class SqlToJavaVisitor {
     }
 
     @Override
-    protected Pair<String, Schema> visitFunctionCall(
+    public Pair<String, Schema> visitFunctionCall(
         final FunctionCall node,
         final Void context) {
       final String functionName = node.getName().getSuffix();
@@ -275,11 +279,11 @@ public class SqlToJavaVisitor {
           .map(expressionTypeManager::getExpressionSchema)
           .collect(Collectors.toList());
 
-      return udfFactory.getFunction(argumentSchemas).getReturnType();
+      return udfFactory.getFunction(argumentSchemas).getReturnType(argumentSchemas);
     }
 
     @Override
-    protected Pair<String, Schema> visitLogicalBinaryExpression(
+    public Pair<String, Schema> visitLogicalBinaryExpression(
         final LogicalBinaryExpression node,
         final Void context
     ) {
@@ -302,7 +306,7 @@ public class SqlToJavaVisitor {
     }
 
     @Override
-    protected Pair<String, Schema> visitNotExpression(
+    public Pair<String, Schema> visitNotExpression(
         final NotExpression node, final Void context) {
       final String exprString = process(node.getValue(), context).getLeft();
       return new Pair<>("(!" + exprString + ")", Schema.OPTIONAL_BOOLEAN_SCHEMA);
@@ -390,7 +394,7 @@ public class SqlToJavaVisitor {
     }
 
     @Override
-    protected Pair<String, Schema> visitComparisonExpression(
+    public Pair<String, Schema> visitComparisonExpression(
         final ComparisonExpression node,
         final Void context
     ) {
@@ -424,13 +428,13 @@ public class SqlToJavaVisitor {
     }
 
     @Override
-    protected Pair<String, Schema> visitCast(final Cast node, final Void context) {
+    public Pair<String, Schema> visitCast(final Cast node, final Void context) {
       final Pair<String, Schema> expr = process(node.getExpression(), context);
       return CastVisitor.getCast(expr, node.getType().getSqlType());
     }
 
     @Override
-    protected Pair<String, Schema> visitIsNullPredicate(
+    public Pair<String, Schema> visitIsNullPredicate(
         final IsNullPredicate node,
         final Void context
     ) {
@@ -439,7 +443,7 @@ public class SqlToJavaVisitor {
     }
 
     @Override
-    protected Pair<String, Schema> visitIsNotNullPredicate(
+    public Pair<String, Schema> visitIsNotNullPredicate(
         final IsNotNullPredicate node,
         final Void context
     ) {
@@ -448,7 +452,7 @@ public class SqlToJavaVisitor {
     }
 
     @Override
-    protected Pair<String, Schema> visitArithmeticUnary(
+    public Pair<String, Schema> visitArithmeticUnary(
         final ArithmeticUnaryExpression node,
         final Void context
     ) {
@@ -493,7 +497,7 @@ public class SqlToJavaVisitor {
     }
 
     @Override
-    protected Pair<String, Schema> visitArithmeticBinary(
+    public Pair<String, Schema> visitArithmeticBinary(
         final ArithmeticBinaryExpression node,
         final Void context
     ) {
@@ -544,7 +548,7 @@ public class SqlToJavaVisitor {
     }
 
     @Override
-    protected Pair<String, Schema> visitSearchedCaseExpression(
+    public Pair<String, Schema> visitSearchedCaseExpression(
         final SearchedCaseExpression node,
         final Void context) {
       final String functionClassName = SearchedCaseFunction.class.getSimpleName();
@@ -588,7 +592,7 @@ public class SqlToJavaVisitor {
     }
 
     @Override
-    protected Pair<String, Schema> visitLikePredicate(
+    public Pair<String, Schema> visitLikePredicate(
         final LikePredicate node,
         final Void context
     ) {
@@ -642,7 +646,7 @@ public class SqlToJavaVisitor {
     }
 
     @Override
-    protected Pair<String, Schema> visitSubscriptExpression(
+    public Pair<String, Schema> visitSubscriptExpression(
         final SubscriptExpression node,
         final Void context
     ) {
@@ -681,7 +685,7 @@ public class SqlToJavaVisitor {
     }
 
     @Override
-    protected Pair<String, Schema> visitBetweenPredicate(
+    public Pair<String, Schema> visitBetweenPredicate(
         final BetweenPredicate node,
         final Void context
     ) {
@@ -768,8 +772,8 @@ public class SqlToJavaVisitor {
       }
 
       final Schema returnType = SchemaConverters
-          .sqlToLogicalConverter()
-          .fromSqlType(sqlType);
+          .sqlToConnectConverter()
+          .toConnectSchema(sqlType);
 
       final Schema rightSchema = expr.getRight();
       if (returnType.equals(rightSchema) || rightSchema == null) {
@@ -923,7 +927,7 @@ public class SqlToJavaVisitor {
         default:
           throw new KsqlFunctionException(
               "Invalid cast operation: Cannot cast " + exprStr
-                  + " to " + SchemaConverters.logicalToSqlConverter().toSqlType(schema));
+                  + " to " + SchemaConverters.connectToSqlConverter().toSqlType(schema));
       }
     }
 

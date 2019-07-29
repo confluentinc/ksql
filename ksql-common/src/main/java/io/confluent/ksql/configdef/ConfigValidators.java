@@ -33,10 +33,13 @@ public final class ConfigValidators {
   }
 
   public static <T extends Enum<T>> Validator enumValues(final Class<T> enumClass) {
-    final String[] validValues = EnumSet.allOf(enumClass)
+    final String[] enumValues = EnumSet.allOf(enumClass)
         .stream()
         .map(Object::toString)
         .toArray(String[]::new);
+
+    final String[] validValues = Arrays.copyOf(enumValues, enumValues.length + 1);
+    validValues[enumValues.length] = null;
 
     return ValidCaseInsensitiveString.in(validValues);
   }

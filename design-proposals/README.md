@@ -12,7 +12,7 @@ This serves as a locking mechanism to make sure that
 - two people are not working on the same KLIP at once
 
 To submit a proposal intent, create a pull request with the following information:
-1. title is `docs: intent for KLIP-<number>: <title-of-klip>`
+1. title is `docs: intent for klip-<number>: <title-of-klip>`
 1. update the number for the next KLIP on this readme
 1. add a line in the table below for your new KLIP with status `Proposal`
 
@@ -27,7 +27,7 @@ This is the guts of our improvement proposal process:
    title (e.g. `klip-1-improve-udf-interfaces.md`)
 1. Fill in the template with details from your KLIP
 1. Submit a Pull Request from your branch to KSQL:
-    1. make sure the title is `docs: KLIP-<number>: <title>`
+    1. make sure the title is `docs: klip-<number>: <title>`
     1. update the table entry below from the Proposal Intent step with a link to your KLIP
 1. Share a link to the PR in the `#ksql` channel on the [confluent community slack](https://slackpass.io/confluentcommunity).
 1. The design discussion will happen on the pull request
@@ -37,7 +37,7 @@ This is the guts of our improvement proposal process:
 
 The progression of statuses should be: Proposal, Discussion, Approved, Merged
 
-Next KLIP number: **7**
+Next KLIP number: **9**
 
 | KLIP                                                                               | Status         | Release |
 |------------------------------------------------------------------------------------|:--------------:| ------: |
@@ -47,3 +47,5 @@ Next KLIP number: **7**
 | [KLIP-3: Serialization of single Fields](klip-3-serialization-of-single-fields.md) | Approved       | N/A     |
 | [KLIP-4: Custom Type Registry](klip-4-custom-types.md)                             | Approved       | N/A     |
 | [KLIP-6: Execution Plans](klip-6-execution-plans.md)                               | Approved       | N/A     |
+| KLIP-7: Kafka Connect Integration                                                  | Proposal       | N/A     |
+| KLIP-8: Interactive Queries                                                        | Proposal       | N/A     |

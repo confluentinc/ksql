@@ -23,7 +23,11 @@ import static org.junit.Assume.assumeThat;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.testing.NullPointerTester;
 import com.google.common.testing.NullPointerTester.Visibility;
+import io.confluent.ksql.metastore.model.KeyField.LegacyField;
+import io.confluent.ksql.schema.ksql.Field;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
 import io.confluent.ksql.test.util.ClassFinder;
@@ -32,7 +36,6 @@ import java.lang.reflect.Modifier;
 import java.util.Collection;
 import java.util.Optional;
 import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -47,15 +50,16 @@ public class MetaStoreModelTest {
       .<Class<?>, Object>builder()
       .put(KsqlSerdeFactory.class, new KsqlJsonSerdeFactory())
       .put(KsqlTopic.class,
-          new KsqlTopic("bob", "bob", new KsqlJsonSerdeFactory(), false))
+          new KsqlTopic("bob", new KsqlJsonSerdeFactory(), false))
       .put(org.apache.kafka.connect.data.Field.class,
           new org.apache.kafka.connect.data.Field("bob", 1, Schema.OPTIONAL_STRING_SCHEMA))
       .put(KeyField.class, KeyField.of(Optional.empty(), Optional.empty()))
-      .put(LogicalSchema.class, LogicalSchema.of(SchemaBuilder
-          .struct()
-          .optional()
-          .field("f0", Schema.OPTIONAL_INT64_SCHEMA)
-          .build()))
+      .put(LegacyField.class, LegacyField.of("something", SqlTypes.DOUBLE))
+      .put(Field.class, Field.of("someField", SqlTypes.INTEGER))
+      .put(SqlType.class, SqlTypes.INTEGER)
+      .put(LogicalSchema.class, LogicalSchema.builder()
+          .valueField("f0", SqlTypes.BIGINT)
+          .build())
       .build();
 
   private final Class<?> modelClass;
@@ -72,7 +76,6 @@ public class MetaStoreModelTest {
   @Test
   public void shouldBeImmutable() {
     new ImmutableTester()
-        .withKnownImmutableType(LogicalSchema.class)
         .withKnownImmutableType(org.apache.kafka.connect.data.Field.class)
         .test(modelClass);
   }

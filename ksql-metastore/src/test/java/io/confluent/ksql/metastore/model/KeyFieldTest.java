@@ -20,24 +20,22 @@ import static org.hamcrest.Matchers.is;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.testing.EqualsTester;
+import io.confluent.ksql.metastore.model.KeyField.LegacyField;
+import io.confluent.ksql.schema.ksql.Field;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Optional;
-import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 public class KeyFieldTest {
 
-  private static final LogicalSchema SCHEMA = LogicalSchema.of(
-      SchemaBuilder.struct()
-      .field("field0", Schema.OPTIONAL_STRING_SCHEMA)
-      .field("field1", Schema.OPTIONAL_INT64_SCHEMA)
-          .build()
-  );
+  private static final LogicalSchema SCHEMA = LogicalSchema.builder()
+      .valueField("field0", SqlTypes.STRING)
+      .valueField("field1", SqlTypes.BIGINT)
+      .build();
 
   private static final KsqlConfig LEGACY_CONFIG = new KsqlConfig(
       ImmutableMap.of(KsqlConfig.KSQL_USE_LEGACY_KEY_FIELD, true)
@@ -47,25 +45,23 @@ public class KeyFieldTest {
       ImmutableMap.of()
   );
 
-  private static final Field RANDOM_FIELD =
-      new Field("won't find me anywhere", 0, Schema.OPTIONAL_STRING_SCHEMA);
+  private static final LegacyField RANDOM_LEGACY_FIELD =
+      LegacyField.of("won't find me anywhere", SqlTypes.STRING);
 
-  private static final Field SCHEMA_FIELD = SCHEMA.valueFields().get(0);
+  private static final LegacyField LEGACY_FIELD = LegacyField
+      .of(SCHEMA.valueFields().get(0).fullName(), SCHEMA.valueFields().get(0).type());
+
   private static final Field OTHER_SCHEMA_FIELD = SCHEMA.valueFields().get(1);
 
   private static final String SOME_ALIAS = "fred";
 
   private static final KeyField ALIASED_KEY_FIELD = KeyField.of(
       SOME_ALIAS + "." + OTHER_SCHEMA_FIELD.name(),
-      new Field(
-          SOME_ALIAS + "." + SCHEMA_FIELD.name(),
-          SCHEMA_FIELD.index(),
-          SCHEMA_FIELD.schema()
-      )
+      LegacyField.of(SOME_ALIAS + "." + LEGACY_FIELD.name(), LEGACY_FIELD.type())
   );
 
   private static final KeyField UNALIASED_KEY_FIELD = KeyField
-      .of(OTHER_SCHEMA_FIELD.name(),SCHEMA_FIELD);
+      .of(OTHER_SCHEMA_FIELD.name(), LEGACY_FIELD);
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -73,7 +69,7 @@ public class KeyFieldTest {
   @Test
   public void shouldImplementHashCodeAndEqualsProperly() {
     final Optional<String> keyField = Optional.of("key");
-    final Optional<Field> legacy = Optional.of(SCHEMA.valueFields().get(0));
+    final Optional<LegacyField> legacy = Optional.of(LEGACY_FIELD);
 
     new EqualsTester()
         .addEqualityGroup(KeyField.of(keyField, legacy), KeyField.of(keyField, legacy))
@@ -95,11 +91,11 @@ public class KeyFieldTest {
   @Test
   public void shouldHandleNewEmpty() {
     // When:
-    final KeyField keyField = KeyField.of(Optional.empty(), Optional.of(RANDOM_FIELD));
+    final KeyField keyField = KeyField.of(Optional.empty(), Optional.of(RANDOM_LEGACY_FIELD));
 
     // Then:
     assertThat(keyField.name(), is(Optional.empty()));
-    assertThat(keyField.legacy(), is(Optional.of(RANDOM_FIELD)));
+    assertThat(keyField.legacy(), is(Optional.of(RANDOM_LEGACY_FIELD)));
   }
 
   @Test
@@ -139,7 +135,7 @@ public class KeyFieldTest {
   @Test
   public void shouldNotThrowOnValidateIfKeyNotInSchema() {
     // Given:
-    final KeyField keyField = KeyField.of(Optional.empty(), Optional.of(RANDOM_FIELD));
+    final KeyField keyField = KeyField.of(Optional.empty(), Optional.of(RANDOM_LEGACY_FIELD));
 
     // When:
     keyField.validateKeyExistsIn(SCHEMA);
@@ -162,43 +158,43 @@ public class KeyFieldTest {
   @Test
   public void shouldNotThrowOnResolveIfSchemaDoesNotContainsLegacyKeyField() {
     // Given:
-    final KeyField keyField = KeyField.of(Optional.empty(), Optional.of(RANDOM_FIELD));
+    final KeyField keyField = KeyField.of(Optional.empty(), Optional.of(RANDOM_LEGACY_FIELD));
 
     // When:
     final Optional<Field> resolved = keyField.resolve(SCHEMA, LEGACY_CONFIG);
 
     // Then:
-    assertThat(resolved, is(Optional.of(RANDOM_FIELD)));
+    assertThat(resolved, is(Optional.of(Field.of(RANDOM_LEGACY_FIELD.name(), RANDOM_LEGACY_FIELD.type()))));
   }
 
   @Test
   public void shouldResolveToNewKeyField() {
     // Given:
-    final KeyField keyField = KeyField.of(Optional.of(SCHEMA_FIELD.name()), Optional.empty());
+    final KeyField keyField = KeyField.of(Optional.of(LEGACY_FIELD.name()), Optional.empty());
 
     // When:
     final Optional<Field> resolved = keyField.resolve(SCHEMA, LATEST_CONFIG);
 
     // Then:
-    assertThat(resolved, is(Optional.of(SCHEMA_FIELD)));
+    assertThat(resolved, is(Optional.of(Field.of(LEGACY_FIELD.name(), LEGACY_FIELD.type()))));
   }
 
   @Test
   public void shouldResolveToLegacyKeyField() {
     // Given:
-    final KeyField keyField = KeyField.of(Optional.empty(), Optional.of(SCHEMA_FIELD));
+    final KeyField keyField = KeyField.of(Optional.empty(), Optional.of(LEGACY_FIELD));
 
     // When:
     final Optional<Field> resolved = keyField.resolve(SCHEMA, LEGACY_CONFIG);
 
     // Then:
-    assertThat(resolved, is(Optional.of(SCHEMA_FIELD)));
+    assertThat(resolved, is(Optional.of(Field.of(LEGACY_FIELD.name(), LEGACY_FIELD.type()))));
   }
 
   @Test
   public void shouldResolveToEmptyNewKeyField() {
     // Given:
-    final KeyField keyField = KeyField.of(Optional.empty(), Optional.of(SCHEMA_FIELD));
+    final KeyField keyField = KeyField.of(Optional.empty(), Optional.of(LEGACY_FIELD));
 
     // When:
     final Optional<Field> resolved = keyField.resolve(SCHEMA, LATEST_CONFIG);
@@ -222,19 +218,19 @@ public class KeyFieldTest {
   @Test
   public void shouldResolveNameToNewKeyField() {
     // Given:
-    final KeyField keyField = KeyField.of(Optional.of(SCHEMA_FIELD.name()), Optional.empty());
+    final KeyField keyField = KeyField.of(Optional.of(LEGACY_FIELD.name()), Optional.empty());
 
     // When:
     final Optional<String> resolved = keyField.resolveName(LATEST_CONFIG);
 
     // Then:
-    assertThat(resolved, is(Optional.of(SCHEMA_FIELD.name())));
+    assertThat(resolved, is(Optional.of(LEGACY_FIELD.name())));
   }
 
   @Test
   public void shouldResolveNameToEmptyNewKeyField() {
     // Given:
-    final KeyField keyField = KeyField.of(Optional.empty(), Optional.of(SCHEMA_FIELD));
+    final KeyField keyField = KeyField.of(Optional.empty(), Optional.of(LEGACY_FIELD));
 
     // When:
     final Optional<?> resolved = keyField.resolveName(LATEST_CONFIG);
@@ -246,19 +242,19 @@ public class KeyFieldTest {
   @Test
   public void shouldResolveNameToLegacyKeyField() {
     // Given:
-    final KeyField keyField = KeyField.of(Optional.empty(), Optional.of(RANDOM_FIELD));
+    final KeyField keyField = KeyField.of(Optional.empty(), Optional.of(RANDOM_LEGACY_FIELD));
 
     // When:
     final Optional<String> resolved = keyField.resolveName(LEGACY_CONFIG);
 
     // Then:
-    assertThat(resolved, is(Optional.of(RANDOM_FIELD.name())));
+    assertThat(resolved, is(Optional.of(RANDOM_LEGACY_FIELD.name())));
   }
 
   @Test
   public void shouldResolveNameToEmptyLegacyKeyField() {
     // Given:
-    final KeyField keyField = KeyField.of(Optional.of(SCHEMA_FIELD.name()), Optional.empty());
+    final KeyField keyField = KeyField.of(Optional.of(LEGACY_FIELD.name()), Optional.empty());
 
     // When:
     final Optional<String> resolved = keyField.resolveName(LEGACY_CONFIG);
@@ -286,11 +282,11 @@ public class KeyFieldTest {
     final KeyField keyField = KeyField.of(Optional.of("something"), Optional.empty());
 
     // When:
-    final KeyField result = keyField.withLegacy(Optional.of(SCHEMA_FIELD));
+    final KeyField result = keyField.withLegacy(Optional.of(LEGACY_FIELD));
 
     // Then:
     assertThat(keyField.legacy(), is(Optional.empty()));
-    assertThat(result, is(KeyField.of("something", SCHEMA_FIELD)));
+    assertThat(result, is(KeyField.of("something", LEGACY_FIELD)));
   }
 
   @Test

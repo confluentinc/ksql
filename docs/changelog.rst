@@ -1,5 +1,7 @@
-Changelog
-=========
+.. _ksql_changelog:
+
+KSQL Changelog
+==============
 
 Version 5.4.0
 -------------
@@ -22,6 +24,13 @@ KSQL 5.4.0 includes new features, including:
   See :ref:`ksql-metrics-tags-custom` for usage.
 
 * New ``UNIX_TIMESTAMP()`` and ``UNIX_DATE()`` functions.
+
+* A new ``KAFKA`` format that supports ``INT``, ``BIGINT``, ``DOUBLE`` and ``STRING`` fields that
+  have been serialized using the standard Kafka serializers,
+  e.g. ``org.apache.kafka.common.serialization.LongSerializer``.
+
+  The format only supports single values, i.e. only single field, being primarily intended for use
+  as a key format.
 
 KSQL 5.4.0 includes the following misc. changes:
 

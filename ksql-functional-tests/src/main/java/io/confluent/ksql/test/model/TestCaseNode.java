@@ -31,8 +31,8 @@ import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.SqlBaseParser;
+import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.CreateSource;
-import io.confluent.ksql.parser.tree.CreateSourceProperties;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.test.serde.SerdeSupplier;
@@ -258,7 +258,7 @@ public class TestCaseNode {
         final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
         statement.getElements().forEach(e -> schemaBuilder.field(
             e.getName(),
-            SchemaConverters.sqlToLogicalConverter().fromSqlType(e.getType().getSqlType()))
+            SchemaConverters.sqlToConnectConverter().toConnectSchema(e.getType().getSqlType()))
         );
         avroSchema = Optional.of(new AvroData(1)
             .fromConnectSchema(addNames(schemaBuilder.build())));
@@ -273,7 +273,7 @@ public class TestCaseNode {
           topicName,
           avroSchema,
           keySerde,
-          SerdeUtil.getSerdeSupplier(format),
+          SerdeUtil.getSerdeSupplier(format, statement.getElements()::toLogicalSchema),
           KsqlConstants.legacyDefaultSinkPartitionCount,
           KsqlConstants.legacyDefaultSinkReplicaCount,
           Optional.empty());

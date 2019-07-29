@@ -19,6 +19,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlServerException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Map;
@@ -53,7 +54,8 @@ public class DefaultConnectClient implements ConnectClient {
     try {
       this.connectURI = new URI(connectURI);
     } catch (URISyntaxException e) {
-      throw new KsqlException("Could not initialize connect client.", e);
+      throw new KsqlException(
+          "Could not initialize connect client due to invalid URI: " + connectURI, e);
     }
   }
 
@@ -87,7 +89,7 @@ public class DefaultConnectClient implements ConnectClient {
 
       return connectResponse;
     } catch (final Exception e) {
-      throw new KsqlException(e);
+      throw new KsqlServerException(e);
     }
   }
 

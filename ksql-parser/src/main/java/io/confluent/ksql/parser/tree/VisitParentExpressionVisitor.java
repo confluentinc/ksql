@@ -19,7 +19,7 @@ package io.confluent.ksql.parser.tree;
  * VisitParentExpressionVisitor is meant to be a base class for an ExpressionVisitor implementation
  * that by default, implements each visit[NodeType] call by calling a delegate visit impl for that
  * type's parent. This is useful for implementing visit behaviour that is common to all nodes of
- * a given type. For example, a visitor may be interested in the recording the type of any literal,
+ * a given type. For example, a visitor may be interested in recording the type of any literal,
  * and so can provide an implementation for visitLiteral rather than implementing
  * visitIntegerLiteral, visitBooleanLiteral, and so on.
  *

@@ -20,7 +20,7 @@ import static java.util.Objects.requireNonNull;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.UdafAggregator;
-import io.confluent.ksql.metastore.SerdeFactory;
+import io.confluent.ksql.model.WindowType;
 import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
@@ -30,8 +30,6 @@ import org.apache.kafka.streams.kstream.KGroupedStream;
 import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.kstream.SessionWindows;
-import org.apache.kafka.streams.kstream.Windowed;
-import org.apache.kafka.streams.kstream.WindowedSerdes;
 
 @Immutable
 public class SessionWindowExpression extends KsqlWindowExpression {
@@ -53,12 +51,14 @@ public class SessionWindowExpression extends KsqlWindowExpression {
     this.sizeUnit = requireNonNull(sizeUnit, "sizeUnit");
   }
 
-  public long getGap() {
-    return gap;
+  @Override
+  public WindowType getType() {
+    return WindowType.SESSION;
   }
 
-  public TimeUnit getSizeUnit() {
-    return sizeUnit;
+  @Override
+  public Optional<Duration> getWindowSize() {
+    return Optional.empty();
   }
 
   @Override
@@ -100,10 +100,5 @@ public class SessionWindowExpression extends KsqlWindowExpression {
     return groupedStream
         .windowedBy(windows)
         .aggregate(initializer, aggregator, aggregator.getMerger(), materialized);
-  }
-
-  @Override
-  public <K> SerdeFactory<Windowed<K>> getKeySerdeFactory(final Class<K> innerType) {
-    return () -> WindowedSerdes.sessionWindowedSerdeFrom(innerType);
   }
 }

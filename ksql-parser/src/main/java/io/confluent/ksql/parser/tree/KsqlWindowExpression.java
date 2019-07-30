@@ -18,13 +18,13 @@ package io.confluent.ksql.parser.tree;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.UdafAggregator;
-import io.confluent.ksql.metastore.SerdeFactory;
+import io.confluent.ksql.model.WindowType;
+import java.time.Duration;
 import java.util.Optional;
 import org.apache.kafka.streams.kstream.Initializer;
 import org.apache.kafka.streams.kstream.KGroupedStream;
 import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.Materialized;
-import org.apache.kafka.streams.kstream.Windowed;
 
 @Immutable
 public abstract class KsqlWindowExpression extends AstNode {
@@ -38,7 +38,12 @@ public abstract class KsqlWindowExpression extends AstNode {
                                         UdafAggregator aggregator,
                                         Materialized<String, GenericRow, ?> materialized);
 
-  public abstract <K> SerdeFactory<Windowed<K>> getKeySerdeFactory(Class<K> innerType);
+  public abstract WindowType getType();
+
+  /**
+   * @return the fixed window size of the window, if one exists.
+   */
+  public abstract Optional<Duration> getWindowSize();
 
   @Override
   public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {

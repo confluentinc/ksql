@@ -16,7 +16,7 @@
 package io.confluent.ksql.services;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.is;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.metastore.model.MetaStoreMatchers.OptionalMatchers;
@@ -24,7 +24,6 @@ import io.confluent.ksql.services.ConnectClient.ConnectResponse;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 
 public class SandboxConnectClientTest {
 

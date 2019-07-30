@@ -46,16 +46,16 @@ public class DefaultConnectClient implements ConnectClient {
   private static final String CONNECTORS = "/connectors";
   private static final int DEFAULT_TIMEOUT_MS = 5_000;
 
-  private final URI connectURI;
+  private final URI connectUri;
 
-  public DefaultConnectClient(final String connectURI) {
-    Objects.requireNonNull(connectURI, "connectURI");
+  public DefaultConnectClient(final String connectUri) {
+    Objects.requireNonNull(connectUri, "connectUri");
 
     try {
-      this.connectURI = new URI(connectURI);
+      this.connectUri = new URI(connectUri);
     } catch (URISyntaxException e) {
       throw new KsqlException(
-          "Could not initialize connect client due to invalid URI: " + connectURI, e);
+          "Could not initialize connect client due to invalid URI: " + connectUri, e);
     }
   }
 
@@ -66,12 +66,12 @@ public class DefaultConnectClient implements ConnectClient {
   ) {
     try {
       LOG.debug("Issuing request to Kafka Connect at URI {} with name {} and config {}",
-          connectURI,
+          connectUri,
           connector,
           config);
 
       final ConnectResponse<ConnectorInfo> connectResponse = Request
-          .Post(connectURI.resolve(CONNECTORS))
+          .Post(connectUri.resolve(CONNECTORS))
           .socketTimeout(DEFAULT_TIMEOUT_MS)
           .connectTimeout(DEFAULT_TIMEOUT_MS)
           .bodyString(

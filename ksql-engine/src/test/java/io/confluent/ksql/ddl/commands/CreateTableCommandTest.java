@@ -18,8 +18,6 @@ package io.confluent.ksql.ddl.commands;
 import static io.confluent.ksql.metastore.model.MetaStoreMatchers.KeyFieldMatchers.hasLegacyName;
 import static io.confluent.ksql.metastore.model.MetaStoreMatchers.KeyFieldMatchers.hasName;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -36,18 +34,14 @@ import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.parser.tree.Type;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
-import io.confluent.ksql.properties.with.CreateConfigs;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import org.apache.kafka.common.serialization.Serdes;
-import org.apache.kafka.streams.kstream.WindowedSerdes;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -82,73 +76,6 @@ public class CreateTableCommandTest {
         new TableElement(Namespace.VALUE, "SOME-KEY", new Type(SqlTypes.STRING))
     ));
     when(topicClient.isTopicExists(any())).thenReturn(true);
-  }
-
-  @Test
-  public void shouldDefaultToStringKeySerde() {
-    // When:
-    final CreateTableCommand cmd = createCmd();
-
-    // Then:
-    assertThat(cmd.keySerdeFactory.create(), is(instanceOf(Serdes.String().getClass())));
-  }
-
-  @Test
-  public void shouldExtractSessionWindowType() {
-    // Given:
-    givenPropertiesWith(ImmutableMap.of(
-        CreateConfigs.WINDOW_TYPE_PROPERTY, new StringLiteral("SeSSion")));
-
-    // When:
-    final CreateTableCommand cmd = createCmd();
-
-    // Then:
-    assertThat(cmd.keySerdeFactory.create(),
-        is(instanceOf(WindowedSerdes.sessionWindowedSerdeFrom(String.class).getClass())));
-  }
-
-  @Test
-  public void shouldExtractHoppingWindowType() {
-    // Given:
-    givenPropertiesWith(ImmutableMap.of(
-        CreateConfigs.WINDOW_TYPE_PROPERTY, new StringLiteral("HoPPing"),
-        CreateConfigs.WINDOW_SIZE_PROPERTY, new StringLiteral("2 MINUTES")));
-
-    // When:
-    final CreateTableCommand cmd = createCmd();
-
-    // Then:
-    assertThat(cmd.keySerdeFactory.create(),
-        is(instanceOf(WindowedSerdes.timeWindowedSerdeFrom(String.class).getClass())));
-  }
-
-  @Test
-  public void shouldExtractTumblingWindowType() {
-    // Given:
-    givenPropertiesWith(ImmutableMap.of(
-        CreateConfigs.WINDOW_TYPE_PROPERTY, new StringLiteral("Tumbling"),
-        CreateConfigs.WINDOW_SIZE_PROPERTY, new StringLiteral("2 seconds")));
-
-    // When:
-    final CreateTableCommand cmd = createCmd();
-
-    // Then:
-    assertThat(cmd.keySerdeFactory.create(),
-        is(instanceOf(WindowedSerdes.timeWindowedSerdeFrom(String.class).getClass())));
-  }
-
-  @Test
-  public void shouldThrowIfTopicDoesNotExist() {
-    // Given:
-    when(topicClient.isTopicExists(any())).thenReturn(false);
-
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "Kafka topic does not exist: some-topic");
-
-    // When:
-    createCmd();
   }
 
   @Test

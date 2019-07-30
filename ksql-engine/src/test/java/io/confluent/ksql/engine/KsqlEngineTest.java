@@ -31,8 +31,6 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -52,8 +50,6 @@ import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.serde.KsqlSerdeFactory;
-import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
@@ -98,8 +94,6 @@ public class KsqlEngineTest {
 
   private MutableMetaStore metaStore;
   @Spy
-  private final KsqlSerdeFactory jsonKsqlSerde = new KsqlJsonSerdeFactory();
-  @Spy
   private final SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
   private final Supplier<SchemaRegistryClient> schemaRegistryClientFactory =
       () -> schemaRegistryClient;
@@ -112,8 +106,7 @@ public class KsqlEngineTest {
 
   @Before
   public void setUp() {
-    metaStore = MetaStoreFixture
-        .getNewMetaStore(new InternalFunctionRegistry(), jsonKsqlSerde);
+    metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
 
     serviceContext = TestServiceContext.create(
         topicClient,
@@ -514,16 +507,6 @@ public class KsqlEngineTest {
 
     // Then:
     assertThat(ksqlEngine.numberOfLiveQueries(), is(startingLiveQueries));
-  }
-
-  @Test
-  public void shouldUseSerdeSupplierToBuildQueries() {
-    // When:
-    KsqlEngineTestUtil.execute(ksqlEngine,
-        "create table bar as select * from test2;", KSQL_CONFIG, Collections.emptyMap());
-
-    // Then:
-    verify(jsonKsqlSerde, atLeastOnce()).createSerde(any(), any(), eq(schemaRegistryClientFactory));
   }
 
   @SuppressWarnings("unchecked")

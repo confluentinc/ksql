@@ -17,7 +17,6 @@ package io.confluent.ksql.topic;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
-
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.KsqlExecutionContext;
@@ -35,7 +34,6 @@ import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.util.ExecutorUtil;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
-
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -109,7 +107,7 @@ public class TopicDeleteInjector implements Injector {
       }
 
       try {
-        if (source.getValueSerdeFactory().getFormat() == Format.AVRO) {
+        if (source.getKsqlTopic().getValueFormat().getFormat() == Format.AVRO) {
           SchemaRegistryUtil.deleteSubjectWithRetries(
                   schemaRegistryClient,
                   source.getKafkaTopicName() + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);

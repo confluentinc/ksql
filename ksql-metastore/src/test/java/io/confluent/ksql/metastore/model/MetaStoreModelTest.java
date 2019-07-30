@@ -28,8 +28,9 @@ import io.confluent.ksql.schema.ksql.Field;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.KsqlSerdeFactory;
-import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
+import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.KeyFormat;
+import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.test.util.ClassFinder;
 import io.confluent.ksql.test.util.ImmutableTester;
 import java.lang.reflect.Modifier;
@@ -48,9 +49,12 @@ public class MetaStoreModelTest {
 
   private static final ImmutableMap<Class<?>, Object> DEFAULTS = ImmutableMap
       .<Class<?>, Object>builder()
-      .put(KsqlSerdeFactory.class, new KsqlJsonSerdeFactory())
-      .put(KsqlTopic.class,
-          new KsqlTopic("bob", new KsqlJsonSerdeFactory(), false))
+      .put(KsqlTopic.class, new KsqlTopic(
+          "bob",
+          KeyFormat.nonWindowed(Format.KAFKA),
+          ValueFormat.of(Format.JSON),
+          false
+      ))
       .put(org.apache.kafka.connect.data.Field.class,
           new org.apache.kafka.connect.data.Field("bob", 1, Schema.OPTIONAL_STRING_SCHEMA))
       .put(KeyField.class, KeyField.of(Optional.empty(), Optional.empty()))
@@ -60,6 +64,8 @@ public class MetaStoreModelTest {
       .put(LogicalSchema.class, LogicalSchema.builder()
           .valueField("f0", SqlTypes.BIGINT)
           .build())
+      .put(KeyFormat.class, KeyFormat.nonWindowed(Format.KAFKA))
+      .put(ValueFormat.class, ValueFormat.of(Format.JSON))
       .build();
 
   private final Class<?> modelClass;

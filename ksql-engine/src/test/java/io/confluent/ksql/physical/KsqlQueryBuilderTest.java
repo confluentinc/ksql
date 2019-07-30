@@ -34,14 +34,18 @@ import io.confluent.ksql.planner.plan.PlanNodeId;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.GenericRowSerDe;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
+import io.confluent.ksql.serde.SerdeFactories;
 import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.structured.QueryContext;
 import io.confluent.ksql.structured.QueryContext.Stacker;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.QueryLoggerUtil;
+import java.util.Optional;
 import java.util.function.Supplier;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
@@ -88,6 +92,8 @@ public class KsqlQueryBuilderTest {
   private Deserializer<Object> innerDeserializer;
   @Mock
   private Supplier<SchemaRegistryClient> srClientFactory;
+  @Mock
+  private SerdeFactories serdeFactories;
   private QueryContext queryContext;
   private KsqlQueryBuilder ksqlQueryBuilder;
 
@@ -105,13 +111,16 @@ public class KsqlQueryBuilderTest {
     when(loggerFactory.getLogger(any())).thenReturn(logger);
     when(processingLogContext.getLoggerFactory()).thenReturn(loggerFactory);
 
-    ksqlQueryBuilder = KsqlQueryBuilder.of(
+    when(serdeFactories.create(any(), any())).thenReturn(valueSerdeFactory);
+
+    ksqlQueryBuilder = new KsqlQueryBuilder(
         streamsBuilder,
         ksqlConfig,
         serviceContext,
         processingLogContext,
         functionRegistry,
-        QUERY_ID
+        QUERY_ID,
+        serdeFactories
     );
   }
 
@@ -154,14 +163,16 @@ public class KsqlQueryBuilderTest {
 
   @Test
   public void shouldBuildGenericRowSerde() {
-    // When:
+    // Then:
     final Serde<GenericRow> result = ksqlQueryBuilder.buildGenericRowSerde(
-        valueSerdeFactory,
+        ValueFormat.of(Format.AVRO, Optional.of("io.confluent.ksql")),
         SOME_SCHEMA,
         queryContext
     );
 
     // Then:
+    verify(serdeFactories).create(Format.AVRO, Optional.of("io.confluent.ksql"));
+
     verify(valueSerdeFactory).createSerde(
         SOME_SCHEMA.valueSchema(),
         ksqlConfig,
@@ -185,7 +196,7 @@ public class KsqlQueryBuilderTest {
   public void shouldTrackSchemasUsed() {
     // When:
     ksqlQueryBuilder.buildGenericRowSerde(
-        valueSerdeFactory,
+        ValueFormat.of(Format.JSON),
         SOME_SCHEMA,
         queryContext
     );
@@ -205,7 +216,7 @@ public class KsqlQueryBuilderTest {
 
     // When:
     ksqlQueryBuilder.buildGenericRowSerde(
-        valueSerdeFactory,
+        ValueFormat.of(Format.JSON),
         schema,
         queryContext
     );

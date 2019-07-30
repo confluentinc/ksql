@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.metastore;
+package io.confluent.ksql.serde;
 
 import com.google.errorprone.annotations.Immutable;
 import org.apache.kafka.common.serialization.Serde;

@@ -19,27 +19,27 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.doThrow;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.ListProperties;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.Statement;
-import io.confluent.ksql.serde.avro.KsqlAvroSerdeFactory;
-import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
+import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
@@ -48,7 +48,6 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -77,6 +76,8 @@ public class TopicDeleteInjectorTest {
   @Mock
   private DataSource<?> source;
   @Mock
+  private KsqlTopic topic;
+  @Mock
   private SchemaRegistryClient registryClient;
   @Mock
   private KafkaTopicClient topicClient;
@@ -90,7 +91,8 @@ public class TopicDeleteInjectorTest {
     when(metaStore.getSource(SOURCE_NAME)).thenAnswer(inv -> source);
     when(source.getName()).thenReturn(SOURCE_NAME);
     when(source.getKafkaTopicName()).thenReturn(TOPIC_NAME);
-    when(source.getValueSerdeFactory()).thenReturn(new KsqlJsonSerdeFactory());
+    when(source.getKsqlTopic()).thenReturn(topic);
+    when(topic.getValueFormat()).thenReturn(ValueFormat.of(Format.JSON));
   }
 
   @Test
@@ -138,7 +140,7 @@ public class TopicDeleteInjectorTest {
   @Test
   public void shouldDeleteSchemaInSR() throws IOException, RestClientException {
     // Given:
-    when(source.getValueSerdeFactory()).thenReturn(new KsqlAvroSerdeFactory("foo"));
+    when(topic.getValueFormat()).thenReturn(ValueFormat.of(Format.AVRO));
 
     // When:
     deleteInjector.inject(DROP_WITH_DELETE_TOPIC);
@@ -190,7 +192,6 @@ public class TopicDeleteInjectorTest {
   }
 
   @Test
-  @SuppressWarnings("unchecked")
   public void shouldThrowExceptionIfOtherSourcesUsingTopic() {
     // Given:
     final ConfiguredStatement<DropStream> dropStatement = givenStatement(
@@ -220,7 +221,7 @@ public class TopicDeleteInjectorTest {
   @Test
   public void shouldNotThrowIfSchemaIsMissing() throws IOException, RestClientException {
     // Given:
-    when(source.getValueSerdeFactory()).thenReturn(new KsqlAvroSerdeFactory("foo"));
+    when(topic.getValueFormat()).thenReturn(ValueFormat.of(Format.AVRO, Optional.of("foo")));
     doThrow(new RestClientException("Subject not found.", 404, 40401))
             .when(registryClient).deleteSubject("something" + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
 
@@ -228,7 +229,7 @@ public class TopicDeleteInjectorTest {
     deleteInjector.inject(DROP_WITH_DELETE_TOPIC);
   }
 
-  private DataSource<?> givenSource(final String name, final String topicName) {
+  private static DataSource<?> givenSource(final String name, final String topicName) {
     final DataSource source = mock(DataSource.class);
     when(source.getName()).thenReturn(name);
     when(source.getKafkaTopicName()).thenReturn(topicName);

@@ -46,8 +46,10 @@ import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
-import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
+import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.util.ExpressionMetadata;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -59,7 +61,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
 import org.junit.Before;
@@ -154,7 +155,10 @@ public class CodeGenRunnerTest {
 
         final KsqlTopic ksqlTopic = new KsqlTopic(
             "codegen_test",
-            new KsqlJsonSerdeFactory(), false);
+            KeyFormat.nonWindowed(Format.KAFKA),
+            ValueFormat.of(Format.JSON),
+            false
+        );
 
         final KsqlStream ksqlStream = new KsqlStream<>(
             "sqlexpression",
@@ -163,8 +167,7 @@ public class CodeGenRunnerTest {
             SerdeOption.none(),
             KeyField.of("COL0", META_STORE_SCHEMA.findValueField("COL0").get()),
             new MetadataTimestampExtractionPolicy(),
-            ksqlTopic,
-            Serdes::String
+            ksqlTopic
         );
 
         metaStore.putSource(ksqlStream);

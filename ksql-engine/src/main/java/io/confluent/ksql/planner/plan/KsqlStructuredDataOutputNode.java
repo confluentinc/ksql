@@ -23,7 +23,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Streams;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.metastore.SerdeFactory;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.physical.KsqlQueryBuilder;
@@ -31,6 +30,7 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.Field;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.serde.SerdeFactory;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.structured.QueryContext;
 import io.confluent.ksql.structured.SchemaKStream;
@@ -126,7 +126,6 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     this.sinKFactory = requireNonNull(sinkFactory, "sinkFactory");
 
     validatePartitionByField();
-    validateSerdeCanHandleSchema();
   }
 
   public boolean isDoCreateInto() {
@@ -173,7 +172,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     );
 
     final Serde<GenericRow> outputRowSerde = builder.buildGenericRowSerde(
-        getKsqlTopic().getValueSerdeFactory(),
+        getKsqlTopic().getValueFormat(),
         PhysicalSchema.from(getSchema(), serdeOptions),
         contextStacker.getQueryContext()
     );
@@ -237,11 +236,6 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     if (!keyField.name().equals(Optional.of(fieldName))) {
       throw new IllegalArgumentException("keyField must match partition by field");
     }
-  }
-
-  private void validateSerdeCanHandleSchema() {
-    final PhysicalSchema physicalSchema = PhysicalSchema.from(getSchema(), serdeOptions);
-    ksqlTopic.getValueSerdeFactory().validate(physicalSchema.valueSchema());
   }
 
   @SuppressWarnings("UnstableApiUsage")

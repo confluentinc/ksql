@@ -55,14 +55,15 @@ import io.confluent.ksql.properties.with.CreateConfigs;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
-import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
+import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
 import java.util.Collections;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
-import org.apache.kafka.common.serialization.Serdes;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -145,7 +146,8 @@ public class SqlFormatterTest {
 
     final KsqlTopic ksqlTopicOrders = new KsqlTopic(
         "orders_topic",
-        new KsqlJsonSerdeFactory(),
+        KeyFormat.nonWindowed(Format.KAFKA),
+        ValueFormat.of(Format.JSON),
         false
     );
 
@@ -156,15 +158,15 @@ public class SqlFormatterTest {
         SerdeOption.none(),
         KeyField.of("ORDERTIME", ORDERS_SCHEMA.findValueField("ORDERTIME").get()),
         new MetadataTimestampExtractionPolicy(),
-        ksqlTopicOrders,
-        Serdes::String
+        ksqlTopicOrders
     );
 
     metaStore.putSource(ksqlStreamOrders);
 
     final KsqlTopic ksqlTopicItems = new KsqlTopic(
         "item_topic",
-        new KsqlJsonSerdeFactory(),
+        KeyFormat.nonWindowed(Format.KAFKA),
+        ValueFormat.of(Format.JSON),
         false
     );
     final KsqlTable<String> ksqlTableOrders = new KsqlTable<>(
@@ -174,8 +176,7 @@ public class SqlFormatterTest {
         SerdeOption.none(),
         KeyField.of("ITEMID", itemInfoSchema.findValueField("ITEMID").get()),
         new MetadataTimestampExtractionPolicy(),
-        ksqlTopicItems,
-        Serdes::String
+        ksqlTopicItems
     );
 
     metaStore.putSource(ksqlTableOrders);

@@ -199,7 +199,7 @@ public final class ListSourceExecutor {
         new SourceDescription(
             dataSource,
             extended,
-            dataSource.getKsqlTopic().getValueSerdeFactory().getFormat().name(),
+            dataSource.getKsqlTopic().getValueFormat().getFormat().name(),
             getQueries(ksqlEngine, q -> q.getSourceNames().contains(dataSource.getName())),
             getQueries(ksqlEngine, q -> q.getSinkName().equals(dataSource.getName())),
             topicDescription

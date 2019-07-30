@@ -45,6 +45,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import org.apache.kafka.common.serialization.Serde;
+import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.TopologyDescription;
 import org.junit.Before;
@@ -73,6 +75,7 @@ public class KsqlBareOutputNodeTest {
   @Mock
   private FunctionRegistry functionRegistry;
 
+  @SuppressWarnings("unchecked")
   @Before
   public void before() {
     builder = new StreamsBuilder();
@@ -84,6 +87,7 @@ public class KsqlBareOutputNodeTest {
     when(ksqlStreamBuilder.buildNodeContext(any())).thenAnswer(inv ->
         new QueryContext.Stacker(queryId)
             .push(inv.getArgument(0).toString()));
+    when(ksqlStreamBuilder.buildKeySerde(any())).thenReturn(() -> (Serde) Serdes.String());
 
     final KsqlBareOutputNode planNode = (KsqlBareOutputNode) AnalysisTestUtil
         .buildLogicalPlan(SIMPLE_SELECT_WITH_FILTER, metaStore);

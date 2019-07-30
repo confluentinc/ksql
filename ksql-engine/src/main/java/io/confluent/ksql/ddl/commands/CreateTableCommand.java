@@ -42,8 +42,7 @@ public class CreateTableCommand extends CreateSourceCommand {
         getSerdeOptions(),
         keyField,
         timestampExtractionPolicy,
-        buildTopic(),
-        keySerdeFactory
+        getTopic()
     );
 
     metaStore.putSource(ksqlTable);

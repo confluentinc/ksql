@@ -72,8 +72,9 @@ import io.confluent.ksql.schema.ksql.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
-import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
+import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
@@ -81,7 +82,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
-import org.apache.kafka.common.serialization.Serdes;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
@@ -139,7 +139,8 @@ public class KsqlParserTest {
 
     final KsqlTopic ksqlTopicOrders = new KsqlTopic(
         "orders_topic",
-        new KsqlJsonSerdeFactory(),
+        KeyFormat.nonWindowed(Format.KAFKA),
+        ValueFormat.of(Format.JSON),
         false
     );
 
@@ -150,15 +151,15 @@ public class KsqlParserTest {
         SerdeOption.none(),
         KeyField.of("ORDERTIME", ORDERS_SCHEMA.findValueField("ORDERTIME").get()),
         new MetadataTimestampExtractionPolicy(),
-        ksqlTopicOrders,
-        Serdes::String
+        ksqlTopicOrders
     );
 
     metaStore.putSource(ksqlStreamOrders);
 
     final KsqlTopic ksqlTopicItems = new KsqlTopic(
         "item_topic",
-        new KsqlJsonSerdeFactory(),
+        KeyFormat.nonWindowed(Format.KAFKA),
+        ValueFormat.of(Format.JSON),
         false
     );
 
@@ -169,8 +170,7 @@ public class KsqlParserTest {
         SerdeOption.none(),
         KeyField.of("ITEMID", itemInfoSchema.findValueField("ITEMID").get()),
         new MetadataTimestampExtractionPolicy(),
-        ksqlTopicItems,
-        Serdes::String
+        ksqlTopicItems
     );
 
     metaStore.putSource(ksqlTableOrders);

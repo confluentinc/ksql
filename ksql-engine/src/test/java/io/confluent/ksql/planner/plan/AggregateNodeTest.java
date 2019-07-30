@@ -66,6 +66,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.apache.kafka.common.serialization.Serde;
+import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.TopologyDescription;
@@ -380,6 +382,7 @@ public class AggregateNodeTest {
     return buildQuery(buildAggregateNode(queryString), ksqlConfig);
   }
 
+  @SuppressWarnings("unchecked")
   private SchemaKStream buildQuery(final AggregateNode aggregateNode, final KsqlConfig ksqlConfig) {
     when(ksqlStreamBuilder.getKsqlConfig()).thenReturn(ksqlConfig);
     when(ksqlStreamBuilder.getStreamsBuilder()).thenReturn(builder);
@@ -388,6 +391,7 @@ public class AggregateNodeTest {
     when(ksqlStreamBuilder.buildNodeContext(any())).thenAnswer(inv ->
         new QueryContext.Stacker(queryId)
             .push(inv.getArgument(0).toString()));
+    when(ksqlStreamBuilder.buildKeySerde(any())).thenReturn(() -> (Serde)Serdes.String());
 
     return aggregateNode.buildStream(ksqlStreamBuilder);
   }

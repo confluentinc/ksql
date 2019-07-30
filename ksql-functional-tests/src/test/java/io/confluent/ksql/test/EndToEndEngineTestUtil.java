@@ -158,7 +158,7 @@ final class EndToEndEngineTestUtil {
           .getKafkaTopicName();
 
       final SerdeSupplier<?> valueSerdes = SerdeUtil.getSerdeSupplier(
-          persistentQueryMetadata.getResultTopic().getValueSerdeFactory().getFormat(),
+          persistentQueryMetadata.getResultTopic().getValueFormat().getFormat(),
           queryMetadata::getLogicalSchema
       );
 

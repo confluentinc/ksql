@@ -81,7 +81,7 @@ public class CommandFactories implements DdlCommandFactory {
         callInfo.sqlExpression,
         statement,
         callInfo.ksqlConfig,
-        serviceContext.getTopicClient());
+        serviceContext);
   }
 
   private CreateTableCommand handleCreateTable(
@@ -92,7 +92,7 @@ public class CommandFactories implements DdlCommandFactory {
         callInfo.sqlExpression,
         statement,
         callInfo.ksqlConfig,
-        serviceContext.getTopicClient());
+        serviceContext);
   }
 
   @SuppressWarnings("MethodMayBeStatic")

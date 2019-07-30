@@ -20,10 +20,12 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.GenericRowSerDe;
 import io.confluent.ksql.serde.SerdeOption;
-import io.confluent.ksql.serde.delimited.KsqlDelimitedSerdeFactory;
 import io.confluent.ksql.util.KsqlConfig;
+import java.util.Optional;
 import org.apache.avro.Schema;
 import org.apache.kafka.common.serialization.Serializer;
 
@@ -41,7 +43,7 @@ public class DelimitedProducer extends DataGenProducer {
     );
 
     return GenericRowSerDe.from(
-        new KsqlDelimitedSerdeFactory(),
+        FormatInfo.of(Format.DELIMITED, Optional.empty()),
         physicalSchema,
         new KsqlConfig(ImmutableMap.of()),
         () -> null,

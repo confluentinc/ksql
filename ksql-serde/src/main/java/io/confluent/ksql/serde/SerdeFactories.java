@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2019 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -13,34 +13,31 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.serde.json;
+package io.confluent.ksql.serde;
 
-import com.google.errorprone.annotations.Immutable;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
-import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.function.Supplier;
 import org.apache.kafka.common.serialization.Serde;
-import org.apache.kafka.common.serialization.Serdes;
 
-@Immutable
-public class KsqlJsonSerdeFactory implements KsqlSerdeFactory {
+interface SerdeFactories {
 
-  @Override
-  public void validate(final PersistenceSchema schema) {
-    // Supports all types
-  }
-
-  @Override
-  public Serde<Object> createSerde(
-      final PersistenceSchema schema,
-      final KsqlConfig ksqlConfig,
-      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
-  ) {
-    return Serdes.serdeFrom(
-        new KsqlJsonSerializer(schema),
-        new KsqlJsonDeserializer(schema)
-    );
-  }
+  /**
+   * Create {@link Serde} for supported KSQL formats.
+   *
+   * @param format required format.
+   * @param schema persitence schema
+   * @param ksqlConfig system config.
+   * @param schemaRegistryClientFactory the sr client factory.
+   * @param type the value type.
+   * @param <T> the value type.
+   */
+  <T> Serde<T> create(
+      FormatInfo format,
+      PersistenceSchema schema,
+      KsqlConfig ksqlConfig,
+      Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
+      Class<T> type
+  );
 }

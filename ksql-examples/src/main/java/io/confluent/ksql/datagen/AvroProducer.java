@@ -22,12 +22,13 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.GenericRowSerDe;
 import io.confluent.ksql.serde.SerdeOption;
-import io.confluent.ksql.serde.avro.KsqlAvroSerdeFactory;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
+import java.util.Optional;
 import org.apache.avro.Schema;
 import org.apache.kafka.common.serialization.Serializer;
 
@@ -60,7 +61,7 @@ public class AvroProducer extends DataGenProducer {
     );
 
     return GenericRowSerDe.from(
-        new KsqlAvroSerdeFactory(KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME),
+        FormatInfo.of(Format.AVRO, Optional.empty()),
         physicalSchema,
         ksqlConfig,
         () -> schemaRegistryClient,

@@ -51,11 +51,6 @@ public class KafkaSerdeFactory implements KsqlSerdeFactory {
   );
 
   @Override
-  public Format getFormat() {
-    return Format.KAFKA;
-  }
-
-  @Override
   public void validate(final PersistenceSchema schema) {
     getPrimitiveSerde(schema.getConnectSchema());
   }

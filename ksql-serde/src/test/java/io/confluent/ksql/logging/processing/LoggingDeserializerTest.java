@@ -56,11 +56,11 @@ public class LoggingDeserializerTest {
   @Captor
   private ArgumentCaptor<Function<ProcessingLogConfig, SchemaAndValue>> errorCaptor;
 
-  private LoggingDeserializer deserializer;
+  private LoggingDeserializer<GenericRow> deserializer;
 
   @Before
   public void setUp() {
-    deserializer = new LoggingDeserializer(delegate, processingLogger);
+    deserializer = new LoggingDeserializer<>(delegate, processingLogger);
   }
 
   @Test

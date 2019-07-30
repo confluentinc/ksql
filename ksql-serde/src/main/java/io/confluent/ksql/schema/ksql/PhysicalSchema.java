@@ -38,6 +38,7 @@ public final class PhysicalSchema {
 
   private final LogicalSchema logicalSchema;
   private final ImmutableSet<SerdeOption> serdeOptions;
+  private final PersistenceSchema keySchema;
   private final PersistenceSchema valueSchema;
 
   public static PhysicalSchema from(
@@ -62,6 +63,13 @@ public final class PhysicalSchema {
   }
 
   /**
+   * @return the physical key schema.
+   */
+  public PersistenceSchema keySchema() {
+    return keySchema;
+  }
+
+  /**
    * @return the physical value schema.
    */
   public PersistenceSchema valueSchema() {
@@ -74,7 +82,8 @@ public final class PhysicalSchema {
   ) {
     this.logicalSchema = requireNonNull(logicalSchema, "logicalSchema");
     this.serdeOptions = ImmutableSet.copyOf(requireNonNull(serdeOptions, "serdeOptions"));
-    this.valueSchema = buildPhysical(logicalSchema.valueSchema(), serdeOptions);
+    this.keySchema = buildKeyPhysical(logicalSchema.keySchema());
+    this.valueSchema = buildValuePhysical(logicalSchema.valueSchema(), serdeOptions);
   }
 
   @Override
@@ -104,7 +113,13 @@ public final class PhysicalSchema {
         + '}';
   }
 
-  private static PersistenceSchema buildPhysical(
+  private static PersistenceSchema buildKeyPhysical(
+      final ConnectSchema schema
+  ) {
+    return PersistenceSchema.of(schema);
+  }
+
+  private static PersistenceSchema buildValuePhysical(
       final ConnectSchema schema,
       final Set<SerdeOption> serdeOptions
   ) {

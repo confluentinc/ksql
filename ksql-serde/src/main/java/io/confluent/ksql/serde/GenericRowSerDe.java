@@ -18,6 +18,7 @@ package io.confluent.ksql.serde;
 import static io.confluent.ksql.logging.processing.ProcessingLoggerUtil.join;
 import static java.util.Objects.requireNonNull;
 
+import com.google.common.annotations.VisibleForTesting;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.logging.processing.LoggingDeserializer;
@@ -25,11 +26,13 @@ import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Supplier;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
@@ -40,57 +43,157 @@ import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Struct;
 
-public final class GenericRowSerDe {
+public final class GenericRowSerDe implements ValueSerdeFactory {
 
   private static final String DESERIALIZER_LOGGER_NAME = "deserializer";
 
-  private GenericRowSerDe() {
+  private final SerdeFactories serdeFactories;
+
+  public GenericRowSerDe() {
+    this(new KsqlSerdeFactories());
   }
 
-  @SuppressWarnings("unchecked")
-  public static Serde<GenericRow> from(
-      final KsqlSerdeFactory serdeFactory,
+  @VisibleForTesting
+  GenericRowSerDe(final SerdeFactories serdeFactories) {
+    this.serdeFactories = Objects.requireNonNull(serdeFactories, "serdeFactories");
+  }
+
+  @Override
+  public Serde<GenericRow> create(
+      final FormatInfo format,
       final PhysicalSchema schema,
       final KsqlConfig ksqlConfig,
-      final Supplier<SchemaRegistryClient> srClientFactory,
+      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
       final String loggerNamePrefix,
       final ProcessingLogContext processingLogContext
+  ) {
+    return from(
+        format,
+        schema,
+        ksqlConfig,
+        schemaRegistryClientFactory,
+        loggerNamePrefix,
+        processingLogContext,
+        getTargetType(schema),
+        serdeFactories
+    );
+  }
+
+  public static Serde<GenericRow> from(
+      final FormatInfo format,
+      final PhysicalSchema schema,
+      final KsqlConfig ksqlConfig,
+      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
+      final String loggerNamePrefix,
+      final ProcessingLogContext processingLogContext
+  ) {
+    return from(
+        format,
+        schema,
+        ksqlConfig,
+        schemaRegistryClientFactory,
+        loggerNamePrefix,
+        processingLogContext,
+        getTargetType(schema),
+        new KsqlSerdeFactories()
+    );
+  }
+
+  private static <T> Serde<GenericRow> from(
+      final FormatInfo format,
+      final PhysicalSchema schema,
+      final KsqlConfig ksqlConfig,
+      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
+      final String loggerNamePrefix,
+      final ProcessingLogContext processingLogContext,
+      final Class<T> targetType,
+      final SerdeFactories serdeFactories
+  ) {
+    final Serde<T> serde = serdeFactories
+        .create(format, schema.valueSchema(), ksqlConfig, schemaRegistryClientFactory, targetType);
+
+    return from(
+        serde,
+        schema,
+        loggerNamePrefix,
+        processingLogContext,
+        targetType
+    );
+  }
+
+  private static <T> Serde<GenericRow> from(
+      final Serde<T> innerSerde,
+      final PhysicalSchema schema,
+      final String loggerNamePrefix,
+      final ProcessingLogContext processingLogContext,
+      final Class<T> type
   ) {
     final ProcessingLogger processingLogger = processingLogContext.getLoggerFactory()
         .getLogger(join(loggerNamePrefix, DESERIALIZER_LOGGER_NAME));
 
-    final Serde<Object> innerSerde = serdeFactory.createSerde(
-        schema.valueSchema(),
-        ksqlConfig,
-        srClientFactory
+    final Serde<GenericRow> genericRowSerde = isUnwrapped(schema)
+          ? unwrapped(innerSerde)
+          : wrapped(innerSerde, schema, type);
+
+    final Serde<GenericRow> result = Serdes.serdeFrom(
+        genericRowSerde.serializer(),
+        new LoggingDeserializer<>(genericRowSerde.deserializer(), processingLogger)
     );
 
-    final boolean unwrapped = schema.logicalSchema().valueFields().size() == 1
-        && schema.serdeOptions().contains(SerdeOption.UNWRAP_SINGLE_VALUES);
+    result.configure(Collections.emptyMap(), false);
 
-    final Serializer<GenericRow> serializer = unwrapped
-        ? new UnwrappedGenericRowSerializer(innerSerde.serializer())
-        : new GenericRowSerializer(innerSerde.serializer(), schema.logicalSchema());
-
-    final Deserializer<GenericRow> deserializer = unwrapped
-        ? new UnwrappedGenericRowDeserializer(innerSerde.deserializer())
-        : new GenericRowDeserializer((Deserializer) innerSerde.deserializer());
-
-    final Serde<GenericRow> genericRowSerde = Serdes.serdeFrom(
-        serializer,
-        new LoggingDeserializer(deserializer, processingLogger)
-    );
-
-    genericRowSerde.configure(Collections.emptyMap(), false);
-
-    return genericRowSerde;
+    return result;
   }
 
-  private static class UnwrappedGenericRowSerializer implements Serializer<GenericRow> {
+  private static Class<?> getTargetType(final PhysicalSchema schema) {
+    if (isUnwrapped(schema)) {
+      return SchemaConverters.sqlToJavaConverter()
+          .toJavaType(schema.logicalSchema().valueFields().get(0).type().baseType());
+    }
 
-    private final Serializer<Object> inner;
+    return Struct.class;
+  }
 
-    UnwrappedGenericRowSerializer(final Serializer<Object> inner) {
+  private static boolean isUnwrapped(final PhysicalSchema schema) {
+    return schema.logicalSchema().valueFields().size() == 1
+        && schema.serdeOptions().contains(SerdeOption.UNWRAP_SINGLE_VALUES);
+  }
+
+  private static <K> Serde<GenericRow> unwrapped(final Serde<K> innerSerde) {
+    final Serializer<GenericRow> serializer =
+        new UnwrappedGenericRowSerializer<>(innerSerde.serializer());
+
+    final Deserializer<GenericRow> deserializer =
+        new UnwrappedGenericRowDeserializer<>(innerSerde.deserializer());
+
+    return Serdes.serdeFrom(serializer, deserializer);
+  }
+
+  private static <T> Serde<GenericRow> wrapped(
+      final Serde<T> innerSerde,
+      final PhysicalSchema schema,
+      final Class<T> type
+  ) {
+    if (type != Struct.class) {
+      throw new IllegalArgumentException("Unwrapped must be of type Struct");
+    }
+
+    @SuppressWarnings("unchecked") final Serde<Struct> structSerde = (Serde<Struct>) innerSerde;
+
+    final Serializer<GenericRow> serializer =
+        new GenericRowSerializer(structSerde.serializer(), schema.logicalSchema());
+
+    final Deserializer<GenericRow> deserializer =
+        new GenericRowDeserializer(structSerde.deserializer());
+
+    return Serdes.serdeFrom(serializer, deserializer);
+  }
+
+  private static class UnwrappedGenericRowSerializer<K> implements Serializer<GenericRow> {
+
+    private final Serializer<K> inner;
+
+    UnwrappedGenericRowSerializer(final Serializer<K> inner) {
       this.inner = requireNonNull(inner, "inner");
     }
 
@@ -99,6 +202,7 @@ public final class GenericRowSerDe {
       inner.configure(configs, isKey);
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public byte[] serialize(final String topic, final GenericRow data) {
       if (data == null) {
@@ -110,16 +214,43 @@ public final class GenericRowSerDe {
             + "got: " + data.getColumns().size());
       }
 
-      return inner.serialize(topic, data.getColumns().get(0));
+      final Object singleField = data.getColumns().get(0);
+      return inner.serialize(topic, (K) singleField);
+    }
+  }
+
+  private static class UnwrappedGenericRowDeserializer<K> implements Deserializer<GenericRow> {
+
+    private final Deserializer<K> inner;
+
+    UnwrappedGenericRowDeserializer(final Deserializer<K> inner) {
+      this.inner = requireNonNull(inner, "inner");
+    }
+
+    @Override
+    public void configure(final Map<String, ?> configs, final boolean isKey) {
+      inner.configure(configs, isKey);
+    }
+
+    @Override
+    public GenericRow deserialize(final String topic, final byte[] data) {
+      final K value = inner.deserialize(topic, data);
+      if (value == null) {
+        return null;
+      }
+
+      final GenericRow row = new GenericRow();
+      row.getColumns().add(value);
+      return row;
     }
   }
 
   private static class GenericRowSerializer implements Serializer<GenericRow> {
 
-    private final Serializer<Object> inner;
+    private final Serializer<Struct> inner;
     private final ConnectSchema schema;
 
-    GenericRowSerializer(final Serializer<Object> inner, final LogicalSchema schema) {
+    GenericRowSerializer(final Serializer<Struct> inner, final LogicalSchema schema) {
       this.inner = requireNonNull(inner, "inner");
       this.schema = requireNonNull(schema, "schema").valueSchema();
     }
@@ -180,32 +311,6 @@ public final class GenericRowSerDe {
       }
 
       return new GenericRow(columns);
-    }
-  }
-
-  private static class UnwrappedGenericRowDeserializer implements Deserializer<GenericRow> {
-
-    private final Deserializer<Object> inner;
-
-    UnwrappedGenericRowDeserializer(final Deserializer<Object> inner) {
-      this.inner = requireNonNull(inner, "inner");
-    }
-
-    @Override
-    public void configure(final Map<String, ?> configs, final boolean isKey) {
-      inner.configure(configs, isKey);
-    }
-
-    @Override
-    public GenericRow deserialize(final String topic, final byte[] data) {
-      final Object value = inner.deserialize(topic, data);
-      if (value == null) {
-        return null;
-      }
-
-      final GenericRow row = new GenericRow();
-      row.getColumns().add(value);
-      return row;
     }
   }
 }

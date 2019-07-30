@@ -36,6 +36,7 @@ import io.confluent.ksql.parser.tree.Type;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.services.KafkaTopicClient;
+import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.Collections;
@@ -60,6 +61,8 @@ public class CreateStreamCommandTest {
   );
 
   @Mock
+  private ServiceContext serviceContext;
+  @Mock
   private KafkaTopicClient topicClient;
   @Mock
   private CreateStream createStreamStatement;
@@ -78,6 +81,7 @@ public class CreateStreamCommandTest {
   public void setUp() {
     when(createStreamStatement.getName()).thenReturn(QualifiedName.of(STREAM_NAME));
     when(createStreamStatement.getElements()).thenReturn(SOME_ELEMENTS);
+    when(serviceContext.getTopicClient()).thenReturn(topicClient);
     when(topicClient.isTopicExists(any())).thenReturn(true);
 
     givenPropertiesWith((Collections.emptyMap()));
@@ -133,7 +137,7 @@ public class CreateStreamCommandTest {
         "some sql",
         createStreamStatement,
         ksqlConfig,
-        topicClient
+        serviceContext
     );
   }
 }

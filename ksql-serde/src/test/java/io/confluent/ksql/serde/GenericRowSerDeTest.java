@@ -34,6 +34,7 @@ import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.util.KsqlConfig;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Supplier;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
@@ -85,8 +86,6 @@ public class GenericRowSerDeTest {
   public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
-  private KsqlSerdeFactory valueSerdeFactory;
-  @Mock
   private KsqlConfig ksqlConfig;
   @Mock
   private Supplier<SchemaRegistryClient> srClientFactory;
@@ -100,12 +99,14 @@ public class GenericRowSerDeTest {
   private Serializer<Object> delegateSerializer;
   @Mock
   private Deserializer<Object> delegateDeserializer;
+  @Mock
+  private SerdeFactories serdesFactories;
 
-  private Serde<GenericRow> rowSerde;
+  private ValueSerdeFactory valueSerde;
 
   @Before
   public void setUp() {
-    when(valueSerdeFactory.createSerde(any(), any(), any())).thenReturn(deletageSerde);
+    when(serdesFactories.create(any(), any(), any(), any(), any())).thenReturn(deletageSerde);
     when(deletageSerde.serializer()).thenReturn(delegateSerializer);
     when(deletageSerde.deserializer()).thenReturn(delegateDeserializer);
 
@@ -114,13 +115,15 @@ public class GenericRowSerDeTest {
     final ProcessingLogger logger = mock(ProcessingLogger.class);
     when(loggerFactory.getLogger(any())).thenReturn(logger);
     when(processingContext.getLoggerFactory()).thenReturn(loggerFactory);
+
+    valueSerde = new GenericRowSerDe(serdesFactories);
   }
 
   @Test
   public void shouldGetStructSerdeOnConstruction() {
     // When:
-    GenericRowSerDe.from(
-        valueSerdeFactory,
+    valueSerde.create(
+        FormatInfo.of(Format.JSON, Optional.empty()),
         MUTLI_FIELD_SCHEMA,
         ksqlConfig,
         srClientFactory,
@@ -129,21 +132,45 @@ public class GenericRowSerDeTest {
     );
 
     // Then:
-    verify(valueSerdeFactory).createSerde(
+    verify(serdesFactories).create(
+        FormatInfo.of(Format.JSON, Optional.empty()),
         MUTLI_FIELD_SCHEMA.valueSchema(),
         ksqlConfig,
-        srClientFactory
+        srClientFactory,
+        Struct.class
+    );
+  }
+
+  @Test
+  public void shouldGetStringSerdeOnConstruction() {
+    // When:
+    valueSerde.create(
+        FormatInfo.of(Format.JSON, Optional.empty()),
+        UNWRAPPED_SINGLE_FIELD_SCHEMA,
+        ksqlConfig,
+        srClientFactory,
+        LOGGER_PREFIX,
+        processingContext
+    );
+
+    // Then:
+    verify(serdesFactories).create(
+        FormatInfo.of(Format.JSON, Optional.empty()),
+        UNWRAPPED_SINGLE_FIELD_SCHEMA.valueSchema(),
+        ksqlConfig,
+        srClientFactory,
+        String.class
     );
   }
 
   @Test(expected = NullPointerException.class)
   public void shouldThrowOnNullStructSerde() {
     // Given:
-    when(valueSerdeFactory.createSerde(any(), any(), any())).thenReturn(null);
+    when(serdesFactories.create(any(), any(), any(), any(), any())).thenReturn(null);
 
     // When:
-    GenericRowSerDe.from(
-        valueSerdeFactory,
+    valueSerde.create(
+        FormatInfo.of(Format.JSON, Optional.empty()),
         MUTLI_FIELD_SCHEMA,
         ksqlConfig,
         srClientFactory,
@@ -156,7 +183,7 @@ public class GenericRowSerDeTest {
   public void shouldThrowOnNullSchema() {
     // When:
     GenericRowSerDe.from(
-        valueSerdeFactory,
+        FormatInfo.of(Format.JSON, Optional.empty()),
         null,
         ksqlConfig,
         srClientFactory,
@@ -169,7 +196,7 @@ public class GenericRowSerDeTest {
   public void shouldCreateProcessingLoggerWithCorrectName() {
     // When:
     GenericRowSerDe.from(
-        valueSerdeFactory,
+        FormatInfo.of(Format.JSON, Optional.empty()),
         MUTLI_FIELD_SCHEMA,
         ksqlConfig,
         srClientFactory,
@@ -466,14 +493,13 @@ public class GenericRowSerDeTest {
   }
 
   private Serde<GenericRow> givenSerdeForSchema(final PhysicalSchema schema) {
-    rowSerde = GenericRowSerDe.from(
-        valueSerdeFactory,
+    return valueSerde.create(
+        FormatInfo.of(Format.JSON, Optional.empty()),
         schema,
         ksqlConfig,
         srClientFactory,
         LOGGER_PREFIX,
         processingContext
     );
-    return rowSerde;
   }
 }

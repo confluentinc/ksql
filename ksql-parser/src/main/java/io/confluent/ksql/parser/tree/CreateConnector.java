@@ -16,10 +16,11 @@
 package io.confluent.ksql.parser.tree;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.errorprone.annotations.Immutable;
+
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import jdk.nashorn.internal.ir.annotations.Immutable;
 
 @Immutable
 public class CreateConnector extends Statement {

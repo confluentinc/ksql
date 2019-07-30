@@ -360,10 +360,11 @@ public class KsqlRestApplicationTest {
     when(ksqlConfig.getKsqlStreamConfigProps()).thenReturn(
         ImmutableMap.of(
             StreamsConfig.ROCKSDB_CONFIG_SETTER_CLASS_CONFIG,
-            Class.forName("io.confluent.ksql.plugins.rocksdb.TestRocksDBConfigSetterWithConfigure"))
+            Class.forName("io.confluent.ksql.rest.server.KsqlRestApplicationTest$TestRocksDBConfigSetterWithConfigure"))
     );
     final Runnable mockRunnable = mock(Runnable.class);
-    when(ksqlConfig.originals()).thenReturn(ImmutableMap.of("test.runnable", mockRunnable));
+    when(ksqlConfig.originals()).thenReturn(
+        ImmutableMap.of(TestRocksDBConfigSetterWithConfigure.TEST_CONFIG, mockRunnable));
 
     // When:
     app.startKsql();
@@ -378,10 +379,35 @@ public class KsqlRestApplicationTest {
     when(ksqlConfig.getKsqlStreamConfigProps()).thenReturn(
         ImmutableMap.of(
             StreamsConfig.ROCKSDB_CONFIG_SETTER_CLASS_CONFIG,
-            Class.forName("io.confluent.ksql.plugins.rocksdb.TestRocksDBConfigSetterWithoutConfigure"))
+            Class.forName("io.confluent.ksql.rest.server.KsqlRestApplicationTest$TestRocksDBConfigSetterWithoutConfigure"))
     );
 
     // No error when:
     app.startKsql();
+  }
+
+  private static class TestRocksDBConfigSetterWithConfigure extends TestRocksDBConfigSetterWithoutConfigure {
+
+    static final String TEST_CONFIG = "test.runnable";
+
+    public static void configure(final Map<String, Object> config) {
+      final Runnable supplier = (Runnable) config.get(TEST_CONFIG);
+      supplier.run();
+    }
+  }
+
+  private static class TestRocksDBConfigSetterWithoutConfigure implements RocksDBConfigSetter {
+
+    @Override
+    public void setConfig(
+        final String storeName,
+        final Options options,
+        final Map<String, Object> configs) {
+      // do nothing
+    }
+
+    @Override
+    public void close(final String storeName, final Options options) {
+    }
   }
 }

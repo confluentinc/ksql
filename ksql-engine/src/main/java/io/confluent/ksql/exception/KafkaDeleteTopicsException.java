@@ -15,8 +15,8 @@
 
 package io.confluent.ksql.exception;
 
+import io.confluent.ksql.util.Pair;
 import java.util.List;
-import javafx.util.Pair;
 
 public class KafkaDeleteTopicsException extends KafkaTopicClientException {
   private final List<Pair<String, Throwable>> exceptionList;

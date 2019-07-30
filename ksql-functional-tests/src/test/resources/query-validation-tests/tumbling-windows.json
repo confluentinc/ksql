@@ -31,7 +31,16 @@
         {"topic": "S2", "key": 100, "value": "100,300", "timestamp": 50000, "window": {"start": 30000, "end": 60000, "type": "time"}},
         {"topic": "S2", "key": 0, "value": "0,100", "timestamp": 35000, "window": {"start": 30000, "end": 60000, "type": "time"}},
         {"topic": "S2", "key": 0, "value": "0,2000", "timestamp": 40000, "window": {"start": 30000, "end": 60000, "type": "time"}}
-      ]
+      ],
+      "post": {
+        "sources": [
+          {
+            "name": "S2",
+            "type": "table",
+            "keyFormat": {"format": "KAFKA", "windowType": "TUMBLING", "windowSize": 30000}
+          }
+        ]
+      }
     },
     {
       "name": "min tumbling",
@@ -112,6 +121,29 @@
         {"topic": "S2", "key": 0, "value": "0,10,0 : Window{start=0 end=-}", "timestamp": 0, "window": {"start": 0, "end": 30000, "type": "time"}},
         {"topic": "S2", "key": 0, "value": "0,50,0 : Window{start=30000 end=-}", "timestamp": 30000, "window": {"start": 30000, "end": 60000, "type": "time"}}
       ]
+    },
+    {
+      "name": "inherit windowed keys",
+      "statements": [
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='test_topic', value_format='DELIMITED', key='ID');",
+        "CREATE TABLE S2 as SELECT id, max(value) FROM test WINDOW TUMBLING (SIZE 30 SECONDS) group by id;",
+        "CREATE TABLE S3 as SELECT * FROM S2;"
+      ],
+      "inputs": [
+        {"topic": "S2", "key": 0, "value": "0,0", "timestamp": 0, "window": {"start": 0, "end": 30000, "type": "time"}}
+      ],
+      "outputs": [
+        {"topic": "S3", "key": 0, "value": "0,0", "timestamp": 0, "window": {"start": 0, "end": 30000, "type": "time"}}
+      ],
+      "post": {
+        "sources": [
+          {
+            "name": "S3",
+            "type": "table",
+            "keyFormat": {"format": "KAFKA", "windowType": "TUMBLING", "windowSize": 30000}
+          }
+        ]
+      }
     }
   ]
 }

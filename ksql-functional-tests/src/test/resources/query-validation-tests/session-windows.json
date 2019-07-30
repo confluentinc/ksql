@@ -25,6 +25,15 @@
       ],
       "properties": {
         "ksql.windowed.session.key.legacy": "false"
+      },
+      "post": {
+        "sources": [
+          {
+            "name": "S2",
+            "type": "table",
+            "keyFormat": {"format": "KAFKA", "windowType": "SESSION", "windowSize": null}
+          }
+        ]
       }
     },
     {
@@ -117,6 +126,34 @@
         {"topic": "S2", "key": "1 : Window{start=10000 end=10000}", "value": "1 : Window{start=10000 end=10000},1", "timestamp": 10000},
         {"topic": "S2", "key": "1 : Window{start=10000 end=10000}", "value": "1 : Window{start=10000 end=10000},2", "timestamp": 10000}
       ]
+    },
+    {
+      "name": "inherit windowed keys",
+      "statements": [
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='test_topic', value_format='DELIMITED', key='ID');",
+        "CREATE TABLE S2 as SELECT id, max(value) FROM test WINDOW SESSION (30 SECONDS) group by id;",
+        "CREATE TABLE S3 as SELECT * FROM S2;"
+      ],
+      "inputs": [
+        {"topic": "S2", "key": 0, "value": "0,0", "timestamp": 0, "window": {"start": 0, "end": 0, "type": "session"}},
+        {"topic": "S2", "key": 0, "value": null, "timestamp": 0, "window": {"start": 0, "end": 0, "type": "session"}}
+      ],
+      "outputs": [
+        {"topic": "S3", "key": 0, "value": "0,0", "timestamp": 0, "window": {"start": 0, "end": 0, "type": "session"}},
+        {"topic": "S3", "key": 0, "value": null, "timestamp": 0, "window": {"start": 0, "end": 0, "type": "session"}}
+      ],
+      "properties": {
+        "ksql.windowed.session.key.legacy": "false"
+      },
+      "post": {
+        "sources": [
+          {
+            "name": "S3",
+            "type": "table",
+            "keyFormat": {"format": "KAFKA", "windowType": "SESSION", "windowSize": null}
+          }
+        ]
+      }
     }
   ]
 }

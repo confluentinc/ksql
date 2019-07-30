@@ -20,6 +20,7 @@ import static org.hamcrest.Matchers.is;
 import io.confluent.ksql.metastore.model.KeyField.LegacyField;
 import io.confluent.ksql.schema.ksql.Field;
 import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
 import java.util.Optional;
 import java.util.Set;
@@ -78,6 +79,20 @@ public final class MetaStoreMatchers {
       @Override
       protected Set<SerdeOption> featureValueOf(final DataSource<?> actual) {
         return actual.getSerdeOptions();
+      }
+    };
+  }
+
+  public static Matcher<DataSource<?>> hasKeyFormat(
+      final Matcher<? super KeyFormat> matcher
+  ) {
+    return new FeatureMatcher<DataSource<?>, KeyFormat>(
+        matcher,
+        "source with key format",
+        "key format") {
+      @Override
+      protected KeyFormat featureValueOf(final DataSource<?> actual) {
+        return actual.getKsqlTopic().getKeyFormat();
       }
     };
   }

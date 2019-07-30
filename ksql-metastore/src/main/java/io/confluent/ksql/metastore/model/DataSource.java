@@ -15,9 +15,7 @@
 
 package io.confluent.ksql.metastore.model;
 
-import io.confluent.ksql.metastore.SerdeFactory;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import java.util.Set;
@@ -61,7 +59,7 @@ public interface DataSource<K> {
   /**
    * Get the physical serde options of the source.
    *
-   * <p>These options can be combined with the logical schema to build the {@link PhysicalSchema} of
+   * <p>These options can be combined with the logical schema to build the {@code PhysicalSchema} of
    * the source.
    *
    * @return the source's serde options.
@@ -77,11 +75,6 @@ public interface DataSource<K> {
    * @return the topic backing the source.
    */
   KsqlTopic getKsqlTopic();
-
-  /**
-   * @return the serde factory for the source.
-   */
-  SerdeFactory<K> getKeySerdeFactory();
 
   /**
    * The timestamp extraction policy of the source.

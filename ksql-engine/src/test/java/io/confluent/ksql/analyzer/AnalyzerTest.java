@@ -65,7 +65,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Assert;
@@ -351,8 +350,7 @@ public class AnalyzerTest {
         SerdeOption.none(),
         KeyField.of("FIELD1", schema.findValueField("FIELD1").get()),
         new MetadataTimestampExtractionPolicy(),
-        ksqlTopic,
-        Serdes::String
+        ksqlTopic
     );
 
     newAvroMetaStore.putSource(ksqlStream);
@@ -538,8 +536,7 @@ public class AnalyzerTest {
         SerdeOption.none(),
         KeyField.none(),
         new MetadataTimestampExtractionPolicy(),
-        topic,
-        Serdes::String
+        topic
     );
 
     jsonMetaStore.putSource(stream);

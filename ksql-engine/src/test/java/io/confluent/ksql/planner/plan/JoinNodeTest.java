@@ -70,6 +70,8 @@ import java.util.stream.IntStream;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.Node;
 import org.apache.kafka.common.TopicPartitionInfo;
+import org.apache.kafka.common.serialization.Serde;
+import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.utils.Utils;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.StreamsBuilder;
@@ -162,6 +164,7 @@ public class JoinNodeTest {
   @Mock
   private FunctionRegistry functionRegistry;
 
+  @SuppressWarnings("unchecked")
   @Before
   public void setUp() {
     builder = new StreamsBuilder();
@@ -178,6 +181,7 @@ public class JoinNodeTest {
     when(ksqlStreamBuilder.buildNodeContext(any())).thenAnswer(inv ->
         new QueryContext.Stacker(queryId)
             .push(inv.getArgument(0).toString()));
+    when(ksqlStreamBuilder.buildKeySerde(any())).thenReturn(() -> (Serde) Serdes.String());
 
     when(left.getAlias()).thenReturn(LEFT_ALIAS);
     when(right.getAlias()).thenReturn(RIGHT_ALIAS);

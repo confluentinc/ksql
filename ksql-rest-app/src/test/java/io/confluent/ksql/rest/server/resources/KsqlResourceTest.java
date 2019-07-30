@@ -157,7 +157,6 @@ import javax.ws.rs.core.Response;
 import org.apache.avro.Schema.Type;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
-import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.StreamsConfig;
@@ -1935,8 +1934,7 @@ public class KsqlResourceTest {
               SerdeOption.none(),
               KeyField.of(schema.valueFields().get(0).name(), schema.valueFields().get(0)),
               new MetadataTimestampExtractionPolicy(),
-              ksqlTopic,
-              Serdes::String
+              ksqlTopic
           ));
     }
     if (type == DataSourceType.KTABLE) {
@@ -1948,8 +1946,7 @@ public class KsqlResourceTest {
               SerdeOption.none(),
               KeyField.of(schema.valueFields().get(0).name(), schema.valueFields().get(0)),
               new MetadataTimestampExtractionPolicy(),
-              ksqlTopic,
-              Serdes::String
+              ksqlTopic
           ));
     }
   }

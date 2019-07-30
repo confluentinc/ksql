@@ -21,17 +21,19 @@ import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.UdafAggregator;
 import io.confluent.ksql.function.udaf.KudafAggregator;
 import io.confluent.ksql.function.udaf.window.WindowSelectMapper;
-import io.confluent.ksql.metastore.SerdeFactory;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.parser.tree.KsqlWindowExpression;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.serde.KsqlKeySerdeFactories;
+import io.confluent.ksql.serde.SerdeFactory;
 import io.confluent.ksql.streams.MaterializedFactory;
 import io.confluent.ksql.streams.StreamsUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.utils.Bytes;
@@ -193,6 +195,11 @@ public class SchemaKGroupedStream {
       return () -> WindowedSerdes.timeWindowedSerdeFrom(String.class);
     }
 
-    return windowExpression.getKsqlWindowExpression().getKeySerdeFactory(String.class);
+    final KsqlWindowExpression ksqlWindow = windowExpression.getKsqlWindowExpression();
+
+    return new KsqlKeySerdeFactories().create(
+        Optional.of(ksqlWindow.getType()),
+        ksqlWindow.getWindowSize()
+    );
   }
 }

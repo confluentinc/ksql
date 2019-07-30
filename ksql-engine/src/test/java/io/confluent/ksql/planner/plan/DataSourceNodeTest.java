@@ -44,7 +44,6 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.streams.MaterializedFactory;
@@ -65,15 +64,12 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
-import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.TopologyDescription;
-import org.apache.kafka.streams.kstream.Aggregator;
-import org.apache.kafka.streams.kstream.Initializer;
 import org.apache.kafka.streams.kstream.KGroupedStream;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KTable;
@@ -120,8 +116,7 @@ public class DataSourceNodeTest {
           KeyFormat.nonWindowed(Format.KAFKA),
           ValueFormat.of(Format.JSON),
           false
-      ),
-      Serdes::String
+      )
   );
 
   private final DataSourceNode node = new DataSourceNode(
@@ -140,8 +135,6 @@ public class DataSourceNodeTest {
   private TimestampExtractor timestampExtractor;
   @Mock
   private KsqlTopic ksqlTopic;
-  @Mock
-  private KsqlSerdeFactory valueSerDeFactory;
   @Mock
   private Serde<GenericRow> rowSerde;
   @Mock
@@ -179,6 +172,7 @@ public class DataSourceNodeTest {
     when(ksqlStreamBuilder.buildNodeContext(any())).thenAnswer(inv ->
         new QueryContext.Stacker(queryId)
             .push(inv.getArgument(0).toString()));
+    when(ksqlStreamBuilder.buildKeySerde(any())).thenReturn(() -> (Serde)keySerde);
     when(ksqlStreamBuilder.buildGenericRowSerde(any(), any(), any())).thenReturn(rowSerde);
     when(ksqlStreamBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
 
@@ -186,22 +180,18 @@ public class DataSourceNodeTest {
     when(rowSerde.deserializer()).thenReturn(mock(Deserializer.class));
 
     when(tableSource.getKsqlTopic()).thenReturn(ksqlTopic);
-    when(tableSource.isWindowed()).thenReturn(false);
     when(tableSource.getDataSourceType()).thenReturn(DataSourceType.KTABLE);
-    when(tableSource.getKeySerdeFactory()).thenReturn(() -> keySerde);
     when(tableSource.getTimestampExtractionPolicy()).thenReturn(timestampExtractionPolicy);
     when(tableSource.getSerdeOptions()).thenReturn(serdeOptions);
     when(ksqlTopic.getKafkaTopicName()).thenReturn("topic");
+    when(ksqlTopic.getKeyFormat()).thenReturn(KeyFormat.nonWindowed(Format.JSON));
     when(timestampExtractionPolicy.timestampField()).thenReturn(TIMESTAMP_FIELD);
     when(timestampExtractionPolicy.create(anyInt())).thenReturn(timestampExtractor);
     when(kStream.transformValues(any(ValueTransformerSupplier.class))).thenReturn(kStream);
     when(kStream.mapValues(any(ValueMapperWithKey.class))).thenReturn(kStream);
     when(kStream.mapValues(any(ValueMapper.class))).thenReturn(kStream);
     when(kStream.groupByKey()).thenReturn(kGroupedStream);
-    when(kGroupedStream.aggregate(
-        any(Initializer.class),
-        any(Aggregator.class),
-        any(Materialized.class))).thenReturn(kTable);
+    when(kGroupedStream.aggregate(any(), any(), any())).thenReturn(kTable);
     when(materializedFactorySupplier.apply(any(KsqlConfig.class)))
         .thenReturn(materializedFactory);
     when(materializedFactory.create(any(Serde.class), any(Serde.class), anyString()))
@@ -304,8 +294,7 @@ public class DataSourceNodeTest {
             KeyFormat.nonWindowed(Format.KAFKA),
             ValueFormat.of(Format.JSON),
             false
-        ),
-        Serdes::String
+        )
     );
 
     final DataSourceNode node = new DataSourceNode(
@@ -329,8 +318,7 @@ public class DataSourceNodeTest {
             KeyFormat.nonWindowed(Format.KAFKA),
             ValueFormat.of(Format.JSON),
             false
-        ),
-        Serdes::String
+        )
     );
 
     final DataSourceNode node = new DataSourceNode(

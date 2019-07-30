@@ -17,10 +17,8 @@ package io.confluent.ksql.ddl.commands;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Iterables;
-import io.confluent.ksql.metastore.SerdeFactory;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlTopic;
-import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.TableElements;
@@ -40,12 +38,8 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.StringUtil;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicyFactory;
-import java.time.Duration;
 import java.util.Optional;
 import java.util.Set;
-import org.apache.kafka.common.serialization.Serde;
-import org.apache.kafka.common.serialization.Serdes;
-import org.apache.kafka.streams.kstream.WindowedSerdes;
 
 /**
  * Base class of create table/stream command
@@ -56,7 +50,6 @@ abstract class CreateSourceCommand implements DdlCommand {
   final String sourceName;
   final LogicalSchema schema;
   final KeyField keyField;
-  final SerdeFactory<?> keySerdeFactory;
   final TimestampExtractionPolicy timestampExtractionPolicy;
   private final Set<SerdeOption> serdeOptions;
   private final KsqlTopic topic;
@@ -117,8 +110,6 @@ abstract class CreateSourceCommand implements DdlCommand {
 
     final PhysicalSchema physicalSchema = PhysicalSchema.from(schema, serdeOptions);
 
-    this.keySerdeFactory = extractKeySerde(statement.getProperties());
-
     final KsqlSerdeFactory valueSerdeFactory = serdeFactories.create(
         topic.getValueFormat().getFormatInfo().getFormat(),
         topic.getValueFormat().getFormatInfo().getAvroFullSchemaName()
@@ -153,25 +144,6 @@ abstract class CreateSourceCommand implements DdlCommand {
     }
 
     return TopicFactory.create(properties);
-  }
-
-  @SuppressWarnings({"unchecked", "OptionalGetWithoutIsPresent"})
-  private static SerdeFactory<?> extractKeySerde(
-      final CreateSourceProperties properties
-  ) {
-    final Optional<WindowType> windowType = properties.getWindowType();
-    final Optional<Long> windowSize = properties.getWindowSize()
-        .map(Duration::toMillis);
-
-    if (!windowType.isPresent()) {
-      return (SerdeFactory) Serdes::String;
-    }
-
-    if (windowType.get() == WindowType.SESSION) {
-      return () -> (Serde) WindowedSerdes.sessionWindowedSerdeFrom(String.class);
-    }
-
-    return () -> (Serde) WindowedSerdes.timeWindowedSerdeFrom(String.class, windowSize.get());
   }
 
   private static TimestampExtractionPolicy buildTimestampExtractor(

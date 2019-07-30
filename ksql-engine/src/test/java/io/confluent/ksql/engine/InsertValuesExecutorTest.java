@@ -42,6 +42,7 @@ import io.confluent.ksql.schema.ksql.Field;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.KeyFormat;
+import io.confluent.ksql.serde.KeySerdeFactories;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.serde.SerdeFactories;
 import io.confluent.ksql.serde.SerdeOption;
@@ -134,9 +135,12 @@ public class InsertValuesExecutorTest {
   private LongSupplier clock;
   @Mock
   private SerdeFactories serdesFactories;
+  @Mock
+  private KeySerdeFactories keySerdeFactories;
   private Struct expectedRow;
   private InsertValuesExecutor executor;
 
+  @SuppressWarnings("unchecked")
   @Before
   public void setup() {
     when(valueSerde.createSerde(any(), any(), any())).thenReturn(valueSerDe);
@@ -162,10 +166,11 @@ public class InsertValuesExecutorTest {
         .put("COL1", 2L);
 
     when(serdesFactories.create(any(), any())).thenReturn(valueSerde);
+    when(keySerdeFactories.create(any(), any())).thenReturn(() -> (Serde) keySerDe);
 
     when(clock.getAsLong()).thenReturn(1L);
 
-    executor = new InsertValuesExecutor(clock, serdesFactories);
+    executor = new InsertValuesExecutor(clock, keySerdeFactories, serdesFactories);
   }
 
   @Test
@@ -617,6 +622,25 @@ public class InsertValuesExecutorTest {
     verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
   }
 
+  @Test
+  public void shouldBuildCorrectSerde() {
+    // Given:
+    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
+        valueFieldNames(SCHEMA),
+        ImmutableList.of(
+            new StringLiteral("str"),
+            new LongLiteral(2L)
+        )
+    );
+
+    // When:
+    executor.execute(statement, engine, serviceContext);
+
+    // Then:
+    verify(keySerdeFactories).create(Optional.empty(), Optional.empty());
+    verify(serdesFactories).create(Format.JSON, Optional.empty());
+  }
+
   private static ConfiguredStatement<InsertValues> givenInsertValues(
       final List<String> columns,
       final List<Expression> values
@@ -652,8 +676,7 @@ public class InsertValuesExecutorTest {
         serdeOptions,
         valueKeyField,
         new MetadataTimestampExtractionPolicy(),
-        topic,
-        () -> keySerDe
+        topic
     );
 
     final MetaStoreImpl metaStore = new MetaStoreImpl(TestFunctionRegistry.INSTANCE.get());

@@ -30,7 +30,6 @@ import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
-import org.apache.kafka.common.serialization.Serdes;
 
 @SuppressWarnings("OptionalGetWithoutIsPresent")
 public final class MetaStoreFixture {
@@ -76,8 +75,7 @@ public final class MetaStoreFixture {
         SerdeOption.none(),
         KeyField.of("COL0", test1Schema.findValueField("COL0").get()),
         timestampExtractionPolicy,
-        ksqlTopic0,
-        Serdes::String
+        ksqlTopic0
     );
 
     metaStore.putSource(ksqlStream0);
@@ -95,8 +93,7 @@ public final class MetaStoreFixture {
         SerdeOption.none(),
         KeyField.of("COL0", test1Schema.findValueField("COL0").get()),
         timestampExtractionPolicy,
-        ksqlTopic1,
-        Serdes::String
+        ksqlTopic1
     );
 
     metaStore.putSource(ksqlStream1);
@@ -122,8 +119,7 @@ public final class MetaStoreFixture {
         SerdeOption.none(),
         KeyField.of("COL0", test2Schema.findValueField("COL0").get()),
         timestampExtractionPolicy,
-        ksqlTopic2,
-        Serdes::String
+        ksqlTopic2
     );
 
     metaStore.putSource(ksqlTable);
@@ -172,8 +168,7 @@ public final class MetaStoreFixture {
         SerdeOption.none(),
         KeyField.of("ORDERTIME", ordersSchema.findValueField("ORDERTIME").get()),
         timestampExtractionPolicy,
-        ksqlTopicOrders,
-        Serdes::String
+        ksqlTopicOrders
     );
 
     metaStore.putSource(ksqlStreamOrders);
@@ -199,8 +194,7 @@ public final class MetaStoreFixture {
         SerdeOption.none(),
         KeyField.of("COL0", testTable3.findValueField("COL0").get()),
         timestampExtractionPolicy,
-        ksqlTopic3,
-        Serdes::String
+        ksqlTopic3
     );
 
     metaStore.putSource(ksqlTable3);
@@ -237,8 +231,7 @@ public final class MetaStoreFixture {
         SerdeOption.none(),
         KeyField.none(),
         timestampExtractionPolicy,
-        nestedArrayStructMapTopic,
-        Serdes::String
+        nestedArrayStructMapTopic
     );
 
     metaStore.putSource(nestedArrayStructMapOrders);
@@ -257,8 +250,7 @@ public final class MetaStoreFixture {
         SerdeOption.none(),
         KeyField.none(),
         timestampExtractionPolicy,
-        ksqlTopic4,
-        Serdes::String
+        ksqlTopic4
     );
 
     metaStore.putSource(ksqlStream4);

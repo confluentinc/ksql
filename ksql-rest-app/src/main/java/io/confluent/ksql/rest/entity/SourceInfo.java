@@ -83,7 +83,7 @@ public class SourceInfo {
           ksqlTable.getName(),
           ksqlTable.getKsqlTopic().getKafkaTopicName(),
           ksqlTable.getKsqlTopic().getValueFormat().getFormat().name(),
-          ksqlTable.isWindowed()
+          ksqlTable.getKsqlTopic().getKeyFormat().isWindowed()
       );
     }
 

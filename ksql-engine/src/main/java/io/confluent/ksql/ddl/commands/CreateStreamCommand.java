@@ -42,8 +42,7 @@ public class CreateStreamCommand extends CreateSourceCommand {
         getSerdeOptions(),
         keyField,
         timestampExtractionPolicy,
-        getTopic(),
-        keySerdeFactory
+        getTopic()
     );
 
     metaStore.putSource(ksqlStream);

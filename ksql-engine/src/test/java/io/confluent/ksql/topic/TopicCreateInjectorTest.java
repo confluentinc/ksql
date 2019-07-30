@@ -55,7 +55,6 @@ import java.util.Optional;
 import java.util.function.Supplier;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.config.TopicConfig;
-import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.hamcrest.Description;
@@ -93,7 +92,6 @@ public class TopicCreateInjectorTest {
   private ConfiguredStatement<?> statement;
   private KsqlConfig config;
 
-  @SuppressWarnings("unchecked")
   @Before
   public void setUp() {
     parser = new DefaultKsqlParser();
@@ -117,8 +115,7 @@ public class TopicCreateInjectorTest {
         SerdeOption.none(),
         KeyField.none(),
         new MetadataTimestampExtractionPolicy(),
-        sourceTopic,
-        Serdes::String
+        sourceTopic
     );
     metaStore.putSource(source);
 
@@ -136,8 +133,7 @@ public class TopicCreateInjectorTest {
         SerdeOption.none(),
         KeyField.none(),
         new MetadataTimestampExtractionPolicy(),
-        joinTopic,
-        Serdes::String
+        joinTopic
     );
     metaStore.putSource(joinSource);
 

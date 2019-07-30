@@ -61,7 +61,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
 import org.junit.Before;
@@ -168,8 +167,7 @@ public class CodeGenRunnerTest {
             SerdeOption.none(),
             KeyField.of("COL0", META_STORE_SCHEMA.findValueField("COL0").get()),
             new MetadataTimestampExtractionPolicy(),
-            ksqlTopic,
-            Serdes::String
+            ksqlTopic
         );
 
         metaStore.putSource(ksqlStream);

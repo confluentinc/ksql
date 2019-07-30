@@ -242,8 +242,7 @@ public class PhysicalPlanBuilder {
               outputNode.getSerdeOptions(),
               schemaKTable.getKeyField(),
               outputNode.getTimestampExtractionPolicy(),
-              outputNode.getKsqlTopic(),
-              schemaKTable.getKeySerdeFactory()
+              outputNode.getKsqlTopic()
           );
     } else {
       sinkDataSource =
@@ -254,8 +253,7 @@ public class PhysicalPlanBuilder {
               outputNode.getSerdeOptions(),
               schemaKStream.getKeyField(),
               outputNode.getTimestampExtractionPolicy(),
-              outputNode.getKsqlTopic(),
-              schemaKStream.getKeySerdeFactory()
+              outputNode.getKsqlTopic()
           );
     }
 

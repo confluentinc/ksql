@@ -22,7 +22,6 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
-import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Test;
@@ -104,8 +103,7 @@ public class StructuredDataSourceTest {
           SerdeOption.none(), keyField,
           mock(TimestampExtractionPolicy.class),
           DataSourceType.KSTREAM,
-          mock(KsqlTopic.class),
-          Serdes::String
+          mock(KsqlTopic.class)
       );
     }
   }

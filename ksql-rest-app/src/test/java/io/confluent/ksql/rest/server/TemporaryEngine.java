@@ -44,7 +44,6 @@ import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
 import io.confluent.rest.RestConfig;
 import java.util.Collections;
 import java.util.HashMap;
-import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.rules.ExternalResource;
@@ -109,8 +108,7 @@ public class TemporaryEngine extends ExternalResource {
                 SerdeOption.none(),
                 KeyField.of("val", SCHEMA.findValueField("val").get()),
                 new MetadataTimestampExtractionPolicy(),
-                topic,
-                Serdes::String
+                topic
             );
         break;
       case KTABLE:
@@ -122,8 +120,7 @@ public class TemporaryEngine extends ExternalResource {
                 SerdeOption.none(),
                 KeyField.of("val", SCHEMA.findValueField("val").get()),
                 new MetadataTimestampExtractionPolicy(),
-                topic,
-                Serdes::String
+                topic
             );
         break;
       default:

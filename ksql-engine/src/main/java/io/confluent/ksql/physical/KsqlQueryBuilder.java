@@ -21,22 +21,29 @@ import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
+import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.planner.plan.PlanNodeId;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.GenericRowSerDe;
+import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.KsqlSerdeFactories;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.serde.SerdeFactories;
+import io.confluent.ksql.serde.SerdeFactory;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.structured.QueryContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.QueryLoggerUtil;
+import java.time.Duration;
 import java.util.LinkedHashMap;
+import java.util.Optional;
 import org.apache.kafka.common.serialization.Serde;
+import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.StreamsBuilder;
+import org.apache.kafka.streams.kstream.WindowedSerdes;
 
 public final class KsqlQueryBuilder {
 
@@ -125,6 +132,23 @@ public final class KsqlQueryBuilder {
   public QueryContext.Stacker buildNodeContext(final PlanNodeId id) {
     return new QueryContext.Stacker(queryId)
         .push(id.toString());
+  }
+
+  @SuppressWarnings({"unchecked", "OptionalGetWithoutIsPresent", "MethodMayBeStatic"})
+  public SerdeFactory<?> buildKeySerde(final KeyFormat keyFormat) {
+    final Optional<WindowType> windowType = keyFormat.getWindowType();
+    final Optional<Long> windowSize = keyFormat.getWindowSize()
+        .map(Duration::toMillis);
+
+    if (!windowType.isPresent()) {
+      return (SerdeFactory) Serdes::String;
+    }
+
+    if (windowType.get() == WindowType.SESSION) {
+      return () -> (Serde) WindowedSerdes.sessionWindowedSerdeFrom(String.class);
+    }
+
+    return () -> (Serde) WindowedSerdes.timeWindowedSerdeFrom(String.class, windowSize.get());
   }
 
   public Serde<GenericRow> buildGenericRowSerde(

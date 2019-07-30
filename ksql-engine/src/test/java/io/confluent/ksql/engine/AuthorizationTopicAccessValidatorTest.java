@@ -38,7 +38,6 @@ import java.util.Collections;
 import java.util.Set;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.acl.AclOperation;
-import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.After;
@@ -387,8 +386,7 @@ public class AuthorizationTopicAccessValidatorTest {
         SerdeOption.none(),
         KeyField.none(),
         new MetadataTimestampExtractionPolicy(),
-        sourceTopic,
-        Serdes::String
+        sourceTopic
     );
 
     metaStore.putSource(streamSource);

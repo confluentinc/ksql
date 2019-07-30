@@ -37,6 +37,7 @@ import io.confluent.ksql.parser.tree.GroupBy;
 import io.confluent.ksql.parser.tree.GroupingElement;
 import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.JoinOn;
+import io.confluent.ksql.parser.tree.KsqlWindowExpression;
 import io.confluent.ksql.parser.tree.NodeLocation;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
@@ -63,7 +64,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.apache.kafka.common.serialization.Serdes;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 class Analyzer {
@@ -178,14 +178,15 @@ class Analyzer {
             sqlExpression,
             sink.getName(),
             false,
-            existing.getKsqlTopic(),
-            existing.getKeySerdeFactory()
+            existing.getKsqlTopic()
         ));
         return;
       }
 
       final String topicName = sink.getProperties().getKafkaTopic()
           .orElseGet(() -> topicPrefix + sink.getName());
+
+      final KeyFormat keyFormat = buildKeyFormat();
 
       final ValueFormat valueFormat = ValueFormat.of(
           getValueFormat(sink),
@@ -194,7 +195,7 @@ class Analyzer {
 
       final KsqlTopic intoKsqlTopic = new KsqlTopic(
           topicName,
-          KeyFormat.nonWindowed(Format.KAFKA),
+          keyFormat,
           valueFormat,
           true
       );
@@ -203,9 +204,23 @@ class Analyzer {
           sqlExpression,
           sink.getName(),
           true,
-          intoKsqlTopic,
-          Serdes::String
+          intoKsqlTopic
       ));
+    }
+
+    private KeyFormat buildKeyFormat() {
+      final Optional<KsqlWindowExpression> ksqlWindow = Optional
+          .ofNullable(analysis.getWindowExpression())
+          .map(WindowExpression::getKsqlWindowExpression);
+
+      return ksqlWindow
+          .map(w -> KeyFormat.windowed(Format.KAFKA, w.getType(), w.getWindowSize()))
+          .orElseGet(() -> analysis
+              .getFromDataSources()
+              .get(0)
+              .getDataSource()
+              .getKsqlTopic()
+              .getKeyFormat());
     }
 
     private void setSerdeOptions(final Sink sink) {

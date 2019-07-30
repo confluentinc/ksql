@@ -164,8 +164,6 @@ public class QueryAnalyzerTest {
     final DataSource<?> test0 = metaStore.getSource("TEST0");
     assertThat(into.getName(), is(test0.getName()));
     assertThat(into.getKsqlTopic(), is(test0.getKsqlTopic()));
-    assertThat(into.getKeySerdeFactory().create(),
-        is(instanceOf(test0.getKeySerdeFactory().create().getClass())));
   }
 
   @Test

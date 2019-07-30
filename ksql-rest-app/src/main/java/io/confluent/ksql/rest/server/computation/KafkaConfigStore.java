@@ -26,6 +26,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Supplier;
@@ -116,7 +117,11 @@ public class KafkaConfigStore implements ConfigStore {
     KsqlProperties(
         @JsonProperty("ksqlProperties") final Map<String, String> ksqlProperties) {
       this.ksqlProperties = ksqlProperties == null
-          ? Collections.emptyMap() : ImmutableMap.copyOf(ksqlProperties);
+          ? Collections.emptyMap()
+          : ksqlProperties.entrySet()
+              .stream()
+              .filter(kv -> kv.getValue() != null)
+              .collect(ImmutableMap.toImmutableMap(Entry::getKey, Entry::getValue));
     }
 
     public Map<String, String> getKsqlProperties() {

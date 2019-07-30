@@ -72,13 +72,13 @@ public class KafkaConfigStoreTest {
       ImmutableMap.of(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG, "bad"));
 
   private final KsqlProperties properties = new KsqlProperties(
-      filterNullValues(currentConfig.getAllConfigPropsWithSecretsObfuscated())
+      currentConfig.getAllConfigPropsWithSecretsObfuscated()
   );
   private final KsqlProperties savedProperties = new KsqlProperties(
-      filterNullValues(savedConfig.getAllConfigPropsWithSecretsObfuscated())
+      savedConfig.getAllConfigPropsWithSecretsObfuscated()
   );
   private final KsqlProperties badProperties = new KsqlProperties(
-      filterNullValues(badConfig.getAllConfigPropsWithSecretsObfuscated())
+      badConfig.getAllConfigPropsWithSecretsObfuscated()
   );
 
   private final TopicPartition topicPartition = new TopicPartition(TOPIC_NAME, 0);
@@ -107,7 +107,6 @@ public class KafkaConfigStoreTest {
   private InOrder inOrder;
 
   @Before
-  @SuppressWarnings("unchecked")
   public void setUp() {
     when(producerSupplier.get()).thenReturn(producer);
     when(consumerSupplier.get()).thenReturn(consumerBefore).thenReturn(consumerAfter);

@@ -13,23 +13,8 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.exception;
+package io.confluent.ksql.execution.expression.tree;
 
-import io.confluent.ksql.util.Pair;
-import java.util.List;
-
-public class KafkaDeleteTopicsException extends KafkaTopicClientException {
-  private final List<Pair<String, Throwable>> exceptionList;
-
-  public KafkaDeleteTopicsException(
-          final String message,
-          final List<Pair<String, Throwable>> failList) {
-    super(message);
-    exceptionList = failList;
-  }
-
-  public final List<Pair<String, Throwable>> getExceptionList() {
-    return exceptionList;
-  }
+class Placeholder {
 
 }

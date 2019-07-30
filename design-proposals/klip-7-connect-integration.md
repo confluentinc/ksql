@@ -87,7 +87,7 @@ There are a few more minor points of consideration:
 
 The first step is to create and start a Connector via the REST API (`POST /connectors`)
 ```sql
-ksql> CREATE EXTERNAL SOURCE my-postgres-jdbc WITH ( \
+ksql> CREATE SOURCE CONNECTOR my-postgres-jdbc WITH ( \
       connector.class="io.confluent.connect.jdbc.jdbcSourceConnector", \ 
       tasks.max=1, \
       connection.url=jdbc:postgresql://localhost:5432/my-db, \
@@ -98,16 +98,13 @@ SOURCE CREATED
 --------------
 ```
 
-If the connector is one of the KSQL supported connectors, we can have default configuration options
-and tighter integration specified by `CREATE EXTERNAL SOURCE(type='JDBC') WITH (...);`.
-
 *Note: as Connect manages to simplify the configuration, whether through templates or any other
 means, we will immediately be able to leverage this simplification in KSQL's WITH clause.*
 
 Next, we provide tools to understand the status of the connector and corresponding topics hitting
 the `GET /connectors` and `GET /connectors/<name>` REST endpoints:
 ```sql
-ksql> SHOW EXTERNAL SOURCES;
+ksql> SHOW CONNECTORS;
 
     name         |              connector                        |   topic prefix
 -----------------|-----------------------------------------------|--------------------
@@ -143,16 +140,16 @@ At this point, assuming the `pageviews_original` stream is already created, we c
 created `users_original` table with the `pageviews_original` stream. Finally, the user can drop and 
 terminate the connectors.
 ```sql
-ksql> DROP EXTERNAL SOURCE my-postgres-jdbc;
+ksql> DROP CONNECTOR my-postgres-jdbc;
 ```
 
 **Sample Egress**
 
 Data egress would work in a similar fashion:
 ```sql
-ksql> CREATE EXTERNAL SINK my-elastic-sink WITH (sources='my-table1', ...);
+ksql> CREATE SINK CONNECTOR my-elastic-sink WITH (sources='my-table1', ...);
 
-ksql> SHOW EXTERNAL SINKS;
+ksql> SHOW SINK CONNECTORS;
 
     name         |              connector                        |   topic prefix
 -----------------|-----------------------------------------------|--------------------
@@ -172,18 +169,29 @@ name           | topic
 --------------------------------------------
 elasticsearch1 | elastic-sink-elasticsearch1 
 
-ksql> DROP EXTERNAL SINK my-elastic-sink TERMINATE;
+ksql> DROP CONNECTOR my-elastic-sink TERMINATE;
 ```
 
 ### Connect Improvements
 
 This section is a record of some suggestions for Connect that would make it more KSQL-friendly:
 
-- Connectors should have an API to expose all topics they create
-- Connectors should have an API to map a topic to the schema that they create
-- The JDBC connector should not require an SMT to populate the kafka KEY
-- The Security model should work well with systems that create connectors "on behalf of" other users
-- A more detailed error endpoint to help diagnose faulty connectors
+1. **Exposing Topics & Schemas (P0):** as it stands, Connect does not expose the topics or schemas
+   for the connectors it manages. This means that, at best, we need to hack together logic that
+   extracts information from a connect configuration and scan Kafka for matching topics (e.g. for
+   JDBC connect we would need to scan all topics that start with `topic.prefix`) and at worst it
+   is impossible (the topic names are not necessarily determinable from the config). Similarly with
+   schemas, at best we can scan Schema Registry for the schema of the topic, but at worst there 
+   is no guarantee that the topic uses AVRO or is registered in schema registry using the standard 
+   subject naming schema (e.g. `<topic>-value`), rendering a schema unrecoverable programmatically. 
+   For true KSQL-Connect integration, we would need an exposed `/connectors/<name>/topics` endpoint
+   and a `/connectors/<name>/<topic>/schema` endpoint (or something similar).
+1. **JDBC Primary Key (P1):** Since we're targeting the JDBC connector as the first "blessed" 
+   integration point with KSQL, it is important that the experience is as good as possible. It would
+   be great if the connector populated the primary key of the row into the kafka message without 
+   requiring an SMT.
+1. **Push updates (P2):** It would be nice to be able to "subscribe" to get updates for any new
+   topic/schema that was created (see the first item) without polling connect.
 
 ### Advanced Topics
 

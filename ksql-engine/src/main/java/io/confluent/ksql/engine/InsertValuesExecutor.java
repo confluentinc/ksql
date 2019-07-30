@@ -24,12 +24,11 @@ import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
-import io.confluent.ksql.parser.tree.AstNode;
-import io.confluent.ksql.parser.tree.AstVisitor;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.InsertValues;
 import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.parser.tree.NullLiteral;
+import io.confluent.ksql.parser.tree.VisitParentExpressionVisitor;
 import io.confluent.ksql.schema.ksql.DefaultSqlValueCoercer;
 import io.confluent.ksql.schema.ksql.Field;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -343,7 +342,7 @@ public class InsertValuesExecutor {
     }
   }
 
-  private static class ExpressionResolver extends AstVisitor<Object, Void> {
+  private static class ExpressionResolver extends VisitParentExpressionVisitor<Object, Void> {
 
     private final SqlType fieldType;
     private final String fieldName;
@@ -355,9 +354,10 @@ public class InsertValuesExecutor {
     }
 
     @Override
-    protected String visitNode(final AstNode node, final Void context) {
+    protected String visitExpression(final Expression expression, final Void context) {
       throw new KsqlException(
-          "Only Literals are supported for INSERT INTO. Got: " + node + " for field " + fieldName);
+          "Only Literals are supported for INSERT INTO. Got: "
+              + expression + " for field " + fieldName);
     }
 
     @Override

@@ -77,8 +77,7 @@ public class ConnectExecutorTest {
     givenSuccess();
 
     // When:
-    final Optional<KsqlEntity> entity = ConnectExecutor
-        .execute(CREATE_CONNECTOR_CONFIGURED, null, serviceContext);
+    ConnectExecutor.execute(CREATE_CONNECTOR_CONFIGURED, null, serviceContext);
 
     // Then:
     verify(connectClient).create("foo", ImmutableMap.of("foo", "bar"));

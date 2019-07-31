@@ -125,6 +125,7 @@ public class KsqlBoundedMemoryRocksDBConfigTest {
     verify(rocksOptions).setWriteBufferManager(any());
     verify(rocksOptions).setMaxWriteBufferNumber(6);
     verify(rocksOptions).setWriteBufferSize(TOTAL_OFF_HEAP_MEMORY / 2 / 6);
+    verify(rocksOptions).setStatsDumpPeriodSec(0);
     verify(rocksOptions).setTableFormatConfig(tableConfig);
 
     verify(tableConfig).setBlockCache(any());

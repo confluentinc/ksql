@@ -121,6 +121,8 @@ public class KsqlBoundedMemoryRocksDBConfig implements RocksDBConfigSetter {
     options.setMaxWriteBufferNumber(N_MEMTABLES);
     options.setWriteBufferSize(memtableSize);
 
+    options.setStatsDumpPeriodSec(0);
+
     options.setTableFormatConfig(tableConfig);
   }
 

@@ -21,7 +21,7 @@ import io.confluent.ksql.util.FakeKafkaClientSupplier;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Collections;
 import java.util.function.Supplier;
-import org.apache.kafka.clients.admin.AdminClient;
+import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.streams.KafkaClientSupplier;
 import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
 
@@ -72,7 +72,7 @@ public final class TestServiceContext {
       final Supplier<SchemaRegistryClient> srClientFactory
   ) {
     final DefaultKafkaClientSupplier kafkaClientSupplier = new DefaultKafkaClientSupplier();
-    final AdminClient adminClient = kafkaClientSupplier
+    final Admin adminClient = kafkaClientSupplier
         .getAdminClient(ksqlConfig.getKsqlAdminClientConfigProps());
 
     return create(
@@ -86,7 +86,7 @@ public final class TestServiceContext {
 
   public static ServiceContext create(
       final KafkaClientSupplier kafkaClientSupplier,
-      final AdminClient adminClient,
+      final Admin adminClient,
       final KafkaTopicClient topicClient,
       final Supplier<SchemaRegistryClient> srClientFactory,
       final ConnectClient connectClient

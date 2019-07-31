@@ -16,7 +16,7 @@
 package io.confluent.ksql.services;
 
 import java.util.Map;
-import org.apache.kafka.clients.admin.AdminClient;
+import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.streams.KafkaClientSupplier;
@@ -35,7 +35,7 @@ class SandboxedKafkaClientSupplier implements KafkaClientSupplier {
   }
 
   @Override
-  public AdminClient getAdminClient(final Map<String, Object> config) {
+  public Admin getAdminClient(final Map<String, Object> config) {
     return new SandboxedAdminClient();
   }
 

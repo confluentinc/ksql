@@ -1,5 +1,7 @@
-Changelog
-=========
+.. _ksql_changelog:
+
+KSQL Changelog
+==============
 
 Version 5.3.0
 -------------

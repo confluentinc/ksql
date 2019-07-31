@@ -35,7 +35,8 @@ public class KsqlTopicsListTest {
     final String json = mapper.writeValueAsString(expected);
     assertEquals(
         "{\"@type\":\"ksql_topics\",\"statementText\":\"SHOW TOPICS;\"," +
-        "\"topics\":[{\"name\":\"ksqltopic\",\"kafkaTopic\":\"kafkatopic\",\"format\":\"JSON\"}]}",
+        "\"topics\":[{\"name\":\"ksqltopic\",\"kafkaTopic\":\"kafkatopic\",\"format\":\"JSON\"}],"
+            + "\"warnings\":[]}",
         json);
 
     final KsqlTopicsList actual = mapper.readValue(json, KsqlTopicsList.class);

@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.util;
 
+import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.config.ConfigItem;
@@ -143,6 +144,16 @@ public class KsqlConfig extends AbstractConfig {
   private static final String
       defaultSchemaRegistryUrl = "http://localhost:8081";
 
+  public static final String KSQL_CUSTOM_METRICS_TAGS = "ksql.metrics.tags.custom";
+  private static final String KSQL_CUSTOM_METRICS_TAGS_DOC =
+      "A list of tags to be included with emitted JMX metrics, formatted as a string of key:value "
+      + "pairs separated by commas. For example, 'key1:value1,key2:value2'.";
+
+  public static final String KSQL_CUSTOM_METRICS_EXTENSION = "ksql.metrics.extension";
+  private static final String KSQL_CUSTOM_METRICS_EXTENSION_DOC =
+      "Extension for supplying custom metrics to be emitted along with "
+      + "the engine's default JMX metrics";
+
   public static final String KSQL_STREAMS_PREFIX = "ksql.streams.";
 
   public static final String KSQL_COLLECT_UDF_METRICS = "ksql.udf.collect.metrics";
@@ -156,6 +167,18 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_SECURITY_EXTENSION_DEFAULT = null;
   public static final String KSQL_SECURITY_EXTENSION_DOC = "A KSQL security extension class that "
       + "provides authorization to KSQL servers.";
+
+  public static final String KSQL_ENABLE_TOPIC_ACCESS_VALIDATOR = "ksql.access.validator.enable";
+  public static final String KSQL_ACCESS_VALIDATOR_ON = "on";
+  public static final String KSQL_ACCESS_VALIDATOR_OFF = "off";
+  public static final String KSQL_ACCESS_VALIDATOR_AUTO = "auto";
+  public static final String KSQL_ACCESS_VALIDATOR_DOC =
+      "Config to enable/disable the topic access validator, which checks that KSQL can access "
+          + "the involved topics before committing to execute a statement. Possible values are "
+          + "\"on\", \"off\", and \"auto\". Setting to \"on\" enables the validator. Setting to "
+          + "\"off\" disables the validator. If set to \"auto\", KSQL will attempt to discover "
+          + "whether the Kafka cluster supports the required API, and enables the validator if "
+          + "it does.";
 
   public static final Collection<CompatibilityBreakingConfigDef> COMPATIBLY_BREAKING_CONFIG_DEFS
       = ImmutableList.of(
@@ -447,6 +470,29 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_SECURITY_EXTENSION_DEFAULT,
             ConfigDef.Importance.LOW,
             KSQL_SECURITY_EXTENSION_DOC
+        ).define(
+            KSQL_CUSTOM_METRICS_TAGS,
+            ConfigDef.Type.STRING,
+            "",
+            ConfigDef.Importance.LOW,
+            KSQL_CUSTOM_METRICS_TAGS_DOC
+        ).define(
+            KSQL_CUSTOM_METRICS_EXTENSION,
+            ConfigDef.Type.CLASS,
+            null,
+            ConfigDef.Importance.LOW,
+            KSQL_CUSTOM_METRICS_EXTENSION_DOC
+        ).define(
+            KSQL_ENABLE_TOPIC_ACCESS_VALIDATOR,
+            Type.STRING,
+            KSQL_ACCESS_VALIDATOR_AUTO,
+            ValidString.in(
+                KSQL_ACCESS_VALIDATOR_ON,
+                KSQL_ACCESS_VALIDATOR_OFF,
+                KSQL_ACCESS_VALIDATOR_AUTO
+            ),
+            ConfigDef.Importance.LOW,
+            KSQL_ACCESS_VALIDATOR_DOC
         )
         .withClientSslSupport();
     for (final CompatibilityBreakingConfigDef compatibilityBreakingConfigDef
@@ -682,6 +728,22 @@ public class KsqlConfig extends AbstractConfig {
         .forEach(
             k -> mergedStreamConfigProps.put(k, originalConfig.ksqlStreamConfigProps.get(k)));
     return new KsqlConfig(ConfigGeneration.LEGACY, mergedProperties, mergedStreamConfigProps);
+  }
+
+  public Map<String, String> getStringAsMap(final String key) {
+    final String value = getString(key).trim();
+    try {
+      return value.equals("")
+          ? Collections.emptyMap()
+          : Splitter.on(",").trimResults().withKeyValueSeparator(":").split(value);
+    } catch (IllegalArgumentException e) {
+      throw new KsqlException(
+          String.format(
+              "Invalid config value for '%s'. value: %s. reason: %s",
+              key,
+              value,
+              e.getMessage()));
+    }
   }
 
   private static Set<String> sslConfigNames() {

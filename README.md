@@ -25,7 +25,7 @@ Stable releases are published every four months and are officially supported by 
 <a name="preview-releases"></a>
 ## Preview Releases
 
-In addition to supported [stable KSQL releases](#stable-releases), we also provide monthly preview releases.
+In addition to supported [stable KSQL releases](#stable-releases), we also provide preview releases.
 We encourage you to try them in development and testing environments and to take advantage of
 [Confluent Community resources](#community) to get help and share feedback.
 

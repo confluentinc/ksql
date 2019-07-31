@@ -60,7 +60,6 @@ import org.apache.kafka.streams.kstream.KGroupedStream;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.Produced;
 import org.apache.kafka.streams.kstream.ValueJoiner;
-import org.apache.kafka.streams.kstream.WindowedSerdes;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
@@ -81,7 +80,7 @@ public class SchemaKStream<K> {
   final FunctionRegistry functionRegistry;
   final SerdeFactory<K> keySerdeFactory;
   final StreamsFactories streamsFactories;
-  final QueryContext queryContext;
+  private final QueryContext queryContext;
 
   public SchemaKStream(
       final LogicalSchema schema,
@@ -136,12 +135,6 @@ public class SchemaKStream<K> {
     return keySerdeFactory;
   }
 
-  public boolean hasWindowedKey() {
-    final Serde<K> keySerde = keySerdeFactory.create();
-    return keySerde instanceof WindowedSerdes.SessionWindowedSerde
-        || keySerde instanceof WindowedSerdes.TimeWindowedSerde;
-  }
-
   public SchemaKStream into(
       final String kafkaTopicName,
       final Serde<GenericRow> topicValueSerDe,
@@ -163,7 +156,6 @@ public class SchemaKStream<K> {
     return this;
   }
 
-  @SuppressWarnings("unchecked")
   public SchemaKStream<K> filter(
       final Expression filterExpression,
       final QueryContext.Stacker contextStacker,
@@ -171,7 +163,6 @@ public class SchemaKStream<K> {
     final SqlPredicate predicate = new SqlPredicate(
         filterExpression,
         schema,
-        hasWindowedKey(),
         ksqlConfig,
         functionRegistry,
         processingLogContext.getLoggerFactory().getLogger(

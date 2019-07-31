@@ -135,7 +135,6 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
     final SqlPredicate predicate = new SqlPredicate(
         filterExpression,
         schema,
-        hasWindowedKey(),
         ksqlConfig,
         functionRegistry,
         processingLogContext.getLoggerFactory().getLogger(

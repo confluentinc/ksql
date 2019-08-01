@@ -148,7 +148,7 @@ public class ClusterTerminator {
 
   private static Set<String> subjectNames(final List<DataSource<?>> sources) {
     return sources.stream()
-        .filter(s -> s.getKsqlTopic().getValueSerdeFactory().getFormat() == Format.AVRO)
+        .filter(s -> s.getKsqlTopic().getValueFormat().getFormat() == Format.AVRO)
         .map(DataSource::getKsqlTopic)
         .map(KsqlTopic::getKafkaTopicName)
         .map(topicName -> topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX)

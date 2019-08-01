@@ -50,15 +50,12 @@ import io.confluent.ksql.parser.tree.Sink;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.planner.plan.JoinNode.JoinType;
-import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
-import io.confluent.ksql.serde.SerdeFactories;
+import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
-import io.confluent.ksql.serde.avro.KsqlAvroSerdeFactory;
-import io.confluent.ksql.serde.kafka.KafkaSerdeFactory;
-import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
@@ -68,7 +65,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Assert;
@@ -93,8 +89,6 @@ public class AnalyzerTest {
   public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
-  private SerdeFactories serdeFactories;
-  @Mock
   private SerdeOptionsSupplier serdeOptiponsSupplier;
   @Mock
   private Sink sink;
@@ -107,13 +101,12 @@ public class AnalyzerTest {
   @Before
   public void init() {
     jsonMetaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
-    avroMetaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry(), new KsqlAvroSerdeFactory(KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME));
+    avroMetaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry(), ValueFormat.of(Format.AVRO));
 
     analyzer = new Analyzer(
         jsonMetaStore,
         "",
         DEFAULT_SERDE_OPTIONS,
-        serdeFactories,
         serdeOptiponsSupplier
     );
 
@@ -297,8 +290,8 @@ public class AnalyzerTest {
         .analyze("sqlExpression", query, Optional.of(createStreamAsSelect.getSink()));
 
     assertThat(analysis.getInto(), is(not(Optional.empty())));
-    assertThat(analysis.getInto().get().getKsqlTopic().getValueSerdeFactory(),
-        is(new KsqlAvroSerdeFactory("com.custom.schema")));
+    assertThat(analysis.getInto().get().getKsqlTopic().getValueFormat(),
+        is(ValueFormat.of(Format.AVRO, Optional.of("com.custom.schema"))));
   }
 
   @Test
@@ -313,8 +306,8 @@ public class AnalyzerTest {
         .analyze("sqlExpression", query, Optional.of(createStreamAsSelect.getSink()));
 
     assertThat(analysis.getInto(), is(not(Optional.empty())));
-    assertThat(analysis.getInto().get().getKsqlTopic().getValueSerdeFactory(),
-        is(new KsqlAvroSerdeFactory(KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME)));
+    assertThat(analysis.getInto().get().getKsqlTopic().getValueFormat(),
+        is(ValueFormat.of(Format.AVRO)));
   }
 
     @Test
@@ -330,8 +323,8 @@ public class AnalyzerTest {
           .analyze("sqlExpression", query, Optional.of(createStreamAsSelect.getSink()));
 
     assertThat(analysis.getInto(), is(not(Optional.empty())));
-    assertThat(analysis.getInto().get().getKsqlTopic().getValueSerdeFactory(),
-        is(new KsqlAvroSerdeFactory("org.ac.s1")));
+      assertThat(analysis.getInto().get().getKsqlTopic().getValueFormat(),
+          is(ValueFormat.of(Format.AVRO, Optional.of("org.ac.s1"))));
   }
 
   @Test
@@ -340,11 +333,11 @@ public class AnalyzerTest {
 
     final MutableMetaStore newAvroMetaStore = avroMetaStore.copy();
 
-    final KsqlTopic ksqlTopic =
-            new KsqlTopic(
-                    "s0",
-                    new KsqlAvroSerdeFactory("org.ac.s1"),
-                    false);
+    final KsqlTopic ksqlTopic = new KsqlTopic(
+        "s0",
+        KeyFormat.nonWindowed(Format.KAFKA),
+        ValueFormat.of(Format.AVRO, Optional.of("org.ac.s1")),
+        false);
 
     final LogicalSchema schema = LogicalSchema.builder()
             .valueField("FIELD1", SqlTypes.BIGINT)
@@ -357,8 +350,7 @@ public class AnalyzerTest {
         SerdeOption.none(),
         KeyField.of("FIELD1", schema.findValueField("FIELD1").get()),
         new MetadataTimestampExtractionPolicy(),
-        ksqlTopic,
-        Serdes::String
+        ksqlTopic
     );
 
     newAvroMetaStore.putSource(ksqlStream);
@@ -372,8 +364,8 @@ public class AnalyzerTest {
         .analyze("sqlExpression", query, Optional.of(createStreamAsSelect.getSink()));
 
     assertThat(analysis.getInto(), is(not(Optional.empty())));
-    assertThat(analysis.getInto().get().getKsqlTopic().getValueSerdeFactory(),
-        is(new KsqlAvroSerdeFactory(KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME)));
+    assertThat(analysis.getInto().get().getKsqlTopic().getValueFormat(),
+        is(ValueFormat.of(Format.AVRO)));
   }
 
   @Test
@@ -389,8 +381,8 @@ public class AnalyzerTest {
         .analyze("sqlExpression", query, Optional.of(createStreamAsSelect.getSink()));
 
     assertThat(analysis.getInto(), is(not(Optional.empty())));
-    assertThat(analysis.getInto().get().getKsqlTopic().getValueSerdeFactory(),
-        is(new KsqlAvroSerdeFactory(KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME)));
+    assertThat(analysis.getInto().get().getKsqlTopic().getValueFormat(),
+        is(ValueFormat.of(Format.AVRO)));
   }
 
   @Test
@@ -403,7 +395,7 @@ public class AnalyzerTest {
     final Analyzer analyzer = new Analyzer(jsonMetaStore, "", DEFAULT_SERDE_OPTIONS);
 
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(CommonCreateConfigs.VALUE_AVRO_SCHEMA_FULL_NAME + " is only valid for AVRO topics.");
+    expectedException.expectMessage("Full schema name only supported with AVRO format");
 
     analyzer.analyze("sqlExpression", query, Optional.of(createStreamAsSelect.getSink()));
   }
@@ -419,8 +411,8 @@ public class AnalyzerTest {
 
     final Analyzer analyzer = new Analyzer(jsonMetaStore, "", DEFAULT_SERDE_OPTIONS);
 
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("the schema name cannot be empty");
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Schema name can not be empty");
 
     analyzer.analyze("sqlExpression", query, Optional.of(createStreamAsSelect.getSink()));
   }
@@ -531,7 +523,11 @@ public class AnalyzerTest {
         .field("COL0", Schema.OPTIONAL_INT64_SCHEMA)
         .build();
 
-    final KsqlTopic topic = new KsqlTopic("ks", new KafkaSerdeFactory(), false);
+    final KsqlTopic topic = new KsqlTopic(
+        "ks",
+        KeyFormat.nonWindowed(Format.KAFKA),
+        ValueFormat.of(Format.KAFKA),
+        false);
 
     final KsqlStream<?> stream = new KsqlStream<>(
         "sqlexpression",
@@ -540,8 +536,7 @@ public class AnalyzerTest {
         SerdeOption.none(),
         KeyField.none(),
         new MetadataTimestampExtractionPolicy(),
-        topic,
-        Serdes::String
+        topic
     );
 
     jsonMetaStore.putSource(stream);

@@ -25,19 +25,20 @@ import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.function.UdfFactory;
 import io.confluent.ksql.function.udf.caseexpression.SearchedCaseFunction;
 import io.confluent.ksql.function.udf.structfieldextractor.FetchFieldFromStruct;
-import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.parser.tree.ArithmeticUnaryExpression;
-import io.confluent.ksql.parser.tree.AstNode;
-import io.confluent.ksql.parser.tree.AstVisitor;
 import io.confluent.ksql.parser.tree.BetweenPredicate;
 import io.confluent.ksql.parser.tree.BooleanLiteral;
 import io.confluent.ksql.parser.tree.Cast;
 import io.confluent.ksql.parser.tree.ComparisonExpression;
+import io.confluent.ksql.parser.tree.DecimalLiteral;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.DoubleLiteral;
 import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.parser.tree.ExpressionVisitor;
 import io.confluent.ksql.parser.tree.FunctionCall;
+import io.confluent.ksql.parser.tree.InListExpression;
+import io.confluent.ksql.parser.tree.InPredicate;
 import io.confluent.ksql.parser.tree.IntegerLiteral;
 import io.confluent.ksql.parser.tree.IsNotNullPredicate;
 import io.confluent.ksql.parser.tree.IsNullPredicate;
@@ -49,8 +50,13 @@ import io.confluent.ksql.parser.tree.NullLiteral;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.parser.tree.SearchedCaseExpression;
+import io.confluent.ksql.parser.tree.SimpleCaseExpression;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.SubscriptExpression;
+import io.confluent.ksql.parser.tree.TimeLiteral;
+import io.confluent.ksql.parser.tree.TimestampLiteral;
+import io.confluent.ksql.parser.tree.Type;
+import io.confluent.ksql.parser.tree.WhenClause;
 import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.schema.ksql.Field;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -142,7 +148,7 @@ public class SqlToJavaVisitor {
   }
 
 
-  private class Formatter extends AstVisitor<Pair<String, Schema>, Void> {
+  private class Formatter implements ExpressionVisitor<Pair<String, Schema>, Void> {
 
     private final FunctionRegistry functionRegistry;
     private int functionCounter = 0;
@@ -151,23 +157,79 @@ public class SqlToJavaVisitor {
       this.functionRegistry = functionRegistry;
     }
 
-    @Override
-    protected Pair<String, Schema> visitNode(final AstNode node, final Void context) {
-      throw new UnsupportedOperationException();
+    private Pair<String, Schema> visitIllegalState(final Expression expression) {
+      throw new IllegalStateException(
+          format("expression type %s should never be visited", expression.getClass()));
     }
 
-    @Override
-    protected Pair<String, Schema> visitExpression(
-        final Expression node,
-        final Void context
-    ) {
+    private Pair<String, Schema> visitUnsupported(final Expression expression) {
       throw new UnsupportedOperationException(
           format(
               "not yet implemented: %s.visit%s",
               getClass().getName(),
-              node.getClass().getSimpleName()
+              expression.getClass().getSimpleName()
           )
       );
+    }
+
+    @Override
+    public Pair<String, Schema> visitType(
+        final Type node,
+        final Void context
+    ) {
+      return visitIllegalState(node);
+    }
+
+    @Override
+    public Pair<String, Schema> visitWhenClause(final WhenClause whenClause, final Void context) {
+      return visitIllegalState(whenClause);
+    }
+
+    @Override
+    public Pair<String, Schema> visitInPredicate(
+        final InPredicate inPredicate,
+        final Void context
+    ) {
+      return visitUnsupported(inPredicate);
+    }
+
+    @Override
+    public Pair<String, Schema> visitInListExpression(
+        final InListExpression inListExpression,
+        final Void context) {
+      return visitUnsupported(inListExpression);
+    }
+
+    @Override
+    public Pair<String, Schema> visitTimestampLiteral(
+        final TimestampLiteral timestampLiteral,
+        final Void context
+    ) {
+      return visitUnsupported(timestampLiteral);
+    }
+
+    @Override
+    public Pair<String, Schema> visitTimeLiteral(
+        final TimeLiteral timeLiteral,
+        final Void context
+    ) {
+      return visitUnsupported(timeLiteral);
+    }
+
+    @Override
+    public Pair<String, Schema> visitDecimalLiteral(
+        final DecimalLiteral decimalLiteral,
+        final Void context
+    ) {
+      return visitUnsupported(decimalLiteral);
+    }
+
+    @Override
+    public Pair<String, Schema> visitSimpleCaseExpression(
+        final SimpleCaseExpression simpleCaseExpression,
+        final Void context
+    ) {
+      return visitUnsupported(simpleCaseExpression);
     }
 
     @Override
@@ -637,12 +699,6 @@ public class SqlToJavaVisitor {
       throw new UnsupportedOperationException(
           "KSQL only supports leading and trailing wildcards in LIKE expressions."
       );
-    }
-
-    @Override
-    protected Pair<String, Schema> visitAllColumns(
-        final AllColumns node, final Void context) {
-      throw new UnsupportedOperationException();
     }
 
     @Override

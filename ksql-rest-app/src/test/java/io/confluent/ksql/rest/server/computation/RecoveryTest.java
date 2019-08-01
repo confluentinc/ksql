@@ -16,7 +16,6 @@
 package io.confluent.ksql.rest.server.computation;
 
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasItem;
@@ -43,7 +42,7 @@ import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.rest.util.ClusterTerminator;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.serde.KsqlSerdeFactory;
+import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
@@ -227,18 +226,18 @@ public class RecoveryTest {
   private static class TopicMatcher extends TypeSafeDiagnosingMatcher<KsqlTopic> {
 
     final Matcher<String> kafkaNameMatcher;
-    final Matcher<KsqlSerdeFactory> serDeMatcher;
+    final Matcher<ValueFormat> valueFormatMatcher;
 
     TopicMatcher(final KsqlTopic topic) {
       this.kafkaNameMatcher = equalTo(topic.getKafkaTopicName());
-      this.serDeMatcher = instanceOf(topic.getValueSerdeFactory().getClass());
+      this.valueFormatMatcher = equalTo(topic.getValueFormat());
     }
 
     @Override
     public void describeTo(final Description description) {
       description.appendList(
           "Topic(", ", ", ")",
-          Arrays.asList(kafkaNameMatcher, serDeMatcher));
+          Arrays.asList(kafkaNameMatcher, valueFormatMatcher));
     }
 
     @Override
@@ -251,8 +250,8 @@ public class RecoveryTest {
         return false;
       }
       return test(
-          serDeMatcher,
-          other.getValueSerdeFactory(),
+          valueFormatMatcher,
+          other.getValueFormat(),
           description,
           "serde mismatch: ");
     }

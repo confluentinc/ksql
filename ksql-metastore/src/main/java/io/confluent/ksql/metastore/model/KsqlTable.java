@@ -16,13 +16,10 @@
 package io.confluent.ksql.metastore.model;
 
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.metastore.SerdeFactory;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import java.util.Set;
-import org.apache.kafka.common.serialization.Serde;
-import org.apache.kafka.streams.kstream.WindowedSerdes;
 
 @Immutable
 public class KsqlTable<K> extends StructuredDataSource<K> {
@@ -34,8 +31,7 @@ public class KsqlTable<K> extends StructuredDataSource<K> {
       final Set<SerdeOption> serdeOptions,
       final KeyField keyField,
       final TimestampExtractionPolicy timestampExtractionPolicy,
-      final KsqlTopic ksqlTopic,
-      final SerdeFactory<K> keySerde
+      final KsqlTopic ksqlTopic
   ) {
     super(
         sqlExpression,
@@ -45,19 +41,7 @@ public class KsqlTable<K> extends StructuredDataSource<K> {
         keyField,
         timestampExtractionPolicy,
         DataSourceType.KTABLE,
-        ksqlTopic,
-        keySerde
+        ksqlTopic
     );
-  }
-
-  @Override
-  public String toString() {
-    return getClass().getSimpleName() + " name:" + getName();
-  }
-
-  public boolean isWindowed() {
-    final Serde<K> keySerde = getKeySerdeFactory().create();
-    return keySerde instanceof WindowedSerdes.SessionWindowedSerde
-        || keySerde instanceof WindowedSerdes.TimeWindowedSerde;
   }
 }

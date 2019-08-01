@@ -22,21 +22,25 @@ import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KeyField;
-import io.confluent.ksql.metastore.model.KsqlStream;
-import io.confluent.ksql.metastore.model.KsqlTable;
-import io.confluent.ksql.parser.tree.AstNode;
-import io.confluent.ksql.parser.tree.AstVisitor;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.InsertValues;
 import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.parser.tree.NullLiteral;
+import io.confluent.ksql.parser.tree.VisitParentExpressionVisitor;
 import io.confluent.ksql.schema.ksql.DefaultSqlValueCoercer;
 import io.confluent.ksql.schema.ksql.Field;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.SqlValueCoercer;
 import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.GenericRowSerDe;
+import io.confluent.ksql.serde.KeySerdeFactories;
+import io.confluent.ksql.serde.KsqlKeySerdeFactories;
+import io.confluent.ksql.serde.KsqlSerdeFactories;
+import io.confluent.ksql.serde.KsqlSerdeFactory;
+import io.confluent.ksql.serde.SerdeFactories;
+import io.confluent.ksql.serde.SerdeFactory;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
@@ -64,6 +68,8 @@ public class InsertValuesExecutor {
   private final LongSupplier clock;
   private final boolean canBeDisabledByConfig;
   private final RecordProducer producer;
+  private final SerdeFactories serdeFactories;
+  private final KeySerdeFactories keySerdeFactories;
 
   public InsertValuesExecutor() {
     this(true, InsertValuesExecutor::sendRecord);
@@ -83,22 +89,36 @@ public class InsertValuesExecutor {
       final boolean canBeDisabledByConfig,
       final RecordProducer producer
   ) {
-    this(producer, canBeDisabledByConfig, System::currentTimeMillis);
+    this(
+        producer,
+        canBeDisabledByConfig,
+        System::currentTimeMillis,
+        new KsqlKeySerdeFactories(),
+        new KsqlSerdeFactories()
+    );
   }
 
   @VisibleForTesting
-  InsertValuesExecutor(final LongSupplier clock) {
-    this(InsertValuesExecutor::sendRecord, true, clock);
+  InsertValuesExecutor(
+      final LongSupplier clock,
+      final KeySerdeFactories keySerdeFactories,
+      final SerdeFactories serdeFactories
+  ) {
+    this(InsertValuesExecutor::sendRecord, true, clock, keySerdeFactories, serdeFactories);
   }
 
   private InsertValuesExecutor(
       final RecordProducer producer,
       final boolean canBeDisabledByConfig,
-      final LongSupplier clock
+      final LongSupplier clock,
+      final KeySerdeFactories keySerdeFactories,
+      final SerdeFactories serdeFactories
   ) {
     this.canBeDisabledByConfig = canBeDisabledByConfig;
     this.producer = Objects.requireNonNull(producer, "producer");
     this.clock = Objects.requireNonNull(clock, "clock");
+    this.keySerdeFactories = Objects.requireNonNull(keySerdeFactories, "keySerdeFactories");
+    this.serdeFactories = Objects.requireNonNull(serdeFactories, "serdeFactories");
   }
 
   public void execute(
@@ -118,8 +138,7 @@ public class InsertValuesExecutor {
           + insertValues.getTarget().getSuffix());
     }
 
-    if (dataSource instanceof KsqlTable && ((KsqlTable<?>) dataSource).isWindowed()
-        || dataSource instanceof KsqlStream && ((KsqlStream<?>) dataSource).hasWindowedKey()) {
+    if (dataSource.getKsqlTopic().getKeyFormat().isWindowed()) {
       throw new KsqlException("Cannot insert values into windowed stream/table!");
     }
 
@@ -128,7 +147,7 @@ public class InsertValuesExecutor {
 
     final RowData row = extractRow(insertValues, dataSource);
     final byte[] key = serializeKey(row.key, dataSource);
-    final byte[] value = serializeRow(row.value, dataSource, config, serviceContext);
+    final byte[] value = serializeValue(row.value, dataSource, config, serviceContext);
 
     final String topicName = dataSource.getKafkaTopicName();
 
@@ -263,10 +282,14 @@ public class InsertValuesExecutor {
         .orElseThrow(IllegalStateException::new);
   }
 
-  @SuppressWarnings("unchecked") // we know that key is String
-  private static byte[] serializeKey(final String keyValue, final DataSource<?> dataSource) {
+  private byte[] serializeKey(final String keyValue, final DataSource<?> dataSource) {
+    final SerdeFactory<String> keySerdeFactory = keySerdeFactories.create(
+        dataSource.getKsqlTopic().getKeyFormat().getWindowType(),
+        dataSource.getKsqlTopic().getKeyFormat().getWindowSize()
+    );
+
     try {
-      return ((Serde<String>) dataSource.getKeySerdeFactory().create())
+      return keySerdeFactory.create()
           .serializer()
           .serialize(dataSource.getKafkaTopicName(), keyValue);
     } catch (final Exception e) {
@@ -274,14 +297,16 @@ public class InsertValuesExecutor {
     }
   }
 
-  private static byte[] serializeRow(
+  private byte[] serializeValue(
       final GenericRow row,
       final DataSource<?> dataSource,
       final KsqlConfig config,
       final ServiceContext serviceContext
   ) {
+    final KsqlSerdeFactory valueSerdeFactory = getValueSerdeFactory(dataSource);
+
     final Serde<GenericRow> rowSerde = GenericRowSerDe.from(
-        dataSource.getValueSerdeFactory(),
+        valueSerdeFactory,
         PhysicalSchema.from(
             dataSource.getSchema(),
             dataSource.getSerdeOptions()
@@ -298,6 +323,16 @@ public class InsertValuesExecutor {
     }
   }
 
+  private KsqlSerdeFactory getValueSerdeFactory(final DataSource<?> dataSource) {
+    final FormatInfo formatInfo = dataSource.getKsqlTopic().getValueFormat().getFormatInfo();
+
+    return serdeFactories.create(
+        formatInfo.getFormat(),
+        formatInfo.getAvroFullSchemaName()
+    );
+  }
+
+  @SuppressWarnings("TryFinallyCanBeTryWithResources")
   private static void sendRecord(
       final ProducerRecord<byte[], byte[]> record,
       final ServiceContext serviceContext,
@@ -309,6 +344,7 @@ public class InsertValuesExecutor {
         .getProducer(producerProps);
 
     final Future<RecordMetadata> producerCallResult;
+
     try {
       producerCallResult = producer.send(record);
     } finally {
@@ -343,7 +379,7 @@ public class InsertValuesExecutor {
     }
   }
 
-  private static class ExpressionResolver extends AstVisitor<Object, Void> {
+  private static class ExpressionResolver extends VisitParentExpressionVisitor<Object, Void> {
 
     private final SqlType fieldType;
     private final String fieldName;
@@ -355,9 +391,10 @@ public class InsertValuesExecutor {
     }
 
     @Override
-    protected String visitNode(final AstNode node, final Void context) {
+    protected String visitExpression(final Expression expression, final Void context) {
       throw new KsqlException(
-          "Only Literals are supported for INSERT INTO. Got: " + node + " for field " + fieldName);
+          "Only Literals are supported for INSERT INTO. Got: "
+              + expression + " for field " + fieldName);
     }
 
     @Override

@@ -56,6 +56,8 @@ public class KsqlDelimitedSerdeFactory implements KsqlSerdeFactory {
       final KsqlConfig ksqlConfig,
       final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
   ) {
+    validate(schema);
+
     return Serdes.serdeFrom(
         new KsqlDelimitedSerializer(),
         new KsqlDelimitedDeserializer(schema)

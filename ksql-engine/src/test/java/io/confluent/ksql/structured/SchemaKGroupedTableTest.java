@@ -46,6 +46,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.GenericRowSerDe;
+import io.confluent.ksql.serde.KsqlSerdeFactories;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
@@ -98,14 +99,22 @@ public class SchemaKGroupedTableTest {
   public void init() {
     ksqlTable = (KsqlTable) metaStore.getSource("TEST2");
     final StreamsBuilder builder = new StreamsBuilder();
-    kTable = builder
-        .table(ksqlTable.getKsqlTopic().getKafkaTopicName(), Consumed.with(Serdes.String()
-            , ksqlTable.getKsqlTopic().getValueSerdeFactory().createSerde(
-                PersistenceSchema.of(ksqlTable.getSchema().valueSchema()),
-                new KsqlConfig(Collections.emptyMap()),
-                MockSchemaRegistryClient::new
-            )));
 
+    final KsqlSerdeFactory valueSerdeFactory = new KsqlSerdeFactories().create(
+        ksqlTable.getKsqlTopic().getValueFormat().getFormatInfo().getFormat(),
+        ksqlTable.getKsqlTopic().getValueFormat().getFormatInfo().getAvroFullSchemaName()
+    );
+
+    final Serde<Object> valueSerde = valueSerdeFactory.createSerde(
+        PersistenceSchema.of(ksqlTable.getSchema().valueSchema()),
+        new KsqlConfig(Collections.emptyMap()),
+        MockSchemaRegistryClient::new
+    );
+
+    kTable = builder.table(
+        ksqlTable.getKsqlTopic().getKafkaTopicName(),
+        Consumed.with(Serdes.String(), valueSerde)
+    );
   }
 
   private SchemaKGroupedTable buildSchemaKGroupedTableFromQuery(

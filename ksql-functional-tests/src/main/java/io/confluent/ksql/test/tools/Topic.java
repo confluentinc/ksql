@@ -20,7 +20,7 @@ import static java.util.Objects.requireNonNull;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.KafkaAvroSerializerConfig;
-import io.confluent.ksql.metastore.SerdeFactory;
+import io.confluent.ksql.serde.SerdeFactory;
 import io.confluent.ksql.test.serde.SerdeSupplier;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;

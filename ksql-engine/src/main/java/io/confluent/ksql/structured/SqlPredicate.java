@@ -33,7 +33,6 @@ import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.Set;
 import org.apache.kafka.streams.kstream.Predicate;
-import org.apache.kafka.streams.kstream.Windowed;
 import org.codehaus.commons.compiler.CompilerFactoryFactory;
 import org.codehaus.commons.compiler.IExpressionEvaluator;
 
@@ -43,7 +42,6 @@ class SqlPredicate {
   private final LogicalSchema schema;
   private final IExpressionEvaluator ee;
   private final int[] columnIndexes;
-  private final boolean isWindowedKey;
   private final KsqlConfig ksqlConfig;
   private final FunctionRegistry functionRegistry;
   private final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer;
@@ -52,7 +50,6 @@ class SqlPredicate {
   SqlPredicate(
       final Expression filterExpression,
       final LogicalSchema schema,
-      final boolean isWindowedKey,
       final KsqlConfig ksqlConfig,
       final FunctionRegistry functionRegistry,
       final ProcessingLogger processingLogger
@@ -60,7 +57,6 @@ class SqlPredicate {
     this.filterExpression = requireNonNull(filterExpression, "filterExpression");
     this.schema = requireNonNull(schema, "schema");
     this.genericRowValueTypeEnforcer = new GenericRowValueTypeEnforcer(schema);
-    this.isWindowedKey = isWindowedKey;
     this.functionRegistry = requireNonNull(functionRegistry, "functionRegistry");
     this.ksqlConfig = requireNonNull(ksqlConfig, "ksqlConfig");
     this.processingLogger = requireNonNull(processingLogger);
@@ -96,26 +92,14 @@ class SqlPredicate {
     } catch (final Exception e) {
       throw new KsqlException(
           "Failed to generate code for SqlPredicate."
-          + "filterExpression: "
-          + filterExpression
-          + "schema:"
-          + schema
-          + "isWindowedKey:"
-          + isWindowedKey,
+          + " filterExpression: " + filterExpression
+          + ", schema:" + schema,
           e
       );
     }
   }
 
-  Predicate getPredicate() {
-    if (isWindowedKey) {
-      return getWindowedKeyPredicate();
-    } else {
-      return getStringKeyPredicate();
-    }
-  }
-
-  private Predicate<String, GenericRow> getStringKeyPredicate() {
+  <K> Predicate<K, GenericRow> getPredicate() {
     final ExpressionMetadata expressionEvaluator = createExpressionMetadata();
 
     return (key, row) -> {
@@ -129,8 +113,10 @@ class SqlPredicate {
           if (columnIndexes[i] < 0) {
             values[i] = kudfs.get(i);
           } else {
-            values[i] = genericRowValueTypeEnforcer.enforceFieldType(columnIndexes[i], row
-                .getColumns().get(columnIndexes[i]));
+            values[i] = genericRowValueTypeEnforcer.enforceFieldType(
+                columnIndexes[i],
+                row.getColumns().get(columnIndexes[i])
+            );
           }
         }
         return (Boolean) ee.evaluate(values);
@@ -144,35 +130,6 @@ class SqlPredicate {
   private ExpressionMetadata createExpressionMetadata() {
     final CodeGenRunner codeGenRunner = new CodeGenRunner(schema, ksqlConfig, functionRegistry);
     return codeGenRunner.buildCodeGenFromParseTree(filterExpression, "filter");
-  }
-
-  private Predicate getWindowedKeyPredicate() {
-    final ExpressionMetadata expressionEvaluator = createExpressionMetadata();
-    return (Predicate<Windowed<String>, GenericRow>) (key, row) -> {
-      if (row == null) {
-        return false;
-      }
-      try {
-        final List<Kudf> kudfs = expressionEvaluator.getUdfs();
-        final Object[] values = new Object[columnIndexes.length];
-        for (int i = 0; i < values.length; i++) {
-          if (columnIndexes[i] < 0) {
-            values[i] = kudfs.get(i);
-          } else {
-            values[i] = genericRowValueTypeEnforcer
-                .enforceFieldType(
-                    columnIndexes[i],
-                    row.getColumns().get(columnIndexes[i]
-                    )
-                );
-          }
-        }
-        return (Boolean) ee.evaluate(values);
-      } catch (final Exception e) {
-        logProcessingError(e, row);
-      }
-      return false;
-    };
   }
 
   private void logProcessingError(final Exception e, final GenericRow row) {

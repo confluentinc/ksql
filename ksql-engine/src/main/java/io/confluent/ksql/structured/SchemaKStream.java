@@ -23,7 +23,6 @@ import io.confluent.ksql.codegen.CodeGenRunner;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
-import io.confluent.ksql.metastore.SerdeFactory;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KeyField.LegacyField;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
@@ -33,6 +32,7 @@ import io.confluent.ksql.schema.ksql.Field;
 import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.serde.SerdeFactory;
 import io.confluent.ksql.streams.StreamsFactories;
 import io.confluent.ksql.streams.StreamsUtil;
 import io.confluent.ksql.util.ExpressionMetadata;
@@ -60,7 +60,6 @@ import org.apache.kafka.streams.kstream.KGroupedStream;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.Produced;
 import org.apache.kafka.streams.kstream.ValueJoiner;
-import org.apache.kafka.streams.kstream.WindowedSerdes;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
@@ -81,7 +80,7 @@ public class SchemaKStream<K> {
   final FunctionRegistry functionRegistry;
   final SerdeFactory<K> keySerdeFactory;
   final StreamsFactories streamsFactories;
-  final QueryContext queryContext;
+  private final QueryContext queryContext;
 
   public SchemaKStream(
       final LogicalSchema schema,
@@ -136,12 +135,6 @@ public class SchemaKStream<K> {
     return keySerdeFactory;
   }
 
-  public boolean hasWindowedKey() {
-    final Serde<K> keySerde = keySerdeFactory.create();
-    return keySerde instanceof WindowedSerdes.SessionWindowedSerde
-        || keySerde instanceof WindowedSerdes.TimeWindowedSerde;
-  }
-
   public SchemaKStream into(
       final String kafkaTopicName,
       final Serde<GenericRow> topicValueSerDe,
@@ -163,7 +156,6 @@ public class SchemaKStream<K> {
     return this;
   }
 
-  @SuppressWarnings("unchecked")
   public SchemaKStream<K> filter(
       final Expression filterExpression,
       final QueryContext.Stacker contextStacker,
@@ -171,7 +163,6 @@ public class SchemaKStream<K> {
     final SqlPredicate predicate = new SqlPredicate(
         filterExpression,
         schema,
-        hasWindowedKey(),
         ksqlConfig,
         functionRegistry,
         processingLogContext.getLoggerFactory().getLogger(

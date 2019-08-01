@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.parser.SqlBaseParser.CreateConnectorContext;
 import io.confluent.ksql.parser.SqlBaseParser.InsertValuesContext;
 import io.confluent.ksql.parser.SqlBaseParser.IntervalClauseContext;
 import io.confluent.ksql.parser.SqlBaseParser.LimitClauseContext;
@@ -42,6 +43,8 @@ import io.confluent.ksql.parser.tree.BetweenPredicate;
 import io.confluent.ksql.parser.tree.BooleanLiteral;
 import io.confluent.ksql.parser.tree.Cast;
 import io.confluent.ksql.parser.tree.ComparisonExpression;
+import io.confluent.ksql.parser.tree.CreateConnector;
+import io.confluent.ksql.parser.tree.CreateConnector.Type;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
@@ -195,10 +198,16 @@ public class AstBuilder {
       final ImmutableMap.Builder<String, Literal> properties = ImmutableMap.builder();
       if (tablePropertiesContext != null) {
         for (final TablePropertyContext prop : tablePropertiesContext.tableProperty()) {
-          properties.put(
-              ParserUtil.getIdentifierText(prop.identifier()),
-              (Literal) visit(prop.literal())
-          );
+          if (prop.identifier() != null) {
+            properties.put(
+                ParserUtil.getIdentifierText(prop.identifier()),
+                (Literal) visit(prop.literal())
+            );
+          } else {
+            properties.put(
+                ParserUtil.unquote(prop.STRING().getText(), "'"),
+                (Literal) visit(prop.literal()));
+          }
         }
       }
       return properties.build();
@@ -262,6 +271,20 @@ public class AstBuilder {
           visitQuery(context.query()),
           context.EXISTS() != null,
           CreateSourceAsProperties.from(properties)
+      );
+    }
+
+    @Override
+    public Node visitCreateConnector(final CreateConnectorContext context) {
+      final Map<String, Literal> properties = processTableProperties(context.tableProperties());
+      final String name = ParserUtil.getIdentifierText(context.identifier());
+      final CreateConnector.Type type = context.SOURCE() != null ? Type.SOURCE : Type.SINK;
+
+      return new CreateConnector(
+          getLocation(context),
+          name,
+          properties,
+          type
       );
     }
 

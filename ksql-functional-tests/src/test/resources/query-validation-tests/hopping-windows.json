@@ -42,8 +42,16 @@
         {"topic": "S2", "key": 0, "value": "0,2000", "timestamp": 40000, "window": {"start": 20000, "end": 50000, "type": "time"}},
         {"topic": "S2", "key": 0, "value": "0,2000", "timestamp": 40000, "window": {"start": 30000, "end": 60000, "type": "time"}},
         {"topic": "S2", "key": 0, "value": "0,2000", "timestamp": 40000, "window": {"start": 40000, "end": 70000, "type": "time"}}
-
-      ]
+      ],
+      "post": {
+        "sources": [
+          {
+            "name": "S2",
+            "type": "table",
+            "keyFormat": {"format": "KAFKA", "windowType": "HOPPING", "windowSize": 30000}
+          }
+        ]
+      }
     },
     {
       "name": "min hopping",

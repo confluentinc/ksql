@@ -23,7 +23,7 @@ import io.confluent.ksql.util.KsqlConfig;
 
 public class CreateStreamCommand extends CreateSourceCommand {
 
-  CreateStreamCommand(
+  public CreateStreamCommand(
       final String sqlExpression,
       final CreateStream createStream,
       final KsqlConfig ksqlConfig,
@@ -42,8 +42,7 @@ public class CreateStreamCommand extends CreateSourceCommand {
         getSerdeOptions(),
         keyField,
         timestampExtractionPolicy,
-        buildTopic(),
-        keySerdeFactory
+        getTopic()
     );
 
     metaStore.putSource(ksqlStream);

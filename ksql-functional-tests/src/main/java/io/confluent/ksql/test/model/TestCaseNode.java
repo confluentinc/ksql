@@ -25,16 +25,19 @@ import com.google.common.collect.Streams;
 import io.confluent.connect.avro.AvroData;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStoreImpl;
-import io.confluent.ksql.metastore.SerdeFactory;
+import io.confluent.ksql.metastore.model.KsqlTopic;
+import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.SqlBaseParser;
-import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.KeyFormat;
+import io.confluent.ksql.serde.SerdeFactory;
+import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.test.serde.SerdeSupplier;
 import io.confluent.ksql.test.tools.Record;
 import io.confluent.ksql.test.tools.TestCase;
@@ -44,6 +47,7 @@ import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;
 import io.confluent.ksql.test.tools.exceptions.KsqlExpectedException;
 import io.confluent.ksql.test.tools.exceptions.MissingFieldException;
 import io.confluent.ksql.test.utils.SerdeUtil;
+import io.confluent.ksql.topic.TopicFactory;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConstants;
 import java.nio.file.Path;
@@ -57,11 +61,12 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
-import org.apache.kafka.streams.kstream.Windowed;
+import org.apache.kafka.streams.kstream.WindowedSerdes;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 @SuppressWarnings("UnstableApiUsage")
@@ -243,17 +248,17 @@ public class TestCaseNode {
             || stmt.getStatement().statement() instanceof SqlBaseParser.CreateTableContext;
 
     final Function<PreparedStatement<?>, Topic> extractTopic = (PreparedStatement<?> stmt) -> {
-      final CreateSource statement = (CreateSource) stmt
-          .getStatement();
+      final CreateSource statement = (CreateSource) stmt.getStatement();
 
-      final CreateSourceProperties properties = statement.getProperties();
-      final String topicName = properties.getKafkaTopic();
-      final Format format = properties.getValueFormat();
-      final Optional<SerdeFactory<Windowed<String>>> windowedSerdeFactory
-          =  properties.getWindowType();
+      final KsqlTopic ksqlTopic = TopicFactory.create(statement.getProperties());
 
+      final KeyFormat keyFormat = ksqlTopic.getKeyFormat();
+
+      final SerdeFactory<?> keySerde = getKeySerdeFactory(keyFormat);
+
+      final ValueFormat valueFormat = ksqlTopic.getValueFormat();
       final Optional<org.apache.avro.Schema> avroSchema;
-      if (format == Format.AVRO) {
+      if (valueFormat.getFormat() == Format.AVRO) {
         // add avro schema
         final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
         statement.getElements().forEach(e -> schemaBuilder.field(
@@ -266,14 +271,16 @@ public class TestCaseNode {
         avroSchema = Optional.empty();
       }
 
-      final SerdeFactory<?> keySerde = windowedSerdeFactory
-          .orElseGet(() -> (SerdeFactory) Serdes::String);
+      final SerdeSupplier<?> valueSerdeSupplier = SerdeUtil.getSerdeSupplier(
+          valueFormat.getFormat(),
+          statement.getElements()::toLogicalSchema
+      );
 
       return new Topic(
-          topicName,
+          ksqlTopic.getKafkaTopicName(),
           avroSchema,
           keySerde,
-          SerdeUtil.getSerdeSupplier(format, statement.getElements()::toLogicalSchema),
+          valueSerdeSupplier,
           KsqlConstants.legacyDefaultSinkPartitionCount,
           KsqlConstants.legacyDefaultSinkReplicaCount,
           Optional.empty());
@@ -298,6 +305,23 @@ public class TestCaseNode {
       e.printStackTrace(System.out);
       return null;
     }
+  }
+
+  @SuppressWarnings({"unchecked", "OptionalGetWithoutIsPresent"})
+  private static SerdeFactory<?> getKeySerdeFactory(final KeyFormat keyFormat) {
+    if (!keyFormat.getWindowType().isPresent()) {
+      return (SerdeFactory) Serdes::String;
+    }
+
+    final WindowType windowType = keyFormat.getWindowType().get();
+    if (windowType == WindowType.SESSION) {
+      return () -> (Serde) WindowedSerdes.sessionWindowedSerdeFrom(String.class);
+    }
+
+    return () -> (Serde) WindowedSerdes.timeWindowedSerdeFrom(
+        String.class,
+        keyFormat.getWindowSize().get().toMillis()
+    );
   }
 
   private static Schema addNames(final Schema schema) {

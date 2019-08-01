@@ -118,8 +118,10 @@ import io.confluent.ksql.rest.util.EntityUtil;
 import io.confluent.ksql.rest.util.TerminateCluster;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
-import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
+import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.services.SandboxedServiceContext;
 import io.confluent.ksql.services.ServiceContext;
@@ -155,7 +157,6 @@ import javax.ws.rs.core.Response;
 import org.apache.avro.Schema.Type;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
-import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.StreamsConfig;
@@ -1918,8 +1919,11 @@ public class KsqlResourceTest {
   ) {
     final KsqlTopic ksqlTopic = new KsqlTopic(
         topicName,
-        new KsqlJsonSerdeFactory(),
-        false);
+        KeyFormat.nonWindowed(Format.KAFKA),
+        ValueFormat.of(Format.JSON),
+        false
+    );
+
     givenKafkaTopicExists(topicName);
     if (type == DataSourceType.KSTREAM) {
       metaStore.putSource(
@@ -1930,8 +1934,7 @@ public class KsqlResourceTest {
               SerdeOption.none(),
               KeyField.of(schema.valueFields().get(0).name(), schema.valueFields().get(0)),
               new MetadataTimestampExtractionPolicy(),
-              ksqlTopic,
-              Serdes::String
+              ksqlTopic
           ));
     }
     if (type == DataSourceType.KTABLE) {
@@ -1943,8 +1946,7 @@ public class KsqlResourceTest {
               SerdeOption.none(),
               KeyField.of(schema.valueFields().get(0).name(), schema.valueFields().get(0)),
               new MetadataTimestampExtractionPolicy(),
-              ksqlTopic,
-              Serdes::String
+              ksqlTopic
           ));
     }
   }

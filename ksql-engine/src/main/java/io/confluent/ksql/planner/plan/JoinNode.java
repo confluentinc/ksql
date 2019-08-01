@@ -27,8 +27,8 @@ import io.confluent.ksql.schema.ksql.Field;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.QueryContext;
 import io.confluent.ksql.structured.SchemaKStream;
@@ -286,15 +286,15 @@ public class JoinNode extends PlanNode {
     ) {
       final DataSource<?> dataSource = sourceNode.getDataSource();
 
-      final KsqlSerdeFactory valueSerdeFactory = dataSource
+      final ValueFormat valueFormat = dataSource
           .getKsqlTopic()
-          .getValueSerdeFactory();
+          .getValueFormat();
 
       final LogicalSchema logicalSchema = sourceNode.getSchema()
           .withoutAlias();
 
       return builder.buildGenericRowSerde(
-          valueSerdeFactory,
+          valueFormat,
           PhysicalSchema.from(
               logicalSchema,
               SerdeOption.none()

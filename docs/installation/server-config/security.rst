@@ -542,10 +542,10 @@ ALLOW      WRITE                GROUP     _confluent-ksql-<ksql-service-id>    P
 ALLOW      DELETE               TOPIC     <ksql-service-id>                    PREFIXED
 ALLOW      DELETE               TOPIC     _confluent-ksql-<ksql-service-id>    PREFIXED
 ALLOW      DELETE               GROUP     _confluent-ksql-<ksql-service-id>    PREFIXED
-ALLOW      DESCRIBE             TOPIC     *                                    LITERAL
-ALLOW      DESCRIBE             GROUP     *                                    LITERAL
-ALLOW      DESCRIBE_CONFIGS     TOPIC     *                                    LITERAL
-ALLOW      DESCRIBE_CONFIGS     GROUP     *                                    LITERAL
+ALLOW      DESCRIBE             TOPIC     ``*``                                LITERAL
+ALLOW      DESCRIBE             GROUP     ``*``                                LITERAL
+ALLOW      DESCRIBE_CONFIGS     TOPIC     ``*``                                LITERAL
+ALLOW      DESCRIBE_CONFIGS     GROUP     ``*``                                LITERAL
 ========== ==================== ========= ==================================== =========
 
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

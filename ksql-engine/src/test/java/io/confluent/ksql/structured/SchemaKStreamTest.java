@@ -59,6 +59,8 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.GenericRowSerDe;
+import io.confluent.ksql.serde.KsqlSerdeFactories;
+import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
 import io.confluent.ksql.streams.GroupedFactory;
@@ -202,8 +204,13 @@ public class SchemaKStreamTest {
   }
 
   private static Serde<GenericRow> getRowSerde(final KsqlTopic topic, final Schema schema) {
+    final KsqlSerdeFactory valueSerdeFactory = new KsqlSerdeFactories().create(
+        topic.getValueFormat().getFormatInfo().getFormat(),
+        topic.getValueFormat().getFormatInfo().getAvroFullSchemaName()
+    );
+
     return GenericRowSerDe.from(
-        topic.getValueSerdeFactory(),
+        valueSerdeFactory,
         PhysicalSchema.from(LogicalSchema.of(schema), SerdeOption.none()),
         new KsqlConfig(Collections.emptyMap()),
         MockSchemaRegistryClient::new,

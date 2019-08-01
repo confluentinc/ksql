@@ -16,7 +16,6 @@
 package io.confluent.ksql.analyzer;
 
 import io.confluent.ksql.parser.tree.ArithmeticBinaryExpression;
-import io.confluent.ksql.parser.tree.AstVisitor;
 import io.confluent.ksql.parser.tree.Cast;
 import io.confluent.ksql.parser.tree.ComparisonExpression;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
@@ -28,6 +27,7 @@ import io.confluent.ksql.parser.tree.LikePredicate;
 import io.confluent.ksql.parser.tree.LogicalBinaryExpression;
 import io.confluent.ksql.parser.tree.NotExpression;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
+import io.confluent.ksql.parser.tree.VisitParentExpressionVisitor;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.Objects;
@@ -67,7 +67,7 @@ class ExpressionAnalyzer {
     }
   }
 
-  private class Visitor extends AstVisitor<Object, Object> {
+  private class Visitor extends VisitParentExpressionVisitor<Object, Object> {
 
     public Object visitLikePredicate(final LikePredicate node, final Object context) {
       process(node.getValue(), null);

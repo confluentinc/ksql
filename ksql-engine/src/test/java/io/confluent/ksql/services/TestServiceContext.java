@@ -21,7 +21,7 @@ import io.confluent.ksql.util.FakeKafkaClientSupplier;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Collections;
 import java.util.function.Supplier;
-import org.apache.kafka.clients.admin.AdminClient;
+import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.streams.KafkaClientSupplier;
 import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
 
@@ -62,7 +62,8 @@ public final class TestServiceContext {
         new FakeKafkaClientSupplier(),
         new FakeKafkaClientSupplier().getAdminClient(Collections.emptyMap()),
         topicClient,
-        srClientFactory
+        srClientFactory,
+        new DefaultConnectClient("http://localhost:8083")
     );
   }
 
@@ -71,23 +72,25 @@ public final class TestServiceContext {
       final Supplier<SchemaRegistryClient> srClientFactory
   ) {
     final DefaultKafkaClientSupplier kafkaClientSupplier = new DefaultKafkaClientSupplier();
-    final AdminClient adminClient = kafkaClientSupplier
+    final Admin adminClient = kafkaClientSupplier
         .getAdminClient(ksqlConfig.getKsqlAdminClientConfigProps());
 
     return create(
         kafkaClientSupplier,
         adminClient,
         new KafkaTopicClientImpl(adminClient),
-        srClientFactory
+        srClientFactory,
+        new DefaultConnectClient(ksqlConfig.getString(KsqlConfig.CONNECT_URL_PROPERTY))
     );
   }
 
   public static ServiceContext create(
       final KafkaClientSupplier kafkaClientSupplier,
-      final AdminClient adminClient,
+      final Admin adminClient,
       final KafkaTopicClient topicClient,
-      final Supplier<SchemaRegistryClient> srClientFactory
+      final Supplier<SchemaRegistryClient> srClientFactory,
+      final ConnectClient connectClient
   ) {
-    return new DefaultServiceContext(kafkaClientSupplier, adminClient, topicClient, srClientFactory);
+    return new DefaultServiceContext(kafkaClientSupplier, adminClient, topicClient, srClientFactory, connectClient);
   }
 }

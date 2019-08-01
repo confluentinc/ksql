@@ -37,6 +37,7 @@ import io.confluent.ksql.parser.tree.GroupBy;
 import io.confluent.ksql.parser.tree.GroupingElement;
 import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.JoinOn;
+import io.confluent.ksql.parser.tree.KsqlWindowExpression;
 import io.confluent.ksql.parser.tree.NodeLocation;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
@@ -51,11 +52,10 @@ import io.confluent.ksql.planner.plan.JoinNode;
 import io.confluent.ksql.schema.ksql.Field;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.Format;
-import io.confluent.ksql.serde.KsqlSerdeFactories;
-import io.confluent.ksql.serde.KsqlSerdeFactory;
-import io.confluent.ksql.serde.SerdeFactories;
+import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.SerdeOptions;
+import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.ArrayList;
@@ -64,7 +64,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.apache.kafka.common.serialization.Serdes;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 class Analyzer {
@@ -88,7 +87,6 @@ class Analyzer {
 
   private final MetaStore metaStore;
   private final String topicPrefix;
-  private final SerdeFactories serdeFactories;
   private final SerdeOptionsSupplier serdeOptionsSupplier;
   private final Set<SerdeOption> defaultSerdeOptions;
 
@@ -106,7 +104,6 @@ class Analyzer {
         metaStore,
         topicPrefix,
         defaultSerdeOptions,
-        new KsqlSerdeFactories(),
         SerdeOptions::buildForCreateAsStatement);
   }
 
@@ -115,14 +112,12 @@ class Analyzer {
       final MetaStore metaStore,
       final String topicPrefix,
       final Set<SerdeOption> defaultSerdeOptions,
-      final SerdeFactories serdeFactories,
       final SerdeOptionsSupplier serdeOptionsSupplier
   ) {
     this.metaStore = requireNonNull(metaStore, "metaStore");
     this.topicPrefix = requireNonNull(topicPrefix, "topicPrefix");
     this.defaultSerdeOptions = ImmutableSet
         .copyOf(requireNonNull(defaultSerdeOptions, "defaultSerdeOptions"));
-    this.serdeFactories = requireNonNull(serdeFactories, "serdeFactories");
     this.serdeOptionsSupplier = requireNonNull(serdeOptionsSupplier, "serdeOptionsSupplier");
   }
 
@@ -183,8 +178,7 @@ class Analyzer {
             sqlExpression,
             sink.getName(),
             false,
-            existing.getKsqlTopic(),
-            existing.getKeySerdeFactory()
+            existing.getKsqlTopic()
         ));
         return;
       }
@@ -192,11 +186,17 @@ class Analyzer {
       final String topicName = sink.getProperties().getKafkaTopic()
           .orElseGet(() -> topicPrefix + sink.getName());
 
-      final KsqlSerdeFactory valueSerdeFactory = getValueSerdeFactory(sink);
+      final KeyFormat keyFormat = buildKeyFormat();
+
+      final ValueFormat valueFormat = ValueFormat.of(
+          getValueFormat(sink),
+          sink.getProperties().getValueAvroSchemaName()
+      );
 
       final KsqlTopic intoKsqlTopic = new KsqlTopic(
           topicName,
-          valueSerdeFactory,
+          keyFormat,
+          valueFormat,
           true
       );
 
@@ -204,9 +204,23 @@ class Analyzer {
           sqlExpression,
           sink.getName(),
           true,
-          intoKsqlTopic,
-          Serdes::String
+          intoKsqlTopic
       ));
+    }
+
+    private KeyFormat buildKeyFormat() {
+      final Optional<KsqlWindowExpression> ksqlWindow = Optional
+          .ofNullable(analysis.getWindowExpression())
+          .map(WindowExpression::getKsqlWindowExpression);
+
+      return ksqlWindow
+          .map(w -> KeyFormat.windowed(Format.KAFKA, w.getType(), w.getWindowSize()))
+          .orElseGet(() -> analysis
+              .getFromDataSources()
+              .get(0)
+              .getDataSource()
+              .getKsqlTopic()
+              .getKeyFormat());
     }
 
     private void setSerdeOptions(final Sink sink) {
@@ -222,11 +236,6 @@ class Analyzer {
       );
 
       analysis.setSerdeOptions(serdeOptions);
-    }
-
-    private KsqlSerdeFactory getValueSerdeFactory(final Sink sink) {
-      final Format format = getValueFormat(sink);
-      return serdeFactories.create(format, sink.getProperties().getValueAvroSchemaName());
     }
 
     /**
@@ -276,7 +285,7 @@ class Analyzer {
               .get(0)
               .getDataSource()
               .getKsqlTopic()
-              .getValueSerdeFactory()
+              .getValueFormat()
               .getFormat());
     }
 
@@ -552,7 +561,7 @@ class Analyzer {
 
     public void validate() {
       final String kafkaSources = analysis.getFromDataSources().stream()
-          .filter(s -> s.getDataSource().getKsqlTopic().getValueSerdeFactory().getFormat()
+          .filter(s -> s.getDataSource().getKsqlTopic().getValueFormat().getFormat()
               == Format.KAFKA)
           .map(AliasedDataSource::getAlias)
           .collect(Collectors.joining(", "));

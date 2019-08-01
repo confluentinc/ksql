@@ -30,8 +30,10 @@ import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientExcept
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
-import io.confluent.ksql.serde.avro.KsqlAvroSerdeFactory;
+import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.connect.ConnectSchemaTranslator;
 import java.io.IOException;
 import java.util.Collections;
@@ -79,7 +81,8 @@ public class AvroUtilTest {
 
   private static final KsqlTopic RESULT_TOPIC = new KsqlTopic(
       "actual-name",
-      new KsqlAvroSerdeFactory(KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME),
+      KeyFormat.nonWindowed(Format.KAFKA),
+      ValueFormat.of(Format.AVRO),
       false);
 
   @Rule
@@ -97,7 +100,7 @@ public class AvroUtilTest {
 
     when(persistentQuery.getResultTopic()).thenReturn(RESULT_TOPIC);
     when(persistentQuery.getResultTopicFormat())
-        .thenReturn(RESULT_TOPIC.getValueSerdeFactory().getFormat());
+        .thenReturn(RESULT_TOPIC.getValueFormat().getFormat());
     when(persistentQuery.getSinkName()).thenReturn(STREAM_NAME);
   }
 

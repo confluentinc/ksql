@@ -48,7 +48,6 @@ import io.confluent.ksql.schema.ksql.Field;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
@@ -71,12 +70,15 @@ import java.util.stream.IntStream;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.Node;
 import org.apache.kafka.common.TopicPartitionInfo;
+import org.apache.kafka.common.serialization.Serde;
+import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.utils.Utils;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.TopologyDescription;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -163,6 +165,7 @@ public class JoinNodeTest {
   @Mock
   private FunctionRegistry functionRegistry;
 
+  @SuppressWarnings("unchecked")
   @Before
   public void setUp() {
     builder = new StreamsBuilder();
@@ -179,6 +182,7 @@ public class JoinNodeTest {
     when(ksqlStreamBuilder.buildNodeContext(any())).thenAnswer(inv ->
         new QueryContext.Stacker(queryId)
             .push(inv.getArgument(0).toString()));
+    when(ksqlStreamBuilder.buildKeySerde(any())).thenReturn(() -> (Serde) Serdes.String());
 
     when(left.getAlias()).thenReturn(LEFT_ALIAS);
     when(right.getAlias()).thenReturn(RIGHT_ALIAS);
@@ -1101,8 +1105,5 @@ public class JoinNodeTest {
 
     final KsqlTopic ksqlTopic = mock(KsqlTopic.class);
     when(dataSource.getKsqlTopic()).thenReturn(ksqlTopic);
-
-    final KsqlSerdeFactory valueSerdeFactory = mock(KsqlSerdeFactory.class);
-    when(ksqlTopic.getValueSerdeFactory()).thenReturn(valueSerdeFactory);
   }
 }

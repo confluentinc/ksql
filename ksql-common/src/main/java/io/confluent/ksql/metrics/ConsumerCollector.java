@@ -37,8 +37,8 @@ import org.apache.kafka.common.metrics.KafkaMetric;
 import org.apache.kafka.common.metrics.MeasurableStat;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.metrics.Sensor;
+import org.apache.kafka.common.metrics.stats.CumulativeSum;
 import org.apache.kafka.common.metrics.stats.Rate;
-import org.apache.kafka.common.metrics.stats.Total;
 
 public class ConsumerCollector implements MetricCollector, ConsumerInterceptor<Object, Object> {
   public static final String CONSUMER_MESSAGES_PER_SEC = "consumer-messages-per-sec";
@@ -120,8 +120,8 @@ public class ConsumerCollector implements MetricCollector, ConsumerInterceptor<O
     // activity in a reliable way
     synchronized (this.metrics) {
       addSensor(key, CONSUMER_MESSAGES_PER_SEC, new Rate(), sensors, false);
-      addSensor(key, CONSUMER_TOTAL_MESSAGES, new Total(), sensors, false);
-      addSensor(key, CONSUMER_TOTAL_BYTES, new Total(), sensors, false,
+      addSensor(key, CONSUMER_TOTAL_MESSAGES, new CumulativeSum(), sensors, false);
+      addSensor(key, CONSUMER_TOTAL_BYTES, new CumulativeSum(), sensors, false,
           (r) -> {
             if (r == null) {
               return 0.0;

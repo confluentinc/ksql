@@ -20,7 +20,7 @@ For more information on the formats that KSQL supports, see :ref:`ksql_formats`.
 
 KSQL provides some additional configuration that allows serialization to be controlled:
 
-.. _ksql_formats
+.. _ksql_formats:
 
 =======
 Formats
@@ -32,7 +32,7 @@ KSQL currently supports three serialization formats:
 *. ``JSON`` supports JSON values. See :ref:`json_format` below.
 *. ``AVRO`` supports AVRO serialized values. See :ref:`avro_format` below.
 
-.. _delimited_format
+.. _delimited_format:
 
 ---------
 DELIMITED
@@ -54,7 +54,7 @@ KSQL splits a value of ``120, bob, 49`` into the three fields with ``ID`` of ``1
 This data format supports all KSQL :ref:`data types <data-types>` except ``ARRAY``, ``MAP`` and
 ``STRUCT``.
 
-.. _json_format
+.. _json_format:
 
 ----
 JSON
@@ -92,7 +92,7 @@ And a JSON value of:
 
 KSQL deserializes the JSON object's fields into the corresponding fields of the stream.
 
-.. _avro_format
+.. _avro_format:
 
 ----
 Avro

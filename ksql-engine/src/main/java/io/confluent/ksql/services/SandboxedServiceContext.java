@@ -19,7 +19,7 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.util.Sandbox;
 import java.util.Objects;
 import java.util.function.Supplier;
-import org.apache.kafka.clients.admin.AdminClient;
+import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.streams.KafkaClientSupplier;
 
 /**
@@ -67,7 +67,7 @@ public final class SandboxedServiceContext implements ServiceContext {
   }
 
   @Override
-  public AdminClient getAdminClient() {
+  public Admin getAdminClient() {
     throw new UnsupportedOperationException();
   }
 

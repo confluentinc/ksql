@@ -959,7 +959,7 @@ DESCRIBE FUNCTION
 
 **Description**
 
-Provides a description of a function including an input parameters and the return type.
+Provides a description of a function including input parameters and the return type.
 
 .. _ksql-syntax-explain:
 

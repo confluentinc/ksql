@@ -1153,16 +1153,19 @@ Example:
       WHERE ROWTIME >= 1510923225000
         AND ROWTIME <= 1510923228000;
 
-When writing logical expressions using `ROWTIME`, ISO-8061 formatted datestrings can also be used to represent dates.
+When writing logical expressions using ``ROWTIME``, ISO-8601 formatted datestrings can also be used to represent dates.
 For example, the above query is equivalent to the following:
 
 .. code:: sql
+
     SELECT * FROM pageviews
           WHERE ROWTIME >= '2017-11-17 04:53:45'
             AND ROWTIME <= '2017-11-17 04:53:48';
 
-If the datestring is inexact, the rest of the timestamp is assumed to be 0.
-For example, `ROWTIME = `2019-07-30 11:00` is equivalent to `ROWTIME = `2019-07-30 11:00:00`.
+If the datestring is inexact, the rest of the timestamp is assumed to be padded with 0's.
+For example, ``ROWTIME = '2019-07-30 11:00'`` is equivalent to ``ROWTIME = '2019-07-30 11:00:00.0000'``.
+
+Note that the timestamps are interperted in the UTC timezone.
 
 A ``LIMIT`` can be used to limit the number of rows returned. Once the limit is reached the query will terminate.
 

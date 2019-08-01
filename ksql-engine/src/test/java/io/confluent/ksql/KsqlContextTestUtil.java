@@ -26,7 +26,7 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.statement.Injectors;
 import io.confluent.ksql.util.KsqlConfig;
-import org.apache.kafka.clients.admin.AdminClient;
+import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.streams.KafkaClientSupplier;
 import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
 
@@ -42,7 +42,7 @@ public final class KsqlContextTestUtil {
   ) {
     final KafkaClientSupplier clientSupplier = new DefaultKafkaClientSupplier();
 
-    final AdminClient adminClient = clientSupplier
+    final Admin adminClient = clientSupplier
         .getAdminClient(ksqlConfig.getKsqlAdminClientConfigProps());
 
     final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);

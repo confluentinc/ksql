@@ -1161,10 +1161,8 @@ For example, the above query is equivalent to the following:
           WHERE ROWTIME >= '2017-11-17 04:53:45'
             AND ROWTIME <= '2017-11-17 04:53:48';
 
-If the datestring is inexact, the `ROWTIME` will match the timestamp down to the smallest temporal term specified.
-For example, `ROWTIME = `2019-07-30` will return true for all timestamps from July 30, 2019,
-and `ROWTIME = 2019-07-30 11:00` will return true for all timestamps between `2019-07-30 11:00:00`
-and `2019-07-30 11:00:59`.
+If the datestring is inexact, the rest of the timestamp is assumed to be 0.
+For example, `ROWTIME = `2019-07-30 11:00` is equivalent to `ROWTIME = `2019-07-30 11:00:00`.
 
 A ``LIMIT`` can be used to limit the number of rows returned. Once the limit is reached the query will terminate.
 

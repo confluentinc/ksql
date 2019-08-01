@@ -23,6 +23,7 @@ import io.confluent.ksql.codegen.SqlToJavaVisitor;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
+import io.confluent.ksql.parser.rewrite.StatementRewriteForRowtime;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.EngineProcessingLogMessageFactory;
@@ -57,7 +58,7 @@ class SqlPredicate {
       final FunctionRegistry functionRegistry,
       final ProcessingLogger processingLogger
   ) {
-    this.filterExpression = requireNonNull(filterExpression, "filterExpression");
+    this.filterExpression = rewriteFilter(requireNonNull(filterExpression, "filterExpression"));
     this.schema = requireNonNull(schema, "schema");
     this.genericRowValueTypeEnforcer = new GenericRowValueTypeEnforcer(schema);
     this.isWindowedKey = isWindowedKey;
@@ -67,7 +68,7 @@ class SqlPredicate {
 
     final CodeGenRunner codeGenRunner = new CodeGenRunner(schema, ksqlConfig, functionRegistry);
     final Set<CodeGenRunner.ParameterType> parameters
-        = codeGenRunner.getParameterInfo(filterExpression);
+        = codeGenRunner.getParameterInfo(this.filterExpression);
 
     final String[] parameterNames = new String[parameters.size()];
     final Class[] parameterTypes = new Class[parameters.size()];
@@ -90,7 +91,7 @@ class SqlPredicate {
       final String expressionStr = new SqlToJavaVisitor(
           schema,
           functionRegistry
-      ).process(filterExpression);
+      ).process(this.filterExpression);
 
       ee.cook(expressionStr);
     } catch (final Exception e) {
@@ -105,6 +106,13 @@ class SqlPredicate {
           e
       );
     }
+  }
+
+  private Expression rewriteFilter(final Expression expression) {
+    if (StatementRewriteForRowtime.requiresRewrite(expression)) {
+      return new StatementRewriteForRowtime(expression).rewriteForRowtime();
+    }
+    return expression;
   }
 
   Predicate getPredicate() {

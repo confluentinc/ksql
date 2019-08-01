@@ -95,7 +95,7 @@ public class Topic {
 
   Deserializer getValueDeserializer(final SchemaRegistryClient schemaRegistryClient) {
     final Deserializer<?> deserializer = valueSerdeSupplier.getDeserializer(schemaRegistryClient);
-    deserializer.configure(ImmutableMap.of(), false);
+    deserializer.configure(ImmutableMap.of("schema.registry.url", "localhost:8081"), false);
     return deserializer;
   }
 
@@ -103,7 +103,7 @@ public class Topic {
     return keySerdeFactory.create().serializer();
   }
 
-  Deserializer<?> getKeyDeserializer() {
+  Deserializer<?> getKeyDeserializer(final boolean isLegacySessionWindow) {
     final Serde keySerde = keySerdeFactory.create();
     if (!(keySerde instanceof TimeWindowedSerde)) {
       return keySerde.deserializer();
@@ -116,7 +116,7 @@ public class Topic {
     final TimeWindowedSerde windowedSerde = (TimeWindowedSerde) keySerde;
     final TimeWindowedDeserializer timeWindowedDeserializer =
         (TimeWindowedDeserializer) windowedSerde.deserializer();
-    if (timeWindowedDeserializer.getWindowSize() == Long.MAX_VALUE) {
+    if (timeWindowedDeserializer.getWindowSize() == Long.MAX_VALUE && !isLegacySessionWindow) {
       throw new KsqlException("Window size is not present for time windowed deserializer.");
     }
 

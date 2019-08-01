@@ -552,6 +552,28 @@ final class EndToEndEngineTestUtil {
       case STRING:
         return avro.toString();
       case ARRAY:
+//        if (schema.getElementType().getName().equals(AvroData.MAP_ENTRY_TYPE_NAME) ||
+//            Objects.equals(
+//                schema.getElementType().getProp(AvroData.CONNECT_INTERNAL_TYPE_NAME),
+//                AvroData.MAP_ENTRY_TYPE_NAME)
+//            ) {
+//          final org.apache.avro.Schema valueSchema
+//              = schema.getElementType().getField("value").schema();
+//          return  ((List) avro).stream()
+//              .map(o -> ImmutableMap.of(
+//                  ((GenericData.Record) o).get("key").toString(),
+//                  (avroToValueSpec(((GenericData.Record) o).get("value"), valueSchema, toUpper))
+//              ))
+//              .collect(Collectors.toList()
+//          );
+////          return mm;
+//          return ((List) avro).stream().collect(
+//              Collectors.toMap(
+//                  m -> ((GenericData.Record) m).get("key").toString(),
+//                  m -> (avroToValueSpec(((GenericData.Record) m).get("value"), valueSchema, toUpper))
+//              )
+//          );
+//        }
         if (schema.getElementType().getName().equals(AvroData.MAP_ENTRY_TYPE_NAME) ||
             Objects.equals(
                 schema.getElementType().getProp(AvroData.CONNECT_INTERNAL_TYPE_NAME),

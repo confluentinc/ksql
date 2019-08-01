@@ -126,6 +126,15 @@ public class ValueSpecAvroSerdeSupplier implements SerdeSupplier<Object> {
         case BOOLEAN:
           return spec;
         case ARRAY:
+          if (schema.getElementType().getName().equals(AvroData.MAP_ENTRY_TYPE_NAME)
+              ||
+              Objects.equals(
+                  schema.getElementType().getProp(AvroData.CONNECT_INTERNAL_TYPE_NAME),
+                  AvroData.MAP_ENTRY_TYPE_NAME)
+              ) {
+            return getAvroRecord(spec, schema.getElementType());
+
+          }
           final List<?> list = ((List<?>) spec).stream()
               .map(o -> valueSpecToAvro(o, schema.getElementType()))
               .collect(Collectors.toList());
@@ -138,21 +147,22 @@ public class ValueSpecAvroSerdeSupplier implements SerdeSupplier<Object> {
 
           return new GenericMap(schema, map);
         case RECORD:
-          final GenericRecord record = new GenericData.Record(schema);
-          final Map<String, String> caseInsensitiveFieldNames
-              = getCaseInsensitiveMap((Map<String, ?>) spec);
-          for (final org.apache.avro.Schema.Field field : schema.getFields()) {
-            record.put(
-                field.name(),
-                valueSpecToAvro(((Map<String, ?>) spec)
-                    .get(caseInsensitiveFieldNames.get(field.name().toUpperCase())), field.schema())
-            );
-          }
-          return record;
+          return getAvroRecord(spec, schema);
         case UNION:
+          if (schema.getTypes().size() == 2) {
+            if (schema.getTypes().get(0).getType() == org.apache.avro.Schema.Type.NULL) {
+              return valueSpecToAvro(spec, schema.getTypes().get(1));
+            } else {
+              return valueSpecToAvro(spec, schema.getTypes().get(0));
+            }
+          }
           for (final org.apache.avro.Schema memberSchema : schema.getTypes()) {
             if (!memberSchema.getType().equals(org.apache.avro.Schema.Type.NULL)) {
-              return valueSpecToAvro(spec, memberSchema);
+              final String typeName = memberSchema.getType().getName().toUpperCase();
+              final Object val = ((Map<String, ?>) spec).get(typeName);
+              if (val != null) {
+                return valueSpecToAvro(val, memberSchema);
+              }
             }
           }
           throw new RuntimeException("Union must have non-null type: "
@@ -162,6 +172,20 @@ public class ValueSpecAvroSerdeSupplier implements SerdeSupplier<Object> {
           throw new RuntimeException(
               "This test does not support the data type yet: " + schema.getType().getName());
       }
+    }
+
+    private static GenericRecord getAvroRecord(final Object spec, final Schema schema) {
+      final GenericRecord record = new GenericData.Record(schema);
+      final Map<String, String> caseInsensitiveFieldNames
+          = getCaseInsensitiveMap((Map<String, ?>) spec);
+      for (final org.apache.avro.Schema.Field field : schema.getFields()) {
+        record.put(
+            field.name(),
+            valueSpecToAvro(((Map<String, ?>) spec)
+                .get(caseInsensitiveFieldNames.get(field.name().toUpperCase())), field.schema())
+        );
+      }
+      return record;
     }
 
     private static class GenericMap
@@ -269,7 +293,6 @@ public class ValueSpecAvroSerdeSupplier implements SerdeSupplier<Object> {
               ) {
             final org.apache.avro.Schema valueSchema
                 = schema.getElementType().getField("value").schema();
-
             final Map<String, Object> map = new HashMap<>();
             ((List<GenericData.Record>) avro).forEach(e -> map.put(
                 e.get("key").toString(),
@@ -325,5 +348,4 @@ public class ValueSpecAvroSerdeSupplier implements SerdeSupplier<Object> {
         entry -> entry.getKey().toUpperCase(),
         Entry::getKey));
   }
-
 } 

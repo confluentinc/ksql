@@ -29,6 +29,7 @@ import io.confluent.ksql.test.serde.avro.AvroSerdeSupplier;
 import io.confluent.ksql.test.serde.avro.ValueSpecAvroSerdeSupplier;
 import io.confluent.ksql.test.tools.conditions.PostConditions;
 import io.confluent.ksql.test.tools.exceptions.KsqlExpectedException;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import java.nio.file.Path;
@@ -298,7 +299,7 @@ public class TestCase implements Test {
   }
 
   @SuppressWarnings("unchecked")
-  static void processSingleRecord(
+  void processSingleRecord(
       final FakeKafkaRecord fakeKafkaRecord,
       final FakeKafkaService fakeKafkaService,
       final TopologyTestDriverContainer testDriver,
@@ -335,8 +336,9 @@ public class TestCase implements Test {
     );
 
     for (final Topic possibleSinkTopic: possibleSinkTopics) {
-      if (possibleSinkTopic.getName().equals(sinkTopic.getName()))
+      if (possibleSinkTopic.getName().equals(sinkTopic.getName())) {
         continue;
+      }
       processRecordsForTopic(
           testDriver.getTopologyTestDriver(),
           possibleSinkTopic,
@@ -347,7 +349,7 @@ public class TestCase implements Test {
   }
 
   @SuppressWarnings("unchecked")
-  private static void processRecordsForTopic(
+  private void processRecordsForTopic(
       final TopologyTestDriver topologyTestDriver,
       final Topic topicToWriteInto,
       final FakeKafkaService fakeKafkaService,
@@ -356,7 +358,7 @@ public class TestCase implements Test {
     while (true) {
       final ProducerRecord<?,?> producerRecord = topologyTestDriver.readOutput(
           topicToWriteInto.getName(),
-          topicToWriteInto.getKeyDeserializer(),
+          topicToWriteInto.getKeyDeserializer(isLegacySessionWindow()),
           topicToWriteInto.getValueDeserializer(schemaRegistryClient)
       );
       if (producerRecord == null) {
@@ -456,4 +458,12 @@ public class TestCase implements Test {
         : fakeKafkaRecord.getProducerRecord().key();
   }
 
+  private boolean isLegacySessionWindow() {
+    if (!properties.containsKey(KsqlConfig.KSQL_WINDOWED_SESSION_KEY_LEGACY_CONFIG)) {
+      return false;
+    }
+    return Boolean.parseBoolean(
+        properties.get(KsqlConfig.KSQL_WINDOWED_SESSION_KEY_LEGACY_CONFIG).toString()
+    );
+  }
 }

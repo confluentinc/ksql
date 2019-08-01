@@ -93,6 +93,7 @@ public class TestExecutor {
         }
         for (final Topic kafkaTopic : topicsFromKafka) {
           pipeRecordsFromKafka(
+              testCase,
               kafkaTopic.getName(),
               fakeKafkaService,
               topologyTestDriverContainer,
@@ -120,7 +121,7 @@ public class TestExecutor {
 
     for (final Record record : testCase.getInputRecords()) {
       if (topologyTestDriverContainer.getSourceTopicNames().contains(record.topic.getName())) {
-        TestCase.processSingleRecord(
+        testCase.processSingleRecord(
             FakeKafkaRecord.of(record, null),
             fakeKafkaService,
             topologyTestDriverContainer,
@@ -132,6 +133,7 @@ public class TestExecutor {
   }
 
   private static void pipeRecordsFromKafka(
+      final TestCase testCase,
       final String kafkaTopicName,
       final FakeKafkaService fakeKafkaService,
       final TopologyTestDriverContainer topologyTestDriverContainer,
@@ -139,7 +141,7 @@ public class TestExecutor {
   ) {
     for (final FakeKafkaRecord fakeKafkaRecord : fakeKafkaService
         .readRecords(kafkaTopicName)) {
-      TestCase.processSingleRecord(
+      testCase.processSingleRecord(
           fakeKafkaRecord,
           fakeKafkaService,
           topologyTestDriverContainer,

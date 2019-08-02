@@ -387,8 +387,19 @@ public class KsqlEngineTest {
 
     expectedException.expect(KsqlStatementException.class);
     expectedException.expect(rawMessage(containsString(
-        "Cannot register avro schema for T as the schema registry rejected it, "
-            + "(maybe schema evolution issues?)")));
+        "Cannot register avro schema for T as the schema is incompatible.\n" +
+            "schema: {" +
+            "\"type\":\"record\"," +
+            "\"name\":\"T\"," +
+            "\"namespace\":\"ksql\"," +
+            "\"fields\":[" +
+            "{\"name\":\"COL0\",\"type\":[\"null\",\"long\"],\"default\":null}," +
+            "{\"name\":\"COL1\",\"type\":[\"null\",\"string\"],\"default\":null}," +
+            "{\"name\":\"COL2\",\"type\":[\"null\",\"string\"],\"default\":null}," +
+            "{\"name\":\"COL3\",\"type\":[\"null\",\"double\"],\"default\":null}," +
+            "{\"name\":\"COL4\",\"type\":[\"null\",\"boolean\"],\"default\":null}" +
+            "]" +
+            "}")));
     expectedException.expect(statementText(is(
         "CREATE TABLE T WITH(VALUE_FORMAT='AVRO') AS SELECT * FROM TEST2;")));
 

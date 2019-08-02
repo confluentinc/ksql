@@ -30,6 +30,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.SchemaUtil;
 import java.util.Map;
 import java.util.Objects;
 
@@ -137,10 +138,15 @@ final class EngineExecutor {
       final SchemaRegistryClient srClient = serviceContext.getSchemaRegistryClient();
 
       if (!AvroUtil.isValidSchemaEvolution(persistentQuery, srClient)) {
+        final org.apache.avro.Schema avroSchema = SchemaUtil.buildAvroSchema(
+            persistentQuery.getPhysicalSchema().valueSchema(),
+            persistentQuery.getSinkName()
+        );
         throw new KsqlStatementException(String.format(
-            "Cannot register avro schema for %s as the schema registry rejected it, "
-                + "(maybe schema evolution issues?)",
-            persistentQuery.getResultTopic().getKafkaTopicName()),
+            "Cannot register avro schema for %s as the schema is incompatible.%n"
+                + "schema: %s",
+            persistentQuery.getResultTopic().getKafkaTopicName(),
+            avroSchema.toString()),
             statement.getStatementText());
       }
     }

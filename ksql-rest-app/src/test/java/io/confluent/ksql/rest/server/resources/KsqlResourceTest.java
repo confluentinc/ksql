@@ -853,7 +853,7 @@ public class KsqlResourceTest {
     // Then:
     assertThat(result.getErrorCode(), is(Errors.ERROR_CODE_BAD_STATEMENT));
     assertThat(result.getMessage(),
-        containsString("Cannot register avro schema for S1 as the schema registry rejected it"));
+        containsString("Cannot register avro schema for S1 as the schema is incompatible"));
   }
 
   @Test

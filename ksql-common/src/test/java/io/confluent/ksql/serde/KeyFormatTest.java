@@ -74,20 +74,16 @@ public class KeyFormatTest {
   @Test
   public void shouldImplementToString() {
     // Given:
+    final FormatInfo formatInfo = FormatInfo.of(AVRO, Optional.of("something"));
     final WindowInfo windowInfo = WindowInfo.of(HOPPING, Optional.of(Duration.ofMillis(10101)));
 
-    final KeyFormat keyFormat = KeyFormat.windowed(
-        AVRO,
-        Optional.of("something"),
-        windowInfo
-    );
+    final KeyFormat keyFormat = KeyFormat.windowed(formatInfo, windowInfo);
 
     // When:
     final String result = keyFormat.toString();
 
     // Then:
-    assertThat(result, containsString("AVRO"));
-    assertThat(result, containsString("something"));
+    assertThat(result, containsString(formatInfo.toString()));
     assertThat(result, containsString(windowInfo.toString()));
   }
 
@@ -132,7 +128,7 @@ public class KeyFormatTest {
   public void shouldHandleWindowedFunctionsForWindowed() {
     // Given:
     final KeyFormat keyFormat = KeyFormat.windowed(
-        JSON,
+        FormatInfo.of(JSON),
         WindowInfo.of(HOPPING, Optional.of(Duration.ofMinutes(4)))
     );
 
@@ -146,8 +142,7 @@ public class KeyFormatTest {
   public void shouldHandleWindowedWithAvroSchemaName() {
     // Given:
     final KeyFormat keyFormat = KeyFormat.windowed(
-        AVRO,
-        Optional.of("something"),
+        FormatInfo.of(AVRO, Optional.of("something")),
         WindowInfo.of(HOPPING, Optional.of(Duration.ofMinutes(4)))
     );
 
@@ -159,7 +154,7 @@ public class KeyFormatTest {
   public void shouldHandleWindowedWithOutSize() {
     // Given:
     final KeyFormat keyFormat = KeyFormat.windowed(
-        DELIMITED,
+        FormatInfo.of(DELIMITED),
         WindowInfo.of(SESSION, Optional.empty())
     );
 

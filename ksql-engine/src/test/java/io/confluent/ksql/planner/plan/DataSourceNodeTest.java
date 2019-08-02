@@ -415,7 +415,7 @@ public class DataSourceNodeTest {
     final DataSourceNode node = nodeWithMockTableSource();
 
     final KeyFormat keyFormat = KeyFormat.windowed(
-        Format.KAFKA,
+        FormatInfo.of(Format.KAFKA),
         WindowInfo.of(WindowType.TUMBLING, Optional.of(Duration.ofSeconds(10)))
     );
 

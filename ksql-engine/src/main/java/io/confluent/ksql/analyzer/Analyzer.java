@@ -215,7 +215,7 @@ class Analyzer {
           .map(WindowExpression::getKsqlWindowExpression);
 
       return ksqlWindow
-          .map(w -> KeyFormat.windowed(Format.KAFKA, w.getWindowInfo()))
+          .map(w -> KeyFormat.windowed(FormatInfo.of(Format.KAFKA), w.getWindowInfo()))
           .orElseGet(() -> analysis
               .getFromDataSources()
               .get(0)

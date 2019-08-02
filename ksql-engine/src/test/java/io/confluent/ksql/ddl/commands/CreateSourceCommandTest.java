@@ -341,8 +341,10 @@ public class CreateSourceCommandTest {
     final TestCmd cmd = createCmd();
 
     // Then:
-    assertThat(cmd.getTopic().getKeyFormat(),
-        is(KeyFormat.windowed(KAFKA, WindowInfo.of(SESSION, Optional.empty()))));
+    assertThat(cmd.getTopic().getKeyFormat(), is(KeyFormat.windowed(
+        FormatInfo.of(KAFKA),
+        WindowInfo.of(SESSION, Optional.empty()))
+    ));
   }
 
   @Test
@@ -357,8 +359,10 @@ public class CreateSourceCommandTest {
     final TestCmd cmd = createCmd();
 
     // Then:
-    assertThat(cmd.getTopic().getKeyFormat(),
-        is(KeyFormat.windowed(KAFKA, WindowInfo.of(TUMBLING, Optional.of(Duration.ofMinutes(1))))));
+    assertThat(cmd.getTopic().getKeyFormat(), is(KeyFormat.windowed(
+        FormatInfo.of(KAFKA),
+        WindowInfo.of(TUMBLING, Optional.of(Duration.ofMinutes(1))))
+    ));
   }
 
   @Test
@@ -373,8 +377,10 @@ public class CreateSourceCommandTest {
     final TestCmd cmd = createCmd();
 
     // Then:
-    assertThat(cmd.getTopic().getKeyFormat(),
-        is(KeyFormat.windowed(KAFKA, WindowInfo.of(HOPPING, Optional.of(Duration.ofSeconds(2))))));
+    assertThat(cmd.getTopic().getKeyFormat(), is(KeyFormat.windowed(
+        FormatInfo.of(KAFKA),
+        WindowInfo.of(HOPPING, Optional.of(Duration.ofSeconds(2))))
+    ));
   }
 
   private TestCmd createCmd() {

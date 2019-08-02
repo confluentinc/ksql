@@ -38,8 +38,10 @@ public final class TopicFactory {
     final Optional<Duration> windowSize = properties.getWindowSize();
 
     final KeyFormat keyFormat = windowType
-        .map(type -> KeyFormat.windowed(Format.KAFKA, WindowInfo.of(type, windowSize)))
-        .orElseGet(() -> KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA, Optional.empty())));
+        .map(type -> KeyFormat
+            .windowed(FormatInfo.of(Format.KAFKA), WindowInfo.of(type, windowSize)))
+        .orElseGet(() -> KeyFormat
+            .nonWindowed(FormatInfo.of(Format.KAFKA, Optional.empty())));
 
     final ValueFormat valueFormat = ValueFormat.of(FormatInfo.of(
         properties.getValueFormat(),

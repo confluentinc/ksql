@@ -22,15 +22,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.apache.kafka.clients.admin.AdminClient;
+import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.ConsumerGroupDescription;
 import org.apache.kafka.clients.admin.ConsumerGroupListing;
 
 public class KafkaConsumerGroupClientImpl implements KafkaConsumerGroupClient {
 
-  private final AdminClient adminClient;
+  private final Admin adminClient;
 
-  public KafkaConsumerGroupClientImpl(final AdminClient adminClient) {
+  public KafkaConsumerGroupClientImpl(final Admin adminClient) {
     this.adminClient = adminClient;
   }
 

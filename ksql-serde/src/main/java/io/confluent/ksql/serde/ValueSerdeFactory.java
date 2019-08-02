@@ -18,7 +18,7 @@ package io.confluent.ksql.serde;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
-import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.function.Supplier;
 import org.apache.kafka.common.serialization.Serde;
@@ -32,7 +32,7 @@ public interface ValueSerdeFactory {
    * Create a value serde.
    *
    * @param format the format required.
-   * @param schema the schema to be serialized.
+   * @param schema the schema of the serialized form.
    * @param ksqlConfig the system config.
    * @param schemaRegistryClientFactory supplier of SR client.
    * @param loggerNamePrefix processing logger name prefix
@@ -41,7 +41,7 @@ public interface ValueSerdeFactory {
    */
   Serde<GenericRow> create(
       FormatInfo format,
-      PhysicalSchema schema,
+      PersistenceSchema schema,
       KsqlConfig ksqlConfig,
       Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
       String loggerNamePrefix,

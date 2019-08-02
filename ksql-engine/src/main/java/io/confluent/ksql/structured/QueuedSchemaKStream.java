@@ -24,6 +24,7 @@ import io.confluent.ksql.util.SelectExpression;
 import java.util.List;
 import java.util.Set;
 import org.apache.kafka.common.serialization.Serde;
+import org.apache.kafka.connect.data.Struct;
 
 public class QueuedSchemaKStream<K> extends SchemaKStream<K> {
 
@@ -32,11 +33,11 @@ public class QueuedSchemaKStream<K> extends SchemaKStream<K> {
       final QueryContext queryContext
   ) {
     super(
-        schemaKStream.schema,
         schemaKStream.getKstream(),
+        schemaKStream.schema,
+        schemaKStream.keySerde,
         schemaKStream.keyField,
         schemaKStream.sourceSchemaKStreams,
-        schemaKStream.keySerdeFactory,
         Type.SINK,
         schemaKStream.ksqlConfig,
         schemaKStream.functionRegistry,
@@ -81,7 +82,7 @@ public class QueuedSchemaKStream<K> extends SchemaKStream<K> {
   }
 
   @Override
-  public SchemaKStream<K> selectKey(
+  public SchemaKStream<Struct> selectKey(
       final String fieldName,
       final boolean updateRowKey,
       final QueryContext.Stacker contextStacker) {

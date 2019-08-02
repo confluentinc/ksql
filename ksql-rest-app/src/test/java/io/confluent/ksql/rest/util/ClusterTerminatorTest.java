@@ -40,6 +40,7 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
@@ -443,7 +444,7 @@ public class ClusterTerminatorTest {
     final KsqlTopic topic = mock(KsqlTopic.class);
     when(topic.getKafkaTopicName()).thenReturn(kafkaTopicName);
     when(topic.isKsqlSink()).thenReturn(sink);
-    when(topic.getValueFormat()).thenReturn(ValueFormat.of(format));
+    when(topic.getValueFormat()).thenReturn(ValueFormat.of(FormatInfo.of(format)));
 
     final DataSource<?> source = mock(DataSource.class);
     when(source.getKsqlTopic()).thenReturn(topic);

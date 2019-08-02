@@ -16,9 +16,10 @@
 package io.confluent.ksql.function;
 
 import io.confluent.ksql.GenericRow;
+import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Aggregator;
 import org.apache.kafka.streams.kstream.Merger;
 
-public interface UdafAggregator extends Aggregator<String, GenericRow, GenericRow> {
-  Merger<String, GenericRow> getMerger();
+public interface UdafAggregator extends Aggregator<Struct, GenericRow, GenericRow> {
+  Merger<Struct, GenericRow> getMerger();
 }

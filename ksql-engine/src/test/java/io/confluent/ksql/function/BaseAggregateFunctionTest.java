@@ -19,6 +19,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.function.Supplier;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Merger;
 import org.junit.Rule;
 import org.junit.Test;
@@ -76,7 +77,7 @@ public class BaseAggregateFunctionTest {
     }
 
     @Override
-    public Merger<String, Integer> getMerger() {
+    public Merger<Struct, Integer> getMerger() {
       return null;
     }
   }

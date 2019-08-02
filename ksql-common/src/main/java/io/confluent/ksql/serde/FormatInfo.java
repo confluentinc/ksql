@@ -29,6 +29,10 @@ public final class FormatInfo {
   private final Format format;
   private final Optional<String> avroFullSchemaName;
 
+  public static FormatInfo of(final Format format) {
+    return FormatInfo.of(format, Optional.empty());
+  }
+
   public static FormatInfo of(
       final Format format,
       final Optional<String> avroFullSchemaName

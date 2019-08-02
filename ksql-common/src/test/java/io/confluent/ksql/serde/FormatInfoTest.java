@@ -48,7 +48,8 @@ public class FormatInfoTest {
             FormatInfo.of(Format.AVRO, Optional.of("something"))
         )
         .addEqualityGroup(
-            FormatInfo.of(Format.AVRO, Optional.empty())
+            FormatInfo.of(Format.AVRO, Optional.empty()),
+            FormatInfo.of(Format.AVRO)
         )
         .addEqualityGroup(
             FormatInfo.of(Format.JSON, Optional.empty())

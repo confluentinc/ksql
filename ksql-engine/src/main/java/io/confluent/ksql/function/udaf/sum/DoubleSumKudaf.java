@@ -21,6 +21,7 @@ import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.TableAggregationFunction;
 import java.util.Collections;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Merger;
 
 public class DoubleSumKudaf
@@ -51,7 +52,7 @@ public class DoubleSumKudaf
   }
 
   @Override
-  public Merger<String, Double> getMerger() {
+  public Merger<Struct, Double> getMerger() {
     return (aggKey, aggOne, aggTwo) -> aggOne + aggTwo;
   }
 

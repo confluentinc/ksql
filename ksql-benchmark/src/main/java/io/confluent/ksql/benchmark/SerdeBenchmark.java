@@ -25,12 +25,10 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.datagen.RowGenerator;
 import io.confluent.ksql.datagen.SessionManager;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
-import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.GenericRowSerDe;
-import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.SchemaUtil;
@@ -47,6 +45,7 @@ import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.serialization.Serializer;
+import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.openjdk.jmh.annotations.Benchmark;
@@ -197,14 +196,9 @@ public class SerdeBenchmark {
         final org.apache.kafka.connect.data.Schema schema,
         final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
     ) {
-      final PhysicalSchema physicalSchema = PhysicalSchema.from(
-          LogicalSchema.of(KEY_SCHEMA, schema),
-          SerdeOption.none()
-      );
-
       return GenericRowSerDe.from(
           format,
-          physicalSchema,
+          PersistenceSchema.from((ConnectSchema) schema, false),
           new KsqlConfig(Collections.emptyMap()),
           schemaRegistryClientFactory,
           "benchmark",

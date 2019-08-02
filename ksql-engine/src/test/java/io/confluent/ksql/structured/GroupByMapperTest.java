@@ -26,6 +26,7 @@ import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.util.ExpressionMetadata;
 import java.util.Collections;
+import org.apache.kafka.connect.data.Struct;
 import org.easymock.EasyMock;
 import org.easymock.EasyMockRunner;
 import org.easymock.Mock;
@@ -46,21 +47,21 @@ public class GroupByMapperTest {
   @Mock(MockType.NICE)
   private GenericRow row;
 
-  private GroupByMapper<Object> mapper;
+  private GroupByMapper mapper;
 
   @Before
   public void setUp() {
-    mapper = new GroupByMapper<>(ImmutableList.of(groupBy0, groupBy1));
+    mapper = new GroupByMapper(ImmutableList.of(groupBy0, groupBy1));
   }
 
   @Test(expected = NullPointerException.class)
   public void shouldThrowOnNullParam() {
-    new GroupByMapper<>(null);
+    new GroupByMapper(null);
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void shouldThrowOnEmptyParam() {
-    new GroupByMapper<>(Collections.emptyList());
+    new GroupByMapper(Collections.emptyList());
   }
 
   @Test
@@ -71,10 +72,10 @@ public class GroupByMapperTest {
     EasyMock.replay(groupBy0, groupBy1);
 
     // When:
-    final String result = mapper.apply("key", row);
+    final Struct result = mapper.apply("key", row);
 
     // Then:
-    assertThat(result, is("result0|+|result1"));
+    assertThat(result, is(StructKeyUtil.asStructKey("result0|+|result1")));
   }
 
   @Test
@@ -85,10 +86,10 @@ public class GroupByMapperTest {
     EasyMock.replay(groupBy0, groupBy1);
 
     // When:
-    final String result = mapper.apply("key", row);
+    final Struct result = mapper.apply("key", row);
 
     // Then:
-    assertThat(result, is("null|+|result1"));
+    assertThat(result, is(StructKeyUtil.asStructKey("null|+|result1")));
   }
 
   @Test
@@ -99,10 +100,10 @@ public class GroupByMapperTest {
     EasyMock.replay(groupBy0, groupBy1);
 
     // When:
-    final String result = mapper.apply("key", row);
+    final Struct result = mapper.apply("key", row);
 
     // Then:
-    assertThat(result, is("null|+|result1"));
+    assertThat(result, is(StructKeyUtil.asStructKey("null|+|result1")));
   }
 
   @Test

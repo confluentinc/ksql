@@ -18,16 +18,15 @@ package io.confluent.ksql.datagen;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
-import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.GenericRowSerDe;
-import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Optional;
 import org.apache.avro.Schema;
 import org.apache.kafka.common.serialization.Serializer;
+import org.apache.kafka.connect.data.ConnectSchema;
 
 public class DelimitedProducer extends DataGenProducer {
 
@@ -37,14 +36,12 @@ public class DelimitedProducer extends DataGenProducer {
       final org.apache.kafka.connect.data.Schema kafkaSchema,
       final String topicName
   ) {
-    final PhysicalSchema physicalSchema = PhysicalSchema.from(
-        LogicalSchema.of(KEY_SCHEMA, kafkaSchema),
-        SerdeOption.none()
-    );
+    final PersistenceSchema persistenceSchema =
+        PersistenceSchema.from((ConnectSchema) kafkaSchema, false);
 
     return GenericRowSerDe.from(
         FormatInfo.of(Format.DELIMITED, Optional.empty()),
-        physicalSchema,
+        persistenceSchema,
         new KsqlConfig(ImmutableMap.of()),
         () -> null,
         "",

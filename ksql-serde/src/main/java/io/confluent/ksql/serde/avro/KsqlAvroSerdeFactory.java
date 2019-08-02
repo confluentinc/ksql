@@ -132,7 +132,7 @@ public class KsqlAvroSerdeFactory implements KsqlSerdeFactory {
   ) {
     final boolean useNamedMaps = ksqlConfig.getBoolean(KsqlConfig.KSQL_USE_NAMED_AVRO_MAPS);
 
-    return new AvroDataTranslator(schema.getConnectSchema(), fullSchemaName, useNamedMaps);
+    return new AvroDataTranslator(schema.serializedSchema(), fullSchemaName, useNamedMaps);
   }
 
   private static AvroConverter getAvroConverter(

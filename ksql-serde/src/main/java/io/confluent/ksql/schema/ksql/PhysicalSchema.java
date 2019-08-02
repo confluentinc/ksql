@@ -25,7 +25,6 @@ import io.confluent.ksql.util.KsqlException;
 import java.util.Objects;
 import java.util.Set;
 import org.apache.kafka.connect.data.ConnectSchema;
-import org.apache.kafka.connect.data.Field;
 
 /**
  * Physical KSQL schema.
@@ -114,28 +113,22 @@ public final class PhysicalSchema {
   }
 
   private static PersistenceSchema buildKeyPhysical(
-      final ConnectSchema schema
+      final ConnectSchema keyConnectSchema
   ) {
-    return PersistenceSchema.of(schema);
+    return PersistenceSchema.from(keyConnectSchema, false);
   }
 
   private static PersistenceSchema buildValuePhysical(
-      final ConnectSchema schema,
+      final ConnectSchema valueConnectSchema,
       final Set<SerdeOption> serdeOptions
   ) {
-    final boolean singleField = schema.fields().size() == 1;
+    final boolean singleField = valueConnectSchema.fields().size() == 1;
     final boolean unwrapSingle = serdeOptions.contains(SerdeOption.UNWRAP_SINGLE_VALUES);
-
     if (unwrapSingle && !singleField) {
       throw new KsqlException("'" + CommonCreateConfigs.WRAP_SINGLE_VALUE + "' "
           + "is only valid for single-field value schemas");
     }
 
-    if (!singleField || !unwrapSingle) {
-      return PersistenceSchema.of(schema);
-    }
-
-    final Field onlyField = schema.fields().get(0);
-    return PersistenceSchema.of((ConnectSchema) onlyField.schema().schema());
+    return PersistenceSchema.from(valueConnectSchema, unwrapSingle);
   }
 }

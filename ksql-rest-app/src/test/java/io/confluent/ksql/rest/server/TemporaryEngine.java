@@ -31,6 +31,7 @@ import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
@@ -92,8 +93,8 @@ public class TemporaryEngine extends ExternalResource {
 
     final KsqlTopic topic = new KsqlTopic(
         name,
-        KeyFormat.nonWindowed(Format.KAFKA),
-        ValueFormat.of(Format.JSON),
+        KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
+        ValueFormat.of(FormatInfo.of(Format.JSON)),
         false
     );
 

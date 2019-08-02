@@ -16,7 +16,6 @@
 package io.confluent.ksql.serde;
 
 import static io.confluent.ksql.serde.Format.AVRO;
-import static io.confluent.ksql.serde.Format.DELIMITED;
 import static io.confluent.ksql.serde.Format.JSON;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
@@ -29,6 +28,8 @@ import org.junit.Test;
 
 public class ValueFormatTest {
 
+  private static final FormatInfo FORMAT_INFO = FormatInfo.of(AVRO, Optional.of("something"));
+
   @Test
   public void shouldThrowNPEs() {
     new NullPointerTester()
@@ -39,15 +40,11 @@ public class ValueFormatTest {
   public void shouldImplementEquals() {
     new EqualsTester()
         .addEqualityGroup(
-            ValueFormat.of(AVRO, Optional.of("this")),
-            ValueFormat.of(AVRO, Optional.of("this"))
+            ValueFormat.of(FORMAT_INFO),
+            ValueFormat.of(FORMAT_INFO)
         )
         .addEqualityGroup(
-            ValueFormat.of(AVRO),
-            ValueFormat.of(AVRO, Optional.empty())
-        )
-        .addEqualityGroup(
-            ValueFormat.of(JSON)
+            ValueFormat.of(FormatInfo.of(JSON, Optional.empty()))
         )
         .testEquals();
   }
@@ -55,45 +52,36 @@ public class ValueFormatTest {
   @Test
   public void shouldImplementToString() {
     // Given:
-    final ValueFormat valueFormat = ValueFormat.of(
-        AVRO,
-        Optional.of("something")
-    );
+    final ValueFormat valueFormat = ValueFormat.of(FORMAT_INFO);
 
     // When:
     final String result = valueFormat.toString();
 
     // Then:
-    assertThat(result, containsString("AVRO"));
-    assertThat(result, containsString("something"));
+    assertThat(result, containsString(FORMAT_INFO.toString()));
   }
 
   @Test
   public void shouldGetFormat() {
     // Given:
-    final ValueFormat valueFormat = ValueFormat.of(
-        DELIMITED
-    );
+    final ValueFormat valueFormat = ValueFormat.of(FORMAT_INFO);
 
     // When:
     final Format result = valueFormat.getFormat();
 
     // Then:
-    assertThat(result, is(DELIMITED));
+    assertThat(result, is(FORMAT_INFO.getFormat()));
   }
 
   @Test
   public void shouldGetFormatInfo() {
     // Given:
-    final ValueFormat valueFormat = ValueFormat.of(
-        AVRO,
-        Optional.of("something")
-    );
+    final ValueFormat valueFormat = ValueFormat.of(FORMAT_INFO);
 
     // When:
     final FormatInfo result = valueFormat.getFormatInfo();
 
     // Then:
-    assertThat(result, is(FormatInfo.of(AVRO, Optional.of("something"))));
+    assertThat(result, is(FORMAT_INFO));
   }
 }

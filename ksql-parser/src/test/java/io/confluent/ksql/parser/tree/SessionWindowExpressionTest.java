@@ -24,10 +24,12 @@ import static org.mockito.Mockito.when;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.UdafAggregator;
 import io.confluent.ksql.model.WindowType;
+import io.confluent.ksql.serde.WindowInfo;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import org.apache.kafka.common.utils.Bytes;
+import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Initializer;
 import org.apache.kafka.streams.kstream.KGroupedStream;
 import org.apache.kafka.streams.kstream.Materialized;
@@ -45,17 +47,17 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class SessionWindowExpressionTest {
 
   @Mock
-  private KGroupedStream<String, GenericRow> stream;
+  private KGroupedStream<Struct, GenericRow> stream;
   @Mock
-  private SessionWindowedKStream<String, GenericRow> windowedKStream;
+  private SessionWindowedKStream<Struct, GenericRow> windowedKStream;
   @Mock
   private UdafAggregator aggregator;
   @Mock
   private Initializer<GenericRow> initializer;
   @Mock
-  private Materialized<String, GenericRow, SessionStore<Bytes, byte[]>> store;
+  private Materialized<Struct, GenericRow, SessionStore<Bytes, byte[]>> store;
   @Mock
-  private Merger<String, GenericRow> merger;
+  private Merger<Struct, GenericRow> merger;
   private SessionWindowExpression windowExpression;
 
   @Before
@@ -80,12 +82,8 @@ public class SessionWindowExpressionTest {
   }
 
   @Test
-  public void shouldReturnCorrectType() {
-    assertThat(windowExpression.getType(), is(WindowType.SESSION));
-  }
-
-  @Test
-  public void shouldReturnCorrectWindowSize() {
-    assertThat(windowExpression.getWindowSize(), is(Optional.empty()));
+  public void shouldReturnWindowInfo() {
+    assertThat(windowExpression.getWindowInfo(),
+        is(WindowInfo.of(WindowType.SESSION, Optional.empty())));
   }
 }

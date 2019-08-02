@@ -33,7 +33,6 @@ import io.confluent.ksql.test.tools.Topic;
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.common.serialization.Serdes;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -59,7 +58,7 @@ public final class FakeInsertValuesExecutorTest {
     when(fakeKafkaService.getTopic(SOME_TOPIC)).thenReturn(new Topic(
         SOME_TOPIC,
         Optional.empty(),
-        Serdes::String,
+        new StringSerdeSupplier(),
         new StringSerdeSupplier(),
         1,
         1,
@@ -124,7 +123,7 @@ public final class FakeInsertValuesExecutorTest {
     when(fakeKafkaService.getTopic(SOME_TOPIC)).thenReturn(new Topic(
         SOME_TOPIC,
         Optional.empty(),
-        Serdes::String,
+        new StringSerdeSupplier(),
         new AvroSerdeSupplier(),
         1,
         1,

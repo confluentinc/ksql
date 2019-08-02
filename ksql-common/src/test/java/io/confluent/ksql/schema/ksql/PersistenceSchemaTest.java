@@ -22,14 +22,26 @@ import com.google.common.testing.EqualsTester;
 import com.google.common.testing.NullPointerTester;
 import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Test;
 
 public class PersistenceSchemaTest {
 
+  private static final ConnectSchema WRAPPED_SCHEMA = (ConnectSchema) SchemaBuilder
+      .struct()
+      .field("f0", Schema.OPTIONAL_STRING_SCHEMA)
+      .build();
+
+  private static final ConnectSchema MULTI_FIELD_SCHEMA = (ConnectSchema) SchemaBuilder
+      .struct()
+      .field("f0", Schema.OPTIONAL_INT64_SCHEMA)
+      .field("f1", Schema.OPTIONAL_INT32_SCHEMA)
+      .build();
+
   @Test
   public void shouldNPE() {
     new NullPointerTester()
-        .setDefault(ConnectSchema.class, (ConnectSchema) Schema.OPTIONAL_STRING_SCHEMA)
+        .setDefault(ConnectSchema.class, WRAPPED_SCHEMA)
         .testAllPublicStaticMethods(PersistenceSchema.class);
   }
 
@@ -37,40 +49,68 @@ public class PersistenceSchemaTest {
   public void shouldImplementEqualsProperly() {
     new EqualsTester()
         .addEqualityGroup(
-            PersistenceSchema.of((ConnectSchema) Schema.OPTIONAL_STRING_SCHEMA),
-            PersistenceSchema.of((ConnectSchema) Schema.OPTIONAL_STRING_SCHEMA))
+            PersistenceSchema.from(WRAPPED_SCHEMA, true),
+            PersistenceSchema.from(WRAPPED_SCHEMA, true)
+        )
         .addEqualityGroup(
-            PersistenceSchema.of((ConnectSchema) Schema.INT32_SCHEMA))
+            PersistenceSchema.from(WRAPPED_SCHEMA, false)
+        )
+        .addEqualityGroup(
+            PersistenceSchema.from(MULTI_FIELD_SCHEMA, false)
+        )
         .testEquals();
   }
 
   @Test
-  public void shouldReturnSchema() {
+  public void shouldReturnWrappedSchemaUnchanged() {
     // Given:
     final PersistenceSchema schema = PersistenceSchema
-        .of((ConnectSchema) Schema.OPTIONAL_STRING_SCHEMA);
+        .from(WRAPPED_SCHEMA, false);
 
     // Then:
-    assertThat(schema.getConnectSchema(), is(Schema.OPTIONAL_STRING_SCHEMA));
+    assertThat(schema.serializedSchema(), is(WRAPPED_SCHEMA));
+  }
+
+  @Test
+  public void shouldReturnUnwrappedSchema() {
+    // Given:
+    final PersistenceSchema schema = PersistenceSchema
+        .from(WRAPPED_SCHEMA, true);
+
+    // Then:
+    assertThat(schema.serializedSchema(), is(WRAPPED_SCHEMA.fields().get(0).schema()));
   }
 
   @Test
   public void shouldHaveSensibleToString() {
     // Given:
-    final PersistenceSchema schema = PersistenceSchema
-        .of((ConnectSchema) Schema.OPTIONAL_FLOAT64_SCHEMA);
+    final PersistenceSchema schema = PersistenceSchema.from(WRAPPED_SCHEMA, true);
 
     // Then:
-    assertThat(schema.toString(), is("Persistence{DOUBLE}"));
+    assertThat(schema.toString(), is("Persistence{schema=VARCHAR, unwrapped=true}"));
   }
 
   @Test
   public void shouldIncludeNotNullInToString() {
     // Given:
-    final PersistenceSchema schema = PersistenceSchema
-        .of((ConnectSchema) Schema.FLOAT64_SCHEMA);
+    final ConnectSchema connectSchema = (ConnectSchema) SchemaBuilder
+        .struct()
+        .field("f0", Schema.FLOAT64_SCHEMA)
+        .build();
+
+    final PersistenceSchema schema = PersistenceSchema.from(connectSchema, true);
 
     // Then:
-    assertThat(schema.toString(), is("Persistence{DOUBLE NOT NULL}"));
+    assertThat(schema.toString(), is("Persistence{schema=DOUBLE NOT NULL, unwrapped=true}"));
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void shouldThrowOnNoneStructSchema() {
+    PersistenceSchema.from((ConnectSchema) Schema.FLOAT64_SCHEMA, false);
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void shouldThrowOnUnwrapIfMultipleFields() {
+    PersistenceSchema.from(MULTI_FIELD_SCHEMA, true);
   }
 }

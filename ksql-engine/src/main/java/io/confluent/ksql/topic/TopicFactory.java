@@ -19,8 +19,10 @@ import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.ValueFormat;
+import io.confluent.ksql.serde.WindowInfo;
 import java.time.Duration;
 import java.util.Optional;
 
@@ -36,13 +38,13 @@ public final class TopicFactory {
     final Optional<Duration> windowSize = properties.getWindowSize();
 
     final KeyFormat keyFormat = windowType
-        .map(type -> KeyFormat.windowed(Format.KAFKA, type, windowSize))
-        .orElseGet(() -> KeyFormat.nonWindowed(Format.KAFKA));
+        .map(type -> KeyFormat.windowed(Format.KAFKA, WindowInfo.of(type, windowSize)))
+        .orElseGet(() -> KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA, Optional.empty())));
 
-    final ValueFormat valueFormat = ValueFormat.of(
+    final ValueFormat valueFormat = ValueFormat.of(FormatInfo.of(
         properties.getValueFormat(),
         properties.getValueAvroSchemaName()
-    );
+    ));
 
     return new KsqlTopic(
         kafkaTopicName,

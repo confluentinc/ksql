@@ -34,12 +34,12 @@ import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.physical.KsqlQueryBuilder;
-import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode.SinKFactory;
+import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode.SinkFactory;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.Format;
-import io.confluent.ksql.serde.SerdeFactory;
+import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.structured.QueryContext;
@@ -108,11 +108,9 @@ public class KsqlStructuredDataOutputNodeTest {
   @Mock
   private SchemaKStream<?> resultWithKeySelected;
   @Mock
-  private SerdeFactory<String> keySerdeFactory;
-  @Mock
   private KStream<String, GenericRow> kstream;
   @Mock
-  private SinKFactory<String> sinkFactory;
+  private SinkFactory<String> sinkFactory;
   @Mock
   private KsqlTopic ksqlTopic;
   @Mock
@@ -141,7 +139,6 @@ public class KsqlStructuredDataOutputNodeTest {
 
     when(sourceStream.getSchema()).thenReturn(SCHEMA.withMetaAndKeyFieldsInValue());
     when(sourceStream.getKeyField()).thenReturn(KeyField.none());
-    when(sourceStream.getKeySerdeFactory()).thenReturn(keySerdeFactory);
     when(sourceStream.getKstream()).thenReturn((KStream) kstream);
 
     when(sinkFactory.create(any(), any(), any(), any(), any(), any(), any(), any(), any()))
@@ -152,12 +149,12 @@ public class KsqlStructuredDataOutputNodeTest {
 
     when(ksqlStreamBuilder.getKsqlConfig()).thenReturn(ksqlConfig);
     when(ksqlStreamBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
-    when(ksqlStreamBuilder.buildGenericRowSerde(any(), any(), any())).thenReturn(rowSerde);
+    when(ksqlStreamBuilder.buildValueSerde(any(), any(), any())).thenReturn(rowSerde);
     when(ksqlStreamBuilder.buildNodeContext(any())).thenAnswer(inv ->
         new QueryContext.Stacker(QUERY_ID)
             .push(inv.getArgument(0).toString()));
     when(ksqlTopic.getKafkaTopicName()).thenReturn(SINK_KAFKA_TOPIC_NAME);
-    when(ksqlTopic.getValueFormat()).thenReturn(ValueFormat.of(Format.JSON));
+    when(ksqlTopic.getValueFormat()).thenReturn(ValueFormat.of(FormatInfo.of(Format.JSON)));
 
     buildNode();
   }
@@ -227,11 +224,11 @@ public class KsqlStructuredDataOutputNodeTest {
 
     // Then:
     verify(sinkFactory).create(
-        sourceStream.getSchema(),
         sourceStream.getKstream(),
+        sourceStream.getSchema(),
+        sourceStream.getKeySerde(),
         KEY_FIELD.withName(Optional.empty()),
         ImmutableList.of(sourceStream),
-        sourceStream.getKeySerdeFactory(),
         SchemaKStream.Type.SINK,
         ksqlConfig,
         functionRegistry,
@@ -335,7 +332,7 @@ public class KsqlStructuredDataOutputNodeTest {
     // Given:
     givenInsertIntoNode();
 
-    final ValueFormat valueFormat = ValueFormat.of(Format.AVRO, Optional.of("name"));
+    final ValueFormat valueFormat = ValueFormat.of(FormatInfo.of(Format.AVRO, Optional.of("name")));
 
     when(ksqlTopic.getValueFormat()).thenReturn(valueFormat);
 
@@ -343,8 +340,8 @@ public class KsqlStructuredDataOutputNodeTest {
     outputNode.buildStream(ksqlStreamBuilder);
 
     // Then:
-    verify(ksqlStreamBuilder).buildGenericRowSerde(
-        eq(valueFormat),
+    verify(ksqlStreamBuilder).buildValueSerde(
+        eq(valueFormat.getFormatInfo()),
         any(),
         any()
     );
@@ -356,8 +353,8 @@ public class KsqlStructuredDataOutputNodeTest {
     outputNode.buildStream(ksqlStreamBuilder);
 
     // Then:
-    verify(ksqlStreamBuilder).buildGenericRowSerde(
-        eq(ValueFormat.of(Format.JSON)),
+    verify(ksqlStreamBuilder).buildValueSerde(
+        eq(FormatInfo.of(Format.JSON)),
         eq(PhysicalSchema.from(SCHEMA, serdeOptions)),
         queryContextCaptor.capture()
     );

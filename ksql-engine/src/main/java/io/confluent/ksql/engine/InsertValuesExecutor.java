@@ -33,14 +33,11 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.SqlValueCoercer;
 import io.confluent.ksql.schema.ksql.types.SqlType;
-import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.GenericRowSerDe;
 import io.confluent.ksql.serde.KeySerdeFactories;
 import io.confluent.ksql.serde.KsqlKeySerdeFactories;
-import io.confluent.ksql.serde.KsqlSerdeFactories;
-import io.confluent.ksql.serde.KsqlSerdeFactory;
-import io.confluent.ksql.serde.SerdeFactories;
 import io.confluent.ksql.serde.SerdeFactory;
+import io.confluent.ksql.serde.ValueSerdeFactory;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
@@ -68,7 +65,7 @@ public class InsertValuesExecutor {
   private final LongSupplier clock;
   private final boolean canBeDisabledByConfig;
   private final RecordProducer producer;
-  private final SerdeFactories serdeFactories;
+  private final ValueSerdeFactory valueSerdeFactory;
   private final KeySerdeFactories keySerdeFactories;
 
   public InsertValuesExecutor() {
@@ -94,7 +91,7 @@ public class InsertValuesExecutor {
         canBeDisabledByConfig,
         System::currentTimeMillis,
         new KsqlKeySerdeFactories(),
-        new KsqlSerdeFactories()
+        new GenericRowSerDe()
     );
   }
 
@@ -102,9 +99,9 @@ public class InsertValuesExecutor {
   InsertValuesExecutor(
       final LongSupplier clock,
       final KeySerdeFactories keySerdeFactories,
-      final SerdeFactories serdeFactories
+      final ValueSerdeFactory valueSerdeFactory
   ) {
-    this(InsertValuesExecutor::sendRecord, true, clock, keySerdeFactories, serdeFactories);
+    this(InsertValuesExecutor::sendRecord, true, clock, keySerdeFactories, valueSerdeFactory);
   }
 
   private InsertValuesExecutor(
@@ -112,13 +109,13 @@ public class InsertValuesExecutor {
       final boolean canBeDisabledByConfig,
       final LongSupplier clock,
       final KeySerdeFactories keySerdeFactories,
-      final SerdeFactories serdeFactories
+      final ValueSerdeFactory valueSerdeFactory
   ) {
     this.canBeDisabledByConfig = canBeDisabledByConfig;
     this.producer = Objects.requireNonNull(producer, "producer");
     this.clock = Objects.requireNonNull(clock, "clock");
     this.keySerdeFactories = Objects.requireNonNull(keySerdeFactories, "keySerdeFactories");
-    this.serdeFactories = Objects.requireNonNull(serdeFactories, "serdeFactories");
+    this.valueSerdeFactory = Objects.requireNonNull(valueSerdeFactory, "valueSerdeFactory");
   }
 
   public void execute(
@@ -303,33 +300,25 @@ public class InsertValuesExecutor {
       final KsqlConfig config,
       final ServiceContext serviceContext
   ) {
-    final KsqlSerdeFactory valueSerdeFactory = getValueSerdeFactory(dataSource);
+    final PhysicalSchema physicalSchema = PhysicalSchema.from(
+        dataSource.getSchema(),
+        dataSource.getSerdeOptions()
+    );
 
-    final Serde<GenericRow> rowSerde = GenericRowSerDe.from(
-        valueSerdeFactory,
-        PhysicalSchema.from(
-            dataSource.getSchema(),
-            dataSource.getSerdeOptions()
-        ),
+    final Serde<GenericRow> rowSerde = valueSerdeFactory.create(
+        dataSource.getKsqlTopic().getValueFormat().getFormatInfo(),
+        physicalSchema,
         config,
         serviceContext.getSchemaRegistryClientFactory(),
         "",
-        NoopProcessingLogContext.INSTANCE);
+        NoopProcessingLogContext.INSTANCE
+    );
 
     try {
       return rowSerde.serializer().serialize(dataSource.getKafkaTopicName(), row);
     } catch (final Exception e) {
       throw new KsqlException("Could not serialize row: " + row, e);
     }
-  }
-
-  private KsqlSerdeFactory getValueSerdeFactory(final DataSource<?> dataSource) {
-    final FormatInfo formatInfo = dataSource.getKsqlTopic().getValueFormat().getFormatInfo();
-
-    return serdeFactories.create(
-        formatInfo.getFormat(),
-        formatInfo.getAvroFullSchemaName()
-    );
   }
 
   @SuppressWarnings("TryFinallyCanBeTryWithResources")

@@ -36,6 +36,7 @@ import io.confluent.ksql.parser.tree.Type;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.services.KafkaTopicClient;
+import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.Collections;
@@ -56,6 +57,8 @@ public class CreateTableCommandTest {
   private static final String TABLE_NAME = "t1";
 
   @Mock
+  private ServiceContext serviceContext;
+  @Mock
   private KafkaTopicClient topicClient;
   @Mock
   private CreateTable createTableStatement;
@@ -75,6 +78,7 @@ public class CreateTableCommandTest {
     when(createTableStatement.getElements()).thenReturn(TableElements.of(
         new TableElement(Namespace.VALUE, "SOME-KEY", new Type(SqlTypes.STRING))
     ));
+    when(serviceContext.getTopicClient()).thenReturn(topicClient);
     when(topicClient.isTopicExists(any())).thenReturn(true);
   }
 
@@ -125,7 +129,7 @@ public class CreateTableCommandTest {
         "some sql",
         createTableStatement,
         ksqlConfig,
-        topicClient);
+        serviceContext);
   }
 
   private void givenPropertiesWith(final Map<String, Literal> props) {

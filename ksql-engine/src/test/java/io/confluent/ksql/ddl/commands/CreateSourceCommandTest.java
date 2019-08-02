@@ -18,6 +18,7 @@ import static io.confluent.ksql.model.WindowType.HOPPING;
 import static io.confluent.ksql.model.WindowType.SESSION;
 import static io.confluent.ksql.model.WindowType.TUMBLING;
 import static io.confluent.ksql.serde.Format.AVRO;
+import static io.confluent.ksql.serde.Format.JSON;
 import static io.confluent.ksql.serde.Format.KAFKA;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -28,7 +29,9 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.ddl.commands.CreateSourceCommand.SerdeOptionsSupplier;
+import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.CreateSource;
@@ -44,12 +47,13 @@ import io.confluent.ksql.properties.with.CreateConfigs;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.KsqlSerdeFactory;
-import io.confluent.ksql.serde.SerdeFactories;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
+import io.confluent.ksql.serde.ValueSerdeFactory;
 import io.confluent.ksql.services.KafkaTopicClient;
+import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.time.Duration;
@@ -57,6 +61,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Before;
@@ -83,21 +88,21 @@ public class CreateSourceCommandTest {
   private static final Set<SerdeOption> SOME_SERDE_OPTIONS = ImmutableSet
       .of(SerdeOption.UNWRAP_SINGLE_VALUES);
 
-  private static final QualifiedName SOME_NAME = QualifiedName.of("bob");
-
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private CreateSource statement;
   @Mock
+  private ServiceContext serviceContext;
+  @Mock
   private KafkaTopicClient kafkaTopicClient;
   @Mock
   private SerdeOptionsSupplier serdeOptions;
   @Mock
-  private SerdeFactories serdeFactories;
+  private ValueSerdeFactory serdeFactories;
   @Mock
-  private KsqlSerdeFactory serdeFactory;
+  private Serde<GenericRow> serde;
 
   private KsqlConfig ksqlConfig;
 
@@ -111,7 +116,9 @@ public class CreateSourceCommandTest {
 
     ksqlConfig = new KsqlConfig(ImmutableMap.of());
 
-    when(serdeFactories.create(any(), any())).thenReturn(serdeFactory);
+    when(serdeFactories.create(any(), any(), any(), any(), any(), any())).thenReturn(serde);
+
+    when(serviceContext.getTopicClient()).thenReturn(kafkaTopicClient);
   }
 
   @Test
@@ -275,7 +282,7 @@ public class CreateSourceCommandTest {
   }
 
   @Test
-  public void shouldValidateValueFormatCanHandleValueSchema() {
+  public void shouldCreateSerdeToValidateValueFormatCanHandleValueSchema() {
     // Given:
     final LogicalSchema schema = LogicalSchema.of(SchemaBuilder
         .struct()
@@ -287,7 +294,14 @@ public class CreateSourceCommandTest {
     createCmd();
 
     // Then:
-    verify(serdeFactory).validate(PhysicalSchema.from(schema, SerdeOption.none()).valueSchema());
+    verify(serdeFactories).create(
+        FormatInfo.of(JSON, Optional.empty()),
+        PhysicalSchema.from(schema, SerdeOption.none()),
+        ksqlConfig,
+        serviceContext.getSchemaRegistryClientFactory(),
+        "",
+        NoopProcessingLogContext.INSTANCE
+    );
   }
 
   @Test
@@ -367,7 +381,7 @@ public class CreateSourceCommandTest {
         "sql",
         statement,
         ksqlConfig,
-        kafkaTopicClient,
+        serviceContext,
         serdeOptions,
         serdeFactories
     );
@@ -392,15 +406,15 @@ public class CreateSourceCommandTest {
         final String sqlExpression,
         final CreateSource statement,
         final KsqlConfig ksqlConfig,
-        final KafkaTopicClient kafkaTopicClient,
+        final ServiceContext serviceContext,
         final SerdeOptionsSupplier serdeOptionsSupplier,
-        final SerdeFactories serdeFactories
+        final ValueSerdeFactory serdeFactories
     ) {
       super(
           sqlExpression,
           statement,
           ksqlConfig,
-          kafkaTopicClient,
+          serviceContext,
           serdeOptionsSupplier,
           serdeFactories
       );

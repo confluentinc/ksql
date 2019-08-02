@@ -27,9 +27,8 @@ import io.confluent.ksql.KsqlConfigTestUtil;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.GenericRowSerDe;
-import io.confluent.ksql.serde.KsqlSerdeFactories;
-import io.confluent.ksql.serde.SerdeFactories;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
@@ -81,7 +80,6 @@ public class IntegrationTestHarness extends ExternalResource {
 
   private final LazyServiceContext serviceContext;
   private final EmbeddedSingleNodeKafkaCluster kafkaCluster;
-  private final SerdeFactories serdeFactories = new KsqlSerdeFactories();
 
   public static Builder builder() {
     return new Builder();
@@ -566,7 +564,7 @@ public class IntegrationTestHarness extends ExternalResource {
       final PhysicalSchema schema
   ) {
     return GenericRowSerDe.from(
-        serdeFactories.create(format, Optional.empty()),
+        FormatInfo.of(format, Optional.empty()),
         schema,
         new KsqlConfig(Collections.emptyMap()),
         serviceContext.get().getSchemaRegistryClientFactory(),
@@ -580,7 +578,7 @@ public class IntegrationTestHarness extends ExternalResource {
       final PhysicalSchema schema
   ) {
     return GenericRowSerDe.from(
-        serdeFactories.create(format, Optional.empty()),
+        FormatInfo.of(format, Optional.empty()),
         schema,
         new KsqlConfig(Collections.emptyMap()),
         serviceContext.get().getSchemaRegistryClientFactory(),

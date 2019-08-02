@@ -35,7 +35,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import javax.annotation.concurrent.ThreadSafe;
 import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.apache.kafka.clients.admin.Admin;
+import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.AlterConfigOp;
 import org.apache.kafka.clients.admin.Config;
 import org.apache.kafka.clients.admin.ConfigEntry;
@@ -66,14 +66,14 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   private static final String DEFAULT_REPLICATION_PROP = "default.replication.factor";
   private static final String DELETE_TOPIC_ENABLE = "delete.topic.enable";
 
-  private final Admin adminClient;
+  private final AdminClient adminClient;
 
   /**
    * Construct a topic client from an existing admin client.
    *
    * @param adminClient the admin client.
    */
-  public KafkaTopicClientImpl(final Admin adminClient) {
+  public KafkaTopicClientImpl(final AdminClient adminClient) {
     this.adminClient = Objects.requireNonNull(adminClient, "adminClient");
   }
 
@@ -120,7 +120,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   }
 
   /**
-   * We need this method because {@link Admin#createTopics(Collection)} does not allow
+   * We need this method because {@link AdminClient#createTopics(Collection)} does not allow
    * you to pass in only partitions. Instead, we determine the default number from the cluster
    * config and then pass that value back.
    *

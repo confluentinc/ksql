@@ -21,7 +21,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import java.util.Collections;
 import java.util.Objects;
 import java.util.function.Supplier;
-import org.apache.kafka.clients.admin.Admin;
+import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.streams.KafkaClientSupplier;
 import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
 
@@ -31,7 +31,7 @@ import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
 public class DefaultServiceContext implements ServiceContext {
 
   private final KafkaClientSupplier kafkaClientSupplier;
-  private final Admin adminClient;
+  private final AdminClient adminClient;
   private final KafkaTopicClient topicClient;
   private final Supplier<SchemaRegistryClient> srClientFactory;
   private final SchemaRegistryClient srClient;
@@ -50,7 +50,7 @@ public class DefaultServiceContext implements ServiceContext {
       final KafkaClientSupplier kafkaClientSupplier,
       final Supplier<SchemaRegistryClient> srClientFactory
   ) {
-    final Admin adminClient = kafkaClientSupplier.getAdminClient(
+    final AdminClient adminClient = kafkaClientSupplier.getAdminClient(
         ksqlConfig.getKsqlAdminClientConfigProps()
     );
 
@@ -65,7 +65,7 @@ public class DefaultServiceContext implements ServiceContext {
 
   DefaultServiceContext(
       final KafkaClientSupplier kafkaClientSupplier,
-      final Admin adminClient,
+      final AdminClient adminClient,
       final KafkaTopicClient topicClient,
       final Supplier<SchemaRegistryClient> srClientFactory,
       final ConnectClient connectClient
@@ -79,7 +79,7 @@ public class DefaultServiceContext implements ServiceContext {
   }
 
   @Override
-  public Admin getAdminClient() {
+  public AdminClient getAdminClient() {
     return adminClient;
   }
 

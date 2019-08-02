@@ -15,9 +15,7 @@
 
 package io.confluent.ksql.rest.server;
 
-import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.services.ServiceContext;
-
 import java.util.Optional;
 
 public interface KsqlServerPrecondition {
@@ -26,10 +24,10 @@ public interface KsqlServerPrecondition {
    *
    * @param config The KSQL server config
    * @param serviceContext The KSQL server context for accessing external serivces
-   * @return Optional.empty() if precondition check passes, non-empty KsqlErrorMessage object if the
+   * @return Optional.empty() if precondition check passes, non-empty reason string if the
    *         check does not pass.
    */
-  Optional<KsqlErrorMessage> checkPrecondition(
+  Optional<String> checkPrecondition(
       KsqlRestConfig config,
       ServiceContext serviceContext
   );

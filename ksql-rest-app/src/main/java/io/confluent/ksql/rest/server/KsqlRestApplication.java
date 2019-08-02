@@ -36,15 +36,6 @@ import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
-import io.confluent.ksql.parser.tree.CreateStream;
-import io.confluent.ksql.parser.tree.Literal;
-import io.confluent.ksql.parser.tree.PrimitiveType;
-import io.confluent.ksql.parser.tree.QualifiedName;
-import io.confluent.ksql.parser.tree.RegisterTopic;
-import io.confluent.ksql.parser.tree.StringLiteral;
-import io.confluent.ksql.parser.tree.TableElement;
-import io.confluent.ksql.parser.tree.Type.SqlType;
-import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.computation.CommandRunner;
 import io.confluent.ksql.rest.server.computation.CommandStore;
@@ -224,13 +215,13 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
 
   private void checkPreconditions() {
     for (final KsqlServerPrecondition precondition : preconditions) {
-      final Optional<KsqlErrorMessage> error = precondition.checkPrecondition(
+      final Optional<String> error = precondition.checkPrecondition(
           config,
           serviceContext
       );
       if (error.isPresent()) {
         serverState.setInitializingReason(error.get());
-        throw new KsqlFailedPrecondition(error.get().toString());
+        throw new KsqlFailedPrecondition(error.get());
       }
     }
   }

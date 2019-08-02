@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.rest.server.state;
 
-import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.server.resources.Errors;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
@@ -36,28 +35,23 @@ public class ServerState {
     TERMINATING
   }
 
-  private static final class StateWithErrorMessage {
+  private static final class StateWithReason {
     final State state;
-    final KsqlErrorMessage errorMessage;
+    final String reason;
 
-    private StateWithErrorMessage(final State state, final KsqlErrorMessage error) {
+    private StateWithReason(final State state, final String reason) {
       this.state = state;
-      this.errorMessage = error;
+      this.reason = reason;
     }
 
-    private StateWithErrorMessage(final State state) {
+    private StateWithReason(final State state) {
       this.state = state;
-      this.errorMessage = null;
+      this.reason = null;
     }
   }
 
-  private final AtomicReference<StateWithErrorMessage> state = new AtomicReference<>(
-      new StateWithErrorMessage(State.INITIALIZING,
-              new KsqlErrorMessage(
-                      Errors.ERROR_CODE_SERVER_NOT_READY,
-                      "KSQL is not yet ready to serve requests."
-              )
-      )
+  private final AtomicReference<StateWithReason> state = new AtomicReference<>(
+      new StateWithReason(State.INITIALIZING, "KSQL is not yet ready to serve requests.")
   );
 
   /**
@@ -67,29 +61,28 @@ public class ServerState {
   }
 
   /**
-   * Set a KsqlErrorMessage object containing a reason string explaining why the server
-   * is still in the INITIALIZING state and an error code. This reason string and corresponding
-   * error code will be used to add context to the API error indicating that the server is not
-   * yet ready to serve requests.
+   * Set a reason string explaining why the server is still in the INITIALIZING state.
+   * This reason string will be used to add context to the API error indicating that the server
+   * is not yet ready to serve requests.
    *
-   * @param error KsqlErrorMessage object containing the error code and the error string.
+   * @param initializingReason The reason string indicating why the server is still initializing.
    */
-  public void setInitializingReason(final KsqlErrorMessage error) {
-    this.state.set(new StateWithErrorMessage(State.INITIALIZING, error));
+  public void setInitializingReason(final String initializingReason) {
+    this.state.set(new StateWithReason(State.INITIALIZING, initializingReason));
   }
 
   /**
    * Sets the server state to READY.
    */
   public void setReady() {
-    this.state.set(new StateWithErrorMessage(State.READY));
+    this.state.set(new StateWithReason(State.READY));
   }
 
   /**
    * Sets the server state to TERMINATING.
    */
   public void setTerminating() {
-    this.state.set(new StateWithErrorMessage(State.TERMINATING));
+    this.state.set(new StateWithReason(State.TERMINATING));
   }
 
   /**
@@ -100,10 +93,10 @@ public class ServerState {
    *         to be returned back to the user.
    */
   public Optional<Response> checkReady() {
-    final StateWithErrorMessage state = this.state.get();
+    final StateWithReason state = this.state.get();
     switch (state.state) {
       case INITIALIZING:
-        return Optional.of(Errors.serverNotReady(state.errorMessage));
+        return Optional.of(Errors.serverNotReady(state.reason));
       case TERMINATING:
         return Optional.of(Errors.serverShuttingDown());
       default:

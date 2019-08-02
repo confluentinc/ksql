@@ -19,7 +19,6 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
-import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.server.resources.Errors;
 import java.util.Optional;
 import javax.ws.rs.core.Response;
@@ -31,8 +30,7 @@ public class ServerStateTest {
   @Test
   public void shouldReturnErrorWhenInitializing() {
     // Given:
-    KsqlErrorMessage error = new KsqlErrorMessage(12345, "bad stuff is happening");
-    serverState.setInitializingReason(error);
+    serverState.setInitializingReason("bad stuff is happening");
 
     // When:
     final Optional<Response> result = serverState.checkReady();
@@ -40,7 +38,7 @@ public class ServerStateTest {
     // Then:
     assertThat(result.isPresent(), is(true));
     final Response response = result.get();
-    final Response expected = Errors.serverNotReady(error);
+    final Response expected = Errors.serverNotReady("bad stuff is happening");
     assertThat(response.getStatus(), equalTo(expected.getStatus()));
     assertThat(response.getEntity(), equalTo(expected.getEntity()));
   }

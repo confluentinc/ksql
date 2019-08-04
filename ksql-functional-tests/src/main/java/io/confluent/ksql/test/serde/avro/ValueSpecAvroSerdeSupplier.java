@@ -31,7 +31,6 @@ import java.util.AbstractMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -132,8 +131,10 @@ public class ValueSpecAvroSerdeSupplier implements SerdeSupplier<Object> {
                   schema.getElementType().getProp(AvroData.CONNECT_INTERNAL_TYPE_NAME),
                   AvroData.MAP_ENTRY_TYPE_NAME)
               ) {
-            return getAvroRecord(spec, schema.getElementType());
-
+            return ((Map<Object, Object>) spec).entrySet().stream()
+                .map(objectObjectEntry ->
+                    getAvroRecordForMapEntry(objectObjectEntry, schema.getElementType()))
+                .collect(Collectors.toList());
           }
           final List<?> list = ((List<?>) spec).stream()
               .map(o -> valueSpecToAvro(o, schema.getElementType()))
@@ -174,10 +175,11 @@ public class ValueSpecAvroSerdeSupplier implements SerdeSupplier<Object> {
       }
     }
 
+    @SuppressWarnings("unchecked")
     private static GenericRecord getAvroRecord(final Object spec, final Schema schema) {
       final GenericRecord record = new GenericData.Record(schema);
       final Map<String, String> caseInsensitiveFieldNames
-          = getCaseInsensitiveMap((Map<String, ?>) spec);
+          = getCaseInsensitiveMap((Map) spec);
       for (final org.apache.avro.Schema.Field field : schema.getFields()) {
         record.put(
             field.name(),
@@ -185,6 +187,18 @@ public class ValueSpecAvroSerdeSupplier implements SerdeSupplier<Object> {
                 .get(caseInsensitiveFieldNames.get(field.name().toUpperCase())), field.schema())
         );
       }
+      return record;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static GenericRecord getAvroRecordForMapEntry(
+        final Map.Entry<?, ?> spec,
+        final Schema schema) {
+      final GenericRecord record = new GenericData.Record(schema);
+      record.put("key",
+          valueSpecToAvro(spec.getKey(), schema.getField("key").schema()));
+      record.put("value",
+          valueSpecToAvro(spec.getValue(), schema.getField("value").schema()));
       return record;
     }
 
@@ -343,9 +357,10 @@ public class ValueSpecAvroSerdeSupplier implements SerdeSupplier<Object> {
     }
   }
 
-  private static Map<String, String> getCaseInsensitiveMap(final Map<String, ?> record) {
+  @SuppressWarnings("unchecked")
+  private static Map<String, String> getCaseInsensitiveMap(final Map<?, ?> record) {
     return record.entrySet().stream().collect(Collectors.toMap(
-        entry -> entry.getKey().toUpperCase(),
-        Entry::getKey));
+        entry -> entry.getKey().toString().toUpperCase(),
+        entry -> entry.getKey().toString()));
   }
 } 

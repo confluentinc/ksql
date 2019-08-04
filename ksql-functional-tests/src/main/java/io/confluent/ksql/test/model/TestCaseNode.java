@@ -38,6 +38,7 @@ import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeFactory;
 import io.confluent.ksql.serde.ValueFormat;
+import io.confluent.ksql.test.model.WindowData.Type;
 import io.confluent.ksql.test.serde.SerdeSupplier;
 import io.confluent.ksql.test.tools.Record;
 import io.confluent.ksql.test.tools.TestCase;
@@ -51,6 +52,7 @@ import io.confluent.ksql.topic.TopicFactory;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConstants;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -227,9 +229,14 @@ public class TestCaseNode {
 
     // Get topics from inputs and outputs fields:
     Streams.concat(inputs.stream(), outputs.stream())
-        .map(RecordNode::topicName)
-        .map(topicName -> new Topic(topicName, Optional.empty(), Serdes::String,
-            defaultSerdeSupplier, 4, 1, Optional.empty()))
+        .map(recordNode -> new Topic(
+            recordNode.topicName(),
+            Optional.empty(),
+            getKeySerdeFactory(recordNode.getWindow()),
+            defaultSerdeSupplier,
+            4,
+            1,
+            Optional.empty()))
         .forEach(topic -> allTopics.putIfAbsent(topic.getName(), topic));
 
     return allTopics;
@@ -305,6 +312,18 @@ public class TestCaseNode {
       e.printStackTrace(System.out);
       return null;
     }
+  }
+
+  private static SerdeFactory<?> getKeySerdeFactory(final Optional<WindowData> windowDataInfo) {
+    return windowDataInfo.<SerdeFactory<?>>map(windowData -> getKeySerdeFactory(
+        KeyFormat.windowed(
+            Format.KAFKA,
+            WindowType.of((windowData.type == Type.SESSION) ? WindowType.SESSION.name()
+                : WindowType.TUMBLING.name()),
+            (windowDataInfo.get().type == Type.SESSION)
+                ? Optional.empty()
+                : Optional.of(Duration.ofMillis(windowData.size())))))
+        .orElseGet(() -> getKeySerdeFactory(KeyFormat.nonWindowed(Format.KAFKA)));
   }
 
   @SuppressWarnings({"unchecked", "OptionalGetWithoutIsPresent"})

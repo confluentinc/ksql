@@ -30,6 +30,7 @@ import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.streams.kstream.TimeWindowedDeserializer;
+import org.apache.kafka.streams.kstream.WindowedSerdes.SessionWindowedSerde;
 import org.apache.kafka.streams.kstream.WindowedSerdes.TimeWindowedSerde;
 
 @SuppressWarnings("rawtypes")
@@ -95,7 +96,7 @@ public class Topic {
 
   Deserializer getValueDeserializer(final SchemaRegistryClient schemaRegistryClient) {
     final Deserializer<?> deserializer = valueSerdeSupplier.getDeserializer(schemaRegistryClient);
-    deserializer.configure(ImmutableMap.of("schema.registry.url", "localhost:8081"), false);
+    deserializer.configure(ImmutableMap.of("schema.registry.url", "foo"), false);
     return deserializer;
   }
 
@@ -105,7 +106,13 @@ public class Topic {
 
   Deserializer<?> getKeyDeserializer(final boolean isLegacySessionWindow) {
     final Serde keySerde = keySerdeFactory.create();
-    if (!(keySerde instanceof TimeWindowedSerde)) {
+    if (keySerde instanceof SessionWindowedSerde) {
+      if (!isLegacySessionWindow) {
+        return keySerde.deserializer();
+      } else {
+        return new TimeWindowedDeserializer<>(new StringDeserializer(), Long.MAX_VALUE);
+      }
+    } else if (!(keySerde instanceof TimeWindowedSerde)) {
       return keySerde.deserializer();
     }
 
@@ -116,7 +123,7 @@ public class Topic {
     final TimeWindowedSerde windowedSerde = (TimeWindowedSerde) keySerde;
     final TimeWindowedDeserializer timeWindowedDeserializer =
         (TimeWindowedDeserializer) windowedSerde.deserializer();
-    if (timeWindowedDeserializer.getWindowSize() == Long.MAX_VALUE && !isLegacySessionWindow) {
+    if (timeWindowedDeserializer.getWindowSize() == Long.MAX_VALUE) {
       throw new KsqlException("Window size is not present for time windowed deserializer.");
     }
 

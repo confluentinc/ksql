@@ -20,7 +20,8 @@ the processing log to Kafka and consuming it as KSQL stream.
 
     The processing log is not for server logging, but rather for per-record
     logging on KSQL applications. If you want to configure a Kafka appender
-    for the server logs, assign the following configuration settings in the
+    for the server logs, assign the ``log4j.appender.kafka_appender.Topic``
+    and ``log4j.logger.io.confluent.ksql`` configuration settings in the
     KSQL Server config file. For more information, see
     :ref:`ksql-server-log-settings`.
 

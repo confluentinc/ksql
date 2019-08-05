@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.server.validation;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.engine.InsertValuesExecutor;
+import io.confluent.ksql.parser.tree.CreateConnector;
 import io.confluent.ksql.parser.tree.DescribeFunction;
 import io.confluent.ksql.parser.tree.Explain;
 import io.confluent.ksql.parser.tree.InsertValues;
@@ -64,8 +65,9 @@ public enum CustomValidators {
   LIST_FUNCTIONS(ListFunctions.class, StatementValidator.NO_VALIDATION),
   LIST_QUERIES(ListQueries.class, StatementValidator.NO_VALIDATION),
   LIST_PROPERTIES(ListProperties.class, StatementValidator.NO_VALIDATION),
-  INSERT_VALUES(InsertValues.class, new InsertValuesExecutor()::execute),
+  CREATE_CONNECTOR(CreateConnector.class, StatementValidator.NO_VALIDATION),
 
+  INSERT_VALUES(InsertValues.class, new InsertValuesExecutor()::execute),
   SHOW_COLUMNS(ShowColumns.class, ListSourceExecutor::columns),
   EXPLAIN(Explain.class, ExplainExecutor::execute),
   DESCRIBE_FUNCTION(DescribeFunction.class, DescribeFunctionExecutor::execute),

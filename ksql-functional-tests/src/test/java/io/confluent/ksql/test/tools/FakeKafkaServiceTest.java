@@ -23,7 +23,6 @@ import java.util.List;
 import java.util.Optional;
 import org.apache.avro.Schema;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.common.serialization.Serdes;
 import org.hamcrest.CoreMatchers;
 import org.junit.Before;
 import org.junit.Test;
@@ -52,7 +51,7 @@ public class FakeKafkaServiceTest {
     topic = new Topic(
         "foo",
         Optional.of(avroSchema),
-        Serdes::String,
+        new StringSerdeSupplier(),
         new StringSerdeSupplier(),
         1,
         1,

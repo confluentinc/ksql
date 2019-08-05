@@ -14,6 +14,7 @@ import io.confluent.avro.random.generator.Generator;
 import io.confluent.ksql.test.EndToEndEngineTestUtil.TestFile;
 import io.confluent.ksql.test.serde.avro.AvroSerdeSupplier;
 import io.confluent.ksql.test.serde.avro.ValueSpecAvroSerdeSupplier;
+import io.confluent.ksql.test.serde.string.StringSerdeSupplier;
 import io.confluent.ksql.test.tools.Record;
 import io.confluent.ksql.test.tools.TestCase;
 import io.confluent.ksql.test.tools.Topic;
@@ -31,7 +32,6 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.apache.avro.Schema;
-import org.apache.kafka.common.serialization.Serdes;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -49,7 +49,7 @@ public class SchemaTranslationTest {
   private static final Topic OUTPUT_TOPIC = new Topic(
       OUTPUT_TOPIC_NAME,
       Optional.empty(),
-      Serdes::String,
+      new StringSerdeSupplier(),
       new ValueSpecAvroSerdeSupplier(),
       1,
       1,
@@ -156,7 +156,7 @@ public class SchemaTranslationTest {
         final Topic srcTopic = new Topic(
             TOPIC_NAME,
             Optional.of(schema),
-            Serdes::String,
+            new StringSerdeSupplier(),
             new AvroSerdeSupplier(),
             1,
             1,

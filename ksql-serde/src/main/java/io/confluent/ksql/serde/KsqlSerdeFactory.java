@@ -19,16 +19,12 @@ import com.google.errorprone.annotations.Immutable;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.SchemaUtil;
 import java.util.function.Supplier;
 import org.apache.kafka.common.serialization.Serde;
 
 @Immutable
 public interface KsqlSerdeFactory {
-
-  /**
-   * @return the format this serde factory supports
-   */
-  Format getFormat();
 
   /**
    * Validate the serde factory can handle the supplied {@code schema}.
@@ -47,5 +43,26 @@ public interface KsqlSerdeFactory {
   Serde<Object> createSerde(
       PersistenceSchema schema,
       KsqlConfig ksqlConfig,
-      Supplier<SchemaRegistryClient> schemaRegistryClientFactory);
+      Supplier<SchemaRegistryClient> schemaRegistryClientFactory
+  );
+
+  @SuppressWarnings("unchecked")
+  default <T> Serde<T> createSerde(
+      PersistenceSchema schema,
+      KsqlConfig ksqlConfig,
+      Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
+      Class<T> type
+  ) {
+    final Class<?> actualType = SchemaUtil.getJavaType(schema.serializedSchema());
+
+    if (!type.equals(actualType)) {
+      throw new IllegalArgumentException("schema does not resolve to required type."
+          + " schema: " + schema
+          + ", schemaType: " + actualType
+          + ", requiredType: " + type
+      );
+    }
+
+    return (Serde) createSerde(schema, ksqlConfig, schemaRegistryClientFactory);
+  }
 }

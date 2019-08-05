@@ -18,9 +18,9 @@ package io.confluent.ksql.parser.tree;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.UdafAggregator;
-import io.confluent.ksql.model.WindowType;
-import java.time.Duration;
+import io.confluent.ksql.serde.WindowInfo;
 import java.util.Optional;
+import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Initializer;
 import org.apache.kafka.streams.kstream.KGroupedStream;
 import org.apache.kafka.streams.kstream.KTable;
@@ -36,14 +36,9 @@ public abstract class KsqlWindowExpression extends AstNode {
   public abstract KTable applyAggregate(KGroupedStream groupedStream,
                                         Initializer initializer,
                                         UdafAggregator aggregator,
-                                        Materialized<String, GenericRow, ?> materialized);
+      Materialized<Struct, GenericRow, ?> materialized);
 
-  public abstract WindowType getType();
-
-  /**
-   * @return the fixed window size of the window, if one exists.
-   */
-  public abstract Optional<Duration> getWindowSize();
+  public abstract WindowInfo getWindowInfo();
 
   @Override
   public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {

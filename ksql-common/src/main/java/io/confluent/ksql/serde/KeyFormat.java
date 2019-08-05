@@ -30,46 +30,26 @@ public final class KeyFormat {
   private final FormatInfo format;
   private final Optional<WindowInfo> window;
 
-  public static KeyFormat nonWindowed(
-      final Format format
-  ) {
-    return new KeyFormat(
-        FormatInfo.of(format, Optional.empty()),
-        Optional.empty()
-    );
-  }
-
-  public static KeyFormat nonWindowed(
-      final Format format,
-      final Optional<String> avroSchemaName
-  ) {
-    return new KeyFormat(
-        FormatInfo.of(format, avroSchemaName),
-        Optional.empty()
-    );
-  }
-
-  public static KeyFormat windowed(
-      final Format format,
-      final WindowType windowType,
-      final Optional<Duration> windowSize
-  ) {
-    return new KeyFormat(
-        FormatInfo.of(format, Optional.empty()),
-        Optional.of(new WindowInfo(windowType, windowSize))
-    );
+  public static KeyFormat nonWindowed(final FormatInfo format) {
+    return new KeyFormat(format, Optional.empty());
   }
 
   public static KeyFormat windowed(
       final Format format,
       final Optional<String> avroSchemaName,
-      final WindowType windowType,
-      final Optional<Duration> windowSize
+      final WindowInfo windowInfo
   ) {
     return new KeyFormat(
         FormatInfo.of(format, avroSchemaName),
-        Optional.of(new WindowInfo(windowType, windowSize))
+        Optional.of(windowInfo)
     );
+  }
+
+  public static KeyFormat windowed(
+      final FormatInfo format,
+      final WindowInfo windowInfo
+  ) {
+    return new KeyFormat(format, Optional.of(windowInfo));
   }
 
   private KeyFormat(
@@ -90,6 +70,10 @@ public final class KeyFormat {
 
   public boolean isWindowed() {
     return window.isPresent();
+  }
+
+  public Optional<WindowInfo> getWindowInfo() {
+    return window;
   }
 
   public Optional<WindowType> getWindowType() {
@@ -126,56 +110,4 @@ public final class KeyFormat {
         + '}';
   }
 
-  private static final class WindowInfo {
-
-    private final WindowType type;
-    private final Optional<Duration> size;
-
-    private WindowInfo(final WindowType type, final Optional<Duration> size) {
-      this.type = Objects.requireNonNull(type, "type");
-      this.size = Objects.requireNonNull(size, "size");
-
-      if (type.requiresWindowSize() && !size.isPresent()) {
-        throw new IllegalArgumentException("Size required");
-      }
-
-      if (!type.requiresWindowSize() && size.isPresent()) {
-        throw new IllegalArgumentException("Size not required");
-      }
-    }
-
-    public WindowType getType() {
-      return type;
-    }
-
-    public Optional<Duration> getSize() {
-      return size;
-    }
-
-    @Override
-    public boolean equals(final Object o) {
-      if (this == o) {
-        return true;
-      }
-      if (o == null || getClass() != o.getClass()) {
-        return false;
-      }
-      final WindowInfo that = (WindowInfo) o;
-      return type == that.type
-          && Objects.equals(size, that.size);
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hash(type, size);
-    }
-
-    @Override
-    public String toString() {
-      return "WindowInfo{"
-          + "type=" + type
-          + ", size=" + size.map(Duration::toMillis)
-          + '}';
-    }
-  }
 }

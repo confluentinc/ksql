@@ -75,6 +75,7 @@ import io.confluent.ksql.schema.ksql.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
@@ -142,8 +143,8 @@ public class KsqlParserTest {
 
     final KsqlTopic ksqlTopicOrders = new KsqlTopic(
         "orders_topic",
-        KeyFormat.nonWindowed(Format.KAFKA),
-        ValueFormat.of(Format.JSON),
+        KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
+        ValueFormat.of(FormatInfo.of(Format.JSON)),
         false
     );
 
@@ -161,8 +162,8 @@ public class KsqlParserTest {
 
     final KsqlTopic ksqlTopicItems = new KsqlTopic(
         "item_topic",
-        KeyFormat.nonWindowed(Format.KAFKA),
-        ValueFormat.of(Format.JSON),
+        KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
+        ValueFormat.of(FormatInfo.of(Format.JSON)),
         false
     );
 

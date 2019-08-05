@@ -13,17 +13,20 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.serde;
+package org.apache.kafka.streams.kstream;
 
-import java.util.Optional;
+import org.apache.kafka.common.serialization.Serde;
 
-public interface SerdeFactories {
+/**
+ * To allow access to serde in {@link Consumed}.
+ */
+public final class KsqlConsumed {
 
-  /**
-   * Create {@link KsqlSerdeFactory}.
-   *
-   * @param format the format to use
-   * @param fullSchemaName explicitly set full schema name
-   */
-  KsqlSerdeFactory create(Format format, Optional<String> fullSchemaName);
+  private KsqlConsumed() {
+  }
+
+  public static <K> Serde<K> keySerde(final Consumed<K, ?> consumed) {
+    return consumed.keySerde;
+  }
 }
+

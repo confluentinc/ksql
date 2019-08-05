@@ -17,7 +17,6 @@ package io.confluent.ksql.structured;
 
 import static java.util.Collections.emptyMap;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.mockito.ArgumentMatchers.any;
@@ -39,6 +38,8 @@ import io.confluent.ksql.parser.tree.KsqlWindowExpression;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.serde.KeySerde;
+import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.streams.MaterializedFactory;
 import io.confluent.ksql.streams.StreamsUtil;
 import io.confluent.ksql.util.KsqlConfig;
@@ -48,16 +49,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.apache.kafka.common.serialization.Serde;
-import org.apache.kafka.common.serialization.Serdes;
+import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Initializer;
 import org.apache.kafka.streams.kstream.KGroupedStream;
 import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.kstream.ValueMapper;
 import org.apache.kafka.streams.kstream.ValueMapperWithKey;
-import org.apache.kafka.streams.kstream.WindowedSerdes;
-import org.apache.kafka.streams.kstream.WindowedSerdes.SessionWindowedSerde;
-import org.apache.kafka.streams.kstream.WindowedSerdes.TimeWindowedSerde;
+import org.apache.kafka.streams.kstream.Windowed;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -101,6 +100,10 @@ public class SchemaKGroupedStreamTest {
   private MaterializedFactory materializedFactory;
   @Mock
   private Materialized materialized;
+  @Mock
+  private KeySerde<Struct> keySerde;
+  @Mock
+  private KeySerde<Windowed<Struct>> windowedKeySerde;
   private final QueryContext.Stacker queryContext
       = new QueryContext.Stacker(new QueryId("query")).push("node");
   private SchemaKGroupedStream schemaGroupedStream;
@@ -108,7 +111,9 @@ public class SchemaKGroupedStreamTest {
   @Before
   public void setUp() {
     schemaGroupedStream = new SchemaKGroupedStream(
-        schema, groupedStream, keyField, sourceStreams, config, funcRegistry, materializedFactory);
+        groupedStream, schema, keySerde, keyField, sourceStreams, config, funcRegistry,
+        materializedFactory
+    );
 
     when(windowStartFunc.getFunctionName()).thenReturn("WindowStart");
     when(windowEndFunc.getFunctionName()).thenReturn("WindowEnd");
@@ -117,7 +122,10 @@ public class SchemaKGroupedStreamTest {
     when(config.getBoolean(KsqlConfig.KSQL_WINDOWED_SESSION_KEY_LEGACY_CONFIG)).thenReturn(false);
     when(materializedFactory.create(any(), any(), any())).thenReturn(materialized);
 
-    when(ksqlWindowExp.getType()).thenReturn(WindowType.SESSION);
+    when(ksqlWindowExp.getWindowInfo())
+        .thenReturn(WindowInfo.of(WindowType.SESSION, Optional.empty()));
+
+    when(keySerde.rebind(any(WindowInfo.class))).thenReturn(windowedKeySerde);
   }
 
   @Test
@@ -160,55 +168,52 @@ public class SchemaKGroupedStreamTest {
   }
 
   @Test
-  public void shouldUseStringKeySerdeForNoneWindowed() {
-    // When:
-    final SchemaKTable result = schemaGroupedStream
-        .aggregate(
-            initializer,emptyMap(), emptyMap(), null, topicValueSerDe, queryContext);
-
-    // Then:
-    assertThat(result.getKeySerdeFactory().create(), instanceOf(Serdes.String().getClass()));
-  }
-
-  @Test
   public void shouldSupportSessionWindowedKey() {
     // Given:
-    when(ksqlWindowExp.getType()).thenReturn(WindowType.SESSION);
+    final WindowInfo windowInfo = WindowInfo.of(WindowType.SESSION, Optional.empty());
+    when(ksqlWindowExp.getWindowInfo()).thenReturn(windowInfo);
 
     // When:
     final SchemaKTable result = schemaGroupedStream
         .aggregate(initializer, emptyMap(), emptyMap(), windowExp, topicValueSerDe, queryContext);
 
     // Then:
-    assertThat(result.getKeySerdeFactory().create(), is(instanceOf(SessionWindowedSerde.class)));
+    verify(keySerde).rebind(windowInfo);
+    assertThat(result.getKeySerde(), is(windowedKeySerde));
   }
 
   @Test
   public void shouldSupportHoppingWindowedKey() {
     // Given:
-    when(ksqlWindowExp.getType()).thenReturn(WindowType.HOPPING);
-    when(ksqlWindowExp.getWindowSize()).thenReturn(Optional.of(Duration.ofMillis(10)));
+    final WindowInfo windowInfo = WindowInfo
+        .of(WindowType.HOPPING, Optional.of(Duration.ofMillis(10)));
+
+    when(ksqlWindowExp.getWindowInfo()).thenReturn(windowInfo);
 
     // When:
     final SchemaKTable result = schemaGroupedStream
         .aggregate(initializer, emptyMap(), emptyMap(), windowExp, topicValueSerDe, queryContext);
 
     // Then:
-    assertThat(result.getKeySerdeFactory().create(), is(instanceOf(TimeWindowedSerde.class)));
+    verify(keySerde).rebind(windowInfo);
+    assertThat(result.getKeySerde(), is(windowedKeySerde));
   }
 
   @Test
   public void shouldSupportTumblingWindowedKey() {
     // Given:
-    when(ksqlWindowExp.getType()).thenReturn(WindowType.TUMBLING);
-    when(ksqlWindowExp.getWindowSize()).thenReturn(Optional.of(Duration.ofMillis(10)));
+    final WindowInfo windowInfo = WindowInfo
+        .of(WindowType.TUMBLING, Optional.of(Duration.ofMillis(10)));
+
+    when(ksqlWindowExp.getWindowInfo()).thenReturn(windowInfo);
 
     // When:
     final SchemaKTable result = schemaGroupedStream
         .aggregate(initializer, emptyMap(), emptyMap(), windowExp, topicValueSerDe, queryContext);
 
     // Then:
-    assertThat(result.getKeySerdeFactory().create(), is(instanceOf(TimeWindowedSerde.class)));
+    verify(keySerde).rebind(windowInfo);
+    assertThat(result.getKeySerde(), is(windowedKeySerde));
   }
 
   @Test
@@ -222,8 +227,9 @@ public class SchemaKGroupedStreamTest {
         .aggregate(initializer, emptyMap(), emptyMap(), windowExp, topicValueSerDe, queryContext);
 
     // Then:
-    assertThat(result.getKeySerdeFactory().create(),
-        is(instanceOf(WindowedSerdes.timeWindowedSerdeFrom(String.class).getClass())));
+    verify(keySerde)
+        .rebind(WindowInfo.of(WindowType.TUMBLING, Optional.of(Duration.ofMillis(Long.MAX_VALUE))));
+    assertThat(result.getKeySerde(), is(windowedKeySerde));
   }
 
   private void assertDoesNotInstallWindowSelectMapper(
@@ -297,7 +303,7 @@ public class SchemaKGroupedStreamTest {
     // Then:
     verify(materializedFactory)
         .create(
-            any(Serdes.String().getClass()),
+            same(keySerde),
             same(topicValueSerDe),
             eq(StreamsUtil.buildOpName(queryContext.getQueryContext())));
     verify(groupedStream, times(1)).aggregate(any(), any(), same(materialized));
@@ -323,7 +329,7 @@ public class SchemaKGroupedStreamTest {
     // Then:
     verify(materializedFactory)
         .create(
-            any(Serdes.String().getClass()),
+            same(keySerde),
             same(topicValueSerDe),
             eq(StreamsUtil.buildOpName(queryContext.getQueryContext())));
     verify(ksqlWindowExp, times(1)).applyAggregate(any(), any(), any(), same(materialized));

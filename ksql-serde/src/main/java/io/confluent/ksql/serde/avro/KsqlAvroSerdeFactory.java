@@ -21,7 +21,6 @@ import io.confluent.connect.avro.AvroDataConfig;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.AbstractKafkaAvroSerDeConfig;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
-import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.serde.connect.KsqlConnectDeserializer;
 import io.confluent.ksql.serde.connect.KsqlConnectSerializer;
@@ -46,11 +45,6 @@ public class KsqlAvroSerdeFactory implements KsqlSerdeFactory {
     if (this.fullSchemaName.isEmpty()) {
       throw new IllegalArgumentException("the schema name cannot be empty");
     }
-  }
-
-  @Override
-  public Format getFormat() {
-    return Format.AVRO;
   }
 
   @Override
@@ -138,7 +132,7 @@ public class KsqlAvroSerdeFactory implements KsqlSerdeFactory {
   ) {
     final boolean useNamedMaps = ksqlConfig.getBoolean(KsqlConfig.KSQL_USE_NAMED_AVRO_MAPS);
 
-    return new AvroDataTranslator(schema.getConnectSchema(), fullSchemaName, useNamedMaps);
+    return new AvroDataTranslator(schema.serializedSchema(), fullSchemaName, useNamedMaps);
   }
 
   private static AvroConverter getAvroConverter(

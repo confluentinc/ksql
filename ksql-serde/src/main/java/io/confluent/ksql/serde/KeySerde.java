@@ -16,16 +16,32 @@
 package io.confluent.ksql.serde;
 
 import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import org.apache.kafka.common.serialization.Serde;
+import org.apache.kafka.connect.data.Struct;
+import org.apache.kafka.streams.kstream.Windowed;
 
 @Immutable
-@FunctionalInterface
-public interface SerdeFactory<K> {
+public interface KeySerde<K> extends Serde<K> {
 
   /**
-   * Create a Serde instance.
-   *
-   * @return the serde instance.
+   * @return {@code true} if this serde is configured for a {@link Windowed} key.
    */
-  Serde<K> create();
+  boolean isWindowed();
+
+  /**
+   * Create a new instance, the same as this, except bound to a new key schema.
+   *
+   * @param keySchema the new key's schema.
+   * @return the new instance
+   */
+  KeySerde<Struct> rebind(PersistenceSchema keySchema);
+
+  /**
+   * Create a new instance, the same as this, but now windowed.
+   *
+   * @param window the info about the window
+   * @return the new instance.
+   */
+  KeySerde<Windowed<Struct>> rebind(WindowInfo window);
 }

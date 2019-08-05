@@ -25,6 +25,7 @@ import io.confluent.ksql.util.DecimalUtil;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.util.Collections;
+import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Merger;
 import org.junit.Test;
 
@@ -65,12 +66,12 @@ public class DecimalMinKudafTest {
   @Test
   public void shouldFindCorrectMinForMerge() {
     final DecimalMinKudaf doubleMinKudaf = getDecimalMinKudaf(3);
-    final Merger<String, BigDecimal> merger = doubleMinKudaf.getMerger();
-    final BigDecimal mergeResult1 = merger.apply("Key", new BigDecimal(10.0), new BigDecimal(12.0));
+    final Merger<Struct, BigDecimal> merger = doubleMinKudaf.getMerger();
+    final BigDecimal mergeResult1 = merger.apply(null, new BigDecimal(10.0), new BigDecimal(12.0));
     assertThat(mergeResult1, equalTo(new BigDecimal(10.0, new MathContext(3))));
-    final BigDecimal mergeResult2 = merger.apply("Key", new BigDecimal(10.0), new BigDecimal(-12.0));
+    final BigDecimal mergeResult2 = merger.apply(null, new BigDecimal(10.0), new BigDecimal(-12.0));
     assertThat(mergeResult2, equalTo(new BigDecimal(-12.0, new MathContext(3))));
-    final BigDecimal mergeResult3 = merger.apply("Key", new BigDecimal(-10.0), new BigDecimal(0.0));
+    final BigDecimal mergeResult3 = merger.apply(null, new BigDecimal(-10.0), new BigDecimal(0.0));
     assertThat(mergeResult3, equalTo(new BigDecimal(-10.0, new MathContext(3))));
   }
 

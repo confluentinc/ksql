@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Merger;
 
 public class TopkKudaf<T extends Comparable<? super T>>
@@ -81,9 +82,8 @@ public class TopkKudaf<T extends Comparable<? super T>>
     return aggregateValue;
   }
 
-  @SuppressWarnings("unchecked")
   @Override
-  public Merger<String, List<T>> getMerger() {
+  public Merger<Struct, List<T>> getMerger() {
     return (aggKey, aggOne, aggTwo) -> {
       final List<T> merged = new ArrayList<>(
           Math.min(topKSize, aggOne.size() + aggTwo.size()));

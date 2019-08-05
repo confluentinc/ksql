@@ -21,29 +21,26 @@ import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
-import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.planner.plan.PlanNodeId;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.GenericKeySerDe;
 import io.confluent.ksql.serde.GenericRowSerDe;
-import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.KsqlSerdeFactories;
-import io.confluent.ksql.serde.KsqlSerdeFactory;
-import io.confluent.ksql.serde.SerdeFactories;
-import io.confluent.ksql.serde.SerdeFactory;
-import io.confluent.ksql.serde.ValueFormat;
+import io.confluent.ksql.serde.KeySerde;
+import io.confluent.ksql.serde.KeySerdeFactory;
+import io.confluent.ksql.serde.ValueSerdeFactory;
+import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.structured.QueryContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.QueryLoggerUtil;
-import java.time.Duration;
 import java.util.LinkedHashMap;
-import java.util.Optional;
 import org.apache.kafka.common.serialization.Serde;
-import org.apache.kafka.common.serialization.Serdes;
+import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.StreamsBuilder;
-import org.apache.kafka.streams.kstream.WindowedSerdes;
+import org.apache.kafka.streams.kstream.Windowed;
 
 public final class KsqlQueryBuilder {
 
@@ -52,7 +49,8 @@ public final class KsqlQueryBuilder {
   private final ServiceContext serviceContext;
   private final ProcessingLogContext processingLogContext;
   private final FunctionRegistry functionRegistry;
-  private final SerdeFactories serdeFactories;
+  private final KeySerdeFactory keySerdeFactory;
+  private final ValueSerdeFactory valueSerdeFactory;
   private final QueryId queryId;
   private final LinkedHashMap<String, PersistenceSchema> schemas = new LinkedHashMap<>();
 
@@ -71,7 +69,8 @@ public final class KsqlQueryBuilder {
         processingLogContext,
         functionRegistry,
         queryId,
-        new KsqlSerdeFactories()
+        new GenericKeySerDe(),
+        new GenericRowSerDe()
     );
   }
 
@@ -83,7 +82,8 @@ public final class KsqlQueryBuilder {
       final ProcessingLogContext processingLogContext,
       final FunctionRegistry functionRegistry,
       final QueryId queryId,
-      final SerdeFactories serdeFactories
+      final KeySerdeFactory keySerdeFactory,
+      final ValueSerdeFactory valueSerdeFactory
   ) {
     this.streamsBuilder = requireNonNull(streamsBuilder, "streamsBuilder");
     this.ksqlConfig = requireNonNull(ksqlConfig, "ksqlConfig");
@@ -91,7 +91,8 @@ public final class KsqlQueryBuilder {
     this.processingLogContext = requireNonNull(processingLogContext, "processingLogContext");
     this.functionRegistry = requireNonNull(functionRegistry, "functionRegistry");
     this.queryId = requireNonNull(queryId, "queryId");
-    this.serdeFactories = requireNonNull(serdeFactories, "serdeFactories");
+    this.keySerdeFactory = requireNonNull(keySerdeFactory, "keySerdeFactory");
+    this.valueSerdeFactory = requireNonNull(valueSerdeFactory, "valueSerdeFactory");
   }
 
   public ProcessingLogContext getProcessingLogContext() {
@@ -134,25 +135,44 @@ public final class KsqlQueryBuilder {
         .push(id.toString());
   }
 
-  @SuppressWarnings({"unchecked", "OptionalGetWithoutIsPresent", "MethodMayBeStatic"})
-  public SerdeFactory<?> buildKeySerde(final KeyFormat keyFormat) {
-    final Optional<WindowType> windowType = keyFormat.getWindowType();
-    final Optional<Long> windowSize = keyFormat.getWindowSize()
-        .map(Duration::toMillis);
+  public KeySerde<Struct> buildKeySerde(
+      final FormatInfo format,
+      final PhysicalSchema schema,
+      final QueryContext queryContext
+  ) {
+    final String loggerNamePrefix = QueryLoggerUtil.queryLoggerName(queryContext);
 
-    if (!windowType.isPresent()) {
-      return (SerdeFactory) Serdes::String;
-    }
-
-    if (windowType.get() == WindowType.SESSION) {
-      return () -> (Serde) WindowedSerdes.sessionWindowedSerdeFrom(String.class);
-    }
-
-    return () -> (Serde) WindowedSerdes.timeWindowedSerdeFrom(String.class, windowSize.get());
+    return keySerdeFactory.create(
+        format,
+        schema.keySchema(),
+        ksqlConfig,
+        serviceContext.getSchemaRegistryClientFactory(),
+        loggerNamePrefix,
+        processingLogContext
+    );
   }
 
-  public Serde<GenericRow> buildGenericRowSerde(
-      final ValueFormat valueFormat,
+  public KeySerde<Windowed<Struct>> buildKeySerde(
+      final FormatInfo format,
+      final WindowInfo window,
+      final PhysicalSchema schema,
+      final QueryContext queryContext
+  ) {
+    final String loggerNamePrefix = QueryLoggerUtil.queryLoggerName(queryContext);
+
+    return keySerdeFactory.create(
+        format,
+        window,
+        schema.keySchema(),
+        ksqlConfig,
+        serviceContext.getSchemaRegistryClientFactory(),
+        loggerNamePrefix,
+        processingLogContext
+    );
+  }
+
+  public Serde<GenericRow> buildValueSerde(
+      final FormatInfo format,
       final PhysicalSchema schema,
       final QueryContext queryContext
   ) {
@@ -160,14 +180,9 @@ public final class KsqlQueryBuilder {
 
     track(loggerNamePrefix, schema.valueSchema());
 
-    final KsqlSerdeFactory valueSerdeFactory = serdeFactories.create(
-        valueFormat.getFormatInfo().getFormat(),
-        valueFormat.getFormatInfo().getAvroFullSchemaName()
-    );
-
-    return GenericRowSerDe.from(
-        valueSerdeFactory,
-        schema,
+    return valueSerdeFactory.create(
+        format,
+        schema.valueSchema(),
         ksqlConfig,
         serviceContext.getSchemaRegistryClientFactory(),
         loggerNamePrefix,

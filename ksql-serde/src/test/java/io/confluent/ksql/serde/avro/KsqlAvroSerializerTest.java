@@ -605,8 +605,8 @@ public class KsqlAvroSerializerTest {
   @Test
   public void shouldThrowOnMapSchemaWithNonStringKeys() {
     // Given:
-    final PersistenceSchema physicalSchema = PersistenceSchema.of(
-        (ConnectSchema) SchemaBuilder
+    final PersistenceSchema physicalSchema = unwrappedPersistenceSchema(
+        SchemaBuilder
             .map(Schema.OPTIONAL_INT32_SCHEMA, Schema.INT32_SCHEMA)
             .build()
     );
@@ -627,8 +627,8 @@ public class KsqlAvroSerializerTest {
   @Test
   public void shouldThrowOnNestedMapSchemaWithNonStringKeys() {
     // Given:
-    final PersistenceSchema physicalSchema = PersistenceSchema.of(
-        (ConnectSchema) SchemaBuilder
+    final PersistenceSchema physicalSchema = unwrappedPersistenceSchema(
+        SchemaBuilder
             .struct()
             .field("f0", SchemaBuilder
                 .map(Schema.OPTIONAL_INT32_SCHEMA, Schema.INT32_SCHEMA)
@@ -984,7 +984,7 @@ public class KsqlAvroSerializerTest {
     final Serializer<Object> serializer =
         new KsqlAvroSerdeFactory(schemaNamespace + "." + schemaName)
             .createSerde(
-                PersistenceSchema.of((ConnectSchema) ksqlRecordSchema),
+                PersistenceSchema.from((ConnectSchema) ksqlRecordSchema, false),
                 ksqlConfig,
                 () -> schemaRegistryClient
             ).serializer();
@@ -1098,9 +1098,14 @@ public class KsqlAvroSerializerTest {
   }
 
   private void givenSerializerForSchema(final Schema schema) {
+    final boolean unwrap = schema.type() != Schema.Type.STRUCT;
+    final Schema ksqlSchema = unwrap
+        ? SchemaBuilder.struct().field("f0", schema).build()
+        :  schema;
+
     serializer = new KsqlAvroSerdeFactory(KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME)
         .createSerde(
-            PersistenceSchema.of((ConnectSchema) schema),
+            PersistenceSchema.from((ConnectSchema) ksqlSchema, unwrap),
             ksqlConfig,
             () -> schemaRegistryClient
         ).serializer();
@@ -1158,5 +1163,14 @@ public class KsqlAvroSerializerTest {
     );
 
     return builder.endRecord();
+  }
+
+  private static PersistenceSchema unwrappedPersistenceSchema(final Schema fieldSchema) {
+    final ConnectSchema connectSchema = (ConnectSchema) SchemaBuilder
+        .struct()
+        .field("f0", fieldSchema)
+        .build();
+
+    return PersistenceSchema.from(connectSchema, true);
   }
 }

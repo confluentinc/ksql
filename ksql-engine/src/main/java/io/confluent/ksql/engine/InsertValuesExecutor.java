@@ -33,14 +33,10 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.SqlValueCoercer;
 import io.confluent.ksql.schema.ksql.types.SqlType;
-import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.GenericKeySerDe;
 import io.confluent.ksql.serde.GenericRowSerDe;
-import io.confluent.ksql.serde.KeySerdeFactories;
-import io.confluent.ksql.serde.KsqlKeySerdeFactories;
-import io.confluent.ksql.serde.KsqlSerdeFactories;
-import io.confluent.ksql.serde.KsqlSerdeFactory;
-import io.confluent.ksql.serde.SerdeFactories;
-import io.confluent.ksql.serde.SerdeFactory;
+import io.confluent.ksql.serde.KeySerdeFactory;
+import io.confluent.ksql.serde.ValueSerdeFactory;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
@@ -60,6 +56,7 @@ import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.Serde;
+import org.apache.kafka.connect.data.Struct;
 
 public class InsertValuesExecutor {
 
@@ -68,8 +65,8 @@ public class InsertValuesExecutor {
   private final LongSupplier clock;
   private final boolean canBeDisabledByConfig;
   private final RecordProducer producer;
-  private final SerdeFactories serdeFactories;
-  private final KeySerdeFactories keySerdeFactories;
+  private final ValueSerdeFactory valueSerdeFactory;
+  private final KeySerdeFactory keySerdeFactory;
 
   public InsertValuesExecutor() {
     this(true, InsertValuesExecutor::sendRecord);
@@ -93,32 +90,32 @@ public class InsertValuesExecutor {
         producer,
         canBeDisabledByConfig,
         System::currentTimeMillis,
-        new KsqlKeySerdeFactories(),
-        new KsqlSerdeFactories()
+        new GenericKeySerDe(),
+        new GenericRowSerDe()
     );
   }
 
   @VisibleForTesting
   InsertValuesExecutor(
       final LongSupplier clock,
-      final KeySerdeFactories keySerdeFactories,
-      final SerdeFactories serdeFactories
+      final KeySerdeFactory keySerdeFactory,
+      final ValueSerdeFactory valueSerdeFactory
   ) {
-    this(InsertValuesExecutor::sendRecord, true, clock, keySerdeFactories, serdeFactories);
+    this(InsertValuesExecutor::sendRecord, true, clock, keySerdeFactory, valueSerdeFactory);
   }
 
   private InsertValuesExecutor(
       final RecordProducer producer,
       final boolean canBeDisabledByConfig,
       final LongSupplier clock,
-      final KeySerdeFactories keySerdeFactories,
-      final SerdeFactories serdeFactories
+      final KeySerdeFactory keySerdeFactory,
+      final ValueSerdeFactory valueSerdeFactory
   ) {
     this.canBeDisabledByConfig = canBeDisabledByConfig;
     this.producer = Objects.requireNonNull(producer, "producer");
     this.clock = Objects.requireNonNull(clock, "clock");
-    this.keySerdeFactories = Objects.requireNonNull(keySerdeFactories, "keySerdeFactories");
-    this.serdeFactories = Objects.requireNonNull(serdeFactories, "serdeFactories");
+    this.keySerdeFactory = Objects.requireNonNull(keySerdeFactory, "keySerdeFactory");
+    this.valueSerdeFactory = Objects.requireNonNull(valueSerdeFactory, "valueSerdeFactory");
   }
 
   public void execute(
@@ -146,7 +143,7 @@ public class InsertValuesExecutor {
         .cloneWithPropertyOverwrite(statement.getOverrides());
 
     final RowData row = extractRow(insertValues, dataSource);
-    final byte[] key = serializeKey(row.key, dataSource);
+    final byte[] key = serializeKey(row.key, dataSource, config, serviceContext);
     final byte[] value = serializeValue(row.value, dataSource, config, serviceContext);
 
     final String topicName = dataSource.getKafkaTopicName();
@@ -191,11 +188,25 @@ public class InsertValuesExecutor {
     handleExplicitKeyField(values, dataSource.getKeyField());
 
     final long ts = (long) values.getOrDefault(SchemaUtil.ROWTIME_NAME, clock.getAsLong());
-    final Object key = values.get(SchemaUtil.ROWKEY_NAME);
 
+    final Struct key = buildKey(schema, values);
     final GenericRow value = buildValue(schema, values);
 
-    return new RowData(ts, key == null ? null : key.toString(), value);
+    return RowData.of(ts, key, value);
+  }
+
+  private static Struct buildKey(
+      final LogicalSchema schema,
+      final Map<String, Object> values
+  ) {
+    final Struct key = new Struct(schema.keySchema());
+
+    for (final org.apache.kafka.connect.data.Field field : key.schema().fields()) {
+      final Object value = values.get(field.name());
+      key.put(field, value);
+    }
+
+    return key;
   }
 
   private static GenericRow buildValue(
@@ -282,14 +293,28 @@ public class InsertValuesExecutor {
         .orElseThrow(IllegalStateException::new);
   }
 
-  private byte[] serializeKey(final String keyValue, final DataSource<?> dataSource) {
-    final SerdeFactory<String> keySerdeFactory = keySerdeFactories.create(
-        dataSource.getKsqlTopic().getKeyFormat().getWindowType(),
-        dataSource.getKsqlTopic().getKeyFormat().getWindowSize()
+  private byte[] serializeKey(
+      final Struct keyValue,
+      final DataSource<?> dataSource,
+      final KsqlConfig config,
+      final ServiceContext serviceContext
+  ) {
+    final PhysicalSchema physicalSchema = PhysicalSchema.from(
+        dataSource.getSchema(),
+        dataSource.getSerdeOptions()
+    );
+
+    final Serde<Struct> keySerde = keySerdeFactory.create(
+        dataSource.getKsqlTopic().getKeyFormat().getFormatInfo(),
+        physicalSchema.keySchema(),
+        config,
+        serviceContext.getSchemaRegistryClientFactory(),
+        "",
+        NoopProcessingLogContext.INSTANCE
     );
 
     try {
-      return keySerdeFactory.create()
+      return keySerde
           .serializer()
           .serialize(dataSource.getKafkaTopicName(), keyValue);
     } catch (final Exception e) {
@@ -303,33 +328,25 @@ public class InsertValuesExecutor {
       final KsqlConfig config,
       final ServiceContext serviceContext
   ) {
-    final KsqlSerdeFactory valueSerdeFactory = getValueSerdeFactory(dataSource);
+    final PhysicalSchema physicalSchema = PhysicalSchema.from(
+        dataSource.getSchema(),
+        dataSource.getSerdeOptions()
+    );
 
-    final Serde<GenericRow> rowSerde = GenericRowSerDe.from(
-        valueSerdeFactory,
-        PhysicalSchema.from(
-            dataSource.getSchema(),
-            dataSource.getSerdeOptions()
-        ),
+    final Serde<GenericRow> valueSerde = valueSerdeFactory.create(
+        dataSource.getKsqlTopic().getValueFormat().getFormatInfo(),
+        physicalSchema.valueSchema(),
         config,
         serviceContext.getSchemaRegistryClientFactory(),
         "",
-        NoopProcessingLogContext.INSTANCE);
+        NoopProcessingLogContext.INSTANCE
+    );
 
     try {
-      return rowSerde.serializer().serialize(dataSource.getKafkaTopicName(), row);
+      return valueSerde.serializer().serialize(dataSource.getKafkaTopicName(), row);
     } catch (final Exception e) {
       throw new KsqlException("Could not serialize row: " + row, e);
     }
-  }
-
-  private KsqlSerdeFactory getValueSerdeFactory(final DataSource<?> dataSource) {
-    final FormatInfo formatInfo = dataSource.getKsqlTopic().getValueFormat().getFormatInfo();
-
-    return serdeFactories.create(
-        formatInfo.getFormat(),
-        formatInfo.getAvroFullSchemaName()
-    );
   }
 
   @SuppressWarnings("TryFinallyCanBeTryWithResources")
@@ -369,10 +386,14 @@ public class InsertValuesExecutor {
   private static final class RowData {
 
     final long ts;
-    final String key;
+    final Struct key;
     final GenericRow value;
 
-    private RowData(final long ts, final String key, final GenericRow value) {
+    private static RowData of(final long ts, final Struct key, final GenericRow value) {
+      return new RowData(ts, key, value);
+    }
+
+    private RowData(final long ts, final Struct key, final GenericRow value) {
       this.ts = ts;
       this.key = key;
       this.value = value;

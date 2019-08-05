@@ -22,6 +22,7 @@ import static org.junit.Assert.assertThat;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import java.util.Collections;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Merger;
 import org.junit.Test;
 
@@ -62,12 +63,12 @@ public class IntegerMinKudafTest {
   @Test
   public void shouldFindCorrectMinForMerge() {
     final IntegerMinKudaf integerMinKudaf = getIntegerMinKudaf();
-    final Merger<String, Integer> merger = integerMinKudaf.getMerger();
-    final Integer mergeResult1 = merger.apply("Key", 10, 12);
+    final Merger<Struct, Integer> merger = integerMinKudaf.getMerger();
+    final Integer mergeResult1 = merger.apply(null, 10, 12);
     assertThat(mergeResult1, equalTo(10));
-    final Integer mergeResult2 = merger.apply("Key", 10, -12);
+    final Integer mergeResult2 = merger.apply(null, 10, -12);
     assertThat(mergeResult2, equalTo(-12));
-    final Integer mergeResult3 = merger.apply("Key", -10, 0);
+    final Integer mergeResult3 = merger.apply(null, -10, 0);
     assertThat(mergeResult3, equalTo(-10));
 
   }

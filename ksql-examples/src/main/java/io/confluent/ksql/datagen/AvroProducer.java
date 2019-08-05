@@ -20,16 +20,16 @@ import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
-import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.schema.ksql.PersistenceSchema;
+import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.GenericRowSerDe;
-import io.confluent.ksql.serde.SerdeOption;
-import io.confluent.ksql.serde.avro.KsqlAvroSerdeFactory;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
+import java.util.Optional;
 import org.apache.avro.Schema;
 import org.apache.kafka.common.serialization.Serializer;
+import org.apache.kafka.connect.data.ConnectSchema;
 
 public class AvroProducer extends DataGenProducer {
 
@@ -54,14 +54,12 @@ public class AvroProducer extends DataGenProducer {
       final org.apache.kafka.connect.data.Schema kafkaSchema,
       final String topicName
   ) {
-    final PhysicalSchema physicalSchema = PhysicalSchema.from(
-        LogicalSchema.of(KEY_SCHEMA, kafkaSchema),
-        SerdeOption.none()
-    );
+    final PersistenceSchema persistenceSchema =
+        PersistenceSchema.from((ConnectSchema) kafkaSchema, false);
 
     return GenericRowSerDe.from(
-        new KsqlAvroSerdeFactory(KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME),
-        physicalSchema,
+        FormatInfo.of(Format.AVRO, Optional.empty()),
+        persistenceSchema,
         ksqlConfig,
         () -> schemaRegistryClient,
         "",

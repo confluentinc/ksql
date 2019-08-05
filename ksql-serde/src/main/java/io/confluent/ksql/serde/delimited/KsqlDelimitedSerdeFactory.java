@@ -36,13 +36,8 @@ import org.apache.kafka.connect.data.Schema.Type;
 public class KsqlDelimitedSerdeFactory implements KsqlSerdeFactory {
 
   @Override
-  public Format getFormat() {
-    return Format.DELIMITED;
-  }
-
-  @Override
   public void validate(final PersistenceSchema schema) {
-    final ConnectSchema connectSchema = schema.getConnectSchema();
+    final ConnectSchema connectSchema = schema.serializedSchema();
     if (connectSchema.type() != Type.STRUCT) {
       throw new IllegalArgumentException("DELIMITED format does not support unwrapping");
     }

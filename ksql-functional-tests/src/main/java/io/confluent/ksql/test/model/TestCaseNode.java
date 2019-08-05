@@ -33,11 +33,13 @@ import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.parser.tree.CreateSource;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.SerdeFactory;
 import io.confluent.ksql.serde.ValueFormat;
+import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.test.model.WindowData.Type;
 import io.confluent.ksql.test.serde.SerdeSupplier;
 import io.confluent.ksql.test.tools.Record;
@@ -61,14 +63,12 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.apache.kafka.common.serialization.Serde;
-import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
-import org.apache.kafka.streams.kstream.WindowedSerdes;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 @SuppressWarnings("UnstableApiUsage")
@@ -224,7 +224,10 @@ public class TestCaseNode {
       throw new InvalidFieldException("statements/topics", "The test does not define any topics");
     }
 
-    final SerdeSupplier defaultSerdeSupplier =
+    final SerdeSupplier defaultKeySerdeSupplier =
+        allTopics.values().iterator().next().getKeySerdeSupplier();
+
+    final SerdeSupplier defaultValueSerdeSupplier =
         allTopics.values().iterator().next().getValueSerdeSupplier();
 
     // Get topics from inputs and outputs fields:
@@ -232,8 +235,9 @@ public class TestCaseNode {
         .map(recordNode -> new Topic(
             recordNode.topicName(),
             Optional.empty(),
-            getKeySerdeFactory(recordNode.getWindow()),
-            defaultSerdeSupplier,
+//            defaultKeySerdeSupplier,
+            getKeySedeSupplier(recordNode.getWindow()),
+            defaultValueSerdeSupplier,
             4,
             1,
             Optional.empty()))
@@ -242,7 +246,27 @@ public class TestCaseNode {
     return allTopics;
   }
 
-  @SuppressWarnings("unchecked")
+  private static SerdeSupplier getKeySedeSupplier(final Optional<WindowData> windowDataInfo) {
+    if (windowDataInfo.isPresent()) {
+      final WindowData windowData = windowDataInfo.get();
+      final WindowType windowType = WindowType.of((windowData.type == Type.SESSION)
+          ? WindowType.SESSION.name()
+          : WindowType.TUMBLING.name());
+      final KeyFormat windowKeyFormat = KeyFormat.windowed(
+          Format.KAFKA,
+          Optional.empty(),
+          WindowInfo.of(
+              windowType,
+              windowType == WindowType.SESSION
+              ? Optional.empty() : Optional.of(Duration.ofMillis(windowData.size())))
+      );
+//      final SerdeSupplier serdeSupplier = SerdeUtil.getKeySerdeSupplier(windowKeyFormat, () -> LogicalSchema.builder().build());
+      return SerdeUtil.getKeySerdeSupplier(windowKeyFormat, () -> LogicalSchema.builder().build());
+    }
+    return SerdeUtil.getKeySerdeSupplier(KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)), () -> LogicalSchema.builder().build());
+//    return null;
+  }
+
   private static Topic createTopicFromStatement(
       final FunctionRegistry functionRegistry,
       final String sql
@@ -261,7 +285,11 @@ public class TestCaseNode {
 
       final KeyFormat keyFormat = ksqlTopic.getKeyFormat();
 
-      final SerdeFactory<?> keySerde = getKeySerdeFactory(keyFormat);
+      final Supplier<LogicalSchema> logicalSchemaSupplier =
+          statement.getElements()::toLogicalSchema;
+
+      final SerdeSupplier<?> keySerdeSupplier =
+          SerdeUtil.getKeySerdeSupplier(keyFormat, logicalSchemaSupplier);
 
       final ValueFormat valueFormat = ksqlTopic.getValueFormat();
       final Optional<org.apache.avro.Schema> avroSchema;
@@ -280,13 +308,13 @@ public class TestCaseNode {
 
       final SerdeSupplier<?> valueSerdeSupplier = SerdeUtil.getSerdeSupplier(
           valueFormat.getFormat(),
-          statement.getElements()::toLogicalSchema
+          logicalSchemaSupplier
       );
 
       return new Topic(
           ksqlTopic.getKafkaTopicName(),
           avroSchema,
-          keySerde,
+          keySerdeSupplier,
           valueSerdeSupplier,
           KsqlConstants.legacyDefaultSinkPartitionCount,
           KsqlConstants.legacyDefaultSinkReplicaCount,
@@ -312,35 +340,6 @@ public class TestCaseNode {
       e.printStackTrace(System.out);
       return null;
     }
-  }
-
-  private static SerdeFactory<?> getKeySerdeFactory(final Optional<WindowData> windowDataInfo) {
-    return windowDataInfo.<SerdeFactory<?>>map(windowData -> getKeySerdeFactory(
-        KeyFormat.windowed(
-            Format.KAFKA,
-            WindowType.of((windowData.type == Type.SESSION) ? WindowType.SESSION.name()
-                : WindowType.TUMBLING.name()),
-            (windowDataInfo.get().type == Type.SESSION)
-                ? Optional.empty()
-                : Optional.of(Duration.ofMillis(windowData.size())))))
-        .orElseGet(() -> getKeySerdeFactory(KeyFormat.nonWindowed(Format.KAFKA)));
-  }
-
-  @SuppressWarnings({"unchecked", "OptionalGetWithoutIsPresent"})
-  private static SerdeFactory<?> getKeySerdeFactory(final KeyFormat keyFormat) {
-    if (!keyFormat.getWindowType().isPresent()) {
-      return (SerdeFactory) Serdes::String;
-    }
-
-    final WindowType windowType = keyFormat.getWindowType().get();
-    if (windowType == WindowType.SESSION) {
-      return () -> (Serde) WindowedSerdes.sessionWindowedSerdeFrom(String.class);
-    }
-
-    return () -> (Serde) WindowedSerdes.timeWindowedSerdeFrom(
-        String.class,
-        keyFormat.getWindowSize().get().toMillis()
-    );
   }
 
   private static Schema addNames(final Schema schema) {

@@ -22,6 +22,7 @@ import io.confluent.ksql.function.TableAggregationFunction;
 import java.util.Collections;
 import java.util.List;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Merger;
 
 public class CountKudaf
@@ -43,7 +44,7 @@ public class CountKudaf
   }
 
   @Override
-  public Merger<String, Long> getMerger() {
+  public Merger<Struct, Long> getMerger() {
     return (aggKey, aggOne, aggTwo) -> aggOne + aggTwo;
   }
 

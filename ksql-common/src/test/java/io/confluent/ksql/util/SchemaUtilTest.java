@@ -139,7 +139,7 @@ public class SchemaUtilTest {
 
     // When:
     final org.apache.avro.Schema avroSchema = SchemaUtil
-        .buildAvroSchema(PersistenceSchema.of(schema), "orders");
+        .buildAvroSchema(PersistenceSchema.from(schema, false), "orders");
 
     // Then:
     assertThat(avroSchema.toString(), equalTo(
@@ -157,7 +157,7 @@ public class SchemaUtilTest {
   public void shouldSupportAvroStructs() {
     // When:
     final org.apache.avro.Schema avroSchema = SchemaUtil
-        .buildAvroSchema(PersistenceSchema.of(SCHEMA), "bob");
+        .buildAvroSchema(PersistenceSchema.from(SCHEMA, false), "bob");
 
     // Then:
     final org.apache.avro.Schema.Field rawStruct = avroSchema.getField("RAW_STRUCT");
@@ -181,7 +181,7 @@ public class SchemaUtilTest {
   public void shouldSupportAvroArrayOfStructs() {
     // When:
     final org.apache.avro.Schema avroSchema = SchemaUtil
-        .buildAvroSchema(PersistenceSchema.of(SCHEMA), "bob");
+        .buildAvroSchema(PersistenceSchema.from(SCHEMA, false), "bob");
 
     // Then:
     final org.apache.avro.Schema.Field rawStruct = avroSchema.getField("ARRAY_OF_STRUCTS");
@@ -208,7 +208,7 @@ public class SchemaUtilTest {
   public void shouldSupportAvroMapOfStructs() {
     // When:
     final org.apache.avro.Schema avroSchema = SchemaUtil
-        .buildAvroSchema(PersistenceSchema.of(SCHEMA), "bob");
+        .buildAvroSchema(PersistenceSchema.from(SCHEMA, false), "bob");
 
     // Then:
     final org.apache.avro.Schema.Field rawStruct = avroSchema.getField("MAP_OF_STRUCTS");
@@ -235,7 +235,7 @@ public class SchemaUtilTest {
   public void shouldSupportAvroNestedStructs() {
     // When:
     final org.apache.avro.Schema avroSchema = SchemaUtil
-        .buildAvroSchema(PersistenceSchema.of(SCHEMA), "bob");
+        .buildAvroSchema(PersistenceSchema.from(SCHEMA, false), "bob");
 
     // Then:
     final org.apache.avro.Schema.Field rawStruct = avroSchema.getField("NESTED_STRUCTS");
@@ -285,8 +285,7 @@ public class SchemaUtilTest {
   @Test
   public void shouldCreateAvroSchemaForBoolean() {
     // Given:
-    final PersistenceSchema schema = PersistenceSchema
-        .of((ConnectSchema) Schema.OPTIONAL_BOOLEAN_SCHEMA);
+    final PersistenceSchema schema = unwrappedPersistenceSchema(Schema.OPTIONAL_BOOLEAN_SCHEMA);
 
     // When:
     final org.apache.avro.Schema avroSchema = SchemaUtil.buildAvroSchema(schema, "orders");
@@ -298,8 +297,7 @@ public class SchemaUtilTest {
   @Test
   public void shouldCreateAvroSchemaForInt() {
     // Given:
-    final PersistenceSchema schema = PersistenceSchema
-        .of((ConnectSchema) Schema.OPTIONAL_INT32_SCHEMA);
+    final PersistenceSchema schema = unwrappedPersistenceSchema(Schema.OPTIONAL_INT32_SCHEMA);
 
     // When:
     final org.apache.avro.Schema avroSchema = SchemaUtil.buildAvroSchema(schema, "orders");
@@ -311,8 +309,7 @@ public class SchemaUtilTest {
   @Test
   public void shouldCreateAvroSchemaForBigInt() {
     // Given:
-    final PersistenceSchema schema = PersistenceSchema
-        .of((ConnectSchema) Schema.OPTIONAL_INT64_SCHEMA);
+    final PersistenceSchema schema = unwrappedPersistenceSchema(Schema.OPTIONAL_INT64_SCHEMA);
 
     // When:
     final org.apache.avro.Schema avroSchema = SchemaUtil.buildAvroSchema(schema, "orders");
@@ -324,8 +321,7 @@ public class SchemaUtilTest {
   @Test
   public void shouldCreateAvroSchemaForDouble() {
     // Given:
-    final PersistenceSchema schema = PersistenceSchema
-        .of((ConnectSchema) Schema.OPTIONAL_FLOAT64_SCHEMA);
+    final PersistenceSchema schema = unwrappedPersistenceSchema(Schema.OPTIONAL_FLOAT64_SCHEMA);
 
     // When:
     final org.apache.avro.Schema avroSchema = SchemaUtil.buildAvroSchema(schema, "orders");
@@ -337,8 +333,7 @@ public class SchemaUtilTest {
   @Test
   public void shouldCreateAvroSchemaForString() {
     // Given:
-    final PersistenceSchema schema = PersistenceSchema
-        .of((ConnectSchema) Schema.OPTIONAL_STRING_SCHEMA);
+    final PersistenceSchema schema = unwrappedPersistenceSchema(Schema.OPTIONAL_STRING_SCHEMA);
 
     // When:
     final org.apache.avro.Schema avroSchema = SchemaUtil.buildAvroSchema(schema, "orders");
@@ -350,10 +345,11 @@ public class SchemaUtilTest {
   @Test
   public void shouldCreateAvroSchemaForArray() {
     // Given:
-    final PersistenceSchema schema = PersistenceSchema
-        .of((ConnectSchema) SchemaBuilder
+    final PersistenceSchema schema = unwrappedPersistenceSchema(
+        SchemaBuilder
             .array(Schema.OPTIONAL_INT64_SCHEMA)
-            .build());
+            .build()
+    );
 
     // When:
     final org.apache.avro.Schema avroSchema = SchemaUtil.buildAvroSchema(schema, "orders");
@@ -368,10 +364,11 @@ public class SchemaUtilTest {
   @Test
   public void shouldCreateAvroSchemaForMap() {
     // Given:
-    final PersistenceSchema schema = PersistenceSchema
-        .of((ConnectSchema) SchemaBuilder
+    final PersistenceSchema schema = unwrappedPersistenceSchema(
+        SchemaBuilder
             .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.BOOLEAN_SCHEMA)
-            .build());
+            .build()
+    );
 
     // When:
     final org.apache.avro.Schema avroSchema = SchemaUtil.buildAvroSchema(schema, "orders");
@@ -900,5 +897,13 @@ public class SchemaUtilTest {
     ));
   }
 
+  private static PersistenceSchema unwrappedPersistenceSchema(final Schema fieldSchema) {
+    final ConnectSchema connectSchema = (ConnectSchema) SchemaBuilder
+        .struct()
+        .field("f0", fieldSchema)
+        .build();
+
+    return PersistenceSchema.from(connectSchema, true);
+  }
 }
 

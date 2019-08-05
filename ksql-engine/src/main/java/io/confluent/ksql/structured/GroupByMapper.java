@@ -23,11 +23,12 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.KeyValueMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-class GroupByMapper<K> implements KeyValueMapper<K, GenericRow, String> {
+class GroupByMapper implements KeyValueMapper<Object, GenericRow, Struct> {
 
   private static final Logger LOG = LoggerFactory.getLogger(GroupByMapper.class);
 
@@ -43,10 +44,12 @@ class GroupByMapper<K> implements KeyValueMapper<K, GenericRow, String> {
   }
 
   @Override
-  public String apply(final K key, final GenericRow row) {
-    return IntStream.range(0, expressions.size())
+  public Struct apply(final Object key, final GenericRow row) {
+    final String stringRowKey = IntStream.range(0, expressions.size())
         .mapToObj(idx -> processColumn(idx, expressions.get(idx), row))
         .collect(Collectors.joining(GROUP_BY_COLUMN_SEPARATOR));
+
+    return StructKeyUtil.asStructKey(stringRowKey);
   }
 
   static String keyNameFor(final List<Expression> groupByExpressions) {
@@ -55,7 +58,7 @@ class GroupByMapper<K> implements KeyValueMapper<K, GenericRow, String> {
         .collect(Collectors.joining(GROUP_BY_COLUMN_SEPARATOR));
   }
 
-  private String processColumn(
+  private static String processColumn(
       final int index,
       final ExpressionMetadata exp,
       final GenericRow row

@@ -196,7 +196,7 @@ public class KafkaSerdeFactoryTest {
     factory.validate(schema);
     final Serde<Object> serde = factory.createSerde(schema, ksqlConfig, srClientFactory);
 
-    final Struct struct = new Struct(schema.getConnectSchema());
+    final Struct struct = new Struct(schema.serializedSchema());
     struct.put("f0", value);
 
     // When:

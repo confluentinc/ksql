@@ -26,6 +26,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
@@ -38,7 +39,7 @@ public final class MetaStoreFixture {
   }
 
   public static MutableMetaStore getNewMetaStore(final FunctionRegistry functionRegistry) {
-    return getNewMetaStore(functionRegistry, ValueFormat.of(Format.JSON));
+    return getNewMetaStore(functionRegistry, ValueFormat.of(FormatInfo.of(Format.JSON)));
   }
 
   public static MutableMetaStore getNewMetaStore(
@@ -50,7 +51,7 @@ public final class MetaStoreFixture {
 
     final MutableMetaStore metaStore = new MetaStoreImpl(functionRegistry);
 
-    final KeyFormat keyFormat = KeyFormat.nonWindowed(Format.KAFKA);
+    final KeyFormat keyFormat = KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA));
 
     final LogicalSchema test1Schema = LogicalSchema.builder()
         .valueField("COL0", SqlTypes.BIGINT)

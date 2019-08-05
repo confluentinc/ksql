@@ -157,7 +157,7 @@ public final class SchemaUtil {
       final PersistenceSchema schema,
       final String name
   ) {
-    return buildAvroSchema(DEFAULT_NAMESPACE, name, schema.getConnectSchema());
+    return buildAvroSchema(DEFAULT_NAMESPACE, name, schema.serializedSchema());
   }
 
   private static org.apache.avro.Schema buildAvroSchema(

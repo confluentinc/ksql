@@ -28,6 +28,7 @@ import org.apache.kafka.common.metrics.stats.Rate;
 import org.apache.kafka.common.metrics.stats.WindowedCount;
 import org.apache.kafka.common.utils.Time;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Merger;
 
 @SuppressWarnings({"unused", "WeakerAccess"}) // used in generated code
@@ -151,7 +152,7 @@ public abstract class GeneratedAggregateFunction<V, A> extends BaseAggregateFunc
   }
 
   @Override
-  public Merger<String, A> getMerger() {
+  public Merger<Struct, A> getMerger() {
     return (key, v1, v2) -> {
       final long start = Time.SYSTEM.nanoseconds();
       try {

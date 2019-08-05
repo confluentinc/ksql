@@ -31,6 +31,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
@@ -53,13 +55,12 @@ import io.confluent.ksql.planner.plan.ProjectNode;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.Field;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.GenericRowSerDe;
-import io.confluent.ksql.serde.KsqlSerdeFactories;
-import io.confluent.ksql.serde.KsqlSerdeFactory;
-import io.confluent.ksql.serde.SerdeOption;
-import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
+import io.confluent.ksql.serde.KeySerde;
 import io.confluent.ksql.streams.GroupedFactory;
 import io.confluent.ksql.streams.JoinedFactory;
 import io.confluent.ksql.streams.MaterializedFactory;
@@ -79,6 +80,7 @@ import java.util.Optional;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.ConnectSchema;
+import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.kstream.Consumed;
@@ -92,8 +94,12 @@ import org.easymock.EasyMock;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
 @SuppressWarnings("unchecked")
+@RunWith(MockitoJUnitRunner.class)
 public class SchemaKTableTest {
 
   private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
@@ -127,6 +133,11 @@ public class SchemaKTableTest {
   private static final Expression TEST_2_COL_2 = new DereferenceExpression(
       new QualifiedNameReference(QualifiedName.of("TEST2")), "COL2");
 
+  @Mock
+  private KeySerde<Struct> keySerde;
+  @Mock
+  private KeySerde<Struct> reboundKeySerde;
+
   @Before
   public void init() {
     functionRegistry = new InternalFunctionRegistry();
@@ -151,6 +162,8 @@ public class SchemaKTableTest {
     firstSchemaKTable = buildSchemaKTableForJoin(ksqlTable, mockKTable);
     secondSchemaKTable = buildSchemaKTableForJoin(secondKsqlTable, secondKTable);
     joinSchema = getJoinSchema(ksqlTable.getSchema(), secondKsqlTable.getSchema());
+
+    when(keySerde.rebind(any(PersistenceSchema.class))).thenReturn(reboundKeySerde);
   }
 
   private SchemaKTable buildSchemaKTable(
@@ -159,11 +172,10 @@ public class SchemaKTableTest {
       final KTable kTable,
       final GroupedFactory groupedFactory) {
     return new SchemaKTable(
-        schema,
-        kTable,
+        kTable, schema,
+        keySerde,
         keyField,
         new ArrayList<>(),
-        Serdes::String,
         Type.SOURCE,
         ksqlConfig,
         functionRegistry,
@@ -199,14 +211,9 @@ public class SchemaKTableTest {
   }
 
   private Serde<GenericRow> getRowSerde(final KsqlTopic topic, final ConnectSchema schema) {
-    final KsqlSerdeFactory valueSerdeFactory = new KsqlSerdeFactories().create(
-        topic.getValueFormat().getFormatInfo().getFormat(),
-        topic.getValueFormat().getFormatInfo().getAvroFullSchemaName()
-    );
-
     return GenericRowSerDe.from(
-        valueSerdeFactory,
-        PhysicalSchema.from(LogicalSchema.of(schema), SerdeOption.none()),
+        topic.getValueFormat().getFormatInfo(),
+        PersistenceSchema.from(schema, false),
         new KsqlConfig(Collections.emptyMap()),
         MockSchemaRegistryClient::new,
         "test",
@@ -221,11 +228,10 @@ public class SchemaKTableTest {
     final ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
 
     initialSchemaKTable = new SchemaKTable<>(
-        logicalPlan.getTheSourceNode().getSchema(),
-        kTable,
+        kTable, logicalPlan.getTheSourceNode().getSchema(),
+        keySerde,
         logicalPlan.getTheSourceNode().getKeyField(),
         new ArrayList<>(),
-        Serdes::String,
         SchemaKStream.Type.SOURCE,
         ksqlConfig,
         functionRegistry,
@@ -255,11 +261,10 @@ public class SchemaKTableTest {
     final PlanNode logicalPlan = buildLogicalPlan(selectQuery);
     final ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
     initialSchemaKTable = new SchemaKTable<>(
-        logicalPlan.getTheSourceNode().getSchema(),
-        kTable,
+        kTable, logicalPlan.getTheSourceNode().getSchema(),
+        keySerde,
         logicalPlan.getTheSourceNode().getKeyField(),
         new ArrayList<>(),
-        Serdes::String,
         SchemaKStream.Type.SOURCE,
         ksqlConfig,
         functionRegistry,
@@ -290,11 +295,10 @@ public class SchemaKTableTest {
     final FilterNode filterNode = (FilterNode) logicalPlan.getSources().get(0).getSources().get(0);
 
     initialSchemaKTable = new SchemaKTable<>(
-        logicalPlan.getTheSourceNode().getSchema(),
-        kTable,
+        kTable, logicalPlan.getTheSourceNode().getSchema(),
+        keySerde,
         logicalPlan.getTheSourceNode().getKeyField(),
         new ArrayList<>(),
-        Serdes::String,
         SchemaKStream.Type.SOURCE,
         ksqlConfig,
         functionRegistry,
@@ -327,20 +331,18 @@ public class SchemaKTableTest {
     final String selectQuery = "SELECT col0, col1, col2 FROM test2;";
     final PlanNode logicalPlan = buildLogicalPlan(selectQuery);
     initialSchemaKTable = new SchemaKTable<>(
-        logicalPlan.getTheSourceNode().getSchema(),
-        kTable,
+        kTable, logicalPlan.getTheSourceNode().getSchema(),
+        keySerde,
         logicalPlan.getTheSourceNode().getKeyField(),
         new ArrayList<>(),
-        Serdes::String,
         SchemaKStream.Type.SOURCE,
         ksqlConfig,
         functionRegistry,
         parentContext);
 
-    final KsqlSerdeFactory ksqlSerdeFactory = new KsqlJsonSerdeFactory();
     final Serde<GenericRow> rowSerde = GenericRowSerDe.from(
-        ksqlSerdeFactory,
-        PhysicalSchema.from(initialSchemaKTable.getSchema(), SerdeOption.none()),
+        FormatInfo.of(Format.JSON, Optional.empty()),
+        PersistenceSchema.from(initialSchemaKTable.getSchema().valueSchema(), false),
         null,
         () -> null,
         "test",
@@ -403,11 +405,10 @@ public class SchemaKTableTest {
     final String selectQuery = "SELECT col0, col1, col2 FROM test2;";
     final PlanNode logicalPlan = buildLogicalPlan(selectQuery);
     initialSchemaKTable = new SchemaKTable<>(
-        logicalPlan.getTheSourceNode().getSchema(),
-        mockKTable,
+        mockKTable, logicalPlan.getTheSourceNode().getSchema(),
+        keySerde,
         logicalPlan.getTheSourceNode().getKeyField(),
         new ArrayList<>(),
-        Serdes::String,
         SchemaKStream.Type.SOURCE,
         ksqlConfig,
         functionRegistry,
@@ -415,8 +416,8 @@ public class SchemaKTableTest {
 
     final List<Expression> groupByExpressions = Arrays.asList(TEST_2_COL_2, TEST_2_COL_1);
     final Serde<GenericRow> rowSerde = GenericRowSerDe.from(
-        new KsqlJsonSerdeFactory(),
-        PhysicalSchema.from(initialSchemaKTable.getSchema(), SerdeOption.none()),
+        FormatInfo.of(Format.JSON, Optional.empty()),
+        PersistenceSchema.from(initialSchemaKTable.getSchema().valueSchema(), false),
         null,
         () -> null,
         "test",
@@ -431,7 +432,7 @@ public class SchemaKTableTest {
         (KeyValue<String, GenericRow>) keySelector.apply("key", value);
 
     // Validate that the captured mapper produces the correct key
-    assertThat(keyValue.key, equalTo("bar|+|foo"));
+    assertThat(keyValue.key, equalTo(StructKeyUtil.asStructKey("bar|+|foo")));
     assertThat(keyValue.value, equalTo(value));
   }
 
@@ -648,19 +649,18 @@ public class SchemaKTableTest {
     final PlanNode logicalPlan = AnalysisTestUtil.buildLogicalPlan(selectQuery, metaStore);
 
     initialSchemaKTable = new SchemaKTable<>(
-        logicalPlan.getTheSourceNode().getSchema(),
-        kTable,
+        kTable, logicalPlan.getTheSourceNode().getSchema(),
+        keySerde,
         logicalPlan.getTheSourceNode().getKeyField(),
         new ArrayList<>(),
-        Serdes::String,
         SchemaKStream.Type.SOURCE,
         ksqlConfig,
         functionRegistry,
         parentContext);
 
     rowSerde = GenericRowSerDe.from(
-        new KsqlJsonSerdeFactory(),
-        PhysicalSchema.from(initialSchemaKTable.getSchema(), SerdeOption.none()),
+        FormatInfo.of(Format.JSON, Optional.empty()),
+        PersistenceSchema.from(initialSchemaKTable.getSchema().valueSchema(), false),
         null,
         () -> null,
         "test",

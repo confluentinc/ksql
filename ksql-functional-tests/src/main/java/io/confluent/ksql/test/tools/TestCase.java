@@ -307,7 +307,7 @@ public class TestCase implements Test {
       final Set<Topic> possibleSinkTopics
   ) {
     final Topic recordTopic = fakeKafkaRecord.getTestRecord().topic;
-    final Serializer<Object> keySerializer = recordTopic.getKeySerializer();
+    final Serializer<Object> keySerializer = recordTopic.getKeySerializer(schemaRegistryClient);
 
     final Serializer<Object> valueSerializer =
         recordTopic.getValueSerdeSupplier() instanceof AvroSerdeSupplier
@@ -351,24 +351,24 @@ public class TestCase implements Test {
   @SuppressWarnings("unchecked")
   private void processRecordsForTopic(
       final TopologyTestDriver topologyTestDriver,
-      final Topic topicToWriteInto,
+      final Topic sinkTopic,
       final FakeKafkaService fakeKafkaService,
       final SchemaRegistryClient schemaRegistryClient
   ) {
     while (true) {
       final ProducerRecord<?,?> producerRecord = topologyTestDriver.readOutput(
-          topicToWriteInto.getName(),
-          topicToWriteInto.getKeyDeserializer(isLegacySessionWindow()),
-          topicToWriteInto.getValueDeserializer(schemaRegistryClient)
+          sinkTopic.getName(),
+          sinkTopic.getKeyDeserializer(schemaRegistryClient, isLegacySessionWindow()),
+          sinkTopic.getValueDeserializer(schemaRegistryClient)
       );
       if (producerRecord == null) {
         break;
       }
 
       fakeKafkaService.writeRecord(
-          topicToWriteInto.getName(),
+          sinkTopic.getName(),
           FakeKafkaRecord.of(
-              topicToWriteInto,
+              sinkTopic,
               producerRecord)
       );
     }

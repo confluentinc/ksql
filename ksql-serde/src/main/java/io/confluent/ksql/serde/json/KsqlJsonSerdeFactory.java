@@ -18,7 +18,6 @@ package io.confluent.ksql.serde.json;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
-import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.function.Supplier;
@@ -27,11 +26,6 @@ import org.apache.kafka.common.serialization.Serdes;
 
 @Immutable
 public class KsqlJsonSerdeFactory implements KsqlSerdeFactory {
-
-  @Override
-  public Format getFormat() {
-    return Format.JSON;
-  }
 
   @Override
   public void validate(final PersistenceSchema schema) {

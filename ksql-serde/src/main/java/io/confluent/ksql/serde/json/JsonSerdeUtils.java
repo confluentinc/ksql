@@ -44,7 +44,7 @@ final class JsonSerdeUtils {
       }
     }
 
-    SchemaWalker.visit(schema.getConnectSchema(), new SchemaValidator());
+    SchemaWalker.visit(schema.serializedSchema(), new SchemaValidator());
     return schema;
   }
 

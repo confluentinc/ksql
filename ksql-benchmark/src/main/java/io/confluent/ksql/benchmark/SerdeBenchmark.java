@@ -25,12 +25,10 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.datagen.RowGenerator;
 import io.confluent.ksql.datagen.SessionManager;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
-import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.schema.ksql.PersistenceSchema;
+import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.GenericRowSerDe;
-import io.confluent.ksql.serde.SerdeOption;
-import io.confluent.ksql.serde.avro.KsqlAvroSerdeFactory;
-import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.SchemaUtil;
@@ -38,13 +36,16 @@ import java.io.InputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
+import java.util.Optional;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 import org.apache.avro.Schema;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.serialization.Serializer;
+import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.openjdk.jmh.annotations.Benchmark;
@@ -171,18 +172,11 @@ public class SerdeBenchmark {
     private static Serde<GenericRow> getJsonSerdeHelper(
         final org.apache.kafka.connect.data.Schema schema
     ) {
-      final PhysicalSchema physicalSchema = PhysicalSchema.from(
-          LogicalSchema.of(KEY_SCHEMA, schema),
-          SerdeOption.none()
+      return getGenericRowSerde(
+          FormatInfo.of(Format.JSON, Optional.empty()),
+          schema,
+          () -> null
       );
-
-      return GenericRowSerDe.from(
-          new KsqlJsonSerdeFactory(),
-          physicalSchema,
-          new KsqlConfig(Collections.emptyMap()),
-          () -> null,
-          "benchmark",
-          ProcessingLogContext.create());
     }
 
     private static Serde<GenericRow> getAvroSerde(
@@ -190,18 +184,26 @@ public class SerdeBenchmark {
     ) {
       final SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
 
-      final PhysicalSchema physicalSchema = PhysicalSchema.from(
-          LogicalSchema.of(KEY_SCHEMA, schema),
-          SerdeOption.none()
+      return getGenericRowSerde(
+          FormatInfo.of(Format.AVRO, Optional.of("benchmarkSchema")),
+          schema,
+          () -> schemaRegistryClient
       );
+    }
 
+    private static Serde<GenericRow> getGenericRowSerde(
+        final FormatInfo format,
+        final org.apache.kafka.connect.data.Schema schema,
+        final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
+    ) {
       return GenericRowSerDe.from(
-          new KsqlAvroSerdeFactory("benchmarkSchema"),
-          physicalSchema,
+          format,
+          PersistenceSchema.from((ConnectSchema) schema, false),
           new KsqlConfig(Collections.emptyMap()),
-          () -> schemaRegistryClient,
+          schemaRegistryClientFactory,
           "benchmark",
-          ProcessingLogContext.create());
+          ProcessingLogContext.create()
+      );
     }
   }
 

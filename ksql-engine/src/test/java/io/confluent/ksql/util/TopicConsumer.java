@@ -23,13 +23,15 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.GenericRowSerDe;
-import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.UUID;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -95,8 +97,8 @@ public class TopicConsumer {
       final Deserializer<K> keyDeserializer
   ) {
     final Deserializer<GenericRow> deserializer = GenericRowSerDe.from(
-        new KsqlJsonSerdeFactory(),
-        schema,
+        FormatInfo.of(Format.JSON, Optional.empty()),
+        schema.valueSchema(),
         new KsqlConfig(ImmutableMap.of()),
         () -> null,
         "consumer",

@@ -183,11 +183,6 @@ public class AstBuilder {
     }
 
     @Override
-    public Node visitQuerystatement(final SqlBaseParser.QuerystatementContext ctx) {
-      return visitChildren(ctx);
-    }
-
-    @Override
     public Node visitSingleExpression(final SqlBaseParser.SingleExpressionContext context) {
       return visit(context.expression());
     }
@@ -560,11 +555,6 @@ public class AstBuilder {
     }
 
     @Override
-    public Node visitQualifiedName(final SqlBaseParser.QualifiedNameContext context) {
-      return visitChildren(context);
-    }
-
-    @Override
     public Node visitRunScript(final SqlBaseParser.RunScriptContext context) {
       return new RunScript(getLocation(context));
     }
@@ -654,11 +644,6 @@ public class AstBuilder {
           interval,
           limit
       );
-    }
-
-    @Override
-    public Node visitNumericLiteral(final SqlBaseParser.NumericLiteralContext ctx) {
-      return visitChildren(ctx);
     }
 
     @Override

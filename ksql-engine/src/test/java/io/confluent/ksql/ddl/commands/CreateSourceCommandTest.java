@@ -45,13 +45,14 @@ import io.confluent.ksql.parser.tree.Type;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.properties.with.CreateConfigs;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.ValueSerdeFactory;
+import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
@@ -296,7 +297,7 @@ public class CreateSourceCommandTest {
     // Then:
     verify(serdeFactories).create(
         FormatInfo.of(JSON, Optional.empty()),
-        PhysicalSchema.from(schema, SerdeOption.none()),
+        PersistenceSchema.from(schema.valueSchema(), false),
         ksqlConfig,
         serviceContext.getSchemaRegistryClientFactory(),
         "",
@@ -310,7 +311,7 @@ public class CreateSourceCommandTest {
     final TestCmd cmd = createCmd();
 
     // Then:
-    assertThat(cmd.getTopic().getKeyFormat(), is(KeyFormat.nonWindowed(KAFKA)));
+    assertThat(cmd.getTopic().getKeyFormat(), is(KeyFormat.nonWindowed(FormatInfo.of(KAFKA))));
   }
 
   @Test
@@ -326,7 +327,7 @@ public class CreateSourceCommandTest {
 
     // Then:
     assertThat(cmd.getTopic().getValueFormat(),
-        is(ValueFormat.of(AVRO, Optional.of("full.schema.name"))));
+        is(ValueFormat.of(FormatInfo.of(AVRO, Optional.of("full.schema.name")))));
   }
 
   @Test
@@ -340,8 +341,10 @@ public class CreateSourceCommandTest {
     final TestCmd cmd = createCmd();
 
     // Then:
-    assertThat(cmd.getTopic().getKeyFormat(),
-        is(KeyFormat.windowed(KAFKA, SESSION, Optional.empty())));
+    assertThat(cmd.getTopic().getKeyFormat(), is(KeyFormat.windowed(
+        FormatInfo.of(KAFKA),
+        WindowInfo.of(SESSION, Optional.empty()))
+    ));
   }
 
   @Test
@@ -356,8 +359,10 @@ public class CreateSourceCommandTest {
     final TestCmd cmd = createCmd();
 
     // Then:
-    assertThat(cmd.getTopic().getKeyFormat(),
-        is(KeyFormat.windowed(KAFKA, TUMBLING, Optional.of(Duration.ofMinutes(1)))));
+    assertThat(cmd.getTopic().getKeyFormat(), is(KeyFormat.windowed(
+        FormatInfo.of(KAFKA),
+        WindowInfo.of(TUMBLING, Optional.of(Duration.ofMinutes(1))))
+    ));
   }
 
   @Test
@@ -372,8 +377,10 @@ public class CreateSourceCommandTest {
     final TestCmd cmd = createCmd();
 
     // Then:
-    assertThat(cmd.getTopic().getKeyFormat(),
-        is(KeyFormat.windowed(KAFKA, HOPPING, Optional.of(Duration.ofSeconds(2)))));
+    assertThat(cmd.getTopic().getKeyFormat(), is(KeyFormat.windowed(
+        FormatInfo.of(KAFKA),
+        WindowInfo.of(HOPPING, Optional.of(Duration.ofSeconds(2))))
+    ));
   }
 
   private TestCmd createCmd() {

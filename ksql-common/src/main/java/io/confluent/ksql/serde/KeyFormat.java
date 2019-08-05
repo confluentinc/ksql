@@ -30,46 +30,26 @@ public final class KeyFormat {
   private final FormatInfo format;
   private final Optional<WindowInfo> window;
 
-  public static KeyFormat nonWindowed(
-      final Format format
-  ) {
-    return new KeyFormat(
-        FormatInfo.of(format, Optional.empty()),
-        Optional.empty()
-    );
-  }
-
-  public static KeyFormat nonWindowed(
-      final Format format,
-      final Optional<String> avroSchemaName
-  ) {
-    return new KeyFormat(
-        FormatInfo.of(format, avroSchemaName),
-        Optional.empty()
-    );
-  }
-
-  public static KeyFormat windowed(
-      final Format format,
-      final WindowType windowType,
-      final Optional<Duration> windowSize
-  ) {
-    return new KeyFormat(
-        FormatInfo.of(format, Optional.empty()),
-        Optional.of(WindowInfo.of(windowType, windowSize))
-    );
+  public static KeyFormat nonWindowed(final FormatInfo format) {
+    return new KeyFormat(format, Optional.empty());
   }
 
   public static KeyFormat windowed(
       final Format format,
       final Optional<String> avroSchemaName,
-      final WindowType windowType,
-      final Optional<Duration> windowSize
+      final WindowInfo windowInfo
   ) {
     return new KeyFormat(
         FormatInfo.of(format, avroSchemaName),
-        Optional.of(WindowInfo.of(windowType, windowSize))
+        Optional.of(windowInfo)
     );
+  }
+
+  public static KeyFormat windowed(
+      final FormatInfo format,
+      final WindowInfo windowInfo
+  ) {
+    return new KeyFormat(format, Optional.of(windowInfo));
   }
 
   private KeyFormat(

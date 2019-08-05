@@ -27,6 +27,7 @@ import io.confluent.ksql.metrics.ConsumerCollector;
 import io.confluent.ksql.metrics.StreamsErrorCollector;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
@@ -71,8 +72,8 @@ public class SourceDescriptionTest {
 
     final KsqlTopic topic = new KsqlTopic(
         kafkaTopicName,
-        KeyFormat.nonWindowed(Format.KAFKA),
-        ValueFormat.of(Format.JSON),
+        KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
+        ValueFormat.of(FormatInfo.of(Format.JSON)),
         true
     );
 

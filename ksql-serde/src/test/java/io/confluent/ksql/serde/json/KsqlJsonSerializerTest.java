@@ -41,6 +41,7 @@ import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Decimal;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.Schema.Type;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.hamcrest.CoreMatchers;
@@ -445,10 +446,15 @@ public class KsqlJsonSerializerTest {
   @Test
   public void shouldThrowOnMapSchemaWithNonStringKeys() {
     // Given:
-    final PersistenceSchema physicalSchema = PersistenceSchema.of(
+    final PersistenceSchema physicalSchema = PersistenceSchema.from(
         (ConnectSchema) SchemaBuilder
-            .map(Schema.OPTIONAL_INT32_SCHEMA, Schema.INT32_SCHEMA)
-            .build()
+            .struct()
+            .field("f0", SchemaBuilder
+                .map(Schema.OPTIONAL_INT32_SCHEMA, Schema.INT32_SCHEMA)
+                .optional()
+                .build())
+            .build(),
+        true
     );
 
     // Then:
@@ -462,14 +468,18 @@ public class KsqlJsonSerializerTest {
   @Test
   public void shouldThrowOnNestedMapSchemaWithNonStringKeys() {
     // Given:
-    final PersistenceSchema physicalSchema = PersistenceSchema.of(
+    final PersistenceSchema physicalSchema =  PersistenceSchema.from(
         (ConnectSchema) SchemaBuilder
             .struct()
             .field("f0", SchemaBuilder
-                .map(Schema.OPTIONAL_INT32_SCHEMA, Schema.INT32_SCHEMA)
-                .optional()
+                .struct()
+                .field("f1", SchemaBuilder
+                    .map(Schema.OPTIONAL_INT32_SCHEMA, Schema.INT32_SCHEMA)
+                    .optional()
+                    .build())
                 .build())
-            .build()
+            .build(),
+        true
     );
 
     // Then:
@@ -583,8 +593,15 @@ public class KsqlJsonSerializerTest {
     return topLevel;
   }
 
-  private void givenSerializerForSchema(final Schema connectSchema) {
-    final PersistenceSchema physicalSchema = PersistenceSchema.of((ConnectSchema) connectSchema);
-    serializer = new KsqlJsonSerializer(physicalSchema);
+  private void givenSerializerForSchema(final Schema serializedSchema) {
+    final boolean unwrap = serializedSchema.type() != Type.STRUCT;
+    final Schema ksqlSchema = unwrap
+        ? SchemaBuilder.struct().field("f", serializedSchema).build()
+        : serializedSchema;
+
+    final PersistenceSchema persistenceSchema = PersistenceSchema
+        .from((ConnectSchema) ksqlSchema, unwrap);
+
+    serializer = new KsqlJsonSerializer(persistenceSchema);
   }
 }

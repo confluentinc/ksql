@@ -67,7 +67,7 @@ public class IntTopkKudafTest {
     final List<Integer> array1 = ImmutableList.of(50, 45, 25);
     final List<Integer> array2 = ImmutableList.of(60, 55, 48);
 
-    assertThat("Invalid results.", topkKudaf.getMerger().apply("key", array1, array2),
+    assertThat("Invalid results.", topkKudaf.getMerger().apply(null, array1, array2),
         equalTo(ImmutableList.of(60, 55, 50)));
   }
 
@@ -76,7 +76,7 @@ public class IntTopkKudafTest {
     final List<Integer> array1 = ImmutableList.of(50, 45);
     final List<Integer> array2 = ImmutableList.of(60);
 
-    assertThat("Invalid results.", topkKudaf.getMerger().apply("key", array1, array2),
+    assertThat("Invalid results.", topkKudaf.getMerger().apply(null, array1, array2),
         equalTo(ImmutableList.of(60, 50, 45)));
   }
 
@@ -85,7 +85,7 @@ public class IntTopkKudafTest {
     final List<Integer> array1 = ImmutableList.of(50);
     final List<Integer> array2 = ImmutableList.of(60);
 
-    assertThat("Invalid results.", topkKudaf.getMerger().apply("key", array1, array2),
+    assertThat("Invalid results.", topkKudaf.getMerger().apply(null, array1, array2),
         equalTo(ImmutableList.of(60, 50)));
   }
 
@@ -109,7 +109,7 @@ public class IntTopkKudafTest {
 
     // When:
     final List<Integer> result = topkKudaf.aggregate(10, initialAggregate);
-    final List<Integer> combined = topkKudaf.getMerger().apply("key", result, initialAggregate);
+    final List<Integer> combined = topkKudaf.getMerger().apply(null, result, initialAggregate);
 
     // Then:
     assertThat(combined.get(0), is(299));
@@ -137,7 +137,7 @@ public class IntTopkKudafTest {
           }
           return aggregate;
         })
-        .reduce((agg1, agg2) -> topkKudaf.getMerger().apply("blah", agg1, agg2))
+        .reduce((agg1, agg2) -> topkKudaf.getMerger().apply(null, agg1, agg2))
         .orElse(new ArrayList<>());
 
     // Then:
@@ -179,7 +179,7 @@ public class IntTopkKudafTest {
     final long start = System.currentTimeMillis();
 
     for(int i = 0; i != iterations; ++i) {
-      topkKudaf.getMerger().apply("ignmored", aggregate1, aggregate2);
+      topkKudaf.getMerger().apply(null, aggregate1, aggregate2);
     }
 
     final long took = System.currentTimeMillis() - start;

@@ -31,7 +31,6 @@ import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;
 import io.confluent.ksql.test.utils.SerdeUtil;
 import java.util.Optional;
 import org.apache.avro.Schema;
-import org.apache.kafka.common.serialization.Serdes;
 
 class TopicNode {
 
@@ -64,6 +63,11 @@ class TopicNode {
   Topic build(final String defaultFormat) {
     final String formatToUse = format.replace("{FORMAT}", defaultFormat);
 
+    final SerdeSupplier<?> keySerdeSupplier = SerdeUtil.getSerdeSupplier(
+        Format.KAFKA,
+        this::logicalSchema
+    );
+
     final SerdeSupplier<?> valueSerdeSupplier = SerdeUtil.getSerdeSupplier(
         Format.of(formatToUse),
         this::logicalSchema
@@ -72,7 +76,7 @@ class TopicNode {
     return new Topic(
         name,
         avroSchema,
-        Serdes::String,
+        keySerdeSupplier,
         valueSerdeSupplier,
         numPartitions,
         replicas,

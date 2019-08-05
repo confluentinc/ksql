@@ -69,7 +69,7 @@ public class StringTopkKudafTest {
     final List<String> array1 = ImmutableList.of("paper", "Hello", "123");
     final List<String> array2 = ImmutableList.of("Zzz", "Hi", "456");
 
-    assertThat("Invalid results.", topkKudaf.getMerger().apply("key", array1, array2),
+    assertThat("Invalid results.", topkKudaf.getMerger().apply(null, array1, array2),
         equalTo(ImmutableList.of("paper", "Zzz", "Hi")));
   }
 
@@ -80,7 +80,7 @@ public class StringTopkKudafTest {
     final List<String> array1 = ImmutableList.of("50", "45");
     final List<String> array2 = ImmutableList.of("60");
 
-    assertThat("Invalid results.", topkKudaf.getMerger().apply("key", array1, array2),
+    assertThat("Invalid results.", topkKudaf.getMerger().apply(null, array1, array2),
         equalTo(ImmutableList.of("60", "50", "45")));
   }
 
@@ -91,7 +91,7 @@ public class StringTopkKudafTest {
     final List<String> array1 = ImmutableList.of("50");
     final List<String> array2 = ImmutableList.of("60");
 
-    assertThat("Invalid results.", topkKudaf.getMerger().apply("key", array1, array2),
+    assertThat("Invalid results.", topkKudaf.getMerger().apply(null, array1, array2),
         equalTo(ImmutableList.of("60", "50")));
   }
 }

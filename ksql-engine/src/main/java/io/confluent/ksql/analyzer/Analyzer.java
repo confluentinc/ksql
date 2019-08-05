@@ -52,6 +52,7 @@ import io.confluent.ksql.planner.plan.JoinNode;
 import io.confluent.ksql.schema.ksql.Field;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.SerdeOptions;
@@ -188,10 +189,10 @@ class Analyzer {
 
       final KeyFormat keyFormat = buildKeyFormat();
 
-      final ValueFormat valueFormat = ValueFormat.of(
+      final ValueFormat valueFormat = ValueFormat.of(FormatInfo.of(
           getValueFormat(sink),
           sink.getProperties().getValueAvroSchemaName()
-      );
+      ));
 
       final KsqlTopic intoKsqlTopic = new KsqlTopic(
           topicName,
@@ -214,7 +215,7 @@ class Analyzer {
           .map(WindowExpression::getKsqlWindowExpression);
 
       return ksqlWindow
-          .map(w -> KeyFormat.windowed(Format.KAFKA, w.getType(), w.getWindowSize()))
+          .map(w -> KeyFormat.windowed(FormatInfo.of(Format.KAFKA), w.getWindowInfo()))
           .orElseGet(() -> analysis
               .getFromDataSources()
               .get(0)

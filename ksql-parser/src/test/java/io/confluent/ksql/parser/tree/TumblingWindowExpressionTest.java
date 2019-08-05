@@ -25,10 +25,12 @@ import static org.mockito.Mockito.when;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.UdafAggregator;
 import io.confluent.ksql.model.WindowType;
+import io.confluent.ksql.serde.WindowInfo;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import org.apache.kafka.common.utils.Bytes;
+import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Initializer;
 import org.apache.kafka.streams.kstream.KGroupedStream;
 import org.apache.kafka.streams.kstream.Materialized;
@@ -45,15 +47,15 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class TumblingWindowExpressionTest {
 
   @Mock
-  private KGroupedStream<String, GenericRow> stream;
+  private KGroupedStream<Struct, GenericRow> stream;
   @Mock
-  private TimeWindowedKStream<String, GenericRow> windowedKStream;
+  private TimeWindowedKStream<Struct, GenericRow> windowedKStream;
   @Mock
   private UdafAggregator aggregator;
   @Mock
   private Initializer<GenericRow> initializer;
   @Mock
-  private Materialized<String, GenericRow, WindowStore<Bytes, byte[]>> store;
+  private Materialized<Struct, GenericRow, WindowStore<Bytes, byte[]>> store;
   private TumblingWindowExpression windowExpression;
 
   @Before
@@ -76,14 +78,8 @@ public class TumblingWindowExpressionTest {
   }
 
   @Test
-  public void shouldReturnCorrectType() {
-    assertThat(new TumblingWindowExpression(11, SECONDS).getType(),
-        is(WindowType.TUMBLING));
-  }
-
-  @Test
-  public void shouldReturnCorrectWindowSize() {
-    assertThat(new TumblingWindowExpression(11, SECONDS).getWindowSize(),
-        is(Optional.of(Duration.ofSeconds(11))));
+  public void shouldReturnWindowInfo() {
+    assertThat(new TumblingWindowExpression(11, SECONDS).getWindowInfo(),
+        is(WindowInfo.of(WindowType.TUMBLING, Optional.of(Duration.ofSeconds(11)))));
   }
 }

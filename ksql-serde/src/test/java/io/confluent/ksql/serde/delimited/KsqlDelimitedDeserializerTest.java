@@ -71,7 +71,7 @@ public class KsqlDelimitedDeserializerTest {
     final Struct struct = deserializer.deserialize("", bytes);
 
     // Then:
-    assertThat(struct.schema(), is(ORDER_SCHEMA.getConnectSchema()));
+    assertThat(struct.schema(), is(ORDER_SCHEMA.serializedSchema()));
     assertThat(struct.get("ORDERTIME"), is(1511897796092L));
     assertThat(struct.get("ORDERID"), is(1L));
     assertThat(struct.get("ITEMID"), is("item_1"));
@@ -88,7 +88,7 @@ public class KsqlDelimitedDeserializerTest {
     final Struct struct = deserializer.deserialize("", bytes);
 
     // Then:
-    assertThat(struct.schema(), is(ORDER_SCHEMA.getConnectSchema()));
+    assertThat(struct.schema(), is(ORDER_SCHEMA.serializedSchema()));
     assertThat(struct.get("ORDERTIME"), is(1511897796092L));
     assertThat(struct.get("ORDERID"), is(1L));
     assertThat(struct.get("ITEMID"), is("item_1"));
@@ -126,12 +126,20 @@ public class KsqlDelimitedDeserializerTest {
 
   @Test
   public void shouldThrowIfTopLevelNotStruct() {
+    // Given:
+    final PersistenceSchema schema = PersistenceSchema.from(
+        (ConnectSchema) SchemaBuilder.struct()
+            .field("f0", Schema.OPTIONAL_INT64_SCHEMA)
+            .build(),
+        true
+    );
+
     // Then:
     expectedException.expect(IllegalArgumentException.class);
     expectedException.expectMessage("DELIMITED expects all top level schemas to be STRUCTs");
 
     // When:
-    new KsqlDelimitedDeserializer(persistenceSchema(Schema.OPTIONAL_INT64_SCHEMA));
+    new KsqlDelimitedDeserializer(schema);
   }
 
   @Test
@@ -278,6 +286,6 @@ public class KsqlDelimitedDeserializerTest {
   }
 
   private static PersistenceSchema persistenceSchema(final Schema connectSchema) {
-    return PersistenceSchema.of((ConnectSchema) connectSchema);
+    return PersistenceSchema.from((ConnectSchema) connectSchema, false);
   }
 }

@@ -293,8 +293,8 @@ public class JoinNode extends PlanNode {
       final LogicalSchema logicalSchema = sourceNode.getSchema()
           .withoutAlias();
 
-      return builder.buildGenericRowSerde(
-          valueFormat,
+      return builder.buildValueSerde(
+          valueFormat.getFormatInfo(),
           PhysicalSchema.from(
               logicalSchema,
               SerdeOption.none()

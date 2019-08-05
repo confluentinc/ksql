@@ -24,10 +24,9 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.logging.processing.LoggingDeserializer;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
-import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.PhysicalSchema;
-import io.confluent.ksql.schema.ksql.SchemaConverters;
+import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.SchemaUtil;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -45,8 +44,6 @@ import org.apache.kafka.connect.data.Struct;
 
 public final class GenericRowSerDe implements ValueSerdeFactory {
 
-  private static final String DESERIALIZER_LOGGER_NAME = "deserializer";
-
   private final SerdeFactories serdeFactories;
 
   public GenericRowSerDe() {
@@ -61,7 +58,7 @@ public final class GenericRowSerDe implements ValueSerdeFactory {
   @Override
   public Serde<GenericRow> create(
       final FormatInfo format,
-      final PhysicalSchema schema,
+      final PersistenceSchema schema,
       final KsqlConfig ksqlConfig,
       final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
       final String loggerNamePrefix,
@@ -74,66 +71,46 @@ public final class GenericRowSerDe implements ValueSerdeFactory {
         schemaRegistryClientFactory,
         loggerNamePrefix,
         processingLogContext,
-        getTargetType(schema),
-        serdeFactories
+        getTargetType(schema)
     );
   }
 
   public static Serde<GenericRow> from(
       final FormatInfo format,
-      final PhysicalSchema schema,
+      final PersistenceSchema schema,
       final KsqlConfig ksqlConfig,
       final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
       final String loggerNamePrefix,
       final ProcessingLogContext processingLogContext
   ) {
-    return from(
+    return new GenericRowSerDe().create(
         format,
         schema,
         ksqlConfig,
         schemaRegistryClientFactory,
         loggerNamePrefix,
-        processingLogContext,
-        getTargetType(schema),
-        new KsqlSerdeFactories()
+        processingLogContext
     );
   }
 
-  private static <T> Serde<GenericRow> from(
+  private <T> Serde<GenericRow> from(
       final FormatInfo format,
-      final PhysicalSchema schema,
+      final PersistenceSchema schema,
       final KsqlConfig ksqlConfig,
       final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
       final String loggerNamePrefix,
       final ProcessingLogContext processingLogContext,
-      final Class<T> targetType,
-      final SerdeFactories serdeFactories
+      final Class<T> targetType
   ) {
     final Serde<T> serde = serdeFactories
-        .create(format, schema.valueSchema(), ksqlConfig, schemaRegistryClientFactory, targetType);
+        .create(format, schema, ksqlConfig, schemaRegistryClientFactory, targetType);
 
-    return from(
-        serde,
-        schema,
-        loggerNamePrefix,
-        processingLogContext,
-        targetType
-    );
-  }
-
-  private static <T> Serde<GenericRow> from(
-      final Serde<T> innerSerde,
-      final PhysicalSchema schema,
-      final String loggerNamePrefix,
-      final ProcessingLogContext processingLogContext,
-      final Class<T> type
-  ) {
     final ProcessingLogger processingLogger = processingLogContext.getLoggerFactory()
-        .getLogger(join(loggerNamePrefix, DESERIALIZER_LOGGER_NAME));
+        .getLogger(join(loggerNamePrefix, GenericKeySerDe.DESERIALIZER_LOGGER_NAME));
 
-    final Serde<GenericRow> genericRowSerde = isUnwrapped(schema)
-          ? unwrapped(innerSerde)
-          : wrapped(innerSerde, schema, type);
+    final Serde<GenericRow> genericRowSerde = schema.isUnwrapped()
+          ? unwrapped(serde)
+          : wrapped(serde, schema, targetType);
 
     final Serde<GenericRow> result = Serdes.serdeFrom(
         genericRowSerde.serializer(),
@@ -145,18 +122,8 @@ public final class GenericRowSerDe implements ValueSerdeFactory {
     return result;
   }
 
-  private static Class<?> getTargetType(final PhysicalSchema schema) {
-    if (isUnwrapped(schema)) {
-      return SchemaConverters.sqlToJavaConverter()
-          .toJavaType(schema.logicalSchema().valueFields().get(0).type().baseType());
-    }
-
-    return Struct.class;
-  }
-
-  private static boolean isUnwrapped(final PhysicalSchema schema) {
-    return schema.logicalSchema().valueFields().size() == 1
-        && schema.serdeOptions().contains(SerdeOption.UNWRAP_SINGLE_VALUES);
+  private static Class<?> getTargetType(final PersistenceSchema schema) {
+    return SchemaUtil.getJavaType(schema.serializedSchema());
   }
 
   private static <K> Serde<GenericRow> unwrapped(final Serde<K> innerSerde) {
@@ -171,7 +138,7 @@ public final class GenericRowSerDe implements ValueSerdeFactory {
 
   private static <T> Serde<GenericRow> wrapped(
       final Serde<T> innerSerde,
-      final PhysicalSchema schema,
+      final PersistenceSchema schema,
       final Class<T> type
   ) {
     if (type != Struct.class) {
@@ -181,7 +148,7 @@ public final class GenericRowSerDe implements ValueSerdeFactory {
     @SuppressWarnings("unchecked") final Serde<Struct> structSerde = (Serde<Struct>) innerSerde;
 
     final Serializer<GenericRow> serializer =
-        new GenericRowSerializer(structSerde.serializer(), schema.logicalSchema());
+        new GenericRowSerializer(structSerde.serializer(), schema);
 
     final Deserializer<GenericRow> deserializer =
         new GenericRowDeserializer(structSerde.deserializer());
@@ -250,9 +217,9 @@ public final class GenericRowSerDe implements ValueSerdeFactory {
     private final Serializer<Struct> inner;
     private final ConnectSchema schema;
 
-    GenericRowSerializer(final Serializer<Struct> inner, final LogicalSchema schema) {
+    GenericRowSerializer(final Serializer<Struct> inner, final PersistenceSchema schema) {
       this.inner = requireNonNull(inner, "inner");
-      this.schema = requireNonNull(schema, "schema").valueSchema();
+      this.schema = requireNonNull(schema, "schema").ksqlSchema();
     }
 
     @Override

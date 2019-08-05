@@ -13,19 +13,20 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.serde;
+package org.apache.kafka.streams.kstream;
 
-import io.confluent.ksql.model.WindowType;
-import java.time.Duration;
-import java.util.Optional;
+import org.apache.kafka.common.serialization.Serde;
 
-public interface KeySerdeFactories {
+/**
+ * To allow access to serde in {@link Consumed}.
+ */
+public final class KsqlConsumed {
 
-  /**
-   * Create {@link SerdeFactory}.
-   *
-   * @param windowType optional type of the window
-   * @param windowSize window size required by some window types.
-   */
-  <K> SerdeFactory<K> create(Optional<WindowType> windowType, Optional<Duration> windowSize);
+  private KsqlConsumed() {
+  }
+
+  public static <K> Serde<K> keySerde(final Consumed<K, ?> consumed) {
+    return consumed.keySerde;
+  }
 }
+

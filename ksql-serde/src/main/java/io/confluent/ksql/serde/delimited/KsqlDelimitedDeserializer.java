@@ -52,7 +52,7 @@ public class KsqlDelimitedDeserializer implements Deserializer<Object> {
   KsqlDelimitedDeserializer(
       final PersistenceSchema schema
   ) {
-    this.schema = Objects.requireNonNull(schema, "schema").getConnectSchema();
+    this.schema = Objects.requireNonNull(schema, "schema").serializedSchema();
 
     throwOnUnsupported(this.schema);
   }

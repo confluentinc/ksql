@@ -20,6 +20,7 @@ import java.util.Collections;
 import java.util.Objects;
 import java.util.function.BiFunction;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Merger;
 
 public abstract class BaseNumberKudaf<T extends Number> extends BaseAggregateFunction<T, T> {
@@ -56,7 +57,7 @@ public abstract class BaseNumberKudaf<T extends Number> extends BaseAggregateFun
   }
 
   @Override
-  public final Merger<String, T> getMerger() {
+  public final Merger<Struct, T> getMerger() {
     return (key, a, b) -> aggregate(a, b);
   }
 }

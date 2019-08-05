@@ -50,7 +50,7 @@ public class KudafUndoAggregatorTest {
     final KudafUndoAggregator aggregator = new KudafUndoAggregator(
         aggValToAggFunctionMap, aggValToValColumnMap);
 
-    final GenericRow resultRow = aggregator.apply("unused", row, aggRow);
+    final GenericRow resultRow = aggregator.apply(null, row, aggRow);
 
     assertThat(resultRow, equalTo(new GenericRow(Arrays.asList("jon", "snow", 2))));
   }

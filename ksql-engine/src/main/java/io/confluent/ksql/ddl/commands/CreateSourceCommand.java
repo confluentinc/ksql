@@ -164,7 +164,7 @@ abstract class CreateSourceCommand implements DdlCommand {
   ) {
     valueSerdeFactory.create(
         topic.getValueFormat().getFormatInfo(),
-        physicalSchema,
+        physicalSchema.valueSchema(),
         ksqlConfig,
         serviceContext.getSchemaRegistryClientFactory(),
         "",

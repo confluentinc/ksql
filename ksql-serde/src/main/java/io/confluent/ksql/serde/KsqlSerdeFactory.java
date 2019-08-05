@@ -53,7 +53,7 @@ public interface KsqlSerdeFactory {
       Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
       Class<T> type
   ) {
-    final Class<?> actualType = SchemaUtil.getJavaType(schema.getConnectSchema());
+    final Class<?> actualType = SchemaUtil.getJavaType(schema.serializedSchema());
 
     if (!type.equals(actualType)) {
       throw new IllegalArgumentException("schema does not resolve to required type."

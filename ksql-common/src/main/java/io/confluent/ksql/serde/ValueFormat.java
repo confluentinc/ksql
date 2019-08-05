@@ -17,7 +17,6 @@ package io.confluent.ksql.serde;
 
 import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
-import java.util.Optional;
 
 /**
  * Immutable Pojo holding information about a source's value format.
@@ -28,20 +27,9 @@ public final class ValueFormat {
   private final FormatInfo format;
 
   public static ValueFormat of(
-      final Format format
+      final FormatInfo format
   ) {
-    return new ValueFormat(
-        FormatInfo.of(format, Optional.empty())
-    );
-  }
-
-  public static ValueFormat of(
-      final Format format,
-      final Optional<String> avroSchemaName
-  ) {
-    return new ValueFormat(
-        FormatInfo.of(format, avroSchemaName)
-    );
+    return new ValueFormat(format);
   }
 
   private ValueFormat(

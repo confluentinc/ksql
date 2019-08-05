@@ -207,8 +207,8 @@ public class AggregateNode extends PlanNode {
         .getKsqlTopic()
         .getValueFormat();
 
-    final Serde<GenericRow> genericRowSerde = builder.buildGenericRowSerde(
-        valueFormat,
+    final Serde<GenericRow> genericRowSerde = builder.buildValueSerde(
+        valueFormat.getFormatInfo(),
         PhysicalSchema.from(aggregateArgExpanded.getSchema(), SerdeOption.none()),
         groupByContext.getQueryContext()
     );
@@ -236,8 +236,8 @@ public class AggregateNode extends PlanNode {
 
     final QueryContext.Stacker aggregationContext = contextStacker.push(AGGREGATION_OP_NAME);
 
-    final Serde<GenericRow> aggValueGenericRowSerde = builder.buildGenericRowSerde(
-        valueFormat,
+    final Serde<GenericRow> aggValueGenericRowSerde = builder.buildValueSerde(
+        valueFormat.getFormatInfo(),
         PhysicalSchema.from(aggStageSchema, SerdeOption.none()),
         aggregationContext.getQueryContext()
     );
@@ -257,11 +257,10 @@ public class AggregateNode extends PlanNode {
         aggregationContext);
 
     SchemaKTable<?> result = new SchemaKTable<>(
-        aggStageSchema,
-        schemaKTable.getKtable(),
+        schemaKTable.getKtable(), aggStageSchema,
+        schemaKTable.getKeySerde(),
         schemaKTable.getKeyField(),
         schemaKTable.getSourceSchemaKStreams(),
-        schemaKTable.getKeySerdeFactory(),
         SchemaKStream.Type.AGGREGATE,
         builder.getKsqlConfig(),
         builder.getFunctionRegistry(),

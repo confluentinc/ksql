@@ -21,6 +21,7 @@ import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.TableAggregationFunction;
 import java.util.Collections;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Merger;
 
 public class LongSumKudaf
@@ -49,7 +50,7 @@ public class LongSumKudaf
   }
 
   @Override
-  public Merger<String, Long> getMerger() {
+  public Merger<Struct, Long> getMerger() {
     return (aggKey, aggOne, aggTwo) -> aggOne + aggTwo;
   }
 

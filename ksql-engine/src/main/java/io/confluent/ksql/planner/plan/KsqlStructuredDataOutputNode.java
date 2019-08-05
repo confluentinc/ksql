@@ -30,7 +30,7 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.Field;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
-import io.confluent.ksql.serde.SerdeFactory;
+import io.confluent.ksql.serde.KeySerde;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.structured.QueryContext;
 import io.confluent.ksql.structured.SchemaKStream;
@@ -58,7 +58,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
   private final Optional<String> partitionByField;
   private final boolean doCreateInto;
   private final Set<SerdeOption> serdeOptions;
-  private final SinKFactory sinKFactory;
+  private final SinkFactory sinkFactory;
   private final Set<Integer> implicitAndKeyFieldIndexes;
 
   public KsqlStructuredDataOutputNode(
@@ -101,7 +101,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
       final OptionalInt limit,
       final boolean doCreateInto,
       final Set<SerdeOption> serdeOptions,
-      final SinKFactory<?> sinkFactory
+      final SinkFactory<?> sinkFactory
   ) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     super(
@@ -123,7 +123,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     this.partitionByField = Objects.requireNonNull(partitionByField, "partitionByField");
     this.doCreateInto = doCreateInto;
     this.implicitAndKeyFieldIndexes = implicitAndKeyColumnIndexesInValueSchema(schema);
-    this.sinKFactory = requireNonNull(sinkFactory, "sinkFactory");
+    this.sinkFactory = requireNonNull(sinkFactory, "sinkFactory");
 
     validatePartitionByField();
   }
@@ -171,8 +171,8 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
         contextStacker
     );
 
-    final Serde<GenericRow> outputRowSerde = builder.buildGenericRowSerde(
-        getKsqlTopic().getValueFormat(),
+    final Serde<GenericRow> outputRowSerde = builder.buildValueSerde(
+        getKsqlTopic().getValueFormat().getFormatInfo(),
         PhysicalSchema.from(getSchema(), serdeOptions),
         contextStacker.getQueryContext()
     );
@@ -203,12 +203,12 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
         getKeyField().legacy()
     );
 
-    final SchemaKStream result = sinKFactory.create(
-        schemaKStream.getSchema(),
+    final SchemaKStream result = sinkFactory.create(
         schemaKStream.getKstream(),
+        schemaKStream.getSchema(),
+        schemaKStream.getKeySerde(),
         resultKeyField,
         Collections.singletonList(schemaKStream),
-        schemaKStream.getKeySerdeFactory(),
         SchemaKStream.Type.SINK,
         ksqlConfig,
         functionRegistry,
@@ -255,14 +255,14 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
         .collect(Collectors.toSet());
   }
 
-  interface SinKFactory<K> {
+  interface SinkFactory<K> {
 
     SchemaKStream create(
-        LogicalSchema schema,
         KStream<K, GenericRow> kstream,
+        LogicalSchema schema,
+        KeySerde<K> keySerde,
         KeyField keyField,
         List<SchemaKStream> sourceSchemaKStreams,
-        SerdeFactory<K> keySerdeFactory,
         Type type,
         KsqlConfig ksqlConfig,
         FunctionRegistry functionRegistry,

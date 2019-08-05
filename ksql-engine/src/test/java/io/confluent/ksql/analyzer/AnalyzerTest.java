@@ -53,6 +53,7 @@ import io.confluent.ksql.planner.plan.JoinNode.JoinType;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
@@ -101,7 +102,10 @@ public class AnalyzerTest {
   @Before
   public void init() {
     jsonMetaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
-    avroMetaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry(), ValueFormat.of(Format.AVRO));
+    avroMetaStore = MetaStoreFixture.getNewMetaStore(
+        new InternalFunctionRegistry(),
+        ValueFormat.of(FormatInfo.of(Format.AVRO))
+    );
 
     analyzer = new Analyzer(
         jsonMetaStore,
@@ -291,7 +295,7 @@ public class AnalyzerTest {
 
     assertThat(analysis.getInto(), is(not(Optional.empty())));
     assertThat(analysis.getInto().get().getKsqlTopic().getValueFormat(),
-        is(ValueFormat.of(Format.AVRO, Optional.of("com.custom.schema"))));
+        is(ValueFormat.of(FormatInfo.of(Format.AVRO, Optional.of("com.custom.schema")))));
   }
 
   @Test
@@ -307,7 +311,7 @@ public class AnalyzerTest {
 
     assertThat(analysis.getInto(), is(not(Optional.empty())));
     assertThat(analysis.getInto().get().getKsqlTopic().getValueFormat(),
-        is(ValueFormat.of(Format.AVRO)));
+        is(ValueFormat.of(FormatInfo.of(Format.AVRO))));
   }
 
     @Test
@@ -324,7 +328,7 @@ public class AnalyzerTest {
 
     assertThat(analysis.getInto(), is(not(Optional.empty())));
       assertThat(analysis.getInto().get().getKsqlTopic().getValueFormat(),
-          is(ValueFormat.of(Format.AVRO, Optional.of("org.ac.s1"))));
+          is(ValueFormat.of(FormatInfo.of(Format.AVRO, Optional.of("org.ac.s1")))));
   }
 
   @Test
@@ -335,8 +339,8 @@ public class AnalyzerTest {
 
     final KsqlTopic ksqlTopic = new KsqlTopic(
         "s0",
-        KeyFormat.nonWindowed(Format.KAFKA),
-        ValueFormat.of(Format.AVRO, Optional.of("org.ac.s1")),
+        KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
+        ValueFormat.of(FormatInfo.of(Format.AVRO, Optional.of("org.ac.s1"))),
         false);
 
     final LogicalSchema schema = LogicalSchema.builder()
@@ -365,7 +369,7 @@ public class AnalyzerTest {
 
     assertThat(analysis.getInto(), is(not(Optional.empty())));
     assertThat(analysis.getInto().get().getKsqlTopic().getValueFormat(),
-        is(ValueFormat.of(Format.AVRO)));
+        is(ValueFormat.of(FormatInfo.of(Format.AVRO))));
   }
 
   @Test
@@ -382,7 +386,7 @@ public class AnalyzerTest {
 
     assertThat(analysis.getInto(), is(not(Optional.empty())));
     assertThat(analysis.getInto().get().getKsqlTopic().getValueFormat(),
-        is(ValueFormat.of(Format.AVRO)));
+        is(ValueFormat.of(FormatInfo.of(Format.AVRO))));
   }
 
   @Test
@@ -525,8 +529,8 @@ public class AnalyzerTest {
 
     final KsqlTopic topic = new KsqlTopic(
         "ks",
-        KeyFormat.nonWindowed(Format.KAFKA),
-        ValueFormat.of(Format.KAFKA),
+        KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
+        ValueFormat.of(FormatInfo.of(Format.KAFKA)),
         false);
 
     final KsqlStream<?> stream = new KsqlStream<>(

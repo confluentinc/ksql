@@ -29,7 +29,6 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -49,7 +48,10 @@ import io.confluent.ksql.metastore.model.MetaStoreMatchers.OptionalMatchers;
 import io.confluent.ksql.physical.KsqlQueryBuilder;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.Field;
+import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.serde.KeySerde;
+import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.structured.QueryContext;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
@@ -66,8 +68,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.apache.kafka.common.serialization.Serde;
-import org.apache.kafka.common.serialization.Serdes;
+import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.TopologyDescription;
@@ -83,6 +84,8 @@ import org.apache.kafka.streams.kstream.Predicate;
 import org.apache.kafka.streams.kstream.ValueMapper;
 import org.apache.kafka.streams.kstream.ValueMapperWithKey;
 import org.apache.kafka.streams.kstream.ValueTransformerSupplier;
+import org.apache.kafka.streams.kstream.Windowed;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
@@ -98,12 +101,25 @@ public class AggregateNodeTest {
 
   @Mock
   private KsqlQueryBuilder ksqlStreamBuilder;
+  @Mock
+  private KeySerde<Struct> keySerde;
+  @Mock
+  private KeySerde<Struct> reboundKeySerde;
+  @Mock
+  private KeySerde<Windowed<Struct>> windowedKeySerde;
   @Captor
   private ArgumentCaptor<QueryContext> queryContextCaptor;
 
   private StreamsBuilder builder = new StreamsBuilder();
   private final ProcessingLogContext processingLogContext = ProcessingLogContext.create();
   private final QueryId queryId = new QueryId("queryid");
+
+  @Before
+  public void setUp()  {
+    when(keySerde.rebind(any(WindowInfo.class))).thenReturn(windowedKeySerde);
+    when(reboundKeySerde.rebind(any(WindowInfo.class))).thenReturn(windowedKeySerde);
+    when(keySerde.rebind(any(PersistenceSchema.class))).thenReturn(reboundKeySerde);
+  }
 
   @Test
   public void shouldBuildSourceNode() {
@@ -297,12 +313,6 @@ public class AggregateNodeTest {
     assertThat(stream.getClass(), equalTo(SchemaKTable.class));
   }
 
-  @Test
-  public void shouldBeWindowedWhenStatementSpecifiesWindowing() {
-    final SchemaKStream stream = build();
-    assertThat(stream.getKeySerdeFactory(), is(not(Optional.empty())));
-  }
-
   private SchemaKStream build() {
     return build(KSQL_CONFIG);
   }
@@ -335,7 +345,7 @@ public class AggregateNodeTest {
     buildQuery(node, KSQL_CONFIG);
 
     // Then:
-    verify(ksqlStreamBuilder, times(3)).buildGenericRowSerde(
+    verify(ksqlStreamBuilder, times(3)).buildValueSerde(
         any(),
         any(),
         queryContextCaptor.capture()
@@ -391,7 +401,7 @@ public class AggregateNodeTest {
     when(ksqlStreamBuilder.buildNodeContext(any())).thenAnswer(inv ->
         new QueryContext.Stacker(queryId)
             .push(inv.getArgument(0).toString()));
-    when(ksqlStreamBuilder.buildKeySerde(any())).thenReturn(() -> (Serde)Serdes.String());
+    when(ksqlStreamBuilder.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
 
     return aggregateNode.buildStream(ksqlStreamBuilder);
   }

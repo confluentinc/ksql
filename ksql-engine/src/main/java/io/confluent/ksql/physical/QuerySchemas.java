@@ -78,7 +78,7 @@ public final class QuerySchemas {
   @Override
   public String toString() {
     return schemas.entrySet().stream()
-        .map(e -> e.getKey() + " = " + schemaFormatter.format(e.getValue().getConnectSchema()))
+        .map(e -> e.getKey() + " = " + schemaFormatter.format(e.getValue().serializedSchema()))
         .collect(Collectors.joining(System.lineSeparator()));
   }
 }

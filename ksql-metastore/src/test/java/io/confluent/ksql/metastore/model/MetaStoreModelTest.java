@@ -29,6 +29,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.test.util.ClassFinder;
@@ -51,8 +52,8 @@ public class MetaStoreModelTest {
       .<Class<?>, Object>builder()
       .put(KsqlTopic.class, new KsqlTopic(
           "bob",
-          KeyFormat.nonWindowed(Format.KAFKA),
-          ValueFormat.of(Format.JSON),
+          KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
+          ValueFormat.of(FormatInfo.of(Format.JSON)),
           false
       ))
       .put(org.apache.kafka.connect.data.Field.class,
@@ -64,8 +65,8 @@ public class MetaStoreModelTest {
       .put(LogicalSchema.class, LogicalSchema.builder()
           .valueField("f0", SqlTypes.BIGINT)
           .build())
-      .put(KeyFormat.class, KeyFormat.nonWindowed(Format.KAFKA))
-      .put(ValueFormat.class, ValueFormat.of(Format.JSON))
+      .put(KeyFormat.class, KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)))
+      .put(ValueFormat.class, ValueFormat.of(FormatInfo.of(Format.JSON)))
       .build();
 
   private final Class<?> modelClass;

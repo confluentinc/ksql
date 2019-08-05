@@ -21,9 +21,10 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Aggregator;
 
-public class KudafUndoAggregator implements Aggregator<String, GenericRow, GenericRow> {
+public class KudafUndoAggregator implements Aggregator<Struct, GenericRow, GenericRow> {
   private Map<Integer, TableAggregationFunction> aggValToAggFunctionMap;
   private Map<Integer, Integer> aggValToValColumnMap;
 
@@ -39,7 +40,7 @@ public class KudafUndoAggregator implements Aggregator<String, GenericRow, Gener
 
   @SuppressWarnings("unchecked")
   @Override
-  public GenericRow apply(final String s, final GenericRow rowValue, final GenericRow aggRowValue) {
+  public GenericRow apply(final Struct k, final GenericRow rowValue, final GenericRow aggRowValue) {
     aggValToValColumnMap.forEach(
         (aggRowIndex, rowIndex) ->
             aggRowValue.getColumns().set(aggRowIndex, rowValue.getColumns().get(rowIndex)));

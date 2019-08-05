@@ -41,6 +41,7 @@ import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
@@ -103,8 +104,8 @@ public class TopicCreateInjectorTest {
 
     final KsqlTopic sourceTopic = new KsqlTopic(
         "source",
-        KeyFormat.nonWindowed(Format.KAFKA),
-        ValueFormat.of(Format.JSON),
+        KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
+        ValueFormat.of(FormatInfo.of(Format.JSON)),
         false
     );
 
@@ -121,8 +122,8 @@ public class TopicCreateInjectorTest {
 
     final KsqlTopic joinTopic = new KsqlTopic(
         "jSource",
-        KeyFormat.nonWindowed(Format.KAFKA),
-        ValueFormat.of(Format.JSON),
+        KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
+        ValueFormat.of(FormatInfo.of(Format.JSON)),
         false
     );
 

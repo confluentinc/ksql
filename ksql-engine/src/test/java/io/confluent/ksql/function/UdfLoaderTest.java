@@ -102,7 +102,7 @@ public class UdfLoaderTest {
         new AggregateFunctionArguments(0, Collections.singletonList("udfIndex")));
     assertThat(instance.getInitialValueSupplier().get(), equalTo(0L));
     assertThat(instance.aggregate(1L, 1L), equalTo(2L));
-    assertThat(instance.getMerger().apply("k", 2L, 3L), equalTo(5L));
+    assertThat(instance.getMerger().apply(null, 2L, 3L), equalTo(5L));
   }
 
   @SuppressWarnings("unchecked")
@@ -126,7 +126,7 @@ public class UdfLoaderTest {
         new Struct(schema).put("A", 1).put("B", 2)
         ),
         equalTo(new Struct(schema).put("A", 1).put("B", 2)));
-    assertThat(instance.getMerger().apply("foo",
+    assertThat(instance.getMerger().apply(null,
         new Struct(schema).put("A", 0).put("B", 0),
         new Struct(schema).put("A", 1).put("B", 2)
         ),

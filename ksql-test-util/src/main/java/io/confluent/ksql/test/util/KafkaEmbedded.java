@@ -24,6 +24,7 @@ import java.util.Properties;
 import kafka.server.KafkaConfig;
 import kafka.server.KafkaServer;
 import kafka.utils.TestUtils;
+import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.admin.CreateTopicsResult;
@@ -155,7 +156,7 @@ class KafkaEmbedded {
         AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, brokerList(),
         AdminClientConfig.RETRIES_CONFIG, 5);
 
-    try (AdminClient adminClient = AdminClient.create(props)) {
+    try (Admin adminClient = AdminClient.create(props)) {
 
       final NewTopic newTopic = new NewTopic(topic, partitions, (short) replication);
       newTopic.configs(topicConfig);

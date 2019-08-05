@@ -69,7 +69,7 @@ public class TopicProducer {
 
     final Serializer<GenericRow> serializer = GenericRowSerDe.from(
         FormatInfo.of(Format.JSON, Optional.empty()),
-        schema,
+        schema.valueSchema(),
         new KsqlConfig(ImmutableMap.of()),
         () -> null,
         "ignored",

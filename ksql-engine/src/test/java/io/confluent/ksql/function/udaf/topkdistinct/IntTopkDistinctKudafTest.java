@@ -60,7 +60,7 @@ public class IntTopkDistinctKudafTest {
     final List<Integer> array1 = ImmutableList.of(50, 45, 25);
     final List<Integer> array2 = ImmutableList.of(60, 50, 48);
 
-    assertThat("Invalid results.", intTopkDistinctKudaf.getMerger().apply("key", array1, array2),
+    assertThat("Invalid results.", intTopkDistinctKudaf.getMerger().apply(null, array1, array2),
         equalTo(ImmutableList.of(60, 50, 48)));
   }
 
@@ -69,7 +69,7 @@ public class IntTopkDistinctKudafTest {
     final List<Integer> array1 = ImmutableList.of(50, 45);
     final List<Integer> array2 = ImmutableList.of(60);
 
-    assertThat("Invalid results.", intTopkDistinctKudaf.getMerger().apply("key", array1, array2),
+    assertThat("Invalid results.", intTopkDistinctKudaf.getMerger().apply(null, array1, array2),
         equalTo(ImmutableList.of(60, 50, 45)));
   }
 
@@ -78,7 +78,7 @@ public class IntTopkDistinctKudafTest {
     final List<Integer> array1 = ImmutableList.of(50, 45);
     final List<Integer> array2 = ImmutableList.of(60, 50);
 
-    assertThat("Invalid results.", intTopkDistinctKudaf.getMerger().apply("key", array1, array2),
+    assertThat("Invalid results.", intTopkDistinctKudaf.getMerger().apply(null, array1, array2),
         equalTo(ImmutableList.of(60, 50, 45)));
   }
 
@@ -87,7 +87,7 @@ public class IntTopkDistinctKudafTest {
     final List<Integer> array1 = ImmutableList.of(60);
     final List<Integer> array2 = ImmutableList.of(60);
 
-    assertThat("Invalid results.", intTopkDistinctKudaf.getMerger().apply("key", array1, array2),
+    assertThat("Invalid results.", intTopkDistinctKudaf.getMerger().apply(null, array1, array2),
         equalTo(
                 new ArrayList<>(ImmutableList.of(60))));
   }
@@ -121,7 +121,7 @@ public class IntTopkDistinctKudafTest {
           }
           return aggregate;
         })
-        .reduce((agg1, agg2) -> intTopkDistinctKudaf.getMerger().apply("blah", agg1, agg2))
+        .reduce((agg1, agg2) -> intTopkDistinctKudaf.getMerger().apply(null, agg1, agg2))
         .orElse(new ArrayList<>());
 
     // Then:
@@ -163,7 +163,7 @@ public class IntTopkDistinctKudafTest {
     final long start = System.currentTimeMillis();
 
     for(int i = 0; i != iterations; ++i) {
-      intTopkDistinctKudaf.getMerger().apply("ignored", aggregate1, aggregate2);
+      intTopkDistinctKudaf.getMerger().apply(null, aggregate1, aggregate2);
     }
 
     final long took = System.currentTimeMillis() - start;

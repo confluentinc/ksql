@@ -43,11 +43,12 @@ import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.schema.ksql.Field;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.KeySerdeFactories;
+import io.confluent.ksql.serde.KeySerde;
+import io.confluent.ksql.serde.KeySerdeFactory;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.ValueSerdeFactory;
@@ -75,6 +76,7 @@ import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.KafkaClientSupplier;
 import org.junit.Before;
 import org.junit.Rule;
@@ -118,9 +120,9 @@ public class InsertValuesExecutorTest {
   @Mock
   private KsqlEngine engine;
   @Mock
-  private Serde<String> keySerDe;
+  private KeySerde<Struct> keySerDe;
   @Mock
-  private Serializer<String> keySerializer;
+  private Serializer<Struct> keySerializer;
   @Mock
   private Serde<GenericRow> valueSerde;
   @Mock
@@ -134,14 +136,13 @@ public class InsertValuesExecutorTest {
   @Mock
   private LongSupplier clock;
   @Mock
-  private ValueSerdeFactory valueSerdesFactories;
+  private ValueSerdeFactory valueSerdeFactory;
   @Mock
-  private KeySerdeFactories keySerdeFactories;
+  private KeySerdeFactory keySerdeFactory;
   @Mock
   private Supplier<SchemaRegistryClient> srClientFactory;
   private InsertValuesExecutor executor;
 
-  @SuppressWarnings("unchecked")
   @Before
   public void setup() {
     when(keySerDe.serializer()).thenReturn(keySerializer);
@@ -160,14 +161,15 @@ public class InsertValuesExecutorTest {
 
     givenDataSourceWithSchema(SCHEMA, SerdeOption.none(), Optional.of("COL0"));
 
-    when(valueSerdesFactories.create(any(), any(), any(), any(), any(), any()))
+    when(valueSerdeFactory.create(any(), any(), any(), any(), any(), any()))
         .thenReturn(valueSerde);
 
-    when(keySerdeFactories.create(any(), any())).thenReturn(() -> (Serde) keySerDe);
+    when(keySerdeFactory.create(any(), any(), any(), any(), any(), any()))
+        .thenReturn(keySerDe);
 
     when(clock.getAsLong()).thenReturn(1L);
 
-    executor = new InsertValuesExecutor(clock, keySerdeFactories, valueSerdesFactories);
+    executor = new InsertValuesExecutor(clock, keySerdeFactory, valueSerdeFactory);
   }
 
   @Test
@@ -185,7 +187,7 @@ public class InsertValuesExecutorTest {
     executor.execute(statement, engine, serviceContext);
 
     // Then:
-    verify(keySerializer).serialize(TOPIC_NAME, "str");
+    verify(keySerializer).serialize(TOPIC_NAME, keyStruct("str"));
     verify(valueSerializer).serialize(TOPIC_NAME, new GenericRow(ImmutableList.of("str", 2L)));
     verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
   }
@@ -204,7 +206,7 @@ public class InsertValuesExecutorTest {
     executor.execute(statement, engine, serviceContext);
 
     // Then:
-    verify(keySerializer).serialize(TOPIC_NAME, "new");
+    verify(keySerializer).serialize(TOPIC_NAME, keyStruct("new"));
     verify(valueSerializer).serialize(TOPIC_NAME, new GenericRow(ImmutableList.of("new")));
     verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
   }
@@ -224,7 +226,7 @@ public class InsertValuesExecutorTest {
     executor.execute(statement, engine, serviceContext);
 
     // Then:
-    verify(keySerializer).serialize(TOPIC_NAME, "new");
+    verify(keySerializer).serialize(TOPIC_NAME, keyStruct("new"));
     verify(valueSerializer).serialize(TOPIC_NAME, new GenericRow(ImmutableList.of("new")));
     verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
   }
@@ -245,7 +247,7 @@ public class InsertValuesExecutorTest {
     executor.execute(statement, engine, serviceContext);
 
     // Then:
-    verify(keySerializer).serialize(TOPIC_NAME, "str");
+    verify(keySerializer).serialize(TOPIC_NAME, keyStruct("str"));
     verify(valueSerializer).serialize(TOPIC_NAME, new GenericRow(ImmutableList.of("str", 2L)));
     verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
   }
@@ -266,7 +268,7 @@ public class InsertValuesExecutorTest {
     executor.execute(statement, engine, serviceContext);
 
     // Then:
-    verify(keySerializer).serialize(TOPIC_NAME, "str");
+    verify(keySerializer).serialize(TOPIC_NAME, keyStruct("str"));
     verify(valueSerializer).serialize(TOPIC_NAME, new GenericRow(ImmutableList.of("str", 2L)));
     verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1234L, KEY, VALUE));
   }
@@ -286,7 +288,7 @@ public class InsertValuesExecutorTest {
     executor.execute(statement, engine, serviceContext);
 
     // Then:
-    verify(keySerializer).serialize(TOPIC_NAME, "str");
+    verify(keySerializer).serialize(TOPIC_NAME, keyStruct("str"));
     verify(valueSerializer).serialize(TOPIC_NAME, new GenericRow(ImmutableList.of("str", 2L)));
     verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
   }
@@ -307,7 +309,7 @@ public class InsertValuesExecutorTest {
     executor.execute(statement, engine, serviceContext);
 
     // Then:
-    verify(keySerializer).serialize(TOPIC_NAME, "str");
+    verify(keySerializer).serialize(TOPIC_NAME, keyStruct("str"));
     verify(valueSerializer).serialize(TOPIC_NAME, new GenericRow(ImmutableList.of("str", 2L)));
     verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
   }
@@ -326,7 +328,7 @@ public class InsertValuesExecutorTest {
     executor.execute(statement, engine, serviceContext);
 
     // Then:
-    verify(keySerializer).serialize(TOPIC_NAME, "str");
+    verify(keySerializer).serialize(TOPIC_NAME, keyStruct("str"));
     verify(valueSerializer).serialize(TOPIC_NAME, new GenericRow(Arrays.asList("str", null)));
     verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
   }
@@ -346,7 +348,7 @@ public class InsertValuesExecutorTest {
     executor.execute(statement, engine, serviceContext);
 
     // Then:
-    verify(keySerializer).serialize(TOPIC_NAME, "str");
+    verify(keySerializer).serialize(TOPIC_NAME, keyStruct("str"));
     verify(valueSerializer).serialize(TOPIC_NAME, new GenericRow(ImmutableList.of("str", 2L)));
     verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
   }
@@ -366,7 +368,7 @@ public class InsertValuesExecutorTest {
     executor.execute(statement, engine, serviceContext);
 
     // Then:
-    verify(keySerializer).serialize(TOPIC_NAME, "str");
+    verify(keySerializer).serialize(TOPIC_NAME, keyStruct("str"));
     verify(valueSerializer).serialize(TOPIC_NAME, new GenericRow(ImmutableList.of("str", 2L)));
     verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
   }
@@ -385,7 +387,7 @@ public class InsertValuesExecutorTest {
     executor.execute(statement, engine, serviceContext);
 
     // Then:
-    verify(keySerializer).serialize(TOPIC_NAME, "str");
+    verify(keySerializer).serialize(TOPIC_NAME, keyStruct("str"));
     verify(valueSerializer).serialize(TOPIC_NAME, new GenericRow(ImmutableList.of("str", 2L)));
     verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
   }
@@ -412,7 +414,7 @@ public class InsertValuesExecutorTest {
     executor.execute(statement, engine, serviceContext);
 
     // Then:
-    verify(keySerializer).serialize(TOPIC_NAME, "str");
+    verify(keySerializer).serialize(TOPIC_NAME, keyStruct("str"));
     verify(valueSerializer)
         .serialize(TOPIC_NAME, new GenericRow(ImmutableList.of(
             "str", 0, 2L, 3.0, true, "str", new BigDecimal(1.2, new MathContext(2))))
@@ -438,7 +440,7 @@ public class InsertValuesExecutorTest {
     executor.execute(statement, engine, serviceContext);
 
     // Then:
-    verify(keySerializer).serialize(TOPIC_NAME, "str");
+    verify(keySerializer).serialize(TOPIC_NAME, keyStruct("str"));
     verify(valueSerializer).serialize(TOPIC_NAME, new GenericRow(ImmutableList.of("str", 1L)));
     verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
   }
@@ -583,7 +585,7 @@ public class InsertValuesExecutorTest {
     executor.execute(statement, engine, serviceContext);
 
     // Then:
-    verify(keySerializer).serialize(TOPIC_NAME, "key");
+    verify(keySerializer).serialize(TOPIC_NAME, keyStruct("key"));
     verify(valueSerializer).serialize(TOPIC_NAME, new GenericRow(ImmutableList.of("str", 2L)));
     verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
   }
@@ -604,7 +606,7 @@ public class InsertValuesExecutorTest {
     executor.execute(statement, engine, serviceContext);
 
     // Then:
-    verify(keySerializer).serialize(TOPIC_NAME, null);
+    verify(keySerializer).serialize(TOPIC_NAME, keyStruct(null));
     verify(valueSerializer).serialize(TOPIC_NAME, new GenericRow(ImmutableList.of("str", 2L)));
     verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
   }
@@ -624,10 +626,18 @@ public class InsertValuesExecutorTest {
     executor.execute(statement, engine, serviceContext);
 
     // Then:
-    verify(keySerdeFactories).create(Optional.empty(), Optional.empty());
-    verify(valueSerdesFactories).create(
+    verify(keySerdeFactory).create(
+        FormatInfo.of(Format.KAFKA, Optional.empty()),
+        PersistenceSchema.from(SCHEMA.keySchema(), false),
+        new KsqlConfig(ImmutableMap.of()),
+        srClientFactory,
+        "",
+        NoopProcessingLogContext.INSTANCE
+    );
+
+    verify(valueSerdeFactory).create(
         FormatInfo.of(Format.JSON, Optional.empty()),
-        PhysicalSchema.from(SCHEMA, SerdeOption.none()),
+        PersistenceSchema.from(SCHEMA.valueSchema(), false),
         new KsqlConfig(ImmutableMap.of()),
         srClientFactory,
         "",
@@ -655,8 +665,8 @@ public class InsertValuesExecutorTest {
   ) {
     final KsqlTopic topic = new KsqlTopic(
         TOPIC_NAME,
-        KeyFormat.nonWindowed(Format.KAFKA),
-        ValueFormat.of(Format.JSON),
+        KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
+        ValueFormat.of(FormatInfo.of(Format.JSON)),
         false
     );
 
@@ -677,6 +687,12 @@ public class InsertValuesExecutorTest {
     metaStore.putSource(dataSource);
 
     when(engine.getMetaStore()).thenReturn(metaStore);
+  }
+
+  private static Struct keyStruct(final String rowKey) {
+    final Struct key = new Struct(SCHEMA.keySchema());
+    key.put("ROWKEY", rowKey);
+    return key;
   }
 
   private static List<String> valueFieldNames(final LogicalSchema schema) {

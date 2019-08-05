@@ -17,14 +17,13 @@ package io.confluent.ksql.serde;
 
 import static io.confluent.ksql.model.WindowType.HOPPING;
 import static io.confluent.ksql.model.WindowType.SESSION;
-import static io.confluent.ksql.model.WindowType.TUMBLING;
 import static io.confluent.ksql.serde.Format.AVRO;
 import static io.confluent.ksql.serde.Format.DELIMITED;
 import static io.confluent.ksql.serde.Format.JSON;
-import static io.confluent.ksql.serde.Format.KAFKA;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.Mockito.mock;
 
 import com.google.common.testing.EqualsTester;
 import com.google.common.testing.NullPointerTester;
@@ -37,43 +36,37 @@ public class KeyFormatTest {
   @Test
   public void shouldThrowNPEs() {
     new NullPointerTester()
+        .setDefault(FormatInfo.class, mock(FormatInfo.class))
+        .setDefault(WindowInfo.class, mock(WindowInfo.class))
         .testAllPublicStaticMethods(KeyFormat.class);
   }
 
   @Test
   public void shouldImplementEquals() {
+
+    final FormatInfo format1 = FormatInfo.of(AVRO, Optional.empty());
+    final FormatInfo format2 = FormatInfo.of(JSON, Optional.empty());
+
+    final WindowInfo window1 = WindowInfo.of(SESSION, Optional.empty());
+    final WindowInfo window2 = WindowInfo.of(HOPPING, Optional.of(Duration.ofMillis(1000)));
+
     new EqualsTester()
         .addEqualityGroup(
-            KeyFormat.nonWindowed(AVRO, Optional.of("this")),
-            KeyFormat.nonWindowed(AVRO, Optional.of("this"))
+            KeyFormat.nonWindowed(format1),
+            KeyFormat.nonWindowed(format1)
         )
         .addEqualityGroup(
-            KeyFormat.nonWindowed(AVRO),
-            KeyFormat.nonWindowed(AVRO, Optional.empty())
+            KeyFormat.nonWindowed(format2)
         )
         .addEqualityGroup(
-            KeyFormat.nonWindowed(JSON)
+            KeyFormat.windowed(format1, window1),
+            KeyFormat.windowed(format1, window1)
         )
         .addEqualityGroup(
-            KeyFormat.windowed(AVRO, Optional.of("that"), SESSION, Optional.empty()),
-            KeyFormat.windowed(AVRO, Optional.of("that"), SESSION, Optional.empty())
+            KeyFormat.windowed(format2, window1)
         )
         .addEqualityGroup(
-            KeyFormat.windowed(AVRO, SESSION, Optional.empty()),
-            KeyFormat.windowed(AVRO, Optional.empty(), SESSION, Optional.empty())
-        )
-        .addEqualityGroup(
-            KeyFormat.windowed(KAFKA, SESSION, Optional.empty())
-        )
-        .addEqualityGroup(
-            KeyFormat.windowed(AVRO, HOPPING, Optional.of(Duration.ofHours(1))),
-            KeyFormat.windowed(AVRO, HOPPING, Optional.of(Duration.ofHours(1)))
-        )
-        .addEqualityGroup(
-            KeyFormat.windowed(AVRO, TUMBLING, Optional.of(Duration.ofHours(1)))
-        )
-        .addEqualityGroup(
-            KeyFormat.windowed(AVRO, TUMBLING, Optional.of(Duration.ofHours(2)))
+            KeyFormat.windowed(format1, window2)
         )
         .testEquals();
   }
@@ -81,56 +74,49 @@ public class KeyFormatTest {
   @Test
   public void shouldImplementToString() {
     // Given:
-    final KeyFormat keyFormat = KeyFormat.windowed(
-        AVRO,
-        Optional.of("something"),
-        HOPPING,
-        Optional.of(Duration.ofMillis(10101))
-    );
+    final FormatInfo formatInfo = FormatInfo.of(AVRO, Optional.of("something"));
+    final WindowInfo windowInfo = WindowInfo.of(HOPPING, Optional.of(Duration.ofMillis(10101)));
+
+    final KeyFormat keyFormat = KeyFormat.windowed(formatInfo, windowInfo);
 
     // When:
     final String result = keyFormat.toString();
 
     // Then:
-    assertThat(result, containsString("AVRO"));
-    assertThat(result, containsString("something"));
-    assertThat(result, containsString("HOPPING"));
-    assertThat(result, containsString("10101"));
+    assertThat(result, containsString(formatInfo.toString()));
+    assertThat(result, containsString(windowInfo.toString()));
   }
 
   @Test
   public void shouldGetFormat() {
     // Given:
-    final KeyFormat keyFormat = KeyFormat.nonWindowed(
-        DELIMITED
-    );
+    final FormatInfo format = FormatInfo.of(DELIMITED, Optional.empty());
+    final KeyFormat keyFormat = KeyFormat.nonWindowed(format);
 
     // When:
     final Format result = keyFormat.getFormat();
 
     // Then:
-    assertThat(result, is(DELIMITED));
+    assertThat(result, is(format.getFormat()));
   }
 
   @Test
   public void shouldGetFormatInfo() {
     // Given:
-    final KeyFormat keyFormat = KeyFormat.nonWindowed(
-        AVRO,
-        Optional.of("something")
-    );
+    final FormatInfo format = FormatInfo.of(AVRO, Optional.of("something"));
+    final KeyFormat keyFormat = KeyFormat.nonWindowed(format);
 
     // When:
     final FormatInfo result = keyFormat.getFormatInfo();
 
     // Then:
-    assertThat(result, is(FormatInfo.of(AVRO, Optional.of("something"))));
+    assertThat(result, is(format));
   }
 
   @Test
   public void shouldHandleNoneWindowedFunctionsForNonWindowed() {
     // Given:
-    final KeyFormat keyFormat = KeyFormat.nonWindowed(JSON);
+    final KeyFormat keyFormat = KeyFormat.nonWindowed(FormatInfo.of(JSON, Optional.empty()));
 
     // Then:
     assertThat(keyFormat.isWindowed(), is(false));
@@ -142,9 +128,8 @@ public class KeyFormatTest {
   public void shouldHandleWindowedFunctionsForWindowed() {
     // Given:
     final KeyFormat keyFormat = KeyFormat.windowed(
-        JSON,
-        HOPPING,
-        Optional.of(Duration.ofMinutes(4))
+        FormatInfo.of(JSON),
+        WindowInfo.of(HOPPING, Optional.of(Duration.ofMinutes(4)))
     );
 
     // Then:
@@ -157,10 +142,8 @@ public class KeyFormatTest {
   public void shouldHandleWindowedWithAvroSchemaName() {
     // Given:
     final KeyFormat keyFormat = KeyFormat.windowed(
-        AVRO,
-        Optional.of("something"),
-        HOPPING,
-        Optional.of(Duration.ofMinutes(4))
+        FormatInfo.of(AVRO, Optional.of("something")),
+        WindowInfo.of(HOPPING, Optional.of(Duration.ofMinutes(4)))
     );
 
     // Then:
@@ -171,9 +154,8 @@ public class KeyFormatTest {
   public void shouldHandleWindowedWithOutSize() {
     // Given:
     final KeyFormat keyFormat = KeyFormat.windowed(
-        DELIMITED,
-        SESSION,
-        Optional.empty()
+        FormatInfo.of(DELIMITED),
+        WindowInfo.of(SESSION, Optional.empty())
     );
 
     // Then:

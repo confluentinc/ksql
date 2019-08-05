@@ -305,7 +305,7 @@ public class TestCase implements Test {
       final SchemaRegistryClient schemaRegistryClient
   ) {
     final Topic recordTopic = fakeKafkaRecord.getTestRecord().topic;
-    final Serializer<Object> keySerializer = recordTopic.getKeySerializer();
+    final Serializer<Object> keySerializer = recordTopic.getKeySerializer(schemaRegistryClient);
 
     final Serializer<Object> valueSerializer =
         recordTopic.getValueSerdeSupplier() instanceof AvroSerdeSupplier
@@ -329,7 +329,7 @@ public class TestCase implements Test {
     while (true) {
       final ProducerRecord<?,?> producerRecord = testDriver.getTopologyTestDriver().readOutput(
           sinkTopic.getName(),
-          sinkTopic.getKeyDeserializer(),
+          sinkTopic.getKeyDeserializer(schemaRegistryClient),
           sinkTopic.getValueDeserializer(schemaRegistryClient)
       );
       if (producerRecord == null) {

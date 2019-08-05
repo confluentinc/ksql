@@ -29,10 +29,12 @@ import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.UdafAggregator;
 import io.confluent.ksql.model.WindowType;
+import io.confluent.ksql.serde.WindowInfo;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import org.apache.kafka.common.utils.Bytes;
+import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Initializer;
 import org.apache.kafka.streams.kstream.KGroupedStream;
 import org.apache.kafka.streams.kstream.Materialized;
@@ -52,15 +54,15 @@ public class HoppingWindowExpressionTest {
   public static final NodeLocation OTHER_LOCATION = new NodeLocation(1, 0);
 
   @Mock
-  private KGroupedStream<String, GenericRow> stream;
+  private KGroupedStream<Struct, GenericRow> stream;
   @Mock
-  private TimeWindowedKStream<String, GenericRow> windowedKStream;
+  private TimeWindowedKStream<Struct, GenericRow> windowedKStream;
   @Mock
   private UdafAggregator aggregator;
   @Mock
   private Initializer<GenericRow> initializer;
   @Mock
-  private Materialized<String, GenericRow, WindowStore<Bytes, byte[]>> store;
+  private Materialized<Struct, GenericRow, WindowStore<Bytes, byte[]>> store;
   private HoppingWindowExpression windowExpression;
 
   @Before
@@ -110,14 +112,8 @@ public class HoppingWindowExpressionTest {
   }
 
   @Test
-  public void shouldReturnCorrectType() {
-    assertThat(new HoppingWindowExpression(10, SECONDS, 20, MINUTES).getType(),
-        is(WindowType.HOPPING));
-  }
-
-  @Test
-  public void shouldReturnCorrectWindowSize() {
-    assertThat(new HoppingWindowExpression(10, SECONDS, 20, MINUTES).getWindowSize(),
-        is(Optional.of(Duration.ofSeconds(10))));
+  public void shouldReturnWindowInfo() {
+    assertThat(new HoppingWindowExpression(10, SECONDS, 20, MINUTES).getWindowInfo(),
+        is(WindowInfo.of(WindowType.HOPPING, Optional.of(Duration.ofSeconds(10)))));
   }
 }

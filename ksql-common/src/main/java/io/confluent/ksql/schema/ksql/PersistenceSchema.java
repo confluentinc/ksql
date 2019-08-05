@@ -20,6 +20,7 @@ import io.confluent.ksql.schema.connect.SqlSchemaFormatter;
 import io.confluent.ksql.schema.connect.SqlSchemaFormatter.Option;
 import java.util.Objects;
 import org.apache.kafka.connect.data.ConnectSchema;
+import org.apache.kafka.connect.data.Schema.Type;
 
 /**
  * Type-safe schema used purely for persistence.
@@ -38,18 +39,59 @@ public final class PersistenceSchema {
   private static final SqlSchemaFormatter FORMATTER =
       new SqlSchemaFormatter(word -> false, Option.APPEND_NOT_NULL);
 
-  private final ConnectSchema connectSchema;
+  private final boolean unwrapped;
+  private final ConnectSchema ksqlSchema;
+  private final ConnectSchema serializedSchema;
 
-  private PersistenceSchema(final ConnectSchema schema) {
-    this.connectSchema = Objects.requireNonNull(schema, "schema");
+  /**
+   * Build a persistence schema from the logical key or value schema.
+   *
+   * @param ksqlSchema the schema ksql uses internally, i.e. STRUCT schema.
+   * @param unwrapSingle flag indicating if the serialized form is unwrapped.
+   * @return the persistence schema.
+   */
+  public static PersistenceSchema from(final ConnectSchema ksqlSchema, final boolean unwrapSingle) {
+    return new PersistenceSchema(ksqlSchema, unwrapSingle);
   }
 
-  public static PersistenceSchema of(final ConnectSchema schema) {
-    return new PersistenceSchema(schema);
+  private PersistenceSchema(final ConnectSchema ksqlSchema, final boolean unwrapSingle) {
+    this.unwrapped = unwrapSingle;
+    this.ksqlSchema = Objects.requireNonNull(ksqlSchema, "ksqlSchema");
+
+    if (ksqlSchema.type() != Type.STRUCT) {
+      throw new IllegalArgumentException("Expected STRUCT schema type");
+    }
+
+    final boolean singleField = ksqlSchema.fields().size() == 1;
+    if (unwrapSingle && !singleField) {
+      throw new IllegalArgumentException("Unwrapping only valid for single field");
+    }
+
+    this.serializedSchema = unwrapSingle
+        ? (ConnectSchema) ksqlSchema.fields().get(0).schema()
+        : ksqlSchema;
   }
 
-  public ConnectSchema getConnectSchema() {
-    return connectSchema;
+  public boolean isUnwrapped() {
+    return unwrapped;
+  }
+
+  /**
+   * The schema used internally by KSQL.
+   *
+   * <p>This schema will _always_ be a struct.
+   *
+   * @return logical schema.
+   */
+  public ConnectSchema ksqlSchema() {
+    return ksqlSchema;
+  }
+
+  /**
+   * @return schema of serialized form
+   */
+  public ConnectSchema serializedSchema() {
+    return serializedSchema;
   }
 
   @Override
@@ -61,16 +103,20 @@ public final class PersistenceSchema {
       return false;
     }
     final PersistenceSchema that = (PersistenceSchema) o;
-    return Objects.equals(connectSchema, that.connectSchema);
+    return unwrapped == that.unwrapped
+        && Objects.equals(serializedSchema, that.serializedSchema);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(connectSchema);
+    return Objects.hash(unwrapped, serializedSchema);
   }
 
   @Override
   public String toString() {
-    return "Persistence{" + FORMATTER.format(connectSchema) + '}';
+    return "Persistence{"
+        + "schema=" + FORMATTER.format(serializedSchema)
+        + ", unwrapped=" + unwrapped
+        + '}';
   }
 }

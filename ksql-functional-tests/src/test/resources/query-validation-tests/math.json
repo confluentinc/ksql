@@ -59,6 +59,25 @@
         {"topic": "OUTPUT", "value": {"I": 0.0, "L": 0.0, "D": 0.0}},
         {"topic": "OUTPUT", "value": {"I": 1.0, "L": 1.4142135623730951, "D": 1.7320508075688772}}
       ]
+    },
+    {
+      "name": "sign",
+      "statements": [
+        "CREATE STREAM INPUT (i INT, l BIGINT, d DOUBLE) WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT sign(i) i, sign(l) l, sign(d) d FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input", "value": {"i": null, "l": null, "d": null}},
+        {"topic": "input", "value": {"i": -1, "l": -2, "d": -3.0}},
+        {"topic": "input", "value": {"i": 0, "l": 0, "d": 0.0}},
+        {"topic": "input", "value": {"i": 1, "l": 2, "d": 3.0}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"I": null, "L": null, "D": null}},
+        {"topic": "OUTPUT", "value": {"I": -1.0, "L": -1.0, "D": -1.0}},
+        {"topic": "OUTPUT", "value": {"I": 0.0, "L": 0.0, "D": 0.0}},
+        {"topic": "OUTPUT", "value": {"I": 1.0, "L": 1.0, "D": 1.0}}
+      ]
     }
   ]
 }

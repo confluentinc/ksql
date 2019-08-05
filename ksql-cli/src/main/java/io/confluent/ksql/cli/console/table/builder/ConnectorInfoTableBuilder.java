@@ -16,21 +16,15 @@
 package io.confluent.ksql.cli.console.table.builder;
 
 import io.confluent.ksql.cli.console.table.Table;
-import io.confluent.ksql.rest.entity.ConnectorInfoEntity;
-import io.confluent.ksql.rest.entity.ConnectorInfoEntity.Action;
+import io.confluent.ksql.rest.entity.CreateConnectorEntity;
 
-public class ConnectorInfoTableBuilder implements TableBuilder<ConnectorInfoEntity> {
+public class ConnectorInfoTableBuilder implements TableBuilder<CreateConnectorEntity> {
 
   @Override
-  public Table buildTable(final ConnectorInfoEntity entity) {
-    if (entity.getAction() == Action.CREATE) {
-      return new Table.Builder()
-          .withColumnHeaders("Message")
-          .withRow("Created connector " + entity.getInfo().name())
-          .build();
-    }
-
-    throw new UnsupportedOperationException("Cannot format ConnectorInfoEntity with action:"
-        + entity.getAction());
+  public Table buildTable(final CreateConnectorEntity entity) {
+    return new Table.Builder()
+        .withColumnHeaders("Message")
+        .withRow("Created connector " + entity.getInfo().name())
+        .build();
   }
 }

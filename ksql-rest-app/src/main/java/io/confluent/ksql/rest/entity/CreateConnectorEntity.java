@@ -22,28 +22,21 @@ import java.util.Objects;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class ConnectorInfoEntity extends KsqlEntity {
+public class CreateConnectorEntity extends KsqlEntity {
 
   private final ConnectorInfo info;
-  private final Action action;
 
   @JsonCreator
-  public ConnectorInfoEntity(
+  public CreateConnectorEntity(
       @JsonProperty("statementText") final String statementText,
-      @JsonProperty("info") final ConnectorInfo info,
-      @JsonProperty("action") final Action action
+      @JsonProperty("info") final ConnectorInfo info
   ) {
     super(statementText);
     this.info = Objects.requireNonNull(info, "info");
-    this.action = Objects.requireNonNull(action, "action");
   }
 
   public ConnectorInfo getInfo() {
     return info;
-  }
-
-  public Action getAction() {
-    return action;
   }
 
   @Override
@@ -55,7 +48,7 @@ public class ConnectorInfoEntity extends KsqlEntity {
       return false;
     }
 
-    final ConnectorInfoEntity that = (ConnectorInfoEntity) o;
+    final CreateConnectorEntity that = (CreateConnectorEntity) o;
     return Objects.equals(info, that.info);
   }
 
@@ -66,13 +59,8 @@ public class ConnectorInfoEntity extends KsqlEntity {
 
   @Override
   public String toString() {
-    return "ConnectorInfoEntity{"
+    return "CreateConnectorEntity{"
         + "info=" + info
         + '}';
-  }
-
-  public enum Action {
-    CREATE,
-    DESCRIBE
   }
 }

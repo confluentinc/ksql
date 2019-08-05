@@ -18,8 +18,7 @@ package io.confluent.ksql.rest.server.execution;
 import com.google.common.collect.Maps;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.parser.tree.CreateConnector;
-import io.confluent.ksql.rest.entity.ConnectorInfoEntity;
-import io.confluent.ksql.rest.entity.ConnectorInfoEntity.Action;
+import io.confluent.ksql.rest.entity.CreateConnectorEntity;
 import io.confluent.ksql.rest.entity.ErrorEntity;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.services.ConnectClient;
@@ -47,10 +46,9 @@ public final class ConnectExecutor {
 
     if (response.datum().isPresent()) {
       return Optional.of(
-          new ConnectorInfoEntity(
+          new CreateConnectorEntity(
               statement.getStatementText(),
-              response.datum().get(),
-              Action.CREATE
+              response.datum().get()
           )
       );
     }

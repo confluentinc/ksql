@@ -41,7 +41,7 @@ import io.confluent.ksql.cli.console.table.builder.TopicDescriptionTableBuilder;
 import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.rest.entity.ArgumentInfo;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
-import io.confluent.ksql.rest.entity.ConnectorInfoEntity;
+import io.confluent.ksql.rest.entity.CreateConnectorEntity;
 import io.confluent.ksql.rest.entity.ErrorEntity;
 import io.confluent.ksql.rest.entity.ExecutionPlan;
 import io.confluent.ksql.rest.entity.FieldInfo;
@@ -137,8 +137,8 @@ public class Console implements Closeable {
               tablePrinter(FunctionNameList.class, FunctionNameListTableBuilder::new))
           .put(FunctionDescriptionList.class,
               Console::printFunctionDescription)
-          .put(ConnectorInfoEntity.class,
-              tablePrinter(ConnectorInfoEntity.class, ConnectorInfoTableBuilder::new))
+          .put(CreateConnectorEntity.class,
+              tablePrinter(CreateConnectorEntity.class, ConnectorInfoTableBuilder::new))
           .put(ErrorEntity.class,
               tablePrinter(ErrorEntity.class, ErrorEntityTableBuilder::new))
           .build();

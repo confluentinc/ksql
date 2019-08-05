@@ -28,7 +28,7 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.CreateConnector;
 import io.confluent.ksql.parser.tree.CreateConnector.Type;
 import io.confluent.ksql.parser.tree.StringLiteral;
-import io.confluent.ksql.rest.entity.ConnectorInfoEntity;
+import io.confluent.ksql.rest.entity.CreateConnectorEntity;
 import io.confluent.ksql.rest.entity.ErrorEntity;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.services.ConnectClient;
@@ -94,7 +94,7 @@ public class ConnectExecutorTest {
 
     // Then:
     assertThat("Expected non-empty response", entity.isPresent());
-    assertThat(entity.get(), instanceOf(ConnectorInfoEntity.class));
+    assertThat(entity.get(), instanceOf(CreateConnectorEntity.class));
   }
 
   @Test

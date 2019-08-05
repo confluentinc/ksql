@@ -18,9 +18,11 @@ package io.confluent.ksql.rest.entity;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
+@Immutable
 public class ErrorEntity extends KsqlEntity {
 
   private final String errorMessage;

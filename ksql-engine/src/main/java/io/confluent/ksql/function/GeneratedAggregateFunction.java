@@ -23,9 +23,9 @@ import java.util.function.Supplier;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.common.metrics.stats.Avg;
-import org.apache.kafka.common.metrics.stats.Count;
 import org.apache.kafka.common.metrics.stats.Max;
 import org.apache.kafka.common.metrics.stats.Rate;
+import org.apache.kafka.common.metrics.stats.WindowedCount;
 import org.apache.kafka.common.utils.Time;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
@@ -101,13 +101,13 @@ public abstract class GeneratedAggregateFunction<V, A> extends BaseAggregateFunc
             aggSensorName + "-count",
             groupName,
             String.format("Total number of aggregate invocations of %s %s udaf", name, method)),
-                   new Count());
+                   new WindowedCount());
         sensor.add(metrics.metricName(
             aggSensorName + "-rate",
             groupName,
             String.format("The average number of occurrences of aggregate "
                 + "%s %s operation per second udaf", name, method)),
-                   new Rate(TimeUnit.SECONDS, new Count()));
+                   new Rate(TimeUnit.SECONDS, new WindowedCount()));
       }
 
       if (metrics.getSensor(mergeSensorName) == null) {
@@ -126,14 +126,14 @@ public abstract class GeneratedAggregateFunction<V, A> extends BaseAggregateFunc
             mergeSensorName + "-count",
             groupName,
             String.format("Total number of merge invocations of %s %s udaf", name, method)),
-                   new Count());
+                   new WindowedCount());
         sensor.add(metrics.metricName(
             mergeSensorName + "-rate",
             groupName,
             String.format(
                 "The average number of occurrences of merge %s %s operation per second udaf",
                 name, method)),
-                   new Rate(TimeUnit.SECONDS, new Count()));
+                   new Rate(TimeUnit.SECONDS, new WindowedCount()));
       }
     }
   }

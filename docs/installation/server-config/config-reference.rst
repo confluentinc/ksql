@@ -404,9 +404,9 @@ These configurations control the behavior of the :ref:`KSQL processing log <ksql
 
 .. _ksql-processing-log-topic-auto-create:
 
--------------------------------------
+-----------------------------------------
 ksql.logging.processing.topic.auto.create
--------------------------------------
+-----------------------------------------
 
 Toggles automatic processing log topic creation. If set to true, then KSQL will automatically try
 to create a processing log topic at startup. The name of the topic is the value of the
@@ -435,7 +435,7 @@ ksql.logging.processing.topic.partitions
 If automatic processing log topic creation is enabled, KSQL creates the topic with number of partitions set
 to the value of this property. By default, this property has the value ``1``.
 
-.. _ksql-processing-log-replication-factor:
+.. _ksql-processing-log-topic-replication-factor:
 
 ------------------------------------------------
 ksql.logging.processing.topic.replication.factor

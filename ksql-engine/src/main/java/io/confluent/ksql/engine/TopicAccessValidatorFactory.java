@@ -19,7 +19,7 @@ import io.confluent.ksql.services.KafkaClusterUtil;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlServerException;
-import org.apache.kafka.clients.admin.AdminClient;
+import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.ConfigEntry;
 import org.apache.kafka.common.errors.ClusterAuthorizationException;
 import org.slf4j.Logger;
@@ -45,7 +45,7 @@ public final class TopicAccessValidatorFactory {
       return DUMMY_VALIDATOR;
     }
 
-    final AdminClient adminClient = serviceContext.getAdminClient();
+    final Admin adminClient = serviceContext.getAdminClient();
 
     if (isKafkaAuthorizerEnabled(adminClient)) {
       if (KafkaClusterUtil.isAuthorizedOperationsSupported(adminClient)) {
@@ -60,7 +60,7 @@ public final class TopicAccessValidatorFactory {
     return DUMMY_VALIDATOR;
   }
 
-  private static boolean isKafkaAuthorizerEnabled(final AdminClient adminClient) {
+  private static boolean isKafkaAuthorizerEnabled(final Admin adminClient) {
     try {
       final ConfigEntry configEntry =
           KafkaClusterUtil.getConfig(adminClient).get(KAFKA_AUTHORIZER_CLASS_NAME);

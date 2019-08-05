@@ -32,8 +32,8 @@ import org.apache.kafka.common.metrics.KafkaMetric;
 import org.apache.kafka.common.metrics.MeasurableStat;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.metrics.Sensor;
+import org.apache.kafka.common.metrics.stats.CumulativeSum;
 import org.apache.kafka.common.metrics.stats.Rate;
-import org.apache.kafka.common.metrics.stats.Total;
 
 public class ProducerCollector implements MetricCollector, ProducerInterceptor<Object, Object> {
   public static final String PRODUCER_MESSAGES_PER_SEC = "messages-per-sec";
@@ -89,7 +89,7 @@ public class ProducerCollector implements MetricCollector, ProducerInterceptor<O
     // activity in a reliable way
     synchronized (metrics) {
       addSensor(key, PRODUCER_MESSAGES_PER_SEC, new Rate(), sensors);
-      addSensor(key, PRODUCER_TOTAL_MESSAGES, new Total(), sensors);
+      addSensor(key, PRODUCER_TOTAL_MESSAGES, new CumulativeSum(), sensors);
     }
     return sensors;
   }

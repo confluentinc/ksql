@@ -72,7 +72,7 @@ public class TimestampExtractionPolicyFactoryTest {
     ));
 
     // Then/When:
-    final TimestampExtractionPolicy result = TimestampExtractionPolicyFactory
+    TimestampExtractionPolicyFactory
         .create(
             ksqlConfig,
             KsqlSchema.of(schemaBuilder.build()),
@@ -90,7 +90,7 @@ public class TimestampExtractionPolicyFactoryTest {
     ));
 
     // Then/When:
-    final TimestampExtractionPolicy result = TimestampExtractionPolicyFactory
+    TimestampExtractionPolicyFactory
         .create(
             ksqlConfig,
             KsqlSchema.of(schemaBuilder.build()),

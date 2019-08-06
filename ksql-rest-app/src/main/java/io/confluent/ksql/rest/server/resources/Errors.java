@@ -164,10 +164,10 @@ public final class Errors {
         .build();
   }
 
-  public static Response serverNotReady(final String reason) {
+  public static Response serverNotReady(final KsqlErrorMessage error) {
     return Response
         .status(SERVICE_UNAVAILABLE)
-        .entity(new KsqlErrorMessage(ERROR_CODE_SERVER_NOT_READY, reason))
+        .entity(error)
         .build();
   }
 }

@@ -36,6 +36,7 @@ import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.computation.CommandRunner;
 import io.confluent.ksql.rest.server.computation.CommandStore;
@@ -215,13 +216,13 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
 
   private void checkPreconditions() {
     for (final KsqlServerPrecondition precondition : preconditions) {
-      final Optional<String> error = precondition.checkPrecondition(
+      final Optional<KsqlErrorMessage> error = precondition.checkPrecondition(
           config,
           serviceContext
       );
       if (error.isPresent()) {
         serverState.setInitializingReason(error.get());
-        throw new KsqlFailedPrecondition(error.get());
+        throw new KsqlFailedPrecondition(error.get().toString());
       }
     }
   }

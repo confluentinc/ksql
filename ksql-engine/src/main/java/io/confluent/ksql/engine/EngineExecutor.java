@@ -18,6 +18,7 @@ package io.confluent.ksql.engine;
 import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
@@ -30,7 +31,8 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.SchemaUtil;
+
+import java.io.IOException;
 import java.util.Map;
 import java.util.Objects;
 
@@ -116,7 +118,10 @@ final class EngineExecutor {
     }
   }
 
-  private void validateQuery(final QueryMetadata query, final ConfiguredStatement<?> statement) {
+  private void validateQuery(
+      final QueryMetadata query,
+      final ConfiguredStatement<?> statement
+  ) throws IOException, RestClientException {
     if (statement.getStatement() instanceof CreateStreamAsSelect
         && query.getDataSourceType() == DataSourceType.KTABLE) {
       throw new KsqlStatementException("Invalid result type. "
@@ -137,18 +142,7 @@ final class EngineExecutor {
       final PersistentQueryMetadata persistentQuery = (PersistentQueryMetadata) query;
       final SchemaRegistryClient srClient = serviceContext.getSchemaRegistryClient();
 
-      if (!AvroUtil.isValidSchemaEvolution(persistentQuery, srClient)) {
-        final org.apache.avro.Schema avroSchema = SchemaUtil.buildAvroSchema(
-            persistentQuery.getPhysicalSchema().valueSchema(),
-            persistentQuery.getSinkName()
-        );
-        throw new KsqlStatementException(String.format(
-            "Cannot register avro schema for %s as the schema is incompatible.%n"
-                + "schema: %s",
-            persistentQuery.getResultTopic().getKafkaTopicName(),
-            avroSchema.toString()),
-            statement.getStatementText());
-      }
+      AvroUtil.throwOnInvalidSchemaEvolution(persistentQuery, srClient);
     }
   }
 

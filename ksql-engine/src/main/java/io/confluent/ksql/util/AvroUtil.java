@@ -19,6 +19,7 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.serde.Format;
 import java.io.IOException;
+
 import org.apache.http.HttpStatus;
 
 public final class AvroUtil {
@@ -26,12 +27,12 @@ public final class AvroUtil {
   private AvroUtil() {
   }
 
-  public static boolean isValidSchemaEvolution(
+  public static void throwOnInvalidSchemaEvolution(
       final PersistentQueryMetadata queryMetadata,
       final SchemaRegistryClient schemaRegistryClient
   ) {
     if (queryMetadata.getResultTopicFormat() != Format.AVRO) {
-      return true;
+      return;
     }
 
     final org.apache.avro.Schema avroSchema = SchemaUtil.buildAvroSchema(
@@ -41,7 +42,27 @@ public final class AvroUtil {
 
     final String topicName = queryMetadata.getResultTopic().getKafkaTopicName();
 
-    return isValidAvroSchemaForTopic(topicName, avroSchema, schemaRegistryClient);
+    if (!isValidAvroSchemaForTopic(topicName, avroSchema, schemaRegistryClient)) {
+      final String subject = topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX;
+      String registeredSchema;
+      try {
+        registeredSchema = schemaRegistryClient
+            .getLatestSchemaMetadata(subject)
+            .getSchema();
+      } catch (Exception e) {
+        registeredSchema = "Could not get registered schema due to exception: " + e.getMessage();
+      }
+
+      throw new KsqlStatementException(String.format(
+          "Cannot register avro schema for %s as the schema is incompatible with the current "
+              + "schema version registered for the topic.%n"
+              + "KSQL schema: %s%n"
+              + "Registered schema: %s",
+          queryMetadata.getResultTopic().getKafkaTopicName(),
+          avroSchema.toString(),
+          registeredSchema
+      ), queryMetadata.getStatementString());
+    }
   }
 
   private static boolean isValidAvroSchemaForTopic(

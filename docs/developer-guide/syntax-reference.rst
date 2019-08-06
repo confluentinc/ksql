@@ -724,7 +724,7 @@ if the source stream for the query is ordered by timestamp.
 
 
 INSERT VALUES
------------
+-------------
 
 **Synopsis**
 
@@ -1014,7 +1014,7 @@ The PRINT statement supports the following properties:
 +=========================+==================================================================================================================+
 | FROM BEGINNING          | Print starting with the first message in the topic. If not specified, PRINT starts with the most recent message. |
 +-------------------------+------------------------------------------------------------------------------------------------------------------+
-| INTERVAL interval       | Print every ``interval``th message. The default is 1, meaning that every message is printed.                     |
+| INTERVAL interval       | Print every ``interval`` th message. The default is 1, meaning that every message is printed.                    |
 +-------------------------+------------------------------------------------------------------------------------------------------------------+
 | LIMIT limit             | Stop printing after ``limit`` messages. The default value is unlimited, requiring Ctrl+C to terminate the query. |
 +-------------------------+------------------------------------------------------------------------------------------------------------------+
@@ -1333,7 +1333,7 @@ _____
 **Description**
 
 Stores issued commands and their results into a file. Only one spool may be active at a time and can
-be closed by issuing ``SPOOL OFF``. Commands are prefixed with ``ksql> `` to differentiate from
+be closed by issuing ``SPOOL OFF`` . Commands are prefixed with ``ksql>`` to differentiate from
 output.
 
 

@@ -80,7 +80,7 @@ A message should have a topic, a key, a value and a timestamp. The following is 
 
 
 Output File
-----------
+-----------
 
 The output file is a JSON file with an array field named "outputs". Similar to the input file, each element in the array is the representation of the expected output messages. The output messages array cannot be empty.
 An expected output message should have a topic, a key, a value and a timestamp. The following is a sample expected output file for the above test:

@@ -306,7 +306,8 @@ public class TestCase implements Test {
       final SchemaRegistryClient schemaRegistryClient,
       final Set<Topic> possibleSinkTopics
   ) {
-    final Topic recordTopic = fakeKafkaRecord.getTestRecord().topic;
+    final Topic recordTopic1 = fakeKafkaRecord.getTestRecord().topic;
+    final Topic recordTopic = fakeKafkaService.getTopic(fakeKafkaRecord.getTestRecord().topic.getName());
     final Serializer<Object> keySerializer = recordTopic.getKeySerializer(schemaRegistryClient);
 
     final Serializer<Object> valueSerializer =

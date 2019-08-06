@@ -72,6 +72,7 @@ public final class SerdeUtil {
         logicalSchemaSupplier
     );
 
+    LogicalSchema l = logicalSchemaSupplier.get();
     if (!keyFormat.getWindowType().isPresent()) {
       return inner;
     }

@@ -126,7 +126,7 @@ public class TestExecutor {
             fakeKafkaService,
             topologyTestDriverContainer,
             serviceContext.getSchemaRegistryClient(),
-            ImmutableSet.copyOf(testCase.getTopics())
+            ImmutableSet.copyOf(fakeKafkaService.getAllTopics())
         );
       }
     }

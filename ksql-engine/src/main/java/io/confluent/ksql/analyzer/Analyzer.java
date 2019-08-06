@@ -28,6 +28,7 @@ import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.parser.DefaultTraversalVisitor;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AllColumns;
+import io.confluent.ksql.parser.tree.AstNode;
 import io.confluent.ksql.parser.tree.Cast;
 import io.confluent.ksql.parser.tree.ComparisonExpression;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
@@ -36,7 +37,7 @@ import io.confluent.ksql.parser.tree.GroupBy;
 import io.confluent.ksql.parser.tree.GroupingElement;
 import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.JoinOn;
-import io.confluent.ksql.parser.tree.Node;
+import io.confluent.ksql.parser.tree.KsqlWindowExpression;
 import io.confluent.ksql.parser.tree.NodeLocation;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
@@ -48,13 +49,14 @@ import io.confluent.ksql.parser.tree.Sink;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.planner.plan.JoinNode;
+import io.confluent.ksql.schema.ksql.Field;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.Format;
-import io.confluent.ksql.serde.KsqlSerdeFactories;
-import io.confluent.ksql.serde.KsqlSerdeFactory;
-import io.confluent.ksql.serde.SerdeFactories;
+import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.SerdeOptions;
+import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.ArrayList;
@@ -63,8 +65,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.apache.kafka.common.serialization.Serdes;
-import org.apache.kafka.connect.data.Field;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 class Analyzer {
@@ -88,7 +88,6 @@ class Analyzer {
 
   private final MetaStore metaStore;
   private final String topicPrefix;
-  private final SerdeFactories serdeFactories;
   private final SerdeOptionsSupplier serdeOptionsSupplier;
   private final Set<SerdeOption> defaultSerdeOptions;
 
@@ -106,7 +105,6 @@ class Analyzer {
         metaStore,
         topicPrefix,
         defaultSerdeOptions,
-        new KsqlSerdeFactories(),
         SerdeOptions::buildForCreateAsStatement);
   }
 
@@ -115,14 +113,12 @@ class Analyzer {
       final MetaStore metaStore,
       final String topicPrefix,
       final Set<SerdeOption> defaultSerdeOptions,
-      final SerdeFactories serdeFactories,
       final SerdeOptionsSupplier serdeOptionsSupplier
   ) {
     this.metaStore = requireNonNull(metaStore, "metaStore");
     this.topicPrefix = requireNonNull(topicPrefix, "topicPrefix");
     this.defaultSerdeOptions = ImmutableSet
         .copyOf(requireNonNull(defaultSerdeOptions, "defaultSerdeOptions"));
-    this.serdeFactories = requireNonNull(serdeFactories, "serdeFactories");
     this.serdeOptionsSupplier = requireNonNull(serdeOptionsSupplier, "serdeOptionsSupplier");
   }
 
@@ -150,7 +146,7 @@ class Analyzer {
   }
 
   // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
-  private final class Visitor extends DefaultTraversalVisitor<Node, Void> {
+  private final class Visitor extends DefaultTraversalVisitor<AstNode, Void> {
     // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
     private final Analysis analysis = new Analysis();
@@ -183,8 +179,7 @@ class Analyzer {
             sqlExpression,
             sink.getName(),
             false,
-            existing.getKsqlTopic(),
-            existing.getKeySerdeFactory()
+            existing.getKsqlTopic()
         ));
         return;
       }
@@ -192,12 +187,17 @@ class Analyzer {
       final String topicName = sink.getProperties().getKafkaTopic()
           .orElseGet(() -> topicPrefix + sink.getName());
 
-      final KsqlSerdeFactory valueSerdeFactory = getValueSerdeFactory(sink);
+      final KeyFormat keyFormat = buildKeyFormat();
+
+      final ValueFormat valueFormat = ValueFormat.of(FormatInfo.of(
+          getValueFormat(sink),
+          sink.getProperties().getValueAvroSchemaName()
+      ));
 
       final KsqlTopic intoKsqlTopic = new KsqlTopic(
-          sink.getName(),
           topicName,
-          valueSerdeFactory,
+          keyFormat,
+          valueFormat,
           true
       );
 
@@ -205,9 +205,23 @@ class Analyzer {
           sqlExpression,
           sink.getName(),
           true,
-          intoKsqlTopic,
-          Serdes::String
+          intoKsqlTopic
       ));
+    }
+
+    private KeyFormat buildKeyFormat() {
+      final Optional<KsqlWindowExpression> ksqlWindow = Optional
+          .ofNullable(analysis.getWindowExpression())
+          .map(WindowExpression::getKsqlWindowExpression);
+
+      return ksqlWindow
+          .map(w -> KeyFormat.windowed(FormatInfo.of(Format.KAFKA), w.getWindowInfo()))
+          .orElseGet(() -> analysis
+              .getFromDataSources()
+              .get(0)
+              .getDataSource()
+              .getKsqlTopic()
+              .getKeyFormat());
     }
 
     private void setSerdeOptions(final Sink sink) {
@@ -223,11 +237,6 @@ class Analyzer {
       );
 
       analysis.setSerdeOptions(serdeOptions);
-    }
-
-    private KsqlSerdeFactory getValueSerdeFactory(final Sink sink) {
-      final Format format = getValueFormat(sink);
-      return serdeFactories.create(format, sink.getProperties().getValueAvroSchemaName());
     }
 
     /**
@@ -277,13 +286,13 @@ class Analyzer {
               .get(0)
               .getDataSource()
               .getKsqlTopic()
-              .getValueSerdeFactory()
+              .getValueFormat()
               .getFormat());
     }
 
 
     @Override
-    protected Node visitQuery(
+    protected AstNode visitQuery(
         final Query node,
         final Void context
     ) {
@@ -326,7 +335,7 @@ class Analyzer {
     }
 
     @Override
-    protected Node visitJoin(final Join node, final Void context) {
+    protected AstNode visitJoin(final Join node, final Void context) {
       isJoin = true;
 
       process(node.getLeft(), context);
@@ -450,7 +459,7 @@ class Analyzer {
     }
 
     @Override
-    protected Node visitAliasedRelation(final AliasedRelation node, final Void context) {
+    protected AstNode visitAliasedRelation(final AliasedRelation node, final Void context) {
       final String structuredDataSourceName = ((Table) node.getRelation()).getName().getSuffix();
 
       final DataSource<?> source = metaStore.getSource(structuredDataSourceName);
@@ -463,12 +472,12 @@ class Analyzer {
     }
 
     @Override
-    protected Node visitCast(final Cast node, final Void context) {
+    public AstNode visitCast(final Cast node, final Void context) {
       return process(node.getExpression(), context);
     }
 
     @Override
-    protected Node visitSelect(final Select node, final Void context) {
+    protected AstNode visitSelect(final Select node, final Void context) {
       for (final SelectItem selectItem : node.getSelectItems()) {
         if (selectItem instanceof AllColumns) {
           visitSelectStar((AllColumns) selectItem);
@@ -484,7 +493,7 @@ class Analyzer {
     }
 
     @Override
-    protected Node visitQualifiedNameReference(
+    public AstNode visitQualifiedNameReference(
         final QualifiedNameReference node,
         final Void context
     ) {
@@ -492,12 +501,12 @@ class Analyzer {
     }
 
     @Override
-    protected Node visitGroupBy(final GroupBy node, final Void context) {
+    protected AstNode visitGroupBy(final GroupBy node, final Void context) {
       return null;
     }
 
-    private void analyzeWhere(final Node node) {
-      analysis.setWhereExpression((Expression) node);
+    private void analyzeWhere(final Expression node) {
+      analysis.setWhereExpression(node);
     }
 
     private void analyzeGroupBy(final GroupBy groupBy) {
@@ -513,8 +522,8 @@ class Analyzer {
       analysis.setWindowExpression(windowExpression);
     }
 
-    private void analyzeHaving(final Node node) {
-      analysis.setHavingExpression((Expression) node);
+    private void analyzeHaving(final Expression node) {
+      analysis.setHavingExpression(node);
     }
 
     private void visitSelectStar(final AllColumns allColumns) {
@@ -553,7 +562,7 @@ class Analyzer {
 
     public void validate() {
       final String kafkaSources = analysis.getFromDataSources().stream()
-          .filter(s -> s.getDataSource().getKsqlTopic().getValueSerdeFactory().getFormat()
+          .filter(s -> s.getDataSource().getKsqlTopic().getValueFormat().getFormat()
               == Format.KAFKA)
           .map(AliasedDataSource::getAlias)
           .collect(Collectors.joining(", "));

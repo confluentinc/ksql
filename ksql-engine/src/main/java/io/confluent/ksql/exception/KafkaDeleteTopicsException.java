@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Confluent Inc.
+ * Copyright 2018 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -13,19 +13,23 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.metastore;
+package io.confluent.ksql.exception;
 
-import com.google.errorprone.annotations.Immutable;
-import org.apache.kafka.common.serialization.Serde;
+import io.confluent.ksql.util.Pair;
+import java.util.List;
 
-@Immutable
-@FunctionalInterface
-public interface SerdeFactory<K> {
+public class KafkaDeleteTopicsException extends KafkaTopicClientException {
+  private final List<Pair<String, Throwable>> exceptionList;
 
-  /**
-   * Create a Serde instance.
-   *
-   * @return the serde instance.
-   */
-  Serde<K> create();
+  public KafkaDeleteTopicsException(
+          final String message,
+          final List<Pair<String, Throwable>> failList) {
+    super(message);
+    exceptionList = failList;
+  }
+
+  public final List<Pair<String, Throwable>> getExceptionList() {
+    return exceptionList;
+  }
+
 }

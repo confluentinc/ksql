@@ -24,12 +24,15 @@ import static org.easymock.EasyMock.same;
 import static org.easymock.EasyMock.verify;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.udaf.KudafInitializer;
+import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.KeyField;
@@ -44,11 +47,10 @@ import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
-import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.GenericRowSerDe;
-import io.confluent.ksql.serde.KsqlSerdeFactory;
-import io.confluent.ksql.serde.SerdeOption;
-import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
+import io.confluent.ksql.serde.KeySerde;
 import io.confluent.ksql.streams.MaterializedFactory;
 import io.confluent.ksql.streams.StreamsUtil;
 import io.confluent.ksql.testutils.AnalysisTestUtil;
@@ -61,12 +63,14 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.kstream.Consumed;
 import org.apache.kafka.streams.kstream.KGroupedTable;
@@ -75,8 +79,12 @@ import org.apache.kafka.streams.kstream.Materialized;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
 @SuppressWarnings("unchecked")
+@RunWith(MockitoJUnitRunner.class)
 public class SchemaKGroupedTableTest {
   private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
   private final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
@@ -93,48 +101,62 @@ public class SchemaKGroupedTableTest {
 
   private KTable kTable;
   private KsqlTable<?> ksqlTable;
+  @Mock
+  private KeySerde<Struct> keySerde;
 
   @Before
   public void init() {
     ksqlTable = (KsqlTable) metaStore.getSource("TEST2");
     final StreamsBuilder builder = new StreamsBuilder();
-    kTable = builder
-        .table(ksqlTable.getKsqlTopic().getKafkaTopicName(), Consumed.with(Serdes.String()
-            , ksqlTable.getKsqlTopic().getValueSerdeFactory().createSerde(
-                PersistenceSchema.of(ksqlTable.getSchema().valueSchema()),
-                new KsqlConfig(Collections.emptyMap()),
-                MockSchemaRegistryClient::new
-            )));
 
+    final Serde<GenericRow> rowSerde = GenericRowSerDe.from(
+        ksqlTable.getKsqlTopic().getValueFormat().getFormatInfo(),
+        PersistenceSchema.from(ksqlTable.getSchema().valueSchema(), false),
+        new KsqlConfig(Collections.emptyMap()),
+        MockSchemaRegistryClient::new,
+        "",
+        NoopProcessingLogContext.INSTANCE
+    );
+
+    kTable = builder.table(
+        ksqlTable.getKsqlTopic().getKafkaTopicName(),
+        Consumed.with(Serdes.String(), rowSerde)
+    );
   }
 
   private SchemaKGroupedTable buildSchemaKGroupedTableFromQuery(
       final String query,
       final String...groupByColumns
   ) {
+    when(keySerde.rebind(any(PersistenceSchema.class))).thenReturn(keySerde);
+
     final PlanNode logicalPlan = AnalysisTestUtil.buildLogicalPlan(query, metaStore);
+
     final SchemaKTable<?> initialSchemaKTable = new SchemaKTable<>(
-        logicalPlan.getTheSourceNode().getSchema(),
         kTable,
+        logicalPlan.getTheSourceNode().getSchema(),
+        keySerde,
         logicalPlan.getTheSourceNode().getKeyField(),
         new ArrayList<>(),
-        Serdes::String,
         SchemaKStream.Type.SOURCE,
         ksqlConfig,
         functionRegistry,
         queryContext.getQueryContext());
+
     final List<Expression> groupByExpressions =
         Arrays.stream(groupByColumns)
             .map(c -> new DereferenceExpression(new QualifiedNameReference(QualifiedName.of("TEST1")), c))
             .collect(Collectors.toList());
-    final KsqlSerdeFactory ksqlSerdeFactory = new KsqlJsonSerdeFactory();
+
     final Serde<GenericRow> rowSerde = GenericRowSerDe.from(
-        ksqlSerdeFactory,
-        PhysicalSchema.from(initialSchemaKTable.getSchema().withoutAlias(), SerdeOption.none()),
+        FormatInfo.of(Format.JSON, Optional.empty()),
+        PersistenceSchema.from(initialSchemaKTable.getSchema().withoutAlias().valueSchema(), false),
         null,
         () -> null,
         "test",
-        processingLogContext);
+        processingLogContext
+    );
+
     final SchemaKGroupedStream groupedSchemaKTable = initialSchemaKTable.groupBy(
         rowSerde, groupByExpressions, queryContext);
     Assert.assertThat(groupedSchemaKTable, instanceOf(SchemaKGroupedTable.class));
@@ -157,8 +179,8 @@ public class SchemaKGroupedTableTest {
           Collections.singletonMap(0, 0),
           windowExpression,
           GenericRowSerDe.from(
-              new KsqlJsonSerdeFactory(),
-              PhysicalSchema.from(ksqlTable.getSchema(), SerdeOption.none()),
+              FormatInfo.of(Format.JSON, Optional.empty()),
+              PersistenceSchema.from(ksqlTable.getSchema().valueSchema(), false),
               ksqlConfig,
               () -> null,
               "test",
@@ -188,8 +210,8 @@ public class SchemaKGroupedTableTest {
           Collections.singletonMap(0, 0),
           null,
           GenericRowSerDe.from(
-              new KsqlJsonSerdeFactory(),
-              PhysicalSchema.from(ksqlTable.getSchema(), SerdeOption.none()),
+              FormatInfo.of(Format.JSON, Optional.empty()),
+              PersistenceSchema.from(ksqlTable.getSchema().valueSchema(), false),
               ksqlConfig,
               () -> null,
               "test",
@@ -207,10 +229,12 @@ public class SchemaKGroupedTableTest {
 
   private SchemaKGroupedTable buildSchemaKGroupedTable(
       final KGroupedTable kGroupedTable,
-      final MaterializedFactory materializedFactory) {
+      final MaterializedFactory materializedFactory
+  ) {
     return new SchemaKGroupedTable(
-        schema,
         kGroupedTable,
+        schema,
+        keySerde,
         KeyField.of(schema.valueFields().get(0).name(), schema.valueFields().get(0)),
         Collections.emptyList(),
         ksqlConfig,

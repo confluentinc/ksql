@@ -18,127 +18,101 @@ package io.confluent.ksql.schema.ksql;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.schema.connect.SqlSchemaFormatter;
-import io.confluent.ksql.schema.connect.SqlSchemaFormatter.Option;
-import io.confluent.ksql.util.DecimalUtil;
+import io.confluent.ksql.schema.ksql.SchemaConverters.ConnectToSqlTypeConverter;
+import io.confluent.ksql.schema.ksql.SchemaConverters.SqlToConnectTypeConverter;
+import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.SchemaUtil;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.ConnectSchema;
-import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Schema.Type;
 import org.apache.kafka.connect.data.SchemaBuilder;
 
 /**
  * Immutable KSQL logical schema.
- *
- * <p>KSQL's logical schema internal uses the Connect {@link org.apache.kafka.connect.data.Schema}
- * interface. The interface has two main implementations: a mutable {@link
- * org.apache.kafka.connect.data.SchemaBuilder} and an immutable {@link
- * org.apache.kafka.connect.data.ConnectSchema}.
- *
- * <p>The purpose of this class is two fold:
- * <ul>
- * <li>First, to ensure the schemas used to hold the KSQL logical model are always immutable</li>
- * <li>Second, to provide a KSQL specific immutable schema type, rather than have the code
- * use {@code ConnectSchema}, which can be confusing as {@code ConnectSchema} is also used in the
- * serde code.</li>
- * </ul>
  */
 @Immutable
 public final class LogicalSchema {
 
-  private static final Schema METADATA_SCHEMA = SchemaBuilder
-      .struct()
-      .field(SchemaUtil.ROWTIME_NAME, Schema.OPTIONAL_INT64_SCHEMA)
-      .build();
+  private static final String KEY_KEYWORD = "KEY";
 
-  private static final Schema IMPLICIT_KEY_SCHEMA = SchemaBuilder
-      .struct()
-      .field(SchemaUtil.ROWKEY_NAME, Schema.OPTIONAL_STRING_SCHEMA)
-      .build();
+  private static final ImmutableList<Field> META_FIELDS = ImmutableList.of(
+      Field.of(SchemaUtil.ROWTIME_NAME, SqlTypes.BIGINT)
+  );
 
-  private static final Consumer<Schema> NO_ADDITIONAL_VALIDATION = schema -> {
-  };
+  private static final ImmutableList<Field> IMPLICIT_KEY_FIELDS = ImmutableList.of(
+      Field.of(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
+  );
 
-  private static final Map<Type, Consumer<Schema>> VALIDATORS =
-      ImmutableMap.<Type, Consumer<Schema>>builder()
-          .put(Type.BOOLEAN, NO_ADDITIONAL_VALIDATION)
-          .put(Type.INT32, NO_ADDITIONAL_VALIDATION)
-          .put(Type.INT64, NO_ADDITIONAL_VALIDATION)
-          .put(Type.FLOAT64, NO_ADDITIONAL_VALIDATION)
-          .put(Type.STRING, NO_ADDITIONAL_VALIDATION)
-          .put(Type.ARRAY, LogicalSchema::validateArray)
-          .put(Type.MAP, LogicalSchema::validateMap)
-          .put(Type.STRUCT, LogicalSchema::validateStruct)
-          .put(Type.BYTES, DecimalUtil::requireDecimal)
-          .build();
+  private final List<Field> metaFields;
+  private final List<Field> keyFields;
+  private final List<Field> valueFields;
 
-  private final Optional<String> alias;
-  private final ConnectSchema metaSchema;
-  private final ConnectSchema keySchema;
-  private final ConnectSchema valueSchema;
+  public static Builder builder() {
+    return new Builder();
+  }
 
   public static LogicalSchema of(final Schema valueSchema) {
-    return LogicalSchema.of(IMPLICIT_KEY_SCHEMA, valueSchema);
+    final List<Field> valueFields = fromConnectSchema(valueSchema);
+    return new LogicalSchema(META_FIELDS, IMPLICIT_KEY_FIELDS, valueFields);
   }
 
   public static LogicalSchema of(
       final Schema keySchema,
       final Schema valueSchema
   ) {
-    return new LogicalSchema(METADATA_SCHEMA, keySchema, valueSchema, Optional.empty());
+    final List<Field> keyFields = fromConnectSchema(keySchema);
+    final List<Field> valueFields = fromConnectSchema(valueSchema);
+    return new LogicalSchema(META_FIELDS, keyFields, valueFields);
   }
 
-  private LogicalSchema(
-      final Schema metaSchema,
-      final Schema keySchema,
-      final Schema valueSchema,
-      final Optional<String> alias
+  public LogicalSchema(
+      final List<Field> metaFields,
+      final List<Field> keyFields,
+      final List<Field> valueFields
   ) {
-    this.metaSchema = validate(requireNonNull(metaSchema, "metaSchema"), true);
-    this.keySchema = validate(requireNonNull(keySchema, "keySchema"), true);
-    this.valueSchema = validate(requireNonNull(valueSchema, "valueSchema"), true);
-    this.alias = requireNonNull(alias, "alias");
+    this.metaFields = ImmutableList.copyOf(requireNonNull(metaFields, "metaFields"));
+    this.keyFields = ImmutableList.copyOf(requireNonNull(keyFields, "keyFields"));
+    this.valueFields = ImmutableList.copyOf(requireNonNull(valueFields, "valueFields"));
   }
 
   public ConnectSchema keySchema() {
-    return keySchema;
+    return toConnectSchema(keyFields);
   }
 
   public ConnectSchema valueSchema() {
-    return valueSchema;
+    return toConnectSchema(valueFields);
   }
 
   /**
    * @return the metadata fields in the schema.
    */
   public List<Field> metaFields() {
-    return ImmutableList.copyOf(metaSchema.fields());
+    return metaFields;
   }
 
   /**
    * @return the key fields in the schema.
    */
   public List<Field> keyFields() {
-    return ImmutableList.copyOf(keySchema.fields());
+    return keyFields;
   }
 
   /**
    * @return the value fields in the schema.
    */
   public List<Field> valueFields() {
-    return ImmutableList.copyOf(valueSchema.fields());
+    return valueFields;
   }
 
   /**
@@ -146,9 +120,9 @@ public final class LogicalSchema {
    */
   public List<Field> fields() {
     return ImmutableList.<Field>builder()
-        .addAll(metaFields())
-        .addAll(keyFields())
-        .addAll(valueFields())
+        .addAll(metaFields)
+        .addAll(keyFields)
+        .addAll(valueFields)
         .build();
   }
 
@@ -160,21 +134,23 @@ public final class LogicalSchema {
    * <p>If not exact match is found, any alias is stripped from the supplied  {@code fieldName}
    * before attempting to find a match again.
    *
+   * <p>Search order if meta, then key and then value fields.
+   *
    * @param fieldName the field name, where any alias is ignored.
    * @return the field if found, else {@code Optiona.empty()}.
    */
   public Optional<Field> findField(final String fieldName) {
-    Optional<Field> found = findSchemaField(fieldName, metaSchema);
+    Optional<Field> found = doFindField(fieldName, metaFields);
     if (found.isPresent()) {
       return found;
     }
 
-    found = findSchemaField(fieldName, keySchema);
+    found = doFindField(fieldName, keyFields);
     if (found.isPresent()) {
       return found;
     }
 
-    return findSchemaField(fieldName, valueSchema);
+    return doFindField(fieldName, valueFields);
   }
 
   /**
@@ -189,22 +165,25 @@ public final class LogicalSchema {
    * @return the value field if found, else {@code Optiona.empty()}.
    */
   public Optional<Field> findValueField(final String fieldName) {
-    return findSchemaField(fieldName, valueSchema);
+    return doFindField(fieldName, valueFields);
   }
 
   /**
-   * Find the index of the field with the supplied exact {@code fieldName}.
+   * Find the index of the field with the supplied exact {@code fullFieldName}.
    *
-   * @param fieldName the exact name of the field to get the index of.
+   * @param fullFieldName the exact name of the field to get the index of.
    * @return the index if it exists or else {@code empty()}.
    */
-  public OptionalInt valueFieldIndex(final String fieldName) {
-    final Field field = valueSchema.field(fieldName);
-    if (field == null) {
-      return OptionalInt.empty();
+  public OptionalInt valueFieldIndex(final String fullFieldName) {
+    int idx = 0;
+    for (final Field field : valueFields) {
+      if (field.fullName().equals(fullFieldName)) {
+        return OptionalInt.of(idx);
+      }
+      ++idx;
     }
 
-    return OptionalInt.of(field.index());
+    return OptionalInt.empty();
   }
 
   /**
@@ -218,15 +197,14 @@ public final class LogicalSchema {
    * @return the schema with the alias applied.
    */
   public LogicalSchema withAlias(final String alias) {
-    if (this.alias.isPresent()) {
+    if (isAliased()) {
       throw new IllegalStateException("Already aliased");
     }
 
     return new LogicalSchema(
-        addAlias(alias, metaSchema),
-        addAlias(alias, keySchema),
-        addAlias(alias, valueSchema),
-        Optional.of(alias)
+        addAlias(alias, metaFields),
+        addAlias(alias, keyFields),
+        addAlias(alias, valueFields)
     );
   }
 
@@ -236,15 +214,14 @@ public final class LogicalSchema {
    * @return the schema without any aliases in the field name.
    */
   public LogicalSchema withoutAlias() {
-    if (!alias.isPresent()) {
+    if (!isAliased()) {
       throw new IllegalStateException("Not aliased");
     }
 
     return new LogicalSchema(
-        removeAlias(metaSchema),
-        removeAlias(keySchema),
-        removeAlias(valueSchema),
-        Optional.empty()
+        removeAlias(metaFields),
+        removeAlias(keyFields),
+        removeAlias(valueFields)
     );
   }
 
@@ -252,7 +229,7 @@ public final class LogicalSchema {
    * @return {@code true} is aliased, {@code false} otherwise.
    */
   public boolean isAliased() {
-    return alias.isPresent();
+    return metaFields.get(0).source().isPresent();
   }
 
   /**
@@ -263,23 +240,23 @@ public final class LogicalSchema {
    * @return the new schema.
    */
   public LogicalSchema withMetaAndKeyFieldsInValue() {
-    final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
+    final List<Field> newValueFields =
+        new ArrayList<>(metaFields.size() + keyFields.size() + valueFields.size());
 
-    metaFields().forEach(f -> schemaBuilder.field(f.name(), f.schema()));
-
-    keyFields().forEach(f -> schemaBuilder.field(f.name(), f.schema()));
+    newValueFields.addAll(metaFields);
+    newValueFields.addAll(keyFields);
 
     valueFields().forEach(f -> {
-      if (!findSchemaField(f.name(), schemaBuilder).isPresent()) {
-        schemaBuilder.field(f.name(), f.schema());
+      if (!doFindField(f.name(), newValueFields).isPresent()) {
+        newValueFields.add(f);
       }
     });
 
     return new LogicalSchema(
-        metaSchema,
-        keySchema,
-        schemaBuilder.build(),
-        alias);
+        metaFields,
+        keyFields,
+        newValueFields
+    );
   }
 
   /**
@@ -288,19 +265,19 @@ public final class LogicalSchema {
    * @return the new schema with the fields removed.
    */
   public LogicalSchema withoutMetaAndKeyFieldsInValue() {
-    final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
+    final ImmutableList.Builder<Field> builder = ImmutableList.builder();
 
     final Set<String> excluded = metaAndKeyFieldNames();
 
-    valueSchema.fields().stream()
+    valueFields.stream()
         .filter(f -> !excluded.contains(f.name()))
-        .forEach(f -> schemaBuilder.field(f.name(), f.schema()));
+        .forEach(builder::add);
 
     return new LogicalSchema(
-        metaSchema,
-        keySchema,
-        schemaBuilder.build(),
-        alias);
+        metaFields,
+        keyFields,
+        builder.build()
+    );
   }
 
   /**
@@ -328,13 +305,13 @@ public final class LogicalSchema {
       return false;
     }
     final LogicalSchema that = (LogicalSchema) o;
-    return Objects.equals(keySchema, that.keySchema)
-        && Objects.equals(valueSchema, that.valueSchema);
+    return Objects.equals(keyFields, that.keyFields)
+        && Objects.equals(valueFields, that.valueFields);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(keySchema, valueSchema);
+    return Objects.hash(keyFields, valueFields);
   }
 
   @Override
@@ -343,18 +320,29 @@ public final class LogicalSchema {
   }
 
   public String toString(final FormatOptions formatOptions) {
-    final SqlSchemaFormatter formatter = new SqlSchemaFormatter(
-        formatOptions::isReservedWord, Option.AS_COLUMN_LIST);
+    // Meta fields deliberately excluded.
 
-    return "[" + formatter.format(valueSchema) + "]";
+    final String keys = keyFields.stream()
+        .map(f -> f.toString(formatOptions) + " " + KEY_KEYWORD)
+        .collect(Collectors.joining(", "));
+
+    final String values = valueFields.stream()
+        .map(f -> f.toString(formatOptions))
+        .collect(Collectors.joining(", "));
+
+    final String join = keys.isEmpty() || values.isEmpty()
+        ? ""
+        : ", ";
+
+    return "[" + keys + join + values + "]";
   }
 
   private Set<String> metaFieldNames() {
-    return fieldNames(metaFields());
+    return fieldNames(metaFields);
   }
 
   private Set<String> keyFieldNames() {
-    return fieldNames(keyFields());
+    return fieldNames(keyFields);
   }
 
   private Set<String> metaAndKeyFieldNames() {
@@ -369,93 +357,126 @@ public final class LogicalSchema {
         .collect(Collectors.toSet());
   }
 
-  private static Schema addAlias(final String alias, final ConnectSchema schema) {
-    final SchemaBuilder newSchema = SchemaBuilder
-        .struct()
-        .name(schema.name());
+  private static List<Field> addAlias(final String alias, final List<Field> fields) {
+    final ImmutableList.Builder<Field> builder = ImmutableList.builder();
 
-    for (final Field field : schema.fields()) {
-      final String aliased = SchemaUtil.buildAliasedFieldName(alias, field.name());
-      newSchema.field(aliased, field.schema());
+    for (final Field field : fields) {
+      builder.add(field.withSource(alias));
     }
-    return newSchema.build();
+    return builder.build();
   }
 
-  private static Schema removeAlias(final Schema schema) {
-    final SchemaBuilder newSchema = SchemaBuilder
-        .struct()
-        .name(schema.name());
+  private static List<Field> removeAlias(final List<Field> fields) {
+    final ImmutableList.Builder<Field> builder = ImmutableList.builder();
 
-    for (final Field field : schema.fields()) {
-      final String unaliased = SchemaUtil.getFieldNameWithNoAlias(field.name());
-      newSchema.field(unaliased, field.schema());
+    for (final Field field : fields) {
+      builder.add(Field.of(field.name(), field.type()));
     }
-    return newSchema.build();
+    return builder.build();
   }
 
-  private static Optional<Field> findSchemaField(final String fieldName, final Schema schema) {
-    return schema.fields()
+  private static Optional<Field> doFindField(final String fieldName, final List<Field> fields) {
+    return fields
         .stream()
-        .filter(f -> SchemaUtil.matchFieldName(f, fieldName))
+        .filter(f -> SchemaUtil.isFieldName(fieldName, f.fullName()))
         .findFirst();
   }
 
-  private static ConnectSchema validate(final Schema schema, final boolean topLevel) {
-    if (topLevel && schema.type() != Type.STRUCT) {
-      throw new IllegalArgumentException("Top level schema must be STRUCT. schema: " + schema);
+  private static ConnectSchema toConnectSchema(
+      final List<Field> fields
+  ) {
+    final SqlToConnectTypeConverter converter = SchemaConverters.sqlToConnectConverter();
+
+    final SchemaBuilder builder = SchemaBuilder.struct();
+    for (final Field field : fields) {
+
+      final Schema fieldSchema = converter.toConnectSchema(field.type());
+      builder.field(field.fullName(), fieldSchema);
     }
 
-    if (!(schema instanceof ConnectSchema)) {
-      throw new IllegalArgumentException("Mutable schema found: " + schema);
-    }
-
-    if (!topLevel && !schema.isOptional()) {
-      throw new IllegalArgumentException("Non-optional field found: " + schema);
-    }
-
-    final Consumer<Schema> validator = VALIDATORS.get(schema.type());
-    if (validator == null) {
-      throw new IllegalArgumentException("Unsupported schema type: " + schema);
-    }
-
-    validator.accept(schema);
-    return (ConnectSchema) schema;
+    return (ConnectSchema) builder.build();
   }
 
-  private static void validateArray(final Schema schema) {
-    validate(schema.valueSchema(), false);
-  }
-
-  private static void validateMap(final Schema schema) {
-    if (schema.keySchema().type() != Type.STRING) {
-      throw new IllegalArgumentException("MAP only supports STRING keys");
+  private static List<Field> fromConnectSchema(final Schema schema) {
+    if (schema.type() != Type.STRUCT) {
+      throw new IllegalArgumentException("Top level schema must be STRUCT");
     }
 
-    validate(schema.keySchema(), false);
-    validate(schema.valueSchema(), false);
-  }
+    final ConnectToSqlTypeConverter converter = SchemaConverters.connectToSqlConverter();
 
-  private static void validateStruct(final Schema schema) {
-    for (int idx = 0; idx != schema.fields().size(); ++idx) {
-      final Field field = schema.fields().get(idx);
-      validate(field.schema(), false);
-    }
-  }
+    final ImmutableList.Builder<Field> builder = ImmutableList.builder();
 
-  private static boolean schemasAreEqual(final Schema schema1, final Schema schema2) {
-    if (schema1.fields().size() != schema2.fields().size()) {
-      return false;
+    for (final org.apache.kafka.connect.data.Field field : schema.fields()) {
+      final Optional<String> source = SchemaUtil.getFieldNameAlias(field.name());
+      final String fieldName = SchemaUtil.getFieldNameWithNoAlias(field.name());
+      final SqlType fieldType = converter.toSqlType(field.schema());
+
+      builder.add(Field.of(source, fieldName, fieldType));
     }
 
-    for (int i = 0; i < schema1.fields().size(); i++) {
-      final Field f1 = schema1.fields().get(i);
-      final Field f2 = schema2.fields().get(i);
-      if (!f1.equals(f2)) {
-        return false;
+    return builder.build();
+  }
+
+  public static class Builder {
+
+    private final ImmutableList.Builder<Field> keyFields = ImmutableList.builder();
+    private final ImmutableList.Builder<Field> valueFields = ImmutableList.builder();
+
+    private final Set<String> keyFieldNames = new HashSet<>();
+    private final Set<String> valueFieldNames = new HashSet<>();
+
+    public Builder keyField(final String fieldName, final SqlType fieldType) {
+      keyField(Field.of(fieldName, fieldType));
+      return this;
+    }
+
+    public Builder keyField(final Field field) {
+      throwOnDuplicateName(field.fullName(), keyFieldNames);
+      keyFields.add(field);
+      keyFieldNames.add(field.fullName());
+      return this;
+    }
+
+    public Builder keyFields(final Iterable<? extends Field> fields) {
+      fields.forEach(this::keyField);
+      return this;
+    }
+
+    public Builder valueField(final String fieldName, final SqlType fieldType) {
+      valueField(Field.of(fieldName, fieldType));
+      return this;
+    }
+
+    public Builder valueField(final Field field) {
+      throwOnDuplicateName(field.fullName(), valueFieldNames);
+      valueFields.add(field);
+      valueFieldNames.add(field.fullName());
+      return this;
+    }
+
+    public Builder valueFields(final Iterable<? extends Field> fields) {
+      fields.forEach(this::valueField);
+      return this;
+    }
+
+    public LogicalSchema build() {
+      final ImmutableList<Field> suppliedKeys = this.keyFields.build();
+
+      final ImmutableList<Field> keys = suppliedKeys.isEmpty()
+          ? IMPLICIT_KEY_FIELDS
+          : suppliedKeys;
+
+      return new LogicalSchema(
+          META_FIELDS,
+          keys,
+          valueFields.build()
+      );
+    }
+
+    private static void throwOnDuplicateName(final String fullName, final Set<String> existing) {
+      if (existing.contains(fullName)) {
+        throw new IllegalArgumentException("Duplicate field name: " + fullName);
       }
     }
-
-    return true;
   }
 }
-

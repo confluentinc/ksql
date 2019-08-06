@@ -28,13 +28,13 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParserTestUtil;
 import io.confluent.ksql.parser.tree.AliasedRelation;
+import io.confluent.ksql.parser.tree.AstNode;
 import io.confluent.ksql.parser.tree.ComparisonExpression;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.Join;
-import io.confluent.ksql.parser.tree.Node;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Statement;
@@ -248,7 +248,7 @@ public class StatementRewriterTest {
     final Query original = parse("SELECT * FROM test1 t1;");
 
     // When:
-    final Node rewrittenStatement = statementRewriter.process(original, null);
+    final AstNode rewrittenStatement = (AstNode) statementRewriter.process(original, null);
 
     // Then:
     assertThat(rewrittenStatement, is(instanceOf(Query.class)));
@@ -265,7 +265,7 @@ public class StatementRewriterTest {
             + "WHERE t2.col2 = 'test';");
 
     // When:
-    final Node rewrittenStatement = statementRewriter.process(original, null);
+    final AstNode rewrittenStatement = (AstNode) statementRewriter.process(original, null);
 
     // Then:
     assertThat(rewrittenStatement, instanceOf(Query.class));

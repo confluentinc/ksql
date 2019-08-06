@@ -51,13 +51,8 @@ public class KafkaSerdeFactory implements KsqlSerdeFactory {
   );
 
   @Override
-  public Format getFormat() {
-    return Format.KAFKA;
-  }
-
-  @Override
   public void validate(final PersistenceSchema schema) {
-    getPrimitiveSerde(schema.getConnectSchema());
+    getPrimitiveSerde(schema.serializedSchema());
   }
 
   @Override
@@ -66,16 +61,16 @@ public class KafkaSerdeFactory implements KsqlSerdeFactory {
       final KsqlConfig ksqlConfig,
       final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
   ) {
-    final Serde<Object> primitiveSerde = getPrimitiveSerde(schema.getConnectSchema());
+    final Serde<Object> primitiveSerde = getPrimitiveSerde(schema.serializedSchema());
 
     final Serializer<Object> serializer = new RowSerializer(
         primitiveSerde.serializer(),
-        schema.getConnectSchema()
+        schema.serializedSchema()
     );
 
     final Deserializer<Object> deserializer = new RowDeserializer(
         primitiveSerde.deserializer(),
-        schema.getConnectSchema()
+        schema.serializedSchema()
     );
 
     return Serdes.serdeFrom(serializer, deserializer);

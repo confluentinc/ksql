@@ -17,19 +17,18 @@ package io.confluent.ksql.logging.processing;
 
 import static java.util.Objects.requireNonNull;
 
-import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.serde.util.SerdeProcessingLogMessageFactory;
 import java.util.Map;
 import java.util.Optional;
 import org.apache.kafka.common.serialization.Deserializer;
 
-public final class LoggingDeserializer implements Deserializer<GenericRow> {
+public final class LoggingDeserializer<T> implements Deserializer<T> {
 
-  private final Deserializer<GenericRow> delegate;
+  private final Deserializer<T> delegate;
   private final ProcessingLogger processingLogger;
 
   public LoggingDeserializer(
-      final Deserializer<GenericRow> delegate,
+      final Deserializer<T> delegate,
       final ProcessingLogger processingLogger
   ) {
     this.delegate = requireNonNull(delegate, "delegate");
@@ -42,7 +41,7 @@ public final class LoggingDeserializer implements Deserializer<GenericRow> {
   }
 
   @Override
-  public GenericRow deserialize(final String topic, final byte[] bytes) {
+  public T deserialize(final String topic, final byte[] bytes) {
     try {
       return delegate.deserialize(topic, bytes);
     } catch (final RuntimeException e) {

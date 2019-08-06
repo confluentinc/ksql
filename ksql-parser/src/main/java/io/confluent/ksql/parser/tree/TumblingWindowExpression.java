@@ -20,18 +20,18 @@ import static java.util.Objects.requireNonNull;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.UdafAggregator;
-import io.confluent.ksql.metastore.SerdeFactory;
+import io.confluent.ksql.model.WindowType;
+import io.confluent.ksql.serde.WindowInfo;
 import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Initializer;
 import org.apache.kafka.streams.kstream.KGroupedStream;
 import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.kstream.TimeWindows;
-import org.apache.kafka.streams.kstream.Windowed;
-import org.apache.kafka.streams.kstream.WindowedSerdes;
 
 @Immutable
 public class TumblingWindowExpression extends KsqlWindowExpression {
@@ -53,12 +53,12 @@ public class TumblingWindowExpression extends KsqlWindowExpression {
     this.sizeUnit = requireNonNull(sizeUnit, "sizeUnit");
   }
 
-  public long getSize() {
-    return size;
-  }
-
-  public TimeUnit getSizeUnit() {
-    return sizeUnit;
+  @Override
+  public WindowInfo getWindowInfo() {
+    return WindowInfo.of(
+        WindowType.TUMBLING,
+        Optional.of(Duration.ofNanos(sizeUnit.toNanos(size)))
+    );
   }
 
   @Override
@@ -93,7 +93,7 @@ public class TumblingWindowExpression extends KsqlWindowExpression {
   public KTable applyAggregate(final KGroupedStream groupedStream,
       final Initializer initializer,
       final UdafAggregator aggregator,
-      final Materialized<String, GenericRow, ?> materialized) {
+      final Materialized<Struct, GenericRow, ?> materialized) {
 
     final TimeWindows windows = TimeWindows.of(Duration.ofMillis(sizeUnit.toMillis(size)));
 
@@ -101,14 +101,5 @@ public class TumblingWindowExpression extends KsqlWindowExpression {
         .windowedBy(windows)
         .aggregate(initializer, aggregator, materialized);
 
-  }
-
-  @Override
-  public <K> SerdeFactory<Windowed<K>> getKeySerdeFactory(final Class<K> innerType) {
-    return () -> WindowedSerdes.timeWindowedSerdeFrom(innerType, computeWindowSize(size, sizeUnit));
-  }
-
-  private static Long computeWindowSize(final Long windowSize, final TimeUnit timeUnit) {
-    return TimeUnit.MILLISECONDS.convert(windowSize, timeUnit);
   }
 }

@@ -44,6 +44,7 @@
         <module>ksql-udf-quickstart</module>
         <module>ksql-serde</module>
         <module>ksql-metastore</module>
+        <module>ksql-execution</module>
         <module>ksql-parser</module>
         <module>ksql-engine</module>
         <module>ksql-tools</module>
@@ -87,6 +88,7 @@
     <properties>
         <apache.directory.server.version>2.0.0-M22</apache.directory.server.version>
         <apache.directory.api.version>1.0.0-M33</apache.directory.api.version>
+        <apache.httpcomponents.version>4.5.9</apache.httpcomponents.version>
         <confluent.maven.repo>http://packages.confluent.io/maven/</confluent.maven.repo>
         <exec-maven-plugin.version>1.2.1</exec-maven-plugin.version>
         <podam.version>6.0.2.RELEASE</podam.version>
@@ -106,6 +108,7 @@
         <generext.version>1.0.2</generext.version>
         <avro.random.generator.version>0.2.2</avro.random.generator.version>
         <apache.curator.version>2.9.0</apache.curator.version>
+        <wiremock.version>2.24.0</wiremock.version>
         <!--
          Temporarily pinning KSQL to old Kafka Streams snapshot until issues with breaking change
          due to state store name changes in PR https://github.com/apache/kafka/pull/6411,
@@ -165,6 +168,12 @@
             <dependency>
                 <groupId>io.confluent.ksql</groupId>
                 <artifactId>ksql-engine</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.confluent.ksql</groupId>
+                <artifactId>ksql-execution</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
@@ -310,6 +319,12 @@
             </dependency>
 
             <dependency>
+                <groupId>org.apache.httpcomponents</groupId>
+                <artifactId>fluent-hc</artifactId>
+                <version>${apache.httpcomponents.version}</version>
+            </dependency>
+
+            <dependency>
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-lang3</artifactId>
                 <version>${lang3.version}</version>
@@ -351,6 +366,13 @@
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava-testlib</artifactId>
                 <version>${guava.version}</version>
+                <scope>test</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>com.github.tomakehurst</groupId>
+                <artifactId>wiremock-jre8</artifactId>
+                <version>${wiremock.version}</version>
                 <scope>test</scope>
             </dependency>
 

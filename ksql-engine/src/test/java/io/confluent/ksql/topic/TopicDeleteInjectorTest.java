@@ -19,6 +19,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -31,18 +32,19 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.ListProperties;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.Statement;
-import io.confluent.ksql.serde.avro.KsqlAvroSerdeFactory;
-import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
+import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
-import io.confluent.ksql.util.KsqlException;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
@@ -75,6 +77,8 @@ public class TopicDeleteInjectorTest {
   @Mock
   private DataSource<?> source;
   @Mock
+  private KsqlTopic topic;
+  @Mock
   private SchemaRegistryClient registryClient;
   @Mock
   private KafkaTopicClient topicClient;
@@ -88,7 +92,8 @@ public class TopicDeleteInjectorTest {
     when(metaStore.getSource(SOURCE_NAME)).thenAnswer(inv -> source);
     when(source.getName()).thenReturn(SOURCE_NAME);
     when(source.getKafkaTopicName()).thenReturn(TOPIC_NAME);
-    when(source.getValueSerdeFactory()).thenReturn(new KsqlJsonSerdeFactory());
+    when(source.getKsqlTopic()).thenReturn(topic);
+    when(topic.getValueFormat()).thenReturn(ValueFormat.of(FormatInfo.of(Format.JSON)));
   }
 
   @Test
@@ -136,7 +141,7 @@ public class TopicDeleteInjectorTest {
   @Test
   public void shouldDeleteSchemaInSR() throws IOException, RestClientException {
     // Given:
-    when(source.getValueSerdeFactory()).thenReturn(new KsqlAvroSerdeFactory("foo"));
+    when(topic.getValueFormat()).thenReturn(ValueFormat.of(FormatInfo.of(Format.AVRO)));
 
     // When:
     deleteInjector.inject(DROP_WITH_DELETE_TOPIC);
@@ -161,7 +166,7 @@ public class TopicDeleteInjectorTest {
         "DROP SOMETHING", new DropStream(QualifiedName.of("SOMETHING_ELSE"), true, true));
 
     // Expect:
-    expectedException.expect(KsqlException.class);
+    expectedException.expect(RuntimeException.class);
     expectedException.expectMessage("Could not find source to delete topic for");
 
     // When:
@@ -188,7 +193,6 @@ public class TopicDeleteInjectorTest {
   }
 
   @Test
-  @SuppressWarnings("unchecked")
   public void shouldThrowExceptionIfOtherSourcesUsingTopic() {
     // Given:
     final ConfiguredStatement<DropStream> dropStatement = givenStatement(
@@ -206,7 +210,7 @@ public class TopicDeleteInjectorTest {
     when(metaStore.getAllDataSources()).thenReturn(sources);
 
     // Expect:
-    expectedException.expect(KsqlException.class);
+    expectedException.expect(RuntimeException.class);
     expectedException.expectMessage(
         "Refusing to delete topic. "
             + "Found other data sources (OTHER1, OTHER2) using topic something");
@@ -215,7 +219,20 @@ public class TopicDeleteInjectorTest {
     deleteInjector.inject(dropStatement);
   }
 
-  private DataSource<?> givenSource(final String name, final String topicName) {
+  @Test
+  public void shouldNotThrowIfSchemaIsMissing() throws IOException, RestClientException {
+    // Given:
+    when(topic.getValueFormat())
+        .thenReturn(ValueFormat.of(FormatInfo.of(Format.AVRO, Optional.of("foo"))));
+
+    doThrow(new RestClientException("Subject not found.", 404, 40401))
+            .when(registryClient).deleteSubject("something" + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
+
+    // When:
+    deleteInjector.inject(DROP_WITH_DELETE_TOPIC);
+  }
+
+  private static DataSource<?> givenSource(final String name, final String topicName) {
     final DataSource source = mock(DataSource.class);
     when(source.getName()).thenReturn(name);
     when(source.getKafkaTopicName()).thenReturn(topicName);
@@ -232,5 +249,4 @@ public class TopicDeleteInjectorTest {
         new KsqlConfig(ImmutableMap.of())
     );
   }
-
 }

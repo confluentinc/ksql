@@ -32,10 +32,6 @@
             <groupId>io.confluent.ksql</groupId>
             <artifactId>ksql-common</artifactId>
         </dependency>
-        <dependency>
-            <groupId>io.confluent.ksql</groupId>
-            <artifactId>ksql-serde</artifactId>
-        </dependency>
 
         <!-- Required for running tests -->
         <dependency>

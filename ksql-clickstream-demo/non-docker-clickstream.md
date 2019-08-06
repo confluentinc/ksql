@@ -107,7 +107,7 @@ These steps will guide you through how to setup your environment and run the cli
 1.  Launch the KSQL CLI in local mode.
 
     ```bash
-    $ <path-to-ksql>bin/ksql-cli local
+    $ <path-to-ksql>bin/ksql
     ```
 
     You should see the KSQL CLI welcome screen.

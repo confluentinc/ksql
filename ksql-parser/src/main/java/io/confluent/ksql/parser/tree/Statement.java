@@ -22,7 +22,7 @@ import java.util.Optional;
  * A {@code Statement} represents the parsed AST version of a single SQL statement.
  */
 @Immutable
-public abstract class Statement extends Node {
+public abstract class Statement extends AstNode {
 
   protected Statement(final Optional<NodeLocation> location) {
     super(location);

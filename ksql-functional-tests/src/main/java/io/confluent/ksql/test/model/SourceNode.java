@@ -43,16 +43,19 @@ class SourceNode {
   private final Optional<Class<? extends DataSource>> type;
   private final Optional<KeyFieldNode> keyField;
   private final Optional<Schema> valueSchema;
+  private final Optional<KeyFormatNode> keyFormat;
 
   SourceNode(
       @JsonProperty(value = "name", required = true) final String name,
       @JsonProperty(value = "type", required = true) final String type,
       @JsonProperty("keyField") final KeyFieldNode keyField,
-      @JsonProperty("valueSchema") final String valueSchema
+      @JsonProperty("valueSchema") final String valueSchema,
+      @JsonProperty("keyFormat") final KeyFormatNode keyFormat
   ) {
     this.name = name == null ? "" : name;
     this.keyField = Optional.ofNullable(keyField);
     this.valueSchema = parseSchema(valueSchema);
+    this.keyFormat = Optional.ofNullable(keyFormat);
     this.type = Optional.ofNullable(type)
         .map(String::toUpperCase)
         .map(SourceNode::toType);
@@ -85,8 +88,13 @@ class SourceNode {
         .map(MetaStoreMatchers::hasValueSchema)
         .orElse(null);
 
+    final Matcher<DataSource<?>> keyFormatMatcher = keyFormat
+        .map(KeyFormatNode::build)
+        .map(MetaStoreMatchers::hasKeyFormat)
+        .orElse(null);
+
     final Matcher<DataSource<?>>[] matchers = Stream
-        .of(nameMatcher, typeMatcher, keyFieldMatcher, valueSchemaMatcher)
+        .of(nameMatcher, typeMatcher, keyFieldMatcher, valueSchemaMatcher, keyFormatMatcher)
         .filter(Objects::nonNull)
         .toArray(Matcher[]::new);
 
@@ -110,7 +118,7 @@ class SourceNode {
     return Optional.ofNullable(schema)
         .map(TypeContextUtil::getType)
         .map(Type::getSqlType)
-        .map(SchemaConverters.sqlToLogicalConverter()::fromSqlType)
+        .map(SchemaConverters.sqlToConnectConverter()::toConnectSchema)
         .map(SourceNode::makeTopLevelStructNoneOptional);
   }
 

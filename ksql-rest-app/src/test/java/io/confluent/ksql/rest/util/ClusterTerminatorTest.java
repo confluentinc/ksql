@@ -40,7 +40,8 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.serde.Format;
-import io.confluent.ksql.serde.KsqlSerdeFactory;
+import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
@@ -55,7 +56,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
 import org.apache.kafka.common.errors.TopicDeletionDisabledException;
 import org.junit.Before;
 import org.junit.Rule;
@@ -441,13 +441,10 @@ public class ClusterTerminatorTest {
   ) {
     final String sourceName = "SOURCE_" + kafkaTopicName;
 
-    final KsqlSerdeFactory valueSerdeFactory = mock(KsqlSerdeFactory.class);
-    when(valueSerdeFactory.getFormat()).thenReturn(format);
-
     final KsqlTopic topic = mock(KsqlTopic.class);
     when(topic.getKafkaTopicName()).thenReturn(kafkaTopicName);
     when(topic.isKsqlSink()).thenReturn(sink);
-    when(topic.getValueSerdeFactory()).thenReturn(valueSerdeFactory);
+    when(topic.getValueFormat()).thenReturn(ValueFormat.of(FormatInfo.of(format)));
 
     final DataSource<?> source = mock(DataSource.class);
     when(source.getKsqlTopic()).thenReturn(topic);

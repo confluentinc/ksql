@@ -18,7 +18,7 @@ package io.confluent.ksql.services;
 import com.google.common.base.Suppliers;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import java.util.function.Supplier;
-import org.apache.kafka.clients.admin.AdminClient;
+import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.streams.KafkaClientSupplier;
 
 public class LazyServiceContext implements ServiceContext {
@@ -29,7 +29,7 @@ public class LazyServiceContext implements ServiceContext {
   }
 
   @Override
-  public AdminClient getAdminClient() {
+  public Admin getAdminClient() {
     return serviceContextSupplier.get().getAdminClient();
   }
 
@@ -51,6 +51,11 @@ public class LazyServiceContext implements ServiceContext {
   @Override
   public Supplier<SchemaRegistryClient> getSchemaRegistryClientFactory() {
     return serviceContextSupplier.get().getSchemaRegistryClientFactory();
+  }
+
+  @Override
+  public ConnectClient getConnectClient() {
+    return serviceContextSupplier.get().getConnectClient();
   }
 
   @Override

@@ -26,7 +26,7 @@ import java.util.stream.Collectors;
 public final class ExpressionTreeRewriter<C> {
 
   private final ExpressionRewriter<C> rewriter;
-  private final AstVisitor<Expression, Context<C>> visitor;
+  private final ExpressionVisitor<Expression, Context<C>> visitor;
 
   public static <C, T extends Expression> T rewriteWith(
       final ExpressionRewriter<C> rewriter, final T node) {
@@ -34,7 +34,7 @@ public final class ExpressionTreeRewriter<C> {
   }
 
 
-  public ExpressionTreeRewriter(final ExpressionRewriter<C> rewriter) {
+  private ExpressionTreeRewriter(final ExpressionRewriter<C> rewriter) {
     this.rewriter = rewriter;
     this.visitor = new RewritingVisitor();
   }
@@ -46,11 +46,11 @@ public final class ExpressionTreeRewriter<C> {
 
   // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
   private class RewritingVisitor
-      extends AstVisitor<Expression, Context<C>> {
+      extends VisitParentExpressionVisitor<Expression, Context<C>> {
     // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
     @Override
-    protected Expression visitExpression(final Expression node, final Context<C> context) {
+    public Expression visitExpression(final Expression node, final Context<C> context) {
       if (!context.isDefaultRewrite()) {
         final Expression
             result =
@@ -66,7 +66,7 @@ public final class ExpressionTreeRewriter<C> {
     }
 
     @Override
-    protected Expression visitType(final Type node, final Context<C> context) {
+    public Expression visitType(final Type node, final Context<C> context) {
       if (!(node.getSqlType() instanceof SqlStruct)) {
         return node;
       }
@@ -84,7 +84,7 @@ public final class ExpressionTreeRewriter<C> {
     }
 
     @Override
-    protected Expression visitArithmeticUnary(
+    public Expression visitArithmeticUnary(
         final ArithmeticUnaryExpression node,
         final Context<C> context) {
       if (!context.isDefaultRewrite()) {
@@ -128,7 +128,7 @@ public final class ExpressionTreeRewriter<C> {
     }
 
     @Override
-    protected Expression visitSubscriptExpression(
+    public Expression visitSubscriptExpression(
         final SubscriptExpression node,
         final Context<C> context) {
       if (!context.isDefaultRewrite()) {
@@ -174,7 +174,7 @@ public final class ExpressionTreeRewriter<C> {
     }
 
     @Override
-    protected Expression visitBetweenPredicate(
+    public Expression visitBetweenPredicate(
         final BetweenPredicate node,
         final Context<C> context) {
       if (!context.isDefaultRewrite()) {
@@ -241,7 +241,7 @@ public final class ExpressionTreeRewriter<C> {
     }
 
     @Override
-    protected Expression visitIsNullPredicate(
+    public Expression visitIsNullPredicate(
         final IsNullPredicate node,
         final Context<C> context) {
       if (!context.isDefaultRewrite()) {
@@ -263,7 +263,7 @@ public final class ExpressionTreeRewriter<C> {
     }
 
     @Override
-    protected Expression visitIsNotNullPredicate(
+    public Expression visitIsNotNullPredicate(
         final IsNotNullPredicate node,
         final Context<C> context) {
       if (!context.isDefaultRewrite()) {
@@ -285,7 +285,7 @@ public final class ExpressionTreeRewriter<C> {
     }
 
     @Override
-    protected Expression visitSearchedCaseExpression(final SearchedCaseExpression node,
+    public Expression visitSearchedCaseExpression(final SearchedCaseExpression node,
                                                      final Context<C> context) {
       if (!context.isDefaultRewrite()) {
         final Expression
@@ -314,7 +314,7 @@ public final class ExpressionTreeRewriter<C> {
     }
 
     @Override
-    protected Expression visitSimpleCaseExpression(
+    public Expression visitSimpleCaseExpression(
         final SimpleCaseExpression node,
         final Context<C> context) {
       if (!context.isDefaultRewrite()) {
@@ -346,7 +346,7 @@ public final class ExpressionTreeRewriter<C> {
     }
 
     @Override
-    protected Expression visitWhenClause(final WhenClause node, final Context<C> context) {
+    public Expression visitWhenClause(final WhenClause node, final Context<C> context) {
       if (!context.isDefaultRewrite()) {
         final Expression
             result =
@@ -430,7 +430,7 @@ public final class ExpressionTreeRewriter<C> {
     }
 
     @Override
-    protected Expression visitInListExpression(
+    public Expression visitInListExpression(
         final InListExpression node,
         final Context<C> context) {
       if (!context.isDefaultRewrite()) {

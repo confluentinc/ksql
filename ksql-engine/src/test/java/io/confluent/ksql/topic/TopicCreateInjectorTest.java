@@ -40,8 +40,11 @@ import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
-import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
+import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
@@ -53,7 +56,6 @@ import java.util.Optional;
 import java.util.function.Supplier;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.config.TopicConfig;
-import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.hamcrest.Description;
@@ -91,7 +93,6 @@ public class TopicCreateInjectorTest {
   private ConfiguredStatement<?> statement;
   private KsqlConfig config;
 
-  @SuppressWarnings("unchecked")
   @Before
   public void setUp() {
     parser = new DefaultKsqlParser();
@@ -101,8 +102,13 @@ public class TopicCreateInjectorTest {
 
     injector = new TopicCreateInjector(topicClient, metaStore);
 
-    final KsqlTopic sourceTopic =
-        new KsqlTopic("SOURCE", "source", new KsqlJsonSerdeFactory(), false);
+    final KsqlTopic sourceTopic = new KsqlTopic(
+        "source",
+        KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
+        ValueFormat.of(FormatInfo.of(Format.JSON)),
+        false
+    );
+
     final KsqlStream source = new KsqlStream<>(
         "",
         "SOURCE",
@@ -110,13 +116,17 @@ public class TopicCreateInjectorTest {
         SerdeOption.none(),
         KeyField.none(),
         new MetadataTimestampExtractionPolicy(),
-        sourceTopic,
-        Serdes::String
+        sourceTopic
     );
     metaStore.putSource(source);
 
-    final KsqlTopic joinTopic =
-        new KsqlTopic("J_SOURCE", "jSource", new KsqlJsonSerdeFactory(), false);
+    final KsqlTopic joinTopic = new KsqlTopic(
+        "jSource",
+        KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
+        ValueFormat.of(FormatInfo.of(Format.JSON)),
+        false
+    );
+
     final KsqlStream joinSource = new KsqlStream<>(
         "",
         "J_SOURCE",
@@ -124,8 +134,7 @@ public class TopicCreateInjectorTest {
         SerdeOption.none(),
         KeyField.none(),
         new MetadataTimestampExtractionPolicy(),
-        joinTopic,
-        Serdes::String
+        joinTopic
     );
     metaStore.putSource(joinSource);
 

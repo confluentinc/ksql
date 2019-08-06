@@ -34,17 +34,23 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.metastore.model.KsqlTopic;
+import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.physical.KsqlQueryBuilder;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
-import io.confluent.ksql.serde.KsqlSerdeFactory;
+import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.KeyFormat;
+import io.confluent.ksql.serde.KeySerde;
 import io.confluent.ksql.serde.SerdeOption;
-import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
+import io.confluent.ksql.serde.ValueFormat;
+import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.streams.MaterializedFactory;
 import io.confluent.ksql.structured.QueryContext;
 import io.confluent.ksql.structured.SchemaKStream;
@@ -54,24 +60,23 @@ import io.confluent.ksql.util.QueryLoggerUtil;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.timestamp.LongColumnTimestampExtractionPolicy;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
-import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.TopologyDescription;
-import org.apache.kafka.streams.kstream.Aggregator;
-import org.apache.kafka.streams.kstream.Initializer;
 import org.apache.kafka.streams.kstream.KGroupedStream;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KTable;
@@ -88,6 +93,7 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+@SuppressWarnings("OptionalGetWithoutIsPresent")
 @RunWith(MockitoJUnitRunner.class)
 public class DataSourceNodeTest {
 
@@ -97,7 +103,7 @@ public class DataSourceNodeTest {
   private final KsqlConfig realConfig = new KsqlConfig(Collections.emptyMap());
   private SchemaKStream realStream;
   private StreamsBuilder realBuilder;
-  private final LogicalSchema realSchema = LogicalSchema.of(SchemaBuilder.struct()
+  private static final LogicalSchema REAL_SCHEMA = LogicalSchema.of(SchemaBuilder.struct()
       .field("field1", Schema.OPTIONAL_STRING_SCHEMA)
       .field("field2", Schema.OPTIONAL_STRING_SCHEMA)
       .field("field3", Schema.OPTIONAL_STRING_SCHEMA)
@@ -105,16 +111,22 @@ public class DataSourceNodeTest {
       .field("key", Schema.OPTIONAL_STRING_SCHEMA)
       .build());
 
+  private static final PhysicalSchema PHYSICAL_SCHEMA = PhysicalSchema
+      .from(REAL_SCHEMA.withoutMetaAndKeyFieldsInValue(), SerdeOption.none());
+
   private final KsqlStream<String> SOME_SOURCE = new KsqlStream<>(
       "sqlExpression",
       "datasource",
-      realSchema,
+      REAL_SCHEMA,
       SerdeOption.none(),
-      KeyField.of("key", realSchema.valueSchema().field("key")),
+      KeyField.of("key", REAL_SCHEMA.findValueField("key").get()),
       new LongColumnTimestampExtractionPolicy("timestamp"),
-      new KsqlTopic("topic", "topic",
-          new KsqlJsonSerdeFactory(), false),
-      Serdes::String
+      new KsqlTopic(
+          "topic",
+          KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
+          ValueFormat.of(FormatInfo.of(Format.JSON)),
+          false
+      )
   );
 
   private final DataSourceNode node = new DataSourceNode(
@@ -126,7 +138,7 @@ public class DataSourceNodeTest {
 
   private final PlanNodeId realNodeId = new PlanNodeId("source");
   @Mock
-  private KsqlTable tableSource;
+  private DataSource<?> dataSource;
   @Mock
   private TimestampExtractionPolicy timestampExtractionPolicy;
   @Mock
@@ -134,11 +146,9 @@ public class DataSourceNodeTest {
   @Mock
   private KsqlTopic ksqlTopic;
   @Mock
-  private KsqlSerdeFactory valueSerDeFactory;
-  @Mock
   private Serde<GenericRow> rowSerde;
   @Mock
-  private Serde<String> keySerde;
+  private KeySerde<String> keySerde;
   @Mock
   private StreamsBuilder streamsBuilder;
   @Mock
@@ -172,30 +182,29 @@ public class DataSourceNodeTest {
     when(ksqlStreamBuilder.buildNodeContext(any())).thenAnswer(inv ->
         new QueryContext.Stacker(queryId)
             .push(inv.getArgument(0).toString()));
-    when(ksqlStreamBuilder.buildGenericRowSerde(any(), any(), any())).thenReturn(rowSerde);
+
+    when(ksqlStreamBuilder.buildKeySerde(any(), any(), any())).thenReturn((KeySerde)keySerde);
+    when(ksqlStreamBuilder.buildKeySerde(any(), any(), any(), any())).thenReturn((KeySerde)keySerde);
+    when(ksqlStreamBuilder.buildValueSerde(any(), any(), any())).thenReturn(rowSerde);
     when(ksqlStreamBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
 
     when(rowSerde.serializer()).thenReturn(mock(Serializer.class));
     when(rowSerde.deserializer()).thenReturn(mock(Deserializer.class));
 
-    when(tableSource.getKsqlTopic()).thenReturn(ksqlTopic);
-    when(tableSource.isWindowed()).thenReturn(false);
-    when(tableSource.getDataSourceType()).thenReturn(DataSourceType.KTABLE);
-    when(tableSource.getKeySerdeFactory()).thenReturn(() -> keySerde);
-    when(tableSource.getTimestampExtractionPolicy()).thenReturn(timestampExtractionPolicy);
-    when(tableSource.getSerdeOptions()).thenReturn(serdeOptions);
+    when(dataSource.getKsqlTopic()).thenReturn(ksqlTopic);
+    when(dataSource.getDataSourceType()).thenReturn(DataSourceType.KTABLE);
+    when(dataSource.getTimestampExtractionPolicy()).thenReturn(timestampExtractionPolicy);
+    when(dataSource.getSerdeOptions()).thenReturn(serdeOptions);
     when(ksqlTopic.getKafkaTopicName()).thenReturn("topic");
-    when(ksqlTopic.getValueSerdeFactory()).thenReturn(valueSerDeFactory);
+    when(ksqlTopic.getKeyFormat()).thenReturn(KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)));
+    when(ksqlTopic.getValueFormat()).thenReturn(ValueFormat.of(FormatInfo.of(Format.JSON)));
     when(timestampExtractionPolicy.timestampField()).thenReturn(TIMESTAMP_FIELD);
     when(timestampExtractionPolicy.create(anyInt())).thenReturn(timestampExtractor);
     when(kStream.transformValues(any(ValueTransformerSupplier.class))).thenReturn(kStream);
     when(kStream.mapValues(any(ValueMapperWithKey.class))).thenReturn(kStream);
     when(kStream.mapValues(any(ValueMapper.class))).thenReturn(kStream);
     when(kStream.groupByKey()).thenReturn(kGroupedStream);
-    when(kGroupedStream.aggregate(
-        any(Initializer.class),
-        any(Aggregator.class),
-        any(Materialized.class))).thenReturn(kTable);
+    when(kGroupedStream.aggregate(any(), any(), any())).thenReturn(kTable);
     when(materializedFactorySupplier.apply(any(KsqlConfig.class)))
         .thenReturn(materializedFactory);
     when(materializedFactory.create(any(Serde.class), any(Serde.class), anyString()))
@@ -223,7 +232,7 @@ public class DataSourceNodeTest {
     node.buildStream(ksqlStreamBuilder);
 
     // Then:
-    verify(ksqlStreamBuilder).buildGenericRowSerde(
+    verify(ksqlStreamBuilder).buildValueSerde(
         any(),
         any(),
         queryContextCaptor.capture()
@@ -289,13 +298,16 @@ public class DataSourceNodeTest {
   @Test
   public void shouldBuildSchemaKTableWhenKTableSource() {
     final KsqlTable<String> table = new KsqlTable<>("sqlExpression", "datasource",
-        realSchema,
+        REAL_SCHEMA,
         SerdeOption.none(),
-        KeyField.of("field1", realSchema.valueSchema().field("field1")),
+        KeyField.of("field1", REAL_SCHEMA.findValueField("field1").get()),
         new LongColumnTimestampExtractionPolicy("timestamp"),
-        new KsqlTopic("topic2", "topic2",
-            new KsqlJsonSerdeFactory(), false),
-        Serdes::String
+        new KsqlTopic(
+            "topic2",
+            KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
+            ValueFormat.of(FormatInfo.of(Format.JSON)),
+            false
+        )
     );
 
     final DataSourceNode node = new DataSourceNode(
@@ -310,13 +322,16 @@ public class DataSourceNodeTest {
   @Test
   public void shouldTransformKStreamToKTableCorrectly() {
     final KsqlTable<String> table = new KsqlTable<>("sqlExpression", "datasource",
-        realSchema,
+        REAL_SCHEMA,
         SerdeOption.none(),
-        KeyField.of("field1", realSchema.valueSchema().field("field1")),
+        KeyField.of("field1", REAL_SCHEMA.findValueField("field1").get()),
         new LongColumnTimestampExtractionPolicy("timestamp"),
-        new KsqlTopic("topic2", "topic2",
-            new KsqlJsonSerdeFactory(), false),
-        Serdes::String
+        new KsqlTopic(
+            "topic2",
+            KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
+            ValueFormat.of(FormatInfo.of(Format.JSON)),
+            false
+        )
     );
 
     final DataSourceNode node = new DataSourceNode(
@@ -377,20 +392,58 @@ public class DataSourceNodeTest {
   }
 
   @Test
-  public void shouldBuildRowSerdeWithSourceSchema() {
+  public void shouldBuildNonWindowedKeySerde() {
     // Given:
     final DataSourceNode node = nodeWithMockTableSource();
 
-    final PhysicalSchema expected = PhysicalSchema
-        .from(realSchema.withoutMetaAndKeyFieldsInValue(), serdeOptions);
+    final KeyFormat keyFormat = KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA));
+    when(ksqlTopic.getKeyFormat()).thenReturn(keyFormat);
 
     // When:
     node.buildStream(ksqlStreamBuilder);
 
     // Then:
-    verify(ksqlStreamBuilder).buildGenericRowSerde(
-        any(),
-        eq(expected),
+    verify(ksqlStreamBuilder).buildKeySerde(
+        eq(keyFormat.getFormatInfo()),
+        eq(PHYSICAL_SCHEMA),
+        any());
+  }
+
+  @Test
+  public void shouldBuildWindowedKeySerde() {
+    // Given:
+    final DataSourceNode node = nodeWithMockTableSource();
+
+    final KeyFormat keyFormat = KeyFormat.windowed(
+        FormatInfo.of(Format.KAFKA),
+        WindowInfo.of(WindowType.TUMBLING, Optional.of(Duration.ofSeconds(10)))
+    );
+
+    when(ksqlTopic.getKeyFormat()).thenReturn(keyFormat);
+
+    // When:
+    node.buildStream(ksqlStreamBuilder);
+
+    // Then:
+    verify(ksqlStreamBuilder).buildKeySerde(
+        eq(keyFormat.getFormatInfo()),
+        eq(keyFormat.getWindowInfo().get()),
+        eq(PHYSICAL_SCHEMA),
+        any());
+  }
+
+  @Test
+  public void shouldBuildSourceValueSerdeWithSourceSchema() {
+    // Given:
+    final DataSourceNode node = nodeWithMockTableSource();
+
+    // When:
+    node.buildStream(ksqlStreamBuilder);
+
+    // Then:
+    verify(ksqlStreamBuilder).buildValueSerde(
+        eq(FormatInfo.of(Format.JSON)),
+        eq(PHYSICAL_SCHEMA),
         any());
   }
 
@@ -398,13 +451,13 @@ public class DataSourceNodeTest {
   private DataSourceNode nodeWithMockTableSource() {
     when(ksqlStreamBuilder.getStreamsBuilder()).thenReturn(streamsBuilder);
     when(streamsBuilder.stream(anyString(), any())).thenReturn((KStream)kStream);
-    when(tableSource.getSchema()).thenReturn(realSchema);
-    when(tableSource.getKeyField())
-        .thenReturn(KeyField.of("field1", realSchema.valueSchema().field("field1")));
+    when(dataSource.getSchema()).thenReturn(REAL_SCHEMA);
+    when(dataSource.getKeyField())
+        .thenReturn(KeyField.of("field1", REAL_SCHEMA.findValueField("field1").get()));
 
     return new DataSourceNode(
         realNodeId,
-        tableSource,
+        dataSource,
         "t",
         materializedFactorySupplier);
   }

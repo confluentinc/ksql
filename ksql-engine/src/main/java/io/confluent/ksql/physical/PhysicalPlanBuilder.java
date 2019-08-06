@@ -34,6 +34,7 @@ import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.schema.ksql.Field;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.services.ServiceContext;
@@ -58,7 +59,6 @@ import java.util.Set;
 import java.util.function.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
-import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
@@ -242,8 +242,7 @@ public class PhysicalPlanBuilder {
               outputNode.getSerdeOptions(),
               schemaKTable.getKeyField(),
               outputNode.getTimestampExtractionPolicy(),
-              outputNode.getKsqlTopic(),
-              schemaKTable.getKeySerdeFactory()
+              outputNode.getKsqlTopic()
           );
     } else {
       sinkDataSource =
@@ -254,8 +253,7 @@ public class PhysicalPlanBuilder {
               outputNode.getSerdeOptions(),
               schemaKStream.getKeyField(),
               outputNode.getTimestampExtractionPolicy(),
-              outputNode.getKsqlTopic(),
-              schemaKStream.getKeySerdeFactory()
+              outputNode.getKsqlTopic()
           );
     }
 
@@ -413,7 +411,7 @@ public class PhysicalPlanBuilder {
     if (sinkKeyField.isPresent()
         && resultKeyField.isPresent()
         && sinkKeyField.get().name().equalsIgnoreCase(resultKeyField.get().name())
-        && Objects.equals(sinkKeyField.get().schema(), resultKeyField.get().schema())) {
+        && Objects.equals(sinkKeyField.get().type(), resultKeyField.get().type())) {
       return;
     }
 
@@ -429,9 +427,9 @@ public class PhysicalPlanBuilder {
             + " key field is %s (type: %s) while result key "
             + "field is %s (type: %s)",
         sinkKeyField.map(Field::name).orElse(null),
-        sinkKeyField.map(Field::schema).orElse(null),
+        sinkKeyField.map(Field::type).orElse(null),
         resultKeyField.map(Field::name).orElse(null),
-        resultKeyField.map(Field::schema).orElse(null)));
+        resultKeyField.map(Field::type).orElse(null)));
   }
 
   // Package private because of test

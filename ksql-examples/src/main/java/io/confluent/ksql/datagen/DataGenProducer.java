@@ -18,22 +18,12 @@ package io.confluent.ksql.datagen;
 import static java.util.Objects.requireNonNull;
 
 import io.confluent.avro.random.generator.Generator;
-import io.confluent.connect.avro.AvroData;
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
-import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
-import io.confluent.ksql.schema.ksql.PhysicalSchema;
-import io.confluent.ksql.serde.GenericRowSerDe;
-import io.confluent.ksql.serde.KsqlSerdeFactory;
-import io.confluent.ksql.serde.SerdeOption;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.Pair;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.Objects;
 import java.util.Properties;
-import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import org.apache.avro.Schema;
 import org.apache.kafka.clients.producer.Callback;
 import org.apache.kafka.clients.producer.KafkaProducer;
@@ -41,29 +31,22 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.ConnectSchema;
-import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.connect.data.Struct;
 
 public class DataGenProducer {
-
-  static final ConnectSchema KEY_SCHEMA = (ConnectSchema) SchemaBuilder.struct()
-      .field(SchemaUtil.ROWKEY_NAME, org.apache.kafka.connect.data.Schema.OPTIONAL_STRING_SCHEMA)
-      .build();
 
   // Max 100 ms between messsages.
   public static final long INTER_MESSAGE_MAX_INTERVAL = 500;
 
-  private final KsqlSerdeFactory keySerializerFactory;
-  private final KsqlSerdeFactory valueSerializerFactory;
-  private final Supplier<SchemaRegistryClient> srClientSupplier;
+  private final SerializerFactory<Struct> keySerializerFactory;
+  private final SerializerFactory<GenericRow> valueSerializerFactory;
 
   public DataGenProducer(
-      final KsqlSerdeFactory keySerializerFactory,
-      final KsqlSerdeFactory valueSerializerFactory,
-      final Supplier<SchemaRegistryClient> srClientSupplier
+      final SerializerFactory<Struct> keySerializerFactory,
+      final SerializerFactory<GenericRow> valueSerdeFactory
   ) {
     this.keySerializerFactory = requireNonNull(keySerializerFactory, "keySerializerFactory");
-    this.valueSerializerFactory = requireNonNull(valueSerializerFactory, "valueSerializerFactory");
-    this.srClientSupplier = requireNonNull(srClientSupplier, "srClientSupplier");
+    this.valueSerializerFactory = requireNonNull(valueSerdeFactory, "valueSerdeFactory");
   }
 
   public void populateTopic(
@@ -79,43 +62,31 @@ public class DataGenProducer {
       throw new IllegalArgumentException("Key field does not exist:" + key);
     }
 
-    final AvroData avroData = new AvroData(1);
-    final org.apache.kafka.connect.data.Schema ksqlSchema =
-        DataGenSchemaUtil.getOptionalSchema(avroData.toConnectSchema(avroSchema));
+    final RowGenerator rowGenerator = new RowGenerator(generator, key);
 
-    final PhysicalSchema physicalSchema = PhysicalSchema.from(
-        LogicalSchema.of(KEY_SCHEMA, ksqlSchema),
-        SerdeOption.none()
-    );
+    final Serializer<Struct> keySerializer = getKeySerializer();
 
-    final KsqlConfig ksqConfig = new KsqlConfig(props);
+    final Serializer<GenericRow> valueSerializer =
+        getValueSerializer(rowGenerator.schema().valueSchema());
 
-    final Serializer<String> keySerializer = getKeySerializer(ksqConfig);
-
-    final Serializer<GenericRow> valueSerializer = getValueSerializer(physicalSchema, ksqConfig);
-
-    final KafkaProducer<String, GenericRow> producer = new KafkaProducer<>(
+    final KafkaProducer<Struct, GenericRow> producer = new KafkaProducer<>(
         props,
         keySerializer,
         valueSerializer
     );
 
-    final SessionManager sessionManager = new SessionManager();
-    final RowGenerator rowGenerator =
-        new RowGenerator(generator, avroData, avroSchema, ksqlSchema, sessionManager, key);
-
     for (int i = 0; i < messageCount; i++) {
 
-      final Pair<String, GenericRow> genericRowPair = rowGenerator.generateRow();
+      final Pair<Struct, GenericRow> genericRowPair = rowGenerator.generateRow();
 
-      final ProducerRecord<String, GenericRow> producerRecord = new ProducerRecord<>(
+      final ProducerRecord<Struct, GenericRow> producerRecord = new ProducerRecord<>(
           kafkaTopicName,
           genericRowPair.getLeft(),
           genericRowPair.getRight()
       );
 
       producer.send(producerRecord,
-          new ErrorLoggingCallback(kafkaTopicName,
+          new LoggingCallback(kafkaTopicName,
               genericRowPair.getLeft(),
               genericRowPair.getRight()));
 
@@ -131,55 +102,54 @@ public class DataGenProducer {
     producer.close();
   }
 
-  @SuppressWarnings("unchecked")
-  private Serializer<String> getKeySerializer(final KsqlConfig ksqConfig) {
-    final PersistenceSchema schema = keySerializerFactory.getFormat().supportsUnwrapping()
-        ? PersistenceSchema.of((ConnectSchema) KEY_SCHEMA.fields().get(0).schema())
-        : PersistenceSchema.of(KEY_SCHEMA);
+  private Serializer<Struct> getKeySerializer() {
+    final PersistenceSchema schema = PersistenceSchema
+        .from(RowGenerator.KEY_SCHEMA, keySerializerFactory.format().supportsUnwrapping());
 
-    return (Serializer<String>) (Serializer)keySerializerFactory
-        .createSerde(schema, ksqConfig, srClientSupplier)
-        .serializer();
+    return keySerializerFactory.create(schema);
   }
 
-  private Serializer<GenericRow> getValueSerializer(
-      final PhysicalSchema physicalSchema,
-      final KsqlConfig ksqConfig
-  ) {
-    return GenericRowSerDe.from(
-          valueSerializerFactory,
-          physicalSchema,
-          ksqConfig,
-          srClientSupplier,
-          "",
-          NoopProcessingLogContext.INSTANCE
-      ).serializer();
+  private Serializer<GenericRow> getValueSerializer(final ConnectSchema valueSchema) {
+    final PersistenceSchema schema = PersistenceSchema
+        .from(valueSchema, false);
+
+    return valueSerializerFactory.create(schema);
   }
 
-  private static class ErrorLoggingCallback implements Callback {
+  private static class LoggingCallback implements Callback {
 
     private final String topic;
     private final String key;
-    private final GenericRow value;
+    private final String value;
 
-    ErrorLoggingCallback(final String topic, final String key, final GenericRow value) {
+    LoggingCallback(final String topic, final Struct key, final GenericRow value) {
       this.topic = topic;
-      this.key = key;
-      this.value = value;
+      this.key = formatKey(key);
+      this.value = Objects.toString(value);
     }
 
     @Override
     public void onCompletion(final RecordMetadata metadata, final Exception e) {
-      final String keyString = Objects.toString(key);
-      final String valueString = Objects.toString(value);
-
       if (e != null) {
-        System.err.println("Error when sending message to topic: '" + topic + "', with key: '"
-            + keyString + "', and value: '" + valueString + "'");
+        System.err.println(
+            "Error when sending message to topic: '" + topic + "', "
+                + "with key: '" + key + "', "
+                + "and value: '" + value + "'"
+        );
         e.printStackTrace(System.err);
       } else {
-        System.out.println(keyString + " --> (" + valueString + ") ts:" + metadata.timestamp());
+        System.out.println(key + " --> (" + value + ") ts:" + metadata.timestamp());
       }
+    }
+
+    private static String formatKey(final Struct key) {
+      if (key == null) {
+        return "null";
+      }
+
+      return key.schema().fields().stream()
+          .map(f -> Objects.toString(key.get(f)))
+          .collect(Collectors.joining(" | "));
     }
   }
 }

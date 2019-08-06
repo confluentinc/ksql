@@ -29,9 +29,10 @@ public class SourceDescriptionList extends KsqlEntity {
   @JsonCreator
   public SourceDescriptionList(
       @JsonProperty("statementText") final String statementText,
-      @JsonProperty("sourceDescriptions") final List<SourceDescription> sourceDescriptions
+      @JsonProperty("sourceDescriptions") final List<SourceDescription> sourceDescriptions,
+      @JsonProperty("warnings") final List<KsqlWarning> warnings
   ) {
-    super(statementText);
+    super(statementText, warnings);
     this.sourceDescriptions = sourceDescriptions;
   }
 

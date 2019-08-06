@@ -25,7 +25,7 @@ import java.util.Objects;
 import java.util.Optional;
 
 @Immutable
-public class Select extends Node {
+public class Select extends AstNode {
 
   private final ImmutableList<SelectItem> selectItems;
 

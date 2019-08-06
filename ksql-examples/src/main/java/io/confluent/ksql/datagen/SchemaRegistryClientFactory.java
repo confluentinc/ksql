@@ -21,7 +21,6 @@ import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
-import java.util.Properties;
 
 final class SchemaRegistryClientFactory {
 
@@ -31,13 +30,12 @@ final class SchemaRegistryClientFactory {
   static Optional<SchemaRegistryClient> getSrClient(
       final Format keyFormat,
       final Format valueFormat,
-      final Properties props
+      final KsqlConfig ksqlConfig
   ) {
     if (keyFormat != Format.AVRO && valueFormat != Format.AVRO) {
       return Optional.empty();
     }
 
-    final KsqlConfig ksqlConfig = new KsqlConfig(props);
     if (ksqlConfig.getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY) == null) {
       throw new KsqlException("Schema registry url is not set.");
     }

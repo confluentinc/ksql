@@ -15,8 +15,13 @@
 
 package io.confluent.ksql.test.utils;
 
+import com.google.common.collect.ImmutableMap;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.serializers.KafkaAvroSerializerConfig;
+import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.test.serde.SerdeSupplier;
 import io.confluent.ksql.test.serde.avro.ValueSpecAvroSerdeSupplier;
 import io.confluent.ksql.test.serde.json.ValueSpecJsonSerdeSupplier;
@@ -24,8 +29,17 @@ import io.confluent.ksql.test.serde.kafka.KafkaSerdeSupplier;
 import io.confluent.ksql.test.serde.string.StringSerdeSupplier;
 import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;
 import java.util.function.Supplier;
+import org.apache.kafka.common.serialization.Deserializer;
+import org.apache.kafka.common.serialization.Serializer;
+import org.apache.kafka.streams.kstream.SessionWindowedDeserializer;
+import org.apache.kafka.streams.kstream.SessionWindowedSerializer;
+import org.apache.kafka.streams.kstream.TimeWindowedDeserializer;
+import org.apache.kafka.streams.kstream.TimeWindowedSerializer;
+import org.apache.kafka.streams.kstream.Windowed;
 
+// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public final class SerdeUtil {
+  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private SerdeUtil() {
   }
@@ -46,5 +60,62 @@ public final class SerdeUtil {
       default:
         throw new InvalidFieldException("format", "unsupported value: " + format);
     }
+  }
+
+  @SuppressWarnings("unchecked")
+  public static <T> SerdeSupplier<?> getKeySerdeSupplier(
+      final KeyFormat keyFormat,
+      final Supplier<LogicalSchema> logicalSchemaSupplier
+  ) {
+    final SerdeSupplier<T> inner = (SerdeSupplier<T>) SerdeUtil.getSerdeSupplier(
+        keyFormat.getFormat(),
+        logicalSchemaSupplier
+    );
+
+    if (!keyFormat.getWindowType().isPresent()) {
+      return inner;
+    }
+
+    final WindowType windowType = keyFormat.getWindowType().get();
+    if (windowType == WindowType.SESSION) {
+      return new SerdeSupplier<Windowed<T>>() {
+        @Override
+        public Serializer<Windowed<T>> getSerializer(final SchemaRegistryClient srClient) {
+          final Serializer<T> serializer = inner.getSerializer(srClient);
+          serializer.configure(ImmutableMap.of(
+              KafkaAvroSerializerConfig.SCHEMA_REGISTRY_URL_CONFIG, "something"
+          ), true);
+          return new SessionWindowedSerializer<>(serializer);
+        }
+
+        @Override
+        public Deserializer<Windowed<T>> getDeserializer(final SchemaRegistryClient srClient) {
+          final Deserializer<T> deserializer = inner.getDeserializer(srClient);
+          deserializer.configure(ImmutableMap.of(), true);
+          return new SessionWindowedDeserializer<>(deserializer);
+        }
+      };
+    }
+
+    return new SerdeSupplier<Windowed<T>>() {
+      @Override
+      public Serializer<Windowed<T>> getSerializer(final SchemaRegistryClient srClient) {
+        final Serializer<T> serializer = inner.getSerializer(srClient);
+        serializer.configure(ImmutableMap.of(
+            KafkaAvroSerializerConfig.SCHEMA_REGISTRY_URL_CONFIG, "something"
+        ), true);
+        return new TimeWindowedSerializer<>(serializer);
+      }
+
+      @Override
+      public Deserializer<Windowed<T>> getDeserializer(final SchemaRegistryClient srClient) {
+        final Deserializer<T> deserializer = inner.getDeserializer(srClient);
+        deserializer.configure(ImmutableMap.of(), true);
+        return new TimeWindowedDeserializer<>(
+            deserializer,
+            keyFormat.getWindowSize().get().toMillis()
+        );
+      }
+    };
   }
 }

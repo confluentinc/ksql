@@ -17,15 +17,17 @@ package io.confluent.ksql.rest.util;
 
 import io.confluent.ksql.rest.entity.FieldInfo;
 import io.confluent.ksql.rest.entity.SchemaInfo;
-import io.confluent.ksql.schema.connect.SchemaWalker;
+import io.confluent.ksql.schema.ksql.Field;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SqlBaseType;
-import io.confluent.ksql.util.DecimalUtil;
+import io.confluent.ksql.schema.ksql.SqlTypeWalker;
+import io.confluent.ksql.schema.ksql.types.SqlArray;
+import io.confluent.ksql.schema.ksql.types.SqlMap;
+import io.confluent.ksql.schema.ksql.types.SqlStruct;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
-import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
 
 public final class EntityUtil {
 
@@ -39,7 +41,7 @@ public final class EntityUtil {
 
     final List<FieldInfo> allFields = new ArrayList<>();
     if (!valueSchemaOnly) {
-      allFields.addAll(getFields(schema.metaFields(), "implicit"));
+      allFields.addAll(getFields(schema.metaFields(), "meta"));
       allFields.addAll(getFields(schema.keyFields(), "key"));
     }
     allFields.addAll(getFields(schema.valueFields(), "value"));
@@ -53,64 +55,34 @@ public final class EntityUtil {
     }
 
     return fields.stream()
-        .map(field -> new FieldInfo(field.name(), getSchema(field.schema())))
+        .map(field -> SqlTypeWalker.visit(field, new Converter()))
         .collect(Collectors.toList());
   }
 
-  private static SchemaInfo getSchema(final Schema schema) {
-    return SchemaWalker.visit(schema, new Converter());
+  private static SchemaInfo getSchema(final SqlType type) {
+    return SqlTypeWalker.visit(type, new Converter());
   }
 
-  private static final class Converter implements SchemaWalker.Visitor<SchemaInfo, FieldInfo> {
+  private static final class Converter implements SqlTypeWalker.Visitor<SchemaInfo, FieldInfo> {
 
-    public SchemaInfo visitSchema(final Schema schema) {
-      throw new IllegalArgumentException("Invalid type in schema: " + schema.type());
+    public SchemaInfo visitType(final SqlType schema) {
+      return new SchemaInfo(schema.baseType(), null, null);
     }
 
-    public SchemaInfo visitBoolean(final Schema schema) {
-      return primitive(SqlBaseType.BOOLEAN);
-    }
-
-    public SchemaInfo visitInt32(final Schema schema) {
-      return primitive(SqlBaseType.INTEGER);
-    }
-
-    public SchemaInfo visitInt64(final Schema schema) {
-      return primitive(SqlBaseType.BIGINT);
-    }
-
-    public SchemaInfo visitFloat64(final Schema schema) {
-      return primitive(SqlBaseType.DOUBLE);
-    }
-
-    public SchemaInfo visitString(final Schema schema) {
-      return primitive(SqlBaseType.STRING);
-    }
-
-    @Override
-    public SchemaInfo visitBytes(final Schema schema) {
-      DecimalUtil.requireDecimal(schema);
-      return new SchemaInfo(SqlBaseType.DECIMAL, null, null);
-    }
-
-    public SchemaInfo visitArray(final Schema schema, final SchemaInfo element) {
+    public SchemaInfo visitArray(final SqlArray type, final SchemaInfo element) {
       return new SchemaInfo(SqlBaseType.ARRAY, null, element);
     }
 
-    public SchemaInfo visitMap(final Schema schema, final SchemaInfo key, final SchemaInfo value) {
+    public SchemaInfo visitMap(final SqlMap type, final SchemaInfo value) {
       return new SchemaInfo(SqlBaseType.MAP, null, value);
     }
 
-    public SchemaInfo visitStruct(final Schema schema, final List<? extends FieldInfo> fields) {
+    public SchemaInfo visitStruct(final SqlStruct type, final List<? extends FieldInfo> fields) {
       return new SchemaInfo(SqlBaseType.STRUCT, fields, null);
     }
 
     public FieldInfo visitField(final Field field, final SchemaInfo type) {
-      return new FieldInfo(field.name(), type);
-    }
-
-    private static SchemaInfo primitive(final SqlBaseType type) {
-      return new SchemaInfo(type, null, null);
+      return new FieldInfo(field.fullName(), type);
     }
   }
 }

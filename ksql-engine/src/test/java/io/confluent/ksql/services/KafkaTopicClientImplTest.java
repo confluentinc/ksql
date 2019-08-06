@@ -21,7 +21,6 @@ import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.mock;
 import static org.easymock.EasyMock.niceMock;
 import static org.easymock.EasyMock.replay;
-import static org.easymock.EasyMock.reset;
 import static org.easymock.EasyMock.verify;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -30,6 +29,7 @@ import static org.hamcrest.Matchers.is;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import io.confluent.ksql.exception.KafkaDeleteTopicsException;
 import io.confluent.ksql.exception.KafkaResponseGetFailedException;
 import io.confluent.ksql.exception.KafkaTopicExistsException;
 import io.confluent.ksql.util.KsqlConstants;
@@ -43,6 +43,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.AlterConfigOp;
@@ -274,15 +276,46 @@ public class KafkaTopicClientImplTest {
     verify(adminClient);
   }
 
-  @Test
-  public void shouldDeleteTopicThrowOnTopicDeletionDisabledException() {
+  @Test(expected = TopicDeletionDisabledException.class)
+  public void shouldThrowTopicDeletionDisabledException()
+          throws InterruptedException, ExecutionException, TimeoutException {
     // Given:
-    expect(adminClient.deleteTopics(anyObject())).andReturn(getTopicDeletionDisableException());
+    expect(adminClient.deleteTopics(anyObject())).andReturn(
+            deleteTopicException(new TopicDeletionDisabledException("error")));
     replay(adminClient);
+
     final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
 
     // When:
-    kafkaTopicClient.deleteTopics(Collections.singletonList(topicName2));
+    kafkaTopicClient.deleteTopics(Collections.singletonList(topicName1));
+  }
+
+  @Test(expected = KafkaDeleteTopicsException.class)
+  public void shouldThrowKafkaDeleteTopicsException()
+          throws InterruptedException, ExecutionException, TimeoutException {
+    // Given:
+    expect(adminClient.deleteTopics(anyObject())).andReturn(
+            (deleteTopicException(new Exception("error"))));
+    replay(adminClient);
+
+    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
+
+    // When:
+    kafkaTopicClient.deleteTopics(Collections.singletonList(topicName1));
+  }
+
+  @Test
+  public void shouldNotThrowKafkaDeleteTopicsExceptionWhenMissingTopic()
+          throws InterruptedException, ExecutionException, TimeoutException {
+    // Given:
+    expect(adminClient.deleteTopics(anyObject())).andReturn(
+            (deleteTopicException(new UnknownTopicOrPartitionException("error"))));
+    replay(adminClient);
+
+    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
+
+    // When:
+    kafkaTopicClient.deleteTopics(Collections.singletonList(topicName1));
   }
 
   @Test
@@ -559,20 +592,18 @@ public class KafkaTopicClientImplTest {
     return Collections.singleton(new ConfigResource(ConfigResource.Type.BROKER, node.idString()));
   }
 
-  private DeleteTopicsResult getTopicDeletionDisableException() {
+  private static DeleteTopicsResult deleteTopicException(Exception e)
+          throws InterruptedException, ExecutionException, TimeoutException {
     final DeleteTopicsResult deleteTopicsResult = mock(DeleteTopicsResult.class);
     final KafkaFuture<Void> kafkaFuture = mock(KafkaFuture.class);
 
-    try {
-      expect(kafkaFuture.get()).andThrow(
-          new TopicDeletionDisabledException("Topic deletion is disabled")
-      );
-    } catch (final Exception e) {
-      // this should not happen in the test
-    }
+    expect(kafkaFuture.get(30, TimeUnit.SECONDS)).andThrow(
+            new ExecutionException(e)
+    );
+    replay(kafkaFuture);
 
     expect(deleteTopicsResult.values())
-        .andReturn(Collections.singletonMap(topicName1, kafkaFuture));
+            .andReturn(Collections.singletonMap(topicName1, kafkaFuture));
 
     replay(deleteTopicsResult);
     return deleteTopicsResult;

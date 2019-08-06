@@ -102,7 +102,7 @@ public class UdfLoaderTest {
         new AggregateFunctionArguments(0, Collections.singletonList("udfIndex")));
     assertThat(instance.getInitialValueSupplier().get(), equalTo(0L));
     assertThat(instance.aggregate(1L, 1L), equalTo(2L));
-    assertThat(instance.getMerger().apply("k", 2L, 3L), equalTo(5L));
+    assertThat(instance.getMerger().apply(null, 2L, 3L), equalTo(5L));
   }
 
   @SuppressWarnings("unchecked")
@@ -122,11 +122,11 @@ public class UdfLoaderTest {
     assertThat(instance.getInitialValueSupplier().get(),
         equalTo(new Struct(schema).put("A", 0).put("B", 0)));
     assertThat(instance.aggregate(
-          new Struct(schema).put("A", 0).put("B", 0),
-          new Struct(schema).put("A", 1).put("B", 2)
+        new Struct(schema).put("A", 0).put("B", 0),
+        new Struct(schema).put("A", 1).put("B", 2)
         ),
         equalTo(new Struct(schema).put("A", 1).put("B", 2)));
-    assertThat(instance.getMerger().apply("foo",
+    assertThat(instance.getMerger().apply(null,
         new Struct(schema).put("A", 0).put("B", 0),
         new Struct(schema).put("A", 1).put("B", 2)
         ),
@@ -147,10 +147,11 @@ public class UdfLoaderTest {
     final UdfFactory toList = FUNC_REG.getUdfFactory("tolist");
 
     // When:
+    final List<Schema> args = Collections.singletonList(Schema.OPTIONAL_STRING_SCHEMA);
     final KsqlFunction function
-        = toList.getFunction(Collections.singletonList(Schema.OPTIONAL_STRING_SCHEMA));
+        = toList.getFunction(args);
 
-    assertThat(function.getReturnType(),
+    assertThat(function.getReturnType(args),
         is(SchemaBuilder
             .array(Schema.OPTIONAL_STRING_SCHEMA)
             .optional()
@@ -164,12 +165,13 @@ public class UdfLoaderTest {
     final UdfFactory toMap = FUNC_REG.getUdfFactory("tomap");
 
     // When:
+    final List<Schema> args = Collections.singletonList(Schema.OPTIONAL_STRING_SCHEMA);
     final KsqlFunction function
-        = toMap.getFunction(Collections.singletonList(Schema.OPTIONAL_STRING_SCHEMA));
+        = toMap.getFunction(args);
 
     // Then:
     assertThat(
-        function.getReturnType(),
+        function.getReturnType(args),
         equalTo(SchemaBuilder
             .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_STRING_SCHEMA)
             .optional()
@@ -184,11 +186,12 @@ public class UdfLoaderTest {
     final UdfFactory toStruct = FUNC_REG.getUdfFactory("tostruct");
 
     // When:
+    final List<Schema> args = Collections.singletonList(Schema.OPTIONAL_STRING_SCHEMA);
     final KsqlFunction function
-        = toStruct.getFunction(Collections.singletonList(Schema.OPTIONAL_STRING_SCHEMA));
+        = toStruct.getFunction(args);
 
     // Then:
-    assertThat(function.getReturnType(), equalTo(SchemaBuilder.struct()
+    assertThat(function.getReturnType(args), equalTo(SchemaBuilder.struct()
         .field("A", Schema.OPTIONAL_STRING_SCHEMA)
         .optional()
         .build())
@@ -353,24 +356,27 @@ public class UdfLoaderTest {
             .getDeclaredMethod("foo", String.class, String.class, String.class)
             .getReturnType(),
         equalTo(int.class));
+    final List<Schema> args = ImmutableList.of(
+        Schema.STRING_SCHEMA,
+        Schema.STRING_SCHEMA,
+        Schema.STRING_SCHEMA);
 
     // Then:
     final KsqlFunction someFunction = FUNC_REG
         .getUdfFactory("SomeFunction")
-        .getFunction(ImmutableList.of(
-            Schema.STRING_SCHEMA, Schema.STRING_SCHEMA, Schema.STRING_SCHEMA
-        ));
+        .getFunction(args);
 
-    assertThat(someFunction.getReturnType().isOptional(), is(true));
+    assertThat(someFunction.getReturnType(args).isOptional(), is(true));
   }
 
   @Test
   public void shouldEnsureFunctionReturnTypeIsDeepOptional() {
+    final List<Schema> args = Collections.singletonList(Schema.OPTIONAL_STRING_SCHEMA);
     final KsqlFunction complexFunction = FUNC_REG
         .getUdfFactory("ComplexFunction")
-        .getFunction(ImmutableList.of(Schema.STRING_SCHEMA));
+        .getFunction(args);
 
-    assertThat(complexFunction.getReturnType(), is(
+    assertThat(complexFunction.getReturnType(args), is(
         SchemaBuilder
             .struct()
             .field("F0", SchemaBuilder

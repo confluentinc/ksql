@@ -16,7 +16,6 @@
 package io.confluent.ksql.physical;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -28,27 +27,32 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
-import io.confluent.ksql.logging.processing.ProcessingLogger;
-import io.confluent.ksql.logging.processing.ProcessingLoggerFactory;
+import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.planner.plan.PlanNodeId;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
-import io.confluent.ksql.serde.GenericRowSerDe;
-import io.confluent.ksql.serde.KsqlSerdeFactory;
+import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.KeySerde;
+import io.confluent.ksql.serde.KeySerdeFactory;
 import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.ValueSerdeFactory;
+import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.structured.QueryContext;
 import io.confluent.ksql.structured.QueryContext.Stacker;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.QueryLoggerUtil;
+import java.time.Duration;
+import java.util.Optional;
 import java.util.function.Supplier;
-import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
-import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.StreamsBuilder;
+import org.apache.kafka.streams.kstream.Windowed;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -68,6 +72,12 @@ public class KsqlQueryBuilderTest {
 
   private static final QueryId QUERY_ID = new QueryId("fred");
 
+  private static final FormatInfo FORMAT_INFO = FormatInfo
+      .of(Format.AVRO, Optional.of("io.confluent.ksql"));
+
+  private static final WindowInfo WINDOW_INFO = WindowInfo
+      .of(WindowType.TUMBLING, Optional.of(Duration.ofMillis(1000)));
+
   @Mock
   private StreamsBuilder streamsBuilder;
   @Mock
@@ -79,39 +89,45 @@ public class KsqlQueryBuilderTest {
   @Mock
   private FunctionRegistry functionRegistry;
   @Mock
-  private KsqlSerdeFactory valueSerdeFactory;
+  private KeySerde<Struct> keySerde;
   @Mock
-  private Serde<Object> rowSerde;
+  private KeySerde<Windowed<Struct>> windowedKeySerde;
   @Mock
-  private Serializer<Object> innerSerializer;
-  @Mock
-  private Deserializer<Object> innerDeserializer;
+  private Serde<GenericRow> valueSerde;
   @Mock
   private Supplier<SchemaRegistryClient> srClientFactory;
+  @Mock
+  private KeySerdeFactory keySerdeFactory;
+  @Mock
+  private ValueSerdeFactory valueSerdeFactory;
   private QueryContext queryContext;
   private KsqlQueryBuilder ksqlQueryBuilder;
 
+
   @Before
   public void setUp() {
-    when(rowSerde.serializer()).thenReturn(innerSerializer);
-    when(rowSerde.deserializer()).thenReturn(innerDeserializer);
-    when(valueSerdeFactory.createSerde(any(), any(), any())).thenReturn(rowSerde);
     when(serviceContext.getSchemaRegistryClientFactory()).thenReturn(srClientFactory);
 
     queryContext = new QueryContext.Stacker(QUERY_ID).push("context").getQueryContext();
 
-    final ProcessingLoggerFactory loggerFactory = mock(ProcessingLoggerFactory.class);
-    final ProcessingLogger logger = mock(ProcessingLogger.class);
-    when(loggerFactory.getLogger(any())).thenReturn(logger);
-    when(processingLogContext.getLoggerFactory()).thenReturn(loggerFactory);
+    when(keySerdeFactory.create(any(), any(), any(), any(), any(), any()))
+        .thenReturn(keySerde);
 
-    ksqlQueryBuilder = KsqlQueryBuilder.of(
+    when(keySerdeFactory.create(any(), any(), any(), any(), any(), any(), any()))
+        .thenReturn(windowedKeySerde);
+
+    when(valueSerdeFactory.create(any(), any(), any(), any(), any(), any()))
+        .thenReturn(valueSerde);
+
+    ksqlQueryBuilder = new KsqlQueryBuilder(
         streamsBuilder,
         ksqlConfig,
         serviceContext,
         processingLogContext,
         functionRegistry,
-        QUERY_ID
+        QUERY_ID,
+        keySerdeFactory,
+        valueSerdeFactory
     );
   }
 
@@ -153,39 +169,72 @@ public class KsqlQueryBuilderTest {
   }
 
   @Test
-  public void shouldBuildGenericRowSerde() {
-    // When:
-    final Serde<GenericRow> result = ksqlQueryBuilder.buildGenericRowSerde(
-        valueSerdeFactory,
+  public void shouldBuildNonWindowedKeySerde() {
+    // Then:
+    ksqlQueryBuilder.buildKeySerde(
+        FORMAT_INFO,
         SOME_SCHEMA,
         queryContext
     );
 
     // Then:
-    verify(valueSerdeFactory).createSerde(
-        SOME_SCHEMA.valueSchema(),
-        ksqlConfig,
-        srClientFactory
-    );
-
-    final Serde<GenericRow> expected = GenericRowSerDe.from(
-        valueSerdeFactory,
-        SOME_SCHEMA,
+    verify(keySerdeFactory).create(
+        FORMAT_INFO,
+        SOME_SCHEMA.keySchema(),
         ksqlConfig,
         srClientFactory,
         QueryLoggerUtil.queryLoggerName(queryContext),
         processingLogContext
     );
+  }
 
-    assertThat(result.serializer(), is(instanceOf(expected.serializer().getClass())));
-    assertThat(result.deserializer(), is(instanceOf(expected.deserializer().getClass())));
+  @Test
+  public void shouldBuildWindowedKeySerde() {
+    // Then:
+    ksqlQueryBuilder.buildKeySerde(
+        FORMAT_INFO,
+        WINDOW_INFO,
+        SOME_SCHEMA,
+        queryContext
+    );
+
+    // Then:
+    verify(keySerdeFactory).create(
+        FORMAT_INFO,
+        WINDOW_INFO,
+        SOME_SCHEMA.keySchema(),
+        ksqlConfig,
+        srClientFactory,
+        QueryLoggerUtil.queryLoggerName(queryContext),
+        processingLogContext
+    );
+  }
+
+  @Test
+  public void shouldBuildValueSerde() {
+    // Then:
+    ksqlQueryBuilder.buildValueSerde(
+        FORMAT_INFO,
+        SOME_SCHEMA,
+        queryContext
+    );
+
+    // Then:
+    verify(valueSerdeFactory).create(
+        FORMAT_INFO,
+        SOME_SCHEMA.valueSchema(),
+        ksqlConfig,
+        srClientFactory,
+        QueryLoggerUtil.queryLoggerName(queryContext),
+        processingLogContext
+    );
   }
 
   @Test
   public void shouldTrackSchemasUsed() {
     // When:
-    ksqlQueryBuilder.buildGenericRowSerde(
-        valueSerdeFactory,
+    ksqlQueryBuilder.buildValueSerde(
+        FORMAT_INFO,
         SOME_SCHEMA,
         queryContext
     );
@@ -204,8 +253,8 @@ public class KsqlQueryBuilderTest {
     );
 
     // When:
-    ksqlQueryBuilder.buildGenericRowSerde(
-        valueSerdeFactory,
+    ksqlQueryBuilder.buildValueSerde(
+        FORMAT_INFO,
         schema,
         queryContext
     );

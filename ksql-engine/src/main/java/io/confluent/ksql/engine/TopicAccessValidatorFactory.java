@@ -15,11 +15,11 @@
 
 package io.confluent.ksql.engine;
 
-import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.services.KafkaClusterUtil;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlServerException;
-import org.apache.kafka.clients.admin.AdminClient;
+import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.ConfigEntry;
 import org.apache.kafka.common.errors.ClusterAuthorizationException;
 import org.slf4j.Logger;
@@ -28,16 +28,24 @@ import org.slf4j.LoggerFactory;
 public final class TopicAccessValidatorFactory {
   private static final Logger LOG = LoggerFactory.getLogger(TopicAccessValidatorFactory.class);
   private static final String KAFKA_AUTHORIZER_CLASS_NAME = "authorizer.class.name";
+  private static final TopicAccessValidator DUMMY_VALIDATOR = (sc, metastore, statement) -> { };
 
   private TopicAccessValidatorFactory() {
-
   }
 
   public static TopicAccessValidator create(
-      final ServiceContext serviceContext,
-      final MetaStore metaStore
+      final KsqlConfig ksqlConfig,
+      final ServiceContext serviceContext
   ) {
-    final AdminClient adminClient = serviceContext.getAdminClient();
+    final String enabled = ksqlConfig.getString(KsqlConfig.KSQL_ENABLE_TOPIC_ACCESS_VALIDATOR);
+    if (enabled.equals(KsqlConfig.KSQL_ACCESS_VALIDATOR_ON)) {
+      LOG.info("Forcing topic access validator");
+      return new AuthorizationTopicAccessValidator();
+    } else if (enabled.equals(KsqlConfig.KSQL_ACCESS_VALIDATOR_OFF)) {
+      return DUMMY_VALIDATOR;
+    }
+
+    final Admin adminClient = serviceContext.getAdminClient();
 
     if (isKafkaAuthorizerEnabled(adminClient)) {
       if (KafkaClusterUtil.isAuthorizedOperationsSupported(adminClient)) {
@@ -49,14 +57,10 @@ public final class TopicAccessValidatorFactory {
           + "version does not support authorizedOperations(). "
           + "KSQL topic authorization checks will not be enabled.");
     }
-
-    // Dummy validator if a Kafka authorizer is not enabled
-    return (sc, metastore, statement) -> {
-      return;
-    };
+    return DUMMY_VALIDATOR;
   }
 
-  private static boolean isKafkaAuthorizerEnabled(final AdminClient adminClient) {
+  private static boolean isKafkaAuthorizerEnabled(final Admin adminClient) {
     try {
       final ConfigEntry configEntry =
           KafkaClusterUtil.getConfig(adminClient).get(KAFKA_AUTHORIZER_CLASS_NAME);

@@ -87,7 +87,7 @@ public class UdfIndex<T extends IndexedFunction> {
 
   private static final Logger LOG = LoggerFactory.getLogger(UdfIndex.class);
   private static final SqlSchemaFormatter FORMATTER =
-      new SqlSchemaFormatter(word -> false);
+      new UdfSchemaFormatter(word -> false);
 
   private final String udfName;
   private final Node root = new Node();
@@ -142,7 +142,7 @@ public class UdfIndex<T extends IndexedFunction> {
 
   T getFunction(final List<Schema> arguments) {
     final List<Node> candidates = new ArrayList<>();
-    getCandidates(arguments, 0, root, candidates);
+    getCandidates(arguments, 0, root, candidates, new HashMap<>());
 
     return candidates
         .stream()
@@ -155,7 +155,8 @@ public class UdfIndex<T extends IndexedFunction> {
       final List<Schema> arguments,
       final int argIndex,
       final Node current,
-      final List<Node> candidates
+      final List<Node> candidates,
+      final Map<Schema, Schema> reservedGenerics
   ) {
     if (argIndex == arguments.size()) {
       if (current.value != null) {
@@ -165,12 +166,13 @@ public class UdfIndex<T extends IndexedFunction> {
     }
 
     final Schema arg = arguments.get(argIndex);
-    current.children
-        .entrySet()
-        .stream()
-        .filter(entry -> entry.getKey().accepts(arg))
-        .map(Entry::getValue)
-        .forEach(node -> getCandidates(arguments, argIndex + 1, node, candidates));
+    for (final Entry<Parameter, Node> candidate : current.children.entrySet()) {
+      final Map<Schema, Schema> reservedCopy = new HashMap<>(reservedGenerics);
+      if (candidate.getKey().accepts(arg, reservedCopy)) {
+        final Node node = candidate.getValue();
+        getCandidates(arguments, argIndex + 1, node, candidates, reservedCopy);
+      }
+    }
   }
 
   private KsqlException createNoMatchingFunctionException(final List<Schema> paramTypes) {
@@ -257,14 +259,9 @@ public class UdfIndex<T extends IndexedFunction> {
 
     private static final Map<Type, BiPredicate<Schema, Schema>> CUSTOM_SCHEMA_EQ =
         ImmutableMap.<Type, BiPredicate<Schema, Schema>>builder()
-            .put(Type.MAP, (a, b) ->
-                Objects.equals(a.keySchema(), b.keySchema())
-                    && Objects.equals(a.valueSchema(), b.valueSchema()))
-            .put(Type.ARRAY, (a, b) -> Objects.equals(a.valueSchema(), b.valueSchema()))
-            .put(Type.STRUCT, (a, b) ->
-                a.fields().isEmpty()
-                || b.fields().isEmpty()
-                || Objects.equals(a.fields(), b.fields()))
+            .put(Type.MAP, Parameter::mapEquals)
+            .put(Type.ARRAY, Parameter::arrayEquals)
+            .put(Type.STRUCT, Parameter::structEquals)
             .build();
 
     private final Schema schema;
@@ -294,29 +291,70 @@ public class UdfIndex<T extends IndexedFunction> {
     }
 
     /**
-     * @param argument the argument to test against
+     * @param argument         the argument to test against
+     * @param reservedGenerics a mapping of generics to already reserved types - this map
+     *                         will be updated if the parameter is generic to point to the
+     *                         current argument for future checks to accept
+     *
      * @return whether or not this argument can be used as a value for
      *         this parameter
      */
     // CHECKSTYLE_RULES.OFF: BooleanExpressionComplexity
-    boolean accepts(final Schema argument) {
+    boolean accepts(final Schema argument, final Map<Schema, Schema> reservedGenerics) {
       if (argument == null) {
         return schema.isOptional();
       }
 
-      final Schema.Type type = schema.type();
-      if (!Objects.equals(type, argument.type())) {
-        return false;
+      if (GenericsUtil.hasGenerics(schema)) {
+        return reserveGenerics(schema, argument, reservedGenerics);
       }
+
+      final Schema.Type type = schema.type();
 
       // we require a custom equals method that ignores certain values (e.g.
       // whether or not the schema is optional, and the documentation)
-      return CUSTOM_SCHEMA_EQ.getOrDefault(type, (a, b) -> true).test(schema, argument)
+      return Objects.equals(type, argument.type())
+          && CUSTOM_SCHEMA_EQ.getOrDefault(type, (a, b) -> true).test(schema, argument)
           && Objects.equals(schema.version(), argument.version())
           && Objects.equals(schema.parameters(), argument.parameters())
           && Objects.deepEquals(schema.defaultValue(), argument.defaultValue());
     }
     // CHECKSTYLE_RULES.ON: BooleanExpressionComplexity
+
+    private static boolean reserveGenerics(
+        final Schema schema,
+        final Schema argument,
+        final Map<Schema, Schema> reservedGenerics
+    ) {
+      if (!GenericsUtil.instanceOf(schema, argument)) {
+        return false;
+      }
+
+      final Map<Schema, Schema> genericMapping = GenericsUtil.resolveGenerics(schema, argument);
+      for (final Entry<Schema, Schema> entry : genericMapping.entrySet()) {
+        final Schema old = reservedGenerics.putIfAbsent(entry.getKey(), entry.getValue());
+        if (old != null && !old.equals(entry.getValue())) {
+          return false;
+        }
+      }
+
+      return true;
+    }
+
+    private static boolean mapEquals(final Schema mapA, final Schema mapB) {
+      return Objects.equals(mapA.keySchema(), mapB.keySchema())
+          && Objects.equals(mapA.valueSchema(), mapB.valueSchema());
+    }
+
+    private static boolean arrayEquals(final Schema arrayA, final Schema arrayB) {
+      return Objects.equals(arrayA.valueSchema(), arrayB.valueSchema());
+    }
+
+    private static boolean structEquals(final Schema structA, final Schema structB) {
+      return structA.fields().isEmpty()
+          || structB.fields().isEmpty()
+          || Objects.equals(structA.fields(), structB.fields());
+    }
 
     @Override
     public String toString() {

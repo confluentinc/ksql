@@ -19,7 +19,7 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.util.Sandbox;
 import java.util.Objects;
 import java.util.function.Supplier;
-import org.apache.kafka.clients.admin.AdminClient;
+import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.streams.KafkaClientSupplier;
 
 /**
@@ -33,6 +33,7 @@ public final class SandboxedServiceContext implements ServiceContext {
   private final KafkaTopicClient topicClient;
   private final SchemaRegistryClient srClient;
   private final KafkaClientSupplier kafkaClientSupplier;
+  private final ConnectClient connectClient;
 
   public static SandboxedServiceContext create(final ServiceContext serviceContext) {
     if (serviceContext instanceof SandboxedServiceContext) {
@@ -44,25 +45,29 @@ public final class SandboxedServiceContext implements ServiceContext {
         .createProxy(serviceContext.getTopicClient());
     final SchemaRegistryClient schemaRegistryClient =
         SandboxedSchemaRegistryClient.createProxy(serviceContext.getSchemaRegistryClient());
+    final ConnectClient connectClient = SandboxConnectClient.createProxy();
 
     return new SandboxedServiceContext(
         kafkaClientSupplier,
         kafkaTopicClient,
-        schemaRegistryClient);
+        schemaRegistryClient,
+        connectClient);
   }
 
   private SandboxedServiceContext(
       final KafkaClientSupplier kafkaClientSupplier,
       final KafkaTopicClient topicClient,
-      final SchemaRegistryClient srClient
+      final SchemaRegistryClient srClient,
+      final ConnectClient connectClient
   ) {
     this.kafkaClientSupplier = Objects.requireNonNull(kafkaClientSupplier, "kafkaClientSupplier");
     this.topicClient = Objects.requireNonNull(topicClient, "topicClient");
     this.srClient = Objects.requireNonNull(srClient, "srClient");
+    this.connectClient = Objects.requireNonNull(connectClient, "connectClient");
   }
 
   @Override
-  public AdminClient getAdminClient() {
+  public Admin getAdminClient() {
     throw new UnsupportedOperationException();
   }
 
@@ -84,6 +89,11 @@ public final class SandboxedServiceContext implements ServiceContext {
   @Override
   public Supplier<SchemaRegistryClient> getSchemaRegistryClientFactory() {
     return () -> srClient;
+  }
+
+  @Override
+  public ConnectClient getConnectClient() {
+    return connectClient;
   }
 
   @Override

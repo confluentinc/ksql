@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.engine;
 
+import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.ddl.commands.CommandFactories;
 import io.confluent.ksql.ddl.commands.DdlCommand;
 import io.confluent.ksql.ddl.commands.DdlCommandExec;
@@ -182,7 +183,7 @@ final class EngineContext {
       metaStore.updateForPersistentQuery(
           queryId.getId(),
           persistentQuery.getSourceNames(),
-          persistentQuery.getSinkNames());
+          ImmutableSet.of(persistentQuery.getSinkName()));
     }
   }
 

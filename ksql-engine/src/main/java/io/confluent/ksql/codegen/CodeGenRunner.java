@@ -21,7 +21,6 @@ import io.confluent.ksql.function.UdfFactory;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.parser.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.parser.tree.ArithmeticUnaryExpression;
-import io.confluent.ksql.parser.tree.AstVisitor;
 import io.confluent.ksql.parser.tree.BetweenPredicate;
 import io.confluent.ksql.parser.tree.Cast;
 import io.confluent.ksql.parser.tree.ComparisonExpression;
@@ -36,7 +35,11 @@ import io.confluent.ksql.parser.tree.NotExpression;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.parser.tree.SearchedCaseExpression;
 import io.confluent.ksql.parser.tree.SubscriptExpression;
+import io.confluent.ksql.parser.tree.VisitParentExpressionVisitor;
+import io.confluent.ksql.schema.ksql.Field;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SchemaConverters;
+import io.confluent.ksql.schema.ksql.SchemaConverters.SqlToJavaTypeConverter;
 import io.confluent.ksql.util.ExpressionMetadata;
 import io.confluent.ksql.util.ExpressionTypeManager;
 import io.confluent.ksql.util.GenericRowValueTypeEnforcer;
@@ -51,7 +54,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.codehaus.commons.compiler.CompileException;
 import org.codehaus.commons.compiler.CompilerFactoryFactory;
@@ -148,7 +150,9 @@ public class CodeGenRunner {
     }
   }
 
-  private static final class Visitor extends AstVisitor<Object, Object> {
+  private static final class Visitor extends VisitParentExpressionVisitor<Object, Object> {
+
+    private static final SqlToJavaTypeConverter converter = SchemaConverters.sqlToJavaConverter();
 
     private final LogicalSchema schema;
     private final Set<ParameterType> parameters;
@@ -173,18 +177,18 @@ public class CodeGenRunner {
 
     private void addParameter(final Field schemaField) {
       parameters.add(new ParameterType(
-          SchemaUtil.getJavaType(schemaField.schema()),
-          schemaField.name(),
-          schemaField.name().replace(".", "_"),
+          converter.toJavaType(schemaField.type().baseType()),
+          schemaField.fullName(),
+          schemaField.fullName().replace(".", "_"),
           ksqlConfig));
     }
 
-    protected Object visitLikePredicate(final LikePredicate node, final Object context) {
+    public Object visitLikePredicate(final LikePredicate node, final Object context) {
       process(node.getValue(), null);
       return null;
     }
 
-    protected Object visitFunctionCall(final FunctionCall node, final Object context) {
+    public Object visitFunctionCall(final FunctionCall node, final Object context) {
       final int functionNumber = functionCounter++;
       final List<Schema> argumentTypes = new ArrayList<>();
       final String functionName = node.getName().getSuffix();
@@ -204,7 +208,7 @@ public class CodeGenRunner {
       return null;
     }
 
-    protected Object visitArithmeticBinary(
+    public Object visitArithmeticBinary(
         final ArithmeticBinaryExpression node,
         final Object context) {
       process(node.getLeft(), null);
@@ -212,22 +216,22 @@ public class CodeGenRunner {
       return null;
     }
 
-    protected Object visitArithmeticUnary(
+    public Object visitArithmeticUnary(
         final ArithmeticUnaryExpression node,
         final Object context) {
       process(node.getValue(), null);
       return null;
     }
 
-    protected Object visitIsNotNullPredicate(final IsNotNullPredicate node, final Object context) {
+    public Object visitIsNotNullPredicate(final IsNotNullPredicate node, final Object context) {
       return process(node.getValue(), context);
     }
 
-    protected Object visitIsNullPredicate(final IsNullPredicate node, final Object context) {
+    public Object visitIsNullPredicate(final IsNullPredicate node, final Object context) {
       return process(node.getValue(), context);
     }
 
-    protected Object visitLogicalBinaryExpression(
+    public Object visitLogicalBinaryExpression(
         final LogicalBinaryExpression node,
         final Object context) {
       process(node.getLeft(), null);
@@ -236,7 +240,7 @@ public class CodeGenRunner {
     }
 
     @Override
-    protected Object visitComparisonExpression(
+    public Object visitComparisonExpression(
         final ComparisonExpression node,
         final Object context) {
       process(node.getLeft(), null);
@@ -245,7 +249,7 @@ public class CodeGenRunner {
     }
 
     @Override
-    protected Object visitBetweenPredicate(final BetweenPredicate node, final Object context) {
+    public Object visitBetweenPredicate(final BetweenPredicate node, final Object context) {
       process(node.getValue(), null);
       process(node.getMax(), null);
       process(node.getMin(), null);
@@ -253,12 +257,12 @@ public class CodeGenRunner {
     }
 
     @Override
-    protected Object visitNotExpression(final NotExpression node, final Object context) {
+    public Object visitNotExpression(final NotExpression node, final Object context) {
       return process(node.getValue(), null);
     }
 
     @Override
-    protected Object visitDereferenceExpression(
+    public Object visitDereferenceExpression(
         final DereferenceExpression node,
         final Object context
     ) {
@@ -267,7 +271,7 @@ public class CodeGenRunner {
     }
 
     @Override
-    protected Object visitSearchedCaseExpression(
+    public Object visitSearchedCaseExpression(
         final SearchedCaseExpression node,
         final Object context) {
       node.getWhenClauses().forEach(
@@ -281,13 +285,13 @@ public class CodeGenRunner {
     }
 
     @Override
-    protected Object visitCast(final Cast node, final Object context) {
+    public Object visitCast(final Cast node, final Object context) {
       process(node.getExpression(), context);
       return null;
     }
 
     @Override
-    protected Object visitSubscriptExpression(
+    public Object visitSubscriptExpression(
         final SubscriptExpression node,
         final Object context
     ) {
@@ -303,7 +307,7 @@ public class CodeGenRunner {
     }
 
     @Override
-    protected Object visitQualifiedNameReference(
+    public Object visitQualifiedNameReference(
         final QualifiedNameReference node,
         final Object context
     ) {

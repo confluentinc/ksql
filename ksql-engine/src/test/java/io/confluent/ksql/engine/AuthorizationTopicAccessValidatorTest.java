@@ -26,8 +26,11 @@ import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
-import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
+import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlException;
@@ -36,7 +39,6 @@ import java.util.Collections;
 import java.util.Set;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.acl.AclOperation;
-import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.After;
@@ -371,13 +373,12 @@ public class AuthorizationTopicAccessValidatorTest {
       final String streamName,
       final TopicDescription topicDescription
   ) {
-    final KsqlTopic sourceTopic =
-        new KsqlTopic(
-            streamName.toUpperCase(),
-            topicDescription.name(),
-            new KsqlJsonSerdeFactory(),
-            false
-        );
+    final KsqlTopic sourceTopic = new KsqlTopic(
+        topicDescription.name(),
+        KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
+        ValueFormat.of(FormatInfo.of(Format.JSON)),
+        false
+    );
 
     final KsqlStream<?> streamSource = new KsqlStream<>(
         "",
@@ -386,8 +387,7 @@ public class AuthorizationTopicAccessValidatorTest {
         SerdeOption.none(),
         KeyField.none(),
         new MetadataTimestampExtractionPolicy(),
-        sourceTopic,
-        Serdes::String
+        sourceTopic
     );
 
     metaStore.putSource(streamSource);

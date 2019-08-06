@@ -510,6 +510,44 @@ Then the following commands would create the necessary ACLs in the Kafka cluster
     # Allow KSQL to manage its record processing log topic, if configured:
     bin/kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation All --topic fraud_ksql_processing_log
 
+The following table shows the necessary ACLs in the Kafka cluster to allow
+KSQL to operate in interactive mode.
+
+========== ==================== ========= ==================================== =========
+Permission Operation            Resource  Name                                 Type
+========== ==================== ========= ==================================== =========
+ALLOW      DESCRIBE             CLUSTER   kafka-cluster                        LITERAL
+ALLOW      DESCRIBE_CONFIGS     CLUSTER   kafka-cluster                        LITERAL
+ALLOW      CREATE               TOPIC     <ksql-service-id>                    PREFIXED
+ALLOW      CREATE               TOPIC     _confluent-ksql-<ksql-service-id>    PREFIXED
+ALLOW      CREATE               GROUP     _confluent-ksql-<ksql-service-id>    PREFIXED
+ALLOW      DESCRIBE             TOPIC     <ksql-service-id>                    PREFIXED
+ALLOW      DESCRIBE             TOPIC     _confluent-ksql-<ksql-service-id>    PREFIXED
+ALLOW      DESCRIBE             GROUP     _confluent-ksql-<ksql-service-id>    PREFIXED
+ALLOW      ALTER                TOPIC     <ksql-service-id>                    PREFIXED
+ALLOW      ALTER                TOPIC     _confluent-ksql-<ksql-service-id>    PREFIXED
+ALLOW      ALTER                GROUP     _confluent-ksql-<ksql-service-id>    PREFIXED
+ALLOW      DESCRIBE_CONFIGS     TOPIC     <ksql-service-id>                    PREFIXED
+ALLOW      DESCRIBE_CONFIGS     TOPIC     _confluent-ksql-<ksql-service-id>    PREFIXED
+ALLOW      DESCRIBE_CONFIGS     GROUP     _confluent-ksql-<ksql-service-id>    PREFIXED
+ALLOW      ALTER_CONFIGS        TOPIC     <ksql-service-id>                    PREFIXED
+ALLOW      ALTER_CONFIGS        TOPIC     _confluent-ksql-<ksql-service-id>    PREFIXED
+ALLOW      ALTER_CONFIGS        GROUP     _confluent-ksql-<ksql-service-id>    PREFIXED
+ALLOW      READ                 TOPIC     <ksql-service-id>                    PREFIXED
+ALLOW      READ                 TOPIC     _confluent-ksql-<ksql-service-id>    PREFIXED
+ALLOW      READ                 GROUP     _confluent-ksql-<ksql-service-id>    PREFIXED
+ALLOW      WRITE                TOPIC     <ksql-service-id>                    PREFIXED
+ALLOW      WRITE                TOPIC     _confluent-ksql-<ksql-service-id>    PREFIXED
+ALLOW      WRITE                GROUP     _confluent-ksql-<ksql-service-id>    PREFIXED
+ALLOW      DELETE               TOPIC     <ksql-service-id>                    PREFIXED
+ALLOW      DELETE               TOPIC     _confluent-ksql-<ksql-service-id>    PREFIXED
+ALLOW      DELETE               GROUP     _confluent-ksql-<ksql-service-id>    PREFIXED
+ALLOW      DESCRIBE             TOPIC     ``*``                                LITERAL
+ALLOW      DESCRIBE             GROUP     ``*``                                LITERAL
+ALLOW      DESCRIBE_CONFIGS     TOPIC     ``*``                                LITERAL
+ALLOW      DESCRIBE_CONFIGS     GROUP     ``*``                                LITERAL
+========== ==================== ========= ==================================== =========
+
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 |cp| versions below v5.0 (Apache Kafka < v2.0)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

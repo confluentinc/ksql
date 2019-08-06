@@ -20,24 +20,21 @@ import static java.util.Objects.requireNonNull;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.KafkaAvroSerializerConfig;
-import io.confluent.ksql.metastore.SerdeFactory;
 import io.confluent.ksql.test.serde.SerdeSupplier;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
 import org.apache.avro.Schema;
 import org.apache.kafka.common.serialization.Deserializer;
-import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.streams.kstream.TimeWindowedDeserializer;
-import org.apache.kafka.streams.kstream.WindowedSerdes.TimeWindowedSerde;
 
 @SuppressWarnings("rawtypes")
 public class Topic {
 
   private final String name;
   private final Optional<Schema> schema;
-  private final SerdeFactory keySerdeFactory;
+  private final SerdeSupplier keySerdeFactory;
   private final SerdeSupplier valueSerdeSupplier;
   private final int numPartitions;
   private final short replicas;
@@ -46,7 +43,7 @@ public class Topic {
   public Topic(
       final String name,
       final Optional<Schema> schema,
-      final SerdeFactory keySerdeFactory,
+      final SerdeSupplier keySerdeFactory,
       final SerdeSupplier valueSerdeSupplier,
       final int numPartitions,
       final int replicas,
@@ -77,12 +74,12 @@ public class Topic {
     return replicas;
   }
 
-  public SerdeSupplier getValueSerdeSupplier() {
-    return valueSerdeSupplier;
+  public SerdeSupplier getKeySerdeSupplier() {
+    return keySerdeFactory;
   }
 
-  public SerdeFactory getKeySerdeFactory() {
-    return keySerdeFactory;
+  public SerdeSupplier getValueSerdeSupplier() {
+    return valueSerdeSupplier;
   }
 
   Serializer getValueSerializer(final SchemaRegistryClient schemaRegistryClient) {
@@ -99,23 +96,33 @@ public class Topic {
     return deserializer;
   }
 
-  Serializer getKeySerializer() {
-    return keySerdeFactory.create().serializer();
+  Serializer getKeySerializer(final SchemaRegistryClient schemaRegistryClient) {
+    final Serializer<?> serializer = keySerdeFactory.getSerializer(schemaRegistryClient);
+    serializer.configure(ImmutableMap.of(
+        KafkaAvroSerializerConfig.SCHEMA_REGISTRY_URL_CONFIG, "something"
+    ), true);
+    return serializer;
   }
 
-  Deserializer<?> getKeyDeserializer() {
-    final Serde keySerde = keySerdeFactory.create();
-    if (!(keySerde instanceof TimeWindowedSerde)) {
-      return keySerde.deserializer();
+  Deserializer<?> getKeyDeserializer(final SchemaRegistryClient schemaRegistryClient) {
+    final Deserializer<?> deserializer = createKeyDeserializer(schemaRegistryClient);
+    deserializer.configure(ImmutableMap.of(), true);
+    return deserializer;
+  }
+
+  private Deserializer<?> createKeyDeserializer(final SchemaRegistryClient schemaRegistryClient) {
+    final Deserializer<?> deserializer = keySerdeFactory.getDeserializer(schemaRegistryClient);
+    if (!(deserializer instanceof TimeWindowedDeserializer)) {
+      return deserializer;
     }
 
     if (windowSize.isPresent()) {
       return new TimeWindowedDeserializer<>(new StringDeserializer(), windowSize.get());
     }
 
-    final TimeWindowedSerde windowedSerde = (TimeWindowedSerde) keySerde;
     final TimeWindowedDeserializer timeWindowedDeserializer =
-        (TimeWindowedDeserializer) windowedSerde.deserializer();
+        (TimeWindowedDeserializer) deserializer;
+
     if (timeWindowedDeserializer.getWindowSize() == Long.MAX_VALUE) {
       throw new KsqlException("Window size is not present for time windowed deserializer.");
     }

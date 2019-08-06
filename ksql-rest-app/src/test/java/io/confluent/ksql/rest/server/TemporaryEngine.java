@@ -30,8 +30,11 @@ import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
-import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
+import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
@@ -42,11 +45,11 @@ import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
 import io.confluent.rest.RestConfig;
 import java.util.Collections;
 import java.util.HashMap;
-import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.rules.ExternalResource;
 
+@SuppressWarnings("OptionalGetWithoutIsPresent")
 public class TemporaryEngine extends ExternalResource {
 
   public static final LogicalSchema SCHEMA = LogicalSchema.of(SchemaBuilder.struct()
@@ -88,7 +91,12 @@ public class TemporaryEngine extends ExternalResource {
   ) {
     givenKafkaTopic(name);
 
-    final KsqlTopic topic = new KsqlTopic(name, name, new KsqlJsonSerdeFactory(), false);
+    final KsqlTopic topic = new KsqlTopic(
+        name,
+        KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
+        ValueFormat.of(FormatInfo.of(Format.JSON)),
+        false
+    );
 
     final DataSource<?> source;
     switch (type) {
@@ -99,10 +107,9 @@ public class TemporaryEngine extends ExternalResource {
                 name,
                 SCHEMA,
                 SerdeOption.none(),
-                KeyField.of("val", SCHEMA.valueSchema().field("val")),
+                KeyField.of("val", SCHEMA.findValueField("val").get()),
                 new MetadataTimestampExtractionPolicy(),
-                topic,
-                Serdes::String
+                topic
             );
         break;
       case KTABLE:
@@ -112,10 +119,9 @@ public class TemporaryEngine extends ExternalResource {
                 name,
                 SCHEMA,
                 SerdeOption.none(),
-                KeyField.of("val", SCHEMA.valueSchema().field("val")),
+                KeyField.of("val", SCHEMA.findValueField("val").get()),
                 new MetadataTimestampExtractionPolicy(),
-                topic,
-                Serdes::String
+                topic
             );
         break;
       default:

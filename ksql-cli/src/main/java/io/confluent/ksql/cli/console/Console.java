@@ -27,6 +27,8 @@ import io.confluent.ksql.cli.console.cmd.CliSpecificCommand;
 import io.confluent.ksql.cli.console.table.Table;
 import io.confluent.ksql.cli.console.table.Table.Builder;
 import io.confluent.ksql.cli.console.table.builder.CommandStatusTableBuilder;
+import io.confluent.ksql.cli.console.table.builder.ConnectorInfoTableBuilder;
+import io.confluent.ksql.cli.console.table.builder.ErrorEntityTableBuilder;
 import io.confluent.ksql.cli.console.table.builder.ExecutionPlanTableBuilder;
 import io.confluent.ksql.cli.console.table.builder.FunctionNameListTableBuilder;
 import io.confluent.ksql.cli.console.table.builder.KafkaTopicsListTableBuilder;
@@ -39,6 +41,8 @@ import io.confluent.ksql.cli.console.table.builder.TopicDescriptionTableBuilder;
 import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.rest.entity.ArgumentInfo;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
+import io.confluent.ksql.rest.entity.CreateConnectorEntity;
+import io.confluent.ksql.rest.entity.ErrorEntity;
 import io.confluent.ksql.rest.entity.ExecutionPlan;
 import io.confluent.ksql.rest.entity.FieldInfo;
 import io.confluent.ksql.rest.entity.FunctionDescriptionList;
@@ -49,6 +53,7 @@ import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlStatementErrorMessage;
+import io.confluent.ksql.rest.entity.KsqlWarning;
 import io.confluent.ksql.rest.entity.PropertiesList;
 import io.confluent.ksql.rest.entity.Queries;
 import io.confluent.ksql.rest.entity.QueryDescription;
@@ -132,6 +137,10 @@ public class Console implements Closeable {
               tablePrinter(FunctionNameList.class, FunctionNameListTableBuilder::new))
           .put(FunctionDescriptionList.class,
               Console::printFunctionDescription)
+          .put(CreateConnectorEntity.class,
+              tablePrinter(CreateConnectorEntity.class, ConnectorInfoTableBuilder::new))
+          .put(ErrorEntity.class,
+              tablePrinter(ErrorEntity.class, ErrorEntityTableBuilder::new))
           .build();
 
   private static <T extends KsqlEntity> Handler1<KsqlEntity, Console> tablePrinter(
@@ -403,6 +412,14 @@ public class Console implements Closeable {
     }
     
     handler.handle(this, entity);
+
+    printWarnings(entity);
+  }
+
+  private void printWarnings(final KsqlEntity entity) {
+    for (final KsqlWarning warning : entity.getWarnings()) {
+      writer().println("WARNING: " + warning.getMessage());
+    }
   }
 
   @SuppressWarnings("ConstantConditions")

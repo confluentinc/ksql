@@ -23,7 +23,11 @@ import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.TestFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SchemaConverters;
+import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.testutils.ExpressionParseTestUtil;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Assert;
@@ -127,7 +131,6 @@ public class ExpressionTypeManagerTest {
 
     // When:
     expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(0));
-
   }
 
   @Test
@@ -276,12 +279,14 @@ public class ExpressionTypeManagerTest {
     final Schema caseSchema = ordersExpressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(0));
 
     // Then:
-    assertThat(caseSchema, equalTo(metaStore
+    final SqlType sqlType = metaStore
         .getSource("ORDERS")
         .getSchema()
         .findValueField("ADDRESS")
         .get()
-        .schema()));
+        .type();
+
+    assertThat(caseSchema, equalTo(SchemaConverters.sqlToConnectConverter().toConnectSchema(sqlType)));
   }
 
   @Test
@@ -317,6 +322,64 @@ public class ExpressionTypeManagerTest {
 
     // When:
     ordersExpressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(0));
+  }
 
+  @Test
+  public void shouldThrowOnTimeLiteral() {
+    final Expression expression = ExpressionParseTestUtil.parseExpression(
+        "TIME '00:00:00'",
+        metaStore
+    );
+
+    // Then:
+    expectedException.expect(UnsupportedOperationException.class);
+
+    // When:
+    ordersExpressionTypeManager.getExpressionSchema(expression);
+  }
+
+  @Test
+  public void shouldThrowOnTimestampLiteral() {
+    final Expression expression = ExpressionParseTestUtil.parseExpression(
+        "TIMESTAMP '00:00:00'",
+        metaStore
+    );
+
+    // Then:
+    expectedException.expect(UnsupportedOperationException.class);
+
+    // When:
+    ordersExpressionTypeManager.getExpressionSchema(expression);
+  }
+
+  @Test
+  public void shouldThrowOnIn() {
+    final Expression expression = ExpressionParseTestUtil.parseExpression(
+        "orderunits IN (1,2,3)",
+        metaStore
+    );
+
+    // Then:
+    expectedException.expect(UnsupportedOperationException.class);
+
+    // When:
+    ordersExpressionTypeManager.getExpressionSchema(expression);
+  }
+
+  @Test
+  public void shouldThrowOnSimpleCase() {
+    final Expression expression = ExpressionParseTestUtil.parseExpression(
+        "CASE orderunits "
+            + "WHEN 10 THEN 'ten' "
+            + "WHEN 100 THEN 'one hundred' "
+            + "END",
+        metaStore
+    );
+
+    // Then:
+    expectedException.expect(UnsupportedOperationException.class);
+
+    // When:
+    ordersExpressionTypeManager.getExpressionSchema(expression);
   }
 }

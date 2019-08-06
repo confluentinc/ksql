@@ -55,6 +55,7 @@ public final class SandboxedServiceContextTest {
           .ignore("getKafkaClientSupplier")
           .ignore("getSchemaRegistryClient")
           .ignore("getSchemaRegistryClientFactory")
+          .ignore("getConnectClient")
           .ignore("close")
           .build();
     }
@@ -160,6 +161,15 @@ public final class SandboxedServiceContextTest {
 
       // Then:
       assertThat(factory.get(), is(sameInstance(sandboxedServiceContext.getSchemaRegistryClient())));
+    }
+
+    @Test
+    public void shouldGetSandboxedConnectClient() {
+      // When:
+      final ConnectClient client = sandboxedServiceContext.getConnectClient();
+
+      // Then:
+      assertThat("Expected proxy class", Proxy.isProxyClass(client.getClass()));
     }
 
     @Test

@@ -26,17 +26,20 @@ import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.metrics.ConsumerCollector;
 import io.confluent.ksql.metrics.StreamsErrorCollector;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
-import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
+import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Optional;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.record.TimestampType;
-import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.After;
@@ -67,7 +70,13 @@ public class SourceDescriptionTest {
         .field("field0", Schema.OPTIONAL_INT32_SCHEMA)
         .build());
 
-    final KsqlTopic topic = new KsqlTopic("internal", kafkaTopicName, new KsqlJsonSerdeFactory(), true);
+    final KsqlTopic topic = new KsqlTopic(
+        kafkaTopicName,
+        KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
+        ValueFormat.of(FormatInfo.of(Format.JSON)),
+        true
+    );
+
     return new KsqlStream<>(
         "query",
         "stream",
@@ -75,8 +84,7 @@ public class SourceDescriptionTest {
         SerdeOption.none(),
         KeyField.of(schema.valueFields().get(0).name(), schema.valueFields().get(0)),
         new MetadataTimestampExtractionPolicy(),
-        topic,
-        Serdes::String
+        topic
     );
   }
 
@@ -108,7 +116,7 @@ public class SourceDescriptionTest {
         "json",
         Collections.emptyList(),
         Collections.emptyList(),
-        null);
+        Optional.empty());
 
     // Then:
     assertThat(

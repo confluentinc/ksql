@@ -22,7 +22,6 @@ import com.github.rvesse.airline.annotations.Option;
 import com.github.rvesse.airline.annotations.restrictions.Once;
 import com.github.rvesse.airline.annotations.restrictions.Required;
 import com.github.rvesse.airline.annotations.restrictions.ranges.LongRange;
-
 import io.confluent.ksql.cli.console.OutputFormat;
 import io.confluent.ksql.rest.util.OptionsParser;
 import io.confluent.ksql.util.Pair;
@@ -73,8 +72,7 @@ public class Options {
               + PASSWORD_SHORT_OPTION
               + "/"
               + PASSWORD_OPTION
-              + " flag",
-      hidden = true)
+              + " flag")
   private String userName;
 
   @SuppressWarnings("unused") // Accessed via reflection
@@ -86,8 +84,7 @@ public class Options {
               + USERNAME_SHORT_OPTION
               + "/"
               + USERNAME_OPTION
-              + " flag",
-      hidden = true)
+              + " flag")
   private String password;
 
   @SuppressWarnings("unused") // Accessed via reflection

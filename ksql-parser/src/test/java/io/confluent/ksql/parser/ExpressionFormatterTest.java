@@ -301,7 +301,7 @@ public class ExpressionFormatterTest {
   public void shouldFormatMap() {
     final SqlMap map = SqlTypes.map(SqlTypes.BIGINT);
     assertThat(ExpressionFormatter.formatExpression(new Type(map)),
-        equalTo("MAP<VARCHAR, BIGINT>"));
+        equalTo("MAP<STRING, BIGINT>"));
   }
 
   @Test

@@ -17,7 +17,7 @@ package io.confluent.ksql.services;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import java.util.function.Supplier;
-import org.apache.kafka.clients.admin.AdminClient;
+import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.streams.KafkaClientSupplier;
 
 /**
@@ -26,15 +26,15 @@ import org.apache.kafka.streams.KafkaClientSupplier;
 public interface ServiceContext extends AutoCloseable {
 
   /**
-   * Get the shared {@link AdminClient} instance.
+   * Get the shared {@link Admin} instance.
    *
    * <p>The default implementation is thread-safe and can be shared across threads.
    *
    * <p>The caller must <i>not</i> close the returned shared instance.
    *
-   * @return a shared {@link AdminClient} instance.
+   * @return a shared {@link Admin} instance.
    */
-  AdminClient getAdminClient();
+  Admin getAdminClient();
 
   /**
    * Get the shared {@link KafkaTopicClient} instance.
@@ -83,6 +83,15 @@ public interface ServiceContext extends AutoCloseable {
    * @return a shared {@link SchemaRegistryClient}.
    */
   Supplier<SchemaRegistryClient> getSchemaRegistryClientFactory();
+
+  /**
+   * Get the shared {@link ConnectClient} instance.
+   *
+   * <p>The default implementation is thread-safe and can be shared across threads.
+   *
+   * @return a shared {@link ConnectClient}
+   */
+  ConnectClient getConnectClient();
 
   @Override
   void close();

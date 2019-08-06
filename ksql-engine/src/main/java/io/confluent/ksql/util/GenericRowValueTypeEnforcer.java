@@ -17,28 +17,29 @@ package io.confluent.ksql.util;
 
 import com.google.common.collect.ImmutableMap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.ksql.schema.ksql.Field;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SqlBaseType;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
-import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
 
 public class GenericRowValueTypeEnforcer {
 
   private final List<Field> fields;
 
-  private static final Map<Schema.Type, Function<Object, Object>> SCHEMA_TYPE_TO_ENFORCE =
-      ImmutableMap.<Schema.Type, Function<Object, Object>>builder()
-          .put(Schema.Type.INT32, GenericRowValueTypeEnforcer::enforceInteger)
-          .put(Schema.Type.INT64, GenericRowValueTypeEnforcer::enforceLong)
-          .put(Schema.Type.FLOAT64, GenericRowValueTypeEnforcer::enforceDouble)
-          .put(Schema.Type.STRING, GenericRowValueTypeEnforcer::enforceString)
-          .put(Schema.Type.BOOLEAN, GenericRowValueTypeEnforcer::enforceBoolean)
-          .put(Schema.Type.BYTES, v -> v)
-          .put(Schema.Type.ARRAY, v -> v)
-          .put(Schema.Type.MAP, v -> v)
-          .put(Schema.Type.STRUCT, v -> v)
+  private static final Map<SqlBaseType, Function<Object, Object>> SCHEMA_TYPE_TO_ENFORCE =
+      ImmutableMap.<SqlBaseType, Function<Object, Object>>builder()
+          .put(SqlBaseType.INTEGER, GenericRowValueTypeEnforcer::enforceInteger)
+          .put(SqlBaseType.BIGINT, GenericRowValueTypeEnforcer::enforceLong)
+          .put(SqlBaseType.DOUBLE, GenericRowValueTypeEnforcer::enforceDouble)
+          .put(SqlBaseType.STRING, GenericRowValueTypeEnforcer::enforceString)
+          .put(SqlBaseType.BOOLEAN, GenericRowValueTypeEnforcer::enforceBoolean)
+          .put(SqlBaseType.DECIMAL, v -> v)
+          .put(SqlBaseType.ARRAY, v -> v)
+          .put(SqlBaseType.MAP, v -> v)
+          .put(SqlBaseType.STRUCT, v -> v)
           .build();
 
   public GenericRowValueTypeEnforcer(final LogicalSchema schema) {
@@ -47,13 +48,13 @@ public class GenericRowValueTypeEnforcer {
 
   public Object enforceFieldType(final int index, final Object value) {
     final Field field = fields.get(index);
-    return enforceFieldType(field.schema(), value);
+    return enforceFieldType(field.type(), value);
   }
 
-  private static Object enforceFieldType(final Schema schema, final Object value) {
-    final Function<Object, Object> handler = SCHEMA_TYPE_TO_ENFORCE.get(schema.type());
+  private static Object enforceFieldType(final SqlType sqlType, final Object value) {
+    final Function<Object, Object> handler = SCHEMA_TYPE_TO_ENFORCE.get(sqlType.baseType());
     if (handler == null) {
-      throw new KsqlException("Type is not supported: " + schema);
+      throw new KsqlException("Type is not supported: " + sqlType);
     }
 
     return handler.apply(value);

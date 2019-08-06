@@ -14,6 +14,12 @@
 
 package io.confluent.ksql.ddl.commands;
 
+import static io.confluent.ksql.model.WindowType.HOPPING;
+import static io.confluent.ksql.model.WindowType.SESSION;
+import static io.confluent.ksql.model.WindowType.TUMBLING;
+import static io.confluent.ksql.serde.Format.AVRO;
+import static io.confluent.ksql.serde.Format.JSON;
+import static io.confluent.ksql.serde.Format.KAFKA;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
@@ -23,11 +29,12 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.ddl.commands.CreateSourceCommand.SerdeOptionsSupplier;
+import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.CreateSource;
-import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.StringLiteral;
@@ -38,17 +45,24 @@ import io.confluent.ksql.parser.tree.Type;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.properties.with.CreateConfigs;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.KsqlSerdeFactory;
-import io.confluent.ksql.serde.SerdeFactories;
+import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.ValueFormat;
+import io.confluent.ksql.serde.ValueSerdeFactory;
+import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.services.KafkaTopicClient;
+import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Before;
@@ -75,23 +89,21 @@ public class CreateSourceCommandTest {
   private static final Set<SerdeOption> SOME_SERDE_OPTIONS = ImmutableSet
       .of(SerdeOption.UNWRAP_SINGLE_VALUES);
 
-  private static final QualifiedName SOME_NAME = QualifiedName.of("bob");
-
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
   private CreateSource statement;
   @Mock
+  private ServiceContext serviceContext;
+  @Mock
   private KafkaTopicClient kafkaTopicClient;
   @Mock
   private SerdeOptionsSupplier serdeOptions;
   @Mock
-  private SerdeFactories serdeFactories;
+  private ValueSerdeFactory serdeFactories;
   @Mock
-  private KsqlSerdeFactory serdeFactory;
-  @Mock
-  private CreateSourceProperties withProperties;
+  private Serde<GenericRow> serde;
 
   private KsqlConfig ksqlConfig;
 
@@ -105,7 +117,9 @@ public class CreateSourceCommandTest {
 
     ksqlConfig = new KsqlConfig(ImmutableMap.of());
 
-    when(serdeFactories.create(any(), any())).thenReturn(serdeFactory);
+    when(serdeFactories.create(any(), any(), any(), any(), any(), any())).thenReturn(serde);
+
+    when(serviceContext.getTopicClient()).thenReturn(kafkaTopicClient);
   }
 
   @Test
@@ -119,14 +133,7 @@ public class CreateSourceCommandTest {
         "The statement does not define any columns.");
 
     // When:
-    new TestCmd(
-        "look mum, no columns",
-        statement,
-        ksqlConfig,
-        kafkaTopicClient,
-        serdeOptions,
-        serdeFactories
-    );
+    createCmd();
   }
 
   @Test
@@ -135,14 +142,7 @@ public class CreateSourceCommandTest {
     when(statement.getElements()).thenReturn(SOME_ELEMENTS);
 
     // When:
-    new TestCmd(
-        "look mum, columns",
-        statement,
-        ksqlConfig,
-        kafkaTopicClient,
-        serdeOptions,
-        serdeFactories
-    );
+    createCmd();
 
     // Then: not exception thrown
   }
@@ -157,14 +157,7 @@ public class CreateSourceCommandTest {
     expectedException.expectMessage("Kafka topic does not exist: " + TOPIC_NAME);
 
     // When:
-    new TestCmd(
-        "what, no value topic?",
-        statement,
-        ksqlConfig,
-        kafkaTopicClient,
-        serdeOptions,
-        serdeFactories
-    );
+    createCmd();
   }
 
   @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
@@ -174,14 +167,7 @@ public class CreateSourceCommandTest {
     when(kafkaTopicClient.isTopicExists(TOPIC_NAME)).thenReturn(true);
 
     // When:
-    new TestCmd(
-        "what, no value topic?",
-        statement,
-        ksqlConfig,
-        kafkaTopicClient,
-        serdeOptions,
-        serdeFactories
-    );
+    createCmd();
 
     // Then:
     verify(kafkaTopicClient).isTopicExists(TOPIC_NAME);
@@ -200,14 +186,7 @@ public class CreateSourceCommandTest {
             + "'WILL-NOT-FIND-ME'");
 
     // When:
-    new TestCmd(
-        "key not in schema!",
-        statement,
-        ksqlConfig,
-        kafkaTopicClient,
-        serdeOptions,
-        serdeFactories
-    );
+    createCmd();
   }
 
   @Test
@@ -224,21 +203,13 @@ public class CreateSourceCommandTest {
             + "'WILL-NOT-FIND-ME'");
 
     // When:
-    new TestCmd(
-        "key not in schema!",
-        statement,
-        ksqlConfig,
-        kafkaTopicClient,
-        serdeOptions,
-        serdeFactories
-    );
+    createCmd();
   }
 
   @Test
   public void shouldBuildSerdeOptions() {
     // Given:
-    final CreateStream statement =
-        new CreateStream(SOME_NAME, ONE_ELEMENT, true, withProperties);
+    when(statement.getElements()).thenReturn(ONE_ELEMENT);
 
     final LogicalSchema schema = LogicalSchema.of(SchemaBuilder
         .struct()
@@ -248,14 +219,7 @@ public class CreateSourceCommandTest {
     when(serdeOptions.build(any(), any(), any(), any())).thenReturn(SOME_SERDE_OPTIONS);
 
     // When:
-    final TestCmd cmd = new TestCmd(
-        "sql",
-        statement,
-        ksqlConfig,
-        kafkaTopicClient,
-        serdeOptions,
-        serdeFactories
-    );
+    final TestCmd cmd = createCmd();
 
     // Then:
     verify(serdeOptions).build(
@@ -276,14 +240,7 @@ public class CreateSourceCommandTest {
     ));
 
     // When:
-    final TestCmd result = new TestCmd(
-        "look mum, no columns",
-        statement,
-        ksqlConfig,
-        kafkaTopicClient,
-        serdeOptions,
-        serdeFactories
-    );
+    final TestCmd result = createCmd();
 
     // Then:
     assertThat(result.schema, is(LogicalSchema.of(
@@ -309,14 +266,7 @@ public class CreateSourceCommandTest {
     ));
 
     // When:
-    final TestCmd result = new TestCmd(
-        "look mum, no columns",
-        statement,
-        ksqlConfig,
-        kafkaTopicClient,
-        serdeOptions,
-        serdeFactories
-    );
+    final TestCmd result = createCmd();
 
     // Then:
     assertThat(result.schema, is(LogicalSchema.of(
@@ -333,7 +283,7 @@ public class CreateSourceCommandTest {
   }
 
   @Test
-  public void shouldValidateValueFormatCanHandleValueSchema() {
+  public void shouldCreateSerdeToValidateValueFormatCanHandleValueSchema() {
     // Given:
     final LogicalSchema schema = LogicalSchema.of(SchemaBuilder
         .struct()
@@ -342,17 +292,106 @@ public class CreateSourceCommandTest {
         .build());
 
     // When:
-    new TestCmd(
+    createCmd();
+
+    // Then:
+    verify(serdeFactories).create(
+        FormatInfo.of(JSON, Optional.empty()),
+        PersistenceSchema.from(schema.valueSchema(), false),
+        ksqlConfig,
+        serviceContext.getSchemaRegistryClientFactory(),
+        "",
+        NoopProcessingLogContext.INSTANCE
+    );
+  }
+
+  @Test
+  public void shouldDefaultToKafkaKeySerde() {
+    // When:
+    final TestCmd cmd = createCmd();
+
+    // Then:
+    assertThat(cmd.getTopic().getKeyFormat(), is(KeyFormat.nonWindowed(FormatInfo.of(KAFKA))));
+  }
+
+  @Test
+  public void shouldHandleValueAvroSchemaName() {
+    // Given:
+    givenPropertiesWith((ImmutableMap.of(
+        "VALUE_FORMAT", new StringLiteral("Avro"),
+        "value_avro_schema_full_name", new StringLiteral("full.schema.name")
+    )));
+
+    // When:
+    final TestCmd cmd = createCmd();
+
+    // Then:
+    assertThat(cmd.getTopic().getValueFormat(),
+        is(ValueFormat.of(FormatInfo.of(AVRO, Optional.of("full.schema.name")))));
+  }
+
+  @Test
+  public void shouldHandleSessionWindowedKey() {
+    // Given:
+    givenPropertiesWith((ImmutableMap.of(
+        "window_type", new StringLiteral("session")
+    )));
+
+    // When:
+    final TestCmd cmd = createCmd();
+
+    // Then:
+    assertThat(cmd.getTopic().getKeyFormat(), is(KeyFormat.windowed(
+        FormatInfo.of(KAFKA),
+        WindowInfo.of(SESSION, Optional.empty()))
+    ));
+  }
+
+  @Test
+  public void shouldHandleTumblingWindowedKey() {
+    // Given:
+    givenPropertiesWith((ImmutableMap.of(
+        "window_type", new StringLiteral("tumbling"),
+        "window_size", new StringLiteral("1 MINUTE")
+    )));
+
+    // When:
+    final TestCmd cmd = createCmd();
+
+    // Then:
+    assertThat(cmd.getTopic().getKeyFormat(), is(KeyFormat.windowed(
+        FormatInfo.of(KAFKA),
+        WindowInfo.of(TUMBLING, Optional.of(Duration.ofMinutes(1))))
+    ));
+  }
+
+  @Test
+  public void shouldHandleHoppingWindowedKey() {
+    // Given:
+    givenPropertiesWith((ImmutableMap.of(
+        "window_type", new StringLiteral("Hopping"),
+        "window_size", new StringLiteral("2 SECONDS")
+    )));
+
+    // When:
+    final TestCmd cmd = createCmd();
+
+    // Then:
+    assertThat(cmd.getTopic().getKeyFormat(), is(KeyFormat.windowed(
+        FormatInfo.of(KAFKA),
+        WindowInfo.of(HOPPING, Optional.of(Duration.ofSeconds(2))))
+    ));
+  }
+
+  private TestCmd createCmd() {
+    return new TestCmd(
         "sql",
         statement,
         ksqlConfig,
-        kafkaTopicClient,
+        serviceContext,
         serdeOptions,
         serdeFactories
     );
-
-    // Then:
-    verify(serdeFactory).validate(PhysicalSchema.from(schema, SerdeOption.none()).valueSchema());
   }
 
   private static Map<String, Literal> minValidProps() {
@@ -374,15 +413,15 @@ public class CreateSourceCommandTest {
         final String sqlExpression,
         final CreateSource statement,
         final KsqlConfig ksqlConfig,
-        final KafkaTopicClient kafkaTopicClient,
+        final ServiceContext serviceContext,
         final SerdeOptionsSupplier serdeOptionsSupplier,
-        final SerdeFactories serdeFactories
+        final ValueSerdeFactory serdeFactories
     ) {
       super(
           sqlExpression,
           statement,
           ksqlConfig,
-          kafkaTopicClient,
+          serviceContext,
           serdeOptionsSupplier,
           serdeFactories
       );

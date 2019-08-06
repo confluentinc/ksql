@@ -17,10 +17,13 @@ package io.confluent.ksql.metastore.model;
 
 import static org.hamcrest.Matchers.is;
 
+import io.confluent.ksql.metastore.model.KeyField.LegacyField;
+import io.confluent.ksql.schema.ksql.Field;
+import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
 import java.util.Optional;
 import java.util.Set;
-import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.hamcrest.Description;
 import org.hamcrest.FeatureMatcher;
@@ -80,6 +83,20 @@ public final class MetaStoreMatchers {
     };
   }
 
+  public static Matcher<DataSource<?>> hasKeyFormat(
+      final Matcher<? super KeyFormat> matcher
+  ) {
+    return new FeatureMatcher<DataSource<?>, KeyFormat>(
+        matcher,
+        "source with key format",
+        "key format") {
+      @Override
+      protected KeyFormat featureValueOf(final DataSource<?> actual) {
+        return actual.getKsqlTopic().getKeyFormat();
+      }
+    };
+  }
+
   public static final class KeyFieldMatchers {
 
     private KeyFieldMatchers() {
@@ -108,21 +125,47 @@ public final class MetaStoreMatchers {
           (is(name), "field with legacy name", "legacy name") {
         @Override
         protected Optional<String> featureValueOf(final KeyField actual) {
-          return actual.legacy().map(Field::name);
+          return actual.legacy().map(LegacyField::name);
         }
       };
     }
 
-    public static Matcher<KeyField> hasLegacySchema(final Schema schema) {
-      return hasLegacySchema(Optional.of(schema));
+    public static Matcher<KeyField> hasLegacyType(final SqlType schema) {
+      return hasLegacyType(Optional.of(schema));
     }
 
-    public static Matcher<KeyField> hasLegacySchema(final Optional<? extends Schema> schema) {
-      return new FeatureMatcher<KeyField, Optional<Schema>>
-          (is(schema), "field with legacy schema", "legacy schema") {
+    public static Matcher<KeyField> hasLegacyType(final Optional<? extends SqlType> schema) {
+      return new FeatureMatcher<KeyField, Optional<SqlType>>
+          (is(schema), "field with legacy type", "legacy type") {
         @Override
-        protected Optional<Schema> featureValueOf(final KeyField actual) {
-          return actual.legacy().map(Field::schema);
+        protected Optional<SqlType> featureValueOf(final KeyField actual) {
+          return actual.legacy().map(LegacyField::type);
+        }
+      };
+    }
+  }
+
+  public static final class LegacyFieldMatchers {
+
+    private LegacyFieldMatchers() {
+    }
+
+    public static Matcher<LegacyField> hasName(final String name) {
+      return new FeatureMatcher<LegacyField, String>
+          (is(name), "field with name", "name") {
+        @Override
+        protected String featureValueOf(final LegacyField actual) {
+          return actual.name();
+        }
+      };
+    }
+
+    public static Matcher<LegacyField> hasType(final SqlType type) {
+      return new FeatureMatcher<LegacyField, SqlType>
+          (is(type), "field with type", "type") {
+        @Override
+        protected SqlType featureValueOf(final LegacyField actual) {
+          return actual.type();
         }
       };
     }
@@ -133,32 +176,22 @@ public final class MetaStoreMatchers {
     private FieldMatchers() {
     }
 
-    public static Matcher<Field> hasName(final String name) {
+    public static Matcher<Field> hasFullName(final String name) {
       return new FeatureMatcher<Field, String>
           (is(name), "field with name", "name") {
         @Override
         protected String featureValueOf(final Field actual) {
-          return actual.name();
+          return actual.fullName();
         }
       };
     }
 
-    public static Matcher<Field> hasIndex(final int index) {
-      return new FeatureMatcher<Field, Integer>
-          (is(index), "field with index", "index") {
+    public static Matcher<Field> hasType(final SqlType type) {
+      return new FeatureMatcher<Field, SqlType>
+          (is(type), "field with type", "type") {
         @Override
-        protected Integer featureValueOf(final Field actual) {
-          return actual.index();
-        }
-      };
-    }
-
-    public static Matcher<Field> hasSchema(final Schema schema) {
-      return new FeatureMatcher<Field, Schema>
-          (is(schema), "field with schema", "schema") {
-        @Override
-        protected Schema featureValueOf(final Field actual) {
-          return actual.schema();
+        protected SqlType featureValueOf(final Field actual) {
+          return actual.type();
         }
       };
     }

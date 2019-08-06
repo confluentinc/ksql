@@ -38,6 +38,7 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.Schema.Type;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.junit.Before;
@@ -89,7 +90,7 @@ public class KsqlJsonDeserializerTest {
   public final ExpectedException expectedException = ExpectedException.none();
 
   private Struct expectedOrder;
-  private Schema connectSchema;
+  private PersistenceSchema persistenceSchema;
   private KsqlJsonDeserializer deserializer;
 
   @Before
@@ -251,7 +252,7 @@ public class KsqlJsonDeserializerTest {
     final Struct result = (Struct) deserializer.deserialize(SOME_TOPIC, bytes);
 
     // Then:
-    assertThat(result.schema(), is(connectSchema));
+    assertThat(result.schema(), is(persistenceSchema.ksqlSchema()));
     assertThat(result.get(ITEMID),
         is("{\"CATEGORY\":{\"ID\":2,\"NAME\":\"Food\"},\"ITEMID\":6,\"NAME\":\"Item_6\"}"));
   }
@@ -546,10 +547,15 @@ public class KsqlJsonDeserializerTest {
   @Test
   public void shouldThrowOnMapSchemaWithNonStringKeys() {
     // Given:
-    final PersistenceSchema physicalSchema = PersistenceSchema.of(
+    final PersistenceSchema physicalSchema = PersistenceSchema.from(
         (ConnectSchema) SchemaBuilder
-            .map(Schema.OPTIONAL_INT32_SCHEMA, Schema.INT32_SCHEMA)
-            .build()
+            .struct()
+            .field("f0", SchemaBuilder
+                .map(Schema.OPTIONAL_INT32_SCHEMA, Schema.INT32_SCHEMA)
+                .optional()
+                .build())
+            .build(),
+        true
     );
 
     // Then:
@@ -563,14 +569,18 @@ public class KsqlJsonDeserializerTest {
   @Test
   public void shouldThrowOnNestedMapSchemaWithNonStringKeys() {
     // Given:
-    final PersistenceSchema physicalSchema = PersistenceSchema.of(
+    final PersistenceSchema physicalSchema = PersistenceSchema.from(
         (ConnectSchema) SchemaBuilder
             .struct()
             .field("f0", SchemaBuilder
-                .map(Schema.OPTIONAL_INT32_SCHEMA, Schema.INT32_SCHEMA)
-                .optional()
+                .struct()
+                .field("f1", SchemaBuilder
+                    .map(Schema.OPTIONAL_INT32_SCHEMA, Schema.INT32_SCHEMA)
+                    .optional()
+                    .build())
                 .build())
-            .build()
+            .build(),
+        true
     );
 
     // Then:
@@ -614,10 +624,16 @@ public class KsqlJsonDeserializerTest {
     }
   }
 
-  private void givenDeserializerForSchema(final Schema connectSchema) {
-    final PersistenceSchema physicalSchema = PersistenceSchema.of((ConnectSchema) connectSchema);
-    this.connectSchema = connectSchema;
-    deserializer = new KsqlJsonDeserializer(physicalSchema);
+  private void givenDeserializerForSchema(final Schema serializedSchema) {
+    final boolean unwrap = serializedSchema.type() != Type.STRUCT;
+    final Schema ksqlSchema = unwrap
+        ? SchemaBuilder.struct().field("f", serializedSchema).build()
+        : serializedSchema;
+
+    this.persistenceSchema = PersistenceSchema
+        .from((ConnectSchema) ksqlSchema, unwrap);
+
+    deserializer = new KsqlJsonDeserializer(persistenceSchema);
   }
 
   private static byte[] serializeJson(final Object expected) {

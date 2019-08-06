@@ -25,7 +25,7 @@ import java.util.Objects;
 import java.util.Optional;
 
 @Immutable
-public class GroupBy extends Node {
+public class GroupBy extends AstNode {
 
   private final ImmutableList<GroupingElement> groupingElements;
 

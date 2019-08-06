@@ -277,7 +277,8 @@ Map
 .. note:: The ``DELIMITED`` format doesn't support maps.
 
 KSQL supports fields that are maps. A map has a key and value type. All of the keys must be of the
-same type, and all of the values must be also be of the same type. Currently only ``STRING`` keys are supported. The value type can be any valid KSQL type.
+same type, and all of the values must be also be of the same type. Currently only ``STRING`` keys
+are supported. The value type can be any valid KSQL type.
 
 You can define maps within a ``CREATE TABLE`` or ``CREATE STREAM`` statement by using the syntax
 ``MAP<KeyType, ValueType>``. For example, ``MAP<STRING, INT>`` defines a map with string keys and
@@ -958,7 +959,7 @@ DESCRIBE FUNCTION
 
 **Description**
 
-Provides a description of a function including an input parameters and the return type.
+Provides a description of a function including input parameters and the return type.
 
 .. _ksql-syntax-explain:
 
@@ -1528,6 +1529,12 @@ Scalar functions
 | ARRAYCONTAINS          |  ``ARRAYCONTAINS('[1, 2, 3]', 3)``                                        | Given JSON or AVRO array checks if a search       |
 |                        |                                                                           | value contains in it                              |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| AS_ARRAY               |  ``AS_ARRAY(col1, col2)```                                                | Construct an array from a variable number of      |
+|                        |                                                                           | inputs.                                           |
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| AS_MAP                 |  ``AS_MAP(keys, vals)```                                                  | Construct a map from a list of keys and a list of |
+|                        |                                                                           | values.                                           |
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | CEIL                   |  ``CEIL(col1)``                                                           | The ceiling of a value.                           |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | CONCAT                 |  ``CONCAT(col1, '_hello')``                                               | Concatenate two strings.                          |
@@ -1641,6 +1648,9 @@ Scalar functions
 | ROUND                  |  ``ROUND(col1)``                                                          | Round a value to the nearest BIGINT value.        |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | SQRT                   |  ``SQRT(col1)``                                                           | The square root of a value.                       |
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| SLICE                  |  ``SLICE(col1, from, to)``                                                | Slices a list based on the supplied indices. The  |
+|                        |                                                                           | indices start at 1 and include both endpoints.    |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | SPLIT                  |  ``SPLIT(col1, delimiter)``                                               | Splits a string into an array of substrings based |
 |                        |                                                                           | on a delimiter. If the delimiter is not found,    |

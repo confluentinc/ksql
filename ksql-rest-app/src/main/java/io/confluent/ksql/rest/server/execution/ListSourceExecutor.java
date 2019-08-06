@@ -15,7 +15,9 @@
 
 package io.confluent.ksql.rest.server.execution;
 
+import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.KsqlExecutionContext;
+import io.confluent.ksql.exception.KafkaResponseGetFailedException;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
@@ -24,6 +26,7 @@ import io.confluent.ksql.parser.tree.ListTables;
 import io.confluent.ksql.parser.tree.ShowColumns;
 import io.confluent.ksql.rest.entity.EntityQueryId;
 import io.confluent.ksql.rest.entity.KsqlEntity;
+import io.confluent.ksql.rest.entity.KsqlWarning;
 import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.entity.SourceDescription;
 import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
@@ -36,16 +39,43 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import org.apache.kafka.common.KafkaException;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public final class ListSourceExecutor {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private ListSourceExecutor() { }
+
+  private static Optional<KsqlEntity> sourceDescriptionList(
+      final ConfiguredStatement<?> statement,
+      final KsqlExecutionContext executionContext,
+      final ServiceContext serviceContext,
+      final List<? extends DataSource<?>> sources
+  ) {
+    final List<SourceDescriptionWithWarnings> descriptions = sources.stream()
+        .map(
+            s -> describeSource(
+                executionContext,
+                serviceContext,
+                s.getName(),
+                true,
+                statement.getStatementText())
+        )
+        .collect(Collectors.toList());
+    return Optional.of(
+        new SourceDescriptionList(
+            statement.getStatementText(),
+            descriptions.stream().map(d -> d.description).collect(Collectors.toList()),
+            descriptions.stream().flatMap(d -> d.warnings.stream()).collect(Collectors.toList())
+        )
+    );
+  }
 
   public static Optional<KsqlEntity> streams(
       final ConfiguredStatement<ListStreams> statement,
@@ -56,12 +86,12 @@ public final class ListSourceExecutor {
 
     final ListStreams listStreams = statement.getStatement();
     if (listStreams.getShowExtended()) {
-      return Optional.of(new SourceDescriptionList(
-          statement.getStatementText(),
-          ksqlStreams.stream()
-              .map(s -> describeSource(executionContext, serviceContext, s.getName(), true,
-                  statement.getStatementText()))
-              .collect(Collectors.toList())));
+      return sourceDescriptionList(
+          statement,
+          executionContext,
+          serviceContext,
+          ksqlStreams
+      );
     }
 
     return Optional.of(new StreamsList(
@@ -80,12 +110,12 @@ public final class ListSourceExecutor {
 
     final ListTables listTables = statement.getStatement();
     if (listTables.getShowExtended()) {
-      return Optional.of(new SourceDescriptionList(
-          statement.getStatementText(),
-          ksqlTables.stream()
-              .map(t -> describeSource(executionContext, serviceContext, t.getName(), true,
-                  statement.getStatementText()))
-              .collect(Collectors.toList())));
+      return sourceDescriptionList(
+          statement,
+          executionContext,
+          serviceContext,
+          ksqlTables
+      );
     }
     return Optional.of(new TablesList(
         statement.getStatementText(),
@@ -100,15 +130,20 @@ public final class ListSourceExecutor {
       final ServiceContext serviceContext
   ) {
     final ShowColumns showColumns = statement.getStatement();
-    return Optional.of(new SourceDescriptionEntity(
-        statement.getStatementText(),
-        describeSource(
-            executionContext,
-            serviceContext,
-            showColumns.getTable().getSuffix(),
-            showColumns.isExtended(),
-            statement.getStatementText())
-    ));
+    final SourceDescriptionWithWarnings descriptionWithWarnings = describeSource(
+        executionContext,
+        serviceContext,
+        showColumns.getTable().getSuffix(),
+        showColumns.isExtended(),
+        statement.getStatementText()
+    );
+    return Optional.of(
+        new SourceDescriptionEntity(
+            statement.getStatementText(),
+            descriptionWithWarnings.description,
+            descriptionWithWarnings.warnings
+        )
+    );
   }
 
   private static List<KsqlTable<?>> getSpecificTables(
@@ -133,7 +168,7 @@ public final class ListSourceExecutor {
         .collect(Collectors.toList());
   }
 
-  private static SourceDescription describeSource(
+  private static SourceDescriptionWithWarnings describeSource(
       final KsqlExecutionContext ksqlEngine,
       final ServiceContext serviceContext,
       final String name,
@@ -147,13 +182,28 @@ public final class ListSourceExecutor {
       ), statementText);
     }
 
-    return new SourceDescription(
-        dataSource,
-        extended,
-        dataSource.getKsqlTopic().getValueSerdeFactory().getFormat().name(),
-        getQueries(ksqlEngine, q -> q.getSourceNames().contains(dataSource.getName())),
-        getQueries(ksqlEngine, q -> q.getSinkNames().contains(dataSource.getName())),
-        serviceContext.getTopicClient()
+    Optional<org.apache.kafka.clients.admin.TopicDescription> topicDescription = Optional.empty();
+    final List<KsqlWarning> warnings = new LinkedList<>();
+    if (extended) {
+      try {
+        topicDescription = Optional.of(
+            serviceContext.getTopicClient().describeTopic(dataSource.getKafkaTopicName())
+        );
+      } catch (final KafkaException | KafkaResponseGetFailedException e) {
+        warnings.add(new KsqlWarning("Error from Kafka: " + e.getMessage()));
+      }
+    }
+
+    return new SourceDescriptionWithWarnings(
+        warnings,
+        new SourceDescription(
+            dataSource,
+            extended,
+            dataSource.getKsqlTopic().getValueFormat().getFormat().name(),
+            getQueries(ksqlEngine, q -> q.getSourceNames().contains(dataSource.getName())),
+            getQueries(ksqlEngine, q -> q.getSinkName().equals(dataSource.getName())),
+            topicDescription
+        )
     );
   }
 
@@ -165,7 +215,22 @@ public final class ListSourceExecutor {
         .stream()
         .filter(predicate)
         .map(q -> new RunningQuery(
-            q.getStatementString(), q.getSinkNames(), new EntityQueryId(q.getQueryId())))
+            q.getStatementString(),
+            ImmutableSet.of(q.getSinkName()),
+            new EntityQueryId(q.getQueryId())
+        ))
         .collect(Collectors.toList());
+  }
+
+  private static final class SourceDescriptionWithWarnings {
+    private final List<KsqlWarning> warnings;
+    private final SourceDescription description;
+
+    private SourceDescriptionWithWarnings(
+        final List<KsqlWarning> warnings,
+        final SourceDescription description) {
+      this.warnings = warnings;
+      this.description = description;
+    }
   }
 }

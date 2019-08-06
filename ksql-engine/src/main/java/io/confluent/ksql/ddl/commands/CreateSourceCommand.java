@@ -17,21 +17,22 @@ package io.confluent.ksql.ddl.commands;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Iterables;
-import io.confluent.ksql.metastore.SerdeFactory;
+import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.TableElements;
+import io.confluent.ksql.schema.ksql.Field;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.Format;
-import io.confluent.ksql.serde.KsqlSerdeFactories;
-import io.confluent.ksql.serde.KsqlSerdeFactory;
-import io.confluent.ksql.serde.SerdeFactories;
+import io.confluent.ksql.serde.GenericRowSerDe;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.SerdeOptions;
-import io.confluent.ksql.services.KafkaTopicClient;
+import io.confluent.ksql.serde.ValueSerdeFactory;
+import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.topic.TopicFactory;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.StringUtil;
@@ -39,9 +40,6 @@ import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicyFactory;
 import java.util.Optional;
 import java.util.Set;
-import org.apache.kafka.common.serialization.Serdes;
-import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.streams.kstream.Windowed;
 
 /**
  * Base class of create table/stream command
@@ -52,26 +50,23 @@ abstract class CreateSourceCommand implements DdlCommand {
   final String sourceName;
   final LogicalSchema schema;
   final KeyField keyField;
-  private final KafkaTopicClient kafkaTopicClient;
-  final SerdeFactory<?> keySerdeFactory;
   final TimestampExtractionPolicy timestampExtractionPolicy;
   private final Set<SerdeOption> serdeOptions;
-  private final CreateSourceProperties properties;
-  private final KsqlSerdeFactory valueSerdeFactory;
+  private final KsqlTopic topic;
 
   CreateSourceCommand(
       final String sqlExpression,
       final CreateSource statement,
       final KsqlConfig ksqlConfig,
-      final KafkaTopicClient kafkaTopicClient
+      final ServiceContext serviceContext
   ) {
     this(
         sqlExpression,
         statement,
         ksqlConfig,
-        kafkaTopicClient,
+        serviceContext,
         SerdeOptions::buildForCreateStatement,
-        new KsqlSerdeFactories()
+        new GenericRowSerDe()
     );
   }
 
@@ -80,21 +75,17 @@ abstract class CreateSourceCommand implements DdlCommand {
       final String sqlExpression,
       final CreateSource statement,
       final KsqlConfig ksqlConfig,
-      final KafkaTopicClient kafkaTopicClient,
+      final ServiceContext serviceContext,
       final SerdeOptionsSupplier serdeOptionsSupplier,
-      final SerdeFactories serdeFactories
+      final ValueSerdeFactory valueSerdeFactory
   ) {
     this.sqlExpression = sqlExpression;
     this.sourceName = statement.getName().getSuffix();
-    this.kafkaTopicClient = kafkaTopicClient;
-    this.properties = statement.getProperties();
-
-    checkTopicExists(properties);
-
+    this.topic = buildTopic(statement.getProperties(), serviceContext);
     this.schema = buildSchema(statement.getElements());
 
-    if (properties.getKeyField().isPresent()) {
-      final String name = properties.getKeyField().get().toUpperCase();
+    if (statement.getProperties().getKeyField().isPresent()) {
+      final String name = statement.getProperties().getKeyField().get().toUpperCase();
 
       final String keyFieldName = StringUtil.cleanQuotes(name);
       final Field keyField = schema.findValueField(keyFieldName)
@@ -108,32 +99,30 @@ abstract class CreateSourceCommand implements DdlCommand {
       this.keyField = KeyField.none();
     }
 
-    final Optional<String> timestampName = properties.getTimestampColumnName();
-    final Optional<String> timestampFormat = properties.getTimestampFormat();
-    this.timestampExtractionPolicy = TimestampExtractionPolicyFactory
-        .create(schema, timestampName, timestampFormat);
+    this.timestampExtractionPolicy = buildTimestampExtractor(statement.getProperties(), schema);
 
     this.serdeOptions = serdeOptionsSupplier.build(
         schema,
-        properties.getValueFormat(),
-        properties.getWrapSingleValues(),
+        topic.getValueFormat().getFormat(),
+        statement.getProperties().getWrapSingleValues(),
         ksqlConfig
     );
 
-    final PhysicalSchema physicalSchema = PhysicalSchema.from(schema, serdeOptions);
-
-    this.keySerdeFactory = extractKeySerde(properties);
-
-    this.valueSerdeFactory = serdeFactories.create(
-        properties.getValueFormat(),
-        properties.getValueAvroSchemaName()
+    validateSerdeCanHandleSchemas(
+        ksqlConfig,
+        serviceContext,
+        valueSerdeFactory,
+        PhysicalSchema.from(schema, serdeOptions),
+        topic
     );
-
-    this.valueSerdeFactory.validate(physicalSchema.valueSchema());
   }
 
   Set<SerdeOption> getSerdeOptions() {
     return serdeOptions;
+  }
+
+  KsqlTopic getTopic() {
+    return topic;
   }
 
   private static LogicalSchema buildSchema(final TableElements tableElements) {
@@ -144,29 +133,43 @@ abstract class CreateSourceCommand implements DdlCommand {
     return tableElements.toLogicalSchema();
   }
 
-  private void checkTopicExists(final CreateSourceProperties properties) {
+  private static KsqlTopic buildTopic(
+      final CreateSourceProperties properties,
+      final ServiceContext serviceContext
+  ) {
     final String kafkaTopicName = properties.getKafkaTopic();
-    if (!kafkaTopicClient.isTopicExists(kafkaTopicName)) {
+    if (!serviceContext.getTopicClient().isTopicExists(kafkaTopicName)) {
       throw new KsqlException("Kafka topic does not exist: " + kafkaTopicName);
     }
+
+    return TopicFactory.create(properties);
   }
 
-  KsqlTopic buildTopic() {
-    final String kafkaTopicName = properties.getKafkaTopic();
-    return new KsqlTopic(sourceName, kafkaTopicName, valueSerdeFactory, false);
-  }
-
-  private static SerdeFactory<?> extractKeySerde(
-      final CreateSourceProperties properties
+  private static TimestampExtractionPolicy buildTimestampExtractor(
+      final CreateSourceProperties properties,
+      final LogicalSchema schema
   ) {
-    final Optional<SerdeFactory<Windowed<String>>> windowType = properties.getWindowType();
+    final Optional<String> timestampName = properties.getTimestampColumnName();
+    final Optional<String> timestampFormat = properties.getTimestampFormat();
+    return TimestampExtractionPolicyFactory
+        .create(schema, timestampName, timestampFormat);
+  }
 
-    //noinspection OptionalIsPresent - <?> causes confusion here
-    if (!windowType.isPresent()) {
-      return (SerdeFactory) Serdes::String;
-    }
-
-    return windowType.get();
+  private static void validateSerdeCanHandleSchemas(
+      final KsqlConfig ksqlConfig,
+      final ServiceContext serviceContext,
+      final ValueSerdeFactory valueSerdeFactory,
+      final PhysicalSchema physicalSchema,
+      final KsqlTopic topic
+  ) {
+    valueSerdeFactory.create(
+        topic.getValueFormat().getFormatInfo(),
+        physicalSchema.valueSchema(),
+        ksqlConfig,
+        serviceContext.getSchemaRegistryClientFactory(),
+        "",
+        NoopProcessingLogContext.INSTANCE
+    ).close();
   }
 
   @FunctionalInterface

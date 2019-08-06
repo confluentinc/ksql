@@ -23,206 +23,235 @@ import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.serde.KsqlSerdeFactory;
+import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
-import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
+import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
-import org.apache.kafka.common.serialization.Serdes;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
 
+@SuppressWarnings("OptionalGetWithoutIsPresent")
 public final class MetaStoreFixture {
 
   private MetaStoreFixture() {
   }
 
   public static MutableMetaStore getNewMetaStore(final FunctionRegistry functionRegistry) {
-    return getNewMetaStore(functionRegistry, new KsqlJsonSerdeFactory());
+    return getNewMetaStore(functionRegistry, ValueFormat.of(FormatInfo.of(Format.JSON)));
   }
 
   public static MutableMetaStore getNewMetaStore(
       final FunctionRegistry functionRegistry,
-      final KsqlSerdeFactory valueSerdeFactory
+      final ValueFormat valueFormat
   ) {
     final MetadataTimestampExtractionPolicy timestampExtractionPolicy
         = new MetadataTimestampExtractionPolicy();
 
     final MutableMetaStore metaStore = new MetaStoreImpl(functionRegistry);
 
-    final Schema test1Schema = SchemaBuilder.struct()
-        .field("COL0", Schema.OPTIONAL_INT64_SCHEMA)
-        .field("COL1", Schema.OPTIONAL_STRING_SCHEMA)
-        .field("COL2", Schema.OPTIONAL_STRING_SCHEMA)
-        .field("COL3", Schema.OPTIONAL_FLOAT64_SCHEMA)
-        .field("COL4", SchemaBuilder.array(Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build())
-        .field("COL5", SchemaBuilder.map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build())
+    final KeyFormat keyFormat = KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA));
+
+    final LogicalSchema test1Schema = LogicalSchema.builder()
+        .valueField("COL0", SqlTypes.BIGINT)
+        .valueField("COL1", SqlTypes.STRING)
+        .valueField("COL2", SqlTypes.STRING)
+        .valueField("COL3", SqlTypes.DOUBLE)
+        .valueField("COL4", SqlTypes.array(SqlTypes.DOUBLE))
+        .valueField("COL5", SqlTypes.map(SqlTypes.DOUBLE))
         .build();
 
-    final KsqlTopic
-        ksqlTopic0 =
-        new KsqlTopic("TEST0", "test0", valueSerdeFactory, false);
+    final KsqlTopic ksqlTopic0 = new KsqlTopic(
+        "test0",
+        keyFormat,
+        valueFormat,
+        false
+    );
 
     final KsqlStream<?> ksqlStream0 = new KsqlStream<>(
         "sqlexpression",
         "TEST0",
-        LogicalSchema.of(test1Schema),
+        test1Schema,
         SerdeOption.none(),
-        KeyField.of("COL0", test1Schema.field("COL0")),
+        KeyField.of("COL0", test1Schema.findValueField("COL0").get()),
         timestampExtractionPolicy,
-        ksqlTopic0,
-        Serdes::String
+        ksqlTopic0
     );
 
     metaStore.putSource(ksqlStream0);
 
-    final KsqlTopic
-        ksqlTopic1 =
-        new KsqlTopic("TEST1", "test1", valueSerdeFactory, false);
+    final KsqlTopic ksqlTopic1 = new KsqlTopic(
+        "test1",
+        keyFormat,
+        valueFormat,
+        false
+    );
 
     final KsqlStream<?> ksqlStream1 = new KsqlStream<>("sqlexpression",
         "TEST1",
-        LogicalSchema.of(test1Schema),
+        test1Schema,
         SerdeOption.none(),
-        KeyField.of("COL0", test1Schema.field("COL0")),
+        KeyField.of("COL0", test1Schema.findValueField("COL0").get()),
         timestampExtractionPolicy,
-        ksqlTopic1,
-        Serdes::String
+        ksqlTopic1
     );
 
     metaStore.putSource(ksqlStream1);
 
-    final Schema test2Schema = SchemaBuilder.struct()
-        .field("COL0", Schema.OPTIONAL_INT64_SCHEMA)
-        .field("COL1", Schema.OPTIONAL_STRING_SCHEMA)
-        .field("COL2", Schema.OPTIONAL_STRING_SCHEMA)
-        .field("COL3", Schema.OPTIONAL_FLOAT64_SCHEMA)
-        .field("COL4", Schema.OPTIONAL_BOOLEAN_SCHEMA)
+    final LogicalSchema test2Schema = LogicalSchema.builder()
+        .valueField("COL0", SqlTypes.BIGINT)
+        .valueField("COL1", SqlTypes.STRING)
+        .valueField("COL2", SqlTypes.STRING)
+        .valueField("COL3", SqlTypes.DOUBLE)
+        .valueField("COL4", SqlTypes.BOOLEAN)
         .build();
 
-    final KsqlTopic
-        ksqlTopic2 =
-        new KsqlTopic("TEST2", "test2", valueSerdeFactory, false);
+    final KsqlTopic ksqlTopic2 = new KsqlTopic(
+        "test2",
+        keyFormat,
+        valueFormat,
+        false
+    );
     final KsqlTable<String> ksqlTable = new KsqlTable<>(
         "sqlexpression",
         "TEST2",
-        LogicalSchema.of(test2Schema),
+        test2Schema,
         SerdeOption.none(),
-        KeyField.of("COL0", test2Schema.field("COL0")),
+        KeyField.of("COL0", test2Schema.findValueField("COL0").get()),
         timestampExtractionPolicy,
-        ksqlTopic2,
-        Serdes::String
+        ksqlTopic2
     );
 
     metaStore.putSource(ksqlTable);
 
-    final Schema addressSchema = SchemaBuilder.struct()
-        .field("NUMBER", Schema.OPTIONAL_INT64_SCHEMA)
-        .field("STREET", Schema.OPTIONAL_STRING_SCHEMA)
-        .field("CITY", Schema.OPTIONAL_STRING_SCHEMA)
-        .field("STATE", Schema.OPTIONAL_STRING_SCHEMA)
-        .field("ZIPCODE", Schema.OPTIONAL_INT64_SCHEMA)
-        .optional().build();
+    final SqlType addressSchema = SqlTypes.struct()
+        .field("NUMBER", SqlTypes.BIGINT)
+        .field("STREET", SqlTypes.STRING)
+        .field("CITY", SqlTypes.STRING)
+        .field("STATE", SqlTypes.STRING)
+        .field("ZIPCODE", SqlTypes.BIGINT)
+        .build();
 
-    final Schema categorySchema = SchemaBuilder.struct()
-        .field("ID", Schema.OPTIONAL_INT64_SCHEMA)
-        .field("NAME", Schema.OPTIONAL_STRING_SCHEMA)
-        .optional().build();
+    final SqlType categorySchema = SqlTypes.struct()
+        .field("ID", SqlTypes.BIGINT)
+        .field("NAME", SqlTypes.STRING)
+        .build();
 
-    final Schema itemInfoSchema = SchemaBuilder.struct()
-        .field("ITEMID", Schema.OPTIONAL_INT64_SCHEMA)
-        .field("NAME", Schema.OPTIONAL_STRING_SCHEMA)
+    final SqlType itemInfoSchema = SqlTypes.struct()
+        .field("ITEMID", SqlTypes.BIGINT)
+        .field("NAME", SqlTypes.STRING)
         .field("CATEGORY", categorySchema)
-        .optional().build();
+        .build();
 
-    final Schema ordersSchema = SchemaBuilder.struct()
-        .field("ORDERTIME", Schema.OPTIONAL_INT64_SCHEMA)
-        .field("ORDERID", Schema.OPTIONAL_INT64_SCHEMA)
-        .field("ITEMID", Schema.OPTIONAL_STRING_SCHEMA)
-        .field("ITEMINFO", itemInfoSchema)
-        .field("ORDERUNITS", Schema.OPTIONAL_INT32_SCHEMA)
-        .field("ARRAYCOL",SchemaBuilder.array(Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build())
-        .field("MAPCOL", SchemaBuilder.map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build())
-        .field("ADDRESS", addressSchema)
-        .optional().build();
+    final LogicalSchema ordersSchema = LogicalSchema.builder()
+        .valueField("ORDERTIME", SqlTypes.BIGINT)
+        .valueField("ORDERID", SqlTypes.BIGINT)
+        .valueField("ITEMID", SqlTypes.STRING)
+        .valueField("ITEMINFO", itemInfoSchema)
+        .valueField("ORDERUNITS", SqlTypes.INTEGER)
+        .valueField("ARRAYCOL", SqlTypes.array(SqlTypes.DOUBLE))
+        .valueField("MAPCOL", SqlTypes.map(SqlTypes.DOUBLE))
+        .valueField("ADDRESS", addressSchema)
+        .build();
 
-    final KsqlTopic
-        ksqlTopicOrders =
-        new KsqlTopic("ORDERS_TOPIC", "orders_topic", valueSerdeFactory, false);
+    final KsqlTopic ksqlTopicOrders = new KsqlTopic(
+        "orders_topic",
+        keyFormat,
+        valueFormat,
+        false
+    );
 
     final KsqlStream<?> ksqlStreamOrders = new KsqlStream<>(
         "sqlexpression",
         "ORDERS",
-        LogicalSchema.of(ordersSchema),
+        ordersSchema,
         SerdeOption.none(),
-        KeyField.of("ORDERTIME", ordersSchema.field("ORDERTIME")),
+        KeyField.of("ORDERTIME", ordersSchema.findValueField("ORDERTIME").get()),
         timestampExtractionPolicy,
-        ksqlTopicOrders,
-        Serdes::String
+        ksqlTopicOrders
     );
 
     metaStore.putSource(ksqlStreamOrders);
 
-    final Schema testTable3 = SchemaBuilder.struct()
-        .field("COL0", Schema.OPTIONAL_INT64_SCHEMA)
-        .field("COL1", Schema.OPTIONAL_STRING_SCHEMA)
-        .field("COL2", Schema.OPTIONAL_STRING_SCHEMA)
-        .field("COL3", Schema.OPTIONAL_FLOAT64_SCHEMA)
-        .field("COL4", Schema.OPTIONAL_BOOLEAN_SCHEMA)
+    final LogicalSchema testTable3 = LogicalSchema.builder()
+        .valueField("COL0", SqlTypes.BIGINT)
+        .valueField("COL1", SqlTypes.STRING)
+        .valueField("COL2", SqlTypes.STRING)
+        .valueField("COL3", SqlTypes.DOUBLE)
+        .valueField("COL4", SqlTypes.BOOLEAN)
         .build();
 
-    final KsqlTopic
-        ksqlTopic3 =
-        new KsqlTopic("TEST3", "test3", valueSerdeFactory, false);
+    final KsqlTopic ksqlTopic3 = new KsqlTopic(
+        "test3",
+        keyFormat,
+        valueFormat,
+        false
+    );
     final KsqlTable<String> ksqlTable3 = new KsqlTable<>(
         "sqlexpression",
         "TEST3",
-        LogicalSchema.of(testTable3),
+        testTable3,
         SerdeOption.none(),
-        KeyField.of("COL0", testTable3.field("COL0")),
+        KeyField.of("COL0", testTable3.findValueField("COL0").get()),
         timestampExtractionPolicy,
-        ksqlTopic3,
-        Serdes::String
+        ksqlTopic3
     );
 
     metaStore.putSource(ksqlTable3);
 
-    final Schema nestedArrayStructMapSchema = SchemaBuilder.struct()
-        .field("ARRAYCOL", SchemaBuilder.array(itemInfoSchema).optional().build())
-        .field("MAPCOL", SchemaBuilder.map(Schema.OPTIONAL_STRING_SCHEMA, itemInfoSchema).optional().build())
-        .field("NESTED_ORDER_COL", ordersSchema)
-        .field("ITEM", itemInfoSchema)
-        .optional().build();
+    final SqlType nestedOrdersSchema = SqlTypes.struct()
+        .field("ORDERTIME", SqlTypes.BIGINT)
+        .field("ORDERID", SqlTypes.BIGINT)
+        .field("ITEMID", SqlTypes.STRING)
+        .field("ITEMINFO", itemInfoSchema)
+        .field("ORDERUNITS", SqlTypes.INTEGER)
+        .field("ARRAYCOL", SqlTypes.array(SqlTypes.DOUBLE))
+        .field("MAPCOL", SqlTypes.map(SqlTypes.DOUBLE))
+        .field("ADDRESS", addressSchema)
+        .build();
 
-    final KsqlTopic
-        nestedArrayStructMapTopic =
-        new KsqlTopic("NestedArrayStructMap", "NestedArrayStructMap_topic", valueSerdeFactory,
-            false);
+    final LogicalSchema nestedArrayStructMapSchema = LogicalSchema.builder()
+        .valueField("ARRAYCOL", SqlTypes.array(itemInfoSchema))
+        .valueField("MAPCOL", SqlTypes.map(itemInfoSchema))
+        .valueField("NESTED_ORDER_COL", nestedOrdersSchema)
+        .valueField("ITEM", itemInfoSchema)
+        .build();
+
+    final KsqlTopic nestedArrayStructMapTopic = new KsqlTopic(
+        "NestedArrayStructMap_topic",
+        keyFormat,
+        valueFormat,
+        false
+    );
 
     final KsqlStream<?> nestedArrayStructMapOrders = new KsqlStream<>(
         "sqlexpression",
         "NESTED_STREAM",
-        LogicalSchema.of(nestedArrayStructMapSchema),
+        nestedArrayStructMapSchema,
         SerdeOption.none(),
         KeyField.none(),
         timestampExtractionPolicy,
-        nestedArrayStructMapTopic,
-        Serdes::String
+        nestedArrayStructMapTopic
     );
 
     metaStore.putSource(nestedArrayStructMapOrders);
 
-    final KsqlTopic ksqlTopic4 =
-        new KsqlTopic("TEST4", "test4", valueSerdeFactory, false);
+    final KsqlTopic ksqlTopic4 = new KsqlTopic(
+        "test4",
+        keyFormat,
+        valueFormat,
+        false
+    );
 
     final KsqlStream<?> ksqlStream4 = new KsqlStream<>(
         "sqlexpression4",
         "TEST4",
-        LogicalSchema.of(test1Schema),
+        test1Schema,
         SerdeOption.none(),
         KeyField.none(),
         timestampExtractionPolicy,
-        ksqlTopic4,
-        Serdes::String
+        ksqlTopic4
     );
 
     metaStore.putSource(ksqlStream4);

@@ -30,8 +30,8 @@ import org.apache.kafka.common.metrics.KafkaMetric;
 import org.apache.kafka.common.metrics.MeasurableStat;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.metrics.Sensor;
+import org.apache.kafka.common.metrics.stats.CumulativeSum;
 import org.apache.kafka.common.metrics.stats.Rate;
-import org.apache.kafka.common.metrics.stats.Total;
 
 public final class StreamsErrorCollector implements MetricCollector {
   public static final String CONSUMER_FAILED_MESSAGES = "consumer-failed-messages";
@@ -64,7 +64,7 @@ public final class StreamsErrorCollector implements MetricCollector {
     final List<TopicSensors.SensorMetric<Object>> sensors = new ArrayList<>();
     synchronized (this.metrics) {
       sensors.add(
-          buildSensor(topic, CONSUMER_FAILED_MESSAGES, new Total(), o -> 1.0));
+          buildSensor(topic, CONSUMER_FAILED_MESSAGES, new CumulativeSum(), o -> 1.0));
       sensors.add(
           buildSensor(topic, CONSUMER_FAILED_MESSAGES_PER_SEC, new Rate(), o -> 1.0));
     };

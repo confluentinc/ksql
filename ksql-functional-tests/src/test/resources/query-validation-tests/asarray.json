@@ -1,0 +1,22 @@
+{
+  "comments": [
+    "Tests covering AS_LIST functionality with generics"
+  ],
+  "tests": [
+    {
+      "name": "construct a list from two elements",
+      "statements": [
+        "CREATE STREAM TEST (a INT, b INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT as_array(a, b, 3) as l FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": {"a":  1, "b":  2}},
+        {"topic": "test_topic", "value": {"a": null, "b":  null}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"L": [1, 2, 3]}},
+        {"topic": "OUTPUT", "value": {"L": [null, null, 3]}}
+      ]
+    }
+  ]
+}

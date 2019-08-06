@@ -47,7 +47,8 @@ public class KsqlAuthorizationFilter implements ContainerRequestFilter  {
     try {
       authorizationProvider.checkEndpointAccess(user, method, path);
     } catch (final Throwable t) {
-      log.warn(String.format("User:%s is denied access to \"%s %s\"", user, method, path), t);
+      log.warn(String.format("User:%s is denied access to \"%s %s\"",
+          user.getName(), method, path), t);
       requestContext.abortWith(Errors.accessDenied(t.getMessage()));
     }
   }

@@ -80,7 +80,7 @@ public class PhysicalSchemaTest {
         .from(SCHEMA_WITH_MULTIPLE_FIELDS, SerdeOption.none());
 
     // Then:
-    assertThat(result.valueSchema().getConnectSchema(),
+    assertThat(result.valueSchema().serializedSchema(),
         is(SCHEMA_WITH_MULTIPLE_FIELDS.valueSchema()));
   }
 
@@ -103,7 +103,7 @@ public class PhysicalSchemaTest {
         .from(SCHEMA_WITH_SINGLE_FIELD, SerdeOption.none());
 
     // Then:
-    assertThat(result.valueSchema().getConnectSchema(),
+    assertThat(result.valueSchema().serializedSchema(),
         is(SCHEMA_WITH_SINGLE_FIELD.valueSchema()));
   }
 
@@ -114,7 +114,7 @@ public class PhysicalSchemaTest {
         .from(SCHEMA_WITH_SINGLE_FIELD, SerdeOption.of(SerdeOption.UNWRAP_SINGLE_VALUES));
 
     // Then:
-    assertThat(result.valueSchema().getConnectSchema(),
-        is(SCHEMA_WITH_SINGLE_FIELD.valueFields().get(0).schema()));
+    assertThat(result.valueSchema().serializedSchema(),
+        is(SCHEMA_WITH_SINGLE_FIELD.valueSchema().fields().get(0).schema()));
   }
 }

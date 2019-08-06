@@ -20,18 +20,18 @@ import static java.util.Objects.requireNonNull;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.UdafAggregator;
-import io.confluent.ksql.metastore.SerdeFactory;
+import io.confluent.ksql.model.WindowType;
+import io.confluent.ksql.serde.WindowInfo;
 import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Initializer;
 import org.apache.kafka.streams.kstream.KGroupedStream;
 import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.kstream.TimeWindows;
-import org.apache.kafka.streams.kstream.Windowed;
-import org.apache.kafka.streams.kstream.WindowedSerdes;
 
 @Immutable
 public class HoppingWindowExpression extends KsqlWindowExpression {
@@ -64,20 +64,12 @@ public class HoppingWindowExpression extends KsqlWindowExpression {
     this.advanceByUnit = requireNonNull(advanceByUnit, "advanceByUnit");
   }
 
-  public long getSize() {
-    return size;
-  }
-
-  public TimeUnit getSizeUnit() {
-    return sizeUnit;
-  }
-
-  public long getAdvanceBy() {
-    return advanceBy;
-  }
-
-  public TimeUnit getAdvanceByUnit() {
-    return advanceByUnit;
+  @Override
+  public WindowInfo getWindowInfo() {
+    return WindowInfo.of(
+        WindowType.HOPPING,
+        Optional.of(Duration.ofNanos(sizeUnit.toNanos(size)))
+    );
   }
 
   @Override
@@ -116,7 +108,7 @@ public class HoppingWindowExpression extends KsqlWindowExpression {
       final KGroupedStream groupedStream,
       final Initializer initializer,
       final UdafAggregator aggregator,
-      final Materialized<String, GenericRow, ?> materialized
+      final Materialized<Struct, GenericRow, ?> materialized
   ) {
     final TimeWindows windows = TimeWindows
         .of(Duration.ofMillis(sizeUnit.toMillis(size)))
@@ -125,10 +117,5 @@ public class HoppingWindowExpression extends KsqlWindowExpression {
     return groupedStream
         .windowedBy(windows)
         .aggregate(initializer, aggregator, materialized);
-  }
-
-  @Override
-  public <K> SerdeFactory<Windowed<K>> getKeySerdeFactory(final Class<K> innerType) {
-    return () -> WindowedSerdes.timeWindowedSerdeFrom(innerType);
   }
 }

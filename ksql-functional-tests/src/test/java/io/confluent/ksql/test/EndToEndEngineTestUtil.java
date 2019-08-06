@@ -24,7 +24,6 @@ import com.fasterxml.jackson.databind.ObjectWriter;
 import com.fasterxml.jackson.databind.node.NullNode;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import io.confluent.connect.avro.AvroData;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
@@ -75,7 +74,6 @@ import java.util.stream.Stream;
 import org.apache.avro.generic.GenericData;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.TopologyTestDriver;
 import org.apache.kafka.test.TestUtils;
@@ -155,18 +153,23 @@ final class EndToEndEngineTestUtil {
       final PersistentQueryMetadata persistentQueryMetadata
           = (PersistentQueryMetadata) queryMetadata;
       final String sinkKafkaTopicName = metaStore
-          .getSource(Iterables.getOnlyElement(persistentQueryMetadata.getSinkNames()))
+          .getSource(persistentQueryMetadata.getSinkName())
           .getKafkaTopicName();
 
+      final SerdeSupplier<?> keySerdes = SerdeUtil.getKeySerdeSupplier(
+          persistentQueryMetadata.getResultTopic().getKeyFormat(),
+          queryMetadata::getLogicalSchema
+      );
+
       final SerdeSupplier<?> valueSerdes = SerdeUtil.getSerdeSupplier(
-          persistentQueryMetadata.getResultTopic().getValueSerdeFactory().getFormat(),
+          persistentQueryMetadata.getResultTopic().getValueFormat().getFormat(),
           queryMetadata::getLogicalSchema
       );
 
       final Topic sinkTopic = new Topic(
           sinkKafkaTopicName,
           Optional.empty(),
-          Serdes::String,
+          keySerdes,
           valueSerdes,
           1,
           1,
@@ -231,7 +234,7 @@ final class EndToEndEngineTestUtil {
             .collect(Collectors.toList()),
         fakeKafkaService.getTopic(
             ksqlEngine.getMetaStore()
-                .getSource(persistentQueryMetadata.getSinkNames().iterator().next())
+                .getSource(persistentQueryMetadata.getSinkName())
                 .getKafkaTopicName())
     );
   }

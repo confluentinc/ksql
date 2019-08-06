@@ -30,8 +30,11 @@ import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientExcept
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
-import io.confluent.ksql.serde.avro.KsqlAvroSerdeFactory;
+import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.connect.ConnectSchemaTranslator;
 import java.io.IOException;
 import java.util.Collections;
@@ -45,6 +48,8 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class AvroUtilTest {
+
+  private static final String STREAM_NAME = "some-stream";
 
   private static final String AVRO_SCHEMA_STRING = "{"
       + "\"namespace\": \"some.namespace\","
@@ -76,9 +81,9 @@ public class AvroUtilTest {
       toKsqlSchema(SINGLE_FIELD_AVRO_SCHEMA_STRING);
 
   private static final KsqlTopic RESULT_TOPIC = new KsqlTopic(
-      "registered-name",
       "actual-name",
-      new KsqlAvroSerdeFactory(KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME),
+      KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
+      ValueFormat.of(FormatInfo.of(Format.AVRO)),
       false);
 
   @Rule
@@ -96,7 +101,8 @@ public class AvroUtilTest {
 
     when(persistentQuery.getResultTopic()).thenReturn(RESULT_TOPIC);
     when(persistentQuery.getResultTopicFormat())
-        .thenReturn(RESULT_TOPIC.getValueSerdeFactory().getFormat());
+        .thenReturn(RESULT_TOPIC.getValueFormat().getFormat());
+    when(persistentQuery.getSinkName()).thenReturn(STREAM_NAME);
   }
 
   @Test
@@ -114,7 +120,7 @@ public class AvroUtilTest {
     final PhysicalSchema schema = PhysicalSchema.from(MUTLI_FIELD_SCHEMA, SerdeOption.none());
 
     final org.apache.avro.Schema expectedAvroSchema = SchemaUtil
-        .buildAvroSchema(schema.valueSchema(), RESULT_TOPIC.getKsqlTopicName());
+        .buildAvroSchema(schema.valueSchema(), STREAM_NAME);
 
     // When:
     AvroUtil.isValidSchemaEvolution(persistentQuery, srClient);
@@ -132,7 +138,7 @@ public class AvroUtilTest {
     when(persistentQuery.getPhysicalSchema()).thenReturn(schema);
 
     final org.apache.avro.Schema expectedAvroSchema = SchemaUtil
-        .buildAvroSchema(schema.valueSchema(), RESULT_TOPIC.getKsqlTopicName());
+        .buildAvroSchema(schema.valueSchema(), STREAM_NAME);
 
     // When:
     AvroUtil.isValidSchemaEvolution(persistentQuery, srClient);
@@ -150,7 +156,7 @@ public class AvroUtilTest {
     when(persistentQuery.getPhysicalSchema()).thenReturn(schema);
 
     final org.apache.avro.Schema expectedAvroSchema = SchemaUtil
-        .buildAvroSchema(schema.valueSchema(), RESULT_TOPIC.getKsqlTopicName());
+        .buildAvroSchema(schema.valueSchema(), STREAM_NAME);
 
     // When:
     AvroUtil.isValidSchemaEvolution(persistentQuery, srClient);

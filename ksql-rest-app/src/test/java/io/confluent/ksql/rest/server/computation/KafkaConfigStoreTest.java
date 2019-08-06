@@ -15,7 +15,9 @@
 
 package io.confluent.ksql.rest.server.computation;
 
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -31,7 +33,9 @@ import io.confluent.ksql.rest.util.InternalTopicJsonSerdeUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -47,18 +51,12 @@ import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
 import org.junit.Before;
 import org.junit.Test;
-
-import java.util.Collections;
-import java.util.List;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
-
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.junit.Assert.assertThat;
 
 @RunWith(MockitoJUnitRunner.class)
 public class KafkaConfigStoreTest {
@@ -72,13 +70,13 @@ public class KafkaConfigStoreTest {
       ImmutableMap.of(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG, "bad"));
 
   private final KsqlProperties properties = new KsqlProperties(
-      filterNullValues(currentConfig.getAllConfigPropsWithSecretsObfuscated())
+      currentConfig.getAllConfigPropsWithSecretsObfuscated()
   );
   private final KsqlProperties savedProperties = new KsqlProperties(
-      filterNullValues(savedConfig.getAllConfigPropsWithSecretsObfuscated())
+      savedConfig.getAllConfigPropsWithSecretsObfuscated()
   );
   private final KsqlProperties badProperties = new KsqlProperties(
-      filterNullValues(badConfig.getAllConfigPropsWithSecretsObfuscated())
+      badConfig.getAllConfigPropsWithSecretsObfuscated()
   );
 
   private final TopicPartition topicPartition = new TopicPartition(TOPIC_NAME, 0);
@@ -107,7 +105,6 @@ public class KafkaConfigStoreTest {
   private InOrder inOrder;
 
   @Before
-  @SuppressWarnings("unchecked")
   public void setUp() {
     when(producerSupplier.get()).thenReturn(producer);
     when(consumerSupplier.get()).thenReturn(consumerBefore).thenReturn(consumerAfter);

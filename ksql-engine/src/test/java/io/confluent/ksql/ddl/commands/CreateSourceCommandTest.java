@@ -35,6 +35,7 @@ import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.Type.SqlType;
 import io.confluent.ksql.services.KafkaTopicClient;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Collections;
 import java.util.HashMap;
@@ -62,12 +63,16 @@ public class CreateSourceCommandTest {
   @Mock
   private KafkaTopicClient kafkaTopicClient;
 
+  private KsqlConfig ksqlConfig;
+
   @Before
   public void setUp() {
     when(statement.getElements()).thenReturn(SOME_ELEMENTS);
     when(statement.getName()).thenReturn(QualifiedName.of("bob"));
     givenPropertiesWith(ImmutableMap.of());
     when(kafkaTopicClient.isTopicExists(any())).thenReturn(true);
+
+    ksqlConfig = new KsqlConfig(ImmutableMap.of());
   }
 
   @Test
@@ -81,7 +86,7 @@ public class CreateSourceCommandTest {
         "The statement does not define any columns.");
 
     // When:
-    new TestCmd("look mum, no columns", statement, kafkaTopicClient);
+    new TestCmd("look mum, no columns", statement, ksqlConfig, kafkaTopicClient);
   }
 
   @Test
@@ -90,7 +95,7 @@ public class CreateSourceCommandTest {
     when(statement.getElements()).thenReturn(SOME_ELEMENTS);
 
     // When:
-    new TestCmd("look mum, columns", statement, kafkaTopicClient);
+    new TestCmd("look mum, columns", statement, ksqlConfig, kafkaTopicClient);
 
     // Then: not exception thrown
   }
@@ -105,7 +110,7 @@ public class CreateSourceCommandTest {
     expectedException.expectMessage("Kafka topic does not exist: " + TOPIC_NAME);
 
     // When:
-    new TestCmd("what, no value topic?", statement, kafkaTopicClient);
+    new TestCmd("what, no value topic?", statement, ksqlConfig, kafkaTopicClient);
   }
 
   @Test
@@ -114,7 +119,7 @@ public class CreateSourceCommandTest {
     when(kafkaTopicClient.isTopicExists(TOPIC_NAME)).thenReturn(true);
 
     // When:
-    new TestCmd("what, no value topic?", statement, kafkaTopicClient);
+    new TestCmd("what, no value topic?", statement, ksqlConfig, kafkaTopicClient);
 
     // Then:
     verify(kafkaTopicClient).isTopicExists(TOPIC_NAME);
@@ -133,7 +138,7 @@ public class CreateSourceCommandTest {
             + "'WILL-NOT-FIND-ME'");
 
     // When:
-    new TestCmd("key not in schema!", statement, kafkaTopicClient);
+    new TestCmd("key not in schema!", statement, ksqlConfig, kafkaTopicClient);
   }
 
   @Test
@@ -150,7 +155,7 @@ public class CreateSourceCommandTest {
             + "'WILL-NOT-FIND-ME'");
 
     // When:
-    new TestCmd("key not in schema!", statement, kafkaTopicClient);
+    new TestCmd("key not in schema!", statement, ksqlConfig, kafkaTopicClient);
   }
 
   private static Map<String, Literal> minValidProps() {
@@ -178,9 +183,10 @@ public class CreateSourceCommandTest {
     private TestCmd(
         final String sqlExpression,
         final CreateSource statement,
+        final KsqlConfig ksqlConfig,
         final KafkaTopicClient kafkaTopicClient
     ) {
-      super(sqlExpression, statement, kafkaTopicClient);
+      super(sqlExpression, statement, ksqlConfig, kafkaTopicClient);
     }
 
     @Override

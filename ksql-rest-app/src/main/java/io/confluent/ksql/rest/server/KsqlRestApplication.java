@@ -286,6 +286,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
                 .put(DdlConfig.TOPIC_NAME_PROPERTY, new StringLiteral(COMMANDS_KSQL_TOPIC_NAME))
                 .build()
         ),
+        ksqlConfig,
         serviceContext.getTopicClient()
     ));
 

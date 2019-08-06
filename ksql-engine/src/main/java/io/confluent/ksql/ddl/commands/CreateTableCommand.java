@@ -19,6 +19,7 @@ import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.services.KafkaTopicClient;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 
 public class CreateTableCommand extends CreateSourceCommand {
@@ -26,9 +27,10 @@ public class CreateTableCommand extends CreateSourceCommand {
   CreateTableCommand(
       final String sqlExpression,
       final CreateTable createTable,
+      final KsqlConfig ksqlConfig,
       final KafkaTopicClient kafkaTopicClient
   ) {
-    super(sqlExpression, createTable, kafkaTopicClient);
+    super(sqlExpression, createTable, ksqlConfig, kafkaTopicClient);
   }
 
   @Override

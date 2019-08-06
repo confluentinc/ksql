@@ -37,6 +37,7 @@ import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.Type.SqlType;
 import io.confluent.ksql.services.KafkaTopicClient;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.Collections;
@@ -67,6 +68,8 @@ public class CreateStreamCommandTest {
   private KafkaTopicClient topicClient;
   @Mock
   private CreateStream createStreamStatement;
+  @Mock
+  private KsqlConfig ksqlConfig;
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -190,7 +193,11 @@ public class CreateStreamCommandTest {
   }
 
   private CreateStreamCommand createCmd() {
-    return new CreateStreamCommand("some sql", createStreamStatement, topicClient);
+    return new CreateStreamCommand(
+        "some sql",
+        createStreamStatement,
+        ksqlConfig,
+        topicClient);
   }
 
   private void givenPropertiesWith(final Map<String, Literal> props) {

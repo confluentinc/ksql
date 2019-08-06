@@ -29,6 +29,7 @@ import io.confluent.ksql.parser.tree.ExecutableDdlStatement;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.services.SandboxedServiceContext;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -154,6 +155,7 @@ final class EngineContext {
   String executeDdlStatement(
       final String sqlExpression,
       final ExecutableDdlStatement statement,
+      final KsqlConfig ksqlConfig,
       final Map<String, Object> overriddenProperties
   ) {
     KsqlEngineProps.throwOnImmutableOverride(overriddenProperties);
@@ -161,6 +163,7 @@ final class EngineContext {
     final DdlCommand command = ddlCommandFactory.create(
         sqlExpression,
         statement,
+        ksqlConfig,
         overriddenProperties
     );
 

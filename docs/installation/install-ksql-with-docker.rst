@@ -10,7 +10,7 @@ the `KSQL command-line interface (CLI) <https://hub.docker.com/r/confluentinc/cp
 
 KSQL runs separately from your |ak-tm| cluster, so you specify the IP addresses
 of the cluster's bootstrap servers when you start a container for KSQL Server.
-To set up |cp| by using containers, see :ref:`single-node-basic`.
+To set up |cp| by using containers, see :ref:`ce-docker-quickstart`.
 
 Use the following settings to start containers that run KSQL in various
 configurations.

@@ -31,10 +31,6 @@ import org.apache.kafka.connect.data.Field;
 
 public class KafkaSerdeSupplier implements SerdeSupplier<Object> {
 
-  public Supplier<LogicalSchema> getSchemaSupplier() {
-    return schemaSupplier;
-  }
-
   private final Supplier<LogicalSchema> schemaSupplier;
 
   public KafkaSerdeSupplier(final Supplier<LogicalSchema> schemaSupplier) {

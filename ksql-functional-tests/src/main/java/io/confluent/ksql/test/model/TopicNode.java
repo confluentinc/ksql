@@ -51,9 +51,6 @@ class TopicNode {
       @JsonProperty("partitions") final Integer numPartitions,
       @JsonProperty("replicas") final Integer replicas
   ) {
-    if (name.equalsIgnoreCase("INNER_JOIN")) {
-      System.out.println("Foo");
-    }
     this.name = name == null ? "" : name;
     this.avroSchema = buildAvroSchema(requireNonNull(schema, "schema"));
     this.format = format == null ? "" : format;

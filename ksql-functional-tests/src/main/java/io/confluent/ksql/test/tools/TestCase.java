@@ -386,6 +386,7 @@ public class TestCase implements Test {
         )
     );
     expectedOutput.keySet().forEach(kafkaTopic -> validateTopicData(
+        kafkaTopic,
         expectedOutput.get(kafkaTopic),
         outputRecordsFromKafka.get(kafkaTopic),
         inputRecords.size() == 0
@@ -393,12 +394,13 @@ public class TestCase implements Test {
   }
 
   private static void validateTopicData(
+      final String topicName,
       final List<FakeKafkaRecord> expected,
       final List<FakeKafkaRecord> actual,
       final boolean ranWithInsertStatements) {
     if (actual.size() != expected.size()) {
       throw new KsqlException("Expected <" + expected.size()
-          + "> records but it was <" + actual.size() + ">");
+          + "> records but it was <" + actual.size() + ">, topic: " + topicName);
     }
     for (int i = 0; i < expected.size(); i++) {
       final ProducerRecord<?, ?> actualProducerRecord = actual.get(i).getProducerRecord();

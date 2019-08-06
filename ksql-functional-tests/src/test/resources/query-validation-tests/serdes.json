@@ -39,7 +39,7 @@
       "topics": [
         {
           "name": "input_topic",
-
+          "schema": "int",
           "format": "{FORMAT}"
         }
       ],

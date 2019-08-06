@@ -498,27 +498,9 @@ final class EndToEndEngineTestUtil {
 
   static void shouldBuildAndExecuteQuery(final TestCase testCase) {
 
-
-//    try (final ServiceContext serviceContext = getServiceContext();
-//        final KsqlEngine ksqlEngine = getKsqlEngine(serviceContext)
     final TestExecutor testExecutor = new TestExecutor();
     try {
       testExecutor.buildAndExecuteQuery(testCase);
-//      testCase.initializeTopics(
-//          serviceContext.getTopicClient(),
-//          fakeKafkaService,
-//          serviceContext.getSchemaRegistryClient());
-//
-//      final TopologyTestDriverContainer topologyTestDriverContainer =
-//          buildStreamsTopologyTestDriverContainer(
-//              testCase,
-//              serviceContext,
-//              ksqlEngine);
-//
-//      testCase.verifyTopology();
-//      testCase.processInput(topologyTestDriverContainer, serviceContext.getSchemaRegistryClient());
-//      testCase.verifyOutput(topologyTestDriverContainer, serviceContext.getSchemaRegistryClient());
-//      testCase.verifyMetastore(ksqlEngine.getMetaStore());
     } catch (final RuntimeException e) {
       testCase.handleException(e);
     } catch (final AssertionError e) {
@@ -556,28 +538,6 @@ final class EndToEndEngineTestUtil {
       case STRING:
         return avro.toString();
       case ARRAY:
-//        if (schema.getElementType().getName().equals(AvroData.MAP_ENTRY_TYPE_NAME) ||
-//            Objects.equals(
-//                schema.getElementType().getProp(AvroData.CONNECT_INTERNAL_TYPE_NAME),
-//                AvroData.MAP_ENTRY_TYPE_NAME)
-//            ) {
-//          final org.apache.avro.Schema valueSchema
-//              = schema.getElementType().getField("value").schema();
-//          return  ((List) avro).stream()
-//              .map(o -> ImmutableMap.of(
-//                  ((GenericData.Record) o).get("key").toString(),
-//                  (avroToValueSpec(((GenericData.Record) o).get("value"), valueSchema, toUpper))
-//              ))
-//              .collect(Collectors.toList()
-//          );
-////          return mm;
-//          return ((List) avro).stream().collect(
-//              Collectors.toMap(
-//                  m -> ((GenericData.Record) m).get("key").toString(),
-//                  m -> (avroToValueSpec(((GenericData.Record) m).get("value"), valueSchema, toUpper))
-//              )
-//          );
-//        }
         if (schema.getElementType().getName().equals(AvroData.MAP_ENTRY_TYPE_NAME) ||
             Objects.equals(
                 schema.getElementType().getProp(AvroData.CONNECT_INTERNAL_TYPE_NAME),

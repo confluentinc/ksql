@@ -35,14 +35,12 @@ import io.confluent.ksql.parser.tree.InsertValues;
 import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Relation;
-import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.inference.DefaultSchemaInjector;
 import io.confluent.ksql.schema.ksql.inference.SchemaRegistryTopicSchemaSupplier;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.test.serde.SerdeSupplier;
-import io.confluent.ksql.test.serde.kafka.KafkaSerdeSupplier;
 import io.confluent.ksql.test.utils.SerdeUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
@@ -132,12 +130,6 @@ final class TestExecutorUtil {
         sinkDataSource.getKsqlTopic().getKeyFormat(),
         sinkDataSource::getSchema
     );
-
-    if (keySerdeFactory instanceof KafkaSerdeSupplier) {
-      KafkaSerdeSupplier serdeSupplier = (KafkaSerdeSupplier) keySerdeFactory;
-      LogicalSchema l = serdeSupplier.getSchemaSupplier().get();
-      System.out.println("Foo");
-    }
 
     final SerdeSupplier<?> valueSerdeSupplier = SerdeUtil.getSerdeSupplier(
         sinkDataSource.getKsqlTopic().getValueFormat().getFormat(),

@@ -224,9 +224,6 @@ public class TestCaseNode {
       throw new InvalidFieldException("statements/topics", "The test does not define any topics");
     }
 
-    final SerdeSupplier defaultKeySerdeSupplier =
-        allTopics.values().iterator().next().getKeySerdeSupplier();
-
     final SerdeSupplier defaultValueSerdeSupplier =
         allTopics.values().iterator().next().getValueSerdeSupplier();
 
@@ -235,7 +232,6 @@ public class TestCaseNode {
         .map(recordNode -> new Topic(
             recordNode.topicName(),
             Optional.empty(),
-//            defaultKeySerdeSupplier,
             getKeySedeSupplier(recordNode.getWindow()),
             defaultValueSerdeSupplier,
             4,
@@ -246,7 +242,7 @@ public class TestCaseNode {
     return allTopics;
   }
 
-  private static SerdeSupplier getKeySedeSupplier(final Optional<WindowData> windowDataInfo) {
+  private static SerdeSupplier<?> getKeySedeSupplier(final Optional<WindowData> windowDataInfo) {
     if (windowDataInfo.isPresent()) {
       final WindowData windowData = windowDataInfo.get();
       final WindowType windowType = WindowType.of((windowData.type == Type.SESSION)
@@ -260,11 +256,11 @@ public class TestCaseNode {
               windowType == WindowType.SESSION
               ? Optional.empty() : Optional.of(Duration.ofMillis(windowData.size())))
       );
-//      final SerdeSupplier serdeSupplier = SerdeUtil.getKeySerdeSupplier(windowKeyFormat, () -> LogicalSchema.builder().build());
       return SerdeUtil.getKeySerdeSupplier(windowKeyFormat, () -> LogicalSchema.builder().build());
     }
-    return SerdeUtil.getKeySerdeSupplier(KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)), () -> LogicalSchema.builder().build());
-//    return null;
+    return SerdeUtil.getKeySerdeSupplier(
+        KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
+        () -> LogicalSchema.builder().build());
   }
 
   private static Topic createTopicFromStatement(

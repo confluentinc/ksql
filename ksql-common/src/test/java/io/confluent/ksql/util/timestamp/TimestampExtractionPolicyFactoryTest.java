@@ -19,11 +19,19 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import java.util.Collections;
 import java.util.Optional;
+import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.streams.StreamsConfig;
+import org.apache.kafka.streams.processor.FailOnInvalidTimestamp;
+import org.apache.kafka.streams.processor.UsePreviousTimeOnInvalidTimestamp;
+import org.junit.Before;
 import org.junit.Test;
 
 public class TimestampExtractionPolicyFactoryTest {
@@ -32,14 +40,101 @@ public class TimestampExtractionPolicyFactoryTest {
   private final SchemaBuilder schemaBuilder = SchemaBuilder.struct()
       .field("id", Schema.OPTIONAL_INT64_SCHEMA);
 
+  private KsqlConfig ksqlConfig;
+
+  @Before
+  public void setup() {
+    ksqlConfig = new KsqlConfig(Collections.emptyMap());
+  }
+
   @Test
   public void shouldCreateMetadataPolicyWhenTimestampFieldNotProvided() {
     // When:
     final TimestampExtractionPolicy result = TimestampExtractionPolicyFactory
-        .create(KsqlSchema.of(schemaBuilder.build()), Optional.empty(), Optional.empty());
+        .create(
+            ksqlConfig,
+            KsqlSchema.of(schemaBuilder.build()),
+            Optional.empty(),
+            Optional.empty()
+        );
 
     // Then:
     assertThat(result, instanceOf(MetadataTimestampExtractionPolicy.class));
+    assertThat(result.create(0), instanceOf(FailOnInvalidTimestamp.class));
+  }
+
+  @Test(expected = ConfigException.class)
+  public void shouldThrowIfTimestampExtractorConfigIsNotAClass() {
+    // Given:
+    final KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of(
+        StreamsConfig.DEFAULT_TIMESTAMP_EXTRACTOR_CLASS_CONFIG,
+        "No timestamp class"
+    ));
+
+    // Then/When:
+    final TimestampExtractionPolicy result = TimestampExtractionPolicyFactory
+        .create(
+            ksqlConfig,
+            KsqlSchema.of(schemaBuilder.build()),
+            Optional.empty(),
+            Optional.empty()
+        );
+  }
+
+  @Test(expected = KsqlException.class)
+  public void shouldThrowIfTimestampExtractorConfigIsInvalidClass() {
+    // Given:
+    final KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of(
+        StreamsConfig.DEFAULT_TIMESTAMP_EXTRACTOR_CLASS_CONFIG,
+        this.getClass()
+    ));
+
+    // Then/When:
+    final TimestampExtractionPolicy result = TimestampExtractionPolicyFactory
+        .create(
+            ksqlConfig,
+            KsqlSchema.of(schemaBuilder.build()),
+            Optional.empty(),
+            Optional.empty()
+        );
+  }
+
+  @Test
+  public void shouldCreateMetadataPolicyWithDefaultFailedOnInvalidTimestamp() {
+    // When:
+    final TimestampExtractionPolicy result = TimestampExtractionPolicyFactory
+        .create(
+            ksqlConfig,
+            KsqlSchema.of(schemaBuilder.build()),
+            Optional.empty(),
+            Optional.empty()
+        );
+
+    // Then:
+    assertThat(result, instanceOf(MetadataTimestampExtractionPolicy.class));
+    assertThat(result.create(0), instanceOf(FailOnInvalidTimestamp.class));
+  }
+
+  @Test
+  public void shouldCreateMetadataPolicyWithConfiguredUsePreviousTimeOnInvalidTimestamp() {
+    // Given:
+    final KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of(
+        StreamsConfig.DEFAULT_TIMESTAMP_EXTRACTOR_CLASS_CONFIG,
+        UsePreviousTimeOnInvalidTimestamp.class
+    ));
+
+    // When:
+    final TimestampExtractionPolicy result = TimestampExtractionPolicyFactory
+        .create(
+            ksqlConfig,
+            KsqlSchema.of(schemaBuilder.build()),
+            Optional.empty(),
+            Optional.empty()
+        );
+
+    // Then:
+    assertThat(result, instanceOf(MetadataTimestampExtractionPolicy.class));
+    assertThat(result.create(0), instanceOf(UsePreviousTimeOnInvalidTimestamp.class));
   }
 
   @Test
@@ -52,7 +147,7 @@ public class TimestampExtractionPolicyFactoryTest {
 
     // When:
     final TimestampExtractionPolicy result = TimestampExtractionPolicyFactory
-        .create(KsqlSchema.of(schema), Optional.of(timestamp), Optional.empty());
+        .create(ksqlConfig, KsqlSchema.of(schema), Optional.of(timestamp), Optional.empty());
 
     // Then:
     assertThat(result, instanceOf(LongColumnTimestampExtractionPolicy.class));
@@ -62,7 +157,12 @@ public class TimestampExtractionPolicyFactoryTest {
   @Test(expected = KsqlException.class)
   public void shouldFailIfCantFindTimestampField() {
     TimestampExtractionPolicyFactory
-        .create(KsqlSchema.of(schemaBuilder.build()), Optional.of("whateva"), Optional.empty());
+        .create(
+            ksqlConfig,
+            KsqlSchema.of(schemaBuilder.build()),
+            Optional.of("whateva"),
+            Optional.empty()
+        );
   }
 
   @Test
@@ -75,7 +175,7 @@ public class TimestampExtractionPolicyFactoryTest {
 
     // When:
     final TimestampExtractionPolicy result = TimestampExtractionPolicyFactory
-        .create(KsqlSchema.of(schema), Optional.of(field), Optional.of("yyyy-MM-DD"));
+        .create(ksqlConfig, KsqlSchema.of(schema), Optional.of(field), Optional.of("yyyy-MM-DD"));
 
     // Then:
     assertThat(result, instanceOf(StringTimestampExtractionPolicy.class));
@@ -92,7 +192,7 @@ public class TimestampExtractionPolicyFactoryTest {
 
     // When:
     TimestampExtractionPolicyFactory
-        .create(KsqlSchema.of(schema), Optional.of(field), Optional.empty());
+        .create(ksqlConfig, KsqlSchema.of(schema), Optional.of(field), Optional.empty());
   }
 
   @Test(expected = KsqlException.class)
@@ -105,7 +205,7 @@ public class TimestampExtractionPolicyFactoryTest {
 
     // When:
     TimestampExtractionPolicyFactory
-        .create(KsqlSchema.of(schema), Optional.of(timestamp), Optional.of("b"));
+        .create(ksqlConfig, KsqlSchema.of(schema), Optional.of(timestamp), Optional.of("b"));
   }
 
   @Test(expected = KsqlException.class)
@@ -118,6 +218,6 @@ public class TimestampExtractionPolicyFactoryTest {
 
     // When:
     TimestampExtractionPolicyFactory
-        .create(KsqlSchema.of(schema), Optional.of(field), Optional.empty());
+        .create(ksqlConfig, KsqlSchema.of(schema), Optional.of(field), Optional.empty());
   }
 }

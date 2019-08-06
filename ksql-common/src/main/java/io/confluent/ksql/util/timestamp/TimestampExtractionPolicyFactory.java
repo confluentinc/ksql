@@ -17,10 +17,16 @@ package io.confluent.ksql.util.timestamp;
 
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+
+import java.util.Collections;
 import java.util.Optional;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.streams.StreamsConfig;
+import org.apache.kafka.streams.processor.FailOnInvalidTimestamp;
+import org.apache.kafka.streams.processor.TimestampExtractor;
 
 public final class TimestampExtractionPolicyFactory {
 
@@ -32,8 +38,22 @@ public final class TimestampExtractionPolicyFactory {
       final Optional<String> timestampColumnName,
       final Optional<String> timestampFormat
   ) {
+    return create(
+        new KsqlConfig(Collections.emptyMap()),
+        schema,
+        timestampColumnName,
+        timestampFormat
+    );
+  }
+
+  public static TimestampExtractionPolicy create(
+      final KsqlConfig ksqlConfig,
+      final KsqlSchema schema,
+      final Optional<String> timestampColumnName,
+      final Optional<String> timestampFormat
+  ) {
     if (!timestampColumnName.isPresent()) {
-      return new MetadataTimestampExtractionPolicy();
+      return new MetadataTimestampExtractionPolicy(getDefaultTimestampExtractor(ksqlConfig));
     }
 
     final String fieldName = timestampColumnName.get().toUpperCase();
@@ -71,4 +91,17 @@ public final class TimestampExtractionPolicyFactory {
             + " specified");
   }
 
+  private static TimestampExtractor getDefaultTimestampExtractor(final KsqlConfig ksqlConfig) {
+    try {
+      final Class<?> timestampExtractorClass = (Class<?>) ksqlConfig.getKsqlStreamConfigProps()
+          .getOrDefault(
+              StreamsConfig.DEFAULT_TIMESTAMP_EXTRACTOR_CLASS_CONFIG,
+              FailOnInvalidTimestamp.class
+          );
+
+      return (TimestampExtractor) timestampExtractorClass.newInstance();
+    } catch (final Exception e) {
+      throw new KsqlException("Cannot override default timestamp extractor: " + e.getMessage(), e);
+    }
+  }
 }

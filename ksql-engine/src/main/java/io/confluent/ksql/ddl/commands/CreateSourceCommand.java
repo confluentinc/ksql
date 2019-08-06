@@ -94,7 +94,7 @@ abstract class CreateSourceCommand implements DdlCommand {
     final Optional<String> timestampName = properties.getTimestampName();
     final Optional<String> timestampFormat = properties.getTimestampFormat();
     this.timestampExtractionPolicy = TimestampExtractionPolicyFactory
-        .create(schema, timestampName, timestampFormat);
+        .create(ksqlConfig, schema, timestampName, timestampFormat);
 
     this.keySerdeFactory = extractKeySerde(properties);
   }

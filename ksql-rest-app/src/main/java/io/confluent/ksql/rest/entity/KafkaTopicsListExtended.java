@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2019 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -18,32 +18,29 @@ package io.confluent.ksql.rest.entity;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.google.common.base.Preconditions;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-@JsonSubTypes({})
-public class KafkaTopicInfo {
+public class KafkaTopicsListExtended extends KsqlEntity {
 
-  private final String name;
-  private final List<Integer> replicaInfo;
+  private final Collection<KafkaTopicInfoExtended> topics;
 
   @JsonCreator
-  public KafkaTopicInfo(
-      @JsonProperty("name") final String name,
-      @JsonProperty("replicaInfo") final List<Integer> replicaInfo
+  public KafkaTopicsListExtended(
+      @JsonProperty("statementText") final String statementText,
+      @JsonProperty("topics") final Collection<KafkaTopicInfoExtended> topics
   ) {
-    this.name = name;
-    this.replicaInfo = replicaInfo;
+    super(statementText);
+    Preconditions.checkNotNull(topics, "topics field must not be null");
+    this.topics = topics;
   }
 
-  public String getName() {
-    return name;
-  }
-
-  public List<Integer> getReplicaInfo() {
-    return replicaInfo;
+  public List<KafkaTopicInfoExtended> getTopics() {
+    return new ArrayList<>(topics);
   }
 
   @Override
@@ -51,15 +48,15 @@ public class KafkaTopicInfo {
     if (this == o) {
       return true;
     }
-    if (o == null || getClass() != o.getClass()) {
+    if (!(o instanceof KafkaTopicsListExtended)) {
       return false;
     }
-    final KafkaTopicInfo that = (KafkaTopicInfo) o;
-    return Objects.equals(name, that.name);
+    final KafkaTopicsListExtended that = (KafkaTopicsListExtended) o;
+    return Objects.equals(getTopics(), that.getTopics());
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(name);
+    return Objects.hash(getTopics());
   }
 }

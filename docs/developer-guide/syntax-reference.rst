@@ -1338,13 +1338,14 @@ SHOW TOPICS
 
 .. code:: sql
 
-    SHOW | LIST TOPICS;
+    SHOW | LIST TOPICS [EXTENDED];
 
 **Description**
 
-List the available topics in the Kafka cluster that KSQL is configured
+SHOW TOPICS lists the available topics in the Kafka cluster that KSQL is configured
 to connect to (default setting for ``bootstrap.servers``:
-``localhost:9092``).
+``localhost:9092``). SHOW TOPICS EXTENDED also displays consumer groups and their active consumer
+counts.
 
 .. _show-streams:
 

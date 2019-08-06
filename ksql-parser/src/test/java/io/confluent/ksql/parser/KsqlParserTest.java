@@ -619,11 +619,17 @@ public class KsqlParserTest {
 
   @Test
   public void testShowTopics() {
+    // Given:
     final String simpleQuery = "SHOW TOPICS;";
+
+    // When:
     final Statement statement = KsqlParserTestUtil.buildSingleAst(simpleQuery, metaStore).getStatement();
-    Assert.assertTrue(statement instanceof ListTopics);
     final ListTopics listTopics = (ListTopics) statement;
-    Assert.assertTrue(listTopics.toString().equalsIgnoreCase("ListTopics{}"));
+
+    // Then:
+    Assert.assertTrue(statement instanceof ListTopics);
+    Assert.assertThat(listTopics.toString(), is("ListTopics{showExtended=false}"));
+    Assert.assertThat(listTopics.getShowExtended(), is(false));
   }
 
   @Test
@@ -759,6 +765,21 @@ public class KsqlParserTest {
     Assert.assertThat(statement, instanceOf(ListStreams.class));
     final ListStreams listStreams = (ListStreams)statement;
     Assert.assertThat(listStreams.getShowExtended(), is(true));
+  }
+
+  @Test
+  public void shouldSetShowDescriptionsForShowTopicsDescriptions() {
+    // Given:
+    final String statementString = "SHOW TOPICS EXTENDED;";
+
+    // When:
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
+        .getStatement();
+
+    // Then:
+    Assert.assertThat(statement, instanceOf(ListTopics.class));
+    final ListTopics listTopics = (ListTopics)statement;
+    Assert.assertThat(listTopics.getShowExtended(), is(true));
   }
 
   @Test

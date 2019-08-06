@@ -571,7 +571,7 @@ public class AstBuilder {
 
     @Override
     public Node visitListTopics(final SqlBaseParser.ListTopicsContext context) {
-      return new ListTopics(getLocation(context));
+      return new ListTopics(getLocation(context), context.EXTENDED() != null);
     }
 
     @Override

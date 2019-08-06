@@ -12,10 +12,10 @@ KSQL is a simple and powerful tool for building streaming applications on top of
 - What kind of deployment mode makes sense for me?
 - How do I know whether my KSQL queries are handling the incoming message rate, and how can I tune KSQL if it’s falling behind?
 
-.. tip:: Because the underlying implementation of KSQL uses the :ref:`Kafka Streams API
-         <streams_developer-guide_dsl>`  for query
-         processing, the details covered in the Streams documentation apply to KSQL as well. The :ref:`Kafka
-         Streams capacity planning guide <streams_sizing>`
+.. tip:: Because the underlying implementation of KSQL uses the
+         :ref:`Kafka Streams API <streams_developer-guide_dsl>` for query
+         processing, the details covered in the Streams documentation apply to
+         KSQL as well. The :ref:`Kafka Streams capacity planning guide <streams_sizing>`
          is another useful resource for KSQL capacity planning.
 
 Approach To Sizing
@@ -191,6 +191,8 @@ Minimally, each query consumes each record from an input Kafka topic and produce
 Some queries require that the input stream be repartitioned so that all messages being aggregated or joined together reside in the same partition. Each repartition produces and consumes every record.
 
 Finally, stateful queries such as aggregations and joins produce records to a changelog topic for their respective state stores. 
+
+.. _important-sizing-factors:
 
 Important Sizing Factors
 ========================

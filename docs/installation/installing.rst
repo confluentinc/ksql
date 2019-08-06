@@ -32,7 +32,7 @@ Supported Versions and Interoperability
 Installation Instructions
 -------------------------
 
-Follow the instructions at :ref:`installing_cp`.
+Follow the instructions at :ref:`ce-quickstart`.
 
 Also, you can install KSQL individually by using the
 :ref:`confluent-ksql package <confluent-ksql-package>`.

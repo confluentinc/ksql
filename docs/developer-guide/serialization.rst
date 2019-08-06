@@ -198,10 +198,10 @@ Formats
 
 KSQL currently supports three serialization formats:
 
-*. ``DELIMITED`` supports comma separated values. See :ref:`delimited_format` below.
-*. ``JSON`` supports JSON values. See :ref:`json_format` below.
-*. ``AVRO`` supports AVRO serialized values. See :ref:`avro_format` below.
-*. ``KAFKA`` supports primitives serialized using the standard Kafka serializers. See :ref:`kafka_format` below.
+* ``DELIMITED`` supports comma separated values. See :ref:`delimited_format` below.
+* ``JSON`` supports JSON values. See :ref:`json_format` below.
+* ``AVRO`` supports AVRO serialized values. See :ref:`avro_format` below.
+* ``KAFKA`` supports primitives serialized using the standard Kafka serializers. See :ref:`kafka_format` below.
 
 .. _delimited_format:
 

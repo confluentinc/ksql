@@ -370,6 +370,9 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_SERVICE_ID_DEFAULT,
             ConfigDef.Importance.MEDIUM,
             "Indicates the ID of the ksql service. It will be used as prefix for "
+                + "all implicitly named resources created by this instance in Kafka. "
+                + "By convention, the id should end in a seperator character of some form, e.g. "
+                + "a dash or underscore, as this makes identifiers easier to read."
         )
         .define(
             KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG,

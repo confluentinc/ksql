@@ -19,6 +19,7 @@ import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -29,31 +30,39 @@ public final class DataGenSchemaUtil {
   private DataGenSchemaUtil() {
   }
 
-  public static Schema getOptionalSchema(final Schema schema) {
+  public static ConnectSchema getOptionalSchema(final Schema schema) {
     switch (schema.type()) {
       case BOOLEAN:
-        return Schema.OPTIONAL_BOOLEAN_SCHEMA;
+        return (ConnectSchema) Schema.OPTIONAL_BOOLEAN_SCHEMA;
       case INT32:
-        return Schema.OPTIONAL_INT32_SCHEMA;
+        return (ConnectSchema) Schema.OPTIONAL_INT32_SCHEMA;
       case INT64:
-        return Schema.OPTIONAL_INT64_SCHEMA;
+        return (ConnectSchema) Schema.OPTIONAL_INT64_SCHEMA;
       case FLOAT64:
-        return Schema.OPTIONAL_FLOAT64_SCHEMA;
+        return (ConnectSchema) Schema.OPTIONAL_FLOAT64_SCHEMA;
       case STRING:
-        return Schema.OPTIONAL_STRING_SCHEMA;
+        return (ConnectSchema) Schema.OPTIONAL_STRING_SCHEMA;
       case ARRAY:
-        return SchemaBuilder.array(getOptionalSchema(schema.valueSchema())).optional().build();
+        return (ConnectSchema) SchemaBuilder
+            .array(getOptionalSchema(schema.valueSchema()))
+            .optional()
+            .build();
       case MAP:
-        return SchemaBuilder.map(
-            getOptionalSchema(schema.keySchema()),
-            getOptionalSchema(schema.valueSchema()))
-            .optional().build();
+        return (ConnectSchema) SchemaBuilder
+            .map(
+                getOptionalSchema(schema.keySchema()),
+                getOptionalSchema(schema.valueSchema())
+            )
+            .optional()
+            .build();
       case STRUCT:
         final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
         for (final Field field : schema.fields()) {
           schemaBuilder.field(field.name(), getOptionalSchema(field.schema()));
         }
-        return schemaBuilder.optional().build();
+        return (ConnectSchema) schemaBuilder
+            .optional()
+            .build();
       default:
         throw new KsqlException("Unsupported type: " + schema);
     }

@@ -201,6 +201,9 @@ By default, the service ID of KSQL servers is ``default_``. The service ID is al
 the prefix for the internal topics created by KSQL. Using the default value ``ksql.service.id``, the KSQL internal topics
 will be prefixed as ``_confluent-ksql-default_`` (e.g. ``_command_topic`` becomes ``_confluent-ksql-default__command_topic``).
 
+By convention, the ``ksql.service.id`` property should end with a separator character of some form,
+for example a dash or underscore, as this makes the internal topic names easier to read.
+
 .. _ksql-internal-topic-replicas:
 
 ----------------------------

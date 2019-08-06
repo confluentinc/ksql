@@ -31,9 +31,10 @@ Notable changes in 5.3:
 
 * Configuration:
 
-    * ``ksql.sink.partitions`` and ``ksql.sink.replicas`` are deprecated.
-    All new queries will use the source topic partition count and replica count for the sink topic
-    instead unless partitions and replicas are set in the WITH clause.
+    * ``ksql.sink.partitions`` and ``ksql.sink.replicas`` are deprecated. All
+      new queries will use the source topic partition count and replica count
+      for the sink topic instead unless partitions and replicas are set in the
+      WITH clause.
 
     * A new config variable, ``ksql.internal.topic.replicas``, was introduced to set the replica count for
       the internal topics created by KSQL Server. The internal topics include command topic or config topic.

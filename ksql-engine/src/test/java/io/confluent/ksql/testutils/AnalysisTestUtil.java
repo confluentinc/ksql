@@ -30,6 +30,8 @@ import io.confluent.ksql.parser.tree.Sink;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.planner.LogicalPlanner;
 import io.confluent.ksql.planner.plan.OutputNode;
+import io.confluent.ksql.util.KsqlConfig;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -42,10 +44,15 @@ public final class AnalysisTestUtil {
     return new Analyzer(queryStr, metaStore).analysis;
   }
 
-  public static OutputNode buildLogicalPlan(final String queryStr, final MetaStore metaStore) {
+  public static OutputNode buildLogicalPlan(
+      final KsqlConfig ksqlConfig,
+      final String queryStr,
+      final MetaStore metaStore
+  ) {
     final Analyzer analyzer = new Analyzer(queryStr, metaStore);
 
     final LogicalPlanner logicalPlanner = new LogicalPlanner(
+        ksqlConfig,
         analyzer.analysis,
         analyzer.aggregateAnalys(),
         metaStore);

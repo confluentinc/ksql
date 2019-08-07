@@ -20,7 +20,6 @@ import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 
-import java.util.Collections;
 import java.util.Optional;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -31,19 +30,6 @@ import org.apache.kafka.streams.processor.TimestampExtractor;
 public final class TimestampExtractionPolicyFactory {
 
   private TimestampExtractionPolicyFactory() {
-  }
-
-  public static TimestampExtractionPolicy create(
-      final KsqlSchema schema,
-      final Optional<String> timestampColumnName,
-      final Optional<String> timestampFormat
-  ) {
-    return create(
-        new KsqlConfig(Collections.emptyMap()),
-        schema,
-        timestampColumnName,
-        timestampFormat
-    );
   }
 
   public static TimestampExtractionPolicy create(

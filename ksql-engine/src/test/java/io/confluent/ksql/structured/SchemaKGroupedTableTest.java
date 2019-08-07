@@ -111,7 +111,7 @@ public class SchemaKGroupedTableTest {
       final String query,
       final String...groupByColumns
   ) {
-    final PlanNode logicalPlan = AnalysisTestUtil.buildLogicalPlan(query, metaStore);
+    final PlanNode logicalPlan = AnalysisTestUtil.buildLogicalPlan(ksqlConfig, query, metaStore);
     final SchemaKTable<?> initialSchemaKTable = new SchemaKTable<>(
         logicalPlan.getTheSourceNode().getSchema(),
         kTable,

@@ -154,9 +154,7 @@ statements in KSQL Editor, just like you use them in the KSQL CLI.
          "registered": true,
          "replicaInfo": [
            1
-         ],
-         "consumerCount": 0,
-         "consumerGroupCount": 0
+         ]
        },
 
    The ``"registered": true`` indicator means that you have registered the topic

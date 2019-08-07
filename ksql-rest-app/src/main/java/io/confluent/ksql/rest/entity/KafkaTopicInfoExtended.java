@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2019 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -24,18 +24,24 @@ import java.util.Objects;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonSubTypes({})
-public class KafkaTopicInfo {
+public class KafkaTopicInfoExtended {
 
   private final String name;
   private final List<Integer> replicaInfo;
+  private final int consumerGroupCount;
+  private final int consumerCount;
 
   @JsonCreator
-  public KafkaTopicInfo(
+  public KafkaTopicInfoExtended(
       @JsonProperty("name") final String name,
-      @JsonProperty("replicaInfo") final List<Integer> replicaInfo
+      @JsonProperty("replicaInfo") final List<Integer> replicaInfo,
+      @JsonProperty("consumerCount") final int consumerCount,
+      @JsonProperty("consumerGroupCount") final int consumerGroupCount
   ) {
     this.name = name;
     this.replicaInfo = replicaInfo;
+    this.consumerGroupCount = consumerGroupCount;
+    this.consumerCount = consumerCount;
   }
 
   public String getName() {
@@ -46,6 +52,14 @@ public class KafkaTopicInfo {
     return replicaInfo;
   }
 
+  public int getConsumerCount() {
+    return consumerCount;
+  }
+
+  public int getConsumerGroupCount() {
+    return consumerGroupCount;
+  }
+
   @Override
   public boolean equals(final Object o) {
     if (this == o) {
@@ -54,7 +68,7 @@ public class KafkaTopicInfo {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    final KafkaTopicInfo that = (KafkaTopicInfo) o;
+    final KafkaTopicInfoExtended that = (KafkaTopicInfoExtended) o;
     return Objects.equals(name, that.name);
   }
 

@@ -22,7 +22,9 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.rest.entity.KafkaTopicInfo;
+import io.confluent.ksql.rest.entity.KafkaTopicInfoExtended;
 import io.confluent.ksql.rest.entity.KafkaTopicsList;
+import io.confluent.ksql.rest.entity.KafkaTopicsListExtended;
 import io.confluent.ksql.rest.server.TemporaryEngine;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
@@ -48,12 +50,6 @@ public class ListTopicsExecutorTest {
     engine.givenKafkaTopic("topic2");
 
     final AdminClient mockAdminClient = mock(AdminClient.class);
-    final ListConsumerGroupsResult result = mock(ListConsumerGroupsResult.class);
-    final KafkaFutureImpl<Collection<ConsumerGroupListing>> groups = new KafkaFutureImpl<>();
-
-    when(result.all()).thenReturn(groups);
-    when(mockAdminClient.listConsumerGroups()).thenReturn(result);
-    groups.complete(ImmutableList.of());
 
     final ServiceContext serviceContext = TestServiceContext.create(
         engine.getServiceContext().getKafkaClientSupplier(),
@@ -73,8 +69,45 @@ public class ListTopicsExecutorTest {
 
     // Then:
     assertThat(topicsList.getTopics(), containsInAnyOrder(
-        new KafkaTopicInfo("topic1", ImmutableList.of(1), 0, 0),
-        new KafkaTopicInfo("topic2", ImmutableList.of(1), 0, 0)
+        new KafkaTopicInfo("topic1", ImmutableList.of(1)),
+        new KafkaTopicInfo("topic2", ImmutableList.of(1))
+    ));
+  }
+
+  @Test
+  public void shouldListKafkaTopicsExtended() {
+    // Given:
+    engine.givenKafkaTopic("topic1");
+    engine.givenKafkaTopic("topic2");
+
+    final AdminClient mockAdminClient = mock(AdminClient.class);
+    final ListConsumerGroupsResult result = mock(ListConsumerGroupsResult.class);
+    final KafkaFutureImpl<Collection<ConsumerGroupListing>> groups = new KafkaFutureImpl<>();
+
+    when(result.all()).thenReturn(groups);
+    when(mockAdminClient.listConsumerGroups()).thenReturn(result);
+    groups.complete(ImmutableList.of());
+
+    final ServiceContext serviceContext = TestServiceContext.create(
+        engine.getServiceContext().getKafkaClientSupplier(),
+        mockAdminClient,
+        engine.getServiceContext().getTopicClient(),
+        engine.getServiceContext().getSchemaRegistryClientFactory(),
+        engine.getServiceContext().getConnectClient()
+    );
+
+    // When:
+    final KafkaTopicsListExtended topicsList =
+        (KafkaTopicsListExtended) CustomExecutors.LIST_TOPICS.execute(
+            engine.configure("LIST TOPICS EXTENDED;"),
+            engine.getEngine(),
+            serviceContext
+        ).orElseThrow(IllegalStateException::new);
+
+    // Then:
+    assertThat(topicsList.getTopics(), containsInAnyOrder(
+        new KafkaTopicInfoExtended("topic1", ImmutableList.of(1), 0, 0),
+        new KafkaTopicInfoExtended("topic2", ImmutableList.of(1), 0, 0)
     ));
   }
 

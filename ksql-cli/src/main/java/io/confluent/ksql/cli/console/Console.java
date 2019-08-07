@@ -49,6 +49,7 @@ import io.confluent.ksql.rest.entity.FunctionDescriptionList;
 import io.confluent.ksql.rest.entity.FunctionInfo;
 import io.confluent.ksql.rest.entity.FunctionNameList;
 import io.confluent.ksql.rest.entity.KafkaTopicsList;
+import io.confluent.ksql.rest.entity.KafkaTopicsListExtended;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
@@ -130,7 +131,11 @@ public class Console implements Closeable {
           .put(TablesList.class,
               tablePrinter(TablesList.class, TablesListTableBuilder::new))
           .put(KafkaTopicsList.class,
-              tablePrinter(KafkaTopicsList.class, KafkaTopicsListTableBuilder::new))
+              tablePrinter(KafkaTopicsList.class, KafkaTopicsListTableBuilder.SimpleBuilder::new))
+          .put(KafkaTopicsListExtended.class,
+              tablePrinter(
+                  KafkaTopicsListExtended.class,
+                  KafkaTopicsListTableBuilder.ExtendedBuilder::new))
           .put(ExecutionPlan.class,
               tablePrinter(ExecutionPlan.class, ExecutionPlanTableBuilder::new))
           .put(FunctionNameList.class,

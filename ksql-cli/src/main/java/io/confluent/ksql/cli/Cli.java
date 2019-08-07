@@ -257,7 +257,7 @@ public class Cli implements KsqlRequestExecutor, Closeable {
       final SingleStatementContext statementContext = statement.getStatement();
       final String statementText = statement.getStatementText();
 
-      if (statementContext.statement() instanceof SqlBaseParser.QuerystatementContext
+      if (statementContext.statement() instanceof SqlBaseParser.QueryStatementContext
           || statementContext.statement() instanceof SqlBaseParser.PrintTopicContext) {
         consecutiveStatements = printOrDisplayQueryResults(
             consecutiveStatements,
@@ -292,7 +292,7 @@ public class Cli implements KsqlRequestExecutor, Closeable {
       makeKsqlRequest(consecutiveStatements.toString());
       consecutiveStatements.setLength(0);
     }
-    if (statementContext.statement() instanceof SqlBaseParser.QuerystatementContext) {
+    if (statementContext.statement() instanceof SqlBaseParser.QueryStatementContext) {
       handleStreamedQuery(statementText);
     } else {
       handlePrintedTopic(statementText);

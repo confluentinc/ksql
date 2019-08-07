@@ -160,10 +160,12 @@ class ConnectConfigService extends AbstractExecutionThreadService {
 
   @SuppressWarnings("unchecked")
   private Optional<Connector> extractConnector(final Object value) {
-    final Map<String, Object> asMap = (Map<String, Object>) value;
-    final Map<String, String> properties = (Map<String, String>) asMap.get("properties");
-    if (properties != null) {
-      return connectorFactory.apply(properties);
+    if (value != null) {
+      final Map<String, Object> asMap = (Map<String, Object>) value;
+      final Map<String, String> properties = (Map<String, String>) asMap.get("properties");
+      if (properties != null) {
+        return connectorFactory.apply(properties);
+      }
     }
 
     return Optional.empty();

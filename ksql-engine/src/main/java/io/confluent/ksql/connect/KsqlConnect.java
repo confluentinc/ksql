@@ -22,12 +22,16 @@ import io.confluent.ksql.util.KsqlConfig;
 import java.io.Closeable;
 import java.util.Objects;
 import java.util.function.Consumer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A simple wrapper around {@link ConnectPollingService} and {@link ConnectConfigService}
  * to make lifecycle management a little easier.
  */
 public class KsqlConnect implements Closeable {
+
+  private static final Logger LOG = LoggerFactory.getLogger(KsqlConnect.class);
 
   private final ConnectPollingService connectPollingService;
   private final ConnectConfigService configService;
@@ -63,6 +67,9 @@ public class KsqlConnect implements Closeable {
     if (enabled) {
       connectPollingService.startAsync();
       configService.startAsync();
+    } else {
+      LOG.info("Connect integration is disabled, turn on by setting "
+          + KsqlConfig.CONNECT_POLLING_ENABLE_PROPERTY);
     }
   }
 

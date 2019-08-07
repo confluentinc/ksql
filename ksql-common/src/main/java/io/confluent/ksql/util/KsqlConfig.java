@@ -65,7 +65,7 @@ public class KsqlConfig extends AbstractConfig {
 
   public static final String CONNECT_URL_PROPERTY = "ksql.connect.registry.url";
 
-  public static final String CONNECT_POLLING_DISABLE_PROPERTY = "ksql.connect.polling.disable";
+  public static final String CONNECT_POLLING_ENABLE_PROPERTY = "ksql.connect.polling.enable";
 
   public static final String CONNECT_CONFIGS_TOPIC_PROPERTY = "ksql.connect.configs.topic";
 
@@ -446,11 +446,11 @@ public class KsqlConfig extends AbstractConfig {
             Importance.MEDIUM,
             "The URL for the connect deployment, defaults to http://localhost:8083"
         ).define(
-            CONNECT_POLLING_DISABLE_PROPERTY,
+            CONNECT_POLLING_ENABLE_PROPERTY,
             Type.BOOLEAN,
-            true,
+            false,
             Importance.LOW,
-            "A value of true for this configuration will disable automatically importing sources "
+            "A value of false for this configuration will disable automatically importing sources "
             + "from connectors into KSQL."
         ).define(
             CONNECT_CONFIGS_TOPIC_PROPERTY ,

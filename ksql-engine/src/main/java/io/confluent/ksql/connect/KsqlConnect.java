@@ -40,7 +40,7 @@ public class KsqlConnect implements Closeable {
   ) {
     connectPollingService = new ConnectPollingService(executionContext, sourceCallback);
     configService = new ConnectConfigService(ksqlConfig, connectPollingService);
-    enabled = !ksqlConfig.getBoolean(KsqlConfig.CONNECT_POLLING_DISABLE_PROPERTY);
+    enabled = ksqlConfig.getBoolean(KsqlConfig.CONNECT_POLLING_ENABLE_PROPERTY);
   }
 
   @VisibleForTesting

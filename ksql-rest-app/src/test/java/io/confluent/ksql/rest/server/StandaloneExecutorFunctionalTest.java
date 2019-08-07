@@ -267,7 +267,7 @@ public class StandaloneExecutorFunctionalTest {
 
     // Then:
     expectedException.expect(KsqlStatementException.class);
-    expectedException.expectMessage("schema evolution issues");
+    expectedException.expectMessage("schema is incompatible with the current schema version registered for the topic");
 
     // When:
     standalone.start();

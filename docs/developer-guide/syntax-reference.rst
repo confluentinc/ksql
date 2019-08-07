@@ -834,18 +834,18 @@ For example, the statements below would all be valid for a source with schema
   .. code:: sql
 
       // inserts (1234, "key", "key", "A")
-      INSERT INTO foo (ROWTIME, ROWKEY, KEY_COL, COL_A) VALUES (1234, "key", "key", "A");
+      INSERT INTO foo (ROWTIME, ROWKEY, KEY_COL, COL_A) VALUES (1234, 'key', 'key', 'A');
 
       // inserts (current_time(), "key", "key", "A")
-      INSERT INTO foo VALUES ("key", "key", "A");
+      INSERT INTO foo VALUES ('key', 'key', 'A');
 
       // inserts (current_time(), "key", "key", "A")
-      INSERT INTO foo (KEY_COL, COL_A) VALUES ("key", "A");
+      INSERT INTO foo (KEY_COL, COL_A) VALUES ('key', 'A');
 
       // inserts (current_time(), "key", "key", null)
-      INSERT INTO foo (KEY_COL) VALUES ("key");
+      INSERT INTO foo (KEY_COL) VALUES ('key');
 
-The values will serialize using the ``value_format`` specified in the original `CREATE` statement.
+The values will serialize using the ``value_format`` specified in the original ``CREATE`` statement.
 The key will always be serialized as a String.
 
 .. _ksql-syntax-describe:

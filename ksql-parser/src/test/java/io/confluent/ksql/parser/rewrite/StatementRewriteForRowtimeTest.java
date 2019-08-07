@@ -37,23 +37,23 @@ public class StatementRewriteForRowtimeTest {
   }
 
   @Test
-  public void shouldReplaceStringWithLong() {
-    final String query = "SELECT * FROM orders where ROWTIME > '2017-01-01 00:00:00.000';";
+  public void shouldWrapDatestring() {
+    final String query = "SELECT * FROM orders where ROWTIME > '2017-01-01T00:00:00.000';";
     final Query statement = (Query) KsqlParserTestUtil.buildSingleAst(query, metaStore).getStatement();
     final Expression predicate = statement.getWhere().get();
     final Expression rewritten = new StatementRewriteForRowtime(predicate).rewriteForRowtime();
 
-    assertThat(rewritten.toString(), equalTo("(ORDERS.ROWTIME > STRINGTOTIMESTAMP('2017-01-01 00:00:00.000', 'yyyy-MM-dd HH:mm:ss.SSS'))"));
+    assertThat(rewritten.toString(), equalTo("(ORDERS.ROWTIME > STRINGTOTIMESTAMP('2017-01-01T00:00:00.000', 'yyyy-MM-dd''T''HH:mm:ss.SSS'))"));
   }
 
   @Test
   public void shouldHandleInexactTimestamp() {
-    final String query = "SELECT * FROM orders where ROWTIME = '2017-01-01';";
+    final String query = "SELECT * FROM orders where ROWTIME = '2017';";
     final Query statement = (Query) KsqlParserTestUtil.buildSingleAst(query, metaStore).getStatement();
     final Expression predicate = statement.getWhere().get();
     final Expression rewritten = new StatementRewriteForRowtime(predicate).rewriteForRowtime();
 
-    assertThat(rewritten.toString(), equalTo("(ORDERS.ROWTIME = STRINGTOTIMESTAMP('2017-01-01 00:00:00.000', 'yyyy-MM-dd HH:mm:ss.SSS'))"));
+    assertThat(rewritten.toString(), equalTo("(ORDERS.ROWTIME = STRINGTOTIMESTAMP('2017-01-01T00:00:00.000', 'yyyy-MM-dd''T''HH:mm:ss.SSS'))"));
   }
 
   @Test
@@ -64,18 +64,18 @@ public class StatementRewriteForRowtimeTest {
     final Expression rewritten = new StatementRewriteForRowtime(predicate).rewriteForRowtime();
 
     assertThat(rewritten.toString(), equalTo("(ORDERS.ROWTIME BETWEEN"
-        + " STRINGTOTIMESTAMP('2017-01-01 00:00:00.000', 'yyyy-MM-dd HH:mm:ss.SSS') AND"
-        + " STRINGTOTIMESTAMP('2017-02-01 00:00:00.000', 'yyyy-MM-dd HH:mm:ss.SSS'))"));
+        + " STRINGTOTIMESTAMP('2017-01-01T00:00:00.000', 'yyyy-MM-dd''T''HH:mm:ss.SSS') AND"
+        + " STRINGTOTIMESTAMP('2017-02-01T00:00:00.000', 'yyyy-MM-dd''T''HH:mm:ss.SSS'))"));
   }
 
   @Test
   public void shouldNotProcessStringsInFunctions() {
-    final String query = "SELECT * FROM orders where ROWTIME = foo('bar');";
+    final String query = "SELECT * FROM orders where ROWTIME = foo('2017-01-01');";
     final Query statement = (Query) KsqlParserTestUtil.buildSingleAst(query, metaStore).getStatement();
     final Expression predicate = statement.getWhere().get();
     final Expression rewritten = new StatementRewriteForRowtime(predicate).rewriteForRowtime();
 
-    assertThat(rewritten.toString(), equalTo("(ORDERS.ROWTIME = FOO('bar'))"));
+    assertThat(rewritten.toString(), equalTo("(ORDERS.ROWTIME = FOO('2017-01-01'))"));
   }
 
   @Test
@@ -85,16 +85,16 @@ public class StatementRewriteForRowtimeTest {
     final Expression predicate = statement.getWhere().get();
     final Expression rewritten = new StatementRewriteForRowtime(predicate).rewriteForRowtime();
 
-    assertThat(rewritten.toString(), equalTo("((ORDERS.ROWTIME > STRINGTOTIMESTAMP('2017-01-01 00:00:00.000', 'yyyy-MM-dd HH:mm:ss.SSS')) AND (ORDERS.ROWKEY = '2017-01-01'))"));
+    assertThat(rewritten.toString(), equalTo("((ORDERS.ROWTIME > STRINGTOTIMESTAMP('2017-01-01T00:00:00.000', 'yyyy-MM-dd''T''HH:mm:ss.SSS')) AND (ORDERS.ROWKEY = '2017-01-01'))"));
   }
 
   @Test
-  public void shouldHandleNestedExpressions() {
-    final String simpleQuery = "SELECT * FROM orders where FOO(ROWTIME + 6000) > '2017-01-01 00:00:00.000' + 35;";
+  public void shouldHandleTimezones() {
+    final String simpleQuery = "SELECT * FROM orders where ROWTIME = '2017-01-01T00:00:00.000+0100';";
     final Query statement = (Query) KsqlParserTestUtil.buildSingleAst(simpleQuery, metaStore).getStatement();
     final Expression predicate = statement.getWhere().get();
     final Expression rewritten = new StatementRewriteForRowtime(predicate).rewriteForRowtime();
 
-    assertThat(rewritten.toString(), containsString("(FOO((ORDERS.ROWTIME + 6000)) > (STRINGTOTIMESTAMP('2017-01-01 00:00:00.000', 'yyyy-MM-dd HH:mm:ss.SSS') + 35))"));
+    assertThat(rewritten.toString(), containsString("(ORDERS.ROWTIME = STRINGTOTIMESTAMP('2017-01-01T00:00:00.000', 'yyyy-MM-dd''T''HH:mm:ss.SSS', '+0100'))"));
   }
 }

@@ -17,6 +17,7 @@ package io.confluent.ksql.parser.rewrite;
 
 import io.confluent.ksql.parser.tree.BetweenPredicate;
 import io.confluent.ksql.parser.tree.ComparisonExpression;
+import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.FunctionCall;
 import io.confluent.ksql.parser.tree.Node;
@@ -43,7 +44,9 @@ public class StatementRewriteForRowtime {
   }
 
   private static class TimestampRewriter extends StatementRewriter {
-    private static final String PATTERN = "yyyy-MM-dd HH:mm:ss.SSS";
+    private static final String DATE_PATTERN = "yyyy-MM-dd";
+    private static final String TIME_PATTERN = "HH:mm:ss.SSS";
+    private static final String PATTERN = DATE_PATTERN + "'T'" + TIME_PATTERN;
 
     @Override
     public Expression visitFunctionCall(final FunctionCall node, final Object context) {
@@ -53,19 +56,69 @@ public class StatementRewriteForRowtime {
     @Override
     public Node visitStringLiteral(final StringLiteral node, final Object context) {
       if (!node.getValue().equals("ROWTIME")) {
-        final List<Expression> args = new ArrayList<>();
-        args.add(new StringLiteral(appendZeros(node.getValue())));
-        args.add(new StringLiteral(PATTERN));
-        return new FunctionCall(QualifiedName.of("STRINGTOTIMESTAMP"), args);
+        return new FunctionCall(
+            QualifiedName.of("STRINGTOTIMESTAMP"),
+            getFunctionArgs(node.getValue()));
       }
       return node;
     }
 
-    private String appendZeros(final String timestamp) {
-      if (timestamp.length() >= PATTERN.length()) {
-        return timestamp;
+    private List<Expression> getFunctionArgs(final String datestring) {
+      final List<Expression> args = new ArrayList<>();
+      final String date;
+      final String time;
+      final String timezone;
+      if (datestring.contains("T")) {
+        date = datestring.substring(0, datestring.indexOf('T'));
+        final String withTimezone = completeTime(datestring.substring(datestring.indexOf('T') + 1));
+        timezone = getTimezone(withTimezone);
+        time = completeTime(withTimezone.substring(0, timezone.length()));
+      } else {
+        date = completeDate(datestring);
+        time = completeTime("");
+        timezone = "";
       }
-      return timestamp + PATTERN.substring(timestamp.length()).replaceAll("[a-zA-Z]", "0");
+
+      if (timezone.length() > 0) {
+        args.add(new StringLiteral(date + "T" + time));
+        args.add(new StringLiteral(PATTERN));
+        args.add(new StringLiteral(timezone));
+      } else {
+        args.add(new StringLiteral(date + "T" + time));
+        args.add(new StringLiteral(PATTERN));
+      }
+      return args;
+    }
+
+    private String getTimezone(final String time) {
+      if (time.contains("+")) {
+        return time.substring(time.indexOf('+'));
+      } else if (time.contains("-")) {
+        return time.substring(time.indexOf('-'));
+      } else {
+        return "";
+      }
+    }
+
+    private String completeDate(final String date) {
+      final String[] parts = date.split("-");
+      if (parts.length == 1) {
+        return date + "-01-01";
+      } else if (parts.length == 2) {
+        return date + "-01";
+      } else {
+        // It is either a complete date or an incorrectly formatted one.
+        // In the latter case, we can pass the incorrectly formed string
+        // to STRINGTITIMESTAMP which will deal with the error handling.
+        return date;
+      }
+    }
+
+    private String completeTime(final String time) {
+      if (time.length() >= TIME_PATTERN.length()) {
+        return time;
+      }
+      return time + TIME_PATTERN.substring(time.length()).replaceAll("[a-zA-Z]", "0");
     }
   }
 
@@ -90,7 +143,7 @@ public class StatementRewriteForRowtime {
     public Expression visitComparisonExpression(
         final ComparisonExpression node,
         final Object context) {
-      if (StatementRewriteForRowtime.requiresRewrite(node)) {
+      if (expressionIsRowtime(node.getLeft()) || expressionIsRowtime(node.getRight())) {
         return new ComparisonExpression(
           node.getLocation(),
           node.getType(),
@@ -103,5 +156,10 @@ public class StatementRewriteForRowtime {
           (Expression) process(node.getLeft(), context),
           (Expression) process(node.getRight(), context));
     }
+  }
+
+  private static boolean expressionIsRowtime(final Expression node) {
+    return (node instanceof DereferenceExpression)
+        && ((DereferenceExpression) node).getFieldName().equals("ROWTIME");
   }
 }

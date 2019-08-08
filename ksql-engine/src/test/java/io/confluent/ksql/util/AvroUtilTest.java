@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.util;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -203,10 +204,29 @@ public class AvroUtilTest {
   }
 
   @Test
-  public void shouldThrowOnAnyOtherEvolutionSrException() throws Exception {
+  public void shouldThrowOnSrAuthorizationErrors() throws Exception {
     // Given:
     when(srClient.testCompatibility(any(), any()))
         .thenThrow(new RestClientException("Unknown subject", 403, 40401));
+
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Could not connect to Schema Registry service");
+    expectedException.expectMessage(containsString(String.format(
+        "Not authorized to access Schema Registry subject: [%s]",
+        persistentQuery.getResultTopic().getKafkaTopicName()
+            + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX
+    )));
+
+    // When:
+    AvroUtil.isValidSchemaEvolution(persistentQuery, srClient);
+  }
+
+  @Test
+  public void shouldThrowOnAnyOtherEvolutionSrException() throws Exception {
+    // Given:
+    when(srClient.testCompatibility(any(), any()))
+        .thenThrow(new RestClientException("Unknown subject", 500, 40401));
 
     // Expect:
     expectedException.expect(KsqlException.class);

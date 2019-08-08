@@ -45,6 +45,9 @@ public final class DocumentationLinks {
   public static final String SR_REST_GETSUBJECTS_DOC_URL = SCHEMA_REGISTRY_API_DOC_URL
       + "#get--subjects";
 
+  public static final String SCHEMA_REGISTRY_SECURITY_DOC_URL = SCHEMA_REGISTRY_DOCS_ROOT_URL
+      + "security.html";
+
   private DocumentationLinks() {
   }
 }

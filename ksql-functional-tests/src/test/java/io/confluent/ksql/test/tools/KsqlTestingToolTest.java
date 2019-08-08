@@ -189,7 +189,7 @@ public class KsqlTestingToolTest {
 
     // Then:
     assertThat(errContent.toString(UTF_8),
-            containsString("Test failed: Expected type INTEGER for field ID but got 14.5\n"));
+            containsString("Test failed: Failed to insert values into stream/table: TEST\n"));
   }
 
   private void runTestCaseAndAssertPassed(

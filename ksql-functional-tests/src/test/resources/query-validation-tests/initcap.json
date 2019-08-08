@@ -1,0 +1,28 @@
+{
+  "comments": [
+    "Tests covering the use of the INITCAP function."
+  ],
+  "tests": [
+    {
+      "name": "do initcap",
+      "format": ["JSON"],
+      "properties": {
+        "ksql.functions.substring.legacy.args": false
+      },
+      "statements": [
+        "CREATE STREAM TEST (source VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT INITCAP(source) AS INITCAP FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": {"source": "some_string"}},
+        {"topic": "test_topic", "value": {"source": null}},
+        {"topic": "test_topic", "value": {"source": "the   Quick br0wn fOx"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"INITCAP":"Some_string"}},
+        {"topic": "OUTPUT", "value": {"INITCAP":null}},
+        {"topic": "OUTPUT", "value": {"INITCAP":"The   Quick Br0wn Fox"}}
+      ]
+    }
+  ]
+}

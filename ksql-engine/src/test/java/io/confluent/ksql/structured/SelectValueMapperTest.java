@@ -137,7 +137,7 @@ public class SelectValueMapperTest {
   }
 
   private SelectValueMapper givenSelectMapperFor(final String query) {
-    final PlanNode planNode = AnalysisTestUtil.buildLogicalPlan(query, metaStore);
+    final PlanNode planNode = AnalysisTestUtil.buildLogicalPlan(ksqlConfig, query, metaStore);
     final ProjectNode projectNode = (ProjectNode) planNode.getSources().get(0);
     final LogicalSchema schema = planNode.getTheSourceNode().getSchema();
     final List<SelectExpression> selectExpressions = projectNode.getProjectSelectExpressions();

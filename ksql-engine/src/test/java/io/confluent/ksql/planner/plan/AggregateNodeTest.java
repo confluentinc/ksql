@@ -409,7 +409,7 @@ public class AggregateNodeTest {
   private static AggregateNode buildAggregateNode(final String queryString) {
     final MetaStore newMetaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
     final KsqlBareOutputNode planNode = (KsqlBareOutputNode) AnalysisTestUtil
-        .buildLogicalPlan(queryString, newMetaStore);
+        .buildLogicalPlan(KSQL_CONFIG, queryString, newMetaStore);
 
     return (AggregateNode) planNode.getSource();
   }

@@ -157,6 +157,6 @@ class QueryEngine {
     final Analysis analysis = queryAnalyzer.analyze(sqlExpression, query, sink);
     final AggregateAnalysisResult aggAnalysis = queryAnalyzer.analyzeAggregate(query, analysis);
 
-    return new LogicalPlanner(analysis, aggAnalysis, metaStore).buildPlan();
+    return new LogicalPlanner(config, analysis, aggAnalysis, metaStore).buildPlan();
   }
 }

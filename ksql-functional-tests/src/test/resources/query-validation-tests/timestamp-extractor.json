@@ -1,0 +1,43 @@
+{
+  "comments": [
+    "Tests to verify override of default.timestamp.extractor on streams"
+  ],
+  "tests": [
+    {
+      "name": "KSQL default timestamp extractor",
+      "statements": [
+        "CREATE STREAM TEST (ID bigint) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM TS AS SELECT id FROM test;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": {"ID": 1}, "timestamp": 1526075913000},
+        {"topic": "test_topic", "value": {"ID": 2}, "timestamp": 1557611913000},
+        {"topic": "test_topic", "value": {"ID": 3}, "timestamp": 1589234313000}
+      ],
+      "outputs": [
+        {"topic": "TS", "value": {"ID": 1}, "timestamp": 1526075913000},
+        {"topic": "TS", "value": {"ID": 2}, "timestamp": 1557611913000},
+        {"topic": "TS", "value": {"ID": 3}, "timestamp": 1589234313000}
+      ]
+    },
+    {
+      "name": "KSQL override timestamp extractor",
+      "statements": [
+        "CREATE STREAM TEST (ID bigint) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM TS AS SELECT id FROM test;"
+      ],
+      "properties": {
+        "ksql.streams.default.timestamp.extractor": "org.apache.kafka.streams.processor.LogAndSkipOnInvalidTimestamp"
+      },
+      "inputs": [
+        {"topic": "test_topic", "value": {"ID": 1}, "timestamp": 1526075913000},
+        {"topic": "test_topic", "value": {"ID": 2}, "timestamp": -1},
+        {"topic": "test_topic", "value": {"ID": 3}, "timestamp": 1589234313000}
+      ],
+      "outputs": [
+        {"topic": "TS", "value": {"ID": 1}, "timestamp": 1526075913000},
+        {"topic": "TS", "value": {"ID": 3}, "timestamp": 1589234313000}
+      ]
+    }
+  ]
+}

@@ -22,7 +22,10 @@ import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.testutils.AnalysisTestUtil;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.MetaStoreFixture;
+
+import java.util.Collections;
 import java.util.Set;
 import org.apache.kafka.common.utils.Utils;
 import org.junit.Before;
@@ -31,10 +34,12 @@ import org.junit.Test;
 public class PlanSourceExtractorVisitorTest {
 
   private MetaStore metaStore;
+  private KsqlConfig ksqlConfig;
 
   @Before
   public void init() {
     metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
+    ksqlConfig = new KsqlConfig(Collections.emptyMap());
   }
 
   @Test
@@ -61,6 +66,6 @@ public class PlanSourceExtractorVisitorTest {
   }
 
   private PlanNode buildLogicalPlan(final String query) {
-    return AnalysisTestUtil.buildLogicalPlan(query, metaStore);
+    return AnalysisTestUtil.buildLogicalPlan(ksqlConfig, query, metaStore);
   }
 }

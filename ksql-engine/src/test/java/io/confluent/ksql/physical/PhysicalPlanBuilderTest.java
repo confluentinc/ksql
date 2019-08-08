@@ -233,7 +233,7 @@ public class PhysicalPlanBuilderTest {
   }
 
   private QueryMetadata buildPhysicalPlan(final String query) {
-    final OutputNode logical = AnalysisTestUtil.buildLogicalPlan(query, metaStore);;
+    final OutputNode logical = AnalysisTestUtil.buildLogicalPlan(ksqlConfig, query, metaStore);;
     return physicalPlanBuilder.buildPhysicalPlan(new LogicalPlanNode(query, Optional.of(logical)));
   }
 
@@ -685,7 +685,7 @@ public class PhysicalPlanBuilderTest {
     final ProcessingLogger logger = mock(ProcessingLogger.class);
     when(processingLogContext.getLoggerFactory()).thenReturn(loggerFactory);
     final OutputNode spyNode = spy(
-        AnalysisTestUtil.buildLogicalPlan(simpleSelectFilter, metaStore));
+        AnalysisTestUtil.buildLogicalPlan(ksqlConfig, simpleSelectFilter, metaStore));
     doReturn(new QueryId("foo")).when(spyNode).getQueryId(any());
     when(loggerFactory.getLogger("foo")).thenReturn(logger);
     when(loggerFactory.getLogger(ArgumentMatchers.startsWith("foo.")))

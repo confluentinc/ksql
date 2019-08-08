@@ -57,18 +57,23 @@ public final class AvroUtil {
           "Could not check Schema compatibility: %s", e.getMessage()
       ));
     } catch (final RestClientException e) {
-      switch (e.getStatus()) {
-        case HttpStatus.SC_NOT_FOUND:
-        case HttpStatus.SC_UNAUTHORIZED:
-        case HttpStatus.SC_FORBIDDEN:
-          // Assume the subject is unknown.
-          // See https://github.com/confluentinc/schema-registry/issues/951
-          return true;
-        default:
-          throw new KsqlException(String.format(
-              "Could not connect to Schema Registry service: %s", e.getMessage()
-          ));
+      if (e.getStatus() == HttpStatus.SC_NOT_FOUND) {
+        // Assume the subject is unknown.
+        // See https://github.com/confluentinc/schema-registry/issues/951
+        return true;
       }
+
+      String errorMessage = e.getMessage();
+      if (e.getStatus() == HttpStatus.SC_UNAUTHORIZED || e.getStatus() == HttpStatus.SC_FORBIDDEN) {
+        errorMessage = String.format(
+            "Not authorized to access Schema Registry subject: [%s]",
+            topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX
+        );
+      }
+
+      throw new KsqlException(String.format(
+          "Could not connect to Schema Registry service: %s", errorMessage
+      ));
     }
   }
 }

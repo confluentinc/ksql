@@ -363,7 +363,7 @@ public class InsertValuesExecutor {
                   topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX
               ));
             default:
-              throw new KsqlException("Could not serialize row: " + row, e);
+              break;
           }
         }
       }

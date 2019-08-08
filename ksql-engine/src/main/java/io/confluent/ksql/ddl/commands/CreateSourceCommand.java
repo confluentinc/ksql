@@ -24,6 +24,7 @@ import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.schema.ksql.LogicalSchemas;
 import io.confluent.ksql.services.KafkaTopicClient;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.StringUtil;
@@ -55,6 +56,7 @@ abstract class CreateSourceCommand implements DdlCommand {
   CreateSourceCommand(
       final String sqlExpression,
       final CreateSource statement,
+      final KsqlConfig ksqlConfig,
       final KafkaTopicClient kafkaTopicClient
   ) {
     this.sqlExpression = sqlExpression;
@@ -92,7 +94,7 @@ abstract class CreateSourceCommand implements DdlCommand {
     final Optional<String> timestampName = properties.getTimestampName();
     final Optional<String> timestampFormat = properties.getTimestampFormat();
     this.timestampExtractionPolicy = TimestampExtractionPolicyFactory
-        .create(schema, timestampName, timestampFormat);
+        .create(ksqlConfig, schema, timestampName, timestampFormat);
 
     this.keySerdeFactory = extractKeySerde(properties);
   }

@@ -922,7 +922,11 @@ public class SchemaKStreamTest {
   }
 
   private PlanNode givenInitialKStreamOf(final String selectQuery) {
-    final PlanNode logicalPlan = AnalysisTestUtil.buildLogicalPlan(selectQuery, metaStore);
+    final PlanNode logicalPlan = AnalysisTestUtil.buildLogicalPlan(
+        ksqlConfig,
+        selectQuery,
+        metaStore
+    );
 
     initialSchemaKStream = new SchemaKStream(
         logicalPlan.getTheSourceNode().getSchema(),

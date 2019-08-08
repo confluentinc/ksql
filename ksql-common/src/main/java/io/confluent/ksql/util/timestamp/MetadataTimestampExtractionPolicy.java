@@ -17,30 +17,40 @@ package io.confluent.ksql.util.timestamp;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.google.errorprone.annotations.Immutable;
+import java.util.Objects;
 import org.apache.kafka.streams.processor.FailOnInvalidTimestamp;
 import org.apache.kafka.streams.processor.TimestampExtractor;
 
 @Immutable
 public class MetadataTimestampExtractionPolicy implements TimestampExtractionPolicy {
+  private final TimestampExtractor timestampExtractor;
 
   @JsonCreator
-  public MetadataTimestampExtractionPolicy(){}
+  public MetadataTimestampExtractionPolicy() {
+    this(new FailOnInvalidTimestamp());
+  }
+
+  public MetadataTimestampExtractionPolicy(final TimestampExtractor timestampExtractor) {
+    this.timestampExtractor = timestampExtractor;
+  }
 
   @Override
   public TimestampExtractor create(final int columnIndex) {
-    return new FailOnInvalidTimestamp();
+    return timestampExtractor;
   }
 
   @Override
   public int hashCode() {
-    return this.getClass().hashCode();
+    return Objects.hash(this.getClass(), timestampExtractor.getClass());
   }
 
   @Override
   public boolean equals(final Object other) {
-    if (this == other) {
-      return true;
+    if (!(other instanceof MetadataTimestampExtractionPolicy)) {
+      return false;
     }
-    return other instanceof MetadataTimestampExtractionPolicy;
+
+    final MetadataTimestampExtractionPolicy that = (MetadataTimestampExtractionPolicy)other;
+    return timestampExtractor.getClass() == that.timestampExtractor.getClass();
   }
 }

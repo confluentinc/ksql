@@ -633,7 +633,11 @@ public class SchemaKTableTest {
   }
 
   private List<SelectExpression> givenInitialKTableOf(final String selectQuery) {
-    final PlanNode logicalPlan = AnalysisTestUtil.buildLogicalPlan(selectQuery, metaStore);
+    final PlanNode logicalPlan = AnalysisTestUtil.buildLogicalPlan(
+        ksqlConfig,
+        selectQuery,
+        metaStore
+    );
 
     initialSchemaKTable = new SchemaKTable<>(
         logicalPlan.getTheSourceNode().getSchema(),
@@ -659,6 +663,6 @@ public class SchemaKTableTest {
   }
 
   private PlanNode buildLogicalPlan(final String query) {
-    return AnalysisTestUtil.buildLogicalPlan(query, metaStore);
+    return AnalysisTestUtil.buildLogicalPlan(ksqlConfig, query, metaStore);
   }
 }

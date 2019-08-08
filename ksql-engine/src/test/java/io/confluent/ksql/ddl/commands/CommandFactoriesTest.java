@@ -21,6 +21,7 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.parser.tree.CreateStream;
@@ -38,6 +39,7 @@ import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.Type.SqlType;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Collections;
 import java.util.HashMap;
@@ -57,6 +59,8 @@ public class CommandFactoriesTest {
   private final ServiceContext serviceContext = EasyMock.createNiceMock(ServiceContext.class);
   private final CommandFactories commandFactories = new CommandFactories(serviceContext);
   private final HashMap<String, Literal> properties = new HashMap<>();
+
+  private KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of());
 
 
   @Before
@@ -79,7 +83,7 @@ public class CommandFactoriesTest {
   public void shouldCreateDDLCommandForRegisterTopic() {
     final DdlCommand result = commandFactories.create(
         sqlExpression, new RegisterTopic(QualifiedName.of("blah"),
-            true, properties), NO_PROPS);
+            true, properties), ksqlConfig, NO_PROPS);
 
     assertThat(result, instanceOf(RegisterTopicCommand.class));
   }
@@ -88,8 +92,7 @@ public class CommandFactoriesTest {
   public void shouldCreateCommandForCreateStream() {
     final DdlCommand result = commandFactories.create(
         sqlExpression, new CreateStream(QualifiedName.of("foo"),
-            SOME_ELEMENTS, true, properties),
-        NO_PROPS);
+            SOME_ELEMENTS, true, properties), ksqlConfig, NO_PROPS);
 
     assertThat(result, instanceOf(CreateStreamCommand.class));
   }
@@ -99,8 +102,7 @@ public class CommandFactoriesTest {
     final HashMap<String, Literal> tableProperties = validTableProps();
 
     final DdlCommand result = commandFactories
-        .create(sqlExpression, createTable(tableProperties),
-            NO_PROPS);
+        .create(sqlExpression, createTable(tableProperties), ksqlConfig, NO_PROPS);
 
     assertThat(result, instanceOf(CreateTableCommand.class));
   }
@@ -109,6 +111,7 @@ public class CommandFactoriesTest {
   public void shouldCreateCommandForDropStream() {
     final DdlCommand result = commandFactories.create(sqlExpression,
         new DropStream(QualifiedName.of("foo"), true, true),
+        ksqlConfig,
         NO_PROPS
     );
     assertThat(result, instanceOf(DropSourceCommand.class));
@@ -118,6 +121,7 @@ public class CommandFactoriesTest {
   public void shouldCreateCommandForDropTable() {
     final DdlCommand result = commandFactories.create(sqlExpression,
         new DropTable(QualifiedName.of("foo"), true, true),
+        ksqlConfig,
         NO_PROPS
     );
     assertThat(result, instanceOf(DropSourceCommand.class));
@@ -127,6 +131,7 @@ public class CommandFactoriesTest {
   public void shouldCreateCommandForDropTopic() {
     final DdlCommand result = commandFactories.create(sqlExpression,
         new DropTopic(QualifiedName.of("foo"), true),
+        ksqlConfig,
         NO_PROPS
     );
     assertThat(result, instanceOf(DropTopicCommand.class));
@@ -134,8 +139,7 @@ public class CommandFactoriesTest {
 
   @Test(expected = KsqlException.class)
   public void shouldThowKsqlExceptionIfCommandFactoryNotFound() {
-    commandFactories.create(sqlExpression, new ExecutableDdlStatement() {},
-        NO_PROPS);
+    commandFactories.create(sqlExpression, new ExecutableDdlStatement() {}, ksqlConfig, NO_PROPS);
   }
 
   private HashMap<String, Literal> validTableProps() {

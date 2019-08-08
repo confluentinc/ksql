@@ -1224,7 +1224,7 @@ the following WINDOW types:
 Every output column of an expression in the SELECT list has an output name. To specify the output name of a column, use
 ``AS OUTPUT_NAME`` after the expression definition. If it is omitted, KSQL will assign a system generated name
 ``KSQL_COL_i`` where ``i`` is the ordinal number of the expression in the SELECT list. If the expression references
-a column of a FROM_ITEM, then the output name is the name of that column.
+a column of a from_item, then the output name is the name of that column.
 
 **Tip:** KSQL will throw an error for duplicate output names. For example:
 

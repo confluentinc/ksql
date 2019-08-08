@@ -31,6 +31,7 @@ import java.util.AbstractMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -125,6 +126,9 @@ public class ValueSpecAvroSerdeSupplier implements SerdeSupplier<Object> {
         case BOOLEAN:
           return spec;
         case ARRAY:
+          // An array of map entries will be deserialized as a Map.
+          // Check https://github.com/confluentinc/schema-registry/blob/master/avro-converter/src/main/java/io/confluent/connect/avro/AvroData.java
+          // for more details
           if (schema.getElementType().getName().equals(AvroData.MAP_ENTRY_TYPE_NAME)
               ||
               Objects.equals(
@@ -150,25 +154,7 @@ public class ValueSpecAvroSerdeSupplier implements SerdeSupplier<Object> {
         case RECORD:
           return getAvroRecord(spec, schema);
         case UNION:
-          if (schema.getTypes().size() == 2) {
-            if (schema.getTypes().get(0).getType() == org.apache.avro.Schema.Type.NULL) {
-              return valueSpecToAvro(spec, schema.getTypes().get(1));
-            } else {
-              return valueSpecToAvro(spec, schema.getTypes().get(0));
-            }
-          }
-          for (final org.apache.avro.Schema memberSchema : schema.getTypes()) {
-            if (!memberSchema.getType().equals(org.apache.avro.Schema.Type.NULL)) {
-              final String typeName = memberSchema.getType().getName().toUpperCase();
-              final Object val = ((Map<String, ?>) spec).get(typeName);
-              if (val != null) {
-                return valueSpecToAvro(val, memberSchema);
-              }
-            }
-          }
-          throw new RuntimeException("Union must have non-null type: "
-              + schema.getType().getName());
-
+          return valueSpecUnionToAvro(spec, schema);
         default:
           throw new RuntimeException(
               "This test does not support the data type yet: " + schema.getType().getName());
@@ -176,10 +162,37 @@ public class ValueSpecAvroSerdeSupplier implements SerdeSupplier<Object> {
     }
 
     @SuppressWarnings("unchecked")
+    private static Object valueSpecUnionToAvro(
+        final Object spec,
+        final org.apache.avro.Schema schema
+    ) {
+      // If the schema has two types and one is null, serialize the non null
+      if (schema.getTypes().size() == 2) {
+        if (schema.getTypes().get(0).getType() == org.apache.avro.Schema.Type.NULL) {
+          return valueSpecToAvro(spec, schema.getTypes().get(1));
+        } else {
+          return valueSpecToAvro(spec, schema.getTypes().get(0));
+        }
+      }
+      // if the schema has more than one non null type
+      for (final org.apache.avro.Schema memberSchema : schema.getTypes()) {
+        if (!memberSchema.getType().equals(org.apache.avro.Schema.Type.NULL)) {
+          final String typeName = memberSchema.getType().getName().toUpperCase();
+          final Object val = ((Map<String, ?>) spec).get(typeName);
+          if (val != null) {
+            return valueSpecToAvro(val, memberSchema);
+          }
+        }
+      }
+      throw new RuntimeException("Union must have non-null type: "
+          + schema.getType().getName());
+    }
+
+    @SuppressWarnings("unchecked")
     private static GenericRecord getAvroRecord(final Object spec, final Schema schema) {
       final GenericRecord record = new GenericData.Record(schema);
       final Map<String, String> caseInsensitiveFieldNames
-          = getCaseInsensitiveMap((Map) spec);
+          = getUppercaseKeyToActualKey((Map) spec);
       for (final org.apache.avro.Schema.Field field : schema.getFields()) {
         record.put(
             field.name(),
@@ -191,6 +204,7 @@ public class ValueSpecAvroSerdeSupplier implements SerdeSupplier<Object> {
     }
 
     @SuppressWarnings("unchecked")
+    // A map entry will be serialized as an avro object with two fields, key and value.
     private static GenericRecord getAvroRecordForMapEntry(
         final Map.Entry<?, ?> spec,
         final Schema schema) {
@@ -299,6 +313,11 @@ public class ValueSpecAvroSerdeSupplier implements SerdeSupplier<Object> {
               "BYTES must be ByteBuffer, got " + avro.getClass());
           return new DecimalConversion().fromBytes((ByteBuffer) avro, schema, logicalType);
         case ARRAY:
+          // Since Connect serializes maps as an array of MapEnties to support maps with non
+          // string keys, if the array element is MapEntry type we should deserialize it as
+          // a map!
+          // Check https://github.com/confluentinc/schema-registry/blob/master/avro-converter/src/main/java/io/confluent/connect/avro/AvroData.java
+          // for more details
           if (schema.getElementType().getName().equals(AvroData.MAP_ENTRY_TYPE_NAME)
               ||
               Objects.equals(
@@ -337,30 +356,40 @@ public class ValueSpecAvroSerdeSupplier implements SerdeSupplier<Object> {
           );
           return recordSpec;
         case UNION:
-          final int pos = GenericData.get().resolveUnion(schema, avro);
-          final boolean hasNull = schema.getTypes().stream()
-              .anyMatch(s -> s.getType().equals(org.apache.avro.Schema.Type.NULL));
-          final Object resolved = avroToValueSpec(avro, schema.getTypes().get(pos), toUpper);
-          if (schema.getTypes().get(pos).getType().equals(org.apache.avro.Schema.Type.NULL)
-              || schema.getTypes().size() == 2 && hasNull) {
-            return resolved;
-          }
-          final Map<String, Object> ret = Maps.newHashMap();
-          schema.getTypes()
-              .forEach(
-                  s -> ret.put(s.getName().toUpperCase(), null));
-          ret.put(schema.getTypes().get(pos).getName().toUpperCase(), resolved);
-          return ret;
+          return avroUnionToValueSpec(avro, schema, toUpper);
         default:
           throw new RuntimeException("Test cannot handle data of type: " + schema.getType());
       }
     }
+
+    private static Object avroUnionToValueSpec(
+        final Object avroUnion,
+        final org.apache.avro.Schema schema,
+        final boolean toUpper
+    ) {
+      final int pos = GenericData.get().resolveUnion(schema, avroUnion);
+      final boolean hasNull = schema.getTypes().stream()
+          .anyMatch(s -> s.getType().equals(org.apache.avro.Schema.Type.NULL));
+      final Object resolved = avroToValueSpec(avroUnion, schema.getTypes().get(pos), toUpper);
+      // If there are two types and one is NULL, just return the resolved object
+      if (schema.getTypes().get(pos).getType().equals(org.apache.avro.Schema.Type.NULL)
+          || schema.getTypes().size() == 2 && hasNull) {
+        return resolved;
+      }
+      // If there are more than two non NULL types
+      final Map<String, Object> ret = Maps.newHashMap();
+      schema.getTypes()
+          .forEach(
+              s -> ret.put(s.getName().toUpperCase(), null));
+      ret.put(schema.getTypes().get(pos).getName().toUpperCase(), resolved);
+      return ret;
+    }
   }
 
   @SuppressWarnings("unchecked")
-  private static Map<String, String> getCaseInsensitiveMap(final Map<?, ?> record) {
+  private static Map<String, String> getUppercaseKeyToActualKey(final Map<String, ?> record) {
     return record.entrySet().stream().collect(Collectors.toMap(
-        entry -> entry.getKey().toString().toUpperCase(),
-        entry -> entry.getKey().toString()));
+        entry -> entry.getKey().toUpperCase(),
+        Entry::getKey));
   }
 } 

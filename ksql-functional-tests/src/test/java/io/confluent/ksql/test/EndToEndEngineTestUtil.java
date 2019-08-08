@@ -22,7 +22,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import com.fasterxml.jackson.databind.node.NullNode;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import io.confluent.connect.avro.AvroData;
@@ -45,7 +44,6 @@ import io.confluent.ksql.test.tools.TestCase;
 import io.confluent.ksql.test.tools.TestExecutor;
 import io.confluent.ksql.test.tools.Topic;
 import io.confluent.ksql.test.tools.TopologyAndConfigs;
-import io.confluent.ksql.test.tools.TopologyTestDriverContainer;
 import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;
 import io.confluent.ksql.test.utils.SerdeUtil;
 import io.confluent.ksql.util.KsqlConfig;
@@ -70,7 +68,6 @@ import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Properties;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -78,7 +75,6 @@ import org.apache.avro.generic.GenericData;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.streams.StreamsConfig;
-import org.apache.kafka.streams.TopologyTestDriver;
 import org.apache.kafka.test.TestUtils;
 
 final class EndToEndEngineTestUtil {
@@ -205,41 +201,6 @@ final class EndToEndEngineTestUtil {
 
     return compatibleConfig
         .cloneWithPropertyOverwrite(testCase.properties());
-  }
-
-  private static TopologyTestDriverContainer buildStreamsTopologyTestDriverContainer(
-      final TestCase testCase,
-      final ServiceContext serviceContext,
-      final KsqlEngine ksqlEngine
-  ) {
-    final KsqlConfig ksqlConfig = buildConfig(testCase);
-
-    final PersistentQueryMetadata persistentQueryMetadata =
-        buildQuery(testCase, serviceContext, ksqlEngine, ksqlConfig);
-
-    testCase.setGeneratedTopologies(
-        ImmutableList.of(persistentQueryMetadata.getTopologyDescription()));
-    testCase.setGeneratedSchemas(ImmutableList.of(persistentQueryMetadata.getSchemasDescription()));
-
-    final Properties streamsProperties = new Properties();
-    streamsProperties.putAll(persistentQueryMetadata.getStreamsProperties());
-
-    final TopologyTestDriver topologyTestDriver =  new TopologyTestDriver(
-        persistentQueryMetadata.getTopology(),
-        streamsProperties,
-        0);
-
-    return TopologyTestDriverContainer.of(
-        topologyTestDriver,
-        persistentQueryMetadata.getSourceNames()
-            .stream()
-            .map(s -> fakeKafkaService.getTopic(ksqlEngine.getMetaStore().getSource(s).getKafkaTopicName()))
-            .collect(Collectors.toList()),
-        fakeKafkaService.getTopic(
-            ksqlEngine.getMetaStore()
-                .getSource(persistentQueryMetadata.getSinkName())
-                .getKafkaTopicName())
-    );
   }
 
   private static void writeExpectedTopologyFile(
@@ -498,8 +459,7 @@ final class EndToEndEngineTestUtil {
 
   static void shouldBuildAndExecuteQuery(final TestCase testCase) {
 
-    final TestExecutor testExecutor = new TestExecutor();
-    try {
+    try (final TestExecutor testExecutor = new TestExecutor()) {
       testExecutor.buildAndExecuteQuery(testCase);
     } catch (final RuntimeException e) {
       testCase.handleException(e);
@@ -509,8 +469,6 @@ final class EndToEndEngineTestUtil {
           + "Failed with error:" + e.getMessage(), e);
     } catch (final RestClientException | IOException e) {
       throw new KsqlException("Test failed failed: " + e.getMessage(), e);
-    } finally {
-      testExecutor.close();
     }
   }
 

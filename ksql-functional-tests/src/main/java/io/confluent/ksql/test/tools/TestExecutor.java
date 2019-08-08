@@ -29,6 +29,7 @@ import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
+import java.io.Closeable;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
@@ -39,7 +40,7 @@ import java.util.stream.Collectors;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.streams.StreamsConfig;
 
-public class TestExecutor {
+public class TestExecutor implements Closeable {
 
   private final ServiceContext serviceContext = getServiceContext();
   private final KsqlEngine ksqlEngine = getKsqlEngine(serviceContext);

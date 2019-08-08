@@ -462,11 +462,7 @@ public class TestCase implements Test {
   }
 
   private boolean isLegacySessionWindow() {
-    if (!properties.containsKey(KsqlConfig.KSQL_WINDOWED_SESSION_KEY_LEGACY_CONFIG)) {
-      return false;
-    }
-    return Boolean.parseBoolean(
-        properties.get(KsqlConfig.KSQL_WINDOWED_SESSION_KEY_LEGACY_CONFIG).toString()
-    );
+    final Object config = properties.get(KsqlConfig.KSQL_WINDOWED_SESSION_KEY_LEGACY_CONFIG);
+    return config != null && Boolean.parseBoolean(config.toString());
   }
 }

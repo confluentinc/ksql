@@ -1233,7 +1233,7 @@ a column of a FROM_ITEM, then the output name is the name of that column.
         SELECT 1, KSQL_COL_0
           FROM orders;
 
-is not allowed as the output name for the literal ```1``` is ```KSQL_COL_0```.
+is not allowed as the output name for the literal ``1`` is ``KSQL_COL_0``.
 
 CAST
 ~~~~

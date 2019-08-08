@@ -27,28 +27,32 @@ import io.confluent.ksql.util.KsqlConstants;
     description = "The sign of a value."
 )
 public class Sign {
-  @Udf(description = "Returns the sign of an INT value.")
-  public Double sign(
+  @Udf(description = "Returns the sign of an INT value, denoted by 1, 0 or -1.")
+  public Integer sign(
       @UdfParameter(
           value = "value",
           description = "The value to get the sign of."
       ) final Integer value
   ) {
-    return sign(value == null ? null : value.doubleValue());
+    return value == null
+        ? null
+        : Integer.signum(value);
   }
 
-  @Udf(description = "Returns the sign of an BIGINT value.")
-  public Double sign(
+  @Udf(description = "Returns the sign of an BIGINT value, denoted by 1, 0 or -1.")
+  public Integer sign(
       @UdfParameter(
           value = "value",
           description = "The value to get the sign of."
       ) final Long value
   ) {
-    return sign(value == null ? null : value.doubleValue());
+    return value == null
+        ? null
+        : Long.signum(value);
   }
 
-  @Udf(description = "Returns the sign of an DOUBLE value.")
-  public Double sign(
+  @Udf(description = "Returns the sign of an DOUBLE value, denoted by 1, 0 or -1.")
+  public Integer sign(
       @UdfParameter(
           value = "value",
           description = "The value to get the sign of."
@@ -56,6 +60,6 @@ public class Sign {
   ) {
     return value == null
         ? null
-        : Math.signum(value);
+        : (int) Math.signum(value);
   }
 }

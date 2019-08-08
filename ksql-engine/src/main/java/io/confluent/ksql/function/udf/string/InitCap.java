@@ -26,7 +26,8 @@ import java.util.regex.Pattern;
 @SuppressWarnings("unused") // Invoked via reflection.
 @UdfDescription(name = "initcap",
     author = KsqlConstants.CONFLUENT_AUTHOR,
-    description = "Capitalizes the first letter of each word in a string and the rest lowercased.")
+    description = "Capitalizes the first letter of each word in a string and the rest lowercased."
+        + " Words are delimited by whitespace.")
 public class InitCap {
   @Udf(description = "Returns the string with the the first letter"
       + " of each word capitalized and the rest lowercased")

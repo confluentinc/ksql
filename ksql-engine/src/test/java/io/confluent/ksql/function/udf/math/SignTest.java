@@ -39,18 +39,21 @@ public class SignTest {
 
   @Test
   public void shouldHandleNegative() {
-    assertThat(udf.sign(-10.0), is(-1.0));
+    assertThat(udf.sign(-10.5), is(-1));
+    assertThat(udf.sign(-10), is(-1));
+    assertThat(udf.sign(-1L), is(-1));
   }
 
   @Test
   public void shouldHandleZero() {
-    assertThat(udf.sign(0.0), is(0.0));
+    assertThat(udf.sign(0.0), is(0));
+    assertThat(udf.sign(0), is(0));
   }
 
   @Test
   public void shouldHandlePositive() {
-    assertThat(udf.sign(1), is(1.0));
-    assertThat(udf.sign(1L), is(1.0));
-    assertThat(udf.sign(1.0), is(1.0));
+    assertThat(udf.sign(1), is(1));
+    assertThat(udf.sign(1L), is(1));
+    assertThat(udf.sign(1.5), is(1));
   }
 }

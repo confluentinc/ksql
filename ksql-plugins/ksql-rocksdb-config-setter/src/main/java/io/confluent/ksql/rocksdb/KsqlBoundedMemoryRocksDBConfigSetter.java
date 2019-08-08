@@ -30,7 +30,7 @@ import org.rocksdb.Options;
  * </p>
  * See https://docs.confluent.io/5.3.0/streams/developer-guide/memory-mgmt.html#rocksdb.
  */
-public class KsqlBoundedMemoryRocksDBConfig implements RocksDBConfigSetter {
+public class KsqlBoundedMemoryRocksDBConfigSetter implements RocksDBConfigSetter {
 
   private static final String CONFIG_PREFIX = "ksql.plugins.rocksdb.";
   private static final String TOTAL_OFF_HEAP_MEMORY_CONFIG = CONFIG_PREFIX + "total.memory";
@@ -58,7 +58,7 @@ public class KsqlBoundedMemoryRocksDBConfig implements RocksDBConfigSetter {
   static void configure(final Map<String, Object> config, final Options options) {
     if (configured.getAndSet(true)) {
       throw new IllegalStateException(
-          "KsqlBoundedMemoryRocksDBConfig has already been configured. Cannot re-configure.");
+          "KsqlBoundedMemoryRocksDBConfigSetter has already been configured. Cannot re-configure.");
     }
 
     try {
@@ -106,7 +106,7 @@ public class KsqlBoundedMemoryRocksDBConfig implements RocksDBConfigSetter {
       final Map<String, Object> configs) {
     if (!configured.get()) {
       throw new IllegalStateException(
-          "Cannot use KsqlBoundedMemoryRocksDBConfig before it's been configured.");
+          "Cannot use KsqlBoundedMemoryRocksDBConfigSetter before it's been configured.");
     }
 
     final BlockBasedTableConfig tableConfig = (BlockBasedTableConfig)options.tableFormatConfig();

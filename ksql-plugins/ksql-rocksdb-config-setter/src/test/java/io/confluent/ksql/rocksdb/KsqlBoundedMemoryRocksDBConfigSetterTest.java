@@ -39,7 +39,7 @@ import org.rocksdb.Options;
 import org.rocksdb.WriteBufferManager;
 
 @RunWith(MockitoJUnitRunner.class)
-public class KsqlBoundedMemoryRocksDBConfigTest {
+public class KsqlBoundedMemoryRocksDBConfigSetterTest {
 
   private static final long TOTAL_OFF_HEAP_MEMORY = 16 * 1024 * 1024 * 1024L;
   private static final int NUM_BACKGROUND_THREADS = 4;
@@ -65,18 +65,18 @@ public class KsqlBoundedMemoryRocksDBConfigTest {
   @Captor
   private ArgumentCaptor<Cache> secondCacheCaptor;
 
-  private KsqlBoundedMemoryRocksDBConfig rocksDBConfig;
-  private KsqlBoundedMemoryRocksDBConfig secondRocksDBConfig;
+  private KsqlBoundedMemoryRocksDBConfigSetter rocksDBConfig;
+  private KsqlBoundedMemoryRocksDBConfigSetter secondRocksDBConfig;
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
 
   @Before
   public void setUp() {
-    KsqlBoundedMemoryRocksDBConfig.reset();
+    KsqlBoundedMemoryRocksDBConfigSetter.reset();
 
-    rocksDBConfig = new KsqlBoundedMemoryRocksDBConfig();
-    secondRocksDBConfig = new KsqlBoundedMemoryRocksDBConfig();
+    rocksDBConfig = new KsqlBoundedMemoryRocksDBConfigSetter();
+    secondRocksDBConfig = new KsqlBoundedMemoryRocksDBConfigSetter();
 
     when(ksqlConfigs.containsKey("ksql.plugins.rocksdb.total.memory")).thenReturn(true);
     when(ksqlConfigs.containsKey("ksql.plugins.rocksdb.num.background.threads")).thenReturn(true);
@@ -93,7 +93,7 @@ public class KsqlBoundedMemoryRocksDBConfigTest {
     // Expect:
     expectedException.expect(IllegalStateException.class);
     expectedException.expectMessage(
-        "Cannot use KsqlBoundedMemoryRocksDBConfig before it's been configured.");
+        "Cannot use KsqlBoundedMemoryRocksDBConfigSetter before it's been configured.");
 
     // When:
     rocksDBConfig.setConfig("store_name", rocksOptions, Collections.emptyMap());
@@ -102,21 +102,21 @@ public class KsqlBoundedMemoryRocksDBConfigTest {
   @Test
   public void shouldFailIfConfiguredTwice() {
     // Given:
-    KsqlBoundedMemoryRocksDBConfig.configure(ksqlConfigs);
+    KsqlBoundedMemoryRocksDBConfigSetter.configure(ksqlConfigs);
 
     // Expect:
     expectedException.expect(IllegalStateException.class);
     expectedException.expectMessage(
-        "KsqlBoundedMemoryRocksDBConfig has already been configured. Cannot re-configure.");
+        "KsqlBoundedMemoryRocksDBConfigSetter has already been configured. Cannot re-configure.");
 
     // When:
-    KsqlBoundedMemoryRocksDBConfig.configure(ksqlConfigs);
+    KsqlBoundedMemoryRocksDBConfigSetter.configure(ksqlConfigs);
   }
 
   @Test
   public void shouldSetConfig() {
     // Given:
-    KsqlBoundedMemoryRocksDBConfig.configure(ksqlConfigs);
+    KsqlBoundedMemoryRocksDBConfigSetter.configure(ksqlConfigs);
 
     // When:
     rocksDBConfig.setConfig("store_name", rocksOptions, Collections.emptyMap());
@@ -146,7 +146,7 @@ public class KsqlBoundedMemoryRocksDBConfigTest {
         "Missing configuration: ksql.plugins.rocksdb.total.memory");
 
     // When:
-    KsqlBoundedMemoryRocksDBConfig.configure(ksqlConfigs);
+    KsqlBoundedMemoryRocksDBConfigSetter.configure(ksqlConfigs);
   }
 
   @Test
@@ -160,13 +160,13 @@ public class KsqlBoundedMemoryRocksDBConfigTest {
         "Missing configuration: ksql.plugins.rocksdb.num.background.threads");
 
     // When:
-    KsqlBoundedMemoryRocksDBConfig.configure(ksqlConfigs);
+    KsqlBoundedMemoryRocksDBConfigSetter.configure(ksqlConfigs);
   }
 
   @Test
   public void shouldShareCacheAcrossInstances() {
     // Given:
-    KsqlBoundedMemoryRocksDBConfig.configure(ksqlConfigs);
+    KsqlBoundedMemoryRocksDBConfigSetter.configure(ksqlConfigs);
     rocksDBConfig.setConfig("store_name", rocksOptions, Collections.emptyMap());
 
     // When:
@@ -181,7 +181,7 @@ public class KsqlBoundedMemoryRocksDBConfigTest {
   @Test
   public void shouldShareWriteBufferManagerAcrossInstances() {
     // Given:
-    KsqlBoundedMemoryRocksDBConfig.configure(ksqlConfigs);
+    KsqlBoundedMemoryRocksDBConfigSetter.configure(ksqlConfigs);
     rocksDBConfig.setConfig("store_name", rocksOptions, Collections.emptyMap());
 
     // When:
@@ -198,7 +198,7 @@ public class KsqlBoundedMemoryRocksDBConfigTest {
   @Test
   public void shouldSetNumThreads() {
     // When:
-    KsqlBoundedMemoryRocksDBConfig.configure(ksqlConfigs, rocksOptions);
+    KsqlBoundedMemoryRocksDBConfigSetter.configure(ksqlConfigs, rocksOptions);
 
     // Then:
     verify(env).setBackgroundThreads(NUM_BACKGROUND_THREADS);

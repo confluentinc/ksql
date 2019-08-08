@@ -18,30 +18,30 @@ package io.confluent.ksql.connect;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.AbstractExecutionThreadService;
 import com.google.common.util.concurrent.MoreExecutors;
+import io.confluent.ksql.services.ConnectClient;
+import io.confluent.ksql.services.ConnectClient.ConnectResponse;
 import io.confluent.ksql.util.KsqlConfig;
 import java.time.Duration;
+import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.WakeupException;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
-import org.apache.kafka.connect.errors.DataException;
-import org.apache.kafka.connect.json.JsonConverter;
-import org.apache.kafka.connect.json.JsonConverterConfig;
-import org.apache.kafka.connect.storage.ConverterConfig;
-import org.apache.kafka.connect.storage.ConverterType;
+import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -61,12 +61,12 @@ class ConnectConfigService extends AbstractExecutionThreadService {
 
   private final KsqlConfig ksqlConfig;
   private final String configsTopic;
+  private final ConnectClient connectClient;
   private final ConnectPollingService pollingService;
-  private final JsonConverter converter;
   private final Function<Map<String, Object>, KafkaConsumer<String, byte[]>> consumerFactory;
-  private final Function<Map<String, String>, Optional<Connector>> connectorFactory;
+  private final Function<ConnectorInfo, Optional<Connector>> connectorFactory;
 
-  private Set<Connector> connectors = new HashSet<>();
+  private Set<String> handledConnectors = new HashSet<>();
 
   // not final because constructing a consumer is expensive and should be
   // done in startUp()
@@ -74,25 +74,32 @@ class ConnectConfigService extends AbstractExecutionThreadService {
 
   ConnectConfigService(
       final KsqlConfig ksqlConfig,
+      final ConnectClient connectClient,
       final ConnectPollingService pollingService
   ) {
-    this(ksqlConfig, pollingService, Connectors::fromConnectConfig , KafkaConsumer::new);
+    this(
+        ksqlConfig,
+        connectClient,
+        pollingService,
+        Connectors::fromConnectInfo,
+        KafkaConsumer::new
+    );
   }
 
   @VisibleForTesting
   ConnectConfigService(
       final KsqlConfig ksqlConfig,
+      final ConnectClient connectClient,
       final ConnectPollingService pollingService,
-      final Function<Map<String, String>, Optional<Connector>> connectorFactory,
+      final Function<ConnectorInfo, Optional<Connector>> connectorFactory,
       final Function<Map<String, Object>, KafkaConsumer<String, byte[]>> consumerFactory
   ) {
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     this.pollingService = Objects.requireNonNull(pollingService, "pollingService");
     this.connectorFactory = Objects.requireNonNull(connectorFactory, "connectorFactory");
     this.consumerFactory = Objects.requireNonNull(consumerFactory, "consumerFactory");
+    this.connectClient = Objects.requireNonNull(connectClient, "connectClient");
     this.configsTopic = ksqlConfig.getString(KsqlConfig.CONNECT_CONFIGS_TOPIC_PROPERTY);
-
-    this.converter = new JsonConverter();
 
     addListener(new Listener() {
       @Override
@@ -104,71 +111,86 @@ class ConnectConfigService extends AbstractExecutionThreadService {
 
   @Override
   protected void startUp() {
+    final String serviceId = ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
     final Map<String, Object> consumerConfigs = ImmutableMap.<String, Object>builder()
         .putAll(ksqlConfig.getProducerClientConfigProps())
         // don't create the config topic if it doesn't exist - this is also necessary
         // for some integration tests to pass
         .put(ConsumerConfig.ALLOW_AUTO_CREATE_TOPICS_CONFIG, false)
+        // set the group id to be the same as the service id to make sure that only one
+        // KSQL server will subscribe to the topic and handle connectors (use this as
+        // a form of poor man's leader election)
+        .put(ConsumerConfig.GROUP_ID_CONFIG, serviceId)
         .put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class)
         .put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ByteArrayDeserializer.class)
         .build();
 
     consumer = consumerFactory.apply(consumerConfigs);
-    consumer.assign(ImmutableList.of(new TopicPartition(configsTopic, 0)));
-    consumer.seekToBeginning(ImmutableList.of());
+    consumer.subscribe(ImmutableList.of(configsTopic), new ConsumerRebalanceListener() {
+      @Override
+      public void onPartitionsRevoked(final Collection<TopicPartition> partitions) { }
 
-    converter.configure(ImmutableMap.of(
-        ConverterConfig.TYPE_CONFIG, ConverterType.VALUE.getName(),
-        JsonConverterConfig.SCHEMAS_ENABLE_CONFIG, false));
+      @Override
+      public void onPartitionsAssigned(final Collection<TopicPartition> partitions) {
+        // if we were assigned the (only) connect-configs partition, we should rebuild
+        // our entire state - this ensures that only a single server in the KSQL cluster
+        // handles new connectors
+        checkConnectors();
+      }
+    });
   }
 
   @Override
   protected void run() {
     while (isRunning()) {
-      final ConsumerRecords<String, byte[]> records;
       try {
+        final ConsumerRecords<String, byte[]> records;
         records = consumer.poll(Duration.ofSeconds(POLL_TIMEOUT_S));
         LOG.debug("Polled {} records from connect config topic", records.count());
+
+        if (!records.isEmpty()) {
+          checkConnectors();
+        }
       } catch (final WakeupException e) {
         if (isRunning()) {
           throw e;
-        }
-        return;
-      }
-
-      final Set<Connector> connectors = new HashSet<>();
-      for (final ConsumerRecord<String, byte[]> record : records) {
-        try {
-          extractConnector(
-              converter.toConnectData(configsTopic, record.value()).value()
-          ).ifPresent(connectors::add);
-        } catch (final DataException e) {
-          LOG.warn("Failed to read connector configuration for connector {}", record.key(), e);
-        }
-      }
-
-      if (!connectors.isEmpty()) {
-        connectors.forEach(pollingService::addConnector);
-        if (!Sets.symmetricDifference(this.connectors, connectors).isEmpty()) {
-          LOG.info("Registered the following connectors: {}", connectors);
-          this.connectors = connectors;
-          pollingService.runOneIteration();
         }
       }
     }
   }
 
-  @SuppressWarnings("unchecked")
-  private Optional<Connector> extractConnector(final Object value) {
-    if (value != null) {
-      final Map<String, Object> asMap = (Map<String, Object>) value;
-      final Map<String, String> properties = (Map<String, String>) asMap.get("properties");
-      if (properties != null) {
-        return connectorFactory.apply(properties);
-      }
+  private void checkConnectors() {
+    // something changed in the connect configuration topic - poll connect
+    // and see if we need to update our connectors
+    final ConnectResponse<List<String>> allConnectors = connectClient.connectors();
+    if (allConnectors.datum().isPresent()) {
+
+      final List<String> toProcess = allConnectors.datum()
+          .get()
+          .stream()
+          .filter(connector -> !handledConnectors.contains(connector))
+          .collect(Collectors.toList());
+      LOG.info("Was made aware of the following connectors: {}", toProcess);
+
+      toProcess.forEach(this::handleConnector);
+    }
+  }
+
+  private void handleConnector(final String name) {
+    final ConnectResponse<ConnectorInfo> describe = connectClient.describe(name);
+    if (!describe.datum().isPresent()) {
+      return;
     }
 
-    return Optional.empty();
+    handledConnectors.add(name);
+    final Optional<Connector> connector = connectorFactory.apply(describe.datum().get());
+    if (connector.isPresent()) {
+      LOG.info("Registering connector {}", connector);
+      pollingService.addConnector(connector.get());
+    } else {
+      LOG.warn("Ignoring unsupported connector {} with config {}",
+          name, describe.datum().get().config());
+    }
   }
 
   @Override

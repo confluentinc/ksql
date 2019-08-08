@@ -23,17 +23,20 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.services.ConnectClient;
+import io.confluent.ksql.services.ConnectClient.ConnectResponse;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.WakeupException;
-import org.apache.kafka.connect.json.JsonConverter;
-import org.apache.kafka.connect.json.JsonConverterConfig;
+import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
+import org.apache.kafka.connect.runtime.rest.entities.ConnectorType;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.InOrder;
@@ -48,6 +51,8 @@ public class ConnectConfigServiceTest {
   @Mock
   private ConnectPollingService pollingService;
   @Mock
+  private ConnectClient connectClient;
+  @Mock
   private Connector connector;
 
   private ConnectConfigService configService;
@@ -56,13 +61,13 @@ public class ConnectConfigServiceTest {
   public void shouldCreateConnectorFromConfig() throws InterruptedException {
     // Given:
     final Map<String, String> config = ImmutableMap.of();
-    givenRecord(config);
+    givenConnector("connector", config);
 
     final CountDownLatch awaitIteration = new CountDownLatch(1);
     doAnswer(invocationOnMock -> {
       awaitIteration.countDown();
       return null;
-    }).when(pollingService).runOneIteration();
+    }).when(pollingService).addConnector(connector);
     setupConfigService();
 
     // When:
@@ -77,15 +82,6 @@ public class ConnectConfigServiceTest {
   @Test(timeout = 30_000L)
   public void shouldWakeupConsumerBeforeShuttingDown() {
     // Given:
-    final CountDownLatch awaitWakeup = new CountDownLatch(1);
-    when(consumer.poll(any())).thenAnswer(invocationOnMock -> {
-      awaitWakeup.await();
-      throw new WakeupException();
-    });
-    doAnswer(invocation -> {
-      awaitWakeup.countDown();
-      return null;
-    }).when(consumer).wakeup();
     setupConfigService();
     configService.startAsync().awaitRunning();
 
@@ -100,28 +96,38 @@ public class ConnectConfigServiceTest {
     inOrder.verifyNoMoreInteractions();
   }
 
-  private void givenRecord(final Map<String, String> properties) {
-    final JsonConverter converter = new JsonConverter();
-    converter.configure(ImmutableMap.of(
-        "converter.type", "value",
-        JsonConverterConfig.SCHEMAS_ENABLE_CONFIG, false));
-
-    final byte[] mapAsBytes = converter
-        .fromConnectData("topic", null, ImmutableMap.of("properties", properties));
+  private void givenConnector(final String name, final Map<String, String> properties) {
+    final CountDownLatch awaitWakeup = new CountDownLatch(1);
     when(consumer.poll(any()))
         .thenReturn(new ConsumerRecords<>(
             ImmutableMap.of(
                 new TopicPartition("topic", 0),
-                ImmutableList.of(new ConsumerRecord<>("topic", 0, 0L, "connector", mapAsBytes)))))
-        .thenReturn(new ConsumerRecords<>(
-            ImmutableMap.of()));
+                ImmutableList.of(new ConsumerRecord<>("topic", 0, 0L, "connector", new byte[]{})))))
+        .thenAnswer(invocationOnMock -> {
+          awaitWakeup.await(30, TimeUnit.SECONDS);
+          throw new WakeupException();
+        });
+
+    doAnswer(invocation -> {
+      awaitWakeup.countDown();
+      return null;
+    }).when(consumer).wakeup();
+
+    when(connectClient.describe(name)).thenReturn(ConnectResponse.of(new ConnectorInfo(
+        name,
+        properties,
+        ImmutableList.of(),
+        ConnectorType.SOURCE
+    )));
+    when(connectClient.connectors()).thenReturn(ConnectResponse.of(ImmutableList.of(name)));
   }
 
   private void setupConfigService() {
     configService = new ConnectConfigService(
         new KsqlConfig(ImmutableMap.of()),
+        connectClient,
         pollingService,
-        props -> Optional.of(connector),
+        info -> Optional.of(connector),
         props -> consumer);
   }
 

@@ -43,7 +43,8 @@ public class KsqlConnect implements Closeable {
       final Consumer<CreateSource> sourceCallback
   ) {
     connectPollingService = new ConnectPollingService(executionContext, sourceCallback);
-    configService = new ConnectConfigService(ksqlConfig, connectPollingService);
+    configService = new ConnectConfigService(
+        ksqlConfig, executionContext.getServiceContext().getConnectClient(), connectPollingService);
     enabled = ksqlConfig.getBoolean(KsqlConfig.CONNECT_POLLING_ENABLE_PROPERTY);
   }
 

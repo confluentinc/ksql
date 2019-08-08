@@ -35,7 +35,7 @@ public class ConnectorsTest {
     );
 
     // When:
-    final Optional<Connector> maybeConnector = Connectors.fromConnectConfig(config);
+    final Optional<Connector> maybeConnector = Connectors.fromConnectInfo(config);
 
     // Then:
     assertThat("expected no connector", !maybeConnector.isPresent());
@@ -50,7 +50,7 @@ public class ConnectorsTest {
     );
 
     // When:
-    final Optional<Connector> maybeConnector = Connectors.fromConnectConfig(config);
+    final Optional<Connector> maybeConnector = Connectors.fromConnectInfo(config);
 
     // Then:
     final Connector expected = new Connector(
@@ -72,7 +72,7 @@ public class ConnectorsTest {
     );
 
     // When:
-    final Optional<Connector> maybeConnector = Connectors.fromConnectConfig(config);
+    final Optional<Connector> maybeConnector = Connectors.fromConnectInfo(config);
 
     // Then:
     assertThat(
@@ -90,7 +90,7 @@ public class ConnectorsTest {
     );
 
     // When:
-    final Optional<Connector> maybeConnector = Connectors.fromConnectConfig(config);
+    final Optional<Connector> maybeConnector = Connectors.fromConnectInfo(config);
 
     // Then:
     assertThat(
@@ -110,7 +110,7 @@ public class ConnectorsTest {
     );
 
     // When:
-    final Optional<Connector> maybeConnector = Connectors.fromConnectConfig(config);
+    final Optional<Connector> maybeConnector = Connectors.fromConnectInfo(config);
 
     // Then:
     final Connector expected = new Connector(

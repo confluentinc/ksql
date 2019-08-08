@@ -20,24 +20,32 @@ import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
 
 final class Connectors {
 
   static final String CONNECTOR_CLASS = "connector.class";
   static final String JDBC_SOURCE_CLASS = "io.confluent.connect.jdbc.JdbcSourceConnector";
 
-  private Connectors() { }
+  private Connectors() {
+  }
+
+  static Optional<Connector> fromConnectInfo(final ConnectorInfo connectorInfo) {
+    return fromConnectInfo(connectorInfo.config());
+  }
 
   @SuppressWarnings("SwitchStatementWithTooFewBranches") // will soon expand to more
-  static Optional<Connector> fromConnectConfig(final Map<String, String> properties) {
+  static Optional<Connector> fromConnectInfo(final Map<String, String> properties) {
     final String clazz = properties.get(CONNECTOR_CLASS);
     if (clazz == null) {
-      return  Optional.empty();
+      return Optional.empty();
     }
 
     switch (clazz) {
-      case JDBC_SOURCE_CLASS: return Optional.of(jdbc(properties));
-      default:                return Optional.empty();
+      case JDBC_SOURCE_CLASS:
+        return Optional.of(jdbc(properties));
+      default:
+        return Optional.empty();
     }
   }
 

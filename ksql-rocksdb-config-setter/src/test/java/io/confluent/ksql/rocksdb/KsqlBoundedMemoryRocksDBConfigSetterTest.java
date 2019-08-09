@@ -98,9 +98,9 @@ public class KsqlBoundedMemoryRocksDBConfigSetterTest {
   }
 
   @Test
-  public void shouldFailIfConfiguredTwice() {
+  public void shouldFailIfConfiguredTwiceFromSameInstance() {
     // Given:
-    KsqlBoundedMemoryRocksDBConfigSetter.configure(CONFIG_PROPS);
+    rocksDBConfig.configure(CONFIG_PROPS);
 
     // Expect:
     expectedException.expect(IllegalStateException.class);
@@ -108,13 +108,27 @@ public class KsqlBoundedMemoryRocksDBConfigSetterTest {
         "KsqlBoundedMemoryRocksDBConfigSetter has already been configured. Cannot re-configure.");
 
     // When:
-    KsqlBoundedMemoryRocksDBConfigSetter.configure(CONFIG_PROPS);
+    rocksDBConfig.configure(CONFIG_PROPS);
+  }
+
+  @Test
+  public void shouldFailIfConfiguredTwiceFromDifferentInstances() {
+    // Given:
+    rocksDBConfig.configure(CONFIG_PROPS);
+
+    // Expect:
+    expectedException.expect(IllegalStateException.class);
+    expectedException.expectMessage(
+        "KsqlBoundedMemoryRocksDBConfigSetter has already been configured. Cannot re-configure.");
+
+    // When:
+    secondRocksDBConfig.configure(CONFIG_PROPS);
   }
 
   @Test
   public void shouldSetConfig() {
     // Given:
-    KsqlBoundedMemoryRocksDBConfigSetter.configure(CONFIG_PROPS);
+    rocksDBConfig.configure(CONFIG_PROPS);
 
     // When:
     rocksDBConfig.setConfig("store_name", rocksOptions, Collections.emptyMap());
@@ -136,7 +150,7 @@ public class KsqlBoundedMemoryRocksDBConfigSetterTest {
   @Test
   public void shouldShareCacheAcrossInstances() {
     // Given:
-    KsqlBoundedMemoryRocksDBConfigSetter.configure(CONFIG_PROPS);
+    rocksDBConfig.configure(CONFIG_PROPS);
     rocksDBConfig.setConfig("store_name", rocksOptions, Collections.emptyMap());
 
     // When:
@@ -151,7 +165,7 @@ public class KsqlBoundedMemoryRocksDBConfigSetterTest {
   @Test
   public void shouldShareWriteBufferManagerAcrossInstances() {
     // Given:
-    KsqlBoundedMemoryRocksDBConfigSetter.configure(CONFIG_PROPS);
+    rocksDBConfig.configure(CONFIG_PROPS);
     rocksDBConfig.setConfig("store_name", rocksOptions, Collections.emptyMap());
 
     // When:

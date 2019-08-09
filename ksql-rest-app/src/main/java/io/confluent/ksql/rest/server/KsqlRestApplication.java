@@ -82,8 +82,6 @@ import io.confluent.rest.validation.JacksonMessageBodyProvider;
 import java.io.Console;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -107,6 +105,7 @@ import javax.websocket.server.ServerEndpoint;
 import javax.websocket.server.ServerEndpointConfig;
 import javax.websocket.server.ServerEndpointConfig.Configurator;
 import javax.ws.rs.core.Configurable;
+import org.apache.kafka.common.utils.Utils;
 import org.apache.kafka.streams.StreamsConfig;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.websocket.jsr356.server.ServerContainer;
@@ -627,23 +626,12 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
 
   private static void maybeConfigureRocksDBConfigSetter(final KsqlConfig ksqlConfig) {
     final Map<String, Object> streamsProps = ksqlConfig.getKsqlStreamConfigProps();
-    if (streamsProps.containsKey(StreamsConfig.ROCKSDB_CONFIG_SETTER_CLASS_CONFIG)) {
-      final Class<?> clazz =
-          (Class) streamsProps.get(StreamsConfig.ROCKSDB_CONFIG_SETTER_CLASS_CONFIG);
+    final Class<?> clazz =
+        (Class) streamsProps.get(StreamsConfig.ROCKSDB_CONFIG_SETTER_CLASS_CONFIG);
 
-      final Method method;
-      try {
-        method = clazz.getMethod("configure", Map.class);
-      } catch (NoSuchMethodException e) {
-        // Nothing to configure
-        return;
-      }
-
-      try {
-        method.invoke(null, ksqlConfig.originals());
-      } catch (IllegalAccessException | InvocationTargetException e) {
-        throw new RuntimeException("failed to configure class: " + clazz.getName(), e);
-      }
+    if (clazz != null && org.apache.kafka.common.Configurable.class.isAssignableFrom(clazz)) {
+      ((org.apache.kafka.common.Configurable) Utils.newInstance(clazz))
+          .configure(ksqlConfig.originals());
     }
   }
 }

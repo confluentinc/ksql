@@ -355,16 +355,16 @@ public class KsqlRestApplicationTest {
   }
 
   @Test
-  public void shouldConfigureRocksDBConfigSetterWithConfigureMethod() throws Exception {
+  public void shouldConfigureRocksDBConfigSetter() throws Exception {
     // Given:
     when(ksqlConfig.getKsqlStreamConfigProps()).thenReturn(
         ImmutableMap.of(
             StreamsConfig.ROCKSDB_CONFIG_SETTER_CLASS_CONFIG,
-            Class.forName("io.confluent.ksql.rest.server.KsqlRestApplicationTest$TestRocksDBConfigSetterWithConfigure"))
+            Class.forName("io.confluent.ksql.rest.server.KsqlRestApplicationTest$ConfigurableTestRocksDBConfigSetter"))
     );
     final Runnable mockRunnable = mock(Runnable.class);
     when(ksqlConfig.originals()).thenReturn(
-        ImmutableMap.of(TestRocksDBConfigSetterWithConfigure.TEST_CONFIG, mockRunnable));
+        ImmutableMap.of(ConfigurableTestRocksDBConfigSetter.TEST_CONFIG, mockRunnable));
 
     // When:
     app.startKsql();
@@ -374,29 +374,32 @@ public class KsqlRestApplicationTest {
   }
 
   @Test
-  public void shouldSkipConfiguringRocksDBConfigSetterWithoutConfigureMethod() throws Exception {
+  public void shouldStartWithNonConfigurableRocksDBConfigSetter() throws Exception {
     // Given:
     when(ksqlConfig.getKsqlStreamConfigProps()).thenReturn(
         ImmutableMap.of(
             StreamsConfig.ROCKSDB_CONFIG_SETTER_CLASS_CONFIG,
-            Class.forName("io.confluent.ksql.rest.server.KsqlRestApplicationTest$TestRocksDBConfigSetterWithoutConfigure"))
+            Class.forName("io.confluent.ksql.rest.server.KsqlRestApplicationTest$NonConfigurableTestRocksDBConfigSetter"))
     );
 
     // No error when:
     app.startKsql();
   }
 
-  private static class TestRocksDBConfigSetterWithConfigure extends TestRocksDBConfigSetterWithoutConfigure {
+  public static class ConfigurableTestRocksDBConfigSetter
+      extends NonConfigurableTestRocksDBConfigSetter
+      implements org.apache.kafka.common.Configurable {
 
     static final String TEST_CONFIG = "test.runnable";
 
-    public static void configure(final Map<String, Object> config) {
+    @Override
+    public void configure(final Map<String, ?> config) {
       final Runnable supplier = (Runnable) config.get(TEST_CONFIG);
       supplier.run();
     }
   }
 
-  private static class TestRocksDBConfigSetterWithoutConfigure implements RocksDBConfigSetter {
+  private static class NonConfigurableTestRocksDBConfigSetter implements RocksDBConfigSetter {
 
     @Override
     public void setConfig(

@@ -18,6 +18,7 @@ package io.confluent.ksql.rocksdb;
 import com.google.common.annotations.VisibleForTesting;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
+import org.apache.kafka.common.Configurable;
 import org.apache.kafka.streams.state.RocksDBConfigSetter;
 import org.rocksdb.BlockBasedTableConfig;
 import org.rocksdb.Options;
@@ -30,7 +31,7 @@ import org.rocksdb.Options;
  * </p>
  * See https://docs.confluent.io/5.3.0/streams/developer-guide/memory-mgmt.html#rocksdb.
  */
-public class KsqlBoundedMemoryRocksDBConfigSetter implements RocksDBConfigSetter {
+public class KsqlBoundedMemoryRocksDBConfigSetter implements RocksDBConfigSetter, Configurable {
 
   private static final double INDEX_FILTER_BLOCK_RATIO = 0.1;
   private static final int N_MEMTABLES = 6;
@@ -45,12 +46,13 @@ public class KsqlBoundedMemoryRocksDBConfigSetter implements RocksDBConfigSetter
   private static long totalMemtableMemory;
   private static int numBackgroundThreads;
 
-  public static void configure(final Map<String, Object> config) {
+  @Override
+  public void configure(final Map<String, ?> config) {
     configure(config, new Options());
   }
 
   @VisibleForTesting
-  static void configure(final Map<String, Object> config, final Options options) {
+  static void configure(final Map<String, ?> config, final Options options) {
     if (configured.getAndSet(true)) {
       throw new IllegalStateException(
           "KsqlBoundedMemoryRocksDBConfigSetter has already been configured. Cannot re-configure.");

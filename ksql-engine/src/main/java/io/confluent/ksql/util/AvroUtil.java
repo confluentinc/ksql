@@ -43,25 +43,27 @@ public final class AvroUtil {
     final String topicName = queryMetadata.getResultTopic().getKafkaTopicName();
 
     if (!isValidAvroSchemaForTopic(topicName, avroSchema, schemaRegistryClient)) {
-      final String subject = topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX;
-      String registeredSchema;
-      try {
-        registeredSchema = schemaRegistryClient
-            .getLatestSchemaMetadata(subject)
-            .getSchema();
-      } catch (Exception e) {
-        registeredSchema = "Could not get registered schema due to exception: " + e.getMessage();
-      }
-
       throw new KsqlStatementException(String.format(
           "Cannot register avro schema for %s as the schema is incompatible with the current "
               + "schema version registered for the topic.%n"
               + "KSQL schema: %s%n"
               + "Registered schema: %s",
-          queryMetadata.getResultTopic().getKafkaTopicName(),
-          avroSchema.toString(),
-          registeredSchema
+          topicName,
+          avroSchema,
+          getRegisteredSchema(topicName, schemaRegistryClient)
       ), queryMetadata.getStatementString());
+    }
+  }
+
+  private static String getRegisteredSchema(
+      final String topicName,
+      final SchemaRegistryClient schemaRegistryClient) {
+    try {
+      return schemaRegistryClient
+          .getLatestSchemaMetadata(topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX)
+          .getSchema();
+    } catch (Exception e) {
+      return "Could not get registered schema due to exception: " + e.getMessage();
     }
   }
 

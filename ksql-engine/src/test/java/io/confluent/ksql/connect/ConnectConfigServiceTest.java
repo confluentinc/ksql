@@ -83,6 +83,7 @@ public class ConnectConfigServiceTest {
   public void shouldWakeupConsumerBeforeShuttingDown() {
     // Given:
     setupConfigService();
+    givenConnector("ignored", ImmutableMap.of());
     configService.startAsync().awaitRunning();
 
     // When:

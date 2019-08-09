@@ -302,7 +302,7 @@ public class JoinNodeTest {
   }
 
   @Test
-  @Ignore // ignore this test until Kafka merges KIP-429
+  @Ignore // ignore this test until Kafka merges KIP-479
   public void shouldHaveLeftJoin() {
     setupTopicClientExpectations(1, 1);
     buildJoin();

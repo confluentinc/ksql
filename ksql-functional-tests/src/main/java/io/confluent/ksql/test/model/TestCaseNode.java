@@ -80,6 +80,7 @@ public class TestCaseNode {
   private final Map<String, Object> properties;
   private final Optional<ExpectedExceptionNode> expectedException;
   private final Optional<PostConditionsNode> postConditions;
+  private final boolean enabled;
 
   // CHECKSTYLE_RULES.OFF: CyclomaticComplexity|NPathComplexity
   public TestCaseNode(
@@ -91,7 +92,8 @@ public class TestCaseNode {
       @JsonProperty("statements") final List<String> statements,
       @JsonProperty("properties") final Map<String, Object> properties,
       @JsonProperty("expectedException") final ExpectedExceptionNode expectedException,
-      @JsonProperty("post") final PostConditionsNode postConditions
+      @JsonProperty("post") final PostConditionsNode postConditions,
+      @JsonProperty("enabled") final Boolean enabled
   ) {
     // CHECKSTYLE_RULES.ON: CyclomaticComplexity|NPathComplexity
     this.name = name == null ? "" : name;
@@ -103,6 +105,7 @@ public class TestCaseNode {
     this.properties = properties == null ? ImmutableMap.of() : ImmutableMap.copyOf(properties);
     this.expectedException = Optional.ofNullable(expectedException);
     this.postConditions = Optional.ofNullable(postConditions);
+    this.enabled = !Boolean.FALSE.equals(enabled);
 
     if (this.name.isEmpty()) {
       throw new MissingFieldException("name");
@@ -119,6 +122,10 @@ public class TestCaseNode {
   }
 
   public List<TestCase> buildTests(final Path testPath, final FunctionRegistry functionRegistry) {
+    if (!enabled) {
+      return ImmutableList.of();
+    }
+
     try {
       return formats.isEmpty()
           ? Stream.of(createTest(

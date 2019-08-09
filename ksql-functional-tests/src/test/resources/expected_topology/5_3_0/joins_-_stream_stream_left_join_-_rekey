@@ -89,27 +89,27 @@ Topologies:
 
   Sub-topology: 2
     Source: KSTREAM-SOURCE-0000000014 (topics: [Join-left-repartition])
-      --> KSTREAM-WINDOWED-0000000018
+      --> Join-this-windowed
     Source: KSTREAM-SOURCE-0000000017 (topics: [Join-right-repartition])
-      --> KSTREAM-WINDOWED-0000000019
-    Processor: KSTREAM-WINDOWED-0000000018 (stores: [KSTREAM-JOINTHIS-0000000020-store])
-      --> KSTREAM-JOINTHIS-0000000020
-      <-- KSTREAM-SOURCE-0000000014
-    Processor: KSTREAM-WINDOWED-0000000019 (stores: [KSTREAM-OUTEROTHER-0000000021-store])
-      --> KSTREAM-OUTEROTHER-0000000021
+      --> Join-other-windowed
+    Processor: Join-other-windowed (stores: [Join-outer-other-join-store])
+      --> Join-outer-other-join
       <-- KSTREAM-SOURCE-0000000017
-    Processor: KSTREAM-JOINTHIS-0000000020 (stores: [KSTREAM-OUTEROTHER-0000000021-store])
-      --> KSTREAM-MERGE-0000000022
-      <-- KSTREAM-WINDOWED-0000000018
-    Processor: KSTREAM-OUTEROTHER-0000000021 (stores: [KSTREAM-JOINTHIS-0000000020-store])
-      --> KSTREAM-MERGE-0000000022
-      <-- KSTREAM-WINDOWED-0000000019
-    Processor: KSTREAM-MERGE-0000000022 (stores: [])
+    Processor: Join-this-windowed (stores: [Join-this-join-store])
+      --> Join-this-join
+      <-- KSTREAM-SOURCE-0000000014
+    Processor: Join-outer-other-join (stores: [Join-this-join-store])
+      --> Join-merge
+      <-- Join-other-windowed
+    Processor: Join-this-join (stores: [Join-outer-other-join-store])
+      --> Join-merge
+      <-- Join-this-windowed
+    Processor: Join-merge (stores: [])
       --> KSTREAM-MAPVALUES-0000000023
-      <-- KSTREAM-JOINTHIS-0000000020, KSTREAM-OUTEROTHER-0000000021
+      <-- Join-this-join, Join-outer-other-join
     Processor: KSTREAM-MAPVALUES-0000000023 (stores: [])
       --> KSTREAM-MAPVALUES-0000000024
-      <-- KSTREAM-MERGE-0000000022
+      <-- Join-merge
     Processor: KSTREAM-MAPVALUES-0000000024 (stores: [])
       --> KSTREAM-SINK-0000000025
       <-- KSTREAM-MAPVALUES-0000000023

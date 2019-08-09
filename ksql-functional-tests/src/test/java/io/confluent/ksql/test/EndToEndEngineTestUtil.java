@@ -77,8 +77,12 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.TopologyTestDriver;
 import org.apache.kafka.test.TestUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 final class EndToEndEngineTestUtil {
+  private static final Logger LOG = LoggerFactory.getLogger(EndToEndEngineTestUtil.class);
+
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
   static final String CONFIG_END_MARKER = "CONFIGS_END";
   static final String SCHEMAS_END_MARKER = "SCHEMAS_END";
@@ -102,26 +106,30 @@ final class EndToEndEngineTestUtil {
     final ObjectWriter objectWriter = new ObjectMapper().writerWithDefaultPrettyPrinter();
 
     testCases.forEach(testCase -> {
-      final KsqlConfig ksqlConfig = new KsqlConfig(baseConfig())
-          .cloneWithPropertyOverwrite(testCase.properties());
+      try {
+        final KsqlConfig ksqlConfig = new KsqlConfig(baseConfig())
+            .cloneWithPropertyOverwrite(testCase.properties());
 
-      try (final ServiceContext serviceContext = getServiceContext();
-          final KsqlEngine ksqlEngine = getKsqlEngine(serviceContext)) {
+        try (final ServiceContext serviceContext = getServiceContext();
+            final KsqlEngine ksqlEngine = getKsqlEngine(serviceContext)) {
 
-        final PersistentQueryMetadata queryMetadata =
-            buildQuery(testCase, serviceContext, ksqlEngine, ksqlConfig);
-        final Map<String, String> configsToPersist
-            = new HashMap<>(ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
+          final PersistentQueryMetadata queryMetadata =
+              buildQuery(testCase, serviceContext, ksqlEngine, ksqlConfig);
+          final Map<String, String> configsToPersist
+              = new HashMap<>(ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
 
-        // Ignore the KStreams state directory as its different every time:
-        configsToPersist.remove("ksql.streams.state.dir");
+          // Ignore the KStreams state directory as its different every time:
+          configsToPersist.remove("ksql.streams.state.dir");
 
-        writeExpectedTopologyFile(
-            testCase.name,
-            queryMetadata,
-            configsToPersist,
-            objectWriter,
-            topologyDir);
+          writeExpectedTopologyFile(
+              testCase.name,
+              queryMetadata,
+              configsToPersist,
+              objectWriter,
+              topologyDir);
+        }
+      } catch (final Exception e) {
+        LOG.warn("Ignoring test case {} due to error {}", testCase, e);
       }
     });
   }

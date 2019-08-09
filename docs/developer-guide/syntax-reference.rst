@@ -1654,7 +1654,7 @@ Scalar functions
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | ROUND                  |  ``ROUND(col1)``                                                          | Round a value to the nearest BIGINT value.        |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
-| SIGN                   |  ``SIGN(col1)``                                                           | Returns the sign of a numeric value as an INTEGER:|
+| SIGN                   |  ``SIGN(col1)``                                                           | The sign of a numeric value as an INTEGER:        |
 |                        |                                                                           | * -1 if the argument is negative                  |
 |                        |                                                                           | * 0 if the argument is zero                       |
 |                        |                                                                           | * 1 if the argument is positive                   |

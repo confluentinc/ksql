@@ -468,7 +468,7 @@ final class EndToEndEngineTestUtil {
           + "file: " + testCase.getTestFile()
           + "Failed with error:" + e.getMessage(), e);
     } catch (final RestClientException | IOException e) {
-      throw new KsqlException("Test failed failed: " + e.getMessage(), e);
+      throw new KsqlException("Test '" + testCase.getName() + "' failed: " + e.getMessage(), e);
     }
   }
 

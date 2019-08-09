@@ -174,7 +174,7 @@ public class ValueSpecAvroSerdeSupplier implements SerdeSupplier<Object> {
           return valueSpecToAvro(spec, schema.getTypes().get(0));
         }
       }
-      // if the schema has more than one non null type
+      // if the schema has more than one non null type, avro serializes it as a map
       for (final org.apache.avro.Schema memberSchema : schema.getTypes()) {
         if (!memberSchema.getType().equals(org.apache.avro.Schema.Type.NULL)) {
           final String typeName = memberSchema.getType().getName().toUpperCase();
@@ -209,10 +209,10 @@ public class ValueSpecAvroSerdeSupplier implements SerdeSupplier<Object> {
         final Map.Entry<?, ?> spec,
         final Schema schema) {
       final GenericRecord record = new GenericData.Record(schema);
-      record.put("key",
-          valueSpecToAvro(spec.getKey(), schema.getField("key").schema()));
-      record.put("value",
-          valueSpecToAvro(spec.getValue(), schema.getField("value").schema()));
+      record.put(AvroData.KEY_FIELD,
+          valueSpecToAvro(spec.getKey(), schema.getField(AvroData.KEY_FIELD).schema()));
+      record.put(AvroData.VALUE_FIELD,
+          valueSpecToAvro(spec.getValue(), schema.getField(AvroData.VALUE_FIELD).schema()));
       return record;
     }
 
@@ -313,7 +313,7 @@ public class ValueSpecAvroSerdeSupplier implements SerdeSupplier<Object> {
               "BYTES must be ByteBuffer, got " + avro.getClass());
           return new DecimalConversion().fromBytes((ByteBuffer) avro, schema, logicalType);
         case ARRAY:
-          // Since Connect serializes maps as an array of MapEnties to support maps with non
+          // Since Connect serializes maps as an array of MapEntries to support maps with non
           // string keys, if the array element is MapEntry type we should deserialize it as
           // a map!
           // Check https://github.com/confluentinc/schema-registry/blob/master/avro-converter/src/main/java/io/confluent/connect/avro/AvroData.java
@@ -325,11 +325,11 @@ public class ValueSpecAvroSerdeSupplier implements SerdeSupplier<Object> {
                   AvroData.MAP_ENTRY_TYPE_NAME)
               ) {
             final org.apache.avro.Schema valueSchema
-                = schema.getElementType().getField("value").schema();
+                = schema.getElementType().getField(AvroData.VALUE_FIELD).schema();
             final Map<String, Object> map = new HashMap<>();
             ((List<GenericData.Record>) avro).forEach(e -> map.put(
-                e.get("key").toString(),
-                avroToValueSpec(e.get("value"), valueSchema, toUpper)
+                e.get(AvroData.KEY_FIELD).toString(),
+                avroToValueSpec(e.get(AvroData.VALUE_FIELD), valueSchema, toUpper)
             ));
             return map;
           }

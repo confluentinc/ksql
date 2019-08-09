@@ -93,7 +93,9 @@ public class Topic {
 
   Deserializer getValueDeserializer(final SchemaRegistryClient schemaRegistryClient) {
     final Deserializer<?> deserializer = valueSerdeSupplier.getDeserializer(schemaRegistryClient);
-    deserializer.configure(ImmutableMap.of("schema.registry.url", "foo"), false);
+    deserializer.configure(ImmutableMap.of(
+        KafkaAvroSerializerConfig.SCHEMA_REGISTRY_URL_CONFIG, "foo"
+    ), false);
     return deserializer;
   }
 

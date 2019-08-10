@@ -27,6 +27,7 @@ import org.apache.avro.Schema;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
+import org.apache.kafka.streams.kstream.SessionWindowedDeserializer;
 import org.apache.kafka.streams.kstream.TimeWindowedDeserializer;
 
 @SuppressWarnings("rawtypes")
@@ -92,7 +93,9 @@ public class Topic {
 
   Deserializer getValueDeserializer(final SchemaRegistryClient schemaRegistryClient) {
     final Deserializer<?> deserializer = valueSerdeSupplier.getDeserializer(schemaRegistryClient);
-    deserializer.configure(ImmutableMap.of(), false);
+    deserializer.configure(ImmutableMap.of(
+        KafkaAvroSerializerConfig.SCHEMA_REGISTRY_URL_CONFIG, "foo"
+    ), false);
     return deserializer;
   }
 
@@ -104,15 +107,27 @@ public class Topic {
     return serializer;
   }
 
-  Deserializer<?> getKeyDeserializer(final SchemaRegistryClient schemaRegistryClient) {
-    final Deserializer<?> deserializer = createKeyDeserializer(schemaRegistryClient);
+  Deserializer<?> getKeyDeserializer(
+      final SchemaRegistryClient schemaRegistryClient,
+      final boolean isLegacySessionWindow) {
+    final Deserializer<?> deserializer = createKeyDeserializer(
+        schemaRegistryClient,
+        isLegacySessionWindow);
     deserializer.configure(ImmutableMap.of(), true);
     return deserializer;
   }
 
-  private Deserializer<?> createKeyDeserializer(final SchemaRegistryClient schemaRegistryClient) {
+  private Deserializer<?> createKeyDeserializer(
+      final SchemaRegistryClient schemaRegistryClient,
+      final boolean isLegacySessionWindow) {
     final Deserializer<?> deserializer = keySerdeFactory.getDeserializer(schemaRegistryClient);
-    if (!(deserializer instanceof TimeWindowedDeserializer)) {
+    if (deserializer instanceof SessionWindowedDeserializer) {
+      if (!isLegacySessionWindow) {
+        return deserializer;
+      } else {
+        return new TimeWindowedDeserializer<>(new StringDeserializer(), Long.MAX_VALUE);
+      }
+    } else if (!(deserializer instanceof TimeWindowedDeserializer)) {
       return deserializer;
     }
 

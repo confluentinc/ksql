@@ -29,6 +29,7 @@ import io.confluent.ksql.test.serde.avro.AvroSerdeSupplier;
 import io.confluent.ksql.test.serde.avro.ValueSpecAvroSerdeSupplier;
 import io.confluent.ksql.test.tools.conditions.PostConditions;
 import io.confluent.ksql.test.tools.exceptions.KsqlExpectedException;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import java.nio.file.Path;
@@ -298,13 +299,15 @@ public class TestCase implements Test {
   }
 
   @SuppressWarnings("unchecked")
-  static void processSingleRecord(
+  void processSingleRecord(
       final FakeKafkaRecord fakeKafkaRecord,
       final FakeKafkaService fakeKafkaService,
       final TopologyTestDriverContainer testDriver,
-      final SchemaRegistryClient schemaRegistryClient
+      final SchemaRegistryClient schemaRegistryClient,
+      final Set<Topic> possibleSinkTopics
   ) {
-    final Topic recordTopic = fakeKafkaRecord.getTestRecord().topic;
+    final Topic recordTopic = fakeKafkaService
+        .getTopic(fakeKafkaRecord.getTestRecord().topic.getName());
     final Serializer<Object> keySerializer = recordTopic.getKeySerializer(schemaRegistryClient);
 
     final Serializer<Object> valueSerializer =
@@ -326,24 +329,50 @@ public class TestCase implements Test {
 
     final Topic sinkTopic = testDriver.getSinkTopic();
 
+    processRecordsForTopic(
+        testDriver.getTopologyTestDriver(),
+        sinkTopic,
+        fakeKafkaService,
+        schemaRegistryClient
+    );
+
+    for (final Topic possibleSinkTopic: possibleSinkTopics) {
+      if (possibleSinkTopic.getName().equals(sinkTopic.getName())) {
+        continue;
+      }
+      processRecordsForTopic(
+          testDriver.getTopologyTestDriver(),
+          possibleSinkTopic,
+          fakeKafkaService,
+          schemaRegistryClient
+      );
+    }
+  }
+
+  @SuppressWarnings("unchecked")
+  private void processRecordsForTopic(
+      final TopologyTestDriver topologyTestDriver,
+      final Topic sinkTopic,
+      final FakeKafkaService fakeKafkaService,
+      final SchemaRegistryClient schemaRegistryClient
+  ) {
     while (true) {
-      final ProducerRecord<?,?> producerRecord = testDriver.getTopologyTestDriver().readOutput(
+      final ProducerRecord<?,?> producerRecord = topologyTestDriver.readOutput(
           sinkTopic.getName(),
-          sinkTopic.getKeyDeserializer(schemaRegistryClient),
+          sinkTopic.getKeyDeserializer(schemaRegistryClient, isLegacySessionWindow()),
           sinkTopic.getValueDeserializer(schemaRegistryClient)
       );
       if (producerRecord == null) {
-        return;
+        break;
       }
 
       fakeKafkaService.writeRecord(
-          producerRecord.topic(),
+          sinkTopic.getName(),
           FakeKafkaRecord.of(
               sinkTopic,
               producerRecord)
       );
     }
-
   }
 
   void verifyOutputTopics(
@@ -357,6 +386,7 @@ public class TestCase implements Test {
         )
     );
     expectedOutput.keySet().forEach(kafkaTopic -> validateTopicData(
+        kafkaTopic,
         expectedOutput.get(kafkaTopic),
         outputRecordsFromKafka.get(kafkaTopic),
         inputRecords.size() == 0
@@ -364,12 +394,13 @@ public class TestCase implements Test {
   }
 
   private static void validateTopicData(
+      final String topicName,
       final List<FakeKafkaRecord> expected,
       final List<FakeKafkaRecord> actual,
       final boolean ranWithInsertStatements) {
     if (actual.size() != expected.size()) {
       throw new KsqlException("Expected <" + expected.size()
-          + "> records but it was <" + actual.size() + ">");
+          + "> records but it was <" + actual.size() + ">, topic: " + topicName);
     }
     for (int i = 0; i < expected.size(); i++) {
       final ProducerRecord<?, ?> actualProducerRecord = actual.get(i).getProducerRecord();
@@ -430,4 +461,8 @@ public class TestCase implements Test {
         : fakeKafkaRecord.getProducerRecord().key();
   }
 
+  private boolean isLegacySessionWindow() {
+    final Object config = properties.get(KsqlConfig.KSQL_WINDOWED_SESSION_KEY_LEGACY_CONFIG);
+    return config != null && Boolean.parseBoolean(config.toString());
+  }
 }

@@ -18,6 +18,7 @@ package io.confluent.ksql.test.tools;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.util.KsqlException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -78,6 +79,10 @@ public final class FakeKafkaService {
 
   public Topic getTopic(final String topicName) {
     return topicMap.get(topicName);
+  }
+
+  public Collection<Topic> getAllTopics() {
+    return topicMap.values();
   }
 
 

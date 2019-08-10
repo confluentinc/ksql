@@ -135,8 +135,7 @@ public class KsqlBoundedMemoryRocksDBConfigSetterTest {
 
     // Then:
     verify(rocksOptions).setWriteBufferManager(any());
-    verify(rocksOptions).setMaxWriteBufferNumber(6);
-    verify(rocksOptions).setWriteBufferSize(TOTAL_OFF_HEAP_MEMORY / 2 / 6);
+    verify(rocksOptions).setMaxWriteBufferNumber(Integer.MAX_VALUE);
     verify(rocksOptions).setStatsDumpPeriodSec(0);
     verify(rocksOptions).setTableFormatConfig(tableConfig);
 
@@ -144,7 +143,6 @@ public class KsqlBoundedMemoryRocksDBConfigSetterTest {
     verify(tableConfig).setCacheIndexAndFilterBlocks(true);
     verify(tableConfig).setCacheIndexAndFilterBlocksWithHighPriority(true);
     verify(tableConfig).setPinTopLevelIndexAndFilter(true);
-    verify(tableConfig).setBlockSize(4096L);
   }
 
   @Test

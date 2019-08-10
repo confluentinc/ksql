@@ -34,17 +34,11 @@ import org.rocksdb.Options;
 public class KsqlBoundedMemoryRocksDBConfigSetter implements RocksDBConfigSetter, Configurable {
 
   private static final double INDEX_FILTER_BLOCK_RATIO = 0.1;
-  private static final int N_MEMTABLES = 6;
-  private static final long BLOCK_SIZE = 4096L;
 
   private static org.rocksdb.Cache cache;
   private static org.rocksdb.WriteBufferManager writeBufferManager;
 
-  private static AtomicBoolean configured = new AtomicBoolean(false);
-  private static long totalOffHeapMemory;
-  private static long memtableSize;
-  private static long totalMemtableMemory;
-  private static int numBackgroundThreads;
+  private static final AtomicBoolean configured = new AtomicBoolean(false);
 
   @Override
   public void configure(final Map<String, ?> config) {
@@ -75,11 +69,9 @@ public class KsqlBoundedMemoryRocksDBConfigSetter implements RocksDBConfigSetter
   }
 
   private static void limitTotalMemory(final KsqlBoundedMemoryRocksDBConfig config) {
-    totalOffHeapMemory =
+    final long totalOffHeapMemory =
         config.getLong(KsqlBoundedMemoryRocksDBConfig.TOTAL_OFF_HEAP_MEMORY_CONFIG);
-
-    memtableSize = totalOffHeapMemory / 2 / N_MEMTABLES;
-    totalMemtableMemory = N_MEMTABLES * memtableSize;
+    final long totalMemtableMemory = totalOffHeapMemory / 2;
 
     cache = new org.rocksdb.LRUCache(totalOffHeapMemory, -1, false, INDEX_FILTER_BLOCK_RATIO);
     writeBufferManager = new org.rocksdb.WriteBufferManager(totalMemtableMemory, cache);
@@ -88,7 +80,7 @@ public class KsqlBoundedMemoryRocksDBConfigSetter implements RocksDBConfigSetter
   private static void configureNumThreads(
       final KsqlBoundedMemoryRocksDBConfig config,
       final Options options) {
-    numBackgroundThreads =
+    final int numBackgroundThreads =
         config.getInt(KsqlBoundedMemoryRocksDBConfig.N_BACKGROUND_THREADS_CONFIG);
 
     // All Options share the same Env, and share a thread pool as a result
@@ -113,9 +105,7 @@ public class KsqlBoundedMemoryRocksDBConfigSetter implements RocksDBConfigSetter
 
     tableConfig.setCacheIndexAndFilterBlocksWithHighPriority(true);
     tableConfig.setPinTopLevelIndexAndFilter(true);
-    tableConfig.setBlockSize(BLOCK_SIZE);
-    options.setMaxWriteBufferNumber(N_MEMTABLES);
-    options.setWriteBufferSize(memtableSize);
+    options.setMaxWriteBufferNumber(Integer.MAX_VALUE);
 
     options.setStatsDumpPeriodSec(0);
 

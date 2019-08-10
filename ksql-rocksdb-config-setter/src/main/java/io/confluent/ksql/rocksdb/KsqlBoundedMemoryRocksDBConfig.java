@@ -26,16 +26,21 @@ public class KsqlBoundedMemoryRocksDBConfig extends AbstractConfig {
   private static final String CONFIG_PREFIX = "ksql.plugins.rocksdb.";
 
   public static final String TOTAL_OFF_HEAP_MEMORY_CONFIG = CONFIG_PREFIX + "total.memory";
-  private static final String TOTAL_OFF_HEAP_MEMORY_DOC = ""; // TODO
+  private static final String TOTAL_OFF_HEAP_MEMORY_DOC =
+      "All RocksDB instances across all KSQL queries (i.e., all Kafka Streams applications) "
+      + "will be limited to sharing this much memory (in bytes).";
 
   public static final String N_BACKGROUND_THREADS_CONFIG =
       CONFIG_PREFIX + "num.background.threads";
-  private static final String N_BACKGROUND_THREADS_DOC = ""; // TODO
+  private static final String N_BACKGROUND_THREADS_DOC =
+      "Number of low-priority RocksDB threads to be shared among instances for compaction.";
 
   public static final String INDEX_FILTER_BLOCK_RATIO_CONFIG =
       CONFIG_PREFIX + "index.filter.block.ratio";
   private static final double INDEX_FILTER_BLOCK_RATIO_DEFAULT = 0.0;
-  private static final String INDEX_FILTER_BLOCK_RATIO_DOC = ""; // TODO
+  private static final String INDEX_FILTER_BLOCK_RATIO_DOC =
+      "Percentage of the RocksDB block cache to set aside for high-priority entries, i.e., "
+      + "index and filter blocks.";
 
   private static final ConfigDef CONFIG_DEF = new ConfigDef()
       .define(

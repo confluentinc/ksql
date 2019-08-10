@@ -33,11 +33,8 @@ import org.rocksdb.Options;
  */
 public class KsqlBoundedMemoryRocksDBConfigSetter implements RocksDBConfigSetter, Configurable {
 
-  private static final double INDEX_FILTER_BLOCK_RATIO = 0.1;
-
   private static org.rocksdb.Cache cache;
   private static org.rocksdb.WriteBufferManager writeBufferManager;
-
   private static final AtomicBoolean configured = new AtomicBoolean(false);
 
   @Override
@@ -73,7 +70,10 @@ public class KsqlBoundedMemoryRocksDBConfigSetter implements RocksDBConfigSetter
         config.getLong(KsqlBoundedMemoryRocksDBConfig.TOTAL_OFF_HEAP_MEMORY_CONFIG);
     final long totalMemtableMemory = totalOffHeapMemory / 2;
 
-    cache = new org.rocksdb.LRUCache(totalOffHeapMemory, -1, false, INDEX_FILTER_BLOCK_RATIO);
+    final double indexFilterBlockRatio =
+        config.getDouble(KsqlBoundedMemoryRocksDBConfig.INDEX_FILTER_BLOCK_RATIO_CONFIG);
+
+    cache = new org.rocksdb.LRUCache(totalOffHeapMemory, -1, false, indexFilterBlockRatio);
     writeBufferManager = new org.rocksdb.WriteBufferManager(totalMemtableMemory, cache);
   }
 

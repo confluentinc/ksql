@@ -29,6 +29,7 @@ public class KsqlBoundedMemoryRocksDBConfigTest {
 
   private static final long TOTAL_OFF_HEAP_MEMORY = 16 * 1024 * 1024 * 1024L;
   private static final int NUM_BACKGROUND_THREADS = 4;
+  private static final double INDEX_FILTER_BLOCK_RATIO = 0.1;
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -38,7 +39,8 @@ public class KsqlBoundedMemoryRocksDBConfigTest {
     // Given:
     final Map<String, Object> configs = ImmutableMap.of(
         "ksql.plugins.rocksdb.total.memory", TOTAL_OFF_HEAP_MEMORY,
-        "ksql.plugins.rocksdb.num.background.threads", NUM_BACKGROUND_THREADS
+        "ksql.plugins.rocksdb.num.background.threads", NUM_BACKGROUND_THREADS,
+        "ksql.plugins.rocksdb.index.filter.block.ratio", INDEX_FILTER_BLOCK_RATIO
     );
 
     // When:
@@ -51,6 +53,9 @@ public class KsqlBoundedMemoryRocksDBConfigTest {
     assertThat(
         pluginConfig.getInt(KsqlBoundedMemoryRocksDBConfig.N_BACKGROUND_THREADS_CONFIG),
         is(NUM_BACKGROUND_THREADS));
+    assertThat(
+        pluginConfig.getDouble(KsqlBoundedMemoryRocksDBConfig.INDEX_FILTER_BLOCK_RATIO_CONFIG),
+        is(INDEX_FILTER_BLOCK_RATIO));
   }
 
   @Test
@@ -83,5 +88,21 @@ public class KsqlBoundedMemoryRocksDBConfigTest {
     assertThat(
         pluginConfig.getInt(KsqlBoundedMemoryRocksDBConfig.N_BACKGROUND_THREADS_CONFIG),
         is(1));
+  }
+
+  @Test
+  public void shouldDefaultIndexFilterBlockRatioConfig() {
+    // Given:
+    final Map<String, Object> configs = ImmutableMap.of(
+        "ksql.plugins.rocksdb.total.memory", TOTAL_OFF_HEAP_MEMORY
+    );
+
+    // When:
+    final KsqlBoundedMemoryRocksDBConfig pluginConfig = new KsqlBoundedMemoryRocksDBConfig(configs);
+
+    // Then:
+    assertThat(
+        pluginConfig.getDouble(KsqlBoundedMemoryRocksDBConfig.INDEX_FILTER_BLOCK_RATIO_CONFIG),
+        is(0.0));
   }
 }

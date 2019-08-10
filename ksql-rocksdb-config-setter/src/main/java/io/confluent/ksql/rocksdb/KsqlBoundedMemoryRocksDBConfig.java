@@ -32,6 +32,11 @@ public class KsqlBoundedMemoryRocksDBConfig extends AbstractConfig {
       CONFIG_PREFIX + "num.background.threads";
   private static final String N_BACKGROUND_THREADS_DOC = ""; // TODO
 
+  public static final String INDEX_FILTER_BLOCK_RATIO_CONFIG =
+      CONFIG_PREFIX + "index.filter.block.ratio";
+  private static final double INDEX_FILTER_BLOCK_RATIO_DEFAULT = 0.0;
+  private static final String INDEX_FILTER_BLOCK_RATIO_DOC = ""; // TODO
+
   private static final ConfigDef CONFIG_DEF = new ConfigDef()
       .define(
           TOTAL_OFF_HEAP_MEMORY_CONFIG,
@@ -43,8 +48,14 @@ public class KsqlBoundedMemoryRocksDBConfig extends AbstractConfig {
           N_BACKGROUND_THREADS_CONFIG,
           Type.INT,
           1,
+          Importance.MEDIUM,
+          N_BACKGROUND_THREADS_DOC)
+      .define(
+          INDEX_FILTER_BLOCK_RATIO_CONFIG,
+          Type.DOUBLE,
+          INDEX_FILTER_BLOCK_RATIO_DEFAULT,
           Importance.LOW,
-          N_BACKGROUND_THREADS_DOC
+          INDEX_FILTER_BLOCK_RATIO_DOC
       );
 
   public KsqlBoundedMemoryRocksDBConfig(final Map<?, ?> properties) {

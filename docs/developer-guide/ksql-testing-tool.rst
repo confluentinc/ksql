@@ -145,3 +145,38 @@ Your output should resemble:
 
       Test failed: Expected <900, {T_ID=90, NAME=ninety}> with timestamp=17000 but was <90, {T_ID=90, NAME=ninety}> with timestamp=17000
 
+
+
+Query Execution in the KSQL Testing Tool
+****************************************
+
+To effectively use the KSQL testing tool, you need to understand the query execution logic in the testing tool. Although the final results
+should be deterministic, the intermediate results in KSQL queries (Kafka Streams Apps) may vary based on several factors such as order
+of reading input or config properties such as commit interval of buffer size. In order to make the composition of output for the test cases
+simpler, the KSQL testing tool executes queries in a predictable way. Users should consider the following when preparing the output for the tests.
+
+Input Consumption
+-----------------
+
+The testing tool processes input messages for each query one by one and writes the generated message(s) for each input message into the
+result topic before processing the next input message. This means that for the queires running in the testing tool we have the same behavior as
+ when cache.max.bytes.buffering = 0. This is especially important in aggregate queries where we may not see some of the intermediate results in
+ real executions while in the testing tool execution we will create every possible intermediate results.
+
+
+Kafka Cluster
+-------------
+
+As mentioned above, the KSQL testing tool does not use real Kafka cluster and simulates the behavior of a cluster for the KSQL queries.
+This means that the testing tool does ignores configurations such as number of partitions or replicas for the input and output topics.
+
+
+Processing Order
+----------------
+
+The testing tool processes the statements in the order that they are provided by the user. Therefore, for a given statement,
+only the statements before can potentially affect it's results. This is a different behavior than KSQ cluster where statements that
+are sumbitted later can affect the output of a query. As an example, consider the following set of statements:
+
+
+

@@ -41,8 +41,8 @@ Topologies:
     Source: KSTREAM-SOURCE-0000000000 (topics: [NO_KEY])
       --> KSTREAM-MAPVALUES-0000000001
     Source: KSTREAM-SOURCE-0000000013 (topics: [Join-repartition])
-      --> KSTREAM-JOIN-0000000014
-    Processor: KSTREAM-JOIN-0000000014 (stores: [KafkaTopic_Right-reduce])
+      --> Join
+    Processor: Join (stores: [KafkaTopic_Right-reduce])
       --> KSTREAM-MAPVALUES-0000000015
       <-- KSTREAM-SOURCE-0000000013
     Processor: KSTREAM-MAPVALUES-0000000001 (stores: [])
@@ -50,7 +50,7 @@ Topologies:
       <-- KSTREAM-SOURCE-0000000000
     Processor: KSTREAM-MAPVALUES-0000000015 (stores: [])
       --> KSTREAM-MAPVALUES-0000000016
-      <-- KSTREAM-JOIN-0000000014
+      <-- Join
     Processor: KSTREAM-TRANSFORMVALUES-0000000002 (stores: [])
       --> KSTREAM-MAPVALUES-0000000003
       <-- KSTREAM-MAPVALUES-0000000001

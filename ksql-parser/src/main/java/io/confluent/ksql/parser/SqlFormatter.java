@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.parser;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.Iterables.getOnlyElement;
 
 import com.google.common.base.Strings;
@@ -68,7 +67,7 @@ public final class SqlFormatter {
     return formatSql(root, true);
   }
 
-  public static String formatSql(final AstNode root, final boolean unmangleNames) {
+  private static String formatSql(final AstNode root, final boolean unmangleNames) {
     final StringBuilder builder = new StringBuilder();
     new Formatter(builder, unmangleNames).process(root, 0);
     return StringUtils.stripEnd(builder.toString(), "\n");
@@ -87,14 +86,6 @@ public final class SqlFormatter {
     @Override
     protected Void visitNode(final AstNode node, final Integer indent) {
       throw new UnsupportedOperationException("not yet implemented: " + node);
-    }
-
-    @Override
-    protected Void visitExpression(final Expression node, final Integer indent) {
-      checkArgument(indent == 0,
-              "visitExpression should only be called at root");
-      builder.append(ExpressionFormatter.formatExpression(node, unmangledNames));
-      return null;
     }
 
     @Override

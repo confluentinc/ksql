@@ -115,7 +115,7 @@ public class QueryAnalyzer {
     aggregateAnalyzer.processHaving(exp);
 
     aggregateAnalysis.setHavingExpression(
-        ExpressionTreeRewriter.rewriteWith(aggregateExpressionRewriter,exp));
+        ExpressionTreeRewriter.rewriteWith(aggregateExpressionRewriter::process, exp));
   }
 
   private static void processGroupByExpression(
@@ -137,7 +137,7 @@ public class QueryAnalyzer {
       aggregateAnalyzer.processSelect(exp);
 
       aggregateAnalysis.addFinalSelectExpression(
-          ExpressionTreeRewriter.rewriteWith(aggregateExpressionRewriter, exp));
+          ExpressionTreeRewriter.rewriteWith(aggregateExpressionRewriter::process, exp));
     }
   }
 

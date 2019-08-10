@@ -99,7 +99,11 @@ abstract class CreateSourceCommand implements DdlCommand {
       this.keyField = KeyField.none();
     }
 
-    this.timestampExtractionPolicy = buildTimestampExtractor(statement.getProperties(), schema);
+    this.timestampExtractionPolicy = buildTimestampExtractor(
+        ksqlConfig,
+        statement.getProperties(),
+        schema
+    );
 
     this.serdeOptions = serdeOptionsSupplier.build(
         schema,
@@ -146,13 +150,14 @@ abstract class CreateSourceCommand implements DdlCommand {
   }
 
   private static TimestampExtractionPolicy buildTimestampExtractor(
+      final KsqlConfig ksqlConfig,
       final CreateSourceProperties properties,
       final LogicalSchema schema
   ) {
     final Optional<String> timestampName = properties.getTimestampColumnName();
     final Optional<String> timestampFormat = properties.getTimestampFormat();
     return TimestampExtractionPolicyFactory
-        .create(schema, timestampName, timestampFormat);
+        .create(ksqlConfig, schema, timestampName, timestampFormat);
   }
 
   private static void validateSerdeCanHandleSchemas(

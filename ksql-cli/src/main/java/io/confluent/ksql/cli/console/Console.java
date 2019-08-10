@@ -27,6 +27,8 @@ import io.confluent.ksql.cli.console.cmd.CliSpecificCommand;
 import io.confluent.ksql.cli.console.table.Table;
 import io.confluent.ksql.cli.console.table.Table.Builder;
 import io.confluent.ksql.cli.console.table.builder.CommandStatusTableBuilder;
+import io.confluent.ksql.cli.console.table.builder.ConnectorInfoTableBuilder;
+import io.confluent.ksql.cli.console.table.builder.ErrorEntityTableBuilder;
 import io.confluent.ksql.cli.console.table.builder.ExecutionPlanTableBuilder;
 import io.confluent.ksql.cli.console.table.builder.FunctionNameListTableBuilder;
 import io.confluent.ksql.cli.console.table.builder.KafkaTopicsListTableBuilder;
@@ -39,12 +41,15 @@ import io.confluent.ksql.cli.console.table.builder.TopicDescriptionTableBuilder;
 import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.rest.entity.ArgumentInfo;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
+import io.confluent.ksql.rest.entity.CreateConnectorEntity;
+import io.confluent.ksql.rest.entity.ErrorEntity;
 import io.confluent.ksql.rest.entity.ExecutionPlan;
 import io.confluent.ksql.rest.entity.FieldInfo;
 import io.confluent.ksql.rest.entity.FunctionDescriptionList;
 import io.confluent.ksql.rest.entity.FunctionInfo;
 import io.confluent.ksql.rest.entity.FunctionNameList;
 import io.confluent.ksql.rest.entity.KafkaTopicsList;
+import io.confluent.ksql.rest.entity.KafkaTopicsListExtended;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
@@ -126,13 +131,21 @@ public class Console implements Closeable {
           .put(TablesList.class,
               tablePrinter(TablesList.class, TablesListTableBuilder::new))
           .put(KafkaTopicsList.class,
-              tablePrinter(KafkaTopicsList.class, KafkaTopicsListTableBuilder::new))
+              tablePrinter(KafkaTopicsList.class, KafkaTopicsListTableBuilder.SimpleBuilder::new))
+          .put(KafkaTopicsListExtended.class,
+              tablePrinter(
+                  KafkaTopicsListExtended.class,
+                  KafkaTopicsListTableBuilder.ExtendedBuilder::new))
           .put(ExecutionPlan.class,
               tablePrinter(ExecutionPlan.class, ExecutionPlanTableBuilder::new))
           .put(FunctionNameList.class,
               tablePrinter(FunctionNameList.class, FunctionNameListTableBuilder::new))
           .put(FunctionDescriptionList.class,
               Console::printFunctionDescription)
+          .put(CreateConnectorEntity.class,
+              tablePrinter(CreateConnectorEntity.class, ConnectorInfoTableBuilder::new))
+          .put(ErrorEntity.class,
+              tablePrinter(ErrorEntity.class, ErrorEntityTableBuilder::new))
           .build();
 
   private static <T extends KsqlEntity> Handler1<KsqlEntity, Console> tablePrinter(

@@ -94,12 +94,15 @@ public class SchemaRegistryTopicSchemaSupplier implements TopicSchemaSupplier {
 
       return Optional.of(srClient.getLatestSchemaMetadata(subject));
     } catch (final RestClientException e) {
-      if (e.getStatus() == HttpStatus.SC_NOT_FOUND) {
-        return Optional.empty();
+      switch (e.getStatus()) {
+        case HttpStatus.SC_NOT_FOUND:
+        case HttpStatus.SC_UNAUTHORIZED:
+        case HttpStatus.SC_FORBIDDEN:
+          return Optional.empty();
+        default:
+          throw new KsqlException("Schema registry fetch for topic "
+              + topicName + " request failed.", e);
       }
-
-      throw new KsqlException("Schema registry fetch for topic "
-          + topicName + " request failed.", e);
     } catch (final Exception e) {
       throw new KsqlException("Schema registry fetch for topic "
           + topicName + " request failed.", e);
@@ -132,7 +135,11 @@ public class SchemaRegistryTopicSchemaSupplier implements TopicSchemaSupplier {
             + System.lineSeparator()
             + "- The schema is registered on a different instance of the Schema Registry"
             + "\t-> Use the REST API to list available subjects"
-            + "\t" + DocumentationLinks.SR_REST_GETSUBJECTS_DOC_URL));
+            + "\t" + DocumentationLinks.SR_REST_GETSUBJECTS_DOC_URL
+            + System.lineSeparator()
+            + "- You do not have permissions to access the Schema Registry.Subject: "
+            + topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX
+            + "\t-> See " + DocumentationLinks.SCHEMA_REGISTRY_SECURITY_DOC_URL));
   }
 
   private static SchemaResult notCompatible(

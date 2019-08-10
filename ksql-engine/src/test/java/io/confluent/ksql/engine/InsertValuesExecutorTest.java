@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.engine;
 
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.internal.matchers.ThrowableMessageMatcher.hasMessage;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
@@ -485,7 +487,7 @@ public class InsertValuesExecutorTest {
 
     // Expect:
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Could not serialize key");
+    expectedException.expectCause(hasMessage(containsString("Could not serialize key")));
 
     // When:
     executor.execute(statement, engine, serviceContext);
@@ -507,7 +509,7 @@ public class InsertValuesExecutorTest {
 
     // Expect:
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Could not serialize row");
+    expectedException.expectCause(hasMessage(containsString("Could not serialize row")));
 
     // When:
     executor.execute(statement, engine, serviceContext);
@@ -525,7 +527,7 @@ public class InsertValuesExecutorTest {
 
     // Expect:
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Expected ROWKEY and COL0 to match");
+    expectedException.expectCause(hasMessage(containsString("Expected ROWKEY and COL0 to match")));
 
     // When:
     executor.execute(statement, engine, serviceContext);
@@ -542,7 +544,7 @@ public class InsertValuesExecutorTest {
 
     // Expect:
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Expected a value for each column");
+    expectedException.expectCause(hasMessage(containsString("Expected a value for each column")));
 
     // When:
     executor.execute(statement, engine, serviceContext);
@@ -562,7 +564,7 @@ public class InsertValuesExecutorTest {
 
     // Expect:
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Expected type INTEGER for field");
+    expectedException.expectCause(hasMessage(containsString("Expected type INTEGER for field")));
 
     // When:
     executor.execute(statement, engine, serviceContext);

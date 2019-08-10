@@ -15,10 +15,14 @@
 
 package io.confluent.ksql.datagen;
 
+import static io.confluent.ksql.datagen.DataGenSchemaUtil.getOptionalSchema;
+
 import io.confluent.avro.random.generator.Generator;
 import io.confluent.connect.avro.AvroData;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.Pair;
+import io.confluent.ksql.util.SchemaUtil;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -32,32 +36,45 @@ import java.util.Set;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData.Record;
 import org.apache.avro.generic.GenericRecord;
+import org.apache.kafka.connect.data.ConnectSchema;
+import org.apache.kafka.connect.data.Field;
+import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.connect.data.Struct;
 
 public class RowGenerator {
+
+  static final ConnectSchema KEY_SCHEMA = (ConnectSchema) SchemaBuilder.struct()
+      .field(SchemaUtil.ROWKEY_NAME, org.apache.kafka.connect.data.Schema.OPTIONAL_STRING_SCHEMA)
+      .build();
 
   private final Set<String> allTokens = new HashSet<>();
   private final Map<String, Integer> sessionMap = new HashMap<>();
   private final Set<Integer> allocatedIds = new HashSet<>();
   private final Generator generator;
   private final AvroData avroData;
-  private final Schema avroSchema;
-  private final org.apache.kafka.connect.data.Schema ksqlSchema;
-  private final SessionManager sessionManager;
+  private final LogicalSchema ksqlSchema;
+  private final SessionManager sessionManager = new SessionManager();
   private final String key;
 
-  public RowGenerator(
-      final Generator generator, final AvroData avroData, final Schema avroSchema,
-      final org.apache.kafka.connect.data.Schema ksqlSchema, final SessionManager sessionManager,
-      final String key) {
+  public RowGenerator(final Generator generator, final String key) {
     this.generator = Objects.requireNonNull(generator, "generator");
-    this.avroData = Objects.requireNonNull(avroData, "avroData");
-    this.avroSchema = Objects.requireNonNull(avroSchema, "avroSchema");
-    this.ksqlSchema = Objects.requireNonNull(ksqlSchema, "ksqlSchema");
-    this.sessionManager = Objects.requireNonNull(sessionManager, "sessionManager");
+    this.avroData = new AvroData(1);
     this.key = Objects.requireNonNull(key, "key");
+    this.ksqlSchema = LogicalSchema.of(
+        KEY_SCHEMA,
+        getOptionalSchema(avroData.toConnectSchema(generator.schema()))
+    );
+
+    if (!ksqlSchema.findValueField(key).isPresent()) {
+      throw new IllegalArgumentException("key field does not exist in schema: " + key);
+    }
   }
 
-  public Pair<String, GenericRow> generateRow() {
+  public LogicalSchema schema() {
+    return ksqlSchema;
+  }
+
+  public Pair<Struct, GenericRow> generateRow() {
 
     final Object generatedObject = generator.generate();
 
@@ -77,7 +94,7 @@ public class RowGenerator {
      * Populate the record entries
      */
     String sessionisationValue = null;
-    for (final Schema.Field field : avroSchema.getFields()) {
+    for (final Schema.Field field : generator.schema().getFields()) {
 
       final boolean isSession = field.schema().getProp("session") != null;
       final boolean isSessionSiblingIntHash =
@@ -114,10 +131,10 @@ public class RowGenerator {
       } else {
         final Object value = randomAvroMessage.get(field.name());
         if (value instanceof Record) {
+          final Field ksqlField = ksqlSchema.valueSchema().field(field.name());
           final Record record = (Record) value;
           final Object ksqlValue = avroData.toConnectData(record.getSchema(), record).value();
-          genericRowValues.add(DataGenSchemaUtil.getOptionalValue(
-              ksqlSchema.field(field.name()).schema(), ksqlValue));
+          genericRowValues.add(DataGenSchemaUtil.getOptionalValue(ksqlField.schema(), ksqlValue));
         } else {
           genericRowValues.add(value);
         }
@@ -128,7 +145,10 @@ public class RowGenerator {
         randomAvroMessage.getSchema().getField(key).schema(),
         randomAvroMessage.get(key)).value().toString();
 
-    return Pair.of(keyString, new GenericRow(genericRowValues));
+    final Struct key = new Struct(KEY_SCHEMA);
+    key.put(SchemaUtil.ROWKEY_NAME, keyString);
+
+    return Pair.of(key, new GenericRow(genericRowValues));
   }
 
   /**

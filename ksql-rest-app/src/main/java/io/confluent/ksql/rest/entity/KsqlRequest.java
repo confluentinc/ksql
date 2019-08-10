@@ -27,6 +27,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonSubTypes({})
@@ -46,7 +47,7 @@ public class KsqlRequest {
     this.ksql = ksql == null ? "" : ksql;
     this.streamsProperties = streamsProperties == null
         ? Collections.emptyMap()
-        : Collections.unmodifiableMap(new HashMap<>(streamsProperties));
+        : Collections.unmodifiableMap(new HashMap<>(serializeClassValues(streamsProperties)));
     this.commandSequenceNumber = Optional.ofNullable(commandSequenceNumber);
   }
 
@@ -81,6 +82,24 @@ public class KsqlRequest {
   @Override
   public int hashCode() {
     return Objects.hash(ksql, streamsProperties, commandSequenceNumber);
+  }
+
+  /**
+   * Converts all Class references values to their canonical String value.
+   * </p>
+   * This conversion avoids the JsonMappingException error thrown by Jackson when attempting
+   * to serialize the class properties prior to send this KsqlRequest object as part of the HTTP
+   * request. The error thrown by Jackson is "Class ... not be found".
+   */
+  private Map<String, ?> serializeClassValues(final Map<String, ?> properties) {
+    return properties.entrySet().stream()
+        .collect(Collectors.toMap(Map.Entry::getKey, kv -> {
+          if (kv.getValue() instanceof Class) {
+            return ((Class)kv.getValue()).getCanonicalName();
+          }
+
+          return kv.getValue();
+        }));
   }
 
   private static Map<String, Object> coerceTypes(final Map<String, Object> streamsProperties) {

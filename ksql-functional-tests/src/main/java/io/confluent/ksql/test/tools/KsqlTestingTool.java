@@ -118,7 +118,8 @@ public final class KsqlTestingTool {
         statements,
         null,
         null,
-        null
+        null,
+        true
     );
 
     final TestCase testCase = testCaseNode.buildTests(

@@ -130,7 +130,7 @@ public class SchemaKGroupedTableTest {
   ) {
     when(keySerde.rebind(any(PersistenceSchema.class))).thenReturn(keySerde);
 
-    final PlanNode logicalPlan = AnalysisTestUtil.buildLogicalPlan(query, metaStore);
+    final PlanNode logicalPlan = AnalysisTestUtil.buildLogicalPlan(ksqlConfig, query, metaStore);
 
     final SchemaKTable<?> initialSchemaKTable = new SchemaKTable<>(
         kTable,

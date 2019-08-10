@@ -69,6 +69,7 @@ public class KsqlBareOutputNodeTest {
   private StreamsBuilder builder;
   private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
   private final QueryId queryId = new QueryId("output-test");
+  private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
 
   @Mock
   private KsqlQueryBuilder ksqlStreamBuilder;
@@ -92,7 +93,7 @@ public class KsqlBareOutputNodeTest {
     when(ksqlStreamBuilder.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
 
     final KsqlBareOutputNode planNode = (KsqlBareOutputNode) AnalysisTestUtil
-        .buildLogicalPlan(SIMPLE_SELECT_WITH_FILTER, metaStore);
+        .buildLogicalPlan(ksqlConfig, SIMPLE_SELECT_WITH_FILTER, metaStore);
 
     stream = planNode.buildStream(ksqlStreamBuilder);
   }
@@ -139,7 +140,7 @@ public class KsqlBareOutputNodeTest {
     // Given:
     final KsqlBareOutputNode node
         = (KsqlBareOutputNode) AnalysisTestUtil
-        .buildLogicalPlan("select col0 from test1;", metaStore);
+        .buildLogicalPlan(ksqlConfig, "select col0 from test1;", metaStore);
     final QueryIdGenerator queryIdGenerator = mock(QueryIdGenerator.class);
 
     // When:

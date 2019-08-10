@@ -190,7 +190,7 @@ Single-field serialization examples
     -- results in an error as the value schema is multi-field
     CREATE STREAM BAD_SINK WITH(WRAP_SINGLE_VALUE=true) AS SELECT ID, COST FROM S;
 
-.. _ksql_formats
+.. _ksql_formats:
 
 =======
 Formats
@@ -198,12 +198,12 @@ Formats
 
 KSQL currently supports three serialization formats:
 
-*. ``DELIMITED`` supports comma separated values. See :ref:`delimited_format` below.
-*. ``JSON`` supports JSON values. See :ref:`json_format` below.
-*. ``AVRO`` supports AVRO serialized values. See :ref:`avro_format` below.
-*. ``KAFKA`` supports primitives serialized using the standard Kafka serializers. See :ref:`kafka_format` below.
+* ``DELIMITED`` supports comma separated values. See :ref:`delimited_format` below.
+* ``JSON`` supports JSON values. See :ref:`json_format` below.
+* ``AVRO`` supports AVRO serialized values. See :ref:`avro_format` below.
+* ``KAFKA`` supports primitives serialized using the standard Kafka serializers. See :ref:`kafka_format` below.
 
-.. _delimited_format
+.. _delimited_format:
 
 ---------
 DELIMITED
@@ -225,7 +225,7 @@ KSQL splits a value of ``120, bob, 49`` into the three fields with ``ID`` of ``1
 This data format supports all KSQL :ref:`data types <data-types>` except ``ARRAY``, ``MAP`` and
 ``STRUCT``.
 
-.. _json_format
+.. _json_format:
 
 ----
 JSON
@@ -298,7 +298,7 @@ Field Name Case Sensitivity
 The format is case-insensitive when matching a KSQL field name with a JSON document's property name.
 The first case-insensitive match is used.
 
-.. _avro_format
+.. _avro_format:
 
 ----
 Avro

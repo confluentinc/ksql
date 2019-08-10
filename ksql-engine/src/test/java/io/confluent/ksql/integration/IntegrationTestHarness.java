@@ -47,17 +47,14 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
-import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.Deserializer;
@@ -71,7 +68,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @SuppressWarnings("WeakerAccess")
-public class IntegrationTestHarness extends ExternalResource {
+public final class IntegrationTestHarness extends ExternalResource {
 
   private static final Logger LOG = LoggerFactory.getLogger(IntegrationTestHarness.class);
   private static final int DEFAULT_PARTITION_COUNT = 1;
@@ -164,8 +161,11 @@ public class IntegrationTestHarness extends ExternalResource {
    */
   public void produceRecord(final String topicName, final String key, final String data) {
     try {
-      try (final KafkaProducer<String, String> producer =
-          new KafkaProducer<>(producerConfig(), new StringSerializer(), new StringSerializer())) {
+      try (KafkaProducer<String, String> producer = new KafkaProducer<>(
+          kafkaCluster.producerConfig(),
+          new StringSerializer(),
+          new StringSerializer())
+      ) {
         producer.send(new ProducerRecord<>(topicName, key, data)).get();
       }
     } catch (final Exception e) {
@@ -233,9 +233,11 @@ public class IntegrationTestHarness extends ExternalResource {
   ) {
     ensureTopics(topic);
 
-    try (KafkaProducer<String, GenericRow> producer =
-        new KafkaProducer<>(producerConfig(), new StringSerializer(), valueSerializer)) {
-
+    try (KafkaProducer<String, GenericRow> producer = new KafkaProducer<>(
+        kafkaCluster.producerConfig(),
+        new StringSerializer(),
+        valueSerializer
+    )) {
       final Map<String, Future<RecordMetadata>> futures = recordsToPublish.entrySet().stream()
           .collect(Collectors.toMap(Entry::getKey, entry -> {
             final String key = entry.getKey();
@@ -270,12 +272,12 @@ public class IntegrationTestHarness extends ExternalResource {
       final String topic,
       final int expectedCount
   ) {
-    try (final KafkaConsumer<String, String> consumer =
-        new KafkaConsumer<>(consumerConfig(), new StringDeserializer(), new StringDeserializer())) {
-      consumer.subscribe(Collections.singleton(topic.toUpperCase()));
-
-      return ConsumerTestUtil.verifyAvailableRecords(consumer, expectedCount);
-    }
+    return kafkaCluster.verifyAvailableRecords(
+        topic,
+        expectedCount,
+        new StringDeserializer(),
+        new StringDeserializer()
+    );
   }
 
   /**
@@ -296,13 +298,12 @@ public class IntegrationTestHarness extends ExternalResource {
     final Deserializer<GenericRow> valueDeserializer =
         getDeserializer(valueFormat, schema);
 
-    try (final KafkaConsumer<String, GenericRow> consumer
-        = new KafkaConsumer<>(consumerConfig(), new StringDeserializer(), valueDeserializer)) {
-
-      consumer.subscribe(Collections.singleton(topic));
-
-      return ConsumerTestUtil.verifyAvailableRecords(consumer, expectedCount);
-    }
+    return kafkaCluster.verifyAvailableRecords(
+        topic,
+        expectedCount,
+        new StringDeserializer(),
+        valueDeserializer
+    );
   }
 
   /**
@@ -369,9 +370,11 @@ public class IntegrationTestHarness extends ExternalResource {
     final Deserializer<GenericRow> valueDeserializer =
         getDeserializer(valueFormat, schema);
 
-    try (final KafkaConsumer<K, GenericRow> consumer
-        = new KafkaConsumer<>(consumerConfig(), keyDeserializer, valueDeserializer)) {
-
+    try (KafkaConsumer<K, GenericRow> consumer = new KafkaConsumer<>(
+        kafkaCluster.consumerConfig(),
+        keyDeserializer,
+        valueDeserializer
+    )) {
       consumer.subscribe(Collections.singleton(topic));
 
       return ConsumerTestUtil.verifyAvailableRecords(consumer, expected, timeout);
@@ -440,9 +443,11 @@ public class IntegrationTestHarness extends ExternalResource {
     final Deserializer<GenericRow> valueDeserializer =
         getDeserializer(valueFormat, schema);
 
-    try (final KafkaConsumer<K, GenericRow> consumer
-        = new KafkaConsumer<>(consumerConfig(), keyDeserializer, valueDeserializer)) {
-
+    try (KafkaConsumer<K, GenericRow> consumer = new KafkaConsumer<>(
+        kafkaCluster.consumerConfig(),
+        keyDeserializer,
+        valueDeserializer
+    )) {
       consumer.subscribe(Collections.singleton(topic));
 
       final List<ConsumerRecord<K, GenericRow>> consumerRecords = ConsumerTestUtil
@@ -536,27 +541,6 @@ public class IntegrationTestHarness extends ExternalResource {
   protected void after() {
     serviceContext.close();
     kafkaCluster.stop();
-  }
-
-  private Map<String, Object> clientConfig() {
-    return new HashMap<>(kafkaCluster.getClientProperties());
-  }
-
-  private Map<String, Object> producerConfig() {
-    final Map<String, Object> config = clientConfig();
-    config.put(ProducerConfig.ACKS_CONFIG, "all");
-    config.put(ProducerConfig.RETRIES_CONFIG, 0);
-    return config;
-  }
-
-  Map<String, Object> consumerConfig() {
-    final Map<String, Object> config = clientConfig();
-    config.put(ConsumerConfig.GROUP_ID_CONFIG, UUID.randomUUID().toString());
-    config.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
-    // Try to keep consumer groups stable:
-    config.put(ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG, 10_000);
-    config.put(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, 30_000);
-    return config;
   }
 
   private Serializer<GenericRow> getSerializer(

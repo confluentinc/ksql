@@ -355,9 +355,17 @@ public class CliTest {
 
   @Test
   public void shouldPrintResultsForListOrShowCommands() {
-
     assertRunListCommand(
         "topics",
+        hasRow(
+            equalTo(orderDataProvider.topicName()),
+            equalTo("1"),
+            equalTo("1")
+        )
+    );
+
+    assertRunListCommand(
+        "topics extended",
         hasRow(
             equalTo(orderDataProvider.topicName()),
             equalTo("1"),

@@ -126,6 +126,40 @@ public class SchemaRegistryTopicSchemaSupplierTest {
   }
 
   @Test
+  public void shouldReturnErrorFromGetValueIfUnauthorized() throws Exception {
+    // Given:
+    when(srClient.getSchemaMetadata(any(), anyInt()))
+        .thenThrow(unauthorizedException());
+
+    // When:
+    final SchemaResult result = supplier.getValueSchema(TOPIC_NAME, Optional.of(42));
+
+    // Then:
+    assertThat(result.schemaAndId, is(Optional.empty()));
+    assertThat(result.failureReason, is(not(Optional.empty())));
+    assertThat(result.failureReason.get().getMessage(), containsString(
+        "Avro schema for message values on topic " + TOPIC_NAME
+            + " does not exist in the Schema Registry."));
+  }
+
+  @Test
+  public void shouldReturnErrorFromGetValueIfForbidden() throws Exception {
+    // Given:
+    when(srClient.getSchemaMetadata(any(), anyInt()))
+        .thenThrow(forbiddenException());
+
+    // When:
+    final SchemaResult result = supplier.getValueSchema(TOPIC_NAME, Optional.of(42));
+
+    // Then:
+    assertThat(result.schemaAndId, is(Optional.empty()));
+    assertThat(result.failureReason, is(not(Optional.empty())));
+    assertThat(result.failureReason.get().getMessage(), containsString(
+        "Avro schema for message values on topic " + TOPIC_NAME
+            + " does not exist in the Schema Registry."));
+  }
+
+  @Test
   public void shouldThrowFromGetValueSchemaOnOtherRestExceptions() throws Exception {
     // Given:
     when(srClient.getLatestSchemaMetadata(any()))
@@ -297,5 +331,13 @@ public class SchemaRegistryTopicSchemaSupplierTest {
 
   private static Throwable notFoundException() {
     return new RestClientException("no found", HttpStatus.SC_NOT_FOUND, -1);
+  }
+
+  private static Throwable unauthorizedException() {
+    return new RestClientException("unauthorized", HttpStatus.SC_UNAUTHORIZED, -1);
+  }
+
+  private static Throwable forbiddenException() {
+    return new RestClientException("forbidden", HttpStatus.SC_FORBIDDEN, -1);
   }
 }

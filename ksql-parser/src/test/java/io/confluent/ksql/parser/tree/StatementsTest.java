@@ -19,6 +19,7 @@ import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.testing.EqualsTester;
+import io.confluent.ksql.parser.NodeLocation;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;

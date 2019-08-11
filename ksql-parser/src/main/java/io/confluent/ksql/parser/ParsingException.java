@@ -17,7 +17,6 @@ package io.confluent.ksql.parser;
 
 import static java.lang.String.format;
 
-import io.confluent.ksql.parser.tree.NodeLocation;
 import java.util.Optional;
 import org.antlr.v4.runtime.RecognitionException;
 

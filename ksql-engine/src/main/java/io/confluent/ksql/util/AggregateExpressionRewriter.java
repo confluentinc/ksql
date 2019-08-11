@@ -15,14 +15,14 @@
 
 package io.confluent.ksql.util;
 
+import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.expression.tree.FunctionCall;
+import io.confluent.ksql.execution.expression.tree.QualifiedName;
+import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
+import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
 import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.parser.tree.ExpressionTreeRewriter;
-import io.confluent.ksql.parser.tree.ExpressionTreeRewriter.Context;
-import io.confluent.ksql.parser.tree.FunctionCall;
-import io.confluent.ksql.parser.tree.QualifiedName;
-import io.confluent.ksql.parser.tree.QualifiedNameReference;
-import io.confluent.ksql.parser.tree.VisitParentExpressionVisitor;
+import io.confluent.ksql.parser.rewrite.ExpressionTreeRewriter;
+import io.confluent.ksql.parser.rewrite.ExpressionTreeRewriter.Context;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;

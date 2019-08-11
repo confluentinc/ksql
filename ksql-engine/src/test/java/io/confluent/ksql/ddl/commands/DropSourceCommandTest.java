@@ -23,7 +23,7 @@ import static org.mockito.Mockito.when;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.parser.tree.DropStream;
-import io.confluent.ksql.parser.tree.QualifiedName;
+import io.confluent.ksql.execution.expression.tree.QualifiedName;
 import io.confluent.ksql.util.KsqlException;
 import org.junit.Before;
 import org.junit.Rule;

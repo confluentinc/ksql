@@ -17,38 +17,44 @@ package io.confluent.ksql.util;
 
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.parser.tree.ExpressionRewriter;
 import io.confluent.ksql.parser.tree.ExpressionTreeRewriter;
+import io.confluent.ksql.parser.tree.ExpressionTreeRewriter.Context;
 import io.confluent.ksql.parser.tree.FunctionCall;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
+import io.confluent.ksql.parser.tree.VisitParentExpressionVisitor;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
-public class AggregateExpressionRewriter extends ExpressionRewriter<Void> {
+public class AggregateExpressionRewriter
+    extends VisitParentExpressionVisitor<Optional<Expression>, Context<Void>> {
 
   public static final String AGGREGATE_FUNCTION_VARIABLE_PREFIX = "KSQL_AGG_VARIABLE_";
   private int aggVariableIndex = 0;
   private final FunctionRegistry functionRegistry;
 
   public AggregateExpressionRewriter(final FunctionRegistry functionRegistry) {
+    super(Optional.empty());
     this.functionRegistry = functionRegistry;
   }
 
   @Override
-  public Expression rewriteFunctionCall(final FunctionCall node, final Void context,
-                                        final ExpressionTreeRewriter<Void> treeRewriter) {
+  public Optional<Expression> visitFunctionCall(
+      final FunctionCall node,
+      final ExpressionTreeRewriter.Context<Void> context) {
     final String functionName = node.getName().getSuffix();
     if (functionRegistry.isAggregate(functionName)) {
       final String aggVarName = AGGREGATE_FUNCTION_VARIABLE_PREFIX + aggVariableIndex;
       aggVariableIndex++;
-      return new QualifiedNameReference(node.getLocation(), QualifiedName.of(aggVarName));
+      return Optional.of(
+          new QualifiedNameReference(node.getLocation(), QualifiedName.of(aggVarName)));
     } else {
       final List<Expression> arguments = new ArrayList<>();
       for (final Expression argExpression: node.getArguments()) {
-        arguments.add(treeRewriter.rewrite(argExpression, context));
+        arguments.add(context.process(argExpression));
       }
-      return new FunctionCall(node.getLocation(), node.getName(), arguments);
+      return Optional.of(new FunctionCall(node.getLocation(), node.getName(), arguments));
     }
   }
 }

@@ -6,6 +6,13 @@
       "statements": [
         "CREATE STREAM INPUT WITH (kafka_topic='input', value_format='{FORMAT}');"
       ],
+      "topics": [
+        {
+          "name": "input",
+          "schema": {"name": "blah", "type": "record", "fields": [{"name": "c1", "type": "int"}]},
+          "format": "AVRO"
+        }
+      ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
         "message": "The statement does not define any columns."

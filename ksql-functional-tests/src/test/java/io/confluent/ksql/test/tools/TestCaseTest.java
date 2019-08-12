@@ -154,6 +154,7 @@ public class TestCaseTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void shouldFailForIncorrectOutputCount() {
     // Given:
     when(fakeKafkaService.readRecords("foo_kafka"))

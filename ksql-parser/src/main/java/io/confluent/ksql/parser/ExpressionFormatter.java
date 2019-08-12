@@ -72,7 +72,7 @@ public final class ExpressionFormatter {
     return new Formatter().process(expression, unmangleNames);
   }
 
-  public static class Formatter implements ExpressionVisitor<String, Boolean> {
+  private static class Formatter implements ExpressionVisitor<String, Boolean> {
     @Override
     public String visitType(final Type node, final Boolean context) {
       return node.getSqlType().toString(FormatOptions.of(ParserUtil::isReservedIdentifier));

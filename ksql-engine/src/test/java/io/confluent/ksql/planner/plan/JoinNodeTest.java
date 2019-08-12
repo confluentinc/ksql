@@ -82,6 +82,7 @@ import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.TopologyDescription;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -301,6 +302,7 @@ public class JoinNodeTest {
   }
 
   @Test
+  @Ignore // ignore this test until Kafka merges KIP-479
   public void shouldHaveLeftJoin() {
     setupTopicClientExpectations(1, 1);
     buildJoin();

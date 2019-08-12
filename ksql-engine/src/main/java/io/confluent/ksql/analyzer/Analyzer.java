@@ -29,7 +29,6 @@ import io.confluent.ksql.parser.DefaultTraversalVisitor;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.AstNode;
-import io.confluent.ksql.parser.tree.Cast;
 import io.confluent.ksql.parser.tree.ComparisonExpression;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.Expression;
@@ -472,11 +471,6 @@ class Analyzer {
     }
 
     @Override
-    public AstNode visitCast(final Cast node, final Void context) {
-      return process(node.getExpression(), context);
-    }
-
-    @Override
     protected AstNode visitSelect(final Select node, final Void context) {
       for (final SelectItem selectItem : node.getSelectItems()) {
         if (selectItem instanceof AllColumns) {
@@ -490,14 +484,6 @@ class Analyzer {
         }
       }
       return null;
-    }
-
-    @Override
-    public AstNode visitQualifiedNameReference(
-        final QualifiedNameReference node,
-        final Void context
-    ) {
-      return visitExpression(node, context);
     }
 
     @Override

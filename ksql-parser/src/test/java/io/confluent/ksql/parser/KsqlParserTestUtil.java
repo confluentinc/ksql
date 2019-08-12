@@ -21,6 +21,9 @@ import static org.hamcrest.Matchers.hasSize;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.parser.tree.Query;
+import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Statement;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -50,5 +53,18 @@ public final class KsqlParserTestUtil {
 
   public static List<ParsedStatement> parse(final String sql) {
     return KSQL_PARSER.parse(sql);
+  }
+
+  public static Expression parseExpression(final String asText, final MetaStore metaStore) {
+    final String ksql = String.format("SELECT %s FROM test1;", asText);
+
+    final ParsedStatement parsedStatement = KSQL_PARSER.parse(ksql).get(0);
+    final AstBuilder astBuilder = new AstBuilder(metaStore);
+    final Statement statement = astBuilder.build(parsedStatement.getStatement());
+    final SingleColumn singleColumn = (SingleColumn) ((Query)statement)
+        .getSelect()
+        .getSelectItems()
+        .get(0);
+    return singleColumn.getExpression();
   }
 }

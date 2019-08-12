@@ -30,6 +30,7 @@ import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.resources.Errors;
+import io.confluent.ksql.rest.server.resources.RootDocument;
 import io.confluent.ksql.rest.ssl.DefaultSslClientConfigurer;
 import io.confluent.ksql.rest.ssl.SslClientConfigurer;
 import io.confluent.rest.validation.JacksonMessageBodyProvider;
@@ -154,8 +155,8 @@ public class KsqlRestClient implements Closeable {
     this.serverAddresses = parseServerAddresses(serverAddress);
   }
 
-  public RestResponse<ServerInfo> makeRootRequest() {
-    return getServerInfo();
+  public RestResponse<RootDocument> makeRootRequest() {
+    return getRequest("/", RootDocument.class);
   }
 
   public RestResponse<ServerInfo> getServerInfo() {

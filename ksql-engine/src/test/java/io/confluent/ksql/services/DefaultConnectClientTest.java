@@ -31,6 +31,8 @@ import io.confluent.ksql.services.ConnectClient.ConnectResponse;
 import java.util.List;
 import org.apache.http.HttpStatus;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
+import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
+import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo.ConnectorState;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorType;
 import org.apache.kafka.connect.util.ConnectorTaskId;
 import org.junit.Before;
@@ -44,6 +46,12 @@ public class DefaultConnectClientTest {
       "foo",
       ImmutableMap.of("key", "value"),
       ImmutableList.of(new ConnectorTaskId("foo", 1)),
+      ConnectorType.SOURCE
+  );
+  private static final ConnectorStateInfo SAMPLE_STATUS = new ConnectorStateInfo(
+      "foo",
+      new ConnectorState("state", "worker", "msg"),
+      ImmutableList.of(),
       ConnectorType.SOURCE
   );
 
@@ -129,6 +137,27 @@ public class DefaultConnectClientTest {
 
     // Then:
     assertThat(response.datum(), OptionalMatchers.of(is(SAMPLE_INFO)));
+    assertThat("Expected no error!", !response.error().isPresent());
+  }
+
+  @Test
+  public void testStatus() throws JsonProcessingException {
+    // Given:
+    WireMock.stubFor(
+        WireMock.get(WireMock.urlEqualTo("/connectors/foo/status"))
+            .willReturn(WireMock.aResponse()
+                .withStatus(HttpStatus.SC_OK)
+                .withBody(MAPPER.writeValueAsString(SAMPLE_STATUS)))
+    );
+
+    // When:
+    final ConnectResponse<ConnectorStateInfo> response = client.status("foo");
+
+    // Then:
+    final ConnectorStateInfo connectorStateInfo = response.datum().get();
+    // equals is not implemented on ConnectorStateInfo
+    assertThat(connectorStateInfo.name(), is(SAMPLE_STATUS.name()));
+    assertThat(connectorStateInfo.type(), is(SAMPLE_STATUS.type()));
     assertThat("Expected no error!", !response.error().isPresent());
   }
 

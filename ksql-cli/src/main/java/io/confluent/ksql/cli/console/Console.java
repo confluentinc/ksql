@@ -99,6 +99,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
 import org.jline.terminal.Terminal.Signal;
@@ -150,6 +151,8 @@ public class Console implements Closeable {
               tablePrinter(CreateConnectorEntity.class, ConnectorInfoTableBuilder::new))
           .put(ConnectorList.class,
               tablePrinter(ConnectorList.class, ConnectorListTableBuilder::new))
+          .put(ConnectorDescription.class,
+              Console::printConnectorDescription)
           .put(ErrorEntity.class,
               tablePrinter(ErrorEntity.class, ErrorEntityTableBuilder::new))
           .build();
@@ -656,26 +659,35 @@ public class Console implements Closeable {
   private void printConnectorDescription(final ConnectorDescription description) {
     final ConnectorStateInfo status = description.getStatus();
     writer().println(String.format("%-20s : %s", "Name", status.name()));
-    writer().println(String.format("%-20s : %s", "Type", status.type()));
+    writer().println(String.format("%-20s : %s", "Type", description.getType()));
     writer().println(String.format("%-20s : %s", "State", status.connector().state()));
     writer().println(String.format("%-20s : %s", "WorkerId", status.connector().workerId()));
     writer().println();
 
-    final Table taskTable = new Table.Builder()
-        .withColumnHeaders(ImmutableList.of("id", "state", "trace"))
-        .withRows(status.tasks()
-            .stream()
-            .map(task -> ImmutableList.of(String.valueOf(task.id()), task.state(), task.trace())))
-        .build();
-    taskTable.print(this);
-    writer().println();
+    if (!status.tasks().isEmpty()) {
+      final Table taskTable = new Table.Builder()
+          .withColumnHeaders(ImmutableList.of("Task ID", "State", "Error Trace"))
+          .withRows(status.tasks()
+              .stream()
+              .map(task -> ImmutableList.of(
+                  String.valueOf(task.id()),
+                  task.state(),
+                  ObjectUtils.defaultIfNull(task.trace(), ""))))
+          .build();
+      taskTable.print(this);
+      writer().println();
+    }
 
-    final Table sourceTable = new Table.Builder()
-        .withColumnHeaders("Source Name", "Kafka Topic", "Type")
-        .withRows(description.getSources()
-            .stream()
-            .map(source -> ImmutableList.of(source.getName(), source.getTopic(), source.getType())))
-        .build();
+    if (!description.getSources().isEmpty()) {
+      final Table sourceTable = new Table.Builder()
+          .withColumnHeaders("Source Name", "Kafka Topic", "Type")
+          .withRows(description.getSources()
+              .stream()
+              .map(source -> ImmutableList
+                  .of(source.getName(), source.getTopic(), source.getType())))
+          .build();
+      sourceTable.print(this);
+    }
   }
 
   private void printQueryDescriptionList(final QueryDescriptionList queryDescriptionList) {

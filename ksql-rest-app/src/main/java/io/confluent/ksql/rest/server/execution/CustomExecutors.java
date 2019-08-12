@@ -67,7 +67,7 @@ public enum CustomExecutors {
   UNSET_PROPERTY(UnsetProperty.class, PropertyExecutor::unset),
   INSERT_VALUES(InsertValues.class, insertValuesExecutor()),
   CREATE_CONNECTOR(CreateConnector.class, ConnectExecutor::execute),
-  DESCRIBE_CONNECTOR(DescribeConnector.class, DescribeConnectorExecutor::execute)
+  DESCRIBE_CONNECTOR(DescribeConnector.class, new DescribeConnectorExecutor()::execute)
   ;
 
   public static final Map<Class<? extends Statement>, StatementExecutor<?>> EXECUTOR_MAP =

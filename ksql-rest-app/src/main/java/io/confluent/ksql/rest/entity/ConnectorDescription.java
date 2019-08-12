@@ -21,21 +21,29 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
 import java.util.Objects;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
+
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class ConnectorDescription extends KsqlEntity {
 
+  private final String type;
   private final ConnectorStateInfo status;
   private final List<SourceDescription> sources;
 
   @JsonCreator
   public ConnectorDescription(
       @JsonProperty("statementText")  final String statementText,
+      @JsonProperty("type")           final String type,
       @JsonProperty("status")         final ConnectorStateInfo status,
       @JsonProperty("sources")        final List<SourceDescription> sources
   ) {
     super(statementText);
+    this.type = Objects.requireNonNull(type, "type");
     this.status = Objects.requireNonNull(status, "status");
     this.sources = Objects.requireNonNull(sources, "sources");
+  }
+
+  public String getType() {
+    return type;
   }
 
   public ConnectorStateInfo getStatus() {

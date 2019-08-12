@@ -33,7 +33,7 @@ final class SandboxConnectClient {
   public static ConnectClient createProxy() {
     return LimitedProxyBuilder.forClass(ConnectClient.class)
         .swallow("create", methodParams(String.class, Map.class), ConnectResponse.of("sandbox"))
-        .swallow("describe", methodParams(String.class), ConnectResponse.of(ImmutableList.of()))
+        .swallow("describe", methodParams(String.class), ConnectResponse.of("sandbox"))
         .swallow("connectors", methodParams(), ConnectResponse.of(ImmutableList.of()))
         .swallow("status", methodParams(String.class), ConnectResponse.of("sandbox"))
         .build();

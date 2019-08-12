@@ -319,7 +319,7 @@ nonReserved
     | EXPLAIN | ANALYZE | TYPE
     | SET | RESET
     | IF
-    | CONNECTOR | SOURCE | SINK
+    | SOURCE | SINK
     | KEY
     ;
 

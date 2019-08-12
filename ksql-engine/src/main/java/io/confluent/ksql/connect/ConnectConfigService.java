@@ -23,6 +23,7 @@ import com.google.common.util.concurrent.MoreExecutors;
 import io.confluent.ksql.services.ConnectClient;
 import io.confluent.ksql.services.ConnectClient.ConnectResponse;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlServerException;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.HashSet;
@@ -41,6 +42,7 @@ import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.WakeupException;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
+import org.apache.kafka.connect.runtime.ConnectorConfig;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,7 +56,7 @@ import org.slf4j.LoggerFactory;
  * <p>On startup, this service reads the connect configuration topic from the
  * beginning to make sure that it reconstructs the necessary state.</p>
  */
-class ConnectConfigService extends AbstractExecutionThreadService {
+final class ConnectConfigService extends AbstractExecutionThreadService {
 
   private static final Logger LOG = LoggerFactory.getLogger(ConnectConfigService.class);
   private static final long POLL_TIMEOUT_S = 60;
@@ -160,36 +162,43 @@ class ConnectConfigService extends AbstractExecutionThreadService {
   }
 
   private void checkConnectors() {
-    // something changed in the connect configuration topic - poll connect
-    // and see if we need to update our connectors
-    final ConnectResponse<List<String>> allConnectors = connectClient.connectors();
-    if (allConnectors.datum().isPresent()) {
+    try {
+      // something changed in the connect configuration topic - poll connect
+      // and see if we need to update our connectors
+      final ConnectResponse<List<String>> allConnectors = connectClient.connectors();
+      if (allConnectors.datum().isPresent()) {
+        final List<String> toProcess = allConnectors.datum()
+            .get()
+            .stream()
+            .filter(connectorName -> !handledConnectors.contains(connectorName))
+            .collect(Collectors.toList());
+        LOG.info("Was made aware of the following connectors: {}", toProcess);
 
-      final List<String> toProcess = allConnectors.datum()
-          .get()
-          .stream()
-          .filter(connector -> !handledConnectors.contains(connector))
-          .collect(Collectors.toList());
-      LOG.info("Was made aware of the following connectors: {}", toProcess);
-
-      toProcess.forEach(this::handleConnector);
+        toProcess.forEach(this::handleConnector);
+      }
+    } catch (final KsqlServerException e) {
+      LOG.warn("Failed to check the connectors due to some server error.", e);
     }
   }
 
   private void handleConnector(final String name) {
-    final ConnectResponse<ConnectorInfo> describe = connectClient.describe(name);
-    if (!describe.datum().isPresent()) {
-      return;
-    }
+    try {
+      final ConnectResponse<ConnectorInfo> describe = connectClient.describe(name);
+      if (!describe.datum().isPresent()) {
+        return;
+      }
 
-    handledConnectors.add(name);
-    final Optional<Connector> connector = connectorFactory.apply(describe.datum().get());
-    if (connector.isPresent()) {
-      LOG.info("Registering connector {}", connector);
-      pollingService.addConnector(connector.get());
-    } else {
-      LOG.warn("Ignoring unsupported connector {} with config {}",
-          name, describe.datum().get().config());
+      handledConnectors.add(name);
+      final Optional<Connector> connector = connectorFactory.apply(describe.datum().get());
+      if (connector.isPresent()) {
+        LOG.info("Registering connector {}", connector);
+        pollingService.addConnector(connector.get());
+      } else {
+        LOG.warn("Ignoring unsupported connector {} ({})",
+            name, describe.datum().get().config().get(ConnectorConfig.CONNECTOR_CLASS_CONFIG));
+      }
+    } catch (final KsqlServerException e) {
+      LOG.warn("Failed to describe connector {} due to some server error.", name, e);
     }
   }
 

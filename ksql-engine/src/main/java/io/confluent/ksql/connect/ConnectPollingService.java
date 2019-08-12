@@ -53,7 +53,7 @@ import org.slf4j.LoggerFactory;
  * registry.</p>
  */
 @ThreadSafe
-class ConnectPollingService extends AbstractScheduledService {
+final class ConnectPollingService extends AbstractScheduledService {
 
   private static final Logger LOG = LoggerFactory.getLogger(ConnectPollingService.class);
   private static final int INTERVAL_S = 30;

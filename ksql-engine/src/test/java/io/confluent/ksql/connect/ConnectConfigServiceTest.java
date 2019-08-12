@@ -252,10 +252,10 @@ public class ConnectConfigServiceTest {
   private void givenNoMoreRecords(final OngoingStubbing<?> stubbing, final CountDownLatch noMoreLatch) {
     final CountDownLatch awaitWakeup = new CountDownLatch(1);
     stubbing.thenAnswer(invocationOnMock -> {
-          noMoreLatch.countDown();
-          awaitWakeup.await(30, TimeUnit.SECONDS);
-          throw new WakeupException();
-        });
+      noMoreLatch.countDown();
+      awaitWakeup.await();
+      throw new WakeupException();
+    });
 
     doAnswer(invocation -> {
       awaitWakeup.countDown();

@@ -15,8 +15,8 @@
 
 package io.confluent.ksql.analyzer;
 
-import io.confluent.ksql.parser.tree.DereferenceExpression;
-import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
+import io.confluent.ksql.execution.expression.tree.Expression;
 import java.util.Map;
 import java.util.Set;
 

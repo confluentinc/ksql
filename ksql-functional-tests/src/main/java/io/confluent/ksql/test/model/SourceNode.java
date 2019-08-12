@@ -18,11 +18,11 @@ package io.confluent.ksql.test.model;
 import static org.hamcrest.Matchers.allOf;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.metastore.model.MetaStoreMatchers;
-import io.confluent.ksql.parser.tree.Type;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.TypeContextUtil;
 import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;

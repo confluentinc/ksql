@@ -13,7 +13,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.udf.Kudf;
-import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.execution.expression.tree.Expression;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Collections;
 import java.util.List;

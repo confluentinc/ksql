@@ -15,7 +15,7 @@
 
 package io.confluent.ksql.parser;
 
-import io.confluent.ksql.parser.tree.Literal;
+import io.confluent.ksql.execution.expression.tree.Literal;
 import io.confluent.ksql.util.KsqlException;
 
 /**

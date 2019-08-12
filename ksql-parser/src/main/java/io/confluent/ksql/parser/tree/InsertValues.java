@@ -17,6 +17,9 @@ package io.confluent.ksql.parser.tree;
 
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.expression.tree.QualifiedName;
+import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.Objects;

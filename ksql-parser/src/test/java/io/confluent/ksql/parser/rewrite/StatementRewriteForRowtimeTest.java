@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.parser.rewrite;
 
+import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParserTestUtil;

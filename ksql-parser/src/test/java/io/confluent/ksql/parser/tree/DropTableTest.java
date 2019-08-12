@@ -19,6 +19,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 import com.google.common.testing.EqualsTester;
+import io.confluent.ksql.execution.expression.tree.QualifiedName;
+import io.confluent.ksql.parser.NodeLocation;
 import java.util.Optional;
 import org.junit.Test;
 

@@ -32,6 +32,7 @@ import io.confluent.ksql.test.serde.avro.AvroSerdeSupplier;
 import io.confluent.ksql.test.serde.string.StringSerdeSupplier;
 import io.confluent.ksql.test.tools.conditions.PostConditions;
 import io.confluent.ksql.test.tools.exceptions.KsqlExpectedException;
+import io.confluent.ksql.util.KsqlException;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
@@ -150,6 +151,25 @@ public class TestCaseTest {
     testCase.verifyOutput(topologyTestDriverContainer, null);
 
     // Then: no exception thrown.
+  }
+
+  @Test
+  public void shouldFailForIncorrectOutputCount() {
+    // Given:
+    when(fakeKafkaService.readRecords("foo_kafka"))
+        .thenReturn(ImmutableList.of(
+            FakeKafkaRecord.of(topic, new ProducerRecord("foo_kafka", 1, 123456719L, "k1", "v1")),
+            FakeKafkaRecord.of(topic, new ProducerRecord("foo_kafka", 1, 123456789L, "k12", "v2"))));
+
+    // Expect
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Expected <1> records but it was <2>\n"
+        + "Actual records: \n"
+        + " timestamp: 123456719 key: k1 value: v1 \n"
+        + " timestamp: 123456789 key: k12 value: v2");
+
+    // When:
+    testCase.verifyOutputTopics(fakeKafkaService);
   }
 
   @Test

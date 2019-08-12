@@ -369,7 +369,7 @@ public class TestCase implements Test {
       final boolean ranWithInsertStatements) {
     if (actual.size() != expected.size()) {
       throw new KsqlException("Expected <" + expected.size()
-          + "> records but it was <" + actual.size() + ">");
+          + "> records but it was <" + actual.size() + ">\n" + getActualsForErrorMessage(actual));
     }
     for (int i = 0; i < expected.size(); i++) {
       final ProducerRecord<?, ?> actualProducerRecord = actual.get(i).getProducerRecord();
@@ -377,6 +377,18 @@ public class TestCase implements Test {
 
       validateCreatedMessage(actualProducerRecord, expectedProducerRecord, ranWithInsertStatements);
     }
+  }
+
+  private static String getActualsForErrorMessage(final List<FakeKafkaRecord> actual) {
+    final StringBuilder stringBuilder = new StringBuilder("Actual records: \n");
+    for (final FakeKafkaRecord fakeKafkaRecord: actual) {
+      final ProducerRecord<?,?> producerRecord = fakeKafkaRecord.getProducerRecord();
+      stringBuilder.append(" timestamp: ").append(producerRecord.timestamp())
+          .append(" key: ").append(producerRecord.key().toString())
+          .append(" value: ").append(producerRecord.value().toString())
+          .append(" \n");
+    }
+    return stringBuilder.toString();
   }
 
   private static void validateCreatedMessage(

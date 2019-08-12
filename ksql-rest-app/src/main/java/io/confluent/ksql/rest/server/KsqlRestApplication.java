@@ -25,6 +25,7 @@ import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import io.confluent.ksql.ServiceInfo;
+import io.confluent.ksql.connect.KsqlConnect;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.TopicAccessValidator;
 import io.confluent.ksql.engine.TopicAccessValidatorFactory;
@@ -36,7 +37,9 @@ import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.parser.SqlFormatter;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
+import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.computation.CommandRunner;
 import io.confluent.ksql.rest.server.computation.CommandStore;
@@ -127,6 +130,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
   private final ServerState serverState;
   private final ProcessingLogContext processingLogContext;
   private final List<KsqlServerPrecondition> preconditions;
+  private final KsqlConnect ksqlConnect;
 
   public static String getCommandsStreamName() {
     return COMMANDS_STREAM_NAME;
@@ -150,7 +154,8 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
       final KsqlSecurityExtension securityExtension,
       final ServerState serverState,
       final ProcessingLogContext processingLogContext,
-      final List<KsqlServerPrecondition> preconditions
+      final List<KsqlServerPrecondition> preconditions,
+      final KsqlConnect ksqlConnect
   ) {
     super(config);
     this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
@@ -175,6 +180,8 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
     this.securityExtension = Objects.requireNonNull(
         securityExtension, "securityExtension"
     );
+    this.ksqlConnect = Objects
+        .requireNonNull(ksqlConnect, "ksqlConnect");
   }
 
   @Override
@@ -193,6 +200,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
     super.start();
     startKsql();
     commandRunner.start();
+    ksqlConnect.startAsync();
     final Properties metricsProperties = new Properties();
     metricsProperties.putAll(getConfiguration().getOriginals());
     if (versionCheckerAgent != null) {
@@ -264,6 +272,12 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
 
   @Override
   public void stop() {
+    try {
+      ksqlConnect.close();
+    } catch (final Exception e) {
+      log.error("Exception while waiting for ksqlConnect to close", e);
+    }
+
     try {
       ksqlEngine.close();
     } catch (final Exception e) {
@@ -500,6 +514,15 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         KsqlServerPrecondition.class
     );
 
+    final KsqlConnect ksqlConnect = new KsqlConnect(
+        ksqlEngine,
+        ksqlConfig,
+        cs -> ksqlResource.handleKsqlStatements(
+            ksqlEngine.getServiceContext(),
+            new KsqlRequest(SqlFormatter.formatSql(cs), null, null)
+        )
+    );
+
     return new KsqlRestApplication(
         serviceContext,
         ksqlEngine,
@@ -516,7 +539,8 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         securityExtension,
         serverState,
         processingLogContext,
-        preconditions
+        preconditions,
+        ksqlConnect
     );
   }
 

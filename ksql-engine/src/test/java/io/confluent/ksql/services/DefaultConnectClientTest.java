@@ -28,6 +28,7 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.metastore.model.MetaStoreMatchers.OptionalMatchers;
 import io.confluent.ksql.services.ConnectClient.ConnectResponse;
+import java.util.List;
 import org.apache.http.HttpStatus;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorType;
@@ -93,6 +94,42 @@ public class DefaultConnectClientTest {
     // Then:
     assertThat("Expected no datum!", !response.datum().isPresent());
     assertThat(response.error(), OptionalMatchers.of(is("Oh no!")));
+  }
+
+  @Test
+  public void testList() throws JsonProcessingException {
+    // Given:
+    WireMock.stubFor(
+        WireMock.get(WireMock.urlEqualTo("/connectors"))
+            .willReturn(WireMock.aResponse()
+                .withStatus(HttpStatus.SC_OK)
+                .withBody(MAPPER.writeValueAsString(ImmutableList.of("one", "two"))))
+    );
+
+    // When:
+    final ConnectResponse<List<String>> response = client.connectors();
+
+    // Then:
+    assertThat(response.datum(), OptionalMatchers.of(is(ImmutableList.of("one", "two"))));
+    assertThat("Expected no error!", !response.error().isPresent());
+  }
+
+  @Test
+  public void testDescribe() throws JsonProcessingException {
+    // Given:
+    WireMock.stubFor(
+        WireMock.get(WireMock.urlEqualTo("/connectors/foo"))
+            .willReturn(WireMock.aResponse()
+                .withStatus(HttpStatus.SC_OK)
+                .withBody(MAPPER.writeValueAsString(SAMPLE_INFO)))
+    );
+
+    // When:
+    final ConnectResponse<ConnectorInfo> response = client.describe("foo");
+
+    // Then:
+    assertThat(response.datum(), OptionalMatchers.of(is(SAMPLE_INFO)));
+    assertThat("Expected no error!", !response.error().isPresent());
   }
 
 }

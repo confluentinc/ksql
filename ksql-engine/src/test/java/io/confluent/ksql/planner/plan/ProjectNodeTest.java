@@ -37,7 +37,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.structured.QueryContext.Stacker;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.SelectExpression;
+import io.confluent.ksql.execution.plan.SelectExpression;
 import java.util.Arrays;
 import java.util.Optional;
 import org.apache.kafka.connect.data.Schema;

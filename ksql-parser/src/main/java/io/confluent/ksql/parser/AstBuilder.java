@@ -55,6 +55,7 @@ import io.confluent.ksql.execution.expression.tree.WhenClause;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.parser.SqlBaseParser.CreateConnectorContext;
+import io.confluent.ksql.parser.SqlBaseParser.DescribeConnectorContext;
 import io.confluent.ksql.parser.SqlBaseParser.InsertValuesContext;
 import io.confluent.ksql.parser.SqlBaseParser.IntervalClauseContext;
 import io.confluent.ksql.parser.SqlBaseParser.LimitClauseContext;
@@ -72,6 +73,7 @@ import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
+import io.confluent.ksql.parser.tree.DescribeConnector;
 import io.confluent.ksql.parser.tree.DescribeFunction;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
@@ -1102,6 +1104,14 @@ public class AstBuilder {
     @Override
     public Node visitDescribeFunction(final SqlBaseParser.DescribeFunctionContext ctx) {
       return new DescribeFunction(getLocation(ctx), ctx.qualifiedName().getText());
+    }
+
+    @Override
+    public Node visitDescribeConnector(final DescribeConnectorContext ctx) {
+      return new DescribeConnector(
+          getLocation(ctx),
+          ParserUtil.getIdentifierText(ctx.identifier())
+      );
     }
 
     @Override

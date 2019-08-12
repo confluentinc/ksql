@@ -32,6 +32,7 @@ import org.apache.http.client.fluent.Request;
 import org.apache.http.entity.ContentType;
 import org.apache.http.util.EntityUtils;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
+import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,6 +47,7 @@ public class DefaultConnectClient implements ConnectClient {
   private static final ObjectMapper MAPPER = JsonMapper.INSTANCE.mapper;
 
   private static final String CONNECTORS = "/connectors";
+  private static final String STATUS = "/status";
   private static final int DEFAULT_TIMEOUT_MS = 5_000;
 
   private final URI connectUri;
@@ -67,7 +69,7 @@ public class DefaultConnectClient implements ConnectClient {
       final Map<String, String> config
   ) {
     try {
-      LOG.debug("Issuing request to Kafka Connect at URI {} with name {} and config {}",
+      LOG.debug("Issuing create request to Kafka Connect at URI {} with name {} and config {}",
           connectUri,
           connector,
           config);
@@ -112,6 +114,30 @@ public class DefaultConnectClient implements ConnectClient {
 
       connectResponse.error()
           .ifPresent(error -> LOG.warn("Could not list connectors: {}.", error));
+
+      return connectResponse;
+    } catch (final Exception e) {
+      throw new KsqlServerException(e);
+    }
+  }
+
+  @Override
+  public ConnectResponse<ConnectorStateInfo> status(final String connector) {
+    try {
+      LOG.debug("Issuing status request to Kafka Connect at URI {} with name {}",
+          connectUri,
+          connector);
+
+      final ConnectResponse<ConnectorStateInfo> connectResponse = Request
+          .Get(connectUri.resolve(CONNECTORS + "/" + connector + STATUS))
+          .socketTimeout(DEFAULT_TIMEOUT_MS)
+          .connectTimeout(DEFAULT_TIMEOUT_MS)
+          .execute()
+          .handleResponse(
+              createHandler(HttpStatus.SC_OK, ConnectorStateInfo.class, Function.identity()));
+
+      connectResponse.error()
+          .ifPresent(error -> LOG.warn("Did not CREATE connector {}: {}", connector, error));
 
       return connectResponse;
     } catch (final Exception e) {

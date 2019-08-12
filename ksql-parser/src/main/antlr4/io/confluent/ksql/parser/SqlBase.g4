@@ -41,6 +41,7 @@ statement
     | (LIST | SHOW) (SOURCE | SINK)? CONNECTORS                             #listConnectors
     | DESCRIBE EXTENDED? qualifiedName                                      #showColumns
     | DESCRIBE FUNCTION qualifiedName                                       #describeFunction
+    | DESCRIBE CONNECTOR identifier                                         #describeConnector
     | PRINT (qualifiedName | STRING) printClause                            #printTopic
     | (LIST | SHOW) QUERIES EXTENDED?                                       #listQueries
     | TERMINATE QUERY? qualifiedName                                        #terminateQuery

@@ -43,6 +43,7 @@ import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.rest.entity.ArgumentInfo;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.ConnectorList;
+import io.confluent.ksql.rest.entity.ConnectorDescription;
 import io.confluent.ksql.rest.entity.CreateConnectorEntity;
 import io.confluent.ksql.rest.entity.ErrorEntity;
 import io.confluent.ksql.rest.entity.ExecutionPlan;
@@ -99,6 +100,7 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
 import org.jline.terminal.Terminal.Signal;
 import org.jline.terminal.Terminal.SignalHandler;
 import org.slf4j.Logger;
@@ -649,6 +651,31 @@ public class Console implements Closeable {
     printExecutionPlan(query);
     printTopology(query);
     printOverriddenProperties(query);
+  }
+
+  private void printConnectorDescription(final ConnectorDescription description) {
+    final ConnectorStateInfo status = description.getStatus();
+    writer().println(String.format("%-20s : %s", "Name", status.name()));
+    writer().println(String.format("%-20s : %s", "Type", status.type()));
+    writer().println(String.format("%-20s : %s", "State", status.connector().state()));
+    writer().println(String.format("%-20s : %s", "WorkerId", status.connector().workerId()));
+    writer().println();
+
+    final Table taskTable = new Table.Builder()
+        .withColumnHeaders(ImmutableList.of("id", "state", "trace"))
+        .withRows(status.tasks()
+            .stream()
+            .map(task -> ImmutableList.of(String.valueOf(task.id()), task.state(), task.trace())))
+        .build();
+    taskTable.print(this);
+    writer().println();
+
+    final Table sourceTable = new Table.Builder()
+        .withColumnHeaders("Source Name", "Kafka Topic", "Type")
+        .withRows(description.getSources()
+            .stream()
+            .map(source -> ImmutableList.of(source.getName(), source.getTopic(), source.getType())))
+        .build();
   }
 
   private void printQueryDescriptionList(final QueryDescriptionList queryDescriptionList) {

@@ -1,476 +1,624 @@
-/*
- * Copyright 2018 Confluent Inc.
- *
- * Licensed under the Confluent Community License (the "License"); you may not use
- * this file except in compliance with the License.  You may obtain a copy of the
- * License at
- *
- * http://www.confluent.io/confluent-community-license
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations under the License.
- */
-
 package io.confluent.ksql.parser.rewrite;
 
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.nullValue;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.core.IsInstanceOf.instanceOf;
-import static org.hamcrest.core.IsNot.not;
+import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
-import com.google.common.collect.Iterables;
-import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.parser.KsqlParserTestUtil;
+import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
+import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AstNode;
-import io.confluent.ksql.parser.tree.ComparisonExpression;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
+import io.confluent.ksql.parser.tree.CreateTableAsSelect;
+import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.parser.tree.GroupBy;
+import io.confluent.ksql.parser.tree.GroupingElement;
 import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.Join;
+import io.confluent.ksql.parser.tree.Join.Type;
+import io.confluent.ksql.parser.tree.JoinCriteria;
+import io.confluent.ksql.parser.tree.KsqlWindowExpression;
+import io.confluent.ksql.parser.tree.NodeLocation;
+import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.Query;
+import io.confluent.ksql.parser.tree.Relation;
+import io.confluent.ksql.parser.tree.Select;
+import io.confluent.ksql.parser.tree.SimpleGroupBy;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Statement;
-import io.confluent.ksql.schema.ksql.SqlBaseType;
-import io.confluent.ksql.serde.Format;
-import io.confluent.ksql.util.MetaStoreFixture;
+import io.confluent.ksql.parser.tree.Statements;
+import io.confluent.ksql.parser.tree.TableElement;
+import io.confluent.ksql.parser.tree.TableElement.Namespace;
+import io.confluent.ksql.parser.tree.TableElements;
+import io.confluent.ksql.parser.tree.WindowExpression;
+import io.confluent.ksql.parser.tree.WithinExpression;
 import java.util.Optional;
-import org.junit.Assert;
+import java.util.OptionalInt;
+import java.util.function.BiFunction;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
 
 public class StatementRewriterTest {
+  @Mock
+  private BiFunction<Expression, Object, Expression> expressionRewriter;
+  @Mock
+  private BiFunction<AstNode, Object, AstNode> mockRewriter;
+  @Mock
+  private Optional<NodeLocation> location;
+  @Mock
+  private Object context;
+  @Mock
+  private Select select;
+  @Mock
+  private Select rewrittenSelect;
+  @Mock
+  private Relation relation;
+  @Mock
+  private Relation rewrittenRelation;
+  @Mock
+  private Expression expression;
+  @Mock
+  private Expression rewrittenExpression;
+  @Mock
+  private OptionalInt optionalInt;
+  @Mock
+  private Relation rightRelation;
+  @Mock
+  private Relation rewrittenRightRelation;
+  @Mock
+  private JoinCriteria joinCriteria;
+  @Mock
+  private QualifiedName qualifiedName;
+  @Mock
+  private CreateSourceProperties sourceProperties;
+  @Mock
+  private Query query;
+  @Mock
+  private Query rewrittenQuery;
+  @Mock
+  private CreateSourceAsProperties csasProperties;
 
-  private MetaStore metaStore;
-  private StatementRewriter statementRewriter;
+  private StatementRewriter<Object> rewriter;
+
+  @Rule
+  public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
   @Before
-  public void init() {
-    metaStore = MetaStoreFixture.getNewMetaStore(mock(FunctionRegistry.class));
-    statementRewriter = new StatementRewriter();
-  }
-  
-  @Test
-  public void testProjection() {
-    final String queryStr = "SELECT col0, col2, col3 FROM test1;";
-    final Statement statement = parse(queryStr);
-
-    final Statement rewrittenStatement = (Statement) statementRewriter.process(statement, null);
-
-    assertThat(rewrittenStatement, instanceOf(Query.class));
-
-    final Query query = (Query) rewrittenStatement;
-    assertThat(query.getSelect().getSelectItems().size() , equalTo(3));
-    assertThat(query.getSelect().getSelectItems().get(0), instanceOf(SingleColumn.class));
-    final SingleColumn column0 = (SingleColumn)query.getSelect().getSelectItems().get(0);
-    assertThat(column0.getAlias(), equalTo("COL0"));
-    assertThat(column0.getExpression().toString(), equalTo("TEST1.COL0"));
+  public void setup() {
+    rewriter = new StatementRewriter<>(expressionRewriter, mockRewriter);
   }
 
   @Test
-  public void testProjectionWithArrayMap() {
-    final String queryStr = "SELECT col0, col2, col3, col4[0], col5['key1'] FROM test1;";
-    final Statement statement = parse(queryStr);
-
-    final Statement rewrittenStatement = (Statement) statementRewriter.process(statement, null);
-
-    assertThat(rewrittenStatement, instanceOf(Query.class));
-
-    final Query query = (Query) rewrittenStatement;
-    assertThat(query.getSelect().getSelectItems()
-        .size(), equalTo(5));
-    assertThat(query.getSelect().getSelectItems().get(0), instanceOf(SingleColumn.class));
-    final SingleColumn column0 = (SingleColumn)query.getSelect().getSelectItems().get(0);
-    assertThat(column0.getAlias(), equalTo("COL0"));
-    assertThat(column0.getExpression().toString(), equalTo("TEST1.COL0"));
-
-    final SingleColumn column3 = (SingleColumn)query.getSelect().getSelectItems().get(3);
-    final SingleColumn column4 = (SingleColumn)query.getSelect().getSelectItems().get(4);
-    assertThat(column3.getExpression().toString(), equalTo("TEST1.COL4[0]"));
-    assertThat(column4.getExpression().toString(), equalTo("TEST1.COL5['key1']"));
-  }
-
-  @Test
-  public void testProjectFilter() {
-    final String queryStr = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
-    final Statement statement = parse(queryStr);
-    final Statement rewrittenStatement = (Statement) statementRewriter.process(statement, null);
-
-    assertThat(rewrittenStatement, instanceOf(Query.class));
-
-    final Query query = (Query) rewrittenStatement;
-
-    assertThat(query.getWhere().get(), instanceOf(ComparisonExpression.class));
-    final ComparisonExpression comparisonExpression = (ComparisonExpression)query.getWhere().get();
-    assertThat(comparisonExpression.toString(), equalTo("(TEST1.COL0 > 100)"));
-    assertThat(query.getSelect().getSelectItems().size(), equalTo(3));
-
-  }
-
-  @Test
-  public void testBinaryExpression() {
-    final String queryStr = "SELECT col0+10, col2, col3-col1 FROM test1;";
-    final Statement statement = parse(queryStr);
-    final Statement rewrittenStatement = (Statement) statementRewriter.process(statement, null);
-
-    assertThat(rewrittenStatement, instanceOf(Query.class));
-
-    final Query query = (Query) rewrittenStatement;
-    final SingleColumn column0 = (SingleColumn)query.getSelect().getSelectItems().get(0);
-    assertThat(column0.getAlias(), equalTo("KSQL_COL_0"));
-    assertThat(column0.getExpression().toString(), equalTo("(TEST1.COL0 + 10)"));
-  }
-
-  @Test
-  public void testBooleanExpression() {
-    final String queryStr = "SELECT col0 = 10, col2, col3 > col1 FROM test1;";
-    final Statement statement = parse(queryStr);
-    final Statement rewrittenStatement = (Statement) statementRewriter.process(statement, null);
-
-    assertThat(rewrittenStatement, instanceOf(Query.class));
-
-    final Query query = (Query) rewrittenStatement;
-    final SingleColumn column0 = (SingleColumn)query.getSelect().getSelectItems().get(0);
-    assertThat(column0.getAlias(), equalTo("KSQL_COL_0"));
-    assertThat(column0.getExpression().toString(), equalTo("(TEST1.COL0 = 10)"));
-    assertThat(column0.getExpression(), instanceOf(ComparisonExpression.class));
-  }
-
-  @Test
-  public void testLiterals() {
-    final String queryStr = "SELECT 10, col2, 'test', 2.5, true, -5 FROM test1;";
-    final Statement statement = parse(queryStr);
-    final Statement rewrittenStatement = (Statement) statementRewriter.process(statement, null);
-
-    assertThat(rewrittenStatement, instanceOf(Query.class));
-
-    final Query query = (Query) rewrittenStatement;
-    final SingleColumn column0 = (SingleColumn)query.getSelect().getSelectItems().get(0);
-    assertThat(column0.getAlias(), equalTo("KSQL_COL_0"));
-    assertThat(column0.getExpression().toString(), equalTo("10"));
-
-    final SingleColumn column1 = (SingleColumn)query.getSelect().getSelectItems().get(1);
-    assertThat(column1.getAlias(), equalTo("COL2"));
-    assertThat(column1.getExpression().toString(), equalTo("TEST1.COL2"));
-
-    final SingleColumn column2 = (SingleColumn)query.getSelect().getSelectItems().get(2);
-    assertThat(column2.getAlias(), equalTo("KSQL_COL_2"));
-    assertThat(column2.getExpression().toString(), equalTo("'test'"));
-
-    final SingleColumn column3 = (SingleColumn)query.getSelect().getSelectItems().get(3);
-    assertThat(column3.getAlias(), equalTo("KSQL_COL_3"));
-    assertThat(column3.getExpression().toString(), equalTo("2.5"));
-
-    final SingleColumn column4 = (SingleColumn)query.getSelect().getSelectItems().get(4);
-    assertThat(column4.getAlias(), equalTo("KSQL_COL_4"));
-    assertThat(column4.getExpression().toString(), equalTo("true"));
-
-    final SingleColumn column5 = (SingleColumn)query.getSelect().getSelectItems().get(5);
-    assertThat(column5.getAlias(), equalTo("KSQL_COL_5"));
-    assertThat(column5.getExpression().toString(), equalTo("-5"));
-  }
-
-  @Test
-  public void testBooleanLogicalExpression() {
-    final String queryStr =
-        "SELECT 10, col2, 'test', 2.5, true, -5 FROM test1 WHERE col1 = 10 AND col2 LIKE 'val' OR col4 > 2.6 ;";
-    final Statement statement = parse(queryStr);
-    final Statement rewrittenStatement = (Statement) statementRewriter.process(statement, null);
-
-    assertThat(rewrittenStatement, instanceOf(Query.class));
-
-    final Query query = (Query) rewrittenStatement;
-    final SingleColumn column0 = (SingleColumn)query.getSelect().getSelectItems().get(0);
-    assertThat(column0.getAlias(), equalTo("KSQL_COL_0"));
-    assertThat(column0.getExpression().toString(), equalTo("10"));
-
-    final SingleColumn column1 = (SingleColumn)query.getSelect().getSelectItems().get(1);
-    assertThat(column1.getAlias(), equalTo("COL2"));
-    assertThat(column1.getExpression().toString(), equalTo("TEST1.COL2"));
-
-    final SingleColumn column2 = (SingleColumn)query.getSelect().getSelectItems().get(2);
-    assertThat(column2.getAlias(), equalTo("KSQL_COL_2"));
-    assertThat(column2.getExpression().toString(), equalTo("'test'"));
-
-  }
-
-  @Test
-  public void testSimpleLeftJoin() {
-    final String queryStr =
-        "SELECT t1.col1, t2.col1, t2.col4, col5, t2.col2 FROM test1 t1 LEFT JOIN test2 t2 ON "
-            + "t1.col1 = t2.col1;";
-    final Statement statement = parse(queryStr);
-    final Statement rewrittenStatement = (Statement) statementRewriter.process(statement, null);
-
-    assertThat(rewrittenStatement, instanceOf(Query.class));
-
-    final Query query = (Query) rewrittenStatement;
-    assertThat(query.getFrom(), instanceOf(Join.class));
-    final Join join = (Join) query.getFrom();
-    assertThat(join.getType().toString(), equalTo("LEFT"));
-
-    assertThat(((AliasedRelation)join.getLeft()).getAlias(), equalTo("T1"));
-    assertThat(((AliasedRelation)join.getRight()).getAlias(), equalTo("T2"));
-
-  }
-
-  @Test
-  public void testLeftJoinWithFilter() {
-    final String queryStr =
-        "SELECT t1.col1, t2.col1, t2.col4, t2.col2 FROM test1 t1 LEFT JOIN test2 t2 ON t1.col1 = "
-            + "t2.col1 WHERE t2.col2 = 'test';";
-    final Statement statement = parse(queryStr);
-    final Statement rewrittenStatement = (Statement) statementRewriter.process(statement, null);
-
-    assertThat(rewrittenStatement, instanceOf(Query.class));
-
-    final Query query = (Query) rewrittenStatement;
-    assertThat(query.getFrom(), instanceOf(Join.class));
-    final Join join = (Join) query.getFrom();
-    assertThat(join.getType().toString(), equalTo("LEFT"));
-
-    assertThat(((AliasedRelation)join.getLeft()).getAlias(), equalTo("T1"));
-    assertThat(((AliasedRelation)join.getRight()).getAlias(), equalTo("T2"));
-
-    assertThat(query.getWhere().get().toString(), equalTo("(T2.COL2 = 'test')"));
-  }
-
-  @Test
-  public void testSelectAll() {
+  public void shouldRewriteStatements() {
     // Given:
-    final Query original = parse("SELECT * FROM test1 t1;");
+    final Statement statement1 = mock(Statement.class);
+    final Statement statement2 = mock(Statement.class);
+    final Statement rewritten1 = mock(Statement.class);
+    final Statement rewritten2 = mock(Statement.class);
+    final Statements statements =
+        new Statements(location, ImmutableList.of(statement1, statement2));
+    when(mockRewriter.apply(statement1, context)).thenReturn(rewritten1);
+    when(mockRewriter.apply(statement2, context)).thenReturn(rewritten2);
 
     // When:
-    final AstNode rewrittenStatement = (AstNode) statementRewriter.process(original, null);
+    final AstNode rewritten = rewriter.rewrite(statements, context);
 
     // Then:
-    assertThat(rewrittenStatement, is(instanceOf(Query.class)));
+    assertThat(
+        rewritten,
+        equalTo(new Statements(location, ImmutableList.of(rewritten1, rewritten2)))
+    );
+  }
 
-    final Query query = (Query) rewrittenStatement;
-    assertThat(query.getSelect(), is(original.getSelect()));
+  private Query givenQuery(
+      final Optional<WindowExpression> window,
+      final Optional<Expression> where,
+      final Optional<GroupBy> groupBy,
+      final Optional<Expression> having) {
+    when(mockRewriter.apply(select, context)).thenReturn(rewrittenSelect);
+    when(mockRewriter.apply(relation, context)).thenReturn(rewrittenRelation);
+    return new Query(location, select, relation, window, where, groupBy, having, optionalInt);
   }
 
   @Test
-  public void testSelectAllJoin() {
+  public void shouldRewriteQuery() {
     // Given:
-    final Query original = parse(
-        "SELECT * FROM test1 t1 LEFT JOIN test2 t2 ON t1.col1 = t2.col1 "
-            + "WHERE t2.col2 = 'test';");
+    final Query query =
+        givenQuery(Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty());
 
     // When:
-    final AstNode rewrittenStatement = (AstNode) statementRewriter.process(original, null);
+    final AstNode rewritten = rewriter.rewrite(query, context);
 
     // Then:
-    assertThat(rewrittenStatement, instanceOf(Query.class));
-
-    final Query query = (Query) rewrittenStatement;
-    assertThat(query.getSelect(), is(original.getSelect()));
-
-    assertThat(query.getFrom(), instanceOf(Join.class));
-    final Join join = (Join) query.getFrom();
-    assertThat(((AliasedRelation) join.getLeft()).getAlias(), is("T1"));
-    assertThat(((AliasedRelation) join.getRight()).getAlias(), is("T2"));
+    assertThat(
+        rewritten,
+        equalTo(
+            new Query(
+                location,
+                rewrittenSelect,
+                rewrittenRelation,
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty(),
+                optionalInt))
+    );
   }
 
   @Test
-  public void testUDF() {
-    final String queryStr = "SELECT lcase(col1), concat(col2,'hello'), floor(abs(col3)) FROM test1 t1;";
-    final Statement statement = parse(queryStr);
-
-    final Statement rewrittenStatement = (Statement) statementRewriter.process(statement, null);
-
-    assertThat(rewrittenStatement, instanceOf(Query.class));
-
-    final Query query = (Query) rewrittenStatement;
-
-    final SingleColumn column0 = (SingleColumn)query.getSelect().getSelectItems().get(0);
-    assertThat(column0.getAlias(), equalTo("KSQL_COL_0"));
-    assertThat(column0.getExpression().toString(), equalTo("LCASE(T1.COL1)"));
-
-    final SingleColumn column1 = (SingleColumn)query.getSelect().getSelectItems().get(1);
-    assertThat(column1.getAlias(), equalTo("KSQL_COL_1"));
-    assertThat(column1.getExpression().toString(), equalTo("CONCAT(T1.COL2, 'hello')"));
-
-    final SingleColumn column2 = (SingleColumn)query.getSelect().getSelectItems().get(2);
-    assertThat(column2.getAlias(), equalTo("KSQL_COL_2"));
-    assertThat(column2.getExpression().toString(), equalTo("FLOOR(ABS(T1.COL3))"));
-  }
-
-  @Test
-  public void testCreateStream() {
+  public void shouldRewriteQueryWithFilter() {
     // Given:
-    final Statement statement = parse("CREATE STREAM orders ("
-        + "ordertime bigint, "
-        + "orderid varchar, "
-        + "itemid varchar, "
-        + "orderunits double, "
-        + "arraycol array<double>, "
-        + "mapcol map<varchar, double>, "
-        + "order_address STRUCT<number VARCHAR, street VARCHAR, zip INTEGER>"
-        + ") WITH (value_format = 'avro',kafka_topic='orders_topic');");
+    final Query query =
+        givenQuery(Optional.empty(), Optional.of(expression), Optional.empty(), Optional.empty());
+    when(expressionRewriter.apply(expression, context)).thenReturn(rewrittenExpression);
 
     // When:
-    final CreateStream result = (CreateStream) statementRewriter.process(statement, null);
+    final AstNode rewritten = rewriter.rewrite(query, context);
 
     // Then:
-    assertThat(result.getName().toString(), equalTo("ORDERS"));
-    assertThat(Iterables.size(result.getElements()), equalTo(7));
-    assertThat(Iterables.get(result.getElements(), 0).getName(), equalTo("ORDERTIME"));
-    assertThat(Iterables.get(result.getElements(), 6).getType().getSqlType().baseType(), equalTo(SqlBaseType.STRUCT));
-    assertThat(result.getProperties().getKafkaTopic(), equalTo("orders_topic"));
-    assertThat(result.getProperties().getValueFormat(), equalTo(Format.AVRO));
+    assertThat(
+        rewritten,
+        equalTo(
+            new Query(
+                location,
+                rewrittenSelect,
+                rewrittenRelation,
+                Optional.empty(),
+                Optional.of(rewrittenExpression),
+                Optional.empty(),
+                Optional.empty(),
+                optionalInt))
+    );
   }
 
   @Test
-  public void testCreateTable() {
+  public void shouldRewriteQueryWithGroupBy() {
     // Given:
-    final Statement statement = parse(
-        "CREATE TABLE users (usertime bigint, userid varchar, regionid varchar, gender varchar) "
-            + "WITH (kafka_topic='foo', value_format='json', key='userid');");
+    final GroupBy groupBy = mock(GroupBy.class);
+    final GroupBy rewrittenGroupBy = mock(GroupBy.class);
+    final Query query =
+        givenQuery(Optional.empty(), Optional.empty(), Optional.of(groupBy), Optional.empty());
+    when(mockRewriter.apply(groupBy, context)).thenReturn(rewrittenGroupBy);
 
     // When:
-    final CreateTable result = (CreateTable) statementRewriter.process(statement, null);
+    final AstNode rewritten = rewriter.rewrite(query, context);
 
     // Then:
-    assertThat(result.getName().toString(), equalTo("USERS"));
-    assertThat(Iterables.size(result.getElements()), equalTo(4));
-    assertThat(Iterables.get(result.getElements(), 0).getName(), equalTo("USERTIME"));
-    assertThat(result.getProperties().getKafkaTopic(), equalTo("foo"));
-    assertThat(result.getProperties().getValueFormat(), equalTo(Format.JSON));
-    assertThat(result.getProperties().getKeyField(), equalTo(Optional.of("userid")));
+    assertThat(
+        rewritten,
+        equalTo(
+            new Query(
+                location,
+                rewrittenSelect,
+                rewrittenRelation,
+                Optional.empty(),
+                Optional.empty(),
+                Optional.of(rewrittenGroupBy),
+                Optional.empty(),
+                optionalInt))
+    );
   }
 
   @Test
-  public void testCreateStreamAsSelect() {
+  public void shouldRewriteQueryWithWindow() {
     // Given:
-    final CreateStreamAsSelect original = parse("CREATE STREAM bigorders_json "
-        + "WITH (value_format = 'json', kafka_topic='bigorders_topic') "
-        + "AS SELECT * FROM orders "
-        + "WHERE orderunits > 5;");
+    final WindowExpression window = mock(WindowExpression.class);
+    final WindowExpression rewrittenWindow = mock(WindowExpression.class);
+    final Query query =
+        givenQuery(Optional.of(window), Optional.empty(), Optional.empty(), Optional.empty());
+    when(mockRewriter.apply(window, context)).thenReturn(rewrittenWindow);
 
-    final Statement rewrittenStatement = (Statement) statementRewriter.process(original, null);
+    // When:
+    final AstNode rewritten = rewriter.rewrite(query, context);
 
-    assertThat(rewrittenStatement, is(instanceOf(CreateStreamAsSelect.class)));
-    final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect)rewrittenStatement;
-
-    assertThat(createStreamAsSelect.getName().toString(), equalTo("BIGORDERS_JSON"));
-
-    final Query query = createStreamAsSelect.getQuery();
-    assertThat(query.getSelect(), is(original.getQuery().getSelect()));
-    assertThat(query.getWhere().get().toString(), equalTo("(ORDERS.ORDERUNITS > 5)"));
-    assertThat(((AliasedRelation)query.getFrom()).getAlias(), equalTo("ORDERS"));
+    // Then:
+    assertThat(
+        rewritten,
+        equalTo(
+            new Query(
+                location,
+                rewrittenSelect,
+                rewrittenRelation,
+                Optional.of(rewrittenWindow),
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty(),
+                optionalInt))
+    );
   }
 
   @Test
-  public void testSelectTumblingWindow() {
+  public void shouldRewriteQueryWithHaving() {
+    // Given:
+    final Query query =
+        givenQuery(Optional.empty(), Optional.empty(), Optional.empty(), Optional.of(expression));
+    when(expressionRewriter.apply(expression, context)).thenReturn(rewrittenExpression);
 
-    final String queryStr =
-        "select itemid, sum(orderunits) from orders window TUMBLING ( size 30 second) where orderunits > 5 group by itemid;";
-    final Statement statement = parse(queryStr);
+    // When:
+    final AstNode rewritten = rewriter.rewrite(query, context);
 
-    final Statement rewrittenStatement = (Statement) statementRewriter.process(statement, null);
-
-    assertThat(rewrittenStatement, instanceOf(Query.class));
-    final Query query = (Query) rewrittenStatement;
-    assertThat(query.getSelect().getSelectItems().size(), equalTo(2));
-    assertThat(query.getWhere().get().toString(), equalTo("(ORDERS.ORDERUNITS > 5)"));
-    assertThat(((AliasedRelation)query.getFrom()).getAlias(), equalTo("ORDERS"));
-    Assert.assertTrue( query.getWindow().isPresent());
-    assertThat(query
-        .getWindow().get().toString(), equalTo(" WINDOW STREAMWINDOW  TUMBLING ( SIZE 30 SECONDS ) "));
+    // Then:
+    assertThat(
+        rewritten,
+        equalTo(
+            new Query(
+                location,
+                rewrittenSelect,
+                rewrittenRelation,
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty(),
+                Optional.of(rewrittenExpression),
+                optionalInt))
+    );
   }
 
   @Test
-  public void testSelectHoppingWindow() {
+  public void shouldRewriteSingleColumn() {
+    // Given:
+    final SingleColumn singleColumn = new SingleColumn(location, expression, "foo");
+    when(expressionRewriter.apply(expression, context)).thenReturn(rewrittenExpression);
 
-    final String queryStr =
-        "select itemid, sum(orderunits) from orders window HOPPING ( size 30 second, advance by 5"
-            + " seconds) "
-            + "where "
-            + "orderunits"
-            + " > 5 group by itemid;";
-    final Statement statement = parse(queryStr);
+    // When:
+    final AstNode rewritten = rewriter.rewrite(singleColumn, context);
 
-    final Statement rewrittenStatement = (Statement) statementRewriter.process(statement, null);
-
-    assertThat(rewrittenStatement, instanceOf(Query.class));
-    final Query query = (Query) rewrittenStatement;
-    assertThat(query.getSelect().getSelectItems().size(), equalTo(2));
-    assertThat(query.getWhere().get().toString(), equalTo("(ORDERS.ORDERUNITS > 5)"));
-    assertThat(((AliasedRelation)query.getFrom()).getAlias().toUpperCase(), equalTo("ORDERS"));
-    assertThat("window expression isn't present", query
-        .getWindow().isPresent());
-    assertThat(query.getWindow().get().toString().toUpperCase(),
-        equalTo(" WINDOW STREAMWINDOW  HOPPING ( SIZE 30 SECONDS , ADVANCE BY 5 SECONDS ) "));
-  }
-
-
-  @Test
-  public void testSelectSessionWindow() {
-
-   final String queryStr =
-        "select itemid, sum(orderunits) from orders window SESSION ( 30 second) where "
-            + "orderunits > 5 group by itemid;";
-    final Statement statement = parse(queryStr);
-
-    final Statement rewrittenStatement = (Statement) statementRewriter.process(statement, null);
-
-    assertThat(rewrittenStatement, instanceOf(Query.class));
-    final Query query = (Query) rewrittenStatement;
-    assertThat(query.getSelect().getSelectItems().size(), equalTo(2));
-    assertThat(query.getWhere().get().toString(), equalTo("(ORDERS.ORDERUNITS > 5)"));
-    assertThat(((AliasedRelation)query.getFrom()).getAlias(), equalTo("ORDERS"));
-    Assert.assertTrue( query.getWindow().isPresent());
-    assertThat(query
-        .getWindow().get().toString(), equalTo(" WINDOW STREAMWINDOW  SESSION "
-        + "( 30 SECONDS ) "));
-  }
-
-
-  @Test
-  public void testSelectSinkProperties() {
-    final String simpleQuery = "create stream s1 with (timestamp='orderid', partitions = 3) as select "
-        + "col1, col2"
-        + " from orders where col2 is null and col3 is not null or (col3*col2 = "
-        + "12);";
-    final Statement statement = parse(simpleQuery);
-
-    final Statement rewrittenStatement = (Statement) statementRewriter.process(statement, null);
-
-    assertThat(rewrittenStatement, instanceOf(CreateStreamAsSelect.class));
-    final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) rewrittenStatement;
-    final Query query = createStreamAsSelect.getQuery();
-    assertThat(query.getWhere().toString(), equalTo("Optional[(((ORDERS.COL2 IS NULL) AND (ORDERS.COL3 IS NOT NULL)) OR ((ORDERS.COL3 * ORDERS.COL2) = 12))]"));
+    // Then:
+    assertThat(rewritten, equalTo(new SingleColumn(location, rewrittenExpression, "foo")));
   }
 
   @Test
-  public void testInsertInto() {
-    final String insertIntoString = "INSERT INTO test0 "
-        + "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
-    final Statement statement = parse(insertIntoString);
+  public void shouldRewriteAliasedRelation() {
+    // Given:
+    final AliasedRelation aliasedRelation = new AliasedRelation(location, relation, "alias");
+    when(mockRewriter.apply(relation, context)).thenReturn(rewrittenRelation);
 
-    final Statement rewrittenStatement = (Statement) statementRewriter.process(statement, null);
+    // When:
+    final AstNode rewritten = rewriter.rewrite(aliasedRelation, context);
 
-    assertThat(rewrittenStatement, instanceOf(InsertInto.class));
-    final InsertInto insertInto = (InsertInto) rewrittenStatement;
-    assertThat(insertInto.getTarget().toString(), equalTo("TEST0"));
-    final Query query = insertInto.getQuery();
-    assertThat(query.getSelect().getSelectItems().size(), equalTo(3));
-    assertThat(query.getFrom(), not(nullValue()));
-    assertThat(query.getWhere().isPresent(), equalTo(true));
-    assertThat(query.getWhere().get(),  instanceOf(ComparisonExpression.class));
-    final ComparisonExpression comparisonExpression = (ComparisonExpression)query.getWhere().get();
-    assertThat(comparisonExpression.getType().getValue(), equalTo(">"));
+    // Then:
+    assertThat(
+        rewritten,
+        equalTo(new AliasedRelation(location, rewrittenRelation, "alias")));
   }
 
-  private <T extends Statement> T parse(final String sql) {
-    return KsqlParserTestUtil.<T>buildSingleAst(sql, metaStore).getStatement();
+  private Join givenJoin(final Optional<WithinExpression> within) {
+    when(mockRewriter.apply(relation, context)).thenReturn(rewrittenRelation);
+    when(mockRewriter.apply(rightRelation, context)).thenReturn(rewrittenRightRelation);
+    return new Join(location, Type.LEFT, relation, rightRelation, joinCriteria, within);
+  }
+
+  @Test
+  public void shouldRewriteJoin() {
+    // Given:
+    final Join join = givenJoin(Optional.empty());
+
+    // When:
+    final AstNode rewritten = rewriter.rewrite(join, context);
+
+    // Then:
+    assertThat(
+        rewritten,
+        equalTo(
+            new Join(
+                location,
+                Type.LEFT,
+                rewrittenRelation,
+                rewrittenRightRelation,
+                joinCriteria,
+                Optional.empty()))
+    );
+  }
+
+  @Test
+  public void shouldRewriteJoinWithWindowExpression() {
+    // Given:
+    final WithinExpression withinExpression = mock(WithinExpression.class);
+    final WithinExpression rewrittenWithinExpression = mock(WithinExpression.class);
+    final Join join = givenJoin(Optional.of(withinExpression));
+    when(mockRewriter.apply(withinExpression, context)).thenReturn(rewrittenWithinExpression);
+
+    // When:
+    final AstNode rewritten = rewriter.rewrite(join, context);
+
+    // Then:
+    assertThat(
+        rewritten,
+        equalTo(
+            new Join(
+                location,
+                Type.LEFT,
+                rewrittenRelation,
+                rewrittenRightRelation,
+                joinCriteria,
+                Optional.of(rewrittenWithinExpression)))
+    );
+  }
+
+  @Test
+  public void shouldRewriteWindowExpression() {
+    // Given:
+    final KsqlWindowExpression ksqlWindowExpression = mock(KsqlWindowExpression.class);
+    final KsqlWindowExpression rewrittenKsqlWindowExpression = mock(KsqlWindowExpression.class);
+    final WindowExpression windowExpression =
+        new WindowExpression(location, "name", ksqlWindowExpression);
+    when(mockRewriter.apply(ksqlWindowExpression, context))
+        .thenReturn(rewrittenKsqlWindowExpression);
+
+    // When:
+    final AstNode rewritten = rewriter.rewrite(windowExpression, context);
+
+    // Then:
+    assertThat(
+        rewritten,
+        equalTo(new WindowExpression(location, "name", rewrittenKsqlWindowExpression))
+    );
+  }
+
+  private TableElement givenTableElement(final String name) {
+    final TableElement element = mock(TableElement.class);
+    when(element.getName()).thenReturn(name);
+    when(element.getNamespace()).thenReturn(Namespace.VALUE);
+    return element;
+  }
+
+  @Test
+  public void shouldRewriteCreateStream() {
+    // Given:
+    final TableElement tableElement1 = givenTableElement("foo");
+    final TableElement tableElement2 = givenTableElement("bar");
+    final TableElement rewrittenTableElement1 = givenTableElement("baz");
+    final TableElement rewrittenTableElement2 = givenTableElement("boz");
+    final CreateStream cs = new CreateStream(
+        location,
+        qualifiedName,
+        TableElements.of(tableElement1, tableElement2),
+        false,
+        sourceProperties
+    );
+    when(mockRewriter.apply(tableElement1, context)).thenReturn(rewrittenTableElement1);
+    when(mockRewriter.apply(tableElement2, context)).thenReturn(rewrittenTableElement2);
+
+    // When:
+    final AstNode rewritten = rewriter.rewrite(cs, context);
+
+    // Then:
+    assertThat(
+        rewritten,
+        equalTo(
+            new CreateStream(
+                location,
+                qualifiedName,
+                TableElements.of(rewrittenTableElement1, rewrittenTableElement2),
+                false,
+                sourceProperties
+            )
+        )
+    );
+  }
+
+  @Test
+  public void shouldRewriteCSAS() {
+    final CreateStreamAsSelect csas = new CreateStreamAsSelect(
+        location,
+        qualifiedName,
+        query,
+        false,
+        csasProperties,
+        Optional.empty()
+    );
+    when(mockRewriter.apply(query, context)).thenReturn(rewrittenQuery);
+
+    final AstNode rewritten = rewriter.rewrite(csas, context);
+
+    assertThat(
+        rewritten,
+        equalTo(
+            new CreateStreamAsSelect(
+                location,
+                qualifiedName,
+                rewrittenQuery,
+                false,
+                csasProperties,
+                Optional.empty()
+            )
+        )
+    );
+  }
+
+  @Test
+  public void shouldRewriteCSASWithPartitionBy() {
+    final CreateStreamAsSelect csas = new CreateStreamAsSelect(
+        location,
+        qualifiedName,
+        query,
+        false,
+        csasProperties,
+        Optional.of(expression)
+    );
+    when(mockRewriter.apply(query, context)).thenReturn(rewrittenQuery);
+    when(expressionRewriter.apply(expression, context)).thenReturn(rewrittenExpression);
+
+    final AstNode rewritten = rewriter.rewrite(csas, context);
+
+    assertThat(
+        rewritten,
+        equalTo(
+            new CreateStreamAsSelect(
+                location,
+                qualifiedName,
+                rewrittenQuery,
+                false,
+                csasProperties,
+                Optional.of(rewrittenExpression)
+            )
+        )
+    );
+  }
+
+  @Test
+  public void shouldRewriteCreateTable() {
+    // Given:
+    final TableElement tableElement1 = givenTableElement("foo");
+    final TableElement tableElement2 = givenTableElement("bar");
+    final TableElement rewrittenTableElement1 = givenTableElement("baz");
+    final TableElement rewrittenTableElement2 = givenTableElement("boz");
+    final CreateTable ct = new CreateTable(
+        location,
+        qualifiedName,
+        TableElements.of(tableElement1, tableElement2),
+        false,
+        sourceProperties
+    );
+    when(mockRewriter.apply(tableElement1, context)).thenReturn(rewrittenTableElement1);
+    when(mockRewriter.apply(tableElement2, context)).thenReturn(rewrittenTableElement2);
+
+    // When:
+    final AstNode rewritten = rewriter.rewrite(ct, context);
+
+    // Then:
+    assertThat(
+        rewritten,
+        equalTo(
+            new CreateTable(
+                location,
+                qualifiedName,
+                TableElements.of(rewrittenTableElement1, rewrittenTableElement2),
+                false,
+                sourceProperties
+            )
+        )
+    );
+  }
+
+  @Test
+  public void shouldRewriteCTAS() {
+    // Given:
+    final CreateTableAsSelect ctas = new CreateTableAsSelect(
+        location,
+        qualifiedName,
+        query,
+        false,
+        csasProperties
+    );
+    when(mockRewriter.apply(query, context)).thenReturn(rewrittenQuery);
+
+    // When:
+    final AstNode rewritten = rewriter.rewrite(ctas, context);
+
+    // Then:
+    assertThat(
+        rewritten,
+        equalTo(
+            new CreateTableAsSelect(
+                location,
+                qualifiedName,
+                rewrittenQuery,
+                false,
+                csasProperties
+            )
+        )
+    );
+  }
+
+  @Test
+  public void shouldRewriteInsertInto() {
+    // Given:
+    final InsertInto ii = new InsertInto(location, qualifiedName, query, Optional.empty());
+    when(mockRewriter.apply(query, context)).thenReturn(rewrittenQuery);
+
+    // When:
+    final AstNode rewritten = rewriter.rewrite(ii, context);
+
+    // Then:
+    assertThat(
+        rewritten,
+        equalTo(new InsertInto(location, qualifiedName, rewrittenQuery, Optional.empty()))
+    );
+  }
+
+  @Test
+  public void shouldRewriteInsertIntoWithPartitionBy() {
+    // Given:
+    final InsertInto ii = new InsertInto(location, qualifiedName, query, Optional.of(expression));
+    when(mockRewriter.apply(query, context)).thenReturn(rewrittenQuery);
+    when(expressionRewriter.apply(expression, context)).thenReturn(rewrittenExpression);
+
+    // When:
+    final AstNode rewritten = rewriter.rewrite(ii, context);
+
+    // Then:
+    assertThat(
+        rewritten,
+        equalTo(
+            new InsertInto(
+                location,
+                qualifiedName,
+                rewrittenQuery,
+                Optional.of(rewrittenExpression)
+            )
+        )
+    );
+  }
+
+  @Test
+  public void shouldRewriteGroupBy() {
+    // Given:
+    final GroupingElement groupingElement1 = mock(GroupingElement.class);
+    final GroupingElement groupingElement2 = mock(GroupingElement.class);
+    final GroupingElement rewrittenGroupingElement1 = mock(GroupingElement.class);
+    final GroupingElement rewrittenGroupingElement2 = mock(GroupingElement.class);
+    final GroupBy groupBy = new GroupBy(
+        location,
+        ImmutableList.of(groupingElement1, groupingElement2)
+    );
+    when(mockRewriter.apply(groupingElement1, context)).thenReturn(rewrittenGroupingElement1);
+    when(mockRewriter.apply(groupingElement2, context)).thenReturn(rewrittenGroupingElement2);
+
+    // When:
+    final AstNode rewritten = rewriter.rewrite(groupBy, context);
+
+    // Then:
+    assertThat(
+        rewritten,
+        equalTo(
+            new GroupBy(
+                location,
+                ImmutableList.of(rewrittenGroupingElement1, rewrittenGroupingElement2)
+            )
+        )
+    );
+  }
+
+  @Test
+  public void shouldRewriteSimpleGroupBy() {
+    // Given:
+    final Expression expression2 = mock(Expression.class);
+    final Expression rewrittenExpression2 = mock(Expression.class);
+    final SimpleGroupBy groupBy =
+        new SimpleGroupBy(location, ImmutableList.of(expression, expression2));
+    when(expressionRewriter.apply(expression, context)).thenReturn(rewrittenExpression);
+    when(expressionRewriter.apply(expression2, context)).thenReturn(rewrittenExpression2);
+
+    // When:
+    final AstNode rewritten = rewriter.rewrite(groupBy, context);
+
+    // Then:
+    assertThat(
+        rewritten,
+        equalTo(
+            new SimpleGroupBy(
+                location,
+                ImmutableList.of(rewrittenExpression, rewrittenExpression2)
+            )
+        )
+    );
   }
 }

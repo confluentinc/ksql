@@ -27,8 +27,18 @@ package io.confluent.ksql.parser.tree;
  * @param <C> The type of the context object passed through calls to visit[NodeType]
  */
 public abstract class VisitParentExpressionVisitor<R, C> implements ExpressionVisitor<R, C> {
+  private final R defaultValue;
+
+  protected VisitParentExpressionVisitor() {
+    this(null);
+  }
+
+  protected VisitParentExpressionVisitor(final R defaultValue) {
+    this.defaultValue = defaultValue;
+  }
+
   protected R visitExpression(final Expression node, final C context) {
-    return null;
+    return defaultValue;
   }
 
   @Override

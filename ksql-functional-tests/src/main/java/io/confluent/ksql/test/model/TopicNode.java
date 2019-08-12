@@ -26,6 +26,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.test.TestFrameworkException;
 import io.confluent.ksql.test.serde.SerdeSupplier;
+import io.confluent.ksql.test.serde.string.StringSerdeSupplier;
 import io.confluent.ksql.test.tools.Topic;
 import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;
 import io.confluent.ksql.test.utils.SerdeUtil;
@@ -63,10 +64,7 @@ class TopicNode {
   Topic build(final String defaultFormat) {
     final String formatToUse = format.replace("{FORMAT}", defaultFormat);
 
-    final SerdeSupplier<?> keySerdeSupplier = SerdeUtil.getSerdeSupplier(
-        Format.KAFKA,
-        this::logicalSchema
-    );
+    final SerdeSupplier<?> keySerdeSupplier = new StringSerdeSupplier();
 
     final SerdeSupplier<?> valueSerdeSupplier = SerdeUtil.getSerdeSupplier(
         Format.of(formatToUse),

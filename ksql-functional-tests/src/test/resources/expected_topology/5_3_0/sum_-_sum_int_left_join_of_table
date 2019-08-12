@@ -79,13 +79,13 @@ Topologies:
       --> KTABLE-FILTER-0000000014
       <-- KTABLE-MERGE-0000000010
     Processor: KTABLE-FILTER-0000000014 (stores: [])
-      --> KTABLE-SELECT-0000000015
+      --> Aggregate-groupby
       <-- KTABLE-MAPVALUES-0000000013
-    Processor: KTABLE-SELECT-0000000015 (stores: [])
+    Processor: Aggregate-groupby (stores: [])
       --> KSTREAM-SINK-0000000016
       <-- KTABLE-FILTER-0000000014
     Sink: KSTREAM-SINK-0000000016 (topic: Aggregate-groupby-repartition)
-      <-- KTABLE-SELECT-0000000015
+      <-- Aggregate-groupby
 
   Sub-topology: 1
     Source: KSTREAM-SOURCE-0000000017 (topics: [Aggregate-groupby-repartition])

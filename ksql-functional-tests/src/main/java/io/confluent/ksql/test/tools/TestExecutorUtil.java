@@ -102,6 +102,10 @@ final class TestExecutorUtil {
           persistentQueryAndSortedSources.getWindowSize(),
           fakeKafkaService,
           serviceContext.getSchemaRegistryClient());
+      testCase.setGeneratedTopologies(
+          ImmutableList.of(persistentQueryMetadata.getTopologyDescription()));
+      testCase.setGeneratedSchemas(
+          ImmutableList.of(persistentQueryMetadata.getSchemasDescription()));
       topologyTestDrivers.add(TopologyTestDriverContainer.of(
           topologyTestDriver,
           sourceTopics,

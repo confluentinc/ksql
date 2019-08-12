@@ -27,12 +27,13 @@ import io.confluent.ksql.function.udaf.KudafInitializer;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.parser.tree.ExpressionRewriter;
 import io.confluent.ksql.parser.tree.ExpressionTreeRewriter;
+import io.confluent.ksql.parser.tree.ExpressionTreeRewriter.Context;
 import io.confluent.ksql.parser.tree.FunctionCall;
 import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
+import io.confluent.ksql.parser.tree.VisitParentExpressionVisitor;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.physical.KsqlQueryBuilder;
 import io.confluent.ksql.schema.ksql.Field;
@@ -478,20 +479,24 @@ public class AggregateNode extends PlanNode {
         return new QualifiedNameReference(exp.getLocation(), QualifiedName.of(name));
       }
 
-      return ExpressionTreeRewriter.rewriteWith(new ResolveToInternalRewriter(), exp);
+      return ExpressionTreeRewriter.rewriteWith(new ResolveToInternalRewriter()::process, exp);
     }
 
-    private class ResolveToInternalRewriter extends ExpressionRewriter<Void> {
+    private final class ResolveToInternalRewriter
+        extends VisitParentExpressionVisitor<Optional<Expression>, Context<Void>> {
+      private ResolveToInternalRewriter() {
+        super(Optional.empty());
+      }
 
       @Override
-      public Expression rewriteDereferenceExpression(
+      public Optional<Expression> visitDereferenceExpression(
           final DereferenceExpression node,
-          final Void context,
-          final ExpressionTreeRewriter<Void> treeRewriter
+          final Context<Void> context
       ) {
         final String name = expressionToInternalColumnNameMap.get(node.toString());
         if (name != null) {
-          return new QualifiedNameReference(node.getLocation(), QualifiedName.of(name));
+          return Optional.of(
+              new QualifiedNameReference(node.getLocation(), QualifiedName.of(name)));
         }
 
         throw new KsqlException("Unknown source column: " + node.toString());

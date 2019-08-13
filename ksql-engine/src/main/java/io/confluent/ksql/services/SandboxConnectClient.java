@@ -17,6 +17,7 @@ package io.confluent.ksql.services;
 
 import static io.confluent.ksql.util.LimitedProxyBuilder.methodParams;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.services.ConnectClient.ConnectResponse;
 import io.confluent.ksql.util.LimitedProxyBuilder;
 import java.util.Map;
@@ -32,6 +33,8 @@ final class SandboxConnectClient {
   public static ConnectClient createProxy() {
     return LimitedProxyBuilder.forClass(ConnectClient.class)
         .swallow("create", methodParams(String.class, Map.class), ConnectResponse.of("sandbox"))
+        .swallow("describe", methodParams(String.class), ConnectResponse.of(ImmutableList.of()))
+        .swallow("connectors", methodParams(), ConnectResponse.of(ImmutableList.of()))
         .build();
   }
 }

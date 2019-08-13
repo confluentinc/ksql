@@ -32,6 +32,7 @@ import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.KsqlExecutionContext;
+import io.confluent.ksql.connect.KsqlConnect;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
@@ -120,6 +121,8 @@ public class KsqlRestApplicationTest {
   @Mock
   private KsqlServerPrecondition precondition2;
   @Mock
+  private KsqlConnect ksqlConnect;
+  @Mock
   private ParsedStatement parsedStatement;
   @Mock
   private PreparedStatement<?> preparedStatement;
@@ -173,8 +176,8 @@ public class KsqlRestApplicationTest {
         securityExtension,
         serverState,
         processingLogContext,
-        ImmutableList.of(precondition1, precondition2)
-    );
+        ImmutableList.of(precondition1, precondition2),
+        ksqlConnect);
   }
 
   @Test
@@ -193,6 +196,15 @@ public class KsqlRestApplicationTest {
 
     // Then:
     verify(securityExtension).close();
+  }
+
+  @Test
+  public void shouldCloseKsqlConnect() {
+    // When:
+    app.stop();
+
+    // Then:
+    verify(ksqlConnect).close();
   }
 
   @Test

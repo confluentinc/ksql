@@ -69,5 +69,13 @@ public interface TopicSchemaSupplier {
     static SchemaResult failure(final Exception cause) {
       return new SchemaResult(Optional.empty(), Optional.of(cause));
     }
+
+    public Optional<SchemaAndId> getSchemaAndId() {
+      return schemaAndId;
+    }
+
+    public Optional<Exception> getFailureReason() {
+      return failureReason;
+    }
   }
 }

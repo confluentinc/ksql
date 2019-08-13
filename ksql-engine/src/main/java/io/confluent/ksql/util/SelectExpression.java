@@ -15,7 +15,7 @@
 
 package io.confluent.ksql.util;
 
-import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.execution.expression.tree.Expression;
 import java.util.Objects;
 import javax.annotation.concurrent.Immutable;
 

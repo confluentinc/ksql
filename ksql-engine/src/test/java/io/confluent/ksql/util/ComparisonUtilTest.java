@@ -20,7 +20,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.parser.tree.ComparisonExpression;
+import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.schema.ksql.SqlBaseType;
 import java.util.List;
 import org.apache.kafka.connect.data.Schema;

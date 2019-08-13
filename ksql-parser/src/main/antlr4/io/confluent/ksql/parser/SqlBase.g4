@@ -38,6 +38,7 @@ statement
     | (LIST | SHOW) STREAMS EXTENDED?                                       #listStreams
     | (LIST | SHOW) TABLES EXTENDED?                                        #listTables
     | (LIST | SHOW) FUNCTIONS                                               #listFunctions
+    | (LIST | SHOW) (SOURCE | SINK)? CONNECTORS                             #listConnectors
     | DESCRIBE EXTENDED? qualifiedName                                      #showColumns
     | DESCRIBE FUNCTION qualifiedName                                       #describeFunction
     | PRINT (qualifiedName | STRING) printClause                            #printTopic
@@ -431,6 +432,7 @@ SCRIPT: 'SCRIPT';
 DECIMAL: 'DECIMAL';
 KEY: 'KEY';
 CONNECTOR: 'CONNECTOR';
+CONNECTORS: 'CONNECTORS';
 SINK: 'SINK';
 SOURCE: 'SOURCE';
 

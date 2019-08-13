@@ -20,13 +20,14 @@ import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
-import io.confluent.ksql.execution.expression.tree.QualifiedName;
+import io.confluent.ksql.execution.expression.tree.LongLiteral;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
 import io.confluent.ksql.parser.rewrite.ExpressionTreeRewriter.Context;
+import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.timestamp.StringToTimestampParser;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.time.ZoneId;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -51,6 +52,7 @@ public class StatementRewriteForRowtime {
     private static final String DATE_PATTERN = "yyyy-MM-dd";
     private static final String TIME_PATTERN = "HH:mm:ss.SSS";
     private static final String PATTERN = DATE_PATTERN + "'T'" + TIME_PATTERN;
+    private static final StringToTimestampParser PARSER = new StringToTimestampParser(PATTERN);
 
     private TimestampPlugin() {
       super(Optional.empty());
@@ -69,20 +71,17 @@ public class StatementRewriteForRowtime {
         final Context<Void> context) {
       if (!node.getValue().equals("ROWTIME")) {
         return Optional.of(
-            new FunctionCall(
-                QualifiedName.of("STRINGTOTIMESTAMP"),
-                getFunctionArgs(node.getValue())
-            )
+            new LongLiteral(getTimestampOf(node.getValue()))
         );
       }
       return Optional.of(node);
     }
 
-    private List<Expression> getFunctionArgs(final String datestring) {
-      final List<Expression> args = new ArrayList<>();
+    private long getTimestampOf(final String datestring) {
       final String date;
       final String time;
       final String timezone;
+
       if (datestring.contains("T")) {
         date = datestring.substring(0, datestring.indexOf('T'));
         final String withTimezone = completeTime(datestring.substring(datestring.indexOf('T') + 1));
@@ -94,15 +93,17 @@ public class StatementRewriteForRowtime {
         timezone = "";
       }
 
-      if (timezone.length() > 0) {
-        args.add(new StringLiteral(date + "T" + time));
-        args.add(new StringLiteral(PATTERN));
-        args.add(new StringLiteral(timezone));
-      } else {
-        args.add(new StringLiteral(date + "T" + time));
-        args.add(new StringLiteral(PATTERN));
+      try {
+        if (timezone.length() > 0) {
+          return PARSER.parse(date + "T" + time, ZoneId.of(timezone));
+        } else {
+          return PARSER.parse(date + "T" + time);
+        }
+      } catch (final RuntimeException e) {
+        throw new KsqlException("Failed to parse timestamp '"
+            + datestring + "': " + e.getMessage(), e);
       }
-      return args;
+
     }
 
     private String getTimezone(final String time) {
@@ -124,7 +125,7 @@ public class StatementRewriteForRowtime {
       } else {
         // It is either a complete date or an incorrectly formatted one.
         // In the latter case, we can pass the incorrectly formed string
-        // to STRINGTITIMESTAMP which will deal with the error handling.
+        // to the timestamp parser which will deal with the error handling.
         return date;
       }
     }

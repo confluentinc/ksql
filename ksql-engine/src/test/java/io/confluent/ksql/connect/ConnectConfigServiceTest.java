@@ -101,13 +101,15 @@ public class ConnectConfigServiceTest {
   }
 
   @Test
-  public void shouldWakeupConsumerBeforeShuttingDown() {
+  public void shouldWakeupConsumerBeforeShuttingDown() throws InterruptedException {
     // Given:
+    final CountDownLatch noMoreLatch = new CountDownLatch(1);
     setupConfigService();
-    givenNoMoreRecords(when(consumer.poll(any())));
+    givenNoMoreRecords(when(consumer.poll(any())), noMoreLatch);
     configService.startAsync().awaitRunning();
 
     // When:
+    noMoreLatch.await();
     configService.stopAsync().awaitTerminated();
 
     // Then:

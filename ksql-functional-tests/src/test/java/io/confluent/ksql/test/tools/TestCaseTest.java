@@ -166,8 +166,8 @@ public class TestCaseTest {
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage("Expected <1> records but it was <2>\n"
         + "Actual records: \n"
-        + " timestamp: 123456719 key: k1 value: v1 \n"
-        + " timestamp: 123456789 key: k12 value: v2");
+        + "<k1, v1> with timestamp=123456719 \n"
+        + "<k12, v2> with timestamp=123456789");
 
     // When:
     testCase.verifyOutputTopics(fakeKafkaService);

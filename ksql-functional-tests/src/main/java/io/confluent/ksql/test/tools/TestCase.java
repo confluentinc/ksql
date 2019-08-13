@@ -414,9 +414,7 @@ public class TestCase implements Test {
     final StringBuilder stringBuilder = new StringBuilder("Actual records: \n");
     for (final FakeKafkaRecord fakeKafkaRecord: actual) {
       final ProducerRecord<?,?> producerRecord = fakeKafkaRecord.getProducerRecord();
-      stringBuilder.append(" timestamp: ").append(producerRecord.timestamp())
-          .append(" key: ").append(producerRecord.key().toString())
-          .append(" value: ").append(producerRecord.value().toString())
+      stringBuilder.append(getProducerRecordInString(producerRecord))
           .append(" \n");
     }
     return stringBuilder.toString();
@@ -438,13 +436,15 @@ public class TestCase implements Test {
             || (!bothValuesNull
             && !actualProducerRecord.value().equals(expectedProducerRecord.value()))) {
       throw new KsqlException(
-          "Expected <" + expectedProducerRecord.key() + ", "
-              + expectedProducerRecord.value() + "> with timestamp="
-              + expectedProducerRecord.timestamp()
-              + " but was <" + actualProducerRecord.key() + ", "
-              + actualProducerRecord.value() + "> with timestamp="
-              + actualProducerRecord.timestamp());
+          "Expected " + getProducerRecordInString(expectedProducerRecord)
+              + " but was " + getProducerRecordInString(actualProducerRecord));
     }
+  }
+
+  private static String getProducerRecordInString(final ProducerRecord<?,?> producerRecord) {
+    return "<" + producerRecord.key() + ", "
+        + producerRecord.value() + "> with timestamp="
+        + producerRecord.timestamp();
   }
 
   private Map<String, List<FakeKafkaRecord>> getExpectedRecordsMap() {

@@ -29,7 +29,7 @@ Configuring KSQL for HTTPS
 --------------------------
 KSQL can be configured to use HTTPS rather than the default HTTP for all communication.
 
-If you haven't already, you will need to :ref:`create SSL key and trust stores <generating-keys-certs>`.
+If you haven't already, you will need to :ref:`create SSL key and trust stores <generating_keys_certs>`.
 
 Use the following settings to configure the KSQL server to use HTTPS:
 
@@ -67,7 +67,7 @@ suitable key and trust stores.
 If the server's SSL certificate is not signed by a recognised public Certificate Authority,
 the CLI will need to be configured with a trust store that trusts the servers SSL certificate.
 
-If you haven't already, you will need to :ref:`create SSL key and trust stores <generating-keys-certs>`.
+If you haven't already, you will need to :ref:`create SSL key and trust stores <generating_keys_certs>`.
 
 Use the following settings to configure the CLI server:
 

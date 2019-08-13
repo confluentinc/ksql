@@ -1323,7 +1323,8 @@ List the :ref:`configuration settings <ksql-param-reference>` that are
 currently in effect.
 
 SPOOL
-_____
+-----
+
 **Synopsis**
 
 .. code:: sql
@@ -1335,7 +1336,6 @@ _____
 Stores issued commands and their results into a file. Only one spool may be active at a time and can
 be closed by issuing ``SPOOL OFF`` . Commands are prefixed with ``ksql>`` to differentiate from
 output.
-
 
 .. _ksql-terminate:
 

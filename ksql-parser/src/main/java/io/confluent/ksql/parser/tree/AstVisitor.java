@@ -155,7 +155,4 @@ public abstract class AstVisitor<R, C> {
     return visitGroupingElement(node, context);
   }
 
-  protected R visitShowConnectors(final ListConnectors node, final C context) {
-    return visitStatement(node, context);
-  }
 }

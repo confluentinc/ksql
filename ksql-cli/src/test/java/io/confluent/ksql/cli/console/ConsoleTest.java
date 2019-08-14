@@ -26,7 +26,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.FakeException;
 import io.confluent.ksql.GenericRow;
@@ -709,9 +708,9 @@ public class ConsoleTest {
         new ConnectorList(
             "statement",
             ImmutableList.of(),
-            ImmutableMap.of(
-                "foo", new SimpleConnectorInfo("foo", ConnectorType.SOURCE, "clazz"),
-                "bar", new SimpleConnectorInfo("bar", null, null)
+            ImmutableList.of(
+                new SimpleConnectorInfo("foo", ConnectorType.SOURCE, "clazz"),
+                new SimpleConnectorInfo("bar", null, null)
         ))
     ));
 
@@ -721,20 +720,18 @@ public class ConsoleTest {
     // Then:
     final String output = terminal.getOutputString();
     if (console.getOutputFormat() == OutputFormat.JSON) {
-      assertThat(output, is("[ {\n"
+      assertThat(output, is(""
+          + "[ {\n"
           + "  \"@type\" : \"connector_list\",\n"
           + "  \"statementText\" : \"statement\",\n"
           + "  \"warnings\" : [ ],\n"
-          + "  \"connectors\" : {\n"
-          + "    \"foo\" : {\n"
-          + "      \"name\" : \"foo\",\n"
-          + "      \"type\" : \"source\",\n"
-          + "      \"className\" : \"clazz\"\n"
-          + "    },\n"
-          + "    \"bar\" : {\n"
-          + "      \"name\" : \"bar\"\n"
-          + "    }\n"
-          + "  }\n"
+          + "  \"connectors\" : [ {\n"
+          + "    \"name\" : \"foo\",\n"
+          + "    \"type\" : \"source\",\n"
+          + "    \"className\" : \"clazz\"\n"
+          + "  }, {\n"
+          + "    \"name\" : \"bar\"\n"
+          + "  } ]\n"
           + "} ]\n"));
     } else {
       assertThat(output, is("\n"

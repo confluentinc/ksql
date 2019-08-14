@@ -18,29 +18,28 @@ package io.confluent.ksql.rest.entity;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @Immutable
 public class ConnectorList extends KsqlEntity {
 
-  private final ImmutableMap<String, SimpleConnectorInfo> connectors;
+  private final ImmutableList<SimpleConnectorInfo> connectors;
 
   @JsonCreator
   public ConnectorList(
       @JsonProperty("statementText")  final String statementText,
       @JsonProperty("warnings")       final List<KsqlWarning> warnings,
-      @JsonProperty("connectors")     final Map<String, SimpleConnectorInfo> connectors
+      @JsonProperty("connectors")     final List<SimpleConnectorInfo> connectors
   ) {
     super(statementText, warnings);
-    this.connectors = ImmutableMap.copyOf(Objects.requireNonNull(connectors, "connectors"));
+    this.connectors = ImmutableList.copyOf(Objects.requireNonNull(connectors, "connectors"));
   }
 
-  public ImmutableMap<String, SimpleConnectorInfo> getConnectors() {
+  public ImmutableList<SimpleConnectorInfo> getConnectors() {
     return connectors;
   }
 

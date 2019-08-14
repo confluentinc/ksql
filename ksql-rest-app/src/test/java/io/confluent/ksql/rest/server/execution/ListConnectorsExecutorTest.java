@@ -95,8 +95,8 @@ public class ListConnectorsExecutorTest {
     assertThat(connectorList, is(new ConnectorList(
         "",
         ImmutableList.of(),
-        ImmutableMap.of(
-            "connector", new SimpleConnectorInfo("connector", ConnectorType.SOURCE, CONNECTOR_CLASS)
+        ImmutableList.of(
+            new SimpleConnectorInfo("connector", ConnectorType.SOURCE, CONNECTOR_CLASS)
         )
     )));
   }
@@ -123,12 +123,12 @@ public class ListConnectorsExecutorTest {
     assertThat(connectorList, is(new ConnectorList(
         "",
         ImmutableList.of(),
-        ImmutableMap.of()
+        ImmutableList.of()
     )));
   }
 
   @Test
-  public void shouldListInvValidConnectorWithNoInfo() {
+  public void shouldListInvalidConnectorWithNoInfo() {
     // Given:
     when(connectClient.connectors())
         .thenReturn(ConnectResponse.of(ImmutableList.of("connector2")));
@@ -150,8 +150,8 @@ public class ListConnectorsExecutorTest {
         "",
         ImmutableList.of(
             new KsqlWarning("Could not describe connector connector2: DANGER WILL ROBINSON.")),
-        ImmutableMap.of(
-            "connector2", new SimpleConnectorInfo("connector2", ConnectorType.UNKNOWN, null)
+        ImmutableList.of(
+            new SimpleConnectorInfo("connector2", ConnectorType.UNKNOWN, null)
         )
     )));
   }

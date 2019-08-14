@@ -34,12 +34,11 @@ public class ConnectorListTableBuilder implements TableBuilder<ConnectorList>  {
     return new Table.Builder()
         .withColumnHeaders(HEADERS)
         .withRows(entity.getConnectors()
-            .entrySet()
             .stream()
-            .map(entry -> ImmutableList.of(
-                entry.getKey(),
-                ObjectUtils.defaultIfNull(entry.getValue().getType(), ConnectorType.UNKNOWN).name(),
-                ObjectUtils.defaultIfNull(entry.getValue().getClassName(), ""))))
+            .map(info -> ImmutableList.of(
+                info.getName(),
+                ObjectUtils.defaultIfNull(info.getType(), ConnectorType.UNKNOWN).name(),
+                ObjectUtils.defaultIfNull(info.getClassName(), ""))))
         .build();
   }
 }

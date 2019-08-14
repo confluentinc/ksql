@@ -28,9 +28,7 @@ import io.confluent.ksql.services.ConnectClient.ConnectResponse;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import org.apache.kafka.connect.runtime.ConnectorConfig;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
@@ -55,19 +53,17 @@ public final class ListConnectorsExecutor {
       ));
     }
 
-    final Map<String, SimpleConnectorInfo> infos = new HashMap<>();
+    final List<SimpleConnectorInfo> infos = new ArrayList<>();
     final List<KsqlWarning> warnings = new ArrayList<>();
     final Scope scope = configuredStatement.getStatement().getScope();
     for (final String name : connectors.datum().get()) {
       final ConnectResponse<ConnectorInfo> response = connectClient.describe(name);
       if (response.datum().filter(i -> inScope(i.type(), scope)).isPresent()) {
-        infos.put(
-            name,
-            fromConnectorInfoResponse(name, response)
+        infos.add(fromConnectorInfoResponse(name, response)
         );
       } else if (response.error().isPresent()) {
         if (scope == Scope.ALL) {
-          infos.put(name, new SimpleConnectorInfo(name, ConnectorType.UNKNOWN, null));
+          infos.add(new SimpleConnectorInfo(name, ConnectorType.UNKNOWN, null));
         }
         warnings.add(
             new KsqlWarning(

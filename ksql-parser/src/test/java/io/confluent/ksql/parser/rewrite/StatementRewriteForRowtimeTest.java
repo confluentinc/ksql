@@ -113,13 +113,13 @@ public class StatementRewriteForRowtimeTest {
   }
 
   @Test
-  public void shouldProcessArithmetic() {
+  public void shouldNotProcessArithmetic() {
     final String simpleQuery = "SELECT * FROM orders where '2017-01-01' + 10000 > ROWTIME;";
     final Query statement = (Query) KsqlParserTestUtil.buildSingleAst(simpleQuery, metaStore).getStatement();
     final Expression predicate = statement.getWhere().get();
     final Expression rewritten = new StatementRewriteForRowtime(predicate).rewriteForRowtime();
 
-    assertThat(rewritten.toString(), containsString("((1483257600000 + 10000) > ORDERS.ROWTIME)"));
+    assertThat(rewritten.toString(), containsString("(('2017-01-01' + 10000) > ORDERS.ROWTIME)"));
   }
 
   @Test

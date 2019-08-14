@@ -19,7 +19,6 @@ import io.confluent.ksql.execution.expression.tree.BetweenPredicate;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
@@ -47,118 +46,23 @@ public class StatementRewriteForRowtime {
         new OperatorPlugin()::process).rewrite(expression, null);
   }
 
-  private static final class TimestampPlugin
-      extends VisitParentExpressionVisitor<Optional<Expression>, Context<Void>> {
-    private static final String DATE_PATTERN = "yyyy-MM-dd";
-    private static final String TIME_PATTERN = "HH:mm:ss.SSS";
-    private static final String PATTERN = DATE_PATTERN + "'T'" + TIME_PATTERN;
-    private static final StringToTimestampParser PARSER = new StringToTimestampParser(PATTERN);
-
-    private TimestampPlugin() {
-      super(Optional.empty());
-    }
-
-    @Override
-    public Optional<Expression> visitFunctionCall(
-        final FunctionCall node,
-        final Context<Void> context) {
-      return Optional.of(node);
-    }
-
-    @Override
-    public Optional<Expression> visitStringLiteral(
-        final StringLiteral node,
-        final Context<Void> context) {
-      if (!node.getValue().equals("ROWTIME")) {
-        return Optional.of(
-            new LongLiteral(getTimestampOf(node.getValue()))
-        );
-      }
-      return Optional.of(node);
-    }
-
-    private long getTimestampOf(final String datestring) {
-      final String date;
-      final String time;
-      final String timezone;
-
-      if (datestring.contains("T")) {
-        date = datestring.substring(0, datestring.indexOf('T'));
-        final String withTimezone = completeTime(datestring.substring(datestring.indexOf('T') + 1));
-        timezone = getTimezone(withTimezone);
-        time = completeTime(withTimezone.substring(0, timezone.length()));
-      } else {
-        date = completeDate(datestring);
-        time = completeTime("");
-        timezone = "";
-      }
-
-      try {
-        if (timezone.length() > 0) {
-          return PARSER.parse(date + "T" + time, ZoneId.of(timezone));
-        } else {
-          return PARSER.parse(date + "T" + time);
-        }
-      } catch (final RuntimeException e) {
-        throw new KsqlException("Failed to parse timestamp '"
-            + datestring + "': " + e.getMessage(), e);
-      }
-
-    }
-
-    private String getTimezone(final String time) {
-      if (time.contains("+")) {
-        return time.substring(time.indexOf('+'));
-      } else if (time.contains("-")) {
-        return time.substring(time.indexOf('-'));
-      } else {
-        return "";
-      }
-    }
-
-    private String completeDate(final String date) {
-      final String[] parts = date.split("-");
-      if (parts.length == 1) {
-        return date + "-01-01";
-      } else if (parts.length == 2) {
-        return date + "-01";
-      } else {
-        // It is either a complete date or an incorrectly formatted one.
-        // In the latter case, we can pass the incorrectly formed string
-        // to the timestamp parser which will deal with the error handling.
-        return date;
-      }
-    }
-
-    private String completeTime(final String time) {
-      if (time.length() >= TIME_PATTERN.length()) {
-        return time;
-      }
-      return time + TIME_PATTERN.substring(time.length()).replaceAll("[a-zA-Z]", "0");
-    }
-  }
-
   private static final class OperatorPlugin
       extends VisitParentExpressionVisitor<Optional<Expression>, Context<Void>> {
     private OperatorPlugin() {
       super(Optional.empty());
     }
 
-    private Expression rewriteTimestamp(final Expression expression) {
-      return new ExpressionTreeRewriter<>(new TimestampPlugin()::process).rewrite(expression, null);
-    }
-
     @Override
     public Optional<Expression> visitBetweenPredicate(
         final BetweenPredicate node,
         final Context<Void> context) {
-      if (StatementRewriteForRowtime.requiresRewrite(node)) {
+      if (requiresRewrite(node.getValue())) {
         return Optional.of(
             new BetweenPredicate(
                 node.getLocation(),
-                rewriteTimestamp(node.getValue()),
-                rewriteTimestamp(node.getMin()),
-                rewriteTimestamp(node.getMax())
+                node.getValue(),
+                rewriteTimestamp(((StringLiteral) node.getMin()).getValue()),
+                rewriteTimestamp(((StringLiteral) node.getMax()).getValue())
             )
         );
       }
@@ -169,13 +73,22 @@ public class StatementRewriteForRowtime {
     public Optional<Expression> visitComparisonExpression(
         final ComparisonExpression node,
         final Context<Void> context) {
-      if (expressionIsRowtime(node.getLeft()) || expressionIsRowtime(node.getRight())) {
+      if (expressionIsRowtime(node.getLeft()) && node.getRight() instanceof StringLiteral) {
         return Optional.of(
             new ComparisonExpression(
                 node.getLocation(),
                 node.getType(),
-                rewriteTimestamp(node.getLeft()),
-                rewriteTimestamp(node.getRight())
+                node.getLeft(),
+                rewriteTimestamp(((StringLiteral) node.getRight()).getValue())
+            )
+        );
+      } else if (expressionIsRowtime(node.getRight()) && node.getLeft() instanceof StringLiteral) {
+        return Optional.of(
+            new ComparisonExpression(
+                node.getLocation(),
+                node.getType(),
+                rewriteTimestamp(((StringLiteral) node.getLeft()).getValue()),
+                node.getRight()
             )
         );
       }
@@ -186,5 +99,68 @@ public class StatementRewriteForRowtime {
   private static boolean expressionIsRowtime(final Expression node) {
     return (node instanceof DereferenceExpression)
         && ((DereferenceExpression) node).getFieldName().equals("ROWTIME");
+  }
+
+  private static LongLiteral rewriteTimestamp(final String timestamp) {
+    final String timePattern = "HH:mm:ss.SSS";
+    final StringToTimestampParser PARSER = new StringToTimestampParser(
+        "yyyy-MM-dd'T'" + timePattern);
+
+    final String date;
+    final String time;
+    final String timezone;
+
+    if (timestamp.contains("T")) {
+      date = timestamp.substring(0, timestamp.indexOf('T'));
+      final String withTimezone = completeTime(timestamp.substring(timestamp.indexOf('T') + 1), timePattern);
+      timezone = getTimezone(withTimezone);
+      time = completeTime(withTimezone.substring(0, timezone.length()), timePattern);
+    } else {
+      date = completeDate(timestamp);
+      time = completeTime("", timePattern);
+      timezone = "";
+    }
+
+    try {
+      if (timezone.length() > 0) {
+        return new LongLiteral(PARSER.parse(date + "T" + time, ZoneId.of(timezone)));
+      } else {
+        return new LongLiteral(PARSER.parse(date + "T" + time));
+      }
+    } catch (final RuntimeException e) {
+      throw new KsqlException("Failed to parse timestamp '"
+          + timestamp + "': " + e.getMessage(), e);
+    }
+  }
+
+  private static String getTimezone(final String time) {
+    if (time.contains("+")) {
+      return time.substring(time.indexOf('+'));
+    } else if (time.contains("-")) {
+      return time.substring(time.indexOf('-'));
+    } else {
+      return "";
+    }
+  }
+
+  private static String completeDate(final String date) {
+    final String[] parts = date.split("-");
+    if (parts.length == 1) {
+      return date + "-01-01";
+    } else if (parts.length == 2) {
+      return date + "-01";
+    } else {
+      // It is either a complete date or an incorrectly formatted one.
+      // In the latter case, we can pass the incorrectly formed string
+      // to the timestamp parser which will deal with the error handling.
+      return date;
+    }
+  }
+
+  private static String completeTime(final String time, final String timePattern) {
+    if (time.length() >= timePattern.length()) {
+      return time;
+    }
+    return time + timePattern.substring(time.length()).replaceAll("[a-zA-Z]", "0");
   }
 }

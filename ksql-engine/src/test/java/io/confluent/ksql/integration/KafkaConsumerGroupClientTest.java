@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.integration;
 
-
 import static io.confluent.ksql.serde.Format.JSON;
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static org.hamcrest.Matchers.hasItems;
@@ -103,9 +102,9 @@ public class KafkaConsumerGroupClientTest {
   @Test
   public void shouldDescribeGroup() throws InterruptedException {
     givenTopicExistsWithData();
-    try (final KafkaConsumer<String, byte[]> c1 = createConsumer(group0)) {
+    try (KafkaConsumer<String, byte[]> c1 = createConsumer(group0)) {
       verifyDescribeGroup(1, group0, ImmutableList.of(c1));
-      try (final KafkaConsumer<String, byte[]> c2 = createConsumer(group0)) {
+      try (KafkaConsumer<String, byte[]> c2 = createConsumer(group0)) {
         verifyDescribeGroup(2, group0, ImmutableList.of(c1, c2));
       }
     }
@@ -135,7 +134,7 @@ public class KafkaConsumerGroupClientTest {
 
   private void verifyListsGroups(final String newGroup, final List<String> consumerGroups) {
 
-    try(final KafkaConsumer<String, byte[]> consumer = createConsumer(newGroup)) {
+    try (KafkaConsumer<String, byte[]> consumer = createConsumer(newGroup)) {
 
       final Supplier<List<String>> pollAndGetGroups = () -> {
         consumer.poll(Duration.ofMillis(1));
@@ -152,7 +151,7 @@ public class KafkaConsumerGroupClientTest {
   }
 
   private KafkaConsumer<String, byte[]> createConsumer(final String group) {
-    final Map<String, Object> consumerConfigs = TEST_HARNESS.consumerConfig();
+    final Map<String, Object> consumerConfigs = TEST_HARNESS.getKafkaCluster().consumerConfig();
     consumerConfigs.put(ConsumerConfig.GROUP_ID_CONFIG, group);
 
     final KafkaConsumer<String, byte[]> consumer = new KafkaConsumer<>(
@@ -183,8 +182,8 @@ public class KafkaConsumerGroupClientTest {
         return false;
       }
       final ConsumerAndPartitionCount that = (ConsumerAndPartitionCount) o;
-      return consumerCount == that.consumerCount &&
-          partitionCount == that.partitionCount;
+      return consumerCount == that.consumerCount
+          && partitionCount == that.partitionCount;
     }
 
     @Override

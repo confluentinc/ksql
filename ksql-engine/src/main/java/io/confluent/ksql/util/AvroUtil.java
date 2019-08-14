@@ -85,8 +85,17 @@ public final class AvroUtil {
         // See https://github.com/confluentinc/schema-registry/issues/951
         return true;
       }
+
+      String errorMessage = e.getMessage();
+      if (e.getStatus() == HttpStatus.SC_UNAUTHORIZED || e.getStatus() == HttpStatus.SC_FORBIDDEN) {
+        errorMessage = String.format(
+            "Not authorized to access Schema Registry subject: [%s]",
+            topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX
+        );
+      }
+
       throw new KsqlException(String.format(
-          "Could not connect to Schema Registry service: %s", e.getMessage()
+          "Could not connect to Schema Registry service: %s", errorMessage
       ));
     }
   }

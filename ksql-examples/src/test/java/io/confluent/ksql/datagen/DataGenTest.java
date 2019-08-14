@@ -19,13 +19,11 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 
+import io.confluent.ksql.util.KsqlConfig;
+import java.util.Properties;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-
-import java.util.Properties;
-
-import io.confluent.ksql.util.KsqlConfig;
 
 public class DataGenTest {
   @Rule
@@ -71,9 +69,21 @@ public class DataGenTest {
 
   @Test
   public void shouldPassSchemaRegistryUrl() throws Exception {
-    DataGen.Arguments args = new DataGen.Arguments(
-        false, "bootstrap", null, null, "topic", "key", 0, 0L, "srUrl", null);
-    Properties props = DataGen.getProperties(args);
+    final DataGen.Arguments args = new DataGen.Arguments(
+        false,
+        "bootstrap",
+        null,
+        null,
+        null,
+        "topic",
+        "key",
+        0,
+        0L,
+        "srUrl",
+        null
+    );
+
+    final Properties props = DataGen.getProperties(args);
     assertThat(props.getProperty(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY), equalTo("srUrl"));
   }
 }

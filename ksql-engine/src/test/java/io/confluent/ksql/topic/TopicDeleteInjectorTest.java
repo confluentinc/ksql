@@ -36,7 +36,7 @@ import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.ListProperties;
-import io.confluent.ksql.parser.tree.QualifiedName;
+import io.confluent.ksql.execution.expression.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;

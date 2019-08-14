@@ -15,26 +15,97 @@
 
 package io.confluent.ksql.datagen;
 
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
+import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.GenericKeySerDe;
+import io.confluent.ksql.serde.GenericRowSerDe;
 import io.confluent.ksql.util.KsqlConfig;
+import java.util.Optional;
 import java.util.Properties;
+import org.apache.kafka.common.serialization.Serializer;
+import org.apache.kafka.connect.data.Struct;
 
-class ProducerFactory {
-  DataGenProducer getProducer(final Format format,
-      final Properties props) {
-    switch (format) {
-      case AVRO:
-        return new AvroProducer(new KsqlConfig(props));
+final class ProducerFactory {
 
-      case JSON:
-        return new JsonProducer();
+  private static final GenericKeySerDe KEY_SERDE_FACTORY = new GenericKeySerDe();
+  private static final GenericRowSerDe VALUE_SERDE_FACTORY = new GenericRowSerDe();
 
-      case DELIMITED:
-        return new DelimitedProducer();
+  private ProducerFactory() {
+  }
 
-      default:
-        throw new IllegalArgumentException("Invalid format in '" + format
-            + "'; was expecting one of AVRO, JSON, or DELIMITED%n");
-    }
+  static DataGenProducer getProducer(
+      final Format keyFormat,
+      final Format valueFormat,
+      final Properties props
+  ) {
+    final KsqlConfig ksqlConfig = new KsqlConfig(props);
+
+    final Optional<SchemaRegistryClient> srClient = SchemaRegistryClientFactory
+        .getSrClient(keyFormat, valueFormat, ksqlConfig);
+
+    final SerializerFactory<Struct> keySerializerFactory =
+        keySerializerFactory(keyFormat, ksqlConfig, srClient);
+
+    final SerializerFactory<GenericRow> valueSerializerFactory =
+        valueSerializerFactory(valueFormat, ksqlConfig, srClient);
+
+    return new DataGenProducer(
+        keySerializerFactory,
+        valueSerializerFactory
+    );
+  }
+
+  private static SerializerFactory<Struct> keySerializerFactory(
+      final Format keyFormat,
+      final KsqlConfig ksqlConfig,
+      final Optional<SchemaRegistryClient> srClient
+  ) {
+    return new SerializerFactory<Struct>() {
+      @Override
+      public Format format() {
+        return keyFormat;
+      }
+
+      @Override
+      public Serializer<Struct> create(final PersistenceSchema schema) {
+        return KEY_SERDE_FACTORY.create(
+            FormatInfo.of(keyFormat),
+            schema,
+            ksqlConfig,
+            srClient::get,
+            "",
+            NoopProcessingLogContext.INSTANCE
+        ).serializer();
+      }
+    };
+  }
+
+  private static SerializerFactory<GenericRow> valueSerializerFactory(
+      final Format valueFormat,
+      final KsqlConfig ksqlConfig,
+      final Optional<SchemaRegistryClient> srClient
+  ) {
+    return new SerializerFactory<GenericRow>() {
+      @Override
+      public Format format() {
+        return valueFormat;
+      }
+
+      @Override
+      public Serializer<GenericRow> create(final PersistenceSchema schema) {
+        return VALUE_SERDE_FACTORY.create(
+            FormatInfo.of(valueFormat),
+            schema,
+            ksqlConfig,
+            srClient::get,
+            "",
+            NoopProcessingLogContext.INSTANCE
+        ).serializer();
+      }
+    };
   }
 }

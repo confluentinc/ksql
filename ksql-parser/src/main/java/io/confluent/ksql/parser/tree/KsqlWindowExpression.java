@@ -18,6 +18,7 @@ package io.confluent.ksql.parser.tree;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.UdafAggregator;
+import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.serde.WindowInfo;
 import java.util.Optional;
 import org.apache.kafka.connect.data.Struct;

@@ -34,6 +34,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.security.auth.login.Configuration;
@@ -45,6 +46,9 @@ import kafka.security.auth.ResourceType$;
 import kafka.security.auth.SimpleAclAuthorizer;
 import kafka.server.KafkaConfig;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.common.acl.AclPermissionType;
 import org.apache.kafka.common.config.SslConfigs;
@@ -55,6 +59,8 @@ import org.apache.kafka.common.security.JaasUtils;
 import org.apache.kafka.common.security.auth.KafkaPrincipal;
 import org.apache.kafka.common.security.auth.SecurityProtocol;
 import org.apache.kafka.common.security.plain.PlainLoginModule;
+import org.apache.kafka.common.serialization.ByteArrayDeserializer;
+import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.test.TestUtils;
 import org.junit.rules.ExternalResource;
 import org.junit.rules.TemporaryFolder;
@@ -194,6 +200,33 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
   }
 
   /**
+   * Common consumer properties that tests will need.
+   *
+   * @return base set of consumer properties.
+   */
+  public Map<String, Object> consumerConfig() {
+    final Map<String, Object> config = new HashMap<>(getClientProperties());
+    config.put(ConsumerConfig.GROUP_ID_CONFIG, UUID.randomUUID().toString());
+    config.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+    // Try to keep consumer groups stable:
+    config.put(ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG, 7_000);
+    config.put(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, 20_000);
+    return config;
+  }
+
+  /**
+   * Common producer properties that tests will need.
+   *
+   * @return base set of producer properties.
+   */
+  public Map<String, Object> producerConfig() {
+    final Map<String, Object> config = new HashMap<>(getClientProperties());
+    config.put(ProducerConfig.ACKS_CONFIG, "all");
+    config.put(ProducerConfig.RETRIES_CONFIG, 10);
+    return config;
+  }
+
+  /**
    * This cluster's ZK connection string aka `zookeeper.connect` in `hostnameOrIp:port` format.
    * Example: `127.0.0.1:2181`.
    *
@@ -238,6 +271,49 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
                           final int replication,
                           final Map<String, String> topicConfig) {
     broker.createTopic(topic, partitions, replication, topicConfig);
+  }
+
+  /**
+   * Verify there are {@code expectedCount} records available on the supplied {@code topic}.
+   *
+   * @param topic the name of the topic to check.
+   * @param expectedCount the expected number of records.
+   * @return the list of consumed records.
+   */
+  public List<ConsumerRecord<byte[], byte[]>> verifyAvailableRecords(
+      final String topic,
+      final int expectedCount
+  ) {
+    return verifyAvailableRecords(
+        topic,
+        expectedCount,
+        new ByteArrayDeserializer(),
+        new ByteArrayDeserializer()
+    );
+  }
+
+  /**
+   * Verify there are {@code expectedCount} records available on the supplied {@code topic}.
+   *
+   * @param topic the name of the topic to check.
+   * @param expectedCount the expected number of records.
+   * @return the list of consumed records.
+   */
+  public <K, V> List<ConsumerRecord<K, V>> verifyAvailableRecords(
+      final String topic,
+      final int expectedCount,
+      final Deserializer<K> keyDeserializer,
+      final Deserializer<V> valueDeserializer
+  ) {
+    try (KafkaConsumer<K, V> consumer = new KafkaConsumer<>(
+        consumerConfig(),
+        keyDeserializer,
+        valueDeserializer)
+    ) {
+      consumer.subscribe(Collections.singleton(topic));
+
+      return ConsumerTestUtil.verifyAvailableRecords(consumer, expectedCount);
+    }
   }
 
   /**

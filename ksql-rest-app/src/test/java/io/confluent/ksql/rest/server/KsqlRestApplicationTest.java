@@ -32,11 +32,13 @@ import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.KsqlExecutionContext;
+import io.confluent.ksql.connect.KsqlConnect;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.server.computation.CommandRunner;
 import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.QueuedCommandStatus;
@@ -119,6 +121,8 @@ public class KsqlRestApplicationTest {
   @Mock
   private KsqlServerPrecondition precondition2;
   @Mock
+  private KsqlConnect ksqlConnect;
+  @Mock
   private ParsedStatement parsedStatement;
   @Mock
   private PreparedStatement<?> preparedStatement;
@@ -172,8 +176,8 @@ public class KsqlRestApplicationTest {
         securityExtension,
         serverState,
         processingLogContext,
-        ImmutableList.of(precondition1, precondition2)
-    );
+        ImmutableList.of(precondition1, precondition2),
+        ksqlConnect);
   }
 
   @Test
@@ -192,6 +196,15 @@ public class KsqlRestApplicationTest {
 
     // Then:
     verify(securityExtension).close();
+  }
+
+  @Test
+  public void shouldCloseKsqlConnect() {
+    // When:
+    app.stop();
+
+    // Then:
+    verify(ksqlConnect).close();
   }
 
   @Test
@@ -345,9 +358,11 @@ public class KsqlRestApplicationTest {
   @Test
   public void shouldNotInitializeUntilPreconditionsChecked() {
     // Given:
-    final Queue<String> errors = new LinkedList<>();
-    errors.add("error1");
-    errors.add("error2");
+    KsqlErrorMessage error1 = new KsqlErrorMessage(50000, "error1");
+    KsqlErrorMessage error2 = new KsqlErrorMessage(50000, "error2");
+    final Queue<KsqlErrorMessage> errors = new LinkedList<>();
+    errors.add(error1);
+    errors.add(error2);
     when(precondition2.checkPrecondition(any(), any())).then(a -> {
       verifyZeroInteractions(serviceContext);
       return Optional.ofNullable(errors.isEmpty() ? null : errors.remove());
@@ -360,10 +375,10 @@ public class KsqlRestApplicationTest {
     final InOrder inOrder = Mockito.inOrder(precondition1, precondition2, serverState);
     inOrder.verify(precondition1).checkPrecondition(restConfig, serviceContext);
     inOrder.verify(precondition2).checkPrecondition(restConfig, serviceContext);
-    inOrder.verify(serverState).setInitializingReason("error1");
+    inOrder.verify(serverState).setInitializingReason(error1);
     inOrder.verify(precondition1).checkPrecondition(restConfig, serviceContext);
     inOrder.verify(precondition2).checkPrecondition(restConfig, serviceContext);
-    inOrder.verify(serverState).setInitializingReason("error2");
+    inOrder.verify(serverState).setInitializingReason(error2);
     inOrder.verify(precondition1).checkPrecondition(restConfig, serviceContext);
     inOrder.verify(precondition2).checkPrecondition(restConfig, serviceContext);
   }

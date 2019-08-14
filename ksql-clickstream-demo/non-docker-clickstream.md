@@ -64,7 +64,7 @@ These steps will guide you through how to setup your environment and run the cli
     **Tip:** Because of shell redirection, this command does not print a newline and so it might look like it's still in the foreground. The process is running as a daemon, so just press return again to see the shell prompt.
 
     ```bash
-    $ <path-to-ksql>bin/ksql-datagen  -daemon quickstart=clickstream format=json topic=clickstream maxInterval=100 iterations=500000
+    $ <path-to-ksql>bin/ksql-datagen  -daemon quickstart=clickstream value-format=json topic=clickstream maxInterval=100 iterations=500000
     ```
 
     Your output should resemble:
@@ -76,7 +76,7 @@ These steps will guide you through how to setup your environment and run the cli
 1.  From your terminal, create the status codes using the ksql-datagen utility. This stream runs once to populate the table.
 
     ```bash
-    $ <path-to-ksql>bin/ksql-datagen  quickstart=clickstream_codes format=json topic=clickstream_codes maxInterval=20 iterations=100
+    $ <path-to-ksql>bin/ksql-datagen  quickstart=clickstream_codes value-format=json topic=clickstream_codes maxInterval=20 iterations=100
     ```
 
     Your output should resemble:
@@ -92,7 +92,7 @@ These steps will guide you through how to setup your environment and run the cli
 1.  From your terminal, create a set of users using ksql-datagen utility. This stream runs once to populate the table.
 
     ```bash
-    $ <path-to-ksql>bin/ksql-datagen  quickstart=clickstream_users format=json topic=clickstream_users maxInterval=10 iterations=1000
+    $ <path-to-ksql>bin/ksql-datagen  quickstart=clickstream_users value-format=json topic=clickstream_users maxInterval=10 iterations=1000
     ```
 
     Your output should resemble:
@@ -107,7 +107,7 @@ These steps will guide you through how to setup your environment and run the cli
 1.  Launch the KSQL CLI in local mode.
 
     ```bash
-    $ <path-to-ksql>bin/ksql-cli local
+    $ <path-to-ksql>bin/ksql
     ```
 
     You should see the KSQL CLI welcome screen.

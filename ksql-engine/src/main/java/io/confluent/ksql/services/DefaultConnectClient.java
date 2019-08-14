@@ -22,8 +22,10 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.ResponseHandler;
 import org.apache.http.client.fluent.Request;
@@ -82,7 +84,8 @@ public class DefaultConnectClient implements ConnectClient {
               ContentType.APPLICATION_JSON
           )
           .execute()
-          .handleResponse(createHandler(HttpStatus.SC_CREATED, ConnectorInfo.class));
+          .handleResponse(
+              createHandler(HttpStatus.SC_CREATED, ConnectorInfo.class, Function.identity()));
 
       connectResponse.error()
           .ifPresent(error -> LOG.warn("Did not CREATE connector {}: {}", connector, error));
@@ -93,9 +96,56 @@ public class DefaultConnectClient implements ConnectClient {
     }
   }
 
-  private static <T> ResponseHandler<ConnectResponse<T>> createHandler(
+  @SuppressWarnings("unchecked")
+  @Override
+  public ConnectResponse<List<String>> connectors() {
+    try {
+      LOG.debug("Issuing request to Kafka Connect at URI {} to list connectors", connectUri);
+
+      final ConnectResponse<List<String>> connectResponse = Request
+          .Get(connectUri.resolve(CONNECTORS))
+          .socketTimeout(DEFAULT_TIMEOUT_MS)
+          .connectTimeout(DEFAULT_TIMEOUT_MS)
+          .execute()
+          .handleResponse(
+              createHandler(HttpStatus.SC_OK, List.class, foo -> (List<String>) foo));
+
+      connectResponse.error()
+          .ifPresent(error -> LOG.warn("Could not list connectors: {}.", error));
+
+      return connectResponse;
+    } catch (final Exception e) {
+      throw new KsqlServerException(e);
+    }
+  }
+
+  @Override
+  public ConnectResponse<ConnectorInfo> describe(final String connector) {
+    try {
+      LOG.debug("Issuing request to Kafka Connect at URI {} to get config for {}",
+          connectUri, connector);
+
+      final ConnectResponse<ConnectorInfo> connectResponse = Request
+          .Get(connectUri.resolve(String.format("%s/%s", CONNECTORS, connector)))
+          .socketTimeout(DEFAULT_TIMEOUT_MS)
+          .connectTimeout(DEFAULT_TIMEOUT_MS)
+          .execute()
+          .handleResponse(
+              createHandler(HttpStatus.SC_OK, ConnectorInfo.class, Function.identity()));
+
+      connectResponse.error()
+          .ifPresent(error -> LOG.warn("Could not list connectors: {}.", error));
+
+      return connectResponse;
+    } catch (final Exception e) {
+      throw new KsqlServerException(e);
+    }
+  }
+
+  private static <T, C> ResponseHandler<ConnectResponse<T>> createHandler(
       final int expectedStatus,
-      final Class<T> entityClass
+      final Class<C> entityClass,
+      final Function<C, T> cast
   ) {
     return httpResponse -> {
       if (httpResponse.getStatusLine().getStatusCode() != expectedStatus) {
@@ -103,9 +153,9 @@ public class DefaultConnectClient implements ConnectClient {
         return ConnectResponse.of(entity);
       }
 
-      final T info = MAPPER.readValue(
+      final T info = cast.apply(MAPPER.readValue(
           httpResponse.getEntity().getContent(),
-          entityClass);
+          entityClass));
 
       return ConnectResponse.of(info);
     };

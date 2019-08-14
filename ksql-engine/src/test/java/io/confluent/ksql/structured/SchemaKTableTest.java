@@ -45,10 +45,10 @@ import io.confluent.ksql.metastore.model.KeyField.LegacyField;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.metastore.model.MetaStoreMatchers.KeyFieldMatchers;
-import io.confluent.ksql.parser.tree.DereferenceExpression;
-import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.parser.tree.QualifiedName;
-import io.confluent.ksql.parser.tree.QualifiedNameReference;
+import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
+import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.expression.tree.QualifiedName;
+import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
 import io.confluent.ksql.planner.plan.FilterNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
@@ -646,7 +646,11 @@ public class SchemaKTableTest {
   }
 
   private List<SelectExpression> givenInitialKTableOf(final String selectQuery) {
-    final PlanNode logicalPlan = AnalysisTestUtil.buildLogicalPlan(selectQuery, metaStore);
+    final PlanNode logicalPlan = AnalysisTestUtil.buildLogicalPlan(
+        ksqlConfig,
+        selectQuery,
+        metaStore
+    );
 
     initialSchemaKTable = new SchemaKTable<>(
         kTable, logicalPlan.getTheSourceNode().getSchema(),
@@ -671,6 +675,6 @@ public class SchemaKTableTest {
   }
 
   private PlanNode buildLogicalPlan(final String query) {
-    return AnalysisTestUtil.buildLogicalPlan(query, metaStore);
+    return AnalysisTestUtil.buildLogicalPlan(ksqlConfig, query, metaStore);
   }
 }

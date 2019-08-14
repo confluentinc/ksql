@@ -16,6 +16,7 @@
 package io.confluent.ksql.parser.tree;
 
 import com.google.common.testing.EqualsTester;
+import io.confluent.ksql.parser.NodeLocation;
 import java.util.Optional;
 import org.junit.Test;
 
@@ -26,11 +27,15 @@ public class ListTopicsTest {
 
   @Test
   public void shouldImplementHashCodeAndEqualsProperty() {
+    // Note: At the moment location does not take part in equality testing
     new EqualsTester()
         .addEqualityGroup(
-            // Note: At the moment location does not take part in equality testing
-            new ListTopics(Optional.of(SOME_LOCATION)),
-            new ListTopics(Optional.of(OTHER_LOCATION))
+            new ListTopics(Optional.of(SOME_LOCATION), true),
+            new ListTopics(Optional.of(OTHER_LOCATION), true)
+        )
+        .addEqualityGroup(
+            new ListTopics(Optional.of(SOME_LOCATION), false),
+            new ListTopics(Optional.of(OTHER_LOCATION), false)
         )
         .testEquals();
   }

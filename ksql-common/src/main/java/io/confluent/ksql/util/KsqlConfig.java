@@ -65,6 +65,10 @@ public class KsqlConfig extends AbstractConfig {
 
   public static final String CONNECT_URL_PROPERTY = "ksql.connect.registry.url";
 
+  public static final String CONNECT_POLLING_ENABLE_PROPERTY = "ksql.connect.polling.enable";
+
+  public static final String CONNECT_CONFIGS_TOPIC_PROPERTY = "ksql.connect.configs.topic";
+
   public static final String KSQL_ENABLE_UDFS = "ksql.udfs.enabled";
 
   public static final String KSQL_EXT_DIR = "ksql.extension.dir";
@@ -158,6 +162,7 @@ public class KsqlConfig extends AbstractConfig {
 
   public static final String DEFAULT_SCHEMA_REGISTRY_URL = "http://localhost:8081";
   public static final String DEFAULT_CONNECT_URL = "http://localhost:8083";
+  public static final String DEFAULT_CONNECT_CONFIGS_TOPIC = "connect-configs";
 
   public static final String KSQL_STREAMS_PREFIX = "ksql.streams.";
 
@@ -390,6 +395,7 @@ public class KsqlConfig extends AbstractConfig {
     return generation == ConfigGeneration.CURRENT ? CURRENT_DEF : LEGACY_DEF;
   }
 
+  // CHECKSTYLE_RULES.OFF: MethodLength
   private static ConfigDef buildConfigDef(final ConfigGeneration generation) {
     final ConfigDef configDef = new ConfigDef()
         .define(
@@ -398,6 +404,9 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_SERVICE_ID_DEFAULT,
             ConfigDef.Importance.MEDIUM,
             "Indicates the ID of the ksql service. It will be used as prefix for "
+                + "all implicitly named resources created by this instance in Kafka. "
+                + "By convention, the id should end in a seperator character of some form, e.g. "
+                + "a dash or underscore, as this makes identifiers easier to read."
         )
         .define(
             KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG,
@@ -436,6 +445,19 @@ public class KsqlConfig extends AbstractConfig {
             DEFAULT_CONNECT_URL,
             Importance.MEDIUM,
             "The URL for the connect deployment, defaults to http://localhost:8083"
+        ).define(
+            CONNECT_POLLING_ENABLE_PROPERTY,
+            Type.BOOLEAN,
+            false,
+            Importance.LOW,
+            "A value of false for this configuration will disable automatically importing sources "
+            + "from connectors into KSQL."
+        ).define(
+            CONNECT_CONFIGS_TOPIC_PROPERTY ,
+            ConfigDef.Type.STRING,
+            DEFAULT_CONNECT_CONFIGS_TOPIC,
+            Importance.LOW,
+            "The name for the connect configuration topic, defaults to 'connect-configs'"
         ).define(
             KSQL_ENABLE_UDFS,
             ConfigDef.Type.BOOLEAN,
@@ -536,6 +558,7 @@ public class KsqlConfig extends AbstractConfig {
     }
     return configDef;
   }
+  // CHECKSTYLE_RULES.ON: MethodLength
 
   private static final class ConfigValue {
     final ConfigItem configItem;

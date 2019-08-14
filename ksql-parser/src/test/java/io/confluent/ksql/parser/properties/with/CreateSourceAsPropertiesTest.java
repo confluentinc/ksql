@@ -21,10 +21,10 @@ import static org.hamcrest.Matchers.is;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.testing.EqualsTester;
-import io.confluent.ksql.parser.tree.BooleanLiteral;
-import io.confluent.ksql.parser.tree.IntegerLiteral;
-import io.confluent.ksql.parser.tree.Literal;
-import io.confluent.ksql.parser.tree.StringLiteral;
+import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
+import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
+import io.confluent.ksql.execution.expression.tree.Literal;
+import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;

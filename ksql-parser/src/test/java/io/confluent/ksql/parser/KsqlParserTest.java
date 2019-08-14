@@ -42,33 +42,33 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AllColumns;
-import io.confluent.ksql.parser.tree.ArithmeticUnaryExpression;
-import io.confluent.ksql.parser.tree.ComparisonExpression;
+import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
+import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.parser.tree.CreateConnector;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
-import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.parser.tree.FunctionCall;
+import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.parser.tree.InsertInto;
-import io.confluent.ksql.parser.tree.IntegerLiteral;
+import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.ListProperties;
 import io.confluent.ksql.parser.tree.ListQueries;
 import io.confluent.ksql.parser.tree.ListStreams;
 import io.confluent.ksql.parser.tree.ListTables;
 import io.confluent.ksql.parser.tree.ListTopics;
-import io.confluent.ksql.parser.tree.Literal;
-import io.confluent.ksql.parser.tree.LongLiteral;
+import io.confluent.ksql.execution.expression.tree.Literal;
+import io.confluent.ksql.execution.expression.tree.LongLiteral;
 import io.confluent.ksql.parser.tree.Query;
-import io.confluent.ksql.parser.tree.SearchedCaseExpression;
+import io.confluent.ksql.execution.expression.tree.SearchedCaseExpression;
 import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Statement;
-import io.confluent.ksql.parser.tree.StringLiteral;
+import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SqlBaseType;
@@ -619,11 +619,17 @@ public class KsqlParserTest {
 
   @Test
   public void testShowTopics() {
+    // Given:
     final String simpleQuery = "SHOW TOPICS;";
+
+    // When:
     final Statement statement = KsqlParserTestUtil.buildSingleAst(simpleQuery, metaStore).getStatement();
-    Assert.assertTrue(statement instanceof ListTopics);
     final ListTopics listTopics = (ListTopics) statement;
-    Assert.assertTrue(listTopics.toString().equalsIgnoreCase("ListTopics{}"));
+
+    // Then:
+    Assert.assertTrue(statement instanceof ListTopics);
+    Assert.assertThat(listTopics.toString(), is("ListTopics{showExtended=false}"));
+    Assert.assertThat(listTopics.getShowExtended(), is(false));
   }
 
   @Test
@@ -759,6 +765,21 @@ public class KsqlParserTest {
     Assert.assertThat(statement, instanceOf(ListStreams.class));
     final ListStreams listStreams = (ListStreams)statement;
     Assert.assertThat(listStreams.getShowExtended(), is(true));
+  }
+
+  @Test
+  public void shouldSetShowDescriptionsForShowTopicsDescriptions() {
+    // Given:
+    final String statementString = "SHOW TOPICS EXTENDED;";
+
+    // When:
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
+        .getStatement();
+
+    // Then:
+    Assert.assertThat(statement, instanceOf(ListTopics.class));
+    final ListTopics listTopics = (ListTopics)statement;
+    Assert.assertThat(listTopics.getShowExtended(), is(true));
   }
 
   @Test

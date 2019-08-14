@@ -16,11 +16,11 @@
 package io.confluent.ksql.analyzer;
 
 import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
+import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.expression.tree.FunctionCall;
+import io.confluent.ksql.execution.expression.tree.TraversalExpressionVisitor;
 import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.parser.tree.DereferenceExpression;
-import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.parser.tree.FunctionCall;
-import io.confluent.ksql.parser.tree.TraversalExpressionVisitor;
 import io.confluent.ksql.util.KsqlException;
 import java.util.HashSet;
 import java.util.Objects;

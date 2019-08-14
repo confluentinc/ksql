@@ -17,22 +17,24 @@ package io.confluent.ksql.engine;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Streams;
+import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlExecutionContext;
+import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.expression.tree.Literal;
+import io.confluent.ksql.execution.expression.tree.NullLiteral;
+import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
 import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KeyField;
-import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.InsertValues;
-import io.confluent.ksql.parser.tree.Literal;
-import io.confluent.ksql.parser.tree.NullLiteral;
-import io.confluent.ksql.parser.tree.VisitParentExpressionVisitor;
 import io.confluent.ksql.schema.ksql.DefaultSqlValueCoercer;
 import io.confluent.ksql.schema.ksql.Field;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.SqlValueCoercer;
 import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.GenericKeySerDe;
 import io.confluent.ksql.serde.GenericRowSerDe;
 import io.confluent.ksql.serde.KeySerdeFactory;
@@ -40,6 +42,7 @@ import io.confluent.ksql.serde.ValueSerdeFactory;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 import java.time.Duration;
@@ -52,6 +55,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.function.LongSupplier;
 import java.util.stream.Collectors;
+import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.apache.http.HttpStatus;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
@@ -142,21 +147,21 @@ public class InsertValuesExecutor {
     final KsqlConfig config = statement.getConfig()
         .cloneWithPropertyOverwrite(statement.getOverrides());
 
-    final RowData row = extractRow(insertValues, dataSource);
-    final byte[] key = serializeKey(row.key, dataSource, config, serviceContext);
-    final byte[] value = serializeValue(row.value, dataSource, config, serviceContext);
-
-    final String topicName = dataSource.getKafkaTopicName();
-
-    final ProducerRecord<byte[], byte[]> record = new ProducerRecord<>(
-        topicName,
-        null,
-        row.ts,
-        key,
-        value
-    );
-
     try {
+      final RowData row = extractRow(insertValues, dataSource);
+      final byte[] key = serializeKey(row.key, dataSource, config, serviceContext);
+      final byte[] value = serializeValue(row.value, dataSource, config, serviceContext);
+
+      final String topicName = dataSource.getKafkaTopicName();
+
+      final ProducerRecord<byte[], byte[]> record = new ProducerRecord<>(
+          topicName,
+          null,
+          row.ts,
+          key,
+          value
+      );
+
       producer.sendRecord(record, serviceContext, config.getProducerClientConfigProps());
     } catch (final Exception e) {
       throw new KsqlException("Failed to insert values into stream/table: "
@@ -342,9 +347,27 @@ public class InsertValuesExecutor {
         NoopProcessingLogContext.INSTANCE
     );
 
+    final String topicName = dataSource.getKafkaTopicName();
+
     try {
-      return valueSerde.serializer().serialize(dataSource.getKafkaTopicName(), row);
+      return valueSerde.serializer().serialize(topicName, row);
     } catch (final Exception e) {
+      if (dataSource.getKsqlTopic().getValueFormat().getFormat() == Format.AVRO) {
+        final Throwable rootCause = ExceptionUtils.getRootCause(e);
+        if (rootCause instanceof RestClientException) {
+          switch (((RestClientException) rootCause).getStatus()) {
+            case HttpStatus.SC_UNAUTHORIZED:
+            case HttpStatus.SC_FORBIDDEN:
+              throw new KsqlException(String.format(
+                  "Not authorized to write Schema Registry subject: [%s]",
+                  topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX
+              ));
+            default:
+              break;
+          }
+        }
+      }
+
       throw new KsqlException("Could not serialize row: " + row, e);
     }
   }

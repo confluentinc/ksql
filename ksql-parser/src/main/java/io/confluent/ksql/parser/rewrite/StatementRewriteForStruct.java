@@ -16,18 +16,22 @@
 package io.confluent.ksql.parser.rewrite;
 
 import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.parser.tree.DereferenceExpression;
-import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.parser.tree.FunctionCall;
-import io.confluent.ksql.parser.tree.QualifiedName;
-import io.confluent.ksql.parser.tree.QualifiedNameReference;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
+import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.expression.tree.FunctionCall;
+import io.confluent.ksql.execution.expression.tree.QualifiedName;
+import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
+import io.confluent.ksql.execution.expression.tree.StringLiteral;
+import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
+import io.confluent.ksql.parser.rewrite.ExpressionTreeRewriter.Context;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QueryContainer;
 import io.confluent.ksql.parser.tree.Statement;
-import io.confluent.ksql.parser.tree.StringLiteral;
 import java.util.Objects;
+import java.util.Optional;
 
-public class StatementRewriteForStruct {
+public final class StatementRewriteForStruct {
 
   private final Statement statement;
 
@@ -36,7 +40,9 @@ public class StatementRewriteForStruct {
   }
 
   public Statement rewriteForStruct() {
-    return (Statement) new RewriteWithStructFieldExtractors().process(statement, null);
+    return (Statement) new StatementRewriter<>(
+        (e, c) -> ExpressionTreeRewriter.rewriteWith(new Plugin()::process, e)
+    ).rewrite(statement, null);
   }
 
   public static boolean requiresRewrite(final Statement statement) {
@@ -44,19 +50,24 @@ public class StatementRewriteForStruct {
         || statement instanceof QueryContainer;
   }
 
-  private static class RewriteWithStructFieldExtractors extends StatementRewriter {
+  private static final class Plugin
+      extends VisitParentExpressionVisitor<Optional<Expression>, Context<Void>> {
+    private Plugin() {
+      super(Optional.empty());
+    }
 
     @Override
-    public Expression visitDereferenceExpression(
+    @SuppressFBWarnings("NP_PARAMETER_MUST_BE_NONNULL_BUT_MARKED_AS_NULLABLE")
+    public Optional<Expression> visitDereferenceExpression(
         final DereferenceExpression node,
-        final Object context
+        final Context<Void> context
     ) {
       return createFetchFunctionNodeIfNeeded(node, context);
     }
 
-    private Expression createFetchFunctionNodeIfNeeded(
+    private Optional<Expression> createFetchFunctionNodeIfNeeded(
         final DereferenceExpression dereferenceExpression,
-        final Object context
+        final Context<Void> context
     ) {
       if (dereferenceExpression.getBase() instanceof QualifiedNameReference) {
         return getNewDereferenceExpression(dereferenceExpression, context);
@@ -64,26 +75,26 @@ public class StatementRewriteForStruct {
       return getNewFunctionCall(dereferenceExpression, context);
     }
 
-    private FunctionCall getNewFunctionCall(
+    private Optional<Expression> getNewFunctionCall(
         final DereferenceExpression dereferenceExpression,
-        final Object context
+        final Context<Void> context
     ) {
       final Expression createFunctionResult
-          = (Expression) process(dereferenceExpression.getBase(), context);
+          = context.process(dereferenceExpression.getBase());
       final String fieldName = dereferenceExpression.getFieldName();
-      return new FunctionCall(
+      return Optional.of(new FunctionCall(
           QualifiedName.of("FETCH_FIELD_FROM_STRUCT"),
-          ImmutableList.of(createFunctionResult, new StringLiteral(fieldName)));
+          ImmutableList.of(createFunctionResult, new StringLiteral(fieldName))));
     }
 
-    private DereferenceExpression getNewDereferenceExpression(
+    private Optional<Expression> getNewDereferenceExpression(
         final DereferenceExpression dereferenceExpression,
-        final Object context
+        final Context<Void> context
     ) {
-      return new DereferenceExpression(
+      return Optional.of(new DereferenceExpression(
           dereferenceExpression.getLocation(),
-          (Expression) process(dereferenceExpression.getBase(), context),
-          dereferenceExpression.getFieldName());
+          context.process(dereferenceExpression.getBase()),
+          dereferenceExpression.getFieldName()));
     }
   }
 

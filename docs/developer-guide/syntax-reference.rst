@@ -402,7 +402,7 @@ The WITH clause supports the following properties:
 | WINDOW_TYPE             | By default, the topic is assumed to contain non-windowed data. If the data is windowed,    |
 |                         | i.e., was created using KSQL using a query that contains a ``WINDOW`` clause, then the     |
 |                         | ``WINDOW_TYPE`` property can be used to provide the window type. Valid values are          |
-|                         | ``SESSION``, ``HOPPING`, and ``TUMBLING``.                                                 |
+|                         | ``SESSION``, ``HOPPING``, and ``TUMBLING``.                                                |
 +-------------------------+--------------------------------------------------------------------------------------------+
 | WINDOW_SIZE             | By default, the topic is assumed to contain non-windowed data. If the data is windowed,    |
 |                         | i.e., was created using KSQL using a query that contains a ``WINDOW`` clause, and the      |
@@ -523,7 +523,7 @@ The WITH clause supports the following properties:
 | WINDOW_TYPE             | By default, the topic is assumed to contain non-windowed data. If the data is windowed,    |
 |                         | i.e. was created using KSQL using a query that contains a ``WINDOW`` clause, then the      |
 |                         | ``WINDOW_TYPE`` property can be used to provide the window type. Valid values are          |
-|                         | ``SESSION``, ``HOPPING`, and ``TUMBLING``.                                                 |
+|                         | ``SESSION``, ``HOPPING``, and ``TUMBLING``.                                                |
 +-------------------------+--------------------------------------------------------------------------------------------+
 | WINDOW_SIZE             | By default, the topic is assumed to contain non-windowed data. If the data is windowed,    |
 |                         | i.e., was created using KSQL using a query that contains a ``WINDOW`` clause, and the      |
@@ -803,7 +803,7 @@ if the source stream for the query is ordered by timestamp.
 
 
 INSERT VALUES
------------
+-------------
 
 **Synopsis**
 
@@ -834,18 +834,18 @@ For example, the statements below would all be valid for a source with schema
   .. code:: sql
 
       // inserts (1234, "key", "key", "A")
-      INSERT INTO foo (ROWTIME, ROWKEY, KEY_COL, COL_A) VALUES (1234, "key", "key", "A");
+      INSERT INTO foo (ROWTIME, ROWKEY, KEY_COL, COL_A) VALUES (1234, 'key', 'key', 'A');
 
       // inserts (current_time(), "key", "key", "A")
-      INSERT INTO foo VALUES ("key", "key", "A");
+      INSERT INTO foo VALUES ('key', 'key', 'A');
 
       // inserts (current_time(), "key", "key", "A")
-      INSERT INTO foo (KEY_COL, COL_A) VALUES ("key", "A");
+      INSERT INTO foo (KEY_COL, COL_A) VALUES ('key', 'A');
 
       // inserts (current_time(), "key", "key", null)
-      INSERT INTO foo (KEY_COL) VALUES ("key");
+      INSERT INTO foo (KEY_COL) VALUES ('key');
 
-The values will serialize using the ``value_format`` specified in the original `CREATE` statement.
+The values will serialize using the ``value_format`` specified in the original ``CREATE`` statement.
 The key will always be serialized as a String.
 
 .. _ksql-syntax-describe:
@@ -1093,7 +1093,7 @@ The PRINT statement supports the following properties:
 +=========================+==================================================================================================================+
 | FROM BEGINNING          | Print starting with the first message in the topic. If not specified, PRINT starts with the most recent message. |
 +-------------------------+------------------------------------------------------------------------------------------------------------------+
-| INTERVAL interval       | Print every ``interval``th message. The default is 1, meaning that every message is printed.                     |
+| INTERVAL interval       | Print every ``interval`` th message. The default is 1, meaning that every message is printed.                    |
 +-------------------------+------------------------------------------------------------------------------------------------------------------+
 | LIMIT limit             | Stop printing after ``limit`` messages. The default value is unlimited, requiring Ctrl+C to terminate the query. |
 +-------------------------+------------------------------------------------------------------------------------------------------------------+
@@ -1152,6 +1152,21 @@ Example:
     SELECT * FROM pageviews
       WHERE ROWTIME >= 1510923225000
         AND ROWTIME <= 1510923228000;
+
+When writing logical expressions using ``ROWTIME``, ISO-8601 formatted datestrings can also be used to represent dates.
+For example, the above query is equivalent to the following:
+
+.. code:: sql
+
+    SELECT * FROM pageviews
+          WHERE ROWTIME >= '2017-11-17T04:53:45'
+            AND ROWTIME <= '2017-11-17T04:53:48';
+
+If the datestring is inexact, the rest of the timestamp is assumed to be padded with 0's.
+For example, ``ROWTIME = '2019-07-30T11:00'`` is equivalent to ``ROWTIME = '2019-07-30T11:00:00.0000'``.
+
+Timezones can be specified within the datestring. For example, `2017-11-17T04:53:45-0330` is in the Newfoundland time
+zone. If no timezone is specified within the datestring, then timestamps are interperted in the UTC timezone.
 
 A ``LIMIT`` can be used to limit the number of rows returned. Once the limit is reached the query will terminate.
 
@@ -1220,6 +1235,20 @@ the following WINDOW types:
          FROM orders
          WINDOW SESSION (20 SECONDS)
          GROUP BY item_id;
+
+Every output column of an expression in the SELECT list has an output name. To specify the output name of a column, use
+``AS OUTPUT_NAME`` after the expression definition. If it is omitted, KSQL will assign a system generated name
+``KSQL_COL_i`` where ``i`` is the ordinal number of the expression in the SELECT list. If the expression references
+a column of a from_item, then the output name is the name of that column.
+
+**Tip:** KSQL will throw an error for duplicate output names. For example:
+
+   .. code:: sql
+
+        SELECT 1, KSQL_COL_0
+          FROM orders;
+
+is not allowed as the output name for the literal ``1`` is ``KSQL_COL_0``.
 
 CAST
 ~~~~
@@ -1338,13 +1367,14 @@ SHOW TOPICS
 
 .. code:: sql
 
-    SHOW | LIST TOPICS;
+    SHOW | LIST TOPICS [EXTENDED];
 
 **Description**
 
-List the available topics in the Kafka cluster that KSQL is configured
+SHOW TOPICS lists the available topics in the Kafka cluster that KSQL is configured
 to connect to (default setting for ``bootstrap.servers``:
-``localhost:9092``).
+``localhost:9092``). SHOW TOPICS EXTENDED also displays consumer groups and their active consumer
+counts.
 
 .. _show-streams:
 
@@ -1402,7 +1432,8 @@ List the :ref:`configuration settings <ksql-param-reference>` that are
 currently in effect.
 
 SPOOL
-_____
+-----
+
 **Synopsis**
 
 .. code:: sql
@@ -1412,9 +1443,8 @@ _____
 **Description**
 
 Stores issued commands and their results into a file. Only one spool may be active at a time and can
-be closed by issuing ``SPOOL OFF``. Commands are prefixed with ``ksql> `` to differentiate from
+be closed by issuing ``SPOOL OFF`` . Commands are prefixed with ``ksql>`` to differentiate from
 output.
-
 
 .. _ksql-terminate:
 
@@ -1598,6 +1628,10 @@ Scalar functions
 |                        |                                                                           | VARCHAR values are supported for the input. The   |
 |                        |                                                                           | return value must be a VARCHAR.                   |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| INITCAP                |  ``INITCAP(col1)``                                                        | Capitalize the first letter in each word and      |
+|                        |                                                                           | convert all other letters to lowercase. Words are |
+|                        |                                                                           | delimited by whitespace.                          |
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | LCASE                  |  ``LCASE(col1)``                                                          | Convert a string to lowercase.                    |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | LEN                    |  ``LEN(col1)``                                                            | The length of a string.                           |
@@ -1645,7 +1679,16 @@ Scalar functions
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | RANDOM                 |  ``RANDOM()``                                                             | Return a random DOUBLE value between 0.0 and 1.0. |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| REPLACE                |  ``REPLACE(col1, 'foo', 'bar')``                                          | Replace all instances of a substring in a string  |
+|                        |                                                                           | with a new string.                                |
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | ROUND                  |  ``ROUND(col1)``                                                          | Round a value to the nearest BIGINT value.        |
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| SIGN                   |  ``SIGN(col1)``                                                           | The sign of a numeric value as an INTEGER:        |
+|                        |                                                                           | * -1 if the argument is negative                  |
+|                        |                                                                           | * 0 if the argument is zero                       |
+|                        |                                                                           | * 1 if the argument is positive                   |
+|                        |                                                                           | * ``null`` argument is null                       |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | SQRT                   |  ``SQRT(col1)``                                                           | The square root of a value.                       |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+

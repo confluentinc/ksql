@@ -26,6 +26,7 @@ import io.confluent.connect.avro.AvroData;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.model.KsqlTopic;
+import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
@@ -35,8 +36,11 @@ import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.ValueFormat;
+import io.confluent.ksql.serde.WindowInfo;
+import io.confluent.ksql.test.model.WindowData.Type;
 import io.confluent.ksql.test.serde.SerdeSupplier;
 import io.confluent.ksql.test.tools.Record;
 import io.confluent.ksql.test.tools.TestCase;
@@ -50,6 +54,7 @@ import io.confluent.ksql.topic.TopicFactory;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConstants;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -80,6 +85,7 @@ public class TestCaseNode {
   private final Map<String, Object> properties;
   private final Optional<ExpectedExceptionNode> expectedException;
   private final Optional<PostConditionsNode> postConditions;
+  private final boolean enabled;
 
   // CHECKSTYLE_RULES.OFF: CyclomaticComplexity|NPathComplexity
   public TestCaseNode(
@@ -91,7 +97,8 @@ public class TestCaseNode {
       @JsonProperty("statements") final List<String> statements,
       @JsonProperty("properties") final Map<String, Object> properties,
       @JsonProperty("expectedException") final ExpectedExceptionNode expectedException,
-      @JsonProperty("post") final PostConditionsNode postConditions
+      @JsonProperty("post") final PostConditionsNode postConditions,
+      @JsonProperty("enabled") final Boolean enabled
   ) {
     // CHECKSTYLE_RULES.ON: CyclomaticComplexity|NPathComplexity
     this.name = name == null ? "" : name;
@@ -103,6 +110,7 @@ public class TestCaseNode {
     this.properties = properties == null ? ImmutableMap.of() : ImmutableMap.copyOf(properties);
     this.expectedException = Optional.ofNullable(expectedException);
     this.postConditions = Optional.ofNullable(postConditions);
+    this.enabled = !Boolean.FALSE.equals(enabled);
 
     if (this.name.isEmpty()) {
       throw new MissingFieldException("name");
@@ -119,6 +127,10 @@ public class TestCaseNode {
   }
 
   public List<TestCase> buildTests(final Path testPath, final FunctionRegistry functionRegistry) {
+    if (!enabled) {
+      return ImmutableList.of();
+    }
+
     try {
       return formats.isEmpty()
           ? Stream.of(createTest(
@@ -219,20 +231,43 @@ public class TestCaseNode {
       throw new InvalidFieldException("statements/topics", "The test does not define any topics");
     }
 
-    final SerdeSupplier defaultKeySerdeSupplier =
-        allTopics.values().iterator().next().getKeySerdeSupplier();
-
     final SerdeSupplier defaultValueSerdeSupplier =
         allTopics.values().iterator().next().getValueSerdeSupplier();
 
     // Get topics from inputs and outputs fields:
     Streams.concat(inputs.stream(), outputs.stream())
-        .map(RecordNode::topicName)
-        .map(topicName -> new Topic(topicName, Optional.empty(), defaultKeySerdeSupplier,
-            defaultValueSerdeSupplier, 4, 1, Optional.empty()))
+        .map(recordNode -> new Topic(
+            recordNode.topicName(),
+            Optional.empty(),
+            getKeySedeSupplier(recordNode.getWindow()),
+            defaultValueSerdeSupplier,
+            4,
+            1,
+            Optional.empty()))
         .forEach(topic -> allTopics.putIfAbsent(topic.getName(), topic));
 
     return allTopics;
+  }
+
+  private static SerdeSupplier<?> getKeySedeSupplier(final Optional<WindowData> windowDataInfo) {
+    if (windowDataInfo.isPresent()) {
+      final WindowData windowData = windowDataInfo.get();
+      final WindowType windowType = WindowType.of((windowData.type == Type.SESSION)
+          ? WindowType.SESSION.name()
+          : WindowType.TUMBLING.name());
+      final KeyFormat windowKeyFormat = KeyFormat.windowed(
+          Format.KAFKA,
+          Optional.empty(),
+          WindowInfo.of(
+              windowType,
+              windowType == WindowType.SESSION
+              ? Optional.empty() : Optional.of(Duration.ofMillis(windowData.size())))
+      );
+      return SerdeUtil.getKeySerdeSupplier(windowKeyFormat, () -> LogicalSchema.builder().build());
+    }
+    return SerdeUtil.getKeySerdeSupplier(
+        KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
+        () -> LogicalSchema.builder().build());
   }
 
   private static Topic createTopicFromStatement(

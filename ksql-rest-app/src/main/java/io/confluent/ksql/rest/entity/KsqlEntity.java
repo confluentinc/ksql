@@ -37,6 +37,7 @@ import java.util.List;
     @JsonSubTypes.Type(value = StreamsList.class, name = "streams"),
     @JsonSubTypes.Type(value = TablesList.class, name = "tables"),
     @JsonSubTypes.Type(value = KafkaTopicsList.class, name = "kafka_topics"),
+    @JsonSubTypes.Type(value = KafkaTopicsListExtended.class, name = "kafka_topics_extended"),
     @JsonSubTypes.Type(value = ExecutionPlan.class, name = "executionPlan"),
     @JsonSubTypes.Type(value = SourceDescriptionList.class, name = "source_descriptions"),
     @JsonSubTypes.Type(value = QueryDescriptionList.class, name = "query_descriptions"),

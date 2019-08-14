@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.engine;
 
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.internal.matchers.ThrowableMessageMatcher.hasMessage;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
@@ -33,14 +35,14 @@ import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
-import io.confluent.ksql.parser.tree.BooleanLiteral;
-import io.confluent.ksql.parser.tree.DoubleLiteral;
-import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
+import io.confluent.ksql.execution.expression.tree.DoubleLiteral;
+import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.parser.tree.InsertValues;
-import io.confluent.ksql.parser.tree.IntegerLiteral;
-import io.confluent.ksql.parser.tree.LongLiteral;
-import io.confluent.ksql.parser.tree.QualifiedName;
-import io.confluent.ksql.parser.tree.StringLiteral;
+import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
+import io.confluent.ksql.execution.expression.tree.LongLiteral;
+import io.confluent.ksql.execution.expression.tree.QualifiedName;
+import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.schema.ksql.Field;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
@@ -485,7 +487,7 @@ public class InsertValuesExecutorTest {
 
     // Expect:
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Could not serialize key");
+    expectedException.expectCause(hasMessage(containsString("Could not serialize key")));
 
     // When:
     executor.execute(statement, engine, serviceContext);
@@ -507,7 +509,7 @@ public class InsertValuesExecutorTest {
 
     // Expect:
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Could not serialize row");
+    expectedException.expectCause(hasMessage(containsString("Could not serialize row")));
 
     // When:
     executor.execute(statement, engine, serviceContext);
@@ -525,7 +527,7 @@ public class InsertValuesExecutorTest {
 
     // Expect:
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Expected ROWKEY and COL0 to match");
+    expectedException.expectCause(hasMessage(containsString("Expected ROWKEY and COL0 to match")));
 
     // When:
     executor.execute(statement, engine, serviceContext);
@@ -542,7 +544,7 @@ public class InsertValuesExecutorTest {
 
     // Expect:
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Expected a value for each column");
+    expectedException.expectCause(hasMessage(containsString("Expected a value for each column")));
 
     // When:
     executor.execute(statement, engine, serviceContext);
@@ -562,7 +564,7 @@ public class InsertValuesExecutorTest {
 
     // Expect:
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Expected type INTEGER for field");
+    expectedException.expectCause(hasMessage(containsString("Expected type INTEGER for field")));
 
     // When:
     executor.execute(statement, engine, serviceContext);

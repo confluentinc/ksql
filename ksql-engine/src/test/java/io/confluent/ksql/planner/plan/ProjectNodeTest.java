@@ -29,7 +29,7 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KeyField;
-import io.confluent.ksql.parser.tree.BooleanLiteral;
+import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
 import io.confluent.ksql.physical.KsqlQueryBuilder;
 import io.confluent.ksql.schema.ksql.Field;
 import io.confluent.ksql.schema.ksql.LogicalSchema;

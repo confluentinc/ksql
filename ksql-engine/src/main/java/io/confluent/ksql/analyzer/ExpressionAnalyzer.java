@@ -15,19 +15,19 @@
 
 package io.confluent.ksql.analyzer;
 
-import io.confluent.ksql.parser.tree.ArithmeticBinaryExpression;
-import io.confluent.ksql.parser.tree.Cast;
-import io.confluent.ksql.parser.tree.ComparisonExpression;
-import io.confluent.ksql.parser.tree.DereferenceExpression;
-import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.parser.tree.FunctionCall;
-import io.confluent.ksql.parser.tree.IsNotNullPredicate;
-import io.confluent.ksql.parser.tree.IsNullPredicate;
-import io.confluent.ksql.parser.tree.LikePredicate;
-import io.confluent.ksql.parser.tree.LogicalBinaryExpression;
-import io.confluent.ksql.parser.tree.NotExpression;
-import io.confluent.ksql.parser.tree.QualifiedNameReference;
-import io.confluent.ksql.parser.tree.VisitParentExpressionVisitor;
+import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
+import io.confluent.ksql.execution.expression.tree.Cast;
+import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
+import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
+import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.expression.tree.FunctionCall;
+import io.confluent.ksql.execution.expression.tree.IsNotNullPredicate;
+import io.confluent.ksql.execution.expression.tree.IsNullPredicate;
+import io.confluent.ksql.execution.expression.tree.LikePredicate;
+import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
+import io.confluent.ksql.execution.expression.tree.NotExpression;
+import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
+import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.Objects;

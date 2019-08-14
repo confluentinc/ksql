@@ -19,33 +19,57 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.cli.console.table.Table;
 import io.confluent.ksql.cli.console.table.Table.Builder;
 import io.confluent.ksql.rest.entity.KafkaTopicsList;
+import io.confluent.ksql.rest.entity.KafkaTopicsListExtended;
 import io.confluent.ksql.util.StringUtil;
 import java.util.List;
 import java.util.stream.Stream;
 
-public class KafkaTopicsListTableBuilder implements TableBuilder<KafkaTopicsList> {
+public class KafkaTopicsListTableBuilder {
 
-  private static final List<String> HEADERS = ImmutableList.of(
-      "Kafka Topic",
-      "Partitions",
-      "Partition Replicas",
-      "Consumers",
-      "ConsumerGroups");
+  public static class SimpleBuilder implements TableBuilder<KafkaTopicsList> {
+    private static final List<String> HEADERS = ImmutableList.of(
+        "Kafka Topic",
+        "Partitions",
+        "Partition Replicas");
 
-  @Override
-  public Table buildTable(final KafkaTopicsList entity) {
-    final Stream<List<String>> rows = entity.getTopics().stream()
-        .map(t -> ImmutableList.of(
-            t.getName(),
-            Integer.toString(t.getReplicaInfo().size()),
-            getTopicReplicaInfo(t.getReplicaInfo()),
-            Integer.toString(t.getConsumerCount()),
-            Integer.toString(t.getConsumerGroupCount())));
+    @Override
+    public Table buildTable(final KafkaTopicsList entity) {
+      final Stream<List<String>> rows = entity.getTopics().stream()
+          .map(t -> ImmutableList.of(
+              t.getName(),
+              Integer.toString(t.getReplicaInfo().size()),
+              getTopicReplicaInfo(t.getReplicaInfo())));
 
-    return new Builder()
-        .withColumnHeaders(HEADERS)
-        .withRows(rows)
-        .build();
+      return new Builder()
+          .withColumnHeaders(HEADERS)
+          .withRows(rows)
+          .build();
+    }
+  }
+
+  public static class ExtendedBuilder implements TableBuilder<KafkaTopicsListExtended> {
+    private static final List<String> HEADERS = ImmutableList.of(
+        "Kafka Topic",
+        "Partitions",
+        "Partition Replicas",
+        "Consumers",
+        "ConsumerGroups");
+
+    @Override
+    public Table buildTable(final KafkaTopicsListExtended entity) {
+      final Stream<List<String>> rows = entity.getTopics().stream()
+          .map(t -> ImmutableList.of(
+              t.getName(),
+              Integer.toString(t.getReplicaInfo().size()),
+              getTopicReplicaInfo(t.getReplicaInfo()),
+              Integer.toString(t.getConsumerCount()),
+              Integer.toString(t.getConsumerGroupCount())));
+
+      return new Builder()
+          .withColumnHeaders(HEADERS)
+          .withRows(rows)
+          .build();
+    }
   }
 
   /**

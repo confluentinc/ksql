@@ -19,6 +19,9 @@ import static io.confluent.ksql.parser.tree.Join.Type.INNER;
 import static io.confluent.ksql.parser.tree.Join.Type.OUTER;
 
 import com.google.common.testing.EqualsTester;
+import io.confluent.ksql.execution.expression.tree.QualifiedName;
+import io.confluent.ksql.execution.expression.tree.StringLiteral;
+import io.confluent.ksql.parser.NodeLocation;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import org.junit.Test;

@@ -30,6 +30,7 @@ import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.server.resources.Errors;
+import io.confluent.ksql.rest.server.resources.RootDocument;
 import io.confluent.ksql.util.Event;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -47,8 +48,7 @@ public class RemoteServerSpecificCommandTest {
 
   private static final String INITIAL_SERVER_ADDRESS = "http://192.168.0.1:8080";
   private static final String VALID_SERVER_ADDRESS = "http://localhost:8088";
-  private static final ServerInfo SERVER_INFO =
-      new ServerInfo("1.x", "myClusterId", "myKsqlServiceId");
+  private static final RootDocument ROOT_DOCUMENT = new RootDocument();
 
   @Mock
   private KsqlRestClient restClient;
@@ -65,7 +65,7 @@ public class RemoteServerSpecificCommandTest {
     terminal = new PrintWriter(out);
     command = RemoteServerSpecificCommand.create(restClient, resetCliForNewServer);
 
-    when(restClient.makeRootRequest()).thenReturn(RestResponse.successful(SERVER_INFO));
+    when(restClient.makeRootRequest()).thenReturn(RestResponse.successful(ROOT_DOCUMENT));
     when(restClient.getServerAddress()).thenReturn(new URI(INITIAL_SERVER_ADDRESS));
   }
 

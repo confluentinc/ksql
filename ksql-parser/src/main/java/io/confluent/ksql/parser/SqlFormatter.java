@@ -15,10 +15,10 @@
 
 package io.confluent.ksql.parser;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.Iterables.getOnlyElement;
 
 import com.google.common.base.Strings;
+import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.AstNode;
@@ -33,7 +33,6 @@ import io.confluent.ksql.parser.tree.DropStatement;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.Explain;
-import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.InsertValues;
 import io.confluent.ksql.parser.tree.Join;
@@ -68,7 +67,7 @@ public final class SqlFormatter {
     return formatSql(root, true);
   }
 
-  public static String formatSql(final AstNode root, final boolean unmangleNames) {
+  private static String formatSql(final AstNode root, final boolean unmangleNames) {
     final StringBuilder builder = new StringBuilder();
     new Formatter(builder, unmangleNames).process(root, 0);
     return StringUtils.stripEnd(builder.toString(), "\n");
@@ -90,14 +89,6 @@ public final class SqlFormatter {
     }
 
     @Override
-    protected Void visitExpression(final Expression node, final Integer indent) {
-      checkArgument(indent == 0,
-              "visitExpression should only be called at root");
-      builder.append(ExpressionFormatter.formatExpression(node, unmangledNames));
-      return null;
-    }
-
-    @Override
     protected Void visitQuery(final Query node, final Integer indent) {
 
       process(node.getSelect(), indent);
@@ -112,20 +103,22 @@ public final class SqlFormatter {
       }
 
       if (node.getWhere().isPresent()) {
-        append(indent, "WHERE " + ExpressionFormatter.formatExpression(node.getWhere().get()))
-            .append('\n');
+        append(
+            indent,
+            "WHERE " + ExpressionFormatterUtil.formatExpression(node.getWhere().get())
+        ).append('\n');
       }
 
       if (node.getGroupBy().isPresent()) {
         append(indent, "GROUP BY "
-            + ExpressionFormatter
+            + ExpressionFormatterUtil
             .formatGroupBy(node.getGroupBy().get().getGroupingElements()))
             .append('\n');
       }
 
       if (node.getHaving().isPresent()) {
         append(indent, "HAVING "
-            + ExpressionFormatter.formatExpression(node.getHaving().get()))
+            + ExpressionFormatterUtil.formatExpression(node.getHaving().get()))
             .append('\n');
       }
 
@@ -165,7 +158,7 @@ public final class SqlFormatter {
 
     @Override
     protected Void visitSingleColumn(final SingleColumn node, final Integer indent) {
-      builder.append(ExpressionFormatter.formatExpression(node.getExpression()));
+      builder.append(ExpressionFormatterUtil.formatExpression(node.getExpression()));
       builder.append(' ')
                 .append('"')
                 .append(node.getAlias())
@@ -201,7 +194,7 @@ public final class SqlFormatter {
       node.getWithinExpression().map((e) -> builder.append(e.toString()));
       final JoinOn on = (JoinOn) criteria;
       builder.append(" ON (")
-          .append(ExpressionFormatter.formatExpression(on.getExpression()))
+          .append(ExpressionFormatterUtil.formatExpression(on.getExpression()))
           .append(")");
 
       return null;
@@ -316,7 +309,7 @@ public final class SqlFormatter {
       builder.append(
           node.getValues()
               .stream()
-              .map(exp -> ExpressionFormatter.formatExpression(exp, unmangledNames))
+              .map(exp -> ExpressionFormatterUtil.formatExpression(exp, unmangledNames))
               .collect(Collectors.joining(", ")));
       builder.append(")");
 
@@ -357,7 +350,7 @@ public final class SqlFormatter {
         final Integer indent
     ) {
       partitionByColumn.ifPresent(partitionBy -> append(indent, "PARTITION BY "
-              + ExpressionFormatter.formatExpression(partitionBy))
+              + ExpressionFormatterUtil.formatExpression(partitionBy))
           .append('\n'));
     }
 

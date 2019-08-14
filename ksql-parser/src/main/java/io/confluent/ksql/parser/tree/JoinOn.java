@@ -19,6 +19,7 @@ import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
 import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.execution.expression.tree.Expression;
 import java.util.Objects;
 
 @Immutable

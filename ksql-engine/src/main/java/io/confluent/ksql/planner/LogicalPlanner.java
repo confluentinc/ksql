@@ -20,10 +20,10 @@ import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.Analysis.AliasedDataSource;
 import io.confluent.ksql.analyzer.Analysis.Into;
 import io.confluent.ksql.analyzer.Analysis.JoinInfo;
+import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
+import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.model.KeyField;
-import io.confluent.ksql.parser.tree.DereferenceExpression;
-import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.planner.plan.AggregateNode;
 import io.confluent.ksql.planner.plan.DataSourceNode;
 import io.confluent.ksql.planner.plan.FilterNode;
@@ -36,6 +36,7 @@ import io.confluent.ksql.planner.plan.PlanNodeId;
 import io.confluent.ksql.planner.plan.ProjectNode;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.ExpressionTypeManager;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
@@ -50,15 +51,18 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 public class LogicalPlanner {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
+  private final KsqlConfig ksqlConfig;
   private final Analysis analysis;
   private final AggregateAnalysisResult aggregateAnalysis;
   private final FunctionRegistry functionRegistry;
 
   public LogicalPlanner(
+      final KsqlConfig ksqlConfig,
       final Analysis analysis,
       final AggregateAnalysisResult aggregateAnalysis,
       final FunctionRegistry functionRegistry
   ) {
+    this.ksqlConfig = ksqlConfig;
     this.analysis = analysis;
     this.aggregateAnalysis = aggregateAnalysis;
     this.functionRegistry = functionRegistry;
@@ -146,11 +150,12 @@ public class LogicalPlanner {
     return sourceKeyField.withName(partitionBy);
   }
 
-  private static TimestampExtractionPolicy getTimestampExtractionPolicy(
+  private TimestampExtractionPolicy getTimestampExtractionPolicy(
       final LogicalSchema inputSchema,
       final Analysis analysis
   ) {
     return TimestampExtractionPolicyFactory.create(
+        ksqlConfig,
         inputSchema,
         analysis.getProperties().getTimestampColumnName(),
         analysis.getProperties().getTimestampFormat());

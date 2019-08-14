@@ -31,6 +31,8 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.streams.StreamsConfig;
+import org.apache.kafka.streams.processor.TimestampExtractor;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -42,23 +44,30 @@ public class KsqlRequestTest {
   private static final String A_JSON_REQUEST = "{"
       + "\"ksql\":\"sql\","
       + "\"streamsProperties\":{"
-      + "\"" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "\":\"earliest\""
+      + "\"" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "\":\"earliest\","
+      + "\"" + StreamsConfig.DEFAULT_TIMESTAMP_EXTRACTOR_CLASS_CONFIG + "\":\""
+                + TimestampExtractor.class.getCanonicalName() + "\""
       + "}}";
   private static final String A_JSON_REQUEST_WITH_COMMAND_NUMBER = "{"
       + "\"ksql\":\"sql\","
       + "\"streamsProperties\":{"
-      + "\"" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "\":\"earliest\""
+      + "\"" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "\":\"earliest\","
+      + "\"" + StreamsConfig.DEFAULT_TIMESTAMP_EXTRACTOR_CLASS_CONFIG + "\":\""
+                + TimestampExtractor.class.getCanonicalName() + "\""
       + "},"
       + "\"commandSequenceNumber\":2}";
   private static final String A_JSON_REQUEST_WITH_NULL_COMMAND_NUMBER = "{"
       + "\"ksql\":\"sql\","
       + "\"streamsProperties\":{"
-      + "\"" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "\":\"earliest\""
+      + "\"" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "\":\"earliest\","
+      + "\"" + StreamsConfig.DEFAULT_TIMESTAMP_EXTRACTOR_CLASS_CONFIG + "\":\""
+                + TimestampExtractor.class.getCanonicalName() + "\""
       + "},"
       + "\"commandSequenceNumber\":null}";
 
   private static final ImmutableMap<String, Object> SOME_PROPS = ImmutableMap.of(
-      ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"
+      ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest",
+      StreamsConfig.DEFAULT_TIMESTAMP_EXTRACTOR_CLASS_CONFIG, TimestampExtractor.class
   );
   private static final long SOME_COMMAND_NUMBER = 2L;
 

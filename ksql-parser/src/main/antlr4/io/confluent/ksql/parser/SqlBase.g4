@@ -32,9 +32,9 @@ singleExpression
     ;
 
 statement
-    : query                                                                 #querystatement
+    : query                                                                 #queryStatement
     | (LIST | SHOW) PROPERTIES                                              #listProperties
-    | (LIST | SHOW) TOPICS                                                  #listTopics
+    | (LIST | SHOW) TOPICS EXTENDED?                                        #listTopics
     | (LIST | SHOW) STREAMS EXTENDED?                                       #listStreams
     | (LIST | SHOW) TABLES EXTENDED?                                        #listTables
     | (LIST | SHOW) FUNCTIONS                                               #listFunctions

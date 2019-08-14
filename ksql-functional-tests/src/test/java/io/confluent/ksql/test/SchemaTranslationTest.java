@@ -83,7 +83,7 @@ public class SchemaTranslationTest {
         i -> new Record(
             topic,
             "test-key",
-            generator.generate(),
+            avroToValueSpec(generator.generate(), avroSchema, true),
             0,
             null
         )
@@ -98,7 +98,7 @@ public class SchemaTranslationTest {
             r -> new Record(
                 topic,
                 "test-key",
-                avroToValueSpec(r.value(), avroSchema, true),
+                r.value(),
                 0,
                 null
             ))

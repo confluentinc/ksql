@@ -153,9 +153,14 @@ public final class ExpressionFormatter {
         final Context context) {
       final String baseString = process(node.getBase(), context);
       if (node.getBase() instanceof QualifiedNameReference) {
-        return baseString + KsqlConstants.DOT + formatIdentifier(node.getFieldName());
+        return baseString + KsqlConstants.DOT
+            + quoteReservedWord(formatIdentifier(node.getFieldName()), context);
       }
       return baseString + KsqlConstants.STRUCT_FIELD_REF + formatIdentifier(node.getFieldName());
+    }
+
+    private String quoteReservedWord(final String s, final Context context) {
+      return context.isReserved.test(s) ? "`" + s + "`" : s;
     }
 
     private static String formatQualifiedName(final QualifiedName name) {

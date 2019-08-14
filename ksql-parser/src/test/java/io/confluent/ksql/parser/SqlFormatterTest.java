@@ -113,6 +113,7 @@ public class SqlFormatterTest {
       .valueField("ARRAYCOL", SqlTypes.array(SqlTypes.DOUBLE))
       .valueField("MAPCOL", SqlTypes.map(SqlTypes.DOUBLE))
       .valueField("ADDRESS", addressSchema)
+      .valueField("SIZE", SqlTypes.INTEGER) // Reserved word
       .build();
 
   private static final CreateSourceProperties SOME_WITH_PROPS = CreateSourceProperties.from(
@@ -356,6 +357,15 @@ public class SqlFormatterTest {
     assertThat(SqlFormatter.formatSql(statement),
         equalTo("CREATE STREAM S AS SELECT *\n"
             + "FROM ADDRESS ADDRESS"));
+  }
+
+  @Test
+  public void shouldFormatCSASWithReservedWords() {
+    final String statementString = "CREATE STREAM S AS SELECT ITEMID, \"SIZE\" FROM address;";
+    final Statement statement = parseSingle(statementString);
+    assertThat(SqlFormatter.formatSql(statement),
+        equalTo("CREATE STREAM S AS SELECT\n" +
+            "  ADDRESS.ITEMID \"ITEMID\",\n  ADDRESS.`SIZE` \"SIZE\"\nFROM ADDRESS ADDRESS"));
   }
 
   @Test

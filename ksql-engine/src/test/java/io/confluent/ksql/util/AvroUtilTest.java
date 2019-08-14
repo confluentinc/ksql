@@ -220,7 +220,7 @@ public class AvroUtilTest {
     )));
 
     // When:
-    AvroUtil.isValidSchemaEvolution(persistentQuery, srClient);
+    AvroUtil.throwOnInvalidSchemaEvolution(persistentQuery, srClient);
   }
 
   @Test

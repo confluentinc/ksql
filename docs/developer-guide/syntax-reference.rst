@@ -402,7 +402,7 @@ The WITH clause supports the following properties:
 | WINDOW_TYPE             | By default, the topic is assumed to contain non-windowed data. If the data is windowed,    |
 |                         | i.e., was created using KSQL using a query that contains a ``WINDOW`` clause, then the     |
 |                         | ``WINDOW_TYPE`` property can be used to provide the window type. Valid values are          |
-|                         | ``SESSION``, ``HOPPING`, and ``TUMBLING``.                                                 |
+|                         | ``SESSION``, ``HOPPING``, and ``TUMBLING``.                                                |
 +-------------------------+--------------------------------------------------------------------------------------------+
 | WINDOW_SIZE             | By default, the topic is assumed to contain non-windowed data. If the data is windowed,    |
 |                         | i.e., was created using KSQL using a query that contains a ``WINDOW`` clause, and the      |
@@ -523,7 +523,7 @@ The WITH clause supports the following properties:
 | WINDOW_TYPE             | By default, the topic is assumed to contain non-windowed data. If the data is windowed,    |
 |                         | i.e. was created using KSQL using a query that contains a ``WINDOW`` clause, then the      |
 |                         | ``WINDOW_TYPE`` property can be used to provide the window type. Valid values are          |
-|                         | ``SESSION``, ``HOPPING`, and ``TUMBLING``.                                                 |
+|                         | ``SESSION``, ``HOPPING``, and ``TUMBLING``.                                                |
 +-------------------------+--------------------------------------------------------------------------------------------+
 | WINDOW_SIZE             | By default, the topic is assumed to contain non-windowed data. If the data is windowed,    |
 |                         | i.e., was created using KSQL using a query that contains a ``WINDOW`` clause, and the      |

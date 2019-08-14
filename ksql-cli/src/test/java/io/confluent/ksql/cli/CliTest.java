@@ -59,6 +59,7 @@ import io.confluent.ksql.rest.server.resources.Errors;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.rest.server.resources.RootDocument;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
@@ -974,7 +975,7 @@ public class CliTest {
     givenCommandSequenceNumber(mockRestClient, 5L);
     givenRequestPipelining("ON");
     when(mockRestClient.makeRootRequest()).thenReturn(
-        RestResponse.successful(new ServerInfo("version", "clusterId", "serviceId")));
+        RestResponse.successful(new RootDocument()));
 
     // When:
     runCliSpecificCommand("server foo");

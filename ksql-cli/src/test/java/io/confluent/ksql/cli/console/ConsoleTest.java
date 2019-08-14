@@ -544,7 +544,7 @@ public class ConsoleTest {
       assertThat(output, is("[ {\n"
           + "  \"@type\" : \"connector_description\",\n"
           + "  \"statementText\" : \"STATEMENT\",\n"
-          + "  \"type\" : \"io.confluent.Connector\",\n"
+          + "  \"connectorClass\" : \"io.confluent.Connector\",\n"
           + "  \"status\" : {\n"
           + "    \"name\" : \"name\",\n"
           + "    \"connector\" : {\n"
@@ -609,7 +609,7 @@ public class ConsoleTest {
     } else {
       assertThat(output, is("\n"
           + "Name                 : name\n"
-          + "Type                 : io.confluent.Connector\n"
+          + "Class                : io.confluent.Connector\n"
           + "State                : state\n"
           + "WorkerId             : worker\n"
           + "\n"

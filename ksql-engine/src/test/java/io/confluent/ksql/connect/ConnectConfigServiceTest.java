@@ -106,9 +106,9 @@ public class ConnectConfigServiceTest {
     final CountDownLatch noMoreLatch = new CountDownLatch(1);
     setupConfigService();
     givenNoMoreRecords(when(consumer.poll(any())), noMoreLatch);
-    configService.startAsync().awaitRunning();
 
     // When:
+    configService.startAsync().awaitRunning();
     noMoreLatch.await();
     configService.stopAsync().awaitTerminated();
 

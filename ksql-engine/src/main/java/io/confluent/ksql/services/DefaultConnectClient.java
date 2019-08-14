@@ -137,7 +137,8 @@ public class DefaultConnectClient implements ConnectClient {
               createHandler(HttpStatus.SC_OK, ConnectorStateInfo.class, Function.identity()));
 
       connectResponse.error()
-          .ifPresent(error -> LOG.warn("Did not CREATE connector {}: {}", connector, error));
+          .ifPresent(error ->
+              LOG.warn("Could not query status of connector {}: {}", connector, error));
 
       return connectResponse;
     } catch (final Exception e) {

@@ -37,7 +37,6 @@ import io.confluent.ksql.parser.tree.DescribeConnector;
 import io.confluent.ksql.rest.entity.ConnectorDescription;
 import io.confluent.ksql.rest.entity.ErrorEntity;
 import io.confluent.ksql.rest.entity.KsqlEntity;
-import io.confluent.ksql.rest.entity.SourceDescription;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
@@ -150,7 +149,7 @@ public class DescribeConnectorExecutorTest {
     assertThat(entity.get(), instanceOf(ConnectorDescription.class));
 
     final ConnectorDescription description = (ConnectorDescription) entity.get();
-    assertThat(description.getType(), is(CONNECTOR_CLASS));
+    assertThat(description.getConnectorClass(), is(CONNECTOR_CLASS));
     assertThat(description.getStatus(), is(STATUS));
     assertThat(description.getSources().size(), is(1));
     assertThat(description.getSources().get(0).getName(), is("source"));
@@ -202,7 +201,7 @@ public class DescribeConnectorExecutorTest {
     assertThat(entity.get(), instanceOf(ConnectorDescription.class));
 
     final ConnectorDescription description = (ConnectorDescription) entity.get();
-    assertThat(description.getType(), is(CONNECTOR_CLASS));
+    assertThat(description.getConnectorClass(), is(CONNECTOR_CLASS));
     assertThat(description.getStatus(), is(STATUS));
     assertThat(description.getSources(), empty());
   }

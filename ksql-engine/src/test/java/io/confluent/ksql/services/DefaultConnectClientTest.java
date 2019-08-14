@@ -33,6 +33,7 @@ import org.apache.http.HttpStatus;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo.ConnectorState;
+import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo.TaskState;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorType;
 import org.apache.kafka.connect.util.ConnectorTaskId;
 import org.junit.Before;
@@ -51,7 +52,9 @@ public class DefaultConnectClientTest {
   private static final ConnectorStateInfo SAMPLE_STATUS = new ConnectorStateInfo(
       "foo",
       new ConnectorState("state", "worker", "msg"),
-      ImmutableList.of(),
+      ImmutableList.of(
+          new TaskState(0, "taskState", "worker", "taskMsg")
+      ),
       ConnectorType.SOURCE
   );
 
@@ -158,6 +161,11 @@ public class DefaultConnectClientTest {
     // equals is not implemented on ConnectorStateInfo
     assertThat(connectorStateInfo.name(), is(SAMPLE_STATUS.name()));
     assertThat(connectorStateInfo.type(), is(SAMPLE_STATUS.type()));
+    assertThat(connectorStateInfo.connector().state(), is(SAMPLE_STATUS.connector().state()));
+    assertThat(connectorStateInfo.connector().workerId(), is(SAMPLE_STATUS.connector().workerId()));
+    assertThat(connectorStateInfo.connector().trace(), is(SAMPLE_STATUS.connector().trace()));
+    assertThat(connectorStateInfo.tasks().size(), is(SAMPLE_STATUS.tasks().size()));
+    assertThat(connectorStateInfo.tasks().get(0).id(), is(SAMPLE_STATUS.tasks().get(0).id()));
     assertThat("Expected no error!", !response.error().isPresent());
   }
 

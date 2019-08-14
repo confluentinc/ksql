@@ -25,25 +25,25 @@ import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class ConnectorDescription extends KsqlEntity {
 
-  private final String type;
+  private final String connectorClass;
   private final ConnectorStateInfo status;
   private final List<SourceDescription> sources;
 
   @JsonCreator
   public ConnectorDescription(
       @JsonProperty("statementText")  final String statementText,
-      @JsonProperty("type")           final String type,
+      @JsonProperty("connectorClass") final String connectorClass,
       @JsonProperty("status")         final ConnectorStateInfo status,
       @JsonProperty("sources")        final List<SourceDescription> sources
   ) {
     super(statementText);
-    this.type = Objects.requireNonNull(type, "type");
+    this.connectorClass = Objects.requireNonNull(connectorClass, "connectorClass");
     this.status = Objects.requireNonNull(status, "status");
     this.sources = Objects.requireNonNull(sources, "sources");
   }
 
-  public String getType() {
-    return type;
+  public String getConnectorClass() {
+    return connectorClass;
   }
 
   public ConnectorStateInfo getStatus() {
@@ -64,12 +64,13 @@ public class ConnectorDescription extends KsqlEntity {
     }
     final ConnectorDescription that = (ConnectorDescription) o;
     return Objects.equals(status, that.status)
+        && Objects.equals(connectorClass, that.connectorClass)
         && Objects.equals(sources, that.sources);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(status, sources);
+    return Objects.hash(status, sources, connectorClass);
   }
 
   @Override
@@ -77,6 +78,7 @@ public class ConnectorDescription extends KsqlEntity {
     return "ConnectorDescription{"
         + "status=" + status
         + ", sources=" + sources
+        + ", connectorClass='" + connectorClass + "'"
         + '}';
   }
 }

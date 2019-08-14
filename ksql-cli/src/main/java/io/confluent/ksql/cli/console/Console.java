@@ -42,8 +42,8 @@ import io.confluent.ksql.cli.console.table.builder.TopicDescriptionTableBuilder;
 import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.rest.entity.ArgumentInfo;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
-import io.confluent.ksql.rest.entity.ConnectorList;
 import io.confluent.ksql.rest.entity.ConnectorDescription;
+import io.confluent.ksql.rest.entity.ConnectorList;
 import io.confluent.ksql.rest.entity.CreateConnectorEntity;
 import io.confluent.ksql.rest.entity.ErrorEntity;
 import io.confluent.ksql.rest.entity.ExecutionPlan;
@@ -659,7 +659,7 @@ public class Console implements Closeable {
   private void printConnectorDescription(final ConnectorDescription description) {
     final ConnectorStateInfo status = description.getStatus();
     writer().println(String.format("%-20s : %s", "Name", status.name()));
-    writer().println(String.format("%-20s : %s", "Type", description.getType()));
+    writer().println(String.format("%-20s : %s", "Class", description.getConnectorClass()));
     writer().println(String.format("%-20s : %s", "State", status.connector().state()));
     writer().println(String.format("%-20s : %s", "WorkerId", status.connector().workerId()));
     writer().println();

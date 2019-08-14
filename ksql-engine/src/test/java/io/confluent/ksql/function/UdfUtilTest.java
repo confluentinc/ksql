@@ -20,8 +20,10 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlException;
 import java.lang.reflect.Type;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import org.apache.kafka.connect.data.Schema;
@@ -111,6 +113,12 @@ public class UdfUtilTest {
   public void shouldGetFloatSchemaForDoublePrimitiveClass() {
     assertThat(UdfUtil.getSchemaFromType(double.class),
         equalTo(Schema.FLOAT64_SCHEMA));
+  }
+
+  @Test
+  public void shouldGetDecimalSchemaForBigDecimalClass() {
+    assertThat(UdfUtil.getSchemaFromType(BigDecimal.class).name(),
+        is(DecimalUtil.builder(2, 1).name()));
   }
 
   @Test

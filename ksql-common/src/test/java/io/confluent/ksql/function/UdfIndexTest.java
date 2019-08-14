@@ -7,6 +7,7 @@ import static org.hamcrest.Matchers.is;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.function.udf.Kudf;
+import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Arrays;
@@ -30,6 +31,8 @@ public class UdfIndexTest {
   private static final Schema STRUCT3_PERMUTE = SchemaBuilder.struct().field("d", INT).field("c", INT).build();
   private static final Schema MAP1 = SchemaBuilder.map(STRING, STRING).build();
   private static final Schema MAP2 = SchemaBuilder.map(STRING, INT).build();
+  private static final Schema DECIMAL1 = DecimalUtil.builder(2, 1).build();
+  private static final Schema DECIMAL2 = DecimalUtil.builder(3, 1).build();
 
   private static final Schema GENERIC_LIST = GenericsUtil.array("T").build();
   private static final Schema STRING_LIST = SchemaBuilder.array(STRING).build();
@@ -151,6 +154,32 @@ public class UdfIndexTest {
 
     // When:
     final KsqlFunction fun = udfIndex.getFunction(ImmutableList.of(MAP1));
+
+    // Then:
+    assertThat(fun.getFunctionName(), equalTo(EXPECTED));
+  }
+
+  @Test
+  public void shouldChooseCorrectDecimal() {
+    // Given:
+    final KsqlFunction[] functions = new KsqlFunction[]{function(EXPECTED, false, DECIMAL1)};
+    Arrays.stream(functions).forEach(udfIndex::addFunction);
+
+    // When:
+    final KsqlFunction fun = udfIndex.getFunction(ImmutableList.of(DECIMAL1));
+
+    // Then:
+    assertThat(fun.getFunctionName(), equalTo(EXPECTED));
+  }
+
+  @Test
+  public void shouldAllowAnyDecimal() {
+    // Given:
+    final KsqlFunction[] functions = new KsqlFunction[]{function(EXPECTED, false, DECIMAL1)};
+    Arrays.stream(functions).forEach(udfIndex::addFunction);
+
+    // When:
+    final KsqlFunction fun = udfIndex.getFunction(ImmutableList.of(DECIMAL2));
 
     // Then:
     assertThat(fun.getFunctionName(), equalTo(EXPECTED));
@@ -683,6 +712,20 @@ public class UdfIndexTest {
     udfIndex.getFunction(ImmutableList.of(INT_LIST, STRING_LIST));
   }
 
+  @Test
+  public void shouldNotFindArbitraryBytesTypes() {
+    // Given:
+    final KsqlFunction[] functions = new KsqlFunction[]{function(EXPECTED, false, DECIMAL1)};
+    Arrays.stream(functions).forEach(udfIndex::addFunction);
+
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(is("Function 'name' does not accept parameters of types:"
+        + "[BYTES]"));
+
+    // When:
+    udfIndex.getFunction(ImmutableList.of(SchemaBuilder.bytes().build()));
+  }
 
   private static KsqlFunction function(
       final String name,

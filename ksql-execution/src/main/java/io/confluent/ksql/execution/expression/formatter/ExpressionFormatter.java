@@ -144,7 +144,7 @@ public final class ExpressionFormatter {
     @Override
     public String visitQualifiedNameReference(final QualifiedNameReference node,
         final Context context) {
-      return formatQualifiedName(node.getName());
+      return formatQualifiedName(node.getName(), context);
     }
 
     @Override
@@ -153,15 +153,16 @@ public final class ExpressionFormatter {
         final Context context) {
       final String baseString = process(node.getBase(), context);
       if (node.getBase() instanceof QualifiedNameReference) {
-        return baseString + KsqlConstants.DOT + formatIdentifier(node.getFieldName());
+        return baseString + KsqlConstants.DOT + formatIdentifier(node.getFieldName(), context);
       }
-      return baseString + KsqlConstants.STRUCT_FIELD_REF + formatIdentifier(node.getFieldName());
+      return baseString + KsqlConstants.STRUCT_FIELD_REF
+          + formatIdentifier(node.getFieldName(), context);
     }
 
-    private static String formatQualifiedName(final QualifiedName name) {
+    private static String formatQualifiedName(final QualifiedName name, final Context context) {
       final List<String> parts = new ArrayList<>();
       for (final String part : name.getParts()) {
-        parts.add(formatIdentifier(part));
+        parts.add(formatIdentifier(part, context));
       }
       return Joiner.on(KsqlConstants.DOT).join(parts);
     }
@@ -175,7 +176,7 @@ public final class ExpressionFormatter {
         arguments = "*";
       }
 
-      builder.append(formatQualifiedName(node.getName()))
+      builder.append(formatQualifiedName(node.getName(), context))
           .append('(').append(arguments).append(')');
 
       return builder.toString();
@@ -337,9 +338,8 @@ public final class ExpressionFormatter {
           .iterator());
     }
 
-    private static String formatIdentifier(final String s) {
-      // TODO: handle escaping properly
-      return s;
+    private static String formatIdentifier(final String s, final Context context) {
+      return context.isReserved.test(s) ? "`" + s + "`" : s;
     }
 
     private static String formatStringLiteral(final String s) {

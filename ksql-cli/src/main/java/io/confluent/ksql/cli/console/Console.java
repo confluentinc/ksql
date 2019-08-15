@@ -660,6 +660,7 @@ public class Console implements Closeable {
     final ConnectorStateInfo status = description.getStatus();
     writer().println(String.format("%-20s : %s", "Name", status.name()));
     writer().println(String.format("%-20s : %s", "Class", description.getConnectorClass()));
+    writer().println(String.format("%-20s : %s", "Type", description.getStatus().type()));
     writer().println(String.format("%-20s : %s", "State", status.connector().state()));
     writer().println(String.format("%-20s : %s", "WorkerId", status.connector().workerId()));
     writer().println();
@@ -680,7 +681,7 @@ public class Console implements Closeable {
 
     if (!description.getSources().isEmpty()) {
       final Table sourceTable = new Table.Builder()
-          .withColumnHeaders("Source Name", "Kafka Topic", "Type")
+          .withColumnHeaders("KSQL Source Name", "Kafka Topic", "Type")
           .withRows(description.getSources()
               .stream()
               .map(source -> ImmutableList

@@ -610,6 +610,7 @@ public class ConsoleTest {
       assertThat(output, is("\n"
           + "Name                 : name\n"
           + "Class                : io.confluent.Connector\n"
+          + "Type                 : source\n"
           + "State                : state\n"
           + "WorkerId             : worker\n"
           + "\n"
@@ -618,10 +619,10 @@ public class ConsoleTest {
           + " 0       | task  | task_msg    \n"
           + "-------------------------------\n"
           + "\n"
-          + " Source Name | Kafka Topic | Type  \n"
-          + "-----------------------------------\n"
-          + " TestSource  | kadka-topic | TABLE \n"
-          + "-----------------------------------\n"));
+          + " KSQL Source Name | Kafka Topic | Type  \n"
+          + "----------------------------------------\n"
+          + " TestSource       | kadka-topic | TABLE \n"
+          + "----------------------------------------\n"));
     }
   }
 

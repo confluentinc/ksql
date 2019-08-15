@@ -20,6 +20,7 @@ import io.confluent.ksql.test.util.TestMethods.TestCase;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.AdminClient;
@@ -46,6 +47,7 @@ public final class SandboxedAdminClientTest {
           .ignore("close", Duration.class)
           .ignore("close", long.class, TimeUnit.class)
           .setDefault(ElectLeadersOptions.class, new ElectLeadersOptions())
+          .setDefault(Optional.class, Optional.empty())
           .build();
     }
 

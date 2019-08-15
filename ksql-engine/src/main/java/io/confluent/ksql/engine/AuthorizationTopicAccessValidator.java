@@ -23,9 +23,11 @@ import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.topic.SourceTopicsExtractor;
+import io.confluent.ksql.util.KsqlAuthorizationException;
 import io.confluent.ksql.util.KsqlException;
+
+import java.util.Collections;
 import java.util.Set;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.common.acl.AclOperation;
 
 /**
@@ -126,11 +128,7 @@ public class AuthorizationTopicAccessValidator implements TopicAccessValidator {
     if (authorizedOperations != null && !authorizedOperations.contains(operation)) {
       // This error message is similar to what Kafka throws when it cannot access the topic
       // due to an authorization error. I used this message to keep a consistent message.
-      throw new KsqlException(String.format(
-              "Failed to %s Kafka topic: [%s]%n"
-                  + "Caused by: Not authorized to access topic: [%s]",
-              StringUtils.capitalize(operation.toString().toLowerCase()), topicName, topicName)
-      );
+      throw new KsqlAuthorizationException(operation, Collections.singleton(topicName));
     }
   }
 

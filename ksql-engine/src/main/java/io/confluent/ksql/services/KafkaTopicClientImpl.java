@@ -20,10 +20,12 @@ import io.confluent.ksql.exception.KafkaDeleteTopicsException;
 import io.confluent.ksql.exception.KafkaResponseGetFailedException;
 import io.confluent.ksql.topic.TopicProperties;
 import io.confluent.ksql.util.ExecutorUtil;
+import io.confluent.ksql.util.KsqlAuthorizationException;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.Pair;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -44,8 +46,10 @@ import org.apache.kafka.clients.admin.DescribeTopicsOptions;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.KafkaFuture;
+import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.common.config.ConfigResource;
 import org.apache.kafka.common.config.TopicConfig;
+import org.apache.kafka.common.errors.TopicAuthorizationException;
 import org.apache.kafka.common.errors.TopicDeletionDisabledException;
 import org.apache.kafka.common.errors.TopicExistsException;
 import org.apache.kafka.common.errors.UnknownTopicOrPartitionException;
@@ -112,6 +116,10 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
       // success
       validateTopicProperties(topic, numPartitions, replicationFactor);
 
+    } catch (final TopicAuthorizationException e) {
+      throw new KsqlAuthorizationException(
+          AclOperation.CREATE, Collections.singleton(topic));
+
     } catch (final Exception e) {
       throw new KafkaResponseGetFailedException(
           "Failed to guarantee existence of topic " + topic, e);
@@ -176,6 +184,9 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
     } catch (final ExecutionException e) {
       throw new KafkaResponseGetFailedException(
           "Failed to Describe Kafka Topic(s): " + topicNames, e.getCause());
+    } catch (final TopicAuthorizationException e) {
+      throw new KsqlAuthorizationException(
+          AclOperation.DESCRIBE, topicNames);
     } catch (final Exception e) {
       throw new KafkaResponseGetFailedException(
           "Failed to Describe Kafka Topic(s): " + topicNames, e);
@@ -258,6 +269,9 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
           throw new TopicDeletionDisabledException("Topic deletion is disabled. "
               + "To delete the topic, you must set '" + DELETE_TOPIC_ENABLE + "' to true in "
               + "the Kafka broker configuration.");
+        } else if (rootCause instanceof TopicAuthorizationException) {
+          throw new KsqlAuthorizationException(
+              AclOperation.DELETE, Collections.singleton(entry.getKey()));
         } else if (!(rootCause instanceof UnknownTopicOrPartitionException)) {
           LOG.error(String.format("Could not delete topic '%s'", entry.getKey()), e);
           failList.add(entry.getKey());

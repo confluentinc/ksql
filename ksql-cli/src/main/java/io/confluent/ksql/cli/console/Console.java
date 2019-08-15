@@ -488,13 +488,21 @@ public class Console implements Closeable {
     writer().println(String.format("%-20s : %s", "Value format", source.getFormat()));
 
     if (!source.getTopic().isEmpty()) {
-      writer().println(String.format(
-          "%-20s : %s (partitions: %d, replication: %d)",
+      String topicInformation = String.format("%-20s : %s",
           "Kafka topic",
-          source.getTopic(),
-          source.getPartitions(),
-          source.getReplication()
-      ));
+          source.getTopic()
+      );
+
+      // If Describe ACLs permissions aren't given for a topic, partitions and replica default to 0
+      // Details aren't printed out if the Describe fails.
+      if (source.getPartitions() != 0) {
+        topicInformation = topicInformation.concat(String.format(
+            " (partitions: %d, replication: %d)",
+            source.getPartitions(),
+            source.getReplication()
+        ));
+      }
+      writer().println(topicInformation);
     }
   }
 

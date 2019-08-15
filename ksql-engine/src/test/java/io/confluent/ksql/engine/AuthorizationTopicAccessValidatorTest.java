@@ -33,6 +33,7 @@ import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.util.KsqlAuthorizationException;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
 import java.util.Collections;
@@ -136,9 +137,9 @@ public class AuthorizationTopicAccessValidatorTest {
     );
 
     // Then:
-    expectedException.expect(KsqlException.class);
+    expectedException.expect(KsqlAuthorizationException.class);
     expectedException.expectMessage(String.format(
-        "Failed to Read Kafka topic: [%s]", TOPIC_1.name()
+        "Authorization denied to Read on topic(s): [%s]", TOPIC_1.name()
     ));
 
     // When:
@@ -171,9 +172,9 @@ public class AuthorizationTopicAccessValidatorTest {
     );
 
     // Then:
-    expectedException.expect(KsqlException.class);
+    expectedException.expect(KsqlAuthorizationException.class);
     expectedException.expectMessage(String.format(
-        "Failed to Read Kafka topic: [%s]", TOPIC_1.name()
+        "Authorization denied to Read on topic(s): [%s]", TOPIC_1.name()
     ));
 
     // When:
@@ -190,9 +191,9 @@ public class AuthorizationTopicAccessValidatorTest {
     );
 
     // Then:
-    expectedException.expect(KsqlException.class);
+    expectedException.expect(KsqlAuthorizationException.class);
     expectedException.expectMessage(String.format(
-        "Failed to Read Kafka topic: [%s]", TOPIC_2.name()
+        "Authorization denied to Read on topic(s): [%s]", TOPIC_2.name()
     ));
 
     // When:
@@ -209,9 +210,9 @@ public class AuthorizationTopicAccessValidatorTest {
     );
 
     // Then:
-    expectedException.expect(KsqlException.class);
+    expectedException.expect(KsqlAuthorizationException.class);
     expectedException.expectMessage(String.format(
-        "Failed to Read Kafka topic: [%s]", TOPIC_1.name()
+        "Authorization denied to Read on topic(s): [%s]", TOPIC_1.name()
     ));
 
     // When:
@@ -244,9 +245,9 @@ public class AuthorizationTopicAccessValidatorTest {
     );
 
     // Then:
-    expectedException.expect(KsqlException.class);
+    expectedException.expect(KsqlAuthorizationException.class);
     expectedException.expectMessage(String.format(
-        "Failed to Write Kafka topic: [%s]", TOPIC_2.name()
+        "Authorization denied to Write on topic(s): [%s]", TOPIC_2.name()
     ));
 
     // When:
@@ -263,9 +264,9 @@ public class AuthorizationTopicAccessValidatorTest {
     );
 
     // Then:
-    expectedException.expect(KsqlException.class);
+    expectedException.expect(KsqlAuthorizationException.class);
     expectedException.expectMessage(String.format(
-        "Failed to Read Kafka topic: [%s]", TOPIC_1.name()
+        "Authorization denied to Read on topic(s): [%s]", TOPIC_1.name()
     ));
 
     // When:
@@ -281,9 +282,9 @@ public class AuthorizationTopicAccessValidatorTest {
     );
 
     // Then:
-    expectedException.expect(KsqlException.class);
+    expectedException.expect(KsqlAuthorizationException.class);
     expectedException.expectMessage(String.format(
-        "Failed to Read Kafka topic: [%s]", TOPIC_1.name()
+        "Authorization denied to Read on topic(s): [%s]", TOPIC_1.name()
     ));
 
     // When:
@@ -316,9 +317,9 @@ public class AuthorizationTopicAccessValidatorTest {
     );
 
     // Then:
-    expectedException.expect(KsqlException.class);
+    expectedException.expect(KsqlAuthorizationException.class);
     expectedException.expectMessage(String.format(
-        "Failed to Write Kafka topic: [%s]", TOPIC_2.name()
+        "Authorization denied to Write on topic(s): [%s]", TOPIC_2.name()
     ));
 
 

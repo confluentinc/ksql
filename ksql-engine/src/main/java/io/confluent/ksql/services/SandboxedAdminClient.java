@@ -24,8 +24,8 @@ import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.AlterConfigOp;
 import org.apache.kafka.clients.admin.AlterConfigsOptions;
 import org.apache.kafka.clients.admin.AlterConfigsResult;
-import org.apache.kafka.clients.admin.AlterPartitionReassignmentsResult;
 import org.apache.kafka.clients.admin.AlterPartitionReassignmentsOptions;
+import org.apache.kafka.clients.admin.AlterPartitionReassignmentsResult;
 import org.apache.kafka.clients.admin.AlterReplicaLogDirsOptions;
 import org.apache.kafka.clients.admin.AlterReplicaLogDirsResult;
 import org.apache.kafka.clients.admin.Config;
@@ -69,8 +69,8 @@ import org.apache.kafka.clients.admin.ListConsumerGroupOffsetsOptions;
 import org.apache.kafka.clients.admin.ListConsumerGroupOffsetsResult;
 import org.apache.kafka.clients.admin.ListConsumerGroupsOptions;
 import org.apache.kafka.clients.admin.ListConsumerGroupsResult;
-import org.apache.kafka.clients.admin.ListPartitionReassignmentsResult;
 import org.apache.kafka.clients.admin.ListPartitionReassignmentsOptions;
+import org.apache.kafka.clients.admin.ListPartitionReassignmentsResult;
 import org.apache.kafka.clients.admin.ListTopicsOptions;
 import org.apache.kafka.clients.admin.ListTopicsResult;
 import org.apache.kafka.clients.admin.NewPartitions;
@@ -307,15 +307,15 @@ class SandboxedAdminClient extends AdminClient {
 
   @Override
   public AlterPartitionReassignmentsResult alterPartitionReassignments(
-      Map<TopicPartition, Optional<NewPartitionReassignment>> reassignments,
-      AlterPartitionReassignmentsOptions options) {
+      final Map<TopicPartition, Optional<NewPartitionReassignment>> reassignments,
+      final AlterPartitionReassignmentsOptions options) {
     throw new UnsupportedOperationException();
   }
 
   @Override
   public ListPartitionReassignmentsResult listPartitionReassignments(
-      Optional<Set<TopicPartition>> partitions,
-      ListPartitionReassignmentsOptions options) {
+      final Optional<Set<TopicPartition>> partitions,
+      final ListPartitionReassignmentsOptions options) {
     throw new UnsupportedOperationException();
   }
 

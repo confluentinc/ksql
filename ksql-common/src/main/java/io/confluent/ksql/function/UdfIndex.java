@@ -19,6 +19,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import io.confluent.ksql.schema.connect.SqlSchemaFormatter;
+import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -262,6 +263,7 @@ public class UdfIndex<T extends IndexedFunction> {
             .put(Type.MAP, Parameter::mapEquals)
             .put(Type.ARRAY, Parameter::arrayEquals)
             .put(Type.STRUCT, Parameter::structEquals)
+            .put(Type.BYTES, Parameter::bytesEquals)
             .build();
 
     private final Schema schema;
@@ -316,7 +318,6 @@ public class UdfIndex<T extends IndexedFunction> {
       return Objects.equals(type, argument.type())
           && CUSTOM_SCHEMA_EQ.getOrDefault(type, (a, b) -> true).test(schema, argument)
           && Objects.equals(schema.version(), argument.version())
-          && Objects.equals(schema.parameters(), argument.parameters())
           && Objects.deepEquals(schema.defaultValue(), argument.defaultValue());
     }
     // CHECKSTYLE_RULES.ON: BooleanExpressionComplexity
@@ -354,6 +355,13 @@ public class UdfIndex<T extends IndexedFunction> {
       return structA.fields().isEmpty()
           || structB.fields().isEmpty()
           || Objects.equals(structA.fields(), structB.fields());
+    }
+
+    private static boolean bytesEquals(final Schema bytesA, final Schema bytesB) {
+      // from a UDF parameter perspective, all decimals are the same
+      // since they can all be cast to BigDecimal - other bytes types
+      // are not supported in UDFs
+      return DecimalUtil.isDecimal(bytesA) && DecimalUtil.isDecimal(bytesB);
     }
 
     @Override

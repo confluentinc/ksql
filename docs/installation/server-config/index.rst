@@ -10,7 +10,7 @@ Configuring KSQL Server
     config-reference
     avro-schema
     integrate-ksql-with-confluent-control-center
-    ksql-rbac
+    ../../../../security/rbac/ksql-rbac
 
 KSQL configuration parameters can be set for KSQL server and queries as well as for the underlying Kafka Streams and
 Kafka Clients (producer and consumer).

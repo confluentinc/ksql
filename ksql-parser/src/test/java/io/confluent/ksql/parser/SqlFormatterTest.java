@@ -24,6 +24,10 @@ import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
+import io.confluent.ksql.execution.expression.tree.QualifiedName;
+import io.confluent.ksql.execution.expression.tree.StringLiteral;
+import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.model.KeyField;
@@ -33,7 +37,6 @@ import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.AliasedRelation;
-import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.DropStream;
@@ -41,14 +44,14 @@ import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.JoinCriteria;
 import io.confluent.ksql.parser.tree.JoinOn;
-import io.confluent.ksql.execution.expression.tree.QualifiedName;
+import io.confluent.ksql.parser.tree.ListStreams;
+import io.confluent.ksql.parser.tree.ListTables;
 import io.confluent.ksql.parser.tree.Statement;
-import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
-import io.confluent.ksql.execution.expression.tree.Type;
+import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.properties.with.CreateConfigs;
@@ -113,6 +116,7 @@ public class SqlFormatterTest {
       .valueField("ARRAYCOL", SqlTypes.array(SqlTypes.DOUBLE))
       .valueField("MAPCOL", SqlTypes.map(SqlTypes.DOUBLE))
       .valueField("ADDRESS", addressSchema)
+      .valueField("SIZE", SqlTypes.INTEGER) // Reserved word
       .build();
 
   private static final CreateSourceProperties SOME_WITH_PROPS = CreateSourceProperties.from(
@@ -359,6 +363,15 @@ public class SqlFormatterTest {
   }
 
   @Test
+  public void shouldFormatCSASWithReservedWords() {
+    final String statementString = "CREATE STREAM S AS SELECT ITEMID, \"SIZE\" FROM address;";
+    final Statement statement = parseSingle(statementString);
+    assertThat(SqlFormatter.formatSql(statement),
+        equalTo("CREATE STREAM S AS SELECT\n" +
+            "  ADDRESS.ITEMID \"ITEMID\",\n  ADDRESS.`SIZE` \"SIZE\"\nFROM ADDRESS ADDRESS"));
+  }
+
+  @Test
   public void shouldFormatSelectStarCorrectlyWithOtherFields() {
     final String statementString = "CREATE STREAM S AS SELECT *, address AS city FROM address;";
     final Statement statement = parseSingle(statementString);
@@ -519,6 +532,66 @@ public class SqlFormatterTest {
   }
 
   @Test
+  public void shouldFormatTerminateQuery() {
+    // Given:
+    final TerminateQuery terminateQuery = new TerminateQuery(Optional.empty(), "FOO");
+
+    // When:
+    final String formatted = SqlFormatter.formatSql(terminateQuery);
+
+    // Then:
+    assertThat(formatted, is("TERMINATE FOO"));
+  }
+
+  @Test
+  public void shouldFormatShowTables() {
+    // Given:
+    final ListTables listTables = new ListTables(Optional.empty(), false);
+
+    // When:
+    final String formatted = SqlFormatter.formatSql(listTables);
+
+    // Then:
+    assertThat(formatted, is("SHOW TABLES"));
+  }
+
+  @Test
+  public void shouldFormatShowTablesExtended() {
+    // Given:
+    final ListTables listTables = new ListTables(Optional.empty(), true);
+
+    // When:
+    final String formatted = SqlFormatter.formatSql(listTables);
+
+    // Then:
+    assertThat(formatted, is("SHOW TABLES EXTENDED"));
+  }
+
+  @Test
+  public void shouldFormatShowStreams() {
+    // Given:
+    final ListStreams listStreams = new ListStreams(Optional.empty(), false);
+
+    // When:
+    final String formatted = SqlFormatter.formatSql(listStreams);
+
+    // Then:
+    assertThat(formatted, is("SHOW STREAMS"));
+  }
+
+  @Test
+  public void shouldFormatShowStreamsExtended() {
+    // Given:
+    final ListStreams listStreams = new ListStreams(Optional.empty(), true);
+
+    // When:
+    final String formatted = SqlFormatter.formatSql(listStreams);
+
+    // Then:
+    assertThat(formatted, is("SHOW STREAMS EXTENDED"));
+  }
+
+  @Test
   public void shouldFormatInsertValuesStatement() {
     final String statementString = "INSERT INTO ADDRESS (NUMBER, STREET, CITY) VALUES (2, 'high', 'palo alto');";
     final Statement statement = parseSingle(statementString);
@@ -609,6 +682,18 @@ public class SqlFormatterTest {
 
     // Then:
     assertThat(result, is("DESCRIBE ORDERS"));
+  }
+
+  @Test
+  public void shouldFormatStructWithReservedWords() {
+    // Given:
+    final Statement statement = parseSingle("CREATE STREAM s (foo STRUCT<`END` VARCHAR>) WITH (kafka_topic='foo', value_format='JSON');");
+
+    // When:
+    final String result = SqlFormatter.formatSql(statement);
+
+    // Then:
+    assertThat(result, is("CREATE STREAM S (FOO STRUCT<`END` STRING>) WITH (KAFKA_TOPIC='foo', VALUE_FORMAT='JSON');"));
   }
 
   private Statement parseSingle(final String statementString) {

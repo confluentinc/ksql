@@ -18,6 +18,7 @@ package io.confluent.ksql.parser.util;
 import io.confluent.ksql.util.ParserUtil;
 import org.junit.Test;
 
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
 
@@ -30,5 +31,16 @@ public class ParserUtilTest {
   @Test
   public void shouldNotEscapeStringIfNotLiteral() {
     assertThat(ParserUtil.escapeIfLiteral("NOT_A_LITERAL"), equalTo("NOT_A_LITERAL"));
+  }
+
+  @Test
+  public void shouldHaveReservedLiteralInReservedSet() {
+    assertThat(ParserUtil.isReservedIdentifier("FROM"), is(true));
+  }
+
+  @Test
+  public void shouldExcludeNonReservedLiteralsFromReservedSet() {
+    // i.e. those in the "nonReserved" rule in SqlBase.g4
+    assertThat(ParserUtil.isReservedIdentifier("SHOW"), is(false));
   }
 }

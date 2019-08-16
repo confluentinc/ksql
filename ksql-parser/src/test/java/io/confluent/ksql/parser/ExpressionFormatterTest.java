@@ -292,7 +292,7 @@ public class ExpressionFormatterTest {
         .build();
 
     assertThat(
-        ExpressionFormatter.formatExpression(struct),
+        ExpressionFormatter.formatExpression(struct, true, s -> true),
         equalTo("STRUCT<`END` INTEGER>"));
   }
 

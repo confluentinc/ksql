@@ -20,9 +20,15 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParserTestUtil;
 import io.confluent.ksql.parser.tree.*;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
+import io.confluent.ksql.util.timestamp.StringToTimestampParser;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
+
+import java.time.ZoneId;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -30,7 +36,10 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.mock;
 
 public class StatementRewriteForRowtimeTest {
+  @Rule
+  public final ExpectedException expectedException = ExpectedException.none();
   private MetaStore metaStore;
+  final StringToTimestampParser parser = new StringToTimestampParser("yyyy-MM-dd'T'HH:mm:ss.SSS");
 
   @Before
   public void init() {
@@ -38,13 +47,13 @@ public class StatementRewriteForRowtimeTest {
   }
 
   @Test
-  public void shouldWrapDatestring() {
+  public void shouldReplaceDatestring() {
     final String query = "SELECT * FROM orders where ROWTIME > '2017-01-01T00:00:00.000';";
     final Query statement = (Query) KsqlParserTestUtil.buildSingleAst(query, metaStore).getStatement();
     final Expression predicate = statement.getWhere().get();
     final Expression rewritten = new StatementRewriteForRowtime(predicate).rewriteForRowtime();
 
-    assertThat(rewritten.toString(), equalTo("(ORDERS.ROWTIME > STRINGTOTIMESTAMP('2017-01-01T00:00:00.000', 'yyyy-MM-dd''T''HH:mm:ss.SSS'))"));
+    assertThat(rewritten.toString(), equalTo(String.format("(ORDERS.ROWTIME > %d)", parser.parse("2017-01-01T00:00:00.000"))));
   }
 
   @Test
@@ -54,7 +63,7 @@ public class StatementRewriteForRowtimeTest {
     final Expression predicate = statement.getWhere().get();
     final Expression rewritten = new StatementRewriteForRowtime(predicate).rewriteForRowtime();
 
-    assertThat(rewritten.toString(), equalTo("(ORDERS.ROWTIME = STRINGTOTIMESTAMP('2017-01-01T00:00:00.000', 'yyyy-MM-dd''T''HH:mm:ss.SSS'))"));
+    assertThat(rewritten.toString(), equalTo(String.format("(ORDERS.ROWTIME = %d)", parser.parse("2017-01-01T00:00:00.000"))));
   }
 
   @Test
@@ -64,9 +73,10 @@ public class StatementRewriteForRowtimeTest {
     final Expression predicate = statement.getWhere().get();
     final Expression rewritten = new StatementRewriteForRowtime(predicate).rewriteForRowtime();
 
-    assertThat(rewritten.toString(), equalTo("(ORDERS.ROWTIME BETWEEN"
-        + " STRINGTOTIMESTAMP('2017-01-01T00:00:00.000', 'yyyy-MM-dd''T''HH:mm:ss.SSS') AND"
-        + " STRINGTOTIMESTAMP('2017-02-01T00:00:00.000', 'yyyy-MM-dd''T''HH:mm:ss.SSS'))"));
+    assertThat(rewritten.toString(), equalTo(String.format(
+        "(ORDERS.ROWTIME BETWEEN %d AND %d)",
+        parser.parse("2017-01-01T00:00:00.000"),
+        parser.parse("2017-02-01T00:00:00.000"))));
   }
 
   @Test
@@ -86,7 +96,7 @@ public class StatementRewriteForRowtimeTest {
     final Expression predicate = statement.getWhere().get();
     final Expression rewritten = new StatementRewriteForRowtime(predicate).rewriteForRowtime();
 
-    assertThat(rewritten.toString(), equalTo("((ORDERS.ROWTIME > STRINGTOTIMESTAMP('2017-01-01T00:00:00.000', 'yyyy-MM-dd''T''HH:mm:ss.SSS')) AND (ORDERS.ROWKEY = '2017-01-01'))"));
+    assertThat(rewritten.toString(), equalTo(String.format("((ORDERS.ROWTIME > %d) AND (ORDERS.ROWKEY = '2017-01-01'))", parser.parse("2017-01-01T00:00:00.000"))));
   }
 
   @Test
@@ -96,6 +106,55 @@ public class StatementRewriteForRowtimeTest {
     final Expression predicate = statement.getWhere().get();
     final Expression rewritten = new StatementRewriteForRowtime(predicate).rewriteForRowtime();
 
-    assertThat(rewritten.toString(), containsString("(ORDERS.ROWTIME = STRINGTOTIMESTAMP('2017-01-01T00:00:00.000', 'yyyy-MM-dd''T''HH:mm:ss.SSS', '+0100'))"));
+    assertThat(rewritten.toString(), equalTo(String.format("(ORDERS.ROWTIME = %d)", parser.parse("2017-01-01T00:00:00.000", ZoneId.of("+0100")))));
+  }
+
+  @Test
+  public void shouldNotProcessWhenRowtimeInFunction() {
+    final String simpleQuery = "SELECT * FROM orders where foo(ROWTIME) = '2017-01-01';";
+    final Query statement = (Query) KsqlParserTestUtil.buildSingleAst(simpleQuery, metaStore).getStatement();
+    final Expression predicate = statement.getWhere().get();
+    final Expression rewritten = new StatementRewriteForRowtime(predicate).rewriteForRowtime();
+
+    assertThat(rewritten.toString(), containsString("(FOO(ORDERS.ROWTIME) = '2017-01-01')"));
+  }
+
+  @Test
+  public void shouldNotProcessArithmetic() {
+    final String simpleQuery = "SELECT * FROM orders where '2017-01-01' + 10000 > ROWTIME;";
+    final Query statement = (Query) KsqlParserTestUtil.buildSingleAst(simpleQuery, metaStore).getStatement();
+    final Expression predicate = statement.getWhere().get();
+    final Expression rewritten = new StatementRewriteForRowtime(predicate).rewriteForRowtime();
+
+    assertThat(rewritten.toString(), containsString("(('2017-01-01' + 10000) > ORDERS.ROWTIME)"));
+  }
+
+  @Test
+  public void shouldThrowParseError() {
+    // Given:
+    final String simpleQuery = "SELECT * FROM orders where ROWTIME = '2oo17-01-01';";
+    final Query statement = (Query) KsqlParserTestUtil.buildSingleAst(simpleQuery, metaStore).getStatement();
+    final Expression predicate = statement.getWhere().get();
+
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Failed to parse timestamp '2oo17-01-01'");
+
+    // When:
+    new StatementRewriteForRowtime(predicate).rewriteForRowtime();
+  }
+
+  @Test
+  public void shouldThrowTimezoneParseError() {
+    final String simpleQuery = "SELECT * FROM orders where ROWTIME = '2017-01-01T00:00:00.000+foo';";
+    final Query statement = (Query) KsqlParserTestUtil.buildSingleAst(simpleQuery, metaStore).getStatement();
+    final Expression predicate = statement.getWhere().get();
+
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Failed to parse timestamp '2017-01-01T00:00:00.000+foo'");
+
+    // When:
+    new StatementRewriteForRowtime(predicate).rewriteForRowtime();
   }
 }

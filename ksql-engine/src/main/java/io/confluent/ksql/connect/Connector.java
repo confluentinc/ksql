@@ -27,7 +27,7 @@ import java.util.function.Predicate;
  * helps map topics to KSQL sources.
  */
 @Immutable
-class Connector {
+public class Connector {
 
   private final String name;
   private final Predicate<String> isTopicMatch;
@@ -48,19 +48,19 @@ class Connector {
     this.keyField = Optional.ofNullable(keyField);
   }
 
-  String getName() {
+  public String getName() {
     return name;
   }
 
-  boolean matches(final String topic) {
+  public boolean matches(final String topic) {
     return isTopicMatch.test(topic);
   }
 
-  String mapToSource(final String topic) {
+  public String mapToSource(final String topic) {
     return getSourceName.apply(topic);
   }
 
-  DataSourceType getSourceType() {
+  public DataSourceType getSourceType() {
     return sourceType;
   }
 

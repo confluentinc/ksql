@@ -251,7 +251,10 @@ public final class SqlFormatter {
           }
           builder.append(ParserUtil.escapeIfLiteral(tableElement.getName()))
               .append(" ")
-              .append(tableElement.getType());
+              .append(ExpressionFormatter.formatExpression(
+                  tableElement.getType(),
+                  true, ParserUtil::isReservedIdentifier
+              ));
         }
         builder.append(")");
       }
@@ -280,7 +283,10 @@ public final class SqlFormatter {
           }
           builder.append(ParserUtil.escapeIfLiteral(tableElement.getName()))
               .append(" ")
-              .append(tableElement.getType());
+              .append(ExpressionFormatter.formatExpression(
+                  tableElement.getType(),
+                  true, ParserUtil::isReservedIdentifier
+              ));
         }
         builder.append(")").append(" WITH (");
         builder.append(node.getProperties());

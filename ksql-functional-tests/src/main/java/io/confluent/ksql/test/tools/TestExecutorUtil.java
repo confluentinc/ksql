@@ -23,6 +23,7 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.engine.SqlFormatInjector;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
@@ -43,6 +44,7 @@ import io.confluent.ksql.test.utils.WindowUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.util.ArrayList;
 import java.util.List;
@@ -54,7 +56,9 @@ import org.apache.avro.Schema;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.TopologyTestDriver;
 
+// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 final class TestExecutorUtil {
+  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private TestExecutorUtil() {}
 
@@ -222,7 +226,21 @@ final class TestExecutorUtil {
         schemaInjector
             .map(injector -> injector.inject(configured))
             .orElse((ConfiguredStatement) configured);
-    final ExecuteResult executeResult = executionContext.execute(withSchema);
+    final ConfiguredStatement<?> reformatted =
+        new SqlFormatInjector(executionContext).inject(withSchema);
+
+    final ExecuteResult executeResult;
+    try {
+      executeResult = executionContext.execute(reformatted);
+    } catch (final KsqlStatementException statementException) {
+      // use the original statement text in the exception so that tests
+      // can easily check that the failed statement is the input statement
+      throw new KsqlStatementException(
+          statementException.getMessage(),
+          withSchema.getStatementText(),
+          statementException.getCause());
+    }
+
     if (prepared.getStatement() instanceof CreateAsSelect) {
       return new ExecuteResultAndSortedSources(
           executeResult,

@@ -113,6 +113,7 @@ public class SqlFormatterTest {
           .optional()
           .build())
       .field("ADDRESS", addressSchema)
+      .field("SIZE", Schema.OPTIONAL_INT64_SCHEMA) // Reserved word
       .build();
 
 
@@ -283,6 +284,16 @@ public class SqlFormatterTest {
     assertThat(SqlFormatter.formatSql(statement),
         equalTo("CREATE STREAM S AS SELECT *\n"
             + "FROM ADDRESS ADDRESS"));
+  }
+
+  @Test
+  public void shouldFormatCSASWithReservedWords() {
+    final String statementString = "CREATE STREAM S AS SELECT ITEMID, \"SIZE\" FROM address;";
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
+        .getStatement();
+    assertThat(SqlFormatter.formatSql(statement),
+        equalTo("CREATE STREAM S AS SELECT\n" +
+            "  ADDRESS.ITEMID \"ITEMID\"\n, ADDRESS.`SIZE` \"SIZE\"\nFROM ADDRESS ADDRESS"));
   }
 
   @Test

@@ -22,10 +22,13 @@ import io.confluent.ksql.parser.KsqlParserTestUtil;
 import io.confluent.ksql.parser.tree.*;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
+import io.confluent.ksql.util.timestamp.StringToTimestampParser;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+
+import java.time.ZoneId;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -36,6 +39,7 @@ public class StatementRewriteForRowtimeTest {
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
   private MetaStore metaStore;
+  final StringToTimestampParser parser = new StringToTimestampParser("yyyy-MM-dd'T'HH:mm:ss.SSS");
 
   @Before
   public void init() {
@@ -43,13 +47,13 @@ public class StatementRewriteForRowtimeTest {
   }
 
   @Test
-  public void shouldWrapDatestring() {
+  public void shouldReplaceDatestring() {
     final String query = "SELECT * FROM orders where ROWTIME > '2017-01-01T00:00:00.000';";
     final Query statement = (Query) KsqlParserTestUtil.buildSingleAst(query, metaStore).getStatement();
     final Expression predicate = statement.getWhere().get();
     final Expression rewritten = new StatementRewriteForRowtime(predicate).rewriteForRowtime();
 
-    assertThat(rewritten.toString(), equalTo("(ORDERS.ROWTIME > 1483257600000)"));
+    assertThat(rewritten.toString(), equalTo(String.format("(ORDERS.ROWTIME > %d)", parser.parse("2017-01-01T00:00:00.000"))));
   }
 
   @Test
@@ -59,7 +63,7 @@ public class StatementRewriteForRowtimeTest {
     final Expression predicate = statement.getWhere().get();
     final Expression rewritten = new StatementRewriteForRowtime(predicate).rewriteForRowtime();
 
-    assertThat(rewritten.toString(), equalTo("(ORDERS.ROWTIME = 1483257600000)"));
+    assertThat(rewritten.toString(), equalTo(String.format("(ORDERS.ROWTIME = %d)", parser.parse("2017-01-01T00:00:00.000"))));
   }
 
   @Test
@@ -69,7 +73,10 @@ public class StatementRewriteForRowtimeTest {
     final Expression predicate = statement.getWhere().get();
     final Expression rewritten = new StatementRewriteForRowtime(predicate).rewriteForRowtime();
 
-    assertThat(rewritten.toString(), equalTo("(ORDERS.ROWTIME BETWEEN 1483257600000 AND 1485936000000)"));
+    assertThat(rewritten.toString(), equalTo(String.format(
+        "(ORDERS.ROWTIME BETWEEN %d AND %d)",
+        parser.parse("2017-01-01T00:00:00.000"),
+        parser.parse("2017-02-01T00:00:00.000"))));
   }
 
   @Test
@@ -89,7 +96,7 @@ public class StatementRewriteForRowtimeTest {
     final Expression predicate = statement.getWhere().get();
     final Expression rewritten = new StatementRewriteForRowtime(predicate).rewriteForRowtime();
 
-    assertThat(rewritten.toString(), equalTo("((ORDERS.ROWTIME > 1483257600000) AND (ORDERS.ROWKEY = '2017-01-01'))"));
+    assertThat(rewritten.toString(), equalTo(String.format("((ORDERS.ROWTIME > %d) AND (ORDERS.ROWKEY = '2017-01-01'))", parser.parse("2017-01-01T00:00:00.000"))));
   }
 
   @Test
@@ -99,7 +106,7 @@ public class StatementRewriteForRowtimeTest {
     final Expression predicate = statement.getWhere().get();
     final Expression rewritten = new StatementRewriteForRowtime(predicate).rewriteForRowtime();
 
-    assertThat(rewritten.toString(), containsString("(ORDERS.ROWTIME = 1483225200000)"));
+    assertThat(rewritten.toString(), equalTo(String.format("(ORDERS.ROWTIME = %d)", parser.parse("2017-01-01T00:00:00.000", ZoneId.of("+0100")))));
   }
 
   @Test

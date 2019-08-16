@@ -103,7 +103,7 @@ public class StatementRewriteForRowtime {
 
   private static LongLiteral rewriteTimestamp(final String timestamp) {
     final String timePattern = "HH:mm:ss.SSS";
-    final StringToTimestampParser PARSER = new StringToTimestampParser(
+    final StringToTimestampParser parser = new StringToTimestampParser(
         "yyyy-MM-dd'T'" + timePattern);
 
     final String date;
@@ -112,7 +112,9 @@ public class StatementRewriteForRowtime {
 
     if (timestamp.contains("T")) {
       date = timestamp.substring(0, timestamp.indexOf('T'));
-      final String withTimezone = completeTime(timestamp.substring(timestamp.indexOf('T') + 1), timePattern);
+      final String withTimezone = completeTime(
+          timestamp.substring(timestamp.indexOf('T') + 1),
+          timePattern);
       timezone = getTimezone(withTimezone);
       time = completeTime(withTimezone.substring(0, timezone.length()), timePattern);
     } else {
@@ -123,9 +125,9 @@ public class StatementRewriteForRowtime {
 
     try {
       if (timezone.length() > 0) {
-        return new LongLiteral(PARSER.parse(date + "T" + time, ZoneId.of(timezone)));
+        return new LongLiteral(parser.parse(date + "T" + time, ZoneId.of(timezone)));
       } else {
-        return new LongLiteral(PARSER.parse(date + "T" + time));
+        return new LongLiteral(parser.parse(date + "T" + time));
       }
     } catch (final RuntimeException e) {
       throw new KsqlException("Failed to parse timestamp '"

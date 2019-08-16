@@ -154,4 +154,16 @@ public abstract class AstVisitor<R, C> {
   protected R visitSimpleGroupBy(final SimpleGroupBy node, final C context) {
     return visitGroupingElement(node, context);
   }
+
+  protected R visitTerminateQuery(final TerminateQuery node, final C context) {
+    return visitStatement(node, context);
+  }
+
+  protected R visitListStreams(final ListStreams node, final C context) {
+    return visitStatement(node, context);
+  }
+
+  protected R visitListTables(final ListTables node, final C context) {
+    return visitStatement(node, context);
+  }
 }

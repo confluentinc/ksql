@@ -36,6 +36,8 @@ import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.rest.entity.ArgumentInfo;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
+import io.confluent.ksql.rest.entity.ConnectorDescription;
+import io.confluent.ksql.rest.entity.ConnectorList;
 import io.confluent.ksql.rest.entity.EntityQueryId;
 import io.confluent.ksql.rest.entity.ExecutionPlan;
 import io.confluent.ksql.rest.entity.FieldInfo;
@@ -49,6 +51,7 @@ import io.confluent.ksql.rest.entity.PropertiesList;
 import io.confluent.ksql.rest.entity.Queries;
 import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.entity.SchemaInfo;
+import io.confluent.ksql.rest.entity.SimpleConnectorInfo;
 import io.confluent.ksql.rest.entity.SourceDescription;
 import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
 import io.confluent.ksql.rest.entity.SourceInfo;
@@ -70,6 +73,10 @@ import java.util.Map;
 import java.util.function.Supplier;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
+import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo.ConnectorState;
+import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo.TaskState;
+import org.apache.kafka.connect.runtime.rest.entities.ConnectorType;
 import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -511,6 +518,115 @@ public class ConsoleTest {
   }
 
   @Test
+  public void testPrintConnectorDescription() throws IOException {
+    // Given:
+    final KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(
+        new ConnectorDescription(
+            "STATEMENT",
+            "io.confluent.Connector",
+            new ConnectorStateInfo(
+                "name",
+                new ConnectorState("state", "worker", "msg"),
+                ImmutableList.of(
+                    new TaskState(0, "task", "worker", "task_msg")
+                ),
+                ConnectorType.SOURCE),
+            ImmutableList.of(sourceDescription)
+        )
+    ));
+
+    // When:
+    console.printKsqlEntityList(entityList);
+
+    // Then:
+    final String output = terminal.getOutputString();
+    if (console.getOutputFormat() == OutputFormat.JSON) {
+      assertThat(output, is("[ {\n"
+          + "  \"@type\" : \"connector_description\",\n"
+          + "  \"statementText\" : \"STATEMENT\",\n"
+          + "  \"connectorClass\" : \"io.confluent.Connector\",\n"
+          + "  \"status\" : {\n"
+          + "    \"name\" : \"name\",\n"
+          + "    \"connector\" : {\n"
+          + "      \"state\" : \"state\",\n"
+          + "      \"worker_id\" : \"worker\",\n"
+          + "      \"trace\" : \"msg\"\n"
+          + "    },\n"
+          + "    \"tasks\" : [ {\n"
+          + "      \"id\" : 0,\n"
+          + "      \"state\" : \"task\",\n"
+          + "      \"worker_id\" : \"worker\",\n"
+          + "      \"trace\" : \"task_msg\"\n"
+          + "    } ],\n"
+          + "    \"type\" : \"source\"\n"
+          + "  },\n"
+          + "  \"sources\" : [ {\n"
+          + "    \"name\" : \"TestSource\",\n"
+          + "    \"readQueries\" : [ ],\n"
+          + "    \"writeQueries\" : [ ],\n"
+          + "    \"fields\" : [ {\n"
+          + "      \"name\" : \"ROWTIME\",\n"
+          + "      \"schema\" : {\n"
+          + "        \"type\" : \"BIGINT\",\n"
+          + "        \"fields\" : null,\n"
+          + "        \"memberSchema\" : null\n"
+          + "      }\n"
+          + "    }, {\n"
+          + "      \"name\" : \"ROWKEY\",\n"
+          + "      \"schema\" : {\n"
+          + "        \"type\" : \"STRING\",\n"
+          + "        \"fields\" : null,\n"
+          + "        \"memberSchema\" : null\n"
+          + "      }\n"
+          + "    }, {\n"
+          + "      \"name\" : \"f_0\",\n"
+          + "      \"schema\" : {\n"
+          + "        \"type\" : \"INTEGER\",\n"
+          + "        \"fields\" : null,\n"
+          + "        \"memberSchema\" : null\n"
+          + "      }\n"
+          + "    }, {\n"
+          + "      \"name\" : \"f_1\",\n"
+          + "      \"schema\" : {\n"
+          + "        \"type\" : \"STRING\",\n"
+          + "        \"fields\" : null,\n"
+          + "        \"memberSchema\" : null\n"
+          + "      }\n"
+          + "    } ],\n"
+          + "    \"type\" : \"TABLE\",\n"
+          + "    \"key\" : \"key\",\n"
+          + "    \"timestamp\" : \"2000-01-01\",\n"
+          + "    \"statistics\" : \"stats\",\n"
+          + "    \"errorStats\" : \"errors\",\n"
+          + "    \"extended\" : true,\n"
+          + "    \"format\" : \"avro\",\n"
+          + "    \"topic\" : \"kadka-topic\",\n"
+          + "    \"partitions\" : 2,\n"
+          + "    \"replication\" : 1\n"
+          + "  } ],\n"
+          + "  \"warnings\" : [ ]\n"
+          + "} ]\n"));
+    } else {
+      assertThat(output, is("\n"
+          + "Name                 : name\n"
+          + "Class                : io.confluent.Connector\n"
+          + "Type                 : source\n"
+          + "State                : state\n"
+          + "WorkerId             : worker\n"
+          + "\n"
+          + " Task ID | State | Error Trace \n"
+          + "-------------------------------\n"
+          + " 0       | task  | task_msg    \n"
+          + "-------------------------------\n"
+          + "\n"
+          + " KSQL Source Name | Kafka Topic | Type  \n"
+          + "----------------------------------------\n"
+          + " TestSource       | kadka-topic | TABLE \n"
+          + "----------------------------------------\n"));
+    }
+  }
+
+  @Test
   public void testPrintStreamsList() throws IOException {
     // Given:
     final KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(
@@ -695,6 +811,48 @@ public class ConsoleTest {
               + " C          | TestTopic   | JSON   | false    \n"
               + " Z          | TestTopic   | JSON   | false    \n"
               + "----------------------------------------------\n"));
+    }
+  }
+
+  @Test
+  public void shouldPrintConnectorsList() throws IOException {
+    // Given:
+    final KsqlEntityList entities = new KsqlEntityList(ImmutableList.of(
+        new ConnectorList(
+            "statement",
+            ImmutableList.of(),
+            ImmutableList.of(
+                new SimpleConnectorInfo("foo", ConnectorType.SOURCE, "clazz"),
+                new SimpleConnectorInfo("bar", null, null)
+        ))
+    ));
+
+    // When:
+    console.printKsqlEntityList(entities);
+
+    // Then:
+    final String output = terminal.getOutputString();
+    if (console.getOutputFormat() == OutputFormat.JSON) {
+      assertThat(output, is(""
+          + "[ {\n"
+          + "  \"@type\" : \"connector_list\",\n"
+          + "  \"statementText\" : \"statement\",\n"
+          + "  \"warnings\" : [ ],\n"
+          + "  \"connectors\" : [ {\n"
+          + "    \"name\" : \"foo\",\n"
+          + "    \"type\" : \"source\",\n"
+          + "    \"className\" : \"clazz\"\n"
+          + "  }, {\n"
+          + "    \"name\" : \"bar\"\n"
+          + "  } ]\n"
+          + "} ]\n"));
+    } else {
+      assertThat(output, is("\n"
+          + " Connector Name | Type    | Class \n"
+          + "----------------------------------\n"
+          + " foo            | SOURCE  | clazz \n"
+          + " bar            | UNKNOWN |       \n"
+          + "----------------------------------\n"));
     }
   }
 

@@ -17,10 +17,10 @@ package io.confluent.ksql.structured;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.util.SelectExpression;
 import java.util.List;
 import java.util.Set;
 import org.apache.kafka.common.serialization.Serde;

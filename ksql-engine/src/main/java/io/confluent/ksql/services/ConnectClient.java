@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
+import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
 
 /**
  * An interface defining the common operations to communicate with
@@ -49,6 +50,13 @@ public interface ConnectClient {
    * @param config    the connector configuration
    */
   ConnectResponse<ConnectorInfo> create(String connector, Map<String, String> config);
+
+  /**
+   * Get the status of {@code connector}.
+   *
+   * @param connector the name of the connector
+   */
+  ConnectResponse<ConnectorStateInfo> status(String connector);
 
   /**
    * An optionally successful response. Either contains a value of type

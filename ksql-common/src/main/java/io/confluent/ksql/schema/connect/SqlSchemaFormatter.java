@@ -126,7 +126,7 @@ public class SqlSchemaFormatter implements SchemaFormatter {
           + DecimalUtil.scale(schema) + ")";
     }
 
-    throw new KsqlException("Cannot format bytes type: " + schema);
+    return "BYTES";
   }
 
   private final class Converter implements SchemaWalker.Visitor<String, String> {

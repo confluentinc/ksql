@@ -20,6 +20,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -108,8 +109,11 @@ public class AvroUtilTest {
 
   @Test
   public void shouldValidateSchemaEvolutionWithCorrectSubject() throws Exception {
+    // Given:
+    when(srClient.testCompatibility(anyString(), any())).thenReturn(true);
+
     // When:
-    AvroUtil.isValidSchemaEvolution(persistentQuery, srClient);
+    AvroUtil.throwOnInvalidSchemaEvolution(persistentQuery, srClient);
 
     // Then:
     verify(srClient).testCompatibility(eq(RESULT_TOPIC.getKafkaTopicName() + "-value"), any());
@@ -122,9 +126,10 @@ public class AvroUtilTest {
 
     final org.apache.avro.Schema expectedAvroSchema = SchemaUtil
         .buildAvroSchema(schema.valueSchema(), STREAM_NAME);
+    when(srClient.testCompatibility(anyString(), any())).thenReturn(true);
 
     // When:
-    AvroUtil.isValidSchemaEvolution(persistentQuery, srClient);
+    AvroUtil.throwOnInvalidSchemaEvolution(persistentQuery, srClient);
 
     // Then:
     verify(srClient).testCompatibility(any(), eq(expectedAvroSchema));
@@ -137,12 +142,13 @@ public class AvroUtilTest {
         .from(SINGLE_FIELD_SCHEMA, SerdeOption.none());
 
     when(persistentQuery.getPhysicalSchema()).thenReturn(schema);
+    when(srClient.testCompatibility(anyString(), any())).thenReturn(true);
 
     final org.apache.avro.Schema expectedAvroSchema = SchemaUtil
         .buildAvroSchema(schema.valueSchema(), STREAM_NAME);
 
     // When:
-    AvroUtil.isValidSchemaEvolution(persistentQuery, srClient);
+    AvroUtil.throwOnInvalidSchemaEvolution(persistentQuery, srClient);
 
     // Then:
     verify(srClient).testCompatibility(any(), eq(expectedAvroSchema));
@@ -155,27 +161,25 @@ public class AvroUtilTest {
         .from(SINGLE_FIELD_SCHEMA, SerdeOption.of(SerdeOption.UNWRAP_SINGLE_VALUES));
 
     when(persistentQuery.getPhysicalSchema()).thenReturn(schema);
+    when(srClient.testCompatibility(anyString(), any())).thenReturn(true);
 
     final org.apache.avro.Schema expectedAvroSchema = SchemaUtil
         .buildAvroSchema(schema.valueSchema(), STREAM_NAME);
 
     // When:
-    AvroUtil.isValidSchemaEvolution(persistentQuery, srClient);
+    AvroUtil.throwOnInvalidSchemaEvolution(persistentQuery, srClient);
 
     // Then:
     verify(srClient).testCompatibility(any(), eq(expectedAvroSchema));
   }
 
   @Test
-  public void shouldReturnValidEvolution() throws Exception {
+  public void shouldNotThrowInvalidEvolution() throws Exception {
     // Given:
     when(srClient.testCompatibility(any(), any())).thenReturn(true);
 
     // When:
-    final boolean result = AvroUtil.isValidSchemaEvolution(persistentQuery, srClient);
-
-    // Then:
-    assertThat(result, is(true));
+    AvroUtil.throwOnInvalidSchemaEvolution(persistentQuery, srClient);
   }
 
   @Test
@@ -183,24 +187,21 @@ public class AvroUtilTest {
     // Given:
     when(srClient.testCompatibility(any(), any())).thenReturn(false);
 
-    // When:
-    final boolean result = AvroUtil.isValidSchemaEvolution(persistentQuery, srClient);
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Cannot register avro schema for actual-name as the schema is incompatible with the current schema version registered for the topic");
 
-    // Then:
-    assertThat(result, is(false));
+    // When:
+    AvroUtil.throwOnInvalidSchemaEvolution(persistentQuery, srClient);
   }
 
   @Test
-  public void shouldReturnValidEvolutionIfSubjectNotRegistered() throws Exception {
+  public void shouldNotThrowInvalidEvolutionIfSubjectNotRegistered() throws Exception {
     // Given:
     when(srClient.testCompatibility(any(), any()))
         .thenThrow(new RestClientException("Unknown subject", 404, 40401));
 
     // When:
-    final boolean result = AvroUtil.isValidSchemaEvolution(persistentQuery, srClient);
-
-    // Then:
-    assertThat(result, is(true));
+    AvroUtil.throwOnInvalidSchemaEvolution(persistentQuery, srClient);
   }
 
   @Test
@@ -219,7 +220,7 @@ public class AvroUtilTest {
     )));
 
     // When:
-    AvroUtil.isValidSchemaEvolution(persistentQuery, srClient);
+    AvroUtil.throwOnInvalidSchemaEvolution(persistentQuery, srClient);
   }
 
   @Test
@@ -233,7 +234,7 @@ public class AvroUtilTest {
     expectedException.expectMessage("Could not connect to Schema Registry service");
 
     // When:
-    AvroUtil.isValidSchemaEvolution(persistentQuery, srClient);
+    AvroUtil.throwOnInvalidSchemaEvolution(persistentQuery, srClient);
   }
 
   @Test
@@ -247,7 +248,7 @@ public class AvroUtilTest {
     expectedException.expectMessage("Could not check Schema compatibility");
 
     // When:
-    AvroUtil.isValidSchemaEvolution(persistentQuery, srClient);
+    AvroUtil.throwOnInvalidSchemaEvolution(persistentQuery, srClient);
   }
 
   private static LogicalSchema toKsqlSchema(final String avroSchemaString) {

@@ -22,7 +22,7 @@ import java.util.Map;
 import java.util.Optional;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
 
-final class Connectors {
+public final class Connectors {
 
   static final String CONNECTOR_CLASS = "connector.class";
   static final String JDBC_SOURCE_CLASS = "io.confluent.connect.jdbc.JdbcSourceConnector";
@@ -30,7 +30,7 @@ final class Connectors {
   private Connectors() {
   }
 
-  static Optional<Connector> fromConnectInfo(final ConnectorInfo connectorInfo) {
+  public static Optional<Connector> fromConnectInfo(final ConnectorInfo connectorInfo) {
     return fromConnectInfo(connectorInfo.config());
   }
 

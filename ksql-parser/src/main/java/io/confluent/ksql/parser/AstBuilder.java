@@ -55,9 +55,11 @@ import io.confluent.ksql.execution.expression.tree.WhenClause;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.parser.SqlBaseParser.CreateConnectorContext;
+import io.confluent.ksql.parser.SqlBaseParser.DescribeConnectorContext;
 import io.confluent.ksql.parser.SqlBaseParser.InsertValuesContext;
 import io.confluent.ksql.parser.SqlBaseParser.IntervalClauseContext;
 import io.confluent.ksql.parser.SqlBaseParser.LimitClauseContext;
+import io.confluent.ksql.parser.SqlBaseParser.ListConnectorsContext;
 import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
 import io.confluent.ksql.parser.SqlBaseParser.TablePropertiesContext;
 import io.confluent.ksql.parser.SqlBaseParser.TablePropertyContext;
@@ -71,6 +73,7 @@ import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
+import io.confluent.ksql.parser.tree.DescribeConnector;
 import io.confluent.ksql.parser.tree.DescribeFunction;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
@@ -83,6 +86,8 @@ import io.confluent.ksql.parser.tree.InsertValues;
 import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.JoinCriteria;
 import io.confluent.ksql.parser.tree.JoinOn;
+import io.confluent.ksql.parser.tree.ListConnectors;
+import io.confluent.ksql.parser.tree.ListConnectors.Scope;
 import io.confluent.ksql.parser.tree.ListFunctions;
 import io.confluent.ksql.parser.tree.ListProperties;
 import io.confluent.ksql.parser.tree.ListQueries;
@@ -586,6 +591,20 @@ public class AstBuilder {
     }
 
     @Override
+    public Node visitListConnectors(final ListConnectorsContext ctx) {
+      final ListConnectors.Scope scope;
+      if (ctx.SOURCE() != null) {
+        scope = Scope.SOURCE;
+      } else if (ctx.SINK() != null) {
+        scope = Scope.SINK;
+      } else {
+        scope = Scope.ALL;
+      }
+
+      return new ListConnectors(getLocation(ctx), scope);
+    }
+
+    @Override
     public Node visitTerminateQuery(final SqlBaseParser.TerminateQueryContext context) {
       return new TerminateQuery(getLocation(context), context.qualifiedName().getText());
     }
@@ -1085,6 +1104,14 @@ public class AstBuilder {
     @Override
     public Node visitDescribeFunction(final SqlBaseParser.DescribeFunctionContext ctx) {
       return new DescribeFunction(getLocation(ctx), ctx.qualifiedName().getText());
+    }
+
+    @Override
+    public Node visitDescribeConnector(final DescribeConnectorContext ctx) {
+      return new DescribeConnector(
+          getLocation(ctx),
+          ParserUtil.getIdentifierText(ctx.identifier())
+      );
     }
 
     @Override

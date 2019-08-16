@@ -16,11 +16,13 @@
 package io.confluent.ksql.function;
 
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlException;
 import java.lang.reflect.GenericArrayType;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.lang.reflect.TypeVariable;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
@@ -40,6 +42,10 @@ public final class UdfUtil {
       .put(long.class, SchemaBuilder::int64)
       .put(Double.class, () -> SchemaBuilder.float64().optional())
       .put(double.class, SchemaBuilder::float64)
+      // from the UDF perspective, all Decimal schemas are the same (BigDecimal) in Java
+      // so we arbitrarily choose DECIMAL(1,0). if we migrate to use a type system dedicated
+      // for UDFs, we can update this to be a "generic decimal"
+      .put(BigDecimal.class, () -> DecimalUtil.builder(1, 0).optional())
       .build();
 
   private UdfUtil() {
@@ -93,7 +99,9 @@ public final class UdfUtil {
       schema = GenericsUtil.generic(((TypeVariable) type).getName());
     } else {
       schema = typeToSchema.getOrDefault(type, () -> handleParametrizedType(type)).get();
-      schema.name(name);
+      if (schema.name() == null) {
+        schema.name(name);
+      }
     }
 
     schema.doc(doc);

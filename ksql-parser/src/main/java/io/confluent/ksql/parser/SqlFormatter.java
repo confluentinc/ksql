@@ -18,6 +18,7 @@ package io.confluent.ksql.parser;
 import static com.google.common.collect.Iterables.getOnlyElement;
 
 import com.google.common.base.Strings;
+import io.confluent.ksql.execution.expression.formatter.ExpressionFormatter;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AllColumns;
@@ -39,6 +40,8 @@ import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.JoinCriteria;
 import io.confluent.ksql.parser.tree.JoinOn;
 import io.confluent.ksql.parser.tree.ListFunctions;
+import io.confluent.ksql.parser.tree.ListStreams;
+import io.confluent.ksql.parser.tree.ListTables;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Relation;
 import io.confluent.ksql.parser.tree.Select;
@@ -48,6 +51,7 @@ import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TableElement.Namespace;
+import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.util.ParserUtil;
 import java.util.List;
 import java.util.Optional;
@@ -322,6 +326,35 @@ public final class SqlFormatter {
       return null;
     }
 
+    @Override
+    protected Void visitTerminateQuery(final TerminateQuery node, final Integer context) {
+      builder.append("TERMINATE ");
+      builder.append(node.getQueryId().getId());
+      return null;
+    }
+
+    @Override
+    protected Void visitListStreams(final ListStreams node, final Integer context) {
+      builder.append("SHOW STREAMS");
+      if (node.getShowExtended()) {
+        visitExtended();
+      }
+      return null;
+    }
+
+    @Override
+    protected Void visitListTables(final ListTables node, final Integer context) {
+      builder.append("SHOW TABLES");
+      if (node.getShowExtended()) {
+        visitExtended();
+      }
+      return null;
+    }
+
+    private void visitExtended() {
+      builder.append(" EXTENDED");
+    }
+
     private void visitDrop(final DropStatement node, final String sourceType) {
       builder.append("DROP ");
       builder.append(sourceType);
@@ -416,7 +449,8 @@ public final class SqlFormatter {
     private static String formatTableElement(final TableElement e) {
       return ParserUtil.escapeIfReservedIdentifier(e.getName())
           + " "
-          + e.getType()
+          + ExpressionFormatter.formatExpression(
+              e.getType(), true, ParserUtil::isReservedIdentifier)
           + (e.getNamespace() == Namespace.KEY ? " KEY" : "");
     }
   }

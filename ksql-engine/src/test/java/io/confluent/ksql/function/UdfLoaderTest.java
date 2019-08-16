@@ -21,6 +21,7 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalToIgnoringCase;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
@@ -34,6 +35,7 @@ import io.confluent.ksql.function.udf.PluggableUdf;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
+import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.io.File;
@@ -131,6 +133,19 @@ public class UdfLoaderTest {
         new Struct(schema).put("A", 1).put("B", 2)
         ),
         equalTo(new Struct(schema).put("A", 1).put("B", 2)));
+  }
+
+  @Test
+  public void shouldLoadDecimalUdfs() {
+    // Given:
+    final Schema schema = DecimalUtil.builder(2, 1).optional().build();
+
+    // When:
+    final KsqlFunction fun = FUNC_REG.getUdfFactory("floor")
+        .getFunction(ImmutableList.of(schema));
+
+    // Then:
+    assertThat(fun.getFunctionName(), equalToIgnoringCase("floor"));
   }
 
   @Test

@@ -402,7 +402,7 @@ The WITH clause supports the following properties:
 | WINDOW_TYPE             | By default, the topic is assumed to contain non-windowed data. If the data is windowed,    |
 |                         | i.e., was created using KSQL using a query that contains a ``WINDOW`` clause, then the     |
 |                         | ``WINDOW_TYPE`` property can be used to provide the window type. Valid values are          |
-|                         | ``SESSION``, ``HOPPING`, and ``TUMBLING``.                                                 |
+|                         | ``SESSION``, ``HOPPING``, and ``TUMBLING``.                                                |
 +-------------------------+--------------------------------------------------------------------------------------------+
 | WINDOW_SIZE             | By default, the topic is assumed to contain non-windowed data. If the data is windowed,    |
 |                         | i.e., was created using KSQL using a query that contains a ``WINDOW`` clause, and the      |
@@ -523,7 +523,7 @@ The WITH clause supports the following properties:
 | WINDOW_TYPE             | By default, the topic is assumed to contain non-windowed data. If the data is windowed,    |
 |                         | i.e. was created using KSQL using a query that contains a ``WINDOW`` clause, then the      |
 |                         | ``WINDOW_TYPE`` property can be used to provide the window type. Valid values are          |
-|                         | ``SESSION``, ``HOPPING`, and ``TUMBLING``.                                                 |
+|                         | ``SESSION``, ``HOPPING``, and ``TUMBLING``.                                                |
 +-------------------------+--------------------------------------------------------------------------------------------+
 | WINDOW_SIZE             | By default, the topic is assumed to contain non-windowed data. If the data is windowed,    |
 |                         | i.e., was created using KSQL using a query that contains a ``WINDOW`` clause, and the      |
@@ -1628,6 +1628,10 @@ Scalar functions
 |                        |                                                                           | VARCHAR values are supported for the input. The   |
 |                        |                                                                           | return value must be a VARCHAR.                   |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| INITCAP                |  ``INITCAP(col1)``                                                        | Capitalize the first letter in each word and      |
+|                        |                                                                           | convert all other letters to lowercase. Words are |
+|                        |                                                                           | delimited by whitespace.                          |
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | LCASE                  |  ``LCASE(col1)``                                                          | Convert a string to lowercase.                    |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | LEN                    |  ``LEN(col1)``                                                            | The length of a string.                           |
@@ -1675,7 +1679,16 @@ Scalar functions
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | RANDOM                 |  ``RANDOM()``                                                             | Return a random DOUBLE value between 0.0 and 1.0. |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| REPLACE                |  ``REPLACE(col1, 'foo', 'bar')``                                          | Replace all instances of a substring in a string  |
+|                        |                                                                           | with a new string.                                |
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | ROUND                  |  ``ROUND(col1)``                                                          | Round a value to the nearest BIGINT value.        |
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| SIGN                   |  ``SIGN(col1)``                                                           | The sign of a numeric value as an INTEGER:        |
+|                        |                                                                           | * -1 if the argument is negative                  |
+|                        |                                                                           | * 0 if the argument is zero                       |
+|                        |                                                                           | * 1 if the argument is positive                   |
+|                        |                                                                           | * ``null`` argument is null                       |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | SQRT                   |  ``SQRT(col1)``                                                           | The square root of a value.                       |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+

@@ -595,7 +595,7 @@ public class KsqlEngineTest {
     final Map<String, Object> overriddenProperties = new HashMap<>();
 
     KsqlEngineTestUtil.execute(ksqlEngine,
-        "SET 'auto.offset.reset' = 'earliest';",
+        "SET 'auto.offset.reset'='earliest';",
         KSQL_CONFIG, overriddenProperties);
 
     assertThat(overriddenProperties.get("auto.offset.reset"), equalTo("earliest"));

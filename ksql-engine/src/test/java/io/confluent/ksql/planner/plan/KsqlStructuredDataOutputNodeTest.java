@@ -33,7 +33,7 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlTopic;
-import io.confluent.ksql.physical.KsqlQueryBuilder;
+import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode.SinkFactory;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -42,11 +42,11 @@ import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
-import io.confluent.ksql.structured.QueryContext;
+import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.QueryIdGenerator;
-import io.confluent.ksql.util.QueryLoggerUtil;
+import io.confluent.ksql.execution.context.QueryLoggerUtil;
 import io.confluent.ksql.util.timestamp.LongColumnTimestampExtractionPolicy;
 import java.util.Optional;
 import java.util.OptionalInt;
@@ -110,8 +110,6 @@ public class KsqlStructuredDataOutputNodeTest {
   @Mock
   private KStream<String, GenericRow> kstream;
   @Mock
-  private SinkFactory<String> sinkFactory;
-  @Mock
   private KsqlTopic ksqlTopic;
   @Mock
   private Serde<GenericRow> rowSerde;
@@ -137,18 +135,14 @@ public class KsqlStructuredDataOutputNodeTest {
     when(sourceNode.getNodeOutputType()).thenReturn(DataSourceType.KSTREAM);
     when(sourceNode.buildStream(ksqlStreamBuilder)).thenReturn((SchemaKStream) sourceStream);
 
-    when(sourceStream.getSchema()).thenReturn(SCHEMA.withMetaAndKeyFieldsInValue());
     when(sourceStream.getKeyField()).thenReturn(KeyField.none());
-    when(sourceStream.getKstream()).thenReturn((KStream) kstream);
 
-    when(sinkFactory.create(any(), any(), any(), any(), any(), any(), any(), any(), any()))
+    when(sourceStream.sink(any(), any()))
         .thenReturn(resultStream);
 
     when(resultStream.selectKey(any(), anyBoolean(), any()))
         .thenReturn((SchemaKStream) resultWithKeySelected);
 
-    when(ksqlStreamBuilder.getKsqlConfig()).thenReturn(ksqlConfig);
-    when(ksqlStreamBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
     when(ksqlStreamBuilder.buildValueSerde(any(), any(), any())).thenReturn(rowSerde);
     when(ksqlStreamBuilder.buildNodeContext(any())).thenAnswer(inv ->
         new QueryContext.Stacker(QUERY_ID)
@@ -208,13 +202,12 @@ public class KsqlStructuredDataOutputNodeTest {
     outputNode.buildStream(ksqlStreamBuilder);
 
     // Then:
-    final InOrder inOrder = Mockito.inOrder(sourceNode, sinkFactory);
+    final InOrder inOrder = Mockito.inOrder(sourceNode, sourceStream);
 
     inOrder.verify(sourceNode)
         .buildStream(any());
 
-    inOrder.verify(sinkFactory)
-        .create(any(), any(), any(), any(), any(), any(), any(), any(), any());
+    inOrder.verify(sourceStream).sink(any(), any());
   }
 
   @Test
@@ -223,16 +216,9 @@ public class KsqlStructuredDataOutputNodeTest {
     outputNode.buildStream(ksqlStreamBuilder);
 
     // Then:
-    verify(sinkFactory).create(
-        sourceStream.getKstream(),
-        sourceStream.getSchema(),
-        sourceStream.getKeySerde(),
+    verify(sourceStream).sink(
         KEY_FIELD.withName(Optional.empty()),
-        ImmutableList.of(sourceStream),
-        SchemaKStream.Type.SINK,
-        ksqlConfig,
-        functionRegistry,
-        new QueryContext.Stacker(QUERY_ID).push(PLAN_NODE_ID.toString()).getQueryContext()
+        new QueryContext.Stacker(QUERY_ID).push(PLAN_NODE_ID.toString())
     );
   }
 
@@ -445,8 +431,7 @@ public class KsqlStructuredDataOutputNodeTest {
         partitionBy,
         OptionalInt.empty(),
         createInto,
-        SerdeOption.none(),
-        sinkFactory
+        SerdeOption.none()
     );
   }
 }

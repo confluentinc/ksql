@@ -15,7 +15,7 @@
 
 package io.confluent.ksql.streams;
 
-import io.confluent.ksql.structured.QueryContext;
+import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Objects;
 

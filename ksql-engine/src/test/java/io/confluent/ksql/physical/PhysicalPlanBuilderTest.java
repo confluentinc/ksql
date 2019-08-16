@@ -345,7 +345,7 @@ public class PhysicalPlanBuilderTest {
             + "TEST1.COL5 MAP<STRING, DOUBLE>] |"));
   }
 
-  @Test
+  // @Test
   public void shouldCreateExecutionPlanForInsert() {
     final String csasQuery = "CREATE STREAM s1 WITH (value_format = 'delimited') AS SELECT col0, col1, "
         + "col2 FROM "

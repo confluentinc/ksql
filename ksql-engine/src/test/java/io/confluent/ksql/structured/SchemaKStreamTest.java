@@ -23,6 +23,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -33,6 +34,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.InternalFunctionRegistry;
@@ -85,20 +87,27 @@ import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.StreamsBuilder;
+import org.apache.kafka.streams.kstream.Aggregator;
 import org.apache.kafka.streams.kstream.Consumed;
 import org.apache.kafka.streams.kstream.Grouped;
+import org.apache.kafka.streams.kstream.Initializer;
 import org.apache.kafka.streams.kstream.JoinWindows;
 import org.apache.kafka.streams.kstream.Joined;
 import org.apache.kafka.streams.kstream.KGroupedStream;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.KeyValueMapper;
+import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.kstream.Predicate;
+import org.apache.kafka.streams.kstream.ValueMapper;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @SuppressWarnings({"unchecked", "OptionalGetWithoutIsPresent"})
@@ -150,6 +159,10 @@ public class SchemaKStreamTest {
   @Mock
   private JoinedFactory mockJoinedFactory;
   @Mock
+  private MaterializedFactory mockMaterializedFactory;
+  @Mock
+  private Materialized mockMaterialized;
+  @Mock
   private KStream mockKStream;
   @Mock
   private KeySerde keySerde;
@@ -172,6 +185,7 @@ public class SchemaKStreamTest {
 
     when(mockGroupedFactory.create(anyString(), any(Serde.class), any(Serde.class)))
         .thenReturn(grouped);
+    when(mockMaterializedFactory.create(any(), any(), anyString())).thenReturn(mockMaterialized);
 
     final KsqlStream secondKsqlStream = (KsqlStream) metaStore.getSource("ORDERS");
     final KStream secondKStream = builder
@@ -561,6 +575,73 @@ public class SchemaKStreamTest {
     verify(mockKStream).groupBy(any(KeyValueMapper.class), same(grouped));
   }
 
+  @Test
+  public void shouldConvertToTableWithCorrectProperties() {
+    // Given:
+    givenInitialSchemaKStreamUsesMocks();
+    when(mockKStream.mapValues(any(ValueMapper.class))).thenReturn(mockKStream);
+    final KGroupedStream groupedStream = mock(KGroupedStream.class);
+    final KTable table = mock(KTable.class);
+    when(mockKStream.groupByKey()).thenReturn(groupedStream);
+    when(groupedStream.aggregate(any(), any(), any())).thenReturn(table);
+
+    // When:
+    final SchemaKTable result = initialSchemaKStream.toTable(leftSerde, childContextStacker);
+
+    // Then:
+    assertThat(result.getSchema(), is(initialSchemaKStream.getSchema()));
+    assertThat(result.getKeyField(), is(initialSchemaKStream.getKeyField()));
+    assertThat(result.getKeySerde(), is(initialSchemaKStream.getKeySerde()));
+    assertThat(result.getKtable(), is(table));
+  }
+
+  @Test
+  public void shouldConvertToOptionalBeforeGroupingInToTable() {
+    // Given:
+    givenInitialSchemaKStreamUsesMocks();
+    when(mockKStream.mapValues(any(ValueMapper.class))).thenReturn(mockKStream);
+    final KGroupedStream groupedStream = mock(KGroupedStream.class);
+    final KTable table = mock(KTable.class);
+    when(mockKStream.groupByKey()).thenReturn(groupedStream);
+    when(groupedStream.aggregate(any(), any(), any())).thenReturn(table);
+
+    // When:
+    initialSchemaKStream.toTable(leftSerde, childContextStacker);
+
+    // Then:
+    InOrder inOrder = Mockito.inOrder(mockKStream);
+    final ArgumentCaptor<ValueMapper> captor = ArgumentCaptor.forClass(ValueMapper.class);
+    inOrder.verify(mockKStream).mapValues(captor.capture());
+    inOrder.verify(mockKStream).groupByKey();
+    assertThat(captor.getValue().apply(null), equalTo(Optional.empty()));
+    final GenericRow nonNull = new GenericRow(1, 2, 3);
+    assertThat(captor.getValue().apply(nonNull), equalTo(Optional.of(nonNull)));
+  }
+
+  @Test
+  public void shouldComputeAggregateCorrectlyInToTable() {
+    // Given:
+    givenInitialSchemaKStreamUsesMocks();
+    when(mockKStream.mapValues(any(ValueMapper.class))).thenReturn(mockKStream);
+    final KGroupedStream groupedStream = mock(KGroupedStream.class);
+    final KTable table = mock(KTable.class);
+    when(mockKStream.groupByKey()).thenReturn(groupedStream);
+    when(groupedStream.aggregate(any(), any(), any())).thenReturn(table);
+
+    // When:
+    initialSchemaKStream.toTable(leftSerde, childContextStacker);
+
+    // Then:
+    final ArgumentCaptor<Initializer> initCaptor = ArgumentCaptor.forClass(Initializer.class);
+    final ArgumentCaptor<Aggregator> captor = ArgumentCaptor.forClass(Aggregator.class);
+    verify(groupedStream)
+        .aggregate(initCaptor.capture(), captor.capture(), same(mockMaterialized));
+    assertThat(initCaptor.getValue().apply(), is(nullValue()));
+    assertThat(captor.getValue().apply(null, Optional.empty(), null), is(nullValue()));
+    final GenericRow nonNull = new GenericRow(1, 2, 3);
+    assertThat(captor.getValue().apply(null, Optional.of(nonNull), null), is(nonNull));
+  }
+
   @SuppressWarnings("unchecked")
   @Test
   public void shouldPerformStreamToStreamLeftJoin() {
@@ -880,7 +961,7 @@ public class SchemaKStreamTest {
         schema,
         keyFieldWithAlias,
         mockKStream,
-        new StreamsFactories(mockGroupedFactory, mockJoinedFactory, mock(MaterializedFactory.class))
+        new StreamsFactories(mockGroupedFactory, mockJoinedFactory, mockMaterializedFactory)
     );
   }
 

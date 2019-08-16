@@ -17,12 +17,13 @@ package io.confluent.ksql.planner.plan;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
+import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KeyField.LegacyField;
 import io.confluent.ksql.parser.tree.WithinExpression;
-import io.confluent.ksql.physical.KsqlQueryBuilder;
 import io.confluent.ksql.schema.ksql.Field;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
@@ -30,7 +31,6 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.KafkaTopicClient;
-import io.confluent.ksql.structured.QueryContext;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.KsqlException;
@@ -127,7 +127,7 @@ public class JoinNode extends PlanNode {
     final JoinerFactory joinerFactory = new JoinerFactory(
         builder,
         this,
-        builder.buildNodeContext(getId()));
+        builder.buildNodeContext(getId().toString()));
 
     return joinerFactory.getJoiner(left.getDataSourceType(), right.getDataSourceType()).join();
   }

@@ -35,6 +35,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.InternalFunctionRegistry;

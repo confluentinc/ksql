@@ -30,11 +30,11 @@ import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
-import io.confluent.ksql.physical.KsqlQueryBuilder;
+import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.schema.ksql.Field;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.structured.QueryContext.Stacker;
+import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.execution.plan.SelectExpression;
@@ -82,7 +82,7 @@ public class ProjectNodeTest {
     when(source.buildStream(any())).thenReturn((SchemaKStream) stream);
     when(source.getNodeOutputType()).thenReturn(DataSourceType.KSTREAM);
     when(ksqlStreamBuilder.getProcessingLogContext()).thenReturn(processingLogContext);
-    when(ksqlStreamBuilder.buildNodeContext(NODE_ID)).thenReturn(stacker);
+    when(ksqlStreamBuilder.buildNodeContext(NODE_ID.toString())).thenReturn(stacker);
     when(stream.select(anyList(), any(), any())).thenReturn((SchemaKStream) stream);
 
     projectNode = new ProjectNode(

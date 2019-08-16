@@ -22,6 +22,7 @@ import io.confluent.ksql.schema.connect.SqlSchemaFormatter;
 import io.confluent.ksql.schema.connect.SqlSchemaFormatter.Option;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -45,13 +46,13 @@ public final class QuerySchemas {
   private final LinkedHashMap<String, PersistenceSchema> schemas;
   private final SchemaFormatter schemaFormatter;
 
-  public static QuerySchemas of(final LinkedHashMap<String, PersistenceSchema> schemas) {
+  public static QuerySchemas of(final Map<String, PersistenceSchema> schemas) {
     return new QuerySchemas(schemas, FORMATTER);
   }
 
   @VisibleForTesting
   QuerySchemas(
-      final LinkedHashMap<String, PersistenceSchema> schemas,
+      final Map<String, PersistenceSchema> schemas,
       final SchemaFormatter schemaFormatter
   ) {
     this.schemas = new LinkedHashMap<>(Objects.requireNonNull(schemas, "schemas"));

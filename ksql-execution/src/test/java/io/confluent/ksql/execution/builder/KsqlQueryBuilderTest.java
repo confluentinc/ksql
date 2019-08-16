@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.physical;
+package io.confluent.ksql.execution.builder;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -28,9 +28,11 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.model.WindowType;
-import io.confluent.ksql.planner.plan.PlanNodeId;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.schema.connect.SqlSchemaFormatter;
+import io.confluent.ksql.schema.connect.SqlSchemaFormatter.Option;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
@@ -40,13 +42,14 @@ import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueSerdeFactory;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.structured.QueryContext;
-import io.confluent.ksql.structured.QueryContext.Stacker;
+import io.confluent.ksql.execution.context.QueryContext;
+import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.QueryLoggerUtil;
+import io.confluent.ksql.execution.context.QueryLoggerUtil;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -145,11 +148,8 @@ public class KsqlQueryBuilderTest {
 
   @Test
   public void shouldBuildNodeContext() {
-    // Given:
-    final PlanNodeId planNodeId = new PlanNodeId("some-id");
-
     // When:
-    final Stacker result = ksqlQueryBuilder.buildNodeContext(planNodeId);
+    final Stacker result = ksqlQueryBuilder.buildNodeContext("some-id");
 
     // Then:
     assertThat(result, is(new Stacker(QUERY_ID).push("some-id")));
@@ -240,7 +240,8 @@ public class KsqlQueryBuilderTest {
     );
 
     // Then:
-    assertThat(ksqlQueryBuilder.getSchemas().toString(),
+    assertThat(
+        formatSchemas(),
         is("fred.context = STRUCT<f0 BOOLEAN> NOT NULL"));
   }
 
@@ -260,7 +261,14 @@ public class KsqlQueryBuilderTest {
     );
 
     // Then:
-    assertThat(ksqlQueryBuilder.getSchemas().toString(),
-        is("fred.context = BOOLEAN"));
+    assertThat(formatSchemas(), is("fred.context = BOOLEAN"));
+  }
+
+  private String formatSchemas() {
+    final SqlSchemaFormatter formatter
+        = new SqlSchemaFormatter(word -> false, Option.APPEND_NOT_NULL);
+    return ksqlQueryBuilder.getSchemas().entrySet().stream()
+        .map(e -> e.getKey() + " = " + formatter.format(e.getValue().serializedSchema()))
+        .collect(Collectors.joining(System.lineSeparator()));
   }
 }

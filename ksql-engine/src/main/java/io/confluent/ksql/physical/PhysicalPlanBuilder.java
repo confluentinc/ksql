@@ -18,6 +18,7 @@ package io.confluent.ksql.physical;
 import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 
 import io.confluent.ksql.errors.ProductionExceptionHandlerUtil;
+import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
@@ -167,7 +168,7 @@ public class PhysicalPlanBuilder {
           getServiceId(),
           persistanceQueryPrefix,
           queryId,
-          ksqlQueryBuilder.getSchemas()
+          QuerySchemas.of(ksqlQueryBuilder.getSchemas())
       );
     }
 

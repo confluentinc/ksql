@@ -22,6 +22,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.assertThat;
 
 import com.google.common.collect.ImmutableSet;
+import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.query.QueryId;
 import org.junit.Test;
 

@@ -83,8 +83,7 @@ public interface KafkaTopicClient {
    * {@code replicationFactor}
    *
    * @param topic             name of the topic to create
-   * @param replicationFactor the replication factor for the new topic, or
-   *                          {@link io.confluent.ksql.topic.TopicProperties#DEFAULT_REPLICAS}
+   * @param replicationFactor the replication factor for the new topic, or (TODO(rohan): fixme)
    *                          to use the default replication of the cluster
    * @param numPartitions     the partition count of the topic.
    * @param configs           any additional topic configs to use

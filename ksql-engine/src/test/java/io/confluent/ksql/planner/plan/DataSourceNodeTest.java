@@ -28,11 +28,15 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.plan.LogicalSchemaWithMetaAndKeyFields;
+import io.confluent.ksql.execution.plan.StreamSource;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KeyField;
@@ -40,7 +44,7 @@ import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.model.WindowType;
-import io.confluent.ksql.physical.KsqlQueryBuilder;
+import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
@@ -52,11 +56,11 @@ import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.streams.MaterializedFactory;
-import io.confluent.ksql.structured.QueryContext;
+import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.QueryLoggerUtil;
+import io.confluent.ksql.execution.context.QueryLoggerUtil;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.timestamp.LongColumnTimestampExtractionPolicy;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
@@ -76,6 +80,7 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.Topology;
+import org.apache.kafka.streams.Topology.AutoOffsetReset;
 import org.apache.kafka.streams.TopologyDescription;
 import org.apache.kafka.streams.kstream.KGroupedStream;
 import org.apache.kafka.streams.kstream.KStream;
@@ -110,6 +115,8 @@ public class DataSourceNodeTest {
       .field(TIMESTAMP_FIELD, Schema.OPTIONAL_INT64_SCHEMA)
       .field("key", Schema.OPTIONAL_STRING_SCHEMA)
       .build());
+  private static final KeyField KEY_FIELD
+      = KeyField.of("field1", REAL_SCHEMA.findValueField("field1").get());
 
   private static final PhysicalSchema PHYSICAL_SCHEMA = PhysicalSchema
       .from(REAL_SCHEMA.withoutMetaAndKeyFieldsInValue(), SerdeOption.none());
@@ -132,7 +139,8 @@ public class DataSourceNodeTest {
   private final DataSourceNode node = new DataSourceNode(
       PLAN_NODE_ID,
       SOME_SOURCE,
-      SOME_SOURCE.getName());
+      SOME_SOURCE.getName()
+  );
 
   private final QueryId queryId = new QueryId("source-test");
 
@@ -158,17 +166,21 @@ public class DataSourceNodeTest {
   @Mock
   private KTable kTable;
   @Mock
-  private Function<KsqlConfig, MaterializedFactory> materializedFactorySupplier;
-  @Mock
-  private MaterializedFactory materializedFactory;
-  @Mock
-  private Materialized materialized;
-  @Mock
   private KsqlQueryBuilder ksqlStreamBuilder;
   @Mock
   private FunctionRegistry functionRegistry;
+  @Mock
+  private DataSourceNode.SchemaKStreamFactory schemaKStreamFactory;
+  @Mock
+  private Optional<AutoOffsetReset> offsetReset;
   @Captor
   private ArgumentCaptor<QueryContext> queryContextCaptor;
+  @Captor
+  private ArgumentCaptor<QueryContext.Stacker> stackerCaptor;
+  @Mock
+  private SchemaKStream stream;
+  @Mock
+  private SchemaKTable table;
 
   private final Set<SerdeOption> serdeOptions = SerdeOption.none();
 
@@ -187,6 +199,7 @@ public class DataSourceNodeTest {
     when(ksqlStreamBuilder.buildKeySerde(any(), any(), any(), any())).thenReturn((KeySerde)keySerde);
     when(ksqlStreamBuilder.buildValueSerde(any(), any(), any())).thenReturn(rowSerde);
     when(ksqlStreamBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
+    when(ksqlStreamBuilder.getAutoOffsetReset()).thenReturn(offsetReset);
 
     when(rowSerde.serializer()).thenReturn(mock(Serializer.class));
     when(rowSerde.deserializer()).thenReturn(mock(Deserializer.class));
@@ -205,25 +218,8 @@ public class DataSourceNodeTest {
     when(kStream.mapValues(any(ValueMapper.class))).thenReturn(kStream);
     when(kStream.groupByKey()).thenReturn(kGroupedStream);
     when(kGroupedStream.aggregate(any(), any(), any())).thenReturn(kTable);
-    when(materializedFactorySupplier.apply(any(KsqlConfig.class)))
-        .thenReturn(materializedFactory);
-    when(materializedFactory.create(any(Serde.class), any(Serde.class), anyString()))
-        .thenReturn(materialized);
-  }
-
-  @Test
-  @SuppressWarnings("unchecked")
-  public void shouldMaterializeTableCorrectly() {
-    // Given:
-    final DataSourceNode node = nodeWithMockTableSource();
-
-    // When:
-    node.buildStream(ksqlStreamBuilder);
-
-    // Then:
-    verify(materializedFactorySupplier).apply(realConfig);
-    verify(materializedFactory).create(keySerde, rowSerde, "source-reduce");
-    verify(kGroupedStream).aggregate(any(), any(), same(materialized));
+    when(schemaKStreamFactory.create(any(), any(), any(), any(), any(), any())).thenReturn(stream);
+    when(stream.toTable(any(), any())).thenReturn(table);
   }
 
   @Test
@@ -458,7 +454,120 @@ public class DataSourceNodeTest {
     return new DataSourceNode(
         realNodeId,
         dataSource,
-        "t",
-        materializedFactorySupplier);
+        "t"
+    );
+  }
+
+  private DataSourceNode buildNodeWithMockSource() {
+    when(dataSource.getSchema()).thenReturn(REAL_SCHEMA);
+    when(dataSource.getKeyField()).thenReturn(KEY_FIELD);
+    return new DataSourceNode(
+        PLAN_NODE_ID,
+        dataSource,
+        "name",
+        schemaKStreamFactory
+    );
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  public void shouldBuildSourceStreamWithCorrectParams() {
+    // Given:
+    when(dataSource.getDataSourceType()).thenReturn(DataSourceType.KSTREAM);
+    final DataSourceNode node = buildNodeWithMockSource();
+
+    // When:
+    final SchemaKStream returned = node.buildStream(ksqlStreamBuilder);
+
+    // Then:
+    assertThat(returned, is(stream));
+    verify(schemaKStreamFactory).create(
+        same(ksqlStreamBuilder),
+        same(dataSource),
+        eq(StreamSource.getSchemaWithMetaAndKeyFields("name", REAL_SCHEMA)),
+        queryContextCaptor.capture(),
+        same(offsetReset),
+        same(node.getKeyField())
+    );
+    assertThat(
+        queryContextCaptor.getValue().getContext(),
+        equalTo(ImmutableList.of("0", "source"))
+    );
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  public void shouldBuildSourceStreamWithCorrectParamsWhenBuildingTable() {
+    // Given:
+    final DataSourceNode node = buildNodeWithMockSource();
+
+    // When:
+    node.buildStream(ksqlStreamBuilder);
+
+    // Then:
+    verify(schemaKStreamFactory).create(
+        same(ksqlStreamBuilder),
+        same(dataSource),
+        eq(StreamSource.getSchemaWithMetaAndKeyFields("name", REAL_SCHEMA)),
+        queryContextCaptor.capture(),
+        same(offsetReset),
+        same(node.getKeyField())
+    );
+    assertThat(
+        queryContextCaptor.getValue().getContext(),
+        equalTo(ImmutableList.of("0", "source"))
+    );
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  public void shouldBuildTableByConvertingFromStream() {
+    // Given:
+    final DataSourceNode node = buildNodeWithMockSource();
+
+    // When:
+    final SchemaKStream returned = node.buildStream(ksqlStreamBuilder);
+
+    // Then:
+    verify(stream).toTable(any(), any());
+    assertThat(returned, is(table));
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  public void shouldBuildReduceSerdeCorrectlyWhenBuildingTable() {
+    // Given:
+    final DataSourceNode node = buildNodeWithMockSource();
+
+    // When:
+    node.buildStream(ksqlStreamBuilder);
+
+    // Then:
+    verify(ksqlStreamBuilder).buildValueSerde(
+        eq(FormatInfo.of(Format.JSON)),
+        eq(PhysicalSchema.from(node.getSchema(), SerdeOption.none())),
+        queryContextCaptor.capture()
+    );
+    assertThat(
+        queryContextCaptor.getValue().getContext(),
+        equalTo(ImmutableList.of("0", "reduce"))
+    );
+    verify(stream).toTable(same(rowSerde), any());
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  public void shouldBuildTableWithCorrectContext() {
+    // Given:
+    final DataSourceNode node = buildNodeWithMockSource();
+
+    // When:
+    node.buildStream(ksqlStreamBuilder);
+
+    // Then:
+    verify(stream).toTable(any(), stackerCaptor.capture());
+    assertThat(
+        stackerCaptor.getValue().getQueryContext().getContext(),
+        equalTo(ImmutableList.of("0", "reduce")));
   }
 }

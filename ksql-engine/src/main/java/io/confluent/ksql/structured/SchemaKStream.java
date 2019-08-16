@@ -20,15 +20,22 @@ import static java.util.Objects.requireNonNull;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.codegen.CodeGenRunner;
+import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
+import io.confluent.ksql.execution.context.QueryContext;
+import io.confluent.ksql.execution.context.QueryLoggerUtil;
 import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
+import io.confluent.ksql.execution.plan.LogicalSchemaWithMetaAndKeyFields;
 import io.confluent.ksql.execution.plan.SelectExpression;
+import io.confluent.ksql.execution.plan.StreamSource;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
+import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KeyField.LegacyField;
+import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.schema.ksql.Field;
 import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -38,8 +45,8 @@ import io.confluent.ksql.streams.StreamsFactories;
 import io.confluent.ksql.streams.StreamsUtil;
 import io.confluent.ksql.util.ExpressionMetadata;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.ParserUtil;
-import io.confluent.ksql.util.QueryLoggerUtil;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -51,15 +58,21 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.apache.kafka.common.serialization.Serde;
+import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
+import org.apache.kafka.streams.Topology.AutoOffsetReset;
 import org.apache.kafka.streams.kstream.Grouped;
 import org.apache.kafka.streams.kstream.JoinWindows;
 import org.apache.kafka.streams.kstream.KGroupedStream;
 import org.apache.kafka.streams.kstream.KStream;
+import org.apache.kafka.streams.kstream.KTable;
+import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.kstream.Produced;
 import org.apache.kafka.streams.kstream.ValueJoiner;
+import org.apache.kafka.streams.kstream.Windowed;
+import org.apache.kafka.streams.state.KeyValueStore;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
@@ -82,7 +95,62 @@ public class SchemaKStream<K> {
   final StreamsFactories streamsFactories;
   private final QueryContext queryContext;
 
-  public SchemaKStream(
+  private static <K> SchemaKStream<K> forSource(
+      final KsqlQueryBuilder builder,
+      final StreamSource<K> streamSource,
+      final KeyField keyField,
+      final QueryContext queryContext) {
+    final Pair<KeySerde<K>, KStream<K, GenericRow>> kstream = streamSource.buildWithSerde(builder);
+    return new SchemaKStream<>(
+        kstream.right,
+        streamSource.getProperties().getSchema(),
+        kstream.left,
+        keyField,
+        ImmutableList.of(),
+        SchemaKStream.Type.SOURCE,
+        builder.getKsqlConfig(),
+        builder.getFunctionRegistry(),
+        queryContext
+    );
+  }
+
+  public static SchemaKStream<?> forSource(
+      final KsqlQueryBuilder builder,
+      final DataSource<?> dataSource,
+      final LogicalSchemaWithMetaAndKeyFields schemaWithMetaAndKeyFields,
+      final QueryContext queryContext,
+      final Optional<AutoOffsetReset> offsetReset,
+      final KeyField keyField
+  ) {
+    final KsqlTopic topic = dataSource.getKsqlTopic();
+    if (topic.getKeyFormat().isWindowed()) {
+      final StreamSource<Windowed<Struct>>  step = StreamSource.createWindowed(
+          queryContext,
+          schemaWithMetaAndKeyFields,
+          topic.getKafkaTopicName(),
+          topic.getKeyFormat(),
+          topic.getValueFormat(),
+          dataSource.getSerdeOptions(),
+          dataSource.getTimestampExtractionPolicy(),
+          offsetReset
+      );
+      return forSource(builder, step, keyField, queryContext);
+    } else {
+      final StreamSource<Struct> step = StreamSource.createNonWindowed(
+          queryContext,
+          schemaWithMetaAndKeyFields,
+          topic.getKafkaTopicName(),
+          topic.getKeyFormat(),
+          topic.getValueFormat(),
+          dataSource.getSerdeOptions(),
+          dataSource.getTimestampExtractionPolicy(),
+          offsetReset
+      );
+      return forSource(builder, step, keyField, queryContext);
+    }
+  }
+
+  protected SchemaKStream(
       final KStream<K, GenericRow> kstream,
       final LogicalSchema schema,
       final KeySerde<K> keySerde,
@@ -128,6 +196,61 @@ public class SchemaKStream<K> {
     this.functionRegistry = requireNonNull(functionRegistry, "functionRegistry");
     this.streamsFactories = requireNonNull(streamsFactories);
     this.queryContext = requireNonNull(queryContext);
+  }
+
+  public SchemaKTable<K> toTable(
+      final Serde<GenericRow> valueSerde,
+      final QueryContext.Stacker contextStacker
+  ) {
+    final Materialized<K, GenericRow, KeyValueStore<Bytes, byte[]>> materialized =
+        streamsFactories.getMaterializedFactory().create(
+            keySerde,
+            valueSerde,
+            StreamsUtil.buildOpName(contextStacker.getQueryContext()));
+    final KTable<K, GenericRow> ktable = kstream
+        // 1. mapValues to transform null records into Optional<GenericRow>.EMPTY. We eventually
+        //    need to aggregate the KStream to produce the KTable. However the KStream aggregator
+        //    filters out records with null keys or values. For tables, a null value for a key
+        //    represents that the key was deleted. So we preserve these "tombstone" records by
+        //    converting them to a not-null representation.
+        .mapValues(Optional::ofNullable)
+
+        // 2. Group by the key, so that we can:
+        .groupByKey()
+
+        // 3. Aggregate the KStream into a KTable using a custom aggregator that handles
+        // Optional.EMPTY
+        .aggregate(
+            () -> null,
+            (k, value, oldValue) -> value.orElse(null),
+            materialized);
+    return new SchemaKTable<>(
+        ktable,
+        schema,
+        keySerde,
+        keyField,
+        Collections.singletonList(this),
+        type,
+        ksqlConfig,
+        functionRegistry,
+        contextStacker.getQueryContext()
+    );
+  }
+
+  public SchemaKStream<K> sink(
+      final KeyField resultKeyField,
+      final QueryContext.Stacker contextStacker) {
+    return new SchemaKStream<>(
+        kstream,
+        schema,
+        keySerde,
+        resultKeyField,
+        Collections.singletonList(this),
+        SchemaKStream.Type.SINK,
+        ksqlConfig,
+        functionRegistry,
+        contextStacker.getQueryContext()
+    );
   }
 
   public SchemaKStream into(

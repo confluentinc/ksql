@@ -13,15 +13,17 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.physical;
+package io.confluent.ksql.execution.builder;
 
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.context.QueryContext;
+import io.confluent.ksql.execution.context.QueryLoggerUtil;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
-import io.confluent.ksql.planner.plan.PlanNodeId;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
@@ -33,13 +35,17 @@ import io.confluent.ksql.serde.KeySerdeFactory;
 import io.confluent.ksql.serde.ValueSerdeFactory;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.structured.QueryContext;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.QueryLoggerUtil;
 import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Optional;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.StreamsBuilder;
+import org.apache.kafka.streams.Topology;
+import org.apache.kafka.streams.Topology.AutoOffsetReset;
 import org.apache.kafka.streams.kstream.Windowed;
 
 public final class KsqlQueryBuilder {
@@ -115,8 +121,8 @@ public final class KsqlQueryBuilder {
     return streamsBuilder;
   }
 
-  public QuerySchemas getSchemas() {
-    return QuerySchemas.of(schemas);
+  public Map<String, PersistenceSchema> getSchemas() {
+    return ImmutableMap.copyOf(schemas);
   }
 
   public KsqlQueryBuilder withKsqlConfig(final KsqlConfig newConfig) {
@@ -130,9 +136,10 @@ public final class KsqlQueryBuilder {
     );
   }
 
-  public QueryContext.Stacker buildNodeContext(final PlanNodeId id) {
+  // TODO(rohan): refactor and switch back to PlanNodeId
+  public QueryContext.Stacker buildNodeContext(final String... context) {
     return new QueryContext.Stacker(queryId)
-        .push(id.toString());
+        .push(context);
   }
 
   public KeySerde<Struct> buildKeySerde(
@@ -195,5 +202,23 @@ public final class KsqlQueryBuilder {
       throw new IllegalStateException("Schema with tracked:" + loggerNamePrefix);
     }
     schemas.put(loggerNamePrefix, schema);
+  }
+
+  public Optional<Topology.AutoOffsetReset> getAutoOffsetReset() {
+    final Object offestReset =
+        ksqlConfig.getKsqlStreamConfigProps().get(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG);
+    if (offestReset == null) {
+      return Optional.empty();
+    }
+
+    try {
+      return Optional.of(AutoOffsetReset.valueOf(offestReset.toString().toUpperCase()));
+    } catch (final Exception e) {
+      throw new ConfigException(
+          ConsumerConfig.AUTO_OFFSET_RESET_CONFIG,
+          offestReset,
+          "Unknown value"
+      );
+    }
   }
 }

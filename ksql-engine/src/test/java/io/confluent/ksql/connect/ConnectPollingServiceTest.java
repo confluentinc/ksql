@@ -19,6 +19,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
@@ -39,6 +40,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
 import java.util.function.Consumer;
 import org.apache.kafka.clients.admin.MockAdminClient;
 import org.apache.kafka.common.Node;
@@ -93,6 +95,7 @@ public class ConnectPollingServiceTest {
     givenConnector("foo");
 
     // When:
+    pollingService.drainQueue();
     pollingService.runOneIteration();
 
     // Then:
@@ -116,6 +119,7 @@ public class ConnectPollingServiceTest {
     givenConnector("bar");
 
     // When:
+    pollingService.drainQueue();
     pollingService.runOneIteration();
 
     // Then:
@@ -131,6 +135,7 @@ public class ConnectPollingServiceTest {
     givenConnector("foo");
 
     // When:
+    pollingService.drainQueue();
     pollingService.runOneIteration();
 
     // Then:
@@ -151,6 +156,7 @@ public class ConnectPollingServiceTest {
     metaStore.putSource(source);
 
     // When:
+    pollingService.drainQueue();
     pollingService.runOneIteration();
 
     // Then:
@@ -166,6 +172,17 @@ public class ConnectPollingServiceTest {
 
     // Then:
     verifyZeroInteractions(serviceContext);
+  }
+
+  @Test(timeout = 30_000L)
+  public void shouldImmediatelyShutdown() {
+    pollingService = new ConnectPollingService(executionContext, foo -> {}, 60);
+
+    // When:
+    pollingService.startAsync().awaitRunning();
+    pollingService.stopAsync().awaitTerminated();
+
+    // Then: (test immediately stops)
   }
 
   private void givenTopic(final String topicName) {

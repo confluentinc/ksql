@@ -94,7 +94,7 @@ public class DefaultConnectClientTest {
     WireMock.stubFor(
         WireMock.post(WireMock.urlEqualTo("/connectors"))
             .willReturn(WireMock.aResponse()
-                .withStatus(HttpStatus.SC_BAD_REQUEST)
+                .withStatus(HttpStatus.SC_INTERNAL_SERVER_ERROR)
                 .withBody("Oh no!"))
     );
 
@@ -166,6 +166,27 @@ public class DefaultConnectClientTest {
     assertThat(connectorStateInfo.connector().trace(), is(SAMPLE_STATUS.connector().trace()));
     assertThat(connectorStateInfo.tasks().size(), is(SAMPLE_STATUS.tasks().size()));
     assertThat(connectorStateInfo.tasks().get(0).id(), is(SAMPLE_STATUS.tasks().get(0).id()));
+    assertThat("Expected no error!", !response.error().isPresent());
+  }
+
+  @Test
+  public void testListShouldRetryOnFailure() throws JsonProcessingException {
+    // Given:
+    WireMock.stubFor(
+        WireMock.get(WireMock.urlEqualTo("/connectors"))
+            .willReturn(WireMock.aResponse()
+                .withStatus(HttpStatus.SC_INTERNAL_SERVER_ERROR)
+                .withBody("Encountered an error!"))
+            .willReturn(WireMock.aResponse()
+                .withStatus(HttpStatus.SC_OK)
+                .withBody(MAPPER.writeValueAsString(ImmutableList.of("one", "two"))))
+    );
+
+    // When:
+    final ConnectResponse<List<String>> response = client.connectors();
+
+    // Then:
+    assertThat(response.datum(), OptionalMatchers.of(is(ImmutableList.of("one", "two"))));
     assertThat("Expected no error!", !response.error().isPresent());
   }
 

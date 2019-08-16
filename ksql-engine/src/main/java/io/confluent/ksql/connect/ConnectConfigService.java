@@ -185,6 +185,8 @@ final class ConnectConfigService extends AbstractExecutionThreadService {
     try {
       final ConnectResponse<ConnectorInfo> describe = connectClient.describe(name);
       if (!describe.datum().isPresent()) {
+        describe.error()
+            .ifPresent(error -> LOG.warn("Failed to describe connect {} due to: {}", name, error));
         return;
       }
 

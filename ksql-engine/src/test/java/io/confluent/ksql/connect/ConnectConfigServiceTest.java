@@ -16,7 +16,6 @@
 package io.confluent.ksql.connect;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyFloat;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.verify;
@@ -30,8 +29,8 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlServerException;
 import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import org.apache.http.HttpStatus;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -234,9 +233,10 @@ public class ConnectConfigServiceTest {
           ImmutableMap.of(),
           ImmutableList.of(),
           ConnectorType.SOURCE
-      )));
+      ), HttpStatus.SC_CREATED));
     }
-    when(connectClient.connectors()).thenReturn(ConnectResponse.of(ImmutableList.copyOf(names)));
+    when(connectClient.connectors()).thenReturn(ConnectResponse.of(ImmutableList.copyOf(names),
+        HttpStatus.SC_OK));
   }
 
   private OngoingStubbing<?> givenConnectorRecord(OngoingStubbing<?> stubbing) {

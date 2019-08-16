@@ -37,6 +37,7 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Optional;
+import org.apache.http.HttpStatus;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorType;
 import org.junit.Before;
@@ -118,12 +119,12 @@ public class ConnectExecutorTest {
                 "foo",
                 ImmutableMap.of(),
                 ImmutableList.of(),
-                ConnectorType.SOURCE)));
+                ConnectorType.SOURCE), HttpStatus.SC_OK));
   }
 
   private void givenError() {
     when(connectClient.create(anyString(), anyMap()))
-        .thenReturn(ConnectResponse.of("error!"));
+        .thenReturn(ConnectResponse.of("error!", HttpStatus.SC_BAD_REQUEST));
   }
 
 }

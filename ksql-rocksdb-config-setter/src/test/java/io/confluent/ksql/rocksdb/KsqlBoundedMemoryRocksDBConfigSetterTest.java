@@ -135,7 +135,6 @@ public class KsqlBoundedMemoryRocksDBConfigSetterTest {
 
     // Then:
     verify(rocksOptions).setWriteBufferManager(any());
-    verify(rocksOptions).setMaxWriteBufferNumber(Integer.MAX_VALUE);
     verify(rocksOptions).setStatsDumpPeriodSec(0);
     verify(rocksOptions).setTableFormatConfig(tableConfig);
 

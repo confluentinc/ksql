@@ -105,7 +105,6 @@ public class KsqlBoundedMemoryRocksDBConfigSetter implements RocksDBConfigSetter
 
     tableConfig.setCacheIndexAndFilterBlocksWithHighPriority(true);
     tableConfig.setPinTopLevelIndexAndFilter(true);
-    options.setMaxWriteBufferNumber(Integer.MAX_VALUE);
 
     options.setStatsDumpPeriodSec(0);
 

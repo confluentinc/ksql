@@ -172,12 +172,17 @@ public final class SqlFormatter {
 
     @Override
     protected Void visitSingleColumn(final SingleColumn node, final Integer indent) {
-      builder.append(ExpressionFormatter.formatExpression(node.getExpression()));
+      builder.append(ExpressionFormatter.formatExpression(
+          node.getExpression(),
+          true,
+          ParserUtil::isReservedIdentifier
+      ));
+
       if (node.getAlias().isPresent()) {
         builder.append(' ')
                 .append('"')
                 .append(node.getAlias().get())
-                .append('"'); // TODO: handle quoting properly
+                .append('"');
       }
 
       return null;

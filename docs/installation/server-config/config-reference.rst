@@ -336,10 +336,28 @@ You can access KSQL Server by using |c3|. For more information, see
 You can connect KSQL Server to |ccloud|. For more information, see
 :ref:`install_ksql-ccloud`.
 
+.. _ksql-server-log-settings:
+
+KSQL Server Log Settings
+------------------------
+
+To get DEBUG or INFO output from KSQL Server, configure a Kafka appender for
+the server logs. Assign the following configuration settings in the KSQL
+Server config file.
+
+::
+
+    log4j.appender.kafka_appender=org.apache.kafka.log4jappender.KafkaLog4jAppender
+    log4j.appender.kafka_appender.layout=io.confluent.common.logging.log4j.StructuredJsonLayout
+    log4j.appender.kafka_appender.BrokerList=localhost:9092
+    log4j.appender.kafka_appender.Topic=KSQL_LOG
+    log4j.logger.io.confluent.ksql=INFO,kafka_appender
+
 KSQL Processing Log Settings
 ----------------------------
 
-These configurations control the behavior of the :ref:`KSQL processing log <ksql_processing_log>`.
+The following configuration settings control the behavior of the
+:ref:`KSQL processing log <ksql_processing_log>`.
 
 .. _ksql-processing-log-topic-auto-create:
 

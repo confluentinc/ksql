@@ -29,6 +29,7 @@ import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.resources.Errors;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.rest.util.CommandStoreUtil;
+import io.confluent.ksql.rest.util.ErrorResponseUtil;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
@@ -47,6 +48,8 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+
+import org.apache.kafka.common.errors.TopicAuthorizationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -144,8 +147,11 @@ public class StreamedQueryResource {
       return Errors.badRequest(String.format(
           "Statement type `%s' not supported for this resource",
           statement.getClass().getName()));
+    } catch (final TopicAuthorizationException e) {
+      return Errors.accessDeniedFromKafka(e);
     } catch (final KsqlException e) {
-      return Errors.badRequest(e);
+      return ErrorResponseUtil.generateResponse(
+          e, Errors.badRequest(e));
     }
   }
 

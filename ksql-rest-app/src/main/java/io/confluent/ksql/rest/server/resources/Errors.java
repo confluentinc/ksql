@@ -37,6 +37,8 @@ public final class Errors {
   public static final int ERROR_CODE_UNAUTHORIZED = toErrorCode(UNAUTHORIZED.getStatusCode());
 
   public static final int ERROR_CODE_FORBIDDEN = toErrorCode(FORBIDDEN.getStatusCode());
+  public static final int ERROR_CODE_FORBIDDEN_KAFKA_ACCESS =
+      toErrorCode(FORBIDDEN.getStatusCode()) + 1;
 
   static final int ERROR_CODE_NOT_FOUND = toErrorCode(NOT_FOUND.getStatusCode());
 
@@ -67,6 +69,13 @@ public final class Errors {
     return Response
         .status(FORBIDDEN)
         .entity(new KsqlErrorMessage(ERROR_CODE_FORBIDDEN, msg))
+        .build();
+  }
+
+  public static Response accessDeniedFromKafka(final Exception error) {
+    return Response
+        .status(FORBIDDEN)
+        .entity(new KsqlErrorMessage(ERROR_CODE_FORBIDDEN_KAFKA_ACCESS, error.getMessage()))
         .build();
   }
 

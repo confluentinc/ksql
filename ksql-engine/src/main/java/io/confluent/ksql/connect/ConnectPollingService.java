@@ -115,7 +115,7 @@ final class ConnectPollingService extends AbstractExecutionThreadService  {
   protected void run() throws Exception {
     while (isRunning()) {
       final Connector connector = connectorQueue.poll(
-          pollingIntervalSecs.getAndUpdate(old -> Math.max(MAX_INTERVAL_S, 2 * old)),
+          pollingIntervalSecs.getAndUpdate(old -> Math.min(MAX_INTERVAL_S, 2 * old)),
           TimeUnit.SECONDS);
       if (connector == STOP_SENTINEL || connectorQueue.removeIf(c -> c == STOP_SENTINEL)) {
         return;

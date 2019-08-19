@@ -46,12 +46,14 @@ import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Relation;
 import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SelectItem;
+import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.ShowColumns;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TerminateQuery;
+import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.util.ParserUtil;
 import java.util.List;
 import java.util.Optional;
@@ -348,6 +350,26 @@ public final class SqlFormatter {
       if (node.getShowExtended()) {
         visitExtended();
       }
+      return null;
+    }
+
+    @Override
+    protected Void visitUnsetProperty(final UnsetProperty node, final Integer context) {
+      builder.append("UNSET '");
+      builder.append(node.getPropertyName());
+      builder.append("'");
+
+      return null;
+    }
+
+    @Override
+    protected Void visitSetProperty(final SetProperty node, final Integer context) {
+      builder.append("SET '");
+      builder.append(node.getPropertyName());
+      builder.append("'='");
+      builder.append(node.getPropertyValue());
+      builder.append("'");
+
       return null;
     }
 

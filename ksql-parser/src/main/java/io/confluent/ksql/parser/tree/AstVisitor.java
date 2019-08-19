@@ -166,4 +166,12 @@ public abstract class AstVisitor<R, C> {
   protected R visitListTables(final ListTables node, final C context) {
     return visitStatement(node, context);
   }
+
+  protected R visitUnsetProperty(final UnsetProperty node, final C context) {
+    return visitStatement(node, context);
+  }
+
+  protected R visitSetProperty(final SetProperty node, final C context) {
+    return visitStatement(node, context);
+  }
 }

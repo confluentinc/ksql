@@ -113,6 +113,7 @@ public class SqlFormatterTest {
           .optional()
           .build())
       .field("ADDRESS", addressSchema)
+      .field("SIZE", Schema.OPTIONAL_INT64_SCHEMA) // Reserved word
       .build();
 
 
@@ -201,6 +202,33 @@ public class SqlFormatterTest {
   }
 
   @Test
+  public void shouldFormatTableElementsNamedAfterReservedWords() {
+    // Given:
+    final ArrayList<TableElement> tableElements = new ArrayList<>();
+    tableElements.add(new TableElement("GROUP", PrimitiveType.of(SqlType.STRING)));
+    tableElements.add(new TableElement("Having", PrimitiveType.of(SqlType.STRING)));
+
+    final CreateStream createStream = new CreateStream(
+        QualifiedName.of("TEST"),
+        tableElements,
+        false,
+        ImmutableMap.of(
+            DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral("topic_test"),
+            DdlConfig.VALUE_FORMAT_PROPERTY, new StringLiteral("avro")
+        ));
+
+    // When:
+    final String sql = SqlFormatter.formatSql(createStream);
+
+    // Then:
+    assertThat("literal escaping failure", sql, containsString("`GROUP` STRING"));
+    assertThat("lowercase literal escaping failure", sql, containsString("`Having` STRING"));
+
+    final String expectedSql = "CREATE STREAM TEST (`GROUP` STRING, `Having` STRING) WITH (VALUE_FORMAT='avro', KAFKA_TOPIC='topic_test');";
+    assertThat(sql, equalTo(expectedSql));
+  }
+
+  @Test
   public void shouldFormatLeftJoinWithWithin() {
     final Join join = new Join(Join.Type.LEFT, leftAlias, rightAlias,
                          criteria,
@@ -283,6 +311,32 @@ public class SqlFormatterTest {
     assertThat(SqlFormatter.formatSql(statement),
         equalTo("CREATE STREAM S AS SELECT *\n"
             + "FROM ADDRESS ADDRESS"));
+  }
+
+  @Test
+  public void shouldFormatCSASWithReservedWords() {
+    final String statementString = "CREATE STREAM S AS SELECT ITEMID, \"SIZE\" FROM address;";
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
+        .getStatement();
+    assertThat(SqlFormatter.formatSql(statement),
+        equalTo("CREATE STREAM S AS SELECT\n" +
+            "  ADDRESS.ITEMID \"ITEMID\"\n, ADDRESS.`SIZE` \"SIZE\"\nFROM ADDRESS ADDRESS"));
+  }
+
+  @Test
+  public void shouldFormatStructWithReservedWords() {
+    // Given:
+    final String statementString = "CREATE STREAM s (foo STRUCT<`END` VARCHAR>) "
+        + "WITH (kafka_topic='foo', value_format='JSON');";
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
+        .getStatement();
+
+    // When:
+    final String result = SqlFormatter.formatSql(statement);
+
+    // Then:
+    assertThat(result, is("CREATE STREAM S (FOO STRUCT<`END` STRING>) "
+        + "WITH (VALUE_FORMAT='JSON', KAFKA_TOPIC='foo');"));
   }
 
   @Test

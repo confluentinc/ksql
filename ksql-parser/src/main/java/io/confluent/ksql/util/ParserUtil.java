@@ -18,12 +18,16 @@ package io.confluent.ksql.util;
 import static java.util.stream.Collectors.toList;
 
 import com.google.common.collect.ImmutableSet;
+import io.confluent.ksql.parser.DefaultKsqlParser;
+import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.SqlBaseLexer;
 import io.confluent.ksql.parser.SqlBaseParser;
+import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -40,6 +44,33 @@ public final class ParserUtil {
           .map(String::toUpperCase)
           .collect(Collectors.toSet())
   );
+
+  private static final Set<String> RESERVED_WORDS;
+
+  static {
+    final KsqlParser parser = new DefaultKsqlParser();
+
+    final Predicate<String> isReservedWord = columnName -> {
+      try {
+        parser.parse(
+            "CREATE STREAM x (" + columnName + " INT) "
+                + "WITH(KAFKA_TOPIC='x', VALUE_FORMAT='JSON');");
+        return false;
+      } catch (final ParseFailedException e) {
+        return true;
+      }
+    };
+
+    final Set<String> reserved = LITERALS_SET.stream()
+        .filter(isReservedWord)
+        .collect(Collectors.toSet());
+
+    RESERVED_WORDS = ImmutableSet.copyOf(reserved);
+  }
+
+  public static boolean isReservedIdentifier(final String name) {
+    return RESERVED_WORDS.contains(name.toUpperCase());
+  }
 
   public static String escapeIfLiteral(final String name) {
     return LITERALS_SET.contains(name.toUpperCase()) ? "`" + name + "`" : name;

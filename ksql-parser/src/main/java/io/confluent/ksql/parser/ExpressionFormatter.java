@@ -63,6 +63,7 @@ import io.confluent.ksql.util.ParserUtil;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Predicate;
 
 public final class ExpressionFormatter {
 
@@ -74,138 +75,157 @@ public final class ExpressionFormatter {
   }
 
   public static String formatExpression(final Expression expression, final boolean unmangleNames) {
-    return new Formatter().process(expression, unmangleNames);
+    return formatExpression(expression, unmangleNames, s -> false);
+  }
+
+  public static String formatExpression(
+      final Expression expression,
+      final boolean unmangleNames,
+      final Predicate<String> isReserved) {
+    return new Formatter().process(expression, new Context(unmangleNames, isReserved));
+  }
+
+  private static final class Context {
+    final boolean unmangleNames;
+    final Predicate<String> isReserved;
+
+    private Context(final boolean unmangleNames, final Predicate<String> isReserved) {
+      this.unmangleNames = unmangleNames;
+      this.isReserved = isReserved;
+    }
   }
 
   public static class Formatter
-          extends AstVisitor<String, Boolean> {
+          extends AstVisitor<String, Context> {
 
     @Override
-    protected String visitNode(final Node node, final Boolean unmangleNames) {
+    protected String visitNode(final Node node, final Context context) {
       throw new UnsupportedOperationException();
     }
 
     @Override
-    protected String visitPrimitiveType(final PrimitiveType node, final Boolean unmangleNames) {
+    protected String visitPrimitiveType(final PrimitiveType node, final Context context) {
       return node.getSqlType().toString();
     }
 
     @Override
-    protected String visitArray(final Array node, final Boolean unmangleNames) {
-      return "ARRAY<" + process(node.getItemType(), unmangleNames) + ">";
+    protected String visitArray(final Array node, final Context context) {
+      return "ARRAY<" + process(node.getItemType(), context) + ">";
     }
 
     @Override
-    protected String visitMap(final Map node, final Boolean unmangleNames) {
-      return "MAP<VARCHAR, " + process(node.getValueType(), unmangleNames) + ">";
+    protected String visitMap(final Map node, final Context context) {
+      return "MAP<VARCHAR, " + process(node.getValueType(), context) + ">";
     }
 
     @Override
-    protected String visitStruct(final Struct node, final Boolean unmangleNames) {
+    protected String visitStruct(final Struct node, final Context context) {
       return "STRUCT<" + Joiner.on(", ").join(node.getFields().stream()
           .map((child) ->
               ParserUtil.escapeIfLiteral(child.getName())
-                  + " " + process(child.getType(), unmangleNames))
+                  + " " + process(child.getType(), context))
           .collect(toList())) + ">";
     }
 
     @Override
-    protected String visitExpression(final Expression node, final Boolean unmangleNames) {
+    protected String visitExpression(final Expression node, final Context context) {
       throw new UnsupportedOperationException(
               format("not yet implemented: %s.visit%s", getClass().getName(),
                       node.getClass().getSimpleName()));
     }
 
     @Override
-    protected String visitBooleanLiteral(final BooleanLiteral node, final Boolean unmangleNames) {
+    protected String visitBooleanLiteral(final BooleanLiteral node, final Context context) {
       return String.valueOf(node.getValue());
     }
 
     @Override
-    protected String visitStringLiteral(final StringLiteral node, final Boolean unmangleNames) {
+    protected String visitStringLiteral(final StringLiteral node, final Context context) {
       return formatStringLiteral(node.getValue());
     }
 
     @Override
     protected String visitSubscriptExpression(
         final SubscriptExpression node,
-        final Boolean unmangleNames) {
-      return SqlFormatter.formatSql(node.getBase(), unmangleNames) + "[" + SqlFormatter
-              .formatSql(node.getIndex(), unmangleNames) + "]";
+        final Context context) {
+      return SqlFormatter.formatSql(node.getBase(), context.unmangleNames) + "[" + SqlFormatter
+              .formatSql(node.getIndex(), context.unmangleNames) + "]";
     }
 
     @Override
-    protected String visitLongLiteral(final LongLiteral node, final Boolean unmangleNames) {
+    protected String visitLongLiteral(final LongLiteral node, final Context context) {
       return Long.toString(node.getValue());
     }
 
     @Override
-    protected String visitIntegerLiteral(final IntegerLiteral node, final Boolean unmangleNames) {
+    protected String visitIntegerLiteral(final IntegerLiteral node, final Context context) {
       return Integer.toString(node.getValue());
     }
 
     @Override
-    protected String visitDoubleLiteral(final DoubleLiteral node, final Boolean unmangleNames) {
+    protected String visitDoubleLiteral(final DoubleLiteral node, final Context context) {
       return Double.toString(node.getValue());
     }
 
     @Override
-    protected String visitDecimalLiteral(final DecimalLiteral node, final Boolean unmangleNames) {
+    protected String visitDecimalLiteral(final DecimalLiteral node, final Context context) {
       return "DECIMAL '" + node.getValue() + "'";
     }
 
     @Override
-    protected String visitTimeLiteral(final TimeLiteral node, final Boolean unmangleNames) {
+    protected String visitTimeLiteral(final TimeLiteral node, final Context context) {
       return "TIME '" + node.getValue() + "'";
     }
 
     @Override
     protected String visitTimestampLiteral(
         final TimestampLiteral node,
-        final Boolean unmangleNames) {
+        final Context context) {
       return "TIMESTAMP '" + node.getValue() + "'";
     }
 
     @Override
-    protected String visitNullLiteral(final NullLiteral node, final Boolean unmangleNames) {
+    protected String visitNullLiteral(final NullLiteral node, final Context context) {
       return "null";
     }
 
     @Override
     protected String visitQualifiedNameReference(final QualifiedNameReference node,
-                                                 final Boolean unmangleNames) {
-      return formatQualifiedName(node.getName());
+                                                 final Context context) {
+      return formatQualifiedName(node.getName(), context);
     }
 
     @Override
     protected String visitDereferenceExpression(
         final DereferenceExpression node,
-        final Boolean unmangleNames) {
-      final String baseString = process(node.getBase(), unmangleNames);
+        final Context context) {
+      final String baseString = process(node.getBase(), context);
       if (node.getBase() instanceof QualifiedNameReference) {
-        return baseString + KsqlConstants.DOT + formatIdentifier(node.getFieldName());
+        return baseString + KsqlConstants.DOT + formatIdentifier(node.getFieldName(), context);
       }
-      return baseString + KsqlConstants.STRUCT_FIELD_REF + formatIdentifier(node.getFieldName());
+
+      return baseString + KsqlConstants.STRUCT_FIELD_REF
+          + formatIdentifier(node.getFieldName(), context);
     }
 
-    private static String formatQualifiedName(final QualifiedName name) {
+    private static String formatQualifiedName(final QualifiedName name, final Context context) {
       final List<String> parts = new ArrayList<>();
       for (final String part : name.getParts()) {
-        parts.add(formatIdentifier(part));
+        parts.add(formatIdentifier(part, context));
       }
       return Joiner.on(KsqlConstants.DOT).join(parts);
     }
 
     @Override
-    protected String visitFunctionCall(final FunctionCall node, final Boolean unmangleNames) {
+    protected String visitFunctionCall(final FunctionCall node, final Context context) {
       final StringBuilder builder = new StringBuilder();
 
-      String arguments = joinExpressions(node.getArguments(), unmangleNames);
+      String arguments = joinExpressions(node.getArguments(), context);
       if (node.getArguments().isEmpty() && "COUNT".equals(node.getName().getSuffix())) {
         arguments = "*";
       }
 
-      builder.append(formatQualifiedName(node.getName()))
+      builder.append(formatQualifiedName(node.getName(), context))
               .append('(').append(arguments).append(')');
 
       return builder.toString();
@@ -213,41 +233,41 @@ public final class ExpressionFormatter {
 
     @Override
     protected String visitLogicalBinaryExpression(final LogicalBinaryExpression node,
-                                                  final Boolean unmangleNames) {
+                                                  final Context context) {
       return formatBinaryExpression(node.getType().toString(), node.getLeft(), node.getRight(),
-              unmangleNames);
+          context);
     }
 
     @Override
-    protected String visitNotExpression(final NotExpression node, final Boolean unmangleNames) {
-      return "(NOT " + process(node.getValue(), unmangleNames) + ")";
+    protected String visitNotExpression(final NotExpression node, final Context context) {
+      return "(NOT " + process(node.getValue(), context) + ")";
     }
 
     @Override
     protected String visitComparisonExpression(
         final ComparisonExpression node,
-        final Boolean unmangleNames) {
+        final Context context) {
       return formatBinaryExpression(node.getType().getValue(), node.getLeft(), node.getRight(),
-              unmangleNames);
+          context);
     }
 
     @Override
-    protected String visitIsNullPredicate(final IsNullPredicate node, final Boolean unmangleNames) {
-      return "(" + process(node.getValue(), unmangleNames) + " IS NULL)";
+    protected String visitIsNullPredicate(final IsNullPredicate node, final Context context) {
+      return "(" + process(node.getValue(), context) + " IS NULL)";
     }
 
     @Override
     protected String visitIsNotNullPredicate(
         final IsNotNullPredicate node,
-        final Boolean unmangleNames) {
-      return "(" + process(node.getValue(), unmangleNames) + " IS NOT NULL)";
+        final Context context) {
+      return "(" + process(node.getValue(), context) + " IS NOT NULL)";
     }
 
     @Override
     protected String visitArithmeticUnary(
         final ArithmeticUnaryExpression node,
-        final Boolean unmangleNames) {
-      final String value = process(node.getValue(), unmangleNames);
+        final Context context) {
+      final String value = process(node.getValue(), context);
 
       switch (node.getSign()) {
         case MINUS:
@@ -264,22 +284,22 @@ public final class ExpressionFormatter {
     @Override
     protected String visitArithmeticBinary(
         final ArithmeticBinaryExpression node,
-        final Boolean unmangleNames) {
+        final Context context) {
       return formatBinaryExpression(node.getType().getValue(), node.getLeft(), node.getRight(),
-              unmangleNames);
+          context);
     }
 
     @Override
-    protected String visitLikePredicate(final LikePredicate node, final Boolean unmangleNames) {
+    protected String visitLikePredicate(final LikePredicate node, final Context context) {
       return "("
-          + process(node.getValue(), unmangleNames)
+          + process(node.getValue(), context)
           + " LIKE "
-          + process(node.getPattern(), unmangleNames)
+          + process(node.getPattern(), context)
           + ')';
     }
 
     @Override
-    protected String visitAllColumns(final AllColumns node, final Boolean unmangleNames) {
+    protected String visitAllColumns(final AllColumns node, final Context context) {
       if (node.getPrefix().isPresent()) {
         return node.getPrefix().get() + ".*";
       }
@@ -288,22 +308,22 @@ public final class ExpressionFormatter {
     }
 
     @Override
-    public String visitCast(final Cast node, final Boolean unmangleNames) {
+    public String visitCast(final Cast node, final Context context) {
       return "CAST"
-              + "(" + process(node.getExpression(), unmangleNames) + " AS " + node.getType() + ")";
+              + "(" + process(node.getExpression(), context) + " AS " + node.getType() + ")";
     }
 
     @Override
     protected String visitSearchedCaseExpression(final SearchedCaseExpression node,
-                                                 final Boolean unmangleNames) {
+                                                 final Context context) {
       final ImmutableList.Builder<String> parts = ImmutableList.builder();
       parts.add("CASE");
       for (final WhenClause whenClause : node.getWhenClauses()) {
-        parts.add(process(whenClause, unmangleNames));
+        parts.add(process(whenClause, context));
       }
 
       node.getDefaultValue()
-              .ifPresent((value) -> parts.add("ELSE").add(process(value, unmangleNames)));
+              .ifPresent((value) -> parts.add("ELSE").add(process(value, context)));
 
       parts.add("END");
 
@@ -313,18 +333,18 @@ public final class ExpressionFormatter {
     @Override
     protected String visitSimpleCaseExpression(
         final SimpleCaseExpression node,
-        final Boolean unmangleNames) {
+        final Context context) {
       final ImmutableList.Builder<String> parts = ImmutableList.builder();
 
       parts.add("CASE")
-              .add(process(node.getOperand(), unmangleNames));
+              .add(process(node.getOperand(), context));
 
       for (final WhenClause whenClause : node.getWhenClauses()) {
-        parts.add(process(whenClause, unmangleNames));
+        parts.add(process(whenClause, context));
       }
 
       node.getDefaultValue()
-              .ifPresent((value) -> parts.add("ELSE").add(process(value, unmangleNames)));
+              .ifPresent((value) -> parts.add("ELSE").add(process(value, context)));
 
       parts.add("END");
 
@@ -332,53 +352,52 @@ public final class ExpressionFormatter {
     }
 
     @Override
-    protected String visitWhenClause(final WhenClause node, final Boolean unmangleNames) {
-      return "WHEN " + process(node.getOperand(), unmangleNames) + " THEN " + process(
-              node.getResult(), unmangleNames);
+    protected String visitWhenClause(final WhenClause node, final Context context) {
+      return "WHEN " + process(node.getOperand(), context) + " THEN " + process(
+              node.getResult(), context);
     }
 
     @Override
     protected String visitBetweenPredicate(
         final BetweenPredicate node,
-        final Boolean unmangleNames) {
-      return "(" + process(node.getValue(), unmangleNames) + " BETWEEN "
-              + process(node.getMin(), unmangleNames) + " AND " + process(node.getMax(),
-              unmangleNames)
+        final Context context) {
+      return "(" + process(node.getValue(), context) + " BETWEEN "
+              + process(node.getMin(), context) + " AND " + process(node.getMax(),
+          context)
               + ")";
     }
 
     @Override
-    protected String visitInPredicate(final InPredicate node, final Boolean unmangleNames) {
-      return "(" + process(node.getValue(), unmangleNames) + " IN " + process(node.getValueList(),
-              unmangleNames) + ")";
+    protected String visitInPredicate(final InPredicate node, final Context context) {
+      return "(" + process(node.getValue(), context) + " IN " + process(node.getValueList(),
+          context) + ")";
     }
 
     @Override
     protected String visitInListExpression(
         final InListExpression node,
-        final Boolean unmangleNames) {
-      return "(" + joinExpressions(node.getValues(), unmangleNames) + ")";
+        final Context context) {
+      return "(" + joinExpressions(node.getValues(), context) + ")";
     }
 
     private String formatBinaryExpression(
         final String operator, final Expression left, final Expression right,
-                                          final boolean unmangleNames) {
-      return '(' + process(left, unmangleNames) + ' ' + operator + ' ' + process(right,
-              unmangleNames)
+                                          final Context context) {
+      return '(' + process(left, context) + ' ' + operator + ' ' + process(right,
+          context)
               + ')';
     }
 
     private String joinExpressions(
         final List<Expression> expressions,
-        final boolean unmangleNames) {
+        final Context context) {
       return Joiner.on(", ").join(expressions.stream()
-              .map((e) -> process(e, unmangleNames))
+              .map((e) -> process(e, context))
               .iterator());
     }
 
-    private static String formatIdentifier(final String s) {
-      // TODO: handle escaping properly
-      return s;
+    private static String formatIdentifier(final String s, final Context context) {
+      return context.isReserved.test(s) ? "`" + s + "`" : s;
     }
   }
 

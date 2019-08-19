@@ -39,15 +39,20 @@ import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.JoinCriteria;
 import io.confluent.ksql.parser.tree.JoinOn;
 import io.confluent.ksql.parser.tree.ListFunctions;
+import io.confluent.ksql.parser.tree.ListStreams;
+import io.confluent.ksql.parser.tree.ListTables;
 import io.confluent.ksql.parser.tree.Node;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Relation;
 import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SelectItem;
+import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.ShowColumns;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TableElement;
+import io.confluent.ksql.parser.tree.TerminateQuery;
+import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.util.ParserUtil;
 import java.util.List;
 import java.util.Optional;
@@ -172,12 +177,17 @@ public final class SqlFormatter {
 
     @Override
     protected Void visitSingleColumn(final SingleColumn node, final Integer indent) {
-      builder.append(ExpressionFormatter.formatExpression(node.getExpression()));
+      builder.append(ExpressionFormatter.formatExpression(
+          node.getExpression(),
+          true,
+          ParserUtil::isReservedIdentifier
+      ));
+
       if (node.getAlias().isPresent()) {
         builder.append(' ')
                 .append('"')
                 .append(node.getAlias().get())
-                .append('"'); // TODO: handle quoting properly
+                .append('"');
       }
 
       return null;
@@ -246,7 +256,10 @@ public final class SqlFormatter {
           }
           builder.append(ParserUtil.escapeIfLiteral(tableElement.getName()))
               .append(" ")
-              .append(tableElement.getType());
+              .append(ExpressionFormatter.formatExpression(
+                  tableElement.getType(),
+                  true, ParserUtil::isReservedIdentifier
+              ));
         }
         builder.append(")");
       }
@@ -275,7 +288,10 @@ public final class SqlFormatter {
           }
           builder.append(ParserUtil.escapeIfLiteral(tableElement.getName()))
               .append(" ")
-              .append(tableElement.getType());
+              .append(ExpressionFormatter.formatExpression(
+                  tableElement.getType(),
+                  true, ParserUtil::isReservedIdentifier
+              ));
         }
         builder.append(")").append(" WITH (");
         builder.append(node.getProperties());
@@ -408,6 +424,55 @@ public final class SqlFormatter {
     protected Void visitDropTable(final DropTable node, final Integer context) {
       visitDrop(node, "TABLE");
       return null;
+    }
+
+    @Override
+    protected Void visitTerminateQuery(final TerminateQuery node, final Integer context) {
+      builder.append("TERMINATE ");
+      builder.append(node.getQueryId().getId());
+      return null;
+    }
+
+    @Override
+    protected Void visitListTables(final ListTables node, final Integer context) {
+      builder.append("SHOW TABLES");
+      if (node.getShowExtended()) {
+        visitExtended();
+      }
+      return null;
+    }
+
+    @Override
+    protected Void visitListStreams(final ListStreams node, final Integer context) {
+      builder.append("SHOW STREAMS");
+      if (node.getShowExtended()) {
+        visitExtended();
+      }
+      return null;
+    }
+
+    @Override
+    protected Void visitUnsetProperty(final UnsetProperty node, final Integer context) {
+      builder.append("UNSET '");
+      builder.append(node.getPropertyName());
+      builder.append("'");
+
+      return null;
+    }
+
+    @Override
+    protected Void visitSetProperty(final SetProperty node, final Integer context) {
+      builder.append("SET '");
+      builder.append(node.getPropertyName());
+      builder.append("'='");
+      builder.append(node.getPropertyValue());
+      builder.append("'");
+
+      return null;
+    }
+
+    private void visitExtended() {
+      builder.append(" EXTENDED");
     }
 
     private void visitDrop(final DropStatement node, final String sourceType) {

@@ -16,19 +16,24 @@
 package io.confluent.ksql.datagen;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.util.concurrent.RateLimiter;
 import io.confluent.avro.random.generator.Generator;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.util.KsqlConfig;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.Random;
 import java.util.function.BiConsumer;
+import java.util.function.Supplier;
 
 public final class DataGen {
 
@@ -58,19 +63,48 @@ public final class DataGen {
       return;
     }
 
-    final Generator generator = new Generator(arguments.schemaFile, new Random());
     final Properties props = getProperties(arguments);
     final DataGenProducer dataProducer = ProducerFactory
         .getProducer(arguments.keyFormat, arguments.valueFormat, props);
+    final Optional<RateLimiter> rateLimiter = arguments.msgRate != -1
+        ? Optional.of(RateLimiter.create(arguments.msgRate)) : Optional.empty();
 
-    dataProducer.populateTopic(
-        props,
-        generator,
-        arguments.topicName,
-        arguments.keyName,
-        arguments.iterations,
-        arguments.maxInterval
-    );
+    final List<Thread> threads = new LinkedList<>();
+    for (int i = 0; i < arguments.numThreads; i++) {
+      threads.add(startProducerThread(arguments, dataProducer, props, rateLimiter));
+    }
+
+    for (final Thread t : threads) {
+      try {
+        t.join();
+      } catch (InterruptedException e) {
+        // interrupted. exit with error
+        System.exit(1);
+      }
+    }
+  }
+
+  private static Thread startProducerThread(
+      final Arguments arguments,
+      final DataGenProducer dataProducer,
+      final Properties props,
+      final Optional<RateLimiter> rateLimiter) throws IOException {
+    final Generator generator = new Generator(arguments.schemaFile.get(), new Random());
+    final Thread t = new Thread(() -> {
+      dataProducer.populateTopic(
+          props,
+          generator,
+          arguments.topicName,
+          arguments.keyName,
+          arguments.iterations,
+          arguments.maxInterval,
+          arguments.printRows,
+          rateLimiter
+      );
+    });
+    t.setDaemon(true);
+    t.start();
+    return t;
   }
 
   static Properties getProperties(final Arguments arguments) throws IOException {
@@ -105,7 +139,10 @@ public final class DataGen {
         + "key=<name of key column> " + newLine
         + "[iterations=<number of rows> (defaults to 1,000,000)] " + newLine
         + "[maxInterval=<Max time in ms between rows> (defaults to 500)] " + newLine
-        + "[propertiesFile=<file specifying Kafka client properties>]" + newLine
+        + "[propertiesFile=<file specifying Kafka client properties>] " + newLine
+        + "[nThreads=<number of producers to start>] " + newLine
+        + "[msgRate=<rate to produce in msgs/second>] " + newLine
+        + "[printRows=<true|false>]" + newLine
     );
   }
 
@@ -113,7 +150,7 @@ public final class DataGen {
 
     private final boolean help;
     private final String bootstrapServer;
-    private final InputStream schemaFile;
+    private final Supplier<InputStream> schemaFile;
     private final Format keyFormat;
     private final Format valueFormat;
     private final String topicName;
@@ -122,12 +159,15 @@ public final class DataGen {
     private final long maxInterval;
     private final String schemaRegistryUrl;
     private final InputStream propertiesFile;
+    private final int numThreads;
+    private final int msgRate;
+    private final boolean printRows;
 
     // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
     Arguments(
         final boolean help,
         final String bootstrapServer,
-        final InputStream schemaFile,
+        final Supplier<InputStream> schemaFile,
         final Format keyFormat,
         final Format valueFormat,
         final String topicName,
@@ -135,7 +175,10 @@ public final class DataGen {
         final int iterations,
         final long maxInterval,
         final String schemaRegistryUrl,
-        final InputStream propertiesFile
+        final InputStream propertiesFile,
+        final int numThreads,
+        final int msgRate,
+        final boolean printRows
     ) {
       // CHECKSTYLE_RULES.ON: ParameterNumberCheck
       this.help = help;
@@ -149,6 +192,9 @@ public final class DataGen {
       this.maxInterval = maxInterval;
       this.schemaRegistryUrl = schemaRegistryUrl;
       this.propertiesFile = propertiesFile;
+      this.numThreads = numThreads;
+      this.msgRate = msgRate;
+      this.printRows = printRows;
     }
 
     static class ArgumentParseException extends RuntimeException {
@@ -171,19 +217,22 @@ public final class DataGen {
               .put("format", (builder, argVal) -> builder.valueFormat = parseFormat(argVal))
               .put("topic", (builder, argVal) -> builder.topicName = argVal)
               .put("key", (builder, argVal) -> builder.keyName = argVal)
-              .put("iterations", (builder, argVal) -> builder.iterations = parseIterations(argVal))
+              .put("iterations", (builder, argVal) -> builder.iterations = parseInt(argVal, 1))
               .put("maxInterval",
-                  (builder, argVal) -> builder.maxInterval = parseIterations(argVal))
+                  (builder, argVal) -> builder.maxInterval = parseInt(argVal, 0))
               .put("schemaRegistryUrl", (builder, argVal) -> builder.schemaRegistryUrl = argVal)
               .put("propertiesFile",
-                  (builder, argVal) -> builder.propertiesFile = toFileInputStream(argVal))
+                  (builder, argVal) -> builder.propertiesFile = toFileInputStream(argVal).get())
+              .put("msgRate", (builder, argVal) -> builder.msgRate = parseMsgRate(argVal))
+              .put("nThreads", (builder, argVal) -> builder.numThreads = parseNumThreads(argVal))
+              .put("printRows", (builder, argVal) -> builder.printRows = parsePrintRows(argVal))
               .build();
 
       private Quickstart quickstart;
 
       private boolean help;
       private String bootstrapServer;
-      private InputStream schemaFile;
+      private Supplier<InputStream> schemaFile;
       private Format keyFormat;
       private Format valueFormat;
       private String topicName;
@@ -192,6 +241,9 @@ public final class DataGen {
       private long maxInterval;
       private String schemaRegistryUrl;
       private InputStream propertiesFile;
+      private int msgRate;
+      private int numThreads;
+      private boolean printRows;
 
       private Builder() {
         quickstart = null;
@@ -206,6 +258,9 @@ public final class DataGen {
         maxInterval = -1;
         schemaRegistryUrl = "http://localhost:8081";
         propertiesFile = null;
+        msgRate = -1;
+        numThreads = 1;
+        printRows = true;
       }
 
       private enum Quickstart {
@@ -228,8 +283,8 @@ public final class DataGen {
           this.keyName = keyName;
         }
 
-        public InputStream getSchemaFile() {
-          return getClass().getClassLoader().getResourceAsStream(schemaFileName);
+        public Supplier<InputStream> getSchemaFile() {
+          return () -> getClass().getClassLoader().getResourceAsStream(schemaFileName);
         }
 
         public String getTopicName(final Format format) {
@@ -251,7 +306,22 @@ public final class DataGen {
 
       Arguments build() {
         if (help) {
-          return new Arguments(true, null, null, null, null,null, null, 0, -1, null, null);
+          return new Arguments(
+              true,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              0,
+              -1,
+              null,
+              null,
+              1,
+              -1,
+              true
+          );
         }
 
         if (quickstart != null) {
@@ -282,7 +352,10 @@ public final class DataGen {
             iterations,
             maxInterval,
             schemaRegistryUrl,
-            propertiesFile
+            propertiesFile,
+            numThreads,
+            msgRate,
+            printRows
         );
       }
 
@@ -342,9 +415,15 @@ public final class DataGen {
         handler.accept(this, argVal);
       }
 
-      private static FileInputStream toFileInputStream(final String argVal) {
+      private static Supplier<InputStream> toFileInputStream(final String argVal) {
         try {
-          return new FileInputStream(argVal);
+          return () -> {
+            try {
+              return new FileInputStream(argVal);
+            } catch (final FileNotFoundException e) {
+              throw new RuntimeException(e);
+            }
+          };
         } catch (final Exception e) {
           throw new IllegalArgumentException("File not found: " + argVal, e);
         }
@@ -375,19 +454,65 @@ public final class DataGen {
         }
       }
 
-      private static int parseIterations(final String iterationsString) {
+      private static int parseNumThreads(final String numThreadsString) {
+        try {
+          final int result = Integer.valueOf(numThreadsString, 10);
+          if (result < 0) {
+            throw new ArgumentParseException(String.format(
+                "Invalid number of threads in '%d'; must be a positive number",
+                result));
+          }
+          return result;
+        } catch (NumberFormatException e) {
+          throw new ArgumentParseException(String.format(
+              "Invalid number of threads in '%s'; must be a positive number",
+              numThreadsString));
+        }
+      }
+
+      private static int parseMsgRate(final String msgRateString) {
+        try {
+          final int result = Integer.valueOf(msgRateString, 10);
+          if (result < 0) {
+            throw new ArgumentParseException(String.format(
+                "Invalid msg rate in '%d'; must be a positive number",
+                result));
+          }
+          return result;
+        } catch (NumberFormatException e) {
+          throw new ArgumentParseException(String.format(
+              "Invalid msg rate in '%s'; must be a positive number",
+              msgRateString));
+        }
+      }
+
+      private static boolean parsePrintRows(final String printRowsString) {
+        switch (printRowsString.toLowerCase()) {
+          case "false":
+            return false;
+          case "true":
+            return true;
+          default:
+            throw new ArgumentParseException(String.format(
+                "Invalid value for printRows in '%s'; must be true or false",
+                printRowsString
+            ));
+        }
+      }
+
+      private static int parseInt(final String iterationsString, final int minValue) {
         try {
           final int result = Integer.valueOf(iterationsString, 10);
-          if (result <= 0) {
+          if (result < minValue) {
             throw new ArgumentParseException(String.format(
-                "Invalid number of iterations in '%d'; must be a positive number",
-                result
+                "Invalid integer value '%d'; must be > %d",
+                result, minValue
             ));
           }
           return Integer.valueOf(iterationsString, 10);
         } catch (final NumberFormatException exception) {
           throw new ArgumentParseException(String.format(
-              "Invalid number of iterations in '%s'; must be a valid base 10 integer",
+              "Invalid integer value '%s'; must be a valid base 10 integer",
               iterationsString
           ));
         }

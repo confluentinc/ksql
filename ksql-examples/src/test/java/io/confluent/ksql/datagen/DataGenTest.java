@@ -80,7 +80,10 @@ public class DataGenTest {
         0,
         0L,
         "srUrl",
-        null
+        null,
+        1,
+        -1,
+        true
     );
 
     final Properties props = DataGen.getProperties(args);

@@ -35,7 +35,7 @@ public class Connector {
   private final DataSourceType sourceType;
   private final Optional<String> keyField;
 
-  Connector(
+  public Connector(
       final String name,
       final Predicate<String> isTopicMatch,
       final Function<String, String> getSourceName,

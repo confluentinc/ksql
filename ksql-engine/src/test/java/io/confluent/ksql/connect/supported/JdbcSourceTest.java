@@ -13,44 +13,33 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.connect;
+package io.confluent.ksql.connect.supported;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.connect.Connector;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.MetaStoreMatchers.OptionalMatchers;
 import java.util.Map;
 import java.util.Optional;
 import org.junit.Test;
 
-public class ConnectorsTest {
+public class JdbcSourceTest {
 
-  @Test
-  public void shouldNotCreateConnectorForUnknown() {
-    // Given:
-    final Map<String, String> config = ImmutableMap.of(
-        Connectors.CONNECTOR_CLASS, "foobar"
-    );
-
-    // When:
-    final Optional<Connector> maybeConnector = Connectors.fromConnectInfo(config);
-
-    // Then:
-    assertThat("expected no connector", !maybeConnector.isPresent());
-  }
+  private final JdbcSource jdbcSource = new JdbcSource();
 
   @Test
   public void shouldCreateJdbcConnectorWithValidConfigs() {
     // Given:
     final Map<String, String> config = ImmutableMap.of(
-        Connectors.CONNECTOR_CLASS, Connectors.JDBC_SOURCE_CLASS,
+        Connectors.CONNECTOR_CLASS, JdbcSource.JDBC_SOURCE_CLASS,
         "name", "foo"
     );
 
     // When:
-    final Optional<Connector> maybeConnector = Connectors.fromConnectInfo(config);
+    final Optional<Connector> maybeConnector = jdbcSource.fromConfigs(config);
 
     // Then:
     final Connector expected = new Connector(
@@ -66,13 +55,13 @@ public class ConnectorsTest {
   public void shouldCreateJdbcConnectorWithValidPrefixTest() {
     // Given:
     final Map<String, String> config = ImmutableMap.of(
-        Connectors.CONNECTOR_CLASS, Connectors.JDBC_SOURCE_CLASS,
+        Connectors.CONNECTOR_CLASS, JdbcSource.JDBC_SOURCE_CLASS,
         "name", "foo",
         "topic.prefix", "foo-"
     );
 
     // When:
-    final Optional<Connector> maybeConnector = Connectors.fromConnectInfo(config);
+    final Optional<Connector> maybeConnector = jdbcSource.fromConfigs(config);
 
     // Then:
     assertThat(
@@ -84,13 +73,13 @@ public class ConnectorsTest {
   public void shouldCreateJdbcConnectorWithValidMapToSource() {
     // Given:
     final Map<String, String> config = ImmutableMap.of(
-        Connectors.CONNECTOR_CLASS, Connectors.JDBC_SOURCE_CLASS,
+        Connectors.CONNECTOR_CLASS, JdbcSource.JDBC_SOURCE_CLASS,
         "name", "name",
         "topic.prefix", "foo-"
     );
 
     // When:
-    final Optional<Connector> maybeConnector = Connectors.fromConnectInfo(config);
+    final Optional<Connector> maybeConnector = jdbcSource.fromConfigs(config);
 
     // Then:
     assertThat(
@@ -102,7 +91,7 @@ public class ConnectorsTest {
   public void shouldCreateJdbcConnectorWithValidConfigsAndSMT() {
     // Given:
     final Map<String, String> config = ImmutableMap.of(
-        Connectors.CONNECTOR_CLASS, Connectors.JDBC_SOURCE_CLASS,
+        Connectors.CONNECTOR_CLASS, JdbcSource.JDBC_SOURCE_CLASS,
         "name", "foo",
         "transforms", "foobar,createKey",
         "transforms.createKey.type", "org.apache.kafka.connect.transforms.ExtractField$Key",
@@ -110,7 +99,7 @@ public class ConnectorsTest {
     );
 
     // When:
-    final Optional<Connector> maybeConnector = Connectors.fromConnectInfo(config);
+    final Optional<Connector> maybeConnector = jdbcSource.fromConfigs(config);
 
     // Then:
     final Connector expected = new Connector(
@@ -120,6 +109,33 @@ public class ConnectorsTest {
         DataSourceType.KTABLE,
         "key");
     assertThat(maybeConnector, OptionalMatchers.of(is(expected)));
+  }
+
+  @Test
+  public void shouldResolveJdbcSourceConfigsTemplate() {
+    // Given:
+    final Map<String, String> originals = ImmutableMap.<String, String>builder()
+        .put(Connectors.CONNECTOR_CLASS, JdbcSource.JDBC_SOURCE_CLASS)
+        .put("transforms", "foo")
+        .put("key", "id")
+        .build();
+
+    // When:
+    final Map<String, String> resolved = jdbcSource.resolveConfigs(originals);
+
+    // Then:
+    assertThat(
+        resolved,
+        is(ImmutableMap.<String, String>builder()
+            .put(Connectors.CONNECTOR_CLASS, JdbcSource.JDBC_SOURCE_CLASS)
+            .put("transforms", "foo,ksqlCreateKey,ksqlExtractString")
+            .put("transforms.ksqlCreateKey.type", "org.apache.kafka.connect.transforms.ValueToKey")
+            .put("transforms.ksqlCreateKey.fields", "id")
+            .put("transforms.ksqlExtractString.type", "org.apache.kafka.connect.transforms.ExtractField$Key")
+            .put("transforms.ksqlExtractString.field", "id")
+            .put("key.converter", "org.apache.kafka.connect.storage.StringConverter")
+            .put("tasks.max", "1")
+            .build()));
   }
 
 }

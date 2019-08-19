@@ -13,53 +13,65 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.connect;
+package io.confluent.ksql.connect.supported;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Splitter;
+import io.confluent.ksql.connect.Connector;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
+import org.apache.kafka.connect.storage.StringConverter;
+import org.apache.kafka.connect.transforms.ExtractField;
+import org.apache.kafka.connect.transforms.ValueToKey;
 
-public final class Connectors {
+public final class JdbcSource implements SupportedConnector {
 
-  static final String CONNECTOR_CLASS = "connector.class";
   static final String JDBC_SOURCE_CLASS = "io.confluent.connect.jdbc.JdbcSourceConnector";
 
-  private Connectors() {
+  @Override
+  public Optional<Connector> fromConnectInfo(final ConnectorInfo info) {
+    final Map<String, String> properties = info.config();
+    return fromConfigs(properties);
   }
 
-  public static Optional<Connector> fromConnectInfo(final ConnectorInfo connectorInfo) {
-    return fromConnectInfo(connectorInfo.config());
-  }
-
-  @SuppressWarnings("SwitchStatementWithTooFewBranches") // will soon expand to more
-  static Optional<Connector> fromConnectInfo(final Map<String, String> properties) {
-    final String clazz = properties.get(CONNECTOR_CLASS);
-    if (clazz == null) {
-      return Optional.empty();
-    }
-
-    switch (clazz) {
-      case JDBC_SOURCE_CLASS:
-        return Optional.of(jdbc(properties));
-      default:
-        return Optional.empty();
-    }
-  }
-
-  private static Connector jdbc(final Map<String, String> properties) {
+  @VisibleForTesting
+  Optional<Connector> fromConfigs(final Map<String, String> properties) {
     final String name = properties.get("name");
     final String prefix = properties.get("topic.prefix");
 
-    return new Connector(
+    return Optional.of(new Connector(
         name,
         topic -> topic.startsWith(prefix),
         topic -> clean(name + "_" + topic.substring(prefix.length())),
         DataSourceType.KTABLE,
         extractKeyNameFromSMT(properties).orElse(null)
-    );
+    ));
+  }
+
+  @Override
+  public Map<String, String> resolveConfigs(final Map<String, String> configs) {
+    final Map<String, String> resolved = new HashMap<>(configs);
+    final String key = resolved.remove("key");
+    if (key != null) {
+      resolved.merge(
+          "transforms",
+          "ksqlCreateKey,ksqlExtractString",
+          (a, b) -> String.join(",", a, b));
+
+      resolved.put("transforms.ksqlCreateKey.type", ValueToKey.class.getName());
+      resolved.put("transforms.ksqlCreateKey.fields", key);
+
+      resolved.put("transforms.ksqlExtractString.type", ExtractField.Key.class.getName());
+      resolved.put("transforms.ksqlExtractString.field", key);
+    }
+
+    resolved.putIfAbsent("key.converter", StringConverter.class.getName());
+    resolved.putIfAbsent("tasks.max", "1");
+    return resolved;
   }
 
   /**

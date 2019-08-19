@@ -16,7 +16,8 @@
       "name": "ensure QTTs go through SqlFormatter",
       "statements": [
         "CREATE STREAM IGNORED (ID bigint) WITH (kafka_topic='topic', value_format='DELIMITED');",
-        "SET 'auto.offset.reset'='earliest';"
+        "SET 'auto.offset.reset'='earliest';",
+        "SHOW TOPICS;"
       ],
       "inputs": [ ],
       "outputs": [ ],

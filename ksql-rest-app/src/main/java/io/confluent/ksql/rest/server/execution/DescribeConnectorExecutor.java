@@ -19,7 +19,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.connect.Connector;
-import io.confluent.ksql.connect.Connectors;
+import io.confluent.ksql.connect.supported.Connectors;
 import io.confluent.ksql.parser.tree.DescribeConnector;
 import io.confluent.ksql.rest.entity.ConnectorDescription;
 import io.confluent.ksql.rest.entity.ErrorEntity;
@@ -41,7 +41,7 @@ public final class DescribeConnectorExecutor {
   private final Function<ConnectorInfo, Optional<Connector>> connectorFactory;
 
   public DescribeConnectorExecutor() {
-    this(Connectors::fromConnectInfo);
+    this(Connectors::from);
   }
 
   @VisibleForTesting

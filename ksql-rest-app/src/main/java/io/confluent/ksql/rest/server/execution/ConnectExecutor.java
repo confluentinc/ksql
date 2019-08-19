@@ -17,7 +17,7 @@ package io.confluent.ksql.rest.server.execution;
 
 import com.google.common.collect.Maps;
 import io.confluent.ksql.KsqlExecutionContext;
-import io.confluent.ksql.connect.ConnectTemplate;
+import io.confluent.ksql.connect.supported.Connectors;
 import io.confluent.ksql.parser.tree.CreateConnector;
 import io.confluent.ksql.rest.entity.CreateConnectorEntity;
 import io.confluent.ksql.rest.entity.ErrorEntity;
@@ -43,7 +43,7 @@ public final class ConnectExecutor {
 
     final ConnectResponse<ConnectorInfo> response = client.create(
         createConnector.getName(),
-        ConnectTemplate.resolve(
+        Connectors.resolve(
             Maps.transformValues(
                 createConnector.getConfig(),
                 l -> l != null ? l.getValue().toString() : null)));

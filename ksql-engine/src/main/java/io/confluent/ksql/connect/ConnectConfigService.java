@@ -20,6 +20,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.AbstractExecutionThreadService;
 import com.google.common.util.concurrent.MoreExecutors;
+import io.confluent.ksql.connect.supported.Connectors;
 import io.confluent.ksql.services.ConnectClient;
 import io.confluent.ksql.services.ConnectClient.ConnectResponse;
 import io.confluent.ksql.util.KsqlConfig;
@@ -83,7 +84,7 @@ final class ConnectConfigService extends AbstractExecutionThreadService {
         ksqlConfig,
         connectClient,
         pollingService,
-        Connectors::fromConnectInfo,
+        Connectors::from,
         KafkaConsumer::new
     );
   }

@@ -66,21 +66,23 @@ public interface ConnectClient {
   class ConnectResponse<T> {
     private final Optional<T> datum;
     private final Optional<String> error;
+    private final int httpCode;
 
-    public static <T> ConnectResponse<T> of(final T datum) {
-      return new ConnectResponse<>(datum, null);
+    public static <T> ConnectResponse<T> of(final T datum, final int code) {
+      return new ConnectResponse<>(datum, null, code);
     }
 
-    public static <T> ConnectResponse<T> of(final String error) {
-      return new ConnectResponse<>(null, error);
+    public static <T> ConnectResponse<T> of(final String error, final int code) {
+      return new ConnectResponse<>(null, error, code);
     }
 
-    private ConnectResponse(final T datum, final String error) {
+    private ConnectResponse(final T datum, final String error, final int code) {
       KsqlPreconditions.checkArgument(
           datum != null ^ error != null,
           "expected exactly one of datum or error to be null");
       this.datum = Optional.ofNullable(datum);
       this.error = Optional.ofNullable(error);
+      this.httpCode = code;
     }
 
     public Optional<T> datum() {
@@ -89,6 +91,10 @@ public interface ConnectClient {
 
     public Optional<String> error() {
       return error;
+    }
+
+    public int httpCode() {
+      return httpCode;
     }
   }
 

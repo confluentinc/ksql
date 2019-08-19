@@ -35,6 +35,7 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Optional;
+import org.apache.http.HttpStatus;
 import org.apache.kafka.connect.runtime.ConnectorConfig;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorType;
@@ -68,16 +69,16 @@ public class ListConnectorsExecutorTest {
   public void setUp() {
     when(serviceContext.getConnectClient()).thenReturn(connectClient);
     when(connectClient.describe("connector"))
-        .thenReturn(ConnectResponse.of(INFO));
+        .thenReturn(ConnectResponse.of(INFO, HttpStatus.SC_OK));
     when(connectClient.describe("connector2"))
-        .thenReturn(ConnectResponse.of("DANGER WILL ROBINSON."));
+        .thenReturn(ConnectResponse.of("DANGER WILL ROBINSON.", HttpStatus.SC_NOT_FOUND));
   }
 
   @Test
   public void shouldListValidConnector() {
     // Given:
     when(connectClient.connectors())
-        .thenReturn(ConnectResponse.of(ImmutableList.of("connector")));
+        .thenReturn(ConnectResponse.of(ImmutableList.of("connector"), HttpStatus.SC_OK));
     final ConfiguredStatement<ListConnectors> statement = ConfiguredStatement.of(
         PreparedStatement.of("", new ListConnectors(Optional.empty(), Scope.ALL)),
         ImmutableMap.of(),
@@ -105,7 +106,8 @@ public class ListConnectorsExecutorTest {
   public void shouldFilterNonMatchingConnectors() {
     // Given:
     when(connectClient.connectors())
-        .thenReturn(ConnectResponse.of(ImmutableList.of("connector", "connector2")));
+        .thenReturn(ConnectResponse.of(ImmutableList.of("connector", "connector2"),
+            HttpStatus.SC_OK));
     final ConfiguredStatement<ListConnectors> statement = ConfiguredStatement.of(
         PreparedStatement.of("", new ListConnectors(Optional.empty(), Scope.SINK)),
         ImmutableMap.of(),
@@ -131,7 +133,7 @@ public class ListConnectorsExecutorTest {
   public void shouldListInvalidConnectorWithNoInfo() {
     // Given:
     when(connectClient.connectors())
-        .thenReturn(ConnectResponse.of(ImmutableList.of("connector2")));
+        .thenReturn(ConnectResponse.of(ImmutableList.of("connector2"), HttpStatus.SC_OK));
     final ConfiguredStatement<ListConnectors> statement = ConfiguredStatement.of(
         PreparedStatement.of("", new ListConnectors(Optional.empty(), Scope.ALL)),
         ImmutableMap.of(),

@@ -21,6 +21,7 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.services.ConnectClient.ConnectResponse;
 import io.confluent.ksql.util.LimitedProxyBuilder;
 import java.util.Map;
+import org.apache.http.HttpStatus;
 
 /**
  * Supplies {@link ConnectClient}s to use that do not make any
@@ -32,10 +33,14 @@ final class SandboxConnectClient {
 
   public static ConnectClient createProxy() {
     return LimitedProxyBuilder.forClass(ConnectClient.class)
-        .swallow("create", methodParams(String.class, Map.class), ConnectResponse.of("sandbox"))
-        .swallow("describe", methodParams(String.class), ConnectResponse.of("sandbox"))
-        .swallow("connectors", methodParams(), ConnectResponse.of(ImmutableList.of()))
-        .swallow("status", methodParams(String.class), ConnectResponse.of("sandbox"))
+        .swallow("create", methodParams(String.class, Map.class),
+            ConnectResponse.of("sandbox", HttpStatus.SC_INTERNAL_SERVER_ERROR))
+        .swallow("describe", methodParams(String.class),
+            ConnectResponse.of("sandbox", HttpStatus.SC_INTERNAL_SERVER_ERROR))
+        .swallow("connectors", methodParams(),
+            ConnectResponse.of(ImmutableList.of(), HttpStatus.SC_OK))
+        .swallow("status", methodParams(String.class),
+            ConnectResponse.of("sandbox", HttpStatus.SC_INTERNAL_SERVER_ERROR))
         .build();
   }
 }

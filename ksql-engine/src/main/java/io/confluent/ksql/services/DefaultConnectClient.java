@@ -16,6 +16,10 @@
 package io.confluent.ksql.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.rholder.retry.RetryException;
+import com.github.rholder.retry.RetryerBuilder;
+import com.github.rholder.retry.StopStrategies;
+import com.github.rholder.retry.WaitStrategies;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.util.KsqlException;
@@ -25,6 +29,8 @@ import java.net.URISyntaxException;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.ResponseHandler;
@@ -49,6 +55,7 @@ public class DefaultConnectClient implements ConnectClient {
   private static final String CONNECTORS = "/connectors";
   private static final String STATUS = "/status";
   private static final int DEFAULT_TIMEOUT_MS = 5_000;
+  private static final int MAX_ATTEMPTS = 3;
 
   private final URI connectUri;
 
@@ -74,7 +81,7 @@ public class DefaultConnectClient implements ConnectClient {
           connector,
           config);
 
-      final ConnectResponse<ConnectorInfo> connectResponse = Request
+      final ConnectResponse<ConnectorInfo> connectResponse = withRetries(() -> Request
           .Post(connectUri.resolve(CONNECTORS))
           .socketTimeout(DEFAULT_TIMEOUT_MS)
           .connectTimeout(DEFAULT_TIMEOUT_MS)
@@ -87,7 +94,7 @@ public class DefaultConnectClient implements ConnectClient {
           )
           .execute()
           .handleResponse(
-              createHandler(HttpStatus.SC_CREATED, ConnectorInfo.class, Function.identity()));
+              createHandler(HttpStatus.SC_CREATED, ConnectorInfo.class, Function.identity())));
 
       connectResponse.error()
           .ifPresent(error -> LOG.warn("Did not CREATE connector {}: {}", connector, error));
@@ -104,13 +111,13 @@ public class DefaultConnectClient implements ConnectClient {
     try {
       LOG.debug("Issuing request to Kafka Connect at URI {} to list connectors", connectUri);
 
-      final ConnectResponse<List<String>> connectResponse = Request
+      final ConnectResponse<List<String>> connectResponse = withRetries(() -> Request
           .Get(connectUri.resolve(CONNECTORS))
           .socketTimeout(DEFAULT_TIMEOUT_MS)
           .connectTimeout(DEFAULT_TIMEOUT_MS)
           .execute()
           .handleResponse(
-              createHandler(HttpStatus.SC_OK, List.class, foo -> (List<String>) foo));
+              createHandler(HttpStatus.SC_OK, List.class, foo -> (List<String>) foo)));
 
       connectResponse.error()
           .ifPresent(error -> LOG.warn("Could not list connectors: {}.", error));
@@ -128,13 +135,13 @@ public class DefaultConnectClient implements ConnectClient {
           connectUri,
           connector);
 
-      final ConnectResponse<ConnectorStateInfo> connectResponse = Request
+      final ConnectResponse<ConnectorStateInfo> connectResponse = withRetries(() -> Request
           .Get(connectUri.resolve(CONNECTORS + "/" + connector + STATUS))
           .socketTimeout(DEFAULT_TIMEOUT_MS)
           .connectTimeout(DEFAULT_TIMEOUT_MS)
           .execute()
           .handleResponse(
-              createHandler(HttpStatus.SC_OK, ConnectorStateInfo.class, Function.identity()));
+              createHandler(HttpStatus.SC_OK, ConnectorStateInfo.class, Function.identity())));
 
       connectResponse.error()
           .ifPresent(error ->
@@ -152,13 +159,13 @@ public class DefaultConnectClient implements ConnectClient {
       LOG.debug("Issuing request to Kafka Connect at URI {} to get config for {}",
           connectUri, connector);
 
-      final ConnectResponse<ConnectorInfo> connectResponse = Request
+      final ConnectResponse<ConnectorInfo> connectResponse = withRetries(() -> Request
           .Get(connectUri.resolve(String.format("%s/%s", CONNECTORS, connector)))
           .socketTimeout(DEFAULT_TIMEOUT_MS)
           .connectTimeout(DEFAULT_TIMEOUT_MS)
           .execute()
           .handleResponse(
-              createHandler(HttpStatus.SC_OK, ConnectorInfo.class, Function.identity()));
+              createHandler(HttpStatus.SC_OK, ConnectorInfo.class, Function.identity())));
 
       connectResponse.error()
           .ifPresent(error -> LOG.warn("Could not list connectors: {}.", error));
@@ -169,22 +176,49 @@ public class DefaultConnectClient implements ConnectClient {
     }
   }
 
+  @SuppressWarnings("unchecked")
+  private static <T> ConnectResponse<T> withRetries(final Callable<ConnectResponse<T>> action) {
+    try {
+      return RetryerBuilder.<ConnectResponse<T>>newBuilder()
+          .withStopStrategy(StopStrategies.stopAfterAttempt(MAX_ATTEMPTS))
+          .withWaitStrategy(WaitStrategies.exponentialWait())
+          .retryIfResult(
+              result -> result == null || result.httpCode() >= HttpStatus.SC_INTERNAL_SERVER_ERROR)
+          .retryIfException()
+          .build()
+          .call(action);
+    } catch (ExecutionException e) {
+      // this should never happen because we retryIfException()
+      throw new KsqlServerException("Unexpected exception!", e);
+    } catch (RetryException e) {
+      LOG.warn("Failed to query connect cluster after {} attempts.", e.getNumberOfFailedAttempts());
+      if (e.getLastFailedAttempt().hasResult()) {
+        return (ConnectResponse<T>) e.getLastFailedAttempt().getResult();
+      }
+
+      // should rarely happen - only if some IOException happens and we didn't
+      // even get to send the request to the server
+      throw new KsqlServerException(e.getCause());
+    }
+  }
+
   private static <T, C> ResponseHandler<ConnectResponse<T>> createHandler(
       final int expectedStatus,
       final Class<C> entityClass,
       final Function<C, T> cast
   ) {
     return httpResponse -> {
+      final int code = httpResponse.getStatusLine().getStatusCode();
       if (httpResponse.getStatusLine().getStatusCode() != expectedStatus) {
         final String entity = EntityUtils.toString(httpResponse.getEntity());
-        return ConnectResponse.of(entity);
+        return ConnectResponse.of(entity, code);
       }
 
       final T info = cast.apply(MAPPER.readValue(
           httpResponse.getEntity().getContent(),
           entityClass));
 
-      return ConnectResponse.of(info);
+      return ConnectResponse.of(info, code);
     };
   }
 }

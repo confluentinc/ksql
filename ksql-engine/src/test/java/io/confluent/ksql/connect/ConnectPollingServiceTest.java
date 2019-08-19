@@ -93,6 +93,7 @@ public class ConnectPollingServiceTest {
     givenConnector("foo");
 
     // When:
+    pollingService.drainQueue();
     pollingService.runOneIteration();
 
     // Then:
@@ -116,6 +117,7 @@ public class ConnectPollingServiceTest {
     givenConnector("bar");
 
     // When:
+    pollingService.drainQueue();
     pollingService.runOneIteration();
 
     // Then:
@@ -131,6 +133,7 @@ public class ConnectPollingServiceTest {
     givenConnector("foo");
 
     // When:
+    pollingService.drainQueue();
     pollingService.runOneIteration();
 
     // Then:
@@ -151,6 +154,7 @@ public class ConnectPollingServiceTest {
     metaStore.putSource(source);
 
     // When:
+    pollingService.drainQueue();
     pollingService.runOneIteration();
 
     // Then:
@@ -166,6 +170,17 @@ public class ConnectPollingServiceTest {
 
     // Then:
     verifyZeroInteractions(serviceContext);
+  }
+
+  @Test(timeout = 30_000L)
+  public void shouldImmediatelyShutdown() {
+    pollingService = new ConnectPollingService(executionContext, foo -> {}, 60);
+
+    // When:
+    pollingService.startAsync().awaitRunning();
+    pollingService.stopAsync().awaitTerminated();
+
+    // Then: (test immediately stops)
   }
 
   private void givenTopic(final String topicName) {

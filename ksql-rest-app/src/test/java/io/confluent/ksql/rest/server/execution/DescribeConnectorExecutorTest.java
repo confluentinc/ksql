@@ -51,6 +51,7 @@ import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Optional;
 import java.util.function.Function;
+import org.apache.http.HttpStatus;
 import org.apache.kafka.connect.runtime.ConnectorConfig;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
@@ -122,8 +123,8 @@ public class DescribeConnectorExecutorTest {
     when(source.getDataSourceType()).thenReturn(DataSourceType.KTABLE);
     when(source.getKeyField()).thenReturn(KeyField.none());
     when(source.getName()).thenReturn("source");
-    when(connectClient.status(CONNECTOR_NAME)).thenReturn(ConnectResponse.of(STATUS));
-    when(connectClient.describe("connector")).thenReturn(ConnectResponse.of(INFO));
+    when(connectClient.status(CONNECTOR_NAME)).thenReturn(ConnectResponse.of(STATUS, HttpStatus.SC_OK));
+    when(connectClient.describe("connector")).thenReturn(ConnectResponse.of(INFO, HttpStatus.SC_OK));
 
     when(connector.matches(any())).thenReturn(false);
     when(connector.matches("kafka-topic")).thenReturn(true);
@@ -159,7 +160,7 @@ public class DescribeConnectorExecutorTest {
   @Test
   public void shouldErrorIfConnectClientFailsStatus() {
     // Given:
-    when(connectClient.describe(any())).thenReturn(ConnectResponse.of("error"));
+    when(connectClient.describe(any())).thenReturn(ConnectResponse.of("error", HttpStatus.SC_INTERNAL_SERVER_ERROR));
 
     // When:
     final Optional<KsqlEntity> entity = executor.execute(describeStatement, engine, serviceContext);
@@ -174,7 +175,7 @@ public class DescribeConnectorExecutorTest {
   @Test
   public void shouldErrorIfConnectClientFailsDescribe() {
     // Given:
-    when(connectClient.describe(any())).thenReturn(ConnectResponse.of("error"));
+    when(connectClient.describe(any())).thenReturn(ConnectResponse.of("error", HttpStatus.SC_INTERNAL_SERVER_ERROR));
 
     // When:
     final Optional<KsqlEntity> entity = executor.execute(describeStatement, engine, serviceContext);

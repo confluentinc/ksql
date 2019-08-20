@@ -118,6 +118,28 @@ public class UdfLoader {
     }
   }
 
+  // Does not handle customer udfs, i.e the loader is the ParentClassLoader and path is internal
+  public void loadUdfFromClass(final Class<?> ... udfClass) {
+    for (final Class<?> theClass: udfClass) {
+      //classes must be annotated with @UdfDescription
+      final UdfDescription udfDescription = theClass.getAnnotation(UdfDescription.class);
+      if (udfDescription == null) {
+        throw new KsqlException(String.format("Cannot load class %s. Classes containing UDFs must"
+            + "be annotated with @UdfDescription.", theClass.getName()));
+      }
+      //method must be public and annotated with @Udf
+      for (Method m: theClass.getDeclaredMethods()) {
+        if (m.isAnnotationPresent(Udf.class) && Modifier.isPublic(m.getModifiers())) {
+          handleUdfAnnotation(theClass,
+                              udfDescription,
+                              m,
+                              parentClassLoader,
+                              KsqlFunction.INTERNAL_PATH) ;
+        }
+      }
+    }
+  }
+
 
   @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
   private void loadUdfs(final ClassLoader loader, final Optional<Path> path) {
@@ -138,7 +160,8 @@ public class UdfLoader {
               }
               return name.contains("ksql-engine");
             })
-        .matchClassesWithMethodAnnotation(Udf.class, handleUdfAnnotation(loader, pathLoadedFrom))
+        .matchClassesWithMethodAnnotation(Udf.class,
+                                          processMethodAnnotation(loader, pathLoadedFrom))
         .matchClassesWithAnnotation(UdafDescription.class,
             handleUdafAnnotation(loader, pathLoadedFrom))
         .scan();
@@ -201,8 +224,8 @@ public class UdfLoader {
     };
   }
 
-  private MethodAnnotationMatchProcessor handleUdfAnnotation(final ClassLoader loader,
-                                                             final String path) {
+  private MethodAnnotationMatchProcessor processMethodAnnotation(final ClassLoader loader,
+                                                                 final String path) {
     return (theClass, executable) ->  {
       final UdfDescription annotation = theClass.getAnnotation(UdfDescription.class);
       if (annotation == null) {
@@ -214,8 +237,7 @@ public class UdfLoader {
       LOGGER.info("Adding UDF name='{}' from path={}", annotation.name(), path);
       final Method method = (Method) executable;
       try {
-        final UdfInvoker udf = UdfCompiler.compile(method, loader);
-        addFunction(annotation, method, udf, path);
+        handleUdfAnnotation(theClass, annotation, method, loader, path);
       } catch (final KsqlException e) {
         if (parentClassLoader == loader) {
           throw e;
@@ -228,6 +250,18 @@ public class UdfLoader {
       }
     };
   }
+
+  private void handleUdfAnnotation(final Class<?> theClass,
+                                   final UdfDescription annotation,
+                                   final Method method,
+                                   final ClassLoader classLoader,
+                                   final String path) {
+
+    LOGGER.info("Adding UDF name='{}' from class={}", annotation.name(), theClass);
+    final UdfInvoker udf = UdfCompiler.compile(method, classLoader);
+    addFunction(annotation, method, udf, path);
+  }
+
 
   private void addFunction(final UdfDescription classLevelAnnotation,
                            final Method method,

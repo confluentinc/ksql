@@ -52,7 +52,9 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 /**
  * This uses ksql-engine/src/test/resource/udf-example.jar to load the custom jars.
@@ -74,6 +76,10 @@ public class UdfLoaderTest {
       initializeFunctionRegistry(false, Optional.empty());
 
   private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
+
+  @Rule
+  public ExpectedException expectedException = ExpectedException.none();
+
 
   @SuppressFBWarnings("ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD")
   @Before
@@ -287,6 +293,54 @@ public class UdfLoaderTest {
     } catch (final KsqlException e) {
       // pass
     }
+  }
+
+  @Test
+  public void shouldNotLoadInternalUdfs() {
+    // Given:
+    final MutableFunctionRegistry functionRegistry = new InternalFunctionRegistry();
+    final UdfLoader udfLoader = new UdfLoader(functionRegistry,
+                                              new File("src/test/resources"),
+                                              PARENT_CLASS_LOADER,
+                                              value -> false,
+                                              COMPILER,
+                                              Optional.empty(),
+                                              false);
+    udfLoader.loadUdfFromClass(UdfLoaderTest.SomeFunctionUdf.class);
+
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(is("Can't find any functions with the name 'substring'"));
+
+    // When:
+      functionRegistry.getUdfFactory("substring");
+  }
+
+  @Test
+  public void shouldLoadSomeFunction() {
+    // Given:
+    final MutableFunctionRegistry functionRegistry = new InternalFunctionRegistry();
+    final UdfLoader udfLoader = new UdfLoader(functionRegistry,
+        new File("src/test/resources"),
+        PARENT_CLASS_LOADER,
+        value -> false,
+        COMPILER,
+        Optional.empty(),
+        false);
+    final List<Schema> args = ImmutableList.of(
+        Schema.STRING_SCHEMA,
+        Schema.STRING_SCHEMA,
+        Schema.STRING_SCHEMA);
+
+    // When:
+    udfLoader.loadUdfFromClass(UdfLoaderTest.SomeFunctionUdf.class);
+    final UdfFactory udfFactory = functionRegistry.getUdfFactory("somefunction");
+
+    // Then:
+    assertThat(udfFactory, not(nullValue()));
+    final KsqlFunction function = udfFactory.getFunction(args);
+    assertThat(function.getFunctionName(), equalToIgnoringCase("somefunction"));
+
   }
 
   @Test

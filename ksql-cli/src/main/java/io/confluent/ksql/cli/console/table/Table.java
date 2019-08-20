@@ -130,7 +130,8 @@ public final class Table {
 
       console.writer().printf(rowFormatString, columnHeaders.toArray());
 
-      final String separator = StringUtils.repeat('-', separatorLength);
+      final String separator =
+          StringUtils.repeat('-', Math.min(console.getWidth(), separatorLength));
       console.writer().println(separator);
       for (final List<String> row : rowValues) {
         console.writer().printf(rowFormatString, row.toArray());

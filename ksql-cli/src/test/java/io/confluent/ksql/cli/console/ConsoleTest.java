@@ -25,7 +25,10 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.FakeException;
 import io.confluent.ksql.GenericRow;
@@ -39,6 +42,7 @@ import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.ConnectorDescription;
 import io.confluent.ksql.rest.entity.ConnectorList;
 import io.confluent.ksql.rest.entity.EntityQueryId;
+import io.confluent.ksql.rest.entity.ErrorEntity;
 import io.confluent.ksql.rest.entity.ExecutionPlan;
 import io.confluent.ksql.rest.entity.FieldInfo;
 import io.confluent.ksql.rest.entity.FunctionDescriptionList;
@@ -71,6 +75,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
@@ -1031,6 +1036,61 @@ public class ConsoleTest {
     } else {
       assertThat(output, containsString("\"message\" : \"oops\""));
       assertThat(output, containsString("\"message\" : \"doh!\""));
+    }
+  }
+
+  @Test
+  public void shouldPrintErrorEntityLongNonJson() throws IOException {
+    // Given:
+    final KsqlEntity entity = new ErrorEntity(
+        "statementText",
+        Strings.repeat("Not a JSON value! ", 10));
+
+    // When:
+    console.printKsqlEntityList(ImmutableList.of(entity));
+
+    // Then:
+    final String output = terminal.getOutputString();
+    if (console.getOutputFormat() == OutputFormat.TABULAR) {
+      assertThat(
+          output,
+          is("\n"
+              + " Error                                                        \n"
+              + "--------------------------------------------------------------\n"
+              + " Not a JSON value! Not a JSON value! Not a JSON value! Not a \n"
+              + "JSON value! Not a JSON value! Not a JSON value! Not a JSON v\n"
+              + "alue! Not a JSON value! Not a JSON value! Not a JSON value!  \n"
+              + "--------------------------------------------------------------\n")
+      );
+    }
+  }
+
+  @Test
+  public void shouldPrintErrorEntityLongJson() throws IOException {
+    // Given:
+    final KsqlEntity entity = new ErrorEntity(
+        "statementText",
+        new ObjectMapper().writeValueAsString(ImmutableMap.of(
+            "foo", "bar",
+            "message", "a " + StringUtils.repeat("really ", 20) + " long message"
+        )));
+
+    // When:
+    console.printKsqlEntityList(ImmutableList.of(entity));
+
+    // Then:
+    final String output = terminal.getOutputString();
+    if (console.getOutputFormat() == OutputFormat.TABULAR) {
+      assertThat(
+          output,
+          containsString(""
+              + "----------------------------------------------------------------------------------------------------\n"
+              + " {\n"
+              + "  \"foo\" : \"bar\",\n"
+              + "  \"message\" : \"a really really really really really really really really really really really really really really really really really really really really  long message\"\n"
+              + "} \n"
+              + "----------------------------------------------------------------------------------------------------")
+      );
     }
   }
 

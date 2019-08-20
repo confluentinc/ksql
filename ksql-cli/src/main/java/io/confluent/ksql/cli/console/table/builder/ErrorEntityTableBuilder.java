@@ -15,16 +15,33 @@
 
 package io.confluent.ksql.cli.console.table.builder;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.base.Splitter;
 import io.confluent.ksql.cli.console.table.Table;
+import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.rest.entity.ErrorEntity;
+import java.io.IOException;
 
 public class ErrorEntityTableBuilder implements TableBuilder<ErrorEntity> {
 
+  private static final ObjectMapper MAPPER = JsonMapper.INSTANCE.mapper;
+
   @Override
   public Table buildTable(final ErrorEntity entity) {
+    final String message = entity.getErrorMessage();
+
+    String formatted;
+    try {
+      formatted = MAPPER
+          .writerWithDefaultPrettyPrinter()
+          .writeValueAsString(MAPPER.readTree(message));
+    } catch (IOException e) {
+      formatted = String.join("\n", Splitter.fixedLength(60).splitToList(message));
+    }
+
     return new Table.Builder()
         .withColumnHeaders("Error")
-        .withRow(entity.getErrorMessage())
+        .withRow(formatted)
         .build();
   }
 }

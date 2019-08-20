@@ -124,8 +124,8 @@ public class UdfLoader {
       //classes must be annotated with @UdfDescription
       final UdfDescription udfDescription = theClass.getAnnotation(UdfDescription.class);
       if (udfDescription == null) {
-        throw new KsqlException(String.format("Cannot load class %s. Classes containing udfs must"
-            + "be annotated with @UdfDescription.",theClass.getName()));
+        throw new KsqlException(String.format("Cannot load class %s. Classes containing UDFs must"
+            + "be annotated with @UdfDescription.", theClass.getName()));
       }
       //method must be public and annotated with @Udf
       for (Method m: theClass.getDeclaredMethods()) {
